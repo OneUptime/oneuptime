@@ -7,6 +7,7 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -18,6 +19,21 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+/*
+ * Who owns an SLO decides who hears about it, so adding or removing an owner
+ * is part of the SLO's history: entries roll up to the SLO (rootResource).
+ * The row has no name of its own, so it is named after its user. The owner
+ * notification job flips isOwnerNotified once it has told the new owner -
+ * delivery bookkeeping, not an edit.
+ */
+@EnableAuditLog({
+  rootResource: {
+    resourceType: "Service Level Objective",
+    column: "serviceLevelObjectiveId",
+  },
+  resourceNameRelation: "user",
+  ignoreColumns: ["isOwnerNotified"],
+})
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({

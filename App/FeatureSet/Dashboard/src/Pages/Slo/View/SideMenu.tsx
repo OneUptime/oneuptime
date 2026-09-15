@@ -6,7 +6,26 @@ import ObjectID from "Common/Types/ObjectID";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
-import React, { FunctionComponent, ReactElement } from "react";
+import AlertStateUtil from "../../../Utils/AlertState";
+import IncidentStateUtil from "../../../Utils/IncidentState";
+import {
+  getSloOpenAlertCountQuery,
+  getSloOpenIncidentCountQuery,
+} from "../Utils/SloOpenActivityCountQuery";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { BadgeType } from "Common/UI/Components/Badge/Badge";
+import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import ProjectUtil from "Common/UI/Utils/Project";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -15,6 +34,71 @@ export interface ComponentProps {
 const SloViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  /*
+   * The Alerts and Incidents badges count what is still OPEN, which takes the
+   * project's unresolved state ids. They stay null until those arrive (or for
+   * good, if they cannot be loaded), and the count queries stay undefined
+   * meanwhile, so no badge flashes a number that is about to change.
+   */
+  const [unresolvedIncidentStateIds, setUnresolvedIncidentStateIds] =
+    useState<Array<ObjectID> | null>(null);
+  const [unresolvedAlertStateIds, setUnresolvedAlertStateIds] =
+    useState<Array<ObjectID> | null>(null);
+
+  const fetchUnresolvedIncidentStateIds: PromiseVoidFunction =
+    async (): Promise<void> => {
+      if (!projectId) {
+        return;
+      }
+
+      const states: Array<IncidentState> =
+        await IncidentStateUtil.getUnresolvedIncidentStates(projectId);
+      const stateIds: Array<ObjectID> = [];
+
+      for (const state of states) {
+        if (state.id) {
+          stateIds.push(state.id);
+        }
+      }
+
+      setUnresolvedIncidentStateIds(stateIds);
+    };
+
+  const fetchUnresolvedAlertStateIds: PromiseVoidFunction =
+    async (): Promise<void> => {
+      if (!projectId) {
+        return;
+      }
+
+      const states: Array<AlertState> =
+        await AlertStateUtil.getUnresolvedAlertStates(projectId);
+      const stateIds: Array<ObjectID> = [];
+
+      for (const state of states) {
+        if (state.id) {
+          stateIds.push(state.id);
+        }
+      }
+
+      setUnresolvedAlertStateIds(stateIds);
+    };
+
+  useEffect(() => {
+    /*
+     * Both lists come from ModelListCache, which the header has usually
+     * warmed already. A failure only costs the badge - the items still link
+     * to their tabs.
+     */
+    fetchUnresolvedIncidentStateIds().catch(() => {
+      // ignore — the badge simply stays hidden
+    });
+    fetchUnresolvedAlertStateIds().catch(() => {
+      // ignore — the badge simply stays hidden
+    });
+  }, []);
+
   return (
     <SideMenu>
       <SideMenuSection title="SLO">
@@ -28,15 +112,30 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+        {/*
+         * Monitors and Monitor Rules sit together: the rules decide which
+         * monitors are attached, so whoever is looking at one usually needs
+         * the other next.
+         */}
         <SideMenuItem
           link={{
-            title: "Charts",
+            title: "Monitors",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SLO_VIEW_CHARTS] as Route,
+              RouteMap[PageMap.SLO_VIEW_MONITORS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Graph}
+          icon={IconProp.AltGlobe}
+        />
+        <SideMenuItem
+          link={{
+            title: "Monitor Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_MONITOR_RULES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Filter}
         />
         <SideMenuItem
           link={{
@@ -53,7 +152,26 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
            */
           icon={IconProp.Fire}
         />
+        {/*
+         * Metrics replaces the old Charts entry: the SLO's history is one of
+         * its views. The Charts route itself still resolves for bookmarks.
+         */}
         <SideMenuItem
+          link={{
+            title: "Metrics",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_METRICS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Graph}
+        />
+        {/*
+         * Open counts, not totals: the badge is a prompt to look, so it counts
+         * only what this SLO raised that is still unresolved - through the
+         * same serviceLevelObjectives relation the two tabs list.
+         */}
+        <CountModelSideMenuItem<Alert>
           link={{
             title: "Alerts",
             to: RouteUtil.populateRouteParams(
@@ -62,8 +180,15 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.ExclaimationCircle}
+          badgeType={BadgeType.DANGER}
+          modelType={Alert}
+          countQuery={getSloOpenAlertCountQuery({
+            projectId: projectId,
+            sloId: props.modelId,
+            unresolvedStateIds: unresolvedAlertStateIds,
+          })}
         />
-        <SideMenuItem
+        <CountModelSideMenuItem<Incident>
           link={{
             title: "Incidents",
             to: RouteUtil.populateRouteParams(
@@ -72,6 +197,23 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Alert}
+          badgeType={BadgeType.DANGER}
+          modelType={Incident}
+          countQuery={getSloOpenIncidentCountQuery({
+            projectId: projectId,
+            sloId: props.modelId,
+            unresolvedStateIds: unresolvedIncidentStateIds,
+          })}
+        />
+        <SideMenuItem
+          link={{
+            title: "Feed",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_FEED] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
       </SideMenuSection>
 
@@ -85,6 +227,16 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Team}
+        />
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
         />
         <SideMenuItem
           link={{

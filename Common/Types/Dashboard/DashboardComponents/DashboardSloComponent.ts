@@ -35,6 +35,16 @@ export default interface DashboardSloComponent extends BaseComponent {
      * The renderer wraps it in `new ObjectID(...)` before querying.
      */
     serviceLevelObjectiveId?: string | undefined;
+    /*
+     * Id of a Telemetry Attribute dashboard variable whose selected value is
+     * an SLO NAME (the SLO template binds one to the bare `sloName` key the
+     * `oneuptime.slo.*` metrics carry). When no SLO is pinned above, the
+     * widget shows whichever SLO the reader picks in that toolbar variable.
+     * A pinned serviceLevelObjectiveId always wins — see
+     * Common/Utils/Dashboard/SloWidgetSource.ts, which both the renderer and
+     * the public-dashboard policy resolve through.
+     */
+    serviceLevelObjectiveVariableId?: string | undefined;
     sloMetric?: SloWidgetMetric | undefined;
     displayType?: SloWidgetDisplayType | undefined;
     widgetTitle?: string | undefined;

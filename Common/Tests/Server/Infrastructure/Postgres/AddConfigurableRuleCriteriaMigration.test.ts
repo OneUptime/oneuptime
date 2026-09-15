@@ -10,6 +10,31 @@ const REMINDER_TABLES: ReadonlyArray<string> = [
   "ScheduledMaintenanceReminderRule",
 ];
 const NEVER_MATCH_PATTERN: string = "(?!)";
+
+/*
+ * Rule models registered AFTER this migration shipped. The expectations below
+ * are derived from the live registry, but a migration is a snapshot: it must
+ * never be edited to cover a table it predates (databases that already ran it
+ * would never see the change, and fresh ones would diverge from them). A new
+ * rule table created later gets its `criteria` column in its own CREATE TABLE
+ * and needs no legacy shadow trigger, because no older worker ever read it.
+ *
+ * Only ever append here, and only for a model whose table is created by a
+ * later migration.
+ */
+const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
+  // 1793100000000-SloProductOverhaul
+  "ServiceLevelObjectiveMonitorRule",
+];
+
+type IsCoveredByMigrationFunction = (modelName: string) => boolean;
+
+const isCoveredByMigration: IsCoveredByMigrationFunction = (
+  modelName: string,
+): boolean => {
+  return !RULE_MODELS_INTRODUCED_AFTER_MIGRATION.includes(modelName);
+};
+
 const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_RULE_CRITERIA_MIGRATION_TESTS"] === "true"
     ? describe
@@ -54,10 +79,13 @@ function tablesMatching(
 }
 
 function expectedLegacyShadowMappings(): Array<readonly [string, string]> {
-  const registeredEntries: Array<[string, ReadonlyArray<string>]> =
+  const registeredEntries: Array<[string, ReadonlyArray<string>]> = (
     Object.entries(RULE_CRITERIA_FIELDS_BY_MODEL) as Array<
       [string, ReadonlyArray<string>]
-    >;
+    >
+  ).filter(([tableName]: [string, ReadonlyArray<string>]): boolean => {
+    return isCoveredByMigration(tableName);
+  });
 
   return registeredEntries.flatMap(
     ([tableName, fields]: [string, ReadonlyArray<string>]): Array<
@@ -134,7 +162,9 @@ describe("AddConfigurableRuleCriteria migration", () => {
     const downStatements: Array<string> = await queriesFor("down");
     const registeredModels: Array<string> = Object.keys(
       RULE_CRITERIA_FIELDS_BY_MODEL,
-    ).sort();
+    )
+      .filter(isCoveredByMigration)
+      .sort();
 
     const addedTables: Array<string> = tablesMatching(
       upStatements,

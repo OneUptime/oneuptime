@@ -39,10 +39,33 @@ const resolveReadPermissions: () => Array<Permission> =
 
 type AlertStateFilter = "active" | "resolved" | "any";
 
+/*
+ * The SLOs an alert is linked to, as one comma-separated value. An SLO burn
+ * rate alert has no monitor, so this is the only source such a row can name;
+ * undefined when there are none, so the serializer drops the field.
+ */
+type JoinSloNamesFunction = (
+  serviceLevelObjectives: Array<{ name?: string | undefined }> | undefined,
+) => string | undefined;
+
+const joinSloNames: JoinSloNamesFunction = (
+  serviceLevelObjectives: Array<{ name?: string | undefined }> | undefined,
+): string | undefined => {
+  const names: Array<string> = (serviceLevelObjectives || [])
+    .map((slo: { name?: string | undefined }): string => {
+      return slo.name || "";
+    })
+    .filter((name: string): boolean => {
+      return name.length > 0;
+    });
+
+  return names.length > 0 ? names.join(", ") : undefined;
+};
+
 export const QueryAlertsTool: ObservabilityTool = {
   name: "query_alerts",
   description:
-    "Query alerts in this project with their current state and severity. Every row also carries the monitor the alert was raised for, so counting rows by monitor answers 'which monitor or source is the noisiest?'. To answer 'which alerts are active/firing right now?' pass state='active' — it returns every unresolved alert regardless of age (no time window unless createdWithinHours is passed explicitly). state='resolved' returns only resolved alerts; the default 'any' returns both, limited to the createdWithinHours window. Results are newest-first; the result reports the total match count — pass skip to page through more. Pass alertId to get full details of one alert, including its description and its owners (teams and users).",
+    "Query alerts in this project with their current state and severity. Every row also carries the monitor the alert was raised for — or, for an alert raised by an SLO burn rate rule, the SLO (slos) — so counting rows by monitor or SLO answers 'which monitor or source is the noisiest?'. To answer 'which alerts are active/firing right now?' pass state='active' — it returns every unresolved alert regardless of age (no time window unless createdWithinHours is passed explicitly). state='resolved' returns only resolved alerts; the default 'any' returns both, limited to the createdWithinHours window. Results are newest-first; the result reports the total match count — pass skip to page through more. Pass alertId to get full details of one alert, including its description and its owners (teams and users).",
   inputSchema: {
     type: "object",
     properties: {
@@ -98,6 +121,13 @@ export const QueryAlertsTool: ObservabilityTool = {
             name: true,
           },
           monitor: {
+            name: true,
+          },
+          /*
+           * name is flagged canReadOnRelationQuery on the SLO, so this reads
+           * for a caller who can see alerts but not SLOs.
+           */
+          serviceLevelObjectives: {
             name: true,
           },
         },
@@ -181,6 +211,7 @@ export const QueryAlertsTool: ObservabilityTool = {
               state: alert.currentAlertState?.name,
               severity: alert.alertSeverity?.name,
               monitor: alert.monitor?.name,
+              slos: joinSloNames(alert.serviceLevelObjectives),
               createdAt: alert.createdAt,
               ownerTeams: ownerTeamNames || undefined,
               ownerUsers: ownerUserNames || undefined,
@@ -299,6 +330,10 @@ export const QueryAlertsTool: ObservabilityTool = {
         monitor: {
           name: true,
         },
+        // A burn-rate alert has no monitor; the SLO is its source.
+        serviceLevelObjectives: {
+          name: true,
+        },
       },
       sort: {
         createdAt: SortOrder.Descending,
@@ -323,6 +358,7 @@ export const QueryAlertsTool: ObservabilityTool = {
         state: alert.currentAlertState?.name,
         severity: alert.alertSeverity?.name,
         monitor: alert.monitor?.name,
+        slos: joinSloNames(alert.serviceLevelObjectives),
         createdAt: alert.createdAt,
       };
     });

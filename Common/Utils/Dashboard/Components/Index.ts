@@ -41,6 +41,7 @@ import DashboardProxmoxGuestListComponentUtil from "./DashboardProxmoxGuestListC
 import DashboardSecurityEventsFlowComponentUtil from "./DashboardSecurityEventsFlowComponent";
 import DashboardSecurityEventsListComponentUtil from "./DashboardSecurityEventsListComponent";
 import DashboardSloComponentUtil from "./DashboardSloComponent";
+import DashboardSloListComponentUtil from "./DashboardSloListComponent";
 import DashboardProxmoxNodeListComponentUtil from "./DashboardProxmoxNodeListComponent";
 import DashboardDockerSwarmNodeListComponentUtil from "./DashboardDockerSwarmNodeListComponent";
 import DashboardDockerSwarmServiceListComponentUtil from "./DashboardDockerSwarmServiceListComponent";
@@ -179,6 +180,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.Slo) {
       return DashboardSloComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.SloList) {
+      return DashboardSloListComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

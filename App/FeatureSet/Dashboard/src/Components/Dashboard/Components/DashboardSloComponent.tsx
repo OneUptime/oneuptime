@@ -21,6 +21,7 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -28,6 +29,16 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
+import {
+  getSloWidgetAmbiguousText,
+  getSloWidgetNotFoundText,
+  resolveSloWidgetSource,
+  SLO_WIDGET_MULTIPLE_SELECTION_TEXT,
+  SLO_WIDGET_NO_SELECTION_TEXT,
+  SLO_WIDGET_VARIABLE_MISSING_TEXT,
+  SloWidgetSource,
+  SloWidgetSourceState,
+} from "Common/Utils/Dashboard/SloWidgetSource";
 import {
   getSloStatusColor,
   getSloStatusText,
@@ -115,14 +126,57 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
   const [chartPoints, setChartPoints] = useState<Array<DataPoint>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * How many active SLOs carry the selected name, for a widget that follows
+   * a toolbar variable: 0 and 2 are both reasons to show no numbers, and they
+   * say different things. Null for a pinned widget, which never looks up by
+   * name.
+   */
+  const [nameMatchCount, setNameMatchCount] = useState<number | null>(null);
 
-  const serviceLevelObjectiveId: string | undefined =
-    props.component.arguments.serviceLevelObjectiveId;
   const sloMetric: SloWidgetMetric =
     props.component.arguments.sloMetric || SloWidgetMetric.Sli;
   const displayType: SloWidgetDisplayType =
     props.component.arguments.displayType || SloWidgetDisplayType.Tile;
   const isChart: boolean = displayType === SloWidgetDisplayType.Chart;
+
+  /*
+   * Which SLO this widget shows — pinned by id, or whichever SLO the bound
+   * toolbar variable currently names. Resolved by the same function the
+   * public-dashboard policy uses, so the browser and the server can never
+   * disagree about it.
+   */
+  const source: SloWidgetSource = useMemo((): SloWidgetSource => {
+    return resolveSloWidgetSource({
+      serviceLevelObjectiveId:
+        props.component.arguments.serviceLevelObjectiveId,
+      serviceLevelObjectiveVariableId:
+        props.component.arguments.serviceLevelObjectiveVariableId,
+      variables: props.variables,
+    });
+  }, [
+    props.component.arguments.serviceLevelObjectiveId,
+    props.component.arguments.serviceLevelObjectiveVariableId,
+    props.variables,
+  ]);
+
+  const sourceState: SloWidgetSourceState = source.state;
+  const pinnedServiceLevelObjectiveId: string | undefined =
+    source.serviceLevelObjectiveId;
+  const selectedSloName: string | undefined = source.sloName;
+  const isFollowingSelection: boolean =
+    sourceState === SloWidgetSourceState.FollowsSelection;
+
+  /*
+   * The latest variables, read at request time. A public request for a
+   * variable-bound widget sends them so the server can resolve the viewer's
+   * pick — but the fetch must re-run only when the RESOLVED source changes,
+   * not whenever some unrelated variable on the dashboard moves.
+   */
+  const variablesRef: React.MutableRefObject<
+    Array<DashboardVariable> | undefined
+  > = useRef<Array<DashboardVariable> | undefined>(props.variables);
+  variablesRef.current = props.variables;
 
   /*
    * The public endpoints resolve the widget — and therefore the SLO they are
@@ -147,8 +201,8 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
 
   /*
    * Guard against an out-of-order response overwriting a newer one: the
-   * time-range picker and auto-refresh can both fire while a request is in
-   * flight (mirrors DashboardLogChartComponent's sequence ref).
+   * time-range picker, the toolbar and auto-refresh can all fire while a
+   * request is in flight (mirrors DashboardLogChartComponent's sequence ref).
    */
   const requestSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
 
@@ -161,11 +215,19 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
 
       setIsLoading(true);
 
-      if (!serviceLevelObjectiveId) {
-        // Unconfigured widget — the setup state below explains what to do.
+      if (
+        sourceState !== SloWidgetSourceState.Pinned &&
+        sourceState !== SloWidgetSourceState.FollowsSelection
+      ) {
+        /*
+         * Unconfigured, or following a variable that names no single SLO
+         * right now. Nothing to read — and on a public dashboard nothing the
+         * server could scope — so the placeholder below explains what to do.
+         */
         setSlo(null);
         setChartPoints([]);
         setError(null);
+        setNameMatchCount(null);
         setIsLoading(false);
         return;
       }
@@ -184,22 +246,53 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const sloId: ObjectID = new ObjectID(serviceLevelObjectiveId);
-
       try {
-        const fetchedSlo: ServiceLevelObjective | null =
-          await SloWidgetData.fetchSlo({
+        let fetchedSlo: ServiceLevelObjective | null = null;
+        let sloId: ObjectID | null = null;
+
+        if (sourceState === SloWidgetSourceState.Pinned) {
+          sloId = new ObjectID(pinnedServiceLevelObjectiveId as string);
+
+          fetchedSlo = await SloWidgetData.fetchSlo({
             serviceLevelObjectiveId: sloId,
             componentId: props.componentId,
           });
 
-        if (isStale()) {
-          return;
+          if (isStale()) {
+            return;
+          }
+
+          setNameMatchCount(null);
+        } else {
+          const matches: Array<ServiceLevelObjective> =
+            await SloWidgetData.fetchSlosByName({
+              sloName: selectedSloName as string,
+              componentId: props.componentId,
+              projectId: projectId,
+              variables: variablesRef.current,
+            });
+
+          if (isStale()) {
+            return;
+          }
+
+          setNameMatchCount(matches.length);
+
+          /*
+           * Only an unambiguous match is shown. Two active SLOs sharing the
+           * picked name would otherwise render whichever one sorted first,
+           * under a toolbar that cannot tell them apart.
+           */
+          fetchedSlo = matches.length === 1 ? matches[0] || null : null;
+
+          const matchedId: string | undefined = fetchedSlo?._id?.toString();
+          sloId = matchedId ? new ObjectID(matchedId) : null;
         }
 
         setSlo(fetchedSlo);
 
-        if (!isChart) {
+        if (!isChart || !fetchedSlo || !sloId) {
+          // A tile needs only the row; a missing SLO has no history to chart.
           setChartPoints([]);
           setError(null);
           setIsLoading(false);
@@ -228,6 +321,14 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         const result: AggregatedResult =
           await SloWidgetData.aggregateSloHistory({
             componentId: props.componentId,
+            /*
+             * A public chart that follows a toolbar variable can only be
+             * resolved from the viewer's selection; a pinned one sends none.
+             */
+            variables:
+              sourceState === SloWidgetSourceState.FollowsSelection
+                ? variablesRef.current || []
+                : undefined,
             aggregateBy: {
               query: {
                 /*
@@ -295,7 +396,9 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         setIsLoading(false);
       }
     }, [
-      serviceLevelObjectiveId,
+      sourceState,
+      pinnedServiceLevelObjectiveId,
+      selectedSloName,
       sloMetric,
       isChart,
       startAndEndDate,
@@ -311,7 +414,10 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
     widgetTitle: props.component.arguments.widgetTitle,
     sloName: slo?.name,
     sloMetric: sloMetric,
+    followsSelection: isFollowingSelection,
   });
+  const placeholderTitle: string =
+    props.component.arguments.widgetTitle || metricLabel;
 
   // ── Loading ────────────────────────────────────────────────────────────
   if (isLoading && !slo) {
@@ -337,7 +443,7 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   // ── Not configured ─────────────────────────────────────────────────────
-  if (!serviceLevelObjectiveId) {
+  if (sourceState === SloWidgetSourceState.Unconfigured) {
     return getPlaceholder({
       icon: IconProp.Percent,
       iconClassName: "text-emerald-300",
@@ -347,13 +453,62 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
     });
   }
 
+  // ── Following a variable that is gone ──────────────────────────────────
+  if (sourceState === SloWidgetSourceState.VariableMissing) {
+    return getPlaceholder({
+      icon: IconProp.Filter,
+      iconClassName: "text-gray-300",
+      iconBackgroundClassName: "bg-gray-50",
+      title: placeholderTitle,
+      message: SLO_WIDGET_VARIABLE_MISSING_TEXT,
+    });
+  }
+
+  // ── Following a variable that names no single SLO right now ────────────
+  if (
+    sourceState === SloWidgetSourceState.NoSelection ||
+    sourceState === SloWidgetSourceState.MultipleSelection
+  ) {
+    /*
+     * The reader's next action, not an error: the same emerald treatment as
+     * the setup state, and it names the TOOLBAR — the one control that works
+     * in the view mode a dashboard opens in.
+     */
+    return getPlaceholder({
+      icon: IconProp.Filter,
+      iconClassName: "text-emerald-300",
+      iconBackgroundClassName: "bg-emerald-50",
+      title: placeholderTitle,
+      message:
+        sourceState === SloWidgetSourceState.MultipleSelection
+          ? SLO_WIDGET_MULTIPLE_SELECTION_TEXT
+          : SLO_WIDGET_NO_SELECTION_TEXT,
+    });
+  }
+
+  // ── Following a selection that matches no single active SLO ────────────
+  if (isFollowingSelection && !slo) {
+    const sloName: string = selectedSloName || "";
+
+    return getPlaceholder({
+      icon: IconProp.Percent,
+      iconClassName: "text-gray-300",
+      iconBackgroundClassName: "bg-gray-50",
+      title: placeholderTitle,
+      message:
+        nameMatchCount !== null && nameMatchCount > 1
+          ? getSloWidgetAmbiguousText(sloName)
+          : getSloWidgetNotFoundText(sloName),
+    });
+  }
+
   // ── Configured, but the SLO is gone (deleted after the widget was saved)
   if (!slo) {
     return getPlaceholder({
       icon: IconProp.Percent,
       iconClassName: "text-gray-300",
       iconBackgroundClassName: "bg-gray-50",
-      title: props.component.arguments.widgetTitle || metricLabel,
+      title: placeholderTitle,
       message: "This SLO no longer exists.",
     });
   }
@@ -557,6 +712,15 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
       next.dashboardStartAndEndDate,
     )
   ) {
+    return false;
+  }
+
+  /*
+   * A widget that follows a toolbar variable must re-render when the
+   * selection moves; a pinned widget re-renders too but its resolved source
+   * does not change, so it does not refetch.
+   */
+  if (!JSONFunctions.deepEqual(prev.variables, next.variables)) {
     return false;
   }
 

@@ -2,21 +2,33 @@ import PageComponentProps from "../../PageComponentProps";
 import {
   BURN_RATE_RULE_FORM_FIELDS,
   BURN_RATE_RULE_FORM_STEPS,
+  BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE,
+  describeBurnRateOutputOptions,
   describeBurnRateOutputs,
+  willCreateAlert,
+  willDeclareIncident,
+  withOwnerUserDropdownOptions,
 } from "../Utils/BurnRateRuleForm";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
+import ProjectUser from "../../../Utils/ProjectUser";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
 import {
   canSloFireBurnRateRules,
   isBurnRateRuleFiring,
 } from "Common/Utils/Slo/SloBurnRateRuleState";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -50,11 +62,44 @@ Each rule can raise an **Alert**, declare an **Incident**, or both — and it mu
 - An **Alert** is the lightweight signal: it lands in the alert inbox and runs whatever on-call policies you attach to it.
 - An **Incident** is the heavyweight one: it takes an incident number, runs its own on-call policies, and carries the whole response workflow (notes, timeline, postmortem).
 
-The two are independent. They get their own severity and their own on-call policies, so you can route the Alert to a team rotation and the Incident to the major-incident rotation. Each also has its own quiet period after it resolves — resolving the Incident does not reset the Alert's, or the other way around.
+The two are independent. Each has its own title, description, severity, on-call policies, owners, labels, privacy and auto-resolve setting, so you can send a terse Alert to a team rotation and a detailed Incident to the major-incident rotation. Each also has its own quiet period after it resolves — resolving the Incident does not reset the Alert's, or the other way around.
+
+Every alert and incident a rule creates lists the SLO as an **affected resource**, so it shows up on the SLO's Alerts and Incidents tabs.
 
 Burn rate incidents are **not** published to status pages and do not notify subscribers: an error budget burning fast is an internal engineering signal, not a declared customer-facing outage.
 
-If you resolve the Incident by hand while the budget is still burning, the rule will not re-declare it. It stays closed until the burn recovers and the rule genuinely fires again.
+---
+
+### What Each Record Says
+
+Leave the title and description empty and the rule uses its built-in text, which names the SLO and the rule and states both burn rates, the threshold and the error budget remaining.
+
+To write your own, use these variables in the title, the description and the remediation notes. They are filled in at the moment the rule fires:
+
+${BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE}
+
+A variable that is misspelled is left exactly as written, so a typo shows up in the alert instead of silently disappearing.
+
+---
+
+### Owners, Labels and Privacy
+
+- **Owner teams and owner users** are added to the record when it is created, and are notified.
+- **Add SLO Owners as Owners** also adds this SLO's owners — its owner users and the members of its owner teams. They already hear about the SLO's status changes, so this can notify them twice.
+- **Labels** are added to the record, so filters, owner rules and workspace notification rules can match it.
+- A **private** record is visible only to its owners, project admins and project owners.
+
+---
+
+### Auto-Resolve
+
+With **Auto Resolve** on (the default), the rule resolves its record once the burn rate over the long window drops back below the threshold.
+
+Turn it off and the record stays open until someone resolves it. The rule will not open another one on top of it; once it has been resolved by hand and the burn has recovered, the rule can fire again.
+
+If you resolve the Incident by hand while the budget is still burning, the rule will not re-declare it either way. It stays closed until the burn recovers and the rule genuinely fires again.
+
+Disabling the rule, switching an output off, deleting the rule, or disabling, archiving or deleting the SLO always resolves what the rule has open — whatever the auto-resolve setting says.
 
 ---
 
@@ -73,17 +118,19 @@ Route the fast-burn rule to a paging on-call policy at a high severity, and let 
 
 ### Creating One
 
-The form walks the four questions a rule answers:
+The form walks the questions a rule answers:
 
 | Step | What you set |
 |------|--------------|
 | **Rule** | Its name, and whether it is enabled. |
 | **Burn Window** | The threshold, the long and short windows, and the re-fire suppression. |
-| **What It Declares** | Alert, Incident, or both. |
-| **Alert Routing** | The alert's severity and on-call policies. Only shown when the rule raises one. |
-| **Incident Routing** | The incident's severity and on-call policies. Only shown when the rule declares one. |
+| **What It Declares** | Alert, Incident, or both, and whether the SLO's owners are added as owners. |
+| **Alert Details** | The alert's title, description and severity. Only shown when the rule raises one. |
+| **Alert Routing** | The alert's on-call policies, owners, labels, auto-resolve, privacy and remediation notes. |
+| **Incident Details** | The incident's title, description and severity. Only shown when the rule declares one. |
+| **Incident Routing** | The incident's on-call policies, owners, labels, auto-resolve, privacy and remediation notes. |
 
-The two routing steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incident severity.
+The alert and incident steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incidents.
 
 ---
 
@@ -91,13 +138,13 @@ The two routing steps appear and disappear with the toggles on **What It Declare
 
 - A rule cannot fire until the SLO has at least a full long window of monitoring history, so a brand-new monitor cannot page you on its first blip. That means a fresh SLO will not fire Fast burn for its first hour, or Slow burn for its first six.
 - **Re-fire Suppression** is the quiet period after an alert or incident resolves before the same rule may declare that record again. Each output is suppressed independently, measured from its own resolve. It defaults to the long window.
-- Alerts and incidents are created with their configured **severity** and attached **on-call duty policies**, so they page through your normal escalation. Leave a severity blank and the project's most severe one is used.
+- Leave a severity blank and the project's most severe one is used.
 - While any monitor on the SLO is under an active scheduled maintenance window, the rule is suppressed entirely — planned work should not page anyone.
 `;
 
 /*
  * The form's pure half lives in a React-free sibling: App has no react, and
- * a node test that wants these four functions must be able to import them
+ * a node test that wants these functions must be able to import them
  * without pulling this page - and the whole component graph - into App's
  * program. Re-exported here so importers of the page are unchanged.
  * See Pages/Slo/Utils/BurnRateRuleForm.
@@ -105,21 +152,94 @@ The two routing steps appear and disappear with the toggles on **What It Declare
 export {
   BURN_RATE_RULE_FORM_FIELDS,
   BURN_RATE_RULE_FORM_STEPS,
+  BURN_RATE_RULE_OWNER_USER_COLUMNS,
+  BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE,
+  describeBurnRateOutputOptions,
   describeBurnRateOutputs,
   validateBurnRateOutputs,
   validateBurnRateThreshold,
   validateBurnRateWindows,
   willCreateAlert,
   willDeclareIncident,
+  withOwnerUserDropdownOptions,
 } from "../Utils/BurnRateRuleForm";
 export type {
+  BurnRateRuleOptionFlags,
   BurnRateRuleOutputFlags,
+  DescribeBurnRateOutputOptionsFunction,
   DescribeBurnRateOutputsFunction,
+  FetchBurnRateRuleOwnerUserOptionsFunction,
   ReadsBurnRateOutputFlagFunction,
   ValidateBurnRateOutputsFunction,
   ValidateBurnRateThresholdFunction,
   ValidateBurnRateWindowsFunction,
+  WithOwnerUserDropdownOptionsFunction,
 } from "../Utils/BurnRateRuleForm";
+
+/*
+ * The form fields, with the two owner-user pickers given their options. User
+ * is not a project-listable model, so a dropdownModal cannot list it; the
+ * project's users come from its team members instead. Built once at module
+ * level: the loader reads the current project when it RUNS, not when this is
+ * built, and a stable array keeps ModelTable from seeing new form fields on
+ * every render.
+ */
+const BURN_RATE_RULE_FORM_FIELDS_WITH_OWNER_USERS: Array<
+  ModelField<ServiceLevelObjectiveBurnRateRule>
+> = withOwnerUserDropdownOptions(
+  BURN_RATE_RULE_FORM_FIELDS,
+  async (): Promise<Array<DropdownOption>> => {
+    return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+      ProjectUtil.getCurrentProjectId()!,
+    );
+  },
+);
+
+type RenderLinesFunction = (lines: Array<string>) => ReactElement;
+
+// One line per output, or a dash when the rule declares nothing that applies.
+const renderLines: RenderLinesFunction = (
+  lines: Array<string>,
+): ReactElement => {
+  if (lines.length === 0) {
+    return <span className="text-sm text-gray-400">—</span>;
+  }
+
+  return (
+    <div>
+      {lines.map((line: string) => {
+        return (
+          <div key={line} className="text-sm text-gray-900">
+            {line}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+type DescribeOwnersFunction = (
+  teams: Array<Team> | undefined,
+  users: Array<User> | undefined,
+) => string;
+
+const describeOwners: DescribeOwnersFunction = (
+  teams: Array<Team> | undefined,
+  users: Array<User> | undefined,
+): string => {
+  const names: Array<string> = [
+    ...(teams || []).map((team: Team): string => {
+      return team.name || "";
+    }),
+    ...(users || []).map((user: User): string => {
+      return user.name?.toString() || user.email?.toString() || "";
+    }),
+  ].filter((name: string): boolean => {
+    return Boolean(name);
+  });
+
+  return names.length > 0 ? names.join(", ") : "None";
+};
 
 const SloBurnRateRules: FunctionComponent<
   PageComponentProps
@@ -200,7 +320,7 @@ const SloBurnRateRules: FunctionComponent<
         helpContent={{
           title: "How Burn Rate Rules Work",
           description:
-            "Understanding burn rates, fast/slow burn windows, and alerting",
+            "Burn rates, fast and slow burn windows, what each alert and incident says, and where it goes",
           markdown: documentationMarkdown,
         }}
         documentationLink={new Route("/docs/slo/burn-rate-alerts")}
@@ -221,7 +341,7 @@ const SloBurnRateRules: FunctionComponent<
           },
         ]}
         formSteps={BURN_RATE_RULE_FORM_STEPS}
-        formFields={BURN_RATE_RULE_FORM_FIELDS}
+        formFields={BURN_RATE_RULE_FORM_FIELDS_WITH_OWNER_USERS}
         columns={[
           {
             field: {
@@ -289,10 +409,28 @@ const SloBurnRateRules: FunctionComponent<
             getElement: (
               item: ServiceLevelObjectiveBurnRateRule,
             ): ReactElement => {
+              /*
+               * The options that change what a responder sees - a record that
+               * stays open until resolved by hand, or one most of the project
+               * cannot see - are listed under the label, because nothing else
+               * in the row would reveal them.
+               */
+              const options: Array<string> =
+                describeBurnRateOutputOptions(item);
+
               return (
-                <span className="text-sm text-gray-900">
-                  {describeBurnRateOutputs(item)}
-                </span>
+                <div>
+                  <div className="text-sm text-gray-900">
+                    {describeBurnRateOutputs(item)}
+                  </div>
+                  {options.map((option: string) => {
+                    return (
+                      <div key={option} className="text-xs text-gray-500">
+                        {option}
+                      </div>
+                    );
+                  })}
+                </div>
               );
             },
           },
@@ -372,31 +510,17 @@ const SloBurnRateRules: FunctionComponent<
                */
               const lines: Array<string> = [];
 
-              if (item.shouldCreateAlert !== false) {
+              if (willCreateAlert(item)) {
                 lines.push(`Alert: ${item.alertSeverity?.name || "Default"}`);
               }
 
-              if (item.shouldCreateIncident === true) {
+              if (willDeclareIncident(item)) {
                 lines.push(
                   `Incident: ${item.incidentSeverity?.name || "Default"}`,
                 );
               }
 
-              if (lines.length === 0) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-
-              return (
-                <div>
-                  {lines.map((line: string) => {
-                    return (
-                      <div key={line} className="text-sm text-gray-900">
-                        {line}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
+              return renderLines(lines);
             },
           },
           {
@@ -432,7 +556,7 @@ const SloBurnRateRules: FunctionComponent<
 
               const lines: Array<string> = [];
 
-              if (item.shouldCreateAlert !== false) {
+              if (willCreateAlert(item)) {
                 lines.push(
                   `Alert: ${describePolicies(
                     item.onCallDutyPolicies as Array<OnCallDutyPolicy>,
@@ -440,7 +564,7 @@ const SloBurnRateRules: FunctionComponent<
                 );
               }
 
-              if (item.shouldCreateIncident === true) {
+              if (willDeclareIncident(item)) {
                 lines.push(
                   `Incident: ${describePolicies(
                     item.incidentOnCallDutyPolicies as Array<OnCallDutyPolicy>,
@@ -448,21 +572,101 @@ const SloBurnRateRules: FunctionComponent<
                 );
               }
 
-              if (lines.length === 0) {
+              return renderLines(lines);
+            },
+          },
+          {
+            field: {
+              alertOwnerTeams: {
+                name: true,
+              },
+            },
+            title: "Owners",
+            type: FieldType.EntityArray,
+            hideOnMobile: true,
+            getElement: (
+              item: ServiceLevelObjectiveBurnRateRule,
+            ): ReactElement => {
+              /*
+               * Per output, like the severity and on-call cells: owners are
+               * configured per output, and the pair routinely differs.
+               */
+              const lines: Array<string> = [];
+
+              if (willCreateAlert(item)) {
+                lines.push(
+                  `Alert: ${describeOwners(
+                    item.alertOwnerTeams,
+                    item.alertOwnerUsers,
+                  )}`,
+                );
+              }
+
+              if (willDeclareIncident(item)) {
+                lines.push(
+                  `Incident: ${describeOwners(
+                    item.incidentOwnerTeams,
+                    item.incidentOwnerUsers,
+                  )}`,
+                );
+              }
+
+              if (lines.length > 0 && item.addSloOwnersAsOwners === true) {
+                lines.push("+ SLO owners");
+              }
+
+              return renderLines(lines);
+            },
+          },
+          {
+            field: {
+              alertLabels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+            hideOnMobile: true,
+            getElement: (
+              item: ServiceLevelObjectiveBurnRateRule,
+            ): ReactElement => {
+              /*
+               * One set of chips for both outputs, deduplicated: a label is
+               * the same label whichever record carries it, and two identical
+               * chips side by side read as a rendering bug.
+               */
+              const labels: Array<Label> = [];
+              const seenLabelKeys: Set<string> = new Set<string>();
+
+              const addLabels: (
+                candidates: Array<Label> | undefined,
+              ) => void = (candidates: Array<Label> | undefined): void => {
+                for (const label of candidates || []) {
+                  const key: string = label.id?.toString() || label.name || "";
+
+                  if (!key || seenLabelKeys.has(key)) {
+                    continue;
+                  }
+
+                  seenLabelKeys.add(key);
+                  labels.push(label);
+                }
+              };
+
+              if (willCreateAlert(item)) {
+                addLabels(item.alertLabels);
+              }
+
+              if (willDeclareIncident(item)) {
+                addLabels(item.incidentLabels);
+              }
+
+              if (labels.length === 0) {
                 return <span className="text-sm text-gray-400">—</span>;
               }
 
-              return (
-                <div>
-                  {lines.map((line: string) => {
-                    return (
-                      <div key={line} className="text-sm text-gray-900">
-                        {line}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
+              return <LabelsElement labels={labels} />;
             },
           },
           {
@@ -495,6 +699,11 @@ const SloBurnRateRules: FunctionComponent<
           shortWindowInMinutes: true,
           refireSuppressionMinutes: true,
           shouldCreateIncident: true,
+          isAlertPrivate: true,
+          autoResolveAlert: true,
+          isIncidentPrivate: true,
+          autoResolveIncident: true,
+          addSloOwnersAsOwners: true,
           lastAlertResolvedAt: true,
           lastIncidentCreatedAt: true,
           lastIncidentResolvedAt: true,
@@ -503,6 +712,21 @@ const SloBurnRateRules: FunctionComponent<
           },
           incidentOnCallDutyPolicies: {
             name: true,
+          },
+          alertOwnerUsers: {
+            name: true,
+            email: true,
+          },
+          incidentOwnerTeams: {
+            name: true,
+          },
+          incidentOwnerUsers: {
+            name: true,
+            email: true,
+          },
+          incidentLabels: {
+            name: true,
+            color: true,
           },
         }}
       />

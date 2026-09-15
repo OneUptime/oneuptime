@@ -1032,7 +1032,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.Number,
     title: "Monitor Metric Retention Days",
     description:
-      "Number of days to retain monitor metrics. Monitor metrics older than this will be automatically deleted. Default is 1 day.",
+      "Number of days to retain monitor metrics and the oneuptime.slo.* metrics SLO evaluations post. Metrics older than this will be automatically deleted. Default is 30 days.",
   })
   @Column({
     type: ColumnType.Number,

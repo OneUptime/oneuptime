@@ -49,7 +49,7 @@ function pass(overrides: Partial<RuleRunPassResult> = {}): RuleRunPassResult {
 describe("RuleRunType", () => {
   const ruleTypes: Array<RuleRunType> = Object.values(RuleRunType);
 
-  it("covers every label, owner and privacy rule plus status page monitor rules", () => {
+  it("covers every label, owner and privacy rule plus status page and SLO monitor rules", () => {
     const modelFiles: Array<string> = fs
       .readdirSync(MODELS_DIRECTORY)
       .map((fileName: string): string => {
@@ -62,7 +62,7 @@ describe("RuleRunType", () => {
       .filter((modelName: string): boolean => {
         return runnableRuleModelName.test(modelName);
       })
-      .concat(["StatusPageMonitorRule"])
+      .concat(["StatusPageMonitorRule", "ServiceLevelObjectiveMonitorRule"])
       .sort();
 
     expect([...ruleTypes].sort()).toEqual(expected);
@@ -114,7 +114,9 @@ describe("RULE_RUN_TYPE_METADATA", () => {
           ? RuleRunAction.AddOwners
           : ruleType.endsWith("PrivacyRule")
             ? RuleRunAction.MarkPrivate
-            : RuleRunAction.SyncStatusPageMonitors;
+            : ruleType === RuleRunType.ServiceLevelObjectiveMonitorRule
+              ? RuleRunAction.SyncSloMonitors
+              : RuleRunAction.SyncStatusPageMonitors;
 
       expect(meta.action).toBe(expectedAction);
       expect(meta.resourceSingular.length).toBeGreaterThan(0);
@@ -143,6 +145,23 @@ describe("RuleRunTypeUtil", () => {
     );
     expect(RuleRunTypeUtil.fromTableName("StatusPageMonitorRule")).toBe(
       RuleRunType.StatusPageMonitorRule,
+    );
+    expect(
+      RuleRunTypeUtil.fromTableName("ServiceLevelObjectiveMonitorRule"),
+    ).toBe(RuleRunType.ServiceLevelObjectiveMonitorRule);
+  });
+
+  /*
+   * An SLO's monitors are the union of every enabled rule of the SLO, while a
+   * status page rule owns only what it added; the two syncs are described and
+   * run differently, so they must not share an action.
+   */
+  it("gives SLO monitor rules their own sync action, not the status page one", () => {
+    expect(
+      RuleRunTypeUtil.getAction(RuleRunType.ServiceLevelObjectiveMonitorRule),
+    ).toBe(RuleRunAction.SyncSloMonitors);
+    expect(RuleRunTypeUtil.getAction(RuleRunType.StatusPageMonitorRule)).toBe(
+      RuleRunAction.SyncStatusPageMonitors,
     );
   });
 

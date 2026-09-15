@@ -97,12 +97,12 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.PositiveNumber,
             required: false,
             description:
-              "Number of days to retain monitor metrics. Monitor metrics older than this will be automatically deleted. Default is 1 day if not set. Minimum: 1 day, Maximum: 365 days.",
+              "Number of days to retain monitor metrics and the oneuptime.slo.* metrics SLO evaluations post. Metrics older than this will be automatically deleted. Default is 30 days if not set. Minimum: 1 day, Maximum: 365 days.",
             validation: {
               minValue: 1,
               maxValue: 365,
             },
-            placeholder: "1",
+            placeholder: "30",
           },
         ]}
         modelDetailProps={{
@@ -115,9 +115,9 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               fieldType: FieldType.Number,
               title: "Monitor Metric Retention (Days)",
-              placeholder: "1 (default)",
+              placeholder: "30 (default)",
               description:
-                "Number of days to retain monitor metrics. Monitor metrics older than this will be automatically deleted.",
+                "Number of days to retain monitor metrics and SLO metrics. Metrics older than this will be automatically deleted.",
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

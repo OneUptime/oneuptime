@@ -376,6 +376,14 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
           "reliability",
         ],
       },
+      {
+        type: DashboardComponentType.SloList,
+        label: "SLO List",
+        icon: IconProp.List,
+        description:
+          "Every SLO with its status, SLI, error budget and burn rate — least budget first.",
+        keywords: ["slos", "objectives", "fleet", "at risk", "breach"],
+      },
     ],
   },
   {

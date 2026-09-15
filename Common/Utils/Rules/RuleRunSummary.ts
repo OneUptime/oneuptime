@@ -47,7 +47,29 @@ export default class RuleRunSummary {
         return `Evaluate this rule against the ${meta.resourcePlural} that already exist in this project and make the ones it matches private. Privacy rules normally only run when a ${meta.resourceSingular} is created, so this is how a rule reaches ${meta.resourcePlural} that existed before it was written.\n\nNothing is ever made public again by a run, so running this more than once is safe.`;
       case RuleRunAction.SyncStatusPageMonitors:
         return "Re-evaluate this rule against every monitor in the project: monitors it matches are added to this status page, and monitors it added earlier that no longer match are removed. Monitors added to the page by hand are never touched.\n\nRules already re-sync when they are saved, so use this to pick up changes the page missed.";
+      case RuleRunAction.SyncSloMonitors:
+        /*
+         * Says "this SLO's enabled monitor rules", not "this rule": membership
+         * is a union, so the sync evaluates every enabled rule of the SLO
+         * together, and promising one rule's effect would misdescribe it.
+         */
+        return "Re-evaluate this SLO's enabled monitor rules against every monitor in the project: monitors any of them matches are attached to this SLO, and monitors the rules attached earlier that none of them matches any more are detached. Monitors attached to the SLO by hand are never touched.\n\nRules already re-sync the SLO when they are saved, so use this to pick up changes the SLO missed.";
     }
+  }
+
+  // The sentence beside "Run Now" on a rule's own view page.
+  public static describeRunNowCard(ruleType: RuleRunType): string {
+    const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(ruleType);
+
+    if (meta.action === RuleRunAction.SyncStatusPageMonitors) {
+      return "Re-sync this status page with this rule now: add the monitors it matches and remove the ones it added that no longer match.";
+    }
+
+    if (meta.action === RuleRunAction.SyncSloMonitors) {
+      return "Re-sync this SLO's monitors now: attach the monitors its enabled rules match and detach the ones the rules attached that no longer match. Monitors attached by hand are left alone.";
+    }
+
+    return `This rule runs automatically only when a ${meta.resourceSingular} is created. Run it now to apply it to the ${meta.resourcePlural} that already exist in this project.`;
   }
 
   /*
@@ -70,6 +92,10 @@ export default class RuleRunSummary {
 
     if (meta.action === RuleRunAction.SyncStatusPageMonitors) {
       return `Re-sync this status page against ${rules}? Each rule adds the monitors it matches and removes the monitors it added that no longer match. Monitors added by hand are never touched.`;
+    }
+
+    if (meta.action === RuleRunAction.SyncSloMonitors) {
+      return `Re-sync this SLO's monitors for ${rules}? Each run re-evaluates all of this SLO's enabled monitor rules together, so after the first one the rest usually find nothing to change. Monitors attached by hand are never touched, and disabled rules are skipped with an error.`;
     }
 
     const lines: Array<string> = [
@@ -112,6 +138,10 @@ export default class RuleRunSummary {
 
     if (meta.action === RuleRunAction.SyncStatusPageMonitors) {
       return RuleRunSummary.describeStatusPageSync(result);
+    }
+
+    if (meta.action === RuleRunAction.SyncSloMonitors) {
+      return RuleRunSummary.describeSloSync(result);
     }
 
     const lines: Array<string> = [];
@@ -258,6 +288,34 @@ export default class RuleRunSummary {
 
     if (changes.length === 0) {
       return "The status page already matches this rule, so nothing changed.";
+    }
+
+    return `${capitalize(changes.join(", "))}.`;
+  }
+
+  /*
+   * An SLO sync attaches and detaches monitors and has nothing else to
+   * refresh, so resourcesUpdated is not reported: the run never sets it.
+   */
+  private static describeSloSync(result: RuleRunResult): string {
+    const monitors: (value: number) => string = (value: number): string => {
+      return count(value, "monitor", "monitors");
+    };
+
+    const changes: Array<string> = [];
+
+    if (result.itemsAdded > 0) {
+      changes.push(`attached ${monitors(result.itemsAdded)} to the SLO`);
+    }
+
+    if (result.itemsRemoved > 0) {
+      changes.push(
+        `detached ${monitors(result.itemsRemoved)} that no enabled rule matches any more`,
+      );
+    }
+
+    if (changes.length === 0) {
+      return "The SLO's monitors already match its enabled rules, so nothing changed.";
     }
 
     return `${capitalize(changes.join(", "))}.`;

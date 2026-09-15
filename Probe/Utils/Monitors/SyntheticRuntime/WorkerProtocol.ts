@@ -15,6 +15,7 @@ const MIN_NONCE_LENGTH: number = 16;
 const MAX_NONCE_LENGTH: number = 200;
 const MAX_ERROR_MESSAGE_LENGTH: number = 10_000;
 const MAX_ERROR_STACK_LENGTH: number = 50_000;
+export const MAX_ERROR_INTERNAL_DETAIL_LENGTH: number = 50_000;
 const WORKER_NONCE_PATTERN: RegExp = /^[A-Za-z0-9_-]+$/;
 
 export interface SyntheticWorkerStartEnvelope<Config> {
@@ -46,6 +47,17 @@ export interface SyntheticWorkerFailureEnvelope {
      * after the Error object itself has been flattened for IPC.
      */
     readonly kind?: SyntheticRuntimeFaultKind | undefined;
+    /*
+     * The worker's diagnosis of a `kind` failure: the Playwright error, and
+     * how far the runtime got before it stopped. It is for the probe's logs,
+     * never for the tenant, so it travels beside the message rather than in
+     * it -- and only with `kind`, because an ordinary worker failure already
+     * folds its whole stack into the message.
+     *
+     * Without it, the supervisor's view of a stalled bootstrap is the fault's
+     * own stack, which names where the fault was thrown and nothing about why.
+     */
+    readonly internalDetail?: string | undefined;
   };
 }
 
@@ -159,6 +171,14 @@ export function createWorkerFailureEnvelope(data: {
   const stack: string | undefined = error.stack
     ? error.stack.substring(0, MAX_ERROR_STACK_LENGTH)
     : undefined;
+  const isRuntimeFault: boolean = isSyntheticRuntimeFault(data.error);
+  const rawInternalDetail: unknown = isRuntimeFault
+    ? (data.error as { internalDetail?: unknown }).internalDetail
+    : undefined;
+  const internalDetail: string | undefined =
+    typeof rawInternalDetail === "string" && rawInternalDetail.length > 0
+      ? rawInternalDetail.substring(0, MAX_ERROR_INTERNAL_DETAIL_LENGTH)
+      : undefined;
 
   return {
     type: SYNTHETIC_WORKER_RESULT_MESSAGE_TYPE,
@@ -171,9 +191,8 @@ export function createWorkerFailureEnvelope(data: {
         MAX_ERROR_MESSAGE_LENGTH,
       ),
       ...(stack ? { stack } : {}),
-      ...(isSyntheticRuntimeFault(data.error)
-        ? { kind: SYNTHETIC_RUNTIME_FAULT_KIND }
-        : {}),
+      ...(isRuntimeFault ? { kind: SYNTHETIC_RUNTIME_FAULT_KIND } : {}),
+      ...(internalDetail ? { internalDetail } : {}),
     },
   };
 }
@@ -231,6 +250,9 @@ export function isWorkerResultEnvelope<Result>(data: {
   if (error["kind"] !== undefined) {
     expectedErrorKeys.push("kind");
   }
+  if (error["internalDetail"] !== undefined) {
+    expectedErrorKeys.push("internalDetail");
+  }
 
   return (
     hasExactKeys(error, expectedErrorKeys) &&
@@ -241,6 +263,15 @@ export function isWorkerResultEnvelope<Result>(data: {
       (typeof error["stack"] === "string" &&
         error["stack"].length <= MAX_ERROR_STACK_LENGTH)) &&
     (error["kind"] === undefined ||
-      error["kind"] === SYNTHETIC_RUNTIME_FAULT_KIND)
+      error["kind"] === SYNTHETIC_RUNTIME_FAULT_KIND) &&
+    /*
+     * A diagnosis with no fault to describe is malformed, not merely
+     * redundant: an ordinary failure carries its detail in the message.
+     */
+    (error["internalDetail"] === undefined ||
+      (error["kind"] === SYNTHETIC_RUNTIME_FAULT_KIND &&
+        typeof error["internalDetail"] === "string" &&
+        error["internalDetail"].length > 0 &&
+        error["internalDetail"].length <= MAX_ERROR_INTERNAL_DETAIL_LENGTH))
   );
 }

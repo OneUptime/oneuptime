@@ -1,392 +1,272 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getSloDetailsFormFields } from "../SloFormFields";
+import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
+import SloActiveBurnEventsCard from "../../../Components/Slo/SloActiveBurnEventsCard";
+import SloBudgetBurnDownCard from "../../../Components/Slo/SloBudgetBurnDownCard";
+import SloBurnRateRulesSummaryCard from "../../../Components/Slo/SloBurnRateRulesSummaryCard";
+import SloConfigurationSummaryCard from "../../../Components/Slo/SloConfigurationSummaryCard";
+import SloFeed from "../../../Components/Slo/SloFeed";
+import SloKpiStrip from "../../../Components/Slo/SloKpiStrip";
+import SloMonitorsSummaryCard from "../../../Components/Slo/SloMonitorsSummaryCard";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
-import SloStatusPill from "../../../Components/Slo/SloStatusPill";
-import { getSloFormFields } from "../SloFormFields";
-import MonitorsElement from "../../../Components/Monitor/Monitors";
-import Route from "Common/Types/API/Route";
-import ObjectID from "Common/Types/ObjectID";
-import OneUptimeDate from "Common/Types/Date";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
-import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import SloOverviewGettingStartedCard from "../../../Components/Slo/SloOverviewGettingStartedCard";
+import SloOverviewHero from "../../../Components/Slo/SloOverviewHero";
+import useSloOverviewData, {
+  getSloNoticeFingerprint,
+  UseSloOverviewDataResult,
+} from "../../../Components/Slo/useSloOverviewData";
 import Label from "Common/Models/DatabaseModels/Label";
-import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
-import { getSloStatusText } from "Common/Utils/Slo/SloStatusColor";
-import { getSloBudgetTier, SloBudgetTier } from "Common/Utils/Slo/SloHealth";
-import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
-import {
-  formatErrorBudgetRemainingOfTotal,
-  formatDurationCompact,
-} from "Common/Utils/Slo/SloDuration";
-import {
-  formatSloBurnRate,
-  formatSloPercent,
-  SLO_NOT_EVALUATED_TEXT,
-} from "Common/Utils/Slo/SloWidgetFormat";
-import Card from "Common/UI/Components/Card/Card";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import Route from "Common/Types/API/Route";
+import OneUptimeDate from "Common/Types/Date";
+import ObjectID from "Common/Types/ObjectID";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import LabelsElement from "Common/UI/Components/Label/Labels";
-import { PillSize } from "Common/UI/Components/Pill/Pill";
-import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import { getLowestBurnRateThreshold } from "Common/Utils/Slo/SloProjection";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
-/** The hero is only useful if it keeps up with the worker's 5-minute cadence. */
-const HERO_AUTO_REFRESH_MS: number = 60 * 1000;
-
-const EM_DASH: string = "—";
-
-type FormatPercentOrDashFunction = (value: number | undefined | null) => string;
-
-const formatPercentOrDash: FormatPercentOrDashFunction = (
-  value: number | undefined | null,
-): string => {
-  return formatSloPercent(value) ?? EM_DASH;
-};
-
 /*
- * Tailwind classes per budget tier. The tier comes from the shared,
- * unit-tested helper so the colour always agrees with the SLO's own
- * at-risk threshold rather than a hardcoded 20.
- */
-const BUDGET_TIER_TEXT_CLASS: Record<SloBudgetTier, string> = {
-  [SloBudgetTier.Healthy]: "text-emerald-700",
-  [SloBudgetTier.AtRisk]: "text-amber-700",
-  [SloBudgetTier.Exhausted]: "text-red-700",
-  [SloBudgetTier.Unknown]: "text-gray-400",
-};
-
-const BUDGET_TIER_BAR_CLASS: Record<SloBudgetTier, string> = {
-  [SloBudgetTier.Healthy]: "bg-emerald-500",
-  [SloBudgetTier.AtRisk]: "bg-amber-500",
-  [SloBudgetTier.Exhausted]: "bg-red-500",
-  [SloBudgetTier.Unknown]: "bg-gray-300",
-};
-
-/*
- * SLO Overview — the "are we within budget?" page. A notice banner
- * explaining any state that stops measurement, then the error-budget hero
- * (SLI vs target, budget remaining, burn rate, status), then the editable
- * configuration. History charts live on the Charts sub-page.
+ * SLO Overview — the "are we within budget?" page.
+ *
+ * Top to bottom: the notice banner for anything that stops measurement; the
+ * hero with the verdict and what the SLO is; the four headline numbers; then
+ * the incident overview's two-thirds / one-third grid — how the budget has
+ * been spent and which monitors it depends on, beside what is open, what
+ * alerts, and how the SLO is configured — and finally the editable name,
+ * description and labels. Configuration moved to Settings, monitors to the
+ * Monitors and Monitor Rules pages, history to Metrics; this page summarises
+ * each and links to it.
+ *
+ * A brand-new SLO has no monitors and no monitor rules (the create form no
+ * longer asks for monitors), so it gets a getting-started card in place of
+ * numbers that could only read "not evaluated".
+ *
+ * Data comes from ONE poll (useSloOverviewData) shared with every card
+ * through props and refresh tokens. The old page fetched the same SLO row
+ * three times a minute.
  */
 const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
-  const [slo, setSlo] = useState<ServiceLevelObjective | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const data: UseSloOverviewDataResult = useSloOverviewData({
+    sloId: modelId,
+  });
+
   /*
-   * Bumped on every successful fetch and on every save, so the notice
-   * banner re-reads the SLO instead of showing a reason the user has
-   * already fixed.
+   * The banner fetches its own row (its props are shared with every SLO
+   * sub-page), so it is re-read only when something a notice depends on
+   * changed, not on every poll. The first load only records the baseline:
+   * the banner already fetched on mount.
    */
-  const [refreshToggle, setRefreshToggle] = useState<string>("");
-  /*
-   * Toggled on every background poll so the details card re-reads the SLO
-   * too: monitors a label rule attaches after the page opened only show up
-   * in its Monitors row that way.
-   */
-  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
+  const [bannerRefreshCount, setBannerRefreshCount] = useState<number>(0);
+  const lastNoticeFingerprintRef: MutableRefObject<string> = useRef<string>("");
 
-  const fetchSlo: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      const item: ServiceLevelObjective | null =
-        await ModelAPI.getItem<ServiceLevelObjective>({
-          modelType: ServiceLevelObjective,
-          id: modelId,
-          select: {
-            targetPercentage: true,
-            windowType: true,
-            windowDays: true,
-            timezone: true,
-            atRiskThresholdPercentage: true,
-            currentSliPercentage: true,
-            errorBudgetRemainingPercentage: true,
-            errorBudgetRemainingSeconds: true,
-            errorBudgetTotalSeconds: true,
-            currentBurnRate: true,
-            sloStatus: true,
-            lastEvaluatedAt: true,
-            isEnabled: true,
-          },
-        });
-
-      setSlo(item);
-      setError("");
-      setRefreshToggle(OneUptimeDate.getCurrentDate().toISOString());
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setIsLoading(false);
-  };
+  const noticeFingerprint: string = data.slo
+    ? getSloNoticeFingerprint(data.slo)
+    : "";
 
   useEffect(() => {
-    fetchSlo().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-      setIsLoading(false);
-    });
-
-    /*
-     * The worker re-evaluates every 5 minutes, and this page is what
-     * someone keeps open during an incident — without this the numbers
-     * silently freeze at whatever they were when the tab was opened.
-     */
-    const intervalId: ReturnType<typeof setInterval> = setInterval(() => {
-      fetchSlo().catch(() => {
-        // A failed background refresh keeps the last good numbers on screen.
-      });
-      setDetailsRefresher((prev: boolean) => {
-        return !prev;
-      });
-    }, HERO_AUTO_REFRESH_MS);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, []);
-
-  type GetHeroFunction = () => ReactElement;
-
-  const getHero: GetHeroFunction = (): ReactElement => {
-    if (isLoading) {
-      return (
-        <div className="mb-5 rounded-lg bg-white p-6 shadow">
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 xl:grid-cols-5">
-            {[0, 1, 2, 3, 4].map((index: number) => {
-              return (
-                <div key={index} className="space-y-2">
-                  <div className="h-4 w-20 animate-pulse rounded bg-gray-100"></div>
-                  <div className="h-6 w-24 animate-pulse rounded bg-gray-100"></div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
+    if (!noticeFingerprint) {
+      return;
     }
 
-    if (error || !slo) {
-      // The hero is supplementary — the details card below still renders.
-      return <></>;
+    if (
+      lastNoticeFingerprintRef.current &&
+      lastNoticeFingerprintRef.current !== noticeFingerprint
+    ) {
+      setBannerRefreshCount((count: number) => {
+        return count + 1;
+      });
     }
 
-    const budgetRemainingPercentRaw: number | undefined | null =
-      slo.errorBudgetRemainingPercentage;
+    lastNoticeFingerprintRef.current = noticeFingerprint;
+  }, [noticeFingerprint]);
 
-    const budgetRemainingPercent: number | null =
-      budgetRemainingPercentRaw === undefined ||
-      budgetRemainingPercentRaw === null
-        ? null
-        : budgetRemainingPercentRaw;
+  const banner: ReactElement = (
+    <SloNoticeBanner
+      sloId={modelId}
+      refreshToggle={bannerRefreshCount.toString()}
+    />
+  );
 
-    /* Bar is clamped to 0..100 visually; the signed value is shown as text. */
-    const budgetBarPercent: number =
-      budgetRemainingPercent === null
-        ? 0
-        : Math.max(0, Math.min(100, budgetRemainingPercent));
+  /*
+   * The banner mounts with the content, not over the skeleton: until the row
+   * loads, the page cannot tell whether the getting-started card below will
+   * already say what the banner would.
+   */
+  if (!data.hasLoaded) {
+    return <EventOverviewSkeleton statCount={4} loadingText="Loading SLO" />;
+  }
 
-    const budgetTier: SloBudgetTier = getSloBudgetTier({
-      errorBudgetRemainingPercentage: budgetRemainingPercent,
-      atRiskThresholdPercentage: slo.atRiskThresholdPercentage,
-    });
-
-    const currentSli: number | undefined | null = slo.currentSliPercentage;
-    const target: number | undefined | null = slo.targetPercentage;
-
-    const meetsTarget: boolean =
-      currentSli === undefined ||
-      currentSli === null ||
-      target === undefined ||
-      target === null ||
-      currentSli >= target;
-
-    const lastEvaluatedAt: Date | null = slo.lastEvaluatedAt
-      ? OneUptimeDate.fromString(slo.lastEvaluatedAt)
-      : null;
-
-    const windowText: string =
-      slo.windowType === SloWindowType.CalendarMonth
-        ? `calendar month (${slo.timezone || "UTC"})`
-        : `rolling ${slo.windowDays || 30} days`;
-
-    const budgetText: string =
-      formatErrorBudgetRemainingOfTotal({
-        remainingSeconds: slo.errorBudgetRemainingSeconds,
-        totalSeconds: slo.errorBudgetTotalSeconds,
-      }) ?? SLO_NOT_EVALUATED_TEXT;
-
+  if (data.error || !data.slo) {
     return (
-      <div data-testid="slo-error-budget-hero">
-        <Card
-          title="Error Budget"
-          description={`Measured over the ${windowText}.`}
-          buttons={[
-            {
-              title: "Refresh",
-              icon: IconProp.Refresh,
-              onClick: () => {
-                fetchSlo().catch((err: Error) => {
-                  setError(API.getFriendlyMessage(err));
-                });
-              },
-            },
-          ]}
-        >
-          <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 xl:grid-cols-5">
-            <div>
-              <div className="text-sm font-medium text-gray-500">
-                Current SLI
-              </div>
-              <div
-                className={`mt-1.5 text-2xl font-semibold ${
-                  meetsTarget ? "text-gray-900" : "text-red-700"
-                }`}
-              >
-                {formatPercentOrDash(slo.currentSliPercentage)}
-              </div>
-              <div className="mt-1.5 text-xs text-gray-500">
-                Target {formatPercentOrDash(slo.targetPercentage)}
-              </div>
-            </div>
-
-            <div>
-              <div className="text-sm font-medium text-gray-500">
-                Error Budget Remaining
-              </div>
-              <div
-                className={`mt-1.5 text-2xl font-semibold ${BUDGET_TIER_TEXT_CLASS[budgetTier]}`}
-              >
-                {budgetRemainingPercent === null
-                  ? EM_DASH
-                  : formatPercentOrDash(budgetRemainingPercent)}
-              </div>
-              <div className="mt-1.5 text-xs text-gray-500">{budgetText}</div>
-              {budgetRemainingPercent !== null && (
-                <div
-                  className="mt-2 flex h-1.5 w-full max-w-[10rem] overflow-hidden rounded-full bg-gray-100"
-                  role="progressbar"
-                  aria-valuenow={Math.round(budgetBarPercent)}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label={`Error budget remaining: ${formatPercentOrDash(
-                    budgetRemainingPercent,
-                  )}`}
-                >
-                  <div
-                    className={`h-full ${BUDGET_TIER_BAR_CLASS[budgetTier]}`}
-                    style={{ width: `${budgetBarPercent}%` }}
-                  ></div>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <div className="text-sm font-medium text-gray-500">Burn Rate</div>
-              <div className="mt-1.5 text-2xl font-semibold text-gray-900">
-                {formatSloBurnRate(slo.currentBurnRate) ?? EM_DASH}
-              </div>
-              <div className="mt-1.5 text-xs text-gray-500">
-                Over the last{" "}
-                {formatDurationCompact(
-                  SLO_CURRENT_BURN_RATE_WINDOW_MINUTES * 60,
-                )}
-                . 1× spends the budget exactly over the compliance window.
-              </div>
-            </div>
-
-            <div>
-              <div className="text-sm font-medium text-gray-500">Status</div>
-              <div className="mt-1.5">
-                <SloStatusPill status={slo.sloStatus} size={PillSize.Normal} />
-              </div>
-              {/*
-               * The pill's colour is the RAG signal; this repeats the state
-               * as a word so the budget bar above is not colour-only.
-               */}
-              <div className="mt-1.5 text-xs text-gray-500">
-                Error budget is {getSloStatusText(slo.sloStatus).toLowerCase()}
-              </div>
-            </div>
-
-            <div>
-              <div className="text-sm font-medium text-gray-500">
-                Last Evaluated
-              </div>
-              <div className="mt-1.5 text-sm text-gray-900">
-                {lastEvaluatedAt ? (
-                  <span
-                    title={OneUptimeDate.getDateAsLocalFormattedString(
-                      lastEvaluatedAt,
-                    )}
-                  >
-                    {OneUptimeDate.fromNow(lastEvaluatedAt)}
-                  </span>
-                ) : (
-                  <span className="text-gray-400">
-                    Not evaluated yet — evaluation runs every few minutes.
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
+      <Fragment>
+        {banner}
+        <ErrorMessage
+          message={data.error || "This SLO could not be loaded."}
+          onRefreshClick={data.refresh}
+        />
+      </Fragment>
     );
-  };
+  }
+
+  const slo: ServiceLevelObjective = data.slo;
+  // Resolved per render; every render follows a poll, so "now" stays current.
+  const now: Date = OneUptimeDate.getCurrentDate();
+
+  const monitorIds: Array<ObjectID> = (
+    (slo.monitors as Array<Monitor> | undefined) || []
+  )
+    .filter((monitor: Monitor) => {
+      return Boolean(monitor._id);
+    })
+    .map((monitor: Monitor) => {
+      return new ObjectID(monitor._id!.toString());
+    });
+
+  const enabledBurnRateRules: Array<ServiceLevelObjectiveBurnRateRule> =
+    data.burnRateRules.filter((rule: ServiceLevelObjectiveBurnRateRule) => {
+      return rule.isEnabled === true;
+    });
+
+  /*
+   * Only when both are KNOWN to be zero: a failed rule count must not turn a
+   * working SLO's overview into onboarding.
+   */
+  const isGettingStarted: boolean =
+    monitorIds.length === 0 && data.monitorRuleCount === 0;
+
+  /*
+   * A new SLO's "no monitors attached" notice IS the getting-started card; a
+   * warning banner above it repeating the same call to action read as two
+   * separate problems. A disabled or archived SLO keeps its banner, because
+   * the card does not say that measurement is switched off.
+   */
+  const showBanner: boolean =
+    !isGettingStarted || slo.isEnabled === false || slo.isArchived === true;
 
   return (
     <Fragment>
-      <SloNoticeBanner sloId={modelId} refreshToggle={refreshToggle} />
-      {getHero()}
+      {showBanner ? banner : <></>}
+
+      <div className="mb-5">
+        <SloOverviewHero
+          sloId={modelId}
+          slo={slo}
+          monitorCount={monitorIds.length}
+          owners={data.owners}
+          isLoadingOwners={data.isLoadingOwners}
+          isRefreshing={data.isRefreshing}
+          refreshError={data.refreshError}
+          onRefresh={data.refresh}
+        />
+      </div>
+
+      {isGettingStarted ? (
+        <></>
+      ) : (
+        <SloKpiStrip
+          className="mb-5"
+          slo={slo}
+          lowestEnabledBurnRateThreshold={getLowestBurnRateThreshold(
+            enabledBurnRateRules.map(
+              (rule: ServiceLevelObjectiveBurnRateRule) => {
+                return rule.burnRateThreshold;
+              },
+            ),
+          )}
+          now={now}
+        />
+      )}
+
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
+        <div className="min-w-0 xl:col-span-2">
+          {isGettingStarted ? (
+            <SloOverviewGettingStartedCard
+              sloId={modelId}
+              enabledBurnRateRuleCount={enabledBurnRateRules.length}
+            />
+          ) : (
+            <Fragment>
+              <SloBudgetBurnDownCard
+                sloId={modelId}
+                slo={slo}
+                refreshToken={
+                  slo.lastEvaluatedAt
+                    ? OneUptimeDate.fromString(
+                        slo.lastEvaluatedAt,
+                      ).toISOString()
+                    : ""
+                }
+              />
+              <SloMonitorsSummaryCard
+                sloId={modelId}
+                monitorIds={monitorIds}
+                monitorRuleCount={data.monitorRuleCount ?? 0}
+                enabledMonitorRuleCount={data.enabledMonitorRuleCount ?? 0}
+                refreshToken={data.refreshCount}
+              />
+            </Fragment>
+          )}
+
+          <SloFeed
+            sloId={modelId}
+            title="Recent activity"
+            description="Status changes, burn-rate alerts and incidents, and edits to this SLO's rules, monitors and owners."
+          />
+        </div>
+
+        <div className="min-w-0">
+          <SloActiveBurnEventsCard
+            sloId={modelId}
+            refreshToken={data.refreshCount}
+          />
+          <SloBurnRateRulesSummaryCard
+            sloId={modelId}
+            rules={data.burnRateRules}
+            currentBurnRate={slo.currentBurnRate}
+            error={data.burnRateRulesError}
+          />
+          <SloConfigurationSummaryCard sloId={modelId} slo={slo} now={now} />
+        </div>
+      </div>
+
       <CardModelDetail<ServiceLevelObjective>
         name="SLO Details"
         cardProps={{
           title: "SLO Details",
           description:
-            "Target, compliance window, and the monitors this SLO measures.",
+            "The name, description and labels this SLO is listed and searched by.",
         }}
         documentationLink={new Route("/docs/slo/error-budget")}
-        refresher={detailsRefresher}
         isEditable={true}
         onSaveSuccess={() => {
-          fetchSlo().catch((err: Error) => {
-            setError(API.getFriendlyMessage(err));
-          });
+          // The hero shows the description and labels, so it must not keep the old ones.
+          data.refresh();
         }}
         /*
-         * Shared with the create modal on the SLOs list so the two can
-         * never drift: the list used to offer a strict subset, which meant
-         * every SLO needing a calendar month, a custom at-risk threshold
-         * or non-default downtime statuses had to be created and then
-         * immediately edited.
+         * Derived from the create form's own fields so a placeholder or
+         * description changed there changes here too. Everything else about
+         * the SLO is edited on the Settings, Monitors and Monitor Rules pages.
          */
-        formFields={getSloFormFields({ includeIsEnabled: true })}
+        formFields={getSloDetailsFormFields()}
         modelDetailProps={{
           modelType: ServiceLevelObjective,
           id: "slo-details",
           modelId: modelId,
-          /*
-           * ModelDetail builds its select from the KEYS of each field's
-           * `field` object, so a getElement that reads a sibling column
-           * gets undefined. The Window row renders windowDays and timezone
-           * but is keyed on windowType, which silently made every SLO read
-           * "30 days rolling".
-           */
-          selectMoreFields: {
-            windowDays: true,
-            timezone: true,
-          },
           fields: [
             {
               field: {
@@ -400,147 +280,8 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 description: true,
               },
               title: "Description",
-              fieldType: FieldType.Text,
-              showIf: (item: ServiceLevelObjective): boolean => {
-                return Boolean(item.description);
-              },
-            },
-            {
-              field: {
-                targetPercentage: true,
-              },
-              title: "Target",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                return (
-                  <span>{formatPercentOrDash(item.targetPercentage)}</span>
-                );
-              },
-            },
-            {
-              field: {
-                windowType: true,
-              },
-              title: "Window",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                if (item.windowType === SloWindowType.CalendarMonth) {
-                  return <span>Calendar month ({item.timezone || "UTC"})</span>;
-                }
-                return <span>{item.windowDays || 30} days rolling</span>;
-              },
-            },
-            {
-              field: {
-                atRiskThresholdPercentage: true,
-              },
-              title: "At-Risk Threshold",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                return (
-                  <span>
-                    {formatPercentOrDash(item.atRiskThresholdPercentage)} of
-                    budget remaining
-                  </span>
-                );
-              },
-            },
-            {
-              field: {
-                multiMonitorMode: true,
-              },
-              title: "Multi Monitor Mode",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                monitors: {
-                  name: true,
-                  _id: true,
-                },
-              },
-              title: "Monitors",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                const monitors: Array<Monitor> =
-                  (item.monitors as Array<Monitor>) || [];
-
-                /*
-                 * Naming the consequence rather than showing an empty cell:
-                 * zero monitors is the single most common reason an SLO
-                 * reads Misconfigured, and the banner above says the same
-                 * thing in the same words.
-                 */
-                if (monitors.length === 0) {
-                  return (
-                    <span className="text-gray-400">
-                      No monitors attached — this SLO cannot be evaluated.
-                    </span>
-                  );
-                }
-
-                return <MonitorsElement monitors={monitors} />;
-              },
-            },
-            {
-              field: {
-                monitorLabels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Auto-Add Monitors With Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                const monitorLabels: Array<Label> =
-                  (item.monitorLabels as Array<Label>) || [];
-
-                /*
-                 * Spelled out rather than left blank: an empty cell here and
-                 * a rule that matches nothing look identical, and the
-                 * difference decides whether the Monitors list above is
-                 * maintained for you or entirely yours to curate.
-                 */
-                if (monitorLabels.length === 0) {
-                  return (
-                    <span className="text-gray-400">
-                      No label rule — monitors are attached by hand.
-                    </span>
-                  );
-                }
-
-                return <LabelsElement labels={monitorLabels} />;
-              },
-            },
-            {
-              field: {
-                downtimeMonitorStatuses: {
-                  name: true,
-                },
-              },
-              title: "Downtime Monitor Statuses",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                const statuses: Array<MonitorStatus> =
-                  (item.downtimeMonitorStatuses as Array<MonitorStatus>) || [];
-                if (statuses.length === 0) {
-                  return (
-                    <span className="text-gray-400">
-                      Defaults to non-operational statuses
-                    </span>
-                  );
-                }
-                return (
-                  <span>
-                    {statuses
-                      .map((status: MonitorStatus) => {
-                        return status.name || "";
-                      })
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                );
-              },
+              fieldType: FieldType.LongText,
+              placeholder: "No description",
             },
             {
               field: {
@@ -552,22 +293,15 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Labels",
               fieldType: FieldType.Element,
               getElement: (item: ServiceLevelObjective): ReactElement => {
-                return (
-                  <LabelsElement labels={(item.labels as Array<Label>) || []} />
-                );
+                const labels: Array<Label> =
+                  (item.labels as Array<Label> | undefined) || [];
+
+                if (labels.length === 0) {
+                  return <span className="text-gray-400">No labels</span>;
+                }
+
+                return <LabelsElement labels={labels} />;
               },
-              showIf: (item: ServiceLevelObjective): boolean => {
-                const labels: Array<Label> | undefined =
-                  (item.labels as Array<Label> | undefined) ?? undefined;
-                return Array.isArray(labels) && labels.length > 0;
-              },
-            },
-            {
-              field: {
-                isEnabled: true,
-              },
-              title: "Enabled",
-              fieldType: FieldType.Boolean,
             },
           ],
         }}

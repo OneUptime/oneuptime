@@ -1,32 +1,37 @@
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
-import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import LabelService from "../../../Server/Services/LabelService";
 import MonitorFeedService from "../../../Server/Services/MonitorFeedService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "../../../Server/Services/ServiceLevelObjectiveMonitorRuleEngineService";
-import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
+import ServiceLevelObjectiveMonitorRuleService from "../../../Server/Services/ServiceLevelObjectiveMonitorRuleService";
+import StatusPageMonitorRuleEngineService from "../../../Server/Services/StatusPageMonitorRuleEngineService";
+import StatusPageMonitorRuleService from "../../../Server/Services/StatusPageMonitorRuleService";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import logger from "../../../Server/Utils/Logger";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
 
 /*
- * Contract under test - the three places that have to notice a label rule
- * became stale. The engine itself is covered separately; what matters here is
- * that something actually calls it.
+ * Contract under test - the places outside the rule's own service that have
+ * to notice an SLO's monitor rules went stale. The engine is covered
+ * separately; what matters here is that something actually calls it.
  *
- *   - MonitorService, when a monitor's labels change. Keyed on the field
- *     being present rather than non-empty, because clearing every label
- *     arrives as `[]` and is exactly the edit that should detach the monitor
- *     from its rule-driven SLOs.
+ *   - MonitorService, when a monitor's labels, name or description change.
+ *     SLO monitor rules match on all three, so a rename can pull a monitor
+ *     into an SLO or push it out. Keyed on the field being present rather
+ *     than non-empty, because clearing every label arrives as `[]` and is
+ *     exactly the edit that should detach the monitor.
  *
- *   - LabelService, when a label is deleted. Postgres cascades the rule's
- *     join rows away without any service hook firing, so the SLOs that used
- *     that label would otherwise keep monitors nothing explains.
+ *   - LabelService, when a label is deleted. Postgres cascades the rules'
+ *     label join rows away without any service hook firing, and criteria keep
+ *     label ids inside jsonb where no foreign key reaches them - so the SLOs
+ *     whose rules used the label are noted down before the delete, through
+ *     both references, and re-synced after it.
  *
  * Every one of them is best-effort: the sync must never fail the write that
  * triggered it.
@@ -90,15 +95,7 @@ function fakeLabelRow(id: ObjectID): Label {
   return { id: id, _id: id.toString(), name: "Production" } as unknown as Label;
 }
 
-function fakeSloRow(id: ObjectID): ServiceLevelObjective {
-  return {
-    id: id,
-    _id: id.toString(),
-    projectId: PROJECT_ID,
-  } as unknown as ServiceLevelObjective;
-}
-
-describe("MonitorService.onUpdateSuccess - keeping SLO label rules honest", () => {
+describe("MonitorService.onUpdateSuccess - keeping SLO monitor rules honest", () => {
   let syncSlosForMonitorSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -109,6 +106,10 @@ describe("MonitorService.onUpdateSuccess - keeping SLO label rules honest", () =
       )
       .mockResolvedValue([]);
 
+    // The status page rules run beside the SLO ones; not under test here.
+    jest
+      .spyOn(StatusPageMonitorRuleEngineService, "syncRulesForMonitor")
+      .mockResolvedValue([]);
     jest
       .spyOn(MonitorService, "findOneById")
       .mockResolvedValue(fakeMonitorRow());
@@ -119,13 +120,16 @@ describe("MonitorService.onUpdateSuccess - keeping SLO label rules honest", () =
     jest
       .spyOn(MonitorFeedService, "createMonitorFeedItem")
       .mockResolvedValue(undefined as never);
+    jest.spyOn(logger, "error").mockImplementation(() => {
+      return undefined as never;
+    });
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it("re-runs the SLO label rules when a monitor gains a label", async () => {
+  it("re-runs the SLO monitor rules when a monitor gains a label", async () => {
     await callHook(
       MonitorService,
       "onUpdateSuccess",
@@ -151,7 +155,44 @@ describe("MonitorService.onUpdateSuccess - keeping SLO label rules honest", () =
     expect(syncSlosForMonitorSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("re-runs them for every monitor a bulk label edit touched", async () => {
+  it("re-runs them when a monitor is renamed - name patterns can pull it in or push it out", async () => {
+    await callHook(
+      MonitorService,
+      "onUpdateSuccess",
+      monitorUpdate({ name: "api-gateway" }),
+      [MONITOR_ID],
+    );
+
+    expect(syncSlosForMonitorSpy).toHaveBeenCalledTimes(1);
+    expect(syncSlosForMonitorSpy).toHaveBeenCalledWith({
+      monitorId: MONITOR_ID,
+      projectId: PROJECT_ID,
+    });
+  });
+
+  it("re-runs them when a monitor's description changes", async () => {
+    await callHook(
+      MonitorService,
+      "onUpdateSuccess",
+      monitorUpdate({ description: "customer facing" }),
+      [MONITOR_ID],
+    );
+
+    expect(syncSlosForMonitorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-runs them when the description is cleared", async () => {
+    await callHook(
+      MonitorService,
+      "onUpdateSuccess",
+      monitorUpdate({ description: "" }),
+      [MONITOR_ID],
+    );
+
+    expect(syncSlosForMonitorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-runs them for every monitor a bulk edit touched", async () => {
     await callHook(
       MonitorService,
       "onUpdateSuccess",
@@ -170,7 +211,7 @@ describe("MonitorService.onUpdateSuccess - keeping SLO label rules honest", () =
     await callHook(
       MonitorService,
       "onUpdateSuccess",
-      monitorUpdate({ description: "just a doc tweak" }),
+      monitorUpdate({ disableActiveMonitoring: true }),
       [MONITOR_ID],
     );
 
@@ -198,7 +239,7 @@ describe("MonitorService.onUpdateSuccess - keeping SLO label rules honest", () =
     await callHook(
       MonitorService,
       "onUpdateSuccess",
-      monitorUpdate({ labels: [] }),
+      monitorUpdate({ name: "renamed" }),
       [MONITOR_ID, OTHER_MONITOR_ID],
     );
 
@@ -206,9 +247,10 @@ describe("MonitorService.onUpdateSuccess - keeping SLO label rules honest", () =
   });
 });
 
-describe("LabelService - a deleted label takes its SLO rule with it", () => {
+describe("LabelService - a deleted label takes its SLO monitor rule references with it", () => {
   let syncMonitorsForSloSpy: jest.SpyInstance;
-  let sloFindBySpy: jest.SpyInstance;
+  let sloRuleFindBySpy: jest.SpyInstance;
+  let statusPageRuleFindBySpy: jest.SpyInstance;
   let labelFindBySpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -218,8 +260,24 @@ describe("LabelService - a deleted label takes its SLO rule with it", () => {
         "syncMonitorsForSlo",
       )
       .mockResolvedValue({ monitorIdsAdded: [], monitorIdsRemoved: [] });
-    sloFindBySpy = jest.spyOn(ServiceLevelObjectiveService, "findBy");
+    sloRuleFindBySpy = jest
+      .spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy")
+      .mockResolvedValue([]);
+    statusPageRuleFindBySpy = jest
+      .spyOn(StatusPageMonitorRuleService, "findBy")
+      .mockResolvedValue([]);
+    jest
+      .spyOn(StatusPageMonitorRuleEngineService, "syncResourcesForRule")
+      .mockResolvedValue({
+        monitorIdsAdded: [],
+        statusPageResourceIdsRemoved: [],
+        statusPageResourceIdsUpdated: [],
+        monitorIdsReleased: [],
+      });
     labelFindBySpy = jest.spyOn(LabelService, "findBy");
+    jest.spyOn(logger, "error").mockImplementation(() => {
+      return undefined as never;
+    });
   });
 
   afterEach(() => {
@@ -235,11 +293,62 @@ describe("LabelService - a deleted label takes its SLO rule with it", () => {
     } as unknown as DeleteBy<Label>;
   }
 
-  it("notes down the SLOs whose rule uses the label, while the label still exists", async () => {
+  function sloRule(sloId: ObjectID): unknown {
+    return {
+      id: ObjectID.generate(),
+      serviceLevelObjectiveId: sloId,
+    };
+  }
+
+  it("notes down the SLOs whose rules use the label - by join table and by criteria - while it still exists", async () => {
     labelFindBySpy.mockResolvedValue([fakeLabelRow(LABEL_ID)]);
-    sloFindBySpy.mockResolvedValue([
-      fakeSloRow(SLO_ID),
-      fakeSloRow(OTHER_SLO_ID),
+    sloRuleFindBySpy
+      .mockResolvedValueOnce([sloRule(SLO_ID)])
+      .mockResolvedValueOnce([sloRule(OTHER_SLO_ID), sloRule(SLO_ID)]);
+
+    const onDelete: OnDelete<Label> = (await callHook(
+      LabelService,
+      "onBeforeDelete",
+      deleteBy(),
+    )) as OnDelete<Label>;
+
+    expect(sloRuleFindBySpy).toHaveBeenCalledTimes(2);
+
+    const legacyQuery: { monitorLabels: Array<ObjectID> } = sloRuleFindBySpy
+      .mock.calls[0]![0]!.query as { monitorLabels: Array<ObjectID> };
+
+    expect(
+      legacyQuery.monitorLabels.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([LABEL_ID.toString()]);
+    expect(sloRuleFindBySpy.mock.calls[1]![0]!.query.criteria).toBeDefined();
+
+    const carried: { serviceLevelObjectiveIds: Array<ObjectID> } =
+      onDelete.carryForward as { serviceLevelObjectiveIds: Array<ObjectID> };
+
+    // De-duplicated: a criteria rule keeps its legacy join rows too.
+    expect(
+      carried.serviceLevelObjectiveIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([SLO_ID.toString(), OTHER_SLO_ID.toString()]);
+  });
+
+  it("does not go looking for rules when the delete matched no labels", async () => {
+    labelFindBySpy.mockResolvedValue([]);
+
+    await callHook(LabelService, "onBeforeDelete", deleteBy());
+
+    expect(sloRuleFindBySpy).not.toHaveBeenCalled();
+  });
+
+  it("still collects the status page rules when the SLO rule lookup fails", async () => {
+    labelFindBySpy.mockResolvedValue([fakeLabelRow(LABEL_ID)]);
+    sloRuleFindBySpy.mockRejectedValue(new Error("db down"));
+    const statusPageRuleId: ObjectID = ObjectID.generate();
+    statusPageRuleFindBySpy.mockResolvedValue([
+      { id: statusPageRuleId, _id: statusPageRuleId.toString() },
     ]);
 
     const onDelete: OnDelete<Label> = (await callHook(
@@ -248,34 +357,19 @@ describe("LabelService - a deleted label takes its SLO rule with it", () => {
       deleteBy(),
     )) as OnDelete<Label>;
 
-    const query: { monitorLabels: Array<ObjectID> } = sloFindBySpy.mock
-      .calls[0]![0]!.query as { monitorLabels: Array<ObjectID> };
+    const carried: {
+      serviceLevelObjectiveIds: Array<ObjectID>;
+      statusPageMonitorRuleIds: Array<ObjectID>;
+    } = onDelete.carryForward as {
+      serviceLevelObjectiveIds: Array<ObjectID>;
+      statusPageMonitorRuleIds: Array<ObjectID>;
+    };
 
-    expect(
-      query.monitorLabels.map((id: ObjectID) => {
-        return id.toString();
-      }),
-    ).toEqual([LABEL_ID.toString()]);
-
-    const carried: { serviceLevelObjectiveIds: Array<ObjectID> } =
-      onDelete.carryForward as { serviceLevelObjectiveIds: Array<ObjectID> };
-
-    expect(
-      carried.serviceLevelObjectiveIds.map((id: ObjectID) => {
-        return id.toString();
-      }),
-    ).toEqual([SLO_ID.toString(), OTHER_SLO_ID.toString()]);
+    expect(carried.serviceLevelObjectiveIds).toEqual([]);
+    expect(carried.statusPageMonitorRuleIds).toEqual([statusPageRuleId]);
   });
 
-  it("does not go looking for SLOs when the delete matched no labels", async () => {
-    labelFindBySpy.mockResolvedValue([]);
-
-    await callHook(LabelService, "onBeforeDelete", deleteBy());
-
-    expect(sloFindBySpy).not.toHaveBeenCalled();
-  });
-
-  it("re-runs the now-smaller rule for each noted SLO once the label is gone", async () => {
+  it("re-runs the now-smaller rules of each noted SLO once the label is gone", async () => {
     await callHook(
       LabelService,
       "onDeleteSuccess",
@@ -295,7 +389,7 @@ describe("LabelService - a deleted label takes its SLO rule with it", () => {
     });
   });
 
-  it("does nothing after deleting a label no SLO rule referenced", async () => {
+  it("does nothing after deleting a label no SLO monitor rule referenced", async () => {
     await callHook(
       LabelService,
       "onDeleteSuccess",
@@ -319,7 +413,7 @@ describe("LabelService - a deleted label takes its SLO rule with it", () => {
     expect(syncMonitorsForSloSpy).not.toHaveBeenCalled();
   });
 
-  it("still deletes the label when the SLO lookup fails", async () => {
+  it("still deletes the label when the label lookup fails", async () => {
     labelFindBySpy.mockRejectedValue(new Error("db down"));
 
     const onDelete: OnDelete<Label> = (await callHook(

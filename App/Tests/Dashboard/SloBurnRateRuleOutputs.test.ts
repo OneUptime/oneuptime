@@ -22,6 +22,9 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE,
+  BurnRateRuleOptionFlags,
+  describeBurnRateOutputOptions,
   describeBurnRateOutputs,
   validateBurnRateOutputs,
   validateBurnRateThreshold,
@@ -30,6 +33,10 @@ import {
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import {
+  SLO_BURN_RATE_TEMPLATE_VARIABLES,
+  SloBurnRateTemplateVariableDefinition,
+} from "Common/Utils/Slo/SloBurnRateTemplate";
 
 /*
  * A burn rate rule now chooses its outputs: raise an Alert, declare an
@@ -147,27 +154,27 @@ describe("validateBurnRateOutputs", () => {
  * defaults are pinned against the model's own columns rather than against a
  * second copy of the literals.
  */
+const SERVER_SERVICE_SOURCE: string = fs.readFileSync(
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Common",
+    "Server",
+    "Services",
+    "ServiceLevelObjectiveBurnRateRuleService.ts",
+  ),
+  "utf8",
+);
+
+function squash(text: string): string {
+  return text.replace(/\s+/g, " ");
+}
+
+const SERVER_CODE: string = squash(SERVER_SERVICE_SOURCE);
+
 describe("validateBurnRateOutputs mirrors the server rule it stands in for", () => {
-  const SERVER_SERVICE_SOURCE: string = fs.readFileSync(
-    path.join(
-      __dirname,
-      "..",
-      "..",
-      "..",
-      "Common",
-      "Server",
-      "Services",
-      "ServiceLevelObjectiveBurnRateRuleService.ts",
-    ),
-    "utf8",
-  );
-
-  function squash(text: string): string {
-    return text.replace(/\s+/g, " ");
-  }
-
-  const SERVER_CODE: string = squash(SERVER_SERVICE_SOURCE);
-
   test("the server still enforces it, on both write paths", () => {
     expect(SERVER_CODE).toContain(
       squash(
@@ -364,6 +371,201 @@ describe("describeBurnRateOutputs", () => {
           nothing: validateOutputs(flags) !== null,
         });
       }
+    }
+  });
+});
+
+/*
+ * The options line under the Declares label. It exists so the table can say
+ * "this alert stays open until someone resolves it" or "only its owners can see
+ * this incident" - and it must say nothing for a rule that behaves the way
+ * every burn rate rule always has, or every row would carry noise.
+ */
+type OptionsCase = [string, BurnRateRuleOptionFlags, Array<string>];
+
+const OPTIONS_CASES: Array<OptionsCase> = [
+  ["a rule on every default", {}, []],
+  [
+    "the defaults written out explicitly",
+    {
+      shouldCreateAlert: true,
+      shouldCreateIncident: true,
+      autoResolveAlert: true,
+      autoResolveIncident: true,
+      isAlertPrivate: false,
+      isIncidentPrivate: false,
+      addSloOwnersAsOwners: false,
+    },
+    [],
+  ],
+  [
+    "an alert that stays open until resolved by hand",
+    { autoResolveAlert: false },
+    ["Alert: resolved by hand"],
+  ],
+  ["a private alert", { isAlertPrivate: true }, ["Alert: private"]],
+  [
+    "an alert that is both",
+    { autoResolveAlert: false, isAlertPrivate: true },
+    ["Alert: resolved by hand, private"],
+  ],
+  [
+    "incident options on a rule that declares incidents",
+    {
+      shouldCreateIncident: true,
+      autoResolveIncident: false,
+      isIncidentPrivate: true,
+    },
+    ["Incident: resolved by hand, private"],
+  ],
+  [
+    "incident options on a rule that does NOT declare incidents",
+    { autoResolveIncident: false, isIncidentPrivate: true },
+    [],
+  ],
+  [
+    "alert options on an incident-only rule",
+    {
+      shouldCreateAlert: false,
+      shouldCreateIncident: true,
+      autoResolveAlert: false,
+      isAlertPrivate: true,
+    },
+    [],
+  ],
+  [
+    "both outputs with options, and SLO owners added",
+    {
+      shouldCreateIncident: true,
+      isAlertPrivate: true,
+      autoResolveIncident: false,
+      addSloOwnersAsOwners: true,
+    },
+    [
+      "Alert: private",
+      "Incident: resolved by hand",
+      "SLO owners added as owners",
+    ],
+  ],
+  [
+    "SLO owners on a rule that declares nothing at all",
+    {
+      shouldCreateAlert: false,
+      shouldCreateIncident: false,
+      addSloOwnersAsOwners: true,
+    },
+    [],
+  ],
+];
+
+describe("describeBurnRateOutputOptions", () => {
+  test.each(OPTIONS_CASES)(
+    "%s",
+    (
+      _label: string,
+      flags: BurnRateRuleOptionFlags,
+      expected: Array<string>,
+    ): void => {
+      expect(describeBurnRateOutputOptions(flags)).toEqual(expected);
+    },
+  );
+
+  test("reads null - a column missing from a partial row - as the default, never as an option", () => {
+    expect(
+      describeBurnRateOutputOptions({
+        autoResolveAlert: null,
+        isAlertPrivate: null,
+        addSloOwnersAsOwners: null,
+      } as unknown as BurnRateRuleOptionFlags),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * The table reads the option columns with fixed comparisons - `=== false` for
+ * auto-resolve, `=== true` for the private flags and SLO owners - and the
+ * server writes an absent flag as its own default. Those only agree while the
+ * three sides (model column, server default, table comparison) agree, so all
+ * three are pinned together.
+ */
+describe("the option defaults agree across the model, the server and the table", () => {
+  const OPTION_FLAGS: Array<keyof BurnRateRuleOptionFlags> = [
+    "isAlertPrivate",
+    "autoResolveAlert",
+    "isIncidentPrivate",
+    "autoResolveIncident",
+    "addSloOwnersAsOwners",
+  ];
+
+  function columnDefault(column: string): unknown {
+    return new ServiceLevelObjectiveBurnRateRule().getTableColumnMetadata(
+      column,
+    ).defaultValue;
+  }
+
+  test("auto-resolve defaults on and everything else off, on the model", () => {
+    expect(columnDefault("autoResolveAlert")).toBe(true);
+    expect(columnDefault("autoResolveIncident")).toBe(true);
+    expect(columnDefault("isAlertPrivate")).toBe(false);
+    expect(columnDefault("isIncidentPrivate")).toBe(false);
+    expect(columnDefault("addSloOwnersAsOwners")).toBe(false);
+  });
+
+  test("the server's defaults for an absent flag are the model's column defaults", () => {
+    const block: RegExpMatchArray | null = SERVER_CODE.match(
+      /export const BURN_RATE_RULE_OPTION_FLAG_DEFAULTS: \{[^}]*\} = \{([^}]*)\};/,
+    );
+
+    expect(block).not.toBeNull();
+
+    const serverDefaults: Record<string, boolean> = {};
+
+    for (const pair of block![1]!.matchAll(/(\w+): (true|false)/g)) {
+      serverDefaults[pair[1]!] = pair[2] === "true";
+    }
+
+    const modelDefaults: Record<string, boolean> = {};
+
+    for (const flag of OPTION_FLAGS) {
+      modelDefaults[flag] = columnDefault(flag) as boolean;
+    }
+
+    expect(serverDefaults).toEqual(modelDefaults);
+  });
+
+  test("a row read with every option column missing describes no options", () => {
+    expect(
+      describeBurnRateOutputOptions(new ServiceLevelObjectiveBurnRateRule()),
+    ).toEqual([]);
+  });
+});
+
+describe("BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE", () => {
+  const rows: Array<string> =
+    BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE.split("\n");
+
+  test("is a header, a separator and one row per catalog variable", () => {
+    expect(rows).toHaveLength(SLO_BURN_RATE_TEMPLATE_VARIABLES.length + 2);
+    expect(rows[0]).toBe("| Variable | What it holds | Example |");
+    expect(rows[1]).toMatch(/^\|-+\|-+\|-+\|$/);
+  });
+
+  test("documents every variable as a code span the reader can copy", () => {
+    SLO_BURN_RATE_TEMPLATE_VARIABLES.forEach(
+      (definition: SloBurnRateTemplateVariableDefinition, index: number) => {
+        const row: string = rows[index + 2]!;
+
+        expect(row).toContain(`\`{{${definition.key}}}\``);
+        expect(row).toContain(definition.description);
+        expect(row).toContain(definition.example);
+      },
+    );
+  });
+
+  test("keeps every row to exactly three cells", () => {
+    for (const row of rows) {
+      // Four pipes delimit three cells; a stray pipe would split a cell.
+      expect((row.match(/\|/g) || []).length).toBe(4);
     }
   });
 });

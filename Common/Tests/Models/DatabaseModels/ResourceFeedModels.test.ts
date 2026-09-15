@@ -34,6 +34,9 @@ import ServiceFeed, {
 import VMwareVCenterFeed, {
   VMwareVCenterFeedEventType,
 } from "../../../Models/DatabaseModels/VMwareVCenterFeed";
+import ServiceLevelObjectiveFeed, {
+  ServiceLevelObjectiveFeedEventType,
+} from "../../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -72,6 +75,11 @@ interface FeedModelSpec {
   /** Members every one of these enums must carry, resource-specific ones aside. */
   sharedEventTypes: Array<string>;
   resourceEventTypes: Array<string>;
+  /**
+   * SHARED_EVENT_TYPES members this resource deliberately does not have, each
+   * because nothing could ever post it. Never a way to skip a real event.
+   */
+  exemptSharedEventTypes?: Array<string> | undefined;
 }
 
 const FEED_MODELS: Array<FeedModelSpec> = [
@@ -235,6 +243,30 @@ const FEED_MODELS: Array<FeedModelSpec> = [
       "VMwareVCenterRestored",
     ],
   },
+  {
+    name: "ServiceLevelObjectiveFeed",
+    modelType: ServiceLevelObjectiveFeed,
+    relationProperty: "serviceLevelObjective",
+    foreignKeyColumn: "serviceLevelObjectiveId",
+    eventTypeColumn: "serviceLevelObjectiveFeedEventType",
+    crudApiPath: "/service-level-objective-feed",
+    eventTypeEnum: ServiceLevelObjectiveFeedEventType,
+    sharedEventTypes: [],
+    resourceEventTypes: [
+      "ServiceLevelObjectiveCreated",
+      "ServiceLevelObjectiveUpdated",
+      "ServiceLevelObjectiveArchived",
+      "ServiceLevelObjectiveRestored",
+    ],
+    /*
+     * SLOs have no owner rules and no label rules - the rules they do have
+     * (burn rate and monitor rules) post their own events - so these two would
+     * be enum members nothing can ever write. Enum values are stored verbatim
+     * and can never be removed once rows exist, so they are exempted here
+     * rather than added as dead values. The four owner events still apply.
+     */
+    exemptSharedEventTypes: ["OwnerRuleExecuted", "LabelRuleExecuted"],
+  },
 ];
 
 /** Owner and rule events every one of these feeds records. */
@@ -261,7 +293,7 @@ function permissionExists(permission: Permission): boolean {
 describe("Resource activity feed models", () => {
   test("the inventory is not empty", () => {
     // Guards every test.each below against passing on an empty list.
-    expect(FEED_MODELS.length).toBe(10);
+    expect(FEED_MODELS.length).toBe(11);
   });
 
   test.each(FEED_MODELS)(
@@ -395,8 +427,23 @@ describe("Resource activity feed models", () => {
     "$name carries the owner and rule events plus its own lifecycle events",
     (spec: FeedModelSpec) => {
       const members: Array<string> = Object.values(spec.eventTypeEnum);
+      const exempt: Array<string> = spec.exemptSharedEventTypes || [];
+
+      for (const exemption of exempt) {
+        /*
+         * An exemption must name a real shared event, and must be deleted the
+         * moment the enum grows that member - otherwise it quietly exempts an
+         * event the resource now does post.
+         */
+        expect(SHARED_EVENT_TYPES).toContain(exemption);
+        expect(members).not.toContain(exemption);
+      }
 
       for (const shared of SHARED_EVENT_TYPES) {
+        if (exempt.includes(shared)) {
+          continue;
+        }
+
         expect(members).toContain(shared);
       }
 

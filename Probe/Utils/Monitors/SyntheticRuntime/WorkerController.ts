@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { BrowserContext, Page, Route } from "playwright";
+import { BrowserContext, Frame, Page, Route } from "playwright";
 import PlaywrightCapabilityBroker from "./PlaywrightCapabilityBroker";
 import {
   MAX_RPC_RESULT_BYTES,
@@ -29,13 +29,17 @@ const RUNTIME_STARTUP_TIMEOUT_IN_MS: number = 30_000;
  * which it is, predictably, whenever monitor intervals align on a wall-clock
  * boundary.
  *
- * When even that is not enough, the answer is another attempt, not a bigger
- * number. A navigation that stalls leaves its request paused inside a page
- * that will never recover, but the browser around it is healthy: a fresh page
- * navigates in roughly a hundred milliseconds. Without this retry a single
- * stalled bootstrap discarded a check that still had minutes of its deadline
- * unspent, and handed the tenant a Playwright timeout naming an internal URL
- * as though their own script had failed.
+ * An attempt that fails is retried on a fresh page, which recovers a stall
+ * confined to one page: an interception round-trip that was lost, a renderer
+ * that wedged. It was once assumed that every stall here was of that kind --
+ * that "the browser around it is healthy" -- and that was wrong. Every attempt
+ * shares the browser's network service and storage, so a browser that cannot
+ * serve one page serves none, and all three attempts fail identically. The
+ * stall customers actually hit was of that second kind: a fresh on-disk
+ * profile waiting on slow storage before Chromium would hand the navigation to
+ * page.route. SyntheticMonitorWorker therefore runs every check in an
+ * ephemeral context, so the bootstrap never waits on the disk; the retry stays
+ * for the stalls that really are confined to a page.
  */
 const CONTROLLER_BOOTSTRAP_TIMEOUT_IN_MS: number = 20_000;
 const CONTROLLER_BOOTSTRAP_ATTEMPTS: number = 3;
@@ -55,6 +59,90 @@ const MAX_CONTROLLER_BOOTSTRAP_ATTEMPTS: number = 10;
 const CONTROLLER_BOOTSTRAP_TOTAL_BUDGET_IN_MS: number = Math.floor(
   SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS / 2,
 );
+/*
+ * Tearing the controller page down must never be what a check waits on. A
+ * page that has lost its JavaScript context -- Firefox has been seen to drop
+ * it after the controller document's process switch -- never settles an
+ * evaluate or a close, and whatever fault was already on its way out is then
+ * swallowed while the worker waits for the supervisor to kill it.
+ */
+const CONTROLLER_TEARDOWN_TIMEOUT_IN_MS: number = 5_000;
+/*
+ * How long a bootstrap attempt waits, once the controller document has
+ * loaded, for that document's JavaScript to answer. An idle probe answers in
+ * milliseconds.
+ *
+ * Firefox sometimes never tells Playwright about the new document's
+ * main-world context after the controller document's process switch. The
+ * navigation still completes, but every evaluate on that page then waits
+ * forever -- starting the sandbox included -- so the check used to spend the
+ * whole sandbox start-up budget and then a second worker. A page in that state
+ * never recovers, and a fresh page in the same browser does not inherit it, so
+ * it is treated like any other stall confined to one page: the attempt fails
+ * and the retry opens a new page. The cap keeps that detour to seconds even
+ * when the attempt still has most of its budget left.
+ */
+const CONTROLLER_RUNTIME_PROBE_TIMEOUT_IN_MS: number = 5_000;
+/*
+ * The least the check gets, even when the navigation finished at the very end
+ * of its attempt. A healthy document answers in tens of milliseconds -- the
+ * slowest measured, four Firefox browsers sharing one CPU, took 732 ms -- so
+ * this is enough for a working page without letting a silent one hold the
+ * attempt noticeably past its budget.
+ */
+const CONTROLLER_RUNTIME_PROBE_MINIMUM_IN_MS: number = 500;
+
+/*
+ * How far one bootstrap attempt got, for the probe's logs.
+ *
+ * Playwright's timeout for this navigation names the URL and nothing else --
+ * its call log is always the same single line -- so a request the browser
+ * never handed to the route, a document that was served but never committed,
+ * and a document that committed but never reached DOMContentLoaded all read
+ * identically. They have different causes: the browser's network or storage
+ * layer, a renderer that could not start, a renderer that is busy. The marks
+ * say which one it was.
+ */
+class ControllerBootstrapTrace {
+  private readonly startedAtInMs: number = Date.now();
+  private readonly marks: Map<string, number> = new Map<string, number>();
+
+  public mark(step: string): void {
+    if (!this.marks.has(step)) {
+      this.marks.set(step, Date.now() - this.startedAtInMs);
+    }
+  }
+
+  public describeFailure(data: {
+    attempt: number;
+    attempts: number;
+    timeoutInMs: number;
+    error: unknown;
+  }): string {
+    const reached: string =
+      this.marks.size > 0
+        ? Array.from(this.marks.entries())
+            .map(([step, elapsedInMs]: [string, number]): string => {
+              return `${step} (+${elapsedInMs} ms)`;
+            })
+            .join(", ")
+        : "nothing";
+
+    return `Bootstrap attempt ${data.attempt}/${data.attempts} failed after ${Date.now() - this.startedAtInMs} ms of its ${data.timeoutInMs} ms budget. Reached: ${reached}. Error: ${firstLineOf(data.error)}`;
+  }
+}
+
+function describeError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.stack || error.message;
+  }
+  return String(error);
+}
+
+function firstLineOf(error: unknown): string {
+  const text: string = error instanceof Error ? error.message : String(error);
+  return text.split("\n")[0] || text;
+}
 
 interface WorkerCompletionResult {
   returnValue?: unknown;
@@ -79,6 +167,12 @@ export interface WorkerControllerOptions {
    */
   bootstrapTimeoutInMs?: number | undefined;
   bootstrapAttempts?: number | undefined;
+  /*
+   * How long tearing down a controller page may take -- stopping its worker,
+   * closing it -- before it is left to the browser's own teardown. Exposed so
+   * tests can prove the bound without waiting out the production value.
+   */
+  teardownTimeoutInMs?: number | undefined;
 }
 
 interface ControllerPayload {
@@ -139,6 +233,13 @@ export default class WorkerController {
        * event, so discarded attempts would leave their listeners behind.
        */
       let broker: PlaywrightCapabilityBroker | null = null;
+      /*
+       * Every page the bootstrap opens, including the attempts it gave up on.
+       * An abandoned attempt's page is closed, but that close is bounded and
+       * can outlive the bootstrap, so the broker keeps all of them out of what
+       * the tenant can see -- not only the page the bootstrap settled on.
+       */
+      const bootstrapPages: Set<Page> = new Set<Page>();
 
       controllerPage = await this.openControllerPage({
         browserContext: options.browserContext,
@@ -148,6 +249,8 @@ export default class WorkerController {
         timeoutInMs: this.getBootstrapTimeoutInMs(options),
         attempts: this.getBootstrapAttempts(options),
         totalBudgetInMs: this.getBootstrapTotalBudgetInMs(options),
+        teardownTimeoutInMs: this.getTeardownTimeoutInMs(options),
+        bootstrapPages,
         dispatch: async (request: unknown): Promise<unknown> => {
           if (!broker) {
             throw new Error(
@@ -163,6 +266,7 @@ export default class WorkerController {
         page: options.page,
         browserContext: options.browserContext,
         controllerPage,
+        internalPages: bootstrapPages,
         signal: abortController.signal,
         onRuntimeReady: (): void => {
           resolveRuntimeReady?.();
@@ -268,17 +372,20 @@ export default class WorkerController {
       abortController.abort();
       if (controllerPage && !controllerPage.isClosed()) {
         try {
-          await this.stopWorker(controllerPage, controlKey);
+          await this.withinDeadline({
+            operation: this.stopWorker(controllerPage, controlKey),
+            timeoutInMs: this.getTeardownTimeoutInMs(options),
+            step: "stop the sandbox worker",
+          });
         } catch {
           // The controller page is closed below even if the worker crashed.
         }
       }
       if (controllerPage && !controllerPage.isClosed()) {
-        try {
-          await controllerPage.close();
-        } catch {
-          // The child process supervisor is the final cleanup boundary.
-        }
+        await this.closePageQuietly({
+          page: controllerPage,
+          timeoutInMs: this.getTeardownTimeoutInMs(options),
+        });
       }
     }
   }
@@ -314,16 +421,39 @@ export default class WorkerController {
     ) {
       throw new Error("Synthetic runtime bootstrap attempt count is invalid.");
     }
+    /*
+     * Capped as well as floored: Node clamps a timer above 2^31-1 ms to 1 ms,
+     * so an enormous bound would give up on teardown at once -- the opposite
+     * of what it asks for. Nothing may wait longer than the whole start-up
+     * allowance anyway.
+     */
+    if (
+      options.teardownTimeoutInMs !== undefined &&
+      (!Number.isSafeInteger(options.teardownTimeoutInMs) ||
+        options.teardownTimeoutInMs <= 0 ||
+        options.teardownTimeoutInMs >
+          SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS)
+    ) {
+      throw new Error("Synthetic runtime teardown timeout is invalid.");
+    }
   }
 
   /**
    * Opens the internal controller page and navigates it to the sentinel
-   * document, retrying on a fresh page when an attempt stalls.
+   * document, retrying on a fresh page when an attempt fails.
    *
-   * Every attempt gets its own page on purpose. The two ways this step fails
-   * -- an interception round-trip that never comes back, and a renderer that
-   * has wedged -- both leave the page unusable while the browser around it is
-   * still fine, and a fresh page costs about a hundred milliseconds.
+   * Every attempt gets its own page, and the whole attempt -- opening the
+   * page, installing the route and the binding, and the navigation -- shares
+   * one deadline. Only the navigation used to be bounded: a page that never
+   * opened hung until the supervisor killed the worker, and a page that was
+   * slow to open quietly spent the budget of the attempts after it.
+   *
+   * A fresh page recovers a stall that belongs to one page -- an interception
+   * round-trip that was lost, a renderer that wedged. It does not recover a
+   * stall that belongs to the whole browser, because every attempt shares the
+   * browser's network and storage layers. Each attempt's trace therefore goes
+   * into the fault's internal detail, so the probe's logs say which kind of
+   * stall it was.
    */
   private static async openControllerPage(data: {
     browserContext: BrowserContext;
@@ -333,10 +463,13 @@ export default class WorkerController {
     timeoutInMs: number;
     attempts: number;
     totalBudgetInMs: number;
+    teardownTimeoutInMs: number;
+    bootstrapPages: Set<Page>;
     dispatch: (request: unknown) => Promise<unknown>;
   }): Promise<Page> {
     let lastError: unknown;
     let attemptsMade: number = 0;
+    const attemptReports: string[] = [];
     const startedAtInMs: number = Date.now();
 
     for (let attempt: number = 1; attempt <= data.attempts; attempt++) {
@@ -351,15 +484,102 @@ export default class WorkerController {
         Math.min(data.timeoutInMs, remainingBudgetInMs),
       );
       attemptsMade++;
-      const page: Page = await data.browserContext.newPage();
+      const trace: ControllerBootstrapTrace = new ControllerBootstrapTrace();
 
       try {
-        await page.route("**/*", async (route: Route) => {
+        return await this.openControllerPageAttempt({
+          browserContext: data.browserContext,
+          controllerUrl: data.controllerUrl,
+          bindingName: data.bindingName,
+          abortSignal: data.abortSignal,
+          dispatch: data.dispatch,
+          timeoutInMs: attemptTimeoutInMs,
+          teardownTimeoutInMs: data.teardownTimeoutInMs,
+          bootstrapPages: data.bootstrapPages,
+          trace,
+        });
+      } catch (error: unknown) {
+        lastError = error;
+        attemptReports.push(
+          trace.describeFailure({
+            attempt,
+            attempts: data.attempts,
+            timeoutInMs: attemptTimeoutInMs,
+            error,
+          }),
+        );
+
+        if (attempt < data.attempts) {
+          await this.delay(CONTROLLER_BOOTSTRAP_RETRY_DELAY_IN_MS);
+        }
+      }
+    }
+
+    /*
+     * Deliberately free of the sentinel URL and of internal file paths: this
+     * string is what the tenant reads on their monitor. The Playwright error,
+     * and how far each attempt got, travel separately in internalDetail for
+     * the probe's own logs.
+     */
+    throw new SyntheticRuntimeFault({
+      message: `Synthetic monitor could not start on this probe: the browser runtime did not finish starting up after ${attemptsMade} attempt(s) of up to ${data.timeoutInMs} ms. The monitored page was never opened, so this does not reflect the health of the monitored site.`,
+      internalDetail: [
+        ...attemptReports,
+        `Last error: ${describeError(lastError)}`,
+      ].join("\n"),
+    });
+  }
+
+  private static async openControllerPageAttempt(data: {
+    browserContext: BrowserContext;
+    controllerUrl: string;
+    bindingName: string;
+    abortSignal: AbortSignal;
+    dispatch: (request: unknown) => Promise<unknown>;
+    timeoutInMs: number;
+    teardownTimeoutInMs: number;
+    bootstrapPages: Set<Page>;
+    trace: ControllerBootstrapTrace;
+  }): Promise<Page> {
+    const deadlineAtInMs: number = Date.now() + data.timeoutInMs;
+    /*
+     * Set once this attempt has been given up on. Its binding refuses calls
+     * from then on: the page can stay alive while its bounded close runs out,
+     * and nothing running in it may reach the broker.
+     */
+    let isAbandoned: boolean = false;
+    const getRemainingInMs: () => number = (): number => {
+      return Math.max(1, deadlineAtInMs - Date.now());
+    };
+    const pagePromise: Promise<Page> = data.browserContext.newPage();
+    let openedPage: Page | null = null;
+    const onFrameNavigated: (frame: Frame) => void = (frame: Frame): void => {
+      if (openedPage && frame === openedPage.mainFrame()) {
+        data.trace.mark("sentinel document committed");
+      }
+    };
+    const onDomContentLoaded: () => void = (): void => {
+      data.trace.mark("DOMContentLoaded");
+    };
+
+    try {
+      const page: Page = await this.withinDeadline({
+        operation: pagePromise,
+        timeoutInMs: getRemainingInMs(),
+        step: "open the controller page",
+      });
+      openedPage = page;
+      data.bootstrapPages.add(page);
+      data.trace.mark("page opened");
+
+      await this.withinDeadline({
+        operation: page.route("**/*", async (route: Route) => {
           try {
             if (
               route.request().url() === data.controllerUrl &&
               route.request().resourceType() === "document"
             ) {
+              data.trace.mark("sentinel request intercepted");
               await route.fulfill({
                 status: 200,
                 contentType: "text/html; charset=utf-8",
@@ -385,6 +605,7 @@ export default class WorkerController {
                 },
                 body: "<!doctype html><meta charset=utf-8><title>Synthetic Runtime</title>",
               });
+              data.trace.mark("sentinel document served");
               return;
             }
 
@@ -393,20 +614,26 @@ export default class WorkerController {
             /*
              * A handler that returns without settling its route leaves the
              * request paused in the browser with nothing to end it but the
-             * navigation timeout -- the exact stall this retry exists for.
-             * Abort so the navigation fails fast instead; a route belonging to
-             * a page that has already gone away ignores this too.
+             * navigation timeout. Abort so the navigation fails fast instead;
+             * a route belonging to a page that has already gone away ignores
+             * this too.
              */
             await route.abort("failed").catch((): void => {
               // The attempt is abandoned either way.
             });
           }
-        });
+        }),
+        timeoutInMs: getRemainingInMs(),
+        step: "install the sentinel route",
+      });
+      data.trace.mark("route installed");
 
-        await page.exposeBinding(
+      await this.withinDeadline({
+        operation: page.exposeBinding(
           data.bindingName,
           async (source: { page: Page; frame: unknown }, request: unknown) => {
             if (
+              isAbandoned ||
               source.page !== page ||
               source.frame !== page.mainFrame() ||
               data.abortSignal.aborted
@@ -415,38 +642,69 @@ export default class WorkerController {
             }
             return await data.dispatch(request);
           },
-        );
+        ),
+        timeoutInMs: getRemainingInMs(),
+        step: "install the runtime binding",
+      });
+      data.trace.mark("binding installed");
 
-        await page.goto(data.controllerUrl, {
-          waitUntil: "domcontentloaded",
-          timeout: attemptTimeoutInMs,
+      page.on("framenavigated", onFrameNavigated);
+      page.on("domcontentloaded", onDomContentLoaded);
+      data.trace.mark("navigation started");
+      await page.goto(data.controllerUrl, {
+        waitUntil: "domcontentloaded",
+        timeout: getRemainingInMs(),
+      });
+
+      /*
+       * Never less than a moment, even when the navigation used up the
+       * attempt: a document that loaded in the budget's last milliseconds must
+       * not fail an attempt only because no time was left to ask it anything.
+       * The attempt can overrun its budget by at most that moment.
+       */
+      await this.withinDeadline({
+        operation: page.evaluate((): boolean => {
+          return true;
+        }),
+        timeoutInMs: Math.min(
+          CONTROLLER_RUNTIME_PROBE_TIMEOUT_IN_MS,
+          Math.max(getRemainingInMs(), CONTROLLER_RUNTIME_PROBE_MINIMUM_IN_MS),
+        ),
+        step: "reach the controller page's JavaScript context",
+      });
+
+      return page;
+    } catch (error: unknown) {
+      isAbandoned = true;
+      if (openedPage) {
+        await this.closePageQuietly({
+          page: openedPage,
+          timeoutInMs: data.teardownTimeoutInMs,
         });
-
-        return page;
-      } catch (error: unknown) {
-        lastError = error;
-
-        try {
-          await page.close();
-        } catch {
-          // The context teardown in the worker is the final cleanup boundary.
-        }
-
-        if (attempt < data.attempts) {
-          await this.delay(CONTROLLER_BOOTSTRAP_RETRY_DELAY_IN_MS);
-        }
+      } else {
+        /*
+         * The page can still arrive after the attempt has given up on it.
+         * Nothing will ever use it, so close it whenever it does -- and until
+         * then it is one of the bootstrap's pages, hidden from the tenant.
+         */
+        void pagePromise.then(
+          async (latePage: Page): Promise<void> => {
+            data.bootstrapPages.add(latePage);
+            await this.closePageQuietly({
+              page: latePage,
+              timeoutInMs: data.teardownTimeoutInMs,
+            });
+          },
+          (): void => {
+            // A page that never opened needs no cleanup.
+          },
+        );
       }
+      throw error;
+    } finally {
+      openedPage?.off("framenavigated", onFrameNavigated);
+      openedPage?.off("domcontentloaded", onDomContentLoaded);
     }
-
-    /*
-     * Deliberately free of the sentinel URL and of internal file paths: this
-     * string is what the tenant reads on their monitor. The Playwright error
-     * travels separately, in internalDetail, for the probe's own logs.
-     */
-    throw new SyntheticRuntimeFault({
-      message: `Synthetic monitor could not start on this probe: the browser runtime did not finish starting up after ${attemptsMade} attempt(s) of up to ${data.timeoutInMs} ms. The monitored page was never opened, so this does not reflect the health of the monitored site.`,
-      internalDetail: lastError,
-    });
   }
 
   private static getBootstrapTimeoutInMs(
@@ -461,6 +719,12 @@ export default class WorkerController {
     return options.bootstrapAttempts ?? CONTROLLER_BOOTSTRAP_ATTEMPTS;
   }
 
+  private static getTeardownTimeoutInMs(
+    options: WorkerControllerOptions,
+  ): number {
+    return options.teardownTimeoutInMs ?? CONTROLLER_TEARDOWN_TIMEOUT_IN_MS;
+  }
+
   private static getBootstrapTotalBudgetInMs(
     options: WorkerControllerOptions,
   ): number {
@@ -473,6 +737,60 @@ export default class WorkerController {
       this.getBootstrapTimeoutInMs(options) *
         this.getBootstrapAttempts(options),
     );
+  }
+
+  /**
+   * Waits for an operation that Playwright would otherwise wait on forever --
+   * newPage, route, exposeBinding, close and evaluate take no timeout -- and
+   * fails with the step's name once the deadline passes. The operation itself
+   * cannot be cancelled; whoever calls this owns cleaning up after it.
+   */
+  private static async withinDeadline<Value>(data: {
+    operation: Promise<Value>;
+    timeoutInMs: number;
+    step: string;
+  }): Promise<Value> {
+    let timer: NodeJS.Timeout | undefined;
+
+    try {
+      return await Promise.race([
+        data.operation,
+        new Promise<never>(
+          (
+            _resolve: (value: never) => void,
+            reject: (error: Error) => void,
+          ) => {
+            timer = setTimeout((): void => {
+              reject(
+                new Error(
+                  `Timed out after ${data.timeoutInMs} ms waiting to ${data.step}.`,
+                ),
+              );
+            }, data.timeoutInMs);
+            timer.unref?.();
+          },
+        ),
+      ]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+
+  private static async closePageQuietly(data: {
+    page: Page;
+    timeoutInMs: number;
+  }): Promise<void> {
+    try {
+      await this.withinDeadline({
+        operation: data.page.close(),
+        timeoutInMs: data.timeoutInMs,
+        step: "close the controller page",
+      });
+    } catch {
+      // The browser is torn down with the worker; nothing here may block it.
+    }
   }
 
   private static async delay(delayInMs: number): Promise<void> {

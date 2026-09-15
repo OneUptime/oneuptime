@@ -1204,7 +1204,7 @@ const IncidentView: FunctionComponent<
             cardProps={{
               title: "Affected Resources",
               description:
-                "Monitors, services and infrastructure this incident affects.",
+                "Monitors, services, infrastructure and SLOs this incident affects.",
               headerLayout: "stacked",
             }}
             isEditable={true}
@@ -1463,6 +1463,16 @@ const IncidentView: FunctionComponent<
                       _id: true,
                       serviceColor: true,
                     },
+                    /*
+                     * Shown, never edited: the picker above does not offer
+                     * SLOs and no hidden registration loads them into the
+                     * form, so saving other resources leaves the link a burn
+                     * rate rule wrote untouched.
+                     */
+                    serviceLevelObjectives: {
+                      name: true,
+                      _id: true,
+                    },
                   },
                   title: "",
                   fieldType: FieldType.Element,
@@ -1480,6 +1490,9 @@ const IncidentView: FunctionComponent<
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         services={item.services || []}
+                        serviceLevelObjectives={
+                          item.serviceLevelObjectives || []
+                        }
                         columns={1}
                       />
                     );
