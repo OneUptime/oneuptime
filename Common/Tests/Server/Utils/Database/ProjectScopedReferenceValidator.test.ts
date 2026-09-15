@@ -10,6 +10,7 @@ import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import User from "../../../../Models/DatabaseModels/User";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import ServerException from "../../../../Types/Exception/ServerException";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
@@ -685,6 +686,50 @@ describe("ProjectScopedReferenceValidator", () => {
         ],
       }),
     ).rejects.toThrow("belong to a different project");
+  });
+
+  it("names the reference, instead of failing with a TypeError, when its service is missing", async () => {
+    /*
+     * MonitorStepsProjectValidator used to take the service from a table built
+     * at module load, and an import cycle left the User entry `undefined`. The
+     * lookup then threw
+     *   TypeError: Cannot read properties of undefined (reading 'getModel')
+     * and the API answered a bare 500 "Server Error" that named nothing. A
+     * missing service is still a bug, but the error has to say which
+     * reference could not be checked, and no lookup should have started.
+     */
+    const { severityFindBy } = mockLookups({
+      incidentSeverities: [incidentSeverity(OWN_SEVERITY_ID, PROJECT_ID)],
+    });
+
+    let thrown: unknown = null;
+
+    try {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: PROJECT_ID,
+        subject: "monitor's criteria",
+        references: [
+          {
+            modelName: "Incident Severity",
+            id: OWN_SEVERITY_ID,
+            service: IncidentSeverityService,
+          },
+          {
+            modelName: 'User (criteria "Monitor is offline" owner user)',
+            id: OWN_USER_ID,
+            service: undefined as unknown as DatabaseService<DatabaseBaseModel>,
+          },
+        ],
+      });
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(thrown).toBeInstanceOf(ServerException);
+    expect((thrown as ServerException).message).toBe(
+      `Unable to check the User (criteria "Monitor is offline" owner user) this monitor's criteria references because its lookup service is not loaded. Please contact support.`,
+    );
+    expect(severityFindBy).not.toHaveBeenCalled();
   });
 
   it("says 'request' when the caller does not name the subject", async () => {
