@@ -614,7 +614,7 @@ describe("The tab bar's colours", () => {
 
     /* The crossfade layer is the icon's grandparent. */
     const visibility: (name: keyof typeof Ionicons.glyphMap) => unknown = (
-      name,
+      name: keyof typeof Ionicons.glyphMap,
     ) => {
       return StyleSheet.flatten(
         screen.getByText(glyphFor(name)).parent?.parent?.props

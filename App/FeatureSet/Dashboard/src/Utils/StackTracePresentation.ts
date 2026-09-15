@@ -301,10 +301,11 @@ export function getFramePackageName(
 
 // "ValueError: bad sku", "requests.exceptions.HTTPError", "KeyboardInterrupt"
 const PYTHON_EXCEPTION_LINE_PATTERN: RegExp = /^[A-Za-z_][\w.]*(?::.*)?$/;
+const INDENTED_LINE_PATTERN: RegExp = /^\s/;
 
 function isPythonExceptionLine(line: string): boolean {
   return (
-    !/^\s/.test(line) &&
+    !INDENTED_LINE_PATTERN.test(line) &&
     !PYTHON_TRACEBACK_HEADER_PATTERN.test(line) &&
     PYTHON_EXCEPTION_LINE_PATTERN.test(line.trimEnd())
   );
@@ -334,7 +335,7 @@ export function getStackTraceHeadline(
       }
 
       // Frames and their source lines are indented: the message is below them.
-      if (/^\s/.test(line)) {
+      if (INDENTED_LINE_PATTERN.test(line)) {
         return null;
       }
 

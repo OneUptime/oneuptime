@@ -14,7 +14,7 @@ import {
 } from "../../../../../../Server/Utils/DataSource/HttpFetch";
 import APIException from "../../../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../../../Types/Exception/BadDataException";
-import { JSONObject } from "../../../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../../../Types/JSON";
 
 /*
  * The Security Hub client contract as the connector depends on it: the
@@ -584,9 +584,11 @@ describe("AwsSecurityHubClient", () => {
           nextToken: first.nextToken,
         });
       expect(second.nextToken).toBeNull();
-      expect(second.findings.map((item: JSONObject) => item["Id"])).toEqual([
-        finding("b")["Id"],
-      ]);
+      expect(
+        second.findings.map((item: JSONObject): JSONValue | undefined => {
+          return item["Id"];
+        }),
+      ).toEqual([finding("b")["Id"]]);
 
       const body: JSONObject = parsedBody(harness.requests[1]!);
       expect(Object.keys(body).sort()).toEqual([
