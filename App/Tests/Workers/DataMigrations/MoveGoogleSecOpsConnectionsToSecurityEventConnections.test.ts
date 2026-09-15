@@ -1781,7 +1781,7 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
     });
 
     test("never throws, even for a value whose fields throw when read", () => {
-      const hostile: object = new Proxy(
+      const hostile: Record<string, unknown> = new Proxy(
         {},
         {
           get: (): never => {

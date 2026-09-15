@@ -735,7 +735,7 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
       fetchWith(makeFakeClient({ rule: [original] })),
     );
 
-    expect(Object.keys(error as object)).not.toContain(
+    expect(Object.keys(error as Record<string, unknown>)).not.toContain(
       "oneuptimeConnectorChecks",
     );
     expect(readConnectorChecks(error)).toHaveLength(1);
@@ -825,7 +825,7 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
       sourceCounts: { ruleDetections: 2, curatedDetections: 0, alertsView: 0 },
       includeNonAlertingDetections: false,
     });
-    expect(Object.keys(error as object)).not.toContain(
+    expect(Object.keys(error as Record<string, unknown>)).not.toContain(
       "oneuptimeConnectorFetchSummary",
     );
   });

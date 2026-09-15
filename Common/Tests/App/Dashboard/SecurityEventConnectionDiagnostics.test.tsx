@@ -1039,10 +1039,15 @@ describe("SecurityEventConnectionRunDetails for Google SecOps runs", () => {
       ),
     );
 
+    /*
+     * Hoisted: eslint's wrap-regex and prettier disagree about an inline
+     * literal followed by .test().
+     */
+    const pollingMovedPast: RegExp = /Polling moved past one minute/;
     const alert: HTMLElement = within(details)
       .getAllByRole("alert")
       .find((element: HTMLElement): boolean => {
-        return /Polling moved past one minute/.test(element.textContent || "");
+        return pollingMovedPast.test(element.textContent || "");
       }) as HTMLElement;
     expect(alert).toHaveTextContent(
       "More detections were created in one minute than one poll can read.",
