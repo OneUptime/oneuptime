@@ -63,6 +63,7 @@ import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 interface RenderedFeedItem {
   key: string;
   textInMarkdown: string;
+  moreTextInMarkdown?: string | undefined;
   icon: IconProp;
   safeMode?: boolean | undefined;
 }
@@ -113,6 +114,56 @@ const ALERT_ANALYSIS: string =
   "## AI — Automated Root Cause Analysis\n\nThe alert was caused by a failed dependency.";
 const ORDINARY_ROOT_CAUSE: string =
   "## Root cause\n\nAn engineer identified a configuration regression.";
+
+/*
+ * A structured report in the exact layout AIInvestigationEngine posts: brand
+ * heading, bold lead-in sections with citation markers, the server's
+ * Evidence checked list and the footer.
+ */
+function structuredReport(summary: string, rootCause: string): string {
+  return [
+    "## 🧠 AI — Automated Root Cause Analysis",
+    "",
+    `**Summary** — ${summary}`,
+    "",
+    `**Most likely root cause** — ${rootCause}`,
+    "",
+    "**Evidence**",
+    "- Pool usage stayed pinned at 10 [C2]",
+    "",
+    "**Suggested next steps**",
+    "1. Roll back the release.",
+    "",
+    "**Evidence checked**",
+    "- **[C1]** Incident search (3 found) — 3 row(s)",
+    "- **[C2]** Max(db.client.connections.usage) — 80 row(s)",
+    "",
+    "---",
+    "*Investigated automatically by OneUptime AI — read-only, 2 queries run across your own telemetry using claude-sonnet-4-5. This is an AI-generated first pass; verify before acting.*",
+  ].join("\n");
+}
+
+const STRUCTURED_INCIDENT_REPORT: string = structuredReport(
+  "Checkout latency passed 2s because the pool was cut to 10 [C1][C2].",
+  "Release 2026.09.14-2 set the pool to 10 connections [C2].",
+);
+const COMPACT_INCIDENT_TEXT: string = [
+  "**OneUptime AI posted a root cause analysis**",
+  "Checkout latency passed 2s because the pool was cut to 10.",
+  "**Most likely root cause:** Release 2026.09.14-2 set the pool to 10 connections.",
+].join("\n\n");
+const STRUCTURED_ALERT_REPORT: string = structuredReport(
+  "Payment webhooks return 502 because the ledger timeout dropped to 1s [C1].",
+  "A config reload set connectTimeout=1000ms [C2], [C1].",
+);
+const COMPACT_ALERT_TEXT: string = [
+  "**OneUptime AI posted a root cause analysis**",
+  "Payment webhooks return 502 because the ledger timeout dropped to 1s.",
+  "**Most likely root cause:** A config reload set connectTimeout=1000ms.",
+].join("\n\n");
+/* Looks structured, but it is a person's note: it must never be compacted. */
+const STRUCTURED_LOOKING_NOTE: string =
+  "**Summary** — rolled back [C1].\n\n**Root cause** — pool size [C2].";
 
 function listResult<T>(data: Array<T>): ListResult<T> {
   return {
@@ -178,6 +229,44 @@ function ordinaryAlertRootCauseItem(): AlertFeed {
   item.id = new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
   delete item.aiRunId;
   item.feedInfoInMarkdown = ORDINARY_ROOT_CAUSE;
+  return item;
+}
+
+function structuredIncidentAnalysisItem(): IncidentFeed {
+  const item: IncidentFeed = incidentAnalysisItem();
+  item.id = new ObjectID("c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1");
+  item.feedInfoInMarkdown = STRUCTURED_INCIDENT_REPORT;
+  return item;
+}
+
+function structuredAlertAnalysisItem(): AlertFeed {
+  const item: AlertFeed = alertAnalysisItem();
+  item.id = new ObjectID("c2c2c2c2-c2c2-4c2c-8c2c-c2c2c2c2c2c2");
+  item.feedInfoInMarkdown = STRUCTURED_ALERT_REPORT;
+  return item;
+}
+
+function incidentNoteItem(): IncidentFeed {
+  const item: IncidentFeed = new IncidentFeed();
+  item.id = new ObjectID("c3c3c3c3-c3c3-4c3c-8c3c-c3c3c3c3c3c3");
+  item.incidentId = INCIDENT_ID;
+  item.incidentFeedEventType = IncidentFeedEventType.PrivateNote;
+  item.feedInfoInMarkdown = STRUCTURED_LOOKING_NOTE;
+  item.moreInformationInMarkdown = "Note attachments";
+  item.postedAt = POSTED_AT;
+  item.createdAt = POSTED_AT;
+  return item;
+}
+
+function alertNoteItem(): AlertFeed {
+  const item: AlertFeed = new AlertFeed();
+  item.id = new ObjectID("c4c4c4c4-c4c4-4c4c-8c4c-c4c4c4c4c4c4");
+  item.alertId = ALERT_ID;
+  item.alertFeedEventType = AlertFeedEventType.PrivateNote;
+  item.feedInfoInMarkdown = STRUCTURED_LOOKING_NOTE;
+  item.moreInformationInMarkdown = "Note attachments";
+  item.postedAt = POSTED_AT;
+  item.createdAt = POSTED_AT;
   return item;
 }
 
@@ -485,6 +574,220 @@ describe("investigation reports in incident and alert feeds", () => {
       expect.objectContaining({
         icon: IconProp.Cube,
         safeMode: false,
+      }),
+    );
+    /* Not an AI investigation, so the text is never compacted. */
+    expect(lastRenderedFeedProps().items[0]!.textInMarkdown).toBe(
+      ORDINARY_ROOT_CAUSE,
+    );
+    expect(lastRenderedFeedProps().items[0]!.moreTextInMarkdown).toBe("");
+  });
+});
+
+describe("AI root-cause items in incident and alert feeds", () => {
+  test("a structured incident report becomes a compact item with the full report behind More Information", async () => {
+    getListMock.mockResolvedValueOnce(
+      listResult<IncidentFeed>([
+        structuredIncidentAnalysisItem(),
+        ordinaryIncidentRootCauseItem(),
+        incidentNoteItem(),
+      ]) as never,
+    );
+
+    render(incidentElement(0));
+    expect(
+      await screen.findByText(/OneUptime AI posted a root cause analysis/),
+    ).toBeVisible();
+
+    const items: Array<RenderedFeedItem> = lastRenderedFeedProps().items;
+    expect(items).toHaveLength(3);
+
+    expect(items[0]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: COMPACT_INCIDENT_TEXT,
+        moreTextInMarkdown: STRUCTURED_INCIDENT_REPORT,
+        icon: IconProp.Sparkles,
+        safeMode: true,
+      }),
+    );
+    expect(items[0]!.textInMarkdown).not.toMatch(/\[C\d+\]/);
+    expect(items[0]!.textInMarkdown).not.toContain("Evidence checked");
+    expect(items[0]!.textInMarkdown).not.toContain("Suggested next steps");
+    expect(items[0]!.moreTextInMarkdown).toContain("Evidence checked");
+
+    /* Non-AI items keep exactly what was posted. */
+    expect(items[1]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: ORDINARY_ROOT_CAUSE,
+        moreTextInMarkdown: "",
+        icon: IconProp.Cube,
+        safeMode: false,
+      }),
+    );
+    expect(items[2]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: STRUCTURED_LOOKING_NOTE,
+        moreTextInMarkdown: "Note attachments",
+        icon: IconProp.Lock,
+        safeMode: false,
+      }),
+    );
+  });
+
+  test("a structured alert report becomes a compact item with the full report behind More Information", async () => {
+    getListMock.mockResolvedValueOnce(
+      listResult<AlertFeed>([
+        structuredAlertAnalysisItem(),
+        ordinaryAlertRootCauseItem(),
+        alertNoteItem(),
+      ]) as never,
+    );
+
+    render(alertElement(0));
+    expect(
+      await screen.findByText(/OneUptime AI posted a root cause analysis/),
+    ).toBeVisible();
+
+    const items: Array<RenderedFeedItem> = lastRenderedFeedProps().items;
+    expect(items).toHaveLength(3);
+
+    expect(items[0]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: COMPACT_ALERT_TEXT,
+        moreTextInMarkdown: STRUCTURED_ALERT_REPORT,
+        icon: IconProp.Sparkles,
+        safeMode: true,
+      }),
+    );
+    expect(items[0]!.textInMarkdown).not.toMatch(/\[C\d+\]/);
+
+    expect(items[1]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: ORDINARY_ROOT_CAUSE,
+        moreTextInMarkdown: "",
+        icon: IconProp.Cube,
+        safeMode: false,
+      }),
+    );
+    expect(items[2]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: STRUCTURED_LOOKING_NOTE,
+        moreTextInMarkdown: "Note attachments",
+        icon: IconProp.Lock,
+        safeMode: false,
+      }),
+    );
+  });
+
+  test("a report recognised by its brand heading alone is compacted too", async () => {
+    const incidentItem: IncidentFeed = structuredIncidentAnalysisItem();
+    delete incidentItem.aiRunId;
+    getListMock.mockResolvedValueOnce(
+      listResult<IncidentFeed>([incidentItem]) as never,
+    );
+
+    const incidentView: ReturnType<typeof render> = render(incidentElement(0));
+    expect(
+      await screen.findByText(/OneUptime AI posted a root cause analysis/),
+    ).toBeVisible();
+    expect(lastRenderedFeedProps().items[0]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: COMPACT_INCIDENT_TEXT,
+        moreTextInMarkdown: STRUCTURED_INCIDENT_REPORT,
+        icon: IconProp.Sparkles,
+        safeMode: true,
+      }),
+    );
+
+    incidentView.unmount();
+    const alertItem: AlertFeed = structuredAlertAnalysisItem();
+    delete alertItem.aiRunId;
+    getListMock.mockResolvedValueOnce(
+      listResult<AlertFeed>([alertItem]) as never,
+    );
+
+    render(alertElement(0));
+    expect(
+      await screen.findByText(/OneUptime AI posted a root cause analysis/),
+    ).toBeVisible();
+    expect(lastRenderedFeedProps().items[0]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: COMPACT_ALERT_TEXT,
+        moreTextInMarkdown: STRUCTURED_ALERT_REPORT,
+        icon: IconProp.Sparkles,
+        safeMode: true,
+      }),
+    );
+  });
+
+  test("an unstructured AI report is shown as posted, with no More Information", async () => {
+    getListMock.mockResolvedValueOnce(
+      listResult<IncidentFeed>([incidentAnalysisItem()]) as never,
+    );
+
+    const incidentView: ReturnType<typeof render> = render(incidentElement(0));
+    expect(await screen.findByText(/connection exhaustion/)).toBeVisible();
+    expect(lastRenderedFeedProps().items[0]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: INCIDENT_ANALYSIS,
+        moreTextInMarkdown: "",
+        icon: IconProp.Sparkles,
+        safeMode: true,
+      }),
+    );
+
+    incidentView.unmount();
+    getListMock.mockResolvedValueOnce(
+      listResult<AlertFeed>([alertAnalysisItem()]) as never,
+    );
+
+    render(alertElement(0));
+    expect(await screen.findByText(/failed dependency/)).toBeVisible();
+    expect(lastRenderedFeedProps().items[0]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: ALERT_ANALYSIS,
+        moreTextInMarkdown: "",
+        icon: IconProp.Sparkles,
+        safeMode: true,
+      }),
+    );
+  });
+
+  test("an AI item that already has More Information keeps it and its full report text", async () => {
+    const incidentItem: IncidentFeed = structuredIncidentAnalysisItem();
+    incidentItem.moreInformationInMarkdown = "Existing incident details";
+    getListMock.mockResolvedValueOnce(
+      listResult<IncidentFeed>([incidentItem]) as never,
+    );
+
+    const incidentView: ReturnType<typeof render> = render(incidentElement(0));
+    expect(await screen.findByText(/Checkout latency passed 2s/)).toBeVisible();
+    expect(lastRenderedFeedProps().items[0]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: STRUCTURED_INCIDENT_REPORT,
+        moreTextInMarkdown: "Existing incident details",
+        icon: IconProp.Sparkles,
+        safeMode: true,
+      }),
+    );
+
+    incidentView.unmount();
+    const alertItem: AlertFeed = structuredAlertAnalysisItem();
+    alertItem.moreInformationInMarkdown = "Existing alert details";
+    getListMock.mockResolvedValueOnce(
+      listResult<AlertFeed>([alertItem]) as never,
+    );
+
+    render(alertElement(0));
+    expect(
+      await screen.findByText(/Payment webhooks return 502/),
+    ).toBeVisible();
+    expect(lastRenderedFeedProps().items[0]).toEqual(
+      expect.objectContaining({
+        textInMarkdown: STRUCTURED_ALERT_REPORT,
+        moreTextInMarkdown: "Existing alert details",
+        icon: IconProp.Sparkles,
+        safeMode: true,
       }),
     );
   });

@@ -19,7 +19,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
@@ -30,7 +29,16 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import EventStatusPanel, {
   EventStateAction,
   EventStateItem,
+  EventStatusFact,
 } from "../EventView/EventStatusPanel";
+import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import AIInvestigationHeaderStatus, {
+  AIInvestigationStatusLiveRegion,
+} from "../AI/AIInvestigationHeaderStatus";
+import {
+  scrollToAIInvestigationPanel,
+  shouldShowAIInvestigationHeaderStatus,
+} from "../AI/AIInvestigationStatus";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -40,7 +48,56 @@ export interface ComponentProps {
   eventStartsAt?: Date | undefined;
   severity?: { name: string; color: Color } | undefined;
   isPrivate?: boolean | undefined;
+  /*
+   * Lifted from the page's InvestigationPanel, exactly like the incident
+   * header: a queued or running investigation shows a live notice, and a
+   * completed one with a summary shows it with "Read report".
+   */
+  aiInvestigationStatus?: AIRunStatus | null | undefined;
+  aiInvestigationSummary?: string | null | undefined;
+  // Context shown under the header pills ("Created", "Monitor", "Episode").
+  facts?: Array<EventStatusFact> | undefined;
 }
+
+/*
+ * Holds the header's place while its states and timeline load. Same outline
+ * as the loaded panel (and as the page skeleton's hero), so neither the
+ * swap from the page skeleton nor the swap to the real header moves the page.
+ */
+export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-testid="alert-state-placeholder"
+      className="rounded-xl border border-gray-200 bg-white shadow-sm"
+    >
+      <span className="sr-only">Loading alert status</span>
+      <div aria-hidden="true" className="motion-safe:animate-pulse">
+        <div className="px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="h-5 w-16 rounded-md bg-gray-100" />
+              <div className="mt-2 h-6 w-3/4 max-w-md rounded bg-gray-200" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-9 w-28 rounded-md bg-gray-100" />
+              <div className="h-9 w-24 rounded-md bg-gray-100" />
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2.5">
+            <div className="h-5 w-20 rounded-full bg-gray-100" />
+            <div className="h-5 w-16 rounded-full bg-gray-100" />
+            <div className="h-5 w-28 rounded bg-gray-100" />
+          </div>
+        </div>
+        <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
+          <div className="h-3 w-2/3 max-w-sm rounded bg-gray-100" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ChangeAlertState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -48,16 +105,19 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const [error, setError] = useState<string | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  /*
+   * Starts true: the header has nothing honest to show (no current state, no
+   * actions) until its states and timeline arrive, so it holds a same-sized
+   * placeholder rather than rendering a panel that changes shape a moment
+   * later.
+   */
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [alertNoteTemplates, setAlertNoteTemplates] = useState<
     AlertNoteTemplate[]
   >([]);
 
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
-  const [currentAlertState, setCurrentAlertState] = useState<
-    AlertState | undefined
-  >(undefined);
 
   const [selectedAlertState, setSelectedAlertState] = useState<
     AlertState | undefined
@@ -67,27 +127,36 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     AlertStateTimeline[]
   >([]);
 
+  /*
+   * Templates only fill the optional note in the state-change modal. A failed
+   * read must not take the whole header (and its Acknowledge / Resolve
+   * buttons) down with it, so it just leaves the template picker out.
+   */
   const fetchAlertNoteTemplates: PromiseVoidFunction =
     async (): Promise<void> => {
-      const alertNoteTemplates: ListResult<AlertNoteTemplate> =
-        await ModelAPI.getList<AlertNoteTemplate>({
-          modelType: AlertNoteTemplate,
-          query: {
-            projectId: ProjectUtil.getCurrentProject()!.id!,
-          },
-          limit: 99,
-          skip: 0,
-          select: {
-            _id: true,
-            templateName: true,
-            note: true,
-          },
-          sort: {
-            templateName: SortOrder.Ascending,
-          },
-        });
+      try {
+        const alertNoteTemplates: ListResult<AlertNoteTemplate> =
+          await ModelAPI.getList<AlertNoteTemplate>({
+            modelType: AlertNoteTemplate,
+            query: {
+              projectId: ProjectUtil.getCurrentProject()!.id!,
+            },
+            limit: 99,
+            skip: 0,
+            select: {
+              _id: true,
+              templateName: true,
+              note: true,
+            },
+            sort: {
+              templateName: SortOrder.Ascending,
+            },
+          });
 
-      setAlertNoteTemplates(alertNoteTemplates.data);
+        setAlertNoteTemplates(alertNoteTemplates.data);
+      } catch {
+        setAlertNoteTemplates([]);
+      }
     };
 
   const fetchAlertStates: PromiseVoidFunction = async (): Promise<void> => {
@@ -151,9 +220,13 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     try {
       setIsLoading(true);
       setError("");
-      await fetchAlertNoteTemplates();
-      await fetchAlertStates();
-      await fetchAlertStateTimelines();
+
+      // Independent reads: fetch them together instead of one after another.
+      await Promise.all([
+        fetchAlertNoteTemplates(),
+        fetchAlertStates(),
+        fetchAlertStateTimelines(),
+      ]);
     } catch (err: unknown) {
       setError(API.getFriendlyMessage(err as Exception));
     }
@@ -164,39 +237,61 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     loadPage().catch((err: unknown) => {
       setError(API.getFriendlyMessage(err as Exception));
     });
-  }, []);
+  }, [props.alertId.toString()]);
 
-  useEffect(() => {
-    if (alertStates.length === 0 || alertStateTimelines.length === 0) {
-      return;
-    }
+  /*
+   * The live region is mounted in every branch, so a status change that lands
+   * while the header is still loading (or showing an error) is announced.
+   */
+  const liveRegion: ReactElement = (
+    <AIInvestigationStatusLiveRegion
+      status={props.aiInvestigationStatus}
+      summary={props.aiInvestigationSummary}
+    />
+  );
 
-    const currentAlertStateTimeline: AlertStateTimeline | undefined =
-      alertStateTimelines[alertStateTimelines.length - 1];
+  if (isLoading) {
+    return (
+      <Fragment>
+        {liveRegion}
+        <AlertStatePlaceholder />
+      </Fragment>
+    );
+  }
 
-    if (!currentAlertStateTimeline) {
-      return;
-    }
+  if (error) {
+    return (
+      <Fragment>
+        {liveRegion}
+        <ErrorMessage
+          message={error}
+          onRefreshClick={() => {
+            loadPage().catch((err: unknown) => {
+              setError(API.getFriendlyMessage(err as Exception));
+            });
+          }}
+        />
+      </Fragment>
+    );
+  }
 
-    const currentAlertState: AlertState | undefined = alertStates.find(
-      (state: AlertState) => {
+  /*
+   * The current state is the latest timeline entry's state. Derived during
+   * render rather than copied into state by an effect, which left one painted
+   * frame with no current state - and the wrong action buttons - after every
+   * load.
+   */
+  const currentAlertStateTimeline: AlertStateTimeline | undefined =
+    alertStateTimelines[alertStateTimelines.length - 1];
+
+  const currentAlertState: AlertState | undefined = currentAlertStateTimeline
+    ? alertStates.find((state: AlertState) => {
         return (
           state.id?.toString() ===
           currentAlertStateTimeline.alertStateId?.toString()
         );
-      },
-    );
-
-    setCurrentAlertState(currentAlertState);
-  }, [alertStates, alertStateTimelines]);
-
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
+      })
+    : undefined;
 
   const acknowledgedState: AlertState | undefined = alertStates.find(
     (state: AlertState) => {
@@ -295,7 +390,12 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
       resolvedTimelines[resolvedTimelines.length - 1];
 
     if (lastResolvedTimeline?.startsAt) {
-      durationPrefix = "Resolved in";
+      /*
+       * "Lasted", not "Resolved in": this runs to the CURRENT resolution,
+       * while the stat bar's "Resolved in" counts to the FIRST one, so a
+       * reopened alert would show one label with two different numbers.
+       */
+      durationPrefix = "Lasted";
       durationEndsAt = lastResolvedTimeline.startsAt;
     }
   }
@@ -339,6 +439,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
+      {liveRegion}
       <EventStatusPanel
         states={alertStates.map((state: AlertState): EventStateItem => {
           return {
@@ -362,6 +463,19 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
         onStateSelect={(stateId: string) => {
           openModalForState(stateId);
         }}
+        facts={props.facts}
+        headerNotice={
+          shouldShowAIInvestigationHeaderStatus(
+            props.aiInvestigationStatus,
+            props.aiInvestigationSummary,
+          ) ? (
+            <AIInvestigationHeaderStatus
+              status={props.aiInvestigationStatus!}
+              summary={props.aiInvestigationSummary}
+              onViewProgress={scrollToAIInvestigationPanel}
+            />
+          ) : undefined
+        }
       />
 
       {showModal && (

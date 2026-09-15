@@ -2,7 +2,10 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
-import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIChatCitation,
+  AIChatCitationTarget,
+} from "../../../../Types/AI/AIChatTypes";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import logger from "../../Logger";
 import { LLMMessage, LLMToolDefinition } from "../../LLM/LLMService";
@@ -52,6 +55,12 @@ export interface ObservabilityAssistantStep {
   rowCount?: number | undefined;
   durationMs?: number | undefined;
   citationId?: string | undefined;
+  /*
+   * Set on tool_completed: the citation the call minted, as the tool labelled
+   * and targeted it, so a persisted trail can describe each [C#] on its own.
+   */
+  citationLabel?: string | undefined;
+  citationTarget?: AIChatCitationTarget | undefined;
   totalTokens?: number | undefined;
   errorMessage?: string | undefined;
 }
@@ -396,9 +405,12 @@ export default class ObservabilityAssistant {
           await emitStep({
             type: "tool_completed",
             toolName: toolCall.name,
+            toolArguments: toolCall.arguments,
             durationMs: Date.now() - toolStartedAtMs,
             rowCount: outcome.result.rowCount,
             citationId: citationId,
+            citationLabel: outcome.result.citationLabel,
+            citationTarget: outcome.result.citationTarget,
           });
 
           const escapedText: string = escapeToolResultContent(

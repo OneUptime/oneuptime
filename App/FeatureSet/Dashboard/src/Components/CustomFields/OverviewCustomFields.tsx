@@ -1,5 +1,6 @@
 import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "Common/Types/ObjectID";
+import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
 import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -27,6 +28,8 @@ export interface ComponentProps {
    */
   resourceName: string;
   isEditable?: boolean | undefined;
+  // "stacked" when the card sits in a narrow column; see Card.
+  headerLayout?: CardHeaderLayout | undefined;
 }
 
 const OverviewCustomFields: FunctionComponent<ComponentProps> = (
@@ -54,6 +57,7 @@ const OverviewCustomFields: FunctionComponent<ComponentProps> = (
       modelId={props.modelId}
       isEditable={props.isEditable}
       hideIfEmpty={true}
+      headerLayout={props.headerLayout}
     />
   );
 };

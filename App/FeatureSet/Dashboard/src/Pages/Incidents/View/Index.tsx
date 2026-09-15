@@ -9,13 +9,12 @@ import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BaseAPI from "Common/UI/Utils/API/API";
@@ -32,6 +31,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import UserElement from "../../../Components/User/User";
@@ -57,6 +57,9 @@ import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
+import EventStatBar from "../../../Components/EventView/EventStatBar";
+import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
+import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -81,15 +84,58 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import LiveDuration from "../../../Components/EventView/LiveDuration";
-import { getEventEndDateForCurrentState } from "../../../Utils/EventDuration";
+import {
+  EventStateTimelineDate,
+  getEventEndDateForCurrentState,
+} from "../../../Utils/EventDuration";
+import {
+  EventResponseTimes,
+  VisibleItems,
+  getEventCreatorName,
+  getEventResponseTimes,
+  getTimeToStateText,
+  splitVisibleItems,
+} from "../../../Utils/EventOverview";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import AppLink from "../../../Components/AppLink/AppLink";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 
 interface AIInvestigationStatusState {
   subjectId: string;
   status: AIRunStatus | null;
 }
+
+interface AIInvestigationSummaryState {
+  subjectId: string;
+  summary: string | null;
+}
+
+/*
+ * A value that belongs to one incident. The page stays mounted when the reader
+ * moves to another incident on the same route, so anything a card reported is
+ * stamped with the incident it was reported for and read only while that is
+ * still the incident on screen.
+ */
+interface SubjectValue<T> {
+  subjectId: string;
+  value: T;
+}
+
+interface FetchDataOptions {
+  /*
+   * A refresh after an action, an edit or a role change. The page is already
+   * on screen, so it stays mounted and a failure is reported inline instead
+   * of replacing everything with an error.
+   */
+  isBackgroundRefresh: boolean;
+}
+
+// How many monitor names the header lists before "+N more".
+const MAX_HEADER_MONITORS: number = 2;
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -102,8 +148,33 @@ const IncidentView: FunctionComponent<
   >([]);
   const [incidentStates, setIncidentStates] = useState<IncidentState[]>([]);
 
+  // A failed FIRST load, which replaces the page.
   const [error, setError] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  // A failed background refresh, shown above the still-mounted page.
+  const [refreshError, setRefreshError] = useState<string>("");
+  /*
+   * Which incident the page-level state below was loaded for (or failed to
+   * load for). Until it is the incident in the URL, the page renders only the
+   * skeleton. This is decided at render time, not reset in an effect: the
+   * page stays mounted when the reader follows a link to another incident, and
+   * an effect runs only after a render that would already have handed every
+   * card the new id over the previous incident's header, and fired all of
+   * their requests before unmounting them again. Refreshes never clear it.
+   */
+  const [loadedModelId, setLoadedModelId] = useState<string | null>(null);
+  /*
+   * Bumped by every fetch and on unmount. A response only lands while no
+   * newer fetch has started, so two overlapping refreshes can never leave the
+   * older data on screen.
+   */
+  const fetchGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
+   * The incident the page is on now. A callback from a card rendered for the
+   * previous incident can still fire after the switch (a save or a state
+   * change that lands late); its refresh must not cancel this incident's load.
+   */
+  const currentModelIdRef: React.MutableRefObject<string> =
+    useRef<string>(modelIdString);
 
   const [telemetryQuery, setTelemetryQuery] = useState<TelemetryQuery | null>(
     null,
@@ -120,6 +191,8 @@ const IncidentView: FunctionComponent<
    * incident for one series. Empty for whole-monitor incidents.
    */
   const [seriesSummary, setSeriesSummary] = useState<string>("");
+  // The raw series labels, handed to the affected resource card below.
+  const [seriesLabels, setSeriesLabels] = useState<JSONObject | null>(null);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
   const [incidentTitle, setIncidentTitle] = useState<string | undefined>(
@@ -131,6 +204,36 @@ const IncidentView: FunctionComponent<
   const [severity, setSeverity] = useState<
     { name: string; color: Color } | undefined
   >(undefined);
+  /*
+   * Header facts that come from cards which already load them (the details
+   * card and the affected resources card), so the header costs no extra
+   * request. Undefined until those cards report in for this incident.
+   */
+  const [declaredBy, setDeclaredBy] = useState<SubjectValue<
+    string | undefined
+  > | null>(null);
+  const declaredByName: string | undefined =
+    declaredBy?.subjectId === modelIdString ? declaredBy.value : undefined;
+  const [affectedMonitorsState, setAffectedMonitorsState] =
+    useState<SubjectValue<Array<Monitor>> | null>(null);
+  const affectedMonitors: Array<Monitor> | undefined =
+    affectedMonitorsState?.subjectId === modelIdString
+      ? affectedMonitorsState.value
+      : undefined;
+  // Toggled to make the details card read its row again (after a resend).
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
+  /*
+   * A failed resend of subscriber notifications, shown under the status it
+   * failed to change. It is not a refresh failure: refreshing the page does
+   * not retry the resend, so a successful refresh must not clear it.
+   */
+  const [resendNotificationErrorState, setResendNotificationErrorState] =
+    useState<SubjectValue<string> | null>(null);
+  const resendNotificationError: string =
+    resendNotificationErrorState?.subjectId === modelIdString
+      ? resendNotificationErrorState.value
+      : "";
+
   const [aiInvestigationStatus, setAIInvestigationStatus] =
     useState<AIInvestigationStatusState>({
       subjectId: modelIdString,
@@ -160,21 +263,74 @@ const IncidentView: FunctionComponent<
       },
       [modelIdString],
     );
+
+  /*
+   * The completed report's TL;DR, lifted from InvestigationPanel the same way
+   * as the status, so the header can lead with it. Keyed by subject so a
+   * summary never outlives the incident it belongs to.
+   */
+  const [aiInvestigationSummary, setAIInvestigationSummary] =
+    useState<AIInvestigationSummaryState>({
+      subjectId: modelIdString,
+      summary: null,
+    });
+  const currentAIInvestigationSummary: string | null =
+    aiInvestigationSummary.subjectId === modelIdString
+      ? aiInvestigationSummary.summary
+      : null;
+  const onAIInvestigationReportSummaryChange: (summary: string | null) => void =
+    useCallback(
+      (summary: string | null): void => {
+        setAIInvestigationSummary(
+          (
+            currentSummary: AIInvestigationSummaryState,
+          ): AIInvestigationSummaryState => {
+            if (
+              currentSummary.subjectId === modelIdString &&
+              currentSummary.summary === summary
+            ) {
+              return currentSummary;
+            }
+
+            return { subjectId: modelIdString, summary: summary };
+          },
+        );
+      },
+      [modelIdString],
+    );
+
   const [feedRefreshToken, setFeedRefreshToken] = useState<number>(0);
 
-  const refreshFeedAfterAnalysisAvailable: () => void =
-    useCallback((): void => {
-      setFeedRefreshToken((currentToken: number): number => {
-        return currentToken + 1;
-      });
-    }, []);
+  const refreshFeed: () => void = useCallback((): void => {
+    setFeedRefreshToken((currentToken: number): number => {
+      return currentToken + 1;
+    });
+  }, []);
 
-  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
+  const refreshFeedAfterAnalysisAvailable: () => void = refreshFeed;
+
+  const fetchData: (options: FetchDataOptions) => Promise<void> = async (
+    options: FetchDataOptions,
+  ): Promise<void> => {
+    // The incident this fetch was started for, captured with this render.
+    const requestedModelId: string = modelIdString;
+
+    if (requestedModelId !== currentModelIdRef.current) {
+      // A card rendered for the incident the reader already left.
+      return;
+    }
+
+    fetchGenerationRef.current++;
+    const generation: number = fetchGenerationRef.current;
+
     try {
-      setIsLoading(true);
-
-      const incidentTimelines: ListResult<IncidentStateTimeline> =
-        await ModelAPI.getList({
+      // Independent reads: fetch them together instead of one after another.
+      const [incidentTimelines, incidentStates, incident]: [
+        ListResult<IncidentStateTimeline>,
+        ListResult<IncidentState>,
+        Incident | null,
+      ] = await Promise.all([
+        ModelAPI.getList<IncidentStateTimeline>({
           modelType: IncidentStateTimeline,
           query: {
             incidentId: modelId,
@@ -194,39 +350,42 @@ const IncidentView: FunctionComponent<
           sort: {
             startsAt: SortOrder.Ascending,
           },
-        });
-
-      const incidentStates: ListResult<IncidentState> = await ModelAPI.getList({
-        modelType: IncidentState,
-        query: {},
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          _id: true,
-          name: true,
-          isAcknowledgedState: true,
-          isResolvedState: true,
-        },
-        sort: {},
-      });
-
-      const incident: Incident | null = await ModelAPI.getItem({
-        id: modelId,
-        modelType: Incident,
-        select: {
-          telemetryQuery: true,
-          seriesLabels: true,
-          isPrivate: true,
-          title: true,
-          declaredAt: true,
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-          incidentSeverity: {
+        }),
+        ModelAPI.getList<IncidentState>({
+          modelType: IncidentState,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
             name: true,
-            color: true,
+            isAcknowledgedState: true,
+            isResolvedState: true,
           },
-        },
-      });
+          sort: {},
+        }),
+        ModelAPI.getItem<Incident>({
+          id: modelId,
+          modelType: Incident,
+          select: {
+            telemetryQuery: true,
+            seriesLabels: true,
+            isPrivate: true,
+            title: true,
+            declaredAt: true,
+            incidentNumber: true,
+            incidentNumberWithPrefix: true,
+            incidentSeverity: {
+              name: true,
+              color: true,
+            },
+          },
+        }),
+      ]);
+
+      if (generation !== fetchGenerationRef.current) {
+        return;
+      }
 
       let telemetryQuery: TelemetryQuery | null = null;
 
@@ -282,6 +441,10 @@ const IncidentView: FunctionComponent<
         setSeriesSummary("");
       }
 
+      setSeriesLabels(
+        (incident?.seriesLabels as JSONObject | undefined) || null,
+      );
+
       setIsPrivate(incident?.isPrivate === true);
 
       setIncidentTitle(incident?.title || undefined);
@@ -309,18 +472,49 @@ const IncidentView: FunctionComponent<
         incidentTimelines.data as IncidentStateTimeline[],
       );
       setError("");
+      setRefreshError("");
     } catch (err) {
-      setError(BaseAPI.getFriendlyMessage(err));
+      if (generation !== fetchGenerationRef.current) {
+        return;
+      }
+
+      if (options.isBackgroundRefresh) {
+        setRefreshError(BaseAPI.getFriendlyMessage(err));
+      } else {
+        setError(BaseAPI.getFriendlyMessage(err));
+      }
     }
 
-    setIsLoading(false);
+    setLoadedModelId(requestedModelId);
+  };
+
+  /*
+   * Everything that changes what this page shows refreshes it in the
+   * background: the cards stay mounted, so an open disclosure, the selected
+   * telemetry tab, the AI panel's polling and the scroll position all survive
+   * an acknowledge or an edit.
+   */
+  const refreshData: () => void = (): void => {
+    fetchData({ isBackgroundRefresh: true }).catch((err: Error) => {
+      setRefreshError(BaseAPI.getFriendlyMessage(err));
+    });
+  };
+
+  const retryFirstLoad: () => void = (): void => {
+    setError("");
+    // Back to the skeleton while the retry is in flight.
+    setLoadedModelId(null);
+    fetchData({ isBackgroundRefresh: false }).catch((err: Error) => {
+      setError(BaseAPI.getFriendlyMessage(err));
+      setLoadedModelId(modelIdString);
+    });
   };
 
   const handleResendNotification: () => Promise<void> =
     async (): Promise<void> => {
-      try {
-        setIsLoading(true);
+      setResendNotificationErrorState(null);
 
+      try {
         // Reset the notification status to Pending so the worker can pick it up again
         await ModelAPI.updateById({
           id: modelId,
@@ -333,27 +527,48 @@ const IncidentView: FunctionComponent<
           },
         });
 
-        // Refresh the data to show updated status
-        await fetchData();
+        // Only the details card shows the status, so only it reads again.
+        setDetailsRefresher((current: boolean): boolean => {
+          return !current;
+        });
       } catch (err) {
-        setError(BaseAPI.getFriendlyMessage(err));
-      } finally {
-        setIsLoading(false);
+        setResendNotificationErrorState({
+          subjectId: modelIdString,
+          value: BaseAPI.getFriendlyMessage(err),
+        });
       }
     };
 
   useEffect(() => {
-    fetchData().catch((err: Error) => {
-      setError(BaseAPI.getFriendlyMessage(err));
-    });
+    return () => {
+      fetchGenerationRef.current++;
+    };
   }, []);
 
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
+  useEffect(() => {
+    /*
+     * A different incident is a first load again. The skeleton is already on
+     * screen (loadedModelId still names the previous incident); forget the
+     * previous incident's errors while it is. On mount these are no-ops.
+     */
+    currentModelIdRef.current = modelIdString;
+    setError("");
+    setRefreshError("");
+
+    fetchData({ isBackgroundRefresh: false }).catch((err: Error) => {
+      setError(BaseAPI.getFriendlyMessage(err));
+      setLoadedModelId(modelIdString);
+    });
+  }, [modelIdString]);
+
+  if (loadedModelId !== modelIdString) {
+    return (
+      <EventOverviewSkeleton statCount={3} loadingText="Loading incident" />
+    );
   }
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return <ErrorMessage message={error} onRefreshClick={retryFirstLoad} />;
   }
 
   type GetIncidentStateFunction = () => IncidentState | undefined;
@@ -374,85 +589,118 @@ const IncidentView: FunctionComponent<
     });
   };
 
-  type getTimeFunction = () => string;
+  const acknowledgeState: IncidentState | undefined = getAcknowledgeState();
+  const resolvedState: IncidentState | undefined = getResolvedState();
 
-  const getTimeToAcknowledge: getTimeFunction = (): string => {
-    const incidentStartTime: Date =
-      incidentStartedAt || incidentStateTimeline[0]?.startsAt || new Date();
-
-    // last matching acknowledge entry (search a copy in reverse; do not mutate state).
-    const acknowledgeTime: Date | undefined = [...incidentStateTimeline]
-      .reverse()
-      .find((timeline: IncidentStateTimeline) => {
-        return (
-          timeline.incidentStateId?.toString() ===
-          getAcknowledgeState()?._id?.toString()
-        );
-      })?.startsAt;
-
-    // first matching resolved entry.
-    const resolveTime: Date | undefined = incidentStateTimeline.find(
-      (timeline: IncidentStateTimeline) => {
-        return (
-          timeline.incidentStateId?.toString() ===
-          getResolvedState()?._id?.toString()
-        );
+  const timelineDates: Array<EventStateTimelineDate> =
+    incidentStateTimeline.map(
+      (timeline: IncidentStateTimeline): EventStateTimelineDate => {
+        return {
+          stateId: timeline.incidentStateId?.toString(),
+          startsAt: timeline.startsAt,
+        };
       },
-    )?.startsAt;
-
-    if (!acknowledgeTime && !resolveTime) {
-      return (
-        "Not yet " +
-        (getAcknowledgeState()?.name?.toLowerCase() || "acknowledged")
-      );
-    }
-
-    if (!acknowledgeTime && resolveTime) {
-      return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-        OneUptimeDate.getDifferenceInMinutes(resolveTime, incidentStartTime),
-      );
-    }
-
-    return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-      OneUptimeDate.getDifferenceInMinutes(acknowledgeTime!, incidentStartTime),
     );
-  };
 
-  const getTimeToResolve: getTimeFunction = (): string => {
-    const incidentStartTime: Date =
-      incidentStartedAt || incidentStateTimeline[0]?.startsAt || new Date();
+  /*
+   * One consistent reading of the timeline for all three numbers: time to
+   * acknowledge and time to resolve both count to the FIRST such entry (a
+   * later reopen does not rewrite them), and the duration runs to the current
+   * resolution, or keeps ticking while the incident is open.
+   */
+  const responseTimes: EventResponseTimes = getEventResponseTimes({
+    timelines: timelineDates,
+    startedAt: incidentStartedAt,
+    acknowledgedStateId: acknowledgeState?._id?.toString(),
+    resolvedStateId: resolvedState?._id?.toString(),
+  });
 
-    const resolveTime: Date | undefined = incidentStateTimeline.find(
-      (timeline: IncidentStateTimeline) => {
-        return (
-          timeline.incidentStateId?.toString() ===
-          getResolvedState()?._id?.toString()
-        );
-      },
-    )?.startsAt;
-
-    if (!resolveTime) {
-      return (
-        "Not yet " + (getResolvedState()?.name?.toLowerCase() || "resolved")
-      );
-    }
-
-    return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-      OneUptimeDate.getDifferenceInMinutes(resolveTime, incidentStartTime),
-    );
-  };
-
-  const durationStartDate: Date | undefined =
-    incidentStartedAt || incidentStateTimeline[0]?.startsAt;
+  const durationStartDate: Date | undefined = responseTimes.startedAt;
   const durationEndDate: Date | undefined = getEventEndDateForCurrentState(
-    incidentStateTimeline.map((timeline: IncidentStateTimeline) => {
-      return {
-        stateId: timeline.incidentStateId?.toString(),
-        startsAt: timeline.startsAt,
-      };
-    }),
-    getResolvedState()?._id?.toString(),
+    timelineDates,
+    resolvedState?._id?.toString(),
   );
+
+  type FormatDateFunction = (date: Date | undefined) => string | undefined;
+
+  const formatDate: FormatDateFunction = (
+    date: Date | undefined,
+  ): string | undefined => {
+    return date
+      ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date)
+      : undefined;
+  };
+
+  const getMonitorLinks: (monitors: Array<Monitor>) => ReactElement = (
+    monitors: Array<Monitor>,
+  ): ReactElement => {
+    const monitorsToShow: VisibleItems<Monitor> = splitVisibleItems(
+      monitors,
+      MAX_HEADER_MONITORS,
+    );
+
+    return (
+      <span>
+        {monitorsToShow.visible.map((monitor: Monitor, index: number) => {
+          const monitorName: string = monitor.name || "Unnamed monitor";
+
+          return (
+            <Fragment key={monitor._id?.toString() || `monitor-${index}`}>
+              {index > 0 ? ", " : ""}
+              {monitor._id ? (
+                <AppLink
+                  className="text-indigo-600 hover:text-indigo-700 hover:underline"
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.MONITOR_VIEW] as Route,
+                    {
+                      modelId: new ObjectID(monitor._id.toString()),
+                    },
+                  )}
+                >
+                  {monitorName}
+                </AppLink>
+              ) : (
+                <span>{monitorName}</span>
+              )}
+            </Fragment>
+          );
+        })}
+        {monitorsToShow.hiddenCount > 0 ? (
+          <span className="font-normal text-gray-500">
+            {` +${monitorsToShow.hiddenCount} more`}
+          </span>
+        ) : (
+          <></>
+        )}
+      </span>
+    );
+  };
+
+  const headerFacts: Array<EventStatusFact> = [];
+
+  if (incidentStartedAt) {
+    headerFacts.push({
+      label: "Declared",
+      icon: IconProp.Calendar,
+      value: formatDate(incidentStartedAt) || "",
+    });
+  }
+
+  if (declaredByName) {
+    headerFacts.push({
+      label: "Declared by",
+      icon: IconProp.User,
+      value: declaredByName,
+    });
+  }
+
+  if (affectedMonitors && affectedMonitors.length > 0) {
+    headerFacts.push({
+      label: affectedMonitors.length === 1 ? "Monitor" : "Monitors",
+      icon: IconProp.AltGlobe,
+      value: getMonitorLinks(affectedMonitors),
+    });
+  }
 
   /*
    * Built once and shared by all four preview cards. Resolved to `undefined`
@@ -467,7 +715,38 @@ const IncidentView: FunctionComponent<
     ) : undefined;
 
   return (
-    <Fragment>
+    <div>
+      {refreshError ? (
+        <div
+          role="alert"
+          className="mb-5 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <span className="min-w-0 break-words">
+            {`Could not refresh this incident. ${refreshError}`}
+          </span>
+          <div className="flex shrink-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={refreshData}
+              className="rounded-md text-sm font-semibold text-red-800 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRefreshError("");
+              }}
+              className="rounded-md text-sm font-medium text-red-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : (
+        <></>
+      )}
+
       <div className="mb-5">
         <ChangeIncidentState
           incidentId={modelId}
@@ -476,41 +755,79 @@ const IncidentView: FunctionComponent<
           eventStartsAt={durationStartDate}
           severity={severity}
           isPrivate={isPrivate}
+          facts={headerFacts}
           aiInvestigationStatus={currentAIInvestigationStatus}
-          onActionComplete={async () => {
-            await fetchData();
+          aiInvestigationSummary={currentAIInvestigationSummary}
+          onActionComplete={() => {
+            refreshData();
+            // The state change is a new feed entry.
+            refreshFeed();
           }}
         />
       </div>
 
+      <EventStatBar
+        columns={3}
+        ariaLabel="Incident response times"
+        className="mb-5"
+      >
+        <EventStatTile
+          variant="segment"
+          label={`${acknowledgeState?.name || "Acknowledged"} in`}
+          icon={IconProp.Check}
+          value={getTimeToStateText({
+            startedAt: responseTimes.startedAt,
+            reachedAt: responseTimes.acknowledgedAt,
+            stateName: acknowledgeState?.name,
+            fallbackStateName: "acknowledged",
+          })}
+          description={formatDate(responseTimes.acknowledgedAt)}
+        />
+        <EventStatTile
+          variant="segment"
+          label={`${resolvedState?.name || "Resolved"} in`}
+          icon={IconProp.CheckCircle}
+          value={getTimeToStateText({
+            startedAt: responseTimes.startedAt,
+            reachedAt: responseTimes.resolvedAt,
+            stateName: resolvedState?.name,
+            fallbackStateName: "resolved",
+          })}
+          description={formatDate(responseTimes.resolvedAt)}
+        />
+        <EventStatTile
+          variant="segment"
+          label="Duration"
+          icon={IconProp.Clock}
+          value={
+            durationStartDate ? (
+              <LiveDuration
+                startDate={durationStartDate}
+                endDate={durationEndDate}
+              />
+            ) : (
+              "-"
+            )
+          }
+          description={
+            durationEndDate ? `Ended ${formatDate(durationEndDate)}` : undefined
+          }
+        />
+      </EventStatBar>
+
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <EventStatTile
-              label={`${getAcknowledgeState()?.name || "Acknowledged"} in`}
-              icon={IconProp.Check}
-              value={getTimeToAcknowledge()}
-            />
-            <EventStatTile
-              label={`${getResolvedState()?.name || "Resolved"} in`}
-              icon={IconProp.CheckCircle}
-              value={getTimeToResolve()}
-            />
-            <EventStatTile
-              label="Duration"
-              icon={IconProp.Clock}
-              value={
-                durationStartDate ? (
-                  <LiveDuration
-                    startDate={durationStartDate}
-                    endDate={durationEndDate}
-                  />
-                ) : (
-                  "-"
-                )
-              }
-            />
-          </div>
+          {/*
+           * The AI's root-cause report leads the page: it is the fastest read
+           * on what happened. It renders nothing until a run exists.
+           */}
+          <InvestigationPanel
+            subjectType="incident"
+            subjectId={modelId}
+            onStatusChange={onAIInvestigationStatusChange}
+            onReportSummaryChange={onAIInvestigationReportSummaryChange}
+            onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
+          />
 
           {telemetryQuery && (
             <TelemetryCompanionSignalTabs
@@ -624,18 +941,14 @@ const IncidentView: FunctionComponent<
 
           <MonitorSummarySnapshotCard incidentId={modelId} />
 
-          <IncidentAffectedResources incidentId={modelId} />
-
-          <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
+          <IncidentAffectedResources
+            incidentId={modelId}
+            seriesLabels={seriesLabels}
+          />
 
           <RemediationSuggestionCard incidentId={modelId} hideIfEmpty={true} />
 
-          <InvestigationPanel
-            subjectType="incident"
-            subjectId={modelId}
-            onStatusChange={onAIInvestigationStatusChange}
-            onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
-          />
+          <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
 
           <IncidentFeedElement
             incidentId={modelId}
@@ -649,14 +962,16 @@ const IncidentView: FunctionComponent<
             name="Incident Details"
             cardProps={{
               title: "Incident Details",
-              description: "Here are more details for this incident.",
+              description: "Key facts about this incident.",
+              headerLayout: "stacked",
             }}
             isEditable={true}
+            editButtonText="Edit"
+            refresher={detailsRefresher}
             onSaveSuccess={() => {
-              // refresh page-level state (severity/visibility pills) shown in the status panel above.
-              fetchData().catch((err: Error) => {
-                setError(BaseAPI.getFriendlyMessage(err));
-              });
+              // refresh page-level state (title/severity pills) shown in the header above.
+              refreshData();
+              refreshFeed();
             }}
             formSteps={[
               {
@@ -703,7 +1018,7 @@ const IncidentView: FunctionComponent<
                 field: {
                   labels: true,
                 },
-                title: "Labels ",
+                title: "Labels",
                 stepId: "labels",
                 description:
                   "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
@@ -728,41 +1043,118 @@ const IncidentView: FunctionComponent<
                 },
                 subscriberNotificationStatusMessage: true,
               },
-              onBeforeFetch: async (): Promise<JSONObject> => {
-                // get ack incident.
-
-                const incidentTimelines: ListResult<IncidentStateTimeline> =
-                  await ModelAPI.getList({
-                    modelType: IncidentStateTimeline,
-                    query: {
-                      incidentId: modelId,
-                    },
-                    limit: LIMIT_PER_PROJECT,
-                    skip: 0,
-                    select: {
-                      _id: true,
-
-                      createdAt: true,
-                      createdByUser: {
-                        name: true,
-                        email: true,
-                        profilePictureId: true,
-                      },
-                      incidentState: {
-                        name: true,
-                        isResolvedState: true,
-                        isAcknowledgedState: true,
-                      },
-                    },
-                    sort: {},
-                  });
-
-                return incidentTimelines;
+              onItemLoaded: (item: Incident): void => {
+                setDeclaredBy({
+                  subjectId: modelIdString,
+                  value: getEventCreatorName({
+                    probe: item.createdByProbe,
+                    user: item.createdByUser,
+                  }),
+                });
               },
               showDetailsInNumberOfColumns: 1,
+              style: DetailStyle.Compact,
               modelType: Incident,
               id: "model-detail-incidents",
               fields: [
+                {
+                  field: {
+                    declaredAt: true,
+                  },
+                  title: "Declared At",
+                  fieldType: FieldType.DateTime,
+                },
+                {
+                  field: {
+                    createdByProbe: {
+                      name: true,
+                      iconFileId: true,
+                    },
+                  },
+                  title: "Declared By",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    if (item.createdByProbe) {
+                      return <ProbeElement probe={item.createdByProbe} />;
+                    }
+
+                    if (item.createdByUser) {
+                      return <UserElement user={item.createdByUser} />;
+                    }
+
+                    return <span className="text-gray-500">Unknown</span>;
+                  },
+                },
+                {
+                  field: {
+                    onCallDutyPolicies: {
+                      name: true,
+                      _id: true,
+                    },
+                  },
+                  title: "On-Call Duty Policies",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    return (
+                      <OnCallDutyPoliciesView
+                        onCallPolicies={item.onCallDutyPolicies || []}
+                      />
+                    );
+                  },
+                },
+                {
+                  field: {
+                    subscriberNotificationStatusOnIncidentCreated: true,
+                  },
+                  title: "Subscriber Notification Status",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    return (
+                      <div>
+                        <SubscriberNotificationStatus
+                          status={
+                            item.subscriberNotificationStatusOnIncidentCreated
+                          }
+                          subscriberNotificationStatusMessage={
+                            item.subscriberNotificationStatusMessage
+                          }
+                          onResendNotification={() => {
+                            handleResendNotification().catch((err: Error) => {
+                              setResendNotificationErrorState({
+                                subjectId: modelIdString,
+                                value: BaseAPI.getFriendlyMessage(err),
+                              });
+                            });
+                          }}
+                        />
+                        {resendNotificationError ? (
+                          <p
+                            role="alert"
+                            className="mt-1.5 text-xs text-red-600"
+                          >
+                            {"Could not resend notifications: " +
+                              resendNotificationError}
+                          </p>
+                        ) : (
+                          <></>
+                        )}
+                      </div>
+                    );
+                  },
+                },
+                {
+                  field: {
+                    labels: {
+                      name: true,
+                      color: true,
+                    },
+                  },
+                  title: "Labels",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    return <LabelsElement labels={item["labels"] || []} />;
+                  },
+                },
                 {
                   field: {
                     incidentNumber: true,
@@ -790,95 +1182,21 @@ const IncidentView: FunctionComponent<
                   title: "Incident ID",
                   fieldType: FieldType.ObjectID,
                 },
-                {
-                  field: {
-                    onCallDutyPolicies: {
-                      name: true,
-                      _id: true,
-                    },
-                  },
-                  title: "On-Call Duty Policies",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Incident): ReactElement => {
-                    return (
-                      <OnCallDutyPoliciesView
-                        onCallPolicies={item.onCallDutyPolicies || []}
-                      />
-                    );
-                  },
-                },
-                {
-                  field: {
-                    declaredAt: true,
-                  },
-                  title: "Declared At",
-                  fieldType: FieldType.DateTime,
-                },
-                {
-                  field: {
-                    createdByProbe: {
-                      name: true,
-                      iconFileId: true,
-                    },
-                  },
-                  title: "Declared By",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Incident): ReactElement => {
-                    if (item.createdByProbe) {
-                      return <ProbeElement probe={item.createdByProbe} />;
-                    }
-
-                    if (item.createdByUser) {
-                      return <UserElement user={item.createdByUser} />;
-                    }
-
-                    return <p>Unknown</p>;
-                  },
-                },
-                {
-                  field: {
-                    subscriberNotificationStatusOnIncidentCreated: true,
-                  },
-                  title: "Subscriber Notification Status",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Incident): ReactElement => {
-                    return (
-                      <SubscriberNotificationStatus
-                        status={
-                          item.subscriberNotificationStatusOnIncidentCreated
-                        }
-                        subscriberNotificationStatusMessage={
-                          item.subscriberNotificationStatusMessage
-                        }
-                        onResendNotification={handleResendNotification}
-                      />
-                    );
-                  },
-                },
-
-                {
-                  field: {
-                    labels: {
-                      name: true,
-                      color: true,
-                    },
-                  },
-                  title: "Labels",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Incident): ReactElement => {
-                    return <LabelsElement labels={item["labels"] || []} />;
-                  },
-                },
               ],
               modelId: modelId,
             }}
           />
 
-          <OverviewCustomFields
-            modelId={modelId}
-            modelType={Incident}
-            customFieldType={IncidentCustomField}
-            resourceName="Incident"
+          <IncidentMemberRoleAssignment
+            incidentId={modelId}
+            headerLayout="stacked"
+            onMemberChange={async () => {
+              /*
+               * Nothing else on the page shows roles; the only other place a
+               * member change appears is the feed.
+               */
+              refreshFeed();
+            }}
           />
 
           <CardModelDetail<Incident>
@@ -886,9 +1204,14 @@ const IncidentView: FunctionComponent<
             cardProps={{
               title: "Affected Resources",
               description:
-                "Monitors, hosts, clusters, container hosts, and services affected by this incident.",
+                "Monitors, services and infrastructure this incident affects.",
+              headerLayout: "stacked",
             }}
             isEditable={true}
+            editButtonText="Edit"
+            onSaveSuccess={() => {
+              refreshFeed();
+            }}
             formFields={[
               {
                 field: {
@@ -1067,7 +1390,7 @@ const IncidentView: FunctionComponent<
                 field: {
                   changeMonitorStatusTo: true,
                 },
-                title: "Change Monitor Status to ",
+                title: "Change Monitor Status to",
                 description:
                   "This will change the status of all the monitors attached to this incident.",
                 fieldType: FormFieldSchemaType.Dropdown,
@@ -1082,8 +1405,16 @@ const IncidentView: FunctionComponent<
             ]}
             modelDetailProps={{
               showDetailsInNumberOfColumns: 1,
+              style: DetailStyle.Compact,
               modelType: Incident,
               id: "model-detail-incident-affected-resources",
+              onItemLoaded: (item: Incident): void => {
+                // The header's "Monitor(s)" fact, from the row this card already reads.
+                setAffectedMonitorsState({
+                  subjectId: modelIdString,
+                  value: item.monitors || [],
+                });
+              },
               fields: [
                 {
                   field: {
@@ -1149,6 +1480,7 @@ const IncidentView: FunctionComponent<
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         services={item.services || []}
+                        columns={1}
                       />
                     );
                   },
@@ -1158,15 +1490,16 @@ const IncidentView: FunctionComponent<
             }}
           />
 
-          <IncidentMemberRoleAssignment
-            incidentId={modelId}
-            onMemberChange={async () => {
-              await fetchData();
-            }}
+          <OverviewCustomFields
+            modelId={modelId}
+            modelType={Incident}
+            customFieldType={IncidentCustomField}
+            resourceName="Incident"
+            headerLayout="stacked"
           />
         </div>
       </div>
-    </Fragment>
+    </div>
   );
 };
 

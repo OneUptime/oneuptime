@@ -745,3 +745,250 @@ describe("EventStatusPanel header notice", () => {
     expect(screen.queryByTestId("header-notice")).not.toBeInTheDocument();
   });
 });
+
+describe("EventStatusPanel header facts", () => {
+  type GetFactsFunction = () => HTMLElement | null;
+
+  const getFacts: GetFactsFunction = (): HTMLElement | null => {
+    return screen.queryByTestId("event-status-facts");
+  };
+
+  type FactPairsFunction = (facts: HTMLElement) => Array<[string, string]>;
+
+  const factPairs: FactPairsFunction = (
+    facts: HTMLElement,
+  ): Array<[string, string]> => {
+    return Array.from(facts.children).map(
+      (group: Element): [string, string] => {
+        return [
+          group.querySelector("dt")?.textContent?.trim() || "",
+          group.querySelector("dd")?.textContent?.trim() || "",
+        ];
+      },
+    );
+  };
+
+  test("renders facts as a description list of label and value pairs", () => {
+    renderPanel({
+      title: "Checkout latency",
+      facts: [
+        { label: "Declared", value: "Sep 14, 18:01" },
+        { label: "Declared by", value: "Probe US East" },
+        { label: "Monitor", value: "checkout-api" },
+      ],
+    });
+
+    const facts: HTMLElement = getFacts() as HTMLElement;
+
+    expect(facts.tagName).toBe("DL");
+    expect(factPairs(facts)).toEqual([
+      ["Declared", "Sep 14, 18:01"],
+      ["Declared by", "Probe US East"],
+      ["Monitor", "checkout-api"],
+    ]);
+
+    for (const group of Array.from(facts.children)) {
+      expect(group.tagName).toBe("DIV");
+      expect(group.children[0]?.tagName).toBe("DT");
+      expect(group.children[1]?.tagName).toBe("DD");
+    }
+  });
+
+  test("wraps on narrow screens and keeps long values from overflowing", () => {
+    renderPanel({
+      title: "Checkout latency",
+      facts: [
+        {
+          label: "Monitor",
+          value:
+            "checkout-api-production-eu-west-1-primary-cluster-with-a-very-long-name",
+        },
+      ],
+    });
+
+    const facts: HTMLElement = getFacts() as HTMLElement;
+    const value: HTMLElement = facts.querySelector("dd") as HTMLElement;
+
+    expect(facts).toHaveClass("flex", "flex-wrap");
+    expect(value).toHaveClass("min-w-0", "break-words");
+    expect(value).not.toHaveClass("truncate");
+    expect(facts.children[0]).toHaveClass("max-w-full", "min-w-0");
+  });
+
+  test("renders an element value such as a link", () => {
+    renderPanel({
+      title: "Checkout latency",
+      facts: [
+        {
+          label: "Episode",
+          value: <a href="/dashboard/episodes/7">#7</a>,
+        },
+      ],
+    });
+
+    const link: HTMLElement = screen.getByRole("link", { name: "#7" });
+
+    expect(link).toHaveAttribute("href", "/dashboard/episodes/7");
+    expect((getFacts() as HTMLElement).querySelector("dd")).toContainElement(
+      link,
+    );
+  });
+
+  test("renders a decorative icon inside the term", () => {
+    renderPanel({
+      title: "Checkout latency",
+      facts: [
+        { label: "Declared", value: "Sep 14", icon: IconProp.Calendar },
+        { label: "Monitor", value: "checkout-api" },
+      ],
+    });
+
+    const groups: Array<Element> = Array.from(
+      (getFacts() as HTMLElement).children,
+    );
+
+    const declaredIcon: Element | null = groups[0]!.querySelector("dt svg");
+    expect(declaredIcon).toHaveClass("h-4", "w-4", "text-gray-400");
+    expect(declaredIcon).toHaveAttribute("aria-hidden", "true");
+    expect(groups[1]!.querySelector("svg")).toBeNull();
+    // The icon never lands directly in the <div> group or the <dd>.
+    expect(groups[0]!.querySelector("dd svg")).toBeNull();
+  });
+
+  test("sits below the pills and above the header notice", () => {
+    renderPanel({
+      title: "Checkout latency",
+      severity: { name: "Critical", color: Red500 },
+      facts: [{ label: "Declared", value: "Sep 14" }],
+      headerNotice: <div data-testid="header-notice">AI is investigating</div>,
+    });
+
+    const facts: HTMLElement = getFacts() as HTMLElement;
+    const pills: Array<HTMLElement> = screen.getAllByTestId("pill");
+    const notice: HTMLElement = screen.getByTestId("header-notice");
+
+    expect(
+      pills[0]!.compareDocumentPosition(facts) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      facts.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(facts).not.toContainElement(notice);
+    expect(notice.parentElement).toHaveClass("mt-3");
+  });
+
+  test("still renders facts when the header has no pills", () => {
+    render(
+      <EventStatusPanel
+        title="Database latency"
+        states={[]}
+        actions={[]}
+        onActionClick={() => {}}
+        facts={[{ label: "Created", value: "Sep 14" }]}
+      />,
+    );
+
+    expect(factPairs(getFacts() as HTMLElement)).toEqual([
+      ["Created", "Sep 14"],
+    ]);
+  });
+
+  test("renders no list and no spacing when facts are missing or empty", () => {
+    const { container, rerender } = render(
+      <EventStatusPanel
+        title="Database latency"
+        states={[]}
+        actions={[]}
+        onActionClick={() => {}}
+      />,
+    );
+
+    expect(container.querySelector("dl")).toBeNull();
+
+    rerender(
+      <EventStatusPanel
+        title="Database latency"
+        states={[]}
+        actions={[]}
+        onActionClick={() => {}}
+        facts={[]}
+      />,
+    );
+
+    expect(container.querySelector("dl")).toBeNull();
+    // The existing contract: no stray spacing wrappers without content.
+    expect(container.querySelector(".mt-3")).toBeNull();
+    expect(container.querySelector(".mt-2\\.5")).toBeNull();
+  });
+
+  test("skips facts with an empty value so callers can pass optional ones", () => {
+    renderPanel({
+      title: "Checkout latency",
+      facts: [
+        { label: "Declared", value: "Sep 14" },
+        { label: "Declared by", value: "" },
+        { label: "Monitor", value: "   " },
+        { label: "", value: "orphan value" },
+        { label: "Episode", value: null as unknown as string },
+      ],
+    });
+
+    expect(factPairs(getFacts() as HTMLElement)).toEqual([
+      ["Declared", "Sep 14"],
+    ]);
+    expect(screen.queryByText("orphan value")).not.toBeInTheDocument();
+  });
+
+  test("renders nothing when every fact is empty", () => {
+    const { container } = render(
+      <EventStatusPanel
+        title="Database latency"
+        states={[]}
+        actions={[]}
+        onActionClick={() => {}}
+        facts={[{ label: "Declared by", value: "" }]}
+      />,
+    );
+
+    expect(container.querySelector("dl")).toBeNull();
+  });
+
+  test("keeps facts out of the compact layout", () => {
+    renderPanel({
+      facts: [{ label: "Declared", value: "Sep 14" }],
+    });
+
+    expect(getFacts()).toBeNull();
+    expect(screen.queryByText("Declared")).not.toBeInTheDocument();
+    // The compact row itself is untouched.
+    expect(screen.getByTitle("Number")).toHaveTextContent("INC-42");
+  });
+
+  test("translates fact labels but never the values", () => {
+    renderPanel({
+      title: "Checkout latency",
+      facts: [
+        { label: "Resolve translation key", value: "Resolve translation key" },
+      ],
+    });
+
+    expect(factPairs(getFacts() as HTMLElement)).toEqual([
+      ["Résoudre", "Resolve translation key"],
+    ]);
+  });
+
+  test("leaves the actions, pills and step rail intact beside the facts", () => {
+    const rendered: RenderedPanel = renderPanel({
+      title: "Checkout latency",
+      facts: [{ label: "Declared", value: "Sep 14" }],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Acknowledge" }));
+
+    expect(rendered.actionClicks).toEqual(["acknowledged"]);
+    expect(screen.getByTestId("pill")).toHaveTextContent("Created");
+    expect(screen.getByText("Investigating")).toBeInTheDocument();
+    expect(getActionGroup()).not.toContainElement(getFacts());
+  });
+});

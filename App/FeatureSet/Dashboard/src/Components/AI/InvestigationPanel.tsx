@@ -3,9 +3,19 @@ import ChatActivityFeed, {
 } from "../AIChat/ChatActivityFeed";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import InvestigationReportView from "./InvestigationReport/InvestigationReportView";
+import {
+  getInvestigationReportSummaryText,
+  parseInvestigationEvidence,
+  parseInvestigationReferences,
+} from "./InvestigationReport/InvestigationReportData";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunCodeFixRecommendation from "Common/Types/AI/AIRunCodeFixRecommendation";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import {
+  InvestigationEventReference,
+  InvestigationEvidenceItem,
+} from "Common/Types/AI/InvestigationEvidence";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -22,15 +32,18 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import {
+  ParsedInvestigationReport,
+  parseInvestigationReport,
+} from "Common/Utils/AI/InvestigationReport";
 import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -45,6 +58,13 @@ export interface ComponentProps {
   subjectId: ObjectID;
   onStatusChange?: ((status: AIRunStatus | null) => void) | undefined;
   onAnalysisAvailable?: (() => void) | undefined;
+  /*
+   * The completed report's one-line summary for the event header: the TL;DR,
+   * or the report's own Summary as plain text when there is no TL;DR. Called
+   * whenever it changes, and with null on a subject change or when there is
+   * no report to summarise.
+   */
+  onReportSummaryChange?: ((summary: string | null) => void) | undefined;
 }
 
 const POLL_INTERVAL_MS: number = 2500;
@@ -87,6 +107,16 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    */
   const [analysisTldr, setAnalysisTldr] = useState<string | null>(null);
   const [isAnalysisPending, setIsAnalysisPending] = useState<boolean>(false);
+  /*
+   * Structured evidence and resolved incident/alert references that come with
+   * a report. API replicas that predate them omit both, which reads as empty.
+   */
+  const [evidence, setEvidence] = useState<Array<InvestigationEvidenceItem>>(
+    [],
+  );
+  const [references, setReferences] = useState<
+    Array<InvestigationEventReference>
+  >([]);
   const [stats, setStats] = useState<{
     toolCallCount: number;
     totalTokens: number;
@@ -118,6 +148,19 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     props.onStatusChange,
   );
   onStatusChangeRef.current = props.onStatusChange;
+  const onReportSummaryChangeRef: React.MutableRefObject<
+    ((summary: string | null) => void) | undefined
+  > = useRef<((summary: string | null) => void) | undefined>(
+    props.onReportSummaryChange,
+  );
+  onReportSummaryChangeRef.current = props.onReportSummaryChange;
+  const reportedSummaryRef: React.MutableRefObject<{
+    subjectKey: string;
+    summary: string | null;
+  } | null> = useRef<{
+    subjectKey: string;
+    summary: string | null;
+  } | null>(null);
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
   const inFlightFetchRef: React.MutableRefObject<{
     subjectKey: string;
@@ -209,6 +252,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     setAnalysisMarkdown(null);
     setAnalysisTldr(null);
     setIsAnalysisPending(false);
+    setEvidence([]);
+    setReferences([]);
     setStats(null);
     setHasLoadedOnce(false);
     setLoadedSubjectKey(null);
@@ -303,6 +348,18 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           : null;
         const nextIsAnalysisPending: boolean =
           data["isAnalysisPending"] === true;
+        /*
+         * Evidence and references only describe the report they came with,
+         * so neither outlives it.
+         */
+        const nextEvidence: Array<InvestigationEvidenceItem> =
+          nextAnalysisMarkdown
+            ? parseInvestigationEvidence(data["evidence"])
+            : [];
+        const nextReferences: Array<InvestigationEventReference> =
+          nextAnalysisMarkdown
+            ? parseInvestigationReferences(data["references"])
+            : [];
         const nextToolCallCount: number =
           (runJson?.["toolCallCount"] as number | undefined) || 0;
         const nextTotalTokens: number =
@@ -423,6 +480,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           nextAnalysisTldr,
           nextIsAnalysisPending,
           codeFixRecommendationFromServer,
+          nextEvidence,
+          nextReferences,
         ]);
         if (signature !== signatureRef.current) {
           signatureRef.current = signature;
@@ -433,6 +492,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           setAnalysisMarkdown(nextAnalysisMarkdown);
           setAnalysisTldr(nextAnalysisTldr);
           setIsAnalysisPending(nextIsAnalysisPending);
+          setEvidence(nextEvidence);
+          setReferences(nextReferences);
           if (!isSavingVerdictRef.current) {
             setHumanVerdict(verdictFromServer);
           }
@@ -804,6 +865,49 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     subjectKey,
   ]);
 
+  /*
+   * Parsed once per report so the sections, the header summary and the
+   * usage strip's model name all read the same structure.
+   */
+  const parsedReport: ParsedInvestigationReport | null =
+    useMemo((): ParsedInvestigationReport | null => {
+      return analysisMarkdown
+        ? parseInvestigationReport(analysisMarkdown)
+        : null;
+    }, [analysisMarkdown]);
+
+  const isShowingReport: boolean =
+    loadedSubjectKey === subjectKey &&
+    runStatus === AIRunStatus.Completed &&
+    Boolean(analysisMarkdown);
+  const reportSummary: string | null = isShowingReport
+    ? getInvestigationReportSummaryText({
+        analysisTldr,
+        report: parsedReport,
+      })
+    : null;
+
+  /*
+   * The host shows this summary in the event header. Deliver each change
+   * once, and always start a new subject from null so the header can never
+   * show the previous incident's summary.
+   */
+  useEffect(() => {
+    const reported: { subjectKey: string; summary: string | null } | null =
+      reportedSummaryRef.current;
+
+    if (
+      reported &&
+      reported.subjectKey === subjectKey &&
+      reported.summary === reportSummary
+    ) {
+      return;
+    }
+
+    reportedSummaryRef.current = { subjectKey, summary: reportSummary };
+    onReportSummaryChangeRef.current?.(reportSummary);
+  }, [reportSummary, subjectKey]);
+
   // Nothing to show until an investigation exists for this subject.
   if (!hasLoadedOnce || loadedSubjectKey !== subjectKey || !runStatus) {
     return <></>;
@@ -909,6 +1013,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    * zero queries and changed nothing — a past-tense report on work that has
    * not begun, sitting directly under "waiting for a worker".
    */
+  const modelName: string | undefined = analysisMarkdown
+    ? parsedReport?.footer?.modelName
+    : undefined;
+
   const usageStrip: ReactElement =
     !isActive && stats ? (
       <div
@@ -931,6 +1039,17 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+        {modelName ? (
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <Icon
+              icon={IconProp.Sparkles}
+              className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+            />
+            <span className="break-all">Model {modelName}</span>
+          </span>
+        ) : (
+          <></>
+        )}
         <span className="inline-flex items-center gap-1.5 sm:ml-auto">
           <Icon
             icon={IconProp.ShieldCheck}
@@ -938,6 +1057,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           />
           Read-only — nothing in your systems was changed
         </span>
+        {analysisMarkdown ? (
+          <span className="basis-full text-gray-400">
+            AI-generated first pass — verify before acting.
+          </span>
+        ) : (
+          <></>
+        )}
       </div>
     ) : (
       <></>
@@ -981,84 +1107,17 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
         {runStatus === AIRunStatus.Completed ? (
           <>
-            {/*
-              The TL;DR is the first thing a paged engineer reads, so it leads
-              the card. It is AI-written prose ABOUT the report directly below
-              it — rendered as plain text, never markdown, and simply absent
-              for older runs or when its bounded generation call failed.
-            */}
-            {analysisTldr ? (
-              <section
-                aria-label="Investigation summary"
-                className="overflow-hidden rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-indigo-50/40 to-white px-5 py-4 shadow-sm"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600 shadow-sm">
-                    <Icon
-                      icon={IconProp.Sparkles}
-                      className="h-4 w-4 text-white"
-                    />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">
-                      TL;DR
-                    </p>
-                    <p className="mt-1 text-[15px] font-medium leading-6 text-gray-900">
-                      {analysisTldr}
-                    </p>
-                  </div>
-                </div>
-              </section>
-            ) : (
-              <></>
-            )}
-
-            {analysisMarkdown ? (
-              <section
-                aria-label="Investigation report"
-                className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-5 py-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900">
-                      <Icon
-                        icon={IconProp.DocumentText}
-                        className="h-4 w-4 text-white"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900">
-                        Investigation report
-                      </h3>
-                      <p className="mt-0.5 text-xs leading-5 text-gray-500">
-                        Root cause, supporting evidence, and recommended next
-                        steps from this investigation.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
-                      <Icon icon={IconProp.Sparkles} className="h-3 w-3" />
-                      AI generated
-                    </span>
-                    {/*
-                      Responders paste the RCA into a channel or a postmortem
-                      long before they act on it — make that one click rather
-                      than a fiddly selection over a long rendered document.
-                    */}
-                    <CopyTextButton
-                      textToBeCopied={analysisMarkdown}
-                      size="sm"
-                      variant="ghost"
-                      label="Copy report"
-                      copiedLabel="Report copied"
-                    />
-                  </div>
-                </div>
-                <div className="px-5 py-5 text-sm leading-6 text-gray-700">
-                  <MarkdownViewer text={analysisMarkdown} safeMode={true} />
-                </div>
-              </section>
+            {analysisMarkdown && parsedReport ? (
+              <InvestigationReportView
+                analysisMarkdown={analysisMarkdown}
+                report={parsedReport}
+                analysisTldr={analysisTldr}
+                evidence={evidence}
+                references={references}
+                subjectType={subjectType}
+                subjectId={subjectIdString}
+                runId={runId}
+              />
             ) : isAnalysisPending ? (
               <div
                 role="status"
@@ -1224,13 +1283,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             >
               {isCodeFixRecommended ? (
                 <div>
-                  <p className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                     <Icon
                       icon={IconProp.Code}
                       className="h-4 w-4 text-gray-400"
                     />
                     Act on this investigation
-                  </p>
+                  </h3>
                   <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
                     Create a fix pull request with this report as context.
                   </p>
@@ -1317,13 +1376,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               >
                 <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
                   <div className="min-w-0">
-                    <p className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                       <Icon
                         icon={IconProp.Star}
                         className="h-4 w-4 text-gray-400"
                       />
                       Rate this investigation
-                    </p>
+                    </h3>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
                       Your verdict helps measure OneUptime AI&apos;s public
                       accuracy.
