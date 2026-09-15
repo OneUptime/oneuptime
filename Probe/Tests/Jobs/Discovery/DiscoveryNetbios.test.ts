@@ -214,6 +214,14 @@ function loggedLines(spy: unknown): string {
 stubReverseDnsAsResolvingNothing();
 
 beforeEach(() => {
+  /*
+   * SNMP resolves nothing unless a test says otherwise. Without this, a sweep
+   * built by withSnmp() that does not call mockSnmp() itself runs the REAL
+   * SnmpMonitor.probeSystemInfo — a real SNMPv2c GET with community "public"
+   * to 10.0.0.0/29 on whatever network runs the suite, plus seconds of real
+   * timeouts. A test that needs a sysName overrides this with mockSnmp().
+   */
+  mockSnmp({});
   jest.spyOn(logger, "warn").mockImplementation(() => {
     return undefined as never;
   });

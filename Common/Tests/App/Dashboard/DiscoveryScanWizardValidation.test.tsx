@@ -2007,18 +2007,24 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
    *
    * Scoped to the toggle's SECTION rather than its step. The step used to end
    * at this toggle; since issue #3678 the short-device-names toggle follows it
-   * under a heading of its own. What still has to hold is that nothing else
-   * lands under "What to check" after the method question — which is exactly
-   * "the toggle is the last field before the next heading".
+   * under a heading of its own. Since issue #3677 the NetBIOS lookup follows
+   * it INSIDE "What to check", because that one does put a packet on the
+   * wire. So the section is pinned as an exact list: the method question
+   * first, the NetBIOS lookup second, and nothing else — a field added later
+   * without a heading of its own fails here rather than quietly reading as
+   * one more thing the probe sends.
    */
-  test("the toggle is the last question in its section and precedes every field it gates", async () => {
+  test("the toggle opens its section, which holds only what the probe sends, and precedes every field it gates", async () => {
     await renderPage();
 
     const declared: Array<string> = (capturedTableProps?.formFields || []).map(
       fieldKeyOf,
     );
 
-    expect(whatToCheckSectionKeys()).toEqual(["isSnmpEnabled"]);
+    expect(whatToCheckSectionKeys()).toEqual([
+      "isSnmpEnabled",
+      "isNetbiosLookupEnabled",
+    ]);
 
     const toggleIndex: number = declared.indexOf("isSnmpEnabled");
 
@@ -2410,12 +2416,13 @@ describe("Short device names are asked on the Scan Target step (issue #3678)", (
   });
 
   /*
-   * Its own heading, straight after the method question. Under "What to
-   * check" it would read as one more thing the probe puts on the wire; it
-   * sends nothing. Directly after the method toggle so the step still ends
-   * with its two yes/no questions, each under the heading that explains it.
+   * Its own heading, straight after the "What to check" questions. Under
+   * "What to check" it would read as one more thing the probe puts on the
+   * wire; it sends nothing. Directly after that section's last question (the
+   * NetBIOS lookup, since issue #3677) so the step still ends with its yes/no
+   * questions, each under the heading that explains it.
    */
-  test("it opens a section of its own, directly after the method toggle", async () => {
+  test("it opens a section of its own, directly after the What to check questions", async () => {
     await renderPage();
 
     const field: CapturedFormField = fieldNamed(KEY);
@@ -2430,7 +2437,12 @@ describe("Short device names are asked on the Scan Target step (issue #3678)", (
       fieldKeyOf,
     );
 
-    expect(declared.indexOf(KEY)).toBe(declared.indexOf("isSnmpEnabled") + 1);
+    expect(declared.indexOf(KEY)).toBe(
+      declared.indexOf("isNetbiosLookupEnabled") + 1,
+    );
+    expect(declared.indexOf("isNetbiosLookupEnabled")).toBe(
+      declared.indexOf("isSnmpEnabled") + 1,
+    );
     expect(
       sectionKeys({ stepId: STEP_SCAN_TARGET, sectionTitle: "Device names" }),
     ).toEqual([KEY]);
@@ -2518,6 +2530,210 @@ describe("Short device names are asked on the Scan Target step (issue #3678)", (
     await renderPage();
 
     expect(capturedTableProps?.selectMoreFields?.[KEY]).toBe(true);
+  });
+});
+
+/*
+ * OneUptime issue #3677: hosts with no DNS record and no SNMP were shown only
+ * as raw addresses. A scan can now have its probe ask those hosts for their
+ * NetBIOS name over UDP 137.
+ *
+ * It SENDS TRAFFIC, which is what separates it from the naming toggle above:
+ * where it sits, what an untouched wizard does with it and what its copy
+ * promises are the whole of how an operator learns that. All of that is
+ * configuration handed to the (mocked) table, so it is asserted off the
+ * captured props like the other toggles on this step.
+ */
+describe("NetBIOS name lookup is asked on the Scan Target step (issue #3677)", () => {
+  const KEY: string = "isNetbiosLookupEnabled";
+
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([] as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    capturedTableProps = null;
+  });
+
+  /*
+   * On the FIRST step, never the SNMP one, for the naming toggle's reason and
+   * more sharply: an ICMP-only scan removes the SNMP step, and a host that does
+   * not answer SNMP is exactly the host with nothing else to be named by.
+   */
+  test("the toggle sits on the scan-target step, never on the step ICMP-only scans remove", async () => {
+    await renderPage();
+
+    expect(fieldNamed(KEY).stepId).toBe(STEP_SCAN_TARGET);
+    expect(fieldNamed(KEY).stepId).not.toBe(STEP_SNMP);
+  });
+
+  test("it is a toggle that does not read as optional", async () => {
+    await renderPage();
+
+    const field: CapturedFormField = fieldNamed(KEY);
+
+    expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
+    expect(field.required).toBe(false);
+    expect(field.hideOptionalLabel).toBe(true);
+  });
+
+  /*
+   * ON for a scan being created, OFF in the column — deliberately different.
+   *
+   * The column speaks for every scan that existed before the upgrade, and a
+   * recurring scan on a regulated network must not start sending NBSTAT
+   * queries because a deploy happened. The field default speaks for a scan
+   * being created now, by an operator looking at the toggle and the paragraph
+   * that explains it. Pinned together, so that "fixing" either one to match
+   * the other has to be done on purpose.
+   */
+  test("it defaults to on for a new scan, while existing scans stay off", async () => {
+    await renderPage();
+
+    expect(fieldNamed(KEY).defaultValue).toBe(true);
+    expect(
+      new NetworkDeviceDiscoveryScan().getTableColumnMetadata(KEY).defaultValue,
+    ).toBe(false);
+  });
+
+  /*
+   * Under "What to check", with no heading of its own: it is a question about
+   * what the probe asks each host, which is what that heading is about. And
+   * BEFORE "Device names" — BasicForm draws a heading above the field that
+   * declares it, so a NetBIOS toggle declared after useShortDeviceNames would
+   * read as a naming preference that sends nothing.
+   */
+  test("it follows the method question inside What to check, before the Device names section", async () => {
+    await renderPage();
+
+    const field: CapturedFormField = fieldNamed(KEY);
+
+    expect(field.sectionTitle).toBeUndefined();
+    expect(whatToCheckSectionKeys()).toEqual(["isSnmpEnabled", KEY]);
+
+    const declared: Array<string> = (capturedTableProps?.formFields || []).map(
+      fieldKeyOf,
+    );
+
+    expect(declared.indexOf(KEY)).toBe(declared.indexOf("isSnmpEnabled") + 1);
+    expect(declared.indexOf(KEY)).toBeLessThan(
+      declared.indexOf("useShortDeviceNames"),
+    );
+    expect(
+      sectionKeys({ stepId: STEP_SCAN_TARGET, sectionTitle: "Device names" }),
+    ).not.toContain(KEY);
+  });
+
+  /*
+   * Nothing may hide it, and in particular not the scan's method: ICMP-only
+   * scans are precisely the ones whose hosts have no SNMP name to fall back on.
+   */
+  test("nothing hides it, whatever the scan checks", async () => {
+    await renderPage();
+
+    expect(fieldNamed(KEY).showIf).toBeUndefined();
+  });
+
+  // Contrast the method toggle: flipping this must not touch any other value.
+  test("switching it rewrites nothing else in the form", async () => {
+    await renderPage();
+
+    expect(fieldNamed(KEY).onChange).toBeUndefined();
+  });
+
+  test("an unanswered or either-way toggle never blocks the first step", async () => {
+    await renderPage();
+
+    for (const values of [
+      { cidr: "10.20.30.0/24" },
+      { cidr: "10.20.30.0/24", [KEY]: false },
+      { cidr: "10.20.30.0/24", [KEY]: true },
+      { cidr: "10.20.30.0/24", isSnmpEnabled: false, [KEY]: true },
+    ]) {
+      expect(
+        validationErrorsOnStep({ stepId: STEP_SCAN_TARGET, values })[KEY],
+      ).toBeUndefined();
+    }
+  });
+
+  test("the title says which hosts it is for", async () => {
+    await renderPage();
+
+    expect(fieldNamed(KEY).title).toContain("NetBIOS");
+    expect(fieldNamed(KEY).title).toContain("DNS");
+  });
+
+  /*
+   * The copy is the only place the operator learns what turning this on puts
+   * on their network, and each clause answers a question that would otherwise
+   * be asked after an alert fired or a name failed to appear.
+   */
+  test("the description says it is best-effort, which hosts answer, and that only unnamed hosts are asked", async () => {
+    await renderPage();
+
+    const description: string = fieldNamed(KEY).description || "";
+
+    expect(description).toContain("Best-effort");
+    expect(description).toContain("Windows and Samba");
+    expect(description).toContain("no SNMP name and no reverse-DNS name");
+    // The name is the host's own claim; the Review dialog flags it per row.
+    expect(description).toContain("reports for itself");
+  });
+
+  test("the description names the port, and the firewall rule it needs", async () => {
+    await renderPage();
+
+    const description: string = fieldNamed(KEY).description || "";
+
+    expect(description).toContain("UDP 137");
+    expect(description).toContain("Hosts must allow UDP 137 from the probe");
+  });
+
+  /*
+   * The limits the PROBE enforces whatever this toggle says (private and CGNAT
+   * IPv4 only; never from a probe registered with REGISTER_PROBE_KEY). Said
+   * here so an operator on a global probe does not turn it on, see no names,
+   * and read that as a broken feature.
+   */
+  test("the description states the private-address and global-probe limits", async () => {
+    await renderPage();
+
+    const description: string = fieldNamed(KEY).description || "";
+
+    expect(description).toContain("Only private addresses are asked");
+    expect(description).toContain("global probes never send these queries");
+  });
+
+  test("the description says when to turn it off", async () => {
+    await renderPage();
+
+    expect(fieldNamed(KEY).description || "").toContain(
+      "Turn this off if your intrusion detection system flags NetBIOS queries",
+    );
+  });
+
+  /*
+   * The "Device names" heading explains how a host is named, in order. With
+   * NetBIOS in that order it has to be in the sentence too, between the
+   * reverse-DNS name and the address — where the builder puts it.
+   */
+  test("the Device names section describes NetBIOS in the naming order", async () => {
+    await renderPage();
+
+    const sectionDescription: string =
+      fieldNamed("useShortDeviceNames").sectionDescription || "";
+
+    const reverseDns: number = sectionDescription.indexOf("reverse-DNS name");
+    const netbios: number = sectionDescription.indexOf("NetBIOS name");
+    const address: number = sectionDescription.indexOf("its address");
+
+    expect(reverseDns).toBeGreaterThan(-1);
+    expect(netbios).toBeGreaterThan(reverseDns);
+    expect(address).toBeGreaterThan(netbios);
   });
 });
 

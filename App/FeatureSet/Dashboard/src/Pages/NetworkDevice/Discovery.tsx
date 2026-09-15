@@ -69,6 +69,7 @@ import {
   getDiscoveredHostFullName,
 } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
+import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
 import {
   buildPingMonitorForDiscoveredHost,
   MonitorCriteriaSeedIds,
@@ -385,13 +386,66 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       },
     },
     /*
+     * Whether the probe asks still-unnamed hosts for their NetBIOS name
+     * (OneUptime issue #3677): the Windows machines that otherwise sit in the
+     * Review dialog as bare addresses, because they have no PTR record and no
+     * SNMP.
+     *
+     * UNDER "What to check", with no heading of its own, because unlike the
+     * naming toggle below it IS a packet the scan puts on the wire — one UDP
+     * datagram to port 137 of each such host, plus a retry — and that is
+     * exactly what the heading is about. It must come BEFORE the "Device
+     * names" heading, or BasicForm would draw it under that heading instead.
+     *
+     * On the scan-target step and with no `showIf`, for the naming toggle's
+     * reason: an ICMP-only scan removes the SNMP step, and a host with no SNMP
+     * is exactly the host that needs another way to be named. Nothing else in
+     * the form depends on it, so it has no onChange either.
+     *
+     * DEFAULTS TO ON FOR A NEW SCAN, while the column defaults to OFF. The two
+     * answer different questions. The column speaks for every scan that
+     * existed before the upgrade, and a recurring scan on a PCI network must
+     * not start sending NBSTAT queries — a textbook reconnaissance signature —
+     * because a deploy happened. This default speaks for a scan being created
+     * right now, by an operator looking at the toggle and its description, which
+     * is the one moment an opt-in is actually visible. The Edit dialog reads
+     * the stored value (ModelForm selects every declared field, and BasicForm
+     * applies a default only to an undefined value, never to a stored false),
+     * so an existing scan opens showing off and saves as off unless changed.
+     *
+     * NOT a sweep column in NetworkDeviceDiscoveryScanService, so flipping it
+     * keeps the last run's results; it only changes what the NEXT run asks.
+     * The Edit dialog's footer says so.
+     *
+     * The description carries what an operator needs before turning it on or
+     * leaving it on: that it is best-effort, which hosts are asked, the hard
+     * limits the probe enforces whatever this says (private addresses only,
+     * never from a global probe), the firewall rule it needs, and when to turn
+     * it off. The name is self-reported, which the Review dialog marks on each
+     * row it names.
+     */
+    {
+      field: {
+        isNetbiosLookupEnabled: true,
+      },
+      title: "Look up NetBIOS names for hosts DNS doesn't name",
+      stepId: "scan-target",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      defaultValue: true,
+      // A toggle is always answered one way or the other; see isSnmpEnabled.
+      hideOptionalLabel: true,
+      description:
+        "Best-effort: after the sweep, the probe asks each host that has no SNMP name and no reverse-DNS name for its NetBIOS name over UDP 137. Windows and Samba hosts usually answer, and the name is the one the host reports for itself. Only private addresses are asked, and global probes never send these queries. Hosts must allow UDP 137 from the probe. Turn this off if your intrusion detection system flags NetBIOS queries.",
+    },
+    /*
      * How the hosts this scan finds are NAMED when they import (OneUptime
      * issue #3678): "core-sw-01" rather than "core-sw-01.corp.example.com".
      *
-     * Its own section, directly after the method toggle, for two reasons.
-     * "What to check" is about what the probe SENDS, and this sends nothing —
-     * filing it under that heading would read as another packet the scan
-     * puts on the wire. And it must stay on the scan-target step, never on
+     * Its own section, directly after the "What to check" questions (the
+     * method toggle and the NetBIOS lookup), for two reasons. "What to check"
+     * is about what the probe SENDS, and this sends nothing — filing it under
+     * that heading would read as another packet the scan puts on the wire. And it must stay on the scan-target step, never on
      * the SNMP step: an ICMP-only scan removes that step, and a host with no
      * SNMP is exactly the host named by its reverse-DNS FQDN, so the setting
      * would vanish for the scans it matters most to.
@@ -426,7 +480,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       hideOptionalLabel: true,
       sectionTitle: "Device names",
       sectionDescription:
-        "What each device imported from this scan is called. A host is named by the name it reports over SNMP, then by its reverse-DNS name, then by its address.",
+        "What each device imported from this scan is called. A host is named by the name it reports over SNMP, then by its reverse-DNS name, then by the NetBIOS name it reports if the scan looked one up, then by its address.",
       description:
         "Name imported devices by the first part of a fully qualified hostname - 'core-sw-01' instead of 'core-sw-01.corp.example.com'. The full DNS name is kept on the device as its DNS Name (a name the device reports over SNMP stays in full as its System Name), and names that are not fully qualified, such as addresses, are left as they are. It changes only what devices are called, so no rescan is needed: Review Results uses it the next time it opens, and so do auto-import rules. Devices already imported keep their names. Label and owner rules whose name patterns were written against full names (such as *.corp.example.com) will not match the new short names.",
     },
@@ -1897,12 +1951,21 @@ const NetworkDeviceDiscovery: FunctionComponent<
            * sweep makes the last run's hosts describe a scan that no longer
            * exists, so they go. Said before the operator saves rather than
            * discovered afterwards in an empty Review Results dialog.
+           *
+           * The NetBIOS lookup (issue #3677) gets its own sentence because it
+           * sits between the two cases. It is not a sweep column, so it keeps
+           * the results like a rename does; but unlike short names, which
+           * Review Results applies the next time it opens, it changes what the
+           * PROBE asks, so the stored results do not gain or lose NetBIOS
+           * names until the scan runs again. An operator who turns it on and
+           * reopens Review Results to an unchanged list must not read that as
+           * the lookup failing.
            */
           footer={
             <Alert
               type={AlertType.INFO}
               strongTitle="Changing the target, probe or credentials re-runs the scan"
-              title="The scan goes back to Pending and sweeps again with the new settings, and the hosts the last run found are cleared - they describe settings this scan no longer has. Devices you have already imported are not touched. Changing only the name or the schedule, or whether devices get short names, leaves the results alone."
+              title="The scan goes back to Pending and sweeps again with the new settings, and the hosts the last run found are cleared - they describe settings this scan no longer has. Devices you have already imported are not touched. Changing only the name or the schedule, or whether devices get short names, leaves the results alone. Turning NetBIOS name lookup on or off leaves them alone too, and applies from the next time the scan runs."
             />
           }
           modalWidth={ModalWidth.Medium}
@@ -2194,6 +2257,43 @@ const NetworkDeviceDiscovery: FunctionComponent<
                   normalizedDnsHostname !== secondaryFullName
                     ? normalizedDnsHostname
                     : undefined;
+                /*
+                 * Whether the name line is a NetBIOS name (issue #3677), so
+                 * the row can say so beside the address.
+                 *
+                 * Said because the name is SELF-REPORTED. A sysName is at least
+                 * configured by whoever runs the device and a PTR record by
+                 * whoever runs DNS; a NetBIOS name is whatever the machine on
+                 * the other end of a UDP datagram chose to answer, on a subnet
+                 * this project may not administer. The operator deciding to
+                 * import it deserves to know which of those they are trusting.
+                 *
+                 * Derived from the naming order rather than from "the host has
+                 * a netbiosName": NetBIOS names a host only when it has no
+                 * sysName and no usable PTR name, and only a name that
+                 * normalises to exactly the name line counts. The sysName test
+                 * mirrors the builder's own (a string with something left after
+                 * trimming), and the PTR test reuses the re-normalised value
+                 * above. So a row named by SNMP or DNS never carries the hint
+                 * even if its jsonb also holds a NetBIOS answer, and a NetBIOS
+                 * answer the rules reject leaves the row on its address with no
+                 * hint beside it. Re-normalised here, like the PTR name, rather
+                 * than trusted from the column.
+                 *
+                 * Rendered as plain secondary text beside the address, not as a
+                 * badge: it says where the name line came from, and a badge on
+                 * the right would read as a state of the host alongside "No
+                 * SNMP" and "Already added".
+                 */
+                const normalizedNetbiosName: string | undefined =
+                  normalizeNetbiosName(entry.netbiosName);
+                const isNamedByNetbios: boolean =
+                  !(
+                    typeof entry.sysName === "string" && entry.sysName.trim()
+                  ) &&
+                  !normalizedDnsHostname &&
+                  Boolean(normalizedNetbiosName) &&
+                  normalizedNetbiosName === displayName;
                 return (
                   <div
                     /*
@@ -2249,6 +2349,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
                         </div>
                         <div className="truncate text-sm text-gray-500">
                           {entry.ipAddress}
+                          {isNamedByNetbios && (
+                            <span
+                              className="text-gray-400"
+                              title="The host reported this name itself over NetBIOS. It has no SNMP name and no reverse-DNS name to confirm it."
+                            >
+                              {" · "}
+                              NetBIOS name
+                            </span>
+                          )}
                           {secondaryFullName && (
                             <span className="text-gray-400">
                               {" · "}

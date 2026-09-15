@@ -33,7 +33,16 @@ import {
   buildNetworkDeviceFromDiscoveredHost,
 } from "../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "../../Utils/NetworkDiscovery/DiscoveredHostUtil";
-import { DISCOVERY_SCAN_IMPORTABLE_STATUSES } from "../../Utils/NetworkDiscovery/DiscoveryScanStatus";
+import {
+  DISCOVERY_SCAN_IMPORTABLE_STATUSES,
+  DiscoveryScanStatus,
+} from "../../Utils/NetworkDiscovery/DiscoveryScanStatus";
+import {
+  RunImportedDeviceRename,
+  RunImportedDeviceRow,
+  getNamedHostsByAddress,
+  planRunImportedDeviceRenames,
+} from "../../Utils/NetworkDiscovery/RunImportedDeviceNaming";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -190,6 +199,29 @@ export const MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES: number = 10;
 export const MAX_RESULT_AGE_IN_HOURS: number = 24;
 
 /*
+ * Devices one pass will rename after a Completed result names what the run
+ * imported by address (see renameDevicesImportedDuringRun). Every rename is a
+ * full update pipeline — a site-assignment re-evaluation among other things —
+ * plus up to two name-collision counts, so an unbounded pass over a /16 that
+ * was imported mid-sweep would be tens of thousands of writes inside one
+ * worker tick. Higher than the create cap because an update is a fraction of
+ * a create's work. What the cap leaves over is logged, not retried: the
+ * result is stamped processed as usual, and those devices keep their address
+ * names until someone renames them.
+ */
+export const MAX_DEVICE_RENAMES_PER_SCAN_PASS: number = 2000;
+
+/*
+ * Addresses per "which devices this run imported sit at these addresses"
+ * query — the same bound, for the same reason, as NetworkDeviceService's
+ * HOSTNAME_LOOKUP_CHUNK_SIZE: the list is rendered into the statement as a
+ * literal IN. Kept as its own constant rather than imported so a module-level
+ * service mock in a test cannot turn it into undefined and the loop into a
+ * single empty chunk.
+ */
+export const RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE: number = 500;
+
+/*
  * The Redis lock every path that CREATES devices from scan results runs
  * under — the worker sweep and the manual Run Now alike. The engine's
  * idempotency is check-then-create with no DB backstop (device names are
@@ -322,6 +354,12 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           scannedHostCount: true,
           respondedHostCount: true,
           autoImportProcessedAt: true,
+          /*
+           * When this run was claimed — the line renameDevicesImportedDuringRun
+           * draws between devices this run imported and devices that were
+           * already there.
+           */
+          startedAt: true,
           discoveredDevices: true,
           // Credentials AND naming — see AUTO_IMPORT_SCAN_BUILDER_SELECT.
           ...AUTO_IMPORT_SCAN_BUILDER_SELECT,
@@ -348,6 +386,41 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
     const projectId: ObjectID = scan.projectId;
 
+    /*
+     * Decided once, up front, because two steps below depend on it and must
+     * agree: the renames (which an old result must not trigger) and the
+     * too-old early exit itself.
+     */
+    const isTooOldToAutoImport: boolean = this.isTooOldToAutoImport(scan);
+
+    /*
+     * Name what this run imported by address before its names were known
+     * (issue #3677) — see renameDevicesImportedDuringRun.
+     *
+     * Placed here, ahead of both early exits below, and gated on the age check
+     * by hand. It has to run BEFORE the "no import rules" exit, because the
+     * devices it fixes are just as often the ones an operator imported from
+     * the Review dialog while the scan was still sweeping, in a project with
+     * no rules at all. And it must NOT run for a result that is too old to
+     * auto-import: that guard exists so a late or backlogged result never
+     * makes surprising changes to the estate, and a wave of renames is such a
+     * change. The two exits used to be ordered "no rules" then "too old" and
+     * still are, so a rule-less project stamps an old result without the
+     * too-old warning it has never logged.
+     *
+     * Also ahead of the import: the import re-reads the devices at these
+     * addresses, so a monitor provisioned onto one of them in this same pass
+     * is built from the device's new name rather than its address.
+     *
+     * Runs once per result, because this path runs once per result: the
+     * result is stamped processed below. A pass that leaves the marker NULL to
+     * resume a capped import runs it again next tick, which finds nothing
+     * left to rename. The step never throws.
+     */
+    if (!isTooOldToAutoImport) {
+      await this.renameDevicesImportedDuringRun({ scan: scan });
+    }
+
     const rules: Array<NetworkDeviceAutoImportRule> =
       await this.loadEnabledRules(projectId);
 
@@ -363,7 +436,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       return null;
     }
 
-    if (this.isTooOldToAutoImport(scan)) {
+    if (isTooOldToAutoImport) {
       logger.warn(
         `Auto-import: scan ${scan.id?.toString()} completed more than ${MAX_RESULT_AGE_IN_HOURS} hours ago; stamping it processed without importing. Use the rule's Run Now to import old results deliberately.`,
         { projectId: projectId.toString() } as LogAttributes,
@@ -1016,6 +1089,262 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     }
 
     return rules;
+  }
+
+  /*
+   * Rename the devices this scan's run imported by their bare address, now
+   * that its Completed result carries the names it resolved (part of OneUptime
+   * issue #3677).
+   *
+   * THE BUG. Auto-import consumes a running sweep's partial snapshots
+   * (DISCOVERY_SCAN_IMPORTABLE_STATUSES), and a partial snapshot never
+   * carries reverse-DNS names: the probe resolves them once, after the sweep
+   * (Probe/Utils/Discovery/SubnetScanner.ts), and only the final upload has
+   * them. So a host without an SNMP sysName is imported mid-run named by its
+   * address. When the final result lands with "kds01.wbhq.com" on that
+   * host's row, importHostsFromScan skips the host — its address is already
+   * registered, which is the idempotency the engine is built on — and the
+   * device keeps its address as its name forever. An operator importing from
+   * the Review dialog while the scan is running hits the same thing.
+   *
+   * WHAT IS RENAMED is decided by planRunImportedDeviceRenames, whose header
+   * explains each condition. The one that matters most for an upgrade: only
+   * devices CREATED DURING THIS RUN (createdAt >= the scan's startedAt). A
+   * long-standing device someone deliberately named by its address, or one
+   * imported before reverse DNS existed, is not this bug, and renaming all of
+   * those on the first scan after an upgrade would be a silent mass edit on
+   * the one path nobody reviews. A scan with no startedAt renames nothing.
+   *
+   * Only for a scan whose status is exactly Completed. An In Progress scan's
+   * rows have no names yet by construction, and a Failed scan never reaches
+   * this path (it is not importable); checking the status here rather than
+   * trusting the caller keeps a future change to the importable statuses
+   * from turning this on for results that cannot name anything.
+   *
+   * WHAT A RENAME IS. The name the import would have chosen had it waited
+   * (buildDeviceName under the scan's naming choice), or the import's own
+   * address-suffixed fallback when another device already has that name,
+   * or nothing when both are taken — the import's collision protocol, with
+   * the same case-insensitive check the create-time uniqueness guard runs
+   * (DatabaseService.checkUniqueColumnBy), because an update does not enforce
+   * name uniqueness and so this has to. Names taken earlier in this same pass
+   * count as taken. The PTR name is filled into dnsName when the device has
+   * none, as the builder would have at create. The write goes through
+   * updateOneById so the normal update hooks run: a name is an identity
+   * column for site-assignment rules, and re-evaluating them on the new name
+   * is exactly what should happen.
+   *
+   * Never throws. A failed lookup or write is logged per device and the rest
+   * carry on, and a failure of the step as a whole is logged and swallowed:
+   * a device left named by its address is a cosmetic fault, and must not
+   * cost the scan its import or its processed stamp.
+   *
+   * Returns how many devices were renamed.
+   */
+  private async renameDevicesImportedDuringRun(data: {
+    scan: NetworkDeviceDiscoveryScan;
+  }): Promise<number> {
+    const scan: NetworkDeviceDiscoveryScan = data.scan;
+
+    if (scan.status !== DiscoveryScanStatus.Completed) {
+      return 0;
+    }
+
+    if (!scan.projectId || !scan.startedAt || !scan.completedAt) {
+      return 0;
+    }
+
+    const projectId: ObjectID = scan.projectId;
+    const logAttributes: LogAttributes = {
+      projectId: projectId.toString(),
+    } as LogAttributes;
+
+    try {
+      const runStartedAt: Date = OneUptimeDate.fromString(scan.startedAt);
+
+      if (Number.isNaN(runStartedAt.getTime())) {
+        return 0;
+      }
+
+      const namedHostAddresses: Array<string> = Array.from(
+        getNamedHostsByAddress(scan.discoveredDevices, scan).keys(),
+      );
+
+      if (namedHostAddresses.length === 0) {
+        return 0;
+      }
+
+      const rows: Array<RunImportedDeviceRow> = [];
+
+      for (
+        let offset: number = 0;
+        offset < namedHostAddresses.length;
+        offset += RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE
+      ) {
+        const chunk: Array<string> = namedHostAddresses.slice(
+          offset,
+          offset + RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE,
+        );
+
+        const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy(
+          {
+            query: {
+              projectId: projectId,
+              hostname: QueryHelper.any(chunk),
+              /*
+               * Condition (d) in the query too, so an established estate
+               * returns no rows here rather than every device the scan
+               * re-reported. The planner checks it again regardless.
+               */
+              createdAt: QueryHelper.greaterThanEqualTo(runStartedAt),
+            },
+            select: {
+              _id: true,
+              projectId: true,
+              name: true,
+              hostname: true,
+              dnsName: true,
+              createdAt: true,
+            },
+            sort: {},
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: { isRoot: true },
+          },
+        );
+
+        for (const device of devices) {
+          if (!device.id) {
+            continue;
+          }
+
+          rows.push({
+            deviceId: device.id.toString(),
+            projectId: device.projectId?.toString(),
+            name: device.name,
+            hostname: device.hostname,
+            dnsName: device.dnsName,
+            createdAt: device.createdAt,
+          });
+        }
+      }
+
+      const plans: Array<RunImportedDeviceRename> =
+        planRunImportedDeviceRenames({
+          projectId: projectId.toString(),
+          hosts: scan.discoveredDevices,
+          devices: rows,
+          scan: scan,
+          runStartedAt: runStartedAt,
+          runCompletedAt: scan.completedAt,
+        });
+
+      // Lower-cased names this pass has already given to a device.
+      const namesTakenThisPass: Set<string> = new Set<string>();
+      let renamedCount: number = 0;
+      let attemptedCount: number = 0;
+      let skippedCount: number = 0;
+
+      for (let index: number = 0; index < plans.length; index++) {
+        const plan: RunImportedDeviceRename = plans[index]!;
+
+        if (attemptedCount >= MAX_DEVICE_RENAMES_PER_SCAN_PASS) {
+          logger.warn(
+            `Auto-import: scan ${scan.id?.toString()} reached the cap of ${MAX_DEVICE_RENAMES_PER_SCAN_PASS} device renames in one pass; ${plans.length - index} device(s) imported during its run keep their address as their name. Rename them from the Devices list.`,
+            logAttributes,
+          );
+          break;
+        }
+
+        try {
+          const newName: string | null = await this.pickFreeDeviceName({
+            projectId: projectId,
+            candidateNames: plan.candidateNames,
+            namesTakenThisPass: namesTakenThisPass,
+          });
+
+          if (!newName) {
+            skippedCount++;
+            logger.debug(
+              `Auto-import: not renaming Network Device ${plan.deviceId} (${plan.hostname}); every name it could take (${plan.candidateNames.join(", ")}) already belongs to another device.`,
+              logAttributes,
+            );
+            continue;
+          }
+
+          attemptedCount++;
+
+          const update: JSONObject = { name: newName };
+
+          if (plan.dnsName) {
+            update["dnsName"] = plan.dnsName;
+          }
+
+          await NetworkDeviceService.updateOneById({
+            id: new ObjectID(plan.deviceId),
+            data: update as unknown as QueryDeepPartialEntity<NetworkDevice>,
+            props: { isRoot: true },
+          });
+
+          namesTakenThisPass.add(newName.toLowerCase());
+          renamedCount++;
+        } catch (error) {
+          logger.error(
+            `Auto-import: could not rename Network Device ${plan.deviceId} (${plan.hostname}) after scan ${scan.id?.toString()} resolved its name: ${error}`,
+            logAttributes,
+          );
+        }
+      }
+
+      if (renamedCount > 0 || skippedCount > 0) {
+        logger.info(
+          `Auto-import: scan ${scan.id?.toString()} named ${renamedCount} device(s) that its run had imported by address before their names were resolved${skippedCount > 0 ? `; ${skippedCount} kept their address because every name they could take was already in use` : ""}.`,
+          logAttributes,
+        );
+      }
+
+      return renamedCount;
+    } catch (error) {
+      logger.error(
+        `Auto-import: could not rename the devices scan ${scan.id?.toString()} imported by address during its run; continuing with the import: ${error}`,
+        logAttributes,
+      );
+      return 0;
+    }
+  }
+
+  /*
+   * The first candidate no device in the project already holds — compared
+   * the way DatabaseService.checkUniqueColumnBy compares at create
+   * (case-insensitive, trimmed), and counting names this pass has already
+   * handed out, which the database may not show yet. Null when all are taken.
+   */
+  private async pickFreeDeviceName(data: {
+    projectId: ObjectID;
+    candidateNames: Array<string>;
+    namesTakenThisPass: Set<string>;
+  }): Promise<string | null> {
+    for (const candidate of data.candidateNames) {
+      if (data.namesTakenThisPass.has(candidate.toLowerCase())) {
+        continue;
+      }
+
+      const holders: number = (
+        await NetworkDeviceService.countBy({
+          query: {
+            projectId: data.projectId,
+            name: QueryHelper.findWithSameText(candidate),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (holders === 0) {
+        return candidate;
+      }
+    }
+
+    return null;
   }
 
   private isTooOldToAutoImport(scan: NetworkDeviceDiscoveryScan): boolean {

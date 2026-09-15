@@ -490,6 +490,129 @@ describe("Discovery review names devices by the scan's short-name choice", () =>
   });
 });
 
+/*
+ * OneUptime issue #3677, end to end through the page's real review and import
+ * handlers: a host with no SNMP and no PTR record, which the probe named by
+ * asking it over NetBIOS, is shown under that name with a plain "NetBIOS name"
+ * hint beside its address, and imports under that name.
+ *
+ * The name is self-reported by the host, so it is never stored as the
+ * device's DNS name — `dnsName` means "a record in DNS says so", and that is
+ * the one thing a NetBIOS answer is not.
+ */
+describe("Discovery review names a host by its NetBIOS answer when nothing else names it", () => {
+  function netbiosHost(
+    ipAddress: string,
+    netbiosName: string,
+  ): DiscoveredNetworkDevice {
+    return { ...host(ipAddress, false), netbiosName };
+  }
+
+  test("the row shows the NetBIOS name, and says beside the address where it came from", async () => {
+    getItemSpy.mockResolvedValue(
+      scan([netbiosHost("10.0.0.1", "accounts-pc01")]),
+    );
+    await renderPage();
+    await openReview(scan([netbiosHost("10.0.0.1", "accounts-pc01")]));
+
+    expect(screen.getByText("accounts-pc01")).toHaveAttribute(
+      "title",
+      "accounts-pc01",
+    );
+    expect(checkbox("10.0.0.1")).toHaveAttribute(
+      "aria-label",
+      "Import accounts-pc01 (10.0.0.1)",
+    );
+
+    const hint: HTMLElement = screen.getByText(/NetBIOS name/);
+
+    expect(hint.tagName).toBe("SPAN");
+    // Beside the address, on the address line — not a badge elsewhere.
+    expect(hint.parentElement).toHaveTextContent("10.0.0.1 · NetBIOS name");
+    expect(hint.getAttribute("title") || "").toContain(
+      "reported this name itself",
+    );
+  });
+
+  test("a host with only a NetBIOS name imports under it, with no DNS name", async () => {
+    getItemSpy.mockResolvedValue(
+      scan([netbiosHost("10.0.0.1", "accounts-pc01")]),
+    );
+    await renderPage();
+    await openReview(scan([netbiosHost("10.0.0.1", "accounts-pc01")]));
+    await importSelected();
+
+    expect(createSpy).toHaveBeenCalledTimes(1);
+
+    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
+
+    expect(device.name).toBe("accounts-pc01");
+    expect(device.hostname).toBe("10.0.0.1");
+    expect(device.dnsName).toBeUndefined();
+  });
+
+  test("the short-name option imports a NetBIOS name unchanged", async () => {
+    const value: NetworkDeviceDiscoveryScan = scan([
+      netbiosHost("10.0.0.1", "accounts-pc01"),
+    ]);
+    value.useShortDeviceNames = true;
+    getItemSpy.mockResolvedValue(value);
+    await renderPage();
+    await openReview(value);
+
+    expect(screen.getByText(/NetBIOS name/)).toBeInTheDocument();
+
+    await importSelected();
+
+    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
+
+    expect(device.name).toBe("accounts-pc01");
+    expect(device.dnsName).toBeUndefined();
+  });
+
+  test("a host DNS names carries no NetBIOS hint, and imports under its DNS name", async () => {
+    getItemSpy.mockResolvedValue(
+      scan([
+        {
+          ...netbiosHost("10.0.0.1", "accounts-pc01"),
+          dnsHostname: "core-gw.corp.example.com",
+        },
+      ]),
+    );
+    await renderPage();
+    await openReview(scan([]));
+
+    expect(screen.getByText("core-gw.corp.example.com")).toBeInTheDocument();
+    expect(screen.queryByText(/NetBIOS name/)).not.toBeInTheDocument();
+
+    await importSelected();
+
+    const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
+
+    expect(device.name).toBe("core-gw.corp.example.com");
+    expect(device.dnsName).toBe("core-gw.corp.example.com");
+  });
+
+  test("a NetBIOS answer the rules reject leaves the host on its address, with no hint", async () => {
+    getItemSpy.mockResolvedValue(
+      scan([netbiosHost("10.0.0.1", "<img src=x onerror=alert(1)>")]),
+    );
+    await renderPage();
+    await openReview(scan([]));
+
+    expect(checkbox("10.0.0.1")).toHaveAttribute(
+      "aria-label",
+      "Import 10.0.0.1 (10.0.0.1)",
+    );
+    expect(screen.queryByText(/NetBIOS name/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/onerror/)).not.toBeInTheDocument();
+
+    await importSelected();
+
+    expect(createSpy.mock.calls[0]![0].model.name).toBe("10.0.0.1");
+  });
+});
+
 describe("Discovery review waits for a successful current response", () => {
   test("does not expose stale selection or import while the inventory read is pending", async () => {
     const pending: Deferred<NetworkDeviceDiscoveryScan | null> = deferred();

@@ -9,6 +9,7 @@ import {
   isPingOnlyDiscoveredHost,
   monitoringMethodForDiscoveredHost,
 } from "./DiscoveryImportEligibility";
+import { normalizeNetbiosName } from "./NetbiosNameUtil";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
 import { getShortHostname } from "./ShortHostnameUtil";
 
@@ -76,9 +77,9 @@ export interface DiscoveredHostNaming {
 
 /**
  * The name a discovered host has before any shortening: its sysName, its
- * reverse-DNS name, or its address. This is what `getDiscoveredHostDisplayName`
- * shortens, and what the Review dialog shows beside a shortened name so the
- * operator can see what was cut.
+ * reverse-DNS name, its NetBIOS name, or its address. This is what
+ * `getDiscoveredHostDisplayName` shortens, and what the Review dialog shows
+ * beside a shortened name so the operator can see what was cut.
  */
 export function getDiscoveredHostFullName(
   host: DiscoveredNetworkDevice,
@@ -91,6 +92,13 @@ export function getDiscoveredHostFullName(
    * not for a row written straight through the API. This function is the last
    * point before the value becomes a rendered line and a slugified device
    * name, so it is the right place to be sure. See ReverseDnsNameUtil.
+   *
+   * The NetBIOS name is re-normalised here for the same reason, and with more
+   * cause: it is not even a published record but whatever the host at that
+   * address chose to answer (issue #3677). A stored "WORKSTATION01   " — the
+   * raw, space-padded, upper-cased wire form an older or modified probe might
+   * write — is read as "workstation01", and anything that fails the rules
+   * falls through to the address. See NetbiosNameUtil.
    */
   /*
    * `sysName` is read through a typeof guard rather than trusted, for the
@@ -108,6 +116,7 @@ export function getDiscoveredHostFullName(
   return (
     sysName ||
     normalizeReverseDnsName(host.dnsHostname) ||
+    normalizeNetbiosName(host.netbiosName) ||
     String(host.ipAddress ?? "")
   );
 }
@@ -116,7 +125,7 @@ export function getDiscoveredHostFullName(
  * What a discovered host is CALLED — in the Review dialog, and (clamped by
  * `buildDeviceName`) on the device it imports as.
  *
- * Three sources, in this order, first non-empty wins:
+ * Four sources, in this order, first non-empty wins:
  *
  *   1. `sysName`, the name the device gives for itself over SNMP. It stays
  *      first because it always has been, and because it is the one name the
@@ -128,7 +137,17 @@ export function getDiscoveredHostFullName(
  *      before this it fell straight through to its address. On an estate that
  *      keeps DNS records — the reporter's does — that turns a review list of
  *      "10.18.166.51, 10.18.166.53, ..." into names an operator recognises.
- *   3. The address, unchanged, when neither name exists.
+ *   3. `netbiosName`, the name the host answered a NetBIOS node status query
+ *      with (OneUptime issue #3677), for the hosts neither of the above names:
+ *      no SNMP, no PTR record — on a Windows estate, most of them. It ranks
+ *      BELOW the PTR name because it is self-reported by whatever sits at the
+ *      address rather than published by whoever runs DNS, and because a PTR
+ *      name carries the domain the short-name option and `dnsName` depend on.
+ *      In practice the two rarely meet: the probe only asks hosts that have
+ *      neither a sysName nor a PTR name. The order is for the rows where they
+ *      do anyway — a result written through the API, or by a probe of another
+ *      version — so that every reader settles them the same way.
+ *   4. The address, unchanged, when no name exists.
  *
  * Split out of `buildDeviceName` so the dashboard row and the device it
  * creates cannot disagree: the operator ticks a box next to a name, and that
@@ -160,7 +179,9 @@ export function getDiscoveredHostFullName(
  * The winner is shortened or kept; shortening never changes WHICH source
  * wins, and an address is never shortened (see ShortHostnameUtil). The full
  * reverse-DNS name is not lost: the builder stores it on the device as
- * `dnsName`.
+ * `dnsName`. A NetBIOS name passes through unchanged either way: it is a
+ * single dot-free label by construction, so there is nothing to cut, and
+ * getShortHostname declines it.
  */
 export function getDiscoveredHostDisplayName(
   host: DiscoveredNetworkDevice,
@@ -357,6 +378,12 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
    * Never taken from sysName: that is the name the device gives itself, it
    * is already stored as sysName by the first poll, and calling it a DNS name
    * would be a claim nothing checked.
+   *
+   * Never taken from `netbiosName` either, for the same reason with more
+   * force (issue #3677). A NetBIOS name is whatever the host at the address
+   * answered, not a record anyone published; storing it as a DNS name would
+   * make it searchable and matchable by site-assignment hostname patterns as
+   * though DNS had vouched for it. It names the device and goes no further.
    */
   const dnsName: string | undefined = normalizeReverseDnsName(host.dnsHostname);
 

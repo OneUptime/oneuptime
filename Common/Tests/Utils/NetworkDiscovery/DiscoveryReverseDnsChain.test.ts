@@ -1402,3 +1402,304 @@ describe("Reverse DNS with short device names, probe payload to created NetworkD
     expect(device.dnsName).toBe("wb-0660-kds01.wbhq.com");
   });
 });
+
+/*
+ * OneUptime issue #3677: the same journey for a NetBIOS name.
+ *
+ * The reporter's 10.18.167.31-36 have no PTR record and answer no SNMP, so
+ * every link above hands them nothing but their address. A scan with NetBIOS
+ * lookup on has the probe ask them, and it stores what they answer as
+ * `netbiosName`. That value crosses the same five joints a PTR name does —
+ * payload, jsonb, normalisation, display name, device — and it is SELF-
+ * REPORTED, so each joint has to agree about what it may become.
+ */
+describe("NetBIOS names, probe payload to created NetworkDevice", () => {
+  /*
+   * A scan the way the dashboard really hands one over: through the model's
+   * serializer and back, so the two booleans are what a stored row yields,
+   * not literals typed into the test.
+   */
+  function scanThroughSerializer(settings: {
+    isNetbiosLookupEnabled: boolean;
+    useShortDeviceNames: boolean;
+  }): NetworkDeviceDiscoveryScan {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+    scan.isNetbiosLookupEnabled = settings.isNetbiosLookupEnabled;
+    scan.useShortDeviceNames = settings.useShortDeviceNames;
+
+    const wire: JSONObject = JSON.parse(
+      JSON.stringify(
+        DatabaseBaseModel.toJSON(scan, NetworkDeviceDiscoveryScan),
+      ),
+    ) as JSONObject;
+
+    return DatabaseBaseModel.fromJSONObject(wire, NetworkDeviceDiscoveryScan);
+  }
+
+  const NETBIOS_SCAN: NetworkDeviceDiscoveryScan = scanThroughSerializer({
+    isNetbiosLookupEnabled: true,
+    useShortDeviceNames: false,
+  });
+
+  const NETBIOS_SHORT_NAMES_SCAN: NetworkDeviceDiscoveryScan =
+    scanThroughSerializer({
+      isNetbiosLookupEnabled: true,
+      useShortDeviceNames: true,
+    });
+
+  function devicesFromPayloadWith(
+    payload: Array<unknown>,
+    scan: DiscoveredDeviceScanSource,
+  ): Array<NetworkDevice> {
+    return hostsFromPayload(payload).map(
+      (host: DiscoveredNetworkDevice): NetworkDevice => {
+        return buildNetworkDeviceFromDiscoveredHost({
+          projectId: PROJECT_ID,
+          host: host,
+          scan: scan,
+        });
+      },
+    );
+  }
+
+  /*
+   * The reporter's range as a probe with the lookup on would send it, plus
+   * the shapes a probe of another version, or a hand-written API row, could
+   * leave in the column:
+   *
+   *   .31  the normalised name the current probe stores
+   *   .32  the raw wire form: upper case, space-padded to fifteen bytes
+   *   .33  a host that did not answer NBSTAT: no key at all
+   *   .34  a hostile answer, markup in the name field
+   *   .35  a host that has a PTR record too (the probe would not have asked,
+   *        but the column cannot refuse the row), so the PTR name must win
+   *   .36  a sixteen-character answer, one past the NetBIOS name field
+   */
+  const REPORTER_PAYLOAD: Array<unknown> = [
+    { ipAddress: "10.18.167.31", snmpReachable: false, netbiosName: "reg01" },
+    {
+      ipAddress: "10.18.167.32",
+      snmpReachable: false,
+      netbiosName: "REG02          ",
+    },
+    { ipAddress: "10.18.167.33", snmpReachable: false },
+    {
+      ipAddress: "10.18.167.34",
+      snmpReachable: false,
+      netbiosName: "<img src=x>",
+    },
+    {
+      ipAddress: "10.18.167.35",
+      snmpReachable: false,
+      dnsHostname: "wb-0660-kds05.wbhq.com",
+      netbiosName: "WB-0660-KDS05",
+    },
+    {
+      ipAddress: "10.18.167.36",
+      snmpReachable: false,
+      netbiosName: "ABCDEFGHIJKLMNOP",
+    },
+  ];
+
+  const EXPECTED_FULL_NAMES: Array<string> = [
+    "reg01",
+    "reg02",
+    "10.18.167.33",
+    "10.18.167.34",
+    "wb-0660-kds05.wbhq.com",
+    "10.18.167.36",
+  ];
+
+  it("keeps the lookup setting as a real boolean through the scan model's serializer", () => {
+    expect(NETBIOS_SCAN).toBeInstanceOf(NetworkDeviceDiscoveryScan);
+    expect(typeof NETBIOS_SCAN.isNetbiosLookupEnabled).toBe("boolean");
+    expect(NETBIOS_SCAN.isNetbiosLookupEnabled).toBe(true);
+  });
+
+  it("stores each row's NetBIOS name normalised, and drops the ones that are not names", () => {
+    const hosts: Array<DiscoveredNetworkDevice> =
+      hostsFromPayload(REPORTER_PAYLOAD);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string | undefined => {
+        return host.netbiosName;
+      }),
+    ).toEqual([
+      "reg01",
+      "reg02",
+      undefined,
+      undefined,
+      "wb-0660-kds05",
+      undefined,
+    ]);
+
+    // Deleted, not blanked: `in` and truthiness agree on every row.
+    expect("netbiosName" in hosts[2]!).toBe(false);
+    expect("netbiosName" in hosts[3]!).toBe(false);
+    expect("netbiosName" in hosts[5]!).toBe(false);
+  });
+
+  it("names the reporter's hosts by NetBIOS name in the Review rows, and still addresses them by IP", () => {
+    const hosts: Array<DiscoveredNetworkDevice> =
+      hostsFromPayload(REPORTER_PAYLOAD);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string => {
+        return getDiscoveredHostDisplayName(host, NETBIOS_SCAN);
+      }),
+    ).toEqual(EXPECTED_FULL_NAMES);
+
+    const devices: Array<NetworkDevice> = devicesFromPayloadWith(
+      REPORTER_PAYLOAD,
+      NETBIOS_SCAN,
+    );
+
+    // THE joint: the row an operator ticks names the device it creates.
+    hosts.forEach((host: DiscoveredNetworkDevice, index: number): void => {
+      expect(devices[index]?.name).toBe(
+        getDiscoveredHostDisplayName(host, NETBIOS_SCAN),
+      );
+    });
+
+    expect(deviceNames(devices)).toEqual(EXPECTED_FULL_NAMES);
+
+    expect(deviceHostnames(devices)).toEqual([
+      "10.18.167.31",
+      "10.18.167.32",
+      "10.18.167.33",
+      "10.18.167.34",
+      "10.18.167.35",
+      "10.18.167.36",
+    ]);
+  });
+
+  /*
+   * A NetBIOS name is what the host says about itself; a DNS name is a record
+   * someone published. Only the row that really has a PTR record gets one.
+   */
+  it("never stores a NetBIOS name as the device's DNS name", () => {
+    for (const scan of [NETBIOS_SCAN, NETBIOS_SHORT_NAMES_SCAN]) {
+      const devices: Array<NetworkDevice> = devicesFromPayloadWith(
+        REPORTER_PAYLOAD,
+        scan,
+      );
+
+      expect(
+        devices.map((device: NetworkDevice): string | undefined => {
+          return device.dnsName;
+        }),
+      ).toEqual([
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "wb-0660-kds05.wbhq.com",
+        undefined,
+      ]);
+    }
+  });
+
+  /*
+   * A NetBIOS name is one label, so short names have nothing to cut. The only
+   * name that changes with the setting on is the PTR name on .35.
+   */
+  it("imports the same NetBIOS names with short names on", () => {
+    expect(
+      deviceNames(
+        devicesFromPayloadWith(REPORTER_PAYLOAD, NETBIOS_SHORT_NAMES_SCAN),
+      ),
+    ).toEqual([
+      "reg01",
+      "reg02",
+      "10.18.167.33",
+      "10.18.167.34",
+      "wb-0660-kds05",
+      "10.18.167.36",
+    ]);
+  });
+
+  /*
+   * Rows written by an older probe, or through the API, may never have been
+   * normalised. The builder normalises the NetBIOS name at the point of use,
+   * so the RAW stored rows must name exactly what the normalised ones do.
+   */
+  it("names the same devices from the raw stored rows as from the normalised ones", () => {
+    const rawDevices: Array<NetworkDevice> = storedScanResults(
+      REPORTER_PAYLOAD,
+    ).map((host: DiscoveredNetworkDevice): NetworkDevice => {
+      return buildNetworkDeviceFromDiscoveredHost({
+        projectId: PROJECT_ID,
+        host: host,
+        scan: NETBIOS_SCAN,
+      });
+    });
+
+    expect(deviceNames(rawDevices)).toEqual(
+      deviceNames(devicesFromPayloadWith(REPORTER_PAYLOAD, NETBIOS_SCAN)),
+    );
+  });
+
+  /*
+   * The flag decides whether the probe ASKS, not how a stored answer is
+   * used: a result gathered with the lookup on names its devices the same way
+   * after someone turns the lookup off.
+   */
+  it("names a stored result's devices the same after the lookup is turned off", () => {
+    const lookupOffScan: NetworkDeviceDiscoveryScan = scanThroughSerializer({
+      isNetbiosLookupEnabled: false,
+      useShortDeviceNames: false,
+    });
+
+    expect(lookupOffScan.isNetbiosLookupEnabled).toBe(false);
+    expect(
+      deviceNames(devicesFromPayloadWith(REPORTER_PAYLOAD, lookupOffScan)),
+    ).toEqual(EXPECTED_FULL_NAMES);
+  });
+
+  /*
+   * Cloned Windows images answer with one name. The second create collides,
+   * and the retry's fallback is the NetBIOS name with the address — distinct
+   * per host, and still no DNS name.
+   */
+  it("gives hosts answering with one NetBIOS name distinct fallbacks, and no DNS name on the retried device", () => {
+    const payload: Array<unknown> = [
+      {
+        ipAddress: "10.18.167.31",
+        snmpReachable: false,
+        netbiosName: "REG01",
+      },
+      {
+        ipAddress: "10.18.167.32",
+        snmpReachable: false,
+        netbiosName: "reg01",
+      },
+    ];
+
+    const hosts: Array<DiscoveredNetworkDevice> = hostsFromPayload(payload);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string => {
+        return buildDeviceName(host, NETBIOS_SCAN);
+      }),
+    ).toEqual(["reg01", "reg01"]);
+
+    const fallbacks: Array<string> = hosts.map(
+      (host: DiscoveredNetworkDevice): string => {
+        return buildFallbackDeviceName(host, NETBIOS_SCAN);
+      },
+    );
+
+    expect(fallbacks).toEqual(["reg01 (10.18.167.31)", "reg01 (10.18.167.32)"]);
+
+    const retry: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+      projectId: PROJECT_ID,
+      host: hosts[1]!,
+      scan: NETBIOS_SCAN,
+      name: fallbacks[1],
+    });
+
+    expect(retry.name).toBe("reg01 (10.18.167.32)");
+    expect(retry.hostname).toBe("10.18.167.32");
+    expect(retry.dnsName).toBeUndefined();
+  });
+});

@@ -43,6 +43,9 @@ jest.mock("../../../Server/Services/NetworkDeviceService", () => {
       findBy: jest.fn(),
       findOneBy: jest.fn(),
       getDevicesByHostnames: jest.fn(),
+      // The rename-after-completion step (issue #3677).
+      updateOneById: jest.fn(),
+      countBy: jest.fn(),
     },
   };
 });
@@ -119,10 +122,12 @@ import NetworkDeviceAutoImportRuleEngineService, {
   ExistingHostnamesByProjectId,
   ImportAttemptBudgetsByProjectId,
   MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES,
+  MAX_DEVICE_RENAMES_PER_SCAN_PASS,
   MAX_DEVICES_PER_AUTO_IMPORT_RUN,
   MAX_MONITORS_PER_AUTO_IMPORT_RUN,
   MAX_RESULT_AGE_IN_HOURS,
   MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN,
+  RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE,
 } from "../../../Server/Services/NetworkDeviceAutoImportRuleEngineService";
 import NetworkDeviceAutoImportRuleService from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
 import NetworkDeviceDiscoveryScanService from "../../../Server/Services/NetworkDeviceDiscoveryScanService";
@@ -144,6 +149,7 @@ import * as DiscoveredDeviceBuilder from "../../../Utils/NetworkDiscovery/Discov
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -3807,6 +3813,951 @@ describe("short device names on auto-import (issue #3678)", () => {
       await processScan();
 
       expect(provisionedMonitor(0).name).toBe(PTR_NAME);
+    });
+  });
+});
+
+describe("renaming devices imported during the run (issue #3677)", () => {
+  /*
+   * The bug: auto-import (and an operator in the Review dialog) imports from
+   * a running sweep's partial snapshots, which never carry reverse-DNS names —
+   * the probe resolves those after the sweep, for the final upload only. A
+   * host with no sysName therefore imports named by its address, and when the
+   * Completed result lands with the PTR name, the import skips the host as
+   * already registered. Without this step the device is "10.0.0.5" forever.
+   *
+   * These cases pin the step's wiring into the automatic path — when it runs
+   * and when it must not, how it resolves names against the rest of the
+   * project, and that nothing it does can cost the scan its import or its
+   * processed stamp. The per-device decision rules are pinned in
+   * Tests/Utils/NetworkDiscovery/RunImportedDeviceNaming.test.ts.
+   */
+  const deviceUpdateMock: jest.Mock =
+    NetworkDeviceService.updateOneById as unknown as jest.Mock;
+  const deviceCountByMock: jest.Mock =
+    NetworkDeviceService.countBy as unknown as jest.Mock;
+  const loggerInfoMock: jest.Mock = logger.info as unknown as jest.Mock;
+
+  const PTR_NAME: string = "kds01.wbhq.com";
+  const RUN_STARTED_AT: Date = new Date(
+    RECENT_COMPLETED_AT.getTime() - 20 * 60 * 1000,
+  );
+  const DURING_RUN: Date = new Date(RUN_STARTED_AT.getTime() + 5 * 60 * 1000);
+  const BEFORE_RUN: Date = new Date(
+    RUN_STARTED_AT.getTime() - 24 * 60 * 60 * 1000,
+  );
+
+  // The row a finished run uploads: the host now carries its PTR name.
+  function makeNamedHost(
+    overrides: Partial<DiscoveredNetworkDevice> = {},
+  ): DiscoveredNetworkDevice {
+    return {
+      ipAddress: "10.0.0.5",
+      dnsHostname: PTR_NAME,
+      snmpReachable: false,
+      ...overrides,
+    };
+  }
+
+  function makeCompletedRunScan(
+    overrides: Record<string, unknown> = {},
+  ): NetworkDeviceDiscoveryScan {
+    return makeScan({
+      startedAt: RUN_STARTED_AT,
+      discoveredDevices: [makeNamedHost()],
+      ...overrides,
+    });
+  }
+
+  let nextDeviceNumber: number = 0;
+
+  // A device imported from a partial snapshot of this run: named by address.
+  function makeRunImportedDevice(
+    overrides: Record<string, unknown> = {},
+  ): NetworkDevice {
+    nextDeviceNumber++;
+    const suffix: string = nextDeviceNumber.toString(16).padStart(12, "0");
+    const hostname: string = (overrides["hostname"] as string) || "10.0.0.5";
+
+    return makeExistingDevice({
+      id: new ObjectID(`66666666-6666-4666-8666-${suffix}`),
+      name: hostname,
+      hostname: hostname,
+      createdAt: DURING_RUN,
+      ...overrides,
+    });
+  }
+
+  // The text a QueryHelper.findWithSameText filter compares against.
+  function sameTextValue(filter: unknown): string {
+    const parameters: Record<string, string> = (
+      filter as { _objectLiteralParameters?: Record<string, string> }
+    )._objectLiteralParameters!;
+
+    return Object.values(parameters)[0]!;
+  }
+
+  /*
+   * The project's device table, for every read the engine makes of it. The
+   * name count deliberately does NOT see this pass's renames — the update
+   * mock records them without touching the rows — so a test about two
+   * devices wanting the same name proves the engine remembers what it handed
+   * out, rather than leaning on a read-after-write the database need not give.
+   */
+  function useInventory(
+    devices: Array<NetworkDevice>,
+    otherDeviceNames: Array<string> = [],
+  ): void {
+    deviceFindByMock.mockImplementation(
+      (args?: {
+        query?: { hostname?: unknown };
+      }): Promise<Array<NetworkDevice>> => {
+        if (!args?.query?.hostname) {
+          return Promise.resolve(devices);
+        }
+
+        const wanted: Set<string> = new Set<string>(
+          statusesMatchedBy(args.query.hostname),
+        );
+
+        return Promise.resolve(
+          devices.filter((device: NetworkDevice): boolean => {
+            return wanted.has(device.hostname || "");
+          }),
+        );
+      },
+    );
+
+    devicesByHostnamesMock.mockImplementation(
+      (data: {
+        hostnames: Array<string>;
+      }): Promise<Map<string, NetworkDevice>> => {
+        const wanted: Set<string> = new Set<string>(data.hostnames);
+        const found: Map<string, NetworkDevice> = new Map<
+          string,
+          NetworkDevice
+        >();
+
+        for (const device of devices) {
+          if (device.hostname && wanted.has(device.hostname)) {
+            found.set(device.hostname, device);
+          }
+        }
+
+        return Promise.resolve(found);
+      },
+    );
+
+    deviceCountByMock.mockImplementation(
+      (args: { query: { name: unknown } }): Promise<PositiveNumber> => {
+        const wanted: string = sameTextValue(args.query.name);
+        const holders: number = [
+          ...devices.map((device: NetworkDevice): string => {
+            return device.name || "";
+          }),
+          ...otherDeviceNames,
+        ].filter((name: string): boolean => {
+          return name.trim().toLowerCase() === wanted;
+        }).length;
+
+        return Promise.resolve(new PositiveNumber(holders));
+      },
+    );
+  }
+
+  // The engine's rename lookups, told apart from the import's by their filter.
+  function renameLookupCalls(): Array<any> {
+    return deviceFindByMock.mock.calls
+      .map((call: Array<any>): any => {
+        return call[0];
+      })
+      .filter((args: any): boolean => {
+        return Boolean(args?.query?.createdAt);
+      });
+  }
+
+  function renameUpdates(): Array<{
+    id: string;
+    data: JSONObject;
+    props: any;
+  }> {
+    return deviceUpdateMock.mock.calls.map(
+      (call: Array<any>): { id: string; data: JSONObject; props: any } => {
+        return {
+          id: call[0].id.toString(),
+          data: call[0].data,
+          props: call[0].props,
+        };
+      },
+    );
+  }
+
+  beforeEach(() => {
+    nextDeviceNumber = 0;
+    deviceUpdateMock.mockResolvedValue(1);
+    deviceCountByMock.mockResolvedValue(new PositiveNumber(0));
+    // Only a rule that imports nothing here, unless a case says otherwise.
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "192.168.99.0/24" }),
+    ]);
+  });
+
+  describe("on a Completed result", () => {
+    it("renames a device the run imported by address to the name the result resolved", async () => {
+      const device: NetworkDevice = makeRunImportedDevice();
+      useInventory([device]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(renameUpdates()).toEqual([
+        {
+          id: device.id!.toString(),
+          data: { name: PTR_NAME, dnsName: PTR_NAME },
+          props: { isRoot: true },
+        },
+      ]);
+    });
+
+    it("selects startedAt on the scan read, since it is what the step compares against", async () => {
+      useInventory([]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(scanFindOneByMock.mock.calls[0]![0].select.startedAt).toBe(true);
+    });
+
+    it("asks only for this project's devices at the named addresses, created since the run started, and only the columns it needs", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost(),
+            // No name yet: nothing to rename it to, so it is not asked about.
+            makeNamedHost({ ipAddress: "10.0.0.6", dnsHostname: undefined }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      const lookups: Array<any> = renameLookupCalls();
+
+      expect(lookups).toHaveLength(1);
+      expect(lookups[0].query.projectId).toBe(PROJECT_ID);
+      expect(statusesMatchedBy(lookups[0].query.hostname)).toEqual([
+        "10.0.0.5",
+      ]);
+      expect(
+        Object.values(
+          (
+            lookups[0].query.createdAt as {
+              _objectLiteralParameters: Record<string, unknown>;
+            }
+          )._objectLiteralParameters,
+        ),
+      ).toEqual([RUN_STARTED_AT]);
+      expect(lookups[0].select).toEqual({
+        _id: true,
+        projectId: true,
+        name: true,
+        hostname: true,
+        dnsName: true,
+        createdAt: true,
+      });
+      expect(lookups[0].props).toEqual({ isRoot: true });
+    });
+
+    it("checks the new name the way the create-time uniqueness check does: case-insensitively, within the project", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [makeNamedHost({ dnsHostname: "KDS01.WbHq.com" })],
+        }),
+      );
+
+      await processScan();
+
+      expect(deviceCountByMock).toHaveBeenCalled();
+      const countArgs: any = deviceCountByMock.mock.calls[0]![0];
+      expect(countArgs.query.projectId).toBe(PROJECT_ID);
+      expect(sameTextValue(countArgs.query.name)).toBe("kds01.wbhq.com");
+      expect(countArgs.props).toEqual({ isRoot: true });
+      // Case as the reverse zone wrote it.
+      expect(renameUpdates()[0]!.data["name"]).toBe("KDS01.WbHq.com");
+    });
+
+    it("runs even when the project has no import rules at all, and still stamps the result", async () => {
+      const device: NetworkDevice = makeRunImportedDevice();
+      useInventory([device]);
+      ruleFindByMock.mockResolvedValue([]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toBeNull();
+      expect(renameUpdates()).toHaveLength(1);
+      expect(renameUpdates()[0]!.data["name"]).toBe(PTR_NAME);
+      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+      expect(
+        scanUpdateMock.mock.calls[0]![0].data.autoImportProcessedAt,
+      ).toBeInstanceOf(Date);
+    });
+
+    it("runs when the project's only rules are exclusions", async () => {
+      useInventory([makeRunImportedDevice()]);
+      ruleFindByMock.mockResolvedValue([makeRule({ isExclusion: true })]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(renameUpdates()).toHaveLength(1);
+    });
+
+    it("renames before the import re-reads the devices, so a monitor built in the same pass sees the new name", async () => {
+      useInventory([makeRunImportedDevice()]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ includePingOnlyHosts: true }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(deviceUpdateMock).toHaveBeenCalledTimes(1);
+      expect(devicesByHostnamesMock).toHaveBeenCalled();
+      expect(deviceUpdateMock.mock.invocationCallOrder[0]!).toBeLessThan(
+        devicesByHostnamesMock.mock.invocationCallOrder[0]!,
+      );
+    });
+
+    it("still imports the result's new hosts in the same pass", async () => {
+      useInventory([makeRunImportedDevice()]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ includePingOnlyHosts: true }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost(),
+            makeNamedHost({
+              ipAddress: "10.0.0.9",
+              dnsHostname: "new.wbhq.com",
+            }),
+          ],
+        }),
+      );
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(renameUpdates()).toHaveLength(1);
+      expect(result).toMatchObject({
+        devicesCreated: 1,
+        hostsSkippedAlreadyRegistered: 1,
+      });
+      expect(createdDevice(0).name).toBe("new.wbhq.com");
+    });
+
+    it("renames to the short hostname when the scan asks for short names, keeping the FQDN as dnsName", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({ useShortDeviceNames: true }),
+      );
+
+      await processScan();
+
+      expect(renameUpdates()[0]!.data).toEqual({
+        name: "kds01",
+        dnsName: PTR_NAME,
+      });
+    });
+
+    it("renames a device whose name is its address in a different case or with whitespace", async () => {
+      useInventory([makeRunImportedDevice({ name: " 10.0.0.5 " })]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(renameUpdates()).toHaveLength(1);
+    });
+
+    it("renames by sysName when the final result carries one", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost({ sysName: "core-sw-01", dnsHostname: undefined }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      // No PTR record, so nothing to store as a DNS name.
+      expect(renameUpdates()[0]!.data).toEqual({ name: "core-sw-01" });
+    });
+
+    it("logs how many devices it named, with the project attached", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(loggerInfoMock).toHaveBeenCalledWith(
+        expect.stringContaining("named 1 device(s)"),
+        { projectId: PROJECT_ID.toString() },
+      );
+    });
+  });
+
+  describe("when it must not run", () => {
+    it("does not run for a scan that is still In Progress", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          status: "In Progress",
+          completedAt: undefined,
+        }),
+      );
+
+      await processScan();
+
+      expect(renameLookupCalls()).toHaveLength(0);
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("does not run for a Failed scan, whatever its rows say", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({ status: "Failed" }),
+      );
+
+      await processScan();
+
+      expect(renameLookupCalls()).toHaveLength(0);
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("does not run for a Completed result too old to auto-import, and still stamps it", async () => {
+      const startedAt: Date = OneUptimeDate.getSomeHoursAgo(
+        MAX_RESULT_AGE_IN_HOURS + 2,
+      );
+      useInventory([
+        makeRunImportedDevice({
+          createdAt: new Date(startedAt.getTime() + 60 * 1000),
+        }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          startedAt: startedAt,
+          completedAt: OneUptimeDate.getSomeHoursAgo(
+            MAX_RESULT_AGE_IN_HOURS + 1,
+          ),
+        }),
+      );
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toBeNull();
+      expect(renameLookupCalls()).toHaveLength(0);
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+      expect(loggerWarnMock).toHaveBeenCalledWith(
+        expect.stringContaining("stamping it processed without importing"),
+        expect.anything(),
+      );
+    });
+
+    it("does not run for a too-old result in a project with no import rules either", async () => {
+      const startedAt: Date = OneUptimeDate.getSomeHoursAgo(
+        MAX_RESULT_AGE_IN_HOURS + 2,
+      );
+      useInventory([
+        makeRunImportedDevice({
+          createdAt: new Date(startedAt.getTime() + 60 * 1000),
+        }),
+      ]);
+      ruleFindByMock.mockResolvedValue([]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          startedAt: startedAt,
+          completedAt: OneUptimeDate.getSomeHoursAgo(
+            MAX_RESULT_AGE_IN_HOURS + 1,
+          ),
+        }),
+      );
+
+      await processScan();
+
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+      // A rule-less project still retires old results without the warning.
+      expect(loggerWarnMock).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A Completed result is processed again when saving an auto-import rule
+     * re-arms recent scans. A device added AFTER the run finished — typed in
+     * by hand as its address, or deleted and re-added — was never imported
+     * from this run's partial snapshot, so the re-armed pass must leave it
+     * alone.
+     */
+    it("does not rename a device created after the run completed, when the result is re-processed", async () => {
+      useInventory([
+        makeRunImportedDevice({
+          createdAt: new Date(RECENT_COMPLETED_AT.getTime() + 60 * 1000),
+        }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("does nothing, and reads no devices, when the scan has no completedAt", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({ completedAt: undefined }),
+      );
+
+      await processScan();
+
+      expect(renameLookupCalls()).toHaveLength(0);
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("does nothing, and reads no devices, when the scan has no startedAt", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({ startedAt: undefined }),
+      );
+
+      await processScan();
+
+      expect(renameLookupCalls()).toHaveLength(0);
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("does not run for a result already stamped processed", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({ autoImportProcessedAt: RECENT_COMPLETED_AT }),
+      );
+
+      await processScan();
+
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("does not rename a device created before the run started", async () => {
+      useInventory([makeRunImportedDevice({ createdAt: BEFORE_RUN })]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+      expect(deviceCountByMock).not.toHaveBeenCalled();
+    });
+
+    it("does not rename a device someone has already named", async () => {
+      useInventory([makeRunImportedDevice({ name: "KDS till 1" })]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("does not rename a device whose host still has no name in the final result", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [makeNamedHost({ dnsHostname: undefined })],
+        }),
+      );
+
+      await processScan();
+
+      expect(renameLookupCalls()).toHaveLength(0);
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("never renames on a real Run Now", async () => {
+      useInventory([makeRunImportedDevice()]);
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({ includePingOnlyHosts: true }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      mockRunNowScans([makeCompletedRunScan()]);
+
+      await runRule(false);
+
+      expect(renameLookupCalls()).toHaveLength(0);
+      expect(deviceCountByMock).not.toHaveBeenCalled();
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("never renames on a dry run", async () => {
+      useInventory([makeRunImportedDevice()]);
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({ includePingOnlyHosts: true }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      mockRunNowScans([makeCompletedRunScan()]);
+
+      await runRule(true);
+
+      expect(renameLookupCalls()).toHaveLength(0);
+      expect(deviceCountByMock).not.toHaveBeenCalled();
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("name collisions", () => {
+    it("falls back to the address-suffixed name when another device already has the name", async () => {
+      useInventory([makeRunImportedDevice()], [PTR_NAME.toUpperCase()]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(renameUpdates()[0]!.data).toEqual({
+        name: `${PTR_NAME} (10.0.0.5)`,
+        dnsName: PTR_NAME,
+      });
+    });
+
+    it("skips the device when the fallback name is taken too, and still imports and stamps", async () => {
+      useInventory(
+        [makeRunImportedDevice()],
+        [PTR_NAME, `${PTR_NAME} (10.0.0.5)`],
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ includePingOnlyHosts: true }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost(),
+            makeNamedHost({
+              ipAddress: "10.0.0.9",
+              dnsHostname: "new.wbhq.com",
+            }),
+          ],
+        }),
+      );
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(deviceCountByMock).toHaveBeenCalledTimes(2);
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ devicesCreated: 1 });
+      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+      expect(loggerInfoMock).toHaveBeenCalledWith(
+        expect.stringContaining("1 kept their address"),
+        { projectId: PROJECT_ID.toString() },
+      );
+    });
+
+    it("gives the second of two devices wanting the same name in one pass the fallback name", async () => {
+      // A wildcard reverse zone: two hosts, one PTR answer.
+      const first: NetworkDevice = makeRunImportedDevice({
+        hostname: "10.0.0.5",
+        createdAt: DURING_RUN,
+      });
+      const second: NetworkDevice = makeRunImportedDevice({
+        hostname: "10.0.0.6",
+        createdAt: new Date(DURING_RUN.getTime() + 1000),
+      });
+      useInventory([second, first]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost({ ipAddress: "10.0.0.6" }),
+            makeNamedHost({ ipAddress: "10.0.0.5" }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      expect(renameUpdates()).toEqual([
+        {
+          id: first.id!.toString(),
+          data: { name: PTR_NAME, dnsName: PTR_NAME },
+          props: { isRoot: true },
+        },
+        {
+          id: second.id!.toString(),
+          data: { name: `${PTR_NAME} (10.0.0.6)`, dnsName: PTR_NAME },
+          props: { isRoot: true },
+        },
+      ]);
+    });
+
+    it("skips the second of two devices at the same address when this pass already took both of its names", async () => {
+      // Two devices at one address can only tell each other apart so far.
+      const first: NetworkDevice = makeRunImportedDevice();
+      const second: NetworkDevice = makeRunImportedDevice({
+        createdAt: new Date(DURING_RUN.getTime() + 1000),
+      });
+      const third: NetworkDevice = makeRunImportedDevice({
+        createdAt: new Date(DURING_RUN.getTime() + 2000),
+      });
+      useInventory([first, second, third]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(renameUpdates()).toEqual([
+        {
+          id: first.id!.toString(),
+          data: { name: PTR_NAME, dnsName: PTR_NAME },
+          props: { isRoot: true },
+        },
+        {
+          id: second.id!.toString(),
+          data: { name: `${PTR_NAME} (10.0.0.5)`, dnsName: PTR_NAME },
+          props: { isRoot: true },
+        },
+      ]);
+    });
+  });
+
+  describe("dnsName", () => {
+    it("is written when the device has none", async () => {
+      useInventory([makeRunImportedDevice()]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(renameUpdates()[0]!.data["dnsName"]).toBe(PTR_NAME);
+    });
+
+    it("is left alone on a device that already has one, while the name is still fixed", async () => {
+      useInventory([
+        makeRunImportedDevice({ dnsName: "kds01.old-zone.wbhq.com" }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(renameUpdates()[0]!.data).toEqual({ name: PTR_NAME });
+    });
+  });
+
+  describe("failures", () => {
+    it("logs a failed rename and carries on with the other devices, the import and the stamp", async () => {
+      const failing: NetworkDevice = makeRunImportedDevice({
+        hostname: "10.0.0.5",
+      });
+      const fine: NetworkDevice = makeRunImportedDevice({
+        hostname: "10.0.0.6",
+        createdAt: new Date(DURING_RUN.getTime() + 1000),
+      });
+      useInventory([failing, fine]);
+      deviceUpdateMock.mockImplementation(
+        (args: { id: ObjectID }): Promise<number> => {
+          if (args.id.toString() === failing.id!.toString()) {
+            return Promise.reject(new Error("deadlock detected"));
+          }
+          return Promise.resolve(1);
+        },
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ includePingOnlyHosts: true }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost({ ipAddress: "10.0.0.5", dnsHostname: "a.wbhq.com" }),
+            makeNamedHost({ ipAddress: "10.0.0.6", dnsHostname: "b.wbhq.com" }),
+            makeNamedHost({ ipAddress: "10.0.0.9", dnsHostname: "c.wbhq.com" }),
+          ],
+        }),
+      );
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(deviceUpdateMock).toHaveBeenCalledTimes(2);
+      expect(renameUpdates()[1]).toMatchObject({
+        id: fine.id!.toString(),
+        data: { name: "b.wbhq.com" },
+      });
+      expect(loggerErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `could not rename Network Device ${failing.id!.toString()}`,
+        ),
+        { projectId: PROJECT_ID.toString() },
+      );
+      expect(result).toMatchObject({ devicesCreated: 1 });
+      expect(createdDevice(0).hostname).toBe("10.0.0.9");
+      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+      expect(
+        scanUpdateMock.mock.calls[0]![0].data.autoImportProcessedAt,
+      ).toBeInstanceOf(Date);
+    });
+
+    it("does not hand a failed rename's name out as taken", async () => {
+      // Same PTR answer for both: the first write fails, so the second may have it.
+      const failing: NetworkDevice = makeRunImportedDevice({
+        hostname: "10.0.0.5",
+      });
+      const fine: NetworkDevice = makeRunImportedDevice({
+        hostname: "10.0.0.6",
+        createdAt: new Date(DURING_RUN.getTime() + 1000),
+      });
+      useInventory([failing, fine]);
+      deviceUpdateMock.mockRejectedValueOnce(new Error("deadlock detected"));
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost({ ipAddress: "10.0.0.5" }),
+            makeNamedHost({ ipAddress: "10.0.0.6" }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      expect(renameUpdates()[1]).toMatchObject({
+        id: fine.id!.toString(),
+        data: { name: PTR_NAME },
+      });
+    });
+
+    it("logs a failed name check for one device and carries on with the next", async () => {
+      const first: NetworkDevice = makeRunImportedDevice({
+        hostname: "10.0.0.5",
+      });
+      const second: NetworkDevice = makeRunImportedDevice({
+        hostname: "10.0.0.6",
+        createdAt: new Date(DURING_RUN.getTime() + 1000),
+      });
+      useInventory([first, second]);
+      deviceCountByMock.mockRejectedValueOnce(new Error("connection reset"));
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost({ ipAddress: "10.0.0.5", dnsHostname: "a.wbhq.com" }),
+            makeNamedHost({ ipAddress: "10.0.0.6", dnsHostname: "b.wbhq.com" }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      expect(renameUpdates()).toHaveLength(1);
+      expect(renameUpdates()[0]!.id).toBe(second.id!.toString());
+      expect(loggerErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining("connection reset"),
+        { projectId: PROJECT_ID.toString() },
+      );
+    });
+
+    it("logs and swallows a failure of the whole step, and the import and stamp still happen", async () => {
+      useInventory([]);
+      // The rename lookup is the only device findBy this pass makes.
+      deviceFindByMock.mockRejectedValue(new Error("statement timeout"));
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ includePingOnlyHosts: true }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(loggerErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining("statement timeout"),
+        { projectId: PROJECT_ID.toString() },
+      );
+      expect(result).toMatchObject({ devicesCreated: 1 });
+      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("bounds", () => {
+    function makeManyRunImportedDevices(count: number): {
+      hosts: Array<DiscoveredNetworkDevice>;
+      devices: Array<NetworkDevice>;
+    } {
+      const hosts: Array<DiscoveredNetworkDevice> = [];
+      const devices: Array<NetworkDevice> = [];
+
+      for (let i: number = 0; i < count; i++) {
+        const address: string = `10.1.${Math.floor(i / 256)}.${i % 256}`;
+        hosts.push(
+          makeNamedHost({
+            ipAddress: address,
+            dnsHostname: `host-${i}.wbhq.com`,
+          }),
+        );
+        devices.push(
+          makeRunImportedDevice({
+            hostname: address,
+            createdAt: new Date(DURING_RUN.getTime() + i),
+          }),
+        );
+      }
+
+      return { hosts, devices };
+    }
+
+    it("stops at the per-pass rename cap and says how many devices were left", async () => {
+      const many: {
+        hosts: Array<DiscoveredNetworkDevice>;
+        devices: Array<NetworkDevice>;
+      } = makeManyRunImportedDevices(MAX_DEVICE_RENAMES_PER_SCAN_PASS + 3);
+      useInventory(many.devices);
+      ruleFindByMock.mockResolvedValue([]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({ discoveredDevices: many.hosts }),
+      );
+
+      await processScan();
+
+      expect(deviceUpdateMock).toHaveBeenCalledTimes(
+        MAX_DEVICE_RENAMES_PER_SCAN_PASS,
+      );
+      // Oldest first, so the cap leaves the newest imports over.
+      expect(renameUpdates()[0]!.data["name"]).toBe("host-0.wbhq.com");
+      expect(loggerWarnMock).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `cap of ${MAX_DEVICE_RENAMES_PER_SCAN_PASS} device renames`,
+        ),
+        { projectId: PROJECT_ID.toString() },
+      );
+      expect(loggerWarnMock).toHaveBeenCalledWith(
+        expect.stringContaining("3 device(s)"),
+        expect.anything(),
+      );
+      // The result is still retired.
+      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+    }, 60000);
+
+    it("looks devices up in bounded chunks of addresses", async () => {
+      const many: {
+        hosts: Array<DiscoveredNetworkDevice>;
+        devices: Array<NetworkDevice>;
+      } = makeManyRunImportedDevices(RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE + 1);
+      useInventory(many.devices);
+      ruleFindByMock.mockResolvedValue([]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({ discoveredDevices: many.hosts }),
+      );
+
+      await processScan();
+
+      const lookups: Array<any> = renameLookupCalls();
+
+      expect(
+        lookups.map((args: any): number => {
+          return statusesMatchedBy(args.query.hostname).length;
+        }),
+      ).toEqual([RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE, 1]);
+      expect(deviceUpdateMock).toHaveBeenCalledTimes(
+        RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE + 1,
+      );
+      expect(loggerWarnMock).not.toHaveBeenCalled();
     });
   });
 });

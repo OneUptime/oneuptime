@@ -16,6 +16,7 @@ import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkD
 import ObjectID from "../../../Types/ObjectID";
 import { DiscoveryScanSnmpConfig } from "../../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { MAX_REVERSE_DNS_NAME_LENGTH } from "../../../Utils/NetworkDiscovery/ReverseDnsNameUtil";
+import { getShortHostname } from "../../../Utils/NetworkDiscovery/ShortHostnameUtil";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import Slug from "../../../Utils/Slug";
 import { describe, expect, it, test } from "@jest/globals";
@@ -2559,5 +2560,332 @@ describe("the device's DNS name", () => {
 
     expect(device.name).toBe("kds01.wbhq.com");
     expect(device.dnsName).toBeUndefined();
+  });
+});
+
+/*
+ * OneUptime issue #3677 — hosts with no DNS and no SNMP show only as raw IPs.
+ *
+ * The reporter's 10.18.167.31-36 have no PTR record and answer no SNMP, so the
+ * naming chain above had nothing for them but the address. A scan with NetBIOS
+ * lookup on asks those hosts for their NetBIOS name, and the probe stores the
+ * answer as `netbiosName`. These cases pin where that name sits in the chain
+ * — third, below both names that existed before it — and that it is treated
+ * as what it is: a SELF-REPORTED value read out of jsonb, normalised again at
+ * the point of use, allowed to name the device and nothing more.
+ */
+describe("the NetBIOS name (issue #3677)", () => {
+  // The reporter's address, and a name one of those hosts could answer with.
+  const REPORTER_ADDRESS: string = "10.18.167.31";
+
+  const netbiosHost: DiscoveredNetworkDevice = {
+    ipAddress: REPORTER_ADDRESS,
+    snmpReachable: false,
+    netbiosName: "reg01",
+  };
+
+  describe("precedence: sysName, then PTR name, then NetBIOS name, then address", () => {
+    test("a host with only a NetBIOS name is named by it, not by its address", () => {
+      // The reported case, in one line.
+      expect(buildDeviceName(netbiosHost, FULL_NAMES)).toBe("reg01");
+      expect(getDiscoveredHostDisplayName(netbiosHost, FULL_NAMES)).toBe(
+        "reg01",
+      );
+      expect(getDiscoveredHostFullName(netbiosHost)).toBe("reg01");
+    });
+
+    test("the sysName beats both the PTR name and the NetBIOS name", () => {
+      const host: DiscoveredNetworkDevice = {
+        ipAddress: REPORTER_ADDRESS,
+        sysName: "core-switch-01",
+        dnsHostname: "reg01.corp.example.com",
+        netbiosName: "workstation01",
+      };
+
+      expect(buildDeviceName(host, FULL_NAMES)).toBe("core-switch-01");
+    });
+
+    test("the sysName beats the NetBIOS name on its own", () => {
+      expect(
+        buildDeviceName(
+          { ...netbiosHost, sysName: "core-switch-01" },
+          FULL_NAMES,
+        ),
+      ).toBe("core-switch-01");
+    });
+
+    /*
+     * The PTR name is published by whoever runs DNS for the subnet; the
+     * NetBIOS name is whatever the host says about itself. Where both exist,
+     * the published one wins.
+     */
+    test("the PTR name beats the NetBIOS name", () => {
+      const host: DiscoveredNetworkDevice = {
+        ...netbiosHost,
+        dnsHostname: "wb-0660-kds01.wbhq.com",
+      };
+
+      expect(buildDeviceName(host, FULL_NAMES)).toBe("wb-0660-kds01.wbhq.com");
+      expect(buildDeviceName(host, SHORT_NAMES)).toBe("wb-0660-kds01");
+    });
+
+    test("a whitespace sysName does not block the NetBIOS name", () => {
+      expect(
+        buildDeviceName({ ...netbiosHost, sysName: "   " }, FULL_NAMES),
+      ).toBe("reg01");
+    });
+
+    test("an unusable PTR name falls through to the NetBIOS name, not to the address", () => {
+      expect(
+        buildDeviceName(
+          { ...netbiosHost, dnsHostname: "<script>alert(1)</script>" },
+          FULL_NAMES,
+        ),
+      ).toBe("reg01");
+      expect(
+        buildDeviceName(
+          { ...netbiosHost, dnsHostname: REPORTER_ADDRESS },
+          FULL_NAMES,
+        ),
+      ).toBe("reg01");
+    });
+
+    test("the NetBIOS name beats the address", () => {
+      expect(buildDeviceName(netbiosHost, FULL_NAMES)).not.toBe(
+        REPORTER_ADDRESS,
+      );
+      expect(buildDeviceName({ ipAddress: REPORTER_ADDRESS }, FULL_NAMES)).toBe(
+        REPORTER_ADDRESS,
+      );
+    });
+  });
+
+  /*
+   * `discoveredDevices` is jsonb stored verbatim, so "the probe normalised it"
+   * holds only for the probe that wrote the row. A row an older or modified
+   * probe stored in the raw wire form — upper case, padded to fifteen bytes —
+   * must name the device exactly as the normalised row would.
+   */
+  describe("the raw jsonb value is normalised again at the point of use", () => {
+    const RAW_FORMS: Array<{ reason: string; netbiosName: string }> = [
+      { reason: "upper case", netbiosName: "REG01" },
+      {
+        reason: "space-padded to fifteen bytes",
+        netbiosName: "REG01          ",
+      },
+      {
+        reason: "NUL-padded",
+        netbiosName: `REG01${String.fromCharCode(0).repeat(10)}`,
+      },
+      { reason: "leading and trailing spaces", netbiosName: "  Reg01  " },
+    ];
+
+    for (const raw of RAW_FORMS) {
+      test(`${raw.reason} names the device "reg01"`, () => {
+        const host: DiscoveredNetworkDevice = {
+          ipAddress: REPORTER_ADDRESS,
+          netbiosName: raw.netbiosName,
+        };
+
+        expect(getDiscoveredHostFullName(host)).toBe("reg01");
+        expect(buildDeviceName(host, FULL_NAMES)).toBe("reg01");
+        expect(build({ host: host }).name).toBe("reg01");
+      });
+    }
+  });
+
+  describe("an unusable NetBIOS name falls through to the address", () => {
+    const UNUSABLE: Array<{ reason: string; netbiosName: unknown }> = [
+      { reason: "a dotted name", netbiosName: "reg01.corp" },
+      { reason: "a trailing root dot", netbiosName: "REG01." },
+      { reason: "an inner space", netbiosName: "REG 01" },
+      { reason: "sixteen characters", netbiosName: "ABCDEFGHIJKLMNOP" },
+      { reason: "only digits", netbiosName: "123456" },
+      { reason: "an address spelled with dashes", netbiosName: "10-18-167" },
+      { reason: "markup", netbiosName: "<b>x</b>" },
+      {
+        reason: "the browser-election pseudo-name",
+        netbiosName: "__MSBROWSE__",
+      },
+      { reason: "only padding", netbiosName: "               " },
+      { reason: "the empty string", netbiosName: "" },
+      { reason: "a number", netbiosName: 42 },
+      { reason: "null", netbiosName: null },
+      { reason: "an array", netbiosName: ["REG01"] },
+      {
+        reason: "a string-like object",
+        netbiosName: {
+          toString: (): string => {
+            return "REG01";
+          },
+        },
+      },
+    ];
+
+    for (const unusable of UNUSABLE) {
+      test(`${unusable.reason}`, () => {
+        const host: DiscoveredNetworkDevice = {
+          ipAddress: REPORTER_ADDRESS,
+          netbiosName: unusable.netbiosName as string,
+        };
+
+        expect(() => {
+          return getDiscoveredHostFullName(host);
+        }).not.toThrow();
+
+        for (const naming of [FULL_NAMES, SHORT_NAMES]) {
+          expect(buildDeviceName(host, naming)).toBe(REPORTER_ADDRESS);
+        }
+        expect(build({ host: host }).name).toBe(REPORTER_ADDRESS);
+      });
+    }
+  });
+
+  /*
+   * The short-name option cuts an FQDN to its first label. A NetBIOS name is
+   * one dot-free label by construction, so there is nothing to cut — the
+   * option must neither change it nor make it lose to anything else.
+   */
+  describe("short names do not change a NetBIOS name", () => {
+    test("getShortHostname declines a NetBIOS name, so there is nothing to cut", () => {
+      expect(getShortHostname("reg01")).toBeUndefined();
+      expect(getShortHostname("workstation01")).toBeUndefined();
+    });
+
+    test("the name is the same with short names on, off, or unset", () => {
+      expect(getDiscoveredHostDisplayName(netbiosHost, SHORT_NAMES)).toBe(
+        "reg01",
+      );
+      expect(getDiscoveredHostDisplayName(netbiosHost, FULL_NAMES)).toBe(
+        "reg01",
+      );
+      expect(getDiscoveredHostDisplayName(netbiosHost, {})).toBe("reg01");
+    });
+
+    test("the device and its fallback name are the same with short names on or off", () => {
+      for (const scan of [fullScanSource(), shortNamesScan()]) {
+        expect(build({ host: netbiosHost, scan: scan }).name).toBe("reg01");
+        expect(buildFallbackDeviceName(netbiosHost, scan)).toBe(
+          "reg01 (10.18.167.31)",
+        );
+      }
+    });
+
+    test("a raw upper-case name is lower-cased, not shortened, with short names on", () => {
+      expect(
+        getDiscoveredHostDisplayName(
+          { ipAddress: REPORTER_ADDRESS, netbiosName: "REG01   " },
+          SHORT_NAMES,
+        ),
+      ).toBe("reg01");
+    });
+  });
+
+  /*
+   * Several Windows hosts answering with the same name — a cloned image, a
+   * rebuilt machine that kept its predecessor's name — collide on the device
+   * name exactly as a wildcard PTR zone does, and the same fallback breaks
+   * the tie.
+   */
+  describe("the collision fallback", () => {
+    test("appends the address to the NetBIOS name", () => {
+      expect(buildFallbackDeviceName(netbiosHost, FULL_NAMES)).toBe(
+        "reg01 (10.18.167.31)",
+      );
+    });
+
+    test("two hosts answering with one name get distinct fallback names", () => {
+      const twin: DiscoveredNetworkDevice = {
+        ...netbiosHost,
+        ipAddress: "10.18.167.32",
+      };
+
+      expect(buildDeviceName(twin, FULL_NAMES)).toBe(
+        buildDeviceName(netbiosHost, FULL_NAMES),
+      );
+      expect(buildFallbackDeviceName(twin, FULL_NAMES)).toBe(
+        "reg01 (10.18.167.32)",
+      );
+      expect(buildFallbackDeviceName(twin, FULL_NAMES)).not.toBe(
+        buildFallbackDeviceName(netbiosHost, FULL_NAMES),
+      );
+    });
+
+    test("the fallback name survives into the device through the name override", () => {
+      const device: NetworkDevice = build({
+        host: netbiosHost,
+        name: buildFallbackDeviceName(netbiosHost, FULL_NAMES),
+      });
+
+      expect(device.name).toBe("reg01 (10.18.167.31)");
+      expect(device.hostname).toBe(REPORTER_ADDRESS);
+    });
+  });
+
+  /*
+   * A NetBIOS name is what the host says about itself, not a record anyone
+   * published. Storing it as `dnsName` would make it searchable, and matched
+   * by site-assignment hostname patterns, as though DNS had vouched for it.
+   * It names the device; it goes nowhere else on it.
+   */
+  describe("the NetBIOS name names the device and does nothing else", () => {
+    test("the device's DNS name is never taken from the NetBIOS name", () => {
+      for (const scan of [fullScanSource(), shortNamesScan()]) {
+        const device: NetworkDevice = build({ host: netbiosHost, scan: scan });
+
+        expect(device.name).toBe("reg01");
+        expect(device.dnsName).toBeUndefined();
+      }
+    });
+
+    test("the device's DNS name is still the PTR name when a host has both", () => {
+      const device: NetworkDevice = build({
+        host: { ...netbiosHost, dnsHostname: "reg01.corp.example.com" },
+      });
+
+      expect(device.dnsName).toBe("reg01.corp.example.com");
+    });
+
+    test("the device's hostname stays the address", () => {
+      const device: NetworkDevice = build({ host: netbiosHost });
+
+      expect(device.hostname).toBe(REPORTER_ADDRESS);
+      expect(device.name).toBe("reg01");
+    });
+
+    test("a ping-only NetBIOS-named host still carries no credentials", () => {
+      const device: NetworkDevice = build({ host: netbiosHost });
+
+      expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Probe);
+      expect(device.snmpCommunityString).toBeUndefined();
+      expect(device.snmpVersion).toBeUndefined();
+      expect(device.probeId?.toString()).toBe(PROBE_ID.toString());
+    });
+
+    test("a NetBIOS-named device's name produces a valid slug", () => {
+      const device: NetworkDevice = build({ host: netbiosHost });
+
+      expect(Slug.getSlug(device.name!)).toContain("reg01");
+    });
+  });
+
+  test("the full name is still the display name with short names off, across every source", () => {
+    const hosts: Array<DiscoveredNetworkDevice> = [
+      { ipAddress: "10.0.0.1", netbiosName: "reg01" },
+      { ipAddress: "10.0.0.2", netbiosName: "REG02   " },
+      { ipAddress: "10.0.0.3", netbiosName: "not valid" },
+      {
+        ipAddress: "10.0.0.4",
+        dnsHostname: "gw.corp.example.com",
+        netbiosName: "reg04",
+      },
+      { ipAddress: "10.0.0.5", sysName: "sw-5", netbiosName: "reg05" },
+    ];
+
+    for (const host of hosts) {
+      expect(getDiscoveredHostFullName(host)).toBe(
+        getDiscoveredHostDisplayName(host, FULL_NAMES),
+      );
+    }
   });
 });

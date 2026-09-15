@@ -12,6 +12,7 @@ import {
 } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "Common/Utils/NetworkDiscovery/DiscoveredHostUtil";
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
+import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
 import ObjectID from "Common/Types/ObjectID";
 import fs from "fs";
 import path from "path";
@@ -68,6 +69,14 @@ import path from "path";
  * row is handed the SAME scan the import builds from, that the row shows the
  * short name the device will be created with, and that the full name the
  * short one was cut from is still readable on the row's second line.
+ *
+ * NETBIOS NAMES (issue #3677)
+ *
+ * A scan can also ask the probe for the NetBIOS name of a host that has no
+ * SNMP name and no PTR record. That name is SELF-REPORTED by the scanned
+ * host, so a row named by it carries a plain "NetBIOS name" hint beside the
+ * address. The hint's gate is lifted and run with the rest of the row, so the
+ * tests below say which rows carry it by executing the page's own expression.
  */
 
 /*
@@ -163,6 +172,12 @@ interface RowNameSource {
    * part of the second line.
    */
   secondaryIdentifiers: Array<string>;
+  /*
+   * The identifier gating the "NetBIOS name" hint beside the address (issue
+   * #3677). Read off the rendered span, like the names above, so what is run
+   * is the gate the row actually paints with.
+   */
+  netbiosHintIdentifier: string;
   /* The statements themselves, comments stripped and whitespace squashed. */
   statements: string;
 }
@@ -184,6 +199,16 @@ const ADDRESS_LINE: RegExp =
  */
 const SECONDARY_NAME_SPAN: RegExp =
   /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s*>\s*\{" · "\}\s*\{\1\}\s*<\/span>\s*\)\s*\}/g;
+
+/*
+ * The one thing on that line that is not a name: the "NetBIOS name" hint
+ * (issue #3677), gated on a boolean the row computes, separated by the same
+ * middle dot, and carrying a hover `title` that says why the name is worth
+ * flagging. Literal text rather than an interpolated value, so a scanned host
+ * cannot choose what it says.
+ */
+const NETBIOS_HINT_SPAN: RegExp =
+  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s+title="[^"]*"\s*>\s*\{" · "\}\s*NetBIOS name\s*<\/span>\s*\)\s*\}/;
 
 let cachedRowNameSource: RowNameSource | null = null;
 
@@ -244,7 +269,20 @@ function rowNameSource(): RowNameSource {
    * computation would otherwise surface here as a bare ReferenceError from
    * inside `new Function`, which says nothing about what went missing.
    */
-  for (const identifier of secondaryIdentifiers) {
+  const netbiosHint: RegExpMatchArray | null =
+    addressLineContent().match(NETBIOS_HINT_SPAN);
+
+  if (!netbiosHint) {
+    throw new Error(
+      "The discovered-host row no longer renders a gated `NetBIOS name` hint" +
+        " beside the address. A NetBIOS name is self-reported by the scanned" +
+        " host (issue #3677), and the row is where the operator is told so.",
+    );
+  }
+
+  const netbiosHintIdentifier: string = netbiosHint[1]!;
+
+  for (const identifier of [...secondaryIdentifiers, netbiosHintIdentifier]) {
     if (!new RegExp(`const\\s+${identifier}\\s*[:=]`).test(statements)) {
       throw new Error(
         `The row renders \`${identifier}\` beside the address but does not` +
@@ -257,6 +295,7 @@ function rowNameSource(): RowNameSource {
     displayNameIdentifier: match[2]!,
     namingIdentifier: match[3]!,
     secondaryIdentifiers: secondaryIdentifiers,
+    netbiosHintIdentifier: netbiosHintIdentifier,
     statements: statements,
   };
 
@@ -284,15 +323,27 @@ interface RowNames {
   extraNames: Array<string>;
 }
 
-type RowNamesFunction = (
+/*
+ * Everything the row computes about names, including the NetBIOS hint. Kept
+ * apart from RowNames so the many tests above that pin `{ displayName,
+ * extraNames }` with toEqual keep saying exactly what they said before the
+ * hint existed; the NetBIOS tests ask for this wider shape explicitly.
+ */
+interface RowNaming extends RowNames {
+  /* Whether "· NetBIOS name" is painted beside the address. */
+  showsNetbiosHint: boolean;
+}
+
+type RowNamingFunction = (
   entry: DiscoveredNetworkDevice,
   buildName: typeof buildDeviceName,
   getFullName: typeof getDiscoveredHostFullName,
   normalizeName: typeof normalizeReverseDnsName,
+  normalizeNetbios: typeof normalizeNetbiosName,
   naming: DiscoveredHostNaming,
-) => [string, Array<string | undefined>];
+) => [string, Array<string | undefined>, unknown];
 
-let cachedRowNames: RowNamesFunction | null = null;
+let cachedRowNaming: RowNamingFunction | null = null;
 
 /**
  * What the row shows for this host under this scan's naming choice — computed
@@ -301,33 +352,40 @@ let cachedRowNames: RowNamesFunction | null = null;
  * The parameter names are the page's own call names, so an alias-rename in
  * Discovery.tsx fails the extraction loudly instead of quietly.
  */
-function rowNamesFor(
+function rowNamingFor(
   host: DiscoveredNetworkDevice,
   naming: DiscoveredHostNaming,
-): RowNames {
-  if (cachedRowNames === null) {
+): RowNaming {
+  if (cachedRowNaming === null) {
     const source: RowNameSource = rowNameSource();
 
-    cachedRowNames = new Function(
+    cachedRowNaming = new Function(
       "entry",
       "buildDeviceName",
       "getDiscoveredHostFullName",
       "normalizeReverseDnsName",
+      "normalizeNetbiosName",
       source.namingIdentifier,
       `${stripTypeAnnotations(source.statements)} return [${
         source.displayNameIdentifier
-      }, [${source.secondaryIdentifiers.join(", ")}]];`,
-    ) as unknown as RowNamesFunction;
+      }, [${source.secondaryIdentifiers.join(", ")}], ${
+        source.netbiosHintIdentifier
+      }];`,
+    ) as unknown as RowNamingFunction;
   }
 
-  const [displayName, secondaryValues]: [string, Array<string | undefined>] =
-    cachedRowNames(
-      host,
-      buildDeviceName,
-      getDiscoveredHostFullName,
-      normalizeReverseDnsName,
-      naming,
-    );
+  const [displayName, secondaryValues, netbiosHint]: [
+    string,
+    Array<string | undefined>,
+    unknown,
+  ] = cachedRowNaming(
+    host,
+    buildDeviceName,
+    getDiscoveredHostFullName,
+    normalizeReverseDnsName,
+    normalizeNetbiosName,
+    naming,
+  );
 
   return {
     displayName: displayName,
@@ -337,7 +395,22 @@ function rowNamesFor(
         return Boolean(value);
       },
     ),
+    /*
+     * Boolean() rather than `=== true`: the span is rendered through the same
+     * `{value && (...)}` gate, so truthiness is exactly what paints it — and
+     * the source test below separately requires the gate to be a boolean.
+     */
+    showsNetbiosHint: Boolean(netbiosHint),
   };
+}
+
+function rowNamesFor(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): RowNames {
+  const row: RowNaming = rowNamingFor(host, naming);
+
+  return { displayName: row.displayName, extraNames: row.extraNames };
 }
 
 /**
@@ -1330,6 +1403,209 @@ describe("a scan set to short device names shows them in the Review dialog (issu
   });
 });
 
+/*
+ * OneUptime issue #3677: hosts with no DNS record and no SNMP sat in the
+ * Review dialog as bare addresses. A scan can now ask them for their NetBIOS
+ * name, which the probe stores lower-cased as `netbiosName`.
+ *
+ * Every test here runs the row's own statements (rowNamingFor), so what is
+ * asserted is the name line, the names beside the address, and whether the
+ * "NetBIOS name" hint is painted — for the row as the page computes it.
+ */
+describe("a host named by its NetBIOS answer says so beside the address (issue #3677)", () => {
+  /*
+   * The shape the issue is about: alive, no SNMP, no PTR record, and a
+   * Windows machine that answered NBSTAT.
+   */
+  const netbiosOnlyHost: DiscoveredNetworkDevice = {
+    ipAddress: "10.18.167.31",
+    snmpReachable: false,
+    netbiosName: "accounts-pc01",
+  };
+
+  test("a host with only a NetBIOS answer is named by it, with the hint and nothing else", () => {
+    expect(rowNamingFor(netbiosOnlyHost, FULL_NAMES)).toEqual({
+      displayName: "accounts-pc01",
+      extraNames: [],
+      showsNetbiosHint: true,
+    });
+  });
+
+  test("the short-name option leaves a NetBIOS name, and its hint, exactly as they are", () => {
+    /*
+     * A NetBIOS name is one label, so there is nothing to cut — the short-name
+     * option must neither change it nor lose the hint on the way past.
+     */
+    expect(rowNamingFor(netbiosOnlyHost, SHORT_NAMES)).toEqual({
+      displayName: "accounts-pc01",
+      extraNames: [],
+      showsNetbiosHint: true,
+    });
+  });
+
+  test("the row survives the probe's own normalisation of the answer", () => {
+    expect(
+      normalizeDiscoveredHosts([{ ...netbiosOnlyHost }]).map(
+        (host: DiscoveredNetworkDevice): RowNaming => {
+          return rowNamingFor(host, FULL_NAMES);
+        },
+      ),
+    ).toEqual([
+      { displayName: "accounts-pc01", extraNames: [], showsNetbiosHint: true },
+    ]);
+  });
+
+  test("a raw upper-case, padded answer is shown as the name the rules make of it", () => {
+    /*
+     * Fed RAW, the way a result from an older or modified probe would reach
+     * the column: NetBIOS pads to fifteen bytes and upper-cases on the wire.
+     * The row names it by the normalised form and still flags it, because the
+     * gate compares the normalised answer with the name line — comparing the
+     * raw value would miss "ACCOUNTS-PC01  " !== "accounts-pc01" and silently
+     * drop the hint.
+     */
+    expect(
+      rowNamingFor(
+        { ...netbiosOnlyHost, netbiosName: "ACCOUNTS-PC01   " },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "accounts-pc01",
+      extraNames: [],
+      showsNetbiosHint: true,
+    });
+  });
+
+  test("the checkbox announces the NetBIOS name the row shows", () => {
+    expect(ariaLabelFor(netbiosOnlyHost, FULL_NAMES)).toBe(
+      "Import accounts-pc01 (10.18.167.31)",
+    );
+  });
+
+  test("a PTR-named host carries no hint, even when it also holds a NetBIOS answer", () => {
+    /*
+     * The probe only asks hosts DNS did not name, but the column is jsonb and
+     * a row can hold both. DNS wins the name line, and the hint would then be
+     * a lie about where the name came from.
+     */
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.18.167.31",
+          dnsHostname: "core-gw.corp.example.com",
+          netbiosName: "accounts-pc01",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "core-gw.corp.example.com",
+      extraNames: [],
+      showsNetbiosHint: false,
+    });
+  });
+
+  test("a PTR name shortened to the very same label is still not called a NetBIOS name", () => {
+    /*
+     * The case that separates "named by NetBIOS" from "happens to read like
+     * the NetBIOS answer": a Windows host whose PTR record is its computer name
+     * under the domain. With short names on, the name line is "ws-0042" either
+     * way — but it came from DNS, and only the PTR guard in the gate says so.
+     */
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.18.167.42",
+          dnsHostname: "ws-0042.corp.example.com",
+          netbiosName: "ws-0042",
+        },
+        SHORT_NAMES,
+      ),
+    ).toEqual({
+      displayName: "ws-0042",
+      extraNames: ["ws-0042.corp.example.com"],
+      showsNetbiosHint: false,
+    });
+  });
+
+  test("an SNMP-named host carries no hint, even when its sysName matches the NetBIOS answer", () => {
+    /*
+     * The sysName guard, pinned the same way: a sysName that is the same word
+     * as the NetBIOS answer still makes the name line an SNMP name. A padded
+     * sysName is no name at all, though, so the NetBIOS answer wins that row
+     * and is flagged — the gate trims exactly as the builder does.
+     */
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.0.0.5",
+          sysName: "ws-0042",
+          snmpReachable: true,
+          netbiosName: "ws-0042",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "ws-0042",
+      extraNames: [],
+      showsNetbiosHint: false,
+    });
+
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.0.0.6",
+          sysName: "   ",
+          snmpReachable: true,
+          netbiosName: "ws-0043",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "ws-0043",
+      extraNames: [],
+      showsNetbiosHint: true,
+    });
+  });
+
+  test("a host with no NetBIOS answer at all never carries the hint", () => {
+    for (const host of normalizeDiscoveredHosts(reportedHosts())) {
+      for (const naming of [FULL_NAMES, SHORT_NAMES]) {
+        expect(rowNamingFor(host, naming).showsNetbiosHint).toBe(false);
+      }
+    }
+  });
+
+  test.each([
+    ["a hostile answer", "<script>alert(1)</script>"],
+    ["an address restated as a name", "10-18-167"],
+    ["the browser-election pseudo-name", "__MSBROWSE__"],
+    ["a dotted DNS-shaped name", "accounts-pc01.corp"],
+    ["a name longer than NetBIOS allows", "a".repeat(16)],
+    ["a blank answer", "   "],
+    ["a number out of the jsonb", 42],
+  ])(
+    "%s falls back to the address, with no hint and nothing beside it",
+    (_label: string, netbiosName: unknown) => {
+      /*
+       * Fed raw, so it is the row's own re-normalisation under test: render
+       * the stored value, or compare it unnormalised, and a scanned host
+       * could put any string it likes on a row the operator is about to tick.
+       */
+      const host: DiscoveredNetworkDevice = {
+        ipAddress: "10.18.167.31",
+        snmpReachable: false,
+        netbiosName: netbiosName,
+      } as unknown as DiscoveredNetworkDevice;
+
+      expect(rowNamingFor(host, FULL_NAMES)).toEqual({
+        displayName: "10.18.167.31",
+        extraNames: [],
+        showsNetbiosHint: false,
+      });
+    },
+  );
+});
+
 describe("Discovery.tsx wires the row to the shared recipe", () => {
   /*
    * What execution above cannot see: that the computed values are actually
@@ -1552,10 +1828,47 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
       ),
     );
 
-    // Nothing but the gated names is printed after the address.
-    expect(addressLineContent().replace(SECONDARY_NAME_SPAN, "").trim()).toBe(
-      "",
+    /*
+     * Nothing but the gated names — and the gated NetBIOS hint, which is
+     * literal text and so cannot print anything a scanned host chose — is
+     * printed after the address.
+     */
+    expect(
+      addressLineContent()
+        .replace(SECONDARY_NAME_SPAN, "")
+        .replace(NETBIOS_HINT_SPAN, "")
+        .trim(),
+    ).toBe("");
+  });
+
+  test("the NetBIOS hint is gated on a boolean computed from the naming order", () => {
+    /*
+     * The executed tests in the NetBIOS describe say WHICH rows carry the hint;
+     * this pins what they cannot see on their own. The gate is declared a
+     * boolean (so `{gate && (...)}` can never paint a stray string or a 0), it
+     * re-normalises the stored NetBIOS answer at the point of render rather
+     * than trusting the jsonb, and it is rendered exactly once.
+     */
+    const source: RowNameSource = rowNameSource();
+
+    expect(source.statements).toMatch(
+      new RegExp(
+        `const\\s+${source.netbiosHintIdentifier}\\s*:\\s*boolean\\s*=`,
+      ),
     );
+    expect(source.statements).toContain(
+      "normalizeNetbiosName(entry.netbiosName)",
+    );
+    expect(readCode()).toMatch(
+      /import\s*\{[^}]*\bnormalizeNetbiosName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/NetbiosNameUtil"/,
+    );
+    expect(readCode().split("NetBIOS name </span>").length - 1).toBe(1);
+    /*
+     * And never a badge. The badges on the right of the row describe the HOST
+     * ("No SNMP", "Already added"); the hint describes where its NAME came
+     * from, so it belongs on the address line and nowhere else.
+     */
+    expect(readCode()).not.toMatch(/rounded-full[^>]*>\s*NetBIOS/);
   });
 
   test("a failed create is retried once under the address-qualified name", () => {
