@@ -36,7 +36,7 @@ const SLO_METRIC_UTIL_FILE: string = path.join(
 );
 const MONITOR_RULE_BACKFILL_MIGRATION_FILE: string = path.join(
   REPO_ROOT,
-  "Common/Server/Infrastructure/Postgres/SchemaMigrations/1793000000000-BackfillSloMonitorRulesAndAffectedResources.ts",
+  "Common/Server/Infrastructure/Postgres/SchemaMigrations/1793200000000-BackfillSloMonitorRulesAndAffectedResources.ts",
 );
 
 const NAV_GROUP_TITLE: string = "SLOs";

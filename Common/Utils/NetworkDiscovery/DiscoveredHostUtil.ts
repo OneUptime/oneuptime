@@ -1,4 +1,5 @@
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { normalizeNetbiosName } from "./NetbiosNameUtil";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
 
 /*
@@ -45,6 +46,9 @@ function isDiscoveredHostObject(
  * all — `dnsHostname` is a value the SCANNED NETWORK chooses, so it is
  * untrusted by construction rather than by accident, and it is normalised
  * here for the same reason: one reading of the payload for every reader.
+ * A fifth, `netbiosName` (issue #3677), is untrusted for the same reason and
+ * more so — the scanned host reports it about itself — and gets the same
+ * treatment.
  *
  * All of them are fixed here rather than at each call site, so the row the
  * operator sees, the badge above it, the list Import walks, and the hosts an
@@ -116,6 +120,27 @@ export function normalizeDiscoveredHosts(
       normalized.dnsHostname = dnsHostname;
     } else {
       delete normalized.dnsHostname;
+    }
+
+    /*
+     * The NetBIOS name, the same way and for a stronger version of the same
+     * reason (OneUptime issue #3677): a PTR record is at least published by
+     * someone, but this is whatever the machine at the address chose to say
+     * in reply to a UDP datagram. Normalised (trimmed, lower-cased, one
+     * 1-15 character label with a letter in it) rather than merely checked,
+     * so a row an older or a modified probe stored as "WORKSTATION01   "
+     * reads as "workstation01" to every reader. Anything that fails is
+     * DELETED, not blanked, for the `in`-versus-truthiness reason given above;
+     * a host that never had the key does not gain one.
+     */
+    const netbiosName: string | undefined = normalizeNetbiosName(
+      host.netbiosName,
+    );
+
+    if (netbiosName) {
+      normalized.netbiosName = netbiosName;
+    } else {
+      delete normalized.netbiosName;
     }
 
     cleaned.push(normalized);

@@ -41,6 +41,7 @@ import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor"
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import logger from "Common/Server/Utils/Logger";
 import { scanWithDeadline } from "../../../Jobs/Discovery/FetchScans";
+import { stubNetbiosAsResolvingNothing } from "../../TestingUtils/StubNetbios";
 
 /*
  * OneUptime issue #3529 — "Network Discovery Scan should perform reverse DNS
@@ -176,6 +177,15 @@ function hostAt(
     return host.ipAddress === ipAddress;
   });
 }
+
+/*
+ * This suite spies on the reverse-DNS seam itself, so it does not use
+ * stubReverseDnsAsResolvingNothing — and therefore does not get the NetBIOS
+ * stub that helper installs. None of these sweeps opts into NetBIOS, but a
+ * suite that drives scanWithDeadline must not rely on that to stay off UDP 137
+ * (ReverseDnsStubIntegrity.test.ts enforces it).
+ */
+stubNetbiosAsResolvingNothing();
 
 beforeEach(() => {
   jest.spyOn(logger, "warn").mockImplementation(() => {

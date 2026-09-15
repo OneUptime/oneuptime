@@ -5,6 +5,10 @@ import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import ReverseDnsResolver, { ReverseDnsResolution } from "./ReverseDnsResolver";
+import NetbiosNameResolver, {
+  NetbiosNameResolution,
+} from "./NetbiosNameResolver";
+import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
 import logger from "Common/Server/Utils/Logger";
 import DiscoveryPing from "./DiscoveryPing";
 
@@ -28,6 +32,21 @@ export interface DiscoveredHost {
    * not stop a device being polled.
    */
   dnsHostname?: string | undefined;
+  /*
+   * The host's NetBIOS name, lower-cased, when the scan asked for one and the
+   * host answered (OneUptime issue #3677).
+   *
+   * Only ever looked up for hosts left with neither a sysName nor a
+   * dnsHostname, only on scans that opted in, only for private addresses, and
+   * never by a global probe — see attachNetbiosNames. SELF-REPORTED by the host
+   * and already normalised by NetbiosNameUtil.normalizeNetbiosName, which every
+   * reader applies again.
+   *
+   * The key is ABSENT, not undefined, whenever no name was found, so every
+   * host literal written before this field existed still describes the same
+   * object.
+   */
+  netbiosName?: string | undefined;
   /*
    * The rest of the SNMP system group. probeSystemInfo reads all six
    * scalars in the same single GET that fetches sysName/sysDescr, so
@@ -185,6 +204,17 @@ export interface SubnetScanConfig {
    * at all, so it carries no credentials.
    */
   snmpConfigs?: Array<SubnetScanSnmpConfig> | undefined;
+  /*
+   * Whether to ask still-unnamed hosts for their NetBIOS name after the sweep
+   * (OneUptime issue #3677). Read off the scan row as `=== true`, so an
+   * ABSENT column — a server too old to select it — means off.
+   *
+   * NOT read by scan(). Like reverse DNS, the lookup runs in
+   * FetchScans.scanWithDeadline after the sweep has won its deadline race, and
+   * that is also where the global-probe guard lives. It rides on this config
+   * only because this is the object runScan hands scanWithDeadline.
+   */
+  isNetbiosLookupEnabled?: boolean | undefined;
 }
 
 export interface SubnetScanResult {
@@ -287,6 +317,15 @@ export interface SubnetScanResult {
    * achieved without re-walking the hosts.
    */
   reverseDnsResolvedCount?: number | undefined;
+  /*
+   * How many discovered hosts were named by NetBIOS (OneUptime issue #3677).
+   *
+   * Same rule as reverseDnsResolvedCount: NOT set by scan(), and absent means
+   * the lookup did not run on this result at all — the scan did not ask for
+   * it, the probe is a global probe, or the lookup threw — which is a
+   * different statement from zero ("it ran and named nobody"). Only logged.
+   */
+  netbiosResolvedCount?: number | undefined;
 }
 
 /*
@@ -1364,6 +1403,112 @@ export default class SubnetScanner {
     ipAddresses: Array<string>,
   ): Promise<ReverseDnsResolution> {
     return await new ReverseDnsResolver().resolveHostnames(ipAddresses);
+  }
+
+  /*
+   * Stamps `netbiosName` onto the hosts that answer a NetBIOS node status
+   * query, in place, and answers how many got one (OneUptime issue #3677).
+   *
+   * Asks ONLY hosts that are still unnamed: no non-empty sysName and no
+   * non-empty dnsHostname. Those are the hosts the issue is about — the ones
+   * the Review dialog can otherwise only show as an address — and a host that
+   * already has a better name costs nothing here. On an estate with working
+   * reverse DNS that means no datagram is sent at all, which is why this runs
+   * AFTER attachReverseDnsHostnames rather than beside it.
+   *
+   * Like attachReverseDnsHostnames, deliberately NOT called by scan(): it runs
+   * in FetchScans.scanWithDeadline after the sweep has won its deadline race,
+   * and only when the scan opted in and the probe is not a global probe. The
+   * gates live THERE rather than here so this method stays a plain, directly
+   * testable enrichment; the address policy lives in NetbiosNameResolver, so
+   * no caller can skip it.
+   *
+   * Every name is put through normalizeNetbiosName again on the way onto the
+   * host, whatever the seam returned. The resolver already normalises, but the
+   * seam is public and spied on, and the one thing that must hold for every
+   * path to the upload is that `netbiosName` is never a raw self-reported
+   * string.
+   *
+   * NEVER throws. A sweep that found twelve hosts found twelve hosts whether
+   * or not any of them answer on UDP 137; total failure means a warning in the
+   * probe log and hosts named by address, exactly as before this existed.
+   */
+  public static async attachNetbiosNames(
+    hosts: Array<DiscoveredHost>,
+  ): Promise<number> {
+    try {
+      if (!Array.isArray(hosts) || hosts.length === 0) {
+        return 0;
+      }
+
+      const unnamedHosts: Array<DiscoveredHost> = hosts.filter(
+        (host: DiscoveredHost) => {
+          return (
+            Boolean(host) &&
+            !SubnetScanner.hasText(host.sysName) &&
+            !SubnetScanner.hasText(host.dnsHostname)
+          );
+        },
+      );
+
+      if (unnamedHosts.length === 0) {
+        return 0;
+      }
+
+      const resolution: NetbiosNameResolution =
+        await SubnetScanner.resolveNetbiosNames(
+          unnamedHosts.map((host: DiscoveredHost) => {
+            return host.ipAddress;
+          }),
+        );
+
+      let resolvedCount: number = 0;
+
+      for (const host of unnamedHosts) {
+        const netbiosName: string | undefined = normalizeNetbiosName(
+          resolution.nameByIpAddress.get(host.ipAddress),
+        );
+
+        if (netbiosName) {
+          host.netbiosName = netbiosName;
+          resolvedCount++;
+        }
+      }
+
+      logger.debug(
+        `Discovery NetBIOS named ${resolvedCount} of ${unnamedHosts.length} otherwise unnamed discovered host(s).`,
+      );
+
+      return resolvedCount;
+    } catch (err) {
+      /*
+       * Unreachable by design — NetbiosNameResolver never rejects — and caught
+       * anyway, for the same reason attachReverseDnsHostnames catches: this
+       * runs on the way to a completed sweep's upload.
+       */
+      logger.warn(
+        `Discovery NetBIOS enrichment failed; discovered hosts will be named by IP address. ${err}`,
+      );
+
+      return 0;
+    }
+  }
+
+  /*
+   * The NetBIOS lookup, as a seam — the same shape and the same reason as
+   * resolveReverseDnsHostnames: every scanner and job test spies on this
+   * rather than opening a UDP socket, and the resolver's own behaviour is
+   * tested directly against NetbiosNameResolver with a fake socket.
+   */
+  public static async resolveNetbiosNames(
+    ipAddresses: Array<string>,
+  ): Promise<NetbiosNameResolution> {
+    return await new NetbiosNameResolver().resolveNames(ipAddresses);
+  }
+
+  // A string with something in it besides whitespace.
+  private static hasText(value: unknown): boolean {
+    return typeof value === "string" && value.trim().length > 0;
   }
 
   /*

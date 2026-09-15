@@ -435,6 +435,73 @@ export default class NetworkDevice extends BaseModel {
   public hostname?: string = undefined;
 
   /*
+   * The device's fully qualified DNS name, kept apart from its name
+   * (OneUptime issue #3678).
+   *
+   * A discovered host is named by its reverse-DNS record when SNMP gives no
+   * sysName, and until this column existed that FQDN lived nowhere but
+   * `name`. So the moment an operator wanted the clean short name —
+   * "wb-0660-kds01" rather than "wb-0660-kds01.wbhq.com" — the DNS name had
+   * to be thrown away to get it. This is where it goes instead: discovery
+   * import writes the PTR name here whatever the device ends up being called,
+   * and the bulk "shorten names" action moves a full name here before it cuts
+   * the name down.
+   *
+   * It is a record, not an address. `hostname` is still what the probe dials
+   * and what traps are matched against; this is what the device can be
+   * searched for by, and what a site-assignment hostname pattern is also tried
+   * against, so a rule written as "*.store-0660.wbhq.com" keeps placing a
+   * device whose name no longer carries the domain.
+   *
+   * Not refreshed by later scans: it is the name DNS gave the host when it was
+   * imported (or when its name was shortened). Nullable and optional — most
+   * hand-made devices never have one.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "DNS Name",
+    description:
+      "Fully qualified DNS name of this device, from its reverse-DNS (PTR) record when it was discovered, or its previous full name when its name was shortened to the hostname. Kept so the device can still be found, and matched by site-assignment hostname patterns, by the name DNS gives it.",
+    example: "core-sw-01.corp.example.com",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public dnsName?: string = undefined;
+
+  /*
    * --- Which switch port is this device on? ---
    *
    * LLDP and CDP answer that for a device that speaks them. A device that

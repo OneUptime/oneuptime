@@ -175,6 +175,24 @@ const NetworkDeviceView: FunctionComponent<
               title: "Hostname",
               fieldType: FieldType.Text,
             },
+            /*
+             * Read-only, and deliberately not in the edit form above (issue
+             * #3678). It is a record of the name DNS gave the device — set by
+             * discovery import from the PTR record, or kept from the old name
+             * when the name was shortened — so the one place it is shown is
+             * next to the address it describes. Hidden when empty: most
+             * hand-made devices never have one.
+             */
+            {
+              field: {
+                dnsName: true,
+              },
+              title: "DNS Name",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.dnsName);
+              },
+            },
             {
               field: {
                 macAddress: true,

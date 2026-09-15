@@ -2,14 +2,17 @@ import { describe, expect, test } from "@jest/globals";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import { DiscoveredNetworkDevice } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import {
+  DiscoveredHostNaming,
   MAX_DEVICE_NAME_LENGTH,
   buildDeviceName,
   buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
   getDiscoveredHostDisplayName,
+  getDiscoveredHostFullName,
 } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "Common/Utils/NetworkDiscovery/DiscoveredHostUtil";
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
+import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
 import ObjectID from "Common/Types/ObjectID";
 import fs from "fs";
 import path from "path";
@@ -56,7 +59,33 @@ import path from "path";
  * cannot see: that the computed values are actually RENDERED, and that the old
  * inline rule is gone. Duplicated rules drift, and this rule drifting means the
  * operator ticks a box next to one name and gets a device with another.
+ *
+ * SHORT NAMES (issue #3678)
+ *
+ * A scan can now ask for its hosts to be named by the first label of their
+ * hostname. Every naming function takes the scan's naming choice as a
+ * REQUIRED argument, so the row, the import, the collision retry and the Ping
+ * monitor name each have to be handed one — and this file checks that the
+ * row is handed the SAME scan the import builds from, that the row shows the
+ * short name the device will be created with, and that the full name the
+ * short one was cut from is still readable on the row's second line.
+ *
+ * NETBIOS NAMES (issue #3677)
+ *
+ * A scan can also ask the probe for the NetBIOS name of a host that has no
+ * SNMP name and no PTR record. That name is SELF-REPORTED by the scanned
+ * host, so a row named by it carries a plain "NetBIOS name" hint beside the
+ * address. The hint's gate is lifted and run with the rest of the row, so the
+ * tests below say which rows carry it by executing the page's own expression.
  */
+
+/*
+ * The two naming choices a scan can make. FULL_NAMES is what every scan that
+ * predates #3678 carries (the column defaults to false); an empty object is
+ * the same answer, because only an exact `true` turns short names on.
+ */
+const FULL_NAMES: DiscoveredHostNaming = { useShortDeviceNames: false };
+const SHORT_NAMES: DiscoveredHostNaming = { useShortDeviceNames: true };
 
 const DISCOVERY_PAGE: string = path.join(
   __dirname,
@@ -112,32 +141,90 @@ function readCode(): string {
 /*
  * THE ROW'S OWN NAMING CODE, READ OUT OF THE PAGE.
  *
- * The block between `const <name> = buildDeviceName(entry)` and the row's
- * `return (` is the entirety of what the row computes about names: the clamped
- * display name, the re-normalised PTR name, and the gate that decides whether
- * the PTR name earns a second line. It is self-contained — it touches nothing
- * but `entry` and the two imported builders — which is what makes lifting and
- * running it possible.
+ * The block between `const <name> = buildDeviceName(entry, <scan>)` and the
+ * row's `return (` is the entirety of what the row computes about names: the
+ * clamped (and, when the scan asks, shortened) display name, the full name it
+ * was cut from, the re-normalised PTR name, and the gates that decide which of
+ * those earn a place beside the address. It is self-contained — it touches
+ * nothing but `entry`, the scan it is handed, and the imported builders —
+ * which is what makes lifting and running it possible.
  *
  * The identifiers are CAPTURED rather than assumed, so a pure rename of
- * `displayName` or `secondaryDnsHostname` leaves every test here passing while
- * a change of BEHAVIOUR still fails them. That matters: the previous version
- * of this file hard-coded both names, so a rename broke six tests that had no
- * opinion about naming at all.
+ * `displayName`, `scanToReview` or either second-line value leaves every test
+ * here passing while a change of BEHAVIOUR still fails them. That matters: an
+ * earlier version of this file hard-coded the names, so a rename broke six
+ * tests that had no opinion about naming at all.
  */
 interface RowNameSource {
-  /* The identifier holding `buildDeviceName(entry)` — the visible name line. */
+  /* The identifier holding `buildDeviceName(entry, …)` — the visible name line. */
   displayNameIdentifier: string;
-  /* The identifier holding the gated PTR name — the row's second line. */
-  secondaryIdentifier: string;
+  /*
+   * The identifier the row hands the builder as its naming argument: the scan
+   * under review. Captured so it can be injected when the block is run, and
+   * so the import's own naming arguments can be required to be the same one.
+   */
+  namingIdentifier: string;
+  /*
+   * The identifiers the row prints beside the address, in render order — one
+   * gated ` · <name>` span each. Read off the RENDERED line rather than off
+   * the order of declarations, so what the tests execute is exactly what the
+   * row paints, and a value computed but never rendered is not mistaken for
+   * part of the second line.
+   */
+  secondaryIdentifiers: Array<string>;
+  /*
+   * The identifier gating the "NetBIOS name" hint beside the address (issue
+   * #3677). Read off the rendered span, like the names above, so what is run
+   * is the gate the row actually paints with.
+   */
+  netbiosHintIdentifier: string;
   /* The statements themselves, comments stripped and whitespace squashed. */
   statements: string;
 }
 
 const ROW_NAME_BLOCK: RegExp =
-  /(const\s+(\w+)\s*(?::[^=]*)?=\s*buildDeviceName\(entry\);.*?)return \(/;
+  /(const\s+(\w+)\s*(?::[^=]*)?=\s*buildDeviceName\(\s*entry\s*,\s*(\w+)\s*,?\s*\);.*?)return \(/;
+
+/*
+ * The row's second line: the truncating div that opens with the address, up
+ * to its own closing tag. Everything the row says beside the address is in
+ * here, and nothing in here is a nested div.
+ */
+const ADDRESS_LINE: RegExp =
+  /<div\s+className="truncate[^"]*"\s*>\s*\{entry\.ipAddress\}(.*?)<\/div>/;
+
+/*
+ * One extra name on that line: rendered only when its identifier holds
+ * something, and separated from what precedes it by a middle dot.
+ */
+const SECONDARY_NAME_SPAN: RegExp =
+  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s*>\s*\{" · "\}\s*\{\1\}\s*<\/span>\s*\)\s*\}/g;
+
+/*
+ * The one thing on that line that is not a name: the "NetBIOS name" hint
+ * (issue #3677), gated on a boolean the row computes, separated by the same
+ * middle dot, and carrying a hover `title` that says why the name is worth
+ * flagging. Literal text rather than an interpolated value, so a scanned host
+ * cannot choose what it says.
+ */
+const NETBIOS_HINT_SPAN: RegExp =
+  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s+title="[^"]*"\s*>\s*\{" · "\}\s*NetBIOS name\s*<\/span>\s*\)\s*\}/;
 
 let cachedRowNameSource: RowNameSource | null = null;
+
+function addressLineContent(): string {
+  const match: RegExpMatchArray | null = readCode().match(ADDRESS_LINE);
+
+  if (!match) {
+    throw new Error(
+      "The discovered-host row no longer renders `{entry.ipAddress}` at the" +
+        " start of a truncating div. The address line is where every name" +
+        " the name line does not show is surfaced.",
+    );
+  }
+
+  return match[1]!;
+}
 
 function rowNameSource(): RowNameSource {
   if (cachedRowNameSource !== null) {
@@ -148,43 +235,67 @@ function rowNameSource(): RowNameSource {
 
   if (!match) {
     throw new Error(
-      "Discovery.tsx no longer computes `buildDeviceName(entry)` into a const" +
-        " before the discovered-host row's `return (`. The Review dialog's" +
-        " name line is what issue #3529 changed; if it moved, move these" +
-        " tests with it rather than deleting them.",
+      "Discovery.tsx no longer computes `buildDeviceName(entry, <scan>)` into" +
+        " a const before the discovered-host row's `return (`. The Review" +
+        " dialog's name line is what issues #3529 and #3678 changed; if it" +
+        " moved, move these tests with it rather than deleting them.",
     );
   }
 
   const statements: string = match[1]!;
-  /*
-   * The LAST const in the block is the second line: the gate is written as
-   * `<normalised> && <normalised> !== <displayName> ? <normalised> : undefined`
-   * and assigned last. Taken positionally rather than by name for the reason
-   * above. If the second line's computation is deleted outright, the last
-   * const becomes the normalised PTR name itself — which is ungated, so
-   * "a PTR name that IS the name line is not printed twice" fails. That is the
-   * intended failure, and it is why deleting the feature cannot go green here.
-   */
-  const declaredNames: Array<string> = Array.from(
-    statements.matchAll(/const\s+(\w+)\s*[:=]/g),
-    (declaration: RegExpMatchArray) => {
-      return declaration[1]!;
+
+  const secondaryIdentifiers: Array<string> = Array.from(
+    addressLineContent().matchAll(SECONDARY_NAME_SPAN),
+    (span: RegExpMatchArray) => {
+      return span[1]!;
     },
   );
 
-  const secondaryIdentifier: string | undefined =
-    declaredNames[declaredNames.length - 1];
-
-  if (!secondaryIdentifier || declaredNames.length < 2) {
+  /*
+   * Two, because the row has two things to say beside the address: the full
+   * name the name line was cut from, and a PTR record that is neither. Fewer
+   * means one of them was dropped, which the behaviour tests below would
+   * also catch — but this says which, and why.
+   */
+  if (secondaryIdentifiers.length < 2) {
     throw new Error(
-      `The discovered-host row declares only ${declaredNames.length} name` +
-        " const(s); it needs the display name and the gated PTR name.",
+      `The discovered-host row renders ${secondaryIdentifiers.length} gated` +
+        " name(s) beside the address; it needs the full name and the PTR name.",
     );
+  }
+
+  /*
+   * Every rendered value has to be COMPUTED in the lifted block. Deleting a
+   * computation would otherwise surface here as a bare ReferenceError from
+   * inside `new Function`, which says nothing about what went missing.
+   */
+  const netbiosHint: RegExpMatchArray | null =
+    addressLineContent().match(NETBIOS_HINT_SPAN);
+
+  if (!netbiosHint) {
+    throw new Error(
+      "The discovered-host row no longer renders a gated `NetBIOS name` hint" +
+        " beside the address. A NetBIOS name is self-reported by the scanned" +
+        " host (issue #3677), and the row is where the operator is told so.",
+    );
+  }
+
+  const netbiosHintIdentifier: string = netbiosHint[1]!;
+
+  for (const identifier of [...secondaryIdentifiers, netbiosHintIdentifier]) {
+    if (!new RegExp(`const\\s+${identifier}\\s*[:=]`).test(statements)) {
+      throw new Error(
+        `The row renders \`${identifier}\` beside the address but does not` +
+          " compute it between the name line and `return (`.",
+      );
+    }
   }
 
   cachedRowNameSource = {
     displayNameIdentifier: match[2]!,
-    secondaryIdentifier: secondaryIdentifier,
+    namingIdentifier: match[3]!,
+    secondaryIdentifiers: secondaryIdentifiers,
+    netbiosHintIdentifier: netbiosHintIdentifier,
     statements: statements,
   };
 
@@ -200,36 +311,117 @@ function stripTypeAnnotations(statements: string): string {
   return statements.replace(/const\s+(\w+)\s*:\s*[^=]*=/g, "const $1 =");
 }
 
-type RowSecondaryLine = (
-  entry: DiscoveredNetworkDevice,
-  buildName: (host: DiscoveredNetworkDevice) => string,
-  normalizeName: (value: unknown) => string | undefined,
-) => string | undefined;
+/* What the row shows for one host, as the row itself computes it. */
+interface RowNames {
+  /* The name line (and the name the import attempts first). */
+  displayName: string;
+  /*
+   * The names printed after the address, in order, exactly as many as the row
+   * renders: a gated span whose value is empty prints nothing, so it is not
+   * listed here either.
+   */
+  extraNames: Array<string>;
+}
 
-let cachedSecondaryLine: RowSecondaryLine | null = null;
+/*
+ * Everything the row computes about names, including the NetBIOS hint. Kept
+ * apart from RowNames so the many tests above that pin `{ displayName,
+ * extraNames }` with toEqual keep saying exactly what they said before the
+ * hint existed; the NetBIOS tests ask for this wider shape explicitly.
+ */
+interface RowNaming extends RowNames {
+  /* Whether "· NetBIOS name" is painted beside the address. */
+  showsNetbiosHint: boolean;
+}
+
+type RowNamingFunction = (
+  entry: DiscoveredNetworkDevice,
+  buildName: typeof buildDeviceName,
+  getFullName: typeof getDiscoveredHostFullName,
+  normalizeName: typeof normalizeReverseDnsName,
+  normalizeNetbios: typeof normalizeNetbiosName,
+  naming: DiscoveredHostNaming,
+) => [string, Array<string | undefined>, unknown];
+
+let cachedRowNaming: RowNamingFunction | null = null;
 
 /**
- * What the row's second line shows for this host — computed by running the
- * row's own expression, with the real shared builders injected.
+ * What the row shows for this host under this scan's naming choice — computed
+ * by running the row's own statements, with the real shared builders injected.
  *
  * The parameter names are the page's own call names, so an alias-rename in
  * Discovery.tsx fails the extraction loudly instead of quietly.
  */
-function secondaryLineFor(host: DiscoveredNetworkDevice): string | undefined {
-  if (cachedSecondaryLine === null) {
+function rowNamingFor(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): RowNaming {
+  if (cachedRowNaming === null) {
     const source: RowNameSource = rowNameSource();
 
-    cachedSecondaryLine = new Function(
+    cachedRowNaming = new Function(
       "entry",
       "buildDeviceName",
+      "getDiscoveredHostFullName",
       "normalizeReverseDnsName",
-      `${stripTypeAnnotations(source.statements)} return ${
-        source.secondaryIdentifier
-      };`,
-    ) as unknown as RowSecondaryLine;
+      "normalizeNetbiosName",
+      source.namingIdentifier,
+      `${stripTypeAnnotations(source.statements)} return [${
+        source.displayNameIdentifier
+      }, [${source.secondaryIdentifiers.join(", ")}], ${
+        source.netbiosHintIdentifier
+      }];`,
+    ) as unknown as RowNamingFunction;
   }
 
-  return cachedSecondaryLine(host, buildDeviceName, normalizeReverseDnsName);
+  const [displayName, secondaryValues, netbiosHint]: [
+    string,
+    Array<string | undefined>,
+    unknown,
+  ] = cachedRowNaming(
+    host,
+    buildDeviceName,
+    getDiscoveredHostFullName,
+    normalizeReverseDnsName,
+    normalizeNetbiosName,
+    naming,
+  );
+
+  return {
+    displayName: displayName,
+    // `{value && (...)}` renders nothing for an empty or absent value.
+    extraNames: secondaryValues.filter(
+      (value: string | undefined): value is string => {
+        return Boolean(value);
+      },
+    ),
+    /*
+     * Boolean() rather than `=== true`: the span is rendered through the same
+     * `{value && (...)}` gate, so truthiness is exactly what paints it — and
+     * the source test below separately requires the gate to be a boolean.
+     */
+    showsNetbiosHint: Boolean(netbiosHint),
+  };
+}
+
+function rowNamesFor(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): RowNames {
+  const row: RowNaming = rowNamingFor(host, naming);
+
+  return { displayName: row.displayName, extraNames: row.extraNames };
+}
+
+/**
+ * The names the row prints beside the address for this host. Kept as its own
+ * helper because most tests below have an opinion only about the second line.
+ */
+function extraNamesFor(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): Array<string> {
+  return rowNamesFor(host, naming).extraNames;
 }
 
 /*
@@ -259,7 +451,15 @@ function ariaLabelTemplate(): string {
   return match[1]!;
 }
 
-function ariaLabelFor(host: DiscoveredNetworkDevice): string {
+/*
+ * Fed the name line the ROW computes for this scan, not a name recomputed
+ * here: the claim is that the label says what the row says, under whichever
+ * naming choice the scan made.
+ */
+function ariaLabelFor(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): string {
   if (cachedAriaLabel === null) {
     cachedAriaLabel = new Function(
       "entry",
@@ -268,7 +468,7 @@ function ariaLabelFor(host: DiscoveredNetworkDevice): string {
     ) as unknown as RowAriaLabel;
   }
 
-  return cachedAriaLabel(host, buildDeviceName(host));
+  return cachedAriaLabel(host, rowNamesFor(host, naming).displayName);
 }
 
 /*
@@ -331,11 +531,18 @@ function reportedHosts(): Array<DiscoveredNetworkDevice> {
  * with. Both steps matter — the row is fed by getReviewHosts, which
  * normalises first, and it renders buildDeviceName rather than the unclamped
  * display name so that what is shown and what is created cannot differ.
+ *
+ * Run through the row's OWN statements (rowNamesFor), under the scan's naming
+ * choice. Every scan that predates issue #3678 names by full name, which is
+ * what the default here stands for.
  */
-function displayedNames(hosts: Array<DiscoveredNetworkDevice>): Array<string> {
+function displayedNames(
+  hosts: Array<DiscoveredNetworkDevice>,
+  naming: DiscoveredHostNaming = FULL_NAMES,
+): Array<string> {
   return normalizeDiscoveredHosts(hosts).map(
     (host: DiscoveredNetworkDevice) => {
-      return buildDeviceName(host);
+      return rowNamesFor(host, naming).displayName;
     },
   );
 }
@@ -369,7 +576,7 @@ describe("the Review dialog names hosts by their PTR record (issue #3529)", () =
     expect(named).toHaveLength(3);
 
     for (const host of named) {
-      expect(buildDeviceName(host)).not.toContain(host.ipAddress);
+      expect(buildDeviceName(host, FULL_NAMES)).not.toContain(host.ipAddress);
     }
   });
 
@@ -446,7 +653,7 @@ describe("the Review dialog names hosts by their PTR record (issue #3529)", () =
       dnsHostname: "core-gw.corp.example.com",
     } as unknown as DiscoveredNetworkDevice;
 
-    expect(getDiscoveredHostDisplayName(numericSysName)).toBe(
+    expect(getDiscoveredHostDisplayName(numericSysName, FULL_NAMES)).toBe(
       "core-gw.corp.example.com",
     );
 
@@ -499,7 +706,7 @@ describe("the Review dialog names hosts by their PTR record (issue #3529)", () =
       snmpReachable: true,
     };
 
-    expect(getDiscoveredHostDisplayName(paddedSysName)).toBe(
+    expect(getDiscoveredHostDisplayName(paddedSysName, FULL_NAMES)).toBe(
       "core-gw.corp.example.com",
     );
     expect(displayedNames([paddedSysName])).toEqual([
@@ -582,9 +789,9 @@ describe("the Review dialog names hosts by their PTR record (issue #3529)", () =
     ])[0]!;
 
     // The clamp has to actually bite, or this test proves nothing.
-    expect(getDiscoveredHostDisplayName(host)).toHaveLength(253);
+    expect(getDiscoveredHostDisplayName(host, FULL_NAMES)).toHaveLength(253);
 
-    const shownName: string = buildDeviceName(host);
+    const shownName: string = buildDeviceName(host, FULL_NAMES);
 
     expect(shownName).toHaveLength(MAX_DEVICE_NAME_LENGTH);
     expect(shownName).toBe(LONG_PTR_NAME.substring(0, MAX_DEVICE_NAME_LENGTH));
@@ -616,8 +823,8 @@ describe("the row's second line surfaces a PTR name the first line does not", ()
       },
     ])[0]!;
 
-    expect(buildDeviceName(host)).toBe("core-switch-01");
-    expect(secondaryLineFor(host)).toBe("sw1.corp.example.com");
+    expect(buildDeviceName(host, FULL_NAMES)).toBe("core-switch-01");
+    expect(extraNamesFor(host, FULL_NAMES)).toEqual(["sw1.corp.example.com"]);
   });
 
   test("a PTR name that IS the name line is not printed twice", () => {
@@ -628,7 +835,7 @@ describe("the row's second line surfaces a PTR name the first line does not", ()
      * that fails if the row's `!== displayName` gate is removed or inverted.
      */
     for (const host of normalizeDiscoveredHosts(reportedHosts())) {
-      expect(secondaryLineFor(host)).toBeUndefined();
+      expect(extraNamesFor(host, FULL_NAMES)).toEqual([]);
     }
   });
 
@@ -651,8 +858,8 @@ describe("the row's second line surfaces a PTR name the first line does not", ()
       dnsHostname: "core-gw.corp.example.com.",
     };
 
-    expect(buildDeviceName(raw)).toBe("core-gw.corp.example.com");
-    expect(secondaryLineFor(raw)).toBeUndefined();
+    expect(buildDeviceName(raw, FULL_NAMES)).toBe("core-gw.corp.example.com");
+    expect(extraNamesFor(raw, FULL_NAMES)).toEqual([]);
   });
 
   test("a PTR name too long to be a device name stays readable in full", () => {
@@ -666,15 +873,20 @@ describe("the row's second line surfaces a PTR name the first line does not", ()
       { ipAddress: "10.18.166.51", dnsHostname: LONG_PTR_NAME },
     ])[0]!;
 
-    expect(buildDeviceName(host)).toHaveLength(MAX_DEVICE_NAME_LENGTH);
-    expect(secondaryLineFor(host)).toBe(LONG_PTR_NAME);
+    expect(buildDeviceName(host, FULL_NAMES)).toHaveLength(
+      MAX_DEVICE_NAME_LENGTH,
+    );
+    expect(extraNamesFor(host, FULL_NAMES)).toEqual([LONG_PTR_NAME]);
   });
 
   test("a host with no usable PTR record has no second line", () => {
     // Nothing to say, so nothing is said: no empty separator on the address.
     expect(
-      secondaryLineFor({ ipAddress: "10.18.166.55", snmpReachable: false }),
-    ).toBeUndefined();
+      extraNamesFor(
+        { ipAddress: "10.18.166.55", snmpReachable: false },
+        FULL_NAMES,
+      ),
+    ).toEqual([]);
 
     /*
      * Fed raw on purpose. A resolver that echoes the query name back hands us
@@ -684,19 +896,25 @@ describe("the row's second line surfaces a PTR name the first line does not", ()
      * instead and this row grows a second line reading the reverse zone.
      */
     expect(
-      secondaryLineFor({
-        ipAddress: "10.18.166.55",
-        dnsHostname: "51.166.18.10.in-addr.arpa",
-      }),
-    ).toBeUndefined();
+      extraNamesFor(
+        {
+          ipAddress: "10.18.166.55",
+          dnsHostname: "51.166.18.10.in-addr.arpa",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual([]);
 
     // Same for an answer the character rules reject outright.
     expect(
-      secondaryLineFor({
-        ipAddress: "10.18.166.55",
-        dnsHostname: "<script>alert(1)</script>",
-      }),
-    ).toBeUndefined();
+      extraNamesFor(
+        {
+          ipAddress: "10.18.166.55",
+          dnsHostname: "<script>alert(1)</script>",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual([]);
   });
 });
 
@@ -711,11 +929,14 @@ describe("the checkbox tells a screen reader what the row says", () => {
      * the address every checkbox in that range announces identically).
      */
     expect(
-      ariaLabelFor({
-        ipAddress: "10.18.166.51",
-        dnsHostname: "core-gw.corp.example.com",
-        snmpReachable: false,
-      }),
+      ariaLabelFor(
+        {
+          ipAddress: "10.18.166.51",
+          dnsHostname: "core-gw.corp.example.com",
+          snmpReachable: false,
+        },
+        FULL_NAMES,
+      ),
     ).toBe("Import core-gw.corp.example.com (10.18.166.51)");
   });
 
@@ -728,12 +949,14 @@ describe("the checkbox tells a screen reader what the row says", () => {
      * "Import core-switch-01 ()", which sounds like a rendering bug rather
      * than like a host the dialog is deliberately refusing.
      */
-    expect(ariaLabelFor({ ipAddress: "", sysName: "core-switch-01" })).toBe(
-      "Import core-switch-01 (no address)",
-    );
+    expect(
+      ariaLabelFor({ ipAddress: "", sysName: "core-switch-01" }, FULL_NAMES),
+    ).toBe("Import core-switch-01 (no address)");
 
     // Nothing to say at all is still a sentence, not an empty one.
-    expect(ariaLabelFor({ ipAddress: "" })).toBe("Import  (no address)");
+    expect(ariaLabelFor({ ipAddress: "" }, FULL_NAMES)).toBe(
+      "Import  (no address)",
+    );
   });
 });
 
@@ -758,13 +981,13 @@ describe("hosts that share one PTR name still all import", () => {
     // The collision is real: the first-choice names genuinely are identical.
     expect(
       hosts.map((host: DiscoveredNetworkDevice) => {
-        return buildDeviceName(host);
+        return buildDeviceName(host, FULL_NAMES);
       }),
     ).toEqual([shared, shared]);
 
     const fallbackNames: Array<string> = hosts.map(
       (host: DiscoveredNetworkDevice) => {
-        return buildFallbackDeviceName(host);
+        return buildFallbackDeviceName(host, FULL_NAMES);
       },
     );
 
@@ -801,7 +1024,7 @@ describe("hosts that share one PTR name still all import", () => {
 
     const shownNames: Array<string> = hosts.map(
       (host: DiscoveredNetworkDevice) => {
-        return buildDeviceName(host);
+        return buildDeviceName(host, FULL_NAMES);
       },
     );
 
@@ -810,7 +1033,7 @@ describe("hosts that share one PTR name still all import", () => {
 
     const fallbackNames: Array<string> = hosts.map(
       (host: DiscoveredNetworkDevice) => {
-        return buildFallbackDeviceName(host);
+        return buildFallbackDeviceName(host, FULL_NAMES);
       },
     );
 
@@ -828,10 +1051,13 @@ describe("hosts that share one PTR name still all import", () => {
      * fallback that simply appended to a 253-character name would fail the
      * create for a second, more confusing reason.
      */
-    const name: string = buildFallbackDeviceName({
-      ipAddress: "10.18.166.51",
-      dnsHostname: LONG_PTR_NAME,
-    });
+    const name: string = buildFallbackDeviceName(
+      {
+        ipAddress: "10.18.166.51",
+        dnsHostname: LONG_PTR_NAME,
+      },
+      FULL_NAMES,
+    );
 
     expect(name.length).toBeLessThanOrEqual(MAX_DEVICE_NAME_LENGTH);
     expect(name.endsWith(" (10.18.166.51)")).toBe(true);
@@ -841,11 +1067,11 @@ describe("hosts that share one PTR name still all import", () => {
     /*
      * THE HONEST STATEMENT OF THE WYSIWYG CONTRACT, which the retry bends.
      *
-     * The row shows `buildDeviceName(entry)`, and "a 253-character PTR name is
+     * The row shows `buildDeviceName(entry, scan)`, and "a 253-character PTR name is
      * shown clamped, exactly as it is created" is true only of the FIRST
      * create. On a name collision — the wildcard-PTR case the retry exists for,
      * so the case where it happens most — the device is created as
-     * `buildFallbackDeviceName(entry)` instead, and the operator's inventory
+     * `buildFallbackDeviceName(entry, scan)` instead, and the operator's inventory
      * ends up holding a name that is NOT character-for-character the one the
      * row displayed. The dialog does not say so.
      *
@@ -870,8 +1096,8 @@ describe("hosts that share one PTR name still all import", () => {
       ipAddress: "10.18.166.51",
       dnsHostname: "dhcp-pool.corp.example.com",
     };
-    const shortShown: string = buildDeviceName(shortHost);
-    const shortCreated: string = buildFallbackDeviceName(shortHost);
+    const shortShown: string = buildDeviceName(shortHost, FULL_NAMES);
+    const shortCreated: string = buildFallbackDeviceName(shortHost, FULL_NAMES);
 
     expect(shortShown.length).toBeLessThanOrEqual(budget);
     expect(shortCreated).toBe(`${shortShown}${suffix}`);
@@ -881,8 +1107,8 @@ describe("hosts that share one PTR name still all import", () => {
       ipAddress: "10.18.166.51",
       dnsHostname: LONG_PTR_NAME,
     };
-    const longShown: string = buildDeviceName(longHost);
-    const longCreated: string = buildFallbackDeviceName(longHost);
+    const longShown: string = buildDeviceName(longHost, FULL_NAMES);
+    const longCreated: string = buildFallbackDeviceName(longHost, FULL_NAMES);
 
     expect(longShown.length).toBeGreaterThan(budget);
     expect(longCreated.endsWith(suffix)).toBe(true);
@@ -896,6 +1122,488 @@ describe("hosts that share one PTR name still all import", () => {
     expect(longShown.startsWith(longBase)).toBe(true);
     expect(longBase).toHaveLength(budget);
   });
+});
+
+/*
+ * OneUptime issue #3678: "wb-0660-kds01.wbhq.com" should import as
+ * "wb-0660-kds01", with the FQDN kept rather than thrown away.
+ *
+ * Everything here runs the row's own statements (rowNamesFor) with a scan
+ * standing in for the one the dialog reviews, so what is asserted is what the
+ * operator would see — the name line, and the names beside the address.
+ */
+describe("a scan set to short device names shows them in the Review dialog (issue #3678)", () => {
+  /*
+   * The reporter's host, as the probe reports it: no SNMP, named only by its
+   * PTR record under the one corporate domain every device on the estate
+   * shares.
+   */
+  const reporterHost: DiscoveredNetworkDevice = {
+    ipAddress: "10.18.167.31",
+    dnsHostname: "wb-0660-kds01.wbhq.com",
+    snmpReachable: false,
+  };
+
+  test("the reporter's row reads as the short name, with the FQDN beside the address", () => {
+    expect(rowNamesFor(reporterHost, SHORT_NAMES)).toEqual({
+      displayName: "wb-0660-kds01",
+      extraNames: ["wb-0660-kds01.wbhq.com"],
+    });
+  });
+
+  test("the same row under a scan that did not ask reads exactly as before", () => {
+    /*
+     * Opt-in, and the default is off: every scan that existed before the
+     * column keeps the name line it had, and nothing appears beside the
+     * address that was not there before.
+     */
+    expect(rowNamesFor(reporterHost, FULL_NAMES)).toEqual({
+      displayName: "wb-0660-kds01.wbhq.com",
+      extraNames: [],
+    });
+    expect(rowNamesFor(reporterHost, {})).toEqual({
+      displayName: "wb-0660-kds01.wbhq.com",
+      extraNames: [],
+    });
+  });
+
+  test("the reported rows shorten, and the address-only row is left alone", () => {
+    expect(displayedNames(reportedHosts(), SHORT_NAMES)).toEqual([
+      "core-gw",
+      "printer-3",
+      "cam-lobby",
+      // An address is never shortened: "10.18.166.55" is not "10".
+      "10.18.166.55",
+    ]);
+
+    expect(
+      normalizeDiscoveredHosts(reportedHosts()).map(
+        (host: DiscoveredNetworkDevice): Array<string> => {
+          return extraNamesFor(host, SHORT_NAMES);
+        },
+      ),
+    ).toEqual([
+      ["core-gw.corp.example.com"],
+      ["printer-3.corp.example.com"],
+      ["cam-lobby.corp.example.com"],
+      [],
+    ]);
+  });
+
+  test("only an exact true turns short names on", () => {
+    /*
+     * The scan arrives as an API row, so a flag that is a string or a number
+     * is a real possibility — and it must not rename a project's imports.
+     * The row hands the builder the scan verbatim, which is what makes the
+     * builder's `=== true` the rule here too.
+     */
+    for (const notTrue of ["true", 1, null, undefined]) {
+      expect(
+        rowNamesFor(reporterHost, {
+          useShortDeviceNames: notTrue,
+        } as unknown as DiscoveredHostNaming).displayName,
+      ).toBe("wb-0660-kds01.wbhq.com");
+    }
+  });
+
+  test("a FQDN sysName is shortened too, and printed once when the PTR record agrees", () => {
+    /*
+     * Network gear routinely reports its FQDN as sysName, and a list where
+     * only the PTR-named hosts were shortened would read as broken. When the
+     * sysName and the PTR record are the same name, the second line carries
+     * it once — not "core-sw-01.corp.example.com · core-sw-01.corp.example.com".
+     */
+    const host: DiscoveredNetworkDevice = normalizeDiscoveredHosts([
+      {
+        ipAddress: "10.0.0.5",
+        sysName: "core-sw-01.corp.example.com",
+        dnsHostname: "core-sw-01.corp.example.com",
+        snmpReachable: true,
+      },
+    ])[0]!;
+
+    expect(rowNamesFor(host, SHORT_NAMES)).toEqual({
+      displayName: "core-sw-01",
+      extraNames: ["core-sw-01.corp.example.com"],
+    });
+  });
+
+  test("a sysName and PTR record that disagree are both still shown, full name first", () => {
+    /*
+     * Shortening the name line must not be what hides a stale reverse zone.
+     * The full sysName comes first because it is the name the line above was
+     * cut from; the PTR record follows because it is a different name
+     * altogether, exactly as it was before short names existed.
+     */
+    const host: DiscoveredNetworkDevice = normalizeDiscoveredHosts([
+      {
+        ipAddress: "10.0.0.5",
+        sysName: "core-sw-01.corp.example.com",
+        dnsHostname: "sw1.corp.example.com",
+        snmpReachable: true,
+      },
+    ])[0]!;
+
+    expect(rowNamesFor(host, SHORT_NAMES)).toEqual({
+      displayName: "core-sw-01",
+      extraNames: ["core-sw-01.corp.example.com", "sw1.corp.example.com"],
+    });
+
+    // And with short names off, the row says what it always said.
+    expect(rowNamesFor(host, FULL_NAMES)).toEqual({
+      displayName: "core-sw-01.corp.example.com",
+      extraNames: ["sw1.corp.example.com"],
+    });
+  });
+
+  test("a sysName that is not a hostname keeps its name and gains nothing", () => {
+    /*
+     * "Core Switch" has a space and "ubuntu-22.04" ends in a label that is not
+     * a top-level domain: neither is shortened, so the name line IS the full
+     * name and there is nothing cut off it to show. A disagreeing PTR record
+     * still appears, in full — the short-name option shortens the device's
+     * NAME, not the names printed beside the address.
+     */
+    expect(
+      rowNamesFor(
+        {
+          ipAddress: "10.0.0.5",
+          sysName: "Core Switch",
+          dnsHostname: "sw1.corp.example.com",
+          snmpReachable: true,
+        },
+        SHORT_NAMES,
+      ),
+    ).toEqual({
+      displayName: "Core Switch",
+      extraNames: ["sw1.corp.example.com"],
+    });
+
+    expect(
+      rowNamesFor(
+        { ipAddress: "10.0.0.6", sysName: "ubuntu-22.04", snmpReachable: true },
+        SHORT_NAMES,
+      ),
+    ).toEqual({ displayName: "ubuntu-22.04", extraNames: [] });
+  });
+
+  test("a host with no name, or a hostile one, is its address and nothing more", () => {
+    for (const host of [
+      { ipAddress: "10.18.166.55", snmpReachable: false },
+      { ipAddress: "10.18.166.55", dnsHostname: "<script>alert(1)</script>" },
+      { ipAddress: "10.18.166.55", dnsHostname: "51.166.18.10.in-addr.arpa" },
+    ] as Array<DiscoveredNetworkDevice>) {
+      expect(rowNamesFor(host, SHORT_NAMES)).toEqual({
+        displayName: "10.18.166.55",
+        extraNames: [],
+      });
+    }
+  });
+
+  test("a maximal PTR name shortens to its first label, and stays readable in full", () => {
+    const host: DiscoveredNetworkDevice = normalizeDiscoveredHosts([
+      { ipAddress: "10.18.166.51", dnsHostname: LONG_PTR_NAME },
+    ])[0]!;
+
+    expect(rowNamesFor(host, SHORT_NAMES)).toEqual({
+      displayName: "a".repeat(63),
+      extraNames: [LONG_PTR_NAME],
+    });
+  });
+
+  test("an over-long sysName is readable in full beside the address", () => {
+    /*
+     * The clamp cuts sysName as well as PTR names, and a sysName is a
+     * DisplayString of up to 255 octets. Before the full name was shown
+     * beside the address, the tail of such a sysName existed nowhere on the
+     * row unless the PTR record happened to repeat it; now it is shown whenever
+     * the name line is not the whole of it, whatever the naming choice.
+     */
+    const longSysName: string = `Core Switch ${"x".repeat(90)}`;
+    const host: DiscoveredNetworkDevice = {
+      ipAddress: "10.0.0.5",
+      sysName: longSysName,
+      snmpReachable: true,
+    };
+
+    for (const naming of [FULL_NAMES, SHORT_NAMES]) {
+      expect(rowNamesFor(host, naming)).toEqual({
+        displayName: longSysName.substring(0, MAX_DEVICE_NAME_LENGTH),
+        extraNames: [longSysName],
+      });
+    }
+  });
+
+  test("the checkbox announces the short name the row shows", () => {
+    expect(ariaLabelFor(reporterHost, SHORT_NAMES)).toBe(
+      "Import wb-0660-kds01 (10.18.167.31)",
+    );
+    expect(ariaLabelFor(reporterHost, FULL_NAMES)).toBe(
+      "Import wb-0660-kds01.wbhq.com (10.18.167.31)",
+    );
+  });
+
+  test("the device the import builds from the same scan carries the row's name and the FQDN", () => {
+    /*
+     * WYSIWYG under the new option: the operator ticks "wb-0660-kds01" and
+     * gets a device called "wb-0660-kds01" — with the full name kept on it as
+     * its DNS Name, which is the half of the issue that says the FQDN must not
+     * simply be thrown away.
+     */
+    const host: DiscoveredNetworkDevice = normalizeDiscoveredHosts([
+      reporterHost,
+    ])[0]!;
+
+    const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+      projectId: new ObjectID("00000000-0000-0000-0000-000000000001"),
+      host: host,
+      scan: SHORT_NAMES,
+    });
+
+    expect(device.name).toBe(rowNamesFor(host, SHORT_NAMES).displayName);
+    expect(device.name).toBe("wb-0660-kds01");
+    expect(device.dnsName).toBe("wb-0660-kds01.wbhq.com");
+    expect(device.hostname).toBe("10.18.167.31");
+  });
+
+  test("the collision retry and the Ping monitor name are the short name plus the address", () => {
+    /*
+     * Short names make collisions MORE likely: "web" under corp and under lab
+     * is one name. The retry is what keeps both importable, and it must build
+     * from the short name the row showed — not fall back to the FQDN the scan
+     * was told not to use. The Ping monitor is named by the same function, so
+     * this is its name too.
+     */
+    const hosts: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      { ipAddress: "10.0.0.5", dnsHostname: "web.corp.example.com" },
+      { ipAddress: "10.0.0.6", dnsHostname: "web.lab.example.com" },
+    ]);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string => {
+        return rowNamesFor(host, SHORT_NAMES).displayName;
+      }),
+    ).toEqual(["web", "web"]);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string => {
+        return buildFallbackDeviceName(host, SHORT_NAMES);
+      }),
+    ).toEqual(["web (10.0.0.5)", "web (10.0.0.6)"]);
+
+    // Under full names the same hosts never collided, and still do not.
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string => {
+        return buildFallbackDeviceName(host, FULL_NAMES);
+      }),
+    ).toEqual([
+      "web.corp.example.com (10.0.0.5)",
+      "web.lab.example.com (10.0.0.6)",
+    ]);
+  });
+});
+
+/*
+ * OneUptime issue #3677: hosts with no DNS record and no SNMP sat in the
+ * Review dialog as bare addresses. A scan can now ask them for their NetBIOS
+ * name, which the probe stores lower-cased as `netbiosName`.
+ *
+ * Every test here runs the row's own statements (rowNamingFor), so what is
+ * asserted is the name line, the names beside the address, and whether the
+ * "NetBIOS name" hint is painted — for the row as the page computes it.
+ */
+describe("a host named by its NetBIOS answer says so beside the address (issue #3677)", () => {
+  /*
+   * The shape the issue is about: alive, no SNMP, no PTR record, and a
+   * Windows machine that answered NBSTAT.
+   */
+  const netbiosOnlyHost: DiscoveredNetworkDevice = {
+    ipAddress: "10.18.167.31",
+    snmpReachable: false,
+    netbiosName: "accounts-pc01",
+  };
+
+  test("a host with only a NetBIOS answer is named by it, with the hint and nothing else", () => {
+    expect(rowNamingFor(netbiosOnlyHost, FULL_NAMES)).toEqual({
+      displayName: "accounts-pc01",
+      extraNames: [],
+      showsNetbiosHint: true,
+    });
+  });
+
+  test("the short-name option leaves a NetBIOS name, and its hint, exactly as they are", () => {
+    /*
+     * A NetBIOS name is one label, so there is nothing to cut — the short-name
+     * option must neither change it nor lose the hint on the way past.
+     */
+    expect(rowNamingFor(netbiosOnlyHost, SHORT_NAMES)).toEqual({
+      displayName: "accounts-pc01",
+      extraNames: [],
+      showsNetbiosHint: true,
+    });
+  });
+
+  test("the row survives the probe's own normalisation of the answer", () => {
+    expect(
+      normalizeDiscoveredHosts([{ ...netbiosOnlyHost }]).map(
+        (host: DiscoveredNetworkDevice): RowNaming => {
+          return rowNamingFor(host, FULL_NAMES);
+        },
+      ),
+    ).toEqual([
+      { displayName: "accounts-pc01", extraNames: [], showsNetbiosHint: true },
+    ]);
+  });
+
+  test("a raw upper-case, padded answer is shown as the name the rules make of it", () => {
+    /*
+     * Fed RAW, the way a result from an older or modified probe would reach
+     * the column: NetBIOS pads to fifteen bytes and upper-cases on the wire.
+     * The row names it by the normalised form and still flags it, because the
+     * gate compares the normalised answer with the name line — comparing the
+     * raw value would miss "ACCOUNTS-PC01  " !== "accounts-pc01" and silently
+     * drop the hint.
+     */
+    expect(
+      rowNamingFor(
+        { ...netbiosOnlyHost, netbiosName: "ACCOUNTS-PC01   " },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "accounts-pc01",
+      extraNames: [],
+      showsNetbiosHint: true,
+    });
+  });
+
+  test("the checkbox announces the NetBIOS name the row shows", () => {
+    expect(ariaLabelFor(netbiosOnlyHost, FULL_NAMES)).toBe(
+      "Import accounts-pc01 (10.18.167.31)",
+    );
+  });
+
+  test("a PTR-named host carries no hint, even when it also holds a NetBIOS answer", () => {
+    /*
+     * The probe only asks hosts DNS did not name, but the column is jsonb and
+     * a row can hold both. DNS wins the name line, and the hint would then be
+     * a lie about where the name came from.
+     */
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.18.167.31",
+          dnsHostname: "core-gw.corp.example.com",
+          netbiosName: "accounts-pc01",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "core-gw.corp.example.com",
+      extraNames: [],
+      showsNetbiosHint: false,
+    });
+  });
+
+  test("a PTR name shortened to the very same label is still not called a NetBIOS name", () => {
+    /*
+     * The case that separates "named by NetBIOS" from "happens to read like
+     * the NetBIOS answer": a Windows host whose PTR record is its computer name
+     * under the domain. With short names on, the name line is "ws-0042" either
+     * way — but it came from DNS, and only the PTR guard in the gate says so.
+     */
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.18.167.42",
+          dnsHostname: "ws-0042.corp.example.com",
+          netbiosName: "ws-0042",
+        },
+        SHORT_NAMES,
+      ),
+    ).toEqual({
+      displayName: "ws-0042",
+      extraNames: ["ws-0042.corp.example.com"],
+      showsNetbiosHint: false,
+    });
+  });
+
+  test("an SNMP-named host carries no hint, even when its sysName matches the NetBIOS answer", () => {
+    /*
+     * The sysName guard, pinned the same way: a sysName that is the same word
+     * as the NetBIOS answer still makes the name line an SNMP name. A padded
+     * sysName is no name at all, though, so the NetBIOS answer wins that row
+     * and is flagged — the gate trims exactly as the builder does.
+     */
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.0.0.5",
+          sysName: "ws-0042",
+          snmpReachable: true,
+          netbiosName: "ws-0042",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "ws-0042",
+      extraNames: [],
+      showsNetbiosHint: false,
+    });
+
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.0.0.6",
+          sysName: "   ",
+          snmpReachable: true,
+          netbiosName: "ws-0043",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "ws-0043",
+      extraNames: [],
+      showsNetbiosHint: true,
+    });
+  });
+
+  test("a host with no NetBIOS answer at all never carries the hint", () => {
+    for (const host of normalizeDiscoveredHosts(reportedHosts())) {
+      for (const naming of [FULL_NAMES, SHORT_NAMES]) {
+        expect(rowNamingFor(host, naming).showsNetbiosHint).toBe(false);
+      }
+    }
+  });
+
+  test.each([
+    ["a hostile answer", "<script>alert(1)</script>"],
+    ["an address restated as a name", "10-18-167"],
+    ["the browser-election pseudo-name", "__MSBROWSE__"],
+    ["a dotted DNS-shaped name", "accounts-pc01.corp"],
+    ["a name longer than NetBIOS allows", "a".repeat(16)],
+    ["a blank answer", "   "],
+    ["a number out of the jsonb", 42],
+  ])(
+    "%s falls back to the address, with no hint and nothing beside it",
+    (_label: string, netbiosName: unknown) => {
+      /*
+       * Fed raw, so it is the row's own re-normalisation under test: render
+       * the stored value, or compare it unnormalised, and a scanned host
+       * could put any string it likes on a row the operator is about to tick.
+       */
+      const host: DiscoveredNetworkDevice = {
+        ipAddress: "10.18.167.31",
+        snmpReachable: false,
+        netbiosName: netbiosName,
+      } as unknown as DiscoveredNetworkDevice;
+
+      expect(rowNamingFor(host, FULL_NAMES)).toEqual({
+        displayName: "10.18.167.31",
+        extraNames: [],
+        showsNetbiosHint: false,
+      });
+    },
+  );
 });
 
 describe("Discovery.tsx wires the row to the shared recipe", () => {
@@ -965,6 +1673,9 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     expect(code).toMatch(
       /import\s*\{[^}]*\bnormalizeReverseDnsName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/ReverseDnsNameUtil"/,
     );
+    expect(code).toMatch(
+      /import\s*\{[^}]*\bgetDiscoveredHostFullName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/DiscoveredDeviceBuilder"/,
+    );
   });
 
   test("the page no longer re-spells the naming rule anywhere", () => {
@@ -984,14 +1695,48 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
      * UNCLAMPED name, and rendering it is precisely the WYSIWYG break the row
      * was changed to fix. The name-line assertion below only guards the name
      * DIV, so this ban is what stops the unclamped value reappearing in the
-     * aria-label, the hover title or the second line. It still exists and is
-     * still the right function for a caller that wants the full name — just
-     * not for this row.
+     * aria-label or the hover title. It still exists and is still the right
+     * function for a caller that wants the unclamped name — just not for this
+     * row.
+     *
+     * getDiscoveredHostFullName is the one unclamped name the row DOES use
+     * (issue #3678), and only for the second line: it is what the name line
+     * was cut from, shown in full beside the address when the two differ. It
+     * is called exactly once, in the row, so it cannot drift into the name
+     * line or the import by accident; the wiring tests below check it is
+     * never the value of the title or the aria-label.
      */
     const code: string = readCode();
 
     expect(code).not.toMatch(/entry\.sysName\s*\|\|\s*entry\.ipAddress/);
     expect(code).not.toContain("getDiscoveredHostDisplayName");
+    expect(code.split("getDiscoveredHostFullName(").length - 1).toBe(1);
+    expect(rowNameSource().statements).toContain(
+      "getDiscoveredHostFullName(entry)",
+    );
+  });
+
+  test("the unshortened name never stands in for the name line", () => {
+    /*
+     * The full name belongs beside the address. If the hover title or the
+     * checkbox label interpolated it instead of the display name, a sighted
+     * operator and a screen-reader user would be told the host is called
+     * "wb-0660-kds01.wbhq.com" by a row that creates "wb-0660-kds01".
+     */
+    const statements: string = rowNameSource().statements;
+    const fullNameDeclaration: RegExpMatchArray | null = statements.match(
+      /const\s+(\w+)\s*(?::[^=]*)?=\s*getDiscoveredHostFullName\(entry\);/,
+    );
+
+    expect(fullNameDeclaration).not.toBeNull();
+
+    const fullNameIdentifier: string = fullNameDeclaration![1]!;
+
+    expect(fullNameIdentifier).not.toBe(rowNameSource().displayNameIdentifier);
+    expect(ariaLabelTemplate()).not.toContain(`\${${fullNameIdentifier}}`);
+    expect(readCode()).not.toMatch(
+      new RegExp(`title=\\{${fullNameIdentifier}\\}`),
+    );
   });
 
   test("the name line renders the clamped builder's answer, truncated with a title", () => {
@@ -1048,33 +1793,82 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
   test("the second line the tests executed is the second line the row renders", () => {
     /*
      * The gap the lifted-and-run tests cannot close on their own: the row
-     * could compute `secondaryDnsHostname` perfectly and render none of it.
-     * So the identifier that those tests took their answer from is required to
-     * appear, gated, inside the span beside the address.
+     * could compute its second-line values perfectly and render none of them.
+     * rowNameSource reads the identifiers it runs OFF the rendered spans, so
+     * this pins the other direction — that the address line carries those
+     * gated spans and nothing else. A raw `{entry.dnsHostname}` beside the
+     * address, or a separator printed with nothing after it, fails here.
      *
-     * The shape assertions use a backreference rather than literal names, so
-     * they pin the RULE — "the normalised PTR name, and only when it differs
-     * from the name line" — and not the spelling of two local variables.
+     * The shape assertion uses a backreference rather than literal names, so
+     * it pins the RULE — "the normalised PTR name, only when it is neither the
+     * name line nor the full name already shown" — and not the spelling of
+     * local variables.
      */
     const source: RowNameSource = rowNameSource();
-    const code: string = readCode();
 
     // Normalised at the point of render, not trusted from the jsonb column.
     expect(source.statements).toContain(
       "normalizeReverseDnsName(entry.dnsHostname)",
     );
 
+    expect(source.secondaryIdentifiers).toHaveLength(2);
+
+    const [fullNameIdentifier, dnsHostnameIdentifier]: Array<string> =
+      source.secondaryIdentifiers;
+
     expect(source.statements).toMatch(
       new RegExp(
-        `(\\w+)\\s*&&\\s*\\1\\s*!==\\s*${source.displayNameIdentifier}\\s*\\?\\s*\\1\\s*:\\s*undefined`,
+        `const\\s+${fullNameIdentifier}\\s*(?::[^=]*)?=\\s*(\\w+)\\s*!==\\s*${source.displayNameIdentifier}\\s*\\?\\s*\\1\\s*:\\s*undefined`,
       ),
     );
 
-    // Rendered, and rendered conditionally: no bare separator on the address.
-    expect(code).toMatch(new RegExp(`\\{${source.secondaryIdentifier}\\s*&&`));
-    expect(code).toMatch(
-      new RegExp(`\\{${source.secondaryIdentifier}\\}\\s*</span>`),
+    expect(source.statements).toMatch(
+      new RegExp(
+        `const\\s+${dnsHostnameIdentifier}\\s*(?::[^=]*)?=\\s*(\\w+)\\s*&&\\s*\\1\\s*!==\\s*${source.displayNameIdentifier}\\s*&&\\s*\\1\\s*!==\\s*${fullNameIdentifier}\\s*\\?\\s*\\1\\s*:\\s*undefined`,
+      ),
     );
+
+    /*
+     * Nothing but the gated names — and the gated NetBIOS hint, which is
+     * literal text and so cannot print anything a scanned host chose — is
+     * printed after the address.
+     */
+    expect(
+      addressLineContent()
+        .replace(SECONDARY_NAME_SPAN, "")
+        .replace(NETBIOS_HINT_SPAN, "")
+        .trim(),
+    ).toBe("");
+  });
+
+  test("the NetBIOS hint is gated on a boolean computed from the naming order", () => {
+    /*
+     * The executed tests in the NetBIOS describe say WHICH rows carry the hint;
+     * this pins what they cannot see on their own. The gate is declared a
+     * boolean (so `{gate && (...)}` can never paint a stray string or a 0), it
+     * re-normalises the stored NetBIOS answer at the point of render rather
+     * than trusting the jsonb, and it is rendered exactly once.
+     */
+    const source: RowNameSource = rowNameSource();
+
+    expect(source.statements).toMatch(
+      new RegExp(
+        `const\\s+${source.netbiosHintIdentifier}\\s*:\\s*boolean\\s*=`,
+      ),
+    );
+    expect(source.statements).toContain(
+      "normalizeNetbiosName(entry.netbiosName)",
+    );
+    expect(readCode()).toMatch(
+      /import\s*\{[^}]*\bnormalizeNetbiosName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/NetbiosNameUtil"/,
+    );
+    expect(readCode().split("NetBIOS name </span>").length - 1).toBe(1);
+    /*
+     * And never a badge. The badges on the right of the row describe the HOST
+     * ("No SNMP", "Already added"); the hint describes where its NAME came
+     * from, so it belongs on the address line and nowhere else.
+     */
+    expect(readCode()).not.toMatch(/rounded-full[^>]*>\s*NetBIOS/);
   });
 
   test("a failed create is retried once under the address-qualified name", () => {
@@ -1087,7 +1881,85 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
      * never retried would satisfy a bare identifier match.
      */
     expect(readCode()).toMatch(
-      /catch\s*\(\s*\w+\s*\)\s*\{\s*device\.name\s*=\s*buildFallbackDeviceName\(entry\);\s*try\s*\{\s*await\s+ModelAPI\.create/,
+      /catch\s*\(\s*\w+\s*\)\s*\{\s*device\.name\s*=\s*buildFallbackDeviceName\(\s*entry\s*,\s*\w+\s*,?\s*\);\s*try\s*\{\s*await\s+ModelAPI\.create/,
+    );
+  });
+
+  test("the row, the import, the retry and the Ping monitor all name by the scan under review", () => {
+    /*
+     * Issue #3678's WYSIWYG contract, pinned where the App suite can see it.
+     * The naming argument is required, so the compiler already insists each
+     * call passes SOMETHING — but `{}` compiles too, and would show
+     * "wb-0660-kds01" on the row while the retry created
+     * "wb-0660-kds01.wbhq.com (10.18.167.31)". So every naming argument on the
+     * page has to be the very identifier the row passes, and that identifier
+     * has to be the component's review state — the scan the fresh read put
+     * there — rather than a local literal.
+     */
+    const code: string = readCode();
+    const naming: string = rowNameSource().namingIdentifier;
+
+    expect(code).toMatch(
+      new RegExp(`const\\s*\\[\\s*${naming}\\s*,\\s*set\\w+\\s*\\]\\s*=`),
+    );
+
+    // The device the import builds.
+    const build: RegExpMatchArray | null = code.match(
+      /buildNetworkDeviceFromDiscoveredHost\(\{\s*projectId:[^}]*?host:\s*entry\s*,\s*scan:\s*(\w+)\s*,?\s*\}\)/,
+    );
+
+    expect(build?.[1]).toBe(naming);
+
+    // The collision retry.
+    const retry: RegExpMatchArray | null = code.match(
+      /catch\s*\(\s*\w+\s*\)\s*\{\s*device\.name\s*=\s*buildFallbackDeviceName\(\s*entry\s*,\s*(\w+)\s*,?\s*\);/,
+    );
+
+    expect(retry?.[1]).toBe(naming);
+
+    // The Ping monitor's name.
+    const monitor: RegExpMatchArray | null = code.match(
+      /const\s+monitorSubjectName\s*(?::[^=]*)?=\s*device\.name\s*&&\s*device\.name\s*!==\s*entry\.ipAddress\s*\?\s*buildFallbackDeviceName\(\s*entry\s*,\s*(\w+)\s*,?\s*\)/,
+    );
+
+    expect(monitor?.[1]).toBe(naming);
+
+    /*
+     * And no naming call anywhere on the page passes anything else — including
+     * one added later that none of the patterns above know about.
+     */
+    const namingCalls: Array<string> = Array.from(
+      code.matchAll(
+        /\b(?:buildDeviceName|buildFallbackDeviceName)\(([^)]*)\)/g,
+      ),
+      (call: RegExpMatchArray): string => {
+        return call[1]!.replace(/\s+/g, "").replace(/,$/, "");
+      },
+    );
+
+    expect(namingCalls.length).toBeGreaterThanOrEqual(3);
+
+    for (const args of namingCalls) {
+      expect(args).toBe(`entry,${naming}`);
+    }
+  });
+
+  test("the scan the dialog reviews is fetched with its naming choice", () => {
+    /*
+     * A column the fresh read does not select arrives as undefined, which the
+     * builder reads as "full names" — so a scan set to short names would
+     * silently preview and import full ones. The rendered test in
+     * Common/Tests/App/Dashboard/DiscoveryReviewInventoryRefresh pins the
+     * exact select; this is the source-level half, next to the naming tests
+     * that depend on it.
+     */
+    const code: string = readCode();
+
+    expect(code).toMatch(
+      /ModelAPI\.getItem<NetworkDeviceDiscoveryScan>\(\{[^)]*?select:\s*\{[^}]*\buseShortDeviceNames:\s*true\b[^}]*\}/,
+    );
+    expect(code).toMatch(
+      /selectMoreFields=\{\{[^}]*\buseShortDeviceNames:\s*true\b[^}]*\}\}/,
     );
   });
 });

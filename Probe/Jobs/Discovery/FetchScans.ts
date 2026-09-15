@@ -1,4 +1,5 @@
 import {
+  HasRegisterProbeKey,
   PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS,
   PROBE_DISCOVERY_MAX_CONCURRENT_SCANS,
   PROBE_DISCOVERY_SCAN_CONCURRENCY,
@@ -704,6 +705,29 @@ export function getRejectionReason(
 }
 
 /*
+ * Who may run the NetBIOS name lookup (OneUptime issue #3677), as a seam.
+ *
+ * An object with a method rather than a bare read of HasRegisterProbeKey,
+ * because that constant is fixed when Config.ts is first imported and a test
+ * cannot flip it for one case without rebuilding the whole module graph. Tests
+ * spy on `isGlobalProbe`; production always reads the real value.
+ *
+ * WHY a global probe never runs it, whatever the scan row says: a probe
+ * registered with REGISTER_PROBE_KEY is operated by the OneUptime instance,
+ * not by the customer whose network it would be sending UDP 137 into. It is
+ * the same line PROBE_ALLOW_PRIVATE_NETWORK_MONITORS draws — global probes do
+ * not touch private address space on a tenant's say-so — and the lookup only
+ * ever targets private space.
+ */
+export const DiscoveryNetbiosPolicy: {
+  isGlobalProbe: () => boolean;
+} = {
+  isGlobalProbe: (): boolean => {
+    return HasRegisterProbeKey;
+  },
+};
+
+/*
  * Exported for tests: bounds ONE sweep in time.
  *
  * Mirrors probeMonitorWithDeadline in Jobs/Monitor/FetchList.ts, and exists
@@ -795,6 +819,43 @@ export async function scanWithDeadline(
 
     result.reverseDnsResolvedCount =
       await SubnetScanner.attachReverseDnsHostnames(result.discoveredHosts);
+
+    /*
+     * NetBIOS names (OneUptime issue #3677), for whatever is STILL unnamed —
+     * which is why this comes after reverse DNS and not before or beside it:
+     * a host with a PTR record is never sent a datagram.
+     *
+     * Past the race for the same reason reverse DNS is, and gated three ways:
+     *
+     *   - `=== true`: the scan must have opted in. An absent column (an older
+     *     server) and every scan created before the column existed mean off,
+     *     so upgrading a probe never starts sending UDP 137 unannounced.
+     *   - not a global probe (DiscoveryNetbiosPolicy above).
+     *   - and, inside the resolver, private IPv4 addresses only.
+     *
+     * Wrapped in its OWN try/catch even though attachNetbiosNames never
+     * throws. This try has no catch of its own — it exists for the finally —
+     * so anything escaping here would reject scanWithDeadline, and runScan
+     * would report a sweep that had fully succeeded as Failed and never upload
+     * its hosts. A name is never worth that.
+     */
+    if (config.isNetbiosLookupEnabled === true) {
+      if (DiscoveryNetbiosPolicy.isGlobalProbe()) {
+        logger.debug(
+          `Discovery scan ${scanId} asked for NetBIOS names, but this is a global probe, which never sends NetBIOS queries. Skipped.`,
+        );
+      } else {
+        try {
+          result.netbiosResolvedCount = await SubnetScanner.attachNetbiosNames(
+            result.discoveredHosts,
+          );
+        } catch (err) {
+          logger.warn(
+            `Discovery scan ${scanId}: NetBIOS name lookup failed; its hosts will be reported without NetBIOS names. ${err}`,
+          );
+        }
+      }
+    }
 
     return result;
   } finally {
@@ -946,6 +1007,14 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
          * with an explicit PROBE_DISCOVERY_SCAN_CONCURRENCY overrides it.
          */
         maxConcurrency: PROBE_DISCOVERY_SCAN_CONCURRENCY || undefined,
+        /*
+         * Strictly `=== true`, unlike isSnmpEnabled above. That column's
+         * absence has to keep meaning the SNMP sweep every old scan ran; this
+         * one's absence — a server too old to select it — has to mean OFF,
+         * because the lookup sends UDP 137 to scanned hosts and must never
+         * start on a network whose operator did not ask for it.
+         */
+        isNetbiosLookupEnabled: scan.isNetbiosLookupEnabled === true,
       },
       scanIdString,
     );
@@ -1107,9 +1176,18 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
      * between the two.
      */
     const namedSuffix: string =
-      scanResult.reverseDnsResolvedCount === undefined
+      (scanResult.reverseDnsResolvedCount === undefined
         ? ""
-        : `, ${scanResult.reverseDnsResolvedCount} named by reverse DNS`;
+        : `, ${scanResult.reverseDnsResolvedCount} named by reverse DNS`) +
+      /*
+       * The NetBIOS tally follows the same rule: omitted when the lookup did
+       * not run (not asked for, global probe, or it threw), shown — zero
+       * included — when it did. Zero with the lookup on is the operator's cue
+       * that UDP 137 is filtered between the probe and those hosts.
+       */
+      (scanResult.netbiosResolvedCount === undefined
+        ? ""
+        : `, ${scanResult.netbiosResolvedCount} named by NetBIOS`);
 
     logger.debug(
       scanResult.isIcmpOnlySweep

@@ -2,7 +2,7 @@ import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatab
 import {
   MIGRATED_MONITOR_RULE_DESCRIPTION,
   MIGRATED_MONITOR_RULE_NAME,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1793000000000-BackfillSloMonitorRulesAndAffectedResources";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1793200000000-BackfillSloMonitorRulesAndAffectedResources";
 import SloLegacyMonitorLabelAdoption, {
   SLO_LEGACY_MONITOR_LABEL_ADOPT_STATEMENT,
   SLO_LEGACY_MONITOR_LABEL_LOCK_STATEMENT,

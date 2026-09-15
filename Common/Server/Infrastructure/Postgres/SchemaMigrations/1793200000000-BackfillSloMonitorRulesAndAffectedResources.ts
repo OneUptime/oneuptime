@@ -2,7 +2,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Data backfill for the SLO product overhaul. Runs after
- * SloProductOverhaul1792900000000, which created the tables it writes to.
+ * SloProductOverhaul1793100000000, which created the tables it writes to.
  *
  * 1. SLO label rules become SLO Monitor Rules.
  *
@@ -61,11 +61,11 @@ export const MIGRATED_MONITOR_RULE_DESCRIPTION: string =
 
 export const BURN_RATE_FINGERPRINT_LIKE_PATTERN: string = "slo:%:burn-rule:%";
 
-export class BackfillSloMonitorRulesAndAffectedResources1793000000000
+export class BackfillSloMonitorRulesAndAffectedResources1793200000000
   implements MigrationInterface
 {
   public name: string =
-    "BackfillSloMonitorRulesAndAffectedResources1793000000000";
+    "BackfillSloMonitorRulesAndAffectedResources1793200000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

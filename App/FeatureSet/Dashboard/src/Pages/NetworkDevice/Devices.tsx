@@ -51,6 +51,7 @@ import useBulkOidTemplateActions from "../../Components/NetworkDevice/useBulkOid
 import useBulkCreatePingMonitors from "../../Components/NetworkDevice/useBulkCreatePingMonitors";
 import useBulkSwitchToProbePolling from "../../Components/NetworkDevice/useBulkSwitchToProbePolling";
 import useBulkSnmpCredentialProfileActions from "../../Components/NetworkDevice/useBulkSnmpCredentialProfileActions";
+import useBulkShortenDeviceNames from "../../Components/NetworkDevice/useBulkShortenDeviceNames";
 import UnboundDevicesBanner from "../../Components/NetworkDevice/UnboundDevicesBanner";
 import OidTemplateElement from "../../Components/NetworkDevice/OidTemplateElement";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -640,6 +641,17 @@ const NetworkDevices: FunctionComponent<
   } = useBulkSnmpCredentialProfileActions();
 
   /*
+   * Short names for an EXISTING fleet (issue #3678). The scan setting names
+   * what discovery imports from now on by its hostname rather than its full
+   * DNS name, but a device already registered is never renamed by a later
+   * scan — so the hundreds imported as "wb-0660-kds01.wbhq.com" need a way to
+   * become "wb-0660-kds01" that is not one edit per device. Confirm-only: it
+   * asks nothing, so it has no modal to mount below the table.
+   */
+  const { bulkActions: shortenDeviceNameBulkActions } =
+    useBulkShortenDeviceNames();
+
+  /*
    * The probe the create form starts on before a site is picked.
    *
    * A probe is REQUIRED to register a device — nothing polls one without it —
@@ -863,6 +875,7 @@ const NetworkDevices: FunctionComponent<
             ...snmpCredentialProfileBulkActions,
             ...switchToProbePollingBulkActions,
             ...createPingMonitorBulkActions,
+            ...shortenDeviceNameBulkActions,
             ...archiveBulkActions,
           ],
           deleteConfirmationWarning:
@@ -870,7 +883,12 @@ const NetworkDevices: FunctionComponent<
         }}
         name="Network Devices"
         isViewable={true}
-        searchableFields={["name", "description"]}
+        /*
+         * The DNS name too: a device renamed to its short hostname — by the
+         * scan setting or the bulk action — has to stay findable by the full
+         * name people know it by.
+         */
+        searchableFields={["name", "description", "dnsName"]}
         /*
          * Only what the chips cannot express — free text.
          *
@@ -1745,6 +1763,17 @@ const NetworkDevices: FunctionComponent<
           interfacesDown: true,
           sysName: true,
           deviceModel: true,
+          /*
+           * What "Shorten Names to Hostname" plans its confirmation from and
+           * checks each row against before renaming it. Selected explicitly
+           * rather than relying on the Name and Hostname columns happening to
+           * be declared: DNS Name has no column of its own, and a row missing
+           * its hostname would lose its " (10.0.0.5)" suffix handling, while
+           * one missing its DNS name would misstate what the rename keeps.
+           */
+          name: true,
+          hostname: true,
+          dnsName: true,
         }}
         onViewPage={(item: NetworkDevice): Promise<Route> => {
           return Promise.resolve(

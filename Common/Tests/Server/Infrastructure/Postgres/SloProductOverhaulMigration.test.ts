@@ -1,4 +1,4 @@
-import { SloProductOverhaul1792900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1792900000000-SloProductOverhaul";
+import { SloProductOverhaul1793100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1793100000000-SloProductOverhaul";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -32,7 +32,7 @@ import type { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetad
  * changes in database schema were found" is how it was verified when written.
  */
 
-const MIGRATION_FILE_NAME: string = "1792900000000-SloProductOverhaul.ts";
+const MIGRATION_FILE_NAME: string = "1793100000000-SloProductOverhaul.ts";
 
 const MIGRATION_PATH: string = path.join(
   __dirname,
@@ -66,7 +66,7 @@ const recordQueries: RecordQueriesFunction = async (
     },
   } as unknown as QueryRunner;
 
-  await new SloProductOverhaul1792900000000()[direction](queryRunner);
+  await new SloProductOverhaul1793100000000()[direction](queryRunner);
 
   return statements;
 };
@@ -273,13 +273,13 @@ describe("SloProductOverhaul migration - identity and registration", () => {
     const source: string = fs.readFileSync(MIGRATION_PATH, "utf8");
 
     expect(source).toContain(
-      "export class SloProductOverhaul1792900000000 implements MigrationInterface",
+      "export class SloProductOverhaul1793100000000 implements MigrationInterface",
     );
     expect(source).toContain(
-      'public name: string = "SloProductOverhaul1792900000000";',
+      'public name: string = "SloProductOverhaul1793100000000";',
     );
-    expect(new SloProductOverhaul1792900000000().name).toBe(
-      "SloProductOverhaul1792900000000",
+    expect(new SloProductOverhaul1793100000000().name).toBe(
+      "SloProductOverhaul1793100000000",
     );
   });
 
@@ -290,10 +290,22 @@ describe("SloProductOverhaul migration - identity and registration", () => {
       return migration.name;
     });
 
-    expect(names).toContain("SloProductOverhaul1792900000000");
-    expect(names.indexOf("SloProductOverhaul1792900000000")).toBeGreaterThan(
-      names.indexOf("AddNetworkDeviceDiagnostic1792800000000"),
+    expect(names).toContain("SloProductOverhaul1793100000000");
+    /*
+     * Renumbered from 1792900000000 when master shipped two NetworkDevice
+     * migrations on 1792900000000 / 1793000000000 first: it must follow the
+     * newest migration that was already registered when it merged.
+     */
+    expect(names.indexOf("SloProductOverhaul1793100000000")).toBeGreaterThan(
+      names.indexOf(
+        "AddNetbiosLookupToNetworkDeviceDiscoveryScan1793000000000",
+      ),
     );
+    expect(
+      names.indexOf(
+        "AddNetbiosLookupToNetworkDeviceDiscoveryScan1793000000000",
+      ),
+    ).toBeGreaterThanOrEqual(0);
   });
 
   test("the wall-clock file typeorm generated was not left behind", () => {

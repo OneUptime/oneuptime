@@ -124,6 +124,16 @@ router.post(
              */
             isSnmpEnabled: true,
             /*
+             * Whether the probe asks still-unnamed hosts for their NetBIOS
+             * name over UDP 137 (issue #3677). Opt-in: the probe runs the
+             * lookup only when this reads exactly `true`, so leaving the
+             * column out of this select would silently switch the feature off
+             * for every scan — the probe would never see the flag the operator
+             * set. It is not a sweep column: it changes what is learned about
+             * hosts after the sweep, not which hosts are found.
+             */
+            isNetbiosLookupEnabled: true,
+            /*
              * The ordered credential list the sweep tries, first match wins.
              * The flattened columns below it are still selected and still
              * mirror this list's first entry: an older probe reads only those,

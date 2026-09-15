@@ -4,7 +4,7 @@ import PostgresAppInstance, {
 import {
   MIGRATED_MONITOR_RULE_DESCRIPTION,
   MIGRATED_MONITOR_RULE_NAME,
-} from "../../Infrastructure/Postgres/SchemaMigrations/1793000000000-BackfillSloMonitorRulesAndAffectedResources";
+} from "../../Infrastructure/Postgres/SchemaMigrations/1793200000000-BackfillSloMonitorRulesAndAffectedResources";
 import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotConnectedException";
 import ObjectID from "../../../Types/ObjectID";
 import { EntityManager } from "typeorm";
@@ -13,7 +13,7 @@ import { EntityManager } from "typeorm";
  * Turns an SLO's deprecated "Auto-Add Monitors With Labels" list into a real
  * SLO Monitor Rule, for SLOs the one-shot backfill could not have seen.
  *
- * WHY THIS EXISTS. Migration 1793000000000 converts every label list into a
+ * WHY THIS EXISTS. Migration 1793200000000 converts every label list into a
  * rule once, when the migrate Job runs. The label table itself is kept so API
  * pods from the previous release keep working during a rolling deploy - and
  * those pods keep WRITING it: their create and edit forms still ask for

@@ -34,13 +34,13 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rules seeded on SLO create, and API pods of the previous release keep
  * working unchanged. The deprecated ServiceLevelObjectiveMonitorLabel table
  * is deliberately left in place for that rolling-deploy window. Existing data
- * is moved by BackfillSloMonitorRulesAndAffectedResources1793000000000.
+ * is moved by BackfillSloMonitorRulesAndAffectedResources1793200000000.
  *
  * down() drops the new tables, which destroys monitor rules, feed history and
  * burn rate output configuration - a last resort.
  */
-export class SloProductOverhaul1792900000000 implements MigrationInterface {
-  public name: string = "SloProductOverhaul1792900000000";
+export class SloProductOverhaul1793100000000 implements MigrationInterface {
+  public name: string = "SloProductOverhaul1793100000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

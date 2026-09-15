@@ -23,7 +23,7 @@ const NEVER_MATCH_PATTERN: string = "(?!)";
  * later migration.
  */
 const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
-  // 1792900000000-SloProductOverhaul
+  // 1793100000000-SloProductOverhaul
   "ServiceLevelObjectiveMonitorRule",
 ];
 

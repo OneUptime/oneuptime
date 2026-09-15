@@ -182,11 +182,20 @@ describe("ResourceFeed", () => {
 
     renderFeed();
 
-    await waitFor(() => {
-      expect(
-        screen.getByText(/cluster was created automatically/),
-      ).toBeInTheDocument();
-    });
+    /*
+     * The first test to render markdown pays for the lazy MarkdownViewer
+     * chunk: until import() settles, each item shows the "Loading content"
+     * placeholder. On a loaded CI runner that took longer than waitFor's
+     * default 1s, so give the cold load room (later tests hit the warm cache).
+     */
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/cluster was created automatically/),
+        ).toBeInTheDocument();
+      },
+      { timeout: 20000 },
+    );
 
     expect(
       screen.getByText(/Jane Doe was added as an owner/),

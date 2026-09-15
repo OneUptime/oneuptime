@@ -1,9 +1,9 @@
 import {
   BURN_RATE_FINGERPRINT_LIKE_PATTERN,
-  BackfillSloMonitorRulesAndAffectedResources1793000000000,
+  BackfillSloMonitorRulesAndAffectedResources1793200000000,
   MIGRATED_MONITOR_RULE_DESCRIPTION,
   MIGRATED_MONITOR_RULE_NAME,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1793000000000-BackfillSloMonitorRulesAndAffectedResources";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1793200000000-BackfillSloMonitorRulesAndAffectedResources";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { describe, expect, test } from "@jest/globals";
 import { QueryRunner } from "typeorm";
@@ -43,7 +43,7 @@ const recordQueries: RecordedQueriesFunction = async (
     },
   } as unknown as QueryRunner;
 
-  await new BackfillSloMonitorRulesAndAffectedResources1793000000000()[
+  await new BackfillSloMonitorRulesAndAffectedResources1793200000000()[
     direction
   ](queryRunner);
 
@@ -72,11 +72,11 @@ const findStatement: FindStatementFunction = (
 
 describe("BackfillSloMonitorRulesAndAffectedResources migration - identity", () => {
   test("its class name and name field carry its timestamp", () => {
-    const migration: BackfillSloMonitorRulesAndAffectedResources1793000000000 =
-      new BackfillSloMonitorRulesAndAffectedResources1793000000000();
+    const migration: BackfillSloMonitorRulesAndAffectedResources1793200000000 =
+      new BackfillSloMonitorRulesAndAffectedResources1793200000000();
 
     expect(migration.name).toBe(
-      "BackfillSloMonitorRulesAndAffectedResources1793000000000",
+      "BackfillSloMonitorRulesAndAffectedResources1793200000000",
     );
   });
 
@@ -88,10 +88,10 @@ describe("BackfillSloMonitorRulesAndAffectedResources migration - identity", () 
     });
 
     const backfillIndex: number = names.indexOf(
-      "BackfillSloMonitorRulesAndAffectedResources1793000000000",
+      "BackfillSloMonitorRulesAndAffectedResources1793200000000",
     );
     const schemaIndex: number = names.indexOf(
-      "SloProductOverhaul1792900000000",
+      "SloProductOverhaul1793100000000",
     );
 
     expect(schemaIndex).toBeGreaterThanOrEqual(0);
