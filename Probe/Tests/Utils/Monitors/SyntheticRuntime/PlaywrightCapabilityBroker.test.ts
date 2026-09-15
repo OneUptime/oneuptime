@@ -560,6 +560,95 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
     }
   });
 
+  test("withholds an internal page that a popup's opener() leads back to", async () => {
+    /*
+     * pages() is not the only road to a page. A popup opened by an internal
+     * page is an ordinary page the tenant may use, and its opener() leads
+     * straight back to the internal page -- the path a review found still
+     * handed the tenant a live capability for an abandoned bootstrap page.
+     * The tenant's own popups must keep reporting their opener.
+     */
+    const context: BrowserContext = await browser.newContext();
+
+    try {
+      const tenantPage: Page = await context.newPage();
+      const runtimePage: Page = await context.newPage();
+      const internalPage: Page = await context.newPage();
+      const internalBroker: PlaywrightCapabilityBroker = createBroker({
+        executionId,
+        page: tenantPage,
+        browserContext: context,
+        controllerPage: runtimePage,
+        internalPages: new Set<Page>([internalPage]),
+        signal: abortController.signal,
+        onRuntimeReady: jest.fn(),
+      });
+      const capabilities: ReturnType<
+        PlaywrightCapabilityBroker["getBootstrapCapabilities"]
+      > = internalBroker.getBootstrapCapabilities();
+
+      const listedPageIds: () => Promise<string[]> = async (): Promise<
+        string[]
+      > => {
+        const response: PlaywrightRpcResponse = await internalBroker.dispatch(
+          request("title", [], capabilities.page),
+        );
+        expect(response.ok).toBe(true);
+        return descriptorIds(response.state?.pages);
+      };
+
+      const openPopupFrom: (
+        opener: Page,
+      ) => Promise<CapabilityDescriptor> = async (
+        opener: Page,
+      ): Promise<CapabilityDescriptor> => {
+        const before: string[] = await listedPageIds();
+        await Promise.all([
+          opener.waitForEvent("popup"),
+          opener.evaluate("void window.open('about:blank')"),
+        ]);
+        const response: PlaywrightRpcResponse = await internalBroker.dispatch(
+          request("title", [], capabilities.page),
+        );
+        const added: CapabilityDescriptor[] = (
+          (response.state?.pages as CapabilityDescriptor[] | undefined) || []
+        ).filter((descriptor: CapabilityDescriptor): boolean => {
+          return !before.includes(descriptor.id);
+        });
+        expect(added).toHaveLength(1);
+        return added[0] as CapabilityDescriptor;
+      };
+
+      // Control: the tenant's own popup still leads back to the tenant's page.
+      const tenantPopup: CapabilityDescriptor = await openPopupFrom(tenantPage);
+      const tenantOpener: PlaywrightRpcResponse = await internalBroker.dispatch(
+        request("opener", [], tenantPopup),
+      );
+      expect(tenantOpener.ok).toBe(true);
+      expect((tenantOpener.value as CapabilityDescriptor | null)?.id).toBe(
+        capabilities.page.id,
+      );
+
+      // The internal page's popup is usable, but its opener is withheld.
+      const runtimePopup: CapabilityDescriptor =
+        await openPopupFrom(internalPage);
+      const runtimeOpener: PlaywrightRpcResponse =
+        await internalBroker.dispatch(request("opener", [], runtimePopup));
+      expect(runtimeOpener.ok).toBe(true);
+      expect(runtimeOpener.value).toBeNull();
+
+      // Nothing about the exchange put the internal page on the tenant's list.
+      expect(await listedPageIds()).toEqual([
+        capabilities.page.id,
+        tenantPopup.id,
+        runtimePopup.id,
+      ]);
+      expect(internalPage.isClosed()).toBe(false);
+    } finally {
+      await context.close();
+    }
+  });
+
   test("without internal pages, every page but the controller page is the tenant's", async () => {
     const context: BrowserContext = await browser.newContext();
 

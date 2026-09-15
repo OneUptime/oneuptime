@@ -397,10 +397,18 @@ export default class WorkerController {
     ) {
       throw new Error("Synthetic runtime bootstrap attempt count is invalid.");
     }
+    /*
+     * Capped as well as floored: Node clamps a timer above 2^31-1 ms to 1 ms,
+     * so an enormous bound would give up on teardown at once -- the opposite
+     * of what it asks for. Nothing may wait longer than the whole start-up
+     * allowance anyway.
+     */
     if (
       options.teardownTimeoutInMs !== undefined &&
       (!Number.isSafeInteger(options.teardownTimeoutInMs) ||
-        options.teardownTimeoutInMs <= 0)
+        options.teardownTimeoutInMs <= 0 ||
+        options.teardownTimeoutInMs >
+          SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS)
     ) {
       throw new Error("Synthetic runtime teardown timeout is invalid.");
     }

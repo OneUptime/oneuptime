@@ -1491,6 +1491,18 @@ export default class PlaywrightCapabilityBroker {
     if (value && typeof value === "object") {
       const capabilityType: PlaywrightCapabilityType | null =
         this.inferCapabilityType(value as HostObject);
+      if (
+        capabilityType === "page" &&
+        this.isInternalPage(value as unknown as Page)
+      ) {
+        /*
+         * A runtime page reached through another path -- page.opener() of a
+         * popup that an abandoned bootstrap page opened, say -- is withheld
+         * the same way pages() withholds it. null is what opener() returns
+         * when there is no opener, so the tenant cannot tell the difference.
+         */
+        return null;
+      }
       if (capabilityType) {
         return this.registerCapability(value as HostObject, capabilityType);
       }
@@ -1765,8 +1777,12 @@ export default class PlaywrightCapabilityBroker {
 
   private monitoredPages(): Page[] {
     return this.browserContext.pages().filter((page: Page) => {
-      return page !== this.controllerPage && !this.internalPages.has(page);
+      return !this.isInternalPage(page);
     });
+  }
+
+  private isInternalPage(page: Page): boolean {
+    return page === this.controllerPage || this.internalPages.has(page);
   }
 
   private sanitizeError(error: unknown): string {

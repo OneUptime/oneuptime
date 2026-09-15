@@ -1200,12 +1200,15 @@ describe("SyntheticRuntime WorkerController bootstrap", () => {
     ).rejects.toThrow("Synthetic runtime bootstrap timeout is invalid.");
   });
 
-  test.each<number>([0, -1, 1.5])(
+  test.each<number>([0, -1, 1.5, 120_001, 2_147_483_648])(
     "rejects a teardown timeout of %p before opening any page",
     async (teardownTimeoutInMs: number): Promise<void> => {
       /*
        * A bound of zero or less would give every teardown step up before it
-       * started, and a fractional one is not a timer length anyone meant.
+       * started, and a fractional one is not a timer length anyone meant. An
+       * enormous one is worse than useless: Node clamps a timer above 2^31-1
+       * ms to 1 ms, so it too would give teardown up at once. Nothing may
+       * wait longer than the worker's whole start-up allowance (120 s).
        */
       const context: FakeBrowserContext = new FakeBrowserContext(0);
 
