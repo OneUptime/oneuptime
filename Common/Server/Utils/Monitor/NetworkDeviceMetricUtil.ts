@@ -21,20 +21,15 @@ import SnmpMonitorResponse, {
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { NETWORK_DEVICE_PING_ROUND_TRIP_TIME_METRIC_NAME } from "../../../Types/NetworkDevice/NetworkDevicePingMetricNames";
 
 /*
- * Ping round-trip time of a network device, in ms.
- *
- * Ping monitors write their RTT into MonitorMetricType.ResponseTime, but on
- * a network device that series is the SNMP walk's time (and is absent on a
- * ping-only poll), so the RTT needs a series of its own. It sits in the
- * `oneuptime.monitor.ping.*` namespace beside PacketLossPercent and Jitter,
- * which ARE reused from the Ping monitor. MonitorMetricType has no member
- * for it yet; this constant should graduate into that enum (and the device
- * metric catalog) rather than be duplicated.
+ * Ping round-trip time of a network device, in ms. Defined in Common/Types
+ * (NetworkDevicePingMetricNames) because the dashboard reads the series
+ * back and cannot import this server module; re-exported here under the
+ * same name so nothing that already imports it from here has to move.
  */
-export const NETWORK_DEVICE_PING_ROUND_TRIP_TIME_METRIC_NAME: string =
-  "oneuptime.monitor.ping.round.trip.time";
+export { NETWORK_DEVICE_PING_ROUND_TRIP_TIME_METRIC_NAME };
 
 /*
  * Emits device-scoped metrics from each device poll — reachability, ping

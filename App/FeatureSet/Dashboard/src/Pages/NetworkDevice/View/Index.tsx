@@ -9,12 +9,14 @@ import DeviceMonitorLookupUtil, {
 import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitorsCard";
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
 import DeviceAttachmentCard from "../../../Components/NetworkDevice/DeviceAttachmentCard";
+import DeviceDiagnosticsCard from "../../../Components/NetworkDevice/DeviceDiagnosticsCard";
 import { getMacAddressFormField } from "../MacAddressFormField";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Label from "Common/Models/DatabaseModels/Label";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -22,6 +24,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import API from "Common/UI/Utils/API/API";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -45,6 +48,19 @@ const NetworkDeviceView: FunctionComponent<
   const [isMonitorBacked, setIsMonitorBacked] = useState<boolean>(false);
   const [isMonitorsLoading, setIsMonitorsLoading] = useState<boolean>(true);
   const [monitorsError, setMonitorsError] = useState<string>("");
+
+  /*
+   * Hidden, not disabled, like the topology view's gates: PermissionGate
+   * answers "not allowed, nothing honest to say" while the permission
+   * snapshot is still in flight, and disabled buttons would accuse a
+   * permitted operator of lacking a permission they hold. Only the Ping /
+   * Traceroute buttons are behind it; the card's read-only latency trend
+   * shows for everyone who can see the device.
+   */
+  const canRunDiagnostics: boolean = PermissionGate.check(
+    new NetworkDeviceDiagnostic(),
+    ModelAction.Create,
+  ).isAllowed;
 
   useEffect(() => {
     const fetchMonitors: PromiseVoidFunction = async (): Promise<void> => {
@@ -241,6 +257,10 @@ const NetworkDeviceView: FunctionComponent<
       />
       <DeviceInterfacesPreview modelId={modelId} />
       <DeviceAttachmentCard modelId={modelId} />
+      <DeviceDiagnosticsCard
+        modelId={modelId}
+        canRunDiagnostics={canRunDiagnostics}
+      />
       <DeviceInventoryCard modelId={modelId} />
       <DeviceMonitorsCard
         monitors={monitors}

@@ -75,6 +75,11 @@ jest.mock("../../../Models/DatabaseModels/NetworkDevice", () => {
   return { __esModule: true, default: class NetworkDevice {} };
 });
 
+// Stubbed for the same reason as NetworkDevice: the gate is mocked above.
+jest.mock("../../../Models/DatabaseModels/NetworkDeviceDiagnostic", () => {
+  return { __esModule: true, default: class NetworkDeviceDiagnostic {} };
+});
+
 jest.mock("../../../Models/DatabaseModels/NetworkTopologySuppression", () => {
   return { __esModule: true, default: class NetworkTopologySuppression {} };
 });

@@ -2,6 +2,7 @@ import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddCon
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
 import { AddSecurityEventConnections1792700000000 } from "./1792700000000-AddSecurityEventConnections";
+import { AddNetworkDeviceDiagnostic1792800000000 } from "./1792800000000-AddNetworkDeviceDiagnostic";
 import { AddSloBurnRateRuleIncidents1792400000000 } from "./1792400000000-AddSloBurnRateRuleIncidents";
 import { AddUserWebAuthnPurpose1792200000000 } from "./1792200000000-AddUserWebAuthnPurpose";
 import InitialMigration from "./1717605043663-InitialMigration";
@@ -1180,4 +1181,5 @@ export default [
   AddConfigurableRuleCriteria1792500000000,
   AddIncomingCallPolicyPhoneNumbers1792600000000,
   AddSecurityEventConnections1792700000000,
+  AddNetworkDeviceDiagnostic1792800000000,
 ];

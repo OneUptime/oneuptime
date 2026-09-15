@@ -17,6 +17,7 @@ import NetworkDeviceRole from "./NetworkDeviceRole";
 import NetworkAlertPolicy from "./NetworkAlertPolicy";
 import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
+import NetworkDeviceDiagnostic from "./NetworkDeviceDiagnostic";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
 import NetworkSiteType from "./NetworkSiteType";
@@ -908,6 +909,7 @@ const AllModelTypes: Array<{
   NetworkAlertPolicy,
   NetworkSnmpCredentialProfile,
   NetworkDeviceDiscoveryScan,
+  NetworkDeviceDiagnostic,
   NetworkInterface,
   NetworkSite,
   NetworkSiteType,
