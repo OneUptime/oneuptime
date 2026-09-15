@@ -1242,27 +1242,39 @@ describe("Every error prefix the guidance names is really produced", () => {
   /*
    * The client's prefix only reaches Last Error if nothing between the
    * client and the column rewrites it. The connector rethrows the ORIGINAL
-   * error from a failed pass, only attaching the pass checks to it, and the
-   * helper that attaches them returns the same object.
+   * error from a failed pass, only attaching the pass checks and the
+   * partial-fetch summary to it, and both helpers that attach them return
+   * the same object.
    */
   test("the connector hands a pass failure to the poller with its prefix intact", () => {
     const [catchBlock]: Array<string> = extractBalancedBlocks(
       fetchEventsBody.slice(indexOfOrThrow(fetchEventsBody, "} catch (error)")),
       "catch (error)",
     );
+    const squashedCatch: string = catchBlock!.replace(/\s+/g, " ");
 
-    expect(catchBlock).toContain(
-      "throw attachConnectorChecks(error, [...run.checks]);",
+    expect(squashedCatch).toContain(
+      "throw attachConnectorFetchSummary( attachConnectorChecks(error, [...run.checks]),",
     );
+    // Nothing else is thrown: no wrapper error replaces the original.
+    expect(squashedCatch.match(/\bthrow\b/g)).toHaveLength(1);
+    expect(squashedCatch).not.toContain("new ");
 
-    const attachBody: string = sliceBetween(
+    const attachChecksBody: string = sliceBetween(
       connectorTypesSource,
       "export function attachConnectorChecks<T>(",
       "export function readConnectorChecks(",
     );
+    const attachSummaryBody: string = sliceBetween(
+      connectorTypesSource,
+      "export function attachConnectorFetchSummary<T>(",
+      "function isNonNegativeCount(",
+    );
 
-    expect(attachBody).toContain("Object.defineProperty(error,");
-    expect(attachBody).toContain("return error;");
+    for (const body of [attachChecksBody, attachSummaryBody]) {
+      expect(body).toContain("Object.defineProperty(error,");
+      expect(body).toContain("return error;");
+    }
   });
 
   /*
