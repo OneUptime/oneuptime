@@ -4,10 +4,9 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
-import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import ServiceLevelObjectiveMonitorRuleService from "./ServiceLevelObjectiveMonitorRuleService";
 import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineService";
 import StatusPageMonitorRuleService from "./StatusPageMonitorRuleService";
-import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import StatusPageMonitorRule from "../../Models/DatabaseModels/StatusPageMonitorRule";
 import BadDataException from "../../Types/Exception/BadDataException";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -68,10 +67,11 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Deleting a label cascades its join rows away at the database level, so no
-   * service hook ever fires for the SLO label rules or status page monitor
+   * service hook ever fires for the SLO monitor rules or status page monitor
    * rules that referenced it. Those would keep the monitors the rule attached,
-   * with nothing left to explain why. Note the ids down while the label still
-   * exists, and re-run the (now smaller) rules once it is gone.
+   * with nothing left to explain why. Note the affected SLOs and rules down
+   * while the label still exists, and re-run the (now smaller) rules once it
+   * is gone.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
@@ -102,28 +102,23 @@ export class Service extends DatabaseService<Model> {
         });
 
       if (labelIds.length > 0) {
-        const slos: Array<ServiceLevelObjective> =
-          await ServiceLevelObjectiveService.findBy({
-            query: {
-              monitorLabels: labelIds,
-            },
-            select: {
-              _id: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
-
-        serviceLevelObjectiveIds = slos
-          .map((slo: ServiceLevelObjective) => {
-            return slo.id;
-          })
-          .filter((id: ObjectID | null): id is ObjectID => {
-            return Boolean(id);
-          });
+        /*
+         * SLO monitor rules refer to labels through their legacy join table
+         * and inside criteria JSON alike; the rule service knows both shapes
+         * and de-duplicates the SLOs. Collected in its own try, so an SLO
+         * lookup that fails cannot cost the status page monitor rules below
+         * their re-sync.
+         */
+        try {
+          serviceLevelObjectiveIds =
+            await ServiceLevelObjectiveMonitorRuleService.findServiceLevelObjectiveIdsForRulesUsingLabels(
+              labelIds,
+            );
+        } catch (err) {
+          logger.error(
+            `Error collecting SLO monitor rules affected by a label delete: ${err}`,
+          );
+        }
 
         const legacyStatusPageMonitorRules: Array<StatusPageMonitorRule> =
           await StatusPageMonitorRuleService.findBy({
@@ -229,7 +224,7 @@ export class Service extends DatabaseService<Model> {
         });
       } catch (err) {
         logger.error(
-          `Error re-applying the monitor label rule for SLO ${serviceLevelObjectiveId.toString()} after a label delete: ${err}`,
+          `Error re-applying the monitor rules for SLO ${serviceLevelObjectiveId.toString()} after a label delete: ${err}`,
         );
       }
     }

@@ -3,7 +3,13 @@ import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import Model from "../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import {
+  SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
+} from "../../Utils/Slo/SloBurnRateTemplate";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -11,8 +17,13 @@ import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
-import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import ProjectScopedReferenceValidator, {
+  ProjectScopedReference,
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertService from "./AlertService";
@@ -22,6 +33,38 @@ import DatabaseService from "./DatabaseService";
 import IncidentService from "./IncidentService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
+import LabelService from "./LabelService";
+import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import TeamMemberService from "./TeamMemberService";
+import TeamService from "./TeamService";
+import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
+import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import { ServiceLevelObjectiveFeedEventType } from "../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
+import { Gray500, Green500, Red500 } from "../../Types/BrandColors";
+import OneUptimeDate from "../../Types/Date";
+import {
+  SLO_BURN_RATE_RULE_FEED_COLUMNS,
+  SloFeedColumn,
+  SloFeedColumnChange,
+  SloFeedMarkdown,
+  SloFeedRow,
+  getBurnRateRuleAddedFeedMarkdown,
+  getBurnRateRuleChangedFeedMarkdown,
+  getBurnRateRuleRemovedFeedMarkdown,
+  getSloFeedColumnChanges,
+  getSloFeedColumnsInPayload,
+  getSloFeedSelect,
+} from "../../Utils/Slo/SloFeedMarkdown";
+import SloFeedUtil from "../Utils/Slo/SloFeedUtil";
+
+/*
+ * What the SLO feed carries from onBeforeUpdate to onUpdateSuccess for a
+ * hand-made rule edit: the watched columns it writes, and each rule as it was.
+ */
+interface BurnRateRuleFeedSnapshot {
+  columns: Array<SloFeedColumn>;
+  rowsById: Dictionary<Model>;
+}
 
 const THRESHOLD_ERROR_MESSAGE: string =
   "Burn rate threshold must be greater than 0.";
@@ -39,6 +82,143 @@ export const NO_OUTPUT_ERROR_MESSAGE: string =
  */
 const DEFAULT_SHOULD_CREATE_ALERT: boolean = true;
 const DEFAULT_SHOULD_CREATE_INCIDENT: boolean = false;
+
+/*
+ * The alert and incident options, defaulted exactly like their columns. A
+ * payload that never mentions them - every seeded rule, every rule an older API
+ * client creates - therefore raises what burn rate rules always raised: a
+ * record everyone in the project can see, resolved automatically when the burn
+ * recovers, with no owners added. Exported so the tests can pin these against
+ * the model's own column metadata instead of a second copy of the literals.
+ */
+export const BURN_RATE_RULE_OPTION_FLAG_DEFAULTS: {
+  isAlertPrivate: boolean;
+  autoResolveAlert: boolean;
+  isIncidentPrivate: boolean;
+  autoResolveIncident: boolean;
+  addSloOwnersAsOwners: boolean;
+} = {
+  isAlertPrivate: false,
+  autoResolveAlert: true,
+  isIncidentPrivate: false,
+  autoResolveIncident: true,
+  addSloOwnersAsOwners: false,
+};
+
+type BurnRateRuleOptionFlag = keyof typeof BURN_RATE_RULE_OPTION_FLAG_DEFAULTS;
+
+/*
+ * Template columns and their limits, from the module the dashboard form reads
+ * too, so the browser refuses exactly what this hook would.
+ *
+ * Titles are varchar(ColumnLength.LongText) - on this rule and on the Alert and
+ * Incident they render into - so the column's own length is the limit, and
+ * saying so here beats Postgres' raw "value too long". The worker still clamps
+ * the RENDERED title, because `{{sloName}}` can expand a template that fit.
+ *
+ * Markdown columns are unbounded text, but a template is copied into every
+ * record the rule opens and into the notifications each of those sends, so
+ * they get a generous cap rather than none.
+ */
+export const BURN_RATE_RULE_MARKDOWN_TEMPLATE_MAX_LENGTH: number =
+  SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH;
+
+export const BURN_RATE_RULE_TITLE_TEMPLATE_MAX_LENGTH: number =
+  SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH;
+
+type BurnRateRuleTemplateColumn =
+  | "alertTitleTemplate"
+  | "alertDescriptionTemplate"
+  | "alertRemediationNotes"
+  | "incidentTitleTemplate"
+  | "incidentDescriptionTemplate"
+  | "incidentRemediationNotes";
+
+export const BURN_RATE_RULE_TEMPLATE_COLUMNS: Array<{
+  column: BurnRateRuleTemplateColumn;
+  title: string;
+  maxLength: number;
+}> = [
+  {
+    column: "alertTitleTemplate",
+    title: "Alert title template",
+    maxLength: BURN_RATE_RULE_TITLE_TEMPLATE_MAX_LENGTH,
+  },
+  {
+    column: "alertDescriptionTemplate",
+    title: "Alert description template",
+    maxLength: BURN_RATE_RULE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  },
+  {
+    column: "alertRemediationNotes",
+    title: "Alert remediation notes",
+    maxLength: BURN_RATE_RULE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  },
+  {
+    column: "incidentTitleTemplate",
+    title: "Incident title template",
+    maxLength: BURN_RATE_RULE_TITLE_TEMPLATE_MAX_LENGTH,
+  },
+  {
+    column: "incidentDescriptionTemplate",
+    title: "Incident description template",
+    maxLength: BURN_RATE_RULE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  },
+  {
+    column: "incidentRemediationNotes",
+    title: "Incident remediation notes",
+    maxLength: BURN_RATE_RULE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  },
+];
+
+// Every many-to-many list the rule copies onto the records it opens.
+type BurnRateRuleProjectScopedRelationColumn =
+  | "onCallDutyPolicies"
+  | "incidentOnCallDutyPolicies"
+  | "alertLabels"
+  | "incidentLabels"
+  | "alertOwnerTeams"
+  | "incidentOwnerTeams";
+
+type BurnRateRuleOwnerUserColumn = "alertOwnerUsers" | "incidentOwnerUsers";
+
+type BurnRateRuleRelationColumn =
+  | BurnRateRuleProjectScopedRelationColumn
+  | BurnRateRuleOwnerUserColumn;
+
+const OWNER_USER_COLUMNS: Array<BurnRateRuleOwnerUserColumn> = [
+  "alertOwnerUsers",
+  "incidentOwnerUsers",
+];
+
+const PROJECT_SCOPED_RELATION_COLUMNS: Array<BurnRateRuleProjectScopedRelationColumn> =
+  [
+    "onCallDutyPolicies",
+    "incidentOnCallDutyPolicies",
+    "alertLabels",
+    "incidentLabels",
+    "alertOwnerTeams",
+    "incidentOwnerTeams",
+  ];
+
+const RELATION_COLUMNS: Array<BurnRateRuleRelationColumn> = [
+  ...PROJECT_SCOPED_RELATION_COLUMNS,
+  ...OWNER_USER_COLUMNS,
+];
+
+export const OWNER_USERS_NOT_IN_PROJECT_ERROR_PREFIX: string =
+  "This SLO burn rate rule names owner users who are not members of this project:";
+
+/*
+ * Ids compare case-insensitively: ObjectID keeps whatever case it was handed,
+ * while Postgres renders a uuid lower-cased (ProjectScopedReferenceValidator
+ * explains the same trap).
+ */
+type NormalizeIdFunction = (id: string) => string;
+
+const normalizeId: NormalizeIdFunction = (id: string): string => {
+  return id.trim().toLowerCase();
+};
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -140,16 +320,74 @@ export class Service extends DatabaseService<Model> {
     createBy.data.shouldCreateAlert = shouldCreateAlert;
     createBy.data.shouldCreateIncident = shouldCreateIncident;
 
+    /*
+     * The alert and incident options, written back explicitly for the same
+     * reason as the two output flags - and coerced for the same "false"-string
+     * reason: the worker reads autoResolve with `!== false` and the private
+     * flags with `=== true`, so an uncoerced "false" would keep auto-resolving
+     * and an uncoerced "true" would publish a record the user asked to hide.
+     */
+    this.normalizeOptionFlags(createBy.data as unknown as Dictionary<unknown>, {
+      applyDefaults: true,
+    });
+
+    this.normalizeTemplates(createBy.data as unknown as Dictionary<unknown>);
+
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+
     await this.validateSeverityReferences({
-      projectId: createBy.data.projectId || createBy.props.tenantId,
+      projectId: projectId,
       alertSeverityId: createBy.data.alertSeverityId,
       incidentSeverityId: createBy.data.incidentSeverityId,
+    });
+
+    await this.validateRoutingReferences({
+      projectId: projectId,
+      payload: createBy.data as unknown as Dictionary<unknown>,
+      storedIds: undefined,
     });
 
     return {
       createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * BurnRateRuleAdded on the SLO feed. Skipped for the two rules OneUptime
+   * seeds while creating an SLO: the SLO's own "created" item already
+   * describes them (SloFeedUtil.runWhileSeedingDefaultBurnRateRules explains
+   * how they are told apart). Fire-and-forget - the rule exists whether or not
+   * its feed item does.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (
+      createdItem.serviceLevelObjectiveId &&
+      !SloFeedUtil.isSeedingDefaultBurnRateRules(
+        createdItem.serviceLevelObjectiveId,
+      )
+    ) {
+      const createdAt: Date =
+        createdItem.createdAt || OneUptimeDate.getCurrentDate();
+
+      this.writeBurnRateRuleAddedFeed({
+        onCreate: onCreate,
+        createdItem: createdItem,
+        postedAt: createdAt,
+      }).catch((err: Error) => {
+        logger.error(
+          `Error writing the feed item for added SLO burn rate rule ${createdItem.id?.toString()}: ${err}`,
+          { projectId: createdItem.projectId?.toString() } as LogAttributes,
+        );
+      });
+    }
+
+    return createdItem;
   }
 
   @CaptureSpan()
@@ -186,6 +424,19 @@ export class Service extends DatabaseService<Model> {
     await this.validateOutputsOnUpdate(updateBy);
 
     await this.validateSeverityReferencesOnUpdate(updateBy);
+
+    /*
+     * Only the options this update actually carries are coerced - an absent
+     * flag must stay absent, or a form that saves just the name would reset
+     * every other option to its default.
+     */
+    this.normalizeOptionFlags(updateBy.data as unknown as Dictionary<unknown>, {
+      applyDefaults: false,
+    });
+
+    this.normalizeTemplates(updateBy.data as unknown as Dictionary<unknown>);
+
+    await this.validateRoutingReferencesOnUpdate(updateBy);
 
     const newLongWindow: unknown = updateBy.data.longWindowInMinutes as unknown;
     const newShortWindow: unknown = updateBy.data
@@ -261,33 +512,113 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * Last, so a payload the checks above rejected never costs the feed a
+     * read. Null unless this is a hand-made edit of a watched column.
+     */
+    const feedSnapshot: BurnRateRuleFeedSnapshot | null =
+      await this.readFeedSnapshotBeforeUpdate(updateBy);
+
     return {
       updateBy,
-      carryForward: null,
+      carryForward: {
+        feedSnapshot: feedSnapshot,
+      },
     };
   }
 
+  /*
+   * READ ONLY: notes down the rules this delete may remove. onDeleteSuccess
+   * needs each one's SLO, project and name - to resolve what the rule left
+   * open and to describe it on the SLO feed - and the row is gone by then.
+   *
+   * Nothing is resolved here. DatabaseService runs this hook BEFORE it applies
+   * the caller's delete permissions, and the CRUD API passes a raw id, so these
+   * rows are only candidates. Resolving here as root let a delete that named
+   * another project's rule close that project's burn rate alerts and incidents
+   * while deleting nothing. onDeleteSuccess acts only on the ids the delete
+   * really removed, and the tenant pin keeps this read from even seeing
+   * another project's rules. A multi-tenant request is left unpinned because
+   * DatabaseService does not pin it either.
+   *
+   * The widest page rather than the caller's limit and skip: the
+   * permission-checked query can page a narrower set differently, and a rule
+   * the delete removed that this read missed would keep its records open.
+   *
+   * A failed read is deliberately not caught: the evaluation worker only
+   * resolves records for rules that still exist, so deleting a rule without
+   * knowing what it opened would strand those records, and their on-call
+   * escalations, forever.
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    /*
-     * Resolve anything the rules being deleted left open — otherwise the alert
-     * or incident (and its on-call escalations) stays open forever, because the
-     * evaluation worker only resolves records for rules that still exist.
-     */
     const itemsToDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
+      query: SloFeedUtil.getTenantPinnedQuery({
+        query: deleteBy.query,
+        tenantId: deleteBy.props.isMultiTenantRequest
+          ? undefined
+          : deleteBy.props.tenantId,
+      }),
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
       select: {
         _id: true,
         projectId: true,
         serviceLevelObjectiveId: true,
+        // What the SLO feed's "rule removed" item says - the row is gone after.
+        name: true,
+        burnRateThreshold: true,
+        longWindowInMinutes: true,
+        shortWindowInMinutes: true,
       },
       props: {
         isRoot: true,
       },
+    });
+
+    return {
+      deleteBy,
+      carryForward: {
+        itemsToDelete: itemsToDelete,
+      },
+    };
+  }
+
+  /*
+   * What the rules this delete really removed leave behind: every alert and
+   * incident they opened is resolved, and the SLO feed gets a
+   * BurnRateRuleRemoved item built from the rows onBeforeDelete read.
+   *
+   * Only rows whose ids DatabaseService reports as deleted are acted on
+   * (SloFeedUtil.getRowsActuallyDeleted): onBeforeDelete read candidates
+   * before permissions were applied, and a delete naming another project's
+   * rule removes nothing, so it must resolve and describe nothing either.
+   *
+   * Resolving after the delete is safe: open records are found by fingerprint
+   * in the Alert and Incident tables, which do not need the rule row. It is
+   * also the honest order - a delete that fails leaves the rule and its
+   * records exactly as they were - and the worker cannot re-fire a rule that
+   * no longer exists in between.
+   *
+   * (Deleting the SLO itself cascades its rules in Postgres without this hook;
+   * ServiceLevelObjectiveService.onDeleteSuccess resolves those, and the SLO's
+   * feed goes with it, so there is nothing to describe.)
+   */
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    // Taken first, so the feed item's time is the delete's, not the resolve's.
+    const deletedAt: Date = OneUptimeDate.getCurrentDate();
+
+    const itemsToDelete: Array<Model> = SloFeedUtil.getRowsActuallyDeleted({
+      rows:
+        (onDelete.carryForward?.itemsToDelete as Array<Model> | undefined) ||
+        [],
+      deletedIds: itemIdsBeforeDelete,
     });
 
     for (const item of itemsToDelete) {
@@ -304,19 +635,283 @@ export class Service extends DatabaseService<Model> {
             "Auto-resolved because the SLO burn rate rule that created it was deleted.",
         });
       } catch (err) {
+        /*
+         * Never fail the request - the rule is already gone - and never let
+         * one rule's failure cost the next rule its resolve.
+         */
         logger.error(
-          `Error resolving open alerts and incidents for SLO burn rate rule ${item.id?.toString()} before delete: ${err}`,
-          { projectId: item.projectId?.toString() } as LogAttributes,
+          `Error resolving open alerts and incidents for deleted SLO burn rate rule ${item.id.toString()}: ${err}`,
+          { projectId: item.projectId.toString() } as LogAttributes,
         );
       }
     }
 
-    return {
-      deleteBy,
-      carryForward: {
+    // Fire-and-forget like the other rule items.
+    if (itemsToDelete.length > 0) {
+      this.writeBurnRateRuleRemovedFeed({
+        onDelete: onDelete,
         itemsToDelete: itemsToDelete,
-      },
-    };
+        postedAt: deletedAt,
+      }).catch((err: Error) => {
+        logger.error(
+          `Error writing the feed items for removed SLO burn rate rules: ${err}`,
+        );
+      });
+    }
+
+    return onDelete;
+  }
+
+  private async writeBurnRateRuleAddedFeed(data: {
+    onCreate: OnCreate<Model>;
+    createdItem: Model;
+    postedAt: Date;
+  }): Promise<void> {
+    const serviceLevelObjectiveId: ObjectID | undefined =
+      data.createdItem.serviceLevelObjectiveId;
+    const projectId: ObjectID | undefined = data.createdItem.projectId;
+
+    if (!serviceLevelObjectiveId || !projectId) {
+      return;
+    }
+
+    const markdown: SloFeedMarkdown = getBurnRateRuleAddedFeedMarkdown({
+      sloMarkdownLink: await ServiceLevelObjectiveService.getSloMarkdownLink({
+        projectId: projectId,
+        sloId: serviceLevelObjectiveId,
+      }),
+      rule: data.createdItem,
+    });
+
+    await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
+      serviceLevelObjectiveId: serviceLevelObjectiveId,
+      projectId: projectId,
+      serviceLevelObjectiveFeedEventType:
+        ServiceLevelObjectiveFeedEventType.BurnRateRuleAdded,
+      displayColor: Gray500,
+      feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+      moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+      userId:
+        data.createdItem.createdByUserId ||
+        data.onCreate.createBy.props.userId ||
+        undefined,
+      postedAt: data.postedAt,
+    });
+  }
+
+  /*
+   * The before-half of BurnRateRuleChanged: the watched columns a hand-made
+   * edit writes, and each rule as it was before it.
+   *
+   * Only a non-root write takes a snapshot, and only a write with a snapshot
+   * posts. Root writes to a rule are OneUptime's own code paths - the
+   * evaluation worker stamping lifecycle columns, the SLO seeding its default
+   * rules - so the rule feed describes what people change through the
+   * dashboard and the API, and describes it properly: "old -> new", with the
+   * untouched fields of a re-submitted form left out. The column check comes
+   * before any read, and a failed read never blocks the update.
+   */
+  private async readFeedSnapshotBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<BurnRateRuleFeedSnapshot | null> {
+    if (updateBy.props.isRoot) {
+      return null;
+    }
+
+    const columns: Array<SloFeedColumn> = getSloFeedColumnsInPayload(
+      updateBy.data,
+      SLO_BURN_RATE_RULE_FEED_COLUMNS,
+    );
+
+    if (columns.length === 0) {
+      return null;
+    }
+
+    try {
+      const rows: Array<Model> = await this.findBy({
+        // Pinned: this hook runs before DatabaseService applies permissions.
+        query: SloFeedUtil.getTenantPinnedQuery({
+          query: updateBy.query,
+          tenantId: updateBy.props.tenantId,
+        }),
+        select: this.getFeedSelect(columns),
+        limit: updateBy.limit,
+        skip: updateBy.skip,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const rowsById: Dictionary<Model> = {};
+
+      for (const row of rows) {
+        if (row.id) {
+          rowsById[row.id.toString()] = row;
+        }
+      }
+
+      return {
+        columns: columns,
+        rowsById: rowsById,
+      };
+    } catch (err) {
+      logger.error(
+        `Error reading SLO burn rate rules before an update for the SLO feed: ${err}`,
+      );
+      return null;
+    }
+  }
+
+  private getFeedSelect(columns: Array<SloFeedColumn>): Select<Model> {
+    return {
+      _id: true,
+      projectId: true,
+      serviceLevelObjectiveId: true,
+      name: true,
+      ...getSloFeedSelect(columns),
+    } as Select<Model>;
+  }
+
+  private async writeBurnRateRuleChangedFeed(data: {
+    onUpdate: OnUpdate<Model>;
+    updatedItemIds: Array<ObjectID>;
+    postedAt: Date;
+  }): Promise<void> {
+    const snapshot: BurnRateRuleFeedSnapshot | null =
+      (data.onUpdate.carryForward?.feedSnapshot as
+        | BurnRateRuleFeedSnapshot
+        | null
+        | undefined) || null;
+
+    if (
+      !snapshot ||
+      snapshot.columns.length === 0 ||
+      data.updatedItemIds.length === 0
+    ) {
+      return;
+    }
+
+    const userId: ObjectID | undefined =
+      data.onUpdate.updateBy.props.userId || undefined;
+
+    for (const ruleId of data.updatedItemIds) {
+      const before: Model | undefined = snapshot.rowsById[ruleId.toString()];
+
+      if (!before) {
+        continue;
+      }
+
+      try {
+        const after: Model | null = await this.findOneById({
+          id: ruleId,
+          select: this.getFeedSelect(snapshot.columns),
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!after || !after.projectId || !after.serviceLevelObjectiveId) {
+          continue;
+        }
+
+        const changes: Array<SloFeedColumnChange> = getSloFeedColumnChanges({
+          columns: snapshot.columns,
+          before: before as unknown as SloFeedRow,
+          after: after as unknown as SloFeedRow,
+        });
+
+        // A form re-submitted without a real change describes nothing.
+        if (changes.length === 0) {
+          continue;
+        }
+
+        const markdown: SloFeedMarkdown = getBurnRateRuleChangedFeedMarkdown({
+          sloMarkdownLink:
+            await ServiceLevelObjectiveService.getSloMarkdownLink({
+              projectId: after.projectId,
+              sloId: after.serviceLevelObjectiveId,
+            }),
+          ruleName: after.name || before.name,
+          changes: changes,
+        });
+
+        const isEnabledOnlyChange: boolean =
+          changes.length === 1 && changes[0]!.column === "isEnabled";
+
+        await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem(
+          {
+            serviceLevelObjectiveId: after.serviceLevelObjectiveId,
+            projectId: after.projectId,
+            serviceLevelObjectiveFeedEventType:
+              ServiceLevelObjectiveFeedEventType.BurnRateRuleChanged,
+            displayColor:
+              isEnabledOnlyChange && changes[0]!.to === "On"
+                ? Green500
+                : Gray500,
+            feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+            moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+            userId: userId,
+            postedAt: data.postedAt,
+          },
+        );
+      } catch (err) {
+        logger.error(
+          `Error writing the feed item for changed SLO burn rate rule ${ruleId.toString()}: ${err}`,
+          { projectId: before.projectId?.toString() } as LogAttributes,
+        );
+      }
+    }
+  }
+
+  private async writeBurnRateRuleRemovedFeed(data: {
+    onDelete: OnDelete<Model>;
+    itemsToDelete: Array<Model>;
+    postedAt: Date;
+  }): Promise<void> {
+    const deletedByUserId: ObjectID | undefined =
+      data.onDelete.deleteBy.deletedByUser?.id ||
+      data.onDelete.deleteBy.props.userId ||
+      undefined;
+
+    for (const rule of data.itemsToDelete) {
+      const serviceLevelObjectiveId: ObjectID | undefined =
+        rule.serviceLevelObjectiveId;
+      const projectId: ObjectID | undefined = rule.projectId;
+
+      if (!serviceLevelObjectiveId || !projectId) {
+        continue;
+      }
+
+      try {
+        const markdown: SloFeedMarkdown = getBurnRateRuleRemovedFeedMarkdown({
+          sloMarkdownLink:
+            await ServiceLevelObjectiveService.getSloMarkdownLink({
+              projectId: projectId,
+              sloId: serviceLevelObjectiveId,
+            }),
+          rule: rule,
+        });
+
+        await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem(
+          {
+            serviceLevelObjectiveId: serviceLevelObjectiveId,
+            projectId: projectId,
+            serviceLevelObjectiveFeedEventType:
+              ServiceLevelObjectiveFeedEventType.BurnRateRuleRemoved,
+            displayColor: Red500,
+            feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+            moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+            userId: deletedByUserId,
+            postedAt: data.postedAt,
+          },
+        );
+      } catch (err) {
+        logger.error(
+          `Error writing the feed item for removed SLO burn rate rule ${rule.id?.toString()}: ${err}`,
+          { projectId: projectId.toString() } as LogAttributes,
+        );
+      }
+    }
   }
 
   /*
@@ -330,12 +925,39 @@ export class Service extends DatabaseService<Model> {
    *
    * Runs after the write commits, so an update that was rejected leaves the
    * open records exactly where they were.
+   *
+   * Switching autoResolveAlert or autoResolveIncident OFF is deliberately not
+   * a trigger. Those switches only decide what the worker does when the burn
+   * recovers; a rule with auto-resolve off still stands behind what it has
+   * open, so nothing is resolved and nothing is forgotten. The reverse is also
+   * true: disabling the rule or switching an output off resolves regardless of
+   * the auto-resolve switches, because then the rule cannot justify the record
+   * at all - the same stance the SLO-level resolves take.
    */
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * BurnRateRuleChanged on the SLO feed - fire-and-forget, and only when
+     * onBeforeUpdate took a snapshot (a hand-made edit of a watched column), so
+     * the worker's lifecycle stamps do no feed work at all.
+     */
+    if (onUpdate.carryForward?.feedSnapshot) {
+      const updatedAt: Date = OneUptimeDate.getCurrentDate();
+
+      this.writeBurnRateRuleChangedFeed({
+        onUpdate: onUpdate,
+        updatedItemIds: updatedItemIds,
+        postedAt: updatedAt,
+      }).catch((err: Error) => {
+        logger.error(
+          `Error writing SLO feed items after a burn rate rule update: ${err}`,
+        );
+      });
+    }
+
     /*
      * These three reads are strict `=== false`, and that is only sound because
      * onBeforeUpdate ran first: validateOutputsOnUpdate coerces both output
@@ -737,6 +1359,392 @@ export class Service extends DatabaseService<Model> {
         incidentSeverityId: incidentSeverityId,
       });
     }
+  }
+
+  /*
+   * Coerce the five option flags. `applyDefaults` is the create path, where a
+   * flag the payload never mentions is written as its default; on update an
+   * absent flag stays absent.
+   *
+   * An explicit null is not "absent", though. All five are NOT NULL columns,
+   * so writing null would fail the update with a raw constraint error - it is
+   * read the way the create path reads it, as the column default.
+   */
+  private normalizeOptionFlags(
+    data: Dictionary<unknown>,
+    options: { applyDefaults: boolean },
+  ): void {
+    const flags: Array<BurnRateRuleOptionFlag> = Object.keys(
+      BURN_RATE_RULE_OPTION_FLAG_DEFAULTS,
+    ) as Array<BurnRateRuleOptionFlag>;
+
+    for (const flag of flags) {
+      const value: unknown = data[flag];
+
+      if (!options.applyDefaults && value === undefined) {
+        continue;
+      }
+
+      data[flag] = this.normalizeBooleanInput(
+        value,
+        BURN_RATE_RULE_OPTION_FLAG_DEFAULTS[flag],
+      );
+    }
+  }
+
+  /*
+   * Titles, descriptions and remediation notes. A blank template is stored as
+   * NULL: the worker treats blank and absent the same (it falls back to the
+   * built-in text), and NULL keeps the table and the edit form honest about
+   * which rules have a template at all. Content is never trimmed - leading
+   * whitespace is meaningful in markdown.
+   */
+  private normalizeTemplates(data: Dictionary<unknown>): void {
+    for (const template of BURN_RATE_RULE_TEMPLATE_COLUMNS) {
+      const value: unknown = data[template.column];
+
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      if (typeof value !== "string") {
+        throw new BadDataException(`${template.title} must be text.`);
+      }
+
+      if (value.trim() === "") {
+        data[template.column] = null;
+        continue;
+      }
+
+      if (value.length > template.maxLength) {
+        throw new BadDataException(
+          `${template.title} must be ${template.maxLength} characters or fewer. It is ${value.length} characters long.`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Labels, owner teams and on-call policies are project-scoped rows joined to
+   * the rule by plain many-to-many tables, so nothing stopped an API caller
+   * attaching another project's team - and the worker would then copy it onto
+   * every alert this rule opens, handing that team another project's page.
+   * The on-call lists were never validated either; they are the same hazard
+   * with an escalation attached, so they are checked here too.
+   *
+   * `storedIds` is the update path's inheritance: ids a rule already holds are
+   * carried forward unchecked (the dashboard re-submits whole lists on every
+   * save), and only what the write INTRODUCES is validated - the rule
+   * MonitorStepsProjectValidator follows for the same reason.
+   */
+  private async validateRoutingReferences(data: {
+    projectId: ObjectID | undefined;
+    payload: Dictionary<unknown>;
+    storedIds: Dictionary<Set<string>> | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      // Same reasoning as validateSeverityReferences: nothing to compare to.
+      return;
+    }
+
+    const references: Array<ProjectScopedReference> = [];
+
+    for (const relation of this.getProjectScopedRelations()) {
+      const ids: Array<string> = this.getIntroducedRelationIds(
+        data.payload[relation.column],
+        data.storedIds?.[relation.column],
+      );
+
+      for (const id of ids) {
+        references.push({
+          modelName: relation.modelName,
+          id: id,
+          service: relation.service,
+        });
+      }
+    }
+
+    if (references.length > 0) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: data.projectId,
+        subject: "SLO burn rate rule",
+        references: references,
+      });
+    }
+
+    const ownerUserIds: Array<string> = [];
+
+    for (const column of OWNER_USER_COLUMNS) {
+      ownerUserIds.push(
+        ...this.getIntroducedRelationIds(
+          data.payload[column],
+          data.storedIds?.[column],
+        ),
+      );
+    }
+
+    await this.validateOwnerUsersAreProjectMembers({
+      projectId: data.projectId,
+      userIds: ownerUserIds,
+    });
+  }
+
+  /*
+   * The update twin. One read serves both halves: it names the projects the
+   * update touches (when the caller carries no tenant) and what each matched
+   * rule already stores, and it only happens when the payload carries a list.
+   */
+  private async validateRoutingReferencesOnUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const payload: Dictionary<unknown> =
+      updateBy.data as unknown as Dictionary<unknown>;
+
+    const columnsInPayload: Array<BurnRateRuleRelationColumn> =
+      RELATION_COLUMNS.filter((column: BurnRateRuleRelationColumn): boolean => {
+        return payload[column] !== undefined && payload[column] !== null;
+      });
+
+    if (columnsInPayload.length === 0) {
+      return;
+    }
+
+    const select: Dictionary<unknown> = {
+      _id: true,
+      projectId: true,
+    };
+
+    for (const column of columnsInPayload) {
+      select[column] = {
+        _id: true,
+      };
+    }
+
+    const rules: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: select as unknown as Select<Model>,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    if (updateBy.props.tenantId) {
+      projectIds[updateBy.props.tenantId.toString()] = updateBy.props.tenantId;
+    } else {
+      for (const rule of rules) {
+        if (rule.projectId) {
+          projectIds[rule.projectId.toString()] = rule.projectId;
+        }
+      }
+    }
+
+    for (const projectId of Object.values(projectIds)) {
+      const storedIds: Dictionary<Set<string>> = {};
+
+      for (const column of columnsInPayload) {
+        const idsForColumn: Set<string> = new Set<string>();
+
+        for (const rule of rules) {
+          if (
+            rule.projectId &&
+            rule.projectId.toString() !== projectId.toString()
+          ) {
+            continue;
+          }
+
+          const stored: Array<DatabaseBaseModel> =
+            (rule.getValue(column) as unknown as
+              | Array<DatabaseBaseModel>
+              | undefined) || [];
+
+          for (const related of stored) {
+            const relatedId: string | undefined =
+              resolveReferenceId(related)?.toString();
+
+            if (relatedId) {
+              idsForColumn.add(normalizeId(relatedId));
+            }
+          }
+        }
+
+        storedIds[column] = idsForColumn;
+      }
+
+      await this.validateRoutingReferences({
+        projectId: projectId,
+        payload: payload,
+        storedIds: storedIds,
+      });
+    }
+  }
+
+  /*
+   * User is a global model with no tenant column, so the reference validator
+   * could only confirm a user EXISTS - any account on the instance would pass.
+   * Owners are notified with the record's title and a link to it, so naming a
+   * stranger as an owner would tell them about another project's alert.
+   *
+   * Team membership is what "in this project" means, and it is exactly the set
+   * the dashboard's owner picker offers (ProjectUser lists TeamMember rows).
+   * Pending invitations count for that reason: refusing a user the picker just
+   * offered would fail a save nobody could explain.
+   *
+   * The error echoes the ids the caller sent and never a name or email -
+   * resolving an id from outside the project into a person would leak it.
+   */
+  private async validateOwnerUsersAreProjectMembers(data: {
+    projectId: ObjectID;
+    userIds: Array<string>;
+  }): Promise<void> {
+    const requestedById: Map<string, string> = new Map<string, string>();
+
+    for (const userId of data.userIds) {
+      const key: string = normalizeId(userId);
+
+      if (key && !requestedById.has(key)) {
+        requestedById.set(key, userId);
+      }
+    }
+
+    if (requestedById.size === 0) {
+      return;
+    }
+
+    const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+      query: {
+        projectId: data.projectId,
+        userId: QueryHelper.any(Array.from(requestedById.values())),
+      },
+      select: {
+        userId: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const memberIds: Set<string> = new Set<string>();
+
+    for (const membership of memberships) {
+      if (membership.userId) {
+        memberIds.add(normalizeId(membership.userId.toString()));
+      }
+    }
+
+    const nonMembers: Array<string> = [];
+
+    for (const [key, userId] of requestedById) {
+      if (!memberIds.has(key)) {
+        nonMembers.push(userId);
+      }
+    }
+
+    if (nonMembers.length === 0) {
+      return;
+    }
+
+    throw new BadDataException(
+      `${OWNER_USERS_NOT_IN_PROJECT_ERROR_PREFIX} ${nonMembers
+        .map((userId: string): string => {
+          return `"${userId}"`;
+        })
+        .join(", ")}. Please pick users from this project and try again.`,
+    );
+  }
+
+  /*
+   * The ids a many-to-many payload introduces. The same list reaches a hook as
+   * entity stubs, `{ _id }` objects, ObjectIDs or bare uuid strings depending
+   * on the caller, which resolveReferenceId already reads; anything it cannot
+   * read is not an id and is left for the write itself to reject.
+   */
+  private getIntroducedRelationIds(
+    value: unknown,
+    storedIds: Set<string> | undefined,
+  ): Array<string> {
+    if (value === undefined || value === null) {
+      return [];
+    }
+
+    const items: Array<unknown> = Array.isArray(value) ? value : [value];
+    const seen: Set<string> = new Set<string>();
+    const ids: Array<string> = [];
+
+    for (const item of items) {
+      const id: string = resolveReferenceId(item)?.toString().trim() || "";
+
+      if (!id) {
+        continue;
+      }
+
+      const key: string = normalizeId(id);
+
+      if (seen.has(key) || storedIds?.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      ids.push(id);
+    }
+
+    return ids;
+  }
+
+  /*
+   * Built per call rather than at module load: these services sit in an import
+   * graph that loops back to this one, and a module-level table would capture
+   * whichever of them had not finished loading yet as undefined.
+   */
+  private getProjectScopedRelations(): Array<{
+    column: BurnRateRuleProjectScopedRelationColumn;
+    modelName: string;
+    service: DatabaseService<DatabaseBaseModel>;
+  }> {
+    const onCallDutyPolicyService: DatabaseService<DatabaseBaseModel> =
+      OnCallDutyPolicyService as unknown as DatabaseService<DatabaseBaseModel>;
+    const labelService: DatabaseService<DatabaseBaseModel> =
+      LabelService as unknown as DatabaseService<DatabaseBaseModel>;
+    const teamService: DatabaseService<DatabaseBaseModel> =
+      TeamService as unknown as DatabaseService<DatabaseBaseModel>;
+
+    return [
+      {
+        column: "onCallDutyPolicies",
+        modelName: "On-Call Duty Policy",
+        service: onCallDutyPolicyService,
+      },
+      {
+        column: "incidentOnCallDutyPolicies",
+        modelName: "On-Call Duty Policy",
+        service: onCallDutyPolicyService,
+      },
+      {
+        column: "alertLabels",
+        modelName: "Label",
+        service: labelService,
+      },
+      {
+        column: "incidentLabels",
+        modelName: "Label",
+        service: labelService,
+      },
+      {
+        column: "alertOwnerTeams",
+        modelName: "Team",
+        service: teamService,
+      },
+      {
+        column: "incidentOwnerTeams",
+        modelName: "Team",
+        service: teamService,
+      },
+    ];
   }
 
   private async getProjectIdsForUpdateQuery(

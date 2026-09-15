@@ -69,6 +69,9 @@ jest.mock("react-i18next", () => {
 /*
  * Side-menu rows can badge themselves with ModelAPI.count. Stub it so a badge
  * added to either SLO menu never reaches for the network from this suite.
+ * getList backs the unresolved-state lookup the view menu's open-alert and
+ * open-incident badges wait on (through ModelListCache); an empty list means
+ * nothing is open, so no count is requested at all.
  */
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -76,6 +79,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       count: () => {
         return Promise.resolve(0);
+      },
+      getList: () => {
+        return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 });
       },
     },
   };
@@ -106,10 +112,13 @@ const MODEL_ID: ObjectID = new ObjectID("0193c0de-5555-4aaa-8bbb-000000000005");
  * is - the `/*` mount point App nests the SLO router under, not a page - so a
  * key is never skipped just because of its name.
  */
+// A named RegExp, because eslint's wrap-regex and prettier fight over a bare literal.
+const SLO_PAGE_KEY_PATTERN: RegExp = /^SLOS?(_|$)/;
+
 const SLO_PAGE_KEYS: Array<string> = Object.keys(PageMap).filter(
   (key: string): boolean => {
     return (
-      /^SLOS?(_|$)/.test(key) &&
+      SLO_PAGE_KEY_PATTERN.test(key) &&
       !RouteUtil.getRouteString(key).endsWith("/*")
     );
   },
@@ -313,9 +322,9 @@ describe("SLO navigation wiring", () => {
        * `archived` and `:id` are both one segment below the list, so a list
        * page rendered inside the view layout would be read as an SLO id.
        */
-      expect(pages[0]!.closest("[data-layout]")?.getAttribute("data-layout")).toBe(
-        layoutOf(key),
-      );
+      expect(
+        pages[0]!.closest("[data-layout]")?.getAttribute("data-layout"),
+      ).toBe(layoutOf(key));
     },
   );
 
@@ -401,11 +410,9 @@ describe("SLO navigation wiring", () => {
 
       await renderSideMenuFor(menuPage);
 
-      const hrefs: Array<string> = allLinks().map(
-        (link: MenuLink): string => {
-          return link.href;
-        },
-      );
+      const hrefs: Array<string> = allLinks().map((link: MenuLink): string => {
+        return link.href;
+      });
 
       expect(hrefs.length).toBeGreaterThan(0);
       expect(new Set(hrefs).size).toBe(hrefs.length);

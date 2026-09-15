@@ -19,6 +19,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
+import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceValidator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertSeverityService from "./AlertSeverityService";
@@ -27,9 +28,86 @@ import MonitorStatusService from "./MonitorStatusService";
 import ProjectService from "./ProjectService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
+import ServiceLevelObjectiveMonitorRuleService from "./ServiceLevelObjectiveMonitorRuleService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import TeamMemberService from "./TeamMemberService";
+import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import { ServiceLevelObjectiveFeedEventType } from "../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
+import {
+  Blue500,
+  Gray500,
+  Green500,
+  Orange500,
+  Yellow500,
+} from "../../Types/BrandColors";
+import Color from "../../Types/Color";
+import Dictionary from "../../Types/Dictionary";
+import {
+  SLO_FEED_IS_ARCHIVED_COLUMN,
+  SLO_FEED_IS_ENABLED_COLUMN,
+  SLO_FEED_MONITORS_COLUMN,
+  SLO_FEED_UPDATE_COLUMNS,
+  SloFeedColumn,
+  SloFeedColumnChange,
+  SloFeedMarkdown,
+  SloFeedMonitorReference,
+  SloFeedRow,
+  getSloArchivedFeedMarkdown,
+  getSloCreatedFeedMarkdown,
+  getSloEnabledFeedMarkdown,
+  getSloFeedColumnChanges,
+  getSloFeedEntityIds,
+  getSloFeedSelect,
+  getSloFeedWatchedColumns,
+  getSloMonitorsChangedFeedMarkdown,
+  getSloUpdatedFeedMarkdown,
+  isSloFeedValueEqual,
+  normalizeSloFeedBoolean,
+} from "../../Utils/Slo/SloFeedMarkdown";
+import Select from "../Types/Database/Select";
+import SloFeedUtil from "../Utils/Slo/SloFeedUtil";
+
+/*
+ * What the SLO feed carries from onBeforeUpdate to onUpdateSuccess: the watched
+ * columns the payload wrote, and each matched SLO as it was BEFORE the write.
+ * The rows are gone from memory by the time the write lands, and "old -> new"
+ * and "did it actually change" both need them.
+ */
+interface SloFeedUpdateSnapshot {
+  columns: Array<SloFeedColumn>;
+  rowsById: Dictionary<Model>;
+}
+
+// One feed item an update earned, built once the SLO's link is known.
+interface SloFeedPendingItem {
+  eventType: ServiceLevelObjectiveFeedEventType;
+  displayColor: Color;
+  getMarkdown: (sloMarkdownLink: string) => SloFeedMarkdown;
+}
+
+/*
+ * The root cause stamped on every burn-rate alert and incident an archive
+ * resolves. Distinct from the disable/delete default so a responder reading a
+ * closed page can tell "somebody retired this SLO" from "somebody paused it" -
+ * the first will not come back on its own, the second may.
+ */
+export const SLO_ARCHIVED_ROOT_CAUSE: string =
+  "Auto-resolved because the Service Level Objective was archived.";
+
+export const SLO_DISABLED_OR_DELETED_ROOT_CAUSE: string =
+  "Auto-resolved because the Service Level Objective was disabled or deleted.";
+
+/*
+ * What onBeforeDelete reads for onDeleteSuccess: the SLOs the delete may
+ * remove, and the burn rate rules of each - Postgres cascades those away with
+ * the SLO, so they cannot be read afterwards.
+ */
+interface SloDeleteCarryForward {
+  itemsToDelete: Array<Model>;
+  burnRateRules: Array<ServiceLevelObjectiveBurnRateRule>;
+}
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -121,9 +199,17 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    /*
+     * The row's own creation time, so the "created" feed item - written last,
+     * and without waiting - still sorts ahead of everything the create sets
+     * off, like the creator being added as an owner.
+     */
+    const createdAt: Date =
+      createdItem.createdAt || OneUptimeDate.getCurrentDate();
+
     /*
      * Stamp nextEvaluationAt = now so the evaluation worker picks this SLO up
      * on its next tick. Done here (isRoot update) instead of onBeforeCreate
@@ -149,8 +235,23 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Seed the two canonical multi-window burn rate rules. Non-fatal.
+    let seededBurnRateRules: Array<ServiceLevelObjectiveBurnRateRule> = [];
+
     try {
-      await this.seedDefaultBurnRateRules(createdItem);
+      /*
+       * Marked as seeding so the burn rate rule service does not post its own
+       * "rule added" items for these two: they are part of creating the SLO
+       * and are described by its "created" item (see SloFeedUtil for why this
+       * signal and not "root with no user").
+       */
+      seededBurnRateRules = createdItem.id
+        ? await SloFeedUtil.runWhileSeedingDefaultBurnRateRules({
+            sloId: createdItem.id,
+            seed: (): Promise<Array<ServiceLevelObjectiveBurnRateRule>> => {
+              return this.seedDefaultBurnRateRules(createdItem);
+            },
+          })
+        : await this.seedDefaultBurnRateRules(createdItem);
     } catch (err) {
       logger.error(
         `Error seeding default burn rate rules for SLO ${createdItem.id?.toString()}: ${err}`,
@@ -159,9 +260,12 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * An SLO created with a label rule must already carry the monitors that
-     * rule matches — otherwise it reads "no monitors attached, cannot be
-     * evaluated" until someone happens to edit a monitor.
+     * Reconcile the new SLO's monitor list with its monitor rules. A brand-new
+     * SLO normally has none yet (rules are added afterwards, on the Monitor
+     * Rules page), so this is usually a read and no write - but it keeps an
+     * SLO created with rows already pointing at it (an API import, a rolling
+     * deploy's backfill) from reading "no monitors attached" until someone
+     * happens to edit a rule or a monitor.
      */
     try {
       await ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo({
@@ -169,10 +273,27 @@ export class Service extends DatabaseService<Model> {
       });
     } catch (err) {
       logger.error(
-        `Error applying the monitor label rule for SLO ${createdItem.id?.toString()}: ${err}`,
+        `Error applying the monitor rules for SLO ${createdItem.id?.toString()}: ${err}`,
         { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
     }
+
+    /*
+     * Fire-and-forget, like ServiceService's created item: the SLO exists
+     * whether or not its feed item does, and the create request should not
+     * wait on user and link lookups just to describe itself.
+     */
+    this.writeSloCreatedFeed({
+      onCreate: onCreate,
+      createdItem: createdItem,
+      seededBurnRateRules: seededBurnRateRules,
+      postedAt: createdAt,
+    }).catch((err: Error) => {
+      logger.error(
+        `Error writing the created feed item for SLO ${createdItem.id?.toString()}: ${err}`,
+        { projectId: createdItem.projectId?.toString() } as LogAttributes,
+      );
+    });
 
     return createdItem;
   }
@@ -210,9 +331,20 @@ export class Service extends DatabaseService<Model> {
         this.validateAtRiskThresholdPercentage(newAtRiskThresholdPercentage);
     }
 
+    await this.assertMonitorEditRespectsMonitorRules(updateBy);
+
+    /*
+     * Last, so a payload the checks above rejected never costs the feed a
+     * read. Null unless the payload writes a column the feed describes.
+     */
+    const feedSnapshot: SloFeedUpdateSnapshot | null =
+      await this.readFeedSnapshotBeforeUpdate(updateBy);
+
     return {
       updateBy,
-      carryForward: null,
+      carryForward: {
+        feedSnapshot: feedSnapshot,
+      },
     };
   }
 
@@ -222,12 +354,40 @@ export class Service extends DatabaseService<Model> {
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     /*
-     * When an SLO is disabled, resolve everything its burn-rate rules have
-     * open — the evaluation worker skips disabled SLOs, so nothing else
-     * would ever resolve them (and their on-call escalations would stay
-     * open forever).
+     * Fire-and-forget, and only when onBeforeUpdate took a snapshot - so the
+     * worker's per-tick state write does no feed work at all. The time is
+     * taken here so the items sort where the edit happened, not where their
+     * lookups finished.
      */
-    if ((onUpdate.updateBy.data.isEnabled as boolean | undefined) === false) {
+    if (onUpdate.carryForward?.feedSnapshot) {
+      const updatedAt: Date = OneUptimeDate.getCurrentDate();
+
+      this.writeSloUpdatedFeed({
+        onUpdate: onUpdate,
+        updatedItemIds: updatedItemIds,
+        postedAt: updatedAt,
+      }).catch((err: Error) => {
+        logger.error(`Error writing SLO feed items after an update: ${err}`);
+      });
+    }
+
+    /*
+     * When an SLO is disabled or archived, resolve everything its burn-rate
+     * rules have open — the evaluation worker skips disabled and archived
+     * SLOs alike, so nothing else would ever resolve them (and their on-call
+     * escalations would stay open forever).
+     *
+     * One pass even when a single write both disables and archives: the
+     * second would only re-query every rule for records the first already
+     * closed. The archive wording wins, because it is the more permanent of
+     * the two and the one a responder reading the root cause needs to know.
+     */
+    const isDisablingSlo: boolean =
+      (onUpdate.updateBy.data.isEnabled as boolean | undefined) === false;
+    const isArchivingSlo: boolean =
+      (onUpdate.updateBy.data.isArchived as boolean | undefined) === true;
+
+    if (isDisablingSlo || isArchivingSlo) {
       for (const updatedItemId of updatedItemIds) {
         try {
           const slo: Model | null = await this.findOneById({
@@ -244,49 +404,74 @@ export class Service extends DatabaseService<Model> {
             continue;
           }
 
-          await this.resolveOpenBurnRateAlertsAndIncidentsForSlo({
+          /*
+           * rootCause is only set for an archive, so a plain disable keeps
+           * calling with exactly the payload it always has.
+           */
+          const resolveData: {
+            sloId: ObjectID;
+            projectId: ObjectID;
+            rootCause?: string | undefined;
+          } = {
             sloId: updatedItemId,
             projectId: slo.projectId,
-          });
+          };
+
+          if (isArchivingSlo) {
+            resolveData.rootCause = SLO_ARCHIVED_ROOT_CAUSE;
+          }
+
+          await this.resolveOpenBurnRateAlertsAndIncidentsForSlo(resolveData);
         } catch (err) {
+          /*
+           * Never fail the user's write: the disable or archive already
+           * landed, and refusing it over a stale open record would be worse
+           * than the record itself.
+           */
           logger.error(
-            `Error resolving open burn rate alerts and incidents for disabled SLO ${updatedItemId.toString()}: ${err}`,
+            `Error resolving open burn rate alerts and incidents for ${
+              isArchivingSlo ? "archived" : "disabled"
+            } SLO ${updatedItemId.toString()}: ${err}`,
           );
         }
       }
     }
 
     /*
-     * The label rule changed, so the monitor set it implies changed with it.
-     * Re-run it before the re-evaluation stamp below: the sync writes
-     * `monitors`, which goes through this same hook and stamps
-     * nextEvaluationAt itself once the new set is persisted.
+     * No monitor sync here: the deprecated monitorLabels column is no longer
+     * read by the engine. Monitor membership now follows the SLO's monitor
+     * rules, and ServiceLevelObjectiveMonitorRuleService re-syncs whenever one
+     * of those changes.
      */
-    if (onUpdate.updateBy.data.monitorLabels !== undefined) {
-      for (const updatedItemId of updatedItemIds) {
-        try {
-          await ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo(
-            {
-              serviceLevelObjectiveId: updatedItemId,
-            },
-          );
-        } catch (err) {
-          logger.error(
-            `Error applying the monitor label rule for SLO ${updatedItemId.toString()}: ${err}`,
-          );
-        }
-      }
-    }
 
     /*
      * If the objective's math inputs changed, force a re-evaluation on the
      * worker's next tick.
+     *
+     * "Inputs" means every column the worker's result depends on, not only
+     * the objective's: the downtime statuses and multi-monitor mode decide
+     * which seconds count as bad, the timezone moves calendar-month
+     * boundaries, and the at-risk threshold decides the status. All four are
+     * edited on the Settings page, and without them a saved change kept
+     * showing the old numbers until the SLO's regular cadence came round.
      */
     const isEvaluationConfigUpdated: boolean =
       onUpdate.updateBy.data.targetPercentage !== undefined ||
       onUpdate.updateBy.data.windowDays !== undefined ||
       onUpdate.updateBy.data.windowType !== undefined ||
-      onUpdate.updateBy.data.monitors !== undefined;
+      onUpdate.updateBy.data.monitors !== undefined ||
+      onUpdate.updateBy.data.multiMonitorMode !== undefined ||
+      onUpdate.updateBy.data.downtimeMonitorStatuses !== undefined ||
+      onUpdate.updateBy.data.atRiskThresholdPercentage !== undefined ||
+      onUpdate.updateBy.data.timezone !== undefined ||
+      /*
+       * Unarchived: the worker stopped looking at this SLO while it was
+       * archived, so its status and budget are frozen at archive time. Its
+       * nextEvaluationAt is normally already in the past, but stamping it
+       * explicitly guarantees the numbers refresh on the very next tick.
+       * (A still-disabled SLO stays skipped by getDueSlos regardless.)
+       */
+      (onUpdate.updateBy.data.isArchived as boolean | undefined) === false;
 
     if (isEvaluationConfigUpdated) {
       for (const updatedItemId of updatedItemIds) {
@@ -311,12 +496,39 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
+  /*
+   * READ ONLY: notes down the SLOs this delete may remove and, for each, the
+   * burn rate rules whose open alerts and incidents onDeleteSuccess resolves.
+   *
+   * The rules have to be read now. They cascade away with the SLO in Postgres,
+   * with no hook of their own, and a rule's id is half of the fingerprint that
+   * finds what it opened.
+   *
+   * Nothing is resolved here. DatabaseService runs this hook BEFORE it applies
+   * the caller's delete permissions, and the CRUD API passes a raw id, so these
+   * rows are only candidates. Resolving here as root let a delete that named
+   * another project's SLO close that project's burn rate alerts and incidents
+   * while deleting nothing. onDeleteSuccess acts only on the ids the delete
+   * really removed, and the tenant pin keeps this read from even seeing
+   * another project's SLOs. A multi-tenant request is left unpinned because
+   * DatabaseService does not pin it either: candidates narrower than what the
+   * delete removes would strand records instead.
+   *
+   * A failed read is deliberately not caught: deleting an SLO without knowing
+   * its rules would strand everything they opened, and the on-call escalations
+   * with it, because the evaluation worker never looks at a deleted SLO again.
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToDelete: Array<Model> = await this.findBy({
-      query: deleteBy.query,
+      query: SloFeedUtil.getTenantPinnedQuery({
+        query: deleteBy.query,
+        tenantId: deleteBy.props.isMultiTenantRequest
+          ? undefined
+          : deleteBy.props.tenantId,
+      }),
       limit: LIMIT_MAX,
       skip: 0,
       select: {
@@ -328,42 +540,142 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
+    const burnRateRules: Array<ServiceLevelObjectiveBurnRateRule> = [];
+
     for (const item of itemsToDelete) {
       if (!item.id || !item.projectId) {
         continue;
       }
 
-      try {
-        await this.resolveOpenBurnRateAlertsAndIncidentsForSlo({
-          sloId: item.id,
-          projectId: item.projectId,
+      const rulesOfSlo: Array<ServiceLevelObjectiveBurnRateRule> =
+        await ServiceLevelObjectiveBurnRateRuleService.findBy({
+          query: {
+            serviceLevelObjectiveId: item.id,
+            projectId: item.projectId,
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            serviceLevelObjectiveId: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
         });
-      } catch (err) {
-        logger.error(
-          `Error resolving open burn rate alerts and incidents for SLO ${item.id?.toString()} before delete: ${err}`,
-          { projectId: item.projectId?.toString() } as LogAttributes,
-        );
-      }
+
+      burnRateRules.push(...rulesOfSlo);
     }
+
+    const carryForward: SloDeleteCarryForward = {
+      itemsToDelete: itemsToDelete,
+      burnRateRules: burnRateRules,
+    };
 
     return {
       deleteBy,
-      carryForward: {
-        itemsToDelete: itemsToDelete,
-      },
+      carryForward: carryForward,
     };
+  }
+
+  /*
+   * Resolves what the burn rate rules of every SLO this delete really removed
+   * left open. Nothing else ever will: the evaluation worker never looks at a
+   * deleted SLO again, so those alerts and incidents, and their on-call
+   * escalations, would otherwise stay open forever.
+   *
+   * Only the SLOs whose ids DatabaseService reports as deleted are acted on
+   * (SloFeedUtil.getRowsActuallyDeleted), never every candidate onBeforeDelete
+   * read - see there for why.
+   *
+   * Resolving after the delete is safe: open records are found by fingerprint
+   * in the Alert and Incident tables, not through the SLO or rule rows. It is
+   * also the honest order - a delete that fails leaves its records open next
+   * to the SLO that still stands behind them.
+   *
+   * Rule by rule rather than through resolveOpenBurnRateAlertsAndIncidentsForSlo:
+   * that one reads the SLO's rules, which the cascade has already removed, and
+   * clears their lifecycle columns, which no longer exist.
+   */
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const carryForward: SloDeleteCarryForward | null =
+      (onDelete.carryForward as SloDeleteCarryForward | null) || null;
+
+    const deletedSlos: Array<Model> = SloFeedUtil.getRowsActuallyDeleted({
+      rows: carryForward?.itemsToDelete || [],
+      deletedIds: itemIdsBeforeDelete,
+    });
+
+    for (const slo of deletedSlos) {
+      if (!slo.id || !slo.projectId) {
+        continue;
+      }
+
+      const sloId: ObjectID = slo.id;
+      const projectId: ObjectID = slo.projectId;
+
+      const rulesOfSlo: Array<ServiceLevelObjectiveBurnRateRule> = (
+        carryForward?.burnRateRules || []
+      ).filter((rule: ServiceLevelObjectiveBurnRateRule): boolean => {
+        return (
+          rule.serviceLevelObjectiveId?.toString().toLowerCase() ===
+          sloId.toString().toLowerCase()
+        );
+      });
+
+      for (const rule of rulesOfSlo) {
+        if (!rule.id) {
+          continue;
+        }
+
+        try {
+          await ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsAndIncidentsForRule(
+            {
+              serviceLevelObjectiveId: sloId,
+              burnRateRuleId: rule.id,
+              projectId: projectId,
+              rootCause: SLO_DISABLED_OR_DELETED_ROOT_CAUSE,
+            },
+          );
+        } catch (err) {
+          /*
+           * Never fail the request - the SLO is already gone - and never let
+           * one rule's failure cost the next rule its resolve.
+           */
+          logger.error(
+            `Error resolving open alerts and incidents for burn rate rule ${rule.id.toString()} of deleted SLO ${sloId.toString()}: ${err}`,
+            { projectId: projectId.toString() } as LogAttributes,
+          );
+        }
+      }
+    }
+
+    return onDelete;
   }
 
   /*
    * Resolve everything any of this SLO's burn rate rules has left open — the
    * Alerts they raised and the Incidents they declared. Called when the SLO is
-   * disabled or deleted, and by the worker's Misconfigured / Paused guards.
+   * disabled, archived or deleted, and by the worker's Misconfigured / Paused
+   * guards.
+   *
+   * `rootCause` is what the resolved records say closed them; it defaults to
+   * the disable/delete wording so every existing caller is unchanged.
    */
   @CaptureSpan()
   public async resolveOpenBurnRateAlertsAndIncidentsForSlo(data: {
     sloId: ObjectID;
     projectId: ObjectID;
+    rootCause?: string | undefined;
   }): Promise<void> {
+    const rootCause: string =
+      data.rootCause || SLO_DISABLED_OR_DELETED_ROOT_CAUSE;
+
     const burnRateRules: Array<ServiceLevelObjectiveBurnRateRule> =
       await ServiceLevelObjectiveBurnRateRuleService.findBy({
         query: {
@@ -406,8 +718,7 @@ export class Service extends DatabaseService<Model> {
             serviceLevelObjectiveId: data.sloId,
             burnRateRuleId: rule.id,
             projectId: data.projectId,
-            rootCause:
-              "Auto-resolved because the Service Level Objective was disabled or deleted.",
+            rootCause: rootCause,
           },
         );
 
@@ -445,15 +756,22 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * All enabled SLOs in active projects that are due for evaluation
-   * (nextEvaluationAt in the past, or never evaluated). Selects every config
-   * and state column the evaluation worker needs.
+   * All enabled, unarchived SLOs in active projects that are due for
+   * evaluation (nextEvaluationAt in the past, or never evaluated). Selects
+   * every config and state column the evaluation worker needs.
+   *
+   * Archived is checked separately from enabled on purpose: the two flags are
+   * independent (unarchiving must not re-enable an SLO somebody paused), and
+   * either one alone takes the SLO out of evaluation. The worker re-reads both
+   * right before a burn rate rule fires, because this snapshot can go stale
+   * while a long sweep is still running.
    */
   @CaptureSpan()
   public async getDueSlos(): Promise<Array<Model>> {
     return await this.findAllBy({
       query: {
         isEnabled: true,
+        isArchived: false,
         nextEvaluationAt: QueryHelper.lessThanEqualToOrNull(
           OneUptimeDate.getCurrentDate(),
         ),
@@ -465,6 +783,15 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         projectId: true,
         name: true,
+        /*
+         * Stamped as oneuptime.label.* on the oneuptime.slo.* metrics the
+         * worker posts (SloMetricUtil), so SLO series group and filter by
+         * the same labels as the SLO list.
+         */
+        labels: {
+          _id: true,
+          name: true,
+        },
         isEnabled: true,
         sliType: true,
         multiMonitorMode: true,
@@ -641,9 +968,14 @@ export class Service extends DatabaseService<Model> {
    * A 30-day window reproduces exactly 14.4 and 6; shorter or longer windows
    * stay correctly calibrated.
    */
-  private async seedDefaultBurnRateRules(createdItem: Model): Promise<void> {
+  private async seedDefaultBurnRateRules(
+    createdItem: Model,
+  ): Promise<Array<ServiceLevelObjectiveBurnRateRule>> {
+    // The rules actually written, for the SLO's "created" feed item.
+    const seededRules: Array<ServiceLevelObjectiveBurnRateRule> = [];
+
     if (!createdItem.id || !createdItem.projectId) {
-      return;
+      return seededRules;
     }
 
     const windowHours: number =
@@ -724,6 +1056,8 @@ export class Service extends DatabaseService<Model> {
             isRoot: true,
           },
         });
+
+        seededRules.push(rule);
       } catch (err) {
         logger.error(
           `Error seeding default burn rate rule "${defaultRule.name}" for SLO ${createdItem.id?.toString()}: ${err}`,
@@ -731,6 +1065,611 @@ export class Service extends DatabaseService<Model> {
         );
       }
     }
+
+    return seededRules;
+  }
+
+  /*
+   * The SLO's "created" feed item: who created it, what it promises, and the
+   * default burn rate rules that came with it (folded in here rather than
+   * posted as two more items underneath).
+   */
+  private async writeSloCreatedFeed(data: {
+    onCreate: OnCreate<Model>;
+    createdItem: Model;
+    seededBurnRateRules: Array<ServiceLevelObjectiveBurnRateRule>;
+    postedAt: Date;
+  }): Promise<void> {
+    const sloId: ObjectID | undefined = data.createdItem.id || undefined;
+    const projectId: ObjectID | undefined = data.createdItem.projectId;
+
+    if (!sloId || !projectId) {
+      return;
+    }
+
+    /*
+     * A dashboard, API-key or Terraform create carries an acting user; a
+     * workflow or other automation creating as root does not, and the item
+     * then says so instead of naming somebody.
+     */
+    const createdByUserId: ObjectID | undefined =
+      data.createdItem.createdByUserId ||
+      data.onCreate.createBy.props.userId ||
+      undefined;
+
+    const createdByUserMarkdown: string | null =
+      await SloFeedUtil.getUserMarkdown({
+        userId: createdByUserId,
+        projectId: projectId,
+      });
+
+    const markdown: SloFeedMarkdown = getSloCreatedFeedMarkdown({
+      sloMarkdownLink: await this.getSloMarkdownLink({
+        projectId: projectId,
+        sloId: sloId,
+        sloName: data.createdItem.name || "",
+      }),
+      createdByUserMarkdown: createdByUserMarkdown,
+      targetPercentage: data.createdItem.targetPercentage,
+      windowType: data.createdItem.windowType,
+      windowDays: data.createdItem.windowDays,
+      timezone: data.createdItem.timezone,
+      sliType: data.createdItem.sliType,
+      atRiskThresholdPercentage: data.createdItem.atRiskThresholdPercentage,
+      description: data.createdItem.description,
+      defaultBurnRateRules: data.seededBurnRateRules,
+    });
+
+    await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
+      serviceLevelObjectiveId: sloId,
+      projectId: projectId,
+      serviceLevelObjectiveFeedEventType:
+        ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveCreated,
+      displayColor: Green500,
+      feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+      moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+      // Only a user who still exists gets the avatar; otherwise "no user".
+      userId: createdByUserMarkdown ? createdByUserId : undefined,
+      postedAt: data.postedAt,
+    });
+  }
+
+  /*
+   * The before-half of the feed's change detection: the watched columns this
+   * payload writes, and every matched SLO as it is before the write.
+   *
+   * Two rules keep this off the hot paths:
+   *
+   *   - It reads ONLY when the payload writes a watched column, and that is
+   *     checked before any query. The evaluation worker writes this row on
+   *     every tick (SLI, budget, burn rate, status) and the cadence stamps go
+   *     through here too; none of those columns is watched, so they cost
+   *     nothing.
+   *
+   *   - A root write of `monitors` is the monitor rule engine keeping
+   *     rule-owned monitors in sync. The engine posts its own attach/detach
+   *     items, so `monitors` is only watched on a non-root (hand-made) edit -
+   *     which also spares every engine sync a read.
+   *
+   * A failed read never blocks the update; the feed just does not describe it.
+   */
+  private async readFeedSnapshotBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<SloFeedUpdateSnapshot | null> {
+    const columns: Array<SloFeedColumn> = getSloFeedWatchedColumns({
+      payload: updateBy.data,
+      includeMonitors: !updateBy.props.isRoot,
+    });
+
+    if (columns.length === 0) {
+      return null;
+    }
+
+    try {
+      const rows: Array<Model> = await this.findBy({
+        // Pinned: this hook runs before DatabaseService applies permissions.
+        query: SloFeedUtil.getTenantPinnedQuery({
+          query: updateBy.query,
+          tenantId: updateBy.props.tenantId,
+        }),
+        select: this.getFeedSelect(columns),
+        limit: updateBy.limit,
+        skip: updateBy.skip,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const rowsById: Dictionary<Model> = {};
+
+      for (const row of rows) {
+        if (row.id) {
+          rowsById[row.id.toString()] = row;
+        }
+      }
+
+      return {
+        columns: columns,
+        rowsById: rowsById,
+      };
+    } catch (err) {
+      logger.error(
+        `Error reading SLOs before an update for the SLO feed: ${err}`,
+      );
+      return null;
+    }
+  }
+
+  private getFeedSelect(columns: Array<SloFeedColumn>): Select<Model> {
+    return {
+      _id: true,
+      projectId: true,
+      name: true,
+      // Both flags word the enable / archive items, whichever one changed.
+      isEnabled: true,
+      isArchived: true,
+      ...getSloFeedSelect(columns),
+    } as Select<Model>;
+  }
+
+  private async writeSloUpdatedFeed(data: {
+    onUpdate: OnUpdate<Model>;
+    updatedItemIds: Array<ObjectID>;
+    postedAt: Date;
+  }): Promise<void> {
+    const snapshot: SloFeedUpdateSnapshot | null =
+      (data.onUpdate.carryForward?.feedSnapshot as
+        | SloFeedUpdateSnapshot
+        | null
+        | undefined) || null;
+
+    if (
+      !snapshot ||
+      snapshot.columns.length === 0 ||
+      data.updatedItemIds.length === 0
+    ) {
+      return;
+    }
+
+    for (const sloId of data.updatedItemIds) {
+      const before: Model | undefined = snapshot.rowsById[sloId.toString()];
+
+      // Not in the snapshot means there is nothing to compare against.
+      if (!before) {
+        continue;
+      }
+
+      try {
+        await this.writeFeedItemsForUpdatedSlo({
+          sloId: sloId,
+          before: before,
+          columns: snapshot.columns,
+          payload: data.onUpdate.updateBy.data as unknown as Record<
+            string,
+            unknown
+          >,
+          userId: data.onUpdate.updateBy.props.userId || undefined,
+          postedAt: data.postedAt,
+        });
+      } catch (err) {
+        logger.error(
+          `Error writing feed items for updated SLO ${sloId.toString()}: ${err}`,
+          { projectId: before.projectId?.toString() } as LogAttributes,
+        );
+      }
+    }
+  }
+
+  /*
+   * Compares one SLO before and after the write and posts what really
+   * changed: archive / restore, enable / disable, an "updated" item with old
+   * and new values, and hand-made monitor attaches and detaches. A form that
+   * re-submits every field it shows posts nothing for the fields it did not
+   * change.
+   */
+  private async writeFeedItemsForUpdatedSlo(data: {
+    sloId: ObjectID;
+    before: Model;
+    columns: Array<SloFeedColumn>;
+    payload: Record<string, unknown>;
+    userId: ObjectID | undefined;
+    postedAt: Date;
+  }): Promise<void> {
+    const projectId: ObjectID | undefined = data.before.projectId;
+
+    if (!projectId) {
+      return;
+    }
+
+    const after: Model | null = await this.findOneById({
+      id: data.sloId,
+      select: this.getFeedSelect(data.columns),
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!after) {
+      return;
+    }
+
+    type IsWatchedFunction = (column: SloFeedColumn) => boolean;
+
+    const isWatched: IsWatchedFunction = (column: SloFeedColumn): boolean => {
+      return data.columns.some((watched: SloFeedColumn): boolean => {
+        return watched.column === column.column;
+      });
+    };
+
+    const beforeRow: SloFeedRow = data.before as unknown as SloFeedRow;
+    const afterRow: SloFeedRow = after as unknown as SloFeedRow;
+
+    // Unset reads as the column defaults: enabled, not archived.
+    const isEnabled: boolean =
+      normalizeSloFeedBoolean(after.isEnabled) !== false;
+    const isArchived: boolean =
+      normalizeSloFeedBoolean(after.isArchived) === true;
+
+    const pendingItems: Array<SloFeedPendingItem> = [];
+
+    if (
+      isWatched(SLO_FEED_IS_ARCHIVED_COLUMN) &&
+      !isSloFeedValueEqual(SLO_FEED_IS_ARCHIVED_COLUMN, beforeRow, afterRow)
+    ) {
+      pendingItems.push({
+        eventType: isArchived
+          ? ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveArchived
+          : ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveRestored,
+        displayColor: isArchived ? Yellow500 : Blue500,
+        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+          return getSloArchivedFeedMarkdown({
+            sloMarkdownLink: sloMarkdownLink,
+            isArchived: isArchived,
+            isEnabled: isEnabled,
+          });
+        },
+      });
+    }
+
+    if (
+      isWatched(SLO_FEED_IS_ENABLED_COLUMN) &&
+      !isSloFeedValueEqual(SLO_FEED_IS_ENABLED_COLUMN, beforeRow, afterRow)
+    ) {
+      pendingItems.push({
+        eventType: isEnabled
+          ? ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveEnabled
+          : ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveDisabled,
+        displayColor: isEnabled ? Green500 : Gray500,
+        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+          return getSloEnabledFeedMarkdown({
+            sloMarkdownLink: sloMarkdownLink,
+            isEnabled: isEnabled,
+            isArchived: isArchived,
+          });
+        },
+      });
+    }
+
+    const changes: Array<SloFeedColumnChange> = getSloFeedColumnChanges({
+      columns: data.columns.filter((column: SloFeedColumn): boolean => {
+        return SLO_FEED_UPDATE_COLUMNS.some(
+          (updateColumn: SloFeedColumn): boolean => {
+            return updateColumn.column === column.column;
+          },
+        );
+      }),
+      before: beforeRow,
+      after: afterRow,
+    });
+
+    if (changes.length > 0) {
+      pendingItems.push({
+        eventType:
+          ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveUpdated,
+        displayColor: Gray500,
+        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+          return getSloUpdatedFeedMarkdown({
+            sloMarkdownLink: sloMarkdownLink,
+            changes: changes,
+          });
+        },
+      });
+    }
+
+    if (isWatched(SLO_FEED_MONITORS_COLUMN)) {
+      pendingItems.push(
+        ...(await this.getManualMonitorFeedItems({
+          projectId: projectId,
+          before: data.before,
+          after: after,
+          writtenMonitors: data.payload["monitors"],
+        })),
+      );
+    }
+
+    if (pendingItems.length === 0) {
+      return;
+    }
+
+    const sloMarkdownLink: string = await this.getSloMarkdownLink({
+      projectId: projectId,
+      sloId: data.sloId,
+      sloName: after.name || data.before.name || "",
+    });
+
+    for (const pendingItem of pendingItems) {
+      const markdown: SloFeedMarkdown =
+        pendingItem.getMarkdown(sloMarkdownLink);
+
+      await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem(
+        {
+          serviceLevelObjectiveId: data.sloId,
+          projectId: projectId,
+          serviceLevelObjectiveFeedEventType: pendingItem.eventType,
+          displayColor: pendingItem.displayColor,
+          feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+          moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+          userId: data.userId,
+          postedAt: data.postedAt,
+        },
+      );
+    }
+  }
+
+  /*
+   * MonitorsAttached / MonitorsDetached for a hand-made edit of the monitor
+   * set (the rule engine's root writes never get here - see
+   * readFeedSnapshotBeforeUpdate).
+   *
+   * The new set is taken from the PAYLOAD, not from the re-read row: this
+   * writer runs after the request, and by then a rule sync may already have
+   * written the SLO's monitors again. Diffing against that would re-describe
+   * the engine's own changes, which the engine posts itself. The re-read is
+   * used only to put names on the monitors that were attached.
+   */
+  private async getManualMonitorFeedItems(data: {
+    projectId: ObjectID;
+    before: Model;
+    after: Model;
+    writtenMonitors: unknown;
+  }): Promise<Array<SloFeedPendingItem>> {
+    const beforeIds: Set<string> = new Set<string>(
+      getSloFeedEntityIds(data.before.monitors),
+    );
+    const writtenIds: Set<string> = new Set<string>(
+      getSloFeedEntityIds(data.writtenMonitors),
+    );
+
+    const attachedIds: Array<string> = Array.from(writtenIds).filter(
+      (id: string): boolean => {
+        return !beforeIds.has(id);
+      },
+    );
+    const detachedIds: Array<string> = Array.from(beforeIds).filter(
+      (id: string): boolean => {
+        return !writtenIds.has(id);
+      },
+    );
+
+    if (attachedIds.length === 0 && detachedIds.length === 0) {
+      return [];
+    }
+
+    const nameById: Dictionary<string> = {};
+
+    for (const monitor of [
+      ...(data.before.monitors || []),
+      ...(data.after.monitors || []),
+    ] as Array<Monitor>) {
+      const id: string | undefined = getSloFeedEntityIds([monitor])[0];
+
+      if (id && monitor.name) {
+        nameById[id] = monitor.name;
+      }
+    }
+
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    type ToReferencesFunction = (
+      ids: Array<string>,
+    ) => Array<SloFeedMonitorReference>;
+
+    const toReferences: ToReferencesFunction = (
+      ids: Array<string>,
+    ): Array<SloFeedMonitorReference> => {
+      return ids.map((id: string): SloFeedMonitorReference => {
+        return {
+          name: nameById[id] || "",
+          link: SloFeedUtil.getMonitorLinkInDashboard({
+            dashboardUrl: dashboardUrl,
+            projectId: data.projectId,
+            monitorId: id,
+          }),
+        };
+      });
+    };
+
+    const items: Array<SloFeedPendingItem> = [];
+
+    if (attachedIds.length > 0) {
+      const attached: Array<SloFeedMonitorReference> =
+        toReferences(attachedIds);
+
+      items.push({
+        eventType: ServiceLevelObjectiveFeedEventType.MonitorsAttached,
+        displayColor: Blue500,
+        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+          return getSloMonitorsChangedFeedMarkdown({
+            sloMarkdownLink: sloMarkdownLink,
+            monitors: attached,
+            change: "attached",
+          });
+        },
+      });
+    }
+
+    if (detachedIds.length > 0) {
+      const detached: Array<SloFeedMonitorReference> =
+        toReferences(detachedIds);
+
+      items.push({
+        eventType: ServiceLevelObjectiveFeedEventType.MonitorsDetached,
+        displayColor: Orange500,
+        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+          return getSloMonitorsChangedFeedMarkdown({
+            sloMarkdownLink: sloMarkdownLink,
+            monitors: detached,
+            change: "detached",
+          });
+        },
+      });
+    }
+
+    return items;
+  }
+
+  /*
+   * The manual-add guard. While an SLO has at least one ENABLED monitor rule,
+   * its monitor list belongs to those rules, so a hand-edit may only take away
+   * monitors a person attached:
+   *
+   *   - adding a monitor that is not already attached is refused - the rules
+   *     decide what is measured, and the Monitors page says so;
+   *   - removing a monitor a rule attached is refused too - it would not
+   *     stick: it stays recorded in autoAddedMonitors and the next sync would
+   *     attach it again, which reads as the edit silently failing;
+   *   - removing a monitor attached by hand (before the rules were enabled)
+   *     stays allowed.
+   *
+   * Root writes pass untouched: the rule engine itself writes `monitors` as
+   * root, and it must never be refused by the guard that protects its output.
+   *
+   * This hook runs before DatabaseService's update permission check, so the
+   * caller's raw query is pinned to the caller's tenant before anything is
+   * read - a validation read must not answer questions about another
+   * project's SLOs.
+   */
+  private async assertMonitorEditRespectsMonitorRules(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const nextMonitors: unknown = updateBy.data.monitors as unknown;
+
+    if (nextMonitors === undefined || updateBy.props.isRoot) {
+      return;
+    }
+
+    const query: Record<string, unknown> = {
+      ...(updateBy.query as Record<string, unknown>),
+    };
+
+    if (updateBy.props.tenantId) {
+      query["projectId"] = updateBy.props.tenantId;
+    }
+
+    const slos: Array<Model> = await this.findBy({
+      query: query as UpdateBy<Model>["query"],
+      select: {
+        _id: true,
+        monitors: {
+          _id: true,
+        },
+        autoAddedMonitors: {
+          _id: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const sloIds: Array<ObjectID> = slos
+      .map((slo: Model): ObjectID | null => {
+        return slo.id;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (sloIds.length === 0) {
+      return;
+    }
+
+    const sloIdsWithEnabledRules: Set<string> =
+      await ServiceLevelObjectiveMonitorRuleService.findServiceLevelObjectiveIdsWithEnabledRules(
+        sloIds,
+      );
+
+    if (sloIdsWithEnabledRules.size === 0) {
+      return;
+    }
+
+    const nextMonitorIds: Set<string> = this.toMonitorIdSet(nextMonitors);
+
+    for (const slo of slos) {
+      if (
+        !slo.id ||
+        !sloIdsWithEnabledRules.has(slo.id.toString().toLowerCase())
+      ) {
+        continue;
+      }
+
+      const attachedMonitorIds: Set<string> = this.toMonitorIdSet(slo.monitors);
+
+      const isAddingMonitors: boolean = Array.from(nextMonitorIds).some(
+        (monitorId: string): boolean => {
+          return !attachedMonitorIds.has(monitorId);
+        },
+      );
+
+      if (isAddingMonitors) {
+        throw new BadDataException(
+          "This SLO's monitors are managed by its monitor rules. Disable the rules to add monitors by hand.",
+        );
+      }
+
+      const isRemovingRuleAttachedMonitors: boolean = Array.from(
+        this.toMonitorIdSet(slo.autoAddedMonitors),
+      ).some((monitorId: string): boolean => {
+        return (
+          attachedMonitorIds.has(monitorId) && !nextMonitorIds.has(monitorId)
+        );
+      });
+
+      if (isRemovingRuleAttachedMonitors) {
+        throw new BadDataException(
+          "A monitor rule attached this monitor, so removing it by hand would not stick: the rule would attach it again. Change or disable the rule to detach it.",
+        );
+      }
+    }
+  }
+
+  /*
+   * Monitor ids from any shape they reach this service in: Monitor rows from
+   * a read, `{ _id }` stubs or bare uuid strings from an API payload (which
+   * DatabaseService only turns into entities after onBeforeUpdate). Lower-case,
+   * because Postgres renders a uuid lower-case whatever case it was written in.
+   */
+  private toMonitorIdSet(value: unknown): Set<string> {
+    const items: Array<unknown> = Array.isArray(value)
+      ? value
+      : value === null || value === undefined
+        ? []
+        : [value];
+
+    const ids: Set<string> = new Set<string>();
+
+    for (const item of items) {
+      const id: string =
+        resolveReferenceId(item)?.toString().trim().toLowerCase() || "";
+
+      if (id) {
+        ids.add(id);
+      }
+    }
+
+    return ids;
   }
 
   private roundToTwoDecimals(value: number): number {

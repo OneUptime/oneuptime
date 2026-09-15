@@ -24,6 +24,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import TeamMemberService from "./TeamMemberService";
 import UserService from "./UserService";
 import URL from "../../Types/API/URL";
+import { getSloAffectedResourceMarkdownLines } from "../../Utils/Slo/SloAffectedResourceMarkdown";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -49,6 +50,7 @@ import IncidentOwnerUser from "../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import User from "../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
@@ -1105,6 +1107,11 @@ export class Service extends DatabaseService<Model> {
           name: true,
           _id: true,
         },
+        // Named under "Resources Affected" in the created feed item.
+        serviceLevelObjectives: {
+          name: true,
+          _id: true,
+        },
       },
       props: {
         isRoot: true,
@@ -1560,11 +1567,36 @@ ${incident.description || "No description provided."}
         feedInfoInMarkdown += `⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
       }
 
-      if (incident.monitors && incident.monitors.length > 0) {
+      /*
+       * Monitors, then the SLOs this incident is linked to. A burn-rate
+       * incident carries no monitors on purpose, so its SLO is the only
+       * resource there is to name - and the feed's only way back to the
+       * objective that declared it. The SLO link is built inline:
+       * ServiceLevelObjectiveService cannot be imported here (it reaches
+       * this service through the burn-rate rule service).
+       */
+      const sloLines: Array<string> =
+        incident.serviceLevelObjectives &&
+        incident.serviceLevelObjectives.length > 0
+          ? getSloAffectedResourceMarkdownLines({
+              dashboardUrl: await DatabaseConfig.getDashboardUrl(),
+              projectId: incident.projectId!,
+              serviceLevelObjectives: incident.serviceLevelObjectives,
+            })
+          : [];
+
+      if (
+        (incident.monitors && incident.monitors.length > 0) ||
+        sloLines.length > 0
+      ) {
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
-        for (const monitor of incident.monitors) {
+        for (const monitor of incident.monitors || []) {
           feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(incident.projectId!, monitor.id!)).toString()})\n`;
+        }
+
+        for (const sloLine of sloLines) {
+          feedInfoInMarkdown += `${sloLine}\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
@@ -3117,6 +3149,15 @@ ${incidentSeverity.name}
           _id: true,
           name: true,
         },
+        /*
+         * The SLOs this incident affects, stamped below so an SLO's Metrics
+         * page can chart the incidents that hit it. Only _id and name, which
+         * the SLO model allows on relation reads.
+         */
+        serviceLevelObjectives: {
+          _id: true,
+          name: true,
+        },
         incidentSeverity: {
           _id: true,
           name: true,
@@ -3235,6 +3276,26 @@ ${incidentSeverity.name}
         incident.monitors
           ?.map((monitor: Monitor) => {
             return monitor.name?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      /*
+       * Comma-joined like monitorIds: one incident can affect several SLOs.
+       * The SLO Metrics page filters its Incident tab on
+       * serviceLevelObjectiveIds (SERVICE_LEVEL_OBJECTIVE_IDS_METRIC_ATTRIBUTE
+       * in Common/Utils/Slo/SloMetricType), so the key must not be renamed.
+       */
+      serviceLevelObjectiveIds: (
+        incident.serviceLevelObjectives
+          ?.map((serviceLevelObjective: ServiceLevelObjective) => {
+            return serviceLevelObjective._id?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      serviceLevelObjectiveNames: (
+        incident.serviceLevelObjectives
+          ?.map((serviceLevelObjective: ServiceLevelObjective) => {
+            return serviceLevelObjective.name?.toString();
           })
           .filter(Boolean) || []
       ).join(", "),

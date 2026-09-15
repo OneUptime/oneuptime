@@ -481,18 +481,14 @@ export class SloProductOverhaul1792900000000 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_8f7248d4d1690ead1310fd7180"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "AlertServiceLevelObjective"`,
-    );
+    await queryRunner.query(`DROP TABLE "AlertServiceLevelObjective"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_347de6d20848f909c671ce8047"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_76400f2f9b72cf93b48e6a0f4d"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "IncidentServiceLevelObjective"`,
-    );
+    await queryRunner.query(`DROP TABLE "IncidentServiceLevelObjective"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_4d341661c8253950891d74b28f"`,
     );
@@ -502,9 +498,7 @@ export class SloProductOverhaul1792900000000 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_01c46e1082108f2f2628dd8f9b"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "ServiceLevelObjectiveFeed"`,
-    );
+    await queryRunner.query(`DROP TABLE "ServiceLevelObjectiveFeed"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_96a13bf73eb5dc34c8964974b0"`,
     );
@@ -517,8 +511,6 @@ export class SloProductOverhaul1792900000000 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_cce44581df9a28439a4d139bae"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "ServiceLevelObjectiveMonitorRule"`,
-    );
+    await queryRunner.query(`DROP TABLE "ServiceLevelObjectiveMonitorRule"`);
   }
 }

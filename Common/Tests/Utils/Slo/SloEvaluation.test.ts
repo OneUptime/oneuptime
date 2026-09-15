@@ -154,17 +154,33 @@ describe("SLO evaluation cadence constants", () => {
       expect(WORKER_SOURCE).toContain('from "Common/Utils/Slo/SloEvaluation"');
     });
 
-    test("the SLO overview reads the window from here too", () => {
-      const overview: string = fs.readFileSync(
+    /*
+     * The overview's burn rate tile moved out of Pages/Slo/View/Index.tsx into
+     * the KPI strip component the page mounts; the budget runway beside it
+     * names the same lookback through SloProjection.
+     */
+    test("the SLO overview's KPI strip reads the window from here too", () => {
+      const kpiStrip: string = fs.readFileSync(
         path.join(
           __dirname,
-          "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Index.tsx",
+          "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloKpiStrip.tsx",
         ),
         "utf8",
       );
 
-      expect(overview).toContain(
+      expect(kpiStrip).toContain(
         'import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation"',
+      );
+    });
+
+    test("the budget runway projection names the same lookback", () => {
+      const projection: string = fs.readFileSync(
+        path.join(__dirname, "../../../Utils/Slo/SloProjection.ts"),
+        "utf8",
+      );
+
+      expect(projection).toContain(
+        'import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "./SloEvaluation"',
       );
     });
   });

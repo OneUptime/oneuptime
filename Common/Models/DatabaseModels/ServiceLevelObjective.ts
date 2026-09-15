@@ -79,8 +79,32 @@ const decimalTransformer: ValueTransformer = {
  * silently rewrites history: budgets recompute against the new
  * definition on the worker's next tick. Recording those edits is how a
  * team answers "did the SLO get better, or did someone move the target?".
+ *
+ * The ignored columns are the evaluation worker's output: it rewrites them on
+ * every tick. Recorded, they would bury every edit a person made under a
+ * stream of "SLI 99.91 -> 99.92" rows (and status transitions are already
+ * told, with their context, in the SLO feed), so a worker-only write records
+ * nothing. autoAddedMonitors is the monitor-rule engine's bookkeeping of which
+ * attached monitors it owns; the attachment itself stays audited on
+ * `monitors`. The SLO's burn-rate rules, monitor rules and owners roll their
+ * entries up to this resource (their rootResource), so the SLO's Audit Logs
+ * page shows them too.
  */
-@EnableAuditLog()
+@EnableAuditLog({
+  ignoreColumns: [
+    "currentSliPercentage",
+    "errorBudgetRemainingPercentage",
+    "errorBudgetRemainingSeconds",
+    "errorBudgetTotalSeconds",
+    "currentBurnRate",
+    "sloStatus",
+    "statusChangeNotificationSentAt",
+    "lastEvaluatedAt",
+    "nextEvaluationAt",
+    "lastAccumulatedBucketEndAt",
+    "autoAddedMonitors",
+  ],
+})
 @EnableDocumentation()
 @AccessControlColumn("labels")
 @TenantColumn("projectId")
@@ -663,7 +687,7 @@ export default class ServiceLevelObjective extends BaseModel {
     modelType: Label,
     title: "Auto-Add Monitors With Labels (Deprecated)",
     description:
-      "Deprecated: superseded by SLO Monitor Rules and no longer read by the SLO engine. Existing labels were migrated into a monitor rule named \"Auto-add monitors with labels\". Kept only for compatibility during upgrades; use SLO Monitor Rules instead.",
+      'Deprecated: superseded by SLO Monitor Rules and no longer read by the SLO engine. Existing labels were migrated into a monitor rule named "Auto-add monitors with labels". Kept only for compatibility during upgrades; use SLO Monitor Rules instead.',
   })
   @ManyToMany(
     () => {

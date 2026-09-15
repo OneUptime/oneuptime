@@ -1,13 +1,11 @@
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Label from "Common/Models/DatabaseModels/Label";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
-import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
 } from "Common/Utils/Slo/SloHealth";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
@@ -29,21 +27,34 @@ import TimezoneUtil from "Common/UI/Utils/Timezone";
  * every owner/filter chip below them into the App compile.
  */
 
+/*
+ * The examples are the part people actually need: "99.9" means nothing
+ * until it is translated into how much downtime it allows.
+ */
 const SLO_TARGET_HELP_TEXT: string =
-  "Reliability target as a percentage, e.g. 99.9. Must be greater than 0 and at most 99.999 — a 100% target leaves no error budget to track.";
+  "The share of time this SLO's monitors must be up, e.g. 99.9. Over 30 days, 99.9% allows 43 minutes of downtime and 99.99% allows about 4. Must be greater than 0 and at most 99.999 — a 100% target leaves no error budget to track.";
 
 /*
- * The create form used to render every SLO setting in one long modal. These
- * steps follow the four questions a user answers: what is this SLO, what does
- * it measure, what objective should it enforce, and how should it be grouped.
+ * The create form asks only what an SLO is: its name, the objective it
+ * holds, the period it is measured over, and how it is filed.
  *
- * Keep Monitors and Auto-Add Monitors With Labels on the same step. The first
- * field is required only when the second is empty, and validation runs when a
- * user leaves a step. Splitting them would prevent a label-driven SLO from
- * advancing far enough to choose its labels.
+ * How it measures has pages of its own, and every one of those settings
+ * starts from a server default, so the wizard no longer asks for them:
+ *   - monitors: attached on the Monitors page, or by a Monitor Rule;
+ *   - multiMonitorMode: the column's DB default, Any Monitor Down;
+ *   - downtimeMonitorStatuses: every non-operational status of the project
+ *     (ServiceLevelObjectiveService.onBeforeCreate);
+ *   - isEnabled: the column's DB default, true.
+ * ModelForm sends only the keys of the fields on the form, which is what
+ * lets those defaults apply. The last three are edited on Settings.
  *
- * Window Type also stays beside both conditional window fields so changing
- * the type immediately reveals the field that belongs to that choice.
+ * Objective and Period are separate steps because they answer separate
+ * questions — "how reliable" and "over what time". The at-risk threshold
+ * stays with the target, since it only means something next to it.
+ *
+ * Window Type stays on the same step as both conditional window fields:
+ * validation only runs for the current step, and switching the type must
+ * immediately reveal the field that belongs to that choice.
  */
 export const SLO_FORM_STEPS: Array<FormStep<ServiceLevelObjective>> = [
   {
@@ -51,12 +62,12 @@ export const SLO_FORM_STEPS: Array<FormStep<ServiceLevelObjective>> = [
     title: "Basic Info",
   },
   {
-    id: "monitors",
-    title: "Monitors",
-  },
-  {
     id: "objective",
     title: "Objective",
+  },
+  {
+    id: "period",
+    title: "Period",
   },
   {
     id: "labels",
@@ -65,18 +76,44 @@ export const SLO_FORM_STEPS: Array<FormStep<ServiceLevelObjective>> = [
 ];
 
 /*
- * `monitors` must exist even when it is empty. Validation can then evaluate
- * the field's conditional required predicate against monitorLabels instead of
- * treating an absent key as unconditionally required. This is what lets an
- * SLO be driven entirely by its auto-add label rule.
+ * Numbers are seeded here rather than through `defaultValue`, which
+ * FormField treats as absent when it is falsy. Nothing is seeded for the
+ * columns the form no longer carries: ModelForm would not send them anyway,
+ * and a stray key here would only suggest the form still decides them.
  */
 export const SLO_CREATE_INITIAL_VALUES: FormValues<ServiceLevelObjective> = {
-  monitors: [],
   windowType: SloWindowType.Rolling,
   windowDays: DEFAULT_ROLLING_WINDOW_DAYS,
   atRiskThresholdPercentage: DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
-  multiMonitorMode: SloMultiMonitorMode.AnyDown,
 };
+
+/*
+ * One sentence per window type, shown under each option in the dropdown
+ * and beside the chosen type on the Settings page, so the two can never
+ * describe the same choice differently.
+ */
+export const SLO_WINDOW_TYPE_DESCRIPTIONS: Record<SloWindowType, string> = {
+  [SloWindowType.Rolling]:
+    "The last N days, recovering continuously as old downtime ages out of the window.",
+  [SloWindowType.CalendarMonth]:
+    "Each calendar month on its own. The whole error budget resets on the 1st.",
+};
+
+export type GetSloWindowTypeDropdownOptionsFunction =
+  () => Array<DropdownOption>;
+
+export const getSloWindowTypeDropdownOptions: GetSloWindowTypeDropdownOptionsFunction =
+  (): Array<DropdownOption> => {
+    return DropdownUtil.getDropdownOptionsFromEnum(SloWindowType).map(
+      (option: DropdownOption): DropdownOption => {
+        return {
+          ...option,
+          description:
+            SLO_WINDOW_TYPE_DESCRIPTIONS[option.value as SloWindowType],
+        };
+      },
+    );
+  };
 
 /*
  * Client-side mirrors of ServiceLevelObjectiveService.validateTargetPercentage
@@ -149,32 +186,19 @@ export const validateWindowDays: ValidateWindowDaysFunction = (
 };
 
 /*
- * Shared by the create modal and the SLO Details edit form so the two can
- * never drift apart. The list previously offered only name, description,
- * monitors, target, window days and labels, which meant every SLO that
- * needed a calendar month, a custom at-risk threshold, a multi-monitor mode
- * or non-default downtime statuses had to be created and then immediately
- * edited. Worse, the seeded burn rate rules are scaled from the window at
- * create time, so a calendar-month SLO created as "30 days rolling" kept
- * rules calibrated for the wrong window.
+ * The create wizard's fields. Settings and the Overview's details card take
+ * their fields from this list (see pickSloFormFields) rather than declaring
+ * them a second time, so a help text or validator changed here changes
+ * everywhere the same column is edited.
  */
-export interface GetSloFormFieldsOptions {
-  /**
-   * The edit form on the SLO Details card offers Enabled; the create modal
-   * does not, because a brand-new SLO is always created enabled and the
-   * toggle would only be a way to create something inert by accident.
-   */
-  includeIsEnabled?: boolean | undefined;
-}
+export type GetSloFormFieldsFunction = () => Array<
+  ModelField<ServiceLevelObjective>
+>;
 
-export type GetSloFormFieldsFunction = (
-  options?: GetSloFormFieldsOptions | undefined,
-) => Array<ModelField<ServiceLevelObjective>>;
-
-export const getSloFormFields: GetSloFormFieldsFunction = (
-  options?: GetSloFormFieldsOptions | undefined,
-): Array<ModelField<ServiceLevelObjective>> => {
-  const fields: Array<ModelField<ServiceLevelObjective>> = [
+export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
+  ModelField<ServiceLevelObjective>
+> => {
+  return [
     {
       field: {
         name: true,
@@ -197,50 +221,6 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
     },
     {
       field: {
-        monitors: true,
-      },
-      title: "Monitors",
-      stepId: "monitors",
-      description:
-        "Monitors whose uptime is measured by this SLO. Time when any of these monitors is down spends error budget.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Monitor,
-        labelField: "name",
-        valueField: "_id",
-      },
-      /*
-       * Required only when nothing else can fill the list. An SLO driven
-       * entirely by the label rule below starts with no monitors picked by
-       * hand, and the server attaches the matching ones the moment it is
-       * saved — demanding a manual pick there would force the user to attach
-       * a monitor they did not mean to curate.
-       */
-      required: (item: FormValues<ServiceLevelObjective>): boolean => {
-        const monitorLabels: unknown = item.monitorLabels;
-        return !Array.isArray(monitorLabels) || monitorLabels.length === 0;
-      },
-      placeholder: "Select Monitors",
-    },
-    {
-      field: {
-        monitorLabels: true,
-      },
-      title: "Auto-Add Monitors With Labels",
-      stepId: "monitors",
-      description:
-        "Keep this SLO's monitor list in step with your labels: every monitor carrying one of these labels is attached automatically, and is detached again when it stops carrying any of them. Monitors you attach by hand above are never removed.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Select Monitor Labels",
-    },
-    {
-      field: {
         targetPercentage: true,
       },
       title: "Target (%)",
@@ -253,14 +233,33 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
     },
     {
       field: {
+        atRiskThresholdPercentage: true,
+      },
+      title: "At-Risk Threshold (%)",
+      stepId: "objective",
+      description:
+        "The SLO turns At Risk when less than this percentage of its error budget remains, so you hear about a burn before the budget is gone. A whole number from 0 to 100; the default is 20.",
+      fieldType: FormFieldSchemaType.Number,
+      /*
+       * Required because the column is NOT NULL with a DB default, so the
+       * box is always prefilled: clearing a field the UI called optional
+       * would otherwise submit "" into an integer column and fail the whole
+       * save with an opaque server error.
+       */
+      required: true,
+      placeholder: "20",
+      customValidation: validateAtRiskThreshold,
+    },
+    {
+      field: {
         windowType: true,
       },
       title: "Window Type",
-      stepId: "objective",
+      stepId: "period",
       description:
-        "Rolling windows look back a fixed number of days and recover continuously. Calendar Month resets the whole budget on the first of each month.",
+        "Rolling suits services that should be reliable at every moment. Calendar Month suits objectives reported, or promised to customers, per month.",
       fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(SloWindowType),
+      dropdownOptions: getSloWindowTypeDropdownOptions(),
       required: true,
       placeholder: "Rolling",
       /*
@@ -302,7 +301,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         windowDays: true,
       },
       title: "Window (Days)",
-      stepId: "objective",
+      stepId: "period",
       /*
        * A free number rather than the old 7/28/30/90 dropdown: the column
        * accepts 1-366 (ServiceLevelObjectiveService.validateWindowDays), so
@@ -311,7 +310,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
        * four options on the next save.
        */
       description:
-        "Length of the rolling compliance window the SLI is measured over. Between 1 and 366 days.",
+        "How many days the rolling window looks back, from 1 to 366. 28 or 30 is typical: a shorter window forgets downtime sooner, but also allows less of it.",
       fieldType: FormFieldSchemaType.Number,
       required: true,
       placeholder: "30",
@@ -325,66 +324,16 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         timezone: true,
       },
       title: "Timezone",
-      stepId: "objective",
+      stepId: "period",
       description:
-        "Decides when the calendar month rolls over. Ignored for Rolling windows. Defaults to UTC.",
+        "Decides when each calendar month starts and ends. Defaults to UTC.",
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
       required: false,
-      placeholder: "Select Timezone",
+      placeholder: "UTC",
       showIf: (item: FormValues<ServiceLevelObjective>): boolean => {
         return item.windowType === SloWindowType.CalendarMonth;
       },
-    },
-    {
-      field: {
-        atRiskThresholdPercentage: true,
-      },
-      title: "At-Risk Threshold (%)",
-      stepId: "objective",
-      description:
-        "The SLO becomes At Risk when less than this percentage of the error budget remains. Default is 20.",
-      fieldType: FormFieldSchemaType.Number,
-      /*
-       * Required because the column is NOT NULL with a DB default, so the
-       * box is always prefilled: clearing a field the UI called optional
-       * would otherwise submit "" into an integer column and fail the whole
-       * save with an opaque server error.
-       */
-      required: true,
-      placeholder: "20",
-      customValidation: validateAtRiskThreshold,
-    },
-    {
-      field: {
-        multiMonitorMode: true,
-      },
-      title: "Multi Monitor Mode",
-      stepId: "monitors",
-      description:
-        "How downtime counts when several monitors are attached: time when any monitor is down, or an average across monitors.",
-      fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions:
-        DropdownUtil.getDropdownOptionsFromEnum(SloMultiMonitorMode),
-      required: true,
-      placeholder: "Any Monitor Down",
-    },
-    {
-      field: {
-        downtimeMonitorStatuses: true,
-      },
-      title: "Downtime Monitor Statuses",
-      stepId: "monitors",
-      description:
-        "Monitor statuses that count as downtime for this SLO. Leave empty to use every non-operational status.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: MonitorStatus,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Select Statuses",
     },
     {
       field: {
@@ -403,22 +352,47 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
       placeholder: "Labels",
     },
   ];
+};
 
-  if (options?.includeIsEnabled) {
-    fields.push({
-      field: {
-        isEnabled: true,
-      },
-      title: "Enabled",
-      stepId: "basic-info",
-      description:
-        "Disabled SLOs are not evaluated and do not fire burn-rate alerts.",
-      fieldType: FormFieldSchemaType.Toggle,
-      required: false,
-    });
+/*
+ * The create form's fields for the given columns, in the order asked for,
+ * with their wizard step id dropped: the forms that reuse them (the
+ * Overview's details card and the Settings cards) are single flat forms,
+ * and a step id there would mean nothing.
+ *
+ * Everything else is kept as it is, including onChange and showIf, so the
+ * Calendar Month backfill and the conditional window fields behave on
+ * Settings exactly as they do in the wizard.
+ */
+export type PickSloFormFieldsFunction = (
+  columns: Array<string>,
+) => Array<ModelField<ServiceLevelObjective>>;
+
+export const pickSloFormFields: PickSloFormFieldsFunction = (
+  columns: Array<string>,
+): Array<ModelField<ServiceLevelObjective>> => {
+  const createFields: Array<ModelField<ServiceLevelObjective>> =
+    getSloFormFields();
+  const pickedFields: Array<ModelField<ServiceLevelObjective>> = [];
+
+  for (const column of columns) {
+    const createField: ModelField<ServiceLevelObjective> | undefined =
+      createFields.find((field: ModelField<ServiceLevelObjective>): boolean => {
+        return Object.keys(field.field || {})[0] === column;
+      });
+
+    if (!createField) {
+      continue;
+    }
+
+    const pickedField: ModelField<ServiceLevelObjective> = {
+      ...createField,
+    };
+    delete pickedField.stepId;
+    pickedFields.push(pickedField);
   }
 
-  return fields;
+  return pickedFields;
 };
 
 /*
@@ -438,34 +412,5 @@ export type GetSloDetailsFormFieldsFunction = () => Array<
 
 export const getSloDetailsFormFields: GetSloDetailsFormFieldsFunction =
   (): Array<ModelField<ServiceLevelObjective>> => {
-    /*
-     * Taken from the create form rather than declared a second time, so a
-     * name placeholder or label description changed there changes here too.
-     * The step id is dropped: the details card is one flat form, and the
-     * create wizard's steps mean nothing on it.
-     */
-    const createFields: Array<ModelField<ServiceLevelObjective>> =
-      getSloFormFields();
-    const detailsFields: Array<ModelField<ServiceLevelObjective>> = [];
-
-    for (const column of SLO_DETAILS_FORM_COLUMNS) {
-      const createField: ModelField<ServiceLevelObjective> | undefined =
-        createFields.find(
-          (field: ModelField<ServiceLevelObjective>): boolean => {
-            return Object.keys(field.field || {})[0] === column;
-          },
-        );
-
-      if (!createField) {
-        continue;
-      }
-
-      const detailsField: ModelField<ServiceLevelObjective> = {
-        ...createField,
-      };
-      delete detailsField.stepId;
-      detailsFields.push(detailsField);
-    }
-
-    return detailsFields;
+    return pickSloFormFields(SLO_DETAILS_FORM_COLUMNS);
   };

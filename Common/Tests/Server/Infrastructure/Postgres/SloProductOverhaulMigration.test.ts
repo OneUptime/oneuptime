@@ -348,11 +348,15 @@ describe("SloProductOverhaul migration - scope", () => {
     for (const statement of await recordQueries("up")) {
       const touched: string | undefined =
         statement.match(/^ALTER TABLE "([^"]+)"/)?.[1] ||
-        statement.match(/^CREATE (?:UNIQUE )?INDEX "[^"]+" ON "([^"]+)"/)?.[1] ||
+        statement.match(
+          /^CREATE (?:UNIQUE )?INDEX "[^"]+" ON "([^"]+)"/,
+        )?.[1] ||
         statement.match(/^CREATE TABLE "([^"]+)"/)?.[1];
 
-      expect({ statement, allowed: touched ? allowed.has(touched) : false })
-        .toEqual({ statement, allowed: true });
+      expect({
+        statement,
+        allowed: touched ? allowed.has(touched) : false,
+      }).toEqual({ statement, allowed: true });
     }
   });
 
@@ -615,7 +619,9 @@ describe("SloProductOverhaul migration - ServiceLevelObjective archive", () => {
         "ServiceLevelObjective",
         "archivedByUserId",
       ),
-    ).toContain('REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION');
+    ).toContain(
+      'REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION',
+    );
   });
 });
 

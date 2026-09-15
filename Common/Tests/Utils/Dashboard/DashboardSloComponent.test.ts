@@ -101,17 +101,52 @@ describe("DashboardSloComponentUtil", () => {
   });
 
   describe("getComponentConfigArguments", () => {
-    it("declares exactly the four documented arguments", () => {
+    it("declares exactly the five documented arguments", () => {
       expect(
         getArguments().map((arg: ComponentArgument<DashboardSloComponent>) => {
           return arg.id;
         }),
       ).toEqual([
         "serviceLevelObjectiveId",
+        "serviceLevelObjectiveVariableId",
         "sloMetric",
         "displayType",
         "widgetTitle",
       ]);
+    });
+
+    /*
+     * A widget is valid pinned to an SLO OR following an SLO variable. If
+     * either source argument were `required`, the settings form would refuse
+     * to save the other kind — including every widget the SLO template ships.
+     */
+    it("requires neither source argument on its own", () => {
+      expect(getArgumentById("serviceLevelObjectiveId").required).toBe(false);
+      expect(getArgumentById("serviceLevelObjectiveVariableId").required).toBe(
+        false,
+      );
+    });
+
+    it("follows a variable through the Telemetry Attribute variable picker, in the Data Source section", () => {
+      const arg: ComponentArgument<DashboardSloComponent> = getArgumentById(
+        "serviceLevelObjectiveVariableId",
+      );
+
+      expect(arg.type).toBe(ComponentInputType.TelemetryAttributeVariable);
+      expect(arg.section?.name).toBe(
+        getArgumentById("serviceLevelObjectiveId").section?.name,
+      );
+      // The author must be told a pin wins, and what publishing it exposes.
+      expect(arg.description).toContain("sloName");
+      expect(arg.description).toContain("pinned");
+      expect(arg.description).toContain("public dashboard");
+    });
+
+    it("leaves the default widget following no variable", () => {
+      expect(
+        DashboardSloComponentUtil.getDefaultComponent().arguments
+          .serviceLevelObjectiveVariableId,
+      ).toBeUndefined();
     });
 
     it("gives every argument a name, description, input type and required flag", () => {
@@ -142,7 +177,6 @@ describe("DashboardSloComponentUtil", () => {
       expect(arg.entityFilterModelType).toBe(
         EntityFilterModelType.ServiceLevelObjective,
       );
-      expect(arg.required).toBe(true);
     });
 
     it("offers all three SLO metrics in the metric dropdown", () => {

@@ -2,21 +2,37 @@ import { describe, expect, test } from "@jest/globals";
 import {
   BURN_RATE_RULE_FORM_FIELDS,
   BURN_RATE_RULE_FORM_STEPS,
+  BURN_RATE_RULE_OWNER_USER_COLUMNS,
+  FetchBurnRateRuleOwnerUserOptionsFunction,
   validateBurnRateOutputs,
   willCreateAlert,
   willDeclareIncident,
+  withOwnerUserDropdownOptions,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleForm";
+import Label from "Common/Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
+import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
+import TableColumnType from "Common/Types/Database/TableColumnType";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import {
+  DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+  SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
+  isSloBurnRateTemplateVariable,
+} from "Common/Utils/Slo/SloBurnRateTemplate";
 
 /*
  * The create form is a wizard now, and every way of getting a wizard wrong is
  * silent. A field whose stepId matches no step is on no step, so it never
- * renders — it does not fail to compile and it does not throw. A routing step
- * whose showIf disagrees with the toggle that gates it either hides a step the
- * user needs or shows one for an output that is off. And the validator that
+ * renders — it does not fail to compile and it does not throw. A per-output
+ * step whose showIf disagrees with the toggle that gates it either hides a step
+ * the user needs or shows one for an output that is off. And the validator that
  * forbids an output-less rule can only see the fields of the step being left
  * (Validation.validate skips every field whose stepId is not the current one),
  * so the two toggles have to share a step or the rule cannot be enforced at
@@ -32,6 +48,9 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 
 type FieldOf = ModelField<ServiceLevelObjectiveBurnRateRule>;
 type StepOf = FormStep<ServiceLevelObjectiveBurnRateRule>;
+
+const ALERT_STEPS: Array<string> = ["alert-details", "alert-routing"];
+const INCIDENT_STEPS: Array<string> = ["incident-details", "incident-routing"];
 
 function stepIds(): Array<string> {
   return BURN_RATE_RULE_FORM_STEPS.map((step: StepOf): string => {
@@ -92,13 +111,29 @@ function columnsOnStep(stepId: string): Array<string> {
   }).map(columnOf);
 }
 
+function columnMetadata(column: string): TableColumnMetadata {
+  return new ServiceLevelObjectiveBurnRateRule().getTableColumnMetadata(column);
+}
+
+function descriptionOf(field: FieldOf): string {
+  if (typeof field.description !== "string") {
+    throw new Error(
+      `Field "${columnOf(field)}" has no plain-text description.`,
+    );
+  }
+
+  return field.description;
+}
+
 describe("the burn rate rule form steps", () => {
-  test("walk the four questions a rule answers, in order", () => {
+  test("walk the questions a rule answers, output by output, in order", () => {
     expect(stepIds()).toEqual([
       "rule",
       "burn-window",
       "declares",
+      "alert-details",
       "alert-routing",
+      "incident-details",
       "incident-routing",
     ]);
 
@@ -110,7 +145,9 @@ describe("the burn rate rule form steps", () => {
       "Rule",
       "Burn Window",
       "What It Declares",
+      "Alert Details",
       "Alert Routing",
+      "Incident Details",
       "Incident Routing",
     ]);
   });
@@ -139,6 +176,12 @@ describe("the burn rate rule form steps", () => {
     }
   });
 
+  test("no column appears on the form twice", () => {
+    const columns: Array<string> = BURN_RATE_RULE_FORM_FIELDS.map(columnOf);
+
+    expect(new Set(columns).size).toBe(columns.length);
+  });
+
   test("each step carries the fields that answer its question", () => {
     expect(columnsOnStep("rule")).toEqual(["name", "isEnabled"]);
 
@@ -152,17 +195,98 @@ describe("the burn rate rule form steps", () => {
     expect(columnsOnStep("declares")).toEqual([
       "shouldCreateAlert",
       "shouldCreateIncident",
+      "addSloOwnersAsOwners",
+    ]);
+
+    expect(columnsOnStep("alert-details")).toEqual([
+      "alertTitleTemplate",
+      "alertDescriptionTemplate",
+      "alertSeverity",
     ]);
 
     expect(columnsOnStep("alert-routing")).toEqual([
-      "alertSeverity",
       "onCallDutyPolicies",
+      "alertOwnerTeams",
+      "alertOwnerUsers",
+      "alertLabels",
+      "autoResolveAlert",
+      "isAlertPrivate",
+      "alertRemediationNotes",
+    ]);
+
+    expect(columnsOnStep("incident-details")).toEqual([
+      "incidentTitleTemplate",
+      "incidentDescriptionTemplate",
+      "incidentSeverity",
     ]);
 
     expect(columnsOnStep("incident-routing")).toEqual([
-      "incidentSeverity",
       "incidentOnCallDutyPolicies",
+      "incidentOwnerTeams",
+      "incidentOwnerUsers",
+      "incidentLabels",
+      "autoResolveIncident",
+      "isIncidentPrivate",
+      "incidentRemediationNotes",
     ]);
+  });
+
+  /*
+   * The steps list above is exact, so a new column cannot slip in unnoticed.
+   * This pins the rule behind it: every user-editable column of the model is
+   * offered somewhere, except the ones deliberately left out.
+   */
+  test("offers every user-editable rule column except the deliberate omissions", () => {
+    const onForm: Set<string> = new Set(
+      BURN_RATE_RULE_FORM_FIELDS.map(columnOf),
+    );
+
+    const deliberatelyAbsent: Set<string> = new Set([
+      // Set by the page from the route, never typed in.
+      "project",
+      "projectId",
+      "serviceLevelObjective",
+      "serviceLevelObjectiveId",
+      // Relation columns the form edits through their entity twin.
+      "alertSeverityId",
+      "incidentSeverityId",
+      // Only meaningful for Metric SLIs, which are not evaluated yet.
+      "minimumSampleCount",
+      // Audit columns.
+      "createdByUser",
+      "createdByUserId",
+      "deletedByUser",
+      "deletedByUserId",
+    ]);
+
+    // Base-model bookkeeping every table has, none of it user-editable.
+    const baseColumns: Set<string> = new Set([
+      "_id",
+      "createdAt",
+      "updatedAt",
+      "deletedAt",
+      "version",
+      "slug",
+    ]);
+
+    const model: ServiceLevelObjectiveBurnRateRule =
+      new ServiceLevelObjectiveBurnRateRule();
+
+    for (const column of model.getTableColumns().columns) {
+      // Worker-owned lifecycle columns cannot be written through the API at all.
+      if (
+        column.startsWith("last") ||
+        deliberatelyAbsent.has(column) ||
+        baseColumns.has(column)
+      ) {
+        continue;
+      }
+
+      expect({ column, onForm: onForm.has(column) }).toEqual({
+        column,
+        onForm: true,
+      });
+    }
   });
 
   /*
@@ -178,6 +302,16 @@ describe("the burn rate rule form steps", () => {
 
     expect(alertToggle.stepId).toBe("declares");
     expect(incidentToggle.stepId).toBe(alertToggle.stepId);
+  });
+
+  /*
+   * addSloOwnersAsOwners applies to both outputs, so it belongs to neither
+   * output's steps: on one of them it would vanish whenever that output is off
+   * while still applying to the other.
+   */
+  test("the switch that applies to both outputs is not hidden with either of them", () => {
+    expect(fieldFor("addSloOwnersAsOwners").stepId).toBe("declares");
+    expect(stepById("declares").showIf).toBeUndefined();
   });
 
   /*
@@ -202,19 +336,308 @@ describe("the burn rate rule form steps", () => {
     expect(fieldFor("shouldCreateAlert").defaultValue).toBe(true);
   });
 
-  test("Create Alert carries the column default so the toggle matches the row", () => {
-    expect(fieldFor("shouldCreateAlert").defaultValue).toBe(true);
+  /*
+   * `defaultValue` is only applied when truthy, so a toggle whose column
+   * defaults to true must carry `defaultValue: true` - or a create form shows it
+   * off while the row is written on - and a toggle whose column defaults to
+   * false must carry none, because `false` would be indistinguishable from
+   * absent anyway. Read from the model, so a flipped column default fails here.
+   */
+  test("every toggle shows exactly what its column will hold on create", () => {
+    const toggles: Array<FieldOf> = BURN_RATE_RULE_FORM_FIELDS.filter(
+      (field: FieldOf): boolean => {
+        return field.fieldType === FormFieldSchemaType.Toggle;
+      },
+    );
 
-    /*
-     * And Declare Incident does NOT: `defaultValue` is only applied when
-     * truthy, so `false` here would be indistinguishable from absent — the
-     * column default of false is what has to do the work.
-     */
-    expect(fieldFor("shouldCreateIncident").defaultValue).toBeUndefined();
+    expect(toggles.map(columnOf)).toEqual([
+      "isEnabled",
+      "shouldCreateAlert",
+      "shouldCreateIncident",
+      "addSloOwnersAsOwners",
+      "autoResolveAlert",
+      "isAlertPrivate",
+      "autoResolveIncident",
+      "isIncidentPrivate",
+    ]);
+
+    for (const toggle of toggles) {
+      const column: string = columnOf(toggle);
+      const metadata: TableColumnMetadata = columnMetadata(column);
+
+      expect(metadata.type).toBe(TableColumnType.Boolean);
+
+      expect({
+        column,
+        defaultValue: toggle.defaultValue,
+      }).toEqual({
+        column,
+        defaultValue: metadata.defaultValue === true ? true : undefined,
+      });
+    }
+  });
+
+  test("the auto-resolve toggles default on, the private toggles and SLO owners off", () => {
+    expect(fieldFor("autoResolveAlert").defaultValue).toBe(true);
+    expect(fieldFor("autoResolveIncident").defaultValue).toBe(true);
+    expect(fieldFor("isAlertPrivate").defaultValue).toBeUndefined();
+    expect(fieldFor("isIncidentPrivate").defaultValue).toBeUndefined();
+    expect(fieldFor("addSloOwnersAsOwners").defaultValue).toBeUndefined();
+  });
+
+  test("each output's fields live only on that output's steps", () => {
+    const alertColumns: Array<string> = [
+      "alertTitleTemplate",
+      "alertDescriptionTemplate",
+      "alertRemediationNotes",
+      "alertSeverity",
+      "onCallDutyPolicies",
+      "alertOwnerTeams",
+      "alertOwnerUsers",
+      "alertLabels",
+      "autoResolveAlert",
+      "isAlertPrivate",
+    ];
+
+    const incidentColumns: Array<string> = [
+      "incidentTitleTemplate",
+      "incidentDescriptionTemplate",
+      "incidentRemediationNotes",
+      "incidentSeverity",
+      "incidentOnCallDutyPolicies",
+      "incidentOwnerTeams",
+      "incidentOwnerUsers",
+      "incidentLabels",
+      "autoResolveIncident",
+      "isIncidentPrivate",
+    ];
+
+    for (const column of alertColumns) {
+      expect({ column, step: fieldFor(column).stepId }).toEqual({
+        column,
+        step: expect.stringMatching(/^alert-/),
+      });
+    }
+
+    for (const column of incidentColumns) {
+      expect({ column, step: fieldFor(column).stepId }).toEqual({
+        column,
+        step: expect.stringMatching(/^incident-/),
+      });
+    }
   });
 });
 
-describe("the two routing steps appear only for the output they configure", () => {
+describe("the template fields", () => {
+  const TITLE_COLUMNS: Array<string> = [
+    "alertTitleTemplate",
+    "incidentTitleTemplate",
+  ];
+
+  const MARKDOWN_COLUMNS: Array<string> = [
+    "alertDescriptionTemplate",
+    "alertRemediationNotes",
+    "incidentDescriptionTemplate",
+    "incidentRemediationNotes",
+  ];
+
+  test("titles are single-line text, limited like the server and showing the default", () => {
+    for (const column of TITLE_COLUMNS) {
+      const field: FieldOf = fieldFor(column);
+
+      expect(field.fieldType).toBe(FormFieldSchemaType.Text);
+      expect(field.required).toBe(false);
+      expect(field.validation?.maxLength).toBe(
+        SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
+      );
+
+      /*
+       * The placeholder IS the default template, so an empty field shows what
+       * the record will be titled rather than implying it will be untitled.
+       */
+      expect(field.placeholder).toBe(DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE);
+      expect(descriptionOf(field)).toContain(
+        DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+      );
+    }
+  });
+
+  test("the title limit is the column's own length, so a saved template always fits", () => {
+    for (const column of TITLE_COLUMNS) {
+      expect(columnMetadata(column).type).toBe(TableColumnType.LongText);
+    }
+
+    // ColumnLength.LongText, the varchar the title columns are created with.
+    expect(SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH).toBe(500);
+  });
+
+  test("descriptions and remediation notes are markdown, limited like the server", () => {
+    for (const column of MARKDOWN_COLUMNS) {
+      const field: FieldOf = fieldFor(column);
+
+      expect(field.fieldType).toBe(FormFieldSchemaType.Markdown);
+      expect(columnMetadata(column).type).toBe(TableColumnType.Markdown);
+      expect(field.required).toBe(false);
+      expect(field.validation?.maxLength).toBe(
+        SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+      );
+    }
+  });
+
+  test("every template field tells the user about the variables, naming only real ones", () => {
+    for (const column of [...TITLE_COLUMNS, ...MARKDOWN_COLUMNS]) {
+      const description: string = descriptionOf(fieldFor(column));
+
+      const named: Array<string> = [
+        ...description.matchAll(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g),
+      ].map((match: RegExpMatchArray): string => {
+        return match[1]!;
+      });
+
+      expect({ column, namesVariables: named.length > 0 }).toEqual({
+        column,
+        namesVariables: true,
+      });
+
+      for (const name of named) {
+        expect({
+          column,
+          name,
+          exists: isSloBurnRateTemplateVariable(name),
+        }).toEqual({
+          column,
+          name,
+          exists: true,
+        });
+      }
+    }
+  });
+});
+
+describe("the relation pickers", () => {
+  /*
+   * A picker's dropdownModal lists records of its type; pointing a picker at
+   * the wrong model would offer, say, labels for an owner-team column, and the
+   * save would fail on a foreign key the user cannot see.
+   */
+  const PICKERS: Array<{
+    column: string;
+    modelType: typeof Label | typeof Team | typeof OnCallDutyPolicy;
+  }> = [
+    { column: "onCallDutyPolicies", modelType: OnCallDutyPolicy },
+    { column: "incidentOnCallDutyPolicies", modelType: OnCallDutyPolicy },
+    { column: "alertOwnerTeams", modelType: Team },
+    { column: "incidentOwnerTeams", modelType: Team },
+    { column: "alertLabels", modelType: Label },
+    { column: "incidentLabels", modelType: Label },
+  ];
+
+  test("each list picker lists the model its column joins to", () => {
+    for (const picker of PICKERS) {
+      const field: FieldOf = fieldFor(picker.column);
+      const metadata: TableColumnMetadata = columnMetadata(picker.column);
+
+      expect(field.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+      expect(metadata.type).toBe(TableColumnType.EntityArray);
+      expect(metadata.modelType).toBe(picker.modelType);
+      expect(field.dropdownModal?.type).toBe(picker.modelType);
+      expect(field.dropdownModal?.valueField).toBe("_id");
+      expect(field.dropdownModal?.labelField).toBe("name");
+    }
+  });
+
+  test("the owner-user pickers join to User and carry no loader of their own", () => {
+    expect([...BURN_RATE_RULE_OWNER_USER_COLUMNS]).toEqual([
+      "alertOwnerUsers",
+      "incidentOwnerUsers",
+    ]);
+
+    for (const column of BURN_RATE_RULE_OWNER_USER_COLUMNS) {
+      const field: FieldOf = fieldFor(column);
+
+      expect(field.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+      expect(columnMetadata(column).modelType).toBe(User);
+
+      /*
+       * User is not project-listable, so a dropdownModal would list nothing.
+       * The loader needs ProjectUser, which reads `window` at module load, so
+       * this React-free module must leave it to the page.
+       */
+      expect(field.dropdownModal).toBeUndefined();
+      expect(field.fetchDropdownOptions).toBeUndefined();
+    }
+  });
+});
+
+describe("withOwnerUserDropdownOptions", () => {
+  const loader: FetchBurnRateRuleOwnerUserOptionsFunction = async () => {
+    return [{ value: "user-1", label: "Jane Doe" }];
+  };
+
+  test("gives exactly the two owner-user pickers the loader", () => {
+    const wired: Array<FieldOf> = withOwnerUserDropdownOptions(
+      BURN_RATE_RULE_FORM_FIELDS,
+      loader,
+    );
+
+    expect(wired).toHaveLength(BURN_RATE_RULE_FORM_FIELDS.length);
+
+    const withLoader: Array<string> = wired
+      .filter((field: FieldOf): boolean => {
+        return field.fetchDropdownOptions === loader;
+      })
+      .map(columnOf);
+
+    expect(withLoader).toEqual(["alertOwnerUsers", "incidentOwnerUsers"]);
+  });
+
+  test("leaves every other field as the very same object, in the same order", () => {
+    const wired: Array<FieldOf> = withOwnerUserDropdownOptions(
+      BURN_RATE_RULE_FORM_FIELDS,
+      loader,
+    );
+
+    BURN_RATE_RULE_FORM_FIELDS.forEach((field: FieldOf, index: number) => {
+      if (BURN_RATE_RULE_OWNER_USER_COLUMNS.includes(columnOf(field))) {
+        // A copy with everything else intact.
+        expect(wired[index]).not.toBe(field);
+        expect({ ...wired[index], fetchDropdownOptions: undefined }).toEqual({
+          ...field,
+          fetchDropdownOptions: undefined,
+        });
+        return;
+      }
+
+      expect(wired[index]).toBe(field);
+    });
+  });
+
+  test("never mutates the shared field array it was given", () => {
+    withOwnerUserDropdownOptions(BURN_RATE_RULE_FORM_FIELDS, loader);
+
+    expect(fieldFor("alertOwnerUsers").fetchDropdownOptions).toBeUndefined();
+    expect(fieldFor("incidentOwnerUsers").fetchDropdownOptions).toBeUndefined();
+  });
+
+  test("hands the loader through untouched, so it runs with the form's values", async () => {
+    const wired: Array<FieldOf> = withOwnerUserDropdownOptions(
+      BURN_RATE_RULE_FORM_FIELDS,
+      loader,
+    );
+
+    const ownerField: FieldOf | undefined = wired.find(
+      (field: FieldOf): boolean => {
+        return columnOf(field) === "alertOwnerUsers";
+      },
+    );
+
+    await expect(ownerField!.fetchDropdownOptions!({})).resolves.toEqual([
+      { value: "user-1", label: "Jane Doe" },
+    ]);
+  });
+});
+
+describe("the per-output steps appear only for the output they configure", () => {
   function isVisible(
     stepId: string,
     values: FormValues<ServiceLevelObjectiveBurnRateRule>,
@@ -234,50 +657,46 @@ describe("the two routing steps appear only for the output they configure", () =
     }
   });
 
-  test("an untouched form shows alert routing and hides incident routing", () => {
+  test("an untouched form shows the alert steps and hides the incident steps", () => {
     /*
      * Exactly the model's column defaults. A form the user has not touched
-     * submits a rule that alerts and declares nothing, so that is the routing
-     * it must offer.
+     * submits a rule that alerts and declares nothing, so that is what it must
+     * offer to configure.
      */
-    expect(isVisible("alert-routing", {})).toBe(true);
-    expect(isVisible("incident-routing", {})).toBe(false);
+    for (const id of ALERT_STEPS) {
+      expect(isVisible(id, {})).toBe(true);
+    }
+
+    for (const id of INCIDENT_STEPS) {
+      expect(isVisible(id, {})).toBe(false);
+    }
   });
 
-  test("turning an output on reveals its routing step", () => {
-    expect(isVisible("incident-routing", { shouldCreateIncident: true })).toBe(
-      true,
-    );
-    expect(isVisible("alert-routing", { shouldCreateAlert: true })).toBe(true);
+  test("turning an output on reveals both of its steps, turning it off hides both", () => {
+    for (const id of INCIDENT_STEPS) {
+      expect(isVisible(id, { shouldCreateIncident: true })).toBe(true);
+      expect(isVisible(id, { shouldCreateIncident: false })).toBe(false);
+    }
+
+    for (const id of ALERT_STEPS) {
+      expect(isVisible(id, { shouldCreateAlert: true })).toBe(true);
+      expect(isVisible(id, { shouldCreateAlert: false })).toBe(false);
+    }
   });
 
-  test("turning an output off hides its routing step", () => {
-    expect(isVisible("alert-routing", { shouldCreateAlert: false })).toBe(
-      false,
-    );
-    expect(isVisible("incident-routing", { shouldCreateIncident: false })).toBe(
-      false,
-    );
-  });
-
-  test("an incident-only rule shows incident routing and no alert routing", () => {
+  test("an incident-only rule shows only the incident steps", () => {
     const incidentOnly: FormValues<ServiceLevelObjectiveBurnRateRule> = {
       shouldCreateAlert: false,
       shouldCreateIncident: true,
     };
 
-    expect(isVisible("alert-routing", incidentOnly)).toBe(false);
-    expect(isVisible("incident-routing", incidentOnly)).toBe(true);
-  });
+    for (const id of ALERT_STEPS) {
+      expect(isVisible(id, incidentOnly)).toBe(false);
+    }
 
-  test("a rule that does both shows both", () => {
-    const both: FormValues<ServiceLevelObjectiveBurnRateRule> = {
-      shouldCreateAlert: true,
-      shouldCreateIncident: true,
-    };
-
-    expect(isVisible("alert-routing", both)).toBe(true);
-    expect(isVisible("incident-routing", both)).toBe(true);
+    for (const id of INCIDENT_STEPS) {
+      expect(isVisible(id, incidentOnly)).toBe(true);
+    }
   });
 
   /*
@@ -300,25 +719,33 @@ describe("the two routing steps appear only for the output they configure", () =
           values.shouldCreateIncident = shouldCreateIncident;
         }
 
-        expect({
-          values,
-          alert: isVisible("alert-routing", values),
-          incident: isVisible("incident-routing", values),
-        }).toEqual({
-          values,
-          alert: willCreateAlert(values),
-          incident: willDeclareIncident(values),
-        });
+        for (const id of ALERT_STEPS) {
+          expect({ values, id, visible: isVisible(id, values) }).toEqual({
+            values,
+            id,
+            visible: willCreateAlert(values),
+          });
+        }
+
+        for (const id of INCIDENT_STEPS) {
+          expect({ values, id, visible: isVisible(id, values) }).toEqual({
+            values,
+            id,
+            visible: willDeclareIncident(values),
+          });
+        }
 
         /*
-         * And the one combination that hides BOTH routing steps is exactly the
-         * one the validator refuses to let through.
+         * And the one combination that hides EVERY per-output step is exactly
+         * the one the validator refuses to let through.
          */
-        const hidesBoth: boolean =
-          !isVisible("alert-routing", values) &&
-          !isVisible("incident-routing", values);
+        const hidesAll: boolean = [...ALERT_STEPS, ...INCIDENT_STEPS].every(
+          (id: string): boolean => {
+            return !isVisible(id, values);
+          },
+        );
 
-        expect(hidesBoth).toBe(validateBurnRateOutputs(values) !== null);
+        expect(hidesAll).toBe(validateBurnRateOutputs(values) !== null);
       }
     }
   });

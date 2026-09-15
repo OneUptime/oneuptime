@@ -2,14 +2,15 @@ import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import { SloWidgetDisplayType } from "../../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
+import DashboardVariable from "../../../Types/Dashboard/DashboardVariable";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import ObjectID from "../../../Types/ObjectID";
 import {
   getSloChartAggregationInterval,
   getSloHistoryMetricName,
 } from "../../../Utils/Slo/SloWidgetFormat";
 import PublicDashboardSloWidget, {
   PublicDashboardSloWidgetConfig,
+  PublicDashboardSloWidgetTarget,
 } from "./PublicDashboardSloWidget";
 
 /*
@@ -24,7 +25,13 @@ import PublicDashboardSloWidget, {
  * do I want to see".
  */
 export interface PublicDashboardSloHistoryPolicyResult {
-  serviceLevelObjectiveId: ObjectID;
+  /*
+   * WHICH SLO: a pinned id straight from stored config, or the SLO NAME a
+   * variable-bound widget's toolbar selection resolved to. The route turns a
+   * name into an id inside the dashboard's own project before it aggregates
+   * (DashboardAPI.resolvePublicSloWidgetTarget).
+   */
+  target: PublicDashboardSloWidgetTarget;
   /** SloHistory.metricName for the widget's chosen series. */
   metricName: string;
   startDate: Date;
@@ -37,6 +44,12 @@ export interface BuildPublicDashboardSloHistoryPolicyData {
   widget: unknown;
   /** The caller's `aggregateBy`, already JSONFunctions.deserialize'd. */
   requestedAggregateBy: unknown;
+  /*
+   * The dashboard's stored variables with the viewer's selections applied
+   * (PublicDashboardResourceListPolicy.resolveDashboardVariableSelections).
+   * Only a widget that follows an SLO variable reads them.
+   */
+  variables?: Array<DashboardVariable> | undefined;
 }
 
 /*
@@ -59,7 +72,7 @@ export default class PublicDashboardSloHistoryPolicy {
     data: BuildPublicDashboardSloHistoryPolicyData,
   ): PublicDashboardSloHistoryPolicyResult {
     const config: PublicDashboardSloWidgetConfig =
-      PublicDashboardSloWidget.readConfig(data.widget);
+      PublicDashboardSloWidget.readConfig(data.widget, data.variables);
 
     /*
      * Only a Chart widget publishes the SERIES. A Tile widget publishes the
@@ -110,7 +123,7 @@ export default class PublicDashboardSloHistoryPolicy {
     );
 
     return {
-      serviceLevelObjectiveId: config.serviceLevelObjectiveId,
+      target: config.target,
       metricName: getSloHistoryMetricName(config.sloMetric),
       startDate: clampedStartDate,
       endDate,

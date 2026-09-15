@@ -334,9 +334,7 @@ describe("escapeMarkdownInline - idempotence (deliberately NOT idempotent)", () 
   });
 
   test("a second pass escapes the first pass's backslashes", () => {
-    expect(escapeMarkdownInline(escapeMarkdownInline("a*b"))).toBe(
-      "a\\\\\\*b",
-    );
+    expect(escapeMarkdownInline(escapeMarkdownInline("a*b"))).toBe("a\\\\\\*b");
   });
 
   test("a double-escaped name renders with a visible backslash", () => {

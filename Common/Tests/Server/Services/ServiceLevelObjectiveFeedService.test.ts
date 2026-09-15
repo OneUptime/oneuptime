@@ -81,10 +81,12 @@ describe("ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem",
     jest
       .spyOn(ServiceLevelObjectiveFeedService, "create")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .mockImplementation((createBy: any): Promise<ServiceLevelObjectiveFeed> => {
-        calls.push(createBy as CreateCall);
-        return Promise.resolve(createBy.data as ServiceLevelObjectiveFeed);
-      });
+      .mockImplementation(
+        (createBy: any): Promise<ServiceLevelObjectiveFeed> => {
+          calls.push(createBy as CreateCall);
+          return Promise.resolve(createBy.data as ServiceLevelObjectiveFeed);
+        },
+      );
 
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;

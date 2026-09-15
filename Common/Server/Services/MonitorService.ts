@@ -1265,14 +1265,16 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Labels decide SLO membership, so a label added or removed here can pull
-     * this monitor into an SLO's error budget or push it out of one. Keyed on
-     * `!== undefined` rather than on a non-empty array: clearing every label
-     * arrives as `[]`, and that is precisely the edit that should detach the
-     * monitor from every rule-driven SLO.
+     * SLO monitor rules match on labels, name and description, so an edit to
+     * any of the three can pull this monitor into an SLO's error budget or
+     * push it out of one. Keyed on `!== undefined` rather than on a non-empty
+     * value: clearing every label arrives as `[]`, and that is precisely the
+     * edit that should detach the monitor from every rule-driven SLO.
      */
     if (
-      onUpdate.updateBy.data.labels !== undefined &&
+      (onUpdate.updateBy.data.labels !== undefined ||
+        onUpdate.updateBy.data.name !== undefined ||
+        onUpdate.updateBy.data.description !== undefined) &&
       updatedItemIds.length > 0
     ) {
       for (const monitorId of updatedItemIds) {
@@ -1285,7 +1287,7 @@ export class Service extends DatabaseService<Model> {
           );
         } catch (error) {
           logger.error(
-            "Syncing SLO label rules failed in MonitorService.onUpdateSuccess",
+            "Syncing SLO monitor rules failed in MonitorService.onUpdateSuccess",
             {
               monitorId: monitorId?.toString(),
             } as LogAttributes,
@@ -1765,7 +1767,7 @@ ${createdItem.description?.trim() || "No description provided."}
         /*
          * Runs after the label rules above so a monitor created with no labels
          * of its own, but given some by a MonitorLabelRule, still lands in the
-         * SLOs those labels imply.
+         * SLOs whose monitor rules those labels satisfy.
          */
         try {
           await ServiceLevelObjectiveMonitorRuleEngineService.syncSlosForMonitor(
@@ -1776,7 +1778,7 @@ ${createdItem.description?.trim() || "No description provided."}
           );
         } catch (error) {
           logger.error(
-            "Syncing SLO label rules failed in MonitorService.onCreateSuccess",
+            "Syncing SLO monitor rules failed in MonitorService.onCreateSuccess",
             {
               projectId: createdItem.projectId?.toString(),
               monitorId: createdItem.id?.toString(),

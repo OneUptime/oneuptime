@@ -11,6 +11,7 @@ import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -51,7 +52,18 @@ import {
  * Read access follows the SLO (CanAccessIfCanReadOn) and Owned-scope grants
  * follow SLO ownership (OwnedThrough), exactly like the burn rate rules beside
  * it - a rule reveals which monitors an SLO covers, which is SLO data.
+ *
+ * Changing a rule changes what the SLO measures, so its audit entries roll up
+ * to the SLO (rootResource) and show on the SLO's Audit Logs page. The row has
+ * no worker-written columns to ignore: the monitors a rule attaches are
+ * recorded on the SLO itself.
  */
+@EnableAuditLog({
+  rootResource: {
+    resourceType: "Service Level Objective",
+    column: "serviceLevelObjectiveId",
+  },
+})
 @EnableDocumentation()
 @CanAccessIfCanReadOn("serviceLevelObjective")
 @TenantColumn("projectId")

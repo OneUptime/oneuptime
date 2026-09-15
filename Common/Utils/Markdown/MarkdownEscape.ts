@@ -35,7 +35,8 @@ const LINE_BREAK_PATTERN: RegExp = /\r\n|\r|\n/g;
  * the ORIGINAL string once, so the backslashes this adds are never re-escaped
  * within a single call.
  */
-const MARKDOWN_INLINE_SPECIAL_CHARACTER_PATTERN: RegExp = /[\\`*_[\]()#+\-!|<>]/g;
+const MARKDOWN_INLINE_SPECIAL_CHARACTER_PATTERN: RegExp =
+  /[\\`*_[\]()#+\-!|<>]/g;
 
 export type EscapeMarkdownInlineFunction = (
   value: string | undefined | null,

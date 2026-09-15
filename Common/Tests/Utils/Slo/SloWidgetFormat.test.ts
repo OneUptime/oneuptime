@@ -258,6 +258,53 @@ describe("SloWidgetFormat", () => {
       ).toBe("Error Budget Remaining");
     });
 
+    /*
+     * A widget that follows a toolbar variable shows whichever SLO the reader
+     * picked, so the objective is DATA: its name leads even the author's own
+     * title. A pinned widget's author title keeps standing alone.
+     */
+    it("leads a followed widget's author title with the picked SLO's name", () => {
+      expect(
+        getSloWidgetTitle({
+          widgetTitle: "SLI History",
+          sloName: "API Availability",
+          sloMetric: SloWidgetMetric.Sli,
+          followsSelection: true,
+        }),
+      ).toBe("API Availability · SLI History");
+
+      expect(
+        getSloWidgetTitle({
+          widgetTitle: "SLI History",
+          sloName: "API Availability",
+          sloMetric: SloWidgetMetric.Sli,
+          followsSelection: false,
+        }),
+      ).toBe("SLI History");
+    });
+
+    it("keeps a followed widget's title alone until the SLO has loaded", () => {
+      for (const sloName of [undefined, null, "", "   "]) {
+        expect(
+          getSloWidgetTitle({
+            widgetTitle: "  Burn Rate  ",
+            sloName: sloName,
+            followsSelection: true,
+          }),
+        ).toBe("Burn Rate");
+      }
+    });
+
+    it("uses the ordinary fallback for a followed widget without a title", () => {
+      expect(
+        getSloWidgetTitle({
+          sloName: "API Availability",
+          sloMetric: SloWidgetMetric.BurnRate,
+          followsSelection: true,
+        }),
+      ).toBe("API Availability · Burn Rate");
+    });
+
     it("falls back to the SLI label when neither title, name, nor metric are set", () => {
       expect(getSloWidgetTitle({})).toBe("SLI");
     });

@@ -56,9 +56,7 @@ describe("SLO details form fields", () => {
 
   test("belong to no form step", () => {
     DETAILS_FIELDS.forEach((field: SloField) => {
-      expect(Object.prototype.hasOwnProperty.call(field, "stepId")).toBe(
-        false,
-      );
+      expect(Object.prototype.hasOwnProperty.call(field, "stepId")).toBe(false);
     });
   });
 

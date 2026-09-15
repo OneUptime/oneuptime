@@ -28,9 +28,9 @@ import { QueryRunner } from "typeorm";
  * migration was written (see the migration header).
  */
 
-type RecordedQueriesFunction = (direction: "up" | "down") => Promise<
-  Array<string>
->;
+type RecordedQueriesFunction = (
+  direction: "up" | "down",
+) => Promise<Array<string>>;
 
 const recordQueries: RecordedQueriesFunction = async (
   direction: "up" | "down",
@@ -90,7 +90,9 @@ describe("BackfillSloMonitorRulesAndAffectedResources migration - identity", () 
     const backfillIndex: number = names.indexOf(
       "BackfillSloMonitorRulesAndAffectedResources1793000000000",
     );
-    const schemaIndex: number = names.indexOf("SloProductOverhaul1792900000000");
+    const schemaIndex: number = names.indexOf(
+      "SloProductOverhaul1792900000000",
+    );
 
     expect(schemaIndex).toBeGreaterThanOrEqual(0);
     expect(backfillIndex).toBeGreaterThan(schemaIndex);
@@ -185,9 +187,7 @@ describe("up(): SLO label lists become SLO Monitor Rules", () => {
     expect(statement.startsWith('WITH "insertedRules" AS (INSERT INTO')).toBe(
       true,
     );
-    expect(statement).toContain(
-      'RETURNING "_id", "serviceLevelObjectiveId")',
-    );
+    expect(statement).toContain('RETURNING "_id", "serviceLevelObjectiveId")');
     expect(statement).toContain('FROM "insertedRules"');
     expect(statement).toContain("ON CONFLICT DO NOTHING");
   });

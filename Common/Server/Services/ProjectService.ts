@@ -26,6 +26,7 @@ import {
 } from "../../Types/Marketing/Attribution";
 import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import AccessTokenService from "./AccessTokenService";
+import type AuditLogServiceType from "./AuditLogService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
 import DeletedProjectService from "./DeletedProjectService";
@@ -426,6 +427,8 @@ export class ProjectService extends DatabaseService<Model> {
     const updateData: Record<string, unknown> = onUpdate.updateBy
       .data as unknown as Record<string, unknown>;
 
+    this.invalidateAuditLogSettingsCache(updateData, updatedItemIds);
+
     if (!("isSessionReplayAllowed" in updateData)) {
       return onUpdate;
     }
@@ -454,6 +457,58 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     return onUpdate;
+  }
+
+  /*
+   * AuditLogService caches each project's audit settings for a minute, and
+   * nothing invalidated that cache - so for up to a minute after someone
+   * turned audit logging on, the process that saved it kept recording nothing
+   * (and kept recording after it was turned off). Drop the entry as soon as a
+   * column that decides what gets recorded changes: the three audit settings,
+   * and the plan, which decides eligibility when billing is on. Only this
+   * process's cache is reachable from here; other processes still wait out the
+   * TTL. Compared against undefined rather than with `in`, because a Project
+   * model instance carries every column as an own property.
+   */
+  private invalidateAuditLogSettingsCache(
+    updateData: Record<string, unknown>,
+    updatedItemIds: Array<ObjectID>,
+  ): void {
+    const auditLogSettingColumns: Array<string> = [
+      "enableAuditLogs",
+      "storeSystemEventsInAuditLogs",
+      "auditLogsRetentionInDays",
+      "planName",
+    ];
+
+    const hasAuditLogSettingChanged: boolean = auditLogSettingColumns.some(
+      (column: string): boolean => {
+        return updateData[column] !== undefined;
+      },
+    );
+
+    if (!hasAuditLogSettingChanged) {
+      return;
+    }
+
+    try {
+      /*
+       * Lazy require: AuditLogService imports ProjectService, so a top-level
+       * import here would be circular.
+       */
+      const auditLogService: typeof AuditLogServiceType =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("./AuditLogService").default;
+
+      for (const projectId of updatedItemIds) {
+        auditLogService.invalidateProjectSettings(projectId);
+      }
+    } catch (err) {
+      logger.warn(
+        "ProjectService: could not invalidate the audit log settings cache",
+      );
+      logger.warn(err);
+    }
   }
 
   @CaptureSpan()

@@ -15,6 +15,7 @@ import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -59,6 +60,24 @@ const decimalTransformer: ValueTransformer = {
   },
 };
 
+/*
+ * A burn-rate rule decides when an SLO pages someone, so editing one is an
+ * edit to the SLO: its entries roll up to the SLO (rootResource) and show on
+ * the SLO's Audit Logs page. The last-created / last-resolved stamps are the
+ * evaluation worker's refire bookkeeping, not an edit, and are not recorded.
+ */
+@EnableAuditLog({
+  rootResource: {
+    resourceType: "Service Level Objective",
+    column: "serviceLevelObjectiveId",
+  },
+  ignoreColumns: [
+    "lastAlertCreatedAt",
+    "lastAlertResolvedAt",
+    "lastIncidentCreatedAt",
+    "lastIncidentResolvedAt",
+  ],
+})
 @EnableDocumentation()
 @CanAccessIfCanReadOn("serviceLevelObjective")
 @TenantColumn("projectId")
@@ -893,8 +912,7 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Alert Labels",
-    description:
-      "Labels added to alerts raised by this burn rate rule.",
+    description: "Labels added to alerts raised by this burn rate rule.",
   })
   @ManyToMany(
     () => {

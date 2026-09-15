@@ -10,6 +10,7 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import React, { FunctionComponent, ReactElement } from "react";
 import CephClusterElement from "../Ceph/CephClusterElement";
@@ -24,6 +25,7 @@ import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
 import MonitorElement from "../Monitor/Monitor";
 import NetworkSiteElement from "../NetworkSite/NetworkSiteElement";
 import ServiceElement from "../Service/ServiceElement";
+import SloElement from "../Slo/SloElement";
 
 /*
  * Compact table-cell version of AffectedResourcesDisplay. Flattens
@@ -36,6 +38,10 @@ import ServiceElement from "../Service/ServiceElement";
  * Keep this in sync with AffectedResourcesPicker: if a new resource type is
  * added there, mirror it here so the picker, detail display, and table
  * column all stay aligned.
+ *
+ * ServiceLevelObjective is the deliberate exception: it is shown here and in
+ * the display but never offered by the picker, because burn rate rules write
+ * that link and an edit must not be able to drop it.
  */
 
 type ResourceItem =
@@ -50,7 +56,12 @@ type ResourceItem =
   | { _key: string; type: "DockerSwarmCluster"; model: DockerSwarmCluster }
   | { _key: string; type: "IoTFleet"; model: IoTFleet }
   | { _key: string; type: "NetworkSite"; model: NetworkSite }
-  | { _key: string; type: "Service"; model: Service };
+  | { _key: string; type: "Service"; model: Service }
+  | {
+      _key: string;
+      type: "ServiceLevelObjective";
+      model: ServiceLevelObjective;
+    };
 
 export interface ComponentProps {
   monitors?: Array<Monitor> | undefined;
@@ -65,6 +76,7 @@ export interface ComponentProps {
   iotFleets?: Array<IoTFleet> | undefined;
   networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
+  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
   noItemsMessage?: string | undefined;
   onNavigateComplete?: (() => void) | undefined;
 }
@@ -166,6 +178,17 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
       _key: `Service:${service._id ? String(service._id) : Math.random()}`,
       type: "Service",
       model: service,
+    });
+  }
+  for (const serviceLevelObjective of props.serviceLevelObjectives || []) {
+    items.push({
+      _key: `ServiceLevelObjective:${
+        serviceLevelObjective._id
+          ? String(serviceLevelObjective._id)
+          : Math.random()
+      }`,
+      type: "ServiceLevelObjective",
+      model: serviceLevelObjective,
     });
   }
 
@@ -286,6 +309,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
           return (
             <ServiceElement
               service={item.model}
+              onNavigateComplete={props.onNavigateComplete}
+            />
+          );
+        }
+        if (item.type === "ServiceLevelObjective") {
+          return (
+            <SloElement
+              serviceLevelObjective={item.model}
+              showIcon={true}
               onNavigateComplete={props.onNavigateComplete}
             />
           );

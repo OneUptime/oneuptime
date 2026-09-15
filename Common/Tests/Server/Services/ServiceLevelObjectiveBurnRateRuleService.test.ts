@@ -3152,6 +3152,14 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onUpdateSuccess forgets what 
   });
 });
 
+/*
+ * onBeforeDelete runs before DatabaseService applies the caller's delete
+ * permissions, so it only notes candidates down and resolves nothing. What a
+ * deleted rule left open is resolved in onDeleteSuccess, for the rules the
+ * delete really removed - ServiceLevelObjectiveDeleteTenancy.test.ts drives
+ * both halves end to end, including the delete root cause, rows missing their
+ * identity, and one rule's failed resolve not costing the next rule its own.
+ */
 describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
   let findBySpy: jest.SpyInstance;
   let resolveOpenAlertsAndIncidentsSpy: jest.SpyInstance;
@@ -3170,7 +3178,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
     jest.restoreAllMocks();
   });
 
-  it("resolves the open alerts AND incidents of every rule about to be deleted", async () => {
+  it("resolves nothing before the delete - it only carries the doomed rows forward", async () => {
     const first: ServiceLevelObjectiveBurnRateRule = makeRule({
       _id: RULE_ID.toString(),
       id: RULE_ID,
@@ -3188,106 +3196,76 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
 
     const result: unknown = await callHook("onBeforeDelete", makeDeleteBy());
 
-    expect(resolveOpenAlertsAndIncidentsSpy).toHaveBeenCalledTimes(2);
-    expect(resolveOpenAlertsAndIncidentsSpy).toHaveBeenNthCalledWith(1, {
-      serviceLevelObjectiveId: SLO_ID,
-      burnRateRuleId: RULE_ID,
-      projectId: PROJECT_ID,
-      rootCause: DELETE_ROOT_CAUSE,
-    });
-    expect(resolveOpenAlertsAndIncidentsSpy).toHaveBeenNthCalledWith(2, {
-      serviceLevelObjectiveId: SLO_ID,
-      burnRateRuleId: OTHER_RULE_ID,
-      projectId: PROJECT_ID,
-      rootCause: DELETE_ROOT_CAUSE,
-    });
+    expect(resolveOpenAlertsAndIncidentsSpy).not.toHaveBeenCalled();
 
+    // What onDeleteSuccess narrows to the rules the delete really removed.
     expect(
       (result as { carryForward: { itemsToDelete: Array<unknown> } })
         .carryForward.itemsToDelete,
     ).toEqual([first, second]);
   });
 
-  it("reads the doomed rows as root, honouring the caller's query and paging", async () => {
+  it("reads the doomed rows as root, through the caller's query pinned to the caller's project, on the widest page", async () => {
     findBySpy.mockResolvedValue([]);
 
-    await callHook("onBeforeDelete", makeDeleteBy());
+    const deleteBy: DeleteBy<ServiceLevelObjectiveBurnRateRule> = {
+      ...makeDeleteBy(),
+      query: { serviceLevelObjectiveId: SLO_ID, projectId: OTHER_PROJECT_ID },
+      props: { tenantId: PROJECT_ID, userId: ObjectID.generate() },
+      skip: 5,
+    } as unknown as DeleteBy<ServiceLevelObjectiveBurnRateRule>;
 
-    const findByArg: {
-      query: Record<string, unknown>;
-      select: Record<string, unknown>;
-      limit: number;
-      skip: number;
-      props: Record<string, unknown>;
-    } = findBySpy.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
-      select: Record<string, unknown>;
-      limit: number;
-      skip: number;
-      props: Record<string, unknown>;
-    };
+    await callHook("onBeforeDelete", deleteBy);
 
-    expect(findByArg.query).toEqual({ serviceLevelObjectiveId: SLO_ID });
+    const findByArg: FindByArguments = findByArgumentsAt(findBySpy, 0);
+
+    // A query naming another project is overridden, never trusted.
+    expect(findByArg.query).toEqual({
+      serviceLevelObjectiveId: SLO_ID,
+      projectId: PROJECT_ID,
+    });
     expect(findByArg.select).toEqual({
       _id: true,
       projectId: true,
       serviceLevelObjectiveId: true,
+      // The same read carries what the SLO feed's "rule removed" item names.
+      name: true,
+      burnRateThreshold: true,
+      longWindowInMinutes: true,
+      shortWindowInMinutes: true,
     });
-    expect(findByArg.limit).toBe(10);
+    /*
+     * Wider than the caller's page, and from the start: the permission-checked
+     * query can page a narrower set differently, and a removed rule this read
+     * missed would keep its records open.
+     */
+    expect(findByArg.limit).toBeGreaterThan(makeDeleteBy().limit as number);
     expect(findByArg.skip).toBe(0);
     expect(findByArg.props).toEqual({ isRoot: true });
 
     expect(resolveOpenAlertsAndIncidentsSpy).not.toHaveBeenCalled();
   });
 
-  it("skips rows missing the identity it needs to build a fingerprint", async () => {
-    findBySpy.mockResolvedValue([
-      // no id
-      makeRule({ projectId: PROJECT_ID, serviceLevelObjectiveId: SLO_ID }),
-      // no projectId
-      makeRule({
-        _id: RULE_ID.toString(),
-        id: RULE_ID,
-        serviceLevelObjectiveId: SLO_ID,
-      }),
-      // no serviceLevelObjectiveId
-      makeRule({
-        _id: OTHER_RULE_ID.toString(),
-        id: OTHER_RULE_ID,
-        projectId: PROJECT_ID,
-      }),
-    ]);
+  it("reads the query exactly as it came for a root automation with no tenant", async () => {
+    findBySpy.mockResolvedValue([]);
 
     await callHook("onBeforeDelete", makeDeleteBy());
 
-    expect(resolveOpenAlertsAndIncidentsSpy).not.toHaveBeenCalled();
+    expect(findByArgumentsAt(findBySpy, 0).query).toEqual({
+      serviceLevelObjectiveId: SLO_ID,
+    });
   });
 
-  it("does not block the delete when resolving one rule's records throws", async () => {
-    findBySpy.mockResolvedValue([
-      makeRule({
-        _id: RULE_ID.toString(),
-        id: RULE_ID,
-        projectId: PROJECT_ID,
-        serviceLevelObjectiveId: SLO_ID,
-      }),
-      makeRule({
-        _id: OTHER_RULE_ID.toString(),
-        id: OTHER_RULE_ID,
-        projectId: PROJECT_ID,
-        serviceLevelObjectiveId: SLO_ID,
-      }),
-    ]);
+  /*
+   * Deliberately not swallowed: the evaluation worker only resolves records
+   * for rules that still exist, so a rule deleted without knowing what it
+   * opened would strand those records and their on-call escalations.
+   */
+  it("fails the delete when it cannot read the rules, rather than stranding what they opened", async () => {
+    findBySpy.mockRejectedValue(new Error("database unavailable"));
 
-    resolveOpenAlertsAndIncidentsSpy
-      .mockRejectedValueOnce(new Error("alert service down"))
-      .mockResolvedValueOnce(undefined);
-
-    await expect(
-      callHook("onBeforeDelete", makeDeleteBy()),
-    ).resolves.toBeDefined();
-
-    // The failure on the first rule must not abort the second.
-    expect(resolveOpenAlertsAndIncidentsSpy).toHaveBeenCalledTimes(2);
+    await expect(callHook("onBeforeDelete", makeDeleteBy())).rejects.toThrow(
+      "database unavailable",
+    );
   });
 });

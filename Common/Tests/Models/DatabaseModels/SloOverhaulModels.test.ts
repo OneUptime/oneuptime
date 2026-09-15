@@ -238,7 +238,11 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
   test("registers exactly the three legacy match fields for criteria", () => {
     expect(
       RULE_CRITERIA_FIELDS_BY_MODEL["ServiceLevelObjectiveMonitorRule"],
-    ).toEqual(["monitorLabels", "monitorNamePattern", "monitorDescriptionPattern"]);
+    ).toEqual([
+      "monitorLabels",
+      "monitorNamePattern",
+      "monitorDescriptionPattern",
+    ]);
   });
 
   test("gates CRUD on its own granular permissions plus the project admins", () => {
@@ -294,8 +298,9 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
       model.getTableColumnMetadata("isEnabled");
 
     expect(metadata.defaultValue).toBe(true);
-    expect(columnArgs(ServiceLevelObjectiveMonitorRule, "isEnabled")?.options)
-      .toMatchObject({ nullable: false, default: true });
+    expect(
+      columnArgs(ServiceLevelObjectiveMonitorRule, "isEnabled")?.options,
+    ).toMatchObject({ nullable: false, default: true });
   });
 
   test("stores monitor labels in its own join table", () => {
@@ -468,9 +473,9 @@ describe("ServiceLevelObjective archive columns", () => {
      * A nullable flag would leave pre-upgrade SLOs neither archived nor not,
      * and the list's `isArchived: false` filter would hide all of them.
      */
-    expect(columnArgs(ServiceLevelObjective, "isArchived")?.options).toMatchObject(
-      { nullable: false, default: false },
-    );
+    expect(
+      columnArgs(ServiceLevelObjective, "isArchived")?.options,
+    ).toMatchObject({ nullable: false, default: false });
     expect(model.getTableColumnMetadata("isArchived").defaultValue).toBe(false);
     expect(model.getTableColumnMetadata("isArchived").description).toBe(
       "Archived SLOs are hidden from lists and are not evaluated.",
@@ -532,9 +537,9 @@ describe("ServiceLevelObjective archive columns", () => {
     expect(model.getTableColumnMetadata("monitorLabels").description).toMatch(
       /^Deprecated: superseded by SLO Monitor Rules/,
     );
-    expect(
-      model.getTableColumnMetadata("monitorLabels").description,
-    ).toContain("no longer read by the SLO engine");
+    expect(model.getTableColumnMetadata("monitorLabels").description).toContain(
+      "no longer read by the SLO engine",
+    );
   });
 });
 

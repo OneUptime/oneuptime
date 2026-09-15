@@ -1100,7 +1100,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             name="Affected Resources"
             cardProps={{
               title: "Affected Resources",
-              description: "Services and infrastructure this alert affects.",
+              description:
+                "Services, infrastructure and SLOs this alert affects.",
               headerLayout: "stacked",
             }}
             isEditable={true}
@@ -1322,6 +1323,16 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       _id: true,
                       serviceColor: true,
                     },
+                    /*
+                     * Shown, never edited: the picker above does not offer
+                     * SLOs and no hidden registration loads them into the
+                     * form, so saving other resources leaves the link a burn
+                     * rate rule wrote untouched.
+                     */
+                    serviceLevelObjectives: {
+                      name: true,
+                      _id: true,
+                    },
                   },
                   title: "",
                   fieldType: FieldType.Element,
@@ -1338,6 +1349,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         services={item.services || []}
+                        serviceLevelObjectives={
+                          item.serviceLevelObjectives || []
+                        }
                         hideMonitors={true}
                         columns={1}
                       />

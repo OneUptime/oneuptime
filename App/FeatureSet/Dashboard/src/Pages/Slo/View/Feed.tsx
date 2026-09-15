@@ -6,9 +6,7 @@ import ServiceLevelObjectiveFeed from "Common/Models/DatabaseModels/ServiceLevel
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const SloFeedPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const SloFeedPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   /*
    * The feed route is <sloId>/feed, so the id is one segment back.
    * getLastParamAsObjectID(0) would read the literal string "feed".

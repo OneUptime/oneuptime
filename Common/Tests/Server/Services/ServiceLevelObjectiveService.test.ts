@@ -92,6 +92,8 @@ const EXPECTED_DUE_SLO_SELECT_KEYS: Array<string> = [
   "_id",
   "projectId",
   "name",
+  // oneuptime.label.* attributes on the oneuptime.slo.* metrics.
+  "labels",
   "isEnabled",
   "sliType",
   "multiMonitorMode",
@@ -1473,35 +1475,69 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
   });
 });
 
+/*
+ * onBeforeDelete runs before DatabaseService applies the caller's delete
+ * permissions, so it only notes candidates down and resolves nothing. The
+ * resolve happens in onDeleteSuccess, for the SLOs the delete really removed -
+ * ServiceLevelObjectiveDeleteTenancy.test.ts drives both halves end to end,
+ * including "a resolve that throws never blocks the delete".
+ */
 describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
-  let resolveAlertsAndIncidentsSpy: jest.SpyInstance;
+  let resolveForSloSpy: jest.SpyInstance;
+  let resolveForRuleSpy: jest.SpyInstance;
   let findBySpy: jest.SpyInstance;
+  let ruleFindBySpy: jest.SpyInstance;
+
+  interface CarriedForward {
+    itemsToDelete: Array<unknown>;
+    burnRateRules: Array<unknown>;
+  }
+
+  interface ReadArguments {
+    query: Record<string, unknown>;
+    select: Record<string, unknown>;
+    skip: number;
+    props: Record<string, unknown>;
+  }
 
   beforeEach(() => {
-    resolveAlertsAndIncidentsSpy = jest
+    resolveForSloSpy = jest
       .spyOn(
         ServiceLevelObjectiveService,
         "resolveOpenBurnRateAlertsAndIncidentsForSlo",
       )
       .mockResolvedValue(undefined);
 
+    resolveForRuleSpy = jest
+      .spyOn(
+        ServiceLevelObjectiveBurnRateRuleService,
+        "resolveOpenAlertsAndIncidentsForRule",
+      )
+      .mockResolvedValue(undefined);
+
     findBySpy = jest.spyOn(ServiceLevelObjectiveService, "findBy");
+
+    ruleFindBySpy = jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([]);
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  function makeDeleteBy(): DeleteBy<ServiceLevelObjective> {
+  function makeDeleteBy(
+    props: Record<string, unknown> = { isRoot: true },
+  ): DeleteBy<ServiceLevelObjective> {
     return {
-      query: { projectId: PROJECT_ID },
-      props: { isRoot: true },
-      limit: 10,
+      query: { _id: SLO_ID.toString() },
+      props: props,
+      limit: 1,
       skip: 0,
     } as unknown as DeleteBy<ServiceLevelObjective>;
   }
 
-  it("resolves the open burn rate alerts and incidents of every SLO about to be deleted", async () => {
+  it("resolves nothing before the delete - it only carries the SLOs and their burn rate rules forward", async () => {
     const first: ServiceLevelObjective = makeSlo({
       _id: SLO_ID.toString(),
       id: SLO_ID,
@@ -1512,84 +1548,128 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
       id: OTHER_RULE_ID,
       projectId: PROJECT_ID,
     });
+    const firstRule: ServiceLevelObjectiveBurnRateRule =
+      makeBurnRateRule(RULE_ID);
+    const secondRule: ServiceLevelObjectiveBurnRateRule =
+      makeBurnRateRule(THIRD_RULE_ID);
 
     findBySpy.mockResolvedValue([first, second]);
+    ruleFindBySpy
+      .mockResolvedValueOnce([firstRule])
+      .mockResolvedValueOnce([secondRule]);
 
-    const result: unknown = await callHook("onBeforeDelete", makeDeleteBy());
+    const result: { carryForward: CarriedForward } = (await callHook(
+      "onBeforeDelete",
+      makeDeleteBy(),
+    )) as { carryForward: CarriedForward };
 
-    expect(resolveAlertsAndIncidentsSpy).toHaveBeenCalledTimes(2);
-    expect(resolveAlertsAndIncidentsSpy).toHaveBeenNthCalledWith(1, {
-      sloId: SLO_ID,
-      projectId: PROJECT_ID,
-    });
-    expect(resolveAlertsAndIncidentsSpy).toHaveBeenNthCalledWith(2, {
-      sloId: OTHER_RULE_ID,
-      projectId: PROJECT_ID,
-    });
+    expect(resolveForSloSpy).not.toHaveBeenCalled();
+    expect(resolveForRuleSpy).not.toHaveBeenCalled();
 
-    // The rows are carried forward so onDeleteSuccess can still see them.
-    expect(
-      (result as { carryForward: { itemsToDelete: Array<unknown> } })
-        .carryForward.itemsToDelete,
-    ).toEqual([first, second]);
+    // What onDeleteSuccess narrows to the SLOs the delete really removed.
+    expect(result.carryForward.itemsToDelete).toEqual([first, second]);
+    expect(result.carryForward.burnRateRules).toEqual([firstRule, secondRule]);
   });
 
-  it("looks the rows up as root with the caller's own delete query", async () => {
+  it("reads the SLOs as root through the caller's query pinned to the caller's project, and each SLO's rules inside its project", async () => {
+    findBySpy.mockResolvedValue([
+      makeSlo({ _id: SLO_ID.toString(), id: SLO_ID, projectId: PROJECT_ID }),
+    ]);
+
+    const deleteBy: DeleteBy<ServiceLevelObjective> = makeDeleteBy({
+      tenantId: PROJECT_ID,
+      userId: ObjectID.generate(),
+    });
+
+    await callHook("onBeforeDelete", deleteBy);
+
+    const findByArg: ReadArguments = findBySpy.mock
+      .calls[0]![0] as ReadArguments;
+
+    expect(findByArg.query).toEqual({
+      _id: SLO_ID.toString(),
+      projectId: PROJECT_ID,
+    });
+    expect(findByArg.select).toEqual({ _id: true, projectId: true });
+    expect(findByArg.skip).toBe(0);
+    expect(findByArg.props).toEqual({ isRoot: true });
+
+    // A copy: DatabaseService still receives the caller's query as it came.
+    expect(deleteBy.query).toEqual({ _id: SLO_ID.toString() });
+
+    const ruleFindByArg: ReadArguments = ruleFindBySpy.mock
+      .calls[0]![0] as ReadArguments;
+
+    expect(ruleFindByArg.query).toEqual({
+      serviceLevelObjectiveId: SLO_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(ruleFindByArg.select).toEqual({
+      _id: true,
+      projectId: true,
+      serviceLevelObjectiveId: true,
+    });
+    expect(ruleFindByArg.props).toEqual({ isRoot: true });
+  });
+
+  it("reads the query as it came for a root automation with no tenant, and for a multi-tenant request DatabaseService does not pin either", async () => {
     findBySpy.mockResolvedValue([]);
 
     await callHook("onBeforeDelete", makeDeleteBy());
+    await callHook(
+      "onBeforeDelete",
+      makeDeleteBy({
+        isMasterAdmin: true,
+        tenantId: PROJECT_ID,
+        isMultiTenantRequest: true,
+      }),
+    );
 
-    const findByArg: {
-      query: Record<string, unknown>;
-      select: Record<string, unknown>;
-      props: Record<string, unknown>;
-    } = findBySpy.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
-      select: Record<string, unknown>;
-      props: Record<string, unknown>;
-    };
-
-    expect(findByArg.query).toEqual({ projectId: PROJECT_ID });
-    expect(findByArg.select).toEqual({ _id: true, projectId: true });
-    expect(findByArg.props).toEqual({ isRoot: true });
+    expect((findBySpy.mock.calls[0]![0] as ReadArguments).query).toEqual({
+      _id: SLO_ID.toString(),
+    });
+    expect((findBySpy.mock.calls[1]![0] as ReadArguments).query).toEqual({
+      _id: SLO_ID.toString(),
+    });
+    expect(ruleFindBySpy).not.toHaveBeenCalled();
   });
 
-  it("skips rows that came back without an id or a projectId", async () => {
+  it("reads no rules for an SLO row that came back without an id or a projectId", async () => {
     findBySpy.mockResolvedValue([
       makeSlo({ projectId: PROJECT_ID }),
       makeSlo({ _id: SLO_ID.toString(), id: SLO_ID }),
     ]);
 
-    await callHook("onBeforeDelete", makeDeleteBy());
+    const result: { carryForward: CarriedForward } = (await callHook(
+      "onBeforeDelete",
+      makeDeleteBy(),
+    )) as { carryForward: CarriedForward };
 
-    expect(resolveAlertsAndIncidentsSpy).not.toHaveBeenCalled();
+    expect(ruleFindBySpy).not.toHaveBeenCalled();
+    expect(result.carryForward.burnRateRules).toEqual([]);
   });
 
   /*
-   * The rule-level resolve propagates its failure now, but a delete the user
-   * asked for must still go through: the hook's own try/catch is what keeps
-   * "the Alert service is down" from making SLOs undeletable. It also has to
-   * keep going, or one unreachable project would strand every later row's
-   * records in the same delete.
+   * Deliberately not swallowed: an SLO deleted without knowing its rules
+   * would strand everything they opened, because the evaluation worker never
+   * looks at a deleted SLO again. Failing the delete keeps the SLO and its
+   * records together.
    */
-  it("does not block the delete when the now-propagating resolve throws", async () => {
-    findBySpy.mockResolvedValue([
-      makeSlo({ _id: SLO_ID.toString(), id: SLO_ID, projectId: PROJECT_ID }),
-      makeSlo({
-        _id: OTHER_RULE_ID.toString(),
-        id: OTHER_RULE_ID,
-        projectId: PROJECT_ID,
-      }),
-    ]);
-    resolveAlertsAndIncidentsSpy.mockRejectedValue(
-      new Error("alert service down"),
+  it("fails the delete when it cannot read the SLOs or their rules, rather than stranding open records", async () => {
+    findBySpy.mockRejectedValueOnce(new Error("database unavailable"));
+
+    await expect(callHook("onBeforeDelete", makeDeleteBy())).rejects.toThrow(
+      "database unavailable",
     );
 
-    await expect(
-      callHook("onBeforeDelete", makeDeleteBy()),
-    ).resolves.toBeDefined();
+    findBySpy.mockResolvedValueOnce([
+      makeSlo({ _id: SLO_ID.toString(), id: SLO_ID, projectId: PROJECT_ID }),
+    ]);
+    ruleFindBySpy.mockRejectedValueOnce(new Error("rule read failed"));
 
-    expect(resolveAlertsAndIncidentsSpy).toHaveBeenCalledTimes(2);
+    await expect(callHook("onBeforeDelete", makeDeleteBy())).rejects.toThrow(
+      "rule read failed",
+    );
   });
 });
 
@@ -2141,6 +2221,14 @@ describe("ServiceLevelObjectiveService.getDueSlos", () => {
     expect(arg.select["monitors"]).toEqual({ _id: true });
     expect(arg.select["downtimeMonitorStatuses"]).toEqual({ _id: true });
   });
+
+  it("expands label names, which SloMetricUtil turns into oneuptime.label.* attributes", async () => {
+    const arg: { select: Record<string, unknown> } =
+      await capturedFindAllByArg();
+
+    // The name is what MetricResourceAttributeUtil parses; an id alone yields nothing.
+    expect(arg.select["labels"]).toEqual({ _id: true, name: true });
+  });
 });
 
 describe("ServiceLevelObjectiveService.findOwners", () => {
@@ -2329,13 +2417,13 @@ describe("ServiceLevelObjectiveService.getSloLinkInDashboard", () => {
 });
 
 /*
- * The label rule has to be applied by the service that owns the column, not
- * only by the dashboard that sets it: an SLO created or edited over the API
- * must come out carrying the monitors its rule implies. Both hooks are
- * best-effort - a rule that cannot be applied is logged, never allowed to
- * fail the write that triggered it.
+ * An SLO created over the API reconciles its monitor list with its monitor
+ * rules straight away, best-effort - a rule sync that fails is logged, never
+ * allowed to fail the create. Edits to the SLO itself no longer re-sync:
+ * membership follows ServiceLevelObjectiveMonitorRule rows, and the deprecated
+ * monitorLabels column is not read by the engine any more.
  */
-describe("ServiceLevelObjectiveService - applying the monitor label rule", () => {
+describe("ServiceLevelObjectiveService - applying the monitor rules", () => {
   let syncMonitorsForSloSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -2415,31 +2503,27 @@ describe("ServiceLevelObjectiveService - applying the monitor label rule", () =>
     ).resolves.toBe(createdItem);
   });
 
-  it("re-runs the rule for every SLO whose rule was just edited", async () => {
+  /*
+   * monitorLabels is deprecated: SLO Monitor Rules replaced it and the engine
+   * no longer reads it, so an old client still writing it must not trigger a
+   * sync that could only re-derive the rules' answer. Rule edits re-sync
+   * through ServiceLevelObjectiveMonitorRuleService instead.
+   */
+  it("does not re-run the monitor rules when the deprecated monitorLabels column is written", async () => {
     await callHook(
       "onUpdateSuccess",
       makeOnUpdate({ monitorLabels: [{ _id: RULE_ID.toString() }] }),
       [SLO_ID, OTHER_RULE_ID],
     );
 
-    expect(syncMonitorsForSloSpy).toHaveBeenCalledTimes(2);
-    expect(syncMonitorsForSloSpy).toHaveBeenNthCalledWith(1, {
-      serviceLevelObjectiveId: SLO_ID,
-    });
-    expect(syncMonitorsForSloSpy).toHaveBeenNthCalledWith(2, {
-      serviceLevelObjectiveId: OTHER_RULE_ID,
-    });
-  });
-
-  it("re-runs the rule when it is cleared, which is what gives the monitors back", async () => {
     await callHook("onUpdateSuccess", makeOnUpdate({ monitorLabels: [] }), [
       SLO_ID,
     ]);
 
-    expect(syncMonitorsForSloSpy).toHaveBeenCalledTimes(1);
+    expect(syncMonitorsForSloSpy).not.toHaveBeenCalled();
   });
 
-  it("leaves the rule alone for an edit that does not touch it", async () => {
+  it("leaves the monitor rules alone for an edit that does not touch monitors", async () => {
     await callHook(
       "onUpdateSuccess",
       makeOnUpdate({ targetPercentage: 99.5 }),
@@ -2447,15 +2531,5 @@ describe("ServiceLevelObjectiveService - applying the monitor label rule", () =>
     );
 
     expect(syncMonitorsForSloSpy).not.toHaveBeenCalled();
-  });
-
-  it("does not fail the update when the rule cannot be applied", async () => {
-    syncMonitorsForSloSpy.mockRejectedValue(new Error("db down"));
-
-    await expect(
-      callHook("onUpdateSuccess", makeOnUpdate({ monitorLabels: [] }), [
-        SLO_ID,
-      ]),
-    ).resolves.toBeDefined();
   });
 });

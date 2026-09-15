@@ -2,8 +2,10 @@ import RunCron from "../../Utils/Cron";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
@@ -12,8 +14,12 @@ import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import { ServiceLevelObjectiveFeedEventType } from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
+import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { Green500, Red500 } from "Common/Types/BrandColors";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
@@ -47,6 +53,7 @@ import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTi
 import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ServiceLevelObjectiveBurnRateRuleService from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveFeedService from "Common/Server/Services/ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "Common/Server/Services/ServiceLevelObjectiveService";
 import SloHistoryService, {
   SloHistoryRow,
@@ -54,6 +61,9 @@ import SloHistoryService, {
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
+import SloMetricUtil from "Common/Server/Utils/Slo/SloMetricUtil";
+import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
+import SloMetricTypeUtil from "Common/Utils/Slo/SloMetricType";
 import SloUtil, {
   ErrorBudgetResult,
   MonitorTimelineSet,
@@ -68,6 +78,21 @@ import {
   isBurnRateRuleAlertFiring,
   isBurnRateRuleIncidentFiring,
 } from "Common/Utils/Slo/SloBurnRateRuleState";
+import {
+  DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+  DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+  SloBurnRateTemplateVariable,
+  SloBurnRateTemplateVariables,
+  buildSloBurnRateTemplateVariables,
+  renderSloBurnRateTemplate,
+} from "Common/Utils/Slo/SloBurnRateTemplate";
+import { escapeMarkdownInline } from "Common/Utils/Markdown/MarkdownEscape";
+import {
+  SloFeedMarkdown,
+  SloFeedStatusMeasurement,
+  getSloStatusChangedFeedMarkdown,
+} from "Common/Utils/Slo/SloFeedMarkdown";
+import { getSloStatusColor } from "Common/Utils/Slo/SloStatusColor";
 
 /*
  * How far in the future the next full evaluation is scheduled, and the
@@ -203,6 +228,14 @@ interface SloEvaluationContext {
   multiMonitorMode: SloMultiMonitorMode;
   targetPercentage: number;
   budget: ErrorBudgetResult;
+  /*
+   * The SLI and status this evaluation just persisted. Carried here (rather
+   * than read back off `slo`, which still holds the previous tick's values)
+   * so burn rate alert and incident templates describe the same numbers the
+   * SLO page now shows.
+   */
+  currentSliPercentage: number;
+  sloStatus: SloStatus;
   now: Date;
   /*
    * Earliest event start across this SLO's monitors over the WHOLE fetched
@@ -218,6 +251,12 @@ interface SloEvaluationContext {
    * and only when a burn rate rule actually fires.
    */
   isAnyMonitorUnderOngoingMaintenance: () => Promise<boolean>;
+  /*
+   * Lazily resolved (and memoized) "is this SLO still enabled and unarchived
+   * right now?" — re-read from the database at most once per SLO, and only
+   * when a burn rate rule is about to fire. See isSloStillEvaluated.
+   */
+  isSloStillEvaluated: () => Promise<boolean>;
 }
 
 async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
@@ -280,6 +319,11 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       sloId: sloId,
       projectId: projectId,
       status: SloStatus.Misconfigured,
+      now: now,
+      reason: getMisconfiguredGuardReason({
+        sliType: slo.sliType,
+        monitorCount: monitorIds.length,
+      }),
     });
     return;
   }
@@ -314,6 +358,8 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       sloId: sloId,
       projectId: projectId,
       status: SloStatus.Misconfigured,
+      now: now,
+      reason: "None of the monitors attached to this SLO exist any more.",
     });
     return;
   }
@@ -332,6 +378,9 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       sloId: sloId,
       projectId: projectId,
       status: SloStatus.Paused,
+      now: now,
+      reason:
+        "Every monitor attached to this SLO is disabled - by hand, by a manual incident or by a scheduled maintenance event - so there is no live signal to measure.",
     });
     return;
   }
@@ -407,10 +456,48 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
         onCallDutyPolicies: {
           _id: true,
         },
+        /*
+         * The alert and incident options. Every one of these is read with its
+         * column default in mind (`!== false` for the auto-resolve pair,
+         * `=== true` for the private flags and addSloOwnersAsOwners), so a
+         * column missing here would not throw - it would silently configure
+         * every alert with the default instead of what the user chose. The
+         * many-to-many lists only need ids: they become id-stubs and owner
+         * ids, never loaded entities.
+         */
+        alertTitleTemplate: true,
+        alertDescriptionTemplate: true,
+        alertRemediationNotes: true,
+        isAlertPrivate: true,
+        autoResolveAlert: true,
+        alertLabels: {
+          _id: true,
+        },
+        alertOwnerTeams: {
+          _id: true,
+        },
+        alertOwnerUsers: {
+          _id: true,
+        },
         incidentSeverityId: true,
         incidentOnCallDutyPolicies: {
           _id: true,
         },
+        incidentTitleTemplate: true,
+        incidentDescriptionTemplate: true,
+        incidentRemediationNotes: true,
+        isIncidentPrivate: true,
+        autoResolveIncident: true,
+        incidentLabels: {
+          _id: true,
+        },
+        incidentOwnerTeams: {
+          _id: true,
+        },
+        incidentOwnerUsers: {
+          _id: true,
+        },
+        addSloOwnersAsOwners: true,
         lastAlertCreatedAt: true,
         lastAlertResolvedAt: true,
         lastIncidentCreatedAt: true,
@@ -503,6 +590,9 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       sloId: sloId,
       projectId: projectId,
       status: SloStatus.Misconfigured,
+      now: now,
+      reason:
+        "The monitors attached to this SLO have not recorded any status in its window yet. It is measured automatically once they do.",
     });
     return;
   }
@@ -635,6 +725,32 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     },
   });
 
+  /*
+   * StatusChanged on the SLO feed, for a transition this write just committed.
+   * After the write, so a failed write posts nothing and the next tick meets
+   * the same transition again. previousStatus reads an SLO that was never
+   * evaluated as Healthy, so a first evaluation into Healthy stays silent;
+   * the item itself names the stored status, which is what the reader saw.
+   */
+  if (newStatus !== previousStatus) {
+    await postSloStatusChangedFeedItem({
+      slo: slo,
+      previousStatus: slo.sloStatus,
+      newStatus: newStatus,
+      now: now,
+      measurement: {
+        sliPercentage: sli.sliPercentage,
+        targetPercentage: targetPercentage,
+        errorBudgetRemainingPercentage: budget.budgetRemainingPercentage,
+        errorBudgetRemainingSeconds: budget.budgetRemainingSeconds,
+        currentBurnRate: currentBurnRate,
+        currentBurnRateWindowInMinutes: CURRENT_BURN_RATE_WINDOW_MINUTES,
+        atRiskThresholdPercentage:
+          slo.atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+      },
+    });
+  }
+
   // History rows (unrounded values, minute-floored bucket). Non-fatal.
   try {
     const bucketStart: Date = new Date(
@@ -676,6 +792,46 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     );
   }
 
+  /*
+   * The same reading as oneuptime.slo.* metrics, so an SLO charts, filters
+   * and dashboards like any monitor series. The values are the ones the
+   * history rows above just recorded (unrounded), plus the target and the
+   * status as an ordinal; the Paused / Misconfigured / zero-data guards
+   * returned before this point, so they post nothing.
+   *
+   * Its own try/catch, and after the history write rather than instead of
+   * it: SloHistory keeps 400 days for the long-range charts while metric rows
+   * follow the monitor-metric retention, and a ClickHouse failure on either
+   * must never cost the owner notification or the burn-rate rules below.
+   */
+  try {
+    await SloMetricUtil.saveSloMetrics({
+      projectId: projectId,
+      sloId: sloId,
+      sloName: slo.name,
+      labels: slo.labels,
+      values: {
+        [SloMetricType.SliPercent]: sli.sliPercentage,
+        [SloMetricType.TargetPercent]: targetPercentage,
+        [SloMetricType.ErrorBudgetRemainingPercent]:
+          budget.budgetRemainingPercentage,
+        [SloMetricType.ErrorBudgetRemainingSeconds]:
+          budget.budgetRemainingSeconds,
+        [SloMetricType.BurnRate]: currentBurnRate,
+        [SloMetricType.Status]:
+          SloMetricTypeUtil.getStatusMetricValue(newStatus),
+      },
+    });
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error writing SLO metrics for SLO ${sloId.toString()}: ${err}`,
+      {
+        projectId: projectId.toString(),
+        sloId: sloId.toString(),
+      } as LogAttributes,
+    );
+  }
+
   if (shouldNotifyOwners) {
     const wasNotificationSent: boolean = await sendStatusChangeNotification({
       slo: slo,
@@ -709,6 +865,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
 
   // Burn rate rules.
   let maintenanceCheckPromise: Promise<boolean> | null = null;
+  let stillEvaluatedCheckPromise: Promise<boolean> | null = null;
 
   /*
    * Data age of this SLO, computed ONCE for all rules over the full fetched
@@ -732,6 +889,8 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     multiMonitorMode: multiMonitorMode,
     targetPercentage: targetPercentage,
     budget: budget,
+    currentSliPercentage: sli.sliPercentage,
+    sloStatus: newStatus,
     now: now,
     earliestEventStart: earliestEventStart,
     isAnyMonitorUnderOngoingMaintenance: (): Promise<boolean> => {
@@ -742,6 +901,14 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
         });
       }
       return maintenanceCheckPromise;
+    },
+    isSloStillEvaluated: (): Promise<boolean> => {
+      if (!stillEvaluatedCheckPromise) {
+        stillEvaluatedCheckPromise = isSloStillEvaluated({
+          sloId: sloId,
+        });
+      }
+      return stillEvaluatedCheckPromise;
     },
   };
 
@@ -773,6 +940,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
 async function setSloStatusIfChanged(
   slo: ServiceLevelObjective,
   newStatus: SloStatus,
+  transition?: { now?: Date | undefined; reason?: string | undefined },
 ): Promise<void> {
   if (slo.sloStatus === newStatus) {
     return;
@@ -788,8 +956,103 @@ async function setSloStatusIfChanged(
     },
   });
 
+  const previousStatus: SloStatus | undefined = slo.sloStatus;
+
   // keep the in-memory copy consistent for the rest of this evaluation.
   slo.sloStatus = newStatus;
+
+  /*
+   * The guard paths' StatusChanged. Posted after the commit, which is the
+   * guard's one-shot: the next tick sees no transition, so this never repeats,
+   * and a failed resolve (which skips the commit) posts nothing either.
+   */
+  await postSloStatusChangedFeedItem({
+    slo: slo,
+    previousStatus: previousStatus,
+    newStatus: newStatus,
+    now: transition?.now || OneUptimeDate.getCurrentDate(),
+    reason: transition?.reason,
+  });
+}
+
+/*
+ * The first Misconfigured guard folds three different problems into one
+ * status. The feed says which, because "Misconfigured" alone sends the reader
+ * looking in the wrong place. (The target check is defence in depth - the
+ * create and update hooks reject such a target - so it is the fallback.)
+ */
+function getMisconfiguredGuardReason(data: {
+  sliType: SliType | undefined;
+  monitorCount: number;
+}): string {
+  if (data.sliType !== SliType.MonitorUptime) {
+    return "This SLO's SLI type is not Monitor Uptime, which is the only SLI type OneUptime measures today.";
+  }
+
+  if (data.monitorCount === 0) {
+    return "No monitors are attached to this SLO, so there is nothing to measure. Attach monitors, or add a monitor rule that matches some.";
+  }
+
+  return "This SLO's target is outside the valid range - it must be greater than 0 and below 100.";
+}
+
+/*
+ * StatusChanged on the SLO feed: the transition, colored like the status
+ * pill, with the numbers behind it (or, for a guard, the reason there are
+ * none). No acting user - the worker decided this, not a person - and posted
+ * at the evaluation's own clock so it sorts with the rest of the tick.
+ *
+ * Never throws. The feed describes the evaluation; it must never be able to
+ * cost the history rows, owner notifications or burn rate rules that follow.
+ */
+async function postSloStatusChangedFeedItem(data: {
+  slo: ServiceLevelObjective;
+  previousStatus: SloStatus | undefined;
+  newStatus: SloStatus;
+  now: Date;
+  measurement?: SloFeedStatusMeasurement | undefined;
+  reason?: string | undefined;
+}): Promise<void> {
+  if (!data.slo.id || !data.slo.projectId) {
+    return;
+  }
+
+  try {
+    const sloMarkdownLink: string =
+      await ServiceLevelObjectiveService.getSloMarkdownLink({
+        projectId: data.slo.projectId,
+        sloId: data.slo.id,
+        // getDueSlos selects the name; "" keeps a nameless row from a lookup.
+        sloName: data.slo.name || "",
+      });
+
+    const markdown: SloFeedMarkdown = getSloStatusChangedFeedMarkdown({
+      sloMarkdownLink: sloMarkdownLink,
+      previousStatus: data.previousStatus,
+      newStatus: data.newStatus,
+      measurement: data.measurement,
+      reason: data.reason,
+    });
+
+    await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
+      serviceLevelObjectiveId: data.slo.id,
+      projectId: data.slo.projectId,
+      serviceLevelObjectiveFeedEventType:
+        ServiceLevelObjectiveFeedEventType.StatusChanged,
+      displayColor: getSloStatusColor(data.newStatus),
+      feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+      moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+      postedAt: data.now,
+    });
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error posting the status change feed item for SLO ${data.slo.id.toString()}: ${err}`,
+      {
+        projectId: data.slo.projectId.toString(),
+        sloId: data.slo.id.toString(),
+      } as LogAttributes,
+    );
+  }
 }
 
 /*
@@ -827,6 +1090,9 @@ async function setGuardStatusAndResolveOpenAlerts(data: {
   sloId: ObjectID;
   projectId: ObjectID;
   status: SloStatus;
+  // The evaluation clock and the why, for the StatusChanged feed item.
+  now?: Date | undefined;
+  reason?: string | undefined;
 }): Promise<void> {
   if (data.slo.sloStatus === data.status) {
     // already committed: this transition was handled by an earlier tick.
@@ -834,9 +1100,9 @@ async function setGuardStatusAndResolveOpenAlerts(data: {
   }
 
   /*
-   * resolveOpenBurnRateAlertsAndIncidentsForSlo takes no rootCause override (it
-   * applies its own "SLO was disabled or deleted" default) — left untouched on
-   * purpose, the service is shared with the SLO lifecycle hooks.
+   * No rootCause is passed, so the service applies its own "SLO was disabled
+   * or deleted" default. The override exists for the archive hook, which needs
+   * its own wording; this path has never passed one.
    */
   await ServiceLevelObjectiveService.resolveOpenBurnRateAlertsAndIncidentsForSlo(
     {
@@ -845,7 +1111,10 @@ async function setGuardStatusAndResolveOpenAlerts(data: {
     },
   );
 
-  await setSloStatusIfChanged(data.slo, data.status);
+  await setSloStatusIfChanged(data.slo, data.status, {
+    now: data.now,
+    reason: data.reason,
+  });
 }
 
 /*
@@ -1054,6 +1323,45 @@ async function isAnySloMonitorUnderOngoingMaintenance(data: {
   return false;
 }
 
+/*
+ * Re-reads the two flags that take an SLO out of evaluation, mirroring
+ * getDueSlos' own filter (enabled AND not archived) so the two gates can never
+ * disagree about what "still evaluated" means.
+ *
+ * Why it exists: the sweep evaluates a SNAPSHOT of due SLOs taken when it
+ * started, and a large sweep can take minutes to reach the last one. An SLO a
+ * user disables or archives in that gap has already had everything open
+ * resolved by the service's update hook — so firing from the stale snapshot
+ * would open a fresh alert or incident on an SLO nobody is measuring any more,
+ * and nothing would ever resolve it, because the worker will not look at that
+ * SLO again. A deleted SLO (no row) is treated the same way.
+ *
+ * Only firing is gated. Resolution needs no re-read: closing a record is the
+ * right outcome whatever state the SLO is in now.
+ */
+async function isSloStillEvaluated(data: {
+  sloId: ObjectID;
+}): Promise<boolean> {
+  const current: ServiceLevelObjective | null =
+    await ServiceLevelObjectiveService.findOneById({
+      id: data.sloId,
+      select: {
+        _id: true,
+        isEnabled: true,
+        isArchived: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (!current) {
+    return false;
+  }
+
+  return current.isEnabled === true && current.isArchived === false;
+}
+
 async function evaluateBurnRateRule(data: {
   context: SloEvaluationContext;
   rule: ServiceLevelObjectiveBurnRateRule;
@@ -1089,6 +1397,8 @@ async function evaluateBurnRateRule(data: {
       ruleId: ruleId,
       rootCause:
         "Auto-resolved because this SLO burn rate rule no longer has a valid threshold and window configuration, so it can no longer justify staying open.",
+      // Not a recovery: the rule cannot justify the record at all any more.
+      honourAutoResolve: false,
     });
     return;
   }
@@ -1154,6 +1464,24 @@ async function evaluateBurnRateRule(data: {
       burnRateLong >= threshold && burnRateShort >= threshold;
 
     if (isFiring) {
+      /*
+       * Last check before anything is created: was this SLO disabled,
+       * archived or deleted after the sweep took its snapshot? A failed read
+       * throws into this rule's own catch — the rule is skipped for this tick
+       * and retried on the next, rather than paging on a state it could not
+       * confirm.
+       */
+      if (!(await context.isSloStillEvaluated())) {
+        logger.debug(
+          `Slo:EvaluateSlos - Not firing burn rate rule ${ruleId.toString()}: SLO ${context.sloId.toString()} was disabled, archived or deleted after this sweep started.`,
+          {
+            projectId: context.projectId.toString(),
+            sloId: context.sloId.toString(),
+          } as LogAttributes,
+        );
+        return;
+      }
+
       await fireBurnRateRule({
         context: context,
         rule: rule,
@@ -1196,6 +1524,12 @@ async function evaluateBurnRateRule(data: {
     rootCause: hasFullLongWindow
       ? "Burn rate dropped below threshold."
       : `The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`,
+    /*
+     * Only a measured recovery is what the rule's auto-resolve switches
+     * describe. Losing the history to measure at all is not a recovery - the
+     * rule can no longer justify the record - so it resolves either way.
+     */
+    honourAutoResolve: hasFullLongWindow,
   });
 }
 
@@ -1212,12 +1546,28 @@ async function evaluateBurnRateRule(data: {
  * NOT be stamped — the stamp is what tells the next tick there is nothing left
  * to resolve. So both sides are attempted, only the successful ones are
  * stamped, and the first error is rethrown for the per-rule handler to log.
+ *
+ * Auto-resolve. `honourAutoResolve` is true only on the measured-recovery
+ * branch, because that is the one decision the rule's autoResolveAlert /
+ * autoResolveIncident switches describe. With a side's switch off, that side
+ * is not resolved; the worker only asks whether a human has closed it yet:
+ *   - still open: nothing is written, so the rule keeps reading that output as
+ *     firing and cannot declare a duplicate on top of it;
+ *   - closed by hand: the resolve is stamped now, so the lifecycle ends and the
+ *     rule can fire again once its suppression window has passed. Without this
+ *     a manually resolved record would leave the rule stamped as firing - and
+ *     silent - forever.
+ * The other callers (an unevaluatable rule, an SLO without a long window of
+ * history) pass false: the rule can no longer justify the record at all, the
+ * same reasoning the administrative resolves in the rule and SLO lifecycle
+ * hooks follow, and those never consult the switches either.
  */
 async function resolveBurnRateRuleOutputs(data: {
   context: SloEvaluationContext;
   rule: ServiceLevelObjectiveBurnRateRule;
   ruleId: ObjectID;
   rootCause: string;
+  honourAutoResolve: boolean;
 }): Promise<void> {
   const { context, rule, ruleId, rootCause } = data;
 
@@ -1233,17 +1583,26 @@ async function resolveBurnRateRuleOutputs(data: {
     lastIncidentResolvedAt?: Date;
   } = {};
 
+  // How each side closed, kept for the feed items posted after the stamp.
+  let alertClosure: BurnRateOutputClosure | null = null;
+  let incidentClosure: BurnRateOutputClosure | null = null;
+
   let firstError: unknown = null;
 
   if (isAlertOpen) {
     try {
-      await ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsForRule({
-        serviceLevelObjectiveId: context.sloId,
-        burnRateRuleId: ruleId,
-        projectId: context.projectId,
+      alertClosure = await closeBurnRateOutput({
+        output: "alert",
+        context: context,
+        rule: rule,
+        ruleId: ruleId,
         rootCause: rootCause,
+        honourAutoResolve: data.honourAutoResolve,
       });
-      resolvedColumns.lastAlertResolvedAt = context.now;
+
+      if (alertClosure) {
+        resolvedColumns.lastAlertResolvedAt = context.now;
+      }
     } catch (err) {
       firstError = err;
     }
@@ -1251,15 +1610,18 @@ async function resolveBurnRateRuleOutputs(data: {
 
   if (isIncidentOpen) {
     try {
-      await ServiceLevelObjectiveBurnRateRuleService.resolveOpenIncidentsForRule(
-        {
-          serviceLevelObjectiveId: context.sloId,
-          burnRateRuleId: ruleId,
-          projectId: context.projectId,
-          rootCause: rootCause,
-        },
-      );
-      resolvedColumns.lastIncidentResolvedAt = context.now;
+      incidentClosure = await closeBurnRateOutput({
+        output: "incident",
+        context: context,
+        rule: rule,
+        ruleId: ruleId,
+        rootCause: rootCause,
+        honourAutoResolve: data.honourAutoResolve,
+      });
+
+      if (incidentClosure) {
+        resolvedColumns.lastIncidentResolvedAt = context.now;
+      }
     } catch (err) {
       if (firstError === null) {
         firstError = err;
@@ -1275,11 +1637,106 @@ async function resolveBurnRateRuleOutputs(data: {
         isRoot: true,
       },
     });
+
+    /*
+     * Posted only once the stamp has committed. A stamp that fails leaves the
+     * side to be closed again next tick, and posting first would put a second
+     * "resolved" item on the feed for the one record.
+     */
+    if (alertClosure) {
+      await postBurnRateResolvedFeedItem({
+        output: "alert",
+        closure: alertClosure,
+        context: context,
+        rule: rule,
+        rootCause: rootCause,
+      });
+    }
+
+    if (incidentClosure) {
+      await postBurnRateResolvedFeedItem({
+        output: "incident",
+        closure: incidentClosure,
+        context: context,
+        rule: rule,
+        rootCause: rootCause,
+      });
+    }
   }
 
   if (firstError !== null) {
     throw firstError;
   }
+}
+
+type BurnRateOutputKind = "alert" | "incident";
+
+/*
+ * "auto-resolved": the worker resolved the record (or found nothing left open
+ * with auto-resolve on - the resolvers treat that as success, as they always
+ * have). "resolved-by-hand": auto-resolve is off and a human closed it.
+ */
+type BurnRateOutputClosure = "auto-resolved" | "resolved-by-hand";
+
+/*
+ * One side of resolveBurnRateRuleOutputs. Returns how the record closed, or
+ * null when it must stay open (auto-resolve is off and nobody has resolved it
+ * yet). A failed resolve or lookup throws, and the caller leaves that side
+ * unstamped so the next tick retries it.
+ */
+async function closeBurnRateOutput(data: {
+  output: BurnRateOutputKind;
+  context: SloEvaluationContext;
+  rule: ServiceLevelObjectiveBurnRateRule;
+  ruleId: ObjectID;
+  rootCause: string;
+  honourAutoResolve: boolean;
+}): Promise<BurnRateOutputClosure | null> {
+  const { context, rule, ruleId } = data;
+  const isAlert: boolean = data.output === "alert";
+
+  // `!== false`: both columns default to true, and so has every rule to date.
+  const isAutoResolveOn: boolean = isAlert
+    ? rule.autoResolveAlert !== false
+    : rule.autoResolveIncident !== false;
+
+  if (data.honourAutoResolve && !isAutoResolveOn) {
+    const fingerprint: string =
+      ServiceLevelObjectiveBurnRateRuleService.getBurnRateFingerprint({
+        serviceLevelObjectiveId: context.sloId,
+        burnRateRuleId: ruleId,
+      });
+
+    const isStillOpen: boolean = isAlert
+      ? Boolean(await findOpenBurnRateAlert({ context, fingerprint }))
+      : Boolean(await findOpenBurnRateIncident({ context, fingerprint }));
+
+    return isStillOpen ? null : "resolved-by-hand";
+  }
+
+  const resolveArguments: {
+    serviceLevelObjectiveId: ObjectID;
+    burnRateRuleId: ObjectID;
+    projectId: ObjectID;
+    rootCause: string;
+  } = {
+    serviceLevelObjectiveId: context.sloId,
+    burnRateRuleId: ruleId,
+    projectId: context.projectId,
+    rootCause: data.rootCause,
+  };
+
+  if (isAlert) {
+    await ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsForRule(
+      resolveArguments,
+    );
+  } else {
+    await ServiceLevelObjectiveBurnRateRuleService.resolveOpenIncidentsForRule(
+      resolveArguments,
+    );
+  }
+
+  return "auto-resolved";
 }
 
 /*
@@ -1332,15 +1789,42 @@ async function fireBurnRateRule(data: {
       burnRateRuleId: ruleId,
     });
 
-  const budgetRemainingMinutes: number = roundToTwoDecimals(
-    context.budget.budgetRemainingSeconds / 60,
-  );
+  /*
+   * What both outputs need beyond the fingerprint, built on first use and
+   * shared by the pair. Most ticks of a sustained burn find both outputs
+   * already open and never get this far, and an adopted record needs neither -
+   * so the SLO link lookup behind the templates and the SLO owner read only
+   * happen for a record that is really about to be created, at most once.
+   */
+  let declarationPromise: Promise<BurnRateDeclaration> | null = null;
+  let sloOwnerUsersPromise: Promise<Array<User>> | null = null;
 
-  const declaration: BurnRateDeclaration = {
+  const fire: BurnRateFire = {
     fingerprint: fingerprint,
-    title: `SLO burn rate: ${context.slo.name} — ${rule.name}`,
-    description: `SLO "${context.slo.name}" is burning its error budget too fast. Rule "${rule.name}": burn rate over the last ${rule.longWindowInMinutes} minutes is ${roundToTwoDecimals(data.burnRateLong)}x and over the last ${rule.shortWindowInMinutes} minutes is ${roundToTwoDecimals(data.burnRateShort)}x — both at or above the threshold of ${roundToTwoDecimals(rule.burnRateThreshold!)}x. Error budget remaining: ${roundToTwoDecimals(context.budget.budgetRemainingPercentage)}% (${budgetRemainingMinutes} minutes).`,
-    rootCause: `Error budget burn rate breached the "${rule.name}" rule of SLO "${context.slo.name}".`,
+    getDeclaration: (): Promise<BurnRateDeclaration> => {
+      if (!declarationPromise) {
+        declarationPromise = buildBurnRateDeclaration({
+          context: context,
+          rule: rule,
+          fingerprint: fingerprint,
+          burnRateLong: data.burnRateLong,
+          burnRateShort: data.burnRateShort,
+          logAttributes: logAttributes,
+        });
+      }
+
+      return declarationPromise;
+    },
+    getSloOwnerUsers: (): Promise<Array<User>> => {
+      if (!sloOwnerUsersPromise) {
+        sloOwnerUsersPromise = loadSloOwnerUsers({
+          context: context,
+          logAttributes: logAttributes,
+        });
+      }
+
+      return sloOwnerUsersPromise;
+    },
   };
 
   /*
@@ -1377,7 +1861,7 @@ async function fireBurnRateRule(data: {
           context: context,
           rule: rule,
           ruleId: ruleId,
-          declaration: declaration,
+          fire: fire,
           logAttributes: logAttributes,
         });
 
@@ -1408,7 +1892,7 @@ async function fireBurnRateRule(data: {
           context: context,
           rule: rule,
           ruleId: ruleId,
-          declaration: declaration,
+          fire: fire,
           logAttributes: logAttributes,
         });
 
@@ -1467,15 +1951,205 @@ function isWithinRefireSuppression(data: {
 }
 
 /*
- * The copy both outputs share. Identical wording on the Alert and the Incident
- * is deliberate: they carry the same fingerprint and describe the same burn, so
- * anyone correlating the two sees the same numbers.
+ * What one burn rate record says. Each output renders its own copy from its own
+ * templates; without templates both fall back to the same built-in wording,
+ * which is deliberate - they carry the same fingerprint and describe the same
+ * burn, so anyone correlating the two sees the same numbers.
  */
-interface BurnRateDeclaration {
-  fingerprint: string;
+interface BurnRateOutputCopy {
   title: string;
   description: string;
+  remediationNotes: string | undefined;
+}
+
+interface BurnRateDeclaration {
+  fingerprint: string;
   rootCause: string;
+  // Also read by the feed items, so they quote the numbers the record carries.
+  variables: SloBurnRateTemplateVariables;
+  alert: BurnRateOutputCopy;
+  incident: BurnRateOutputCopy;
+}
+
+// Per-fire state shared by the two create paths; see fireBurnRateRule.
+interface BurnRateFire {
+  fingerprint: string;
+  getDeclaration: () => Promise<BurnRateDeclaration>;
+  getSloOwnerUsers: () => Promise<Array<User>>;
+}
+
+/*
+ * Renders both outputs' copy from the rule's templates and the numbers that
+ * made it fire. The root cause is not templated: it is the evaluation's own
+ * statement of why the record exists, the way MonitorAlert treats it.
+ */
+async function buildBurnRateDeclaration(data: {
+  context: SloEvaluationContext;
+  rule: ServiceLevelObjectiveBurnRateRule;
+  fingerprint: string;
+  burnRateLong: number;
+  burnRateShort: number;
+  logAttributes: LogAttributes;
+}): Promise<BurnRateDeclaration> {
+  const { context, rule } = data;
+
+  /*
+   * {{sloLink}} is the only variable that needs a lookup, and a failure costs
+   * the link rather than the page: the variable renders empty and the record
+   * is still created.
+   */
+  let sloLink: string = "";
+
+  try {
+    sloLink = (
+      await ServiceLevelObjectiveService.getSloLinkInDashboard(
+        context.projectId,
+        context.sloId,
+      )
+    ).toString();
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Could not build the SLO link for the templates of burn rate rule ${rule.id?.toString()}; {{sloLink}} renders empty: ${err}`,
+      data.logAttributes,
+    );
+  }
+
+  const variables: SloBurnRateTemplateVariables =
+    buildSloBurnRateTemplateVariables({
+      sloId: context.sloId.toString(),
+      sloName: context.slo.name,
+      sloLink: sloLink,
+      sloStatus: context.sloStatus,
+      ruleName: rule.name,
+      /*
+       * Number(): a decimal column can reach the worker as a string, and the
+       * template formatter renders anything that is not a real number as
+       * empty. The pre-template text coerced these the same way, through
+       * roundToTwoDecimals' arithmetic.
+       */
+      burnRateThreshold: Number(rule.burnRateThreshold),
+      longWindowBurnRate: data.burnRateLong,
+      shortWindowBurnRate: data.burnRateShort,
+      longWindowInMinutes: Number(rule.longWindowInMinutes),
+      shortWindowInMinutes: Number(rule.shortWindowInMinutes),
+      targetPercentage: Number(context.targetPercentage),
+      currentSliPercentage: context.currentSliPercentage,
+      errorBudgetRemainingPercentage: context.budget.budgetRemainingPercentage,
+      errorBudgetRemainingSeconds: context.budget.budgetRemainingSeconds,
+      windowType: context.slo.windowType,
+      windowDays: context.slo.windowDays,
+      timezone: context.slo.timezone,
+    });
+
+  const defaultCopy: { title: string; description: string } = {
+    title:
+      renderSloBurnRateTemplate(
+        DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+        variables,
+      ) || "",
+    description:
+      renderSloBurnRateTemplate(
+        DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+        variables,
+      ) || "",
+  };
+
+  return {
+    fingerprint: data.fingerprint,
+    rootCause: `Error budget burn rate breached the "${rule.name}" rule of SLO "${context.slo.name}".`,
+    variables: variables,
+    alert: renderBurnRateOutputCopy({
+      titleTemplate: rule.alertTitleTemplate,
+      descriptionTemplate: rule.alertDescriptionTemplate,
+      remediationNotesTemplate: rule.alertRemediationNotes,
+      variables: variables,
+      defaultCopy: defaultCopy,
+    }),
+    incident: renderBurnRateOutputCopy({
+      titleTemplate: rule.incidentTitleTemplate,
+      descriptionTemplate: rule.incidentDescriptionTemplate,
+      remediationNotesTemplate: rule.incidentRemediationNotes,
+      variables: variables,
+      defaultCopy: defaultCopy,
+    }),
+  };
+}
+
+function renderBurnRateOutputCopy(data: {
+  titleTemplate: string | undefined;
+  descriptionTemplate: string | undefined;
+  remediationNotesTemplate: string | undefined;
+  variables: SloBurnRateTemplateVariables;
+  defaultCopy: { title: string; description: string };
+}): BurnRateOutputCopy {
+  return {
+    title: toRecordTitle(
+      renderSloBurnRateTemplate(data.titleTemplate, data.variables),
+      data.defaultCopy.title,
+    ),
+    description:
+      renderSloBurnRateTemplate(data.descriptionTemplate, data.variables) ??
+      data.defaultCopy.description,
+    // No built-in remediation notes: a blank template simply sets none.
+    remediationNotes:
+      renderSloBurnRateTemplate(
+        data.remediationNotesTemplate,
+        data.variables,
+      ) || undefined,
+  };
+}
+
+const TITLE_LINE_BREAK_PATTERN: RegExp = /\s*[\r\n]+\s*/g;
+
+/*
+ * Alert.title and Incident.title are required varchar(ColumnLength.LongText)
+ * columns. A template the rule service accepted can still render past that once
+ * {{sloName}} or {{sloLink}} expands, or render to nothing ("{{sloLink}}" with
+ * no link) - and either fails the INSERT on every one-minute tick, a page that
+ * never arrives. So line breaks are folded (a title is one line), an empty
+ * result falls back to the built-in title, and an over-long one is cut with an
+ * ellipsis - by code point, so an emoji is never split in half.
+ */
+function toRecordTitle(
+  renderedTitle: string | null,
+  defaultTitle: string,
+): string {
+  const title: string =
+    renderedTitle === null
+      ? defaultTitle
+      : renderedTitle.replace(TITLE_LINE_BREAK_PATTERN, " ");
+
+  const usableTitle: string = title.trim() === "" ? defaultTitle : title;
+
+  const characters: Array<string> = Array.from(usableTitle);
+
+  if (characters.length <= ColumnLength.LongText) {
+    return usableTitle;
+  }
+
+  return `${characters.slice(0, ColumnLength.LongText - 1).join("")}…`;
+}
+
+/*
+ * The SLO's owners, for rules with addSloOwnersAsOwners. findOwners resolves
+ * owner teams into their members - exactly the people the SLO's own
+ * status-change notification reaches - so they are added as owner users. A
+ * failed read is logged and treated as "no SLO owners": the rule's own owners
+ * must still be added, and the record already exists.
+ */
+async function loadSloOwnerUsers(data: {
+  context: SloEvaluationContext;
+  logAttributes: LogAttributes;
+}): Promise<Array<User>> {
+  try {
+    return await ServiceLevelObjectiveService.findOwners(data.context.sloId);
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Could not load the owners of SLO ${data.context.sloId.toString()} to add to its burn rate alerts and incidents: ${err}`,
+      data.logAttributes,
+    );
+    return [];
+  }
 }
 
 /*
@@ -1493,25 +2167,14 @@ async function createBurnRateAlert(data: {
   context: SloEvaluationContext;
   rule: ServiceLevelObjectiveBurnRateRule;
   ruleId: ObjectID;
-  declaration: BurnRateDeclaration;
+  fire: BurnRateFire;
   logAttributes: LogAttributes;
 }): Promise<boolean> {
-  const { context, rule, ruleId, declaration, logAttributes } = data;
+  const { context, rule, ruleId, fire, logAttributes } = data;
 
-  const openAlert: Alert | null = await AlertService.findOneBy({
-    query: {
-      projectId: context.projectId,
-      seriesFingerprint: declaration.fingerprint,
-      currentAlertState: {
-        isResolvedState: false,
-      },
-    },
-    select: {
-      _id: true,
-    },
-    props: {
-      isRoot: true,
-    },
+  const openAlert: Alert | null = await findOpenBurnRateAlert({
+    context: context,
+    fingerprint: fire.fingerprint,
   });
 
   if (openAlert) {
@@ -1567,23 +2230,92 @@ async function createBurnRateAlert(data: {
     return false;
   }
 
+  const declaration: BurnRateDeclaration = await fire.getDeclaration();
+
   const alert: Alert = new Alert();
   alert.projectId = context.projectId;
-  alert.title = declaration.title;
-  alert.description = declaration.description;
+  alert.title = declaration.alert.title;
+  alert.description = declaration.alert.description;
   alert.rootCause = declaration.rootCause;
   alert.alertSeverityId = alertSeverityId;
   alert.seriesFingerprint = declaration.fingerprint;
   alert.isCreatedAutomatically = true;
 
-  // On-call policy id-stubs, the MonitorAlert pattern.
-  alert.onCallDutyPolicies = toOnCallDutyPolicyStubs(rule.onCallDutyPolicies);
+  if (declaration.alert.remediationNotes) {
+    alert.remediationNotes = declaration.alert.remediationNotes;
+  }
 
-  await AlertService.create({
+  /*
+   * `=== true`: the column defaults to false, and a rule read without it must
+   * never hide an alert from the project it is paging.
+   */
+  if (rule.isAlertPrivate === true) {
+    alert.isPrivate = true;
+  }
+
+  // On-call policy id-stubs, the MonitorAlert pattern.
+  alert.onCallDutyPolicies = toIdStubs(
+    rule.onCallDutyPolicies,
+    OnCallDutyPolicy,
+  );
+
+  /*
+   * Set only when the rule has labels, so a rule without any hands the create
+   * path exactly what it always did.
+   */
+  const labels: Array<Label> = toIdStubs(rule.alertLabels, Label);
+
+  if (labels.length > 0) {
+    alert.labels = labels;
+  }
+
+  /*
+   * The SLO as the alert's affected resource, so the alert names it and the
+   * SLO's Alerts tab finds it by relation. An id-stub like every relation
+   * here. Never the SLO's monitors - see declareBurnRateIncident.
+   */
+  alert.serviceLevelObjectives = [
+    toIdStub(context.sloId, ServiceLevelObjective),
+  ];
+
+  const createdAlert: Alert | undefined = await AlertService.create({
     data: alert,
     props: {
       isRoot: true,
     },
+  });
+
+  /*
+   * The alert exists from here on, so nothing below may throw: returning true
+   * is what gets it stamped, and an unstamped alert is one the resolution
+   * branch never closes (the next tick would adopt it, but only after a
+   * failure had already been logged against a page that did go out). Both
+   * helpers catch and log their own failures.
+   */
+  await addBurnRateRecordOwners({
+    output: "alert",
+    context: context,
+    ruleId: ruleId,
+    recordId: createdAlert?.id || undefined,
+    ownerUsers: rule.alertOwnerUsers,
+    ownerTeams: rule.alertOwnerTeams,
+    addSloOwners: rule.addSloOwnersAsOwners === true,
+    fire: fire,
+    logAttributes: logAttributes,
+  });
+
+  await postBurnRateRaisedFeedItem({
+    output: "alert",
+    context: context,
+    rule: rule,
+    recordId: createdAlert?.id || undefined,
+    recordNumber: formatRecordNumber(
+      createdAlert?.alertNumberWithPrefix,
+      createdAlert?.alertNumber,
+    ),
+    declaration: declaration,
+    copy: declaration.alert,
+    logAttributes: logAttributes,
   });
 
   return true;
@@ -1603,7 +2335,9 @@ async function createBurnRateAlert(data: {
  *    from. A burn-rate incident that attached monitors would therefore repair
  *    its own SLO's uptime number on resolve, close a real ongoing downtime
  *    interval, and notify the monitors' owners of a recovery that never
- *    happened. The SLO link is carried by the fingerprint instead.
+ *    happened. The SLO is attached as the affected resource instead
+ *    (serviceLevelObjectives, which no resolve hook reads), and the
+ *    fingerprint still drives dedupe and resolution.
  *
  *  - it does not set changeMonitorStatusToId. A burn rate is a statement about
  *    the error budget, not about whether a monitor is up right now.
@@ -1623,25 +2357,14 @@ async function declareBurnRateIncident(data: {
   context: SloEvaluationContext;
   rule: ServiceLevelObjectiveBurnRateRule;
   ruleId: ObjectID;
-  declaration: BurnRateDeclaration;
+  fire: BurnRateFire;
   logAttributes: LogAttributes;
 }): Promise<boolean> {
-  const { context, rule, ruleId, declaration, logAttributes } = data;
+  const { context, rule, ruleId, fire, logAttributes } = data;
 
-  const openIncident: Incident | null = await IncidentService.findOneBy({
-    query: {
-      projectId: context.projectId,
-      seriesFingerprint: declaration.fingerprint,
-      currentIncidentState: {
-        isResolvedState: false,
-      },
-    },
-    select: {
-      _id: true,
-    },
-    props: {
-      isRoot: true,
-    },
+  const openIncident: Incident | null = await findOpenBurnRateIncident({
+    context: context,
+    fingerprint: fire.fingerprint,
   });
 
   if (openIncident) {
@@ -1695,10 +2418,12 @@ async function declareBurnRateIncident(data: {
     return false;
   }
 
+  const declaration: BurnRateDeclaration = await fire.getDeclaration();
+
   const incident: Incident = new Incident();
   incident.projectId = context.projectId;
-  incident.title = declaration.title;
-  incident.description = declaration.description;
+  incident.title = declaration.incident.title;
+  incident.description = declaration.incident.description;
   incident.rootCause = declaration.rootCause;
   incident.incidentSeverityId = incidentSeverityId;
   incident.seriesFingerprint = declaration.fingerprint;
@@ -1706,15 +2431,68 @@ async function declareBurnRateIncident(data: {
   incident.isVisibleOnStatusPage = false;
   incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated = false;
 
-  incident.onCallDutyPolicies = toOnCallDutyPolicyStubs(
+  if (declaration.incident.remediationNotes) {
+    incident.remediationNotes = declaration.incident.remediationNotes;
+  }
+
+  // `=== true`, for the same reason as the alert's private flag.
+  if (rule.isIncidentPrivate === true) {
+    incident.isPrivate = true;
+  }
+
+  incident.onCallDutyPolicies = toIdStubs(
     rule.incidentOnCallDutyPolicies,
+    OnCallDutyPolicy,
   );
 
-  await IncidentService.create({
+  const labels: Array<Label> = toIdStubs(rule.incidentLabels, Label);
+
+  if (labels.length > 0) {
+    incident.labels = labels;
+  }
+
+  /*
+   * The SLO as the affected resource - the link the monitors must never be.
+   * Nothing in IncidentService's resolve path iterates serviceLevelObjectives,
+   * so resolving this incident writes no monitor status and leaves the SLI
+   * history alone.
+   */
+  incident.serviceLevelObjectives = [
+    toIdStub(context.sloId, ServiceLevelObjective),
+  ];
+
+  const createdIncident: Incident | undefined = await IncidentService.create({
     data: incident,
     props: {
       isRoot: true,
     },
+  });
+
+  // The incident exists: nothing below may cost it its stamp (see the alert).
+  await addBurnRateRecordOwners({
+    output: "incident",
+    context: context,
+    ruleId: ruleId,
+    recordId: createdIncident?.id || undefined,
+    ownerUsers: rule.incidentOwnerUsers,
+    ownerTeams: rule.incidentOwnerTeams,
+    addSloOwners: rule.addSloOwnersAsOwners === true,
+    fire: fire,
+    logAttributes: logAttributes,
+  });
+
+  await postBurnRateRaisedFeedItem({
+    output: "incident",
+    context: context,
+    rule: rule,
+    recordId: createdIncident?.id || undefined,
+    recordNumber: formatRecordNumber(
+      createdIncident?.incidentNumberWithPrefix,
+      createdIncident?.incidentNumber,
+    ),
+    declaration: declaration,
+    copy: declaration.incident,
+    logAttributes: logAttributes,
   });
 
   return true;
@@ -1725,18 +2503,328 @@ async function declareBurnRateIncident(data: {
  * entities: the relation is written by id, and passing a partially selected
  * entity through would let a stale column overwrite the real row.
  */
-function toOnCallDutyPolicyStubs(
-  policies: Array<OnCallDutyPolicy> | undefined,
-): Array<OnCallDutyPolicy> {
-  return (policies || [])
-    .filter((policy: OnCallDutyPolicy) => {
-      return Boolean(policy.id);
+function toIdStub<TModel extends DatabaseBaseModel>(
+  id: ObjectID,
+  modelType: { new (): TModel },
+): TModel {
+  const stub: TModel = new modelType();
+  stub._id = id.toString();
+  return stub;
+}
+
+function toIdStubs<TModel extends DatabaseBaseModel>(
+  records: Array<TModel> | undefined,
+  modelType: { new (): TModel },
+): Array<TModel> {
+  return (records || [])
+    .filter((record: TModel): boolean => {
+      return Boolean(record.id);
     })
-    .map((policy: OnCallDutyPolicy) => {
-      const policyStub: OnCallDutyPolicy = new OnCallDutyPolicy();
-      policyStub._id = policy.id!.toString();
-      return policyStub;
+    .map((record: TModel): TModel => {
+      return toIdStub(record.id!, modelType);
     });
+}
+
+/*
+ * Ids from loaded relation lists, deduplicated case-insensitively (ObjectID
+ * keeps whatever case it was handed; Postgres renders a uuid lower-cased). A
+ * user who is both a rule owner and an SLO owner must be added - and notified
+ * - once.
+ */
+function uniqueIdsOf(
+  records: Array<DatabaseBaseModel> | undefined,
+): Array<ObjectID> {
+  const seen: Set<string> = new Set<string>();
+  const ids: Array<ObjectID> = [];
+
+  for (const record of records || []) {
+    if (!record.id) {
+      continue;
+    }
+
+    const key: string = record.id.toString().toLowerCase();
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    ids.push(record.id);
+  }
+
+  return ids;
+}
+
+/*
+ * The one open record a rule may have per table, found by its fingerprint.
+ * Shared by the adoption check on the create paths and by the auto-resolve-off
+ * check on the resolve path, so the two can never disagree about "open".
+ */
+async function findOpenBurnRateAlert(data: {
+  context: SloEvaluationContext;
+  fingerprint: string;
+}): Promise<Alert | null> {
+  return await AlertService.findOneBy({
+    query: {
+      projectId: data.context.projectId,
+      seriesFingerprint: data.fingerprint,
+      currentAlertState: {
+        isResolvedState: false,
+      },
+    },
+    select: {
+      _id: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+}
+
+async function findOpenBurnRateIncident(data: {
+  context: SloEvaluationContext;
+  fingerprint: string;
+}): Promise<Incident | null> {
+  return await IncidentService.findOneBy({
+    query: {
+      projectId: data.context.projectId,
+      seriesFingerprint: data.fingerprint,
+      currentIncidentState: {
+        isResolvedState: false,
+      },
+    },
+    select: {
+      _id: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+}
+
+/*
+ * Adds the rule's owner teams and users - and the SLO's owners, when the rule
+ * asks for them - to a record that was just created.
+ *
+ * Owners are added after the create, the MonitorAlert / MonitorIncident way,
+ * and with notifyOwners on, the same as monitor criteria: an owner nobody tells
+ * about the page they own is not much of an owner.
+ *
+ * Never throws. The record already exists, and a failure here (a user removed
+ * mid-tick, a transient write error) must not leave it unstamped - the
+ * resolution branch would never close it.
+ */
+async function addBurnRateRecordOwners(data: {
+  output: BurnRateOutputKind;
+  context: SloEvaluationContext;
+  ruleId: ObjectID;
+  recordId: ObjectID | undefined;
+  ownerUsers: Array<User> | undefined;
+  ownerTeams: Array<Team> | undefined;
+  addSloOwners: boolean;
+  fire: BurnRateFire;
+  logAttributes: LogAttributes;
+}): Promise<void> {
+  try {
+    const sloOwnerUsers: Array<User> = data.addSloOwners
+      ? await data.fire.getSloOwnerUsers()
+      : [];
+
+    const userIds: Array<ObjectID> = uniqueIdsOf([
+      ...(data.ownerUsers || []),
+      ...sloOwnerUsers,
+    ]);
+    const teamIds: Array<ObjectID> = uniqueIdsOf(data.ownerTeams);
+
+    if (userIds.length === 0 && teamIds.length === 0) {
+      return;
+    }
+
+    if (!data.recordId) {
+      logger.error(
+        `Slo:EvaluateSlos - Cannot add owners to the ${data.output} burn rate rule ${data.ruleId.toString()} just created: the create returned no id.`,
+        data.logAttributes,
+      );
+      return;
+    }
+
+    if (data.output === "alert") {
+      await AlertService.addOwners(
+        data.context.projectId,
+        data.recordId,
+        userIds,
+        teamIds,
+        true,
+        {
+          isRoot: true,
+        },
+      );
+    } else {
+      await IncidentService.addOwners(
+        data.context.projectId,
+        data.recordId,
+        userIds,
+        teamIds,
+        true,
+        {
+          isRoot: true,
+        },
+      );
+    }
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error adding owners to the ${data.output} created by burn rate rule ${data.ruleId.toString()}: ${err}`,
+      data.logAttributes,
+    );
+  }
+}
+
+// "ALT-12" when the project numbers with a prefix, "#12" otherwise.
+function formatRecordNumber(
+  numberWithPrefix: string | undefined,
+  recordNumber: number | undefined,
+): string | undefined {
+  if (numberWithPrefix) {
+    return numberWithPrefix;
+  }
+
+  if (typeof recordNumber === "number") {
+    return `#${recordNumber}`;
+  }
+
+  return undefined;
+}
+
+/*
+ * "Burn rate rule X raised Alert #12" on the SLO's own feed.
+ *
+ * Posted from the create paths only after a REAL create - never on adoption,
+ * which finds a record an earlier tick already created (and posted). The feed
+ * service never throws, but building the item can (the record link reads the
+ * dashboard URL), and a feed item must never cost a record its stamp, so the
+ * whole post is caught here. Every user-controlled name is escaped: feeds
+ * render without safe mode. `postedAt` is the evaluation clock, so the item
+ * sits at the moment the rule fired.
+ */
+async function postBurnRateRaisedFeedItem(data: {
+  output: BurnRateOutputKind;
+  context: SloEvaluationContext;
+  rule: ServiceLevelObjectiveBurnRateRule;
+  recordId: ObjectID | undefined;
+  recordNumber: string | undefined;
+  declaration: BurnRateDeclaration;
+  copy: BurnRateOutputCopy;
+  logAttributes: LogAttributes;
+}): Promise<void> {
+  const { context, rule } = data;
+  const isAlert: boolean = data.output === "alert";
+
+  try {
+    const recordLabel: string = data.recordNumber
+      ? `${isAlert ? "Alert" : "Incident"} ${escapeMarkdownInline(data.recordNumber)}`
+      : isAlert
+        ? "an alert"
+        : "an incident";
+
+    let recordReference: string = recordLabel;
+
+    if (data.recordId) {
+      const recordLink: string = isAlert
+        ? (
+            await AlertService.getAlertLinkInDashboard(
+              context.projectId,
+              data.recordId,
+            )
+          ).toString()
+        : (
+            await IncidentService.getIncidentLinkInDashboard(
+              context.projectId,
+              data.recordId,
+            )
+          ).toString();
+
+      recordReference = `[${recordLabel}](${recordLink})`;
+    }
+
+    const variables: SloBurnRateTemplateVariables = data.declaration.variables;
+
+    const moreInformation: Array<string> = [
+      `**Title:** ${escapeMarkdownInline(data.copy.title)}`,
+      `**Burn rate over the last ${variables[SloBurnRateTemplateVariable.LongWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.LongWindowBurnRate]}x`,
+      `**Burn rate over the last ${variables[SloBurnRateTemplateVariable.ShortWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.ShortWindowBurnRate]}x`,
+      `**Threshold:** ${variables[SloBurnRateTemplateVariable.BurnRateThreshold]}x`,
+      `**Error budget remaining:** ${variables[SloBurnRateTemplateVariable.ErrorBudgetRemainingPercentage]}% (${variables[SloBurnRateTemplateVariable.ErrorBudgetRemaining]})`,
+    ];
+
+    await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
+      serviceLevelObjectiveId: context.sloId,
+      projectId: context.projectId,
+      serviceLevelObjectiveFeedEventType: isAlert
+        ? ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised
+        : ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
+      feedInfoInMarkdown: `Burn rate rule **${escapeMarkdownInline(rule.name)}** ${isAlert ? "raised" : "declared"} ${recordReference}.`,
+      moreInformationInMarkdown: moreInformation
+        .map((line: string): string => {
+          return `- ${line}`;
+        })
+        .join("\n"),
+      displayColor: Red500,
+      postedAt: context.now,
+    });
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error posting the feed item for the ${data.output} burn rate rule ${rule.id?.toString()} created: ${err}`,
+      data.logAttributes,
+    );
+  }
+}
+
+/*
+ * "The alert raised by burn rate rule X was resolved" - posted only for a side
+ * whose resolve stamp was just written. A record closed by hand while
+ * auto-resolve is off gets its own wording: the rule did not resolve it, it
+ * only noticed that someone had, and that the rule can now fire again.
+ */
+async function postBurnRateResolvedFeedItem(data: {
+  output: BurnRateOutputKind;
+  closure: BurnRateOutputClosure;
+  context: SloEvaluationContext;
+  rule: ServiceLevelObjectiveBurnRateRule;
+  rootCause: string;
+}): Promise<void> {
+  const { context, rule } = data;
+  const isAlert: boolean = data.output === "alert";
+  const record: string = isAlert ? "alert" : "incident";
+  const createdVerb: string = isAlert ? "raised" : "declared";
+  const ruleName: string = escapeMarkdownInline(rule.name);
+
+  try {
+    await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
+      serviceLevelObjectiveId: context.sloId,
+      projectId: context.projectId,
+      serviceLevelObjectiveFeedEventType: isAlert
+        ? ServiceLevelObjectiveFeedEventType.BurnRateAlertResolved
+        : ServiceLevelObjectiveFeedEventType.BurnRateIncidentResolved,
+      feedInfoInMarkdown:
+        data.closure === "resolved-by-hand"
+          ? `The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved by hand. The burn has recovered, so the rule can fire again.`
+          : `The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved.`,
+      moreInformationInMarkdown:
+        data.closure === "resolved-by-hand"
+          ? `Auto-resolve is off for this rule's ${record}, so it stayed open until someone resolved it.`
+          : `**Reason:** ${data.rootCause}`,
+      displayColor: Green500,
+      postedAt: context.now,
+    });
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error posting the resolved feed item for the ${record} of burn rate rule ${rule.id?.toString()}: ${err}`,
+      {
+        projectId: context.projectId.toString(),
+        sloId: context.sloId.toString(),
+      } as LogAttributes,
+    );
+  }
 }
 
 /*

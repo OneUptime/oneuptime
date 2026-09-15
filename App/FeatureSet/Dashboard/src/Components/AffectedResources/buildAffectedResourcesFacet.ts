@@ -11,6 +11,7 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -32,7 +33,8 @@ import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
  * filter Incidents / Alerts / Scheduled Maintenance by *any* attached
  * resource type — Monitor, Service, Host, Kubernetes Cluster, Docker Host,
  * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, IoT Fleet and — for
- * Scheduled Maintenance only — Network Site.
+ * Scheduled Maintenance only — Network Site, and — for Incidents and Alerts
+ * only — SLO.
  *
  * The chip's value encoding is `${type}:${id}` so multiple resource types
  * can coexist in the same selection without ID collisions. The hook's
@@ -57,7 +59,8 @@ type AffectedResourceType =
   | "cephCluster"
   | "dockerSwarmCluster"
   | "iotFleet"
-  | "networkSite";
+  | "networkSite"
+  | "serviceLevelObjective";
 
 interface ResourceTypeConfig {
   label: string;
@@ -139,6 +142,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     icon: IconProp.BuildingOffice,
     modelType: NetworkSite,
   },
+  serviceLevelObjective: {
+    label: "SLO",
+    pluralLabel: "SLOs",
+    icon: IconProp.Gauge,
+    modelType: ServiceLevelObjective,
+  },
 };
 
 const RESOURCE_ORDER: Array<AffectedResourceType> = [
@@ -159,6 +168,12 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
    * would query a column Incident does not have.
    */
   "networkSite",
+  /*
+   * Only Incident and Alert carry a serviceLevelObjectives relation (burn
+   * rate rules link the SLO that fired), so this is opt-in too (see
+   * includeServiceLevelObjective). ScheduledMaintenance has no such column.
+   */
+  "serviceLevelObjective",
 ];
 
 /*
@@ -183,6 +198,7 @@ const RESOURCE_QUERY_FIELD: Record<
   dockerSwarmCluster: "dockerSwarmClusters",
   iotFleet: "iotFleets",
   networkSite: "networkSites",
+  serviceLevelObjective: "serviceLevelObjectives",
 };
 
 /*
@@ -371,6 +387,12 @@ export interface AffectedResourcesFacetOptions<T extends BaseModel> {
    * column that does not exist there.
    */
   includeNetworkSite?: boolean | undefined;
+  /**
+   * Offer the SLO type. Off by default because Incident and Alert are the
+   * only parent models with a `serviceLevelObjectives` relation — offering it
+   * on Scheduled Maintenance would filter on a column that does not exist.
+   */
+  includeServiceLevelObjective?: boolean | undefined;
 }
 
 const buildAffectedResourcesFacet: <T extends BaseModel>(
@@ -388,6 +410,9 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
       }
       if (t === "networkSite") {
         return Boolean(options.includeNetworkSite);
+      }
+      if (t === "serviceLevelObjective") {
+        return Boolean(options.includeServiceLevelObjective);
       }
       return true;
     },

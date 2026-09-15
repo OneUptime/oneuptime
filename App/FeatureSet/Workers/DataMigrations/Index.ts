@@ -111,6 +111,7 @@ import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMoni
 import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
 import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
+import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -437,6 +438,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * move untouched. Idempotent.
    */
   new RepairHashedStringEnvelopeSecrets(),
+  /*
+   * AuditLog rows gained a root-resource pointer (rootResourceType /
+   * rootResourceId) so a resource's audit page can list its children's
+   * history - the SLO page shows its burn-rate rules, monitor rules and
+   * owners. Rows written before the columns existed point at nothing and
+   * would disappear from those pages; this points each at itself, which is
+   * what current code writes for a top-level resource. Async ON CLUSTER
+   * mutation over NULL pointers only, so it is idempotent.
+   */
+  new BackfillAuditLogRootResource(),
 ];
 
 export default DataMigrations;

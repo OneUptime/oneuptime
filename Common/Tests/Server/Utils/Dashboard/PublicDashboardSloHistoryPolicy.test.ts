@@ -2,7 +2,13 @@ import PublicDashboardSloHistoryPolicy, {
   PublicDashboardSloHistoryPolicyResult,
 } from "../../../../Server/Utils/Dashboard/PublicDashboardSloHistoryPolicy";
 import PublicDashboardSloWidget, {
+  PUBLIC_SLO_WIDGET_MULTIPLE_SELECTION_MESSAGE,
+  PUBLIC_SLO_WIDGET_NO_SELECTION_MESSAGE,
+  PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE,
+  PUBLIC_SLO_WIDGET_VARIABLE_MISSING_MESSAGE,
   PublicDashboardSloWidgetConfig,
+  PublicDashboardSloWidgetTarget,
+  PublicDashboardSloWidgetTargetKind,
 } from "../../../../Server/Utils/Dashboard/PublicDashboardSloWidget";
 import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
@@ -11,6 +17,9 @@ import {
   SloWidgetDisplayType,
   SloWidgetMetric,
 } from "../../../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
+import DashboardVariable, {
+  DashboardVariableType,
+} from "../../../../Types/Dashboard/DashboardVariable";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, it } from "@jest/globals";
@@ -23,6 +32,8 @@ import { describe, expect, it } from "@jest/globals";
  */
 
 const SLO_ID: ObjectID = ObjectID.generate();
+const VARIABLE_ID: string = "slo-variable";
+const PICKED_SLO: string = "Checkout API";
 
 const RANGE_START: Date = new Date("2026-08-09T00:00:00.000Z");
 const RANGE_END: Date = new Date("2026-08-09T06:00:00.000Z");
@@ -41,6 +52,35 @@ function sloWidget(argumentsObject: WidgetArguments = {}): WidgetArguments {
   };
 }
 
+// A chart that follows the dashboard's SLO variable instead of pinning an SLO.
+function followingWidget(
+  argumentsObject: WidgetArguments = {},
+): WidgetArguments {
+  return sloWidget({
+    serviceLevelObjectiveId: undefined,
+    serviceLevelObjectiveVariableId: VARIABLE_ID,
+    ...argumentsObject,
+  });
+}
+
+/*
+ * The shape resolveDashboardVariableSelections hands the policy: the STORED
+ * variable (id, type, key) with the viewer's selection applied.
+ */
+function sloVariable(
+  overrides: Partial<DashboardVariable> = {},
+): DashboardVariable {
+  return {
+    id: VARIABLE_ID,
+    name: "slo",
+    type: DashboardVariableType.TelemetryAttribute,
+    attributeKey: "sloName",
+    isMultiSelect: false,
+    selectedValue: PICKED_SLO,
+    ...overrides,
+  };
+}
+
 /*
  * Deliberately hostile: every field other than the window names something the
  * widget's author never published — another project, another SLO, another
@@ -53,6 +93,7 @@ function aggregateBy(overrides: WidgetArguments = {}): WidgetArguments {
       projectId: ObjectID.generate(),
       sloId: ObjectID.generate(),
       metricName: "burn.rate",
+      name: "Some Other SLO",
     },
     aggregationType: "Max",
     aggregateColumnName: "version",
@@ -79,12 +120,29 @@ function build(data: {
   });
 }
 
+function buildFollowing(data: {
+  widgetArguments?: WidgetArguments | undefined;
+  variables?: Array<DashboardVariable> | undefined;
+}): PublicDashboardSloHistoryPolicyResult {
+  return PublicDashboardSloHistoryPolicy.build({
+    widget: followingWidget(data.widgetArguments),
+    requestedAggregateBy: aggregateBy(),
+    variables: "variables" in data ? data.variables : [sloVariable()],
+  });
+}
+
+function pinnedIdOf(target: PublicDashboardSloWidgetTarget): string {
+  if (target.kind !== PublicDashboardSloWidgetTargetKind.Pinned) {
+    throw new Error(`Expected a pinned target, got ${target.kind}`);
+  }
+
+  return target.serviceLevelObjectiveId.toString();
+}
+
 describe("PublicDashboardSloHistoryPolicy", () => {
   describe("what the stored widget decides", () => {
     it("reads the SLO id from the widget and never from the request", () => {
-      expect(build({}).serviceLevelObjectiveId.toString()).toBe(
-        SLO_ID.toString(),
-      );
+      expect(pinnedIdOf(build({}).target)).toBe(SLO_ID.toString());
     });
 
     it("maps each stored metric to its own SloHistory series", () => {
@@ -178,6 +236,164 @@ describe("PublicDashboardSloHistoryPolicy", () => {
     });
   });
 
+  describe("a chart that follows the dashboard's SLO variable", () => {
+    /*
+     * The binding is the author's opt-in to charting whichever ACTIVE SLO a
+     * viewer picks — so the policy hands the route a NAME, which the route
+     * resolves inside the dashboard's own project. The request's own query
+     * (which names another SLO here) plays no part.
+     */
+    it("targets the picked SLO by name, whatever the request's query names", () => {
+      expect(buildFollowing({}).target).toEqual({
+        kind: PublicDashboardSloWidgetTargetKind.Selected,
+        serviceLevelObjectiveName: PICKED_SLO,
+      });
+    });
+
+    it("follows a one-pick multi-select the same way", () => {
+      expect(
+        buildFollowing({
+          variables: [
+            sloVariable({
+              isMultiSelect: true,
+              selectedValue: undefined,
+              selectedValues: [PICKED_SLO],
+            }),
+          ],
+        }).target,
+      ).toEqual({
+        kind: PublicDashboardSloWidgetTargetKind.Selected,
+        serviceLevelObjectiveName: PICKED_SLO,
+      });
+    });
+
+    /*
+     * An author who pinned one SLO meant that SLO: the binding the template
+     * left behind must not widen a pinned chart into one any viewer can point.
+     */
+    it("ignores the variable when an SLO is pinned", () => {
+      expect(
+        pinnedIdOf(
+          PublicDashboardSloHistoryPolicy.build({
+            widget: followingWidget({
+              serviceLevelObjectiveId: SLO_ID.toString(),
+            }),
+            requestedAggregateBy: aggregateBy(),
+            variables: [sloVariable()],
+          }).target,
+        ),
+      ).toBe(SLO_ID.toString());
+    });
+
+    /*
+     * A malformed pinned id fails closed. It must never fall through to the
+     * variable binding: that would turn a broken pin into "any SLO the viewer
+     * names".
+     */
+    it("refuses a malformed pinned id instead of falling back to the variable", () => {
+      for (const brokenId of ["not-a-uuid", 42, [SLO_ID.toString()], {}]) {
+        let target: PublicDashboardSloWidgetTarget | null = null;
+
+        expect(() => {
+          target = buildFollowing({
+            widgetArguments: { serviceLevelObjectiveId: brokenId },
+          }).target;
+        }).toThrow(BadDataException);
+
+        expect(target).toBeNull();
+      }
+    });
+
+    it("refuses while the toolbar is on All", () => {
+      for (const variable of [
+        sloVariable({ selectedValue: "" }),
+        sloVariable({ selectedValue: undefined }),
+        sloVariable({
+          isMultiSelect: true,
+          selectedValue: undefined,
+          selectedValues: [],
+        }),
+      ]) {
+        expect(() => {
+          return buildFollowing({ variables: [variable] });
+        }).toThrow(PUBLIC_SLO_WIDGET_NO_SELECTION_MESSAGE);
+      }
+    });
+
+    it("refuses to choose one of several picks", () => {
+      expect(() => {
+        return buildFollowing({
+          variables: [
+            sloVariable({
+              isMultiSelect: true,
+              selectedValue: undefined,
+              selectedValues: [PICKED_SLO, "Search API"],
+            }),
+          ],
+        });
+      }).toThrow(PUBLIC_SLO_WIDGET_MULTIPLE_SELECTION_MESSAGE);
+    });
+
+    it("refuses a binding to a variable the dashboard does not have, or not a Telemetry Attribute one", () => {
+      for (const variables of [
+        undefined,
+        [],
+        [sloVariable({ id: "another-variable" })],
+        [sloVariable({ type: DashboardVariableType.ProjectLabel })],
+        [sloVariable({ type: DashboardVariableType.CustomList })],
+      ]) {
+        expect(() => {
+          return buildFollowing({ variables });
+        }).toThrow(PUBLIC_SLO_WIDGET_VARIABLE_MISSING_MESSAGE);
+      }
+    });
+
+    it("refuses a binding that is not a bounded string", () => {
+      for (const brokenVariableId of [
+        42,
+        ["slo-variable"],
+        {},
+        "v".repeat(300),
+      ]) {
+        expect(() => {
+          return buildFollowing({
+            widgetArguments: {
+              serviceLevelObjectiveVariableId: brokenVariableId,
+            },
+          });
+        }).toThrow(
+          "Dashboard widget serviceLevelObjectiveVariableId is invalid.",
+        );
+      }
+    });
+
+    it("treats an empty or whitespace-only binding as no SLO at all", () => {
+      for (const blank of ["", "   ", null]) {
+        expect(() => {
+          return buildFollowing({
+            widgetArguments: { serviceLevelObjectiveVariableId: blank },
+          });
+        }).toThrow(PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE);
+      }
+    });
+
+    it("refuses a picked name longer than any variable value can be", () => {
+      expect(() => {
+        return buildFollowing({
+          variables: [sloVariable({ selectedValue: "x".repeat(1025) })],
+        });
+      }).toThrow(BadDataException);
+    });
+
+    it("still serves history only for a Chart widget", () => {
+      expect(() => {
+        return buildFollowing({
+          widgetArguments: { displayType: SloWidgetDisplayType.Tile },
+        });
+      }).toThrow("This dashboard widget does not chart SLO history.");
+    });
+  });
+
   describe("what the caller may move", () => {
     it("keeps the requested window and nothing else from aggregateBy", () => {
       const result: PublicDashboardSloHistoryPolicyResult = build({});
@@ -195,10 +411,10 @@ describe("PublicDashboardSloHistoryPolicy", () => {
         "endDate",
         "limit",
         "metricName",
-        "serviceLevelObjectiveId",
         "startDate",
+        "target",
       ]);
-      expect(result.serviceLevelObjectiveId.toString()).toBe(SLO_ID.toString());
+      expect(pinnedIdOf(result.target)).toBe(SLO_ID.toString());
       expect(result.metricName).toBe("sli.percent");
     });
 
@@ -365,19 +581,48 @@ describe("PublicDashboardSloWidget", () => {
         widget["arguments"] as WidgetArguments,
       );
 
-    expect(fromWidget.serviceLevelObjectiveId.toString()).toBe(
-      fromArguments.serviceLevelObjectiveId.toString(),
+    expect(pinnedIdOf(fromWidget.target)).toBe(
+      pinnedIdOf(fromArguments.target),
     );
     expect(fromWidget.sloMetric).toBe(SloWidgetMetric.ErrorBudgetRemaining);
     expect(fromArguments.sloMetric).toBe(SloWidgetMetric.ErrorBudgetRemaining);
     expect(fromWidget.displayType).toBe(SloWidgetDisplayType.Chart);
   });
 
+  it("reads the same followed target from a widget and from its arguments", () => {
+    const widget: WidgetArguments = followingWidget();
+    const variables: Array<DashboardVariable> = [sloVariable()];
+
+    expect(
+      PublicDashboardSloWidget.readConfig(widget, variables).target,
+    ).toEqual(
+      PublicDashboardSloWidget.readConfigFromArguments(
+        widget["arguments"] as WidgetArguments,
+        variables,
+      ).target,
+    );
+  });
+
   it("trims a stored id before validating it", () => {
     expect(
-      PublicDashboardSloWidget.readConfigFromArguments({
-        serviceLevelObjectiveId: `  ${SLO_ID.toString()}  `,
-      }).serviceLevelObjectiveId.toString(),
+      pinnedIdOf(
+        PublicDashboardSloWidget.readConfigFromArguments({
+          serviceLevelObjectiveId: `  ${SLO_ID.toString()}  `,
+        }).target,
+      ),
     ).toBe(SLO_ID.toString());
+  });
+
+  /*
+   * The exact messages are what a public page shows in place of the widget,
+   * and they say four DIFFERENT things.
+   */
+  it("says what is missing in each refusal", () => {
+    expect(PUBLIC_SLO_WIDGET_NOT_CONFIGURED_MESSAGE).toBe(
+      "This dashboard widget has no Service Level Objective selected.",
+    );
+    expect(PUBLIC_SLO_WIDGET_NO_SELECTION_MESSAGE).toContain("toolbar");
+    expect(PUBLIC_SLO_WIDGET_MULTIPLE_SELECTION_MESSAGE).toContain("single");
+    expect(PUBLIC_SLO_WIDGET_VARIABLE_MISSING_MESSAGE).toContain("variable");
   });
 });

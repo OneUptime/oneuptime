@@ -1,4 +1,5 @@
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import DashboardAPI from "../../../Server/API/DashboardAPI";
 import DashboardService from "../../../Server/Services/DashboardService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
@@ -770,6 +771,383 @@ describe("DashboardAPI public SLO", () => {
       expect(new Date(bucketStart.startValue).getTime()).toBeGreaterThan(
         startDate.getTime(),
       );
+    });
+  });
+
+  /*
+   * A widget that follows the dashboard's SLO variable instead of pinning an
+   * SLO. The author's binding publishes whichever ACTIVE SLO a viewer picks —
+   * and nothing else: no read without a single pick, an exact-name match
+   * inside the dashboard's own project, and a refusal rather than a guess when
+   * a name matches none or two.
+   */
+  describe("an SLO widget that follows the dashboard's SLO variable", () => {
+    const VARIABLE_ID: string = "slo-variable";
+    const PICKED_SLO: string = "Checkout API";
+
+    type BuildFollowingWidgetFunction = (
+      argumentsObject?: JSONObject,
+    ) => BuiltWidget;
+
+    const buildFollowingWidget: BuildFollowingWidgetFunction = (
+      argumentsObject?: JSONObject,
+    ): BuiltWidget => {
+      return buildSloWidget({
+        serviceLevelObjectiveId: undefined as unknown as string,
+        serviceLevelObjectiveVariableId: VARIABLE_ID,
+        ...(argumentsObject || {}),
+      });
+    };
+
+    type SetWidgetsWithVariableFunction = (widgets: Array<JSONObject>) => void;
+
+    const setWidgetsWithVariable: SetWidgetsWithVariableFunction = (
+      widgets: Array<JSONObject>,
+    ): void => {
+      dashboard.dashboardViewConfig = {
+        _type: "DashboardViewConfig",
+        heightInDashboardUnits: 24,
+        components: widgets,
+        variables: [
+          {
+            id: VARIABLE_ID,
+            name: "slo",
+            label: "SLO",
+            type: "Telemetry Attribute",
+            attributeKey: "sloName",
+            isMultiSelect: false,
+          },
+        ],
+      } as unknown as DashboardViewConfig;
+    };
+
+    const PICK: Array<JSONObject> = [
+      { id: VARIABLE_ID, selectedValue: PICKED_SLO, selectedValues: [] },
+    ];
+
+    type MatchingSloFunction = (id: ObjectID) => ServiceLevelObjective;
+
+    const matchingSlo: MatchingSloFunction = (
+      id: ObjectID,
+    ): ServiceLevelObjective => {
+      const slo: ServiceLevelObjective = new ServiceLevelObjective();
+      slo._id = id.toString();
+      return slo;
+    };
+
+    it("serves the picked SLO by exact name among active SLOs in the dashboard's project", async () => {
+      const slo: BuiltWidget = buildFollowingWidget();
+      setWidgetsWithVariable([slo.widget]);
+
+      await callResourceList({
+        componentId: slo.componentId.toString(),
+        variables: PICK,
+        query: { _id: serviceLevelObjectiveId.toString(), isArchived: true },
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+
+      const findByArgs: JSONObject = getFindByArgs();
+
+      expect(findByArgs["query"]).toEqual({
+        name: PICKED_SLO,
+        isArchived: false,
+        projectId: projectId,
+      });
+      expect(findByArgs["limit"]).toBe(2);
+      expect(findByArgs["props"]).toEqual({ isRoot: true });
+      expect(findByArgs["select"]).toEqual({
+        _id: true,
+        name: true,
+        targetPercentage: true,
+        currentSliPercentage: true,
+        errorBudgetRemainingPercentage: true,
+        errorBudgetRemainingSeconds: true,
+        currentBurnRate: true,
+        sloStatus: true,
+      });
+    });
+
+    it("reads nothing until a single SLO is picked", async () => {
+      const slo: BuiltWidget = buildFollowingWidget();
+      setWidgetsWithVariable([slo.widget]);
+
+      for (const variables of [
+        undefined,
+        [],
+        [{ id: VARIABLE_ID, selectedValue: "", selectedValues: [] }],
+        [{ id: "not-this-dashboards", selectedValue: PICKED_SLO }],
+      ] as Array<Array<JSONObject> | undefined>) {
+        jest.clearAllMocks();
+
+        await callResourceList({
+          componentId: slo.componentId.toString(),
+          variables: variables,
+        });
+
+        expect(getThrownError()).toBeInstanceOf(BadDataException);
+        expectNothingRead();
+      }
+    });
+
+    it("aggregates the history of the one active SLO carrying the picked name", async () => {
+      const matchedId: ObjectID = ObjectID.generate();
+      const slo: BuiltWidget = buildFollowingWidget({
+        displayType: SloWidgetDisplayType.Chart,
+        sloMetric: SloWidgetMetric.BurnRate,
+      });
+      setWidgetsWithVariable([slo.widget]);
+
+      jest
+        .spyOn(ServiceLevelObjectiveService, "findBy")
+        .mockResolvedValue([matchingSlo(matchedId)] as never);
+
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+        variables: PICK,
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+
+      const findByArgs: JSONObject = getFindByArgs();
+
+      expect(findByArgs["query"]).toEqual({
+        projectId: projectId,
+        name: PICKED_SLO,
+        isArchived: false,
+      });
+      expect(findByArgs["select"]).toEqual({ _id: true });
+      expect(findByArgs["limit"]).toBe(2);
+      expect(findByArgs["props"]).toEqual({ isRoot: true });
+
+      const query: JSONObject = getAggregateArgs()["query"] as JSONObject;
+
+      expect((query["sloId"] as ObjectID).toString()).toBe(
+        matchedId.toString(),
+      );
+      // The request named the pinned test SLO; it plays no part.
+      expect((query["sloId"] as ObjectID).toString()).not.toBe(
+        serviceLevelObjectiveId.toString(),
+      );
+      expect(query["projectId"]).toBe(projectId);
+      expect(query["metricName"]).toBe("burn.rate");
+    });
+
+    it("refuses to aggregate when no active SLO carries the name", async () => {
+      const slo: BuiltWidget = buildFollowingWidget({
+        displayType: SloWidgetDisplayType.Chart,
+      });
+      setWidgetsWithVariable([slo.widget]);
+
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+        variables: PICK,
+      });
+
+      expect(getThrownError()).toBeInstanceOf(NotFoundException);
+      expect(SloHistoryService.aggregateBy).not.toHaveBeenCalled();
+    });
+
+    it("refuses to aggregate either of two SLOs sharing the name", async () => {
+      const slo: BuiltWidget = buildFollowingWidget({
+        displayType: SloWidgetDisplayType.Chart,
+      });
+      setWidgetsWithVariable([slo.widget]);
+
+      jest
+        .spyOn(ServiceLevelObjectiveService, "findBy")
+        .mockResolvedValue([
+          matchingSlo(ObjectID.generate()),
+          matchingSlo(ObjectID.generate()),
+        ] as never);
+
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+        variables: PICK,
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expect(SloHistoryService.aggregateBy).not.toHaveBeenCalled();
+    });
+
+    it("refuses history without a pick, before any read", async () => {
+      const slo: BuiltWidget = buildFollowingWidget({
+        displayType: SloWidgetDisplayType.Chart,
+      });
+      setWidgetsWithVariable([slo.widget]);
+
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingRead();
+    });
+
+    it("never looks a pinned chart up by name, whatever the selection says", async () => {
+      const slo: BuiltWidget = buildSloChartWidget({
+        serviceLevelObjectiveVariableId: VARIABLE_ID,
+      });
+      setWidgetsWithVariable([slo.widget]);
+
+      await callSloHistory({
+        componentId: slo.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+        variables: PICK,
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(ServiceLevelObjectiveService.findBy).not.toHaveBeenCalled();
+      expect(
+        (
+          (getAggregateArgs()["query"] as JSONObject)["sloId"] as ObjectID
+        ).toString(),
+      ).toBe(serviceLevelObjectiveId.toString());
+    });
+  });
+
+  /*
+   * The SLO List widget publishes every ACTIVE SLO's headline numbers through
+   * its own resource type — never through the single-SLO routes.
+   */
+  describe("resource-list: the SLO List widget", () => {
+    type BuildSloListWidgetFunction = (
+      argumentsObject?: JSONObject,
+    ) => BuiltWidget;
+
+    const buildSloListWidget: BuildSloListWidgetFunction = (
+      argumentsObject?: JSONObject,
+    ): BuiltWidget => {
+      const componentId: ObjectID = ObjectID.generate();
+
+      return {
+        componentId,
+        widget: {
+          _type: "DashboardComponent",
+          componentId: componentId.toString(),
+          componentType: DashboardComponentType.SloList,
+          topInDashboardUnits: 0,
+          leftInDashboardUnits: 0,
+          widthInDashboardUnits: 12,
+          heightInDashboardUnits: 5,
+          arguments: {
+            title: "Service Level Objectives",
+            maxRows: 50,
+            ...(argumentsObject || {}),
+          },
+        },
+      };
+    };
+
+    type CallResourceListAsFunction = (
+      resourceType: string,
+      body?: JSONObject,
+    ) => Promise<void>;
+
+    const callResourceListAs: CallResourceListAsFunction = async (
+      resourceType: string,
+      body?: JSONObject,
+    ): Promise<void> => {
+      const request: ExpressRequest = {
+        params: {
+          dashboardId: dashboardId.toString(),
+          resourceType: resourceType,
+        },
+        body: body || {},
+        query: {},
+        cookies: {},
+        headers: {},
+        socket: {},
+        ips: [],
+      } as unknown as ExpressRequest;
+
+      await mockRouter
+        .match("post", RESOURCE_LIST_ROUTE)
+        .handlerFunction(request, mockResponse, nextFunction);
+    };
+
+    it("lists active SLOs in the dashboard's project, least budget first, capped by the widget", async () => {
+      const list: BuiltWidget = buildSloListWidget();
+      setWidgets([list.widget]);
+
+      await callResourceListAs("slo-list", {
+        componentId: list.componentId.toString(),
+        query: { isArchived: true, projectId: ObjectID.generate().toString() },
+        limit: LIMIT_PER_PROJECT,
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+
+      const findByArgs: JSONObject = getFindByArgs();
+
+      expect(findByArgs["query"]).toEqual({
+        isArchived: false,
+        projectId: projectId,
+      });
+      expect(findByArgs["sort"]).toEqual({
+        errorBudgetRemainingPercentage: SortOrder.Ascending,
+        name: SortOrder.Ascending,
+      });
+      expect(findByArgs["limit"]).toBe(50);
+      expect(findByArgs["props"]).toEqual({ isRoot: true });
+      expect(findByArgs["select"]).toEqual({
+        _id: true,
+        name: true,
+        targetPercentage: true,
+        currentSliPercentage: true,
+        errorBudgetRemainingPercentage: true,
+        errorBudgetRemainingSeconds: true,
+        currentBurnRate: true,
+        sloStatus: true,
+      });
+    });
+
+    it("is not served through the single-SLO resource, nor an SLO widget through slo-list", async () => {
+      const list: BuiltWidget = buildSloListWidget();
+      const slo: BuiltWidget = buildSloWidget();
+      setWidgets([list.widget, slo.widget]);
+
+      await callResourceListAs("slo", {
+        componentId: list.componentId.toString(),
+      });
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingRead();
+
+      jest.clearAllMocks();
+
+      await callResourceListAs("slo-list", {
+        componentId: slo.componentId.toString(),
+      });
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingRead();
+    });
+
+    it("never counts as an SLO widget on the history route", async () => {
+      const list: BuiltWidget = buildSloListWidget();
+      setWidgets([list.widget]);
+
+      await callSloHistory({
+        componentId: list.componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingRead();
+    });
+
+    it("still auto-binds the only SLO chart when a dashboard also shows an SLO List", async () => {
+      const list: BuiltWidget = buildSloListWidget();
+      const chart: BuiltWidget = buildSloChartWidget();
+      setWidgets([list.widget, chart.widget]);
+
+      await callSloHistory({ aggregateBy: buildAggregateBy() });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(SloHistoryService.aggregateBy).toHaveBeenCalledTimes(1);
     });
   });
 
