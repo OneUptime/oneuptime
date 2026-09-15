@@ -10,7 +10,7 @@ const pathConfig: PathConfigMap<ParamListBase> = {
   IncidentDetail: "incident/:projectId/:incidentId",
 };
 
-describe("the latest stable React Navigation query parser", () => {
+describe("React Navigation's advisory-safe query parser", () => {
   test("keeps route params and decoded query params compatible", () => {
     const state: ReturnType<typeof getStateFromPath> = getStateFromPath(
       "/incident/project-a/incident-a?view=timeline%20detail",
@@ -55,6 +55,44 @@ describe("the latest stable React Navigation query parser", () => {
       projectId: "project-a",
       incidentId: "incident-a",
       view: "timeline & notes",
+    });
+  });
+
+  test.each([
+    ["%E=%80%80", "%E=%80%80"],
+    ["%C3", "%C3"],
+    ["%ea%ba%5a%ba", "%ea%baZ%ba"],
+  ])(
+    "preserves malformed query value %s without rejecting the route",
+    (encoded: string, decoded: string) => {
+      const state: ReturnType<typeof getStateFromPath> = getStateFromPath(
+        `/incident/project-a/incident-a?view=${encoded}`,
+        { screens: pathConfig },
+      );
+
+      expect(state?.routes[0]?.params).toEqual({
+        projectId: "project-a",
+        incidentId: "incident-a",
+        view: decoded,
+      });
+    },
+  );
+
+  test("handles a long malformed value without exponential decoding", () => {
+    /*
+     * This shape exercised the CPU-denial-of-service path in
+     * decode-uri-component (GHSA-vcc3-ghjq-m6fr).
+     */
+    const malformedValue: string = "%C3".repeat(20_000);
+    const state: ReturnType<typeof getStateFromPath> = getStateFromPath(
+      `/incident/project-a/incident-a?view=${malformedValue}`,
+      { screens: pathConfig },
+    );
+
+    expect(state?.routes[0]?.params).toEqual({
+      projectId: "project-a",
+      incidentId: "incident-a",
+      view: malformedValue,
     });
   });
 });

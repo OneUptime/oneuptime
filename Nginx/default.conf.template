@@ -60,6 +60,7 @@ map "${NGINX_INGEST_ACCESS_LOG}" $ingest_access_log {
 server {
 
     server_tokens off;
+    ${HSTS_HEADER_DIRECTIVE}
     
 
     gzip on;
@@ -321,6 +322,7 @@ server {
 server {
 
     server_tokens off;
+    add_header Strict-Transport-Security "max-age=31536000" always;
     
 
     gzip on;
@@ -542,6 +544,7 @@ server {
 server {
 
     server_tokens off;
+    ${HSTS_HEADER_DIRECTIVE}
     
 
     gzip on;
@@ -641,12 +644,14 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
         # Cache manifest for 1 hour, service worker for no cache
         if ($uri ~* "service-worker\.js$") {
+            ${HSTS_HEADER_DIRECTIVE}
             add_header Cache-Control "no-cache, no-store, must-revalidate" always;
             add_header Pragma "no-cache" always;
             add_header Expires "0" always;
         }
 
         if ($uri ~* "manifest\.json$") {
+            ${HSTS_HEADER_DIRECTIVE}
             add_header Cache-Control "public, max-age=3600" always;
         }
 
@@ -760,6 +765,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
 
+        ${HSTS_HEADER_DIRECTIVE}
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-Frame-Options "DENY" always;
@@ -1160,6 +1166,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # own "public, max-age=0" arrives alongside ours and wins. See the
         # comment above this location.
         proxy_hide_header Cache-Control;
+        ${HSTS_HEADER_DIRECTIVE}
         add_header Cache-Control "public, max-age=31536000, immutable";
 
         # The full security-header set from the prefix locations must be
@@ -1191,6 +1198,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
 
+        ${HSTS_HEADER_DIRECTIVE}
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-Frame-Options "DENY" always;
@@ -1212,6 +1220,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
 
+        ${HSTS_HEADER_DIRECTIVE}
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-Frame-Options "DENY" always;
@@ -1248,6 +1257,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
 
+        ${HSTS_HEADER_DIRECTIVE}
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
 
@@ -1267,6 +1277,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
 
+        ${HSTS_HEADER_DIRECTIVE}
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
 

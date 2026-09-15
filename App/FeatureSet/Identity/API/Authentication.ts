@@ -254,12 +254,12 @@ router.post(
         );
       }
 
-      res.cookie(
+      CookieUtil.setCookie(
+        res,
         PASSKEY_LOGIN_COOKIE,
         mobileContext ? `mobile.${result.challengeId}` : result.challengeId,
         {
           httpOnly: true,
-          secure: HttpProtocol.toString() === "https://",
           sameSite: "strict",
           path: "/",
           maxAge: 5 * 60 * 1000,
@@ -296,9 +296,8 @@ router.post(
       const challengeId: unknown = isMobileLogin
         ? (challengeCookie as string).slice("mobile.".length)
         : challengeCookie;
-      res.clearCookie(PASSKEY_LOGIN_COOKIE, {
+      CookieUtil.removeCookie(res, PASSKEY_LOGIN_COOKIE, {
         httpOnly: true,
-        secure: HttpProtocol.toString() === "https://",
         sameSite: "strict",
         path: "/",
       });
