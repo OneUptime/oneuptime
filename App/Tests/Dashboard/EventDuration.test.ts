@@ -24,34 +24,91 @@ function readSource(...relativeParts: Array<string>): string {
 
 describe("getEventDurationText", () => {
   const startDate: Date = new Date("2026-08-01T00:00:00.000Z");
+  const MINUTE: number = 60;
+  const HOUR: number = 60 * MINUTE;
+  const DAY: number = 24 * HOUR;
 
+  function durationOf(seconds: number): string {
+    return getEventDurationText(
+      startDate,
+      new Date(startDate.getTime() + seconds * 1000),
+    );
+  }
+
+  /*
+   * The overview stat bars and the event tables all read this, so the wording
+   * is pinned deliberately: singular units for one, and no "0 minutes" tail.
+   */
   test.each([
     [0, "less than a minute"],
+    [1, "less than a minute"],
     [59, "less than a minute"],
-    [60, "1 minutes"],
-    [59 * 60, "59 minutes"],
-    [60 * 60, "1 hours, 0 minutes"],
-    [61 * 60, "1 hours, 1 minutes"],
-    [24 * 60 * 60, "1 days, 0 minutes"],
-    [25 * 60 * 60 + 2 * 60, "1 days, 1 hours, 2 minutes"],
+    [MINUTE, "1 minute"],
+    [2 * MINUTE, "2 minutes"],
+    [45 * MINUTE, "45 minutes"],
+    [59 * MINUTE, "59 minutes"],
+    [HOUR, "1 hour"],
+    [HOUR + MINUTE, "1 hour, 1 minute"],
+    [HOUR + 5 * MINUTE, "1 hour, 5 minutes"],
+    [HOUR + 30 * MINUTE, "1 hour, 30 minutes"],
+    [2 * HOUR, "2 hours"],
+    [2 * HOUR + 5 * MINUTE, "2 hours, 5 minutes"],
+    [23 * HOUR + 59 * MINUTE, "23 hours, 59 minutes"],
+    [DAY, "1 day"],
+    [DAY + MINUTE, "1 day, 1 minute"],
+    [DAY + HOUR, "1 day, 1 hour"],
+    [DAY + HOUR + 2 * MINUTE, "1 day, 1 hour, 2 minutes"],
+    [2 * DAY + 3 * HOUR, "2 days, 3 hours"],
+    [2 * DAY + 3 * HOUR + 4 * MINUTE, "2 days, 3 hours, 4 minutes"],
+    [3 * DAY + 2 * HOUR, "3 days, 2 hours"],
+    [45 * DAY, "45 days"],
   ])("formats a %i-second duration as %s", (seconds: number, text: string) => {
-    const endDate: Date = new Date(startDate.getTime() + seconds * 1000);
+    expect(durationOf(seconds)).toBe(text);
+  });
 
-    expect(getEventDurationText(startDate, endDate)).toBe(text);
+  it("never spells a zero unit or a plural for one", () => {
+    const samples: Array<number> = [
+      MINUTE,
+      HOUR,
+      DAY,
+      HOUR + MINUTE,
+      DAY + HOUR + MINUTE,
+      DAY + MINUTE,
+      7 * DAY + 11 * HOUR,
+    ];
+
+    for (const seconds of samples) {
+      const text: string = durationOf(seconds);
+
+      expect(text).not.toMatch(/\b0 (day|hour|minute)/);
+      expect(text).not.toMatch(/\b1 (days|hours|minutes)\b/);
+      expect(text).not.toMatch(/,\s*$/);
+      expect(text).not.toMatch(/^,/);
+    }
   });
 
   it("handles countdown dates in the same human-readable form", () => {
     const earlierDate: Date = new Date(startDate.getTime() - 90 * 60 * 1000);
 
     expect(getEventDurationText(startDate, earlierDate)).toBe(
-      "1 hours, 30 minutes",
+      "1 hour, 30 minutes",
     );
   });
 
   it("does not round a partial minute up", () => {
-    const endDate: Date = new Date(startDate.getTime() + 119 * 1000);
+    expect(durationOf(119)).toBe("1 minute");
+    expect(durationOf(HOUR - 1)).toBe("59 minutes");
+    expect(durationOf(DAY - 1)).toBe("23 hours, 59 minutes");
+  });
 
-    expect(getEventDurationText(startDate, endDate)).toBe("1 minutes");
+  it("does not depend on the order of the two dates", () => {
+    const endDate: Date = new Date(
+      startDate.getTime() + (2 * DAY + 3 * HOUR) * 1000,
+    );
+
+    expect(getEventDurationText(endDate, startDate)).toBe(
+      getEventDurationText(startDate, endDate),
+    );
   });
 });
 

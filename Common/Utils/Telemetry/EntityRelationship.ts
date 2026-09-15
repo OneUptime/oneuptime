@@ -60,6 +60,14 @@ const RULES: Record<string, EntityRelationshipType> = {
     EntityRelationshipType.MemberOf,
   [`${EntityType.KubernetesPod}|${EntityType.KubernetesCluster}`]:
     EntityRelationshipType.MemberOf,
+  /*
+   * A pod reporting its deployment is one replica of it. Without this edge a
+   * workload's pods could only be grouped by the node they happen to run on,
+   * so a 12-replica deployment read as 12 unrelated pods scattered across
+   * nodes instead of one workload.
+   */
+  [`${EntityType.KubernetesPod}|${EntityType.KubernetesDeployment}`]:
+    EntityRelationshipType.PartOf,
   [`${EntityType.KubernetesNode}|${EntityType.KubernetesCluster}`]:
     EntityRelationshipType.MemberOf,
   [`${EntityType.KubernetesNamespace}|${EntityType.KubernetesCluster}`]:

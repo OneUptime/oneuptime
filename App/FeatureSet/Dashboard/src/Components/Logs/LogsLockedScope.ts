@@ -6,10 +6,12 @@ import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import { TelemetrySignal } from "Common/Utils/Telemetry/LockedFilterSearch";
 import {
+  ENTITY_KEYS_FACET_KEY,
   LockedEntityScope,
   buildLockedScopeCopyText,
   describeLockedAttributeFilter,
   describeLockedEntityFilter,
+  describeLockedEntityKeyFilter,
   describeLockedSessionFilter,
   describeLockedSpanFilter,
   describeLockedTraceFilter,
@@ -48,6 +50,22 @@ export interface AttachLogsLockedFilterDetailsInput {
    * it names so the tooltip can say the match is "attribute OR entity key".
    */
   entityScope?: LockedEntityScope | undefined;
+  /*
+   * Every entity key the page pins through `logQuery.entityKeys` (an
+   * Inventory item's pages). The column is matched with `hasAny`, so several
+   * keys WIDEN the scope and each chip has to say so — which a describer
+   * handed one chip at a time cannot know. attachLogsLockedFilterDetails
+   * fills it from the chips it decorates when the caller leaves it out.
+   */
+  entityKeys?: ReadonlyArray<string> | undefined;
+  /*
+   * Who pinned those entity keys: the page (an Inventory item's Logs tab, and
+   * the default) or the stored query the view was opened with (an incident's
+   * log snapshot). This step re-describes every entity-key chip, so without
+   * the source here the builder's stored-query wording would be overwritten
+   * with "Pinned by this page".
+   */
+  entityKeysSource?: string | undefined;
 }
 
 type RawAttributeValueFunction = (
@@ -131,9 +149,51 @@ export const describeLogsLockedChip: DescribeLogsLockedChipFunction = (
         signal: LOGS_SIGNAL,
         sessionId: chip.value,
       });
+    case ENTITY_KEYS_FACET_KEY:
+      /*
+       * Described here rather than trusted from whatever detail the chip
+       * builder attached, so a chip that reaches this step without one still
+       * explains itself. The chip's key ("Kubernetes Pod", or the "Resource"
+       * fallback) is what the summary calls the thing.
+       */
+      return describeLockedEntityKeyFilter({
+        rows: LOGS_SIGNAL,
+        entityKey: chip.value,
+        entityKeys: input.entityKeys,
+        entityTypeLabel: chip.displayKey,
+        source: input.entityKeysSource,
+      });
     default:
       return undefined;
   }
+};
+
+type CollectLockedEntityKeysFunction = (
+  chips: Array<ActiveFilter>,
+) => Array<string>;
+
+/*
+ * The entity keys the locked chips stand for, in chip order. A removable
+ * chip on the same column is the user's own filter — it narrows the pinned
+ * scope rather than widening it — so it is not counted.
+ */
+const collectLockedEntityKeys: CollectLockedEntityKeysFunction = (
+  chips: Array<ActiveFilter>,
+): Array<string> => {
+  const entityKeys: Array<string> = [];
+
+  for (const chip of chips) {
+    if (
+      chip.readOnly &&
+      chip.facetKey === ENTITY_KEYS_FACET_KEY &&
+      typeof chip.value === "string" &&
+      !entityKeys.includes(chip.value)
+    ) {
+      entityKeys.push(chip.value);
+    }
+  }
+
+  return entityKeys;
 };
 
 type AttachLogsLockedFilterDetailsFunction = (
@@ -151,13 +211,24 @@ export const attachLogsLockedFilterDetails: AttachLogsLockedFilterDetailsFunctio
     chips: Array<ActiveFilter>,
     input: AttachLogsLockedFilterDetailsInput,
   ): Array<ActiveFilter> => {
+    /*
+     * The chips on screen ARE the pinned entity keys (one per key), so they
+     * are the list a multi-key summary counts unless the caller named one.
+     * Without this the decoration would quietly replace the builder's "along
+     * with the N other resources" wording with the single-key sentence.
+     */
+    const describeInput: AttachLogsLockedFilterDetailsInput =
+      input.entityKeys === undefined
+        ? { ...input, entityKeys: collectLockedEntityKeys(chips) }
+        : input;
+
     return chips.map((chip: ActiveFilter): ActiveFilter => {
       if (!chip.readOnly) {
         return chip;
       }
 
       const lockedDetail: LockedFilterDetail | undefined =
-        describeLogsLockedChip(chip, input);
+        describeLogsLockedChip(chip, describeInput);
 
       if (!lockedDetail) {
         return chip;
@@ -237,8 +308,18 @@ export const buildLogsLockedFilterActions: BuildLogsLockedFilterActionsFunction 
         timeRange: input.timeRange,
       });
 
-      actions.openExplorerRoute = link.url;
-      actions.notCarried = link.notCarried;
+      /*
+       * Offered only when at least one locked filter made it into the URL.
+       * With none (an Inventory item's entity-key scope: no explorer grammar
+       * can spell an entity key) the link would open the UNFILTERED Logs
+       * explorer under a label promising this page's scope, and a "not
+       * carried over: resource" caveat does not make that link useful. A
+       * mixed scope keeps its link, and the caveat names what stayed behind.
+       */
+      if (link.carriedFilterCount > 0) {
+        actions.openExplorerRoute = link.url;
+        actions.notCarried = link.notCarried;
+      }
     } catch {
       // No resolvable explorer route here — copy still works.
     }

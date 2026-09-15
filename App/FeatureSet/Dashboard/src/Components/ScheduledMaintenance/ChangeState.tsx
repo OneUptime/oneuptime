@@ -10,26 +10,44 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { Black } from "Common/Types/BrandColors";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import EventStatusPanel, {
   EventStateAction,
   EventStateItem,
+  EventStatusFact,
 } from "../EventView/EventStatusPanel";
+import {
+  SCHEDULED_MAINTENANCE_STATE_RECHECK_MIN_INTERVAL_IN_MS,
+  ScheduledMaintenancePhase,
+  ScheduledMaintenanceStateFlags,
+  ScheduledMaintenanceStateKind,
+  ScheduledMaintenanceTimelineEntry,
+  ScheduledMaintenanceTiming,
+  getCurrentTimelineStateId,
+  getScheduledMaintenanceStateKind,
+  getScheduledMaintenanceTiming,
+  getScheduledMaintenanceTimingRefreshDelayInMs,
+  getTimelineDateForState,
+  isScheduledMaintenanceTimingLive,
+  shouldRecheckScheduledMaintenanceState,
+} from "../../Utils/ScheduledMaintenanceTiming";
 
 export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
@@ -38,15 +56,119 @@ export interface ComponentProps {
   title?: string | undefined;
   eventStartsAt?: Date | undefined;
   eventEndsAt?: Date | undefined;
+  /*
+   * Context shown under the header pills ("Status pages", "Created by").
+   * Facts with an empty value are skipped by EventStatusPanel.
+   */
+  facts?: Array<EventStatusFact> | undefined;
 }
+
+export const SCHEDULED_MAINTENANCE_STATE_LOADING_TEXT: string =
+  "Loading scheduled maintenance status";
+
+type ToTimelineEntriesFunction = (
+  timelines: Array<ScheduledMaintenanceStateTimeline>,
+) => Array<ScheduledMaintenanceTimelineEntry>;
+
+const toTimelineEntries: ToTimelineEntriesFunction = (
+  timelines: Array<ScheduledMaintenanceStateTimeline>,
+): Array<ScheduledMaintenanceTimelineEntry> => {
+  return timelines.map(
+    (
+      timeline: ScheduledMaintenanceStateTimeline,
+    ): ScheduledMaintenanceTimelineEntry => {
+      return {
+        stateId: timeline.scheduledMaintenanceStateId?.toString(),
+        startsAt: timeline.startsAt,
+      };
+    },
+  );
+};
+
+/*
+ * Sized like the loaded header (EventStatusPanel's titled layout plus its
+ * step rail), so the page does not jump when the states arrive.
+ */
+const HeaderPlaceholder: FunctionComponent = (): ReactElement => {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-testid="scheduled-maintenance-state-loading"
+      className="rounded-xl border border-gray-200 bg-white shadow-sm"
+    >
+      <span className="sr-only">
+        {SCHEDULED_MAINTENANCE_STATE_LOADING_TEXT}
+      </span>
+      <div aria-hidden="true" className="motion-safe:animate-pulse">
+        <div className="px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="h-5 w-16 rounded-md bg-gray-100" />
+              <div className="mt-2 h-6 w-3/4 max-w-md rounded bg-gray-200" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-9 w-28 rounded-md bg-gray-100" />
+              <div className="h-9 w-24 rounded-md bg-gray-100" />
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2.5">
+            <div className="h-5 w-20 rounded-full bg-gray-100" />
+            <div className="h-5 w-32 rounded bg-gray-100" />
+          </div>
+        </div>
+        <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
+          <div className="h-3 w-2/3 max-w-sm rounded bg-gray-100" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface OverdueNoticeProps {
+  phase: ScheduledMaintenancePhase;
+  overdueSince: Date;
+  nextStateName: string;
+}
+
+/*
+ * The amber warning for an event that has missed a boundary: still
+ * scheduled after its start, or still in progress after its end.
+ */
+const OverdueNotice: FunctionComponent<OverdueNoticeProps> = (
+  props: OverdueNoticeProps,
+): ReactElement => {
+  const isStartOverdue: boolean =
+    props.phase === ScheduledMaintenancePhase.StartOverdue;
+  const plannedAt: string =
+    OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(props.overdueSince);
+
+  return (
+    <div
+      data-testid="scheduled-maintenance-overdue-notice"
+      className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5"
+    >
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">
+        <Icon icon={IconProp.Alert} className="h-3.5 w-3.5 text-amber-600" />
+        <span>{isStartOverdue ? "Start overdue" : "Overrunning"}</span>
+      </span>
+      <span className="min-w-0 text-sm text-gray-600">
+        {isStartOverdue ? "Planned to start at " : "Planned to end at "}
+        <span className="font-medium text-gray-900">{plannedAt}</span>
+        {", but it has not been marked as " + props.nextStateName + " yet."}
+      </span>
+    </div>
+  );
+};
 
 const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [showModal, setShowModal] = useState<boolean>(false);
 
-  const [error, setError] = useState<string | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  // Starts loading, so the header never flashes an empty panel first.
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [
     scheduledMaintenanceNoteTemplates,
@@ -56,10 +178,6 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   const [scheduledMaintenanceStates, setScheduledMaintenanceStates] = useState<
     ScheduledMaintenanceState[]
   >([]);
-  const [
-    currentScheduledMaintenanceState,
-    setCurrentScheduledMaintenanceState,
-  ] = useState<ScheduledMaintenanceState | undefined>(undefined);
 
   const [
     selectedScheduledMaintenanceState,
@@ -71,167 +189,188 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     setScheduledMaintenanceStateTimelines,
   ] = useState<ScheduledMaintenanceStateTimeline[]>([]);
 
-  const fetchScheduledMaintenanceNoteTemplates: PromiseVoidFunction =
-    async (): Promise<void> => {
-      const scheduledMaintenanceNoteTemplates: ListResult<ScheduledMaintenanceNoteTemplate> =
-        await ModelAPI.getList<ScheduledMaintenanceNoteTemplate>({
-          modelType: ScheduledMaintenanceNoteTemplate,
-          query: {
-            projectId: ProjectUtil.getCurrentProject()!.id!,
-          },
-          limit: 99,
-          skip: 0,
-          select: {
-            _id: true,
-            templateName: true,
-            note: true,
-          },
-          sort: {
-            templateName: SortOrder.Ascending,
-          },
-        });
+  // The clock the timing is evaluated against, advanced by the effect below.
+  const [now, setNow] = useState<Date>(OneUptimeDate.getCurrentDate());
 
-      setScheduledMaintenanceNoteTemplates(
-        scheduledMaintenanceNoteTemplates.data,
-      );
+  const isMountedRef: MutableRefObject<boolean> = useRef<boolean>(true);
+  const isRecheckingStateRef: MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const lastTimelineFetchAtRef: MutableRefObject<number> = useRef<number>(0);
+  const onActionCompleteRef: MutableRefObject<() => void> = useRef<() => void>(
+    props.onActionComplete,
+  );
+  onActionCompleteRef.current = props.onActionComplete;
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
     };
+  }, []);
 
-  const fetchScheduledMaintenanceStates: PromiseVoidFunction =
-    async (): Promise<void> => {
-      const projectId: ObjectID | undefined | null =
-        ProjectUtil.getCurrentProject()?.id;
+  const fetchScheduledMaintenanceNoteTemplates: () => Promise<
+    Array<ScheduledMaintenanceNoteTemplate>
+  > = async (): Promise<Array<ScheduledMaintenanceNoteTemplate>> => {
+    const projectId: ObjectID | undefined | null =
+      ProjectUtil.getCurrentProject()?.id;
 
-      if (!projectId) {
-        throw new BadDataException("ProjectId not found.");
+    if (!projectId) {
+      throw new BadDataException("ProjectId not found.");
+    }
+
+    const scheduledMaintenanceNoteTemplates: ListResult<ScheduledMaintenanceNoteTemplate> =
+      await ModelAPI.getList<ScheduledMaintenanceNoteTemplate>({
+        modelType: ScheduledMaintenanceNoteTemplate,
+        query: {
+          projectId: projectId,
+        },
+        limit: 99,
+        skip: 0,
+        select: {
+          _id: true,
+          templateName: true,
+          note: true,
+        },
+        sort: {
+          templateName: SortOrder.Ascending,
+        },
+      });
+
+    return scheduledMaintenanceNoteTemplates.data;
+  };
+
+  const fetchScheduledMaintenanceStates: () => Promise<
+    Array<ScheduledMaintenanceState>
+  > = async (): Promise<Array<ScheduledMaintenanceState>> => {
+    const projectId: ObjectID | undefined | null =
+      ProjectUtil.getCurrentProject()?.id;
+
+    if (!projectId) {
+      throw new BadDataException("ProjectId not found.");
+    }
+
+    const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> =
+      await ModelAPI.getList<ScheduledMaintenanceState>({
+        modelType: ScheduledMaintenanceState,
+        query: {
+          projectId: projectId,
+        },
+        limit: 99,
+        skip: 0,
+        select: {
+          _id: true,
+          isResolvedState: true,
+          isOngoingState: true,
+          isScheduledState: true,
+          isEndedState: true,
+          name: true,
+          color: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        requestOptions: {},
+      });
+
+    return scheduledMaintenanceStates.data;
+  };
+
+  const fetchScheduledMaintenanceStateTimelines: () => Promise<
+    Array<ScheduledMaintenanceStateTimeline>
+  > = async (): Promise<Array<ScheduledMaintenanceStateTimeline>> => {
+    lastTimelineFetchAtRef.current = OneUptimeDate.getCurrentDate().getTime();
+
+    const scheduledMaintenanceStateTimelines: ListResult<ScheduledMaintenanceStateTimeline> =
+      await ModelAPI.getList<ScheduledMaintenanceStateTimeline>({
+        modelType: ScheduledMaintenanceStateTimeline,
+        query: {
+          scheduledMaintenanceId: props.scheduledMaintenanceId,
+        },
+        limit: 99,
+        skip: 0,
+        select: {
+          _id: true,
+          scheduledMaintenanceStateId: true,
+          startsAt: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        requestOptions: {},
+      });
+
+    return scheduledMaintenanceStateTimelines.data;
+  };
+
+  const loadPage: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Independent reads, so they go out together.
+      const results: [
+        Array<ScheduledMaintenanceState>,
+        Array<ScheduledMaintenanceStateTimeline>,
+        Array<ScheduledMaintenanceNoteTemplate>,
+      ] = await Promise.all([
+        fetchScheduledMaintenanceStates(),
+        fetchScheduledMaintenanceStateTimelines(),
+        fetchScheduledMaintenanceNoteTemplates(),
+      ]);
+
+      if (!isMountedRef.current) {
+        return;
       }
 
-      const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> =
-        await ModelAPI.getList<ScheduledMaintenanceState>({
-          modelType: ScheduledMaintenanceState,
-          query: {
-            projectId: projectId,
-          },
-          limit: 99,
-          skip: 0,
-          select: {
-            _id: true,
-            isResolvedState: true,
-            isOngoingState: true,
-            isScheduledState: true,
-            isEndedState: true,
-            name: true,
-            color: true,
-          },
-          sort: {
-            order: SortOrder.Ascending,
-          },
-          requestOptions: {},
-        });
-
-      setScheduledMaintenanceStates(scheduledMaintenanceStates.data);
-    };
-
-  const fetchScheduledMaintenanceStateTimelines: PromiseVoidFunction =
-    async (): Promise<void> => {
-      const scheduledMaintenanceStateTimelines: ListResult<ScheduledMaintenanceStateTimeline> =
-        await ModelAPI.getList<ScheduledMaintenanceStateTimeline>({
-          modelType: ScheduledMaintenanceStateTimeline,
-          query: {
-            scheduledMaintenanceId: props.scheduledMaintenanceId,
-          },
-          limit: 99,
-          skip: 0,
-          select: {
-            _id: true,
-            scheduledMaintenanceStateId: true,
-            startsAt: true,
-          },
-          sort: {
-            startsAt: SortOrder.Ascending,
-          },
-          requestOptions: {},
-        });
-
-      setScheduledMaintenanceStateTimelines(
-        scheduledMaintenanceStateTimelines.data,
-      );
-    };
-
-  const loadPage: PromiseVoidFunction = async () => {
-    try {
-      setIsLoading(true);
-      setError("");
-
-      await fetchScheduledMaintenanceStates();
-      await fetchScheduledMaintenanceStateTimelines();
-      await fetchScheduledMaintenanceNoteTemplates();
+      setScheduledMaintenanceStates(results[0]);
+      setScheduledMaintenanceStateTimelines(results[1]);
+      setScheduledMaintenanceNoteTemplates(results[2]);
+      setNow(OneUptimeDate.getCurrentDate());
     } catch (err: unknown) {
+      if (!isMountedRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err as Exception));
     }
+
     setIsLoading(false);
   };
 
   useEffect(() => {
     loadPage().catch((err: unknown) => {
       setError(API.getFriendlyMessage(err as Exception));
+      setIsLoading(false);
     });
   }, []);
 
-  useEffect(() => {
-    if (
-      scheduledMaintenanceStates.length === 0 ||
-      scheduledMaintenanceStateTimelines.length === 0
-    ) {
-      return;
-    }
-
-    const currentScheduledMaintenanceStateTimeline:
-      | ScheduledMaintenanceStateTimeline
-      | undefined =
-      scheduledMaintenanceStateTimelines[
-        scheduledMaintenanceStateTimelines.length - 1
-      ];
-
-    if (!currentScheduledMaintenanceStateTimeline) {
-      return;
-    }
-
-    const currentScheduledMaintenanceState:
-      | ScheduledMaintenanceState
-      | undefined = scheduledMaintenanceStates.find(
-      (state: ScheduledMaintenanceState) => {
-        return (
-          state.id?.toString() ===
-          currentScheduledMaintenanceStateTimeline.scheduledMaintenanceStateId?.toString()
-        );
+  const stateFlags: Array<ScheduledMaintenanceStateFlags> =
+    scheduledMaintenanceStates.map(
+      (state: ScheduledMaintenanceState): ScheduledMaintenanceStateFlags => {
+        return {
+          id: state.id?.toString() || "",
+          isScheduledState: state.isScheduledState,
+          isOngoingState: state.isOngoingState,
+          isEndedState: state.isEndedState,
+          isResolvedState: state.isResolvedState,
+        };
       },
     );
 
-    setCurrentScheduledMaintenanceState(currentScheduledMaintenanceState);
-  }, [scheduledMaintenanceStates, scheduledMaintenanceStateTimelines]);
+  const timelineEntries: Array<ScheduledMaintenanceTimelineEntry> =
+    toTimelineEntries(scheduledMaintenanceStateTimelines);
 
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
+  const currentTimelineStateId: string | undefined =
+    getCurrentTimelineStateId(timelineEntries);
 
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
-  const currentStateIndex: number = scheduledMaintenanceStates.findIndex(
-    (state: ScheduledMaintenanceState) => {
-      return (
-        state.id?.toString() ===
-        currentScheduledMaintenanceState?.id?.toString()
-      );
-    },
-  );
-
-  const ongoingStateIndex: number = scheduledMaintenanceStates.findIndex(
-    (state: ScheduledMaintenanceState) => {
-      return Boolean(state.isOngoingState);
-    },
-  );
+  const currentScheduledMaintenanceState:
+    | ScheduledMaintenanceState
+    | undefined = currentTimelineStateId
+    ? scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
+        return state.id?.toString() === currentTimelineStateId;
+      })
+    : undefined;
 
   const ongoingState: ScheduledMaintenanceState | undefined =
     scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
@@ -246,109 +385,168 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
       return Boolean(state.isResolvedState);
     });
 
-  const isCurrentStateEnded: boolean =
-    Boolean(currentScheduledMaintenanceState?.isEndedState) ||
-    Boolean(currentScheduledMaintenanceState?.isResolvedState);
+  const stateKind: ScheduledMaintenanceStateKind =
+    getScheduledMaintenanceStateKind({
+      states: stateFlags,
+      currentStateId: currentScheduledMaintenanceState?.id?.toString(),
+    });
 
-  const isCurrentStateOngoing: boolean = Boolean(
-    currentScheduledMaintenanceState?.isOngoingState,
-  );
+  const timing: ScheduledMaintenanceTiming = getScheduledMaintenanceTiming({
+    stateKind: stateKind,
+    startsAt: props.eventStartsAt,
+    endsAt: props.eventEndsAt,
+    startedAt: getTimelineDateForState({
+      timelines: timelineEntries,
+      stateId: ongoingState?.id?.toString(),
+      pick: "first",
+    }),
+    completedAt: getTimelineDateForState({
+      timelines: timelineEntries,
+      stateId: endState?.id?.toString(),
+      pick: "last",
+    }),
+    now: now,
+  });
 
-  const isCurrentStateScheduled: boolean =
-    Boolean(currentScheduledMaintenanceState?.isScheduledState) ||
-    (currentStateIndex >= 0 &&
-      ongoingStateIndex >= 0 &&
-      currentStateIndex < ongoingStateIndex);
+  const isTimingLive: boolean =
+    !isLoading && !error && isScheduledMaintenanceTimingLive(timing);
+  const refreshDelayInMs: number =
+    getScheduledMaintenanceTimingRefreshDelayInMs(timing, now);
+
+  /*
+   * Re-read the clock so "Starts in" counts down, flips to "Start overdue by"
+   * once startsAt passes, and so on. One timeout per tick (rescheduled on
+   * every change) rather than an interval, so the delay can shorten to land
+   * exactly on the next phase change.
+   */
+  useEffect(() => {
+    if (!isTimingLive) {
+      return () => {};
+    }
+
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+      setNow(OneUptimeDate.getCurrentDate());
+    }, refreshDelayInMs);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [now, isTimingLive, refreshDelayInMs]);
+
+  const shouldRecheckState: boolean =
+    !isLoading && !error && shouldRecheckScheduledMaintenanceState(timing, now);
+
+  /*
+   * A missed boundary is usually the once-a-minute worker not having moved
+   * the event yet. For a few minutes after one, re-read the timeline on each
+   * tick so its transition appears without a reload, and tell the page when
+   * the state really changed so it can refresh the feed and details.
+   */
+  useEffect(() => {
+    if (!shouldRecheckState || isRecheckingStateRef.current) {
+      return;
+    }
+
+    if (
+      now.getTime() - lastTimelineFetchAtRef.current <
+      SCHEDULED_MAINTENANCE_STATE_RECHECK_MIN_INTERVAL_IN_MS
+    ) {
+      return;
+    }
+
+    const previousStateId: string | undefined = currentTimelineStateId;
+    isRecheckingStateRef.current = true;
+
+    fetchScheduledMaintenanceStateTimelines()
+      .then((latestTimelines: Array<ScheduledMaintenanceStateTimeline>) => {
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        setScheduledMaintenanceStateTimelines(latestTimelines);
+
+        if (
+          getCurrentTimelineStateId(toTimelineEntries(latestTimelines)) !==
+          previousStateId
+        ) {
+          onActionCompleteRef.current();
+        }
+      })
+      .catch(() => {
+        // A failed background check keeps the last known state; the next tick tries again.
+      })
+      .finally(() => {
+        isRecheckingStateRef.current = false;
+      });
+  }, [now, shouldRecheckState]);
+
+  if (isLoading) {
+    return (
+      <div className="mb-5">
+        <HeaderPlaceholder />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mb-5 rounded-xl border border-gray-200 bg-white px-4 shadow-sm sm:px-5">
+        <ErrorMessage
+          message={error}
+          onRefreshClick={() => {
+            loadPage().catch((err: unknown) => {
+              setError(API.getFriendlyMessage(err as Exception));
+            });
+          }}
+        />
+      </div>
+    );
+  }
 
   const actions: Array<EventStateAction> = [];
 
-  if (!isCurrentStateEnded) {
-    if (isCurrentStateScheduled) {
-      if (ongoingState) {
-        actions.push({
-          stateId: ongoingState.id?.toString() || "",
-          label: "Mark as " + (ongoingState.name || "Ongoing"),
-          icon: IconProp.Clock,
-          buttonStyle: ButtonStyleType.PRIMARY,
-          id: "sm-mark-ongoing-btn",
-        });
-      }
+  if (stateKind === ScheduledMaintenanceStateKind.Scheduled) {
+    if (ongoingState) {
+      actions.push({
+        stateId: ongoingState.id?.toString() || "",
+        label: "Mark as " + (ongoingState.name || "Ongoing"),
+        icon: IconProp.Clock,
+        buttonStyle: ButtonStyleType.PRIMARY,
+        id: "sm-mark-ongoing-btn",
+      });
+    }
 
-      if (endState) {
-        actions.push({
-          stateId: endState.id?.toString() || "",
-          label: "Mark as " + (endState.name || "Complete"),
-          icon: IconProp.CheckCircle,
-          buttonStyle: ButtonStyleType.OUTLINE,
-          id: "sm-mark-complete-btn",
-        });
-      }
-    } else if (isCurrentStateOngoing && endState) {
+    if (endState) {
       actions.push({
         stateId: endState.id?.toString() || "",
         label: "Mark as " + (endState.name || "Complete"),
         icon: IconProp.CheckCircle,
-        buttonStyle: ButtonStyleType.PRIMARY,
+        buttonStyle: ButtonStyleType.OUTLINE,
         id: "sm-mark-complete-btn",
       });
     }
+  } else if (stateKind === ScheduledMaintenanceStateKind.Ongoing && endState) {
+    actions.push({
+      stateId: endState.id?.toString() || "",
+      label: "Mark as " + (endState.name || "Complete"),
+      icon: IconProp.CheckCircle,
+      buttonStyle: ButtonStyleType.PRIMARY,
+      id: "sm-mark-complete-btn",
+    });
   }
 
-  const getLastTimelineStartsAtForState: (
-    state: ScheduledMaintenanceState | undefined,
-  ) => Date | undefined = (
-    state: ScheduledMaintenanceState | undefined,
-  ): Date | undefined => {
-    if (!state) {
-      return undefined;
-    }
-
-    let lastStartsAt: Date | undefined = undefined;
-
-    for (const timeline of scheduledMaintenanceStateTimelines) {
-      if (
-        timeline.scheduledMaintenanceStateId?.toString() ===
-          state.id?.toString() &&
-        timeline.startsAt
-      ) {
-        lastStartsAt = timeline.startsAt;
-      }
-    }
-
-    return lastStartsAt;
-  };
-
-  let durationPrefix: string | undefined = undefined;
-  let durationStartsAt: Date | undefined = undefined;
-  let durationEndsAt: Date | undefined = undefined;
-
-  if (
-    isCurrentStateScheduled &&
-    props.eventStartsAt &&
-    OneUptimeDate.isInTheFuture(props.eventStartsAt)
-  ) {
-    durationPrefix = "Starts in";
-    durationStartsAt = props.eventStartsAt;
-  } else if (isCurrentStateOngoing) {
-    const inProgressSince: Date | undefined =
-      getLastTimelineStartsAtForState(ongoingState) || props.eventStartsAt;
-
-    if (inProgressSince) {
-      durationPrefix = "In progress for";
-      durationStartsAt = inProgressSince;
-    }
-  } else if (isCurrentStateEnded) {
-    const windowStartedAt: Date | undefined =
-      props.eventStartsAt || scheduledMaintenanceStateTimelines[0]?.startsAt;
-    const completedAt: Date | undefined =
-      getLastTimelineStartsAtForState(endState) || props.eventEndsAt;
-
-    if (windowStartedAt && completedAt) {
-      durationPrefix = "Completed in";
-      durationStartsAt = windowStartedAt;
-      durationEndsAt = completedAt;
-    }
-  }
+  const overdueNotice: ReactElement | undefined =
+    timing.isOverdue && timing.overdueSince ? (
+      <OverdueNotice
+        phase={timing.phase}
+        overdueSince={timing.overdueSince}
+        nextStateName={
+          timing.phase === ScheduledMaintenancePhase.StartOverdue
+            ? ongoingState?.name || "ongoing"
+            : endState?.name || "ended"
+        }
+      />
+    ) : undefined;
 
   const openModalForState: (stateId: string) => void = (
     stateId: string,
@@ -377,12 +575,14 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
         identifier={props.eventNumber}
         title={props.title}
         currentStateId={currentScheduledMaintenanceState?.id?.toString()}
-        durationPrefix={durationPrefix}
-        durationStartsAt={durationStartsAt}
-        durationEndsAt={durationEndsAt}
+        durationPrefix={timing.durationPrefix}
+        durationStartsAt={timing.durationStartsAt}
+        durationEndsAt={timing.durationEndsAt}
         actions={actions}
         onActionClick={openModalForState}
         onStateSelect={openModalForState}
+        facts={props.facts}
+        headerNotice={overdueNotice}
       />
 
       {showModal && (
@@ -421,26 +621,46 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           onSuccess={async (
             model: ScheduledMaintenanceStateTimeline,
           ): Promise<void> => {
-            //get scheduledMaintenance state and update current scheduledMaintenance state
-            const scheduledMaintenanceState:
-              | ScheduledMaintenanceState
-              | undefined = scheduledMaintenanceStates.find(
-              (state: ScheduledMaintenanceState) => {
-                return (
-                  state.id?.toString() ===
-                  model.scheduledMaintenanceStateId?.toString()
-                );
-              },
-            );
-
-            setCurrentScheduledMaintenanceState(scheduledMaintenanceState);
-
             setShowModal(false);
 
+            /*
+             * Show the new state straight away. The refetch below swaps this
+             * stand-in entry for the server's copy; if that refetch fails the
+             * change itself still succeeded, so the stand-in stays rather than
+             * replacing the header with an error.
+             */
+            const newStateId: ObjectID | undefined =
+              model.scheduledMaintenanceStateId ||
+              selectedScheduledMaintenanceState?.id ||
+              undefined;
+
+            if (newStateId) {
+              const standInTimeline: ScheduledMaintenanceStateTimeline =
+                new ScheduledMaintenanceStateTimeline();
+              standInTimeline.scheduledMaintenanceStateId = newStateId;
+              standInTimeline.startsAt =
+                model.startsAt || OneUptimeDate.getCurrentDate();
+
+              setScheduledMaintenanceStateTimelines(
+                (
+                  previousTimelines: Array<ScheduledMaintenanceStateTimeline>,
+                ): Array<ScheduledMaintenanceStateTimeline> => {
+                  return [...previousTimelines, standInTimeline];
+                },
+              );
+            }
+
+            setNow(OneUptimeDate.getCurrentDate());
+
             try {
-              await fetchScheduledMaintenanceStateTimelines();
-            } catch (err: unknown) {
-              setError(API.getFriendlyMessage(err as Exception));
+              const latestTimelines: Array<ScheduledMaintenanceStateTimeline> =
+                await fetchScheduledMaintenanceStateTimelines();
+
+              if (isMountedRef.current) {
+                setScheduledMaintenanceStateTimelines(latestTimelines);
+              }
+            } catch {
+              // Keep the stand-in entry; see above.
             }
 
             props.onActionComplete();

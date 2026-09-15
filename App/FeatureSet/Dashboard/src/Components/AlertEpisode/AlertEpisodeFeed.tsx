@@ -5,9 +5,7 @@ import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import AlertEpisodeFeed, {
-  AlertEpisodeFeedEventType,
-} from "Common/Models/DatabaseModels/AlertEpisodeFeed";
+import AlertEpisodeFeed from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
@@ -25,9 +23,18 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import Icon from "Common/UI/Components/Icon/Icon";
+import { getAlertEpisodeFeedIcon } from "../EpisodeView/EpisodeFeedIcons";
 
 export interface ComponentProps {
   alertEpisodeId: ObjectID;
+  /*
+   * Bump to reload the feed in place, e.g. after the episode's state changed
+   * on the overview. The loaded items stay on screen while it reloads.
+   */
+  refreshToken?: number | undefined;
 }
 
 const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
@@ -58,133 +65,9 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   const getFeedItemFromEpisodeFeed: GetFeedItemFromEpisodeFeed = (
     episodeFeed: AlertEpisodeFeed,
   ): FeedItemProps => {
-    let icon: IconProp = IconProp.Circle;
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.EpisodeCreated
-    ) {
-      icon = IconProp.Layers;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.EpisodeStateChanged
-    ) {
-      icon = IconProp.ArrowCircleRight;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.EpisodeUpdated
-    ) {
-      icon = IconProp.Edit;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.AlertAdded
-    ) {
-      icon = IconProp.Alert;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.AlertRemoved
-    ) {
-      icon = IconProp.Close;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.OwnerNotificationSent
-    ) {
-      icon = IconProp.Bell;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.PrivateNote
-    ) {
-      icon = IconProp.Lock;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.OwnerUserAdded
-    ) {
-      icon = IconProp.User;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.OwnerTeamAdded
-    ) {
-      icon = IconProp.Team;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.RootCause
-    ) {
-      icon = IconProp.Cube;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.OwnerUserRemoved
-    ) {
-      icon = IconProp.Close;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.OwnerTeamRemoved
-    ) {
-      icon = IconProp.Close;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.OnCallNotification
-    ) {
-      icon = IconProp.Alert;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.OnCallPolicy
-    ) {
-      icon = IconProp.Call;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.SeverityChanged
-    ) {
-      icon = IconProp.ExclaimationCircle;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.LabelRuleExecuted
-    ) {
-      icon = IconProp.Tag;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.OwnerRuleExecuted
-    ) {
-      icon = IconProp.User;
-    }
-
-    if (
-      episodeFeed.alertEpisodeFeedEventType ===
-      AlertEpisodeFeedEventType.OnCallRuleExecuted
-    ) {
-      icon = IconProp.Call;
-    }
+    const icon: IconProp = getAlertEpisodeFeedIcon(
+      episodeFeed.alertEpisodeFeedEventType,
+    );
 
     return {
       key: episodeFeed.id!.toString(),
@@ -210,6 +93,7 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<AlertEpisodeFeed>({
     resourceKey: props.alertEpisodeId.toString(),
+    refreshToken: props.refreshToken,
     getItems: async (limit: number): Promise<ListResult<AlertEpisodeFeed>> => {
       return await ModelAPI.getList<AlertEpisodeFeed>({
         modelType: AlertEpisodeFeed,
@@ -248,22 +132,36 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
         "This is the timeline and feed for this episode. You can see all the updates and information about this episode here."
       }
       buttons={[
-        {
-          title: "Execute On-Call Policy",
-          buttonStyle: ButtonStyleType.NORMAL,
-          icon: IconProp.Call,
-          onClick: () => {
-            setShowOnCallPolicyModal(true);
-          },
-        },
-        {
-          title: "Add Private Note",
-          buttonStyle: ButtonStyleType.NORMAL,
-          icon: IconProp.Lock,
-          onClick: () => {
-            setShowPrivateNoteModal(true);
-          },
-        },
+        <MoreMenu
+          key="alert-episode-feed-actions-menu"
+          elementToBeShownInsteadOfButton={
+            <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
+              <Icon icon={IconProp.Bolt} className="h-4 w-4 text-gray-500" />
+              <span>Actions</span>
+              <Icon
+                icon={IconProp.ChevronDown}
+                className="h-3.5 w-3.5 text-gray-400 ml-0.5"
+              />
+            </div>
+          }
+        >
+          <MoreMenuItem
+            key="alert-episode-action-execute-policy"
+            text="Execute On-Call Policy"
+            icon={IconProp.Call}
+            onClick={() => {
+              setShowOnCallPolicyModal(true);
+            }}
+          />
+          <MoreMenuItem
+            key="alert-episode-action-private-note"
+            text="Add Private Note"
+            icon={IconProp.Lock}
+            onClick={() => {
+              setShowPrivateNoteModal(true);
+            }}
+          />
+        </MoreMenu>,
         {
           title: "Refresh",
           buttonStyle: ButtonStyleType.ICON,

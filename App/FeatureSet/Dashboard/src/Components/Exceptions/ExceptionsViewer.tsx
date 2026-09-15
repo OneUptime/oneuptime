@@ -115,10 +115,12 @@ import {
   buildExceptionEntityTypeHints,
   buildExceptionFacetDisplayNames,
   buildExceptionKnownChipIds,
+  buildExceptionLockedEntityKeyChips,
   collectExceptionEntityChipIds,
   getExceptionFacetIncludeDisplayValue,
   resolveExceptionChipDisplay,
 } from "../../Utils/ExceptionsEntityChipDisplay";
+import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -420,6 +422,14 @@ export interface ExceptionsViewerProps {
    * other instance-only filter.
    */
   entityKeysFilter?: Array<string> | undefined;
+  /*
+   * How the locked pill for each of `entityKeysFilter` reads — an Inventory
+   * item names its own key "Kubernetes Pod: checkout-7d9f". Display only.
+   * Without an entry the pill still renders, as "Resource: <key>": a list
+   * narrowed by a scope the chip bar does not show is the bug the pill
+   * exists to fix.
+   */
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
   /*
    * A STORED exception-instance query to host — the slice an exception
    * monitor evaluated, kept on the incident / alert row.
@@ -1962,6 +1972,23 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       );
     }
     /*
+     * The page's entity-key scope (an Inventory item's own key). It narrows
+     * the list through the instance scope and used to have no chip at all,
+     * so a filtered list read like every exception in the window.
+     *
+     * Deliberately NOT sent through resolveDisplay: the page already named
+     * the entity ("Kubernetes Pod: checkout-7d9f"), and that path hands the
+     * chip key to whichever facet config shares its facetKey. Keys the host's
+     * stored scope already shows are skipped by the builder.
+     */
+    base.push(
+      ...buildExceptionLockedEntityKeyChips({
+        entityKeysFilter: props.entityKeysFilter,
+        entityKeyDisplays: props.entityKeyDisplays,
+        storedScopeChips: hostScope.chips,
+      }),
+    );
+    /*
      * The host's stored scope, as chips the user can see but not remove — a
      * snapshot that filters silently makes a short list look like the whole
      * truth.
@@ -1981,6 +2008,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, [
     props.primaryEntityId,
     props.scopeEntityType,
+    props.entityKeysFilter,
+    props.entityKeyDisplays,
     scopeEntityId,
     hostScope,
     activeFilters,

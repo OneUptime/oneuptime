@@ -674,6 +674,174 @@ export const describeLockedStoredQueryFilter: DescribeLockedStoredQueryFilterFun
     return detail;
   };
 
+/*
+ * The column an entity-key scope filters: the `entityKeys` membership array
+ * every telemetry row is stamped with at ingest, one key per entity its
+ * resource describes. An Inventory item's pages scope every signal by it.
+ */
+export const ENTITY_KEYS_FACET_KEY: string = "entityKeys";
+
+/*
+ * The key an entity-key chip reads when its page did not name the entity —
+ * the same word a stored query's entity-key chip is seeded with
+ * (SpanQueryScope), so the two never disagree on screen.
+ */
+export const DEFAULT_ENTITY_KEY_DISPLAY_KEY: string = "Resource";
+
+/*
+ * What an entity-key scope narrows: the rows of one of the three explorers,
+ * or of the exceptions and profiles lists, which scope the same way but have
+ * no explorer link to hand the filter to.
+ */
+export type EntityKeyScopedRows = TelemetrySignal | "exceptions" | "profiles";
+
+/*
+ * Worded as a possibility, not a fact: whether rows owned by another resource
+ * appear depends on the item. A host's list can hold a service's rows (the
+ * service is their primary owner), while a service's own rows all name it as
+ * their owner — a note claiming the list DOES include foreign rows sends the
+ * reader looking for rows that are not there.
+ */
+const ENTITY_KEY_PREDICATE_NOTE: string =
+  "Rows are stamped at ingest with the key of every resource they describe, so rows primarily owned by another resource (a service running on it, say) can appear here too.";
+const ENTITY_KEY_ANY_OF_PREDICATE_NOTE: string =
+  "A row carrying any one of these keys is shown.";
+export const ENTITY_KEY_NO_SYNTAX_REASON: string =
+  "Entity keys have no search syntax.";
+
+type IsTelemetrySignalFunction = (
+  rows: EntityKeyScopedRows,
+) => rows is TelemetrySignal;
+
+const isTelemetrySignal: IsTelemetrySignalFunction = (
+  rows: EntityKeyScopedRows,
+): rows is TelemetrySignal => {
+  return rows === "logs" || rows === "traces" || rows === "metrics";
+};
+
+type CapitalizeFunction = (text: string) => string;
+
+const capitalize: CapitalizeFunction = (text: string): string => {
+  return text.length > 0 ? `${text[0]!.toUpperCase()}${text.slice(1)}` : text;
+};
+
+export interface DescribeLockedEntityKeyFilterInput {
+  rows: EntityKeyScopedRows;
+  /** The key this chip stands for. */
+  entityKey: string;
+  /*
+   * Every entity key the page pins, this one included. The column is matched
+   * with `hasAny`, so several keys WIDEN the scope — a row carrying any of
+   * them is shown — and each chip has to say so rather than read like one
+   * more filter AND-ed with its neighbours.
+   */
+  entityKeys?: ReadonlyArray<string> | undefined;
+  /** "Kubernetes Pod", "Host", ... — the summary says "resource" without one. */
+  entityTypeLabel?: string | undefined;
+  /*
+   * Where the keys came from: the page (the default — an Inventory item's
+   * pages) or a stored query the view was opened with (a log monitor's
+   * incident snapshot). The multi-key summary names that same source, so a
+   * stored query's keys are never said to be pinned by the page.
+   */
+  source?: string | undefined;
+}
+
+type DescribeLockedEntityKeyFilterFunction = (
+  input: DescribeLockedEntityKeyFilterInput,
+) => LockedFilterDetail;
+
+/**
+ * The explanation of an `entityKeys` chip — an Inventory item's scope, which
+ * the server compiles to `hasAny(entityKeys, [...])` with no attribute
+ * alongside it. No explorer's search grammar has a token for the column and
+ * no explorer link carries it, so the reader is told plainly that it cannot
+ * travel (and why the list may hold rows owned by some other resource).
+ */
+export const describeLockedEntityKeyFilter: DescribeLockedEntityKeyFilterFunction =
+  (input: DescribeLockedEntityKeyFilterInput): LockedFilterDetail => {
+    const label: string =
+      typeof input.entityTypeLabel === "string"
+        ? input.entityTypeLabel.trim()
+        : "";
+    const noun: string =
+      label.length > 0 && label.toLowerCase() !== DEFAULT_SCOPE_NOUN
+        ? label
+        : DEFAULT_SCOPE_NOUN;
+
+    /*
+     * Trimmed exactly like the keys it is compared with below, so a padded
+     * key never counts itself as "another resource".
+     */
+    const thisEntityKey: string =
+      typeof input.entityKey === "string" ? input.entityKey.trim() : "";
+
+    /*
+     * A non-array is no other keys: a lone string would iterate its
+     * characters, and an operator instance is not iterable at all.
+     */
+    const candidates: ReadonlyArray<unknown> = Array.isArray(input.entityKeys)
+      ? input.entityKeys
+      : [];
+
+    const otherEntityKeys: Array<string> = [];
+
+    for (const candidate of candidates) {
+      const entityKey: string =
+        typeof candidate === "string" ? candidate.trim() : "";
+
+      if (
+        entityKey.length > 0 &&
+        entityKey !== thisEntityKey &&
+        !otherEntityKeys.includes(entityKey)
+      ) {
+        otherEntityKeys.push(entityKey);
+      }
+    }
+
+    const predicate: LockedFilterPredicate =
+      otherEntityKeys.length === 0
+        ? {
+            label: "Entity key",
+            expression: `entityKeys has ${thisEntityKey}`,
+            note: ENTITY_KEY_PREDICATE_NOTE,
+          }
+        : {
+            label: "Entity key",
+            expression: `entityKeys has any of ${[
+              thisEntityKey,
+              ...otherEntityKeys,
+            ].join(", ")}`,
+            note: `${ENTITY_KEY_ANY_OF_PREDICATE_NOTE} ${ENTITY_KEY_PREDICATE_NOTE}`,
+          };
+
+    const source: string = input.source || LOCKED_FILTER_SOURCE_PAGE;
+
+    const pinnedBy: string =
+      source === LOCKED_FILTER_SOURCE_STORED_QUERY
+        ? "the stored query pins"
+        : "this page pins";
+
+    const summary: string =
+      otherEntityKeys.length === 0
+        ? `Only ${input.rows} linked to this ${noun} are shown.`
+        : `${capitalize(input.rows)} linked to this ${noun} are shown, along with ${
+            input.rows
+          } linked to the ${otherEntityKeys.length} other ${
+            otherEntityKeys.length === 1 ? "resource" : "resources"
+          } ${pinnedBy}.`;
+
+    return {
+      source,
+      summary,
+      predicates: [predicate],
+      combinator: "all",
+      searchTokenUnavailableReason: isTelemetrySignal(input.rows)
+        ? noSyntaxReason(input.rows, ENTITY_KEYS_FACET_KEY)
+        : ENTITY_KEY_NO_SYNTAX_REASON,
+    };
+  };
+
 type BuildLockedScopeCopyTextFunction = (
   signal: TelemetrySignal,
   filters: Array<SearchableLockedFilter>,

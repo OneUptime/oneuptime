@@ -30,9 +30,19 @@ export interface ExceptionOccurrenceFixtureData {
   entityKeys: Array<string>;
 }
 
-interface ClickHouseFixtureLocation {
+export interface ClickHouseFixtureLocation {
   database: string;
   endpoint: globalThis.URL;
+}
+
+export interface ClickHouseFixtureSettings {
+  database: string;
+  explicitUrl: string;
+  explicitPort: string;
+  configuredHost: string;
+  configuredPort: string;
+  isHttps: boolean;
+  browserTarget: string;
 }
 
 const requireIdentifier: (value: string, description: string) => string = (
@@ -58,56 +68,86 @@ const requireUuid: (value: string, description: string) => string = (
 };
 
 /*
- * config.env uses the Compose-network address clickhouse:8123, while E2E runs
- * from the host when HOST=localhost. Resolve only that known local pairing to
- * Docker's published HTTP port. CI or custom environments can state their
+ * config.env uses the Compose-network address clickhouse:8123, which neither a
+ * run from the host nor the host-networked e2e container can resolve. When the
+ * browser targets a local stack, resolve that known pairing to the loopback HTTP
+ * port both docker-compose.dev.yml and the CI overlay
+ * docker-compose.e2e-clickhouse.yml publish. Custom environments can state their
  * endpoint explicitly with E2E_CLICKHOUSE_URL (or the host/port overrides).
  */
+export const resolveClickHouseFixtureLocation: (
+  settings: ClickHouseFixtureSettings,
+) => ClickHouseFixtureLocation = (
+  settings: ClickHouseFixtureSettings,
+): ClickHouseFixtureLocation => {
+  const database: string = requireIdentifier(settings.database, "database");
+  const explicitUrl: string = settings.explicitUrl.trim();
+
+  if (explicitUrl) {
+    const endpoint: globalThis.URL = new globalThis.URL(explicitUrl);
+    if (endpoint.protocol !== "http:" && endpoint.protocol !== "https:") {
+      throw new Error("E2E_CLICKHOUSE_URL must use http or https.");
+    }
+    return { database, endpoint };
+  }
+
+  const browserTarget: globalThis.URL = new globalThis.URL(
+    settings.browserTarget,
+  );
+  const browserRunsOnLocalhost: boolean = [
+    "localhost",
+    "127.0.0.1",
+    "::1",
+  ].includes(browserTarget.hostname);
+  const composeNetworkHost: boolean = settings.configuredHost === "clickhouse";
+  const usePublishedLocalPort: boolean =
+    browserRunsOnLocalhost && composeNetworkHost;
+  const host: string = usePublishedLocalPort
+    ? "127.0.0.1"
+    : settings.configuredHost;
+  const port: string =
+    settings.explicitPort ||
+    (usePublishedLocalPort
+      ? LOCAL_CLICKHOUSE_HTTP_PORT
+      : settings.configuredPort || "8123");
+  const protocol: string = settings.isHttps ? "https" : "http";
+
+  return {
+    database,
+    endpoint: new globalThis.URL(`${protocol}://${host}:${port}`),
+  };
+};
+
 const clickHouseFixtureLocation: () => ClickHouseFixtureLocation =
   (): ClickHouseFixtureLocation => {
-    const database: string = requireIdentifier(
-      env("E2E_CLICKHOUSE_DATABASE") ||
+    return resolveClickHouseFixtureLocation({
+      database:
+        env("E2E_CLICKHOUSE_DATABASE") ||
         env("CLICKHOUSE_DATABASE") ||
         DEFAULT_CLICKHOUSE_DATABASE,
-      "database",
-    );
-    const explicitUrl: string = env("E2E_CLICKHOUSE_URL").trim();
-
-    if (explicitUrl) {
-      const endpoint: globalThis.URL = new globalThis.URL(explicitUrl);
-      if (endpoint.protocol !== "http:" && endpoint.protocol !== "https:") {
-        throw new Error("E2E_CLICKHOUSE_URL must use http or https.");
-      }
-      return { database, endpoint };
-    }
-
-    const configuredHost: string =
-      env("E2E_CLICKHOUSE_HOST") || env("CLICKHOUSE_HOST") || "127.0.0.1";
-    const browserTarget: globalThis.URL = new globalThis.URL(
-      BASE_URL.toString(),
-    );
-    const browserRunsOnLocalhost: boolean = [
-      "localhost",
-      "127.0.0.1",
-      "::1",
-    ].includes(browserTarget.hostname);
-    const composeNetworkHost: boolean = configuredHost === "clickhouse";
-    const usePublishedLocalPort: boolean =
-      browserRunsOnLocalhost && composeNetworkHost;
-    const host: string = usePublishedLocalPort ? "127.0.0.1" : configuredHost;
-    const port: string =
-      env("E2E_CLICKHOUSE_PORT") ||
-      (usePublishedLocalPort
-        ? LOCAL_CLICKHOUSE_HTTP_PORT
-        : env("CLICKHOUSE_PORT") || "8123");
-    const protocol: string =
-      env("CLICKHOUSE_IS_HOST_HTTPS") === "true" ? "https" : "http";
-
-    return {
-      database,
-      endpoint: new globalThis.URL(`${protocol}://${host}:${port}`),
-    };
+      explicitUrl: env("E2E_CLICKHOUSE_URL"),
+      explicitPort: env("E2E_CLICKHOUSE_PORT"),
+      configuredHost:
+        env("E2E_CLICKHOUSE_HOST") || env("CLICKHOUSE_HOST") || "127.0.0.1",
+      configuredPort: env("CLICKHOUSE_PORT"),
+      isHttps: env("CLICKHOUSE_IS_HOST_HTTPS") === "true",
+      browserTarget: BASE_URL.toString(),
+    });
   };
+
+const describeRequestFailure: (error: unknown) => string = (
+  error: unknown,
+): string => {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+
+  // fetch reports the socket error (ECONNREFUSED, ENOTFOUND) as its cause.
+  const cause: unknown = Reflect.get(error, "cause");
+  return cause instanceof Error
+    ? `${error.message}: ${cause.message}`
+    : error.message;
+};
 
 const executeClickHouseRequest: (data: {
   query: string;
@@ -150,7 +190,15 @@ const executeClickHouseRequest: (data: {
   if (data.body !== undefined) {
     requestInit.body = data.body;
   }
-  const response: globalThis.Response = await fetch(endpoint, requestInit);
+  let response: globalThis.Response;
+  try {
+    response = await fetch(endpoint, requestInit);
+  } catch (error) {
+    throw new Error(
+      `ClickHouse exception fixture could not reach ${location.endpoint.origin} (${describeRequestFailure(error)}). ` +
+        "A local stack must publish ClickHouse HTTP there: docker-compose.dev.yml does, and docker-compose.yml or docker-compose.billing.yml need -f docker-compose.e2e-clickhouse.yml. Otherwise set E2E_CLICKHOUSE_URL.",
+    );
+  }
 
   if (!response.ok) {
     throw new Error(

@@ -14,30 +14,69 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import { getInventoryTypeIcon } from "../Inventory/InventoryTypeCatalog";
 import InfrastructureGraph from "./InfrastructureGraph";
 import EntityDetailPanel from "./EntityDetailPanel";
-import { metaForEntityType, labelForRelationship } from "./TopologyMeta";
 import {
-  buildInfrastructureExplorerModel,
-  findInfrastructureResources,
-  getInfrastructureBreadcrumbs,
-  getInfrastructureDescendants,
-  InfrastructureExplorerModel,
-  InfrastructureResource,
-} from "./InfrastructureExplorerModel";
+  InfrastructureNode,
+  InfrastructureTopologyModel,
+  buildInfrastructureTopologyModel,
+  collectMapCards,
+  describeInfrastructureNode,
+  getInfrastructurePath,
+  searchInfrastructure,
+  summarizeCounts,
+} from "./InfrastructureTopologyModel";
+import { formatLastSeen } from "./TopologyActivity";
+import { metaForEntityType } from "./TopologyMeta";
 
-const PAGE_SIZE: number = 40;
+/*
+ * Infrastructure: "what runs where", walked top-down.
+ *
+ * A tree on the left holds only things that contain other things — categories,
+ * clusters, namespaces, deployments, groups of replicas — so it stays short
+ * even for a large estate. The right side shows what is inside the selected
+ * scope, as a table (every row says what it contains and which services run
+ * there) or as a map of that one level. Fleets are grouped by workload, and
+ * resources that did not report in the selected range are left out unless the
+ * page asks for them.
+ */
+
+const PAGE_SIZE: number = 50;
+const ROOT_ID: string = "__all__";
+
 export interface ComponentProps {
   entities: Array<InventoryItem>;
   relationships: Array<InventoryItemRelationship>;
   metricsWindowSeconds: number;
+  rangeStart?: Date | null | undefined;
+  includeInactive?: boolean | undefined;
+  /** Focus a service on the Service Map. */
+  onOpenServiceMap?: ((serviceKey: string) => void) | undefined;
 }
+
+type InfrastructureView = "list" | "map";
 
 const BUTTON: string =
   "rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
+
+function iconForNode(node: InfrastructureNode): IconProp {
+  if (node.kind === "category") {
+    return IconProp.Folder;
+  }
+  if (node.kind === "group") {
+    return IconProp.Squares;
+  }
+  return getInventoryTypeIcon(node.entityType || "");
+}
+
+function colorForNode(node: InfrastructureNode): string {
+  return node.kind === "category"
+    ? "#6366f1"
+    : metaForEntityType(node.entityType || undefined).color;
+}
 
 const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -46,106 +85,69 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
+
+  const model: InfrastructureTopologyModel = useMemo(() => {
+    return buildInfrastructureTopologyModel(
+      props.entities,
+      props.relationships,
+      {
+        rangeStart: props.rangeStart || undefined,
+        includeInactive: props.includeInactive,
+      },
+    );
+  }, [
+    props.entities,
+    props.relationships,
+    props.rangeStart,
+    props.includeInactive,
+  ]);
+
+  const entityByKey: Map<string, InventoryItem> = useMemo(() => {
+    const map: Map<string, InventoryItem> = new Map<string, InventoryItem>();
+    for (const entity of props.entities) {
+      if (entity.entityKey) {
+        map.set(entity.entityKey, entity);
+      }
+    }
+    return map;
+  }, [props.entities]);
+
+  /*
+   * A focus from the URL may name a container (open it) or a single resource
+   * (open its parent and its details) — the Service Map links to both.
+   */
+  const initialFocus: string | null =
+    Navigation.getQueryStringByName("infraFocus");
+  const [scopeId, setScopeId] = useState<string>(ROOT_ID);
+  const [detailKey, setDetailKey] = useState<string | null>(null);
   const [search, setSearch] = useState<string>(
     Navigation.getQueryStringByName("infraSearch") || "",
   );
-  const [scopeKey, setScopeKey] = useState<string | null>(
-    Navigation.getQueryStringByName("infraFocus"),
+  const [view, setView] = useState<InfrastructureView>(
+    Navigation.getQueryStringByName("infraView") === "map" ? "map" : "list",
   );
-  const [type, setType] = useState<string | null>(
-    Navigation.getQueryStringByName("infraType"),
-  );
-  const [view, setView] = useState<string>(
-    Navigation.getQueryStringByName("infraView") === "map" ? "map" : "explore",
-  );
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [page, setPage] = useState<number>(0);
-  const model: InfrastructureExplorerModel = useMemo(() => {
-    return buildInfrastructureExplorerModel(
-      props.entities,
-      props.relationships,
-    );
-  }, [props.entities, props.relationships]);
-  const scope: InfrastructureResource | undefined = scopeKey
-    ? model.resources.get(scopeKey)
-    : undefined;
-  const effectiveScopeKey: string | null = scope?.key || null;
-  const selected: InfrastructureResource | undefined = selectedKey
-    ? model.resources.get(selectedKey)
-    : undefined;
-  const entityByKey: Map<string, InventoryItem> = useMemo(() => {
-    return new Map(
-      props.entities
-        .filter((entity: InventoryItem): boolean => {
-          return Boolean(entity.entityKey);
-        })
-        .map((entity: InventoryItem): [string, InventoryItem] => {
-          return [entity.entityKey!, entity];
-        }),
-    );
-  }, [props.entities]);
-  const allInScope: Array<InfrastructureResource> = useMemo(() => {
-    return findInfrastructureResources(model, {
-      scopeKey: effectiveScopeKey,
-      search: "",
-      type: null,
-    });
-  }, [model, effectiveScopeKey]);
-  const types: Array<{ type: string; count: number }> = useMemo(() => {
-    const counts: Map<string, number> = new Map();
-    for (const resource of allInScope) {
-      counts.set(resource.type, (counts.get(resource.type) || 0) + 1);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set<string>());
+  const [appliedFocus, setAppliedFocus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!initialFocus || appliedFocus === initialFocus) {
+      return;
     }
-    return Array.from(counts, ([type, count]: [string, number]) => {
-      return { type, count };
-    }).sort((a: { type: string }, b: { type: string }): number => {
-      return metaForEntityType(a.type).label.localeCompare(
-        metaForEntityType(b.type).label,
-      );
-    });
-  }, [allInScope]);
-  const results: Array<InfrastructureResource> = useMemo(() => {
-    return findInfrastructureResources(model, {
-      scopeKey: effectiveScopeKey,
-      search,
-      type,
-    });
-  }, [model, effectiveScopeKey, search, type]);
-  const filtered: boolean = Boolean(search.trim() || type);
-  const childKeys: Array<string> = scope
-    ? model.childrenOf.get(scope.key) || []
-    : model.roots;
-  const groups: Array<InfrastructureResource> = childKeys
-    .filter((key: string): boolean => {
-      return Boolean(model.childrenOf.get(key)?.length);
-    })
-    .map((key: string): InfrastructureResource => {
-      return model.resources.get(key)!;
-    })
-    .sort((a: InfrastructureResource, b: InfrastructureResource): number => {
-      return a.name.localeCompare(b.name);
-    });
-  const showOverview: boolean = !filtered && (!scope || childKeys.length > 0);
-  const directResources: Array<InfrastructureResource> = childKeys
-    .filter((key: string): boolean => {
-      return !model.childrenOf.get(key)?.length;
-    })
-    .map((key: string): InfrastructureResource => {
-      return model.resources.get(key)!;
-    })
-    .sort((a: InfrastructureResource, b: InfrastructureResource): number => {
-      return a.name.localeCompare(b.name);
-    });
-  const listedResources: Array<InfrastructureResource> = showOverview
-    ? directResources
-    : results;
-  const pageCount: number = Math.max(
-    1,
-    Math.ceil(listedResources.length / PAGE_SIZE),
-  );
-  const currentPage: number = Math.min(page, pageCount - 1);
-  const breadcrumbs: Array<InfrastructureResource> =
-    getInfrastructureBreadcrumbs(model, effectiveScopeKey);
+    const node: InfrastructureNode | undefined = model.nodes.get(initialFocus);
+    if (!node) {
+      return;
+    }
+    setAppliedFocus(initialFocus);
+    if (node.childIds.length > 0) {
+      setScopeId(node.id);
+    } else {
+      setScopeId(node.parentId || ROOT_ID);
+      if (node.entity) {
+        setDetailKey(node.id);
+      }
+    }
+  }, [model, initialFocus]);
 
   useEffect(() => {
     const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
@@ -155,157 +157,370 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       clearTimeout(timeout);
     };
   }, [search]);
+
   useEffect(() => {
     setPage(0);
-  }, [search, type, effectiveScopeKey]);
-  const openScope: (key: string | null) => void = (
-    key: string | null,
-  ): void => {
-    setScopeKey(key);
+  }, [scopeId, search]);
+
+  const scope: InfrastructureNode | null =
+    scopeId === ROOT_ID ? null : model.nodes.get(scopeId) || null;
+  const effectiveScopeId: string = scope ? scope.id : ROOT_ID;
+  const path: Array<InfrastructureNode> = getInfrastructurePath(
+    model,
+    scope?.id || null,
+  );
+
+  const openScope: (id: string) => void = (id: string): void => {
+    setScopeId(id);
     setSearch("");
-    setType(null);
-    setSelectedKey(null);
-    setPage(0);
     Navigation.setQueryString({
-      infraFocus: key,
+      infraFocus: id === ROOT_ID ? null : id,
       infraSearch: null,
-      infraType: null,
     });
-  };
-  const selectType: (value: string | null) => void = (
-    value: string | null,
-  ): void => {
-    setType(value);
-    setPage(0);
-    Navigation.setQueryString({ infraType: value });
-  };
-  const resetFilters: () => void = (): void => {
-    setSearch("");
-    selectType(null);
-    Navigation.setQueryString({ infraSearch: null });
-  };
-  // Keep map inputs stable while opening a drawer so inspection does not reset pan/zoom.
-  const mapKeys: Set<string> = useMemo(() => {
-    const keys: Set<string> = new Set(
-      results.map((resource: InfrastructureResource): string => {
-        return resource.key;
-      }),
-    );
-    if (scope && !filtered) {
-      keys.add(scope.key);
-    }
-    return keys;
-  }, [results, scope, filtered]);
-  const mapEntities: Array<InventoryItem> = useMemo(() => {
-    return Array.from(mapKeys, (key: string): InventoryItem => {
-      const resource: InfrastructureResource = model.resources.get(key)!;
-      if (resource.entity) {
-        return resource.entity;
+    // Opening something always reveals it in the tree.
+    setCollapsed((previous: Set<string>) => {
+      const next: Set<string> = new Set<string>(previous);
+      for (const node of getInfrastructurePath(model, id)) {
+        next.delete(node.id);
       }
-      const placeholder: InventoryItem = new InventoryItem();
-      placeholder.entityKey = key;
-      placeholder.displayName = resource.name;
-      return placeholder;
+      return next;
     });
-  }, [mapKeys, model]);
-  const mapRelationships: Array<InventoryItemRelationship> = useMemo(() => {
-    return model.relationships.filter(
-      (edge: InventoryItemRelationship): boolean => {
-        return (
-          mapKeys.has(edge.fromEntityKey!) && mapKeys.has(edge.toEntityKey!)
-        );
-      },
-    );
-  }, [mapKeys, model]);
-  const collections: Map<string, number> = new Map();
-  for (const resource of directResources) {
-    collections.set(
-      resource.type,
-      types.find((item: { type: string; count: number }): boolean => {
-        return item.type === resource.type;
-      })?.count || 0,
+  };
+  const openNode: (id: string) => void = (id: string): void => {
+    const node: InfrastructureNode | undefined = model.nodes.get(id);
+    if (!node) {
+      return;
+    }
+    if (node.childIds.length > 0) {
+      openScope(id);
+    } else if (node.entity) {
+      setDetailKey(id);
+    }
+  };
+  const changeView: (value: InfrastructureView) => void = (
+    value: InfrastructureView,
+  ): void => {
+    setView(value);
+    Navigation.setQueryString({ infraView: value === "map" ? "map" : null });
+  };
+
+  const searching: boolean = search.trim().length > 0;
+  const results: Array<InfrastructureNode> = useMemo(() => {
+    return searchInfrastructure(model, search);
+  }, [model, search]);
+
+  const mapCards: Array<string> = useMemo(() => {
+    return collectMapCards(model, scope?.id || null);
+  }, [model, scope]);
+  const listedIds: Array<string> = searching
+    ? results.map((node: InfrastructureNode): string => {
+        return node.id;
+      })
+    : scope
+      ? scope.childIds
+      : [];
+
+  const workloadCount: number = Array.from(model.nodes.values()).filter(
+    (node: InfrastructureNode): boolean => {
+      return (
+        node.kind === "group" ||
+        node.entityType === "k8s.deployment" ||
+        node.entityType === "docker.swarm.service"
+      );
+    },
+  ).length;
+
+  const servicesPlaced: number = new Set<string>(
+    model.rootIds.flatMap((rootId: string): Array<string> => {
+      return model.nodes.get(rootId)?.serviceKeys || [];
+    }),
+  ).size;
+
+  if (model.resourceCount === 0 && model.inactiveCount === 0) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-8">
+        <EmptyState
+          id="topology-empty"
+          icon={IconProp.Layers}
+          title="No infrastructure topology discovered yet"
+          description="Connect a host or Kubernetes cluster to discover its resources and see what runs where. Resources also appear when you add them to Inventory."
+          footer={
+            <Link
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.TRACES_DOCUMENTATION] as Route,
+              )}
+              className="text-sm font-medium text-indigo-600"
+            >
+              {t("Connect your infrastructure")}
+            </Link>
+          }
+        />
+      </div>
     );
   }
 
-  const renderList: () => ReactElement = (): ReactElement => {
+  const renderTree: (id: string, depth: number) => ReactElement | null = (
+    id: string,
+    depth: number,
+  ): ReactElement | null => {
+    const node: InfrastructureNode | undefined = model.nodes.get(id);
+    if (!node) {
+      return null;
+    }
+    const containers: Array<string> = node.childIds.filter(
+      (childId: string): boolean => {
+        return (model.nodes.get(childId)?.childIds.length || 0) > 0;
+      },
+    );
+    const isCollapsed: boolean = collapsed.has(id);
+    const selected: boolean = effectiveScopeId === id;
     return (
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-5 py-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            {t("Resource")}
-          </h3>
-          <span className="text-xs text-gray-500">
-            {listedResources.length} {t("resources")}
-          </span>
+      <li key={id}>
+        <div
+          className={`flex items-center gap-1 rounded-md pr-2 ${selected ? "bg-indigo-50 text-indigo-700" : "text-gray-700 hover:bg-gray-100"}`}
+          style={{ paddingLeft: 4 + depth * 14 }}
+        >
+          {containers.length > 0 ? (
+            <button
+              type="button"
+              aria-label={`${t(isCollapsed ? "Expand" : "Collapse")} ${node.name}`}
+              aria-expanded={!isCollapsed}
+              className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 hover:text-gray-700"
+              onClick={() => {
+                setCollapsed((previous: Set<string>) => {
+                  const next: Set<string> = new Set<string>(previous);
+                  if (next.has(id)) {
+                    next.delete(id);
+                  } else {
+                    next.add(id);
+                  }
+                  return next;
+                });
+              }}
+            >
+              <Icon
+                icon={
+                  isCollapsed ? IconProp.ChevronRight : IconProp.ChevronDown
+                }
+                className="h-3.5 w-3.5"
+              />
+            </button>
+          ) : (
+            <span className="h-6 w-6 flex-shrink-0" />
+          )}
+          <button
+            type="button"
+            data-testid={`infrastructure-tree-${id}`}
+            aria-current={selected ? "true" : undefined}
+            className={`flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left text-sm ${node.isActive ? "" : "opacity-60"}`}
+            onClick={() => {
+              openScope(id);
+            }}
+            title={node.name}
+          >
+            <span
+              style={{ color: colorForNode(node) }}
+              className="flex-shrink-0"
+            >
+              <Icon icon={iconForNode(node)} className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1 truncate font-medium">
+              {node.kind === "category" ? t(node.name) : node.name}
+            </span>
+            <span className="flex-shrink-0 rounded bg-white/70 px-1.5 text-xs text-gray-500">
+              {node.kind === "resource"
+                ? node.resourceCount - 1
+                : node.kind === "group"
+                  ? node.childIds.length
+                  : node.resourceCount}
+            </span>
+          </button>
         </div>
-        <ul className="divide-y divide-gray-100">
-          {listedResources
-            .slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
-            .map((resource: InfrastructureResource): ReactElement => {
-              const parent: InfrastructureResource | undefined =
-                model.resources.get(model.parentOf.get(resource.key) || "");
-              const hasChildren: boolean = Boolean(
-                model.childrenOf.get(resource.key)?.length,
-              );
-              return (
-                <li
-                  key={resource.key}
-                  className="flex items-center gap-3 px-4 py-1 hover:bg-gray-50"
-                >
-                  <button
-                    type="button"
-                    className="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-3 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    onClick={() => {
-                      setSelectedKey(resource.key);
-                    }}
-                  >
-                    <span
-                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50"
-                      style={{ color: metaForEntityType(resource.type).color }}
-                    >
-                      <Icon
-                        icon={hasChildren ? IconProp.Layers : IconProp.Cube}
-                        className="h-5 w-5"
-                      />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block break-words text-sm font-medium text-gray-900">
-                        {resource.name}
-                      </span>
-                      <span className="mt-0.5 block truncate text-xs text-gray-500">
-                        {t(metaForEntityType(resource.type).label)}
-                        {parent ? ` · ${parent.name}` : ""}
-                      </span>
-                    </span>
-                    <span className="hidden flex-shrink-0 text-xs text-gray-500 sm:block">
-                      {model.neighborsOf.get(resource.key)?.size || 0}{" "}
-                      {t(
-                        (model.neighborsOf.get(resource.key)?.size || 0) === 1
-                          ? "connection"
-                          : "connections",
-                      )}
-                    </span>
-                    <Icon
-                      icon={IconProp.ChevronRight}
-                      className="h-4 w-4 flex-shrink-0 text-gray-400"
-                    />
-                  </button>
-                  {hasChildren && (
-                    <button
-                      type="button"
-                      className={`${BUTTON} text-indigo-600 hover:bg-indigo-50`}
-                      aria-label={`${t("Explore")} ${resource.name}`}
-                      onClick={() => {
-                        openScope(resource.key);
-                      }}
-                    >
-                      {t("Explore")}
-                    </button>
-                  )}
-                </li>
-              );
+        {containers.length > 0 && !isCollapsed && (
+          <ul>
+            {containers.map((childId: string): ReactElement | null => {
+              return renderTree(childId, depth + 1);
             })}
-        </ul>
+          </ul>
+        )}
+      </li>
+    );
+  };
+
+  const renderServiceChips: (node: InfrastructureNode) => ReactElement = (
+    node: InfrastructureNode,
+  ): ReactElement => {
+    if (node.serviceKeys.length === 0) {
+      return <span className="text-xs text-gray-400">—</span>;
+    }
+    return (
+      <span className="flex flex-wrap gap-1">
+        {node.serviceKeys.slice(0, 3).map((key: string): ReactElement => {
+          const name: string =
+            model.serviceByKey.get(key)?.displayName || "service";
+          return props.onOpenServiceMap ? (
+            <button
+              key={key}
+              type="button"
+              className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+              aria-label={`${t("Show")} ${name} ${t("on the service map")}`}
+              onClick={(event: React.MouseEvent) => {
+                event.stopPropagation();
+                props.onOpenServiceMap?.(key);
+              }}
+            >
+              {name}
+            </button>
+          ) : (
+            <span
+              key={key}
+              className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
+            >
+              {name}
+            </span>
+          );
+        })}
+        {node.serviceKeys.length > 3 && (
+          <span className="px-1 text-xs text-gray-500">
+            +{node.serviceKeys.length - 3}
+          </span>
+        )}
+      </span>
+    );
+  };
+
+  const renderRow: (id: string) => ReactElement | null = (
+    id: string,
+  ): ReactElement | null => {
+    const node: InfrastructureNode | undefined = model.nodes.get(id);
+    if (!node) {
+      return null;
+    }
+    const container: boolean = node.childIds.length > 0;
+    const parent: InfrastructureNode | undefined = node.parentId
+      ? model.nodes.get(node.parentId)
+      : undefined;
+    return (
+      <tr
+        key={id}
+        data-testid="infrastructure-row"
+        className={`cursor-pointer hover:bg-gray-50 ${node.isActive ? "" : "text-gray-400"}`}
+        onClick={() => {
+          openNode(id);
+        }}
+      >
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
+              style={{
+                color: colorForNode(node),
+                background: `${colorForNode(node)}14`,
+              }}
+              aria-hidden={true}
+            >
+              <Icon icon={iconForNode(node)} className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <button
+                type="button"
+                className="block min-w-[10rem] max-w-md break-words text-left text-sm font-medium text-gray-900 hover:text-indigo-600"
+                aria-label={`${t(container ? "Open" : "View details for")} ${node.name}`}
+                onClick={(event: React.MouseEvent) => {
+                  event.stopPropagation();
+                  openNode(id);
+                }}
+              >
+                {node.name}
+              </button>
+              <span className="mt-0.5 block text-xs text-gray-500">
+                {node.kind === "group"
+                  ? t(
+                      `${metaForEntityType(node.entityType || undefined).label} replicas`,
+                    )
+                  : t(metaForEntityType(node.entityType || undefined).label)}
+                {searching && parent && parent.kind !== "category"
+                  ? ` · ${t("in")} ${parent.name}`
+                  : ""}
+              </span>
+            </span>
+          </div>
+        </td>
+        <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-600">
+          {container
+            ? node.kind === "group"
+              ? describeInfrastructureNode(node)
+              : summarizeCounts(node.countsByType) || "—"
+            : "—"}
+        </td>
+        <td className="px-4 py-3">{renderServiceChips(node)}</td>
+        <td className="whitespace-nowrap px-4 py-3 text-xs">
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className={`h-2 w-2 rounded-full ${node.isActive ? "bg-emerald-500" : "bg-gray-300"}`}
+              aria-hidden={true}
+            />
+            <span className={node.isActive ? "text-gray-600" : "text-gray-400"}>
+              {t(node.isActive ? "Active" : "Inactive")} ·{" "}
+              {formatLastSeen(node.lastSeenAt || undefined)}
+            </span>
+          </span>
+        </td>
+        <td className="px-3 py-3 text-right text-gray-400">
+          <Icon icon={IconProp.ChevronRight} className="ml-auto h-4 w-4" />
+        </td>
+      </tr>
+    );
+  };
+
+  const renderTable: (ids: Array<string>) => ReactElement = (
+    ids: Array<string>,
+  ): ReactElement => {
+    const pageCount: number = Math.max(1, Math.ceil(ids.length / PAGE_SIZE));
+    const currentPage: number = Math.min(page, pageCount - 1);
+    return (
+      <div className="overflow-hidden rounded-xl border border-gray-200">
+        {/*
+         * `relative` makes this the containing block of the header's
+         * screen-reader-only label, which is absolutely positioned and would
+         * otherwise escape the scroll region and widen the whole page.
+         */}
+        <div
+          className="relative overflow-x-auto"
+          role="region"
+          aria-label={t("Resources")}
+          tabIndex={0}
+        >
+          <table
+            className="w-full text-left text-sm"
+            data-testid="infrastructure-table"
+          >
+            <thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
+              <tr>
+                <th scope="col" className="px-4 py-2.5 font-medium">
+                  {t("Name")}
+                </th>
+                <th scope="col" className="px-4 py-2.5 font-medium">
+                  {t("Contains")}
+                </th>
+                <th scope="col" className="px-4 py-2.5 font-medium">
+                  {t("Services running")}
+                </th>
+                <th scope="col" className="px-4 py-2.5 font-medium">
+                  {t("Last seen")}
+                </th>
+                <th scope="col" className="px-3 py-2.5">
+                  <span className="sr-only">{t("Open")}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {ids
+                .slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
+                .map(renderRow)}
+            </tbody>
+          </table>
+        </div>
         {pageCount > 1 && (
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <span className="text-xs text-gray-500">
@@ -339,28 +554,36 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     );
   };
 
-  if (model.resources.size === 0) {
+  const renderOverview: () => ReactElement = (): ReactElement => {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-8">
-        <EmptyState
-          id="topology-empty"
-          icon={IconProp.Layers}
-          title="No infrastructure topology discovered yet"
-          description="Connect a host or Kubernetes cluster to discover its resources and see what runs where. Resources also appear when you add them to Inventory."
-          footer={
-            <Link
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.TRACES_DOCUMENTATION] as Route,
-              )}
-              className="text-sm font-medium text-indigo-600"
-            >
-              {t("Connect your infrastructure")}
-            </Link>
+      <div className="space-y-6">
+        {model.rootIds.map((rootId: string): ReactElement | null => {
+          const category: InfrastructureNode | undefined =
+            model.nodes.get(rootId);
+          if (!category) {
+            return null;
           }
-        />
+          return (
+            <section key={rootId} aria-label={t(category.name)}>
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t(category.name)}
+                </h3>
+                <span className="text-xs text-gray-400">
+                  {summarizeCounts(category.countsByType)}
+                </span>
+              </div>
+              {renderTable(category.childIds)}
+            </section>
+          );
+        })}
       </div>
     );
-  }
+  };
+
+  const detailNode: InfrastructureNode | undefined = detailKey
+    ? model.nodes.get(detailKey)
+    : undefined;
 
   return (
     <div data-testid="infrastructure-explorer" className="space-y-4">
@@ -368,27 +591,29 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         {[
           {
             label: "Resources",
-            count: model.resources.size,
-            hint: "Across your inventory",
+            count: model.resourceCount,
+            hint: "Reporting in this time range",
             icon: IconProp.Cube,
           },
           {
-            label: "Groups",
-            count: model.childrenOf.size,
-            hint: "Resources with children",
-            icon: IconProp.Layers,
+            label: "Workloads",
+            count: workloadCount,
+            hint: "Deployments and groups of replicas",
+            icon: IconProp.Squares,
           },
           {
-            label: "Connections",
-            count: model.relationships.length,
-            hint: "Observed infrastructure relationships",
-            icon: IconProp.FlowDiagram,
+            label: "Services placed",
+            count: servicesPlaced,
+            hint: "Services with a known location",
+            icon: IconProp.SquareStack,
           },
           {
-            label: "Unlinked resources",
-            count: model.unlinkedCount,
-            hint: "No observed infrastructure connection",
-            icon: IconProp.Server,
+            label: "Inactive not shown",
+            count: props.includeInactive ? 0 : model.inactiveCount,
+            hint: props.includeInactive
+              ? "Inactive resources are included"
+              : "Silent in this time range",
+            icon: IconProp.Clock,
           },
         ].map(
           (stat: {
@@ -400,7 +625,6 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             return (
               <div
                 key={stat.label}
-                title={t(stat.hint)}
                 className="rounded-xl border border-gray-200 bg-white px-4 py-3"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -412,20 +636,25 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 <p className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
                   {stat.count.toLocaleString()}
                 </p>
-                <p className="sr-only">{t(stat.hint)}</p>
+                <p className="mt-0.5 truncate text-xs text-gray-500">
+                  {t(stat.hint)}
+                </p>
               </div>
             );
           },
         )}
       </div>
+
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-base font-semibold text-gray-900">
-              {t("Infrastructure explorer")}
+              {t("Infrastructure")}
             </h2>
             <p className="mt-1 text-xs text-gray-500">
-              {t("Start with a group, then explore the resources inside it.")}
+              {t(
+                "Where your services run. Replicas of one workload are grouped; open anything to look inside.",
+              )}
             </p>
           </div>
           <div
@@ -434,7 +663,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             className="flex self-start rounded-lg bg-gray-100 p-1"
           >
             {[
-              { id: "explore", label: "Explore", icon: IconProp.Grid },
+              { id: "list", label: "List", icon: IconProp.TableCells },
               { id: "map", label: "Map", icon: IconProp.FlowDiagram },
             ].map(
               (option: {
@@ -447,12 +676,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     key={option.id}
                     type="button"
                     aria-pressed={view === option.id}
+                    data-testid={`infrastructure-view-${option.id}`}
                     className={`${BUTTON} flex items-center gap-2 ${view === option.id ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}
                     onClick={() => {
-                      setView(option.id);
-                      Navigation.setQueryString({
-                        infraView: option.id === "map" ? "map" : null,
-                      });
+                      changeView(option.id as InfrastructureView);
                     }}
                   >
                     <Icon icon={option.icon} className="h-4 w-4" />
@@ -463,82 +690,71 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             )}
           </div>
         </div>
-        <div className="flex flex-col lg:flex-row">
-          <aside
-            aria-label={t("Resource types")}
-            className="border-b border-gray-200 bg-gray-50 p-4 lg:w-56 lg:flex-shrink-0 lg:border-b-0 lg:border-r"
+
+        {model.resourceCount === 0 ? (
+          <div
+            className="px-6 py-12 text-center"
+            data-testid="infrastructure-all-inactive"
           >
-            <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              {t("Browse resources")}
-            </p>
-            <div className="flex flex-wrap gap-1 lg:flex-col">
-              <button
-                type="button"
-                aria-pressed={!type}
-                onClick={() => {
-                  selectType(null);
-                }}
-                className={`${BUTTON} flex items-center justify-between gap-4 text-left ${!type ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-white"}`}
-              >
-                <span>{t("All types")}</span>
-                <span className="text-xs">{allInScope.length}</span>
-              </button>
-              {types.map(
-                (item: { type: string; count: number }): ReactElement => {
-                  return (
-                    <button
-                      key={item.type}
-                      type="button"
-                      aria-pressed={type === item.type}
-                      className={`${BUTTON} flex items-center justify-between gap-3 text-left ${type === item.type ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-white"}`}
-                      onClick={() => {
-                        selectType(type === item.type ? null : item.type);
-                      }}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="h-2 w-2 flex-shrink-0 rounded-full"
-                          style={{
-                            backgroundColor: metaForEntityType(item.type).color,
-                          }}
-                        />
-                        {t(metaForEntityType(item.type).label)}
-                      </span>
-                      <span className="text-xs">{item.count}</span>
-                    </button>
-                  );
-                },
+            <Icon
+              icon={IconProp.Clock}
+              className="mx-auto h-8 w-8 text-gray-300"
+            />
+            <h3 className="mt-3 text-sm font-semibold text-gray-900">
+              {t("Nothing reported in this time range")}
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              {model.inactiveCount}{" "}
+              {t(
+                "resources are known but have been silent. Pick a longer time range or show inactive resources.",
               )}
-            </div>
-            <div className="mt-6 hidden border-t border-gray-200 px-2 pt-4 lg:block">
-              <p className="text-xs font-medium text-gray-700">
-                {t("How to read this view")}
-              </p>
-              <p className="mt-2 text-xs leading-5 text-gray-500">
-                {t(
-                  "Groups show what runs together. Open a resource for its connections and inventory details. Switch to Map to see the relationships visually.",
-                )}
-              </p>
-            </div>
-          </aside>
-          <div className="min-w-0 flex-1 p-5">
-            <nav
-              aria-label={t("Infrastructure location")}
-              className="mb-3 flex flex-wrap items-center gap-2 text-xs"
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col lg:flex-row">
+            <aside
+              aria-label={t("Infrastructure tree")}
+              className="border-b border-gray-200 bg-gray-50/70 p-3 lg:w-72 lg:flex-shrink-0 lg:border-b-0 lg:border-r"
             >
               <button
                 type="button"
-                className="rounded text-indigo-600 hover:underline focus:ring-2 focus:ring-indigo-500"
+                data-testid="infrastructure-tree-root"
+                aria-current={effectiveScopeId === ROOT_ID ? "true" : undefined}
+                className={`mb-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-semibold ${effectiveScopeId === ROOT_ID ? "bg-indigo-50 text-indigo-700" : "text-gray-800 hover:bg-gray-100"}`}
                 onClick={() => {
-                  openScope(null);
+                  openScope(ROOT_ID);
                 }}
               >
-                {t("All infrastructure")}
+                <Icon icon={IconProp.Layers} className="h-4 w-4" />
+                <span className="flex-1">{t("All infrastructure")}</span>
+                <span className="text-xs font-normal text-gray-500">
+                  {model.resourceCount}
+                </span>
               </button>
-              {breadcrumbs.map(
-                (resource: InfrastructureResource): ReactElement => {
+              <ul className="max-h-[60vh] overflow-y-auto">
+                {model.rootIds.map((rootId: string): ReactElement | null => {
+                  return renderTree(rootId, 0);
+                })}
+              </ul>
+            </aside>
+
+            <div className="min-w-0 flex-1 p-5">
+              <nav
+                aria-label={t("Infrastructure location")}
+                className="mb-3 flex flex-wrap items-center gap-1.5 text-xs"
+              >
+                <button
+                  type="button"
+                  className="rounded text-indigo-600 hover:underline focus:ring-2 focus:ring-indigo-500"
+                  onClick={() => {
+                    openScope(ROOT_ID);
+                  }}
+                >
+                  {t("All infrastructure")}
+                </button>
+                {path.map((node: InfrastructureNode): ReactElement => {
                   return (
-                    <React.Fragment key={resource.key}>
+                    <React.Fragment key={node.id}>
                       <Icon
                         icon={IconProp.ChevronRight}
                         className="h-3 w-3 text-gray-400"
@@ -546,25 +762,77 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                       <button
                         type="button"
                         aria-current={
-                          resource.key === effectiveScopeKey
-                            ? "location"
-                            : undefined
+                          node.id === effectiveScopeId ? "location" : undefined
                         }
                         className="max-w-xs truncate rounded text-gray-600 hover:text-indigo-600 focus:ring-2 focus:ring-indigo-500"
-                        title={resource.name}
+                        title={node.name}
                         onClick={() => {
-                          openScope(resource.key);
+                          openScope(node.id);
                         }}
                       >
-                        {resource.name}
+                        {node.kind === "category" ? t(node.name) : node.name}
                       </button>
                     </React.Fragment>
                   );
-                },
-              )}
-            </nav>
-            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative flex-1">
+                })}
+              </nav>
+
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span
+                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
+                    style={{
+                      color: scope ? colorForNode(scope) : "#6366f1",
+                      background: `${scope ? colorForNode(scope) : "#6366f1"}14`,
+                    }}
+                    aria-hidden={true}
+                  >
+                    <Icon
+                      icon={scope ? iconForNode(scope) : IconProp.Layers}
+                      className="h-5 w-5"
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <h3
+                      className="break-all text-base font-semibold text-gray-900"
+                      data-testid="infrastructure-scope-title"
+                    >
+                      {searching
+                        ? t("Search results")
+                        : scope
+                          ? scope.kind === "category"
+                            ? t(scope.name)
+                            : scope.name
+                          : t("All infrastructure")}
+                    </h3>
+                    <p role="status" className="mt-0.5 text-xs text-gray-500">
+                      {searching
+                        ? `${results.length} ${t(results.length === 1 ? "match" : "matches")}`
+                        : scope
+                          ? `${scope.kind === "resource" ? `${t(metaForEntityType(scope.entityType || undefined).label)} · ` : ""}${summarizeCounts(scope.countsByType, 4) || t("Empty")}`
+                          : `${model.resourceCount} ${t("resources")}`}
+                    </p>
+                    {!searching && scope && scope.serviceKeys.length > 0 && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        {t("Runs")} {renderServiceChips(scope)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {!searching && scope?.entity && (
+                  <button
+                    type="button"
+                    className={`${BUTTON} flex-shrink-0 border border-gray-200 text-gray-600 hover:bg-gray-50`}
+                    onClick={() => {
+                      setDetailKey(scope.id);
+                    }}
+                  >
+                    {t("View details")}
+                  </button>
+                )}
+              </div>
+
+              <div className="relative mb-4">
                 <Icon
                   icon={IconProp.Search}
                   className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-gray-400"
@@ -573,15 +841,9 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   type="search"
                   data-testid="topology-search"
                   aria-label={t("Search infrastructure")}
-                  placeholder={
-                    scope
-                      ? t(
-                          model.childrenOf.has(scope.key)
-                            ? "Search within this group…"
-                            : "Search connected resources…",
-                        )
-                      : t("Find a cluster, host, service, or resource…")
-                  }
+                  placeholder={t(
+                    "Find a cluster, host, pod, workload or the service running on it…",
+                  )}
                   value={search}
                   onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                     setSearch(event.target.value);
@@ -589,278 +851,97 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
-              {filtered && (
-                <button
-                  type="button"
-                  className={`${BUTTON} text-indigo-600 hover:bg-indigo-50`}
-                  onClick={resetFilters}
-                >
-                  {t("Clear filters")}
-                </button>
-              )}
-            </div>
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900">
-                  {filtered
-                    ? t("Search results")
-                    : scope?.name || t("Your infrastructure at a glance")}
-                </h3>
-                <p role="status" className="mt-1 text-xs text-gray-500">
-                  {results.length}{" "}
-                  {t(
-                    filtered ? "matching resources" : "resources in this view",
-                  )}
-                  {type ? ` · ${t(metaForEntityType(type).label)}` : ""}
-                </p>
-              </div>
-              {scope && (
-                <button
-                  type="button"
-                  className={`${BUTTON} border border-gray-200 text-gray-600 hover:bg-gray-50`}
-                  onClick={() => {
-                    setSelectedKey(scope.key);
-                  }}
-                >
-                  {t("View resource details")}
-                </button>
-              )}
-            </div>
-            {results.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center">
-                <Icon
-                  icon={IconProp.Search}
-                  className="mx-auto h-8 w-8 text-gray-300"
-                />
-                <h3 className="mt-3 text-sm font-semibold text-gray-900">
-                  {t("No resources match your filters")}
-                </h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  {t(
-                    "Try another name or clear the filters to see everything in this view.",
-                  )}
-                </p>
-                <button
-                  type="button"
-                  className={`${BUTTON} mt-4 bg-indigo-600 text-white hover:bg-indigo-700`}
-                  onClick={resetFilters}
-                >
-                  {t("Clear filters")}
-                </button>
-                {scope && (
+
+              {searching && results.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center">
+                  <Icon
+                    icon={IconProp.Search}
+                    className="mx-auto h-8 w-8 text-gray-300"
+                  />
+                  <h3 className="mt-3 text-sm font-semibold text-gray-900">
+                    {t("No resources match your search")}
+                  </h3>
                   <button
                     type="button"
-                    className={`${BUTTON} ml-2 mt-4 text-indigo-600`}
+                    className={`${BUTTON} mt-4 bg-indigo-600 text-white hover:bg-indigo-700`}
                     onClick={() => {
-                      openScope(null);
+                      setSearch("");
                     }}
                   >
-                    {t("Search all infrastructure")}
+                    {t("Clear search")}
                   </button>
-                )}
-              </div>
-            ) : view === "map" ? (
-              <div className="overflow-hidden rounded-xl border border-gray-200">
-                <p className="border-b border-gray-100 bg-gray-50 px-4 py-3 text-xs text-gray-500">
-                  {t(
-                    "Boxes contain their child resources. Select a resource for details; drag the canvas to pan and use the controls to zoom.",
-                  )}
-                </p>
-                <InfrastructureGraph
-                  key={`${effectiveScopeKey || "all"}-${type || "all"}`}
-                  entities={mapEntities}
-                  relationships={mapRelationships}
-                  onSelectResource={setSelectedKey}
-                />
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {showOverview && groups.length > 0 && (
-                  <section aria-label={t("Infrastructure groups")}>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {groups.map(
-                        (group: InfrastructureResource): ReactElement => {
-                          const descendants: Array<string> =
-                            getInfrastructureDescendants(model, group.key);
-                          const counts: Map<string, number> = new Map();
-                          for (const key of descendants) {
-                            const kind: string = model.resources.get(key)!.type;
-                            counts.set(kind, (counts.get(kind) || 0) + 1);
-                          }
-                          return (
-                            <button
-                              type="button"
-                              key={group.key}
-                              aria-label={`${t("Explore")} ${group.name}`}
-                              onClick={() => {
-                                openScope(group.key);
-                              }}
-                              className="group flex flex-col rounded-xl border border-gray-200 bg-white p-5 text-left transition-colors hover:border-indigo-300 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                              <div className="mb-4 flex w-full items-center justify-between">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-500">
-                                  <Icon
-                                    icon={IconProp.Layers}
-                                    className="h-5 w-5"
-                                  />
-                                </span>
-                                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
-                                  {descendants.length}{" "}
-                                  {t(
-                                    descendants.length === 1
-                                      ? "resource"
-                                      : "resources",
-                                  )}
-                                </span>
-                              </div>
-                              <span className="text-xs text-gray-500">
-                                {t(metaForEntityType(group.type).label)}
-                              </span>
-                              <span className="mt-1 break-all text-sm font-semibold text-gray-900">
-                                {group.name}
-                              </span>
-                              <span className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
-                                {Array.from(counts)
-                                  .slice(0, 3)
-                                  .map(
-                                    ([kind, count]: [
-                                      string,
-                                      number,
-                                    ]): ReactElement => {
-                                      return (
-                                        <span key={kind}>
-                                          {count}{" "}
-                                          {t(metaForEntityType(kind).label)}
-                                        </span>
-                                      );
-                                    },
-                                  )}
-                                {counts.size > 3
-                                  ? ` +${counts.size - 3} ${t("types")}`
-                                  : ""}
-                              </span>
-                              <span className="mt-auto flex items-center gap-2 pt-5 text-xs font-medium text-indigo-600">
-                                {t("Explore resources")}
-                                <Icon
-                                  icon={IconProp.ArrowRight}
-                                  className="h-4 w-4"
-                                />
-                              </span>
-                            </button>
-                          );
-                        },
-                      )}
-                    </div>
-                  </section>
-                )}
-                {showOverview && !scope && directResources.length > 0 ? (
-                  <section>
-                    <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      {t(
-                        groups.length
-                          ? "More resources"
-                          : "Browse by resource type",
-                      )}
-                    </h3>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {Array.from(collections).map(
-                        ([kind, count]: [string, number]): ReactElement => {
-                          return (
-                            <button
-                              key={kind}
-                              type="button"
-                              onClick={() => {
-                                selectType(kind);
-                              }}
-                              className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-4 text-left hover:border-indigo-300 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                              <Icon
-                                icon={IconProp.Cube}
-                                className="h-5 w-5"
-                                style={{ color: metaForEntityType(kind).color }}
-                              />
-                              <span className="flex-1 text-sm font-medium text-gray-700">
-                                {t(metaForEntityType(kind).label)}
-                              </span>
-                              <span className="text-sm text-gray-500">
-                                {count}
-                              </span>
-                              <Icon
-                                icon={IconProp.ChevronRight}
-                                className="h-4 w-4 text-gray-400"
-                              />
-                            </button>
-                          );
-                        },
-                      )}
-                    </div>
-                  </section>
+                </div>
+              ) : view === "map" && !searching ? (
+                <div className="overflow-hidden rounded-xl border border-gray-200">
+                  <p className="border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs text-gray-500">
+                    {t(
+                      "The workloads and machines in this scope, and the services running on them. Open a card to look inside it.",
+                    )}
+                  </p>
+                  <InfrastructureGraph
+                    key={effectiveScopeId}
+                    model={model}
+                    nodeIds={mapCards}
+                    onOpenNode={openNode}
+                    onOpenService={(serviceKey: string) => {
+                      if (props.onOpenServiceMap) {
+                        props.onOpenServiceMap(serviceKey);
+                      } else {
+                        setDetailKey(serviceKey);
+                      }
+                    }}
+                    onShowAll={() => {
+                      changeView("list");
+                    }}
+                  />
+                </div>
+              ) : searching || scope ? (
+                listedIds.length > 0 ? (
+                  renderTable(listedIds)
                 ) : (
-                  listedResources.length > 0 && renderList()
-                )}
-              </div>
-            )}
+                  <p className="rounded-xl border border-dashed border-gray-200 px-6 py-10 text-center text-sm text-gray-500">
+                    {t("Nothing inside this resource.")}
+                  </p>
+                )
+              ) : (
+                renderOverview()
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
-      {selected?.entity && (
+
+      {detailKey && (detailNode?.entity || entityByKey.get(detailKey)) && (
         <EntityDetailPanel
-          entity={selected.entity}
+          entity={(detailNode?.entity || entityByKey.get(detailKey))!}
           relationships={props.relationships}
           entityByKey={entityByKey}
           metricsWindowSeconds={props.metricsWindowSeconds}
           onClose={() => {
-            setSelectedKey(null);
+            setDetailKey(null);
           }}
-          onFocus={openScope}
-          focusButtonLabel="Explore this resource"
-          onSelectEntity={setSelectedKey}
+          onFocus={(key: string) => {
+            setDetailKey(null);
+            const node: InfrastructureNode | undefined = model.nodes.get(key);
+            if (node && node.childIds.length > 0) {
+              openScope(key);
+            } else if (node?.parentId) {
+              openScope(node.parentId);
+            } else if (props.onOpenServiceMap && model.serviceByKey.has(key)) {
+              props.onOpenServiceMap(key);
+            }
+          }}
+          focusButtonLabel={
+            model.serviceByKey.has(detailKey)
+              ? "Show on the service map"
+              : "Show where it is"
+          }
+          onSelectEntity={(key: string) => {
+            if (model.nodes.has(key) || entityByKey.has(key)) {
+              setDetailKey(key);
+            }
+          }}
         />
-      )}
-      {selected && !selected.entity && (
-        <SideOver
-          title={t("Undiscovered resource")}
-          description={selected.key}
-          size={SideOverSize.Small}
-          onClose={() => {
-            setSelectedKey(null);
-          }}
-        >
-          <p className="text-sm text-gray-600">
-            {t(
-              "This resource was referenced by a connection, but its inventory details have not been discovered yet.",
-            )}
-          </p>
-          <h3 className="mt-6 text-sm font-semibold text-gray-900">
-            {t("Known connections")}
-          </h3>
-          <ul className="mt-3 space-y-3">
-            {model.relationships
-              .filter((edge: InventoryItemRelationship): boolean => {
-                return (
-                  edge.fromEntityKey === selected.key ||
-                  edge.toEntityKey === selected.key
-                );
-              })
-              .map(
-                (
-                  edge: InventoryItemRelationship,
-                  index: number,
-                ): ReactElement => {
-                  return (
-                    <li
-                      key={index}
-                      className="break-words text-sm text-gray-600"
-                    >
-                      {model.resources.get(edge.fromEntityKey!)?.name}{" "}
-                      {t(labelForRelationship(edge.relationshipType))}{" "}
-                      {model.resources.get(edge.toEntityKey!)?.name}
-                    </li>
-                  );
-                },
-              )}
-          </ul>
-        </SideOver>
       )}
     </div>
   );

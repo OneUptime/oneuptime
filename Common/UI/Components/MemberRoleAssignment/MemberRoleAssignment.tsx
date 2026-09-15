@@ -4,7 +4,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import Card from "../Card/Card";
+import Card, { CardHeaderLayout } from "../Card/Card";
 import IconProp from "../../../Types/Icon/IconProp";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
@@ -59,6 +59,8 @@ export interface ComponentProps {
   onRefresh?: () => Promise<void>;
   emptyStateMessage?: string;
   className?: string;
+  // Handed to the Card; "stacked" suits a narrow column.
+  headerLayout?: CardHeaderLayout | undefined;
 }
 
 interface ReassignState {
@@ -190,6 +192,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
         title={cardTitle}
         description={cardDescription}
         className={props.className}
+        headerLayout={props.headerLayout}
       >
         <ComponentLoader />
       </Card>
@@ -202,6 +205,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
         title={cardTitle}
         description={cardDescription}
         className={props.className}
+        headerLayout={props.headerLayout}
       >
         <ErrorMessage message={props.error} />
       </Card>
@@ -219,21 +223,31 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
     isLastInGroup?: boolean,
   ): ReactElement => {
     const isPrimaryRole: boolean = role.isPrimaryRole || false;
+    const memberLabel: string = member.userName || member.userEmail;
 
+    /*
+     * The row wraps rather than overflows. The identity block asks for at
+     * least 8rem and truncates the name and email past that, so on a full
+     * width page everything sits on one line. In a narrow sidebar the small
+     * remove icon still fits beside it, and the wider Reassign action drops
+     * onto its own line instead of being clipped - indented (avatar plus gap,
+     * less the button's own padding) so it lines up under the name.
+     */
     return (
       <div
         key={member.memberId.toString()}
-        className={`flex items-center justify-between py-2 ${!isLastInGroup ? "border-b border-gray-100" : ""}`}
+        data-testid="member-role-row"
+        className={`flex flex-wrap items-center justify-between gap-x-2 gap-y-1 py-2 ${!isLastInGroup ? "border-b border-gray-100" : ""}`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-[8rem] flex-1 items-center gap-3">
           {member.userProfilePictureUrl ? (
             <Image
               imageUrl={member.userProfilePictureUrl}
               alt={member.userName}
-              className="h-8 w-8 rounded-full object-cover"
+              className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
             />
           ) : (
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="h-8 w-8 flex-shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
               <span className="text-xs font-medium text-white">
                 {member.userName?.charAt(0)?.toUpperCase() ||
                   member.userEmail?.charAt(0)?.toUpperCase() ||
@@ -241,12 +255,18 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
               </span>
             </div>
           )}
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {member.userName || member.userEmail}
+          <div className="min-w-0 flex-1">
+            <p
+              className="text-sm font-medium text-gray-900 truncate"
+              title={memberLabel}
+            >
+              {memberLabel}
             </p>
             {member.userName && member.userEmail && (
-              <p className="text-xs text-gray-500 truncate">
+              <p
+                className="text-xs text-gray-500 truncate"
+                title={member.userEmail}
+              >
                 {member.userEmail}
               </p>
             )}
@@ -258,8 +278,9 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
             onClick={() => {
               setReassignState({ member, role });
             }}
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors"
+            className="ml-9 inline-flex flex-shrink-0 items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors"
             title="Reassign"
+            aria-label={`Reassign ${role.name} from ${memberLabel}`}
           >
             <Icon icon={IconProp.ArrowCircleRight} className="w-3.5 h-3.5" />
             Reassign
@@ -271,8 +292,9 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
               setShowConfirmDelete(member);
             }}
             disabled={isUnassigning?.toString() === member.memberId.toString()}
-            className="inline-flex items-center p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+            className="ml-auto inline-flex flex-shrink-0 items-center p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
             title="Remove"
+            aria-label={`Remove ${memberLabel} from ${role.name}`}
           >
             {isUnassigning?.toString() === member.memberId.toString() ? (
               <Icon icon={IconProp.Refresh} className="w-4 h-4 animate-spin" />
@@ -291,6 +313,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
         title={cardTitle}
         description={cardDescription}
         className={props.className}
+        headerLayout={props.headerLayout}
         buttons={
           props.onRefresh
             ? [
@@ -345,16 +368,21 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                     key={role.id.toString()}
                     className="border border-gray-200 rounded-lg overflow-hidden"
                   >
-                    {/* Role Header */}
+                    {/*
+                     * Role Header. Wraps like a member row: the Assign
+                     * button moves under the role name (icon plus gap) when
+                     * the card is too narrow to hold both.
+                     */}
                     <div
-                      className="px-4 py-3 flex items-center justify-between"
+                      data-testid="member-role-header"
+                      className="px-4 py-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2"
                       style={{
                         backgroundColor: role.color
                           ? `${role.color.toString()}10`
                           : "#f9fafb",
                       }}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-[8rem] flex-1 items-center gap-3">
                         <div
                           className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                           style={{
@@ -371,9 +399,9 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                             }}
                           />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-900">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="min-w-0 break-words text-sm font-semibold text-gray-900">
                               {role.name}
                             </span>
                             {role.isPrimaryRole && (
@@ -402,7 +430,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                           onClick={() => {
                             setActiveRoleDropdown(role.id);
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shadow-sm text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                          className="ml-12 inline-flex flex-shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shadow-sm text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                         >
                           <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
                           {members.length === 0 ? "Assign" : "Add More"}
@@ -414,8 +442,8 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                     {isDropdownActive && (
                       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                         {availableUsers.length === 0 ? (
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-red-600">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="min-w-0 text-sm text-red-600">
                               All users are already assigned to this role.
                             </p>
                             <button
@@ -430,8 +458,8 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                             </button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 max-w-sm">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="min-w-[10rem] max-w-sm flex-1">
                               <Dropdown
                                 options={availableUsers}
                                 placeholder="Select member..."

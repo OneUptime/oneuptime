@@ -273,14 +273,28 @@ export default class AIInvestigationEngine {
     const onStep: (step: ObservabilityAssistantStep) => Promise<void> = async (
       step: ObservabilityAssistantStep,
     ): Promise<void> => {
+      /*
+       * A completed tool call also records the citation it minted (label +
+       * deep-link target) and — via toolArguments below — the arguments it
+       * ran with, so the panel's evidence list can describe and re-run each
+       * [C#] from this event alone instead of re-parsing the report text.
+       */
       const resultSummary: AIRunEventResultSummary | undefined =
         step.rowCount !== undefined ||
         step.durationMs !== undefined ||
-        step.errorMessage !== undefined
+        step.errorMessage !== undefined ||
+        step.citationLabel !== undefined ||
+        step.citationTarget !== undefined
           ? {
               rowCount: step.rowCount,
               durationInMs: step.durationMs,
               errorMessage: step.errorMessage,
+              ...(step.citationLabel !== undefined
+                ? { citationLabel: step.citationLabel }
+                : {}),
+              ...(step.citationTarget !== undefined
+                ? { citationTarget: step.citationTarget }
+                : {}),
             }
           : undefined;
 

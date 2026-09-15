@@ -127,17 +127,19 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
       .toString();
 
     /*
-     * Accounts currently hands a newly registered user to the Dashboard root.
-     * Older deployments redirect that root to /dashboard/welcome themselves,
-     * while newer ones leave the root in place until project selection has
-     * loaded. Accept either hand-off, then make the onboarding destination
-     * explicit so the remainder of the shared helper is deterministic.
+     * Accounts hands a newly registered user to /dashboard with a full page
+     * load, and the Dashboard owns the next step: once its project list shows
+     * the account has none, Init navigates to /dashboard/welcome itself. Wait
+     * for that final route instead of navigating there from the intermediate
+     * one. A page.goto() issued while that document is still booting cancels
+     * whatever it is still downloading (its lazy Init route bundle), and
+     * anything the document does about that failure races the goto: its
+     * chunk-error recovery used to reload, and Firefox rejected the goto with
+     * NS_BINDING_ABORTED in dozens of unrelated specs. Waiting also keeps this
+     * helper strict: a Dashboard that stops reaching the welcome page on its
+     * own fails here rather than being papered over by a second navigation.
      */
-    await page.waitForURL(/\/dashboard(?:\/welcome)?\/?$/);
-
-    if (page.url() !== welcomeUrl) {
-      await page.goto(welcomeUrl, { waitUntil: "domcontentloaded" });
-    }
+    await page.waitForURL(welcomeUrl);
 
     await page
       .getByTestId("create-new-project-button")

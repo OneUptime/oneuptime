@@ -146,6 +146,7 @@ import {
   buildFacetDisplayNames,
   buildLockedAttributeChip,
   buildTraceEntityTypeHints,
+  buildTracesLockedEntityKeyChips,
   collectTraceEntityIdsToResolve,
   describeStoredQueryChip,
   entityScopeForAttributeKey,
@@ -155,11 +156,11 @@ import {
 import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import {
   LOCKED_FILTER_SOURCE_PAGE,
-  buildLockedScopeCopyText,
   describeLockedAttributeFilter,
   describeLockedEntityFilter,
 } from "../../Utils/LockedTelemetryScope";
-import { buildLockedScopeExplorerLink } from "../../Utils/LockedTelemetryScopeLink";
+import { buildLockedScopeFilterActions } from "../../Utils/LockedTelemetryScopeLink";
+import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -515,6 +516,14 @@ interface Props {
    */
   entityKeysFilter?: Array<string> | undefined;
   /*
+   * How the locked chip names each `entityKeysFilter` key: "Kubernetes Pod:
+   * checkout-7d9f" on an Inventory item's Traces tab rather than the hash the
+   * filter matches on. Display only. A key without an entry still gets its
+   * chip, reading "Resource: <key>": a list narrowed behind an empty chip bar
+   * looks like every span in the project.
+   */
+  entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
+  /*
    * Entity scope with attribute fallback: compiles server-side to
    * `hasAny(entityKeys, [...]) OR attributes[attributeKey] = attributeValue`
    * so pre-entityKeys rows (no backfill) still match. Placed on the query
@@ -615,8 +624,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   );
 
   /*
-   * Parse all filter state from the URL once on first mount. SpanViewer's
-   * "filter by" action lands here with `?search=...` so users arrive with
+   * Parse all filter state from the URL once on first mount. The trace span
+   * panel's "find traces" action lands here with `?search=...` so users arrive with
    * the filter applied; refresh and back-from-trace-detail also rely on
    * this so the view restores rather than resetting to defaults.
    *
@@ -1250,8 +1259,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * restore the view. Uses `replaceState` so individual filter tweaks don't
    * push history entries (you'd otherwise have to back-button through every
    * keystroke). Page/pageSize/range defaults are omitted to keep the URL
-   * minimal — and `?search=` already handles the SpanViewer "filter by" deep
-   * link from before this change.
+   * minimal — and `?search=` already handles the trace span panel's "find
+   * traces" deep link.
    */
   useEffect(() => {
     /*
@@ -2385,10 +2394,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
   /*
    * Read-only chips for prop-level scoping (a service page's entity, a
-   * snapshot's stored query, a resource page's attribute filters). Each
-   * carries a LockedFilterDetail — what it matches and why it is locked —
-   * which the chip renders as its tooltip and the "Copy filter" / "Open in
-   * Traces" actions below are built from. Kept apart from the user's chips
+   * snapshot's stored query, an Inventory item's entity key, a resource
+   * page's attribute filters). Each carries a LockedFilterDetail — what it
+   * matches and why it is locked — which the chip renders as its tooltip and
+   * the "Copy filter" / "Open in Traces" actions below are built from. Kept
+   * apart from the user's chips
    * so those actions describe the pinned scope alone.
    */
   const lockedChips: Array<ActiveFilter> = useMemo(() => {
@@ -2519,6 +2529,25 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         lockedDetail: describeStoredQueryChip(resolved, storedQueryContext),
       });
     }
+    /*
+     * The page's entity-key scope (an Inventory item's Traces tab). It has no
+     * attribute counterpart, so without this chip the list was narrowed
+     * behind an empty chip bar. Placed AFTER the stored query's chips, for two
+     * reasons: the server ORs both sets of keys into one `hasAny`, so every
+     * entity-key chip sits together; and the duplicate check reads `base`, so
+     * a key the stored query's chip already shows is not shown twice while a
+     * stored chip withheld above (a column the user filtered) cannot take the
+     * page's key off screen. `entityScope` is not read: the attribute chip
+     * below already explains a Kubernetes / Host page's scope.
+     */
+    base.push(
+      ...buildTracesLockedEntityKeyChips({
+        entityKeysFilter: props.entityKeysFilter,
+        displays: props.entityKeyDisplays,
+        storedQueryEntityKeys: spanScope.entityKeys,
+        lockedChips: base,
+      }),
+    );
     if (props.attributeFilters) {
       for (const [key, value] of Object.entries(props.attributeFilters)) {
         if (!value) {
@@ -2559,6 +2588,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     props.attributeFilterDisplayKeys,
     props.attributeFilterDisplayValues,
     props.entityScope,
+    props.entityKeysFilter,
+    props.entityKeyDisplays,
     spanScope,
     activeFilters,
     submittedSearch,
@@ -2601,36 +2632,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * locked chips alone — the user's own chips are theirs to carry. The link
    * builder reads the current URL for the project route; a host without one
    * (a preview outside the dashboard shell) keeps the copy affordance only
-   * rather than losing the chip bar to a thrown error.
+   * rather than losing the chip bar to a thrown error. That fallback, and the
+   * rule that a link carrying none of the scope is not offered, live in the
+   * shared builder, where they are exercised on real chips.
    */
   const lockedFilterActions: LockedFilterActionOptions | undefined =
     useMemo(() => {
-      if (lockedChips.length === 0) {
-        return undefined;
-      }
-
-      const copyText: string = buildLockedScopeCopyText("traces", lockedChips);
-
-      try {
-        const link: ReturnType<typeof buildLockedScopeExplorerLink> =
-          buildLockedScopeExplorerLink({
-            signal: "traces",
-            filters: lockedChips.map(
-              (chip: ActiveFilter): { facetKey: string; value: string } => {
-                return { facetKey: chip.facetKey, value: chip.value };
-              },
-            ),
-            timeRange,
-          });
-
-        return {
-          copyText,
-          openExplorerRoute: link.url,
-          notCarried: link.notCarried,
-        };
-      } catch {
-        return { copyText };
-      }
+      return buildLockedScopeFilterActions({
+        signal: "traces",
+        chips: lockedChips,
+        timeRange,
+      });
     }, [lockedChips, timeRange]);
 
   /*
@@ -2941,11 +2953,24 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
   /*
    * Saved views are only offered on the top-level traces explorer — not when
-   * the viewer is scoped to a resource (service / host / docker / k8s detail).
+   * the viewer is scoped to a resource (service / host / docker / k8s detail,
+   * or an Inventory item's entity-key scope).
+   *
+   * Hiding the control is also what keeps the project's DEFAULT saved view
+   * from auto-applying over the page's scope: only the mounted control
+   * resolves and applies one. So the entity-key scope is gated here, beside
+   * the entity id and entity scope, and deliberately NOT folded into
+   * hostOwnsView — those resource pages keep their URL state (refresh, back
+   * from a trace), and so does the Inventory item's Traces tab.
    */
+  const hasEntityKeysScope: boolean = Boolean(
+    props.entityKeysFilter && props.entityKeysFilter.length > 0,
+  );
+
   const enableSavedViews: boolean =
     !props.primaryEntityId &&
     !props.entityScope &&
+    !hasEntityKeysScope &&
     // A hosted view (a pinned incident snapshot, a controlled window) is not the user's to save over.
     !hostOwnsView &&
     !spanScope.hasScope &&

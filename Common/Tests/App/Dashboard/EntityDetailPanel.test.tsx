@@ -161,3 +161,168 @@ describe("topology connection details", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("service map details", () => {
+  const SERVICE: InventoryItem = {
+    entityKey: "svc",
+    displayName: "api",
+    entityType: EntityType.Service,
+    descriptiveAttributes: { "telemetry.sdk.language": "nodejs" },
+  } as unknown as InventoryItem;
+  const POD: InventoryItem = {
+    entityKey: "pod",
+    displayName: "api-6d4f8b9c7d-x2k9p",
+    entityType: EntityType.KubernetesPod,
+  } as InventoryItem;
+  const POSTGRES: InventoryItem = {
+    entityKey: "pg",
+    displayName: "orders",
+    entityType: EntityType.Database,
+    identifyingAttributes: { "db.system.name": "postgresql" },
+  } as unknown as InventoryItem;
+  const byKey: Map<string, InventoryItem> = new Map<string, InventoryItem>([
+    ["svc", SERVICE],
+    ["pod", POD],
+    ["pg", POSTGRES],
+  ]);
+  const relationships: Array<InventoryItemRelationship> = [
+    {
+      fromEntityKey: "svc",
+      toEntityKey: "pg",
+      relationshipType: EntityRelationshipType.DependsOn,
+      callCount: 60,
+      errorCount: 0,
+      avgDurationMs: 4,
+    },
+    {
+      fromEntityKey: "svc",
+      toEntityKey: "pod",
+      relationshipType: EntityRelationshipType.RunsOn,
+    },
+  ] as Array<InventoryItemRelationship>;
+
+  function renderService(
+    options: {
+      onOpenInfrastructure?: (key: string) => void;
+      onSelectEntity?: (key: string) => void;
+    } = {},
+  ): void {
+    render(
+      <EntityDetailPanel
+        entity={SERVICE}
+        relationships={relationships}
+        entityByKey={byKey}
+        metricsWindowSeconds={60}
+        traffic={{
+          inbound: { calls: 0, errors: 0, avgDurationMs: null },
+          outbound: { calls: 60, errors: 0, avgDurationMs: 4 },
+          statusLabel: "Entry point",
+          statusColor: "#6366f1",
+          subtitle: "Service · Node.js",
+        }}
+        onClose={() => {
+          return undefined;
+        }}
+        onFocus={() => {
+          return undefined;
+        }}
+        onSelectEntity={options.onSelectEntity}
+        onOpenInfrastructure={options.onOpenInfrastructure}
+      />,
+    );
+  }
+
+  test("leads with status and the traffic in both directions", () => {
+    renderService();
+    expect(screen.getByTestId("entity-detail-status")).toHaveTextContent(
+      "Entry point",
+    );
+    expect(
+      screen.getByText("Requests it answered").parentElement,
+    ).toHaveTextContent("None observed");
+    expect(screen.getByText("Calls it made").parentElement).toHaveTextContent(
+      "60/min",
+    );
+    expect(screen.getByText("Calls it made").parentElement).toHaveTextContent(
+      "4ms",
+    );
+  });
+
+  test("separates what it calls from where it runs", () => {
+    renderService();
+    expect(screen.getByTestId("entity-detail-calls")).toHaveTextContent(
+      "api depends on orders",
+    );
+    expect(screen.getByTestId("entity-detail-calls")).toHaveTextContent(
+      "Database",
+    );
+    expect(screen.getByTestId("entity-detail-runs-on")).toHaveTextContent(
+      "api runs on api-6d4f8b9c7d-x2k9p",
+    );
+    expect(
+      screen.queryByTestId("entity-detail-called-by"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("placements open in the Infrastructure view, calls stay on the map", () => {
+    const onOpenInfrastructure: MockFunction = getJestMockFunction();
+    const onSelectEntity: MockFunction = getJestMockFunction();
+    renderService({ onOpenInfrastructure, onSelectEntity });
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "View details for api-6d4f8b9c7d-x2k9p",
+      }),
+    );
+    expect(onOpenInfrastructure).toHaveBeenCalledWith("pod");
+    fireEvent.click(
+      screen.getByRole("button", { name: "View details for orders" }),
+    );
+    expect(onSelectEntity).toHaveBeenCalledWith("pg");
+  });
+
+  test("a resource lists the services running on it as related infrastructure", () => {
+    render(
+      <EntityDetailPanel
+        entity={POD}
+        relationships={relationships}
+        entityByKey={byKey}
+        metricsWindowSeconds={60}
+        onClose={() => {
+          return undefined;
+        }}
+        onFocus={() => {
+          return undefined;
+        }}
+      />,
+    );
+    expect(screen.getByTestId("entity-detail-related")).toHaveTextContent(
+      "api runs on api-6d4f8b9c7d-x2k9p",
+    );
+    expect(
+      screen.queryByTestId("entity-detail-runs-on"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("shows the attributes that identify a dependency", () => {
+    render(
+      <EntityDetailPanel
+        entity={POSTGRES}
+        relationships={relationships}
+        entityByKey={byKey}
+        metricsWindowSeconds={60}
+        onClose={() => {
+          return undefined;
+        }}
+        onFocus={() => {
+          return undefined;
+        }}
+      />,
+    );
+    expect(screen.getByText("Database engine").parentElement).toHaveTextContent(
+      "postgresql",
+    );
+    expect(screen.getByTestId("entity-detail-called-by")).toHaveTextContent(
+      "api depends on orders",
+    );
+  });
+});

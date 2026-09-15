@@ -498,8 +498,36 @@ export class InventoryItemService extends DatabaseService<Model> {
       }
     }
 
+    for (const key of this.dependencyDisplayNameOrderByType[
+      entity.entityType
+    ] || []) {
+      if (id[key]) {
+        return id[key]!;
+      }
+    }
+
     return this.deriveFallbackDisplayName(entity);
   }
+
+  /*
+   * Dependency endpoints have composite identities in which the most
+   * recognisable part is not a `*.name` key: a database reads best as its
+   * namespace ("orders"), then the host it lives on, and only as a last
+   * resort as its engine ("postgresql" is shared by every Postgres a project
+   * calls). Remote endpoints read best as the service name their callers gave
+   * them, then their host.
+   */
+  private static readonly dependencyDisplayNameOrderByType: Partial<
+    Record<EntityType, Array<string>>
+  > = {
+    [EntityType.Database]: ["db.namespace", "server.address", "db.system.name"],
+    [EntityType.RemoteService]: [
+      "peer.service",
+      "server.address",
+      "rpc.service",
+      "messaging.system",
+    ],
+  };
 
   /** The generic display-name algorithm used before type-aware K8s names. */
   private static deriveFallbackDisplayName(entity: ExtractedEntity): string {

@@ -56,7 +56,6 @@ export interface ComponentProps {
 interface TrendTooltipProps {
   active?: boolean;
   payload?: Array<{ payload?: ExceptionTrendRow }>;
-  windowKey: ExceptionTrendWindowKey;
 }
 
 function formatTick(
@@ -331,7 +330,7 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
               />
               <Tooltip
                 cursor={{ fill: "rgba(99,102,241,0.06)" }}
-                content={<TrendTooltip windowKey={windowKey} />}
+                content={<TrendTooltip />}
               />
               <Bar
                 dataKey="unhandled"

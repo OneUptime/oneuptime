@@ -11,6 +11,7 @@ import Card from "Common/UI/Components/Card/Card";
 import SeriesLabelsViewer from "Common/UI/Components/Monitor/SeriesLabelsViewer";
 import SeriesDebugCommandsViewer from "Common/UI/Components/Monitor/SeriesDebugCommandsViewer";
 import SeriesDebugHints from "Common/Types/Monitor/SeriesContext/SeriesDebugHints";
+import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -19,14 +20,37 @@ import API from "Common/UI/Utils/API/API";
 
 export interface ComponentProps {
   incidentId: ObjectID;
+  /*
+   * The incident's series labels, when the page has already read them with
+   * the rest of the incident (null when it has none). Leave it undefined and
+   * the card reads them itself.
+   */
+  seriesLabels?: JSONObject | null | undefined;
 }
+
+type NormalizeLabelsFunction = (
+  labels: JSONObject | null | undefined,
+) => JSONObject | undefined;
+
+const normalizeSeriesLabels: NormalizeLabelsFunction = (
+  labels: JSONObject | null | undefined,
+): JSONObject | undefined => {
+  if (!labels || Object.keys(labels).length === 0) {
+    return undefined;
+  }
+
+  return labels;
+};
 
 const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [seriesLabels, setSeriesLabels] = useState<JSONObject | undefined>(
-    undefined,
-  );
+  const incidentIdString: string = props.incidentId.toString();
+  const hasSeriesLabelsFromPage: boolean = props.seriesLabels !== undefined;
+
+  const [fetchedSeriesLabels, setFetchedSeriesLabels] = useState<
+    JSONObject | undefined
+  >(undefined);
   /*
    * The monitor type decides which commands make sense for this series
    * (kubectl vs docker vs df), so it is fetched alongside the labels.
@@ -34,6 +58,10 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
   const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
     undefined,
   );
+
+  const seriesLabels: JSONObject | undefined = hasSeriesLabelsFromPage
+    ? normalizeSeriesLabels(props.seriesLabels)
+    : fetchedSeriesLabels;
 
   const fetchSeriesLabels: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -45,23 +73,16 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
         },
       });
 
-      const labels: JSONObject | undefined = incident?.seriesLabels as
-        | JSONObject
-        | undefined;
-
-      if (!labels || Object.keys(labels).length === 0) {
-        setSeriesLabels(undefined);
-        return;
-      }
-
-      setSeriesLabels(labels);
+      setFetchedSeriesLabels(
+        normalizeSeriesLabels(incident?.seriesLabels as JSONObject | undefined),
+      );
     } catch (err) {
       /*
        * Fetch failure is not worth surfacing - the section simply doesn't
        * render. The main incident detail shows the error state.
        */
       API.getFriendlyMessage(err);
-      setSeriesLabels(undefined);
+      setFetchedSeriesLabels(undefined);
     }
   };
 
@@ -96,18 +117,40 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * Keyed on the id's string: the page builds a new ObjectID on every render,
+   * and keying on that instance re-read the row each time the page did.
+   */
   useEffect(() => {
+    if (hasSeriesLabelsFromPage) {
+      return;
+    }
+
     fetchSeriesLabels().catch(() => {
       // handled inside fetchSeriesLabels
     });
+  }, [incidentIdString, hasSeriesLabelsFromPage]);
+
+  const hasSeriesLabels: boolean = Boolean(seriesLabels);
+
+  // Most incidents are not per-series, and then there are no commands to pick.
+  useEffect(() => {
+    if (!hasSeriesLabels) {
+      setMonitorType(undefined);
+      return;
+    }
+
     fetchMonitorType().catch(() => {
       // handled inside fetchMonitorType
     });
-  }, [props.incidentId]);
+  }, [incidentIdString, hasSeriesLabels]);
 
   if (!seriesLabels) {
     return <Fragment />;
   }
+
+  const hasDisplayLabels: boolean =
+    SeriesLabelDisplay.getDisplayLabels(seriesLabels).length > 0;
 
   const hasDebugCommands: boolean =
     SeriesDebugHints.getDebugCommands({
@@ -121,11 +164,17 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
         title="Affected Resource"
         description="The specific resource (e.g. host, pod, container) that triggered this incident. Present when a metric monitor is grouped by one or more attributes."
       >
-        <SeriesLabelsViewer seriesLabels={seriesLabels} />
+        {hasDisplayLabels ? (
+          <SeriesLabelsViewer seriesLabels={seriesLabels} />
+        ) : (
+          <div className="py-2 text-sm text-gray-400">
+            No resource labels on this incident.
+          </div>
+        )}
       </Card>
       {hasDebugCommands ? (
         <Card
-          title="Start Here"
+          title="Debug commands"
           description="Read-only commands for this exact resource, already filled in. Nothing here changes state."
         >
           <SeriesDebugCommandsViewer

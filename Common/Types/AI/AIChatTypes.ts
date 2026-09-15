@@ -210,6 +210,14 @@ export interface AIRunEventResultSummary {
   message?: string | undefined;
   // Log severity for ProgressLog events (Info/Warning/Error/…).
   severity?: string | undefined;
+  /*
+   * The server-minted citation label and deep-link target of the tool call
+   * that completed (ToolCallCompleted events of autonomous investigations).
+   * Persisted so the investigation panel can show exactly what each [C#]
+   * checked without re-parsing the report text.
+   */
+  citationLabel?: string | undefined;
+  citationTarget?: AIChatCitationTarget | undefined;
 }
 
 /*

@@ -61,6 +61,16 @@ import {
   resolveMetricsChipDisplay,
 } from "../../FeatureSet/Dashboard/src/Utils/MetricsEntityChipDisplay";
 import {
+  buildLockedScopeCopyText,
+  describeLockedEntityKeyFilter,
+} from "../../FeatureSet/Dashboard/src/Utils/LockedTelemetryScope";
+import {
+  LockedEntityKeyDisplay,
+  LockedEntityKeyDisplayMap,
+} from "../../FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
+import { buildInventoryEntityKeyDisplays } from "../../FeatureSet/Dashboard/src/Components/Inventory/InventoryTelemetryScope";
+import EntityType from "Common/Types/Telemetry/EntityType";
+import {
   SERVICE_FACET_KEYS,
   RESOURCE_ENTITY_FACET_KEYS,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
@@ -1662,5 +1672,573 @@ describe("getMetricsUnnamedScopeIds (Insights scope pill lookups)", () => {
     expect(
       getMetricsScopeFallbackLabel({ id: RUM_APP_ID, nameMap: RUM_NAME_MAP }),
     ).toBe("checkout-web");
+  });
+});
+
+/*
+ * An Inventory item's Metrics page scopes the list by entity-key membership
+ * (`hasAny(entityKeys, [item key])`) and by nothing else, and the chip bar
+ * used to show nothing at all: a filtered list that looked like the whole
+ * project. These pin the locked chip the builder now adds for
+ * `entityKeysFilter` — how it reads with and without the page's names, where
+ * it sits among the other chips, what it explains — and that the
+ * `entityScope` of a Kubernetes / host page, already explained on its
+ * attribute chip, never grows a second one. The describer's wording for
+ * every rows noun is owned by LockedTelemetryScope.test.ts, so a chip's
+ * detail is compared to the describer here, with the metrics sentence and
+ * reason — what this chip bar shows — spelled out.
+ */
+describe("buildMetricsActiveFilterChips — the entity-key scope (Inventory item pages)", () => {
+  const POD_KEY: string = "3f9a1b2c4d5e6f70";
+  const OTHER_KEY: string = "aaaaaaaaaaaaaaaa";
+  const THIRD_KEY: string = "bbbbbbbbbbbbbbbb";
+
+  const PAGE_SOURCE: string = "Pinned by this page";
+  const CANNOT_TRAVEL: string =
+    "This filter cannot be copied or carried to the explorer.";
+
+  const POD_DISPLAYS: LockedEntityKeyDisplayMap = {
+    [POD_KEY]: { displayKey: "Kubernetes Pod", displayValue: "checkout-7d9f" },
+  };
+
+  type ChipRow = [string, string, string, string, boolean];
+
+  type RowsOfFunction = (chips: Array<ActiveFilter>) => Array<ChipRow>;
+
+  // facetKey, value, displayKey, displayValue, locked — what the bar renders.
+  const rowsOf: RowsOfFunction = (
+    chips: Array<ActiveFilter>,
+  ): Array<ChipRow> => {
+    return chips.map((chip: ActiveFilter): ChipRow => {
+      return [
+        chip.facetKey,
+        chip.value,
+        chip.displayKey,
+        chip.displayValue,
+        Boolean(chip.readOnly),
+      ];
+    });
+  };
+
+  type DetailOfFunction = (
+    chip: ActiveFilter | undefined,
+  ) => LockedFilterDetail;
+
+  const detailOf: DetailOfFunction = (
+    chip: ActiveFilter | undefined,
+  ): LockedFilterDetail => {
+    expect(chip).toBeDefined();
+    expect(chip!.lockedDetail).toBeDefined();
+
+    return chip!.lockedDetail as LockedFilterDetail;
+  };
+
+  type ChipInput = Parameters<typeof buildMetricsActiveFilterChips>[0];
+
+  interface InventoryChipsInput {
+    entityKeysFilter?: ReadonlyArray<string> | undefined;
+    entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
+    activeFilters?: Array<ActiveFilter> | undefined;
+  }
+
+  type InventoryChipsFunction = (
+    input: InventoryChipsInput,
+  ) => Array<ActiveFilter>;
+
+  /*
+   * The Inventory page's shape: the entity-key scope and nothing else. The
+   * viewer counts that scope as scoped (isScoped, pinned in
+   * MetricsLockedScopeWiring.test.ts), so it hands the builder no facet
+   * configs, exactly as on the page.
+   */
+  const inventoryChips: InventoryChipsFunction = (
+    input: InventoryChipsInput,
+  ): Array<ActiveFilter> => {
+    return buildMetricsActiveFilterChips({
+      scopeIds: undefined,
+      scopeEntityType: undefined,
+      attributeFilters: undefined,
+      entityKeysFilter: input.entityKeysFilter,
+      entityKeyDisplays: input.entityKeyDisplays,
+      activeFilters: input.activeFilters || [],
+      facetConfigs: [],
+      nameMap: {},
+    });
+  };
+
+  test("reads as the page names the item, keeps the raw key as the filter value, and explains the membership", () => {
+    const chips: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY],
+      entityKeyDisplays: POD_DISPLAYS,
+    });
+
+    expect(chips).toEqual([
+      {
+        facetKey: "entityKeys",
+        value: POD_KEY,
+        displayKey: "Kubernetes Pod",
+        displayValue: "checkout-7d9f",
+        readOnly: true,
+        lockedDetail: describeLockedEntityKeyFilter({
+          rows: "metrics",
+          entityKey: POD_KEY,
+          entityKeys: [POD_KEY],
+          entityTypeLabel: "Kubernetes Pod",
+        }),
+      },
+    ]);
+    expect(detailOf(chips[0]).summary).toBe(
+      "Only metrics linked to this Kubernetes Pod are shown.",
+    );
+    expect(detailOf(chips[0]).searchTokenUnavailableReason).toBe(CANNOT_TRAVEL);
+    // No search grammar has an entity-key token, so none is offered.
+    expect(detailOf(chips[0]).searchToken).toBeUndefined();
+  });
+
+  test("REGRESSION: without a display map the chip still renders, as Resource: <key>", () => {
+    /*
+     * The bug was a filtered list under an empty chip bar. A page that does
+     * not name its entity must still get the pill, just in plainer words.
+     */
+    const displayMaps: Array<LockedEntityKeyDisplayMap | undefined> = [
+      undefined,
+      {},
+    ];
+
+    for (const entityKeyDisplays of displayMaps) {
+      const chips: Array<ActiveFilter> = inventoryChips({
+        entityKeysFilter: [POD_KEY],
+        entityKeyDisplays,
+      });
+
+      expect(rowsOf(chips)).toEqual([
+        ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
+      ]);
+      expect(detailOf(chips[0])).toEqual(
+        describeLockedEntityKeyFilter({ rows: "metrics", entityKey: POD_KEY }),
+      );
+      expect(detailOf(chips[0]).summary).toBe(
+        "Only metrics linked to this resource are shown.",
+      );
+    }
+  });
+
+  test("a blank or whitespace display falls back field by field, and what it keeps is trimmed", () => {
+    const cases: Array<{
+      display: LockedEntityKeyDisplay;
+      row: ChipRow;
+      summary: string;
+    }> = [
+      {
+        display: { displayKey: "", displayValue: "" },
+        row: ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
+        summary: "Only metrics linked to this resource are shown.",
+      },
+      {
+        display: { displayKey: "   ", displayValue: "\t \n" },
+        row: ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
+        summary: "Only metrics linked to this resource are shown.",
+      },
+      {
+        display: { displayKey: "  Kubernetes Pod  ", displayValue: "   " },
+        row: ["entityKeys", POD_KEY, "Kubernetes Pod", POD_KEY, true],
+        summary: "Only metrics linked to this Kubernetes Pod are shown.",
+      },
+      {
+        display: { displayKey: " ", displayValue: "  checkout-7d9f  " },
+        row: ["entityKeys", POD_KEY, "Resource", "checkout-7d9f", true],
+        summary: "Only metrics linked to this resource are shown.",
+      },
+      {
+        // The default word spelled out by the page reads the same as none.
+        display: { displayKey: "Resource", displayValue: "checkout-7d9f" },
+        row: ["entityKeys", POD_KEY, "Resource", "checkout-7d9f", true],
+        summary: "Only metrics linked to this resource are shown.",
+      },
+      {
+        // Whatever arrives at runtime, a non-string is not a name.
+        display: {
+          displayKey: undefined as unknown as string,
+          displayValue: 42 as unknown as string,
+        },
+        row: ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
+        summary: "Only metrics linked to this resource are shown.",
+      },
+    ];
+
+    for (const testCase of cases) {
+      const chips: Array<ActiveFilter> = inventoryChips({
+        entityKeysFilter: [POD_KEY],
+        entityKeyDisplays: { [POD_KEY]: testCase.display },
+      });
+
+      expect(rowsOf(chips)).toEqual([testCase.row]);
+      expect(detailOf(chips[0]).summary).toBe(testCase.summary);
+    }
+  });
+
+  test("a display map that does not name this key falls back to the key", () => {
+    expect(
+      rowsOf(
+        inventoryChips({
+          entityKeysFilter: [OTHER_KEY],
+          entityKeyDisplays: POD_DISPLAYS,
+        }),
+      ),
+    ).toEqual([["entityKeys", OTHER_KEY, "Resource", OTHER_KEY, true]]);
+  });
+
+  test("one chip per key in the page's order, each saying the keys widen the scope rather than narrow it", () => {
+    const chips: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY, OTHER_KEY],
+      entityKeyDisplays: POD_DISPLAYS,
+    });
+
+    expect(rowsOf(chips)).toEqual([
+      ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
+      ["entityKeys", OTHER_KEY, "Resource", OTHER_KEY, true],
+    ]);
+
+    /*
+     * `hasAny` admits a row carrying ANY of the keys, so two chips side by
+     * side must not read like two filters AND-ed together.
+     */
+    expect(detailOf(chips[0])).toEqual(
+      describeLockedEntityKeyFilter({
+        rows: "metrics",
+        entityKey: POD_KEY,
+        entityKeys: [POD_KEY, OTHER_KEY],
+        entityTypeLabel: "Kubernetes Pod",
+      }),
+    );
+    expect(detailOf(chips[0]).summary).toBe(
+      "Metrics linked to this Kubernetes Pod are shown, along with metrics linked to the 1 other resource this page pins.",
+    );
+    expect(detailOf(chips[1]).summary).toBe(
+      "Metrics linked to this resource are shown, along with metrics linked to the 1 other resource this page pins.",
+    );
+    // Each chip is described from its own key, with the other widening it.
+    expect(detailOf(chips[1])).toEqual(
+      describeLockedEntityKeyFilter({
+        rows: "metrics",
+        entityKey: OTHER_KEY,
+        entityKeys: [POD_KEY, OTHER_KEY],
+      }),
+    );
+
+    const three: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY, OTHER_KEY, THIRD_KEY],
+    });
+
+    expect(
+      three.map((chip: ActiveFilter): string => {
+        return detailOf(chip).summary;
+      }),
+    ).toEqual([
+      "Metrics linked to this resource are shown, along with metrics linked to the 2 other resources this page pins.",
+      "Metrics linked to this resource are shown, along with metrics linked to the 2 other resources this page pins.",
+      "Metrics linked to this resource are shown, along with metrics linked to the 2 other resources this page pins.",
+    ]);
+    expect(detailOf(three[2]).predicates[0]!.expression).toBe(
+      `entityKeys has any of ${THIRD_KEY}, ${POD_KEY}, ${OTHER_KEY}`,
+    );
+  });
+
+  test("blank and repeated keys are dropped before anything is counted, so a lone key keeps the single-key wording", () => {
+    const chips: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: ["", "   ", `  ${POD_KEY}  `, POD_KEY, "\t"],
+      entityKeyDisplays: POD_DISPLAYS,
+    });
+
+    expect(rowsOf(chips)).toEqual([
+      ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
+    ]);
+    expect(detailOf(chips[0]).summary).toBe(
+      "Only metrics linked to this Kubernetes Pod are shown.",
+    );
+    expect(detailOf(chips[0]).predicates[0]!.expression).toBe(
+      `entityKeys has ${POD_KEY}`,
+    );
+
+    const repeated: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY, OTHER_KEY, POD_KEY, ` ${OTHER_KEY}`],
+    });
+
+    expect(rowsOf(repeated)).toEqual([
+      ["entityKeys", POD_KEY, "Resource", POD_KEY, true],
+      ["entityKeys", OTHER_KEY, "Resource", OTHER_KEY, true],
+    ]);
+    expect(detailOf(repeated[0]).summary).toBe(
+      "Metrics linked to this resource are shown, along with metrics linked to the 1 other resource this page pins.",
+    );
+  });
+
+  test("no entity key, no entity-key chip — even when the page hands over a display map", () => {
+    const filters: Array<ReadonlyArray<string> | undefined> = [
+      undefined,
+      [],
+      ["", "  ", "\n"],
+    ];
+
+    for (const entityKeysFilter of filters) {
+      expect(
+        inventoryChips({ entityKeysFilter, entityKeyDisplays: POD_DISPLAYS }),
+      ).toEqual([]);
+    }
+  });
+
+  test("orders the locked entity-id scope, the locked entity-key scope, the locked attributes, then the user's chips", () => {
+    const chips: Array<ActiveFilter> = buildMetricsActiveFilterChips({
+      scopeIds: [new ObjectID(RUM_APP_ID)],
+      scopeEntityType: ServiceType.RealUserMonitor,
+      attributeFilters: { "resource.host.name": "ip-10-0-0-12" },
+      attributeFilterDisplayKeys: { "resource.host.name": "Host" },
+      attributeFilterDisplayValues: { "resource.host.name": "web-1" },
+      entityKeysFilter: [POD_KEY, OTHER_KEY],
+      entityKeyDisplays: POD_DISPLAYS,
+      activeFilters: [
+        restoredChip("hostId", HOST_ID),
+        restoredChip("attributes.container.name", "postgres"),
+      ],
+      facetConfigs: [],
+      nameMap: {
+        ...RUM_NAME_MAP,
+        ...entity(HOST_ID, "web-1", ServiceType.Host, "Host"),
+      },
+    });
+
+    expect(rowsOf(chips)).toEqual([
+      ["primaryEntityId", RUM_APP_ID, "RUM Application", "checkout-web", true],
+      ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
+      ["entityKeys", OTHER_KEY, "Resource", OTHER_KEY, true],
+      ["attributes.resource.host.name", "ip-10-0-0-12", "Host", "web-1", true],
+      ["hostId", HOST_ID, "Host", "web-1", false],
+      [
+        "attributes.container.name",
+        "postgres",
+        "container.name",
+        "postgres",
+        false,
+      ],
+    ]);
+  });
+
+  test("a user chip on the same column is neither merged into the locked chip nor hidden by it", () => {
+    /*
+     * A hand-edited link can restore an `entityKeys` chip. Nothing dedupes
+     * the two: the chip bar keys locked pills `readonly:<facet>:<value>` and
+     * the user's `<facet>:<value>`, and the list query never reads chips.
+     */
+    const chips: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY],
+      entityKeyDisplays: POD_DISPLAYS,
+      activeFilters: [restoredChip("entityKeys", POD_KEY)],
+    });
+
+    expect(rowsOf(chips)).toEqual([
+      ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
+      ["entityKeys", POD_KEY, "entityKeys", POD_KEY, false],
+    ]);
+    expect(chips[1]!.lockedDetail).toBeUndefined();
+  });
+
+  test("REGRESSION: a Kubernetes cluster page's entityScope grows no entity-key chip — its attribute chip already explains it", () => {
+    const clusterPage: ChipInput = {
+      scopeIds: undefined,
+      scopeEntityType: undefined,
+      attributeFilters: { "resource.k8s.cluster.name": "prod-eks-01" },
+      attributeFilterDisplayKeys: { "resource.k8s.cluster.name": "Cluster" },
+      attributeFilterDisplayValues: {
+        "resource.k8s.cluster.name": "production",
+      },
+      entityScope: {
+        entityKeys: [POD_KEY],
+        attributeKey: "resource.k8s.cluster.name",
+        attributeValue: "prod-eks-01",
+      },
+      activeFilters: [],
+      facetConfigs: [],
+      nameMap: {},
+    };
+
+    const chips: Array<ActiveFilter> =
+      buildMetricsActiveFilterChips(clusterPage);
+
+    expect(rowsOf(chips)).toEqual([
+      [
+        "attributes.resource.k8s.cluster.name",
+        "prod-eks-01",
+        "Cluster",
+        "production",
+        true,
+      ],
+    ]);
+    expect(
+      detailOf(chips[0]).predicates.map(
+        (predicate: LockedFilterPredicate): string => {
+          return predicate.label;
+        },
+      ),
+    ).toEqual(["Attribute", "Entity scope"]);
+
+    // Every existing page passes neither new input: nothing changes for them.
+    expect(
+      buildMetricsActiveFilterChips({
+        ...clusterPage,
+        entityKeysFilter: undefined,
+        entityKeyDisplays: undefined,
+      }),
+    ).toEqual(chips);
+
+    // A name for the scope's own key creates nothing: only entityKeysFilter does.
+    expect(
+      buildMetricsActiveFilterChips({
+        ...clusterPage,
+        entityKeyDisplays: {
+          [POD_KEY]: {
+            displayKey: "Kubernetes Cluster",
+            displayValue: "production",
+          },
+        },
+      }),
+    ).toEqual(chips);
+  });
+
+  test("every entity-key chip is locked and explained, none offers a search token, and an entity-key-only scope copies nothing", () => {
+    const chips: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY, OTHER_KEY],
+      entityKeyDisplays: POD_DISPLAYS,
+    });
+
+    expect(chips).toHaveLength(2);
+
+    for (const chip of chips) {
+      expect(chip.facetKey).toBe("entityKeys");
+      expect(chip.readOnly).toBe(true);
+
+      const detail: LockedFilterDetail = detailOf(chip);
+
+      expect(detail.source).toBe(PAGE_SOURCE);
+      expect(detail.combinator).toBe("all");
+      expect(detail.searchToken).toBeUndefined();
+      expect(detail.searchTokenUnavailableReason).toBe(CANNOT_TRAVEL);
+    }
+
+    /*
+     * "Copy filter" trusts each locked chip's own token. With none, the text
+     * is empty, and LockedFilterActions renders no Copy button for a blank
+     * text rather than one that copies nothing.
+     */
+    expect(buildLockedScopeCopyText("metrics", chips)).toBe("");
+
+    const withAttribute: Array<ActiveFilter> = buildMetricsActiveFilterChips({
+      scopeIds: undefined,
+      scopeEntityType: undefined,
+      attributeFilters: { "resource.host.name": "ip-10-0-0-12" },
+      entityKeysFilter: [POD_KEY],
+      entityKeyDisplays: POD_DISPLAYS,
+      activeFilters: [],
+      facetConfigs: [],
+      nameMap: {},
+    });
+
+    expect(buildLockedScopeCopyText("metrics", withAttribute)).toBe(
+      "@resource.host.name:ip-10-0-0-12",
+    );
+  });
+
+  test("does not mutate the page's entity keys or display map", () => {
+    const entityKeysFilter: ReadonlyArray<string> = Object.freeze([
+      ` ${POD_KEY} `,
+      POD_KEY,
+      "",
+    ]);
+    const entityKeyDisplays: LockedEntityKeyDisplayMap = Object.freeze({
+      [POD_KEY]: Object.freeze({
+        displayKey: " Kubernetes Pod ",
+        displayValue: " checkout-7d9f ",
+      }),
+    });
+
+    const chips: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter,
+      entityKeyDisplays,
+    });
+
+    expect(rowsOf(chips)).toEqual([
+      ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
+    ]);
+    expect(entityKeysFilter).toEqual([` ${POD_KEY} `, POD_KEY, ""]);
+    expect(entityKeyDisplays).toEqual({
+      [POD_KEY]: {
+        displayKey: " Kubernetes Pod ",
+        displayValue: " checkout-7d9f ",
+      },
+    });
+  });
+
+  test("the Inventory page's own display map names the chip by the item's type and name", () => {
+    const named: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY],
+      entityKeyDisplays: buildInventoryEntityKeyDisplays({
+        entityKey: POD_KEY,
+        entityType: EntityType.KubernetesPod,
+        displayName: "checkout-7d9f",
+      }),
+    });
+
+    expect(rowsOf(named)).toEqual([
+      ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
+    ]);
+    expect(detailOf(named[0]).summary).toBe(
+      "Only metrics linked to this Kubernetes Pod are shown.",
+    );
+
+    // An unnamed item reads as its key, still under its type.
+    const unnamed: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY],
+      entityKeyDisplays: buildInventoryEntityKeyDisplays({
+        entityKey: POD_KEY,
+        entityType: EntityType.KubernetesPod,
+        displayName: "   ",
+      }),
+    });
+
+    expect(rowsOf(unnamed)).toEqual([
+      ["entityKeys", POD_KEY, "Kubernetes Pod", POD_KEY, true],
+    ]);
+
+    // An untyped item is an Inventory Item, in the chip and its explanation.
+    const untyped: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [POD_KEY],
+      entityKeyDisplays: buildInventoryEntityKeyDisplays({
+        entityKey: POD_KEY,
+        displayName: "checkout-7d9f",
+      }),
+    });
+
+    expect(rowsOf(untyped)).toEqual([
+      ["entityKeys", POD_KEY, "Inventory Item", "checkout-7d9f", true],
+    ]);
+    expect(detailOf(untyped[0]).summary).toBe(
+      "Only metrics linked to this Inventory Item are shown.",
+    );
+
+    /*
+     * The page filters by the item's key as stored and keys the map by the
+     * same value; both sides trim, so a padded key is still named.
+     */
+    const padded: Array<ActiveFilter> = inventoryChips({
+      entityKeysFilter: [` ${POD_KEY} `],
+      entityKeyDisplays: buildInventoryEntityKeyDisplays({
+        entityKey: ` ${POD_KEY} `,
+        entityType: EntityType.KubernetesPod,
+        displayName: "checkout-7d9f",
+      }),
+    });
+
+    expect(rowsOf(padded)).toEqual([
+      ["entityKeys", POD_KEY, "Kubernetes Pod", "checkout-7d9f", true],
+    ]);
   });
 });

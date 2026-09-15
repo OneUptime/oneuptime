@@ -145,6 +145,14 @@ function importedNames(source: string, moduleSpecifier: string): Array<string> {
 
 const LOGS_VIEWER: string = readSource("Components", "Logs", "LogsViewer.tsx");
 
+/*
+ * Non-overlapping occurrences of `needle` — for "built in exactly one place"
+ * assertions, which a second, unguarded call site would break.
+ */
+function occurrences(source: string, needle: string): number {
+  return source.split(needle).length - 1;
+}
+
 describe("locked chips are explained", () => {
   test("the viewer imports the logs glue and the typed-filter helpers", () => {
     const glue: Array<string> = importedNames(LOGS_VIEWER, "./LogsLockedScope");
@@ -381,5 +389,264 @@ describe("the page's pinned attributes are never written into", () => {
     expect(base).toContain(
       "(query as any).attributes = { ...(pinnedAttributes",
     );
+  });
+});
+
+/*
+ * An Inventory item's Logs page pins `logQuery.entityKeys` and nothing else,
+ * so its list was filtered under an empty chip bar. The viewer now builds a
+ * locked chip for that scope — display only, from the same key list the
+ * requests carry, and never for a Kubernetes-style `entityScope`, whose
+ * attribute chip already explains its entity keys.
+ */
+describe("an entity-key scope has a locked chip", () => {
+  test("the viewer imports the shared entity-key chip builder, its display map type and the logs signal name", () => {
+    const chips: Array<string> = importedNames(
+      LOGS_VIEWER,
+      "../../Utils/LockedEntityKeyChips",
+    );
+
+    expect(chips).toContain("buildLockedEntityKeyChips");
+    expect(chips).toContain("LockedEntityKeyDisplayMap");
+    expect(importedNames(LOGS_VIEWER, "./LogsLockedScope")).toContain(
+      "LOGS_SIGNAL",
+    );
+  });
+
+  test("the viewer accepts the display map as an optional prop", () => {
+    const props: string = blockAfter(
+      LOGS_VIEWER,
+      "export interface ComponentProps {",
+      "{",
+      "}",
+    );
+
+    expect(props).toContain(
+      "entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;",
+    );
+  });
+
+  test("the base chips memo builds the entity-key chips from the pinned logQuery keys and the page's display map", () => {
+    const memo: string = blockAfter(
+      LOGS_VIEWER,
+      "const baseActiveFilters: Array<ActiveFilter> = useMemo(",
+      "(",
+      ")",
+    );
+
+    expect(memo).toContain("filters.push( ...buildLockedEntityKeyChips(");
+
+    const call: string = blockAfter(
+      memo,
+      "buildLockedEntityKeyChips(",
+      "(",
+      ")",
+    );
+
+    // The same rows noun the attach step describes with, so the two agree.
+    expect(call).toContain("rows: LOGS_SIGNAL");
+    expect(call).toContain("entityKeys: logQueryEntityKeys");
+    expect(call).toContain("displays: props.entityKeyDisplays");
+  });
+
+  test("the entity-key chips are in the list before the memo decorates and returns it", () => {
+    const memo: string = blockAfter(
+      LOGS_VIEWER,
+      "const baseActiveFilters: Array<ActiveFilter> = useMemo(",
+      "(",
+      ")",
+    );
+
+    const builtAt: number = memo.indexOf("buildLockedEntityKeyChips(");
+    const returnedAt: number = memo.indexOf(
+      "return attachLogsLockedFilterDetails(",
+    );
+
+    expect(builtAt).toBeGreaterThan(-1);
+    expect(returnedAt).toBeGreaterThan(builtAt);
+  });
+
+  test("the memo re-runs when the pinned keys or the display map change", () => {
+    const memo: string = blockAfter(
+      LOGS_VIEWER,
+      "const baseActiveFilters: Array<ActiveFilter> = useMemo(",
+      "(",
+      ")",
+    );
+    const deps: string = dependencyList(memo);
+
+    expect(deps).toContain("logQueryEntityKeys");
+    expect(deps).toContain("props.entityKeyDisplays");
+  });
+
+  test("the chip shows the key list the histogram and facets requests filter by — never a different one", () => {
+    const keys: string = blockAfter(
+      LOGS_VIEWER,
+      "const logQueryEntityKeys: Array<string> | undefined = useMemo(",
+      "(",
+      ")",
+    );
+
+    expect(keys).toContain('(props.logQuery as any)["entityKeys"]');
+    expect(dependencyList(keys)).toContain("props.logQuery");
+
+    const histogram: string = blockAfter(
+      LOGS_VIEWER,
+      "buildLogsHistogramRequest({",
+      "{",
+      "}",
+    );
+
+    expect(histogram).toContain("entityKeys: logQueryEntityKeys");
+
+    const facets: string = blockAfter(
+      LOGS_VIEWER,
+      "const fetchFacets: () => Promise<void> = useCallback(",
+      "(",
+      ")",
+    );
+
+    expect(facets).toContain(
+      '(requestData as any)["entityKeys"] = logQueryEntityKeys;',
+    );
+  });
+
+  test("the display map and the base chips never reach a request or the list query", () => {
+    const queryPaths: Array<string> = [
+      blockAfter(
+        LOGS_VIEWER,
+        "function buildBaseQuery(props: ComponentProps): Query<Log> {",
+        "{",
+        "}",
+      ),
+      blockAfter(
+        LOGS_VIEWER,
+        "const fetchHistogramBuckets: () => Promise<Array<HistogramBucket>> = useCallback(",
+        "(",
+        ")",
+      ),
+      blockAfter(
+        LOGS_VIEWER,
+        "const fetchFacets: () => Promise<void> = useCallback(",
+        "(",
+        ")",
+      ),
+      blockAfter(
+        LOGS_VIEWER,
+        "const handleFilterChanged: (newFilter: Query<Log>) => void = useCallback(",
+        "(",
+        ")",
+      ),
+    ];
+
+    for (const queryPath of queryPaths) {
+      expect(queryPath).not.toContain("entityKeyDisplays");
+      expect(queryPath).not.toContain("baseActiveFilters");
+      expect(queryPath).not.toContain("buildLockedEntityKeyChips");
+    }
+  });
+
+  test("the chips say who pinned the keys — the page only when the page says so — and the decoration step keeps that source", () => {
+    /*
+     * Log monitors write `logQuery.entityKeys` from their stored query, so an
+     * incident's log snapshot reaches this memo with keys no page pinned.
+     * attachLogsLockedFilterDetails re-describes every entity-key chip, so
+     * the source must reach it as well as the builder, or the decoration
+     * quietly restores "Pinned by this page". The wording is pinned in
+     * LockedTelemetryScope.test.ts and the pass-through in
+     * LogsLockedScope.test.ts.
+     */
+    expect(
+      blockAfter(LOGS_VIEWER, "export interface ComponentProps {", "{", "}"),
+    ).toContain("entityKeysPinnedByPage?: boolean | undefined;");
+
+    const sources: Array<string> = importedNames(
+      LOGS_VIEWER,
+      "../../Utils/LockedTelemetryScope",
+    );
+
+    expect(sources).toContain("LOCKED_FILTER_SOURCE_PAGE");
+    expect(sources).toContain("LOCKED_FILTER_SOURCE_STORED_QUERY");
+
+    const memo: string = blockAfter(
+      LOGS_VIEWER,
+      "const baseActiveFilters: Array<ActiveFilter> = useMemo(",
+      "(",
+      ")",
+    );
+
+    const declaredAt: number = memo.indexOf("const entityKeysSource: string =");
+
+    expect(declaredAt).toBeGreaterThan(-1);
+
+    const declaration: string = memo.slice(
+      declaredAt,
+      memo.indexOf(";", declaredAt) + 1,
+    );
+    const whenPinnedByPage: string = declaration.slice(
+      declaration.indexOf("?") + 1,
+      declaration.lastIndexOf(":"),
+    );
+
+    expect(declaration).toContain("props.entityKeysPinnedByPage");
+    expect(whenPinnedByPage).toContain("LOCKED_FILTER_SOURCE_PAGE");
+    expect(whenPinnedByPage).not.toContain("LOCKED_FILTER_SOURCE_STORED_QUERY");
+
+    expect(blockAfter(memo, "buildLockedEntityKeyChips(", "(", ")")).toContain(
+      "source: entityKeysSource",
+    );
+    expect(
+      blockAfter(memo, "return attachLogsLockedFilterDetails(", "(", ")"),
+    ).toContain("entityKeysSource");
+    expect(dependencyList(memo)).toContain("props.entityKeysPinnedByPage");
+  });
+});
+
+describe("a Kubernetes-style entity scope never becomes an entity-key chip", () => {
+  test("the entity-key chips are built in exactly one place, and not from entityScope", () => {
+    expect(occurrences(LOGS_VIEWER, "buildLockedEntityKeyChips(")).toBe(1);
+
+    const memo: string = blockAfter(
+      LOGS_VIEWER,
+      "const baseActiveFilters: Array<ActiveFilter> = useMemo(",
+      "(",
+      ")",
+    );
+    const call: string = blockAfter(
+      memo,
+      "buildLockedEntityKeyChips(",
+      "(",
+      ")",
+    );
+
+    expect(call).not.toContain("entityScope");
+
+    // The key list itself is read from logQuery alone.
+    const keys: string = blockAfter(
+      LOGS_VIEWER,
+      "const logQueryEntityKeys: Array<string> | undefined = useMemo(",
+      "(",
+      ")",
+    );
+
+    expect(keys).not.toContain("entityScope");
+    expect(dependencyList(keys)).not.toContain("entityScope");
+  });
+
+  test("the entity scope still reaches the attribute chip that explains it", () => {
+    const memo: string = blockAfter(
+      LOGS_VIEWER,
+      "const baseActiveFilters: Array<ActiveFilter> = useMemo(",
+      "(",
+      ")",
+    );
+    const decorate: string = blockAfter(
+      memo,
+      "return attachLogsLockedFilterDetails(",
+      "(",
+      ")",
+    );
+
+    expect(decorate).toContain("entityScope: props.entityScope");
   });
 });

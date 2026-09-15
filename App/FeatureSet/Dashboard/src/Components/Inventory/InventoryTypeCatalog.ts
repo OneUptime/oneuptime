@@ -113,6 +113,22 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     icon: IconProp.Code,
     description: "An OpenTelemetry SDK build that is sending you data.",
   },
+  [EntityType.Database]: {
+    label: "Database",
+    pluralLabel: "Databases",
+    category: InventoryCategory.Applications,
+    icon: IconProp.Database,
+    description:
+      "A database or cache your services query, discovered from their client spans.",
+  },
+  [EntityType.RemoteService]: {
+    label: "Remote Service",
+    pluralLabel: "Remote Services",
+    category: InventoryCategory.Applications,
+    icon: IconProp.Globe,
+    description:
+      "An API, broker or endpoint your services call that sends no telemetry of its own, discovered from their client spans.",
+  },
 
   [EntityType.Host]: {
     label: "Host",

@@ -3,8 +3,12 @@ import { StyleSheet, type TextStyle } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import AppText, { type TextTone } from "./AppText";
-import { ThemeProvider, darkColors, lightColors } from "../theme";
-import type { ColorTokens } from "../theme";
+import {
+  ThemeProvider,
+  darkColors,
+  lightColors,
+  type ColorTokens,
+} from "../theme";
 import { typography, type TypographyVariant } from "../theme/tokens";
 
 /*

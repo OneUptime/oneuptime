@@ -3,17 +3,24 @@ import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMainte
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
+import Exception from "Common/Types/Exception/Exception";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { DetailStyle } from "Common/UI/Components/Detail/Detail";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -27,14 +34,15 @@ import AffectedResourcesPicker, {
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
-import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -44,20 +52,164 @@ import Recurring from "Common/Types/Events/Recurring";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import ScheduledMaintenanceFeedElement from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceFeed";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
+import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
+import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
+import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
 import LiveDuration from "../../../Components/EventView/LiveDuration";
+import {
+  SCHEDULED_MAINTENANCE_TIMING_REFRESH_INTERVAL_IN_MS,
+  formatScheduledMaintenanceRelativeTime,
+} from "../../../Utils/ScheduledMaintenanceTiming";
 import OneUptimeDate from "Common/Types/Date";
+
+// How many status page names the header lists before summarising the rest.
+const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
+
+type GetStatusPagesFactFunction = (
+  statusPages: Array<StatusPage> | undefined,
+) => string;
+
+const getStatusPagesFact: GetStatusPagesFactFunction = (
+  statusPages: Array<StatusPage> | undefined,
+): string => {
+  const names: Array<string> = (statusPages || [])
+    .map((statusPage: StatusPage): string => {
+      return (statusPage.name || "").trim();
+    })
+    .filter((name: string): boolean => {
+      return name.length > 0;
+    });
+
+  if (names.length === 0) {
+    return "None";
+  }
+
+  if (names.length <= MAX_STATUS_PAGE_NAMES_IN_HEADER) {
+    return names.join(", ");
+  }
+
+  return (
+    names.slice(0, MAX_STATUS_PAGE_NAMES_IN_HEADER).join(", ") +
+    " +" +
+    (names.length - MAX_STATUS_PAGE_NAMES_IN_HEADER) +
+    " more"
+  );
+};
+
+interface WindowStatsProps {
+  eventStartsAt: Date;
+  eventEndsAt: Date;
+}
+
+/*
+ * The planned window under the header. It keeps its own clock, so the
+ * "in 2 hours" / "2 hours ago" descriptions stay current without
+ * re-rendering the rest of the page every tick.
+ */
+const ScheduledMaintenanceWindowStats: FunctionComponent<WindowStatsProps> = (
+  props: WindowStatsProps,
+): ReactElement => {
+  const eventStartsAt: Date = props.eventStartsAt;
+  const eventEndsAt: Date = props.eventEndsAt;
+  const [now, setNow] = useState<Date>(OneUptimeDate.getCurrentDate());
+
+  useEffect(() => {
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+      setNow(OneUptimeDate.getCurrentDate());
+    }, SCHEDULED_MAINTENANCE_TIMING_REFRESH_INTERVAL_IN_MS);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [now]);
+
+  return (
+    <div className="mb-5">
+      <EventStatBar columns={3} ariaLabel="Maintenance window">
+        <EventStatTile
+          variant="segment"
+          label="Starts"
+          value={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            eventStartsAt,
+          )}
+          description={formatScheduledMaintenanceRelativeTime(
+            eventStartsAt,
+            now,
+          )}
+          icon={IconProp.Calendar}
+        />
+        <EventStatTile
+          variant="segment"
+          label="Ends"
+          value={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            eventEndsAt,
+          )}
+          description={formatScheduledMaintenanceRelativeTime(eventEndsAt, now)}
+          icon={IconProp.Calendar}
+        />
+        <EventStatTile
+          variant="segment"
+          label="Duration"
+          value={
+            <LiveDuration startDate={eventStartsAt} endDate={eventEndsAt} />
+          }
+          description={
+            "Planned window · times in " +
+            OneUptimeDate.getCurrentTimezoneString()
+          }
+          icon={IconProp.Clock}
+        />
+      </EventStatBar>
+    </div>
+  );
+};
+
+/*
+ * A loaded event, stamped with the id it was read for. The page stays mounted
+ * when the reader moves to another event, so an item that is not stamped with
+ * the current id must never be rendered as if it were that event.
+ */
+interface LoadedScheduledMaintenance {
+  modelId: string;
+  item: ScheduledMaintenance;
+}
+
+// A failed resend, stamped with the event it failed for.
+interface ResendNotificationErrorState {
+  modelId: string;
+  message: string;
+}
 
 const ScheduledMaintenanceView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const modelIdString: string = modelId.toString();
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
-  const [scheduledMaintenance, setScheduledMaintenance] =
-    useState<ScheduledMaintenance | null>(null);
+  const [feedRefreshToken, setFeedRefreshToken] = useState<number>(0);
+  const [loadedEvent, setLoadedEvent] =
+    useState<LoadedScheduledMaintenance | null>(null);
+  /*
+   * Which event the latest settled request (loaded or failed) was for. Only
+   * the first load of an event shows the skeleton; later refreshes (after an
+   * action or an edit) update the page in place instead of unmounting it.
+   */
+  const [loadedModelId, setLoadedModelId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string>("");
+  const [resendNotificationErrorState, setResendNotificationErrorState] =
+    useState<ResendNotificationErrorState | null>(null);
+  const resendNotificationError: string =
+    resendNotificationErrorState?.modelId === modelIdString
+      ? resendNotificationErrorState.message
+      : "";
+  const latestRequestRef: MutableRefObject<number> = useRef<number>(0);
 
   const fetchScheduledMaintenance: () => Promise<void> =
     async (): Promise<void> => {
+      const requestNumber: number = latestRequestRef.current + 1;
+      latestRequestRef.current = requestNumber;
+
       try {
         const item: ScheduledMaintenance | null =
           await ModelAPI.getItem<ScheduledMaintenance>({
@@ -69,33 +221,69 @@ const ScheduledMaintenanceView: FunctionComponent<
               title: true,
               scheduledMaintenanceNumber: true,
               scheduledMaintenanceNumberWithPrefix: true,
+              statusPages: {
+                _id: true,
+                name: true,
+              },
+              createdByUser: {
+                name: true,
+                email: true,
+              },
             },
           });
 
-        setScheduledMaintenance(item);
-      } catch {
-        // The status panel and stat tiles degrade gracefully without these dates.
+        // A newer request (another event, or a later refresh) owns the page now.
+        if (requestNumber !== latestRequestRef.current) {
+          return;
+        }
+
+        if (item) {
+          setLoadedEvent({ modelId: modelIdString, item: item });
+          setLoadError("");
+        } else {
+          setLoadedEvent(null);
+          setLoadError("This scheduled maintenance event could not be found.");
+        }
+      } catch (err: unknown) {
+        if (requestNumber !== latestRequestRef.current) {
+          return;
+        }
+
+        /*
+         * A failed background refresh keeps the page that is already on
+         * screen; only a failed first load has nothing to fall back to. The
+         * previous event is not something to fall back to: drop it, so the
+         * error shows instead of that event under this one's URL.
+         */
+        setLoadedEvent(
+          (
+            current: LoadedScheduledMaintenance | null,
+          ): LoadedScheduledMaintenance | null => {
+            return current?.modelId === modelIdString ? current : null;
+          },
+        );
+        setLoadError(API.getFriendlyMessage(err as Exception));
       }
+
+      setLoadedModelId(modelIdString);
     };
 
   useEffect(() => {
-    fetchScheduledMaintenance().catch(() => {
-      // Errors are handled inside fetchScheduledMaintenance.
+    fetchScheduledMaintenance().catch((err: unknown) => {
+      setLoadError(API.getFriendlyMessage(err as Exception));
     });
-  }, [refreshToggle]);
+  }, [modelIdString, refreshToggle]);
 
-  const eventStartsAt: Date | undefined = scheduledMaintenance?.startsAt;
-  const eventEndsAt: Date | undefined = scheduledMaintenance?.endsAt;
-  const eventTitle: string | undefined =
-    scheduledMaintenance?.title || undefined;
-  const eventNumber: string | undefined =
-    scheduledMaintenance?.scheduledMaintenanceNumberWithPrefix ||
-    (scheduledMaintenance?.scheduledMaintenanceNumber
-      ? "#" + scheduledMaintenance.scheduledMaintenanceNumber
-      : undefined);
+  const refreshPage: () => void = (): void => {
+    setRefreshToggle((prev: boolean) => {
+      return !prev;
+    });
+  };
 
   const handleResendNotification: () => Promise<void> =
     async (): Promise<void> => {
+      setResendNotificationErrorState(null);
+
       try {
         // Reset the notification status to Pending so the worker can pick it up again
         await ModelAPI.updateById({
@@ -109,67 +297,97 @@ const ScheduledMaintenanceView: FunctionComponent<
           },
         });
 
-        // Trigger a refresh by toggling the refresh state
-        setRefreshToggle((prev: boolean) => {
-          return !prev;
+        refreshPage();
+      } catch (err: unknown) {
+        setResendNotificationErrorState({
+          modelId: modelIdString,
+          message: API.getFriendlyMessage(err as Exception),
         });
-      } catch {
-        // Error resending notification: handle appropriately
       }
     };
 
+  const isCurrentEventLoaded: boolean = loadedEvent?.modelId === modelIdString;
+
+  if (!isCurrentEventLoaded) {
+    if (loadedModelId === modelIdString && loadError) {
+      return (
+        <ErrorMessage
+          message={loadError}
+          onRefreshClick={() => {
+            setLoadError("");
+            setLoadedModelId(null);
+            refreshPage();
+          }}
+        />
+      );
+    }
+
+    return (
+      <EventOverviewSkeleton loadingText="Loading scheduled maintenance event" />
+    );
+  }
+
+  const scheduledMaintenance: ScheduledMaintenance | undefined =
+    loadedEvent?.item;
+  const eventStartsAt: Date | undefined = scheduledMaintenance?.startsAt;
+  const eventEndsAt: Date | undefined = scheduledMaintenance?.endsAt;
+  const eventTitle: string | undefined =
+    scheduledMaintenance?.title || undefined;
+  const eventNumber: string | undefined =
+    scheduledMaintenance?.scheduledMaintenanceNumberWithPrefix ||
+    (scheduledMaintenance?.scheduledMaintenanceNumber
+      ? "#" + scheduledMaintenance.scheduledMaintenanceNumber
+      : undefined);
+
+  const heroFacts: Array<EventStatusFact> = [
+    {
+      label: "Status pages",
+      value: getStatusPagesFact(scheduledMaintenance?.statusPages),
+      icon: IconProp.Globe,
+    },
+    {
+      label: "Created by",
+      value:
+        scheduledMaintenance?.createdByUser?.name?.toString() ||
+        scheduledMaintenance?.createdByUser?.email?.toString() ||
+        "",
+      icon: IconProp.User,
+    },
+  ];
+
   return (
-    <Fragment>
+    <Fragment key={modelIdString}>
       <ChangeScheduledMaintenanceState
         scheduledMaintenanceId={modelId}
         eventNumber={eventNumber}
         title={eventTitle}
         eventStartsAt={eventStartsAt}
         eventEndsAt={eventEndsAt}
+        facts={heroFacts}
         onActionComplete={() => {
-          setRefreshToggle((prev: boolean) => {
-            return !prev;
+          // The state change adds a feed item and can change the details.
+          refreshPage();
+          setFeedRefreshToken((token: number) => {
+            return token + 1;
           });
         }}
       />
 
+      {eventStartsAt && eventEndsAt && (
+        <ScheduledMaintenanceWindowStats
+          eventStartsAt={eventStartsAt}
+          eventEndsAt={eventEndsAt}
+        />
+      )}
+
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          {eventStartsAt && eventEndsAt && (
-            <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <EventStatTile
-                label="Starts"
-                value={OneUptimeDate.getDateAsLocalFormattedString(
-                  eventStartsAt,
-                )}
-                description={
-                  "Your local timezone (" +
-                  OneUptimeDate.getCurrentTimezoneString() +
-                  ")"
-                }
-                icon={IconProp.Clock}
-              />
-              <EventStatTile
-                label="Ends"
-                value={OneUptimeDate.getDateAsLocalFormattedString(eventEndsAt)}
-                icon={IconProp.Clock}
-              />
-              <EventStatTile
-                label="Duration"
-                value={
-                  <LiveDuration
-                    startDate={eventStartsAt}
-                    endDate={eventEndsAt}
-                  />
-                }
-                icon={IconProp.Clock}
-              />
-            </div>
-          )}
-
           <EntityRunbooks scheduledMaintenanceId={modelId} hideIfEmpty={true} />
 
-          <ScheduledMaintenanceFeedElement scheduledMaintenanceId={modelId} />
+          <ScheduledMaintenanceFeedElement
+            scheduledMaintenanceId={modelId}
+            refreshToken={feedRefreshToken}
+          />
         </div>
 
         <div className="min-w-0 xl:col-span-1">
@@ -177,8 +395,9 @@ const ScheduledMaintenanceView: FunctionComponent<
           <CardModelDetail<ScheduledMaintenance>
             name="Scheduled Maintenance Details"
             cardProps={{
-              title: "Scheduled Maintenance Details",
-              description: "Here are more details for this event.",
+              title: "Maintenance Details",
+              description: "Key facts about this maintenance event.",
+              headerLayout: "stacked",
             }}
             refresher={refreshToggle}
             formSteps={[
@@ -200,10 +419,12 @@ const ScheduledMaintenanceView: FunctionComponent<
               },
             ]}
             isEditable={true}
+            editButtonText="Edit"
             onSaveSuccess={() => {
-              // refresh page-level state (event window stat tiles + status-panel countdown) after an in-card edit.
-              setRefreshToggle((prev: boolean) => {
-                return !prev;
+              // refresh page-level state (event window stat bar + status-panel countdown) after an in-card edit.
+              refreshPage();
+              setFeedRefreshToken((token: number) => {
+                return token + 1;
               });
             }}
             formFields={[
@@ -342,39 +563,8 @@ const ScheduledMaintenanceView: FunctionComponent<
               },
             ]}
             modelDetailProps={{
-              onBeforeFetch: async (): Promise<JSONObject> => {
-                // get ack scheduledMaintenance.
-
-                const scheduledMaintenanceTimelines: ListResult<ScheduledMaintenanceStateTimeline> =
-                  await ModelAPI.getList({
-                    modelType: ScheduledMaintenanceStateTimeline,
-                    query: {
-                      scheduledMaintenanceId: modelId,
-                    },
-                    limit: LIMIT_PER_PROJECT,
-                    skip: 0,
-                    select: {
-                      _id: true,
-
-                      createdAt: true,
-                      createdByUser: {
-                        name: true,
-                        email: true,
-                        profilePictureId: true,
-                      },
-                      scheduledMaintenanceState: {
-                        name: true,
-                        isResolvedState: true,
-                        isOngoingState: true,
-                        isScheduledState: true,
-                      },
-                    },
-                    sort: {},
-                  });
-
-                return scheduledMaintenanceTimelines;
-              },
               showDetailsInNumberOfColumns: 1,
+              style: DetailStyle.Compact,
               modelType: ScheduledMaintenance,
               id: "model-detail-scheduledMaintenances",
               selectMoreFields: {
@@ -387,6 +577,124 @@ const ScheduledMaintenanceView: FunctionComponent<
                 subscriberNotificationStatusMessage: true,
               },
               fields: [
+                {
+                  field: {
+                    startsAt: true,
+                  },
+                  title: "Starts At",
+                  fieldType: FieldType.DateTime,
+                },
+                {
+                  field: {
+                    endsAt: true,
+                  },
+                  title: "Ends At",
+                  fieldType: FieldType.DateTime,
+                },
+                {
+                  field: {
+                    createdAt: true,
+                  },
+                  title: "Created At",
+                  fieldType: FieldType.DateTime,
+                },
+                {
+                  field: {
+                    statusPages: {
+                      name: true,
+                      _id: true,
+                    },
+                  },
+                  title: "Shown on Status Pages",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <StatusPagesElement
+                        statusPages={item.statusPages || []}
+                      />
+                    );
+                  },
+                },
+                {
+                  field: {
+                    sendSubscriberNotificationsOnBeforeTheEvent: true,
+                  },
+                  title: "Subscriber Reminders",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    const reminders: Array<Recurring> =
+                      item.sendSubscriberNotificationsOnBeforeTheEvent || [];
+
+                    if (reminders.length === 0) {
+                      return (
+                        <span className="text-gray-500">
+                          No reminders configured
+                        </span>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-1.5">
+                        <RecurringArrayViewElement
+                          value={reminders}
+                          postfix=" before the event begins"
+                        />
+                        <div className="text-xs text-gray-500">
+                          {item.nextSubscriberNotificationBeforeTheEventAt
+                            ? "Next reminder: " +
+                              OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                                item.nextSubscriberNotificationBeforeTheEventAt,
+                              )
+                            : "No upcoming reminders"}
+                        </div>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  field: {
+                    subscriberNotificationStatusOnEventScheduled: true,
+                  },
+                  title: "Subscriber Notifications",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <div>
+                        <SubscriberNotificationStatus
+                          status={
+                            item.subscriberNotificationStatusOnEventScheduled
+                          }
+                          subscriberNotificationStatusMessage={
+                            item.subscriberNotificationStatusMessage
+                          }
+                          onResendNotification={handleResendNotification}
+                        />
+                        {resendNotificationError && (
+                          <p
+                            role="alert"
+                            className="mt-1.5 text-xs text-red-600"
+                          >
+                            {"Could not resend notifications: " +
+                              resendNotificationError}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  },
+                },
+                {
+                  field: {
+                    labels: {
+                      name: true,
+                      color: true,
+                    },
+                  },
+                  title: "Labels",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return <LabelsElement labels={item["labels"] || []} />;
+                  },
+                },
                 {
                   field: {
                     scheduledMaintenanceNumber: true,
@@ -414,108 +722,6 @@ const ScheduledMaintenanceView: FunctionComponent<
                   title: "Scheduled Maintenance ID",
                   fieldType: FieldType.ObjectID,
                 },
-                {
-                  field: {
-                    statusPages: {
-                      name: true,
-                      _id: true,
-                    },
-                  },
-                  title: "Shown on Status Pages",
-                  fieldType: FieldType.Element,
-                  getElement: (item: ScheduledMaintenance): ReactElement => {
-                    return (
-                      <StatusPagesElement
-                        statusPages={item.statusPages || []}
-                      />
-                    );
-                  },
-                },
-                {
-                  field: {
-                    startsAt: true,
-                  },
-                  title: "Starts At",
-                  fieldType: FieldType.DateTime,
-                },
-                {
-                  field: {
-                    endsAt: true,
-                  },
-                  title: "Ends At",
-                  fieldType: FieldType.DateTime,
-                },
-                {
-                  field: {
-                    createdAt: true,
-                  },
-                  title: "Created At",
-                  fieldType: FieldType.DateTime,
-                },
-                {
-                  field: {
-                    sendSubscriberNotificationsOnBeforeTheEvent: true,
-                  },
-                  title: "Send reminders to subscribers before the event",
-                  fieldType: FieldType.Boolean,
-                  getElement: (item: ScheduledMaintenance): ReactElement => {
-                    return (
-                      <div>
-                        <RecurringArrayViewElement
-                          value={
-                            item.sendSubscriberNotificationsOnBeforeTheEvent
-                          }
-                          postfix=" before the event is begins"
-                        />
-                        {item.nextSubscriberNotificationBeforeTheEventAt ? (
-                          <div className="mt-2">
-                            <span className="font-semibold">
-                              Next reminder will be sent at:
-                            </span>{" "}
-                            {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                              item.nextSubscriberNotificationBeforeTheEventAt,
-                            )}
-                          </div>
-                        ) : (
-                          <div> No reminders scheduled </div>
-                        )}
-                      </div>
-                    );
-                  },
-                },
-                {
-                  field: {
-                    subscriberNotificationStatusOnEventScheduled: true,
-                  },
-                  title: "Subscriber Notification Status",
-                  fieldType: FieldType.Element,
-                  getElement: (item: ScheduledMaintenance): ReactElement => {
-                    return (
-                      <SubscriberNotificationStatus
-                        status={
-                          item.subscriberNotificationStatusOnEventScheduled
-                        }
-                        subscriberNotificationStatusMessage={
-                          item.subscriberNotificationStatusMessage
-                        }
-                        onResendNotification={handleResendNotification}
-                      />
-                    );
-                  },
-                },
-                {
-                  field: {
-                    labels: {
-                      name: true,
-                      color: true,
-                    },
-                  },
-                  title: "Labels",
-                  fieldType: FieldType.Element,
-                  getElement: (item: ScheduledMaintenance): ReactElement => {
-                    return <LabelsElement labels={item["labels"] || []} />;
-                  },
-                },
               ],
               modelId: modelId,
             }}
@@ -526,6 +732,7 @@ const ScheduledMaintenanceView: FunctionComponent<
             modelType={ScheduledMaintenance}
             customFieldType={ScheduledMaintenanceCustomField}
             resourceName="Scheduled Maintenance"
+            headerLayout="stacked"
           />
 
           <CardModelDetail<ScheduledMaintenance>
@@ -533,9 +740,16 @@ const ScheduledMaintenanceView: FunctionComponent<
             cardProps={{
               title: "Affected Resources",
               description:
-                "Monitors, hosts, Kubernetes clusters, Docker hosts, network sites, and services affected by this scheduled maintenance.",
+                "Monitors, services and infrastructure this maintenance affects.",
+              headerLayout: "stacked",
             }}
             isEditable={true}
+            editButtonText="Edit"
+            onSaveSuccess={() => {
+              setFeedRefreshToken((token: number) => {
+                return token + 1;
+              });
+            }}
             formFields={[
               {
                 field: {
@@ -543,7 +757,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                 },
                 title: "",
                 description:
-                  "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
+                  "Search and attach monitors, hosts, clusters, container hosts, network sites, IoT fleets, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
                 getCustomElement: (
@@ -559,6 +773,17 @@ const ScheduledMaintenanceView: FunctionComponent<
                       }
                       dockerHosts={values.dockerHosts as Array<DockerHost>}
                       podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                      proxmoxClusters={
+                        values.proxmoxClusters as Array<ProxmoxCluster>
+                      }
+                      vmwareVCenters={
+                        values.vmwareVCenters as Array<VMwareVCenter>
+                      }
+                      cephClusters={values.cephClusters as Array<CephCluster>}
+                      dockerSwarmClusters={
+                        values.dockerSwarmClusters as Array<DockerSwarmCluster>
+                      }
+                      iotFleets={values.iotFleets as Array<IoTFleet>}
                       networkSites={values.networkSites as Array<NetworkSite>}
                       services={values.services as Array<Service>}
                       resourceTypes={[
@@ -567,6 +792,11 @@ const ScheduledMaintenanceView: FunctionComponent<
                         "KubernetesCluster",
                         "DockerHost",
                         "PodmanHost",
+                        "ProxmoxCluster",
+                        "VMwareVCenter",
+                        "CephCluster",
+                        "DockerSwarmCluster",
+                        "IoTFleet",
                         "NetworkSite",
                         "Service",
                       ]}
@@ -593,6 +823,11 @@ const ScheduledMaintenanceView: FunctionComponent<
                         kubernetesClusters: payload.kubernetesClusters,
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
+                        proxmoxClusters: payload.proxmoxClusters,
+                        vmwareVCenters: payload.vmwareVCenters,
+                        cephClusters: payload.cephClusters,
+                        dockerSwarmClusters: payload.dockerSwarmClusters,
+                        iotFleets: payload.iotFleets,
                         networkSites: payload.networkSites,
                         services: payload.services,
                       } as FormValues<ScheduledMaintenance>);
@@ -602,8 +837,9 @@ const ScheduledMaintenanceView: FunctionComponent<
               },
               /*
                * Hidden registrations so ModelForm.getSelectFields includes
-               * hosts/kubernetesClusters/dockerHosts/podmanHosts/
-               * networkSites/services on load and submit.
+               * every relation the picker writes (hosts, clusters, container
+               * hosts, IoT fleets, network sites and services) on load and
+               * submit.
                */
               {
                 field: { hosts: true },
@@ -634,6 +870,51 @@ const ScheduledMaintenanceView: FunctionComponent<
               },
               {
                 field: { podmanHosts: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { proxmoxClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { vmwareVCenters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { cephClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { dockerSwarmClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { iotFleets: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -687,6 +968,26 @@ const ScheduledMaintenanceView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    proxmoxClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    vmwareVCenters: {
+                      name: true,
+                      _id: true,
+                    },
+                    cephClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    dockerSwarmClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    iotFleets: {
+                      name: true,
+                      _id: true,
+                    },
                     networkSites: {
                       name: true,
                       _id: true,
@@ -707,8 +1008,14 @@ const ScheduledMaintenanceView: FunctionComponent<
                         kubernetesClusters={item.kubernetesClusters || []}
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
+                        proxmoxClusters={item.proxmoxClusters || []}
+                        vmwareVCenters={item.vmwareVCenters || []}
+                        cephClusters={item.cephClusters || []}
+                        dockerSwarmClusters={item.dockerSwarmClusters || []}
+                        iotFleets={item.iotFleets || []}
                         networkSites={item.networkSites || []}
                         services={item.services || []}
+                        columns={1}
                       />
                     );
                   },

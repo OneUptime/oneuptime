@@ -11,6 +11,9 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -23,6 +26,12 @@ interface FilterGroup {
   firstIndex: number;
   occurrences: Array<MonitorEvaluationFilterResult>;
 }
+
+const disabledCriteriaReasonPattern: RegExp = /\bdisabled\b/i;
+const earlierCriteriaMatchedReasonPattern: RegExp =
+  /\b(?:earlier|previous)\b.*\bcriteri(?:a|on)\b.*\bmatched\b/i;
+const stoppedAtFirstMatchReasonPattern: RegExp =
+  /\bstopped at the first match\b/i;
 
 // Group identical filter messages so we can surface helpful metadata once per row.
 const groupFiltersByMessage: (
@@ -100,24 +109,113 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     index: number,
   ): ReactElement => {
     const isSkipped: boolean = Boolean(criteria.skipped);
+    const criteriaName: string =
+      criteria.criteriaName || `Criteria ${index + 1}`;
+
+    if (isSkipped) {
+      const skipReason: string =
+        criteria.skipReason ||
+        criteria.message ||
+        "This criterion was not evaluated.";
+      const isDisabled: boolean =
+        criteria.skipCause === "disabled" ||
+        (!criteria.skipCause && disabledCriteriaReasonPattern.test(skipReason));
+      const isEarlierCriterionMatch: boolean =
+        criteria.skipCause === "earlier-criterion-matched" ||
+        (!criteria.skipCause &&
+          (earlierCriteriaMatchedReasonPattern.test(skipReason) ||
+            stoppedAtFirstMatchReasonPattern.test(skipReason)));
+
+      let previousMatchingCriteriaName: string | undefined = undefined;
+
+      if (!isDisabled && isEarlierCriterionMatch) {
+        for (
+          let previousIndex: number = index - 1;
+          previousIndex >= 0;
+          previousIndex--
+        ) {
+          const previousCriteria: MonitorEvaluationCriteriaResult | undefined =
+            evaluationSummary.criteriaResults[previousIndex];
+
+          if (previousCriteria?.met && !previousCriteria.skipped) {
+            previousMatchingCriteriaName =
+              previousCriteria.criteriaName || `Criteria ${previousIndex + 1}`;
+            break;
+          }
+        }
+      }
+
+      const skippedStatus: string = isDisabled ? "Disabled" : "Not evaluated";
+
+      return (
+        <div
+          key={`criteria-${criteria.criteriaId || index}`}
+          role="group"
+          aria-label={`${criteriaName}: ${skippedStatus}`}
+          className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-3"
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 ring-1 ring-inset ring-gray-200"
+              aria-hidden="true"
+            >
+              <Icon
+                icon={IconProp.PauseCircle}
+                className="h-4 w-4 text-gray-500"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-semibold text-gray-700">
+                  {criteriaName}
+                </div>
+                <StatusBadge
+                  text={skippedStatus}
+                  type={StatusBadgeType.Neutral}
+                  className="shrink-0"
+                />
+              </div>
+              <div className="mt-0.5 text-xs text-gray-500">
+                Condition: {criteria.filterCondition}
+              </div>
+              <div className="mt-3 border-t border-gray-200 pt-3">
+                <div className="text-sm text-gray-600">
+                  {previousMatchingCriteriaName ? (
+                    <>
+                      Not evaluated because{" "}
+                      <span className="font-medium text-gray-800">
+                        “{previousMatchingCriteriaName}”
+                      </span>{" "}
+                      matched first.
+                    </>
+                  ) : (
+                    skipReason
+                  )}
+                </div>
+                {previousMatchingCriteriaName && (
+                  <div className="mt-1 text-xs text-gray-500">
+                    Criteria are evaluated in order; this monitor stops after
+                    the first match.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div
         key={`criteria-${criteria.criteriaId || index}`}
-        className={`rounded-md border p-4 shadow-sm ${
-          isSkipped
-            ? "border-amber-200 bg-amber-50"
-            : "border-gray-200 bg-white"
-        }`}
+        role="group"
+        aria-label={`${criteriaName}: ${criteria.met ? "Met" : "Not Met"}`}
+        className="rounded-md border border-gray-200 bg-white p-4 shadow-sm"
       >
         <div className="flex items-start justify-between">
           <div>
-            <div
-              className={`text-sm font-semibold ${
-                isSkipped ? "text-gray-700" : "text-gray-900"
-              }`}
-            >
-              {criteria.criteriaName || `Criteria ${index + 1}`}
+            <div className="text-sm font-semibold text-gray-900">
+              {criteriaName}
             </div>
             <div className="text-xs text-gray-500">
               Condition: {criteria.filterCondition}
@@ -125,23 +223,12 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
           </div>
           <span
             className={`text-xs font-semibold ${
-              isSkipped
-                ? "text-amber-700"
-                : criteria.met
-                  ? "text-green-600"
-                  : "text-gray-500"
+              criteria.met ? "text-green-600" : "text-gray-500"
             }`}
           >
-            {isSkipped ? "Skipped" : criteria.met ? "Met" : "Not Met"}
+            {criteria.met ? "Met" : "Not Met"}
           </span>
         </div>
-
-        {isSkipped && (
-          <div className="mt-2 text-sm text-amber-800">
-            {criteria.skipReason ||
-              "This criteria was not evaluated because it is disabled."}
-          </div>
-        )}
 
         {criteria.filters.length > 0 && (
           <ul className="mt-3 space-y-2">
@@ -281,12 +368,6 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
               },
             )}
           </ul>
-        )}
-
-        {criteria.met && (
-          <div className="mt-3 text-xs text-gray-500">
-            All other criteria was not checked because this criteria was met.
-          </div>
         )}
       </div>
     );

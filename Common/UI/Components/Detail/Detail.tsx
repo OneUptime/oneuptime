@@ -8,6 +8,7 @@ import DictionaryOfStringsViewer from "../Dictionary/DictionaryOfStingsViewer";
 import { DropdownOption, DropdownOptionGroup } from "../Dropdown/Dropdown";
 import DropdownValueBadge from "../Dropdown/DropdownValueBadge";
 import HiddenText from "../HiddenText/HiddenText";
+import Link from "../Link/Link";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import ObjectIDView from "../ObjectID/ObjectIDView";
 import FieldType from "../Types/FieldType";
@@ -27,6 +28,12 @@ export enum DetailStyle {
   Default = "default",
   Card = "card",
   Minimal = "minimal",
+  /*
+   * Dense label-over-value rows split by hairline dividers, for the narrow
+   * right-hand details column of an overview page. Opt-in: the other styles
+   * render exactly as before.
+   */
+  Compact = "compact",
 }
 
 export interface ComponentProps<T extends GenericObject> {
@@ -44,7 +51,7 @@ type DetailFunction = <T extends GenericObject>(
 const Detail: DetailFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, translateValue } = useTranslateValue();
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -381,6 +388,117 @@ const Detail: DetailFunction = <T extends GenericObject>(
         <span className="text-xs text-blue-600 font-medium">
           {minutes > 1 ? "minutes" : "minute"}
         </span>
+      </div>
+    );
+  };
+
+  type GetFieldValueContentFunction = (
+    field: Field<T>,
+    data: string | ReactElement,
+  ) => ReactElement;
+
+  // The rendered value (or its placeholder), shared by every style.
+  const getFieldValueContent: GetFieldValueContentFunction = (
+    field: Field<T>,
+    data: string | ReactElement,
+  ): ReactElement => {
+    return (
+      <>
+        {data && (
+          <div
+            className={`${field.contentClassName || ""} w-full ${
+              field.opts?.isCopyable
+                ? "flex items-center gap-3 group/copyable"
+                : ""
+            }`}
+          >
+            <div className="break-words leading-relaxed">{data}</div>
+
+            {field.opts?.isCopyable &&
+              field.fieldType !== FieldType.HiddenText && (
+                <div className="opacity-0 group-hover/copyable:opacity-100 transition-all duration-200 transform group-hover/copyable:translate-x-0 -translate-x-1">
+                  <CopyableButton textToBeCopied={data.toString()} />
+                </div>
+              )}
+          </div>
+        )}
+        {(data === null || data === undefined || data === "") &&
+          field.placeholder && <PlaceholderText text={field.placeholder} />}
+      </>
+    );
+  };
+
+  type GetCompactFieldFunction = (
+    field: Field<T>,
+    index: number,
+    data: string | ReactElement,
+    colSpanClassName: string,
+    alignClassName: string,
+  ) => ReactElement;
+
+  /*
+   * DetailStyle.Compact. The DOM keeps the same shape as the other styles -
+   * a row holding the label block (div.space-y-1) and then the value - so
+   * anything that walks from a label to its value keeps working; only the
+   * spacing and type scale change. Rows sit flush in a single column (the
+   * container draws hairline dividers between them) and fall back to plain
+   * vertical rhythm when several columns share a row.
+   */
+  const getCompactField: GetCompactFieldFunction = (
+    field: Field<T>,
+    index: number,
+    data: string | ReactElement,
+    colSpanClassName: string,
+    alignClassName: string,
+  ): ReactElement => {
+    const translatedTitle: string | undefined = translateString(field.title);
+    const translatedDescription: string | ReactElement | undefined =
+      translateValue(field.description);
+    const translatedSideLinkText: string | undefined = translateString(
+      field.sideLink?.text,
+    );
+    const isSingleColumn: boolean =
+      (props.showDetailsInNumberOfColumns || 1) <= 1;
+
+    return (
+      <div
+        className={`${colSpanClassName} min-w-0 py-3${
+          isSingleColumn ? " first:pt-0 last:pb-0" : ""
+        }`}
+        key={index}
+        id={props.id}
+      >
+        <div className="space-y-1">
+          {translatedTitle && (
+            <label
+              className={`${alignClassName} items-center gap-2 text-xs font-medium text-gray-500`}
+            >
+              <span>{translatedTitle}</span>
+              {field.sideLink &&
+                translatedSideLinkText &&
+                field.sideLink.url && (
+                  <Link
+                    to={field.sideLink.url}
+                    openInNewTab={field.sideLink.openLinkInNewTab}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline underline-offset-2"
+                  >
+                    {translatedSideLinkText}
+                  </Link>
+                )}
+            </label>
+          )}
+          {translatedDescription && (
+            <div
+              className={`${alignClassName} text-xs leading-5 text-gray-400`}
+            >
+              {translatedDescription}
+            </div>
+          )}
+        </div>
+
+        <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
+          {getFieldValueContent(field, data)}
+        </div>
       </div>
     );
   };
@@ -795,6 +913,10 @@ const Detail: DetailFunction = <T extends GenericObject>(
     const isCardStyle: boolean = styleType === DetailStyle.Card;
     const isMinimalStyle: boolean = styleType === DetailStyle.Minimal;
 
+    if (styleType === DetailStyle.Compact) {
+      return getCompactField(field, index, data, className, alignClassName);
+    }
+
     /* Container classes based on style - uses first:pt-0 to remove top padding from first field */
     let containerClasses: string =
       "group transition-all duration-200 ease-in-out";
@@ -837,26 +959,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
             isCardStyle ? "text-gray-800" : "text-gray-700"
           }`}
         >
-          {data && (
-            <div
-              className={`${field.contentClassName || ""} w-full ${
-                field.opts?.isCopyable
-                  ? "flex items-center gap-3 group/copyable"
-                  : ""
-              }`}
-            >
-              <div className="break-words leading-relaxed">{data}</div>
-
-              {field.opts?.isCopyable &&
-                field.fieldType !== FieldType.HiddenText && (
-                  <div className="opacity-0 group-hover/copyable:opacity-100 transition-all duration-200 transform group-hover/copyable:translate-x-0 -translate-x-1">
-                    <CopyableButton textToBeCopied={data.toString()} />
-                  </div>
-                )}
-            </div>
-          )}
-          {(data === null || data === undefined || data === "") &&
-            field.placeholder && <PlaceholderText text={field.placeholder} />}
+          {getFieldValueContent(field, data)}
         </div>
       </div>
     );
@@ -867,7 +970,19 @@ const Detail: DetailFunction = <T extends GenericObject>(
   const isCardStyle: boolean = styleType === DetailStyle.Card;
 
   // Grid gap classes - cards need more gap, others less since they have internal padding
-  const gapClasses: string = isCardStyle ? "gap-4" : "gap-0";
+  let gapClasses: string = isCardStyle ? "gap-4" : "gap-0";
+
+  if (styleType === DetailStyle.Compact) {
+    /*
+     * Hairline dividers between stacked rows. Once several columns share a
+     * row (sm and up) a top border would also land on the first row's
+     * right-hand cells, so that layout separates cells with whitespace.
+     */
+    gapClasses =
+      (props.showDetailsInNumberOfColumns || 1) > 1
+        ? "gap-0 divide-y divide-gray-100 sm:gap-x-6 sm:divide-y-0"
+        : "gap-0 divide-y divide-gray-100";
+  }
 
   return (
     <div

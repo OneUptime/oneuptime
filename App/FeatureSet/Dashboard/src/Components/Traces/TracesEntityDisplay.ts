@@ -46,12 +46,18 @@ import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
  * and must never be imported here: this module's suite runs in plain Node.
  */
 import {
+  ENTITY_KEYS_FACET_KEY,
   LOCKED_FILTER_SOURCE_STORED_QUERY,
   describeLockedEntityFilter,
   describeLockedSpanFilter,
   describeLockedStoredQueryFilter,
   describeLockedTraceFilter,
 } from "../../Utils/LockedTelemetryScope";
+import {
+  LockedEntityKeyDisplayMap,
+  buildLockedEntityKeyChips,
+  normalizeLockedEntityKeys,
+} from "../../Utils/LockedEntityKeyChips";
 
 /** The Span column every entity chip ultimately filters. */
 export const TRACE_PRIMARY_ENTITY_FACET_KEY: string = "primaryEntityId";
@@ -550,6 +556,87 @@ export const describeStoredQueryChip: DescribeStoredQueryChipFunction = (
       : "equals",
   });
 };
+
+export interface BuildTracesLockedEntityKeyChipsInput {
+  /** The page's own entity-key scope: the viewer's `entityKeysFilter`. */
+  entityKeysFilter: ReadonlyArray<string> | undefined;
+  /** How the page names each key; a key without an entry reads "Resource". */
+  displays?: LockedEntityKeyDisplayMap | undefined;
+  /*
+   * The stored span query's entity keys (`spanScope.entityKeys`). The query
+   * unions them with the page's keys into ONE `hasAny`, so they widen the
+   * page's scope, and each page chip has to count them among the "other
+   * resources" rather than read as the only key that matches.
+   */
+  storedQueryEntityKeys?: ReadonlyArray<string> | undefined;
+  /*
+   * The locked chips already on the bar. A key one of them shows (the stored
+   * query's own "Resource: <key>" chip) is not shown twice: the chip bar keys
+   * its pills by facet and value, and two pills for one key would claim two
+   * filters where the query applies one.
+   */
+  lockedChips?: ReadonlyArray<ActiveFilter> | undefined;
+}
+
+type BuildTracesLockedEntityKeyChipsFunction = (
+  input: BuildTracesLockedEntityKeyChipsInput,
+) => Array<ActiveFilter>;
+
+/**
+ * The read-only chips for the page's entity-key scope — an Inventory item's
+ * Traces tab, which narrows the list by `hasAny(entityKeys, [item key])` and
+ * used to show an empty chip bar above it.
+ *
+ * Only `entityKeysFilter` yields chips. A Kubernetes / Host page's
+ * `entityScope` is explained by its attribute chip, and a stored query's keys
+ * already have their own chips, so neither is read here as a source of chips.
+ * The duplicate check reads the chips the viewer has ALREADY built, not the
+ * stored scope, because the viewer can withhold a stored chip (a column the
+ * user filtered themselves); a page key must stay visible then, since the
+ * query still applies it.
+ *
+ * Display only: the query unions the keys on its own.
+ */
+export const buildTracesLockedEntityKeyChips: BuildTracesLockedEntityKeyChipsFunction =
+  (input: BuildTracesLockedEntityKeyChipsInput): Array<ActiveFilter> => {
+    const pageEntityKeys: Array<string> = normalizeLockedEntityKeys(
+      input.entityKeysFilter,
+    );
+
+    if (pageEntityKeys.length === 0) {
+      return [];
+    }
+
+    const storedEntityKeys: Array<string> = normalizeLockedEntityKeys(
+      input.storedQueryEntityKeys,
+    );
+
+    const shownEntityKeys: Array<string> = [];
+
+    for (const chip of input.lockedChips || []) {
+      if (chip.facetKey === ENTITY_KEYS_FACET_KEY) {
+        shownEntityKeys.push(chip.value);
+      }
+    }
+
+    /*
+     * A key only the stored query pins is in `entityKeys` so the page chips
+     * count it, and in the skip list so it never gets a page chip ("Pinned by
+     * this page") of its own.
+     */
+    const storedOnlyEntityKeys: Array<string> = storedEntityKeys.filter(
+      (entityKey: string): boolean => {
+        return !pageEntityKeys.includes(entityKey);
+      },
+    );
+
+    return buildLockedEntityKeyChips({
+      rows: "traces",
+      entityKeys: [...pageEntityKeys, ...storedOnlyEntityKeys],
+      displays: input.displays,
+      skipEntityKeys: [...shownEntityKeys, ...storedOnlyEntityKeys],
+    });
+  };
 
 export interface SpanEntityDisplay {
   name: string;

@@ -73,6 +73,20 @@ enum EntityType {
   DockerSwarmTask = "docker.swarm.task",
   TelemetrySdk = "telemetry.sdk",
   /*
+   * Dependency types, discovered from the CLIENT / PRODUCER spans of an
+   * instrumented service rather than from a resource of their own. They are
+   * the far end of a call nothing on the other side reported: a PostgreSQL
+   * or Redis a service queries (`db.system.name` / `db.system`), or an HTTP /
+   * gRPC / messaging endpoint it talks to (`server.address`, `peer.service`,
+   * `messaging.system`). OneUptime-defined — semconv describes these only as
+   * span attributes, never as entities. Discovered (heartbeat-bumped by the
+   * ComputeServiceDependencies cron), so they age out like any other
+   * discovered row. Deliberately distinct from the manual ExternalService /
+   * ExternalDatabase types below, which nothing ever observes.
+   */
+  Database = "database",
+  RemoteService = "remote.service",
+  /*
    * Inventory-mirrored types. Unlike everything above, these are never
    * derived from an OTLP resource — the estate they describe is collected
    * by pollers (SNMP, cloud APIs, MQTT) into rich typed tables, and the

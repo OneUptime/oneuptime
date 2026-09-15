@@ -37,6 +37,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { APP_API_URL } from "Common/UI/Config";
 import OneUptimeDate from "Common/Types/Date";
+import EntityType from "Common/Types/Telemetry/EntityType";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -44,6 +45,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import {
   HEALTH_COLORS,
+  SERVICE_MAP_TOLERATED_ERROR_RATE,
   formatCallRate,
   formatDurationMs,
   formatErrorRate,
@@ -56,6 +58,10 @@ import {
  * ClickHouse (POST /telemetry/service-dependency-timeseries) for the time
  * range picked on the Topology page, and rendered with the shared chart
  * components: calls & errors, then average latency.
+ *
+ * History comes from paired spans, so it exists only between two services.
+ * A call into a database or remote API (inferred from client spans) shows
+ * the latest window alone, and says why.
  */
 
 export interface ComponentProps {
@@ -137,9 +143,12 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
   const { translateString } = useTranslateValue();
   const fromName: string = props.fromEntity.displayName || "Unknown service";
   const toName: string = props.toEntity.displayName || "Unknown service";
+  const historyAvailable: boolean =
+    props.fromEntity.entityType === EntityType.Service &&
+    props.toEntity.entityType === EntityType.Service;
 
   const [result, setResult] = useState<TimeseriesResult | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(historyAvailable);
   const [error, setError] = useState<string>("");
 
   /*
@@ -157,6 +166,12 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
      * edge's slower response overwrite the newer one's state.
      */
     let cancelled: boolean = false;
+    if (!historyAvailable) {
+      setIsLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
     const load: () => Promise<void> = async (): Promise<void> => {
       setIsLoading(true);
       setError("");
@@ -272,7 +287,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
     return () => {
       cancelled = true;
     };
-  }, [fromName, toName, props.timeRange, window]);
+  }, [fromName, toName, props.timeRange, window, historyAvailable]);
 
   const buildCharts: () => Array<Chart> = (): Array<Chart> => {
     if (!result || result.buckets.length === 0) {
@@ -392,12 +407,22 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
   const rel: InventoryItemRelationship = props.relationship;
   const hasLatestMetrics: boolean = Boolean(rel.callCount && rel.callCount > 0);
   const healthColor: string =
-    HEALTH_COLORS[healthForErrorRate(rel.callCount, rel.errorCount)];
+    HEALTH_COLORS[
+      healthForErrorRate(
+        rel.callCount,
+        rel.errorCount,
+        SERVICE_MAP_TOLERATED_ERROR_RATE,
+      )
+    ];
 
   return (
     <SideOver
       title={`${fromName} → ${toName}`}
-      description={translateString("Service dependency") || ""}
+      description={
+        translateString(
+          historyAvailable ? "Service dependency" : "Dependency",
+        ) || ""
+      }
       onClose={props.onClose}
       size={SideOverSize.Medium}
     >
@@ -431,7 +456,16 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {isLoading ? (
+        {!historyAvailable ? (
+          <p
+            className="text-sm text-gray-500"
+            data-testid="edge-history-unavailable"
+          >
+            {translateString(
+              "History is available for calls between two instrumented services. This call was inferred from the client spans of the caller, so only the latest window is shown.",
+            ) || ""}
+          </p>
+        ) : isLoading ? (
           <ComponentLoader />
         ) : error ? (
           <ErrorMessage message={error} />

@@ -20,14 +20,24 @@ async function screenshot(page: Page, name: string): Promise<void> {
   });
 }
 
-async function openView(page: Page, tab: string): Promise<void> {
-  await page.goto(`${ROUTE}?tab=${encodeURIComponent(tab)}`);
+async function openView(
+  page: Page,
+  tab: string,
+  extraQuery: string = "",
+): Promise<void> {
+  await page.goto(
+    `${ROUTE}?tab=${encodeURIComponent(tab)}${extraQuery ? `&${extraQuery}` : ""}`,
+  );
   await expect(
     page.getByRole("heading", { name: "Topology", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("tab", { name: tab, exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+}
+
+function infrastructureRows(page: Page): ReturnType<Page["getByTestId"]> {
+  return page.getByTestId("infrastructure-row");
 }
 
 test.beforeEach(async ({ page }: { page: Page }) => {
@@ -55,7 +65,7 @@ test.afterEach(({ page }: { page: Page }) => {
   pageErrors.delete(page);
 });
 
-test("infrastructure starts with compact groups and supports drilldown, search, reset and map", async ({
+test("infrastructure is a tree of containers with a table per scope, search and a one-level map", async ({
   page,
 }: {
   page: Page;
@@ -63,100 +73,45 @@ test("infrastructure starts with compact groups and supports drilldown, search, 
   await openView(page, "Infrastructure");
   await expect(page.getByTestId("infrastructure-explorer")).toBeVisible();
   await expect(
-    page.getByRole("button", {
-      name: "Explore Production Europe",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Explore Production US", exact: true }),
-  ).toBeVisible();
+    page
+      .getByRole("region", { name: "Kubernetes" })
+      .getByTestId("infrastructure-row"),
+  ).toHaveCount(2);
   await screenshot(page, "infrastructure-overview-synthetic");
+
   await page
-    .getByRole("button", { name: "Explore Production Europe", exact: true })
+    .getByRole("button", { name: "Open Production Europe", exact: true })
     .click();
+  await expect(page.getByTestId("infrastructure-scope-title")).toHaveText(
+    "Production Europe",
+  );
+  await expect(infrastructureRows(page)).toHaveCount(3);
+  await page
+    .getByRole("button", { name: "Open eu-worker-01", exact: true })
+    .click();
+  await expect(infrastructureRows(page)).toHaveCount(20);
   await expect(
     page.getByRole("navigation", { name: "Infrastructure location" }),
   ).toContainText("Production Europe");
-  await expect(
-    page.getByRole("button", { name: "Explore eu-worker-01", exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Explore eu-worker-01", exact: true })
-    .click();
-  await expect(
-    page.getByRole("status").filter({ hasText: "20 resources in this view" }),
-  ).toBeVisible();
+
   await page
     .getByRole("searchbox", { name: "Search infrastructure" })
     .fill("checkout-1-02");
-  await expect(
-    page.getByRole("status").filter({ hasText: "1 matching resources" }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Clear filters", exact: true })
-    .click();
-  await expect(
-    page.getByRole("status").filter({ hasText: "20 resources in this view" }),
-  ).toBeVisible();
+  await expect(infrastructureRows(page)).toHaveCount(1);
+  await expect(infrastructureRows(page).first()).toContainText(
+    "in eu-worker-01",
+  );
+  await page.getByRole("searchbox", { name: "Search infrastructure" }).fill("");
+  await expect(infrastructureRows(page)).toHaveCount(20);
   await screenshot(page, "infrastructure-resources-synthetic");
-  await page.getByRole("button", { name: "Map", exact: true }).click();
+
+  await page.getByTestId("infrastructure-view-map").click();
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
-  await expect(page.locator(".react-flow__node")).toHaveCount(21);
+  await expect(page.locator(".react-flow__node")).toHaveCount(20);
   await screenshot(page, "infrastructure-map-synthetic");
 });
 
-test("infrastructure missing matches are recoverable and unknown resources remain visible on the map", async ({
-  page,
-}: {
-  page: Page;
-}) => {
-  await openView(page, "Infrastructure");
-  await page
-    .getByRole("searchbox", { name: "Search infrastructure" })
-    .fill("a-resource-that-does-not-exist");
-  await expect(
-    page.getByRole("heading", { name: "No resources match your filters" }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Clear filters", exact: true })
-    .first()
-    .click();
-  await page
-    .getByRole("searchbox", { name: "Search infrastructure" })
-    .fill("unknown-cache-peer");
-  await expect(
-    page.getByRole("status").filter({ hasText: "1 matching resources" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Map", exact: true }).click();
-  await expect(page.locator(".react-flow__node")).toHaveCount(1);
-});
-
-test("service directory includes isolated services and opens a focused dependency graph", async ({
-  page,
-}: {
-  page: Page;
-}) => {
-  await openView(page, "Service Map");
-  await expect(page.getByTestId("service-map-list-row")).toHaveCount(8);
-  await expect(
-    page.getByRole("button", { name: "scheduled-reports", exact: true }),
-  ).toBeVisible();
-  await screenshot(page, "service-directory-synthetic");
-  await page.getByRole("textbox", { name: "Search services" }).fill("payments");
-  await expect(page.getByTestId("service-map-list-row")).toHaveCount(1);
-  await page
-    .getByRole("button", { name: "View connections for payments", exact: true })
-    .click();
-  await expect(page.getByTestId("service-map-canvas")).toBeVisible();
-  await expect(page.getByTestId("service-map-clear-focus")).toBeVisible();
-  await expect(page.locator(".react-flow__node")).toHaveCount(3);
-  await screenshot(page, "service-dependencies-synthetic");
-  await page.getByTestId("service-map-reset-filters").click();
-  await expect(page.locator(".react-flow__node")).toHaveCount(8);
-});
-
-test("infrastructure details navigate through real connections and open the selected group", async ({
+test("infrastructure details open from a row and lead back to the resource's place", async ({
   page,
 }: {
   page: Page;
@@ -165,50 +120,125 @@ test("infrastructure details navigate through real connections and open the sele
   await page
     .getByRole("searchbox", { name: "Search infrastructure" })
     .fill("checkout-1-02");
-  await page.getByRole("button", { name: /checkout-1-02/ }).click();
+  await page
+    .getByRole("button", {
+      name: "View details for checkout-1-02",
+      exact: true,
+    })
+    .click();
   await expect(
     page.getByRole("heading", { name: "checkout-1-02", exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "View details for eu-worker-01", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "eu-worker-01", exact: true }),
-  ).toBeVisible();
   await screenshot(page, "infrastructure-resource-details-synthetic");
   await page
-    .getByRole("button", { name: "Explore this resource", exact: true })
+    .getByRole("button", { name: "Show where it is", exact: true })
     .click();
-  await expect(
-    page.getByRole("navigation", { name: "Infrastructure location" }),
-  ).toContainText("eu-worker-01");
-  await expect(
-    page.getByRole("status").filter({ hasText: "20 resources in this view" }),
-  ).toBeVisible();
+  await expect(page.getByTestId("infrastructure-scope-title")).toHaveText(
+    "eu-worker-01",
+  );
 });
 
-test("service details follow connected peers and open a focused map", async ({
+test("the service map draws calls left to right and lists unconnected services beside it", async ({
   page,
 }: {
   page: Page;
 }) => {
   await openView(page, "Service Map");
-  await page.getByRole("button", { name: "checkout", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "checkout", exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "View details for payments", exact: true })
-    .click();
+  await expect(page.getByTestId("service-map-canvas")).toBeVisible();
+  await expect(page.locator(".react-flow__node")).toHaveCount(6);
+  await expect(page.getByTestId("service-map-unconnected-item")).toHaveCount(2);
+  await screenshot(page, "service-map-synthetic");
+
+  await page.getByTestId("service-map-node-service-payments").click();
   await expect(
     page.getByRole("heading", { name: "payments", exact: true }),
   ).toBeVisible();
-  await screenshot(page, "service-resource-details-synthetic");
+  await screenshot(page, "service-details-synthetic");
   await page
-    .getByRole("button", { name: "Explore connections", exact: true })
+    .getByRole("button", { name: "Show its connections", exact: true })
     .click();
-  await expect(page.getByTestId("service-map-canvas")).toBeVisible();
+  await expect(page.getByTestId("service-map-clear-focus")).toBeVisible();
   await expect(page.locator(".react-flow__node")).toHaveCount(3);
+  await page.getByTestId("service-map-reset-filters").click();
+  await expect(page.locator(".react-flow__node")).toHaveCount(6);
+
+  await page.getByTestId("service-map-view-list").click();
+  await expect(page.getByTestId("service-map-list-row")).toHaveCount(8);
+  await page.getByRole("textbox", { name: "Search services" }).fill("payments");
+  await expect(page.getByTestId("service-map-list-row")).toHaveCount(1);
+  await screenshot(page, "service-table-synthetic");
+});
+
+test("a self-hosted estate before the fix: no calls explained, pods grouped, old pods hidden", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openView(page, "Service Map", "dataset=selfHostedLegacy");
+  await expect(page.getByTestId("service-map-no-connections")).toBeVisible();
+  await expect(page.getByTestId("service-map-unconnected-item")).toHaveCount(8);
+  await screenshot(page, "legacy-service-map-synthetic");
+
+  await page.getByRole("tab", { name: "Infrastructure", exact: true }).click();
+  await expect(infrastructureRows(page)).toHaveCount(7);
+  await expect(page.getByTestId("infrastructure-explorer")).toContainText(
+    "Inactive not shown448",
+  );
+  await screenshot(page, "legacy-infrastructure-synthetic");
+
+  await page
+    .getByRole("button", { name: "Open oneuptime-app", exact: true })
+    .click();
+  await expect(infrastructureRows(page)).toHaveCount(12);
+  await page.getByTestId("topology-show-inactive").check();
+  await expect(infrastructureRows(page)).toHaveCount(50);
+  await expect(page.getByText("Page 1 / 3")).toBeVisible();
+  await screenshot(page, "legacy-infrastructure-inactive-synthetic");
+});
+
+test("a self-hosted estate after the fix: databases and APIs on the map, workloads by deployment", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openView(page, "Service Map", "dataset=selfHostedDiscovered");
+  await expect(page.locator(".react-flow__node")).toHaveCount(13);
+  await expect(page.getByTestId("service-map-summary")).toContainText(
+    "Dependencies5",
+  );
+  await screenshot(page, "discovered-service-map-synthetic");
+
+  await page.getByTestId("service-map-node-db-clickhouse").click();
+  await expect(
+    page.getByRole("heading", { name: "oneuptime-clickhouse", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByTestId("entity-detail-called-by")).toContainText(
+    "api depends on oneuptime-clickhouse",
+  );
+  await screenshot(page, "discovered-database-details-synthetic");
+  await page.getByRole("button", { name: "Close panel", exact: true }).click();
+
+  await page.getByTestId("service-map-node-service-api").click();
+  await page
+    .getByRole("button", {
+      name: /View details for oneuptime-app-/,
+    })
+    .first()
+    .click();
+  await expect(
+    page.getByRole("tab", { name: "Infrastructure", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("infrastructure-scope-title")).toHaveText(
+    "oneuptime-app",
+  );
+  await page.getByRole("button", { name: "Close panel", exact: true }).click();
+  await page
+    .getByRole("button", { name: "All infrastructure" })
+    .first()
+    .click();
+  await page.getByTestId("infrastructure-view-map").click();
+  await expect(page.locator(".react-flow__node")).toHaveCount(13);
+  await screenshot(page, "discovered-infrastructure-map-synthetic");
 });
 
 test("network sites lead to a real device map with recoverable progressive controls", async ({
@@ -289,6 +319,7 @@ test("all views fit a phone and topology tabs support keyboard navigation", asyn
       "true",
     );
     if (name === "Service Map") {
+      await page.getByTestId("service-map-view-list").click();
       await expect(page.getByTestId("service-map-list")).toBeVisible();
       await expect
         .poll(

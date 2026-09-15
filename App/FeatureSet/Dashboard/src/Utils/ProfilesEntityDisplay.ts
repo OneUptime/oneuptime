@@ -1,4 +1,5 @@
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { ActiveFilter } from "Common/UI/Components/TelemetryViewer/types";
 import {
   ResolvedTelemetryEntity,
   TELEMETRY_ENTITY_TYPES,
@@ -253,4 +254,41 @@ export const getProfileServiceFilterChipDisplay: (data: {
     value: shortenProfileEntityId(serviceId),
     isResolved: false,
   };
+};
+
+/*
+ * Whether the profiles table shows its pill row above the list.
+ *
+ * The row used to exist only for the removable deep-link pills (`?traceId=`,
+ * `?serviceId=`, `?profileType=`). An Inventory item's Profiles page scopes
+ * the table by entity key instead, with no deep link at all — so the list was
+ * filtered while nothing above it said so. A locked entity-key chip now opens
+ * the row by itself. Display only: the answer never reaches the query.
+ */
+export interface ProfileTableFilterRowInput {
+  /** The table's locked chips (its entity-key scope), rendered first. */
+  lockedChips?: ReadonlyArray<ActiveFilter> | undefined;
+  traceIdFilter?: string | null | undefined;
+  serviceIdFilter?: string | null | undefined;
+  profileTypeFilter?: string | null | undefined;
+}
+
+type HasProfileTableFilterRowFunction = (
+  input: ProfileTableFilterRowInput,
+) => boolean;
+
+export const hasProfileTableFilterRow: HasProfileTableFilterRowFunction = (
+  input: ProfileTableFilterRowInput,
+): boolean => {
+  if (input.lockedChips && input.lockedChips.length > 0) {
+    return true;
+  }
+
+  /*
+   * Truthiness, exactly as the pills themselves test it: an empty
+   * `?traceId=` renders no pill, so it must not open an empty row either.
+   */
+  return Boolean(
+    input.traceIdFilter || input.serviceIdFilter || input.profileTypeFilter,
+  );
 };

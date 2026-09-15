@@ -2491,6 +2491,13 @@
                         "string",
                         "null"
                     ]
+                },
+                "kubernetesClusterName": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "description": "Reported as k8s.cluster.name on OneUptime's own telemetry."
                 }
             },
             "additionalProperties": false
