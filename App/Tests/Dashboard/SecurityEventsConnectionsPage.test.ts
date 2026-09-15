@@ -1,23 +1,30 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
-import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection";
+import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Dictionary from "Common/Types/Dictionary";
+import {
+  ConnectorField,
+  SecurityEventConnectorDefinition,
+  getSecurityEventConnectorDefinition,
+} from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "Common/Types/SecurityEvent/GoogleSecOpsRegion";
 import fs from "fs";
 import nodePath from "path";
 
 /*
- * Security Events > Connections is the page that finally puts a Google
- * SecOps connector's poll health in the product.
+ * Security Events > Connections is the page that finally put a Google
+ * SecOps connector's poll health in the product, and it is where every
+ * managed connector, Google SecOps included, now lives in one list.
  *
  * It exists because of an outage where it did not. A customer's connector
- * stopped polling and their GoogleSecOpsConnection row sat at
- * lastPolledAt = null, lastError = null for hours: the poller's own
- * error-recording write overflowed lastError's varchar(500) and threw, so
- * the two columns that were supposed to explain the outage were exactly
- * the ones the outage prevented from being written. Nobody could see
- * either field from the dashboard at all, so the only way to read them was
- * a raw SQL query against the customer's database.
+ * stopped polling and their connection row sat at lastPolledAt = null,
+ * lastError = null for hours: the poller's own error-recording write
+ * overflowed lastError's varchar(500) and threw, so the two columns that
+ * were supposed to explain the outage were exactly the ones the outage
+ * prevented from being written. Nobody could see either field from the
+ * dashboard at all, so the only way to read them was a raw SQL query
+ * against the customer's database.
  *
  * So two separate things are pinned here:
  *
@@ -32,10 +39,12 @@ import nodePath from "path";
  *  2. The content. lastPolledAt and lastError have to stay accessible,
  *     with "Never" on Last Polled and a View Error action for failures,
  *     because their absence from the product is the whole reason this
- *     ticket happened. And the docs have to keep
- *     describing the page that actually shipped — they previously told the
- *     reader to open a "Security Events -> Google SecOps Connections" nav
- *     entry that never existed.
+ *     ticket happened. Google SecOps moved from its own table and form into
+ *     the shared ones, so what its form guaranteed (an explicit region pick
+ *     from Google's list, a write-only key edited as JSON, Alerts fixed and
+ *     Detections optional) is pinned where it now comes from: the catalog
+ *     and the shared form. And the docs have to keep describing the page
+ *     that actually shipped.
  *
  * Same deferred-import + browser-stub shape as
  * App/Tests/Dashboard/SecurityEventsSetupGuide.test.ts: Common/UI/Config
@@ -71,21 +80,16 @@ let setNavigationLocation: (pathname: string) => void;
 const FIELD_HEAD_PATTERN: RegExp = /field:\s*\{\s*(\w+):\s*true/g;
 /* Matches `title: "..."` inside a single extracted entry. */
 const TITLE_PATTERN: RegExp = /title:\s*"([^"]*)"/;
-/* Matches `stepId: "..."` inside a single extracted form field. */
-const STEP_ID_PATTERN: RegExp = /stepId:\s*"([^"]+)"/;
-/* Matches the simple `{ title, id }` entries in the formSteps array. */
-const FORM_STEP_PATTERN: RegExp =
-  /\{\s*title:\s*"([^"]+)",\s*id:\s*"([^"]+)"\s*,?\s*\}/g;
 /* Fields fetched for row actions even when they are not visible columns. */
 const SELECT_MORE_FIELDS_PATTERN: RegExp =
   /selectMoreFields=\{\{([\s\S]*?)\}\}/;
 const LAST_ERROR_SELECTION_PATTERN: RegExp = /\blastError:\s*true/;
-/* The model defaults mirrored by ModelTable's create form. */
-const CREATE_INITIAL_VALUES_PATTERN: RegExp =
-  /createInitialValues=\{\{([\s\S]*?)\}\}/;
 /* Matches the page import in SecurityEventsRoutes.tsx. */
 const CONNECTIONS_PAGE_IMPORT_PATTERN: RegExp =
-  /import\s+(\w+)\s+from\s+"\.\.\/Pages\/SecurityEvents\/GoogleSecOpsConnections"/;
+  /import\s+(\w+)\s+from\s+"\.\.\/Pages\/SecurityEvents\/Connections"/;
+/* A catalog "json" field maps to the JSON code editor. */
+const JSON_FIELD_TYPE_PATTERN: RegExp =
+  /case "json":\s*return FormFieldSchemaType\.JSON;/;
 /* Matches a backticked absolute dashboard path in the markdown docs. */
 const DOC_DASHBOARD_PATH_PATTERN: RegExp =
   /`(\/dashboard\/[^`]*security-events[^`]*)`/g;
@@ -101,9 +105,9 @@ const HELM_TOP_LEVEL_PATTERN: RegExp = /^[A-Za-z_]/m;
 
 /*
  * Pin Google's published endpoint prefixes independently of the shared
- * constant. The page and server deliberately consume one shared list, while
- * this test remains capable of catching a truncated or accidentally broadened
- * list in that source of truth.
+ * constant. The catalog and server deliberately consume one shared list,
+ * while this test remains capable of catching a truncated or accidentally
+ * broadened list in that source of truth.
  */
 const DOCUMENTED_GOOGLE_SECOPS_REGIONS: Array<string> = [
   "us",
@@ -130,6 +134,9 @@ const DOCUMENTED_GOOGLE_SECOPS_REGIONS: Array<string> = [
   "southamerica-east1",
 ];
 
+const RESELLER_GATE_MESSAGE: string =
+  "Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project.";
+
 const REPO_ROOT: string = nodePath.join(__dirname, "..", "..", "..");
 
 const DASHBOARD_SRC: string = nodePath.join(
@@ -151,7 +158,17 @@ function readDashboardSource(...relativeParts: Array<string>): string {
 const connectionsPageSource: string = readDashboardSource(
   "Pages",
   "SecurityEvents",
-  "GoogleSecOpsConnections.tsx",
+  "Connections.tsx",
+);
+const connectionsTableSource: string = readDashboardSource(
+  "Components",
+  "SecurityEvents",
+  "SecurityEventConnectionsTable.tsx",
+);
+const connectionFormSource: string = readDashboardSource(
+  "Components",
+  "SecurityEvents",
+  "SecurityEventConnectionFormModal.tsx",
 );
 const sideMenuSource: string = readDashboardSource(
   "Pages",
@@ -184,19 +201,17 @@ const helmValuesYaml: string = fs.readFileSync(
 );
 
 /*
- * Pull a JSX array prop (`columns={[ ... ]}`) out of the page text by
- * bracket depth. Reading the props as text is deliberate — see the header
- * comment — but a naive `indexOf("]}")` would stop at the first nested
- * array, so count instead.
+ * Pull a JSX array prop (`columns={[ ... ]}`) out of a source by bracket
+ * depth. Reading the props as text is deliberate — see the header comment —
+ * but a naive `indexOf("]}")` would stop at the first nested array, so
+ * count instead.
  */
 function extractArrayProp(source: string, propName: string): string {
   const marker: string = `${propName}={[`;
   const markerIndex: number = source.indexOf(marker);
 
   if (markerIndex === -1) {
-    throw new Error(
-      `GoogleSecOpsConnections.tsx has no "${propName}" array prop`,
-    );
+    throw new Error(`The source has no "${propName}" array prop`);
   }
 
   const arrayStart: number = source.indexOf("[", markerIndex);
@@ -224,15 +239,10 @@ interface FieldEntry {
   body: string;
 }
 
-interface FormStep {
-  title: string;
-  id: string;
-}
-
 /*
- * Split a formFields/columns array into one entry per column, so an
- * assertion about `noValueMessage` or `doNotShowWhenEditing` is anchored
- * to the field it belongs to rather than to the file as a whole.
+ * Split a columns array into one entry per column, so an assertion about
+ * `noValueMessage` is anchored to the column it belongs to rather than to
+ * the file as a whole.
  */
 function splitFieldEntries(arrayBlock: string): Array<FieldEntry> {
   const heads: Array<RegExpMatchArray> = Array.from(
@@ -261,16 +271,6 @@ function titleOf(entry: FieldEntry): string {
   return match[1] as string;
 }
 
-function stepIdOf(entry: FieldEntry): string {
-  const match: RegExpMatchArray | null = STEP_ID_PATTERN.exec(entry.body);
-
-  if (!match) {
-    throw new Error(`Form field "${entry.columnName}" has no stepId`);
-  }
-
-  return match[1] as string;
-}
-
 function getEntry(entries: Array<FieldEntry>, columnName: string): FieldEntry {
   const entry: FieldEntry | undefined = entries.find(
     (candidate: FieldEntry) => {
@@ -290,57 +290,68 @@ function getEntry(entries: Array<FieldEntry>, columnName: string): FieldEntry {
  * assertions could borrow `disabled`, `value` or `onChange` from the other
  * checkbox and let the two controls silently swap their semantics.
  */
-function extractControlByTestId(source: string, dataTestId: string): string {
-  const marker: string = `dataTestId="${dataTestId}"`;
+function extractCheckboxByMarker(source: string, marker: string): string {
   const markerIndex: number = source.indexOf(marker);
 
   if (markerIndex === -1) {
-    throw new Error(`No control with dataTestId "${dataTestId}"`);
+    throw new Error(`No control marked "${marker}"`);
   }
 
   const start: number = source.lastIndexOf("<CheckboxElement", markerIndex);
   const end: number = source.indexOf("/>", markerIndex);
 
   if (start === -1 || end === -1) {
-    throw new Error(`Unbalanced CheckboxElement for "${dataTestId}"`);
+    throw new Error(`Unbalanced CheckboxElement for "${marker}"`);
   }
 
   return source.slice(start, end + 2);
 }
 
-const formFieldEntries: Array<FieldEntry> = splitFieldEntries(
-  extractArrayProp(connectionsPageSource, "formFields"),
-);
-const formSteps: Array<FormStep> = Array.from(
-  extractArrayProp(connectionsPageSource, "formSteps").matchAll(
-    FORM_STEP_PATTERN,
-  ),
-).map((match: RegExpMatchArray): FormStep => {
-  return {
-    title: match[1] as string,
-    id: match[2] as string,
-  };
-});
 const columnEntries: Array<FieldEntry> = splitFieldEntries(
-  extractArrayProp(connectionsPageSource, "columns"),
+  extractArrayProp(connectionsTableSource, "columns"),
 );
 const actionButtonsBlock: string = extractArrayProp(
-  connectionsPageSource,
+  connectionsTableSource,
   "actionButtons",
 );
 
-const formFieldColumnNames: Array<string> = formFieldEntries.map(
-  (entry: FieldEntry) => {
-    return entry.columnName;
-  },
-);
 const columnNames: Array<string> = columnEntries.map((entry: FieldEntry) => {
   return entry.columnName;
 });
 
-const connectionModel: GoogleSecOpsConnection = new GoogleSecOpsConnection();
+/*
+ * The model columns the shared form offers by name. Provider-specific
+ * fields are namespaced (`[configFieldName(...)]`) and never match a model
+ * column, so they are not in this list.
+ */
+const formFieldColumnNames: Array<string> = Array.from(
+  connectionFormSource.matchAll(FIELD_HEAD_PATTERN),
+).map((match: RegExpMatchArray): string => {
+  return match[1] as string;
+});
+
+const connectionModel: SecurityEventConnection = new SecurityEventConnection();
 const accessControl: Dictionary<ColumnAccessControl> =
   connectionModel.getColumnAccessControlForAllColumns();
+
+const googleSecOps: SecurityEventConnectorDefinition =
+  getSecurityEventConnectorDefinition(
+    SecurityEventConnectorProvider.GoogleSecOps,
+  ) as SecurityEventConnectorDefinition;
+
+function googleConfigField(key: string): ConnectorField {
+  const field: ConnectorField | undefined = googleSecOps.configFields.find(
+    (candidate: ConnectorField): boolean => {
+      return candidate.key === key;
+    },
+  );
+
+  if (!field) {
+    throw new Error(`Google SecOps has no config field "${key}"`);
+  }
+
+  return field;
+}
 
 beforeAll(async () => {
   (globalThis as Record<string, unknown>)["window"] = {
@@ -451,7 +462,7 @@ describe("Security events connections page wiring", () => {
           DASHBOARD_SRC,
           "Pages",
           "SecurityEvents",
-          "GoogleSecOpsConnections.tsx",
+          "Connections.tsx",
         ),
       ),
     ).toBe(true);
@@ -469,6 +480,20 @@ describe("Security events connections page wiring", () => {
     expect(registration).toContain(
       "RouteMap[PageMap.SECURITY_EVENTS_CONNECTIONS] as Route",
     );
+  });
+
+  test("the retired Google SecOps page is gone and nothing routes to it", () => {
+    expect(
+      fs.existsSync(
+        nodePath.join(
+          DASHBOARD_SRC,
+          "Pages",
+          "SecurityEvents",
+          "GoogleSecOpsConnections.tsx",
+        ),
+      ),
+    ).toBe(false);
+    expect(routesSource).not.toContain("GoogleSecOps");
   });
 
   test("the page is in the Integrations side-menu section", () => {
@@ -523,18 +548,26 @@ describe("Security events connections route shape", () => {
 });
 
 describe("Security events connections page content", () => {
-  test("it renders a ModelTable of GoogleSecOpsConnection", () => {
+  test("the page is the reseller gate in front of the shared connections table", () => {
     expect(connectionsPageSource).toContain(
-      'import ModelTable from "Common/UI/Components/ModelTable/ModelTable"',
+      'import SecurityEventConnectionsTable from "../../Components/SecurityEvents/SecurityEventConnectionsTable"',
     );
     expect(connectionsPageSource).toContain(
-      'import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection"',
+      "props.currentProject?.reseller?.enableTelemetryFeatures === false",
     );
+    expect(connectionsPageSource).toContain(RESELLER_GATE_MESSAGE);
     expect(connectionsPageSource).toContain(
-      "<ModelTable<GoogleSecOpsConnection>",
+      "return <SecurityEventConnectionsTable />;",
     );
-    expect(connectionsPageSource).toContain(
-      "modelType={GoogleSecOpsConnection}",
+    // One list: no second, provider-specific table next to the shared one.
+    expect(connectionsPageSource).not.toContain("<ModelTable");
+    expect(connectionsPageSource).not.toContain("GoogleSecOps");
+
+    expect(connectionsTableSource).toContain(
+      "<ModelTable<SecurityEventConnection>",
+    );
+    expect(connectionsTableSource).toContain(
+      "modelType={SecurityEventConnection}",
     );
   });
 
@@ -552,11 +585,14 @@ describe("Security events connections page content", () => {
       "Last Polled",
     );
     expect(actionButtonsBlock).toContain('title: "View Error"');
+    expect(connectionsTableSource).toContain('title="Last Error"');
+    expect(connectionsTableSource).toContain('label="Copy Error"');
+    expect(connectionsTableSource).toContain('aria-label="Full error message"');
   });
 
   test("the row action can fetch the error without a Last Error column", () => {
     const selectedFields: RegExpMatchArray | null =
-      SELECT_MORE_FIELDS_PATTERN.exec(connectionsPageSource);
+      SELECT_MORE_FIELDS_PATTERN.exec(connectionsTableSource);
 
     expect(selectedFields).not.toBeNull();
     expect(selectedFields![1]).toMatch(LAST_ERROR_SELECTION_PATTERN);
@@ -573,38 +609,36 @@ describe("Security events connections page content", () => {
     );
   });
 
-  test("the service account key is write-only on the form", () => {
-    const serviceAccountField: FieldEntry = getEntry(
-      formFieldEntries,
-      "serviceAccountJson",
-    );
-
-    expect(serviceAccountField.body).toContain("doNotShowWhenEditing: true");
+  test("Google SecOps is a provider of the shared catalog with the identity its events already carry", () => {
+    expect(googleSecOps).toBeDefined();
+    expect(googleSecOps.title).toBe("Google SecOps");
+    // The dedupe scope and telemetry service of every event already imported.
+    expect(googleSecOps.vendorName).toBe("Google");
+    expect(googleSecOps.productName).toBe("Google SecOps");
+    expect(googleSecOps.docsPath).toBe("/docs/integrations/google-secops");
+    expect(googleSecOps.importedRecordName).toBe("detection");
   });
 
-  test("Region is a required dropdown backed by the shared endpoint allowlist", () => {
-    const regionField: FieldEntry = getEntry(formFieldEntries, "region");
+  test("Region is a required dropdown backed by the shared endpoint allowlist, with no default", () => {
+    const region: ConnectorField = googleConfigField("region");
 
-    expect(regionField.body).toContain(
-      "fieldType: FormFieldSchemaType.Dropdown",
+    expect(region.type).toBe("dropdown");
+    expect(region.required).toBe(true);
+    expect(region.placeholder).toBe("Select a region");
+    /*
+     * No default: a preselected "us" would let a tenant elsewhere save the
+     * wrong regional endpoint without noticing. The form only seeds values
+     * a field declares.
+     */
+    expect(region.defaultValue).toBeUndefined();
+    expect(connectionFormSource).toContain(
+      "if (field.defaultValue !== undefined)",
     );
-    expect(regionField.body).not.toContain(
-      "fieldType: FormFieldSchemaType.Text",
+    expect(region.options).toEqual(
+      GOOGLE_SECOPS_SUPPORTED_REGIONS.map((value: string) => {
+        return { label: value, value };
+      }),
     );
-    expect(regionField.body).toContain("required: true");
-    expect(regionField.body).toContain(
-      "dropdownOptions: googleSecOpsRegionOptions",
-    );
-    expect(regionField.body).toContain('placeholder: "Select a region"');
-
-    expect(connectionsPageSource).toContain(
-      'import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "Common/Types/SecurityEvent/GoogleSecOpsRegion"',
-    );
-    expect(connectionsPageSource).toContain(
-      "GOOGLE_SECOPS_SUPPORTED_REGIONS.map",
-    );
-    expect(connectionsPageSource).toContain("value: region");
-    expect(connectionsPageSource).toContain("label: region");
 
     expect([...GOOGLE_SECOPS_SUPPORTED_REGIONS]).toEqual(
       DOCUMENTED_GOOGLE_SECOPS_REGIONS,
@@ -614,160 +648,125 @@ describe("Security events connections page content", () => {
     );
   });
 
+  test("the service account key is a write-only secret edited as JSON", () => {
+    expect(
+      googleSecOps.secretFields.map((field: ConnectorField) => {
+        return { key: field.key, type: field.type, required: field.required };
+      }),
+    ).toEqual([{ key: "serviceAccountJson", type: "json", required: true }]);
+    expect(
+      googleSecOps.configFields.some((field: ConnectorField): boolean => {
+        return field.key === "serviceAccountJson";
+      }),
+    ).toBe(false);
+
+    // Secrets render by type; a json secret is the JSON editor, never text.
+    expect(connectionFormSource).toContain(
+      "fieldType: secretFieldTypeFor(field)",
+    );
+    expect(connectionFormSource).toMatch(JSON_FIELD_TYPE_PATTERN);
+    // Stored secrets are never read back, so editing never requires them.
+    expect(connectionFormSource).toContain(
+      "required: isEditing ? false : field.required",
+    );
+    expect(connectionFormSource).toContain('{ placeholder: "Unchanged" }');
+  });
+
   test("Alerts are fixed while Detections controls the persisted scope", () => {
-    const scopeField: FieldEntry = getEntry(
-      formFieldEntries,
-      "includeNonAlertingDetections",
+    expect(googleSecOps.supportsAlertingOnlyToggle).toBe(true);
+    expect(googleSecOps.alertingOnlyControl).toEqual(
+      expect.objectContaining({
+        title: "Data to import",
+        alertingLabel: "Alerts",
+        nonAlertingLabel: "Detections",
+        alertingOnlySummary: "Alerts only",
+        withNonAlertingSummary: "Alerts and detections",
+      }),
     );
 
-    expect(titleOf(scopeField)).toBe("Data to import");
-    expect(scopeField.body).toContain(
-      "fieldType: FormFieldSchemaType.CustomComponent",
+    expect(connectionFormSource).toContain("<AlertingOnlyControlInput");
+    expect(connectionFormSource).toContain(
+      'aria-label={props.control.title} className="space-y-3" role="group"',
     );
-    expect(scopeField.body).not.toContain(
-      "fieldType: FormFieldSchemaType.Toggle",
-    );
-    expect(scopeField.body).toContain("getCustomElement:");
-    expect(scopeField.body).toContain('aria-label="Data to import"');
-    expect(scopeField.body).toContain('role="group"');
-    expect(scopeField.body).toContain(
-      "values.includeNonAlertingDetections === true",
-    );
+    // The generic toggle steps aside for a provider with its own control.
+    expect(connectionFormSource).toContain("!selected.alertingOnlyControl");
 
-    const alertsCheckbox: string = extractControlByTestId(
-      scopeField.body,
-      "google-secops-alerts-checkbox",
+    const alertsCheckbox: string = extractCheckboxByMarker(
+      connectionFormSource,
+      "}-alerting-checkbox`",
     );
-    expect(alertsCheckbox).toContain('ariaLabel="Alerts"');
+    expect(alertsCheckbox).toContain("ariaLabel={props.control.alertingLabel}");
     expect(alertsCheckbox).toContain("disabled={true}");
     expect(alertsCheckbox).toContain("readOnly={true}");
     expect(alertsCheckbox).toContain("initialValue={true}");
     expect(alertsCheckbox).toContain("value={true}");
 
-    const detectionsCheckbox: string = extractControlByTestId(
-      scopeField.body,
-      "google-secops-detections-checkbox",
+    const detectionsCheckbox: string = extractCheckboxByMarker(
+      connectionFormSource,
+      "}-non-alerting-checkbox`",
     );
-    expect(detectionsCheckbox).toContain('ariaLabel="Detections"');
+    expect(detectionsCheckbox).toContain(
+      "ariaLabel={props.control.nonAlertingLabel}",
+    );
     expect(detectionsCheckbox).not.toContain("disabled=");
     expect(detectionsCheckbox).not.toContain("readOnly=");
+    expect(detectionsCheckbox).toContain("initialValue={includeNonAlerting}");
+    expect(detectionsCheckbox).toContain("value={includeNonAlerting}");
+    // Checking Detections stores alertingOnly=false: the inverse, never a copy.
     expect(detectionsCheckbox).toContain(
-      "initialValue={includeNonAlertingDetections}",
+      "props.fieldProps.onChange?.(!checked)",
     );
-    expect(detectionsCheckbox).toContain(
-      "value={includeNonAlertingDetections}",
+    expect(connectionFormSource).toContain(
+      "const includeNonAlerting: boolean = !props.alertingOnly;",
     );
-    expect(detectionsCheckbox).toContain("fieldProps.onChange?.(value)");
   });
 
   test("new connections retain alerts-only as their explicit default", () => {
-    const initialValues: RegExpMatchArray | null =
-      CREATE_INITIAL_VALUES_PATTERN.exec(connectionsPageSource);
-
-    expect(initialValues).not.toBeNull();
-    expect(initialValues![1]).toContain("includeNonAlertingDetections: false");
-  });
-
-  test("the form has the exact ordered Google SecOps workflow", () => {
-    expect(formSteps).toEqual([
-      { title: "Basic Info", id: "basic-info" },
-      { title: "Google SecOps", id: "google-secops" },
-      { title: "Polling", id: "polling" },
-    ]);
-  });
-
-  test("every form step id is unique", () => {
-    const stepIds: Array<string> = formSteps.map((step: FormStep) => {
-      return step.id;
-    });
-
-    expect(new Set(stepIds).size).toBe(stepIds.length);
-  });
-
-  test("every form field is assigned to its exact workflow step", () => {
-    expect(
-      formFieldEntries.map((entry: FieldEntry) => {
-        return { field: entry.columnName, stepId: stepIdOf(entry) };
-      }),
-    ).toEqual([
-      { field: "name", stepId: "basic-info" },
-      { field: "region", stepId: "google-secops" },
-      { field: "instanceResourceName", stepId: "google-secops" },
-      { field: "serviceAccountJson", stepId: "google-secops" },
-      { field: "includeNonAlertingDetections", stepId: "polling" },
-      { field: "isEnabled", stepId: "basic-info" },
-      { field: "pollIntervalInMinutes", stepId: "polling" },
-    ]);
-  });
-
-  test("every field uses a declared step and every step contains fields", () => {
-    const declaredStepIds: Set<string> = new Set(
-      formSteps.map((step: FormStep) => {
-        return step.id;
-      }),
+    expect(connectionFormSource).toContain(
+      'initialValues["alertingOnly"] = true;',
     );
-    const assignedStepIds: Array<string> = formFieldEntries.map(stepIdOf);
-
-    for (const assignedStepId of assignedStepIds) {
-      expect(declaredStepIds.has(assignedStepId)).toBe(true);
-    }
-
-    for (const declaredStepId of declaredStepIds) {
-      expect(assignedStepIds).toContain(declaredStepId);
-    }
+    expect(connectionFormSource).toContain(
+      'alertingOnly: values["alertingOnly"] !== false',
+    );
   });
 
-  test("the Google SecOps step remains usable when credentials are hidden on edit", () => {
-    const serviceAccountField: FieldEntry = getEntry(
-      formFieldEntries,
-      "serviceAccountJson",
+  test("the edit form's inline test sends the unsaved Data to import choice", () => {
+    expect(connectionFormSource).toContain(
+      'body["alertingOnly"] = submission.alertingOnly;',
     );
-
-    expect(stepIdOf(serviceAccountField)).toBe("google-secops");
-    expect(serviceAccountField.body).toContain("doNotShowWhenEditing: true");
-
-    const visibleConnectionFields: Array<string> = formFieldEntries
-      .filter((entry: FieldEntry) => {
-        return (
-          stepIdOf(entry) === "google-secops" &&
-          !entry.body.includes("doNotShowWhenEditing: true")
-        );
-      })
-      .map((entry: FieldEntry) => {
-        return entry.columnName;
-      });
-
-    expect(visibleConnectionFields).toEqual(["region", "instanceResourceName"]);
   });
 
-  test("rotating the service account key has its own action", () => {
-    expect(actionButtonsBlock).toContain(
-      'title: "Update Service Account JSON"',
+  test("rotating credentials has its own action", () => {
+    expect(actionButtonsBlock).toContain('title: "Update credentials"');
+    expect(connectionsTableSource).toContain(
+      "setFormModal({ connection: item, credentialsOnly: true })",
     );
-    // The action writes through ModelAPI in a modal of its own.
-    expect(connectionsPageSource).toContain("<BasicFormModal");
-    expect(connectionsPageSource).toContain(
-      "ModelAPI.updateById<GoogleSecOpsConnection>",
+    // The action writes through ModelAPI with only the secrets.
+    expect(connectionFormSource).toContain(
+      "ModelAPI.updateById<SecurityEventConnection>",
+    );
+    expect(connectionFormSource).toContain(
+      "return { secrets: JSON.stringify(submission.secrets) };",
     );
   });
 
   /*
-   * The page's write-only treatment is only correct because the MODEL says
-   * so. If serviceAccountJson ever becomes readable or stops being
-   * encrypted, doNotShowWhenEditing turns from a necessity into a
-   * usability bug and the page should be revisited - so cross-check the
-   * decorator rather than trusting the page's comment about it.
+   * The form's write-only treatment is only correct because the MODEL says
+   * so. If secrets ever become readable or stop being encrypted, "Leave
+   * blank to keep the stored value" turns from a necessity into a
+   * usability bug and the form should be revisited - so cross-check the
+   * decorator rather than trusting the form's comment about it.
    */
-  test("the model really does declare serviceAccountJson unreadable and encrypted", () => {
+  test("the model really does declare secrets unreadable and encrypted", () => {
     const control: ColumnAccessControl = accessControl[
-      "serviceAccountJson"
+      "secrets"
     ] as ColumnAccessControl;
 
     expect(control).toBeDefined();
     expect(control.read).toEqual([]);
-    expect(
-      connectionModel.getTableColumnMetadata("serviceAccountJson").encrypted,
-    ).toBe(true);
+    expect(connectionModel.getTableColumnMetadata("secrets").encrypted).toBe(
+      true,
+    );
     // Rotation has to remain legal, or the action button is a dead end.
     expect(control.update.length).toBeGreaterThan(0);
   });
@@ -789,7 +788,7 @@ describe("Security events connections page content", () => {
       },
     );
 
-    // Sanity: the derivation actually catches the three we know about.
+    // Sanity: the derivation actually catches the ones we know about.
     expect(readOnlyColumns).toEqual(
       expect.arrayContaining(["lastPolledAt", "lastError", "cursor"]),
     );
@@ -801,12 +800,12 @@ describe("Security events connections page content", () => {
     // The user-owned columns are still offered, so this is not vacuous.
     expect(formFieldColumnNames).toEqual(
       expect.arrayContaining([
+        "provider",
         "name",
-        "region",
-        "instanceResourceName",
-        "serviceAccountJson",
-        "isEnabled",
+        "description",
         "pollIntervalInMinutes",
+        "isEnabled",
+        "alertingOnly",
       ]),
     );
   });

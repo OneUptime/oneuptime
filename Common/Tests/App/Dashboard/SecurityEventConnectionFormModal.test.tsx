@@ -16,15 +16,22 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import { Mock } from "jest-mock";
-import React from "react";
+import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { INLINE_TEST_SETTINGS_CHANGED_MESSAGE } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectionTestModal";
 import SecurityEventConnectionFormModal, {
+  CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE,
   configFieldName,
+  connectionTestDisabledReason,
+  connectionTestNeedsSecretsMessage,
+  fieldTypeFor,
   readSecurityEventConnectionForm,
   removeSecretFieldName,
   secretFieldName,
+  secretFieldTypeFor,
   securityEventConnectionTestBody,
   securityEventConnectionUpdatePayload,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionFormModal";
@@ -35,7 +42,15 @@ import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityConnectorTestReport } from "../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
+import {
+  ConnectorField,
+  SecurityEventConnectorDefinition,
+  getSecurityEventConnectorDefinition,
+} from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "../../../Types/SecurityEvent/GoogleSecOpsRegion";
+import { ComponentProps as CodeEditorProps } from "../../../UI/Components/CodeEditor/CodeEditor";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -48,9 +63,36 @@ type CallbackMock = Mock<() => void>;
  * pinning are the seams: which fields a provider choice reveals, what the
  * submit sends for create and edit (secrets omitted when blank), and the
  * body "Test these settings" posts before anything is saved. The real
- * BasicFormModal, BasicForm and CardSelect are exercised; only transport
- * and the project id are replaced.
+ * BasicFormModal, BasicForm and CardSelect are exercised; only transport,
+ * the project id and Monaco's browser-only editor are replaced.
  */
+
+/*
+ * A JSON field renders Monaco, which cannot run in jsdom. The stand-in is a
+ * textarea wired to the same props, so the form's own label, value,
+ * placeholder and JSON syntax validation are still the real ones.
+ */
+jest.mock("../../../UI/Components/CodeEditor/CodeEditor", () => {
+  return {
+    __esModule: true,
+    default: (props: CodeEditorProps): ReactElement => {
+      return (
+        <>
+          <textarea
+            aria-labelledby={props.ariaLabelledby}
+            placeholder={props.placeholder}
+            value={props.value ?? props.initialValue ?? ""}
+            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>): void => {
+              props.onChange?.(event.target.value);
+            }}
+            onBlur={props.onBlur}
+          />
+          {props.error && <span role="alert">{props.error}</span>}
+        </>
+      );
+    },
+  };
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -61,6 +103,57 @@ const OKTA_TOKEN: string = "00abcDEFghiJKLmnoPQRstuVWXyz-synthetic";
 const AWS_TEMPORARY_KEY_ID: string = "ASIASYNTHETIC0000001";
 const AWS_LONG_LIVED_KEY_ID: string = "AKIASYNTHETIC0000002";
 const AWS_SECRET: string = "aws-secret-access-key-synthetic";
+
+const GOOGLE: string = SecurityEventConnectorProvider.GoogleSecOps;
+const GOOGLE_REGION: string = "europe";
+const GOOGLE_INSTANCE: string =
+  "projects/acme/locations/europe/instances/chronicle";
+/*
+ * Google's published endpoint prefixes, pinned independently of the shared
+ * constant so a truncated or broadened list in that source of truth fails.
+ */
+const EXPECTED_GOOGLE_REGIONS: Array<string> = [
+  "us",
+  "eu",
+  "europe",
+  "africa-south1",
+  "asia-east1",
+  "asia-northeast1",
+  "asia-northeast3",
+  "asia-south1",
+  "asia-southeast1",
+  "asia-southeast2",
+  "australia-southeast1",
+  "europe-central2",
+  "europe-west12",
+  "europe-west2",
+  "europe-west3",
+  "europe-west6",
+  "europe-west9",
+  "me-central1",
+  "me-central2",
+  "me-west1",
+  "northamerica-northeast2",
+  "southamerica-east1",
+];
+/*
+ * A pasted key as Google downloads it: pretty-printed across lines, a
+ * private key whose \n escapes are two literal characters, and the trailing
+ * newline a copy from a file usually carries. Every byte must reach the
+ * secrets blob.
+ */
+const GOOGLE_KEY: string = `${JSON.stringify(
+  {
+    type: "service_account",
+    client_email: "secops-reader@acme.example",
+    private_key:
+      "-----BEGIN PRIVATE KEY-----\\nsynthetic-key-material\\n-----END PRIVATE KEY-----\\n",
+  },
+  null,
+  2,
+)}\n`;
+const GOOGLE_NEEDS_KEY_MESSAGE: string =
+  "Paste the Service account JSON to test these settings before saving. A saved connection can be tested from its row's Test connection action.";
 
 function report(): SecurityConnectorTestReport {
   return {
@@ -131,6 +224,25 @@ function splunkConnection(): SecurityEventConnection {
   return connection;
 }
 
+// A connection carried over from the retired SecOps page with Detections on.
+function googleConnection(
+  alertingOnly: boolean = false,
+): SecurityEventConnection {
+  const connection: SecurityEventConnection = new SecurityEventConnection();
+  connection._id = CONNECTION_ID;
+  connection.projectId = PROJECT_ID;
+  connection.name = "Customer SecOps";
+  connection.provider = SecurityEventConnectorProvider.GoogleSecOps;
+  connection.config = {
+    region: GOOGLE_REGION,
+    instanceResourceName: GOOGLE_INSTANCE,
+  };
+  connection.isEnabled = true;
+  connection.pollIntervalInMinutes = 5;
+  connection.alertingOnly = alertingOnly;
+  return connection;
+}
+
 function removeToggles(): Array<HTMLElement> {
   return screen.queryAllByRole("switch", { name: /^Remove the stored/ });
 }
@@ -154,6 +266,15 @@ function footerButton(name: string): HTMLElement {
 async function next(): Promise<void> {
   await act(async (): Promise<void> => {
     fireEvent.click(footerButton("Next"));
+  });
+}
+
+async function goToStep(title: string): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(within(progress()).getByText(title));
+  });
+  await waitFor((): void => {
+    expect(activeStep()).toBe(title);
   });
 }
 
@@ -198,23 +319,54 @@ async function renderModal(
   return { onClose, onSaved };
 }
 
+function regionCombobox(): HTMLElement {
+  return screen.getByRole("combobox", { name: /^Region/ });
+}
+
+function serviceAccountEditor(): HTMLElement {
+  return screen.getByRole("textbox", { name: /^Service account JSON/ });
+}
+
+function alertsCheckbox(): HTMLElement {
+  return screen.getByRole("checkbox", { name: "Alerts" });
+}
+
+function detectionsCheckbox(): HTMLElement {
+  return screen.getByRole("checkbox", { name: "Detections" });
+}
+
+function testButton(): HTMLElement {
+  return screen.getByRole("button", { name: "Test these settings" });
+}
+
+function lastPostBody(): JSONObject {
+  const calls: Array<Array<unknown>> = jest.mocked(API.post).mock.calls;
+  return (calls[calls.length - 1]?.[0] as unknown as JSONObject)[
+    "data"
+  ] as JSONObject;
+}
+
+function mockTransport(): void {
+  jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  jest
+    .spyOn(ModelAPI, "getCommonHeaders")
+    .mockReturnValue({ "project-id": PROJECT_ID.toString() });
+  jest
+    .spyOn(ModelAPI, "create")
+    .mockResolvedValue(new HTTPResponse(200, {}, {}));
+  jest
+    .spyOn(ModelAPI, "updateById")
+    .mockResolvedValue(new HTTPResponse(200, {}, {}));
+  jest
+    .spyOn(API, "post")
+    .mockResolvedValue(
+      new HTTPResponse(200, report() as unknown as JSONObject, {}),
+    );
+}
+
 describe("SecurityEventConnectionFormModal (create)", () => {
   beforeEach((): void => {
-    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
-    jest
-      .spyOn(ModelAPI, "getCommonHeaders")
-      .mockReturnValue({ "project-id": PROJECT_ID.toString() });
-    jest
-      .spyOn(ModelAPI, "create")
-      .mockResolvedValue(new HTTPResponse(200, {}, {}));
-    jest
-      .spyOn(ModelAPI, "updateById")
-      .mockResolvedValue(new HTTPResponse(200, {}, {}));
-    jest
-      .spyOn(API, "post")
-      .mockResolvedValue(
-        new HTTPResponse(200, report() as unknown as JSONObject, {}),
-      );
+    mockTransport();
   });
 
   afterEach((): void => {
@@ -247,6 +399,7 @@ describe("SecurityEventConnectionFormModal (create)", () => {
       "Elastic Security",
       "AWS Security Hub",
       "Okta System Log",
+      "Google SecOps",
     ]) {
       expect(
         within(group).getByRole("radio", { name: new RegExp(title) }),
@@ -290,12 +443,7 @@ describe("SecurityEventConnectionFormModal (create)", () => {
       screen.queryByLabelText(/^Okta organization URL/),
     ).not.toBeInTheDocument();
 
-    await act(async (): Promise<void> => {
-      fireEvent.click(within(progress()).getByText("Provider"));
-    });
-    await waitFor((): void => {
-      expect(activeStep()).toBe("Provider");
-    });
+    await goToStep("Provider");
     await chooseProvider("Okta System Log");
     await next();
 
@@ -336,6 +484,42 @@ describe("SecurityEventConnectionFormModal (create)", () => {
     expect(API.post).not.toHaveBeenCalled();
   });
 
+  test("Test these settings waits for a required credential on create and says which one", async (): Promise<void> => {
+    await renderModal();
+    await chooseProvider("Okta System Log");
+    await next();
+    fill(/^Okta organization URL/, OKTA_ORG_URL);
+    await next();
+    expect(activeStep()).toBe("Credentials");
+
+    expect(testButton()).toBeDisabled();
+    expect(
+      screen.getByText(
+        "Enter the API token to test these settings before saving. A saved connection can be tested from its row's Test connection action.",
+      ),
+    ).toBeVisible();
+    fireEvent.click(testButton());
+    expect(API.post).not.toHaveBeenCalled();
+
+    // Whitespace is not a credential.
+    await act(async (): Promise<void> => {
+      fireEvent.change(screen.getByLabelText(/^API token/), {
+        target: { value: "   " },
+      });
+    });
+    expect(testButton()).toBeDisabled();
+
+    await act(async (): Promise<void> => {
+      fireEvent.change(screen.getByLabelText(/^API token/), {
+        target: { value: OKTA_TOKEN },
+      });
+    });
+    expect(testButton()).toBeEnabled();
+    expect(
+      screen.queryByText(/to test these settings before saving/),
+    ).not.toBeInTheDocument();
+  });
+
   test("Test these settings posts the unsaved provider, config and secrets without saving", async (): Promise<void> => {
     await renderModal();
     await chooseProvider("Okta System Log");
@@ -349,9 +533,7 @@ describe("SecurityEventConnectionFormModal (create)", () => {
     fireEvent.change(tokenInput, { target: { value: OKTA_TOKEN } });
 
     await act(async (): Promise<void> => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Test these settings" }),
-      );
+      fireEvent.click(testButton());
     });
 
     expect(await screen.findByText("All checks passed")).toBeVisible();
@@ -383,9 +565,7 @@ describe("SecurityEventConnectionFormModal (create)", () => {
     });
 
     await act(async (): Promise<void> => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Test these settings" }),
-      );
+      fireEvent.click(testButton());
     });
     expect(await screen.findByText("All checks passed")).toBeVisible();
 
@@ -404,9 +584,7 @@ describe("SecurityEventConnectionFormModal (create)", () => {
     ).toBeVisible();
 
     await act(async (): Promise<void> => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Test these settings" }),
-      );
+      fireEvent.click(testButton());
     });
     expect(await screen.findByText("All checks passed")).toBeVisible();
     expect(API.post).toHaveBeenCalledTimes(2);
@@ -453,18 +631,14 @@ describe("SecurityEventConnectionFormModal (create)", () => {
     });
 
     await act(async (): Promise<void> => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Test these settings" }),
-      );
+      fireEvent.click(testButton());
     });
 
     expect(
       await screen.findByText("Configuration: orgUrl must be an https URL."),
     ).toBeVisible();
     expect(screen.getByLabelText(/^API token/)).toHaveValue(OKTA_TOKEN);
-    expect(
-      screen.getByRole("button", { name: "Test these settings" }),
-    ).toBeEnabled();
+    expect(testButton()).toBeEnabled();
   });
 
   test("creates the model with the provider's config, a secrets JSON string and the polling defaults", async (): Promise<void> => {
@@ -491,9 +665,12 @@ describe("SecurityEventConnectionFormModal (create)", () => {
       "aria-checked",
       "true",
     );
-    // Sentinel has no alerting-only distinction, so the toggle stays hidden.
+    // Sentinel has no alerting-only distinction, so neither control shows.
     expect(
       screen.queryByRole("switch", { name: /^Alerts only/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Data to import" }),
     ).not.toBeInTheDocument();
 
     await act(async (): Promise<void> => {
@@ -575,21 +752,7 @@ describe("SecurityEventConnectionFormModal (create)", () => {
 
 describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
   beforeEach((): void => {
-    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
-    jest
-      .spyOn(ModelAPI, "getCommonHeaders")
-      .mockReturnValue({ "project-id": PROJECT_ID.toString() });
-    jest
-      .spyOn(ModelAPI, "create")
-      .mockResolvedValue(new HTTPResponse(200, {}, {}));
-    jest
-      .spyOn(ModelAPI, "updateById")
-      .mockResolvedValue(new HTTPResponse(200, {}, {}));
-    jest
-      .spyOn(API, "post")
-      .mockResolvedValue(
-        new HTTPResponse(200, report() as unknown as JSONObject, {}),
-      );
+    mockTransport();
   });
 
   afterEach((): void => {
@@ -628,6 +791,8 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
     expect(
       screen.getByText(/Leave blank to keep the stored value\./),
     ).toBeVisible();
+    // A saved connection tests with its stored token, so nothing is missing.
+    expect(testButton()).toBeEnabled();
 
     // Blank credentials do not block the step on edit.
     await next();
@@ -667,15 +832,13 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
-  test("Test these settings on edit sends the connection id with the unsaved edits", async (): Promise<void> => {
+  test("Test these settings on edit sends the connection id with the unsaved edits and the scope", async (): Promise<void> => {
     await renderModal({ connection: oktaConnection() });
     fill(/^Event filter/, 'eventType sw "security"');
     await next();
 
     await act(async (): Promise<void> => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Test these settings" }),
-      );
+      fireEvent.click(testButton());
     });
 
     expect(await screen.findByText("All checks passed")).toBeVisible();
@@ -685,6 +848,7 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
       connectionId: CONNECTION_ID,
       config: { orgUrl: OKTA_ORG_URL, filter: 'eventType sw "security"' },
       secrets: {},
+      alertingOnly: true,
     });
   });
 
@@ -773,9 +937,7 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
     expect(removeToken).toHaveAttribute("aria-checked", "true");
 
     await act(async (): Promise<void> => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Test these settings" }),
-      );
+      fireEvent.click(testButton());
     });
     expect(await screen.findByText("All checks passed")).toBeVisible();
     const testCall: JSONObject = jest.mocked(API.post).mock
@@ -784,6 +946,7 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
       connectionId: CONNECTION_ID,
       config: { region: "us-east-1", accessKeyId: AWS_LONG_LIVED_KEY_ID },
       secrets: { secretAccessKey: AWS_SECRET, sessionToken: null },
+      alertingOnly: true,
     });
 
     await next();
@@ -853,6 +1016,453 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
   });
 });
 
+/*
+ * Google SecOps used to have its own page, form and model. As a catalog
+ * provider it has to keep everything that form guaranteed: an explicit
+ * region pick from Google's list, a key edited as JSON and stored as the
+ * pasted text, and "Data to import" (Alerts always, Detections optional)
+ * mapped onto alertingOnly with the right polarity.
+ */
+describe("SecurityEventConnectionFormModal (Google SecOps)", () => {
+  beforeEach((): void => {
+    mockTransport();
+  });
+
+  afterEach((): void => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  async function openGoogleConnectionStep(): Promise<UserEvent> {
+    await renderModal();
+    await chooseProvider("Google SecOps");
+    await next();
+    expect(activeStep()).toBe("Connection");
+    return userEvent.setup({ delay: null });
+  }
+
+  async function selectRegion(user: UserEvent, region: string): Promise<void> {
+    await user.click(regionCombobox());
+    await user.click(
+      await screen.findByRole("option", { name: region, exact: true }),
+    );
+  }
+
+  async function reachGoogleCredentials(user: UserEvent): Promise<void> {
+    await selectRegion(user, GOOGLE_REGION);
+    fill(/^Instance resource name/, GOOGLE_INSTANCE);
+    await next();
+    expect(activeStep()).toBe("Credentials");
+  }
+
+  async function pasteKey(value: string): Promise<void> {
+    await act(async (): Promise<void> => {
+      fireEvent.change(serviceAccountEditor(), { target: { value } });
+    });
+  }
+
+  test("the region is a required pick from exactly Google's endpoint list, with nothing preselected", async (): Promise<void> => {
+    const user: UserEvent = await openGoogleConnectionStep();
+
+    expect(screen.getByText("Google SecOps settings")).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: /Google SecOps setup guide/ }),
+    ).toHaveAttribute(
+      "href",
+      expect.stringMatching(/\/integrations\/google-secops$/),
+    );
+    expect(screen.getByText("Select a region", { exact: true })).toBeVisible();
+    expect(
+      screen.getByPlaceholderText(
+        "projects/{project}/locations/{location}/instances/{instance}",
+      ),
+    ).toBeVisible();
+
+    await user.click(regionCombobox());
+    const listbox: HTMLElement = await screen.findByRole("listbox");
+    expect(
+      within(listbox)
+        .getAllByRole("option")
+        .map((option: HTMLElement): string => {
+          return option.textContent || "";
+        }),
+    ).toEqual(EXPECTED_GOOGLE_REGIONS);
+    expect([...GOOGLE_SECOPS_SUPPORTED_REGIONS]).toEqual(
+      EXPECTED_GOOGLE_REGIONS,
+    );
+    await user.keyboard("{Escape}");
+
+    // Nothing is preselected: leaving the step without a pick is refused.
+    fill(/^Instance resource name/, GOOGLE_INSTANCE);
+    await next();
+    expect(await screen.findByText("Region is required.")).toBeVisible();
+    expect(activeStep()).toBe("Connection");
+  });
+
+  test("typed text is not a region selection", async (): Promise<void> => {
+    const user: UserEvent = await openGoogleConnectionStep();
+
+    await user.type(regionCombobox(), "us-central1");
+    expect(regionCombobox()).toHaveValue("us-central1");
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+    fill(/^Instance resource name/, GOOGLE_INSTANCE);
+    await next();
+
+    expect(await screen.findByText("Region is required.")).toBeVisible();
+    expect(activeStep()).toBe("Connection");
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
+  test("the key is a JSON editor, and testing waits for it to be pasted", async (): Promise<void> => {
+    const user: UserEvent = await openGoogleConnectionStep();
+    await reachGoogleCredentials(user);
+
+    const editor: HTMLElement = serviceAccountEditor();
+    expect(editor.tagName).toBe("TEXTAREA");
+    expect(editor).toHaveAttribute(
+      "placeholder",
+      '{ "client_email": "...", "private_key": "..." }',
+    );
+    expect(
+      within(dialog()).queryByLabelText(/^Service account JSON/, {
+        selector: 'input[type="password"]',
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Google SecOps credentials")).toBeVisible();
+
+    expect(testButton()).toBeDisabled();
+    expect(screen.getByText(GOOGLE_NEEDS_KEY_MESSAGE)).toBeVisible();
+
+    await pasteKey(GOOGLE_KEY);
+    expect(testButton()).toBeEnabled();
+    expect(
+      screen.queryByText(GOOGLE_NEEDS_KEY_MESSAGE),
+    ).not.toBeInTheDocument();
+  });
+
+  test.each(["{", '{"client_email":"reader@example.com",}', "credentials"])(
+    "malformed service-account JSON %j cannot leave the Credentials step",
+    async (malformed: string): Promise<void> => {
+      const user: UserEvent = await openGoogleConnectionStep();
+      await reachGoogleCredentials(user);
+      await pasteKey(malformed);
+      await next();
+
+      expect(
+        (
+          await screen.findAllByText(/Service account JSON is not valid JSON\./)
+        )[0],
+      ).toBeVisible();
+      expect(activeStep()).toBe("Credentials");
+      expect(ModelAPI.create).not.toHaveBeenCalled();
+    },
+  );
+
+  test("Test these settings sends the scalar region and the pasted key byte for byte", async (): Promise<void> => {
+    const user: UserEvent = await openGoogleConnectionStep();
+    await reachGoogleCredentials(user);
+    await pasteKey(GOOGLE_KEY);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(testButton());
+    });
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+
+    const body: JSONObject = lastPostBody();
+    expect(body).toEqual({
+      provider: GOOGLE,
+      config: { region: GOOGLE_REGION, instanceResourceName: GOOGLE_INSTANCE },
+      secrets: { serviceAccountJson: GOOGLE_KEY },
+      alertingOnly: true,
+    });
+    const secrets: JSONObject = body["secrets"] as JSONObject;
+    expect(typeof secrets["serviceAccountJson"]).toBe("string");
+    expect(secrets["serviceAccountJson"]).toContain("\n");
+    expect((body["config"] as JSONObject)["region"]).not.toEqual({
+      label: GOOGLE_REGION,
+      value: GOOGLE_REGION,
+    });
+  });
+
+  test("Data to import replaces the Alerts only toggle: Alerts fixed, Detections off by default", async (): Promise<void> => {
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal();
+    await chooseProvider("Google SecOps");
+    await next();
+    const user: UserEvent = userEvent.setup({ delay: null });
+    await reachGoogleCredentials(user);
+    await pasteKey(GOOGLE_KEY);
+    await next();
+    expect(activeStep()).toBe("Polling");
+
+    const group: HTMLElement = screen.getByRole("group", {
+      name: "Data to import",
+    });
+    expect(group).toBeVisible();
+    expect(
+      screen.getByText(
+        "Alerts are always imported because Google's API always returns them. Select Detections to also import rule matches that did not generate an alert.",
+      ),
+    ).toBeVisible();
+    expect(alertsCheckbox()).toBeChecked();
+    expect(alertsCheckbox()).toBeDisabled();
+    expect(alertsCheckbox()).toHaveAttribute(
+      "title",
+      "Google's alerts API always includes alerts.",
+    );
+    expect(detectionsCheckbox()).not.toBeChecked();
+    expect(detectionsCheckbox()).toBeEnabled();
+    expect(
+      screen.queryByRole("switch", { name: /^Alerts only/ }),
+    ).not.toBeInTheDocument();
+
+    // The fixed option is not an input a person can clear.
+    expect(alertsCheckbox()).toHaveAttribute("readonly");
+
+    fill(/^Name/, "Customer SecOps");
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Create connection"));
+    });
+
+    await waitFor((): void => {
+      expect(ModelAPI.create).toHaveBeenCalledTimes(1);
+    });
+    const created: { model: SecurityEventConnection } = jest.mocked(
+      ModelAPI.create,
+    ).mock.calls[0]?.[0] as { model: SecurityEventConnection };
+    expect(created.model.provider).toBe(GOOGLE);
+    expect(created.model.alertingOnly).toBe(true);
+    expect(created.model.config).toEqual({
+      region: GOOGLE_REGION,
+      instanceResourceName: GOOGLE_INSTANCE,
+    });
+    expect(typeof created.model.secrets).toBe("string");
+    expect(JSON.parse(created.model.secrets as string)).toEqual({
+      serviceAccountJson: GOOGLE_KEY,
+    });
+    expect(created.model.pollIntervalInMinutes).toBe(5);
+    expect(created.model.isEnabled).toBe(true);
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  test("selecting Detections creates the connection with alertingOnly false and keeps it across steps", async (): Promise<void> => {
+    await renderModal();
+    await chooseProvider("Google SecOps");
+    await next();
+    const user: UserEvent = userEvent.setup({ delay: null });
+    await reachGoogleCredentials(user);
+    await pasteKey(GOOGLE_KEY);
+    await next();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByText("Detections", { exact: true }));
+    });
+    expect(detectionsCheckbox()).toBeChecked();
+    fill(/^Name/, "Customer SecOps");
+
+    await goToStep("Credentials");
+    expect(serviceAccountEditor()).toHaveValue(GOOGLE_KEY);
+    await goToStep("Connection");
+    expect(screen.getByText(GOOGLE_REGION, { exact: true })).toBeVisible();
+    await next();
+    await next();
+    expect(activeStep()).toBe("Polling");
+    expect(detectionsCheckbox()).toBeChecked();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Create connection"));
+    });
+    await waitFor((): void => {
+      expect(ModelAPI.create).toHaveBeenCalledTimes(1);
+    });
+    const created: { model: SecurityEventConnection } = jest.mocked(
+      ModelAPI.create,
+    ).mock.calls[0]?.[0] as { model: SecurityEventConnection };
+    expect(created.model.alertingOnly).toBe(false);
+    expect(JSON.parse(created.model.secrets as string)).toEqual({
+      serviceAccountJson: GOOGLE_KEY,
+    });
+  });
+
+  test("editing shows the stored scope, keeps the key optional and tests the unsaved scope with the stored key", async (): Promise<void> => {
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal({
+      connection: googleConnection(false),
+    });
+
+    expect(
+      screen.getByRole("dialog", { name: "Edit connection: Customer SecOps" }),
+    ).toBeVisible();
+    expect(screen.getByText(GOOGLE_REGION, { exact: true })).toBeVisible();
+    expect(screen.getByLabelText(/^Instance resource name/)).toHaveValue(
+      GOOGLE_INSTANCE,
+    );
+
+    await next();
+    expect(activeStep()).toBe("Credentials");
+    expect(serviceAccountEditor()).toHaveValue("");
+    expect(serviceAccountEditor()).toHaveAttribute("placeholder", "Unchanged");
+    expect(
+      screen.getByText(/Leave blank to keep the stored value\./),
+    ).toBeVisible();
+    expect(removeToggles()).toHaveLength(0);
+    expect(testButton()).toBeEnabled();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(testButton());
+    });
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+    expect(lastPostBody()).toEqual({
+      connectionId: CONNECTION_ID,
+      config: { region: GOOGLE_REGION, instanceResourceName: GOOGLE_INSTANCE },
+      secrets: {},
+      alertingOnly: false,
+    });
+
+    // A blank key does not block the step on edit.
+    await next();
+    expect(activeStep()).toBe("Polling");
+    expect(detectionsCheckbox()).toBeChecked();
+    await act(async (): Promise<void> => {
+      fireEvent.click(detectionsCheckbox());
+    });
+    expect(detectionsCheckbox()).not.toBeChecked();
+
+    // The unsaved scope change is what the next test runs with.
+    await goToStep("Credentials");
+    await act(async (): Promise<void> => {
+      fireEvent.click(testButton());
+    });
+    await waitFor((): void => {
+      expect(API.post).toHaveBeenCalledTimes(2);
+    });
+    expect(lastPostBody()).toEqual({
+      connectionId: CONNECTION_ID,
+      config: { region: GOOGLE_REGION, instanceResourceName: GOOGLE_INSTANCE },
+      secrets: {},
+      alertingOnly: true,
+    });
+
+    await next();
+    expect(activeStep()).toBe("Polling");
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Save changes"));
+    });
+    await waitFor((): void => {
+      expect(ModelAPI.updateById).toHaveBeenCalledTimes(1);
+    });
+    const update: { data: JSONObject } = jest.mocked(ModelAPI.updateById).mock
+      .calls[0]?.[0] as { data: JSONObject };
+    expect(update.data).toEqual({
+      name: "Customer SecOps",
+      description: "",
+      config: { region: GOOGLE_REGION, instanceResourceName: GOOGLE_INSTANCE },
+      isEnabled: true,
+      pollIntervalInMinutes: 5,
+      alertingOnly: true,
+    });
+    expect(update.data).not.toHaveProperty("secrets");
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  test("an alerts-only connection opens with Detections cleared, and checking it saves alertingOnly false", async (): Promise<void> => {
+    await renderModal({ connection: googleConnection(true) });
+    await next();
+    await next();
+    expect(activeStep()).toBe("Polling");
+    expect(alertsCheckbox()).toBeChecked();
+    expect(detectionsCheckbox()).not.toBeChecked();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(detectionsCheckbox());
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Save changes"));
+    });
+    await waitFor((): void => {
+      expect(ModelAPI.updateById).toHaveBeenCalledTimes(1);
+    });
+    const update: { data: JSONObject } = jest.mocked(ModelAPI.updateById).mock
+      .calls[0]?.[0] as { data: JSONObject };
+    expect(update.data["alertingOnly"]).toBe(false);
+  });
+
+  test("editing with a new key sends it as the pasted string, newlines intact", async (): Promise<void> => {
+    await renderModal({ connection: googleConnection(true) });
+    await next();
+    await pasteKey(GOOGLE_KEY);
+    await next();
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Save changes"));
+    });
+    await waitFor((): void => {
+      expect(ModelAPI.updateById).toHaveBeenCalledTimes(1);
+    });
+    const update: { data: JSONObject } = jest.mocked(ModelAPI.updateById).mock
+      .calls[0]?.[0] as { data: JSONObject };
+    expect(JSON.parse(update.data["secrets"] as string)).toEqual({
+      serviceAccountJson: GOOGLE_KEY,
+    });
+  });
+
+  test("Update credentials rotates the key in a JSON editor and sends only the new key string", async (): Promise<void> => {
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal({
+      connection: googleConnection(true),
+      credentialsOnly: true,
+    });
+
+    expect(
+      screen.getByRole("dialog", {
+        name: "Update credentials: Customer SecOps",
+      }),
+    ).toBeVisible();
+    expect(
+      within(progress())
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(["Credentials"]);
+    expect(serviceAccountEditor().tagName).toBe("TEXTAREA");
+    expect(
+      screen.queryByRole("group", { name: "Data to import" }),
+    ).not.toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Update credentials"));
+    });
+    expect(
+      (
+        await screen.findAllByText(/Enter at least one credential to update/)
+      )[0],
+    ).toBeVisible();
+
+    await pasteKey(GOOGLE_KEY);
+    await act(async (): Promise<void> => {
+      fireEvent.click(testButton());
+    });
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+    expect(lastPostBody()).toEqual({
+      connectionId: CONNECTION_ID,
+      secrets: { serviceAccountJson: GOOGLE_KEY },
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Update credentials"));
+    });
+    await waitFor((): void => {
+      expect(ModelAPI.updateById).toHaveBeenCalledTimes(1);
+    });
+    const update: { data: JSONObject } = jest.mocked(ModelAPI.updateById).mock
+      .calls[0]?.[0] as { data: JSONObject };
+    expect(update.data).toEqual({
+      secrets: JSON.stringify({ serviceAccountJson: GOOGLE_KEY }),
+    });
+    expect(
+      JSON.parse(update.data["secrets"] as string)["serviceAccountJson"],
+    ).toBe(GOOGLE_KEY);
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("form value mapping", () => {
   const okta: string = SecurityEventConnectorProvider.OktaSystemLog;
   const aws: string = SecurityEventConnectorProvider.AwsSecurityHub;
@@ -906,6 +1516,16 @@ describe("form value mapping", () => {
         [configFieldName(sentinel, "cloud")]: "public",
       });
     expect(asString.config["cloud"]).toBe("public");
+
+    const region: ReturnType<typeof readSecurityEventConnectionForm> =
+      readSecurityEventConnectionForm({
+        provider: GOOGLE,
+        [configFieldName(GOOGLE, "region")]: {
+          label: GOOGLE_REGION,
+          value: GOOGLE_REGION,
+        },
+      });
+    expect(region.config).toEqual({ region: GOOGLE_REGION });
   });
 
   test("refuses to map without a provider", (): void => {
@@ -917,7 +1537,71 @@ describe("form value mapping", () => {
     }).toThrow("Choose a provider before saving.");
   });
 
-  test("the test body carries unsaved settings on create and the id plus overlays on edit", (): void => {
+  /*
+   * The failure mode of f5279e6ec1: a credential stored as something other
+   * than the text that was entered. A JSON secret is never trimmed, parsed
+   * or wrapped on its way into the secrets blob.
+   */
+  test("a JSON secret is kept as the exact pasted string", (): void => {
+    const padded: string = `  ${GOOGLE_KEY}\n\n`;
+    const submission: ReturnType<typeof readSecurityEventConnectionForm> =
+      readSecurityEventConnectionForm({
+        provider: GOOGLE,
+        [configFieldName(GOOGLE, "region")]: GOOGLE_REGION,
+        [configFieldName(GOOGLE, "instanceResourceName")]:
+          ` ${GOOGLE_INSTANCE} `,
+        [secretFieldName(GOOGLE, "serviceAccountJson")]: padded,
+        alertingOnly: false,
+      });
+
+    expect(submission.secrets).toEqual({ serviceAccountJson: padded });
+    expect(submission.config).toEqual({
+      region: GOOGLE_REGION,
+      instanceResourceName: GOOGLE_INSTANCE,
+    });
+    expect(submission.alertingOnly).toBe(false);
+    expect(
+      securityEventConnectionUpdatePayload(submission, true)["secrets"],
+    ).toBe(JSON.stringify({ serviceAccountJson: padded }));
+    expect(
+      JSON.parse(
+        securityEventConnectionUpdatePayload(submission, true)[
+          "secrets"
+        ] as string,
+      )["serviceAccountJson"],
+    ).toBe(padded);
+  });
+
+  test("a blank JSON secret means unchanged, and a non-string value is sent as its JSON text", (): void => {
+    for (const blank of ["", "   ", "\n\t\n", null, undefined]) {
+      expect(
+        readSecurityEventConnectionForm({
+          provider: GOOGLE,
+          [secretFieldName(GOOGLE, "serviceAccountJson")]: blank,
+        }).secrets,
+      ).toEqual({});
+    }
+
+    const parsed: JSONObject = { client_email: "reader@acme.example" };
+    expect(
+      readSecurityEventConnectionForm({
+        provider: GOOGLE,
+        [secretFieldName(GOOGLE, "serviceAccountJson")]: parsed,
+      }).secrets,
+    ).toEqual({ serviceAccountJson: JSON.stringify(parsed) });
+
+    // Defensive: a wrapped value still yields its text, never an envelope.
+    expect(
+      readSecurityEventConnectionForm({
+        provider: GOOGLE,
+        [secretFieldName(GOOGLE, "serviceAccountJson")]: new HashedString(
+          GOOGLE_KEY,
+        ) as unknown as string,
+      }).secrets,
+    ).toEqual({ serviceAccountJson: GOOGLE_KEY });
+  });
+
+  test("the test body carries unsaved settings on create and the id plus overlays and scope on edit", (): void => {
     const values: JSONObject = {
       provider: okta,
       [configFieldName(okta, "orgUrl")]: OKTA_ORG_URL,
@@ -941,8 +1625,10 @@ describe("form value mapping", () => {
       connectionId: CONNECTION_ID,
       config: { orgUrl: OKTA_ORG_URL },
       secrets: {},
+      alertingOnly: false,
     });
 
+    // Credentials only: the stored settings are tested with the new secrets.
     expect(
       securityEventConnectionTestBody({
         values: {
@@ -956,6 +1642,33 @@ describe("form value mapping", () => {
       connectionId: CONNECTION_ID,
       secrets: { apiToken: OKTA_TOKEN },
     });
+  });
+
+  test("the edit test body reports Data to import in alertingOnly's polarity", (): void => {
+    const base: JSONObject = {
+      [configFieldName(GOOGLE, "region")]: GOOGLE_REGION,
+      [configFieldName(GOOGLE, "instanceResourceName")]: GOOGLE_INSTANCE,
+    };
+
+    expect(
+      securityEventConnectionTestBody({
+        values: { ...base, alertingOnly: false },
+        connection: googleConnection(true),
+      })["alertingOnly"],
+    ).toBe(false);
+    expect(
+      securityEventConnectionTestBody({
+        values: { ...base, alertingOnly: true },
+        connection: googleConnection(false),
+      })["alertingOnly"],
+    ).toBe(true);
+    // Anything but an explicit false is alerts-only, as the saved default is.
+    expect(
+      securityEventConnectionTestBody({
+        values: { ...base },
+        connection: googleConnection(false),
+      })["alertingOnly"],
+    ).toBe(true);
   });
 
   test("a Remove toggle maps an optional secret to null and is ignored for a required one", (): void => {
@@ -1018,5 +1731,143 @@ describe("form value mapping", () => {
         true,
       ),
     ).toEqual({ secrets: JSON.stringify({ apiToken: OKTA_TOKEN }) });
+  });
+});
+
+describe("field types and test readiness", () => {
+  function field(overrides: Partial<ConnectorField>): ConnectorField {
+    return {
+      key: "value",
+      title: "Value",
+      description: "",
+      type: "text",
+      required: true,
+      ...overrides,
+    };
+  }
+
+  test("a json field renders as the JSON editor for config and secrets; other secrets stay masked", (): void => {
+    expect(fieldTypeFor(field({ type: "json" }))).toBe(
+      FormFieldSchemaType.JSON,
+    );
+    expect(secretFieldTypeFor(field({ type: "json" }))).toBe(
+      FormFieldSchemaType.JSON,
+    );
+    expect(secretFieldTypeFor(field({ type: "password" }))).toBe(
+      FormFieldSchemaType.Password,
+    );
+    // Whatever else a secret is declared as, it is never shown in clear text.
+    expect(secretFieldTypeFor(field({ type: "text" }))).toBe(
+      FormFieldSchemaType.Password,
+    );
+    expect(fieldTypeFor(field({ type: "dropdown" }))).toBe(
+      FormFieldSchemaType.Dropdown,
+    );
+    expect(fieldTypeFor(field({ type: "url" }))).toBe(FormFieldSchemaType.URL);
+    expect(fieldTypeFor(field({ type: "number" }))).toBe(
+      FormFieldSchemaType.Number,
+    );
+    expect(fieldTypeFor(field({ type: "toggle" }))).toBe(
+      FormFieldSchemaType.Toggle,
+    );
+    expect(fieldTypeFor(field({ type: "text" }))).toBe(
+      FormFieldSchemaType.Text,
+    );
+  });
+
+  test("the Google SecOps catalog entry is what the form above relies on", (): void => {
+    const definition: SecurityEventConnectorDefinition | undefined =
+      getSecurityEventConnectorDefinition(GOOGLE);
+
+    expect(
+      definition?.configFields.map((item: ConnectorField) => {
+        return [item.key, item.type, item.required, item.defaultValue];
+      }),
+    ).toEqual([
+      ["region", "dropdown", true, undefined],
+      ["instanceResourceName", "text", true, undefined],
+    ]);
+    expect(
+      definition?.secretFields.map((item: ConnectorField) => {
+        return [item.key, item.title, item.type, item.required];
+      }),
+    ).toEqual([["serviceAccountJson", "Service account JSON", "json", true]]);
+    expect(definition?.supportsAlertingOnlyToggle).toBe(true);
+    expect(definition?.alertingOnlyControl?.title).toBe("Data to import");
+  });
+
+  test("the needs-credentials message names what is missing in the form's own words", (): void => {
+    expect(
+      connectionTestNeedsSecretsMessage([
+        field({ title: "Service account JSON", type: "json" }),
+      ]),
+    ).toBe(GOOGLE_NEEDS_KEY_MESSAGE);
+    expect(
+      connectionTestNeedsSecretsMessage([
+        field({ title: "Client ID", type: "password" }),
+        field({ title: "Client secret", type: "password" }),
+        field({ title: "Key", type: "json" }),
+      ]),
+    ).toBe(
+      "Enter the Client ID, Client secret and Key to test these settings before saving. A saved connection can be tested from its row's Test connection action.",
+    );
+    expect(
+      connectionTestNeedsSecretsMessage([
+        field({ title: "API token", type: "password" }),
+        field({ title: "Secret", type: "password" }),
+      ]),
+    ).toBe(
+      "Enter the API token and Secret to test these settings before saving. A saved connection can be tested from its row's Test connection action.",
+    );
+  });
+
+  test("testing is blocked without a provider, and on create only by a blank required secret", (): void => {
+    expect(connectionTestDisabledReason({ values: {} })).toBe(
+      CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE,
+    );
+    expect(
+      connectionTestDisabledReason({ values: { provider: "not-a-provider" } }),
+    ).toBe(CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE);
+
+    expect(connectionTestDisabledReason({ values: { provider: GOOGLE } })).toBe(
+      GOOGLE_NEEDS_KEY_MESSAGE,
+    );
+    expect(
+      connectionTestDisabledReason({
+        values: {
+          provider: GOOGLE,
+          [secretFieldName(GOOGLE, "serviceAccountJson")]: "  \n ",
+        },
+      }),
+    ).toBe(GOOGLE_NEEDS_KEY_MESSAGE);
+    expect(
+      connectionTestDisabledReason({
+        values: {
+          provider: GOOGLE,
+          [secretFieldName(GOOGLE, "serviceAccountJson")]: GOOGLE_KEY,
+        },
+      }),
+    ).toBeUndefined();
+
+    // An optional secret left blank never blocks.
+    expect(
+      connectionTestDisabledReason({
+        values: {
+          provider: SecurityEventConnectorProvider.AwsSecurityHub,
+          [secretFieldName(
+            SecurityEventConnectorProvider.AwsSecurityHub,
+            "secretAccessKey",
+          )]: AWS_SECRET,
+        },
+      }),
+    ).toBeUndefined();
+
+    // A saved connection tests with what is stored.
+    expect(
+      connectionTestDisabledReason({
+        values: {},
+        connection: googleConnection(true),
+      }),
+    ).toBeUndefined();
   });
 });

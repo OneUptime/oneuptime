@@ -12,6 +12,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import {
   SecurityEventConnectorCatalog,
   SecurityEventConnectorDefinition,
+  getSecurityEventConnectorDefinition,
   getSecurityEventConnectorTitle,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -29,6 +30,10 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ConnectionTestModal, {
   runConnectionTestRequest,
 } from "./ConnectionTestModal";
+import {
+  ConnectorProviderHelpEntry,
+  connectorProviderHelpEntries,
+} from "./ConnectorProviderHelp";
 import SecurityEventConnectionDiagnostics from "./SecurityEventConnectionDiagnostics";
 import {
   SECURITY_EVENT_CONNECTION_TEST_ROUTE,
@@ -36,6 +41,7 @@ import {
   connectorHealth,
   connectorHealthPillColor,
   connectorHealthTooltip,
+  connectorScopeSummary,
 } from "./SecurityEventConnectionDiagnosticsUtil";
 import SecurityEventConnectionFormModal from "./SecurityEventConnectionFormModal";
 
@@ -59,9 +65,22 @@ Each provider's setup guide lists the exact roles, scopes and console locations 
 `;
 
 /*
- * The table for the managed Security Event Connections framework (every
- * provider except Google SecOps, which keeps its own model and table on
- * the same page).
+ * The help panel: the framework-level text above, then a section for each
+ * provider that has in-product help of its own (ConnectorProviderHelp), in
+ * catalog order.
+ */
+export function securityEventConnectionsHelpMarkdown(): string {
+  return connectorProviderHelpEntries().reduce(
+    (markdown: string, entry: ConnectorProviderHelpEntry): string => {
+      return `${markdown}\n---\n${entry.markdown}`;
+    },
+    documentationMarkdown,
+  );
+}
+
+/*
+ * The table for the managed Security Event Connections framework: every
+ * provider, Google SecOps included, in one list.
  *
  * Create and edit go through SecurityEventConnectionFormModal rather than
  * ModelTable's generated form: the fields depend on the provider picked in
@@ -174,7 +193,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
         cardProps={{
           title: "Security Event Connections",
           description:
-            "Poll Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub and Okta as OCSF security events. Test access, run a poll, and inspect imports on demand.",
+            "Poll Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps as OCSF security events. Test access, run a poll, and inspect imports on demand.",
           buttons: [
             {
               title: "Add connection",
@@ -193,8 +212,8 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
         helpContent={{
           title: "How Security Event Connections Work",
           description:
-            "What a connection polls, how to test it, and how to read its health",
-          markdown: documentationMarkdown,
+            "What a connection polls, how to test it, how to read its health, and provider-specific guidance",
+          markdown: securityEventConnectionsHelpMarkdown(),
         }}
         noItemsMessage={emptyState}
         showRefreshButton={true}
@@ -330,8 +349,23 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Provider",
             type: FieldType.Text,
             getElement: (item: SecurityEventConnection): ReactElement => {
+              /*
+               * A provider with an alerting distinction shows what the
+               * connection imports under its name ("Alerts only"), so a
+               * connection that skips non-alerting records is visible
+               * without opening it.
+               */
+              const scope: string | undefined = connectorScopeSummary(
+                getSecurityEventConnectorDefinition(item.provider),
+                item.alertingOnly,
+              );
               return (
-                <span>{getSecurityEventConnectorTitle(item.provider)}</span>
+                <div>
+                  <span>{getSecurityEventConnectorTitle(item.provider)}</span>
+                  {scope && (
+                    <div className="text-xs text-gray-500">{scope}</div>
+                  )}
+                </div>
               );
             },
           },
