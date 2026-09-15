@@ -7,6 +7,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { BILLING_ENABLED } from "Common/UI/Config";
+import DataResidencyUtil from "Common/Utils/Project/DataResidency";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
@@ -52,6 +53,24 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 name: true,
               },
               title: "Project Name",
+            },
+            {
+              field: {
+                dataResidency: true,
+              },
+              title: "Data Residency",
+              fieldType: FieldType.Text,
+              /*
+               * Set by OneUptime staff from the Admin Dashboard, never here -
+               * which is why it is not in the edit form above. A project with
+               * none shows no row rather than an empty one.
+               */
+              showIf: (project: Project): boolean => {
+                return DataResidencyUtil.shouldShowInProjectSettings({
+                  isBillingEnabled: BILLING_ENABLED,
+                  dataResidency: project.dataResidency,
+                });
+              },
             },
           ],
           modelId: ProjectUtil.getCurrentProjectId()!,
