@@ -110,6 +110,7 @@ import BackfillMonitorBackedDeviceReachability from "./BackfillMonitorBackedDevi
 import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMonitoringMethod";
 import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
 import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
+import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -428,6 +429,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * on clusters, so this is recorded rather than run there.
    */
   new AddSessionReplayVisitorIdColumn(),
+  /*
+   * Issue #3807: secrets typed into dashboard Password fields (TAXII feed
+   * tokens, data source and runner credentials, webhook signing secrets)
+   * were stored inside a '{"_type":"HashedString","value":...}' envelope.
+   * Rewrites each envelope to the string it holds, in SQL, so ciphertexts
+   * move untouched. Idempotent.
+   */
+  new RepairHashedStringEnvelopeSecrets(),
 ];
 
 export default DataMigrations;
