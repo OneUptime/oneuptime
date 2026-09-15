@@ -8,7 +8,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import Card from "./Card";
+import Card, { type CardVariant } from "./Card";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { elevation, radius, spacing } from "../theme/tokens";
 
@@ -340,7 +340,7 @@ describe("Regression: Pressable style callbacks reach the host view", () => {
    */
   test.each(["elevated", "outlined", "tinted"] as const)(
     "a pressable %s card's host view carries its background, radius and padding",
-    async (variant) => {
+    async (variant: CardVariant) => {
       await render(
         <Card onPress={noop} variant={variant} accessibilityLabel="Row">
           <Text>Row</Text>

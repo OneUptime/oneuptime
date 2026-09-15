@@ -85,6 +85,7 @@ spec:
               value: {{ $.Values.openTelemetryExporter.headers }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
               value: {{ $.Values.openTelemetryExporter.endpoint }}
+            {{- include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "runner")) | nindent 12 }}
             - name: ONEUPTIME_URL
               value: http://{{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.app.ports.http }}
             - name: ONEUPTIME_RUNNER_KEY

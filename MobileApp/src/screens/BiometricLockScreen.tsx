@@ -11,13 +11,17 @@ interface BiometricLockScreenProps {
   biometricType: string;
 }
 
+const FACE_BIOMETRIC_PATTERN: RegExp = /face/i;
+
 /*
  * "Face ID", "Touch ID" and "Optic ID" are product names and keep their
  * capitals; a generic "Fingerprint" or "Biometrics" reads as an ordinary word
  * mid-sentence.
  */
+const PRODUCT_NAME_PATTERN: RegExp = /\bID$/;
+
 function describeBiometric(biometricType: string): string {
-  return /\bID$/.test(biometricType.trim())
+  return PRODUCT_NAME_PATTERN.test(biometricType.trim())
     ? biometricType.trim()
     : biometricType.trim().toLowerCase();
 }
@@ -63,7 +67,7 @@ export default function BiometricLockScreen({
     void authenticate();
   }, []);
 
-  const usesFace: boolean = /face/i.test(biometricType);
+  const usesFace: boolean = FACE_BIOMETRIC_PATTERN.test(biometricType);
 
   return (
     <AuthLayout

@@ -218,12 +218,41 @@ export default class AIToolbox {
     return definitions;
   }
 
+  /*
+   * The grants hasPermissionForTool consults are the caller's grants in
+   * props.tenantId, while every tool scopes its query by ctx.projectId — and
+   * for the raw-SQL aggregation tools that projectId is the ONLY scope. So
+   * for a non-root caller the two must name the same single project, or one
+   * project's grants would authorize a query against another. A multi-tenant
+   * request is refused for the same reason: its tenant permissions span every
+   * project the user belongs to rather than the one the tool will query.
+   */
+  public static isContextScopedToOneProject(ctx: ToolContext): boolean {
+    if (ctx.props.isRoot || ctx.props.isMasterAdmin) {
+      return true;
+    }
+
+    if (ctx.props.isMultiTenantRequest) {
+      return false;
+    }
+
+    if (!ctx.props.tenantId || !ctx.projectId) {
+      return false;
+    }
+
+    return ctx.props.tenantId.toString() === ctx.projectId.toString();
+  }
+
   public static hasPermissionForTool(
     tool: ObservabilityTool,
     ctx: ToolContext,
   ): boolean {
     if (ctx.props.isRoot || ctx.props.isMasterAdmin) {
       return true;
+    }
+
+    if (!this.isContextScopedToOneProject(ctx)) {
+      return false;
     }
 
     /*
@@ -280,6 +309,15 @@ export default class AIToolbox {
           })
           .join(", ")}.`,
         errorMessage: `Unknown tool: ${data.name}`,
+      };
+    }
+
+    // Checked first so the refusal names the real problem, not a permission.
+    if (!this.isContextScopedToOneProject(data.ctx)) {
+      return {
+        success: false,
+        textForLlm: `Error: ${data.name} can only run inside the single project this request is authorized for. Answer with the data you already have.`,
+        errorMessage: `Permission denied for tool: ${data.name} (the request is not scoped to this project)`,
       };
     }
 

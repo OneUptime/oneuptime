@@ -198,7 +198,7 @@ export default class MonitorCriteriaEvaluator {
        */
       if (criteriaInstance.data?.isEnabled === false) {
         const skipReason: string =
-          "This criteria is disabled and was not evaluated.";
+          "This criterion is disabled, so it was not evaluated.";
         const skippedCriteriaResult: MonitorEvaluationCriteriaResult = {
           criteriaId: criteriaInstance.data?.id,
           criteriaName: criteriaInstance.data?.name,
@@ -209,6 +209,7 @@ export default class MonitorCriteriaEvaluator {
           filters: [],
           skipped: true,
           skipReason: skipReason,
+          skipCause: "disabled",
         };
 
         input.evaluationSummary.criteriaResults.push(skippedCriteriaResult);
@@ -469,8 +470,8 @@ ${contextBlock}
     evaluationSummary: MonitorEvaluationSummary;
   }): void {
     const skipReason: string =
-      "An earlier criteria already matched. This monitor raises a single " +
-      "alert for the whole monitor, so evaluation stops at the first match.";
+      "An earlier criterion already matched. Criteria are evaluated in order " +
+      "for this monitor, so evaluation stopped at the first match.";
 
     input.evaluationSummary.criteriaResults.push({
       criteriaId: input.criteriaInstance.data?.id,
@@ -482,6 +483,7 @@ ${contextBlock}
       filters: [],
       skipped: true,
       skipReason: skipReason,
+      skipCause: "earlier-criterion-matched",
     });
   }
 

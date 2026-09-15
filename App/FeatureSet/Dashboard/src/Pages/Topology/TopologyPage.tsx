@@ -21,10 +21,12 @@ import React, {
 } from "react";
 
 /*
- * Service Map and Infrastructure share the current, non-archived inventory
- * and connections last observed since the selected range's start. Service
- * Map presents service dependencies and traffic; Infrastructure presents
- * resource containment. Network discovery uses its own live data source.
+ * Service Map and Infrastructure share one snapshot: the non-archived
+ * inventory plus the connections last observed since the selected range's
+ * start. Both views draw only what reported inside that range (see
+ * TopologyActivity) unless "Show inactive" is on — Inventory keeps a silent
+ * resource for weeks, a map of what is running should not. Network discovery
+ * uses its own live data source.
  */
 
 /*
@@ -50,7 +52,18 @@ const TopologyPage: FunctionComponent<
     isTruncated,
     reload,
     lastUpdatedAt,
+    rangeStart,
   } = useTopologyData(timeRange);
+
+  const [includeInactive, setIncludeInactive] = useState<boolean>(
+    Navigation.getQueryStringByName("inactive") === "show",
+  );
+  /*
+   * Cross-links between the two telemetry views write the target's focus into
+   * the URL and remount the view, so it opens exactly where a shared link
+   * would.
+   */
+  const [viewGeneration, setViewGeneration] = useState<number>(0);
 
   /*
    * The Network tab is a live LLDP view (also surfaced under Network
@@ -93,16 +106,48 @@ const TopologyPage: FunctionComponent<
     return graph;
   };
 
+  const openInfrastructure: (resourceKey: string) => void = (
+    resourceKey: string,
+  ): void => {
+    Navigation.setQueryString({
+      tab: "Infrastructure",
+      infraFocus: resourceKey,
+      infraSearch: null,
+    });
+    setViewGeneration((value: number): number => {
+      return value + 1;
+    });
+    setActiveTabName("Infrastructure");
+  };
+  const openServiceMap: (serviceKey: string) => void = (
+    serviceKey: string,
+  ): void => {
+    Navigation.setQueryString({
+      tab: null,
+      focus: serviceKey,
+      search: null,
+      serviceView: "map",
+    });
+    setViewGeneration((value: number): number => {
+      return value + 1;
+    });
+    setActiveTabName("Service Map");
+  };
+
   const tabs: Array<Tab> = useMemo(() => {
     return [
       {
         name: "Service Map",
         children: wrapTelemetryTab(
           <ServiceMapGraph
+            key={`service-map-${viewGeneration}`}
             entities={entities}
             relationships={relationships}
             metricsWindowSeconds={METRICS_WINDOW_SECONDS}
             timeRange={timeRange}
+            rangeStart={rangeStart}
+            includeInactive={includeInactive}
+            onOpenInfrastructure={openInfrastructure}
           />,
         ),
       },
@@ -110,9 +155,13 @@ const TopologyPage: FunctionComponent<
         name: "Infrastructure",
         children: wrapTelemetryTab(
           <InfrastructureExplorer
+            key={`infrastructure-${viewGeneration}`}
             entities={entities}
             relationships={relationships}
             metricsWindowSeconds={METRICS_WINDOW_SECONDS}
+            rangeStart={rangeStart}
+            includeInactive={includeInactive}
+            onOpenServiceMap={openServiceMap}
           />,
         ),
       },
@@ -121,7 +170,17 @@ const TopologyPage: FunctionComponent<
         children: <NetworkTopologyExplorer />,
       },
     ];
-  }, [entities, relationships, timeRange, isLoading, error, reload]);
+  }, [
+    entities,
+    relationships,
+    timeRange,
+    isLoading,
+    error,
+    reload,
+    rangeStart,
+    includeInactive,
+    viewGeneration,
+  ]);
 
   const viewDescriptions: Record<
     string,
@@ -231,11 +290,11 @@ const TopologyPage: FunctionComponent<
           ) : (
             <details className="relative">
               <summary className="cursor-pointer rounded text-gray-500 hover:text-gray-800 focus:ring-2 focus:ring-indigo-500">
-                {translateString("Current inventory · About this data")}
+                {translateString("What is shown · About this data")}
               </summary>
               <p className="mt-2 max-w-xl leading-5">
                 {translateString(
-                  "All current inventory resources are included. Connections are those last observed since the start of the selected range. Traffic metrics show the latest 15-minute sample, not totals for the selected range.",
+                  "Resources and services that reported in the selected range, and the connections observed in it. Calls between services are discovered from traces and eBPF every 10 minutes; traffic figures show the latest 15-minute window, not totals for the range.",
                 )}
               </p>
             </details>
@@ -243,8 +302,23 @@ const TopologyPage: FunctionComponent<
         </div>
         {!isNetworkTab && (
           <div className="flex flex-wrap items-center gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                data-testid="topology-show-inactive"
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                checked={includeInactive}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  setIncludeInactive(event.target.checked);
+                  Navigation.setQueryString({
+                    inactive: event.target.checked ? "show" : null,
+                  });
+                }}
+              />
+              {translateString("Show inactive")}
+            </label>
             <span className="text-xs text-gray-500">
-              {translateString("Connection activity")}
+              {translateString("Active in")}
             </span>
             <TelemetryTimeRangePicker
               value={timeRange}

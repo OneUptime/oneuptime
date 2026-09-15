@@ -31,7 +31,57 @@ import RunbookPicker from "../Runbook/RunbookPicker";
 
 export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
+  /*
+   * Bump to re-read the feed, e.g. after the page changed the event's state,
+   * so the new activity shows without pressing Refresh.
+   */
+  refreshToken?: number | undefined;
 }
+
+/*
+ * One icon per event type. A Record (rather than a chain of ifs) makes the
+ * compiler flag a new event type that has no icon, instead of it quietly
+ * falling back to a plain circle.
+ */
+export const SCHEDULED_MAINTENANCE_FEED_ICONS: Record<
+  ScheduledMaintenanceFeedEventType,
+  IconProp
+> = {
+  [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated]:
+    IconProp.Alert,
+  [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged]:
+    IconProp.ArrowCircleRight,
+  [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated]:
+    IconProp.Edit,
+  [ScheduledMaintenanceFeedEventType.OwnerNotificationSent]: IconProp.Bell,
+  [ScheduledMaintenanceFeedEventType.SubscriberNotificationSent]:
+    IconProp.Notification,
+  [ScheduledMaintenanceFeedEventType.PublicNote]: IconProp.Announcement,
+  [ScheduledMaintenanceFeedEventType.PrivateNote]: IconProp.Lock,
+  [ScheduledMaintenanceFeedEventType.OwnerUserAdded]: IconProp.User,
+  [ScheduledMaintenanceFeedEventType.OwnerTeamAdded]: IconProp.Team,
+  [ScheduledMaintenanceFeedEventType.RemediationNotes]: IconProp.Wrench,
+  [ScheduledMaintenanceFeedEventType.RootCause]: IconProp.Cube,
+  [ScheduledMaintenanceFeedEventType.OwnerUserRemoved]: IconProp.Close,
+  [ScheduledMaintenanceFeedEventType.OwnerTeamRemoved]: IconProp.Close,
+  [ScheduledMaintenanceFeedEventType.OnCallNotification]: IconProp.Alert,
+  [ScheduledMaintenanceFeedEventType.OnCallPolicy]: IconProp.Call,
+  [ScheduledMaintenanceFeedEventType.OwnerRuleExecuted]: IconProp.User,
+  [ScheduledMaintenanceFeedEventType.LabelRuleExecuted]: IconProp.Tag,
+};
+
+export const getScheduledMaintenanceFeedIcon: (
+  eventType: ScheduledMaintenanceFeedEventType | undefined,
+) => IconProp = (
+  eventType: ScheduledMaintenanceFeedEventType | undefined,
+): IconProp => {
+  if (!eventType) {
+    return IconProp.Circle;
+  }
+
+  // Rows written by a newer server can carry a type this build does not know.
+  return SCHEDULED_MAINTENANCE_FEED_ICONS[eventType] || IconProp.Circle;
+};
 
 const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -68,112 +118,9 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
 
   const getFeedItemFromScheduledMaintenanceFeed: GetFeedItemFromScheduledMaintenanceFeed =
     (scheduledMaintenanceFeed: ScheduledMaintenanceFeed): FeedItemProps => {
-      let icon: IconProp = IconProp.Circle;
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated
-      ) {
-        icon = IconProp.Alert;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged
-      ) {
-        icon = IconProp.ArrowCircleRight;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated
-      ) {
-        icon = IconProp.Edit;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.OwnerNotificationSent
-      ) {
-        icon = IconProp.Bell;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.SubscriberNotificationSent
-      ) {
-        icon = IconProp.Notification;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.PublicNote
-      ) {
-        icon = IconProp.Announcement;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.PrivateNote
-      ) {
-        icon = IconProp.Lock;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.OwnerUserAdded
-      ) {
-        icon = IconProp.User;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.OwnerTeamAdded
-      ) {
-        icon = IconProp.Team;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.RemediationNotes
-      ) {
-        icon = IconProp.Wrench;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.RootCause
-      ) {
-        icon = IconProp.Cube;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.OwnerUserRemoved
-      ) {
-        icon = IconProp.Close;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.OwnerTeamRemoved
-      ) {
-        icon = IconProp.Close;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.OnCallNotification
-      ) {
-        icon = IconProp.Alert;
-      }
-
-      if (
-        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType ===
-        ScheduledMaintenanceFeedEventType.OnCallPolicy
-      ) {
-        icon = IconProp.Call;
-      }
+      const icon: IconProp = getScheduledMaintenanceFeedIcon(
+        scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType,
+      );
 
       return {
         key: scheduledMaintenanceFeed.id!.toString(),
@@ -202,6 +149,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<ScheduledMaintenanceFeed>({
     resourceKey: props.scheduledMaintenanceId.toString(),
+    refreshToken: props.refreshToken,
     getItems: async (
       limit: number,
     ): Promise<ListResult<ScheduledMaintenanceFeed>> => {
@@ -305,7 +253,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
           <ModelFormModal
             modalWidth={ModalWidth.Large}
             modelType={ScheduledMaintenancePublicNote}
-            name={"create-scheduledMaintenancet-public-note"}
+            name={"create-scheduled-maintenance-public-note"}
             title={"Add Public Note to this scheduled maintenance"}
             description={
               "Add a public note to this scheduled maintenance. This note will be visible to all subscribers of this scheduled maintenance and will show up on the status page."
@@ -329,9 +277,9 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
                 enabled: true,
                 defaultStepName: "Public Note",
               },
-              name: "create-scheduled-maintenance-state-timeline",
+              name: "create-scheduled-maintenance-public-note",
               modelType: ScheduledMaintenancePublicNote,
-              id: "create-scheduled-maintenance-state-timeline",
+              id: "create-scheduled-maintenance-public-note",
               fields: [
                 {
                   field: {
@@ -339,7 +287,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
                   },
                   fieldType: FormFieldSchemaType.Markdown,
                   description:
-                    "Post a public note about this state change to the status page.",
+                    "Share an update about this scheduled maintenance. The note is shown on the status page.",
                   title: "Public Note",
                   required: true,
                 },
@@ -390,7 +338,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
           <ModelFormModal
             modalWidth={ModalWidth.Large}
             modelType={ScheduledMaintenanceInternalNote}
-            name={"create-scheduledMaintenancet-internal-note"}
+            name={"create-scheduled-maintenance-internal-note"}
             title={"Add Private Note to this scheduled maintenance"}
             description={
               "Add a private note to this scheduled maintenance. This note will be visible only to the team members of this scheduled maintenance."
@@ -414,9 +362,9 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
                 enabled: true,
                 defaultStepName: "Private Note",
               },
-              name: "create-scheduledMaintenance-internal-note",
+              name: "create-scheduled-maintenance-internal-note",
               modelType: ScheduledMaintenanceInternalNote,
-              id: "create-scheduledMaintenance-internal-note",
+              id: "create-scheduled-maintenance-internal-note",
               fields: [
                 {
                   field: {

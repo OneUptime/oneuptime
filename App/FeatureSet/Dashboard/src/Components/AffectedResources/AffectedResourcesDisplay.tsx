@@ -56,6 +56,30 @@ export interface ComponentProps {
   hideNetworkSites?: boolean | undefined;
   hideServices?: boolean | undefined;
   emptyMessage?: string | undefined;
+  /*
+   * How many category cards sit side by side. Left out, the grid follows the
+   * viewport: one column on phones, two from md up. That is right for a
+   * full-width card but not for one in a narrow column (an overview page's
+   * sidebar), where two cards share about 300px and every name is clipped,
+   * so those callers ask for 1.
+   */
+  columns?: 1 | 2 | undefined;
+}
+
+type GetGridClassNameFunction = (columns: 1 | 2 | undefined) => string;
+
+export const getAffectedResourcesGridClassName: GetGridClassNameFunction = (
+  columns: 1 | 2 | undefined,
+): string => {
+  if (columns === 1) {
+    return "grid grid-cols-1 gap-3";
+  }
+
+  return "grid grid-cols-1 gap-3 md:grid-cols-2";
+};
+
+interface NamedResource {
+  name?: string | undefined;
 }
 
 const PREVIEW_COUNT: number = 4;
@@ -68,7 +92,7 @@ const PREVIEW_COUNT: number = 4;
  */
 const MAX_RENDER_PER_CATEGORY: number = 100;
 
-interface CategoryCardProps<T> {
+interface CategoryCardProps<T extends NamedResource> {
   icon: IconProp;
   label: string;
   iconBgClass: string;
@@ -80,7 +104,9 @@ interface CategoryCardProps<T> {
   renderItem: (item: T) => ReactElement;
 }
 
-function CategoryCard<T>(props: CategoryCardProps<T>): ReactElement {
+function CategoryCard<T extends NamedResource>(
+  props: CategoryCardProps<T>,
+): ReactElement {
   const [showAll, setShowAll] = useState<boolean>(false);
   const total: number = props.items.length;
   const expandedCap: number = Math.min(total, MAX_RENDER_PER_CATEGORY);
@@ -95,8 +121,8 @@ function CategoryCard<T>(props: CategoryCardProps<T>): ReactElement {
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
       <div className={`h-1 w-full ${props.accentBarClass}`} />
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
           <div
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${props.iconBgClass}`}
           >
@@ -105,24 +131,37 @@ function CategoryCard<T>(props: CategoryCardProps<T>): ReactElement {
               className={`h-[18px] w-[18px] ${props.iconColorClass}`}
             />
           </div>
-          <span className="text-sm font-semibold text-gray-900">
+          <span className="truncate text-sm font-semibold text-gray-900">
             {props.label}
           </span>
         </div>
         <span
-          className={`inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-full px-2.5 text-xs font-semibold ${props.countBgClass} ${props.countTextClass}`}
+          className={`inline-flex h-7 min-w-[1.75rem] flex-shrink-0 items-center justify-center rounded-full px-2.5 text-xs font-semibold ${props.countBgClass} ${props.countTextClass}`}
         >
           {total.toLocaleString()}
         </span>
       </div>
       <ul className="flex flex-col gap-0.5 border-t border-gray-100 px-2 py-2">
         {visibleItems.map((item: T, i: number) => {
+          const itemName: string = item.name?.toString() || "";
+
           return (
             <li
               key={i}
               className="group/item flex items-center justify-between rounded-md px-2.5 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
             >
-              <div className="min-w-0 flex-1 truncate">
+              {/*
+               * The resource elements wrap their name in a flex span (or a
+               * flex row, for services), and text inside a flex container
+               * cannot be ellipsised from out here. Turning those spans into
+               * truncating blocks keeps a long name on one line with an
+               * ellipsis, and the title shows it in full on hover.
+               */}
+              <div
+                data-testid="affected-resource-item"
+                className="min-w-0 flex-1 truncate [&_span.flex]:block [&_span.flex]:truncate"
+                title={itemName || undefined}
+              >
                 {props.renderItem(item)}
               </div>
               <Icon
@@ -292,12 +331,19 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
           {totalCount.toLocaleString()} {resourceWord}
         </span>
-        <span className="text-gray-300">·</span>
+        {/*
+         * In a single column the summary usually wraps, and the separator
+         * would be left dangling at the end of the first line.
+         */}
+        {props.columns !== 1 && <span className="text-gray-300">·</span>}
         <span>
           across {categoryCount.toLocaleString()} {categoryWord}
         </span>
       </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div
+        data-testid="affected-resources-grid"
+        className={getAffectedResourcesGridClassName(props.columns)}
+      >
         {showMonitors && (
           <CategoryCard<Monitor>
             icon={IconProp.AltGlobe}
@@ -474,7 +520,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             countTextClass="text-amber-700"
             items={services}
             renderItem={(service: Service) => {
-              return <ServiceElement service={service} />;
+              return (
+                <ServiceElement
+                  service={service}
+                  serviceNameClassName="min-w-0 truncate"
+                />
+              );
             }}
           />
         )}

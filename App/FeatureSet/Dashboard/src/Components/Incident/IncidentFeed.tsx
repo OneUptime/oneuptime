@@ -31,6 +31,10 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Icon from "Common/UI/Components/Icon/Icon";
 import RunbookPicker from "../Runbook/RunbookPicker";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import {
+  FeedItemMarkdown,
+  getFeedItemMarkdown,
+} from "../../Utils/AIRootCauseFeedItem";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -210,10 +214,21 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       icon = IconProp.Call;
     }
 
+    /*
+     * An AI report is laid out in full by the AI Investigation card, so its
+     * feed item shows only the summary and root cause; the whole report sits
+     * behind More Information.
+     */
+    const feedItemMarkdown: FeedItemMarkdown = getFeedItemMarkdown({
+      isAIInvestigation,
+      feedInfoInMarkdown: incidentFeed.feedInfoInMarkdown,
+      moreInformationInMarkdown: incidentFeed.moreInformationInMarkdown,
+    });
+
     return {
       key: incidentFeed.id!.toString(),
-      textInMarkdown: incidentFeed.feedInfoInMarkdown || "",
-      moreTextInMarkdown: incidentFeed.moreInformationInMarkdown || "",
+      textInMarkdown: feedItemMarkdown.textInMarkdown,
+      moreTextInMarkdown: feedItemMarkdown.moreTextInMarkdown,
       user: incidentFeed.user,
       itemDateTime: incidentFeed.postedAt || incidentFeed.createdAt!,
       color: incidentFeed.displayColor || Gray500,

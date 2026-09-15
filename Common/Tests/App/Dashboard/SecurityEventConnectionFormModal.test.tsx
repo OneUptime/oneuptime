@@ -16,6 +16,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { Mock } from "jest-mock";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { INLINE_TEST_SETTINGS_CHANGED_MESSAGE } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectionTestModal";
@@ -38,6 +39,9 @@ import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connect
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+
+// The modal's onClose and onSaved props, recorded by jest.fn().
+type CallbackMock = Mock<() => void>;
 
 /*
  * The form is generated from the connector catalog, so the things worth
@@ -173,17 +177,17 @@ async function renderModal(
     connection?: SecurityEventConnection;
     credentialsOnly?: boolean;
   } = {},
-): Promise<{ onClose: jest.Mock; onSaved: jest.Mock }> {
-  const onClose: jest.Mock = jest.fn();
-  const onSaved: jest.Mock = jest.fn();
+): Promise<{ onClose: CallbackMock; onSaved: CallbackMock }> {
+  const onClose: CallbackMock = jest.fn<() => void>();
+  const onSaved: CallbackMock = jest.fn<() => void>();
   await act(async (): Promise<void> => {
     render(
       <MemoryRouter>
         <SecurityEventConnectionFormModal
           connection={props.connection}
           credentialsOnly={props.credentialsOnly}
-          onClose={onClose as () => void}
-          onSaved={onSaved as () => void}
+          onClose={onClose}
+          onSaved={onSaved}
         />
       </MemoryRouter>,
     );
@@ -464,7 +468,7 @@ describe("SecurityEventConnectionFormModal (create)", () => {
   });
 
   test("creates the model with the provider's config, a secrets JSON string and the polling defaults", async (): Promise<void> => {
-    const { onSaved }: { onSaved: jest.Mock } = await renderModal();
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal();
     await chooseProvider("Microsoft Sentinel");
     await next();
     fill(/^Directory \(tenant\) ID/, "tenant-guid");
@@ -539,7 +543,7 @@ describe("SecurityEventConnectionFormModal (create)", () => {
           {},
         ),
       );
-    const { onSaved }: { onSaved: jest.Mock } = await renderModal();
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal();
     await chooseProvider("Okta System Log");
     await next();
     fill(/^Okta organization URL/, OKTA_ORG_URL);
@@ -594,7 +598,7 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
   });
 
   test("editing locks the provider, prefills config and treats blank secrets as unchanged", async (): Promise<void> => {
-    const { onSaved }: { onSaved: jest.Mock } = await renderModal({
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal({
       connection: oktaConnection(),
     });
 
@@ -685,7 +689,7 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
   });
 
   test("Update credentials shows only the credential step and sends just the new secrets", async (): Promise<void> => {
-    const { onSaved }: { onSaved: jest.Mock } = await renderModal({
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal({
       connection: oktaConnection(),
       credentialsOnly: true,
     });
@@ -738,7 +742,7 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
    * request failed. The Remove toggle sends null, which deletes the key.
    */
   test("an optional secret gets a Remove toggle on edit that tests and saves it as null", async (): Promise<void> => {
-    const { onSaved }: { onSaved: jest.Mock } = await renderModal({
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal({
       connection: awsConnection(),
     });
 
@@ -815,7 +819,7 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
   });
 
   test("Update credentials can remove an optional credential without entering a new one", async (): Promise<void> => {
-    const { onSaved }: { onSaved: jest.Mock } = await renderModal({
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal({
       connection: splunkConnection(),
       credentialsOnly: true,
     });

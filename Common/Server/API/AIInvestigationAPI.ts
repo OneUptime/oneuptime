@@ -37,6 +37,28 @@ import TelemetryImprovementTaskTrigger from "../Utils/AI/SRE/TelemetryImprovemen
 import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import { AnalyzableSpan } from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+import {
+  InvestigationEventReference,
+  InvestigationEvidenceItem,
+  InvestigationEvidenceRowsResponse,
+  InvestigationReferenceKind,
+} from "../../Types/AI/InvestigationEvidence";
+import {
+  buildInvestigationEvidence,
+  EVIDENCE_CITATION_ID_REGEX,
+  findInvestigationToolCall,
+  InvestigationToolCallRecord,
+  isRerunnableEvidenceTool,
+} from "../Utils/AI/SRE/InvestigationEvidence";
+import { resolveInvestigationReferences } from "../Utils/AI/SRE/InvestigationReferences";
+import AIToolbox, { ToolCallOutcome } from "../Utils/AI/Toolbox/Index";
+import {
+  ObservabilityTool,
+  ToolExecutionResult,
+} from "../Utils/AI/Toolbox/ToolTypes";
+import { AIRunEventResultSummary } from "../../Types/AI/AIChatTypes";
+import logger from "../Utils/Logger";
+import OneUptimeDate from "../../Types/Date";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -169,6 +191,108 @@ async function getLoggedInProps(
 }
 
 /*
+ * The panel routes act inside exactly ONE project: the tenant the request is
+ * authenticated for. A request carrying the `is-multi-tenant-query` header
+ * makes the model layer answer from any project the user belongs to — so the
+ * subject could live in project B while every tenant-keyed permission check
+ * (the AI toolbox's grants, the reference lookups) reads the caller's grants
+ * in project A. The viewer props are therefore always pinned to the tenant,
+ * and the subject is then asserted to belong to it, so "whose grants were
+ * checked" and "which project was queried" can never diverge.
+ */
+function pinPropsToTenant(
+  props: DatabaseCommonInteractionProps,
+): DatabaseCommonInteractionProps {
+  return { ...props, isMultiTenantRequest: false };
+}
+
+/*
+ * Access check under the VIEWER's tenant-pinned permissions: throws unless
+ * they can read the incident/alert AND it belongs to the tenant.
+ */
+async function assertSubjectReadableInTenant(data: {
+  subjectType: InvestigationReferenceKind;
+  subjectId: ObjectID;
+  tenantId: ObjectID;
+  viewerProps: DatabaseCommonInteractionProps;
+}): Promise<void> {
+  const subject: Incident | Alert | null =
+    data.subjectType === "incident"
+      ? await IncidentService.findOneById({
+          id: data.subjectId,
+          select: { _id: true, projectId: true },
+          props: data.viewerProps,
+        })
+      : await AlertService.findOneById({
+          id: data.subjectId,
+          select: { _id: true, projectId: true },
+          props: data.viewerProps,
+        });
+
+  if (!subject || !subject.projectId) {
+    throw new BadDataException(
+      `${data.subjectType === "incident" ? "Incident" : "Alert"} not found (or you do not have access to it).`,
+    );
+  }
+
+  CommonAPI.assertResourceBelongsToProject({
+    resourceProjectId: subject.projectId,
+    projectId: data.tenantId,
+  });
+}
+
+// Plain-text rows returned by the evidence route are clipped to this size.
+export const MAX_EVIDENCE_TEXT_LENGTH: number = 20000;
+
+/*
+ * The event JSON the panel receives keeps its long-standing shape. The run's
+ * tool arguments and citation metadata are read only to build `evidence`
+ * (which sanitises them); shipping the raw LLM arguments to every viewer in
+ * the activity feed would bypass that sanitisation.
+ */
+function toClientEventJson(eventJson: JSONObject): JSONObject {
+  const clientJson: JSONObject = { ...eventJson };
+  delete clientJson["toolArguments"];
+  delete clientJson["citationId"];
+
+  const resultSummary: unknown = clientJson["resultSummary"];
+
+  if (
+    resultSummary &&
+    typeof resultSummary === "object" &&
+    !Array.isArray(resultSummary)
+  ) {
+    const clientSummary: AIRunEventResultSummary = {
+      ...(resultSummary as AIRunEventResultSummary),
+    };
+    delete clientSummary.citationLabel;
+    delete clientSummary.citationTarget;
+    clientJson["resultSummary"] = clientSummary as JSONObject;
+  }
+
+  return clientJson;
+}
+
+/*
+ * Structured evidence for the published report. Pure over the loaded events,
+ * but guarded anyway: evidence enriches the panel and must never fail the
+ * payload that carries the report itself.
+ */
+function buildEvidenceForReport(data: {
+  events: Array<AIRunEvent>;
+  analysisMarkdown: string;
+}): Array<InvestigationEvidenceItem> {
+  try {
+    return buildInvestigationEvidence(data);
+  } catch (error) {
+    logger.error(
+      `AI: could not build investigation evidence for the panel: ${error}`,
+    );
+    return [];
+  }
+}
+
+/*
  * Read the latest investigation run + its events as root (bypasses the
  * per-user pin) and send them. Callers must have already access-checked the
  * subject under the USER's permissions.
@@ -180,6 +304,16 @@ async function sendLatestInvestigation(
   subject: {
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
+  },
+  viewer: {
+    subjectType: InvestigationReferenceKind;
+    /*
+     * The authenticated tenant, which the subject was asserted to belong to;
+     * the run, its events and the references are all read inside it only.
+     */
+    projectId: ObjectID;
+    // The VIEWER's tenant-pinned props — references use their permissions.
+    props: DatabaseCommonInteractionProps;
   },
 ): Promise<void> {
   const runs: Array<AIRun> = await AIRunService.findBy({
@@ -218,12 +352,21 @@ async function sendLatestInvestigation(
       analysisMarkdown: null,
       analysisTldr: null,
       isAnalysisPending: false,
+      evidence: [],
+      references: [],
     });
     return;
   }
 
+  /*
+   * Evidence is only ever built next to a published report, which requires a
+   * Completed run. The panel polls every few seconds while a run is active,
+   * so the (potentially large) raw tool arguments are not read until then.
+   */
+  const isEvidenceEligible: boolean = run.status === AIRunStatus.Completed;
+
   const events: Array<AIRunEvent> = await AIRunEventService.findBy({
-    query: { aiRunId: run.id! },
+    query: { aiRunId: run.id!, projectId: viewer.projectId },
     select: {
       _id: true,
       sequence: true,
@@ -231,6 +374,11 @@ async function sendLatestInvestigation(
       toolName: true,
       resultSummary: true,
       createdAt: true,
+      /*
+       * Read for the structured evidence list only — toClientEventJson
+       * strips both from the event JSON sent to the panel.
+       */
+      ...(isEvidenceEligible ? { citationId: true, toolArguments: true } : {}),
     },
     sort: { sequence: SortOrder.Ascending },
     limit: MAX_EVENTS,
@@ -243,7 +391,11 @@ async function sendLatestInvestigation(
     AIRun,
   )[0];
 
-  const eventsJson: JSONArray = BaseModel.toJSONArray(events, AIRunEvent);
+  const eventsJson: JSONArray = BaseModel.toJSONArray(events, AIRunEvent).map(
+    (eventJson: JSONObject): JSONObject => {
+      return toClientEventJson(eventJson);
+    },
+  );
 
   /*
    * RootCause is the canonical persisted investigation result. The explicit
@@ -287,12 +439,32 @@ async function sendLatestInvestigation(
     runJson["analysisTldr"] = analysisTldr;
   }
 
+  /*
+   * Evidence and references describe the report, so — like the TL;DR — they
+   * only travel next to one. References are resolved under the viewer's own
+   * tenant-pinned permissions inside the tenant; a failure yields no links.
+   */
+  const evidence: Array<InvestigationEvidenceItem> = analysisMarkdown
+    ? buildEvidenceForReport({ events, analysisMarkdown })
+    : [];
+
+  const references: Array<InvestigationEventReference> = analysisMarkdown
+    ? await resolveInvestigationReferences({
+        markdown: analysisMarkdown,
+        subjectType: viewer.subjectType,
+        projectId: viewer.projectId,
+        props: viewer.props,
+      })
+    : [];
+
   Response.sendJsonObjectResponse(req, res, {
     run: runJson || null,
     events: eventsJson,
     analysisMarkdown,
     analysisTldr,
     isAnalysisPending,
+    evidence: evidence as unknown as JSONArray,
+    references: references as unknown as JSONArray,
   });
 }
 
@@ -307,6 +479,15 @@ router.post(
     try {
       const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
 
+      /*
+       * Pinned to the authenticated tenant before any read (see
+       * pinPropsToTenant). Read authorization itself is the model layer's
+       * check on the subject below, which also admits master admins.
+       */
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+      const viewerProps: DatabaseCommonInteractionProps =
+        pinPropsToTenant(props);
+
       const incidentIdString: string | undefined = req.body["incidentId"] as
         | string
         | undefined;
@@ -317,28 +498,29 @@ router.post(
 
       const incidentId: ObjectID = new ObjectID(incidentIdString);
 
-      // Access check under the USER's permissions (null when not allowed).
-      const incident: Incident | null = await IncidentService.findOneById({
-        id: incidentId,
-        select: { _id: true },
-        props,
+      // Access check under the USER's permissions, inside the tenant.
+      await assertSubjectReadableInTenant({
+        subjectType: "incident",
+        subjectId: incidentId,
+        tenantId,
+        viewerProps,
       });
-
-      if (!incident) {
-        throw new BadDataException(
-          "Incident not found (or you do not have access to it).",
-        );
-      }
 
       await sendLatestInvestigation(
         req,
         res,
         {
+          projectId: tenantId,
           triggeredByIncidentId: incidentId,
           runType: AIRunType.Investigation,
         },
         {
           incidentId,
+        },
+        {
+          subjectType: "incident",
+          projectId: tenantId,
+          props: viewerProps,
         },
       );
       return;
@@ -360,6 +542,15 @@ router.post(
     try {
       const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
 
+      /*
+       * Pinned to the authenticated tenant before any read (see
+       * pinPropsToTenant). Read authorization itself is the model layer's
+       * check on the subject below, which also admits master admins.
+       */
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+      const viewerProps: DatabaseCommonInteractionProps =
+        pinPropsToTenant(props);
+
       const alertIdString: string | undefined = req.body["alertId"] as
         | string
         | undefined;
@@ -370,29 +561,298 @@ router.post(
 
       const alertId: ObjectID = new ObjectID(alertIdString);
 
-      // Access check under the USER's permissions (null when not allowed).
-      const alert: Alert | null = await AlertService.findOneById({
-        id: alertId,
-        select: { _id: true },
-        props,
+      // Access check under the USER's permissions, inside the tenant.
+      await assertSubjectReadableInTenant({
+        subjectType: "alert",
+        subjectId: alertId,
+        tenantId,
+        viewerProps,
       });
-
-      if (!alert) {
-        throw new BadDataException(
-          "Alert not found (or you do not have access to it).",
-        );
-      }
 
       await sendLatestInvestigation(
         req,
         res,
         {
+          projectId: tenantId,
           triggeredByAlertId: alertId,
           runType: AIRunType.Investigation,
         },
         {
           alertId,
         },
+        {
+          subjectType: "alert",
+          projectId: tenantId,
+          props: viewerProps,
+        },
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * The original arguments of a cited tool call, with its time window pinned to
+ * when the investigation ran: a tool whose schema accepts endTime (or atTime)
+ * but whose call omitted it defaulted to "now" at investigation time, so the
+ * re-run passes that moment explicitly. Returns a copy; the event's JSON is
+ * never mutated.
+ */
+export function pinEvidenceArgumentsToInvestigationTime(data: {
+  tool: ObservabilityTool;
+  rawArguments: JSONObject;
+  investigatedAt: Date | undefined;
+}): { args: JSONObject; isPinnedToInvestigationTime: boolean } {
+  const args: JSONObject = { ...data.rawArguments };
+
+  const schemaProperties: unknown = data.tool.inputSchema?.["properties"];
+  const properties: JSONObject =
+    schemaProperties &&
+    typeof schemaProperties === "object" &&
+    !Array.isArray(schemaProperties)
+      ? (schemaProperties as JSONObject)
+      : {};
+
+  const hasArgument: (key: string) => boolean = (key: string): boolean => {
+    const value: unknown = args[key];
+    return typeof value === "string" && value.trim().length > 0;
+  };
+
+  let isPinnedToInvestigationTime: boolean = false;
+
+  for (const timeKey of ["endTime", "atTime"]) {
+    if (!Object.prototype.hasOwnProperty.call(properties, timeKey)) {
+      continue;
+    }
+
+    if (!hasArgument(timeKey) && data.investigatedAt) {
+      args[timeKey] = data.investigatedAt.toISOString();
+    }
+
+    if (hasArgument(timeKey)) {
+      isPinnedToInvestigationTime = true;
+    }
+  }
+
+  return { args, isPinnedToInvestigationTime };
+}
+
+/*
+ * "Load rows" for one piece of evidence in the investigation panel: re-runs
+ * the query behind a report citation ([C#]) with the VIEWER's permissions.
+ *
+ * Trust model:
+ *   - the caller must be an authenticated member of the request's tenant,
+ *     and every read and the tool run are pinned to that tenant (never a
+ *     project reached through the multi-tenant header): the toolbox checks
+ *     the caller's grants in the tenant, so the query must run there too;
+ *   - the subject is access-checked under the viewer's props before any
+ *     other read, exactly like the routes above, and must belong to the
+ *     tenant;
+ *   - the run must be an Investigation of THAT subject in the tenant, so a
+ *     citation of another subject's run cannot be replayed through a
+ *     subject the viewer can read;
+ *   - the tool and its arguments come from the run's own server-recorded
+ *     events — never from the request body — and only read-only toolbox
+ *     tools are re-runnable;
+ *   - the tool executes under the viewer's props (the investigation itself
+ *     ran as root), so the viewer only ever sees rows they may read.
+ * Body: { subjectType: "incident" | "alert", subjectId,
+ * investigationRunId (or its aiRunId alias), citationId: "C1" }.
+ * Response: InvestigationEvidenceRowsResponse.
+ */
+router.post(
+  "/ai-investigation/evidence",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      /*
+       * The re-run executes a toolbox tool whose permission gate reads the
+       * caller's grants in props.tenantId, so the caller must be a member of
+       * that tenant and everything below happens inside it — never in a
+       * project reached through the multi-tenant header.
+       */
+      const tenantId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+      const viewerProps: DatabaseCommonInteractionProps =
+        pinPropsToTenant(props);
+
+      const subjectType: string | undefined = req.body["subjectType"] as
+        | string
+        | undefined;
+
+      if (subjectType !== "incident" && subjectType !== "alert") {
+        throw new BadDataException(
+          'subjectType must be "incident" or "alert".',
+        );
+      }
+
+      const subjectIdString: string =
+        typeof req.body["subjectId"] === "string"
+          ? (req.body["subjectId"] as string).trim()
+          : "";
+
+      if (!subjectIdString) {
+        throw new BadDataException("subjectId is required.");
+      }
+
+      if (!ObjectID.isValidUUID(subjectIdString)) {
+        throw new BadDataException("subjectId must be a valid ID.");
+      }
+
+      const subjectId: ObjectID = new ObjectID(subjectIdString);
+
+      const investigationRunId: ObjectID = getDisplayedInvestigationRunId(req);
+
+      const citationId: string =
+        typeof req.body["citationId"] === "string"
+          ? (req.body["citationId"] as string).trim()
+          : "";
+
+      if (!EVIDENCE_CITATION_ID_REGEX.test(citationId)) {
+        throw new BadDataException(
+          'citationId must be a citation marker such as "C1".',
+        );
+      }
+
+      // Access check under the USER's permissions, inside the tenant.
+      await assertSubjectReadableInTenant({
+        subjectType,
+        subjectId,
+        tenantId,
+        viewerProps,
+      });
+
+      const run: AIRun | null = await AIRunService.findOneBy({
+        query: {
+          _id: investigationRunId,
+          projectId: tenantId,
+          runType: AIRunType.Investigation,
+          ...(subjectType === "incident"
+            ? { triggeredByIncidentId: subjectId }
+            : { triggeredByAlertId: subjectId }),
+        },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      if (!run) {
+        throw new BadDataException(
+          `This investigation was not found for this ${subjectType}.`,
+        );
+      }
+
+      const events: Array<AIRunEvent> = await AIRunEventService.findBy({
+        query: { aiRunId: investigationRunId, projectId: tenantId },
+        select: {
+          _id: true,
+          sequence: true,
+          eventType: true,
+          toolName: true,
+          toolArguments: true,
+          resultSummary: true,
+          citationId: true,
+          createdAt: true,
+        },
+        sort: { sequence: SortOrder.Ascending },
+        limit: MAX_EVENTS,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      const toolCall: InvestigationToolCallRecord | null =
+        findInvestigationToolCall({ events, citationId });
+
+      if (!toolCall) {
+        throw new BadDataException("This evidence is no longer available.");
+      }
+
+      const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
+        toolCall.item.toolName,
+      );
+
+      // Re-checked here rather than trusted from the item: defense in depth.
+      if (
+        !tool ||
+        !toolCall.item.canLoadRows ||
+        !isRerunnableEvidenceTool(toolCall.item.toolName)
+      ) {
+        throw new BadDataException("This evidence can't be re-run.");
+      }
+
+      const investigatedAt: Date | undefined = toolCall.item.executedAt
+        ? new Date(toolCall.item.executedAt)
+        : undefined;
+
+      const pinned: { args: JSONObject; isPinnedToInvestigationTime: boolean } =
+        pinEvidenceArgumentsToInvestigationTime({
+          tool,
+          rawArguments: toolCall.rawArguments,
+          investigatedAt: toolCall.startedAt || investigatedAt,
+        });
+
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name: toolCall.item.toolName,
+        args: pinned.args,
+        ctx: {
+          projectId: tenantId,
+          props: viewerProps,
+        },
+      });
+
+      if (!outcome.success || !outcome.result) {
+        throw new BadDataException(
+          outcome.errorMessage || "This evidence could not be loaded.",
+        );
+      }
+
+      const result: ToolExecutionResult = outcome.result;
+
+      const rowsResponse: InvestigationEvidenceRowsResponse = {
+        citationId,
+        toolName: toolCall.item.toolName,
+        label: result.citationLabel || toolCall.item.label,
+        rowCount: result.rowCount,
+        isTruncated: result.isTruncated,
+        executedAt: OneUptimeDate.getCurrentDate().toISOString(),
+        isPinnedToInvestigationTime: pinned.isPinnedToInvestigationTime,
+      };
+
+      if (result.widget) {
+        // Mirror ChatAgentRunner: widgets carry their own id + citation.
+        rowsResponse.widget = {
+          ...result.widget,
+          id: result.widget.id || "W1",
+          citationId,
+        };
+      } else {
+        const text: string = result.dataForLlm || "";
+
+        if (text.length > MAX_EVIDENCE_TEXT_LENGTH) {
+          rowsResponse.text = text.substring(0, MAX_EVIDENCE_TEXT_LENGTH);
+          rowsResponse.isTruncated = true;
+        } else {
+          rowsResponse.text = text;
+        }
+      }
+
+      if (toolCall.item.executedAt) {
+        rowsResponse.investigatedAt = toolCall.item.executedAt;
+      }
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        rowsResponse as unknown as JSONObject,
       );
       return;
     } catch (err) {

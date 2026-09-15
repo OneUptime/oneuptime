@@ -102,6 +102,9 @@ jest.mock(
       __esModule: true,
       default: (props: {
         entities: Array<InventoryItem>;
+        includeInactive?: boolean;
+        rangeStart?: Date | null;
+        onOpenInfrastructure?: (key: string) => void;
       }): React.ReactElement => {
         return (
           <div data-testid="topology-services">
@@ -111,29 +114,20 @@ jest.mock(
                 return entity.displayName || "";
               })
               .join(",")}
-          </div>
-        );
-      },
-    };
-  },
-);
-
-jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureGraph",
-  () => {
-    return {
-      __esModule: true,
-      default: (props: {
-        entities: Array<InventoryItem>;
-      }): React.ReactElement => {
-        return (
-          <div data-testid="topology-infrastructure">
-            Infrastructure:{" "}
-            {props.entities
-              .map((entity: InventoryItem): string => {
-                return entity.displayName || "";
-              })
-              .join(",")}
+            <span data-testid="services-inactive">
+              {String(Boolean(props.includeInactive))}
+            </span>
+            <span data-testid="services-range-start">
+              {props.rangeStart ? "set" : "unset"}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                props.onOpenInfrastructure?.("pod-1");
+              }}
+            >
+              Open pod in infrastructure
+            </button>
           </div>
         );
       },
@@ -148,6 +142,8 @@ jest.mock(
       __esModule: true,
       default: (props: {
         entities: Array<InventoryItem>;
+        includeInactive?: boolean;
+        onOpenServiceMap?: (key: string) => void;
       }): React.ReactElement => {
         return (
           <div data-testid="topology-infrastructure">
@@ -157,12 +153,22 @@ jest.mock(
                 return entity.displayName || "";
               })
               .join(",")}
+            <span data-testid="infrastructure-inactive">
+              {String(Boolean(props.includeInactive))}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                props.onOpenServiceMap?.("checkout");
+              }}
+            >
+              Open service on map
+            </button>
           </div>
         );
       },
     };
   },
-  { virtual: true },
 );
 
 jest.mock(
@@ -308,6 +314,64 @@ describe("topology map navigation and data isolation", () => {
     expect(query.has("tab")).toBe(false);
     expect(query.get("search")).toBe("checkout");
     expect(query.get("infraSearch")).toBe("worker");
+  });
+
+  test("show inactive reaches both telemetry views and the shareable URL", async () => {
+    renderPage();
+    await screen.findByTestId("topology-services");
+    expect(screen.getByTestId("services-inactive")).toHaveTextContent("false");
+    expect(screen.getByTestId("services-range-start")).toHaveTextContent("set");
+    fireEvent.click(screen.getByTestId("topology-show-inactive"));
+    expect(screen.getByTestId("services-inactive")).toHaveTextContent("true");
+    expect(new URLSearchParams(window.location.search).get("inactive")).toBe(
+      "show",
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Infrastructure" }));
+    expect(screen.getByTestId("infrastructure-inactive")).toHaveTextContent(
+      "true",
+    );
+    fireEvent.click(screen.getByTestId("topology-show-inactive"));
+    expect(new URLSearchParams(window.location.search).has("inactive")).toBe(
+      false,
+    );
+  });
+
+  test("a shared link restores show inactive", async () => {
+    window.history.replaceState({}, "", "?inactive=show");
+    renderPage();
+    expect(await screen.findByTestId("services-inactive")).toHaveTextContent(
+      "true",
+    );
+    expect(screen.getByTestId("topology-show-inactive")).toBeChecked();
+  });
+
+  test("the Service Map hands a resource to Infrastructure, and back", async () => {
+    renderPage();
+    await screen.findByTestId("topology-services");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open pod in infrastructure" }),
+    );
+    expect(screen.getByRole("tab", { name: "Infrastructure" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    let query: URLSearchParams = new URLSearchParams(window.location.search);
+    expect(query.get("tab")).toBe("Infrastructure");
+    expect(query.get("infraFocus")).toBe("pod-1");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open service on map" }),
+    );
+    expect(screen.getByRole("tab", { name: "Service Map" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    query = new URLSearchParams(window.location.search);
+    expect(query.has("tab")).toBe(false);
+    expect(query.get("focus")).toBe("checkout");
+    expect(query.get("serviceView")).toBe("map");
+    // Switching views never refetches the shared snapshot.
+    expect(getListMock).toHaveBeenCalledTimes(2);
   });
 
   test("keyboard navigation switches maps and updates the shareable tab", async () => {

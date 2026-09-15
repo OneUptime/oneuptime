@@ -27,6 +27,7 @@
     "test-incoming-call-policies-ui": "playwright test --config playwright.incoming-call-policies.config.ts",
     "test-exception-detail-ui": "playwright test --config playwright.exception-detail-ui.config.ts",
     "test-trace-detail-ui": "playwright test --config playwright.trace-detail-ui.config.ts"
+    "test-event-overview-ui": "playwright test --config playwright.event-overview-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

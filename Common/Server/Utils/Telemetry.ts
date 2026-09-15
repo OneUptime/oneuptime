@@ -59,6 +59,9 @@ import ErrorClass, {
 } from "../../Types/Telemetry/ErrorClass";
 import { ERROR_CLASS_ATTRIBUTE_KEY } from "../../Types/Telemetry/UnitOfWork";
 import RuntimeMetrics from "./Telemetry/RuntimeMetrics";
+import { getKubernetesResourceAttributes } from "./Telemetry/KubernetesResourceAttributes";
+import fs from "fs";
+import os from "os";
 
 type ResourceWithRawAttributes = Resource & {
   getRawAttributes?: () => Array<[string, AttributeValue | undefined]>;
@@ -191,6 +194,21 @@ export default class Telemetry {
 
   public static getResource(data: { serviceName: string }): Resource {
     return resourceFromAttributes({
+      /*
+       * Kubernetes identity first so the service attributes below can never be
+       * shadowed by it. Traces, metrics and logs all share this resource, so
+       * all three attribute a OneUptime pod to the same pod — see
+       * KubernetesResourceAttributes for why a pod must not look like a host.
+       */
+      ...getKubernetesResourceAttributes({
+        env: process.env,
+        hostname: os.hostname(),
+        readServiceAccountNamespace: (): string | null => {
+          const file: string =
+            "/var/run/secrets/kubernetes.io/serviceaccount/namespace";
+          return fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
+        },
+      }),
       [ATTR_SERVICE_NAME]: data.serviceName,
       [ATTR_SERVICE_VERSION]: AppVersion,
       ["deployment.environment"]: Env,

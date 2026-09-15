@@ -156,9 +156,11 @@ describe("occurrence trend windows", () => {
   });
 
   test.each(
-    EXCEPTION_TREND_WINDOWS.map((window: ExceptionTrendWindow) => {
-      return [window.label, window];
-    }),
+    EXCEPTION_TREND_WINDOWS.map(
+      (window: ExceptionTrendWindow): [string, ExceptionTrendWindow] => {
+        return [window.label, window];
+      },
+    ),
   )(
     "the %s window keeps the bar count readable",
     (_label: string, window: ExceptionTrendWindow) => {

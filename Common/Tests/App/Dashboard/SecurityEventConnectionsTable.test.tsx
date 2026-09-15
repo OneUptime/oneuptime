@@ -152,8 +152,18 @@ function pollResult(
   };
 }
 
+/*
+ * Unlike Partial<>, an override may set a field to undefined, which is how a
+ * test describes a connection that was never polled.
+ */
+type SecurityEventConnectionOverrides = {
+  [Key in keyof SecurityEventConnection]?:
+    | SecurityEventConnection[Key]
+    | undefined;
+};
+
 function connection(
-  overrides: Partial<SecurityEventConnection> = {},
+  overrides: SecurityEventConnectionOverrides = {},
 ): SecurityEventConnection {
   const value: SecurityEventConnection = new SecurityEventConnection();
   value._id = CONNECTION_ID;
@@ -625,10 +635,11 @@ describe("run details for a window one poll could not read", () => {
       }),
     );
 
+    const forcedAdvanceNotice: RegExp = /Polling moved past one minute/;
     const alert: HTMLElement = within(details)
       .getAllByRole("alert")
       .find((element: HTMLElement): boolean => {
-        return /Polling moved past one minute/.test(element.textContent || "");
+        return forcedAdvanceNotice.test(element.textContent || "");
       }) as HTMLElement;
     expect(alert).toBeVisible();
     expect(alert).toHaveTextContent(

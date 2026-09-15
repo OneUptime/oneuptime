@@ -1478,6 +1478,11 @@ openTelemetryExporter:
   endpoint:
   # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
   headers:
+  # Optional. Reported as k8s.cluster.name on OneUptime's own telemetry so its
+  # pods group under this cluster in Topology. Pods always report their pod,
+  # namespace, node and deployment names; the cluster name is not visible from
+  # inside a pod, so it is only reported when set here.
+  kubernetesClusterName:
 
 # Browser RUM uses a separate, deliberately public credential. Only use a
 # OneUptime Browser ingestion key with an origin allowlist; never put a Server

@@ -1,13 +1,15 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 // https://github.com/remarkjs/react-markdown
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { Components } from "react-markdown";
 // https://github.com/remarkjs/remark-gfm
 import remarkGfm from "remark-gfm";
 /*
@@ -79,6 +81,13 @@ SyntaxHighlighter.registerLanguage("http", http);
 import DOMPurify from "dompurify";
 import OneUptimeDate from "../../../Types/Date";
 import { Theme, useTheme } from "../../Utils/Theme";
+import {
+  InlineReferenceTransformOptions,
+  MARKDOWN_INLINE_REFERENCE_COMPONENTS,
+  MarkdownInlineReferenceContext,
+  MarkdownInlineReferenceRenderers,
+  remarkInlineReferences,
+} from "./InlineReferences";
 
 /*
  * ISO 8601 timestamps produced by OneUptimeDate.toString() — the
@@ -230,7 +239,52 @@ export interface ComponentProps {
    * clickable exfil link or a zero-click tracking pixel through.
    */
   safeMode?: boolean;
+  /*
+   * Opt-in rendering for citation markers ("[C12]") and incident / alert
+   * numbers ("#6954") inside the prose. The callbacks decide what each one
+   * becomes (a chip, a link built from database-resolved ids) and return null
+   * to leave it as plain text. Unset, the viewer renders exactly as before —
+   * no extra remark plugin runs.
+   */
+  inlineReferences?: MarkdownInlineReferenceRenderers | undefined;
 }
+
+/*
+ * Both transforms always run when a caller opts in: an element whose callback
+ * is missing renders its plain text, and the citation pass is also what stops
+ * a "[C12]: url" definition from turning a citation into a link.
+ */
+const INLINE_REFERENCE_TRANSFORM_OPTIONS: InlineReferenceTransformOptions = {
+  citations: true,
+  eventReferences: true,
+};
+
+/*
+ * The viewer's outer wrapper. Provides the inline reference callbacks to the
+ * module-scope reference elements only when the caller opted in, so the
+ * default render is unchanged.
+ */
+const MarkdownViewerFrame: FunctionComponent<{
+  inlineReferences: MarkdownInlineReferenceRenderers | undefined;
+  children: ReactNode;
+}> = (props: {
+  inlineReferences: MarkdownInlineReferenceRenderers | undefined;
+  children: ReactNode;
+}): ReactElement => {
+  const frame: ReactElement = (
+    <div className="max-w-none">{props.children}</div>
+  );
+
+  if (!props.inlineReferences) {
+    return frame;
+  }
+
+  return (
+    <MarkdownInlineReferenceContext.Provider value={props.inlineReferences}>
+      {frame}
+    </MarkdownInlineReferenceContext.Provider>
+  );
+};
 
 // Language display names
 const langDisplayNames: Record<string, string> = {
@@ -436,330 +490,349 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   // Captured here because the component overrides below shadow `props`.
   const safeMode: boolean = props.safeMode === true;
+  const inlineReferences: MarkdownInlineReferenceRenderers | undefined =
+    props.inlineReferences;
 
-  return (
-    <div className="max-w-none">
-      <ReactMarkdown
-        components={{
-          // because tailwind does not supply <h1 ... /> styles https://tailwindcss.com/docs/preflight#headings-are-unstyled
-          h1: ({ ...props }: any) => {
-            return (
-              <h1
-                className="text-lg mt-6 mb-3 text-gray-900 font-bold"
-                {...props}
-              />
-            );
-          },
-          h2: ({ ...props }: any) => {
-            return (
-              <h2
-                className="text-base mt-6 mb-2 text-gray-900 font-semibold"
-                {...props}
-              />
-            );
-          },
-          h3: ({ ...props }: any) => {
-            return (
-              <h3
-                className="text-base mt-4 mb-2 text-gray-900 font-semibold"
-                {...props}
-              />
-            );
-          },
-          h4: ({ ...props }: any) => {
-            return (
-              <h4
-                className="text-sm mt-3 mb-2 text-gray-900 font-semibold"
-                {...props}
-              />
-            );
-          },
-          h5: ({ ...props }: any) => {
-            return (
-              <h5
-                className="text-sm mt-3 mb-1 text-gray-900 font-medium"
-                {...props}
-              />
-            );
-          },
-          h6: ({ ...props }: any) => {
-            return (
-              <h6
-                className="text-sm mt-2 mb-1 text-gray-700 font-medium"
-                {...props}
-              />
-            );
-          },
-          p: ({ ...props }: any) => {
-            return (
-              <p
-                className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed"
-                {...props}
-              />
-            );
-          },
-          a: ({ children, ...props }: any) => {
-            if (safeMode) {
-              // Keep the link text, drop the href: no navigation, no exfil.
-              return (
-                <span className="underline decoration-dotted text-gray-700 font-medium">
-                  {children}
-                </span>
-              );
-            }
-            return (
-              <a
-                className="underline text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                {...props}
-              >
-                {children}
-              </a>
-            );
-          },
-          img: ({ alt, ...props }: any) => {
-            if (safeMode) {
-              /*
-               * Never emit an <img> for untrusted content — the browser would
-               * fetch its src on render (a zero-click exfil channel). Show the
-               * alt text (already plain, React-escaped) instead.
-               */
-              return alt ? (
-                <span className="text-gray-500 italic">{`[image: ${alt}]`}</span>
-              ) : null;
-            }
-            return (
-              <img
-                className="max-w-full h-auto rounded-md border border-gray-200 my-3"
-                loading="lazy"
-                alt={alt}
-                {...props}
-              />
-            );
-          },
+  /*
+   * Memoised so the renderer identities only change with the options they
+   * close over. An inline object gave every overridden tag (p, li, strong...)
+   * a new component type on each re-render, which remounted its whole subtree:
+   * a focused inline reference chip lost focus and CodeBlock's copied state
+   * reset whenever the parent re-rendered.
+   */
+  const hasInlineReferences: boolean = Boolean(inlineReferences);
+  const components: Components = useMemo((): Components => {
+    return {
+      /*
+       * Custom reference tags first, so nothing in that map could ever
+       * shadow the safe a/img/code renderers below (it only holds the
+       * two oneuptime-* tag names).
+       */
+      ...(hasInlineReferences
+        ? (MARKDOWN_INLINE_REFERENCE_COMPONENTS as Components)
+        : {}),
+      // because tailwind does not supply <h1 ... /> styles https://tailwindcss.com/docs/preflight#headings-are-unstyled
+      h1: ({ ...props }: any) => {
+        return (
+          <h1
+            className="text-lg mt-6 mb-3 text-gray-900 font-bold"
+            {...props}
+          />
+        );
+      },
+      h2: ({ ...props }: any) => {
+        return (
+          <h2
+            className="text-base mt-6 mb-2 text-gray-900 font-semibold"
+            {...props}
+          />
+        );
+      },
+      h3: ({ ...props }: any) => {
+        return (
+          <h3
+            className="text-base mt-4 mb-2 text-gray-900 font-semibold"
+            {...props}
+          />
+        );
+      },
+      h4: ({ ...props }: any) => {
+        return (
+          <h4
+            className="text-sm mt-3 mb-2 text-gray-900 font-semibold"
+            {...props}
+          />
+        );
+      },
+      h5: ({ ...props }: any) => {
+        return (
+          <h5
+            className="text-sm mt-3 mb-1 text-gray-900 font-medium"
+            {...props}
+          />
+        );
+      },
+      h6: ({ ...props }: any) => {
+        return (
+          <h6
+            className="text-sm mt-2 mb-1 text-gray-700 font-medium"
+            {...props}
+          />
+        );
+      },
+      p: ({ ...props }: any) => {
+        return (
+          <p
+            className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed"
+            {...props}
+          />
+        );
+      },
+      a: ({ children, ...props }: any) => {
+        if (safeMode) {
+          // Keep the link text, drop the href: no navigation, no exfil.
+          return (
+            <span className="underline decoration-dotted text-gray-700 font-medium">
+              {children}
+            </span>
+          );
+        }
+        return (
+          <a
+            className="underline text-blue-600 hover:text-blue-800 font-medium transition-colors"
+            {...props}
+          >
+            {children}
+          </a>
+        );
+      },
+      img: ({ alt, ...props }: any) => {
+        if (safeMode) {
+          /*
+           * Never emit an <img> for untrusted content — the browser would
+           * fetch its src on render (a zero-click exfil channel). Show the
+           * alt text (already plain, React-escaped) instead.
+           */
+          return alt ? (
+            <span className="text-gray-500 italic">{`[image: ${alt}]`}</span>
+          ) : null;
+        }
+        return (
+          <img
+            className="max-w-full h-auto rounded-md border border-gray-200 my-3"
+            loading="lazy"
+            alt={alt}
+            {...props}
+          />
+        );
+      },
 
-          pre: ({ children, ...rest }: any) => {
-            // Check if this is a mermaid diagram - don't render pre wrapper for mermaid
-            const isMermaid: boolean =
-              React.isValidElement(children) &&
-              (children as any).props?.className?.includes("language-mermaid");
+      pre: ({ children, ...rest }: any) => {
+        // Check if this is a mermaid diagram - don't render pre wrapper for mermaid
+        const isMermaid: boolean =
+          React.isValidElement(children) &&
+          (children as any).props?.className?.includes("language-mermaid");
 
-            if (isMermaid) {
-              // For mermaid, just return the children (MermaidDiagram component)
-              return <>{children}</>;
-            }
+        if (isMermaid) {
+          // For mermaid, just return the children (MermaidDiagram component)
+          return <>{children}</>;
+        }
 
-            /*
-             * If the child is a custom component (CodeBlock, MermaidDiagram, etc.)
-             * rather than a plain HTML element like <code>, skip pre styling.
-             * Checking typeof type !== "string" is minification-safe unlike checking type.name.
-             */
-            const isCustomComponent: boolean =
-              React.isValidElement(children) &&
-              typeof (children as any).type !== "string";
+        /*
+         * If the child is a custom component (CodeBlock, MermaidDiagram, etc.)
+         * rather than a plain HTML element like <code>, skip pre styling.
+         * Checking typeof type !== "string" is minification-safe unlike checking type.name.
+         */
+        const isCustomComponent: boolean =
+          React.isValidElement(children) &&
+          typeof (children as any).type !== "string";
 
-            if (isCustomComponent) {
-              return <>{children}</>;
-            }
+        if (isCustomComponent) {
+          return <>{children}</>;
+        }
 
-            return (
-              <pre
-                className="bg-gray-900 text-gray-100 mt-3 mb-3 p-3 rounded-md text-sm overflow-x-auto border border-gray-700"
-                {...rest}
-              >
-                {children}
-              </pre>
-            );
-          },
-          strong: ({ ...props }: any) => {
-            return (
-              <strong
-                className="text-sm font-semibold text-gray-900"
-                {...props}
-              />
-            );
-          },
-          li: ({ children, ...props }: any) => {
-            const isTaskItem: boolean =
-              typeof props.className === "string" &&
-              props.className.includes("task-list-item");
+        return (
+          <pre
+            className="bg-gray-900 text-gray-100 mt-3 mb-3 p-3 rounded-md text-sm overflow-x-auto border border-gray-700"
+            {...rest}
+          >
+            {children}
+          </pre>
+        );
+      },
+      strong: ({ ...props }: any) => {
+        return (
+          <strong className="text-sm font-semibold text-gray-900" {...props} />
+        );
+      },
+      li: ({ children, ...props }: any) => {
+        const isTaskItem: boolean =
+          typeof props.className === "string" &&
+          props.className.includes("task-list-item");
 
-            // Give the task-list checkbox an accessible name from its label text.
-            const renderedChildren: any = isTaskItem
-              ? React.Children.map(children, (child: any) => {
-                  if (
-                    React.isValidElement(child) &&
-                    (child.type === "input" ||
-                      (child.props as { type?: string } | null)?.type ===
-                        "checkbox")
-                  ) {
-                    const existingLabel: string | undefined = (
-                      child.props as { ["aria-label"]?: string }
-                    )["aria-label"];
-                    return React.cloneElement(
-                      child as ReactElement,
-                      {
-                        "aria-label":
-                          existingLabel ||
-                          extractTextFromChildren(children).trim() ||
-                          "Task item",
-                      } as any,
-                    );
-                  }
-                  return child;
-                })
-              : children;
-
-            return (
-              <li
-                className="text-sm mt-1 mb-1 text-gray-700 leading-relaxed"
-                {...props}
-              >
-                {renderedChildren}
-              </li>
-            );
-          },
-          ul: ({ ...props }: any) => {
-            return <ul className="list-disc pl-6 mt-0 mb-1" {...props} />;
-          },
-          ol: ({ ...props }: any) => {
-            return <ol className="list-decimal pl-6 mt-0 mb-1" {...props} />;
-          },
-          blockquote: ({ children, ...props }: any) => {
-            return (
-              <blockquote
-                className="rounded-lg border border-amber-200 bg-amber-50/50 my-4 not-italic overflow-hidden"
-                {...props}
-              >
-                <div className="flex items-start gap-3 px-4 py-3">
-                  <svg
-                    className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-                    />
-                  </svg>
-                  <div className="text-sm text-gray-700 leading-relaxed [&>p]:mt-0 [&>p]:mb-0 [&>p>strong:first-child]:text-amber-700 [&>p>strong:first-child]:mr-1">
-                    {children}
-                  </div>
-                </div>
-              </blockquote>
-            );
-          },
-          table: ({ ...props }: any) => {
-            return (
-              <div className="overflow-hidden rounded-lg border border-gray-200 mt-4 mb-4 shadow-sm">
-                <table
-                  className="min-w-full table-auto border-collapse text-sm"
-                  {...props}
-                />
-              </div>
-            );
-          },
-          thead: ({ ...props }: any) => {
-            return <thead className="bg-gray-50" {...props} />;
-          },
-          tbody: ({ ...props }: any) => {
-            return <tbody className="divide-y divide-gray-100" {...props} />;
-          },
-          tr: ({ ...props }: any) => {
-            return (
-              <tr className="hover:bg-gray-50 transition-colors" {...props} />
-            );
-          },
-          th: ({ ...props }: any) => {
-            return (
-              <th
-                className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200"
-                {...props}
-              />
-            );
-          },
-          td: ({ ...props }: any) => {
-            return (
-              <td className="px-4 py-2.5 text-sm text-gray-700" {...props} />
-            );
-          },
-          hr: ({ ...props }: any) => {
-            return <hr className="border-gray-300 my-6" {...props} />;
-          },
-          code: (props: any) => {
-            const { children, className, ...rest } = props;
-
-            const match: RegExpExecArray | null = new RegExp(
-              "language-(\\w+)",
-            ).exec(className || "");
-
-            const content: string = String(children as string).replace(
-              /\n$/,
-              "",
-            );
-
-            // Handle mermaid diagrams
-            if (match && match[1] === "mermaid") {
-              /*
-               * Never render mermaid for untrusted content: a diagram can
-               * carry an image node whose src the renderer fetches on paint
-               * (a zero-click exfil channel). Show the source as a plain,
-               * non-executing code block instead.
-               */
-              if (safeMode) {
-                return (
-                  <CodeBlock language="mermaid" content={content} rest={rest} />
+        // Give the task-list checkbox an accessible name from its label text.
+        const renderedChildren: any = isTaskItem
+          ? React.Children.map(children, (child: any) => {
+              if (
+                React.isValidElement(child) &&
+                (child.type === "input" ||
+                  (child.props as { type?: string } | null)?.type ===
+                    "checkbox")
+              ) {
+                const existingLabel: string | undefined = (
+                  child.props as { ["aria-label"]?: string }
+                )["aria-label"];
+                return React.cloneElement(
+                  child as ReactElement,
+                  {
+                    "aria-label":
+                      existingLabel ||
+                      extractTextFromChildren(children).trim() ||
+                      "Task item",
+                  } as any,
                 );
               }
-              return <MermaidDiagram chart={content} />;
-            }
+              return child;
+            })
+          : children;
 
-            const isMultiline: boolean = content.includes("\n");
-            const hasLanguage: boolean = Boolean(
-              match &&
-                match?.filter((item: string) => {
-                  return item.includes("language-");
-                }).length > 0,
-            );
-
-            // Multiline code blocks (with or without language) get the full CodeBlock treatment
-            if (hasLanguage || isMultiline) {
-              return (
-                <CodeBlock
-                  language={match ? match[1]! : "text"}
-                  content={content}
-                  rest={rest}
-                />
-              );
-            }
-
-            /*
-             * Inline ISO 8601 timestamp → render in the viewer's local
-             * timezone. The backend emits every root-cause timestamp in
-             * this format precisely so it can be re-localized here.
-             */
-            if (ISO_8601_REGEX.test(content)) {
-              return <LocalTime isoValue={content} />;
-            }
-
-            // Inline code
-            return (
-              <code
-                className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono"
-                {...rest}
+        return (
+          <li
+            className="text-sm mt-1 mb-1 text-gray-700 leading-relaxed"
+            {...props}
+          >
+            {renderedChildren}
+          </li>
+        );
+      },
+      ul: ({ ...props }: any) => {
+        return <ul className="list-disc pl-6 mt-0 mb-1" {...props} />;
+      },
+      ol: ({ ...props }: any) => {
+        return <ol className="list-decimal pl-6 mt-0 mb-1" {...props} />;
+      },
+      blockquote: ({ children, ...props }: any) => {
+        return (
+          <blockquote
+            className="rounded-lg border border-amber-200 bg-amber-50/50 my-4 not-italic overflow-hidden"
+            {...props}
+          >
+            <div className="flex items-start gap-3 px-4 py-3">
+              <svg
+                className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
               >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                />
+              </svg>
+              <div className="text-sm text-gray-700 leading-relaxed [&>p]:mt-0 [&>p]:mb-0 [&>p>strong:first-child]:text-amber-700 [&>p>strong:first-child]:mr-1">
                 {children}
-              </code>
+              </div>
+            </div>
+          </blockquote>
+        );
+      },
+      table: ({ ...props }: any) => {
+        return (
+          <div className="overflow-hidden rounded-lg border border-gray-200 mt-4 mb-4 shadow-sm">
+            <table
+              className="min-w-full table-auto border-collapse text-sm"
+              {...props}
+            />
+          </div>
+        );
+      },
+      thead: ({ ...props }: any) => {
+        return <thead className="bg-gray-50" {...props} />;
+      },
+      tbody: ({ ...props }: any) => {
+        return <tbody className="divide-y divide-gray-100" {...props} />;
+      },
+      tr: ({ ...props }: any) => {
+        return <tr className="hover:bg-gray-50 transition-colors" {...props} />;
+      },
+      th: ({ ...props }: any) => {
+        return (
+          <th
+            className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200"
+            {...props}
+          />
+        );
+      },
+      td: ({ ...props }: any) => {
+        return <td className="px-4 py-2.5 text-sm text-gray-700" {...props} />;
+      },
+      hr: ({ ...props }: any) => {
+        return <hr className="border-gray-300 my-6" {...props} />;
+      },
+      code: (props: any) => {
+        const { children, className, ...rest } = props;
+
+        const match: RegExpExecArray | null = new RegExp(
+          "language-(\\w+)",
+        ).exec(className || "");
+
+        const content: string = String(children as string).replace(/\n$/, "");
+
+        // Handle mermaid diagrams
+        if (match && match[1] === "mermaid") {
+          /*
+           * Never render mermaid for untrusted content: a diagram can
+           * carry an image node whose src the renderer fetches on paint
+           * (a zero-click exfil channel). Show the source as a plain,
+           * non-executing code block instead.
+           */
+          if (safeMode) {
+            return (
+              <CodeBlock language="mermaid" content={content} rest={rest} />
             );
-          },
-        }}
-        remarkPlugins={[remarkGfm]}
+          }
+          return <MermaidDiagram chart={content} />;
+        }
+
+        const isMultiline: boolean = content.includes("\n");
+        const hasLanguage: boolean = Boolean(
+          match &&
+            match?.filter((item: string) => {
+              return item.includes("language-");
+            }).length > 0,
+        );
+
+        // Multiline code blocks (with or without language) get the full CodeBlock treatment
+        if (hasLanguage || isMultiline) {
+          return (
+            <CodeBlock
+              language={match ? match[1]! : "text"}
+              content={content}
+              rest={rest}
+            />
+          );
+        }
+
+        /*
+         * Inline ISO 8601 timestamp → render in the viewer's local
+         * timezone. The backend emits every root-cause timestamp in
+         * this format precisely so it can be re-localized here.
+         */
+        if (ISO_8601_REGEX.test(content)) {
+          return <LocalTime isoValue={content} />;
+        }
+
+        // Inline code
+        return (
+          <code
+            className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono"
+            {...rest}
+          >
+            {children}
+          </code>
+        );
+      },
+    };
+  }, [safeMode, hasInlineReferences]);
+
+  return (
+    <MarkdownViewerFrame inlineReferences={inlineReferences}>
+      <ReactMarkdown
+        components={components}
+        remarkPlugins={
+          hasInlineReferences
+            ? [
+                remarkGfm,
+                [remarkInlineReferences, INLINE_REFERENCE_TRANSFORM_OPTIONS],
+              ]
+            : [remarkGfm]
+        }
       >
         {props.text}
       </ReactMarkdown>
-    </div>
+    </MarkdownViewerFrame>
   );
 };
 

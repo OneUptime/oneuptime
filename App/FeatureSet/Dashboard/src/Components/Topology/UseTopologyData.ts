@@ -21,6 +21,11 @@ interface TopologyDataSnapshot {
   error: string;
   isTruncated: boolean;
   lastUpdatedAt: Date | null;
+  /*
+   * Start of the range this snapshot was loaded for. A resource that has not
+   * reported since then is inactive — see TopologyActivity.
+   */
+  rangeStart: Date | null;
 }
 
 export interface TopologyData extends TopologyDataSnapshot {
@@ -34,6 +39,7 @@ const EMPTY_SNAPSHOT: TopologyDataSnapshot = {
   error: "",
   isTruncated: false,
   lastUpdatedAt: null,
+  rangeStart: null,
 };
 
 /**
@@ -87,6 +93,9 @@ export default function useTopologyData(
               entityType: true,
               resourceType: true,
               resourceId: true,
+              source: true,
+              descriptiveAttributes: true,
+              identifyingAttributes: true,
               firstSeenAt: true,
               lastSeenAt: true,
             },
@@ -113,6 +122,7 @@ export default function useTopologyData(
               callCount: true,
               errorCount: true,
               avgDurationMs: true,
+              lastSeenAt: true,
             },
             sort: {},
             skip: 0,
@@ -130,6 +140,7 @@ export default function useTopologyData(
               entityResult.count > entityResult.data.length ||
               relationshipResult.count > relationshipResult.data.length,
             lastUpdatedAt: new Date(),
+            rangeStart: window.startValue,
           });
         }
       } catch (error: unknown) {

@@ -3,12 +3,16 @@ import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Page from "./Page";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
-import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import Link from "../../../Types/Link";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
-import React, { ReactElement, useState } from "react";
-import useAsyncEffect from "use-async-effect";
+import React, {
+  MutableRefObject,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Select from "../../../Server/Types/Database/Select";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -23,21 +27,57 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelAPI?: typeof ModelAPI | undefined;
 }
 
+/*
+ * What the header shows for one model: its title, its labels, or why it could
+ * not be read. Stamped with the id it was read for, so it can never be shown
+ * for a different model.
+ */
+interface LoadedModelHeader {
+  modelId: string;
+  title: string | undefined;
+  labels: Array<Label>;
+  error: string;
+}
+
 const ModelPage: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * Keyed on the id's string, not the ObjectID: layouts build a new ObjectID
+   * from the route params on every render.
+   */
+  const modelIdString: string = props.modelId.toString();
 
-  const [error, setError] = useState<string>("");
-  const [labels, setLabels] = useState<Array<Label>>([]);
+  const [loadedHeader, setLoadedHeader] = useState<LoadedModelHeader | null>(
+    null,
+  );
 
-  const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
-    // get item.
-    setIsLoading(true);
+  /*
+   * Bumped by every fetch, when the model changes and on unmount. A response
+   * only lands while no newer fetch has started, so a slow read of the model
+   * the reader already left can never put its title back on the page.
+   */
+  const latestRequestRef: MutableRefObject<number> = useRef<number>(0);
 
-    setError("");
+  type FetchItemFunction = (modelId: ObjectID) => Promise<void>;
+
+  const fetchItem: FetchItemFunction = async (
+    modelId: ObjectID,
+  ): Promise<void> => {
+    const requestNumber: number = latestRequestRef.current + 1;
+    latestRequestRef.current = requestNumber;
+
+    const requestedModelId: string = modelId.toString();
+
+    let header: LoadedModelHeader = {
+      modelId: requestedModelId,
+      title: props.title,
+      labels: [],
+      error: "",
+    };
+
     try {
       const modelInstance: TBaseModel = new props.modelType();
       const labelsColumn: string | null =
@@ -59,66 +99,91 @@ const ModelPage: <TBaseModel extends BaseModel>(
 
       const item: TBaseModel | null = await modelAPI.getItem({
         modelType: props.modelType,
-        id: props.modelId,
+        id: modelId,
         select: select as Select<TBaseModel>,
         requestOptions: {},
       });
 
       if (!item) {
-        setError(
-          `Cannot load ${(
-            new props.modelType()?.singularName || "item"
-          ).toLowerCase()}. It could be because you don't have enough permissions to read this ${(
-            new props.modelType()?.singularName || "item"
-          ).toLowerCase()}.`,
-        );
+        const singularName: string = (
+          modelInstance.singularName || "item"
+        ).toLowerCase();
 
-        return;
-      }
-
-      if (labelsColumn) {
-        const columnValue: Array<Label> | null = (
-          item as BaseModel
-        ).getColumnValue(labelsColumn) as Array<Label> | null;
-
-        const loadedLabels: Array<Label> =
-          columnValue || ((item as any)[labelsColumn] as Array<Label>) || [];
-        setLabels(loadedLabels);
+        header = {
+          ...header,
+          error: `Cannot load ${singularName}. It could be because you don't have enough permissions to read this ${singularName}.`,
+        };
       } else {
-        setLabels([]);
-      }
+        let loadedLabels: Array<Label> = [];
 
-      setTitle(
-        `${props.title || ""} - ${
-          (item as any)[props.modelNameField] as string
-        }`,
-      );
+        if (labelsColumn) {
+          const columnValue: Array<Label> | null = (
+            item as BaseModel
+          ).getColumnValue(labelsColumn) as Array<Label> | null;
+
+          loadedLabels =
+            columnValue || ((item as any)[labelsColumn] as Array<Label>) || [];
+        }
+
+        header = {
+          ...header,
+          labels: loadedLabels,
+          title: `${props.title || ""} - ${
+            (item as any)[props.modelNameField] as string
+          }`,
+        };
+      }
     } catch (err) {
-      setLabels([]);
-      setError(API.getFriendlyMessage(err));
-    } finally {
-      /*
-       * Must run even on the early "item not found" return above —
-       * otherwise the page shows its loader forever instead of the error.
-       */
-      setIsLoading(false);
+      header = {
+        ...header,
+        labels: [],
+        error: API.getFriendlyMessage(err),
+      };
     }
+
+    // The reader moved to another model (or left) while this was in flight.
+    if (requestNumber !== latestRequestRef.current) {
+      return;
+    }
+
+    setLoadedHeader(header);
   };
 
-  const [title, setTitle] = useState<string | undefined>(props.title);
+  useEffect(() => {
+    fetchItem(props.modelId).catch((err: Error) => {
+      setLoadedHeader({
+        modelId: modelIdString,
+        title: props.title,
+        labels: [],
+        error: API.getFriendlyMessage(err),
+      });
+    });
 
-  useAsyncEffect(async () => {
-    // fetch the model
-    await fetchItem();
-  }, []);
+    return () => {
+      latestRequestRef.current++;
+    };
+  }, [modelIdString]);
+
+  /*
+   * Decided at render time, not in an effect: the very first render for a
+   * different model already shows the loader, so the children (which read the
+   * id from the route) are unmounted before they can render or fetch for the
+   * new model under the old one's header. Layouts keep ModelPage mounted when
+   * the reader follows a link to another record on the same route, so this is
+   * the only place that can notice.
+   */
+  const isCurrentModelLoaded: boolean =
+    loadedHeader !== null && loadedHeader.modelId === modelIdString;
+
+  const labels: Array<Label> = isCurrentModelLoaded ? loadedHeader!.labels : [];
 
   return (
     <Page
       {...props}
       labels={labels.length > 0 ? labels : undefined}
-      isLoading={isLoading}
-      error={error}
-      title={title}
+      isLoading={!isCurrentModelLoaded}
+      error={isCurrentModelLoaded ? loadedHeader!.error : ""}
+      title={isCurrentModelLoaded ? loadedHeader!.title : props.title}
     />
   );
 };
