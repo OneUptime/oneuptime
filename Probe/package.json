@@ -24,7 +24,7 @@
     "@types/ping": "^0.4.4",
     "axios": "^1.13.1",
     "Common": "file:../Common",
-    "ejs": "^3.1.10",
+    "ejs": "^5.0.1",
     "fast-xml-parser": "^5.3.7",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.5",
