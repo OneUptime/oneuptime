@@ -3,8 +3,8 @@ import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import {
-  CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil,
   EvaluateOverTimeOptions,
   EvaluateOverTimeType,
   NoDataPolicy,
@@ -174,7 +174,7 @@ export default class EvaluateOverTime {
        */
       return {
         earlyReturn: null,
-        value: this.isBooleanSeries(data.criteriaFilter.checkOn)
+        value: CriteriaFilterUtil.isBooleanSeries(data.criteriaFilter.checkOn)
           ? [false]
           : [0],
       };
@@ -302,13 +302,21 @@ export default class EvaluateOverTime {
       };
     }
 
+    const isBooleanSeries: boolean = CriteriaFilterUtil.isBooleanSeries(
+      data.criteriaFilter.checkOn,
+    );
+
+    /*
+     * A boolean series saved with Average / Sum / Maximum / Minimum is judged
+     * as All Values. Reducing it would hand the True / False comparators a
+     * number such as 0.6, which matches neither, so the filter never fired.
+     */
+    const evaluateOverTimeType: EvaluateOverTimeType | undefined =
+      CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(data.criteriaFilter);
+
     const sampleTimes: Array<Date> = [];
 
     const values: Array<number | boolean> = [];
-
-    const isBooleanSeries: boolean = this.isBooleanSeries(
-      data.criteriaFilter.checkOn,
-    );
 
     for (const item of metricItems) {
       if (item.value === undefined || item.value === null) {
@@ -347,10 +355,7 @@ export default class EvaluateOverTime {
      * aggregates (Average / Sum / Min / Max) are meaningful over a partial
      * window, so they are left alone.
      */
-    if (
-      evaluateOverTimeOptions.evaluateOverTimeType ===
-      EvaluateOverTimeType.AllValues
-    ) {
+    if (evaluateOverTimeType === EvaluateOverTimeType.AllValues) {
       const isCovered: boolean = this.isWindowCovered({
         windowStart: windowStart,
         windowEnd: now,
@@ -370,10 +375,8 @@ export default class EvaluateOverTime {
     }
 
     if (
-      evaluateOverTimeOptions.evaluateOverTimeType ===
-        EvaluateOverTimeType.AnyValue ||
-      evaluateOverTimeOptions.evaluateOverTimeType ===
-        EvaluateOverTimeType.AllValues
+      evaluateOverTimeType === EvaluateOverTimeType.AnyValue ||
+      evaluateOverTimeType === EvaluateOverTimeType.AllValues
     ) {
       // if its any or all then return the values. Otherwise compute the value based on the type
       return {
@@ -389,33 +392,12 @@ export default class EvaluateOverTime {
       status: OverTimeEvaluationStatus.Evaluated,
       value: this.getValueByEvaluationType({
         values: values as Array<number>,
-        evaluateOverTimeType: evaluateOverTimeOptions.evaluateOverTimeType!,
+        evaluateOverTimeType: evaluateOverTimeType!,
       }),
       sampleCount: values.length,
       noDataReason: null,
       isReadError: false,
     };
-  }
-
-  /**
-   * Whether the CheckOn's series records a yes / no signal as 1 / 0.
-   *
-   * CompareCriteria.isTrue / isFalse only match real booleans, so both the
-   * window samples and the Treat As Zero substitute have to be converted for
-   * these. Keep this the only list: the two used to be maintained
-   * separately, and Database Is Online was missing from the sample
-   * conversion, so its over-time filters never matched once the window
-   * filled.
-   */
-  private static isBooleanSeries(checkOn: CheckOn): boolean {
-    return (
-      checkOn === CheckOn.IsOnline ||
-      checkOn === CheckOn.IsRequestTimeout ||
-      checkOn === CheckOn.DnsIsOnline ||
-      checkOn === CheckOn.SnmpIsOnline ||
-      checkOn === CheckOn.DatabaseIsOnline ||
-      checkOn === CheckOn.ExternalStatusPageIsOnline
-    );
   }
 
   /**

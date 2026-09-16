@@ -2,6 +2,7 @@ import logger from "../../../Utils/Logger";
 import {
   CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil,
   EvaluateOverTimeType,
   FilterType,
 } from "../../../../Types/Monitor/CriteriaFilter";
@@ -655,8 +656,12 @@ export default class CompareCriteria {
     let message: string = "";
     let breachSummary: string = "";
 
+    /*
+     * Name the type the window was judged with. A boolean series saved with
+     * an aggregate is judged as All Values, so it must not read as an average.
+     */
     let evaluationType: EvaluateOverTimeType | undefined =
-      data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType;
+      CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(data.criteriaFilter);
 
     if (data.criteriaFilter.metricMonitorOptions?.metricAggregationType) {
       evaluationType =

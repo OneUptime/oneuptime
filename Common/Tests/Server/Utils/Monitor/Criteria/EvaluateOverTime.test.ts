@@ -845,6 +845,97 @@ describe("EvaluateOverTime", () => {
         expect(result.value).toEqual([true, false, true, true, false]);
       });
     }
+
+    const aggregateTypes: Array<EvaluateOverTimeType> = [
+      EvaluateOverTimeType.Average,
+      EvaluateOverTimeType.Sum,
+      EvaluateOverTimeType.MaximumValue,
+      EvaluateOverTimeType.MunimumValue,
+    ];
+
+    function booleanCriteria(input: {
+      checkOn: CheckOn;
+      evaluateOverTimeType: EvaluateOverTimeType;
+    }): CriteriaFilter {
+      return criteria({
+        checkOn: input.checkOn,
+        filterType: FilterType.False,
+        value: undefined,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: input.evaluateOverTimeType,
+        },
+      });
+    }
+
+    /*
+     * An aggregate of a 1/0 window is a number such as 0.6, which neither
+     * True nor False matches. Such a filter is judged as All Values instead,
+     * so the window comes back as the samples themselves.
+     */
+    describe.each(BOOLEAN_SERIES_CHECK_ONS)(
+      "%s saved with an aggregate",
+      (checkOn: CheckOn) => {
+        test.each(aggregateTypes)(
+          "%s returns the samples rather than a number",
+          async (evaluateOverTimeType: EvaluateOverTimeType) => {
+            mockSamples(everyMinute([1, 0, 1, 1, 0]));
+
+            const result: OverTimeEvaluation = await evaluate({
+              criteriaFilter: booleanCriteria({
+                checkOn: checkOn,
+                evaluateOverTimeType: evaluateOverTimeType,
+              }),
+              monitoringInterval: "* * * * *",
+            });
+
+            expect(result.status).toBe(OverTimeEvaluationStatus.Evaluated);
+            expect(result.value).toEqual([true, false, true, true, false]);
+            expect(result.sampleCount).toBe(5);
+          },
+        );
+
+        test.each(aggregateTypes)(
+          "%s waits for the window to be covered, like All Values",
+          async (evaluateOverTimeType: EvaluateOverTimeType) => {
+            mockSamples([sample({ value: 0, minutesAgo: 0 })]);
+
+            const result: OverTimeEvaluation = await evaluate({
+              criteriaFilter: booleanCriteria({
+                checkOn: checkOn,
+                evaluateOverTimeType: evaluateOverTimeType,
+              }),
+              monitoringInterval: "* * * * *",
+            });
+
+            expect(result.status).toBe(
+              OverTimeEvaluationStatus.InsufficientData,
+            );
+            expect(result.value).toBeUndefined();
+            expect(result.sampleCount).toBe(1);
+          },
+        );
+      },
+    );
+
+    test("an aggregate on a numeric series on the same monitor still reduces", async () => {
+      mockSamples(everyMinute([10, 20, 30]));
+
+      const result: OverTimeEvaluation = await evaluate({
+        criteriaFilter: criteria({
+          checkOn: CheckOn.DnsResponseTime,
+          filterType: FilterType.GreaterThan,
+          value: 15,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.Average,
+          },
+        }),
+      });
+
+      expect(result.status).toBe(OverTimeEvaluationStatus.Evaluated);
+      expect(result.value).toBe(20);
+    });
   });
 
   describe("getOverTimeValueForCriteriaFilter", () => {

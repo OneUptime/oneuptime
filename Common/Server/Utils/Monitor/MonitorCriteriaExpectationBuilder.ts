@@ -1,5 +1,6 @@
 import {
   CriteriaFilter,
+  CriteriaFilterUtil,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
@@ -207,8 +208,9 @@ export default class MonitorCriteriaExpectationBuilder {
       );
     }
 
+    // A boolean series saved with an aggregate is judged as All Values.
     const aggregation: string | undefined =
-      criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
+      CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(criteriaFilter) ||
       criteriaFilter.metricMonitorOptions?.metricAggregationType;
 
     if (aggregation) {
