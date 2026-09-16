@@ -10,6 +10,7 @@ import Email from "../../../../Types/Email";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../../../Types/ObjectID";
 import { Stripe } from "stripe";
+import { resetStripeMock } from "../__mocks__/Stripe.mock";
 import Faker from "../../../../Utils/Faker";
 import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
 
@@ -17,19 +18,59 @@ import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
 
 type MockIsBillingEnabledFunction = (value: boolean) => Promise<BillingService>;
 
+type BillingServiceConstructor = new () => BillingService;
+
+/*
+ * One load of the module graph per IsBillingEnabled value, for the lifetime of
+ * the test file.
+ *
+ * IsBillingEnabled is a const read at import time, so the only way to flip it
+ * is to load BillingService against a mocked BillingConfig - but the reload
+ * that gets us there drags in Project, ProjectService, MailService and the
+ * model layer behind them, which is seconds of synchronous work each time.
+ * BillingService.test.ts calls this in a beforeEach and again inside every
+ * "billing is not enabled" test: ~120 reloads for 91 tests.
+ *
+ * Those reloads also do not start from nothing. TypeORM keeps its metadata on
+ * globalThis (typeorm/globals.js), where jest.resetModules cannot reach it, so
+ * each reload re-runs the @Entity/@Column decorators of every model and appends
+ * to arrays that only ever grow. Each reload is slower than the one before it:
+ * in CI the suite drifted from ~1.3s per test to ~3.6s, and on a bad run the
+ * worker stopped making progress altogether and took Common Test shard 3 to its
+ * 30 minute timeout with it - reliably enough to red master.
+ *
+ * Caching the constructor keeps what the tests actually asked for, a service
+ * built against a chosen IsBillingEnabled, and pays for the graph twice instead
+ * of 120 times. Each call still returns a new BillingService, and still gets an
+ * untouched Stripe - the reload used to supply that as a side effect, so it is
+ * now asked for directly.
+ */
+const billingServiceByEnabledFlag: Map<boolean, BillingServiceConstructor> =
+  new Map();
+
 const mockIsBillingEnabled: MockIsBillingEnabledFunction = async (
   value: boolean,
 ): Promise<BillingService> => {
-  jest.resetModules();
-  jest.doMock("../../../../Server/BillingConfig", () => {
-    return {
-      IsBillingEnabled: value,
-    };
-  });
-  const { BillingService } = await import(
-    "../../../../Server/Services/BillingService"
-  );
-  return new BillingService();
+  let billingServiceConstructor: BillingServiceConstructor | undefined =
+    billingServiceByEnabledFlag.get(value);
+
+  if (!billingServiceConstructor) {
+    jest.resetModules();
+    jest.doMock("../../../../Server/BillingConfig", () => {
+      return {
+        IsBillingEnabled: value,
+      };
+    });
+    const { BillingService: LoadedBillingService } = await import(
+      "../../../../Server/Services/BillingService"
+    );
+    billingServiceConstructor = LoadedBillingService;
+    billingServiceByEnabledFlag.set(value, billingServiceConstructor);
+  }
+
+  resetStripeMock();
+
+  return new billingServiceConstructor();
 };
 
 type GetStripeCustomerFunction = (id?: string) => Stripe.Customer;

@@ -24,6 +24,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import TeamMemberService from "./TeamMemberService";
 import UserService from "./UserService";
 import URL from "../../Types/API/URL";
+import { getSloAffectedResourceMarkdownLines } from "../../Utils/Slo/SloAffectedResourceMarkdown";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -36,6 +37,7 @@ import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivac
 import ProjectScopedReferenceValidator, {
   resolveReferenceId,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
@@ -49,6 +51,7 @@ import IncidentOwnerUser from "../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import User from "../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
@@ -597,7 +600,22 @@ export class Service extends DatabaseService<Model> {
       resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
       resolveReferenceId(updateBy.data.changeMonitorStatusTo);
 
-    if (!incidentStateId && !incidentSeverityId && !changeMonitorStatusToId) {
+    /*
+     * The SLOs this incident affects: a relation list the API accepts on
+     * update. Checked for the same reason as on create; see
+     * SloRecordReferenceValidator.
+     */
+    const hasServiceLevelObjectiveIds: boolean =
+      SloRecordReferenceValidator.getReferencedIds(
+        updateBy.data.serviceLevelObjectives,
+      ).length > 0;
+
+    if (
+      !incidentStateId &&
+      !incidentSeverityId &&
+      !changeMonitorStatusToId &&
+      !hasServiceLevelObjectiveIds
+    ) {
       return;
     }
 
@@ -610,6 +628,20 @@ export class Service extends DatabaseService<Model> {
       : await this.getProjectIdsForUpdateQuery(updateBy);
 
     for (const projectId of projectIds) {
+      if (hasServiceLevelObjectiveIds) {
+        await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+          {
+            projectId: projectId,
+            subject: "incident",
+            serviceLevelObjectives: updateBy.data.serviceLevelObjectives,
+          },
+        );
+      }
+
+      if (!incidentStateId && !incidentSeverityId && !changeMonitorStatusToId) {
+        continue;
+      }
+
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "incident",
@@ -974,6 +1006,21 @@ export class Service extends DatabaseService<Model> {
       ],
     });
 
+    /*
+     * The SLOs this incident affects. The burn-rate worker links its own
+     * same-project SLO as root, but the column is writable by API callers too.
+     * Another project's SLO would put that SLO's name into this project's
+     * feed, lists and metrics. Before the counter increment, like the check
+     * above.
+     */
+    await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+      {
+        projectId: projectId,
+        subject: "incident",
+        serviceLevelObjectives: createBy.data.serviceLevelObjectives,
+      },
+    );
+
     const incidentCounterResult: {
       counter: number;
       prefix: string | undefined;
@@ -1104,6 +1151,16 @@ export class Service extends DatabaseService<Model> {
         monitors: {
           name: true,
           _id: true,
+        },
+        /*
+         * Named under "Resources Affected" in the created feed item. This read
+         * runs as root, so projectId comes along and the feed names only this
+         * project's SLOs (getSloAffectedResourceMarkdownLines).
+         */
+        serviceLevelObjectives: {
+          name: true,
+          _id: true,
+          projectId: true,
         },
       },
       props: {
@@ -1560,11 +1617,36 @@ ${incident.description || "No description provided."}
         feedInfoInMarkdown += `⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
       }
 
-      if (incident.monitors && incident.monitors.length > 0) {
+      /*
+       * Monitors, then the SLOs this incident is linked to. A burn-rate
+       * incident carries no monitors on purpose, so its SLO is the only
+       * resource there is to name - and the feed's only way back to the
+       * objective that declared it. The SLO link is built inline:
+       * ServiceLevelObjectiveService cannot be imported here (it reaches
+       * this service through the burn-rate rule service).
+       */
+      const sloLines: Array<string> =
+        incident.serviceLevelObjectives &&
+        incident.serviceLevelObjectives.length > 0
+          ? getSloAffectedResourceMarkdownLines({
+              dashboardUrl: await DatabaseConfig.getDashboardUrl(),
+              projectId: incident.projectId!,
+              serviceLevelObjectives: incident.serviceLevelObjectives,
+            })
+          : [];
+
+      if (
+        (incident.monitors && incident.monitors.length > 0) ||
+        sloLines.length > 0
+      ) {
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
-        for (const monitor of incident.monitors) {
+        for (const monitor of incident.monitors || []) {
           feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(incident.projectId!, monitor.id!)).toString()})\n`;
+        }
+
+        for (const sloLine of sloLines) {
+          feedInfoInMarkdown += `${sloLine}\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
@@ -3117,6 +3199,15 @@ ${incidentSeverity.name}
           _id: true,
           name: true,
         },
+        /*
+         * The SLOs this incident affects, stamped below so an SLO's Metrics
+         * page can chart the incidents that hit it. Only _id and name, which
+         * the SLO model allows on relation reads.
+         */
+        serviceLevelObjectives: {
+          _id: true,
+          name: true,
+        },
         incidentSeverity: {
           _id: true,
           name: true,
@@ -3235,6 +3326,26 @@ ${incidentSeverity.name}
         incident.monitors
           ?.map((monitor: Monitor) => {
             return monitor.name?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      /*
+       * Comma-joined like monitorIds: one incident can affect several SLOs.
+       * The SLO Metrics page filters its Incident tab on
+       * serviceLevelObjectiveIds (SERVICE_LEVEL_OBJECTIVE_IDS_METRIC_ATTRIBUTE
+       * in Common/Utils/Slo/SloMetricType), so the key must not be renamed.
+       */
+      serviceLevelObjectiveIds: (
+        incident.serviceLevelObjectives
+          ?.map((serviceLevelObjective: ServiceLevelObjective) => {
+            return serviceLevelObjective._id?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      serviceLevelObjectiveNames: (
+        incident.serviceLevelObjectives
+          ?.map((serviceLevelObjective: ServiceLevelObjective) => {
+            return serviceLevelObjective.name?.toString();
           })
           .filter(Boolean) || []
       ).join(", "),

@@ -52,10 +52,12 @@ import {
  */
 
 const ALERTS_PATH: string = `/v1alpha/${INSTANCE}/legacy:legacyFetchAlertsView`;
-const SEARCH_PATHS: Array<string> = [
-  `/v1alpha/${INSTANCE}/legacy:legacySearchDetections`,
-  `/v1alpha/${INSTANCE}/legacy:legacySearchCuratedDetections`,
-];
+const RULE_SEARCH_PATH: string = `/v1alpha/${INSTANCE}/legacy:legacySearchDetections`;
+const CURATED_SEARCH_PATH: string = `/v1alpha/${INSTANCE}/legacy:legacySearchCuratedDetections`;
+const SEARCH_PATHS: Array<string> = [RULE_SEARCH_PATH, CURATED_SEARCH_PATH];
+const COUNT_PATH: string = `/v1alpha/${INSTANCE}:countAllCuratedRuleSetDetections`;
+// The one curated rule the simulated tenant reports detections for.
+const CURATED_RULE_ID: string = "ur_http_curated_rule";
 const NOW: Date = new Date("2026-09-09T12:00:00.000Z");
 const WINDOW: ConnectorFetchWindow = {
   startTime: new Date("2026-09-09T11:54:00.000Z"),
@@ -130,6 +132,8 @@ describe("GoogleSecOpsConnector over HTTP", () => {
   let server: Server;
   let port: number;
   let alertsRequests: Array<URL>;
+  let curatedSearchRequests: Array<URL>;
+  let countBodies: Array<JSONObject>;
   let assertions: Array<JSONObject>;
   let alertsErrorBody: string | null;
 
@@ -196,6 +200,60 @@ describe("GoogleSecOpsConnector over HTTP", () => {
         return;
       }
 
+      /*
+       * countAllCuratedRuleSetDetections: a POST whose JSON body carries the
+       * interval, answered with one curated rule's count.
+       */
+      if (url.pathname === COUNT_PATH && request.method === "POST") {
+        if (
+          request.headers["authorization"] !== "Bearer local-verified-token"
+        ) {
+          response.writeHead(401);
+          response.end("Bearer token required");
+          return;
+        }
+        let parsed: JSONObject;
+        try {
+          parsed = JSON.parse(body) as JSONObject;
+        } catch {
+          rejectRequest(response, "Invalid JSON payload received.");
+          return;
+        }
+        const interval: JSONObject = (parsed["interval"] || {}) as JSONObject;
+        if (
+          request.headers["content-type"] !== "application/json" ||
+          url.search !== "" ||
+          Object.keys(parsed).join(",") !== "interval" ||
+          !(
+            Date.parse(String(interval["startTime"])) <
+            Date.parse(String(interval["endTime"]))
+          )
+        ) {
+          rejectRequest(response, "Invalid interval");
+          return;
+        }
+        countBodies.push(parsed);
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(
+          JSON.stringify({
+            curatedRuleSetCounts: [
+              {
+                curatedRuleSet: `${INSTANCE}/curatedRuleSetCategories/c1/curatedRuleSets/s1`,
+                count: 2,
+              },
+            ],
+            curatedRuleCounts: [
+              {
+                curatedRule: `${INSTANCE}/curatedRules/${CURATED_RULE_ID}`,
+                precision: "BROAD",
+                count: 2,
+              },
+            ],
+          }),
+        );
+        return;
+      }
+
       if (SEARCH_PATHS.includes(url.pathname) && request.method === "GET") {
         if (
           request.headers["authorization"] !== "Bearer local-verified-token"
@@ -203,6 +261,9 @@ describe("GoogleSecOpsConnector over HTTP", () => {
           response.writeHead(401);
           response.end("Bearer token required");
           return;
+        }
+        if (url.pathname === CURATED_SEARCH_PATH) {
+          curatedSearchRequests.push(url);
         }
         response.writeHead(200, { "Content-Type": "application/json" });
         response.end("{}");
@@ -302,6 +363,7 @@ describe("GoogleSecOpsConnector over HTTP", () => {
       !(
         destination.origin === "https://us-chronicle.googleapis.com" &&
         (destination.pathname === ALERTS_PATH ||
+          destination.pathname === COUNT_PATH ||
           SEARCH_PATHS.includes(destination.pathname))
       )
     ) {
@@ -356,6 +418,8 @@ describe("GoogleSecOpsConnector over HTTP", () => {
 
   beforeEach((): void => {
     alertsRequests = [];
+    curatedSearchRequests = [];
+    countBodies = [];
     assertions = [];
     alertsErrorBody = null;
     getJestSpyOn(logger, "warn").mockImplementation((): void => {});
@@ -388,7 +452,8 @@ describe("GoogleSecOpsConnector over HTTP", () => {
     expect(
       (assertions[0]!["exp"] as number) - (assertions[0]!["iat"] as number),
     ).toBe(3600);
-    expect(alertsRequests).toHaveLength(1);
+    // The window's read, then the late-alert sweep of the day before it.
+    expect(alertsRequests).toHaveLength(2);
     expect([...alertsRequests[0]!.searchParams.entries()].sort()).toEqual([
       ["alertListOptions.maxReturnedAlerts", "1000"],
       ["includeNonAlertingDetections", "ALERTS_FEATURE_PREFERENCE_DISABLED"],
@@ -396,11 +461,33 @@ describe("GoogleSecOpsConnector over HTTP", () => {
       ["timeRange.endTime", NOW.toISOString()],
       ["timeRange.startTime", "2026-09-09T11:54:00.000Z"],
     ]);
+    expect([...alertsRequests[1]!.searchParams.entries()].sort()).toEqual([
+      ["alertListOptions.maxReturnedAlerts", "1000"],
+      ["includeNonAlertingDetections", "ALERTS_FEATURE_PREFERENCE_DISABLED"],
+      ["snapshotQuery", ""],
+      ["timeRange.endTime", "2026-09-09T11:54:00.000Z"],
+      ["timeRange.startTime", "2026-09-08T12:00:00.000Z"],
+    ]);
+    // The curated rules are counted over HTTP, then searched by their id.
+    expect(countBodies).toEqual([
+      {
+        interval: {
+          startTime: "2026-09-02T11:54:00.000Z",
+          endTime: NOW.toISOString(),
+        },
+      },
+    ]);
+    expect(
+      curatedSearchRequests.map((url: URL): string | null => {
+        return url.searchParams.get("ruleId");
+      }),
+    ).toEqual([CURATED_RULE_ID]);
     expect(uidsOf(result)).toEqual(["open-alert", "closed-alert"]);
     expect(result).toMatchObject({
       fetchedCount: 2,
       complete: true,
-      requestCount: 3,
+      // Rule search, curated count and search, window read and sweep.
+      requestCount: 5,
     });
     for (const event of result.events) {
       expect(event.classUid).toBe(2004);
@@ -506,15 +593,19 @@ describe("GoogleSecOpsConnector over HTTP", () => {
 
       // Each fetch opens its own session, so each one signs an assertion.
       expect(assertions).toHaveLength(2);
-      expect(alertsRequests).toHaveLength(2);
-      for (const request of alertsRequests) {
-        expect(request.searchParams.get("timeRange.startTime")).toBe(
-          "2026-09-09T11:54:00.000Z",
-        );
-        expect(request.searchParams.get("timeRange.endTime")).toBe(
-          NOW.toISOString(),
-        );
-      }
+      /*
+       * The rejected window read, the same window read again, and the
+       * retry's late-alert sweep (a failed read never reaches the sweep).
+       */
+      expect(
+        alertsRequests.map((request: URL): string => {
+          return `${request.searchParams.get("timeRange.startTime")}/${request.searchParams.get("timeRange.endTime")}`;
+        }),
+      ).toEqual([
+        `2026-09-09T11:54:00.000Z/${NOW.toISOString()}`,
+        `2026-09-09T11:54:00.000Z/${NOW.toISOString()}`,
+        "2026-09-08T12:00:00.000Z/2026-09-09T11:54:00.000Z",
+      ]);
       expect(uidsOf(retry)).toEqual(["open-alert", "closed-alert"]);
       expect(retry.complete).toBe(true);
     },
@@ -535,6 +626,19 @@ describe("GoogleSecOpsConnector over HTTP", () => {
       "detections-available:pass",
     ]);
     expect(assertions).toHaveLength(1);
+    expect(countBodies).toEqual([
+      {
+        interval: {
+          startTime: "2026-09-02T12:00:00.000Z",
+          endTime: NOW.toISOString(),
+        },
+      },
+    ]);
+    expect(
+      curatedSearchRequests.map((url: URL): string => {
+        return `${url.searchParams.get("ruleId")}:${url.searchParams.get("pageSize")}`;
+      }),
+    ).toEqual([`${CURATED_RULE_ID}:1`]);
     expect(alertsRequests).toHaveLength(5);
     for (const request of alertsRequests) {
       expect(

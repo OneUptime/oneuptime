@@ -754,3 +754,136 @@ describe("MoreMenu disabled contract", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 });
+
+/*
+ * isOpeningUpwards moves WHERE the menu is drawn and nothing else. It
+ * exists for a trigger that sits at the bottom of a clipped surface (the
+ * session replay transport, which in theater is the last row of a
+ * fullscreen `overflow-hidden` card), and the whole point of the prop is
+ * that such a menu behaves exactly like every other one once it is on
+ * screen. MoreMenuMotion.test.tsx pins the class tokens for each
+ * direction; what is pinned here is that the contract a screen reader and
+ * a keyboard see does not move with them.
+ */
+describe.each([
+  { label: "downward menu", isOpeningUpwards: false },
+  { label: "upward menu", isOpeningUpwards: true },
+])(
+  "MoreMenu semantics with the $label",
+  ({ isOpeningUpwards }: { isOpeningUpwards: boolean }) => {
+    const directionProps: MoreMenuTestProps = {
+      isOpeningUpwards: isOpeningUpwards,
+    };
+
+    test.each(["click", "Enter", "Space"])(
+      "%s opens it and the trigger reports the menu it controls",
+      async (method: string) => {
+        const { trigger } = renderMenu("default", directionProps);
+
+        expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+        expect(trigger).not.toHaveAttribute("aria-controls");
+
+        await openMenu(trigger, method as OpenMethod);
+
+        const menu: HTMLElement = screen.getByRole("menu");
+
+        expect(menu).toHaveAttribute("aria-orientation", "vertical");
+        expect(menu).toHaveAttribute("aria-labelledby", trigger.id);
+        expect(trigger).toHaveAttribute("aria-expanded", "true");
+        expect(trigger).toHaveAttribute("aria-controls", menu.id);
+      },
+    );
+
+    test("roving focus, Home and End work the same way", async () => {
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+      const { trigger } = renderMenu("default", directionProps);
+
+      await openMenu(trigger);
+
+      const items: Array<HTMLElement> = screen.getAllByRole("menuitem");
+
+      await waitFor(() => {
+        expect(items[0]).toHaveFocus();
+      });
+
+      await userKeyboard(user, "{ArrowDown}");
+      expect(items[1]).toHaveFocus();
+
+      await userKeyboard(user, "{ArrowUp}{ArrowUp}");
+      expect(items[2]).toHaveFocus();
+
+      await userKeyboard(user, "{Home}");
+      expect(items[0]).toHaveFocus();
+
+      await userKeyboard(user, "{End}");
+      expect(items[2]).toHaveFocus();
+    });
+
+    test("Enter runs the focused action once and closes the menu", async () => {
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+      const { trigger, onSelect } = renderMenu("default", directionProps);
+
+      await openMenu(trigger);
+      await userKeyboard(user, "{ArrowDown}");
+      expect(screen.getAllByRole("menuitem")[1]).toHaveFocus();
+
+      await userKeyboard(user, "{Enter}");
+
+      expect(onSelect[0]).not.toHaveBeenCalled();
+      expect(onSelect[1]).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    /*
+     * The fault this prop fixes: in theater the items were drawn outside
+     * the fullscreen element and could not be pressed at all. A plain
+     * click on an item has to keep working in both directions.
+     */
+    test("clicking an item runs it and dismisses the menu", async () => {
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+      const { trigger, onSelect } = renderMenu("default", directionProps);
+
+      await openMenu(trigger);
+      await userClick(user, screen.getByText("Third action"));
+
+      expect(onSelect[2]).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    });
+
+    test("Escape closes it and hands focus back to the trigger", async () => {
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+      const { trigger } = renderMenu("default", directionProps);
+
+      await openMenu(trigger);
+      await waitFor(() => {
+        expect(screen.getAllByRole("menuitem")[0]).toHaveFocus();
+      });
+
+      await userKeyboard(user, "{Escape}");
+
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      await waitFor(() => {
+        expect(trigger).toHaveFocus();
+      });
+    });
+
+    test("an outside click closes it without selecting", async () => {
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+      const { trigger, outsideButton, onSelect } = renderMenu(
+        "default",
+        directionProps,
+      );
+
+      await openMenu(trigger);
+      await userClick(user, outsideButton);
+
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      onSelect.forEach((callback: SelectionMock) => {
+        expect(callback).not.toHaveBeenCalled();
+      });
+    });
+  },
+);

@@ -895,17 +895,52 @@ describe("the Google SecOps row reloaded inside the source lock", () => {
         }),
       }),
     );
-    // The 90 minute chunk reached every request Google received.
-    for (const request of tenant.requests.filter(
-      (candidate: TenantRequest): boolean => {
-        return candidate.route !== "token";
+    /*
+     * The 90 minute chunk reached every request Google received: the rule
+     * search and the window's own alerts-view read take it as their window,
+     * the curated rule counts reach a week further back to name the curated
+     * rules worth searching (this tenant has none), and the scheduled poll's
+     * late-alert sweep reads the day before the window.
+     */
+    expect(
+      tenant.requests
+        .filter((candidate: TenantRequest): boolean => {
+          return candidate.route !== "token";
+        })
+        .map((candidate: TenantRequest): string => {
+          return candidate.route;
+        }),
+    ).toEqual(["search", "curatedCounts", "alerts", "alerts"]);
+    expect(requestWindow(tenant.requestsTo("search")[0]!)).toEqual({
+      startTime: "2026-09-07T23:59:00.000Z",
+      endTime: "2026-09-08T01:30:00.000Z",
+    });
+    expect(
+      JSON.parse(tenant.requestsTo("curatedCounts")[0]!.body || "{}"),
+    ).toEqual({
+      interval: {
+        startTime: "2026-08-31T23:59:00.000Z",
+        endTime: "2026-09-08T01:30:00.000Z",
       },
-    )) {
-      expect(requestWindow(request)).toEqual({
+    });
+    expect(
+      tenant
+        .requestsTo("alerts")
+        .map(
+          (request: TenantRequest): { startTime: string; endTime: string } => {
+            return requestWindow(request);
+          },
+        ),
+    ).toEqual([
+      {
         startTime: "2026-09-07T23:59:00.000Z",
         endTime: "2026-09-08T01:30:00.000Z",
-      });
-    }
+      },
+      {
+        startTime: "2026-09-07T01:30:00.000Z",
+        endTime: "2026-09-07T23:59:00.000Z",
+      },
+    ]);
     // The run row carries the poll's result, and the connection its cursor.
     const finished: JSONObject = runUpdates[runUpdates.length - 1]!;
     expect(finished["status"]).toBe("empty");

@@ -50,10 +50,10 @@ Internationalized domain names are accepted in either form: `münchen.de` is con
 
 ### Advanced Settings
 
-| Field        | Description                                  | Default |
-| ------------ | -------------------------------------------- | ------- |
-| Timeout (ms) | How long to wait for the registration lookup | 10000   |
-| Retries      | Number of retry attempts on failure          | 3       |
+| Field        | Description                                                     | Default |
+| ------------ | --------------------------------------------------------------- | ------- |
+| Timeout (ms) | How long to wait for the registration lookup                    | 10000   |
+| Retries      | Retries after the first attempt fails; 0 means a single attempt | 3       |
 
 Failures that cannot change on a retry — the domain is not registered, or the TLD publishes no RDAP service when you have asked for RDAP only — are reported immediately rather than retried. Everything else, including a WHOIS server that answers with no record (a rate-limited registrar looks the same as a retired one), is retried first.
 

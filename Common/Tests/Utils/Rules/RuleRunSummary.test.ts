@@ -192,6 +192,60 @@ describe("RuleRunSummary.describe - status page monitor rules", () => {
   });
 });
 
+/*
+ * An SLO sync attaches and detaches monitors for the SLO as a whole. Its
+ * report must not fall through to the resource-walk wording ("matched 0 out
+ * of 0 monitors") or borrow the status page's ("added to the status page").
+ */
+describe("RuleRunSummary.describe - SLO monitor rules", () => {
+  it("lists the monitors the sync attached and detached", () => {
+    expect(
+      describeRun(RuleRunType.ServiceLevelObjectiveMonitorRule, {
+        itemsAdded: 3,
+        itemsRemoved: 1,
+      }),
+    ).toBe(
+      "Attached 3 monitors to the SLO, detached 1 monitor that no enabled rule matches any more.",
+    );
+  });
+
+  it("reports a sync that only attached, or only detached", () => {
+    expect(
+      describeRun(RuleRunType.ServiceLevelObjectiveMonitorRule, {
+        itemsAdded: 1,
+      }),
+    ).toBe("Attached 1 monitor to the SLO.");
+    expect(
+      describeRun(RuleRunType.ServiceLevelObjectiveMonitorRule, {
+        itemsRemoved: 2,
+      }),
+    ).toBe("Detached 2 monitors that no enabled rule matches any more.");
+  });
+
+  it("says an SLO already in step changed nothing", () => {
+    expect(describeRun(RuleRunType.ServiceLevelObjectiveMonitorRule, {})).toBe(
+      "The SLO's monitors already match its enabled rules, so nothing changed.",
+    );
+  });
+
+  it("never describes an SLO sync with the status page or resource-walk wording", () => {
+    for (const overrides of [
+      {},
+      { itemsAdded: 2 },
+      { itemsRemoved: 2 },
+      { itemsAdded: 1, itemsRemoved: 1 },
+    ] as Array<Partial<RuleRunResult>>) {
+      const text: string = describeRun(
+        RuleRunType.ServiceLevelObjectiveMonitorRule,
+        overrides,
+      );
+
+      expect(text).not.toContain("status page");
+      expect(text).not.toContain("matched");
+    }
+  });
+});
+
 describe("RuleRunSummary.describe - truncation", () => {
   it("says the run stopped and that running again continues safely", () => {
     const text: string = describeRun(RuleRunType.MonitorLabelRule, {
@@ -237,6 +291,51 @@ describe("RuleRunSummary.describeConfirmation", () => {
     expect(
       RuleRunSummary.describeConfirmation(RuleRunType.StatusPageMonitorRule),
     ).toContain("Monitors added to the page by hand are never touched.");
+  });
+
+  /*
+   * An SLO's monitors are the union of all its enabled rules, so the
+   * confirmation must say the run re-evaluates all of them, not "this rule".
+   */
+  it("says an SLO sync re-evaluates every enabled rule and never touches hand-attached monitors", () => {
+    const text: string = RuleRunSummary.describeConfirmation(
+      RuleRunType.ServiceLevelObjectiveMonitorRule,
+    );
+
+    expect(text).toContain(
+      "Re-evaluate this SLO's enabled monitor rules against every monitor in the project",
+    );
+    expect(text).toContain(
+      "Monitors attached to the SLO by hand are never touched.",
+    );
+    expect(text).not.toContain("status page");
+  });
+});
+
+describe("RuleRunSummary.describeRunNowCard", () => {
+  it("tells a resource rule's view page what Run Now reaches", () => {
+    expect(RuleRunSummary.describeRunNowCard(RuleRunType.HostLabelRule)).toBe(
+      "This rule runs automatically only when a host is created. Run it now to apply it to the hosts that already exist in this project.",
+    );
+  });
+
+  it("describes a status page re-sync", () => {
+    expect(
+      RuleRunSummary.describeRunNowCard(RuleRunType.StatusPageMonitorRule),
+    ).toBe(
+      "Re-sync this status page with this rule now: add the monitors it matches and remove the ones it added that no longer match.",
+    );
+  });
+
+  it("describes an SLO re-sync without claiming the rule only runs on create", () => {
+    const text: string = RuleRunSummary.describeRunNowCard(
+      RuleRunType.ServiceLevelObjectiveMonitorRule,
+    );
+
+    expect(text).toBe(
+      "Re-sync this SLO's monitors now: attach the monitors its enabled rules match and detach the ones the rules attached that no longer match. Monitors attached by hand are left alone.",
+    );
+    expect(text).not.toContain("is created");
   });
 });
 

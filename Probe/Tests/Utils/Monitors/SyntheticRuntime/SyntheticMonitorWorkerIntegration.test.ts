@@ -6,6 +6,8 @@ import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import ProcessRunner, {
   ProcessRunResult,
+  ProcessRunnerOptions,
+  SyntheticProcessRunnerError,
 } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessRunner";
 import {
   SyntheticMonitorWorkerConfig,
@@ -14,6 +16,26 @@ import {
 } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticMonitorWorkerTypes";
 
 jest.setTimeout(1_500_000);
+
+const MEGABYTE: number = 1024 * 1024;
+/*
+ * The production default. An idle Chromium check already sums to about
+ * 1.0-1.1 GB of RSS across its ~10 processes (shared pages count once per
+ * process), so this leaves a healthy check some 450 MB of room, while a tenant
+ * filling memory-backed storage crosses it after roughly eight 64 MB chunks.
+ */
+const MAX_PROCESS_TREE_RSS_BYTES: number = 1536 * MEGABYTE;
+const MAX_DISK_BYTES: number = 64 * MEGABYTE;
+const OPFS_CHUNK_BYTES: number = 64 * MEGABYTE;
+
+interface StorageContainmentCase {
+  label: string;
+  browserType: BrowserType;
+  executablePath: string;
+  boundary: string;
+  chunkCount: number;
+  expectedFailure: string;
+}
 
 describe("SyntheticMonitorWorker full process boundary", () => {
   let targetServer: Server;
@@ -26,7 +48,7 @@ describe("SyntheticMonitorWorker full process boundary", () => {
           "Content-Type": "text/html; charset=utf-8",
           Connection: "close",
         });
-        response.end("<!doctype html><title>OPFS target</title>");
+        response.end("<!doctype html><title>Synthetic target</title>");
       },
     );
     await listen(targetServer);
@@ -207,66 +229,250 @@ describe("SyntheticMonitorWorker full process boundary", () => {
     expect(data["typedValue"]).toBe("hello");
   });
 
-  test.each([
+  test("runs a Firefox check end to end through the forked worker", async () => {
+    /*
+     * Firefox starts, bootstraps its controller page and tears down along
+     * paths of its own, and the rest of this suite only ever drives it into
+     * a storage limit. A plain passing check is what proves the worker can
+     * start Firefox, run a script against a real page, hand back the result
+     * and exit.
+     */
+    const runner: ProcessRunner = createWorkerRunner();
+
+    const output: ProcessRunResult<SyntheticMonitorWorkerResult> =
+      await runner.run<
+        SyntheticMonitorWorkerConfig,
+        SyntheticMonitorWorkerResult
+      >({
+        payload: createWorkerConfig({
+          browserType: BrowserType.Firefox,
+          executablePath: firefox.executablePath(),
+          code: `
+              await page.goto(${JSON.stringify(targetUrl)});
+              const title = await page.evaluate(() => document.title);
+              console.log("firefox check ran");
+              return { data: { browserType, title } };
+            `,
+          timeoutInMs: 60_000,
+        }),
+        timeoutInMs: 180_000,
+        validateResult: isSyntheticMonitorWorkerResult,
+      });
+
+    expect(output.result.scriptError).toBeUndefined();
+    expect(output.result.logMessages).toEqual(["firefox check ran"]);
+    expect(output.result.returnValue).toEqual({
+      data: { browserType: BrowserType.Firefox, title: "Synthetic target" },
+    });
+    expect(runner.activeCount).toBe(0);
+    expect(runner.pendingCount).toBe(0);
+  }, 300_000);
+
+  test("reports a browser that cannot launch as a probe fault and keeps the Playwright error internal", async () => {
+    /*
+     * Nothing tenant-authored has run when the browser fails to launch, so
+     * the failure is the probe's own: it must reach the supervisor marked
+     * "probe-runtime" -- logged as ours and retried in a fresh worker --
+     * with a message fit to show the tenant. Playwright's error names this
+     * probe's paths and internals, so it travels only in internalDetail,
+     * for the probe's logs.
+     */
+    const runner: ProcessRunner = createWorkerRunner();
+
+    const outcome: unknown = await runner
+      .run<SyntheticMonitorWorkerConfig, SyntheticMonitorWorkerResult>({
+        payload: createWorkerConfig({
+          browserType: BrowserType.Chromium,
+          executablePath: path.join(
+            path.sep,
+            "nonexistent",
+            "synthetic-browser",
+            "chrome",
+          ),
+          code: "return { data: true };",
+          timeoutInMs: 30_000,
+        }),
+        timeoutInMs: 180_000,
+        validateResult: isSyntheticMonitorWorkerResult,
+      })
+      .then(
+        (output: ProcessRunResult<SyntheticMonitorWorkerResult>): unknown => {
+          return output;
+        },
+        (error: unknown): unknown => {
+          return error;
+        },
+      );
+
+    expect(outcome).toBeInstanceOf(SyntheticProcessRunnerError);
+    const message: string = outcome instanceof Error ? outcome.message : "";
+    expect(message).toContain("could not start on this probe");
+    expect(message).toContain("did not start");
+    expect(message).not.toContain("browserType.launch");
+    expect(outcome).toMatchObject({
+      kind: "probe-runtime",
+      internalDetail: expect.stringContaining("browserType.launch"),
+    });
+    expect(runner.activeCount).toBe(0);
+    expect(runner.pendingCount).toBe(0);
+  }, 300_000);
+
+  test("keeps Chromium's temporary profile inside the watched run directory, with no browser-profile directory", async () => {
+    /*
+     * Every check used to launch Chromium with launchPersistentContext on a
+     * brand-new <run directory>/browser-profile. Chromium does not hand the
+     * runtime's intercepted controller navigation to Playwright until that
+     * profile's cookie database has been created and synced, so wherever
+     * storage was slow every bootstrap attempt stalled and checks failed
+     * with "the browser runtime did not finish starting up". The worker now
+     * launches the browser and opens an ephemeral context. Playwright still
+     * gives the browser a temporary profile under os.tmpdir(), which must be
+     * the run directory, or the disk watchdog and the cleanup would miss
+     * what the browser writes there.
+     *
+     * The run directory is listed over and over while the check runs,
+     * because the browser deletes its temporary profile when it closes.
+     */
+    const mkdtempSpy: jest.SpyInstance = jest.spyOn(fs.promises, "mkdtemp");
+    const runner: ProcessRunner = createWorkerRunner();
+    let isSettled: boolean = false;
+
+    const check: Promise<ProcessRunResult<SyntheticMonitorWorkerResult>> =
+      runner.run<SyntheticMonitorWorkerConfig, SyntheticMonitorWorkerResult>({
+        payload: createWorkerConfig({
+          browserType: BrowserType.Chromium,
+          executablePath: chromium.executablePath(),
+          code: `
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+                return { data: true };
+              `,
+          timeoutInMs: 60_000,
+        }),
+        timeoutInMs: 180_000,
+        validateResult: isSyntheticMonitorWorkerResult,
+      });
+    const settled: Promise<void> = check.then(
+      (): void => {
+        isSettled = true;
+      },
+      (): void => {
+        isSettled = true;
+      },
+    );
+
+    while (mkdtempSpy.mock.results.length === 0 && !isSettled) {
+      await delay(10);
+    }
+    expect(mkdtempSpy).toHaveBeenCalledTimes(1);
+    const runDirectory: string = await (mkdtempSpy.mock.results[0]
+      ?.value as Promise<string>);
+
+    const observedEntries: Set<string> = new Set<string>();
+    while (!isSettled) {
+      for (const entry of await listDirectory(runDirectory)) {
+        observedEntries.add(entry);
+      }
+      await delay(50);
+    }
+    await settled;
+    const output: ProcessRunResult<SyntheticMonitorWorkerResult> = await check;
+
+    expect(output.result.scriptError).toBeUndefined();
+    expect(output.result.returnValue).toEqual({ data: true });
+    const entries: string[] = [...observedEntries].sort();
+    expect(entries).not.toContain("browser-profile");
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^playwright_chromiumdev_profile-/),
+      ]),
+    );
+    expect(fs.existsSync(runDirectory)).toBe(false);
+    expect(runner.activeCount).toBe(0);
+    expect(runner.pendingCount).toBe(0);
+  }, 300_000);
+
+  /*
+   * A tenant can fill origin-private storage (OPFS) from the ambient worker
+   * realm and from a page it opened, and on either engine those bytes must
+   * land where a watchdog is counting. Where they land is the engine's call:
+   * the worker gives every check an ephemeral browser context, in which
+   * Chromium keeps web storage in memory while Firefox writes it to the
+   * browser's temporary profile inside the run directory. So Chromium's
+   * writes are held to the process-tree RSS limit and Firefox's to the run
+   * directory's disk limit.
+   *
+   * Both limits are armed for both engines, so the watchdog that fires is the
+   * evidence of where the storage went. Chromium writes 2 GB -- more than its
+   * whole RSS limit before the browser itself is counted -- past a 64 MB disk
+   * limit that stays quiet: the bytes are resident in the worker's process
+   * tree, not files in the run directory. Each attack holds its storage for a
+   * while after writing and then returns, so an unenforced limit fails the
+   * test within seconds instead of hanging it, and a working watchdog never
+   * races the script's return.
+   */
+  test.each<StorageContainmentCase>([
     {
       label: "Chromium",
       browserType: BrowserType.Chromium,
       executablePath: chromium.executablePath(),
+      boundary: "process-tree RSS limit",
+      chunkCount: 32,
+      expectedFailure: `Synthetic worker process tree exceeded RSS limit of ${MAX_PROCESS_TREE_RSS_BYTES} bytes`,
     },
     {
       label: "Firefox",
       browserType: BrowserType.Firefox,
       executablePath: firefox.executablePath(),
+      boundary: "run directory disk limit",
+      chunkCount: 2,
+      expectedFailure: `Synthetic worker run directory exceeded disk limit of ${MAX_DISK_BYTES} bytes`,
     },
   ])(
-    "$label stores OPFS inside the watched run directory and recovers cleanly",
+    "$label holds tenant OPFS writes to the $boundary and recovers cleanly",
     async ({
       browserType,
       executablePath,
-    }: {
-      label: string;
-      browserType: BrowserType;
-      executablePath: string;
-    }) => {
-      const probeDirectory: string = path.resolve(__dirname, "../../../..");
+      chunkCount,
+      expectedFailure,
+    }: StorageContainmentCase) => {
       const runDirectories: string[] = [];
       const mkdtempSpy: jest.SpyInstance = jest.spyOn(fs.promises, "mkdtemp");
       const rmSpy: jest.SpyInstance = jest.spyOn(fs.promises, "rm");
-      const runner: ProcessRunner = new ProcessRunner({
-        workerEntryPath: path.join(
-          probeDirectory,
-          "Utils/Monitors/SyntheticRuntime/SyntheticMonitorWorker.ts",
-        ),
-        concurrencyLimit: 1,
-        maxPendingCount: 0,
-        workingDirectory: probeDirectory,
-        maxDiskBytes: 64 * 1024 * 1024,
+      const runner: ProcessRunner = createWorkerRunner({
+        maxProcessTreeRssBytes: MAX_PROCESS_TREE_RSS_BYTES,
+        rssPollIntervalInMs: 100,
+        maxDiskBytes: MAX_DISK_BYTES,
         diskPollIntervalInMs: 50,
       });
-      const baseConfig: SyntheticMonitorWorkerConfig = {
-        code: "return { data: true };",
+      const baseConfig: SyntheticMonitorWorkerConfig = createWorkerConfig({
         browserType,
-        screenSizeType: ScreenSizeType.Desktop,
         executablePath,
-        viewport: { width: 800, height: 600 },
-        timeoutInMs: 480_000,
-        chromiumSandboxEnabled: false,
-        args: {},
-      };
+        code: "return { data: true };",
+        timeoutInMs: 120_000,
+      });
+      const writtenBytes: number = chunkCount * OPFS_CHUNK_BYTES;
+      const holdThenReturn: string = `
+        await new Promise((resolve) => setTimeout(resolve, 30000));
+        return { data: "wrote ${writtenBytes} bytes of OPFS within the limits" };
+      `;
 
       const attacks: Array<{ label: string; code: string }> = [
         {
           label: "ambient Worker OPFS",
           code: `
             const root = await navigator.storage.getDirectory();
-            const file = await root.getFileHandle("quota-fill.bin", {
-              create: true,
-            });
-            const access = await file.createSyncAccessHandle();
-            const chunk = new Uint8Array(80 * 1024 * 1024);
-            access.write(chunk, { at: 0 });
-            access.flush();
-            await new Promise(() => {});
+            const chunk = new Uint8Array(${OPFS_CHUNK_BYTES}).fill(0x5a);
+            for (let index = 0; index < ${chunkCount}; index++) {
+              const file = await root.getFileHandle(
+                "quota-fill-" + index + ".bin",
+                { create: true }
+              );
+              const access = await file.createSyncAccessHandle();
+              access.write(chunk, { at: 0 });
+              access.flush();
+              access.close();
+            }
+            ${holdThenReturn}
           `,
         },
         {
@@ -275,17 +481,18 @@ describe("SyntheticMonitorWorker full process boundary", () => {
             await page.goto(${JSON.stringify(targetUrl)});
             await page.evaluate(async () => {
               const root = await navigator.storage.getDirectory();
-              const file = await root.getFileHandle("quota-fill.bin", {
-                create: true,
-              });
-              const chunk = new Uint8Array(80 * 1024 * 1024);
-              const writable = await file.createWritable({
-                keepExistingData: true,
-              });
-              await writable.write(chunk);
-              await writable.close();
-              await new Promise(() => {});
+              const chunk = new Uint8Array(${OPFS_CHUNK_BYTES}).fill(0x5a);
+              for (let index = 0; index < ${chunkCount}; index++) {
+                const file = await root.getFileHandle(
+                  "quota-fill-" + index + ".bin",
+                  { create: true }
+                );
+                const writable = await file.createWritable();
+                await writable.write(chunk);
+                await writable.close();
+              }
             });
+            ${holdThenReturn}
           `,
         },
       ];
@@ -298,10 +505,10 @@ describe("SyntheticMonitorWorker full process boundary", () => {
             SyntheticMonitorWorkerResult
           >({
             payload: { ...baseConfig, code: attack.code },
-            timeoutInMs: 600_000,
+            timeoutInMs: 300_000,
             validateResult: isSyntheticMonitorWorkerResult,
           }),
-        ).rejects.toThrow("exceeded disk limit");
+        ).rejects.toThrow(expectedFailure);
 
         expect(mkdtempSpy).toHaveBeenCalledTimes(runIndex + 1);
         runDirectories.push(
@@ -362,8 +569,64 @@ describe("SyntheticMonitorWorker full process boundary", () => {
       expect(runner.activeCount).toBe(0);
       expect(runner.pendingCount).toBe(0);
     },
+    1_200_000,
   );
 });
+
+function createWorkerRunner(
+  limits: Pick<
+    ProcessRunnerOptions,
+    | "maxProcessTreeRssBytes"
+    | "rssPollIntervalInMs"
+    | "maxDiskBytes"
+    | "diskPollIntervalInMs"
+  > = {},
+): ProcessRunner {
+  const probeDirectory: string = path.resolve(__dirname, "../../../..");
+  return new ProcessRunner({
+    workerEntryPath: path.join(
+      probeDirectory,
+      "Utils/Monitors/SyntheticRuntime/SyntheticMonitorWorker.ts",
+    ),
+    concurrencyLimit: 1,
+    maxPendingCount: 0,
+    workingDirectory: probeDirectory,
+    ...limits,
+  });
+}
+
+function createWorkerConfig(data: {
+  browserType: BrowserType;
+  executablePath: string;
+  code: string;
+  timeoutInMs: number;
+}): SyntheticMonitorWorkerConfig {
+  return {
+    code: data.code,
+    browserType: data.browserType,
+    screenSizeType: ScreenSizeType.Desktop,
+    executablePath: data.executablePath,
+    viewport: { width: 800, height: 600 },
+    timeoutInMs: data.timeoutInMs,
+    chromiumSandboxEnabled: false,
+    args: {},
+  };
+}
+
+async function listDirectory(directory: string): Promise<string[]> {
+  try {
+    return await fs.promises.readdir(directory);
+  } catch {
+    // The runner removes the directory as soon as the check settles.
+    return [];
+  }
+}
+
+async function delay(timeInMs: number): Promise<void> {
+  await new Promise<void>((resolve: () => void): void => {
+    setTimeout(resolve, timeInMs);
+  });
+}
 
 async function listen(server: Server): Promise<void> {
   await new Promise<void>(

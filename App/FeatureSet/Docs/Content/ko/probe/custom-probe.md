@@ -205,7 +205,7 @@ OneUptime을 자체 호스팅하는 경우 `ONEUPTIME_URL`을 커스텀 자체 �
 - `PROBE_DESCRIPTION` - 프로브에 대한 설명
 - `PROBE_MONITORING_WORKERS` - 모니터링 워커 수 (기본값: 1)
 - `PROBE_MONITOR_FETCH_LIMIT` - 한 번에 가져올 모니터 수 (기본값: 10)
-- `PROBE_MONITOR_RETRY_LIMIT` - 실패한 모니터에 대한 재시도 횟수 (기본값: 3)
+- `PROBE_MONITOR_RETRY_LIMIT` - 실패한 모니터 점검에서 첫 시도 이후의 재시도 횟수. 단계에 자체 재시도 값이 없을 때 사용 (기본값: 3, 총 4회까지)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 합성 모니터 스크립트의 타임아웃 (밀리초 단위, 기본값: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 커스텀 코드 모니터 스크립트의 타임아웃 (밀리초 단위, 기본값: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - 프로브가 OneUptime으로 보내는 각 요청의 제한 시간 (기본값: 45000)

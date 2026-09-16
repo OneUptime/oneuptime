@@ -2,7 +2,7 @@ import IncidentEpisodePublicNote from "../../../Models/DatabaseModels/IncidentEp
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
-import { AddSubscriberUpdateNotificationStatus1793100000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1793100000000-AddSubscriberUpdateNotificationStatus";
+import { AddSubscriberUpdateNotificationStatus1793400000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1793400000000-AddSubscriberUpdateNotificationStatus";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import InitialMigration from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1717605043663-InitialMigration";
 import {
@@ -12,10 +12,10 @@ import {
 } from "typeorm";
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import type { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 
 /*
- * AddSubscriberUpdateNotificationStatus1793100000000 gives each of the four
+ * AddSubscriberUpdateNotificationStatus1793400000000 gives each of the four
  * tables whose edits can notify status page subscribers a status and a
  * message for that "updated" notification.
  *
@@ -75,7 +75,7 @@ const CREATE_INDEX_REGEX: RegExp =
 const DROP_INDEX_REGEX: RegExp = /^DROP INDEX "public"\."([^"]+)"$/;
 
 function makeQueryRunner(): { runner: QueryRunner; query: jest.Mock } {
-  const query: jest.Mock = jest.fn().mockResolvedValue(undefined as never);
+  const query: jest.Mock = jest.fn().mockResolvedValue(undefined);
   return { runner: { query } as unknown as QueryRunner, query };
 }
 
@@ -87,13 +87,13 @@ function executedSql(query: jest.Mock): Array<string> {
 
 async function upStatements(): Promise<Array<string>> {
   const { runner, query } = makeQueryRunner();
-  await new AddSubscriberUpdateNotificationStatus1793100000000().up(runner);
+  await new AddSubscriberUpdateNotificationStatus1793400000000().up(runner);
   return executedSql(query);
 }
 
 async function downStatements(): Promise<Array<string>> {
   const { runner, query } = makeQueryRunner();
-  await new AddSubscriberUpdateNotificationStatus1793100000000().down(runner);
+  await new AddSubscriberUpdateNotificationStatus1793400000000().down(runner);
   return executedSql(query);
 }
 
@@ -143,7 +143,7 @@ describe("AddSubscriberUpdateNotificationStatus: entity columns", () => {
   );
 });
 
-describe("AddSubscriberUpdateNotificationStatus1793100000000 SQL contract", () => {
+describe("AddSubscriberUpdateNotificationStatus1793400000000 SQL contract", () => {
   test("up() adds exactly the eight columns, as nullable, and nothing else", async () => {
     const statements: Array<string> = (await upStatements()).filter(
       (sql: string) => {
@@ -281,22 +281,22 @@ describe("AddSubscriberUpdateNotificationStatus1793100000000 SQL contract", () =
   });
 
   test("names itself after its class", () => {
-    expect(new AddSubscriberUpdateNotificationStatus1793100000000().name).toBe(
-      "AddSubscriberUpdateNotificationStatus1793100000000",
+    expect(new AddSubscriberUpdateNotificationStatus1793400000000().name).toBe(
+      "AddSubscriberUpdateNotificationStatus1793400000000",
     );
   });
 });
 
-describe("AddSubscriberUpdateNotificationStatus1793100000000 registration", () => {
+describe("AddSubscriberUpdateNotificationStatus1793400000000 registration", () => {
   test("is registered in SchemaMigrations/Index.ts so it runs on boot", () => {
     expect(SchemaMigrations).toContain(
-      AddSubscriberUpdateNotificationStatus1793100000000,
+      AddSubscriberUpdateNotificationStatus1793400000000,
     );
   });
 
   test("runs after the initial migration that created the tables it alters", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddSubscriberUpdateNotificationStatus1793100000000,
+      AddSubscriberUpdateNotificationStatus1793400000000,
     );
 
     expect(position).toBeGreaterThan(

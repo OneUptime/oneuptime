@@ -47,6 +47,14 @@ export interface SessionReplayManifestTab {
   firstChunkStartOffsetMs: number | null;
   /* Duration of the footage stored for this tab (last chunk end - first start). */
   durationMs: number;
+  /*
+   * This tab has sent its final chunk (SessionReplayManifestTabDto
+   * .hasRecordingEnded): the page was closed or navigated away, so nothing
+   * more will arrive for it. null when the server did not say (an older
+   * server, a fixture): "not reported" must stay distinguishable from
+   * "still recording", or every tab of an old manifest would read as open.
+   */
+  hasRecordingEnded: boolean | null;
 }
 
 /* Header counters the header strip and the empty states quote. */
@@ -201,6 +209,17 @@ function parseTab(row: JSONObject): SessionReplayManifestTab {
         ? firstChunk.chunkStartOffsetMs
         : null;
 
+  /*
+   * Additive: absent (or null) is "not reported", read loosely only when
+   * the server sent a value, so 1 / "1" from a cached or proxied response
+   * still mean true.
+   */
+  const rawHasRecordingEnded: unknown = record["hasRecordingEnded"];
+  const hasRecordingEnded: boolean | null =
+    rawHasRecordingEnded === undefined || rawHasRecordingEnded === null
+      ? null
+      : readBooleanLoose(row, "hasRecordingEnded");
+
   return {
     tabId: readDtoString(record, "tabId"),
     chunks: chunks,
@@ -213,6 +232,7 @@ function parseTab(row: JSONObject): SessionReplayManifestTab {
             lastChunk.chunkEndOffsetMs - firstChunk.chunkStartOffsetMs,
           )
         : 0,
+    hasRecordingEnded: hasRecordingEnded,
   };
 }
 

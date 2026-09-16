@@ -106,6 +106,8 @@ describe("PortMonitor egress boundary", () => {
 
     expect(response).not.toBeNull();
     expect(response?.isOnline).toBe(false);
+    // retry 0 means one attempt, not the old five.
+    expect(response?.totalAttempts).toBe(1);
     expect(String(response?.failureCause)).not.toContain("is not allowed");
   });
 });

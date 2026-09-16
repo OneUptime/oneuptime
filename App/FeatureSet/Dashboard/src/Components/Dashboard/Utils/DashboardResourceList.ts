@@ -35,6 +35,7 @@ export type DashboardResourceType =
   | "docker-swarm-resource"
   | "network-site"
   | "slo"
+  | "slo-list"
   | "span"
   | "log";
 
@@ -91,22 +92,31 @@ export default class DashboardResourceList {
       overrideRequestUrl: url,
       additionalRequestBody: {
         componentId: widgetContext.componentId.toString(),
-        /*
-         * Send selections only. The public endpoint resolves each id against
-         * the dashboard's stored variables, including its trusted type and
-         * attribute key. An explicit empty string means All; null means the
-         * viewer did not provide a selection, so a stored default may apply.
-         */
-        variables: (widgetContext.variables || []).map(
-          (variable: DashboardVariable): JSONObject => {
-            return {
-              id: variable.id,
-              selectedValue: variable.selectedValue ?? null,
-              selectedValues: variable.selectedValues || [],
-            };
-          },
-        ) as JSONArray,
+        variables: DashboardResourceList.getVariableSelections(
+          widgetContext.variables,
+        ),
       },
     };
+  }
+
+  /*
+   * A viewer's variable SELECTIONS in the one shape every public dashboard
+   * endpoint accepts (the resource lists and the SLO history aggregation).
+   *
+   * Send selections only. The public endpoint resolves each id against the
+   * dashboard's stored variables, including its trusted type and attribute
+   * key. An explicit empty string means All; null means the viewer did not
+   * provide a selection, so a stored default may apply.
+   */
+  public static getVariableSelections(
+    variables: Array<DashboardVariable> | undefined,
+  ): JSONArray {
+    return (variables || []).map((variable: DashboardVariable): JSONObject => {
+      return {
+        id: variable.id,
+        selectedValue: variable.selectedValue ?? null,
+        selectedValues: variable.selectedValues || [],
+      };
+    }) as JSONArray;
   }
 }

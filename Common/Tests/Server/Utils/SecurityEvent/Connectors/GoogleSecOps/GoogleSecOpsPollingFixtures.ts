@@ -37,11 +37,14 @@ import {
  * real GoogleSecOpsClient. Not a suite itself (jest only runs *.test.ts).
  *
  * Only the transport is fake: GoogleSecOpsTenant is a FetchLike that answers
- * the token exchange and the three Chronicle routes the way Google documents
+ * the token exchange and the Chronicle routes the way Google documents
  * them - the detection searches filter on created OR detection time with an
- * inclusive start and exclusive end and page newest first; the alerts view
- * filters on detection time, returns at most maxReturnedAlerts inside the
- * streaming chunk envelope and reports how many matched. So request
+ * inclusive start and exclusive end and page newest first; the curated
+ * search answers only for the one curated rule its ruleId names, so a
+ * wildcard gets the empty success Google gives it; the curated counts group
+ * detections by curated rule; the alerts view filters on detection time,
+ * returns at most maxReturnedAlerts inside the streaming chunk envelope and
+ * reports how many matched. So request
  * serialization, response parsing, the three passes, their budgets and the
  * poller's cursor rules all run for real, and a test reads what was asked of
  * Google straight off the recorded URLs.
@@ -67,9 +70,18 @@ export const API_ORIGIN: string = "https://us-chronicle.googleapis.com";
 export const SEARCH_PATH: string = `/v1alpha/${INSTANCE}/legacy:legacySearchDetections`;
 export const CURATED_PATH: string = `/v1alpha/${INSTANCE}/legacy:legacySearchCuratedDetections`;
 export const ALERTS_PATH: string = `/v1alpha/${INSTANCE}/legacy:legacyFetchAlertsView`;
+export const CURATED_COUNTS_PATH: string = `/v1alpha/${INSTANCE}:countAllCuratedRuleSetDetections`;
+// The curated rule a curated detection belongs to unless it names its own.
+export const TENANT_CURATED_RULE_ID: string = "ur_tenant_curated_rule";
 export const TENANT_ACCESS_TOKEN: string = "tenant-access-token";
 
-export type TenantRoute = "token" | "search" | "curated" | "alerts" | "unknown";
+export type TenantRoute =
+  | "token"
+  | "search"
+  | "curated"
+  | "curatedCounts"
+  | "alerts"
+  | "unknown";
 
 export interface TenantRequest {
   route: TenantRoute;
@@ -101,6 +113,13 @@ export interface TenantDetection {
   alerting?: boolean | undefined;
   // Served by the curated route instead of the rule route.
   curated?: boolean | undefined;
+  // The curated rule it belongs to. Default TENANT_CURATED_RULE_ID.
+  curatedRuleId?: string | undefined;
+  /*
+   * A record only the alerts view returns, such as a SOAR or telemetry
+   * alert: neither detection search knows about it.
+   */
+  alertsViewOnly?: boolean | undefined;
   // The raw Collection to serve instead of the generated one.
   record?: JSONObject | undefined;
 }
@@ -195,6 +214,10 @@ export class GoogleSecOpsTenant {
       return "alerts";
     }
 
+    if (parsed.pathname === CURATED_COUNTS_PATH) {
+      return "curatedCounts";
+    }
+
     return "unknown";
   }
 
@@ -221,6 +244,10 @@ export class GoogleSecOpsTenant {
       return this.alertsReply(request.url.searchParams);
     }
 
+    if (request.route === "curatedCounts") {
+      return this.curatedCountsReply(request);
+    }
+
     return this.searchReply(
       request.url.searchParams,
       request.route === "curated",
@@ -238,6 +265,7 @@ export class GoogleSecOpsTenant {
       this.searchPageSize,
     );
     const offset: number = Number(params.get("pageToken") || "0");
+    const ruleId: string = params.get("ruleId") || "";
     const timeOf: (item: TenantDetection) => number = (
       item: TenantDetection,
     ): number => {
@@ -247,7 +275,14 @@ export class GoogleSecOpsTenant {
     const matched: Array<TenantDetection> = this.detections
       .filter((item: TenantDetection): boolean => {
         return (
+          !item.alertsViewOnly &&
           Boolean(item.curated) === curated &&
+          /*
+           * legacySearchCuratedDetections reads one curated rule and has no
+           * wildcard: a ruleId naming no curated rule, "-" included, matches
+           * nothing and still answers 200.
+           */
+          (!curated || curatedRuleOf(item) === ruleId) &&
           (!alertingOnly || item.alerting !== false) &&
           inRange(timeOf(item), startMs, endMs)
         );
@@ -270,6 +305,58 @@ export class GoogleSecOpsTenant {
 
     if (next < matched.length) {
       body["nextPageToken"] = String(next);
+    }
+
+    return { status: 200, body: JSON.stringify(body) };
+  }
+
+  /*
+   * countAllCuratedRuleSetDetections: curated detections whose detection
+   * time falls in the interval, counted per curated rule. A POST with the
+   * interval in its JSON body; a quiet interval is a bare {}.
+   */
+  private curatedCountsReply(request: TenantRequest): TenantReply {
+    if (request.method !== "POST") {
+      return googleError(405, "METHOD_NOT_ALLOWED", "Use POST.");
+    }
+
+    let interval: JSONObject = {};
+
+    try {
+      interval = ((JSON.parse(request.body || "{}") as JSONObject)[
+        "interval"
+      ] || {}) as JSONObject;
+    } catch {
+      return googleError(400, "INVALID_ARGUMENT", "Invalid JSON payload.");
+    }
+
+    const startMs: number = Date.parse(String(interval["startTime"] || ""));
+    const endMs: number = Date.parse(String(interval["endTime"] || ""));
+    const counts: Map<string, number> = new Map<string, number>();
+
+    for (const item of this.detections) {
+      if (
+        item.curated &&
+        !item.alertsViewOnly &&
+        inRange(item.detectionMs, startMs, endMs)
+      ) {
+        const ruleId: string = curatedRuleOf(item);
+        counts.set(ruleId, (counts.get(ruleId) || 0) + 1);
+      }
+    }
+
+    const body: JSONObject = {};
+
+    if (counts.size > 0) {
+      body["curatedRuleCounts"] = Array.from(counts.entries()).map(
+        (entry: [string, number]): JSONObject => {
+          return {
+            curatedRule: `projects/test-project/locations/us/instances/test-instance/curatedRules/${entry[0]}`,
+            precision: "PRECISE",
+            count: entry[1],
+          };
+        },
+      );
     }
 
     return { status: 200, body: JSON.stringify(body) };
@@ -308,6 +395,10 @@ export class GoogleSecOpsTenant {
       },
     ]);
   }
+}
+
+function curatedRuleOf(item: TenantDetection): string {
+  return item.curatedRuleId || TENANT_CURATED_RULE_ID;
 }
 
 export function collectionOf(item: TenantDetection): JSONObject {

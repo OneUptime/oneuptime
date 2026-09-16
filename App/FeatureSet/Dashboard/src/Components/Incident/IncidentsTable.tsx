@@ -282,6 +282,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     },
     buildAffectedResourcesFacet<Incident>({
       parentModelType: Incident,
+      // Burn rate incidents are linked to the SLO that declared them.
+      includeServiceLevelObjective: true,
     }),
   ];
 
@@ -694,6 +696,16 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             projectId: true,
             serviceColor: true,
           },
+          /*
+           * Only columns ServiceLevelObjective flags canReadOnRelationQuery.
+           * Any other SLO column would fail the whole list for a role that
+           * can read incidents but not SLOs.
+           */
+          serviceLevelObjectives: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
         }}
         columns={[
           {
@@ -866,6 +878,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 projectId: true,
                 serviceColor: true,
               },
+              serviceLevelObjectives: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
             },
             title: "Resources Affected",
             type: FieldType.EntityArray,
@@ -884,6 +901,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
                   services={item.services || []}
+                  serviceLevelObjectives={item.serviceLevelObjectives || []}
                 />
               );
             },

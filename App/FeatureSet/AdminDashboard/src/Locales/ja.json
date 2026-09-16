@@ -277,7 +277,14 @@
       "title": "プロジェクト",
       "cardTitle": "プロジェクト",
       "cardDescription": "プロジェクト詳細",
-      "editButton": "プロジェクトを編集"
+      "editButton": "プロジェクトを編集",
+      "dataResidencyCardTitle": "データレジデンシー",
+      "dataResidencyCardDescription": "このプロジェクトのデータがホストされている場所です。設定すると、プロジェクト設定でプロジェクトのユーザーに表示されます。",
+      "dataResidencyEditButton": "データレジデンシーを編集",
+      "dataResidencyFieldTitle": "データレジデンシー",
+      "dataResidencyFieldDescription": "このプロジェクトのデータがホストされている場所を示すラベルです（例: \"EU (Frankfurt)\"）。プロジェクトのユーザーに表示しない場合は空欄のままにしてください。",
+      "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
+      "dataResidencyNotSet": "未設定"
     },
     "projectSubscription": {
       "title": "プロジェクトのサブスクリプション",

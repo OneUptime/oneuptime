@@ -173,9 +173,16 @@ describe("BillingInvoiceAPI", () => {
         .handlerFunction(mockRequest, mockResponse, nextFunction);
 
       expect(nextFunction).not.toHaveBeenCalled();
+      /*
+       * The cardholder is waiting on this request, so the service is allowed
+       * to stop at a card that needs authentication instead of charging one
+       * of the customer's other cards - this route answers that with the
+       * PaymentIntent's client secret.
+       */
       expect(BillingService.payInvoice).toHaveBeenCalledWith(
         projectCustomerId,
         invoiceId,
+        { canSurfaceAuthenticationPrompt: true },
       );
       expect(BillingInvoiceService.updateOneBy).toHaveBeenCalledWith(
         expect.objectContaining({

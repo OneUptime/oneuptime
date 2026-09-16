@@ -1416,6 +1416,54 @@ describe("SessionReplayReadService statements", () => {
       expect(result.sessions[0]!.hasRecordingEnded).toBe(true);
     });
 
+    /*
+     * The follow-up now keys its facts per (session, tab) so the manifest
+     * can answer each tab's own hasRecordingEnded off the same read. GROUP
+     * BY sessionId, tabId makes that pair unique, so this only guards a
+     * result that repeats one: the rows fold with the same maxima the group
+     * applies, and the session verdict is what it always was.
+     */
+    test("repeated rows for one tab of a session fold like a single group", async () => {
+      mockPage([listRow("s-sealed", false), listRow("s-resumed", false)]);
+      mockChunkFacts([
+        /* Both rows of the tab sealed: the session is over. */
+        liveTabRow("s-sealed", "tab-1", {
+          tabLastChunkStartUnixMs: FINAL_END - 15000,
+        }),
+        endedTabRow("s-sealed", "tab-1"),
+        /* The tab kept recording past the tolerance: still recording. */
+        endedTabRow("s-resumed", "tab-1"),
+        liveTabRow("s-resumed", "tab-1", {
+          tabLastChunkStartUnixMs:
+            FINAL_END + SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS + 1,
+        }),
+      ]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(endedBySessionId(result)).toEqual({
+        "s-sealed": true,
+        "s-resumed": false,
+      });
+    });
+
+    /*
+     * The manifest's per-tab flags ride on the same read; the list must
+     * still answer one flag per session and nothing per tab.
+     */
+    test("the list reports only the session-level flag, from one follow-up read", async () => {
+      mockPage([listRow("s-1", false)]);
+      mockChunkFacts([endedTabRow("s-1", "tab-1"), liveTabRow("s-1", "tab-2")]);
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(request());
+
+      expect(chunkQuerySpy).toHaveBeenCalledTimes(1);
+      expect(result.sessions[0]!.hasRecordingEnded).toBe(false);
+      expect(Object.keys(result.sessions[0]!)).not.toContain("tabs");
+    });
+
     test("the follow-up does not change the list statement or its filters", async () => {
       mockPage([listRow("s-1", false)]);
 
@@ -2665,6 +2713,310 @@ describe("SessionReplayReadService statements", () => {
             expect(manifest.header.hasRecordingEnded).toBe(expected);
           },
         );
+      });
+    });
+
+    /*
+     * The recorder mints a NEW tab id on every page load, so a session's
+     * "tabs" are the pages the person walked through and the header's one
+     * "every tab has ended" cannot say WHICH of them is still open - the
+     * fact the player sorts open tabs before closed ones by. Each manifest
+     * tab therefore carries its own flag, judged per tab by the same shared
+     * rule, from the SAME single grouped read the header's flag comes from.
+     */
+    describe("hasRecordingEnded per manifest tab", () => {
+      const FINAL_END: number = 1700000150000;
+      /* Server write time of the newest chunk row (its version). */
+      const STORED_AT: number = FINAL_END + 1500;
+      const GRACE_PASSED: number =
+        STORED_AT + SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS;
+
+      /* A tab that sealed: final chunk at FINAL_END, nothing after it. */
+      function endedTabRow(
+        tabId: string,
+        overrides: JSONObject = {},
+      ): JSONObject {
+        return {
+          sessionId: "s-1",
+          tabId: tabId,
+          tabHasFinalChunk: 1,
+          tabFinalChunkEndUnixMs: FINAL_END,
+          tabLastChunkStartUnixMs: FINAL_END - 16000,
+          tabMaxChunkIndex: 1,
+          tabLastChunkStoredAtUnixMs: STORED_AT,
+          ...overrides,
+        };
+      }
+
+      /* A tab still recording: no final chunk at all. */
+      function liveTabRow(
+        tabId: string,
+        overrides: JSONObject = {},
+      ): JSONObject {
+        return {
+          sessionId: "s-1",
+          tabId: tabId,
+          tabHasFinalChunk: 0,
+          tabFinalChunkEndUnixMs: 0,
+          tabLastChunkStartUnixMs: FINAL_END,
+          tabMaxChunkIndex: 1,
+          tabLastChunkStoredAtUnixMs: STORED_AT,
+          ...overrides,
+        };
+      }
+
+      function mockManifestThenFacts(facts: Array<JSONObject>): void {
+        chunkQuerySpy
+          .mockResolvedValueOnce(fakeResultSet(chunkRows) as never)
+          .mockResolvedValueOnce(fakeResultSet(facts) as never);
+      }
+
+      async function manifestAt(
+        nowUnixMs: number,
+        overrides: Partial<SessionReplaySessionHeader> = {},
+      ): Promise<SessionReplayManifest> {
+        return SessionReplayReadService.getManifest({
+          header: header({ isFinalized: false, ...overrides }),
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          sessionId: "s-1",
+          nowUnixMs: nowUnixMs,
+        });
+      }
+
+      function endedByTabId(
+        manifest: SessionReplayManifest,
+      ): Record<string, boolean> {
+        const ended: Record<string, boolean> = {};
+
+        for (const tab of manifest.tabs) {
+          ended[tab.tabId] = tab.hasRecordingEnded;
+        }
+
+        return ended;
+      }
+
+      test("a finalized session ends every tab without a second read", async () => {
+        chunkQuerySpy.mockResolvedValue(fakeResultSet(chunkRows) as never);
+
+        const manifest: SessionReplayManifest =
+          await SessionReplayReadService.getManifest({
+            header: header({ isFinalized: true, durationMs: 150000 }),
+            projectId: projectId,
+            rumApplicationId: rumApplicationId,
+            sessionId: "s-1",
+            nowUnixMs: GRACE_PASSED,
+          });
+
+        expect(chunkQuerySpy).toHaveBeenCalledTimes(1);
+        expect(endedByTabId(manifest)).toEqual({
+          "tab-1": true,
+          "tab-2": true,
+        });
+      });
+
+      test("a sealed tab and a still-recording one are told apart while the session stays live", async () => {
+        mockManifestThenFacts([endedTabRow("tab-1"), liveTabRow("tab-2")]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(endedByTabId(manifest)).toEqual({
+          "tab-1": true,
+          "tab-2": false,
+        });
+        /* One live tab keeps the session - and so the Live pill - going. */
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+      });
+
+      /*
+       * The grace is about a NEW tab id that may still register, which says
+       * nothing about whether THIS tab sealed. A closed page is closed the
+       * moment its final chunk lands, so the tab flag has no grace.
+       */
+      test("a sealed tab is ended inside the session's grace, when the header still says live", async () => {
+        mockManifestThenFacts([endedTabRow("tab-1"), endedTabRow("tab-2")]);
+
+        const manifest: SessionReplayManifest = await manifestAt(
+          GRACE_PASSED - 1,
+        );
+
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+        expect(endedByTabId(manifest)).toEqual({
+          "tab-1": true,
+          "tab-2": true,
+        });
+      });
+
+      test("a session that has ended as a whole ends every tab, including one the facts read knows nothing about", async () => {
+        /* Only tab-1 has facts; tab-2's rows are in the manifest read. */
+        mockManifestThenFacts([endedTabRow("tab-1")]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(manifest.header.hasRecordingEnded).toBe(true);
+        expect(endedByTabId(manifest)).toEqual({
+          "tab-1": true,
+          "tab-2": true,
+        });
+      });
+
+      test("a tab with no facts of its own is not ended while the session is still recording", async () => {
+        mockManifestThenFacts([liveTabRow("tab-2")]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+        expect(endedByTabId(manifest)).toEqual({
+          "tab-1": false,
+          "tab-2": false,
+        });
+      });
+
+      /*
+       * A tab that reached the per-session chunk cap never gets a final
+       * chunk - the ingest gate refuses every index past the last one - and
+       * has ended all the same.
+       */
+      test("a capped tab with no final chunk is ended on its own", async () => {
+        mockManifestThenFacts([
+          liveTabRow("tab-1", {
+            tabMaxChunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+          }),
+          liveTabRow("tab-2"),
+        ]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(endedByTabId(manifest)).toEqual({
+          "tab-1": true,
+          "tab-2": false,
+        });
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+      });
+
+      test("an older recorder's trailing chunk inside the tolerance still ends the tab; one past it leaves it open", async () => {
+        mockManifestThenFacts([
+          endedTabRow("tab-1", {
+            tabLastChunkStartUnixMs:
+              FINAL_END + SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS,
+          }),
+          endedTabRow("tab-2", {
+            tabLastChunkStartUnixMs:
+              FINAL_END + SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS + 1,
+          }),
+        ]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(endedByTabId(manifest)).toEqual({
+          "tab-1": true,
+          "tab-2": false,
+        });
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+      });
+
+      test("a failed facts read leaves every tab false and still returns the manifest", async () => {
+        const warnSpy: jest.SpyInstance = jest
+          .spyOn(logger, "warn")
+          .mockImplementation((): void => {
+            return;
+          });
+
+        chunkQuerySpy
+          .mockResolvedValueOnce(fakeResultSet(chunkRows) as never)
+          .mockRejectedValueOnce(new Error("clickhouse down") as never);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(manifest.tabs).toHaveLength(2);
+        expect(endedByTabId(manifest)).toEqual({
+          "tab-1": false,
+          "tab-2": false,
+        });
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+        expect(warnSpy).toHaveBeenCalled();
+      });
+
+      test("ClickHouse's quoted facts are judged per tab, and an unmeasured clock is never ended", async () => {
+        mockManifestThenFacts([
+          {
+            sessionId: "s-1",
+            tabId: "tab-1",
+            tabHasFinalChunk: "1",
+            tabFinalChunkEndUnixMs: String(FINAL_END),
+            tabLastChunkStartUnixMs: String(FINAL_END - 16000),
+            tabMaxChunkIndex: "1",
+            tabLastChunkStoredAtUnixMs: String(STORED_AT),
+          },
+          endedTabRow("tab-2", { tabFinalChunkEndUnixMs: "not-a-number" }),
+        ]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(endedByTabId(manifest)).toEqual({
+          "tab-1": true,
+          "tab-2": false,
+        });
+      });
+
+      /*
+       * GROUP BY sessionId, tabId makes the pair unique, so this only
+       * guards a result that repeats one: the rows fold with the same
+       * maxima the group would have applied, never on less evidence.
+       */
+      test("repeated rows for one tab fold like a single group", async () => {
+        mockManifestThenFacts([
+          liveTabRow("tab-1", { tabLastChunkStartUnixMs: FINAL_END - 16000 }),
+          endedTabRow("tab-1"),
+          endedTabRow("tab-2"),
+          liveTabRow("tab-2", {
+            tabLastChunkStartUnixMs:
+              FINAL_END + SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS + 1,
+          }),
+        ]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(endedByTabId(manifest)).toEqual({
+          "tab-1": true,
+          "tab-2": false,
+        });
+        expect(manifest.header.hasRecordingEnded).toBe(false);
+      });
+
+      test("the tab flags come from the one grouped read the header's flag comes from, and the manifest statement is unchanged", async () => {
+        mockManifestThenFacts([endedTabRow("tab-1"), liveTabRow("tab-2")]);
+
+        await manifestAt(GRACE_PASSED);
+
+        expect(chunkQuerySpy).toHaveBeenCalledTimes(2);
+
+        const manifestQuery: string = statementOf(chunkQuerySpy, 0).query;
+        expect(manifestQuery).toContain("LIMIT 1 BY tabId, chunkIndex");
+        expect(manifestQuery).not.toContain("tabHasFinalChunk");
+        expect(manifestQuery).not.toContain("GROUP BY sessionId, tabId");
+
+        const facts: Statement = statementOf(chunkQuerySpy, 1);
+        expect(facts.query).toContain("GROUP BY sessionId, tabId");
+        expect(facts.query).toContain(
+          "max(toUInt8(isFinal)) AS tabHasFinalChunk",
+        );
+        expect(facts.query).not.toMatch(/\bpayload\b(?!Bytes)/);
+        expect(boundValues(facts)).toContainEqual(["s-1"]);
+        expect(boundValues(facts)).toContain(rumApplicationId.toString());
+      });
+
+      test("the rest of each tab is untouched by the new flag", async () => {
+        mockManifestThenFacts([endedTabRow("tab-1"), liveTabRow("tab-2")]);
+
+        const manifest: SessionReplayManifest = await manifestAt(GRACE_PASSED);
+
+        expect(manifest.tabs[0]!.tabId).toBe("tab-1");
+        expect(manifest.tabs[0]!.chunkIndexes).toEqual([0, 1]);
+        expect(manifest.tabs[0]!.fullSnapshotChunkIndexes).toEqual([0]);
+        expect(manifest.tabs[0]!.firstChunkStartOffsetMs).toBe(0);
+        expect(manifest.tabs[1]!.firstChunkStartOffsetMs).toBe(134000);
+        expect(manifest.tabs[1]!.totalPayloadBytes).toBe(256);
       });
     });
   });

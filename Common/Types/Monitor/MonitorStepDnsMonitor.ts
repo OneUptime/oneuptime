@@ -1,5 +1,6 @@
 import { JSONObject } from "../JSON";
 import DnsRecordType from "./DnsMonitor/DnsRecordType";
+import { parseMonitorStepRetries } from "./MonitorStepRetries";
 
 export default interface MonitorStepDnsMonitor {
   queryName: string;
@@ -29,7 +30,8 @@ export class MonitorStepDnsMonitorUtil {
       hostname: (json["hostname"] as string) || undefined,
       port: (json["port"] as number) || 53,
       timeout: (json["timeout"] as number) || 5000,
-      retries: (json["retries"] as number) || 3,
+      // 0 retries is a real answer and must survive the round-trip.
+      retries: parseMonitorStepRetries(json["retries"], 3),
     };
   }
 

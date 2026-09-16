@@ -32,11 +32,11 @@ DNSSEC-monitorer validerer hele tillidskæden fra rodzonen ned til dit domæne. 
 
 ### Avancerede indstillinger
 
-| Felt                             | Beskrivelse                              | Standard |
-| -------------------------------- | ---------------------------------------- | -------- |
-| Advarsel om signaturudløb (dage) | Standardtærskel for RRSIG-udløbsfilteret | 7        |
-| Timeout (ms)                     | Tid at vente på hver DNS-forespørgsel    | 10000    |
-| Genforsøg                        | Antal genforsøg ved fejl                 | 3        |
+| Felt                             | Beskrivelse                                                                | Standard |
+| -------------------------------- | -------------------------------------------------------------------------- | -------- |
+| Advarsel om signaturudløb (dage) | Standardtærskel for RRSIG-udløbsfilteret                                   | 7        |
+| Timeout (ms)                     | Tid at vente på hver DNS-forespørgsel                                      | 10000    |
+| Genforsøg                        | Genforsøg efter at det første forsøg mislykkes; 0 betyder ét enkelt forsøg | 3        |
 
 ## Overvågningskriterier
 

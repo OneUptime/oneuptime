@@ -47,12 +47,25 @@ describe("MonitorStepDomainMonitorUtil", () => {
         MonitorStepDomainMonitorUtil.fromJSON({
           domainName: "",
           timeout: 0,
-          retries: 0,
         });
 
       expect(parsed.domainName).toBe("");
       expect(parsed.timeout).toBe(10000);
       expect(parsed.retries).toBe(3);
+    });
+
+    /*
+     * Retries count attempts after the first one, so 0 is the user asking for
+     * a single attempt — not an empty field waiting for the default.
+     */
+    test("keeps a stored 0 retries", () => {
+      const parsed: MonitorStepDomainMonitor =
+        MonitorStepDomainMonitorUtil.fromJSON({
+          domainName: "oneuptime.com",
+          retries: 0,
+        });
+
+      expect(parsed.retries).toBe(0);
     });
 
     /*

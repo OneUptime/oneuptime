@@ -15,6 +15,13 @@ import {
 import { DomainLookupResult, DomainRecord } from "../../Domain/DomainRecord";
 import RdapLookup, { RdapLookupResult } from "../../Domain/RdapLookup";
 import WhoisLookup from "../../Domain/WhoisLookup";
+import MonitorRetry from "../MonitorRetry";
+
+/*
+ * Retries when neither the caller nor the step config sets one: three
+ * attempts, the same as before retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 2;
 
 export interface DomainQueryOptions {
   timeout?: number | undefined;
@@ -148,17 +155,18 @@ export default class DomainMonitorUtil {
       });
 
       /*
-       * ?? not ||: a caller asking for zero retries means zero, not "fall
-       * through to the config default".
-       */
-      const maxRetries: number = options.retry ?? config.retries ?? 3;
-
-      /*
        * "This domain is not registered" and "this TLD has no usable
        * registration service" are settled answers. Retrying them just adds
        * one second of sleep per attempt before reporting the same thing.
        */
-      if (isRetryable && options.currentRetryCount < maxRetries) {
+      if (
+        isRetryable &&
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry ?? config.retries,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await DomainMonitorUtil.query(config, options);

@@ -47,11 +47,11 @@ DNS-Monitore fragen DNS-Server für bestimmte Eintragstypen ab und werten die Er
 
 ### Erweiterte Einstellungen
 
-| Feld                  | Beschreibung                                    | Standard |
-| --------------------- | ----------------------------------------------- | -------- |
-| Port                  | DNS-Portnummer                                  | 53       |
-| Timeout (ms)          | Wartezeit auf eine Antwort                      | 5000     |
-| Wiederholungsversuche | Anzahl der Wiederholungsversuche bei Fehlschlag | 3        |
+| Feld                  | Beschreibung                                                                                 | Standard |
+| --------------------- | -------------------------------------------------------------------------------------------- | -------- |
+| Port                  | DNS-Portnummer                                                                               | 53       |
+| Timeout (ms)          | Wartezeit auf eine Antwort                                                                   | 5000     |
+| Wiederholungsversuche | Wiederholungsversuche nach dem ersten fehlgeschlagenen Versuch; 0 bedeutet nur einen Versuch | 3        |
 
 ## Überwachungskriterien
 

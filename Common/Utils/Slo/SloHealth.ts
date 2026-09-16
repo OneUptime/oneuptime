@@ -102,11 +102,34 @@ export enum SloNoticeType {
   Danger = "Danger",
 }
 
+/**
+ * Where a notice's call to action leads. Named by destination rather than
+ * carrying a route: this module is imported by plain-node tests and by the
+ * dashboard SLO widget, and RouteMap reads `window` at module load. The
+ * banner, which already lives in the Dashboard, turns a target into a link.
+ */
+export enum SloNoticeActionTarget {
+  Settings = "settings",
+  Monitors = "monitors",
+  MonitorRules = "monitor-rules",
+}
+
+export interface SloNoticeAction {
+  /** Short link text naming what the user will do there. */
+  label: string;
+  target: SloNoticeActionTarget;
+}
+
 export interface SloNotice {
   type: SloNoticeType;
   title: string;
   /** One sentence of "here is what to do about it". */
   body: string;
+  /**
+   * The page where the user can fix it. Absent when there is nothing to
+   * do but wait, or when no page in the product can fix it.
+   */
+  action?: SloNoticeAction | undefined;
 }
 
 /**
@@ -115,6 +138,7 @@ export interface SloNotice {
  * tests can pass plain objects.
  */
 export interface SloNoticeData {
+  isArchived?: boolean | undefined | null;
   isEnabled?: boolean | undefined | null;
   sloStatus?: SloStatus | undefined | null;
   sliType?: SliType | undefined | null;
@@ -126,6 +150,20 @@ export interface SloNoticeData {
   lastEvaluatedAt?: Date | string | undefined | null;
 }
 
+type GetNoMonitorsNoticeFunction = () => SloNotice;
+
+const getNoMonitorsNotice: GetNoMonitorsNoticeFunction = (): SloNotice => {
+  return {
+    type: SloNoticeType.Warning,
+    title: "No monitors attached",
+    body: "An SLO measures uptime from its monitors, so it cannot be evaluated without at least one. Attach monitors on the Monitors page, or add a monitor rule that attaches matching monitors for you.",
+    action: {
+      label: "Attach monitors",
+      target: SloNoticeActionTarget.Monitors,
+    },
+  };
+};
+
 /**
  * The single most important thing to tell the user about this SLO right
  * now, or null when the SLO is measuring normally.
@@ -134,9 +172,13 @@ export interface SloNoticeData {
  * numbers, so the banner always names the root cause rather than a
  * downstream symptom: a disabled SLO is not evaluated at all, so saying
  * "no monitors attached" would send the user to fix the wrong thing.
+ * Archived comes before disabled for the same reason — turning evaluation
+ * back on does not bring an SLO out of the archive, so it would still
+ * measure nothing.
  *
  * Every branch mirrors a guard in the evaluation worker
  * (App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts):
+ *   isArchived=true      -> the SLO is skipped entirely by getDueSlos()
  *   isEnabled=false      -> the SLO is skipped entirely by getDueSlos()
  *   sliType != Uptime    -> Misconfigured (Metric SLIs are not built yet)
  *   monitorCount == 0    -> Misconfigured
@@ -148,17 +190,37 @@ export type GetSloNoticeFunction = (data: SloNoticeData) => SloNotice | null;
 export const getSloNotice: GetSloNoticeFunction = (
   data: SloNoticeData,
 ): SloNotice | null => {
+  if (data.isArchived === true) {
+    return {
+      type: SloNoticeType.Info,
+      title: "This SLO is archived",
+      body: "Archived SLOs are hidden from the SLO list and are not evaluated, so its numbers are frozen and its burn rate rules will not fire. Unarchive it in Settings to resume measuring.",
+      action: {
+        label: "Open Settings",
+        target: SloNoticeActionTarget.Settings,
+      },
+    };
+  }
+
   if (data.isEnabled === false) {
     return {
       type: SloNoticeType.Info,
       title: "This SLO is disabled",
-      body: "It is not being evaluated and its burn rate rules will not fire alerts. Turn Enabled back on in SLO Details to resume measuring.",
+      body: "It is not being evaluated and its burn rate rules will not fire alerts. Turn evaluation back on in Settings to resume measuring.",
+      action: {
+        label: "Open Settings",
+        target: SloNoticeActionTarget.Settings,
+      },
     };
   }
 
   const monitorCount: number = toFiniteNumber(data.monitorCount) ?? 0;
 
   if (data.sloStatus === SloStatus.Misconfigured) {
+    /*
+     * No action: the SLI type is not editable anywhere in the product, so
+     * a link would lead to a page that cannot fix this.
+     */
     if (data.sliType && data.sliType !== SliType.MonitorUptime) {
       return {
         type: SloNoticeType.Warning,
@@ -168,11 +230,7 @@ export const getSloNotice: GetSloNoticeFunction = (
     }
 
     if (monitorCount === 0) {
-      return {
-        type: SloNoticeType.Warning,
-        title: "No monitors attached",
-        body: "An SLO measures uptime from its monitors, so it cannot be evaluated without at least one. Add monitors in SLO Details below.",
-      };
+      return getNoMonitorsNotice();
     }
 
     const target: number | null = toFiniteNumber(data.targetPercentage);
@@ -181,14 +239,27 @@ export const getSloNotice: GetSloNoticeFunction = (
       return {
         type: SloNoticeType.Warning,
         title: "The target is out of range",
-        body: "A target must be greater than 0 and less than 100 — a 100% target leaves no error budget to track. Set a target such as 99.9 in SLO Details below.",
+        body: "A target must be greater than 0 and less than 100 — a 100% target leaves no error budget to track. Set a target such as 99.9 in Settings.",
+        action: {
+          label: "Edit objective",
+          target: SloNoticeActionTarget.Settings,
+        },
       };
     }
 
+    /*
+     * What is left are the worker's two data guards: the attached monitors
+     * no longer exist, or none of them has reported a status yet. Both are
+     * answered on the Monitors page.
+     */
     return {
       type: SloNoticeType.Warning,
       title: "This SLO cannot be evaluated",
-      body: "Check that it has monitors attached and a target below 100%, then wait a few minutes for the next evaluation.",
+      body: "Check that its monitors still exist and have started reporting a status, then wait a few minutes for the next evaluation.",
+      action: {
+        label: "Review monitors",
+        target: SloNoticeActionTarget.Monitors,
+      },
     };
   }
 
@@ -197,10 +268,26 @@ export const getSloNotice: GetSloNoticeFunction = (
       type: SloNoticeType.Info,
       title: "Measurement is paused",
       body: "Every monitor attached to this SLO has active monitoring disabled — by hand, by a manual incident, or by a scheduled maintenance event — so there is no signal to measure. The SLO resumes automatically when a monitor starts reporting again.",
+      action: {
+        label: "View monitors",
+        target: SloNoticeActionTarget.Monitors,
+      },
     };
   }
 
   if (!data.lastEvaluatedAt) {
+    /*
+     * The create form no longer picks monitors, so a brand-new SLO starts
+     * with none, and the worker's first pass will mark it Misconfigured for
+     * exactly that reason. Saying so now, instead of "numbers will appear
+     * shortly", points the user at the one step that makes numbers appear.
+     * Only an explicit, loaded 0 counts: a caller that did not select the
+     * monitors has not told us anything.
+     */
+    if (toFiniteNumber(data.monitorCount) === 0) {
+      return getNoMonitorsNotice();
+    }
+
     return {
       type: SloNoticeType.Info,
       title: "Not evaluated yet",
@@ -236,7 +323,7 @@ export const getSloNotice: GetSloNoticeFunction = (
  *   may not have loaded, say nothing — a missing hint beats a wrong one.
  *
  * The 1% tolerance absorbs the gap between "now" and the worker's last
- * evaluation — without it, a fully mature SLO would flicker the banner on
+ * evaluation — without it, a fully mature SLO would flicker the flag on
  * every evaluation cycle.
  */
 const WINDOW_FULL_TOLERANCE_FRACTION: number = 0.99;

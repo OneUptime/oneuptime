@@ -39,6 +39,13 @@ const SloImpactWarning: FunctionComponent<ComponentProps> = (
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
             monitors: new Includes([props.monitorId]),
+            /*
+             * Archived SLOs are left out: nobody is measuring them, so
+             * deleting the monitor changes no number anyone is watching. (It
+             * does leave an archived SLO one monitor short should it ever be
+             * unarchived; its Monitors page shows that at that point.)
+             */
+            isArchived: false,
           },
           select: {
             _id: true,

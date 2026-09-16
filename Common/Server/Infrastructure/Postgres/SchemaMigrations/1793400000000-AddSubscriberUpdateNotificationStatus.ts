@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * someone ticks the box. The status column is indexed because that worker
  * queries it every minute.
  */
-export class AddSubscriberUpdateNotificationStatus1793100000000
+export class AddSubscriberUpdateNotificationStatus1793400000000
   implements MigrationInterface
 {
-  public name: string = "AddSubscriberUpdateNotificationStatus1793100000000";
+  public name: string = "AddSubscriberUpdateNotificationStatus1793400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

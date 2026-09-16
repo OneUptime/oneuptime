@@ -4,10 +4,13 @@ import {
   REPLAY_RAIL_DEFAULT_WIDTH_REM,
   REPLAY_RAIL_MAX_WIDTH_REM,
   REPLAY_RAIL_MIN_WIDTH_REM,
+  REPLAY_STAGE_FIT_PREFS,
   REPLAY_VIEW_PREFS_STORAGE_KEY,
   ReplayPrefsStorageLike,
+  ReplayStageFitPref,
   ReplayViewPrefs,
   ReplayViewPrefsStore,
+  cycleReplayStageFit,
   getDefaultReplayViewPrefs,
   parseReplayViewPrefs,
   readReplayListUrl,
@@ -58,6 +61,27 @@ describe("defaults", () => {
     expect(defaults.railWidthRem).toBe(REPLAY_RAIL_DEFAULT_WIDTH_REM);
     expect(defaults.railCollapsed).toBe(false);
     expect(defaults.detailsTab).toBe("session");
+    /* The recording is fitted whole by default, and the lanes are shown. */
+    expect(defaults.stageFit).toBe("contain");
+    expect(defaults.timelineLanes).toBe(true);
+  });
+
+  /*
+   * The rail's default width is part of how big the recording is drawn:
+   * the player now fills the viewport and the rail takes its width out of
+   * the stage, so the default came down from 30rem to 26rem (still inside
+   * the drag range, which did not change).
+   */
+  test("the rail starts at 26rem, inside the 22-44rem drag range", () => {
+    expect(REPLAY_RAIL_DEFAULT_WIDTH_REM).toBe(26);
+    expect(REPLAY_RAIL_MIN_WIDTH_REM).toBe(22);
+    expect(REPLAY_RAIL_MAX_WIDTH_REM).toBe(44);
+    expect(REPLAY_RAIL_DEFAULT_WIDTH_REM).toBeGreaterThanOrEqual(
+      REPLAY_RAIL_MIN_WIDTH_REM,
+    );
+    expect(REPLAY_RAIL_DEFAULT_WIDTH_REM).toBeLessThanOrEqual(
+      REPLAY_RAIL_MAX_WIDTH_REM,
+    );
   });
 
   test("the store starts from the defaults when storage is empty or absent", () => {
@@ -113,6 +137,37 @@ describe("parseReplayViewPrefs", () => {
     expect(parseReplayViewPrefs({ railWidthRem: 500 }).railWidthRem).toBe(
       REPLAY_RAIL_MAX_WIDTH_REM,
     );
+  });
+
+  test("reads a stored stage fit, and falls back to contain for anything else", () => {
+    expect(parseReplayViewPrefs({ stageFit: "width" }).stageFit).toBe("width");
+    expect(parseReplayViewPrefs({ stageFit: "actual" }).stageFit).toBe(
+      "actual",
+    );
+    expect(parseReplayViewPrefs({ stageFit: "contain" }).stageFit).toBe(
+      "contain",
+    );
+    /* A retired or hand-edited value costs that field only. */
+    expect(parseReplayViewPrefs({ stageFit: "cover" }).stageFit).toBe(
+      "contain",
+    );
+    expect(parseReplayViewPrefs({ stageFit: 2 }).stageFit).toBe("contain");
+    expect(parseReplayViewPrefs({ stageFit: null }).stageFit).toBe("contain");
+    expect(parseReplayViewPrefs({}).stageFit).toBe("contain");
+  });
+
+  test("reads the timeline lanes flag, and only a real boolean", () => {
+    expect(parseReplayViewPrefs({ timelineLanes: false }).timelineLanes).toBe(
+      false,
+    );
+    expect(parseReplayViewPrefs({ timelineLanes: true }).timelineLanes).toBe(
+      true,
+    );
+    expect(parseReplayViewPrefs({ timelineLanes: "no" }).timelineLanes).toBe(
+      true,
+    );
+    expect(parseReplayViewPrefs({ timelineLanes: 0 }).timelineLanes).toBe(true);
+    expect(parseReplayViewPrefs({}).timelineLanes).toBe(true);
   });
 
   test("non-objects read as the defaults", () => {
@@ -305,5 +360,79 @@ describe("readReplayListUrl", () => {
     expect(readReplayListUrl(null)).toBeNull();
     expect(readReplayListUrl(new ThrowingStorage())).toBeNull();
     expect(readReplayListUrl(new FakeStorage())).toBeNull();
+  });
+});
+
+/*
+ * The fit cycle behind the stage's toggle and the "z" shortcut. One
+ * direction, three stops, and any unknown value restarts at "contain" so
+ * a stale stored pref cannot strand the key.
+ */
+describe("cycleReplayStageFit", () => {
+  test("steps contain -> width -> actual -> contain", () => {
+    expect(cycleReplayStageFit("contain")).toBe("width");
+    expect(cycleReplayStageFit("width")).toBe("actual");
+    expect(cycleReplayStageFit("actual")).toBe("contain");
+  });
+
+  test("three presses return to where it started, from every stop", () => {
+    for (const fit of REPLAY_STAGE_FIT_PREFS) {
+      expect(
+        cycleReplayStageFit(cycleReplayStageFit(cycleReplayStageFit(fit))),
+      ).toBe(fit);
+    }
+  });
+
+  test("an unrecognised value restarts the cycle at contain", () => {
+    expect(cycleReplayStageFit("cover" as ReplayStageFitPref)).toBe("contain");
+    expect(cycleReplayStageFit("" as ReplayStageFitPref)).toBe("contain");
+  });
+
+  test("the cycle only ever yields values the parser accepts", () => {
+    let fit: ReplayStageFitPref = "contain";
+
+    for (let step: number = 0; step < 7; step++) {
+      fit = cycleReplayStageFit(fit);
+      expect(parseReplayViewPrefs({ stageFit: fit }).stageFit).toBe(fit);
+    }
+  });
+});
+
+/* The new fields round-trip through the store like every other pref. */
+describe("stage fit and timeline lanes in the store", () => {
+  test("updates are validated, written and announced", () => {
+    const storage: FakeStorage = new FakeStorage();
+    const store: ReplayViewPrefsStore = new ReplayViewPrefsStore(storage);
+
+    expect(store.update({ stageFit: "width" }).stageFit).toBe("width");
+    expect(store.update({ timelineLanes: false }).timelineLanes).toBe(false);
+
+    const stored: ReplayViewPrefs = JSON.parse(
+      storage.values.get(REPLAY_VIEW_PREFS_STORAGE_KEY) as string,
+    ) as ReplayViewPrefs;
+
+    expect(stored.stageFit).toBe("width");
+    expect(stored.timelineLanes).toBe(false);
+
+    /* An invalid write is clamped to the default rather than stored. */
+    expect(
+      store.update({ stageFit: "zoom" as ReplayStageFitPref }).stageFit,
+    ).toBe("contain");
+  });
+
+  test("a store built on a pref set from before the fields reads the defaults", () => {
+    const storage: FakeStorage = new FakeStorage();
+
+    storage.values.set(
+      REPLAY_VIEW_PREFS_STORAGE_KEY,
+      JSON.stringify({ speed: 2, railWidthRem: 30 }),
+    );
+
+    const store: ReplayViewPrefsStore = new ReplayViewPrefsStore(storage);
+
+    expect(store.getSnapshot().stageFit).toBe("contain");
+    expect(store.getSnapshot().timelineLanes).toBe(true);
+    /* A width stored under the old 30rem default is still inside the range. */
+    expect(store.getSnapshot().railWidthRem).toBe(30);
   });
 });

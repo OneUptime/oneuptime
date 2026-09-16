@@ -12,19 +12,16 @@ import React, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
-import Card from "Common/UI/Components/Card/Card";
-import {
-  formatReplayDuration,
-  formatReplayOffset,
-  formatReplayWallClock,
-} from "./ReplayTimeFormat";
+import { formatReplayOffset, formatReplayWallClock } from "./ReplayTimeFormat";
 import { SealedReasonCopy } from "./FidelityNoticeCopy";
 import {
   ReplayButtonGroup,
   ReplayPill,
   ReplayToolButton,
-  getReplaySegmentClassName,
+  ReplayToolbarDivider,
 } from "./ReplayUi";
+import ReplayTabSwitcher from "./ReplayTabSwitcher";
+import { ReplayTabSummary } from "./ReplayTabs";
 import ReplayUserSessionsMenu from "./ReplayUserSessionsMenu";
 import {
   ReplayAdjacentUserSessions,
@@ -33,8 +30,20 @@ import {
 } from "./ReplayUserSessions";
 
 /*
- * Recording context uses the same card and actions as other detail pages.
- * Playback-specific controls stay with the recording surface below it.
+ * One compact bar above the picture, not a detail card.
+ *
+ * The header used to be the shared `Card`: a 240px block of labelled
+ * definition lists between the page and the recording, on a page whose
+ * entire job is to show the recording. At 1440x900 that card plus the
+ * timeline below it left the picture drawn at a third of its recorded
+ * size. Everything it said is still said - identity, device facts, start
+ * time, session id, playhead, the actions - in two ~20px rows, with the
+ * labels kept for screen readers (`sr-only`) rather than deleted, because
+ * "jane@acme.com" without "User" beside it is a string of unknown kind to
+ * anyone who cannot see the layout.
+ *
+ * The browser tabs moved out into ReplayTabSwitcher, which is a third row
+ * only when the recording actually has several tabs.
  */
 
 export interface ReplayHeaderFact {
@@ -42,16 +51,24 @@ export interface ReplayHeaderFact {
   value: string;
 }
 
-export interface ReplayHeaderTab {
-  tabId: string;
-  /* "Tab 1", in the order the end user opened them. */
-  label: string;
-  durationMs: number;
-  /* Session-clock offset the tab's footage starts at; null when unknown. */
-  openedAtMs: number | null;
-  hasFootage: boolean;
-  isActive: boolean;
-}
+/*
+ * The tab shape the header and the stage take. It is ReplayTabs'
+ * ReplayTabSummary: the extra fields (status, page, counts) are optional,
+ * so every literal that satisfied the old ReplayHeaderTab still does.
+ */
+export type ReplayHeaderTab = ReplayTabSummary;
+
+/*
+ * The tab model lives in ReplayTabs.ts now (it is pure, and the picker,
+ * the strip and the shell all read it). Re-exported here because these
+ * three are part of the header's published surface.
+ */
+export {
+  REPLAY_TAB_STRIP_COMPACT_THRESHOLD,
+  describeReplayTabOpened,
+  formatReplayTabLabel,
+} from "./ReplayTabs";
+export type { ReplayTabLabelOptions } from "./ReplayTabs";
 
 export interface ReplayHeaderIdentity {
   /*
@@ -82,6 +99,16 @@ export interface ReplayHeaderProps {
   startTimeUnixMs: number | null;
   currentTimeMs: number;
   durationMs: number;
+  /*
+   * The WHOLE session's length on the session clock, which is not
+   * durationMs: that one follows the engine, so it is the footage of the
+   * tab being watched (the clock reads "0:41 / 4:12" within this tab).
+   * The tab picker draws each tab's span against the session, so scaling
+   * it by the watched tab's length would put every other tab's bar off
+   * the end of the track. Absent on an older caller, where the picker
+   * falls back to the furthest offset its own tabs report.
+   */
+  sessionDurationMs?: number | undefined;
   /*
    * Footage may still be recorded: not finalized and not every tab has
    * closed (isManifestRecordingLive). Drives the Live pill, so it goes out
@@ -172,57 +199,6 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
   }
 }
 
-/*
- * Above this many tabs the strip is compact: the "(opened 2:14)" part
- * moves off the pill and into its tooltip. A recording with a dozen
- * tabs (a customer's screenshot showed eleven) is a wall of pills
- * either way, but eleven pills of "Tab 7 · 12s" wrap to two tidy rows
- * where eleven of "Tab 7 · 12s · (opened 14:02)" needed four.
- */
-export const REPLAY_TAB_STRIP_COMPACT_THRESHOLD: number = 6;
-
-export interface ReplayTabLabelOptions {
-  /* Leave the "(opened ...)" part to the tooltip. */
-  isCompact?: boolean | undefined;
-}
-
-/*
- * "opened 2:14" when the tab's footage starts a meaningful way into the
- * session; null otherwise. Sub-second offsets are the FIRST tab (or a
- * tab duplicated at load), where "(opened 0:00)" said nothing a viewer
- * could use and cost the width of a whole extra pill.
- */
-export function describeReplayTabOpened(tab: ReplayHeaderTab): string | null {
-  if (!tab.hasFootage || tab.openedAtMs === null || tab.openedAtMs < 1000) {
-    return null;
-  }
-
-  return `opened ${formatReplayOffset(tab.openedAtMs)}`;
-}
-
-/* "Tab 2 · 30s · (opened 2:14)", or "Tab 2 · 30s" in a compact strip. */
-export function formatReplayTabLabel(
-  tab: ReplayHeaderTab,
-  options?: ReplayTabLabelOptions,
-): string {
-  if (!tab.hasFootage) {
-    return `${tab.label} · no footage`;
-  }
-
-  const parts: Array<string> = [
-    tab.label,
-    formatReplayDuration(tab.durationMs),
-  ];
-
-  const opened: string | null = describeReplayTabOpened(tab);
-
-  if (opened !== null && !options?.isCompact) {
-    parts.push(`(${opened})`);
-  }
-
-  return parts.join(" · ");
-}
-
 /* What a copy was of, so the announcement and the fallback name it. */
 type CopyKind = "link" | "session-id";
 
@@ -283,9 +259,6 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
       fallbackInputRef.current?.select();
     }
   }, [copyState.status]);
-
-  const tabRefs: React.MutableRefObject<Map<string, HTMLButtonElement>> =
-    useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const { buildMomentUrl } = props;
 
@@ -562,384 +535,251 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
     })
     .join(" · ");
 
-  const isCompactTabStrip: boolean =
-    props.tabs.length > REPLAY_TAB_STRIP_COMPACT_THRESHOLD;
+  const hasTabRow: boolean =
+    props.tabs.length > 1 || Boolean(props.continueInTab);
 
-  const focusableTabs: Array<ReplayHeaderTab> = props.tabs.filter(
-    (tab: ReplayHeaderTab): boolean => {
-      return tab.hasFootage;
-    },
+  /* The dot between two runs of the facts row. Decorative, never read. */
+  const separator: ReactElement = (
+    <span aria-hidden="true" className="text-gray-300">
+      ·
+    </span>
   );
-  const focusableTabId: string | undefined =
-    focusableTabs.find((tab: ReplayHeaderTab): boolean => {
-      return tab.isActive;
-    })?.tabId ?? focusableTabs[0]?.tabId;
-
-  const handleTabKeyDown: (
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    tabId: string,
-  ) => void = (
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    tabId: string,
-  ): void => {
-    if (
-      event.altKey ||
-      event.ctrlKey ||
-      event.metaKey ||
-      focusableTabs.length === 0
-    ) {
-      return;
-    }
-
-    const currentIndex: number = focusableTabs.findIndex(
-      (tab: ReplayHeaderTab): boolean => {
-        return tab.tabId === tabId;
-      },
-    );
-    let nextIndex: number;
-
-    switch (event.key) {
-      case "ArrowRight":
-        nextIndex = (currentIndex + 1) % focusableTabs.length;
-        break;
-      case "ArrowLeft":
-        nextIndex =
-          (currentIndex - 1 + focusableTabs.length) % focusableTabs.length;
-        break;
-      case "Home":
-        nextIndex = 0;
-        break;
-      case "End":
-        nextIndex = focusableTabs.length - 1;
-        break;
-      default:
-        return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    const nextTab: ReplayHeaderTab | undefined = focusableTabs[nextIndex];
-
-    if (nextTab) {
-      tabRefs.current.get(nextTab.tabId)?.focus();
-
-      if (!nextTab.isActive) {
-        props.onSwitchTab(nextTab.tabId);
-      }
-    }
-  };
 
   return (
-    <header data-testid="replay-header" className="mb-5 min-w-0">
-      <a
-        href={props.backHref}
-        onClick={handleBackClick}
-        data-testid="replay-back-link"
-        title="Back to the session list"
-        className="mb-3 inline-flex items-center gap-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-      >
-        <Icon icon={IconProp.ArrowLeft} className="h-4 w-4" />
-        All recordings
-      </a>
+    <header
+      data-testid="replay-header"
+      className="mb-3 min-w-0 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm"
+    >
+      {/*
+       * The card's visible "Session recording" title bought nothing a
+       * viewer looking at a recording did not already know, and cost a
+       * text-lg line. It stays as the region's heading for screen readers
+       * and for the tests that name this landmark.
+       */}
+      <h2 className="sr-only">Session recording</h2>
 
-      <Card
-        className="mb-0"
-        title={
-          <span className="flex flex-wrap items-center gap-2">
-            Session recording
-            {props.isLive && (
-              <ReplayPill
-                dataTestId="replay-live-pill"
-                tone="live"
-                hasPulse={true}
-                title="Still being recorded; new footage is added as it arrives"
-              >
-                Live
-              </ReplayPill>
-            )}
-            {props.sealedReason && props.sealedReason.severity === "warn" && (
-              <ReplayPill
-                dataTestId="replay-sealed-pill"
-                tone="warning"
-                icon={IconProp.Alert}
-                title={props.sealedReason.description}
-              >
-                {props.sealedReason.title}
-              </ReplayPill>
-            )}
-          </span>
-        }
-        bodyClassName="mt-3"
-        buttons={[
-          <div
-            key="recording-toolbar"
-            role="group"
-            aria-label="Session recording controls"
-            data-testid="replay-header-toolbar"
-            className="flex w-full flex-wrap items-center justify-start gap-2 md:w-auto md:justify-end"
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+        <a
+          href={props.backHref}
+          onClick={handleBackClick}
+          data-testid="replay-back-link"
+          title="Back to the session list"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >
+          <Icon icon={IconProp.ArrowLeft} className="h-4 w-4" />
+          All recordings
+        </a>
+
+        {/* ReplayToolbarDivider draws no responsive rule of its own. */}
+        <span className="hidden sm:inline-flex">
+          <ReplayToolbarDivider />
+        </span>
+
+        <div
+          className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
+          data-testid="replay-header-identity-row"
+        >
+          <span className="sr-only">User and device</span>
+          <span
+            data-testid="replay-header-user"
+            className={`min-w-0 max-w-[18rem] truncate text-sm ${identityClassName}`}
+            title={identityTitle}
           >
-            <ReplayButtonGroup
-              ariaLabel="Recording actions"
-              dataTestId="replay-recording-actions"
-              canWrap={true}
+            {identityText}
+          </span>
+          {traitCount > 0 && (
+            <button
+              type="button"
+              className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+              title="Open the details panel to read the traits"
+              onClick={props.onOpenDetails}
+              data-testid="replay-header-traits"
             >
-              {props.pinControl}
-              <ReplayToolButton
-                dataTestId="replay-copy-link"
-                label="Copy link"
-                icon={IconProp.Link}
-                variant="segment"
-                title="Copy a link to this moment (c)"
-                onClick={handleCopyLink}
-              />
-              <ReplayToolButton
-                dataTestId="replay-open-details"
-                label="Session details"
-                icon={IconProp.Info}
-                variant="segment"
-                title="Session details (i)"
-                onClick={props.onOpenDetails}
-              />
-            </ReplayButtonGroup>
-            <ReplayButtonGroup ariaLabel="Player layout">
-              <ReplayToolButton
-                dataTestId="replay-toggle-wide"
-                label="Wide"
-                icon={IconProp.Expand}
-                variant="segment"
-                isPressed={props.isWide}
-                title={
-                  props.isWide
-                    ? "Show the application menu again (w)"
-                    : "Hide the application menu (w)"
-                }
-                onClick={props.onToggleWide}
-              />
-              <ReplayToolButton
-                dataTestId="replay-toggle-theater"
-                label={props.isTheater ? "Exit theater" : "Theater"}
-                icon={IconProp.Window}
-                variant="segment"
-                isPressed={props.isTheater}
-                title={props.isTheater ? "Exit theater (Esc)" : "Theater (f)"}
-                onClick={props.onToggleTheater}
-              />
-            </ReplayButtonGroup>
-          </div>,
-        ]}
-      >
-        <div>
-          <dl className="grid min-w-0 grid-cols-2 gap-x-6 gap-y-3 xl:grid-cols-3">
-            <div className="col-span-2 min-w-0 xl:col-span-1">
-              <dt className="text-xs font-medium text-gray-500">
-                User and device
-              </dt>
-              <dd className="mt-1">
-                <div
-                  className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
-                  data-testid="replay-header-identity-row"
-                >
-                  <span
-                    data-testid="replay-header-user"
-                    className={`min-w-0 truncate text-sm ${identityClassName}`}
-                    title={identityTitle}
-                  >
-                    {identityText}
-                  </span>
-                  {traitCount > 0 && (
-                    <button
-                      type="button"
-                      className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                      title="Open the details panel to read the traits"
-                      onClick={props.onOpenDetails}
-                      data-testid="replay-header-traits"
-                    >
-                      {traitCount} trait{traitCount === 1 ? "" : "s"}
-                    </button>
-                  )}
-                  {userSessionsElement}
-                </div>
-                {props.facts.length > 0 && (
-                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
-                    <span
-                      className="min-w-0 max-w-full truncate md:hidden"
-                      title={factsTitle}
-                      data-testid="replay-header-facts-compact"
-                    >
-                      {factsLine}
-                    </span>
-                    {props.facts.map(
-                      (fact: ReplayHeaderFact, index: number): ReactElement => {
-                        return (
-                          <React.Fragment key={fact.label}>
-                            {index > 0 && (
-                              <span
-                                aria-hidden="true"
-                                className="hidden text-gray-300 md:inline"
-                              >
-                                ·
-                              </span>
-                            )}
-                            <span
-                              className="hidden max-w-full truncate md:inline"
-                              title={`${fact.label}: ${fact.value}`}
-                              data-testid="replay-header-fact"
-                            >
-                              {fact.value}
-                            </span>
-                          </React.Fragment>
-                        );
-                      },
-                    )}
-                  </div>
-                )}
-              </dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-xs font-medium text-gray-500">Recorded</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {startedAt ?? "Start time unavailable"}
-                <span
-                  className="mt-1 flex items-center gap-1 text-xs text-gray-500"
-                  title={props.sessionId}
-                >
-                  Session <span className="font-mono">{shortSessionId}</span>
-                  <button
-                    type="button"
-                    data-testid="replay-copy-session-id"
-                    title="Copy the session id"
-                    aria-label="Copy the session id"
-                    className="inline-flex h-5 w-5 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    onClick={(): void => {
-                      copyValue(props.sessionId, "session-id");
-                    }}
-                  >
-                    <Icon icon={IconProp.Copy} className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              </dd>
-            </div>
-            <div
-              data-testid="replay-header-clock"
-              className="min-w-0 tabular-nums"
-            >
-              <dt className="text-xs font-medium text-gray-500">
-                Playback position
-              </dt>
-              <dd className="mt-1">
-                {wallClock && (
-                  <span
-                    className="font-mono text-sm font-semibold text-gray-900"
-                    title="Wall-clock time at the playhead"
-                    data-testid="replay-header-wall-clock"
-                  >
-                    {wallClock}
-                  </span>
-                )}
-                <span
-                  className="mt-1 block text-xs text-gray-500"
-                  title="Playhead / recording length"
-                >
-                  {offsetText}
-                </span>
-              </dd>
-            </div>
-          </dl>
-
-          {(props.tabs.length > 1 || props.continueInTab) && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3">
-              <div className="min-w-0 flex-1">
-                {props.tabs.length > 1 ? (
-                  <div
-                    role="tablist"
-                    aria-label="Browser tabs in this recording"
-                    /*
-                     * Wraps rather than scrolls. `overflow-x-auto` on a
-                     * strip that is one line of a card gave an eleven-tab
-                     * recording a horizontal scrollbar nobody noticed and
-                     * pushed the last four tabs off the right edge of the
-                     * card; a second row is visible, a scrollbar is not.
-                     */
-                    className="flex flex-wrap items-center gap-1"
-                  >
-                    {props.tabs.map((tab: ReplayHeaderTab): ReactElement => {
-                      const opened: string | null =
-                        describeReplayTabOpened(tab);
-                      const switchTitle: string =
-                        isCompactTabStrip && opened !== null
-                          ? `Switch to ${tab.label} (${opened}); the playhead stays where it is`
-                          : `Switch to ${tab.label}; the playhead stays where it is`;
-
-                      return (
-                        <button
-                          key={tab.tabId}
-                          ref={(element: HTMLButtonElement | null): void => {
-                            if (element) {
-                              tabRefs.current.set(tab.tabId, element);
-                            } else {
-                              tabRefs.current.delete(tab.tabId);
-                            }
-                          }}
-                          type="button"
-                          role="tab"
-                          aria-selected={tab.isActive}
-                          tabIndex={tab.tabId === focusableTabId ? 0 : -1}
-                          data-testid="replay-tab-pill"
-                          data-tab-id={tab.tabId}
-                          disabled={!tab.hasFootage}
-                          title={
-                            tab.hasFootage
-                              ? switchTitle
-                              : "No footage stored for this tab"
-                          }
-                          className={getReplaySegmentClassName({
-                            isSelected: tab.isActive,
-                            isDisabled: !tab.hasFootage,
-                          })}
-                          onKeyDown={(
-                            event: React.KeyboardEvent<HTMLButtonElement>,
-                          ): void => {
-                            handleTabKeyDown(event, tab.tabId);
-                          }}
-                          onClick={(): void => {
-                            if (tab.hasFootage && !tab.isActive) {
-                              props.onSwitchTab(tab.tabId);
-                            }
-                          }}
-                        >
-                          {formatReplayTabLabel(tab, {
-                            isCompact: isCompactTabStrip,
-                          })}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 text-xs text-gray-500">
-                    <Icon icon={IconProp.Window} className="h-4 w-4" />
-                    {props.tabs[0]?.label ?? "Browser recording"}
-                  </span>
-                )}
-                {props.continueInTab && (
-                  <button
-                    type="button"
-                    data-testid="replay-continue-in-tab"
-                    className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-                    title="This tab has played out; the session continues in another tab"
-                    onClick={(): void => {
-                      props.onSwitchTab(props.continueInTab?.tabId ?? "");
-                    }}
-                  >
-                    <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
-                    Continue in {props.continueInTab.label}
-                  </button>
-                )}
-              </div>
-            </div>
+              {traitCount} trait{traitCount === 1 ? "" : "s"}
+            </button>
           )}
+          {userSessionsElement}
         </div>
-      </Card>
+
+        {props.isLive && (
+          <ReplayPill
+            dataTestId="replay-live-pill"
+            tone="live"
+            hasPulse={true}
+            title="Still being recorded; new footage is added as it arrives"
+          >
+            Live
+          </ReplayPill>
+        )}
+        {props.sealedReason && props.sealedReason.severity === "warn" && (
+          <ReplayPill
+            dataTestId="replay-sealed-pill"
+            tone="warning"
+            icon={IconProp.Alert}
+            title={props.sealedReason.description}
+          >
+            {props.sealedReason.title}
+          </ReplayPill>
+        )}
+
+        <div
+          role="group"
+          aria-label="Session recording controls"
+          data-testid="replay-header-toolbar"
+          className="flex w-full flex-wrap items-center justify-start gap-2 md:ml-auto md:w-auto md:justify-end"
+        >
+          <ReplayButtonGroup
+            ariaLabel="Recording actions"
+            dataTestId="replay-recording-actions"
+            canWrap={true}
+          >
+            {props.pinControl}
+            <ReplayToolButton
+              dataTestId="replay-copy-link"
+              label="Copy link"
+              icon={IconProp.Link}
+              variant="segment"
+              title="Copy a link to this moment (c)"
+              onClick={handleCopyLink}
+            />
+            <ReplayToolButton
+              dataTestId="replay-open-details"
+              label="Session details"
+              icon={IconProp.Info}
+              variant="segment"
+              title="Session details (i)"
+              onClick={props.onOpenDetails}
+            />
+          </ReplayButtonGroup>
+          <ReplayButtonGroup ariaLabel="Player layout">
+            <ReplayToolButton
+              dataTestId="replay-toggle-wide"
+              label="Wide"
+              icon={IconProp.Expand}
+              variant="segment"
+              isPressed={props.isWide}
+              title={
+                props.isWide
+                  ? "Show the application menu again (w)"
+                  : "Hide the application menu (w)"
+              }
+              onClick={props.onToggleWide}
+            />
+            <ReplayToolButton
+              dataTestId="replay-toggle-theater"
+              label={props.isTheater ? "Exit theater" : "Theater"}
+              icon={IconProp.Window}
+              variant="segment"
+              isPressed={props.isTheater}
+              title={props.isTheater ? "Exit theater (Esc)" : "Theater (f)"}
+              onClick={props.onToggleTheater}
+            />
+          </ReplayButtonGroup>
+        </div>
+      </div>
+
+      {/*
+       * Everything the old card's definition list said, at one line of
+       * text-xs. The labels are kept where a value cannot name itself.
+       */}
+      <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+        {props.facts.length > 0 && (
+          <React.Fragment>
+            <span
+              className="min-w-0 max-w-full truncate md:hidden"
+              title={factsTitle}
+              data-testid="replay-header-facts-compact"
+            >
+              {factsLine}
+            </span>
+            {props.facts.map(
+              (fact: ReplayHeaderFact, index: number): ReactElement => {
+                return (
+                  <React.Fragment key={fact.label}>
+                    {index > 0 && (
+                      <span
+                        aria-hidden="true"
+                        className="hidden text-gray-300 md:inline"
+                      >
+                        ·
+                      </span>
+                    )}
+                    <span
+                      className="hidden max-w-full truncate md:inline"
+                      title={`${fact.label}: ${fact.value}`}
+                      data-testid="replay-header-fact"
+                    >
+                      {fact.value}
+                    </span>
+                  </React.Fragment>
+                );
+              },
+            )}
+            {separator}
+          </React.Fragment>
+        )}
+
+        <span className="flex min-w-0 items-center gap-1">
+          <span className="shrink-0 text-gray-400">Recorded</span>
+          <span
+            className="min-w-0 truncate text-gray-700"
+            data-testid="replay-header-started-at"
+          >
+            {startedAt ?? "Start time unavailable"}
+          </span>
+        </span>
+
+        {separator}
+
+        <span
+          className="flex shrink-0 items-center gap-1"
+          title={props.sessionId}
+        >
+          Session <span className="font-mono">{shortSessionId}</span>
+          <button
+            type="button"
+            data-testid="replay-copy-session-id"
+            title="Copy the session id"
+            aria-label="Copy the session id"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            onClick={(): void => {
+              copyValue(props.sessionId, "session-id");
+            }}
+          >
+            <Icon icon={IconProp.Copy} className="h-3.5 w-3.5" />
+          </button>
+        </span>
+
+        <span
+          data-testid="replay-header-clock"
+          className="flex min-w-0 shrink-0 items-center gap-1.5 tabular-nums md:ml-auto"
+        >
+          <span className="sr-only">Playback position</span>
+          {wallClock && (
+            <span
+              className="font-mono font-semibold text-gray-900"
+              title="Wall-clock time at the playhead"
+              data-testid="replay-header-wall-clock"
+            >
+              {wallClock}
+            </span>
+          )}
+          <span className="text-gray-500" title="Playhead / recording length">
+            {offsetText}
+          </span>
+        </span>
+      </div>
+
+      {hasTabRow && (
+        <div className="mt-2 border-t border-gray-100 pt-2">
+          <ReplayTabSwitcher
+            tabs={props.tabs}
+            onSwitchTab={props.onSwitchTab}
+            continueInTab={props.continueInTab}
+            sessionDurationMs={props.sessionDurationMs ?? 0}
+          />
+        </div>
+      )}
 
       {/*
        * Announced, not relabelled: the button keeps its width and a
@@ -951,7 +791,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
         data-testid="replay-copy-link-status"
         className={
           copyState.status === "copied"
-            ? "mt-2 text-xs font-medium text-emerald-700"
+            ? "mt-1.5 text-xs font-medium text-emerald-700"
             : "sr-only"
         }
       >
@@ -962,7 +802,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
 
       {copyState.status === "fallback" && (
         <div
-          className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-xs text-gray-700"
+          className="mt-1.5 flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-xs text-gray-700"
           data-testid="replay-copy-link-fallback"
         >
           <span>{COPY_KIND_COPY[copyState.kind].fallbackPrompt}</span>

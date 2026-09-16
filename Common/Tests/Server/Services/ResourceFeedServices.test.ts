@@ -57,10 +57,10 @@ const BASE_API_INDEX: string = fs.readFileSync(
 );
 
 /*
- * The ten resources that gained an activity feed. Written out rather than
- * globbed so that adding an eleventh is a deliberate edit here as well as a new
- * file - the wiring below is exactly what gets forgotten when a family is
- * added by copying another one.
+ * The resources that gained an activity feed - the infrastructure families,
+ * catalog services and SLOs. Written out rather than globbed so that adding
+ * another is a deliberate edit here as well as a new file - the wiring below is
+ * exactly what gets forgotten when a family is added by copying another one.
  */
 const FEED_SERVICE_NAMES: Array<string> = [
   "KubernetesClusterFeedService",
@@ -73,7 +73,21 @@ const FEED_SERVICE_NAMES: Array<string> = [
   "HostFeedService",
   "CloudResourceFeedService",
   "ServiceFeedService",
+  "ServiceLevelObjectiveFeedService",
 ];
+
+/*
+ * The BaseAPI assertions below are about WHAT is imported and routed, not how
+ * prettier chose to wrap it: a long enough name ("ServiceLevelObjectiveFeed")
+ * pushes the BaseAPI generic onto its own lines, and the registration is no
+ * less correct for it.
+ */
+function withoutWhitespace(text: string): string {
+  return text.replace(/\s+/g, "");
+}
+
+const BASE_API_INDEX_WITHOUT_WHITESPACE: string =
+  withoutWhitespace(BASE_API_INDEX);
 
 function readService(serviceName: string): string {
   return fs.readFileSync(
@@ -125,11 +139,13 @@ describe("Resource feed service wiring", () => {
        * than failing anywhere a test would normally look.
        */
       const modelName: string = serviceName.replace(/Service$/, "");
-      expect(BASE_API_INDEX).toContain(
-        `import ${serviceName}, {\n  Service as ${serviceName}Type,\n} from "Common/Server/Services/${serviceName}";`,
+      expect(BASE_API_INDEX_WITHOUT_WHITESPACE).toContain(
+        withoutWhitespace(
+          `import ${serviceName}, { Service as ${serviceName}Type, } from "Common/Server/Services/${serviceName}";`,
+        ),
       );
-      expect(BASE_API_INDEX).toContain(
-        `new BaseAPI<${modelName}, ${serviceName}Type>(`,
+      expect(BASE_API_INDEX_WITHOUT_WHITESPACE).toContain(
+        withoutWhitespace(`new BaseAPI<${modelName}, ${serviceName}Type>(`),
       );
     },
   );

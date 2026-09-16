@@ -89,6 +89,10 @@ export default class ComponentInputTypeToFormFieldType {
       return { fieldType: FormFieldSchemaType.CustomComponent };
     }
 
+    if (componentInputType === ComponentInputType.TelemetryAttributeVariable) {
+      return { fieldType: FormFieldSchemaType.CustomComponent };
+    }
+
     if (componentInputType === ComponentInputType.EntityDropdown) {
       return {
         fieldType: FormFieldSchemaType.CustomComponent,

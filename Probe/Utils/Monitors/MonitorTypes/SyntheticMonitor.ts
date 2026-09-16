@@ -208,8 +208,14 @@ export default class SyntheticMonitor {
       screenSizeType: options.screenSizeType,
     };
 
+    /*
+     * Started before the try so a failed run is timed too. A runtime fault
+     * used to report 0 ms, which made a bootstrap that stalled for a minute and
+     * a browser that failed instantly look identical in the monitor log.
+     */
+    const startTime: [number, number] = process.hrtime();
+
     try {
-      const startTime: [number, number] = process.hrtime();
       const workerConfig: SyntheticMonitorWorkerConfig = {
         code: options.script,
         browserType: options.browserType,
@@ -242,13 +248,7 @@ export default class SyntheticMonitor {
         });
       const result: SyntheticMonitorWorkerResult = processResult.result;
 
-      const endTime: [number, number] = process.hrtime(startTime);
-
-      const executionTimeInMS: number = Math.ceil(
-        (endTime[0] * 1000000000 + endTime[1]) / 1000000,
-      );
-
-      scriptResult.executionTimeInMS = executionTimeInMS;
+      scriptResult.executionTimeInMS = this.getElapsedTimeInMs(startTime);
 
       scriptResult.logMessages = result.logMessages;
       scriptResult.capturedMetrics = result.capturedMetrics || [];
@@ -275,14 +275,16 @@ export default class SyntheticMonitor {
         scriptResult.scriptError = result.scriptError;
       }
     } catch (err: unknown) {
+      scriptResult.executionTimeInMS = this.getElapsedTimeInMs(startTime);
+
       if (this.isRuntimeFault(err)) {
         /*
-         * Ours, not theirs: no EXTERNAL_FAULT here, and the worker-side stack
+         * Ours, not theirs: no EXTERNAL_FAULT here, and the worker's diagnosis
          * is logged separately so the probe operator still gets the Playwright
          * detail that the tenant-facing message deliberately leaves out.
          */
         logger.error(
-          `Synthetic Monitor runtime fault (browser: ${options.browserType}, screen size: ${options.screenSizeType}): ${(err as Error).message}`,
+          `Synthetic Monitor runtime fault after ${scriptResult.executionTimeInMS} ms (browser: ${options.browserType}, screen size: ${options.screenSizeType}): ${(err as Error).message}`,
         );
         const detail: string | undefined = this.getRuntimeFaultDetail(err);
         if (detail) {
@@ -318,9 +320,24 @@ export default class SyntheticMonitor {
     return error instanceof SyntheticProcessRunnerError && Boolean(error.kind);
   }
 
+  private static getElapsedTimeInMs(startTime: [number, number]): number {
+    const elapsed: [number, number] = process.hrtime(startTime);
+    return Math.ceil((elapsed[0] * 1000000000 + elapsed[1]) / 1000000);
+  }
+
   private static getRuntimeFaultDetail(error: unknown): string | undefined {
     if (error instanceof SyntheticProcessRunnerError) {
-      return error.remoteStack;
+      /*
+       * The worker's diagnosis first -- the Playwright error and how far the
+       * runtime got -- then the stack the fault was thrown from. The stack
+       * alone names WorkerController and says nothing about the cause.
+       */
+      const parts: string[] = [error.internalDetail, error.remoteStack].filter(
+        (part: string | undefined): part is string => {
+          return Boolean(part);
+        },
+      );
+      return parts.length > 0 ? parts.join("\n") : undefined;
     }
     if (isSyntheticRuntimeFault(error)) {
       return error.internalDetail;

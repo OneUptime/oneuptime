@@ -277,7 +277,14 @@
       "title": "Проект",
       "cardTitle": "Проект",
       "cardDescription": "Сведения о проекте",
-      "editButton": "Изменить проект"
+      "editButton": "Изменить проект",
+      "dataResidencyCardTitle": "Размещение данных",
+      "dataResidencyCardDescription": "Где размещаются данные этого проекта. После настройки отображается пользователям проекта в настройках проекта.",
+      "dataResidencyEditButton": "Изменить размещение данных",
+      "dataResidencyFieldTitle": "Размещение данных",
+      "dataResidencyFieldDescription": "Метка, указывающая, где размещаются данные этого проекта, например \"ЕС (Франкфурт)\". Оставьте пустым, чтобы скрыть её от пользователей проекта.",
+      "dataResidencyFieldPlaceholder": "ЕС (Франкфурт)",
+      "dataResidencyNotSet": "Не задано"
     },
     "projectSubscription": {
       "title": "Подписка проекта",

@@ -13,6 +13,13 @@ enum ServiceType {
   Alert = "Alert",
   Incident = "Incident",
   ScheduledMaintenance = "ScheduledMaintenance",
+  /*
+   * The `oneuptime.slo.*` readings the SLO evaluation worker posts. Like
+   * Monitor / Alert / Incident rows they are OneUptime's own operational
+   * data, so TelemetryUsageBillingService never bills them as ingested
+   * telemetry.
+   */
+  ServiceLevelObjective = "ServiceLevelObjective",
   Host = "Host",
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",

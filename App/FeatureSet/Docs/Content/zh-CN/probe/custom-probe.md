@@ -205,7 +205,7 @@ kubectl apply -f oneuptime-probe.yaml
 - `PROBE_DESCRIPTION` - 探针的描述
 - `PROBE_MONITORING_WORKERS` - 监控 Worker 数量（默认：1）
 - `PROBE_MONITOR_FETCH_LIMIT` - 一次获取的监控器数量（默认：10）
-- `PROBE_MONITOR_RETRY_LIMIT` - 失败监控器的重试次数（默认：3）
+- `PROBE_MONITOR_RETRY_LIMIT` - 监控检查失败后，首次尝试之后的重试次数；当步骤未设置自己的重试次数时使用（默认：3，即最多 4 次尝试）
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 合成监控器脚本的超时时间（毫秒，默认：60000）
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 自定义代码监控器脚本的超时时间（毫秒，默认：60000）
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - 探针发送至 OneUptime 的每个请求的截止时间（默认：45000）

@@ -47,11 +47,11 @@ Os monitores de DNS consultam servidores DNS para tipos de registro específicos
 
 ### Configurações Avançadas
 
-| Campo        | Descrição                                          | Padrão |
-| ------------ | -------------------------------------------------- | ------ |
-| Port         | Número da porta DNS                                | 53     |
-| Timeout (ms) | Tempo de espera por uma resposta                   | 5000   |
-| Retries      | Número de tentativas de repetição em caso de falha | 3      |
+| Campo        | Descrição                                                          | Padrão |
+| ------------ | ------------------------------------------------------------------ | ------ |
+| Port         | Número da porta DNS                                                | 53     |
+| Timeout (ms) | Tempo de espera por uma resposta                                   | 5000   |
+| Retries      | Tentativas após a primeira falhar; 0 significa uma única tentativa | 3      |
 
 ## Critérios de Monitoramento
 

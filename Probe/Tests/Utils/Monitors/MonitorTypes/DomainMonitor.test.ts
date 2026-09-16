@@ -5,6 +5,7 @@ import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupM
 import DomainMonitorResponse from "Common/Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import MonitorStepDomainMonitor from "Common/Types/Monitor/MonitorStepDomainMonitor";
 import { JSONObject } from "Common/Types/JSON";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import logger from "Common/Server/Utils/Logger";
 import OnlineCheck from "../../../../Utils/OnlineCheck";
@@ -274,7 +275,8 @@ describe("DomainMonitorUtil.query", () => {
           isOnlineCheckRequest: true,
         });
 
-      expect(response!.totalAttempts).toBe(3);
+      // The first attempt plus three retries.
+      expect(response!.totalAttempts).toBe(4);
       expect(response!.isOnline).toBe(false);
     });
 
@@ -353,10 +355,76 @@ describe("DomainMonitorUtil.query", () => {
           isOnlineCheckRequest: true,
         });
 
-      expect(response!.totalAttempts).toBe(3);
-      expect(response!.probeAttempts).toHaveLength(3);
+      // Three retries after the first attempt.
+      expect(response!.totalAttempts).toBe(4);
+      expect(response!.probeAttempts).toHaveLength(4);
       expect(response!.probeAttempts![0]!.isOnline).toBe(false);
-      expect(response!.probeAttempts![2]!.attemptNumber).toBe(3);
+      expect(response!.probeAttempts![3]!.attemptNumber).toBe(4);
+    });
+
+    it("runs a transient failure exactly once when retry is 0", async () => {
+      getJsonSpy.mockRejectedValue(new Error("socket hang up") as never);
+      __setWhoisError(new Error("socket hang up"));
+
+      const response: DomainMonitorResponse | null =
+        await DomainMonitorUtil.query(buildConfig({ retries: 5 }), {
+          retry: 0,
+          isOnlineCheckRequest: true,
+        });
+
+      expect(response!.totalAttempts).toBe(1);
+      expect(response!.probeAttempts).toHaveLength(1);
+      expect(getJsonSpy).toHaveBeenCalledTimes(1);
+      expect(Sleep.sleep).not.toHaveBeenCalled();
+    });
+
+    it("makes three attempts when retry is 2", async () => {
+      getJsonSpy.mockRejectedValue(new Error("socket hang up") as never);
+      __setWhoisError(new Error("socket hang up"));
+
+      const response: DomainMonitorResponse | null =
+        await DomainMonitorUtil.query(buildConfig(), {
+          retry: 2,
+          isOnlineCheckRequest: true,
+        });
+
+      expect(response!.totalAttempts).toBe(3);
+      expect(
+        response!.probeAttempts!.map((attempt: ProbeAttempt): number => {
+          return attempt.attemptNumber;
+        }),
+      ).toEqual([1, 2, 3]);
+      expect(getJsonSpy).toHaveBeenCalledTimes(3);
+      expect(Sleep.sleep).toHaveBeenCalledTimes(2);
+    });
+
+    it("counts the step config's retries after the first attempt when no retry option is passed", async () => {
+      getJsonSpy.mockRejectedValue(new Error("socket hang up") as never);
+      __setWhoisError(new Error("socket hang up"));
+
+      const response: DomainMonitorResponse | null =
+        await DomainMonitorUtil.query(buildConfig({ retries: 0 }), {
+          isOnlineCheckRequest: true,
+        });
+
+      expect(response!.totalAttempts).toBe(1);
+    });
+
+    it("keeps three attempts when neither the caller nor the config sets retries", async () => {
+      getJsonSpy.mockRejectedValue(new Error("socket hang up") as never);
+      __setWhoisError(new Error("socket hang up"));
+
+      const config: MonitorStepDomainMonitor = {
+        ...buildConfig(),
+        retries: undefined,
+      } as unknown as MonitorStepDomainMonitor;
+
+      const response: DomainMonitorResponse | null =
+        await DomainMonitorUtil.query(config, {
+          isOnlineCheckRequest: true,
+        });
+
+      expect(response!.totalAttempts).toBe(3);
     });
 
     it("stops as soon as an attempt succeeds", async () => {
@@ -396,7 +464,7 @@ describe("DomainMonitorUtil.query", () => {
       expect(response!.isOnline).toBe(false);
       expect(response!.isTimeout).toBe(true);
       expect(response!.failureCause).toBe(
-        "Request was tried 2 times and it timed out.",
+        "Request was tried 3 times and it timed out.",
       );
     });
 
@@ -545,7 +613,7 @@ describe("DomainMonitorUtil.query", () => {
           isOnlineCheckRequest: true,
         });
 
-      expect(response!.totalAttempts).toBe(3);
+      expect(response!.totalAttempts).toBe(4);
       expect(response!.failureCause).not.toContain(
         "No RDAP service is published",
       );

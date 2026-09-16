@@ -205,7 +205,7 @@ Proben støtter følgende miljøvariabler:
 - `PROBE_DESCRIPTION` – Beskrivelse for proben
 - `PROBE_MONITORING_WORKERS` – Antall overvåkingsarbeidere (standard: 1)
 - `PROBE_MONITOR_FETCH_LIMIT` – Antall monitorer som hentes om gangen (standard: 10)
-- `PROBE_MONITOR_RETRY_LIMIT` – Antall nye forsøk for mislykkede monitorer (standard: 3)
+- `PROBE_MONITOR_RETRY_LIMIT` – Nye forsøk etter det første forsøket ved en mislykket monitorsjekk, brukt når et trinn ikke angir sitt eget antall (standard: 3, altså opptil 4 forsøk)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` – Tidsavbrudd for syntetiske monitorskript i millisekunder (standard: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` – Tidsavbrudd for egendefinerte kode-monitorskript i millisekunder (standard: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` – Tidsfrist for hver forespørsel proben sender til OneUptime (standard: 45000)

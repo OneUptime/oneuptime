@@ -277,7 +277,14 @@
       "title": "项目",
       "cardTitle": "项目",
       "cardDescription": "项目详细信息",
-      "editButton": "编辑项目"
+      "editButton": "编辑项目",
+      "dataResidencyCardTitle": "数据驻留",
+      "dataResidencyCardDescription": "此项目数据的托管位置。设置后，项目用户可在项目设置中看到。",
+      "dataResidencyEditButton": "编辑数据驻留",
+      "dataResidencyFieldTitle": "数据驻留",
+      "dataResidencyFieldDescription": "表示此项目数据托管位置的标签，例如 \"EU (Frankfurt)\"。留空则不向项目用户显示。",
+      "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
+      "dataResidencyNotSet": "未设置"
     },
     "projectSubscription": {
       "title": "项目订阅",

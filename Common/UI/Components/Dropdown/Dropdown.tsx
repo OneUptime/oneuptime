@@ -6,16 +6,19 @@ import React, {
   ReactElement,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import Color from "../../../Types/Color";
 import Label from "../../../Models/DatabaseModels/Label";
 import Select, {
+  components as ReactSelectComponents,
   ControlProps,
   CSSObjectWithLabel,
   FormatOptionLabelMeta,
   GroupBase,
+  MultiValueRemoveProps,
   OptionProps,
 } from "react-select";
 
@@ -501,6 +504,60 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * react-select names a chip's remove button after whatever formatOptionLabel
+   * returned for it: `aria-label={"Remove " + children}` in its MultiValue.
+   * Ours returns an element - the option's text sits next to a colour dot and
+   * its labels - and concatenating that gives "Remove [object Object]", which
+   * is what a screen reader read out for every chip in every multi-select.
+   * Name the button after the option's own text instead, translated the same
+   * way the chip is.
+   *
+   * The identity has to hold still across renders: react-select rebuilds its
+   * component table whenever the components prop stops being shallow-equal, and
+   * a rebuilt table is a new element type, so React would throw the remove
+   * button away and mount a fresh one on every render - taking the focus with
+   * it if someone were tabbing through the chips. useTranslateValue hands back a
+   * new translateString each render, so keep the latest one in a ref and depend
+   * on nothing.
+   */
+  const translateStringRef: React.MutableRefObject<
+    (value: string | undefined) => string | undefined
+  > = useRef(translateString);
+  translateStringRef.current = translateString;
+
+  const MultiValueRemoveWithOptionName: FunctionComponent<
+    MultiValueRemoveProps<DropdownOption, boolean, GroupBase<DropdownOption>>
+  > = useMemo(() => {
+    const MultiValueRemove: FunctionComponent<
+      MultiValueRemoveProps<DropdownOption, boolean, GroupBase<DropdownOption>>
+    > = (
+      removeProps: MultiValueRemoveProps<
+        DropdownOption,
+        boolean,
+        GroupBase<DropdownOption>
+      >,
+    ): ReactElement => {
+      const optionLabel: string =
+        translateStringRef.current(removeProps.data.label) ??
+        removeProps.data.label;
+
+      return (
+        <ReactSelectComponents.MultiValueRemove
+          {...removeProps}
+          innerProps={{
+            ...removeProps.innerProps,
+            "aria-label": `Remove ${optionLabel}`,
+          }}
+        />
+      );
+    };
+
+    MultiValueRemove.displayName = "DropdownMultiValueRemove";
+
+    return MultiValueRemove;
+  }, []);
+
   useLayoutEffect(() => {
     if (firstUpdate.current && props.initialValue) {
       firstUpdate.current = false;
@@ -534,6 +591,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         classNamePrefix="ou-select"
         unstyled={false}
         formatOptionLabel={formatDropdownOptionLabel}
+        components={{ MultiValueRemove: MultiValueRemoveWithOptionName }}
         onBlur={() => {
           props.onBlur?.();
         }}

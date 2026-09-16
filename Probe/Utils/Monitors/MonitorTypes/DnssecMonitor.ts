@@ -12,6 +12,13 @@ import DnssecMonitorResponse, {
   DnssecRrsigRecord,
 } from "Common/Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
 import { execFile } from "child_process";
+import MonitorRetry from "../MonitorRetry";
+
+/*
+ * Retries when neither the caller nor the step config sets one: three
+ * attempts, the same as before retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 2;
 
 export interface DnssecQueryOptions {
   timeout?: number | undefined;
@@ -288,11 +295,13 @@ export default class DnssecMonitorUtil {
         failureCause: (err as Error).message || (err as Error).toString(),
       });
 
-      /*
-       * ?? not ||: a caller asking for zero retries means zero, not "fall
-       * through to the config default".
-       */
-      if (options.currentRetryCount < (options.retry ?? config.retries ?? 3)) {
+      if (
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry ?? config.retries,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await DnssecMonitorUtil.query(config, options);

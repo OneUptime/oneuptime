@@ -5,6 +5,7 @@ import SnmpVersion from "./SnmpMonitor/SnmpVersion";
 import SnmpSecurityLevel from "./SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "./SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "./SnmpMonitor/SnmpPrivProtocol";
+import { parseMonitorStepRetries } from "./MonitorStepRetries";
 
 export default interface MonitorStepSnmpMonitor {
   snmpVersion: SnmpVersion;
@@ -14,7 +15,12 @@ export default interface MonitorStepSnmpMonitor {
   snmpV3Auth?: SnmpV3Auth | undefined;
   oids: Array<SnmpOid>;
   timeout: number;
-  retries: number;
+  /*
+   * Retries after the first attempt (0 = query once). Absent only on configs
+   * the server builds for Network Devices, which have no retry setting of
+   * their own: the probe then applies its built-in default.
+   */
+  retries?: number | undefined;
   /*
    * When true, the probe walks the IF-MIB interface tables on every check
    * and reports per-interface status, bandwidth, and error metrics.
@@ -51,7 +57,8 @@ export class MonitorStepSnmpMonitorUtil {
         (json["oids"] as Array<JSONObject>) || [],
       ),
       timeout: (json["timeout"] as number) || 5000,
-      retries: (json["retries"] as number) || 3,
+      // 0 retries is a real answer and must survive the round-trip.
+      retries: parseMonitorStepRetries(json["retries"], 3),
       monitorInterfaces: Boolean(json["monitorInterfaces"]),
     };
   }

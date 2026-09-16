@@ -6,7 +6,7 @@ import LabelService from "../../../Server/Services/LabelService";
 import MonitorFeedService from "../../../Server/Services/MonitorFeedService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "../../../Server/Services/ServiceLevelObjectiveMonitorRuleEngineService";
-import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
+import ServiceLevelObjectiveMonitorRuleService from "../../../Server/Services/ServiceLevelObjectiveMonitorRuleService";
 import StatusPageMonitorRuleEngineService, {
   StatusPageMonitorRuleSyncResult,
 } from "../../../Server/Services/StatusPageMonitorRuleEngineService";
@@ -329,7 +329,12 @@ describe("LabelService delete hooks - a deleted label must not strand resources"
         "syncMonitorsForSlo",
       )
       .mockResolvedValue({ monitorIdsAdded: [], monitorIdsRemoved: [] });
-    jest.spyOn(ServiceLevelObjectiveService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(
+        ServiceLevelObjectiveMonitorRuleService,
+        "findServiceLevelObjectiveIdsForRulesUsingLabels",
+      )
+      .mockResolvedValue([]);
     jest
       .spyOn(LabelService, "findBy")
       .mockResolvedValue([fakeLabelRow(LABEL_ID)]);

@@ -56,127 +56,137 @@ export class Service extends DatabaseService<Model> {
       } as LogAttributes);
     }
 
-    const project: Project | null = await ProjectService.findOneById({
-      id: data.projectId,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        paymentProviderCustomerId: true,
-        paymentProviderSubscriptionId: true,
-        paymentProviderMeteredSubscriptionId: true,
-      },
-    });
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: data.projectId,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          paymentProviderCustomerId: true,
+          paymentProviderSubscriptionId: true,
+          paymentProviderMeteredSubscriptionId: true,
+        },
+      });
 
-    /*
-     * refresh the subscription status. This is a hack to ensure that the subscription status is always up to date.
-     * This is because the subscription status can change at any time and we need to ensure that the subscription status is always up to date.
-     */
+      /*
+       * refresh the subscription status. This is a hack to ensure that the subscription status is always up to date.
+       * This is because the subscription status can change at any time and we need to ensure that the subscription status is always up to date.
+       */
 
-    if (!project) {
-      throw new BadDataException("Project not found");
-    }
-
-    if (!project.paymentProviderCustomerId) {
-      throw new BadDataException("Payment provider customer id not found.");
-    }
-
-    const subscriptionState: SubscriptionStatus =
-      await BillingService.getSubscriptionStatus(
-        project.paymentProviderSubscriptionId as string,
-      );
-
-    const meteredSubscriptionState: SubscriptionStatus =
-      await BillingService.getSubscriptionStatus(
-        project.paymentProviderMeteredSubscriptionId as string,
-      );
-
-    // update the project.
-
-    await ProjectService.updateOneById({
-      id: project.id!,
-      data: {
-        paymentProviderSubscriptionStatus: subscriptionState,
-        paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
-      },
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
-
-    if (
-      SubscriptionStatusUtil.isSubscriptionInactive(meteredSubscriptionState) ||
-      SubscriptionStatusUtil.isSubscriptionInactive(subscriptionState)
-    ) {
-      // check if all invoices are paid. If yes, then reactivate the subscription.
-
-      const invoices: Array<Invoice> = await BillingService.getInvoices(
-        project.paymentProviderCustomerId,
-      );
-
-      let allInvoicesPaid: boolean = true;
-
-      for (const invoice of invoices) {
-        if (
-          invoice.status === InvoiceStatus.Open ||
-          invoice.status === InvoiceStatus.Uncollectible
-        ) {
-          allInvoicesPaid = false;
-          break;
-        }
+      if (!project) {
+        throw new BadDataException("Project not found");
       }
 
-      if (allInvoicesPaid) {
+      if (!project.paymentProviderCustomerId) {
+        throw new BadDataException("Payment provider customer id not found.");
+      }
+
+      const subscriptionState: SubscriptionStatus =
+        await BillingService.getSubscriptionStatus(
+          project.paymentProviderSubscriptionId as string,
+        );
+
+      const meteredSubscriptionState: SubscriptionStatus =
+        await BillingService.getSubscriptionStatus(
+          project.paymentProviderMeteredSubscriptionId as string,
+        );
+
+      // update the project.
+
+      await ProjectService.updateOneById({
+        id: project.id!,
+        data: {
+          paymentProviderSubscriptionStatus: subscriptionState,
+          paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      if (
+        SubscriptionStatusUtil.isSubscriptionInactive(
+          meteredSubscriptionState,
+        ) ||
+        SubscriptionStatusUtil.isSubscriptionInactive(subscriptionState)
+      ) {
+        // check if all invoices are paid. If yes, then reactivate the subscription.
+
+        const invoices: Array<Invoice> = await BillingService.getInvoices(
+          project.paymentProviderCustomerId,
+        );
+
+        let allInvoicesPaid: boolean = true;
+
+        for (const invoice of invoices) {
+          if (
+            invoice.status === InvoiceStatus.Open ||
+            invoice.status === InvoiceStatus.Uncollectible
+          ) {
+            allInvoicesPaid = false;
+            break;
+          }
+        }
+
+        if (allInvoicesPaid) {
+          try {
+            await ProjectService.reactiveSubscription(project.id!);
+          } catch (err) {
+            logger.error(err, {
+              projectId: data.projectId?.toString(),
+            } as LogAttributes);
+          }
+
+          /*
+           * No Open/Uncollectible invoices means the project has no outstanding
+           * payment obligations, so we mark the subscription as Active. Stripe may
+           * still report the (re)created subscription as "incomplete" until the
+           * first payment confirms, which would otherwise surface a misleading
+           * "invoices are unpaid" banner.
+           */
+          await ProjectService.updateOneById({
+            id: project.id!,
+            data: {
+              paymentProviderSubscriptionStatus: SubscriptionStatus.Active,
+              paymentProviderMeteredSubscriptionStatus:
+                SubscriptionStatus.Active,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+        }
+      }
+    } finally {
+      /*
+       * Released on every exit. A Stripe or database error used to skip the
+       * release, leaving the project locked until lockTimeout and making the
+       * next pay attempt or invoice list wait out acquireTimeout first.
+       */
+      if (mutex) {
         try {
-          await ProjectService.reactiveSubscription(project.id!);
+          await Semaphore.release(mutex);
+          logger.debug(
+            "Mutex released - " +
+              data.projectId.toString() +
+              " at " +
+              OneUptimeDate.getCurrentDateAsFormattedString(),
+          );
         } catch (err) {
+          logger.debug(
+            "Mutex release failed - " +
+              data.projectId.toString() +
+              " at " +
+              OneUptimeDate.getCurrentDateAsFormattedString(),
+          );
           logger.error(err, {
             projectId: data.projectId?.toString(),
           } as LogAttributes);
         }
-
-        /*
-         * No Open/Uncollectible invoices means the project has no outstanding
-         * payment obligations, so we mark the subscription as Active. Stripe may
-         * still report the (re)created subscription as "incomplete" until the
-         * first payment confirms, which would otherwise surface a misleading
-         * "invoices are unpaid" banner.
-         */
-        await ProjectService.updateOneById({
-          id: project.id!,
-          data: {
-            paymentProviderSubscriptionStatus: SubscriptionStatus.Active,
-            paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Active,
-          },
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
-        });
-      }
-    }
-
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-        logger.debug(
-          "Mutex released - " +
-            data.projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
-        );
-      } catch (err) {
-        logger.debug(
-          "Mutex release failed - " +
-            data.projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
-        );
-        logger.error(err, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
       }
     }
   }

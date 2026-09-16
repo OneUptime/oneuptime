@@ -16,7 +16,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
-import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -49,9 +48,16 @@ import {
   ReplayerFactory,
   ReplayerLike,
 } from "./Engine/ReplayEngineTypes";
-import ReplayStage, { ReplayStageFit } from "./ReplayStage";
+import ReplayStage, {
+  REPLAY_STAGE_ASPECT_CSS_VAR,
+  ReplayStageFit,
+  ReplayStageSizing,
+  formatReplayStageAspect,
+  getReplayStageBoxClassName,
+} from "./ReplayStage";
 import useReplayClock, { ReplayClockLike } from "./useReplayClock";
 import ReplayStageOverlays, {
+  ReplayNextUserSession,
   ReplayStageOverlaysProps,
   findIdleBandAt,
 } from "./ReplayStageOverlays";
@@ -59,8 +65,12 @@ import ReplayHeader, {
   ReplayHeaderFact,
   ReplayHeaderHandle,
   ReplayHeaderProps,
-  ReplayHeaderTab,
 } from "./ReplayHeader";
+import { ReplayTabSummary, summarizeReplayTabs } from "./ReplayTabs";
+import {
+  REPLAY_FILL_HEIGHT_CSS_VAR,
+  useReplayFillHeight,
+} from "./ReplayFillHeight";
 import ReplayScrubber from "./ReplayScrubber";
 import ReplayRail, {
   ReplayRailHandle,
@@ -123,6 +133,7 @@ import {
   REPLAY_RAIL_MAX_WIDTH_REM,
   REPLAY_RAIL_MIN_WIDTH_REM,
   ReplayViewPrefs,
+  cycleReplayStageFit,
   getReplayViewPrefsSnapshot,
   readReplayListUrl,
   replayViewPrefsStore,
@@ -139,12 +150,14 @@ import {
 import { formatReplayOffset } from "./ReplayTimeFormat";
 import {
   ReplayAdjacentUserSessions,
+  ReplayUserSessionDescription,
   ReplayUserSessionItem,
   ReplayUserSessionsFetchResult,
   ReplayUserSessionsKind,
   ReplayUserSessionsState,
   ReplayUserSessionsWindow,
   buildReplayUserSessionsWindow,
+  describeReplayUserSession,
   fetchReplayUserSessions,
   findAdjacentUserSessions,
   mergeReplayUserSessions,
@@ -295,6 +308,67 @@ export const REPLAY_OFFSET_TEXT_CLOCK_MS: number = 1000;
  * to protect while the picture is still.
  */
 const REPLAY_CLOCK_EXACT_MS: number = 1;
+
+/*
+ * ---- The two sizing modes. ----
+ *
+ * "fill": the player has a DEFINITE height and every box between the root
+ * and the stage is a flex column that passes the leftover height down, so
+ * the picture takes everything the chrome does not. That is what makes the
+ * recording big: nothing is measured in JavaScript and subtracted any more
+ * (the old reservedBottomHeightPx), the stage simply gets what is left.
+ *
+ * "flow": today's document flow, for narrow screens - the stage sizes
+ * itself from the recorded aspect ratio (capped at 70vh) and the rail
+ * stacks under the player.
+ *
+ * Outside theater both live in ONE class string: the flow rules are
+ * unprefixed and the fill rules carry `xl:`, so the mode is chosen by the
+ * viewport with no breakpoint check in JavaScript. The root's definite
+ * height at xl comes from REPLAY_FILL_HEIGHT_CSS_VAR, which
+ * useReplayFillHeight measures (CSS cannot express "to the bottom of the
+ * window from wherever I start"). In theater the element IS the viewport,
+ * so the same rules apply unprefixed at every width.
+ *
+ * The strings are literals rather than built from parts: Tailwind's
+ * scanner only sees whole class names.
+ */
+const REPLAY_ROOT_FLOW_CLASS: string =
+  "flex min-w-0 flex-col xl:h-[var(--oneuptime-replay-fill-height)] xl:min-h-0";
+const REPLAY_ROOT_FILL_CLASS: string =
+  "flex h-full min-h-0 flex-col overflow-hidden bg-gray-50 p-3";
+
+const REPLAY_MAIN_ROW_FLOW_CLASS: string =
+  "flex min-w-0 flex-col gap-4 xl:min-h-0 xl:flex-1 xl:flex-row xl:items-stretch";
+const REPLAY_MAIN_ROW_FILL_CLASS: string =
+  "flex min-h-0 min-w-0 flex-1 flex-col gap-4 xl:flex-row xl:items-stretch";
+
+const REPLAY_PLAYER_COLUMN_FLOW_CLASS: string =
+  "flex min-w-0 flex-1 flex-col xl:min-h-0";
+const REPLAY_PLAYER_COLUMN_FILL_CLASS: string =
+  "flex min-h-0 min-w-0 flex-1 flex-col";
+
+/*
+ * The one player card. Deliberately NOT overflow-hidden: the speed menu,
+ * the More menu and the tab picker are drawn beyond its edges.
+ */
+const REPLAY_CARD_FLOW_CLASS: string =
+  "flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm xl:min-h-0 xl:flex-1";
+const REPLAY_CARD_FILL_CLASS: string =
+  "flex min-h-0 flex-1 flex-col rounded-xl border border-gray-200 bg-white shadow-sm";
+
+/*
+ * The rail column. Stacked under the player it is capped so its list -
+ * not the page - is what scrolls (ux-02); beside the player the row has a
+ * definite height already, so the cap comes off and the column stretches
+ * to the stage's height instead of to an approximation of the viewport.
+ */
+const REPLAY_RAIL_COLUMN_CLASS: string =
+  "relative flex min-h-0 max-h-[32rem] w-full shrink-0 xl:max-h-none xl:max-w-[40%]";
+
+/* Matches REPLAY_RAIL_DEFAULT_WIDTH_REM; the variable is set by the row. */
+const REPLAY_RAIL_COLUMN_WIDTH_CLASS: string =
+  "xl:w-[var(--oneuptime-replay-rail-width,26rem)]";
 
 interface ReplayRailClockedProps {
   clock: ReplayClockLike | null;
@@ -548,9 +622,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     useState<ReplayerFactory | null>(null);
   const [engine, setEngine] = useState<ReplayEngine | null>(null);
   const [activeTabId, setActiveTabId] = useState<string>("");
-  const [fit, setFit] = useState<ReplayStageFit>("contain");
   const [scale, setScale] = useState<number>(1);
-  const [scrubberHeightPx, setScrubberHeightPx] = useState<number>(240);
   const [isTheater, setIsTheater] = useState<boolean>(false);
   const [isTextSelectionEnabled, setIsTextSelectionEnabled] =
     useState<boolean>(false);
@@ -584,8 +656,6 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   });
 
   const rootRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
-  const scrubberContainerRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
   const railContainerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
   const railRef: React.RefObject<ReplayRailHandle> =
@@ -620,6 +690,31 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   manifestRef.current = manifest;
   activeTabIdRef.current = activeTabId;
   isTextSelectionEnabledRef.current = isTextSelectionEnabled;
+
+  /*
+   * How the stage gets its height, in one value passed to every box that
+   * has to agree about it. In theater the fullscreen element is the
+   * viewport, so the fill rules apply at every width; inline, the class
+   * strings switch at xl on their own and the mode stays "responsive".
+   */
+  const stageSizing: ReplayStageSizing = isTheater ? "fill" : "responsive";
+
+  /*
+   * The root's height at xl, measured rather than computed in CSS. Null in
+   * theater (the fullscreen element already has one) and before the first
+   * measurement, in which case the variable is simply not set and the
+   * xl:h-[var(...)] rule falls back to auto - the flow layout.
+   */
+  const fillHeightPx: number | null = useReplayFillHeight(rootRef, !isTheater);
+
+  const fillHeightStyle: React.CSSProperties =
+    useMemo((): React.CSSProperties => {
+      return (
+        fillHeightPx === null
+          ? {}
+          : { [REPLAY_FILL_HEIGHT_CSS_VAR]: `${fillHeightPx}px` }
+      ) as React.CSSProperties;
+    }, [fillHeightPx]);
 
   /* ReplayStage restores its read-only inspection state in a layout effect. */
   useEffect(() => {
@@ -1501,23 +1596,24 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     });
   }, [allSignals, chunks, snapshot.loadedChunkIndexes, snapshot.durationMs]);
 
-  const headerTabs: Array<ReplayHeaderTab> = useMemo(() => {
+  /*
+   * The tab strip's model: opened order, each tab's page, its span on the
+   * session clock and - from the manifest's per-tab hasRecordingEnded -
+   * whether it is still open. The recorder mints a new tab id on every
+   * page load, so a multi-page visit produces a wall of "tabs"; that is
+   * what the switcher's open-first ordering and picker are for.
+   */
+  const headerTabs: Array<ReplayTabSummary> = useMemo(() => {
     if (!manifest) {
       return [];
     }
 
-    return manifest.tabs.map(
-      (tab: SessionReplayManifestTab, index: number): ReplayHeaderTab => {
-        return {
-          tabId: tab.tabId,
-          label: `Tab ${index + 1}`,
-          durationMs: tab.durationMs,
-          openedAtMs: tab.firstChunkStartOffsetMs,
-          hasFootage: tabHasFootage(tab),
-          isActive: tab.tabId === activeTabId,
-        };
-      },
-    );
+    return summarizeReplayTabs({
+      tabs: manifest.tabs,
+      activeTabId: activeTabId,
+      isSessionFinalized: manifest.isFinalized,
+      hasSessionRecordingEnded: manifest.hasRecordingEnded,
+    });
   }, [manifest, activeTabId]);
 
   /*
@@ -1526,7 +1622,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
    * that ended the tab is itself a structural change carrying the final
    * playhead. Nothing moves after it until the viewer acts.
    */
-  const continueInTab: ReplayHeaderTab | null = useMemo(() => {
+  const continueInTab: ReplayTabSummary | null = useMemo(() => {
     if (!manifest || snapshot.phase !== "ended") {
       return null;
     }
@@ -1542,7 +1638,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     }
 
     return (
-      headerTabs.find((tab: ReplayHeaderTab): boolean => {
+      headerTabs.find((tab: ReplayTabSummary): boolean => {
         return tab.tabId === next.tabId;
       }) ?? null
     );
@@ -2131,6 +2227,37 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         : { newer: null, older: null };
     }, [displayedUserSessions, sessionId]);
 
+  /*
+   * The ended card's onward step (the "what happened next" question a
+   * viewer has the moment a recording runs out): the same newer session
+   * the header's arrow and "}" open, described the way the sessions menu
+   * describes its rows. One clock read for the whole card.
+   */
+  const nextUserSession: ReplayNextUserSession | null =
+    useMemo((): ReplayNextUserSession | null => {
+      const newer: ReplayUserSessionItem | null = adjacentUserSessions.newer;
+
+      if (!newer) {
+        return null;
+      }
+
+      const description: ReplayUserSessionDescription =
+        describeReplayUserSession(newer, Date.now());
+
+      return {
+        sessionId: newer.sessionId,
+        description: [
+          description.when,
+          description.path || "Unknown page",
+          description.duration,
+        ]
+          .filter((part: string): boolean => {
+            return part.length > 0;
+          })
+          .join(" · "),
+      };
+    }, [adjacentUserSessions]);
+
   /* "{" and "}": the same two steps the header's arrow buttons take. */
   const openOlderUserSession: () => void = useCallback((): void => {
     if (adjacentUserSessions.older) {
@@ -2371,28 +2498,34 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     });
   }, []);
 
-  /* Fit the recording above its actual controls, including wrapped layouts. */
-  useEffect(() => {
-    const container: HTMLDivElement | null = scrubberContainerRef.current;
-    if (!container) {
-      return;
-    }
+  /*
+   * How the picture is fitted is a preference, not per-view state: someone
+   * who reads recordings at 1:1 or scrolls tall pages at full width wants
+   * that on the next session too, and the "z" shortcut would otherwise
+   * reset on every navigation between sessions.
+   */
+  const changeFit: (fit: ReplayStageFit) => void = useCallback(
+    (fit: ReplayStageFit): void => {
+      replayViewPrefsStore.update({ stageFit: fit });
+    },
+    [],
+  );
 
-    const measure: () => void = (): void => {
-      setScrubberHeightPx(container.getBoundingClientRect().height);
-    };
-    measure();
-    const observer: ResizeObserver | null =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(measure)
-        : null;
-    observer?.observe(container);
-    window.addEventListener("resize", measure);
-    return (): void => {
-      observer?.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, [manifest !== null, engine]);
+  /* "z": Fit -> Width -> 1:1 -> Fit, the URL bar's three segments in order. */
+  const cycleFit: () => void = useCallback((): void => {
+    replayViewPrefsStore.update({
+      stageFit: cycleReplayStageFit(
+        replayViewPrefsStore.getSnapshot().stageFit,
+      ),
+    });
+  }, []);
+
+  const changeTimelineLanes: (isVisible: boolean) => void = useCallback(
+    (isVisible: boolean): void => {
+      replayViewPrefsStore.update({ timelineLanes: isVisible });
+    },
+    [],
+  );
 
   /* ---- Render. ---- */
 
@@ -2470,35 +2603,67 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     );
   }
 
+  /*
+   * The viewer's rail width, read before the loading branch so the skeleton
+   * lays the row out at the width the rail will actually have. Left to the
+   * class default, a viewer who had dragged the rail wider watched the
+   * stage jump sideways the instant the manifest landed.
+   */
+  const railWidthStyle: React.CSSProperties = (
+    prefs.railCollapsed
+      ? {}
+      : { "--oneuptime-replay-rail-width": `${prefs.railWidthRem}rem` }
+  ) as React.CSSProperties;
+
   if (!manifest) {
     /*
-     * Loading: the header's shape, a stage box at a 16:9 aspect, and the
-     * rail's own skeleton rows, so the page lays out once and fills in.
+     * Loading. The same boxes, the same classes and the same ref as the
+     * real player, so the fill height is already measured when the
+     * manifest lands and the page lays out exactly once: a compact header
+     * bar, the stage box at 16:9 through ReplayStage's own responsive
+     * class, and the rail's own skeleton rows beside it.
      */
     return (
-      <div data-testid="replay-loading" className="flex flex-col">
-        <Skeleton className="mb-3 h-4" widthVariantIndex={0} />
-        <Card title="Session recording">
-          <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 sm:grid-cols-2 xl:grid-cols-3">
-            <Skeleton className="h-10" widthVariantIndex={0} />
-            <Skeleton className="h-10" widthVariantIndex={1} />
-            <Skeleton className="h-10" widthVariantIndex={0} />
+      <div
+        ref={rootRef}
+        data-testid="replay-loading"
+        data-replay-sizing="responsive"
+        className={REPLAY_ROOT_FLOW_CLASS}
+        style={fillHeightStyle}
+      >
+        <Skeleton className="mb-3 h-16" widthVariantIndex={0} />
+        <div className={REPLAY_MAIN_ROW_FLOW_CLASS} style={railWidthStyle}>
+          <div className={REPLAY_PLAYER_COLUMN_FLOW_CLASS}>
+            <div className={REPLAY_CARD_FLOW_CLASS}>
+              <div
+                className={`${getReplayStageBoxClassName(
+                  "responsive",
+                  prefs.stageFit,
+                )} animate-pulse`}
+                style={
+                  {
+                    [REPLAY_STAGE_ASPECT_CSS_VAR]:
+                      formatReplayStageAspect(null),
+                  } as React.CSSProperties
+                }
+                role="status"
+                aria-label="Loading the recording"
+              />
+            </div>
           </div>
-        </Card>
-        <div className="flex min-w-0 flex-col gap-5 xl:flex-row xl:items-stretch">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div
-              className="w-full animate-pulse rounded-lg bg-gray-100"
-              style={{
-                aspectRatio: "16 / 9",
-                minHeight: "24rem",
-                maxHeight: "70vh",
-              }}
-              role="status"
-              aria-label="Loading the recording"
-            />
-          </div>
-          <div className="w-full shrink-0 xl:w-[30rem] xl:max-w-[40%]">
+          {/*
+           * The rail the viewer will actually get: their stored width
+           * through railWidthStyle above, and nothing at all when they
+           * keep it collapsed. A skeleton that always reserved a 26rem
+           * column made the stage jump sideways the moment the manifest
+           * landed - for one preference by growing, for the other by
+           * shrinking.
+           */}
+          <div
+            className={`${REPLAY_RAIL_COLUMN_CLASS} ${REPLAY_RAIL_COLUMN_WIDTH_CLASS} ${
+              prefs.railCollapsed ? "hidden" : ""
+            }`}
+          >
             <ReplayRail
               signals={NO_SIGNALS}
               sessionId={sessionId}
@@ -2511,6 +2676,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
               selectedSignalId={null}
               onSeek={seekTo}
               onSelectSignal={selectSignal}
+              className="min-h-0 flex-1"
             />
           </div>
         </div>
@@ -2519,11 +2685,6 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   }
 
   const isPlayable: boolean = absence === null;
-  const railWidthStyle: React.CSSProperties = (
-    prefs.railCollapsed
-      ? {}
-      : { "--oneuptime-replay-rail-width": `${prefs.railWidthRem}rem` }
-  ) as React.CSSProperties;
 
   /*
    * Quantised while playing, exact while paused: the rail's "now" divider
@@ -2587,11 +2748,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         data-testid="replay-player"
         data-replay-layout="true"
         data-replay-live={isLive ? "true" : "false"}
-        className={
-          isTheater
-            ? "flex h-full flex-col overflow-auto bg-gray-50 p-4"
-            : "flex flex-col"
-        }
+        data-replay-sizing={stageSizing}
+        className={isTheater ? REPLAY_ROOT_FILL_CLASS : REPLAY_ROOT_FLOW_CLASS}
+        style={fillHeightStyle}
       >
         <ReplayHeaderClocked
           clock={engine}
@@ -2609,6 +2768,12 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             facts: facts,
             startTimeUnixMs: startTimeUnixMs,
             durationMs: snapshot.durationMs || manifest.durationMs,
+            /*
+             * The whole recording, not the tab being watched: the engine's
+             * duration above is this tab's footage, and the tab picker
+             * draws every tab's span against the session clock.
+             */
+            sessionDurationMs: manifest.durationMs,
             isLive: isLive,
             tabs: headerTabs,
             onSwitchTab: switchTab,
@@ -2633,7 +2798,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
         {recordingNotes.length > 0 && (
           <details
-            className="group mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5"
+            className="group mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 shrink-0"
             data-testid="replay-recording-notes"
           >
             {/*
@@ -2673,10 +2838,18 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         )}
 
         <div
-          className="flex min-w-0 flex-col gap-5 xl:flex-row xl:items-stretch"
+          className={
+            isTheater ? REPLAY_MAIN_ROW_FILL_CLASS : REPLAY_MAIN_ROW_FLOW_CLASS
+          }
           style={railWidthStyle}
         >
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div
+            className={
+              isTheater
+                ? REPLAY_PLAYER_COLUMN_FILL_CLASS
+                : REPLAY_PLAYER_COLUMN_FLOW_CLASS
+            }
+          >
             {/*
              * ONE card for the player.
              *
@@ -2689,8 +2862,16 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
              * player uses: address -> picture -> track -> transport.
              * Menus may extend beyond this card; clipping here would hide
              * playback speed options and the overflow menu.
+             *
+             * It is also the box that hands the stage its height: a flex
+             * column whose stage child grows and whose scrubber child does
+             * not (shrink-0 below).
              */}
-            <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div
+              className={
+                isTheater ? REPLAY_CARD_FILL_CLASS : REPLAY_CARD_FLOW_CLASS
+              }
+            >
               <ReplayStageOverlaysClocked
                 clock={engine}
                 quantumMs={REPLAY_OVERLAYS_CLOCK_MS}
@@ -2701,8 +2882,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   entryUrl: manifest.details.entryUrl,
                   recordedSize: recordedSize,
                   scale: scale,
-                  fit: fit,
-                  onFitChange: setFit,
+                  fit: prefs.stageFit,
+                  onFitChange: changeFit,
+                  sizing: stageSizing,
                   canSelectText:
                     isPlayable && engine !== null && isReplayDocumentReady,
                   isTextSelectionEnabled: isTextSelectionEnabled,
@@ -2719,6 +2901,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   absence: absence,
                   sealedReason: sealedReason,
                   isLive: isLive,
+                  nextUserSession: nextUserSession,
+                  onOpenNextUserSession: openUserSession,
                   children: (
                     <Fragment>
                       {isPlayable && engine && (
@@ -2727,24 +2911,29 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                           recorderCapabilities={manifest.recorderCapabilities}
                           viewportWidth={manifest.details.viewportWidth}
                           viewportHeight={manifest.details.viewportHeight}
-                          isTheater={isTheater}
-                          fit={fit}
+                          sizing={stageSizing}
+                          fit={prefs.stageFit}
                           isTextSelectionEnabled={isTextSelectionEnabled}
                           onScaleChange={setScale}
-                          reservedBottomHeightPx={scrubberHeightPx + 24}
                         />
                       )}
                       {isPlayable && !engine && (
+                        /*
+                         * The same box the stage will occupy, down to the
+                         * class string, so swapping the engine in moves
+                         * nothing on the page.
+                         */
                         <div
-                          className="w-full animate-pulse rounded-lg bg-gray-100"
-                          style={{
-                            aspectRatio:
-                              recordedSize && recordedSize.height > 0
-                                ? `${recordedSize.width} / ${recordedSize.height}`
-                                : "16 / 9",
-                            minHeight: "24rem",
-                            maxHeight: "70vh",
-                          }}
+                          className={`${getReplayStageBoxClassName(
+                            stageSizing,
+                            prefs.stageFit,
+                          )} animate-pulse`}
+                          style={
+                            {
+                              [REPLAY_STAGE_ASPECT_CSS_VAR]:
+                                formatReplayStageAspect(recordedSize),
+                            } as React.CSSProperties
+                          }
                           role="status"
                           aria-label="Loading the replay engine"
                           data-testid="replay-stage-placeholder"
@@ -2756,10 +2945,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
               />
 
               {isPlayable && (
-                <div
-                  ref={scrubberContainerRef}
-                  className="border-t border-gray-200"
-                >
+                /* shrink-0: the transport keeps its height, the stage takes the rest. */
+                <div className="shrink-0 border-t border-gray-200">
                   <ReplayScrubber
                     snapshot={snapshot}
                     clock={engine}
@@ -2775,6 +2962,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                     keyboardScope={getKeyboardScope}
                     isFollowEnabled={prefs.follow}
                     isMouseTrailEnabled={prefs.mouseTrail}
+                    showTimelineLanes={prefs.timelineLanes}
+                    onTimelineLanesChange={changeTimelineLanes}
+                    onToggleRail={toggleRailCollapsed}
+                    onCycleFit={cycleFit}
                     onSeek={seekTo}
                     onPlayPause={playPause}
                     onSpeedChange={setSpeed}
@@ -2820,7 +3011,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
             {captureNotes.length > 0 && (
               <details
-                className="group mt-3 rounded-lg border border-gray-200 bg-white px-3 py-1.5"
+                className="group mt-3 rounded-lg border border-gray-200 bg-white px-3 py-1.5 shrink-0"
                 data-testid="replay-capture-notes"
               >
                 {/* Same one-line summary as the recording notes above. */}
@@ -2873,21 +3064,23 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
            * overflowed: follow, the 40% now-divider anchoring, "Jump to
            * now" and the >500-row windowing were all inert, and an
            * 800-signal session produced a page tens of thousands of pixels
-           * tall beside a 70vh stage. Beside the stage the column tracks the
-           * viewport, with extra room when stacked below the player.
-           * Every wrapper down to ReplayRail's own list carries
-           * min-h-0 so the overflow lands on the list, not on the page.
+           * tall beside a 70vh stage. Stacked, the 32rem cap is that
+           * bound; beside the player the row itself has a definite height
+           * now, so the cap comes off (xl:max-h-none) and the rail is
+           * exactly as tall as the picture. Every wrapper down to
+           * ReplayRail's own list carries min-h-0 so the overflow lands on
+           * the list, not on the page.
            */}
           <div
             ref={railContainerRef}
             data-testid="replay-rail-column"
             data-collapsed={prefs.railCollapsed ? "true" : "false"}
-            className={`relative flex min-h-0 max-h-[32rem] w-full shrink-0 xl:max-h-[calc(100vh-15rem)] xl:max-w-[40%] ${
+            className={`${REPLAY_RAIL_COLUMN_CLASS} ${
               prefs.railCollapsed
                 ? "xl:w-10"
                 : isTheater
                   ? "xl:w-[22rem]"
-                  : "xl:w-[var(--oneuptime-replay-rail-width,30rem)]"
+                  : REPLAY_RAIL_COLUMN_WIDTH_CLASS
             }`}
           >
             {!prefs.railCollapsed && !isTheater && (
@@ -2902,10 +3095,16 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
               />
             )}
             {prefs.railCollapsed && (
+              /*
+               * Shown at every width, because the collapsed state now
+               * applies at every width: "r" hides the rail on a narrow
+               * screen too, and this is the only way back there (the
+               * rail's own collapse button is a desktop affordance).
+               */
               <button
                 type="button"
                 data-testid="replay-rail-expand"
-                className="hidden h-full w-10 flex-col items-center justify-start gap-2 rounded-lg border border-gray-200 bg-white py-3 text-gray-500 hover:text-gray-800 xl:flex"
+                className="flex h-full w-10 flex-col items-center justify-start gap-2 rounded-lg border border-gray-200 bg-white py-3 text-gray-500 hover:text-gray-800"
                 title="Show the events rail"
                 onClick={toggleRailCollapsed}
               >
@@ -2915,39 +3114,46 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                 </span>
               </button>
             )}
-            {/* Stays mounted while collapsed (hidden on xl only) so the rail keeps its state. */}
+            {/* Stays mounted while collapsed (only hidden) so the rail keeps its state. */}
             <div
               className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${
-                prefs.railCollapsed ? "xl:hidden" : ""
+                prefs.railCollapsed ? "hidden" : ""
               }`}
             >
               {railElement}
             </div>
           </div>
         </div>
-      </div>
 
-      <ReplayCorrelationPanel
-        isOpen={isPanelOpen}
-        onClose={closeDetails}
-        activeTabId={prefs.detailsTab}
-        onTabChange={(tabId: string): void => {
-          if (
-            tabId === "session" ||
-            tabId === "provenance" ||
-            tabId === "fidelity"
-          ) {
-            replayViewPrefsStore.update({ detailsTab: tabId });
-          }
-        }}
-        sessionId={manifest.sessionId || sessionId}
-        details={manifest.details}
-        hasRecordingEnded={manifest.hasRecordingEnded}
-        fidelityNotices={manifest.fidelityNotices}
-        gaps={manifest.gaps}
-        onOpenRailTab={openRailTab}
-        railCounts={railCounts}
-      />
+        {/*
+         * Inside the root, not beside it: the details panel is a fixed
+         * overlay, and the top layer a fullscreen element creates hides
+         * every element that is not its descendant - so rendered as a
+         * sibling it was simply invisible in theater mode, with "i" and
+         * the "Session details" button doing nothing a viewer could see.
+         */}
+        <ReplayCorrelationPanel
+          isOpen={isPanelOpen}
+          onClose={closeDetails}
+          activeTabId={prefs.detailsTab}
+          onTabChange={(tabId: string): void => {
+            if (
+              tabId === "session" ||
+              tabId === "provenance" ||
+              tabId === "fidelity"
+            ) {
+              replayViewPrefsStore.update({ detailsTab: tabId });
+            }
+          }}
+          sessionId={manifest.sessionId || sessionId}
+          details={manifest.details}
+          hasRecordingEnded={manifest.hasRecordingEnded}
+          fidelityNotices={manifest.fidelityNotices}
+          gaps={manifest.gaps}
+          onOpenRailTab={openRailTab}
+          railCounts={railCounts}
+        />
+      </div>
 
       <ReplayOffsetText clock={engine} />
     </Fragment>

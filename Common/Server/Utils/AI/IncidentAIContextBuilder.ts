@@ -62,6 +62,9 @@ export default class IncidentAIContextBuilder {
         monitors: {
           name: true,
         },
+        serviceLevelObjectives: {
+          name: true,
+        },
         labels: {
           name: true,
           color: true,
@@ -239,6 +242,24 @@ export default class IncidentAIContextBuilder {
         })
         .join(", ");
       contextText += "\n\n";
+    }
+
+    /*
+     * Affected SLOs. A burn-rate incident has no monitors, so without this
+     * the model would see an incident about nothing in particular.
+     */
+    const affectedSloNames: Array<string> = (
+      incident.serviceLevelObjectives || []
+    )
+      .map((slo: { name?: string | undefined }): string => {
+        return slo.name || "";
+      })
+      .filter((name: string): boolean => {
+        return name.length > 0;
+      });
+
+    if (affectedSloNames.length > 0) {
+      contextText += `**Affected SLOs:** ${affectedSloNames.join(", ")}\n\n`;
     }
 
     // Labels
@@ -430,6 +451,24 @@ Grounding rules (important):
         })
         .join(", ");
       contextText += "\n\n";
+    }
+
+    /*
+     * Affected SLOs. A burn-rate incident has no monitors, so without this
+     * the model would see an incident about nothing in particular.
+     */
+    const affectedSloNames: Array<string> = (
+      incident.serviceLevelObjectives || []
+    )
+      .map((slo: { name?: string | undefined }): string => {
+        return slo.name || "";
+      })
+      .filter((name: string): boolean => {
+        return name.length > 0;
+      });
+
+    if (affectedSloNames.length > 0) {
+      contextText += `**Affected SLOs:** ${affectedSloNames.join(", ")}\n\n`;
     }
 
     // Labels

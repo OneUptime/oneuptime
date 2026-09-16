@@ -1,5 +1,6 @@
 import { JSONObject } from "../JSON";
 import ExternalStatusPageProviderType from "./ExternalStatusPageProviderType";
+import { parseMonitorStepRetries } from "./MonitorStepRetries";
 
 export default interface MonitorStepExternalStatusPageMonitor {
   statusPageUrl: string;
@@ -33,7 +34,8 @@ export class MonitorStepExternalStatusPageMonitorUtil {
       componentGroupName: (json["componentGroupName"] as string) || undefined,
       componentName: (json["componentName"] as string) || undefined,
       timeout: (json["timeout"] as number) || 10000,
-      retries: (json["retries"] as number) || 3,
+      // 0 retries is a real answer and must survive the round-trip.
+      retries: parseMonitorStepRetries(json["retries"], 3),
     };
   }
 

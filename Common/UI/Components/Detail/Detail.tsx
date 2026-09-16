@@ -466,7 +466,6 @@ const Detail: DetailFunction = <T extends GenericObject>(
           isSingleColumn ? " first:pt-0 last:pb-0" : ""
         }`}
         key={index}
-        id={props.id}
       >
         <div className="space-y-1">
           {translatedTitle && (
@@ -936,7 +935,6 @@ const Detail: DetailFunction = <T extends GenericObject>(
       <div
         className={`${className} ${containerClasses}`}
         key={index}
-        id={props.id}
         style={
           props.showDetailsInNumberOfColumns
             ? {
@@ -985,7 +983,16 @@ const Detail: DetailFunction = <T extends GenericObject>(
   }
 
   return (
+    /*
+     * The id names this detail, so it belongs to the element that holds all of
+     * it. It used to be stamped on every row instead, which put the same id on
+     * as many elements as the detail had fields: invalid HTML, an anchor or
+     * getElementById that reaches only the first row, and a Playwright locator
+     * that resolves to several elements and fails strict mode - which is how
+     * the SLO settings E2E found it.
+     */
     <div
+      id={props.id}
       className={`grid grid-cols-1 ${gapClasses} sm:grid-cols-${
         props.showDetailsInNumberOfColumns || 1
       } w-full`}

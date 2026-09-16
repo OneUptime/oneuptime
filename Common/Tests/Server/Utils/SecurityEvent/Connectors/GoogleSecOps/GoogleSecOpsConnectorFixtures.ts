@@ -1,5 +1,6 @@
 import { generateKeyPairSync } from "crypto";
 import GoogleSecOpsClient, {
+  CuratedRuleDetectionCount,
   FetchAlertsResult,
   GoogleSecOpsListBasis,
   SearchDetectionsResult,
@@ -76,8 +77,8 @@ export function fetchOptions(
   overrides: Partial<ConnectorFetchOptions> = {},
 ): ConnectorFetchOptions {
   return {
-    maxRequests: 36,
-    maxEvents: 36000,
+    maxRequests: 236,
+    maxEvents: 236000,
     requestTimeoutInMs: 60000,
     sampleLimit: 25,
     purpose: "poll",
@@ -147,7 +148,25 @@ export interface SearchCall {
   pageSize?: number | undefined;
   pageToken?: string | undefined;
   curated?: boolean | undefined;
+  ruleId?: string | undefined;
 }
+
+export interface CountCall {
+  startTime: Date;
+  endTime: Date;
+}
+
+/*
+ * The curated rule the fake reports detections for unless a test scripts
+ * its own counts, so a test that scripts only the curated search still
+ * exercises one real curated search.
+ */
+export const FIXTURE_CURATED_RULE_ID: string = "ur_fixture_rule";
+
+export type CountAnswer =
+  | Array<CuratedRuleDetectionCount>
+  | Error
+  | ((call: CountCall) => Array<CuratedRuleDetectionCount>);
 
 export interface AlertsCall {
   startTime: Date;
@@ -170,6 +189,7 @@ export interface FakeClient {
   client: GoogleSecOpsClient;
   searchCalls: Array<SearchCall>;
   alertsCalls: Array<AlertsCall>;
+  countCalls: Array<CountCall>;
 }
 
 /*
@@ -181,9 +201,12 @@ export function makeFakeClient(data: {
   rule?: Array<SearchAnswer> | undefined;
   curated?: Array<SearchAnswer> | undefined;
   alerts?: Array<AlertsAnswer> | undefined;
+  counts?: Array<CountAnswer> | undefined;
 }): FakeClient {
   const searchCalls: Array<SearchCall> = [];
   const alertsCalls: Array<AlertsCall> = [];
+  const countCalls: Array<CountCall> = [];
+  let countsIndex: number = 0;
   const indexes: Map<string, number> = new Map<string, number>();
   let alertsIndex: number = 0;
 
@@ -209,6 +232,23 @@ export function makeFakeClient(data: {
 
       return typeof answer === "function" ? answer(call) : answer;
     },
+    countCuratedRuleDetections: async (
+      call: CountCall,
+    ): Promise<Array<CuratedRuleDetectionCount>> => {
+      countCalls.push(call);
+      const queue: Array<CountAnswer> = data.counts || [
+        [{ ruleId: FIXTURE_CURATED_RULE_ID, count: 1 }],
+      ];
+      const answer: CountAnswer = queue[
+        Math.min(countsIndex++, queue.length - 1)
+      ] as CountAnswer;
+
+      if (answer instanceof Error) {
+        throw answer;
+      }
+
+      return typeof answer === "function" ? answer(call) : answer;
+    },
     fetchDetectionAlerts: async (
       call: AlertsCall,
     ): Promise<FetchAlertsResult> => {
@@ -226,7 +266,7 @@ export function makeFakeClient(data: {
     },
   } as unknown as GoogleSecOpsClient;
 
-  return { client, searchCalls, alertsCalls };
+  return { client, searchCalls, alertsCalls, countCalls };
 }
 
 export interface ClientFactoryCall {

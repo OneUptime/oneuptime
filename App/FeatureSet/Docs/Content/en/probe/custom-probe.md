@@ -205,7 +205,7 @@ The probe supports the following environment variables:
 - `PROBE_DESCRIPTION` - Description for the probe
 - `PROBE_MONITORING_WORKERS` - Number of monitoring workers (default: 1)
 - `PROBE_MONITOR_FETCH_LIMIT` - Number of monitors to fetch at once (default: 10)
-- `PROBE_MONITOR_RETRY_LIMIT` - Number of retries for failed monitors (default: 3)
+- `PROBE_MONITOR_RETRY_LIMIT` - Retries after the first attempt of a failed monitor check, used when a step does not set its own retry count (default: 3, so up to 4 attempts)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout for synthetic monitor scripts in milliseconds (default: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout for custom code monitor scripts in milliseconds (default: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Deadline for each request the probe sends to OneUptime (default: 45000)
@@ -214,6 +214,8 @@ The probe supports the following environment variables:
 - `PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS` - Deadline for one network discovery sweep, after which it is abandoned and the scan is reported failed (default: 5400000, i.e. 90 minutes)
 - `PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS` - How often a running discovery sweep uploads the hosts it has found so far, so a long scan shows progress and its devices can be imported before it finishes (default: 30000, minimum: 5000)
 - `PROBE_DISCOVERY_SCAN_CONCURRENCY` - Fixed number of addresses a discovery sweep probes at once. Leave unset (or 0) to size it from the scan's target, which is what you want unless the probe container is unusually small or unusually large (default: 0)
+- `PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS` - Time limit, in milliseconds, for looking up reverse DNS (PTR) names for the hosts a discovery sweep found. Leave unset (or 0) to size it from the number of hosts: 60 seconds for up to about 860 hosts, growing to at most 10 minutes. Hosts the lookups do not reach in time get no reverse DNS name (they are listed by IP address unless SNMP or NetBIOS names them), and the scan's status message says how many were missed. Raise it for a large network behind a slow DNS server (default: 0, range: 1000–1200000)
+- `PROBE_DISCOVERY_NETBIOS_MAX_HOSTS` - How many still-unnamed hosts one scan's NetBIOS lookup may ask, for scans with NetBIOS names turned on. Leave unset (or 0) to keep the built-in cap of 2,000. Hosts over the cap are not asked, and the scan's status message says how many. Raising it lengthens the lookup as well (the time limit is sized from it: about 104 seconds at 4,000 hosts) and puts more NBSTAT datagrams on the network, which intrusion detection rules watch for (default: 0, range: 1-4000)
 - `PROBE_DISCOVERY_MAX_CONCURRENT_SCANS` - Maximum independent discovery scans running on this probe at once (default: 4, range: 1–16). The probe checks for another pending scan every minute while capacity is available, so a long scan does not block all other scans. When all slots are occupied, additional scans remain pending until a slot is free. Each scan has its own host concurrency, so resource usage grows with both settings; lower either limit for small containers. Set this to 1 to run scans sequentially.
 
 Upgrade the OneUptime server before upgrading custom probes to use concurrent discovery. The server must support excluding scans that the probe is still running, so editing a running scan safely queues its new configuration. When connecting an updated probe to an older server, set `PROBE_DISCOVERY_MAX_CONCURRENT_SCANS=1` until the server is upgraded.
@@ -251,7 +253,7 @@ A [network discovery scan](/docs/monitor/network-device-monitor) with **Look up 
 - **Outbound:** UDP from one ephemeral (random, high-numbered) source port on the probe to UDP port 137 on those hosts. The proxy settings above do not apply to it.
 - **Inbound:** the replies, from UDP port 137 on each host back to that ephemeral port. A stateful firewall allows them automatically. Without them, the hosts keep being named by their IP address.
 
-The lookup needs no extra container capability and works from Kubernetes pod networking. It queries at most 2,000 hosts per scan, sends each unanswered host one more query, paces queries at about 100 per second, and stops after about 30 seconds. Global probes never send NetBIOS queries, whatever the scan says, so run scans that need NetBIOS names from a custom probe. The option is on for new scans. NBSTAT queries to many hosts can trip intrusion detection rules, so turn it off on scans of networks where that matters, or tell your security team first.
+The lookup needs no extra container capability and works from Kubernetes pod networking. It queries at most 2,000 hosts per scan (`PROBE_DISCOVERY_NETBIOS_MAX_HOSTS` raises that to 4,000), sends each unanswered host one more query, paces queries at about 100 per second, and stops at a time limit sized to that work - about 54 seconds for a full 2,000-host lookup, and never more than two minutes. Global probes never send NetBIOS queries, whatever the scan says, so run scans that need NetBIOS names from a custom probe. The option is on for new scans. NBSTAT queries to many hosts can trip intrusion detection rules, so turn it off on scans of networks where that matters, or tell your security team first.
 
 ### Verify
 

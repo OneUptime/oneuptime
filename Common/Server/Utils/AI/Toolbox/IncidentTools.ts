@@ -51,7 +51,7 @@ const resolveReadPermissions: () => Array<Permission> =
 export const QueryIncidentsTool: ObservabilityTool = {
   name: "query_incidents",
   description:
-    'Query incidents in this project. Returns the most recent incidents with their current state and severity. Pass state="active" to list currently unresolved incidents regardless of when they were created (use this for \'what incidents are active/open right now?\'), or state="resolved" for closed ones. Pass incidentId to get full details of one incident — including its owner teams and owner users, affected monitors, labels, root cause, remediation and postmortem notes, and the incident window (telemetryWindowStart) to pivot into logs/traces/metrics for the affected services. For the incident\'s activity thread — state changes, notes and the latest updates — use get_incident_timeline.',
+    'Query incidents in this project. Returns the most recent incidents with their current state and severity. Pass state="active" to list currently unresolved incidents regardless of when they were created (use this for \'what incidents are active/open right now?\'), or state="resolved" for closed ones. Pass incidentId to get full details of one incident — including its owner teams and owner users, affected monitors, affected SLOs (set when an SLO burn rate rule declared it), labels, root cause, remediation and postmortem notes, and the incident window (telemetryWindowStart) to pivot into logs/traces/metrics for the affected services. For the incident\'s activity thread — state changes, notes and the latest updates — use get_incident_timeline.',
   inputSchema: {
     type: "object",
     properties: {
@@ -110,6 +110,13 @@ export const QueryIncidentsTool: ObservabilityTool = {
           },
           monitors: {
             _id: true,
+            name: true,
+          },
+          /*
+           * name is flagged canReadOnRelationQuery on the SLO, so this reads
+           * for a caller who can see incidents but not SLOs.
+           */
+          serviceLevelObjectives: {
             name: true,
           },
           labels: {
@@ -207,6 +214,19 @@ export const QueryIncidentsTool: ObservabilityTool = {
         })
         .join(", ");
 
+      /*
+       * A burn-rate incident has no monitors, so its SLO is the blast radius:
+       * the objective whose error budget is burning.
+       */
+      const affectedSlos: string = (incident?.serviceLevelObjectives || [])
+        .map((slo: { name?: string | undefined }) => {
+          return slo.name || "";
+        })
+        .filter((value: string) => {
+          return value.length > 0;
+        })
+        .join(", ");
+
       const incidentLabels: string = (incident?.labels || [])
         .map((label: { name?: string }) => {
           return label.name || "";
@@ -229,6 +249,7 @@ export const QueryIncidentsTool: ObservabilityTool = {
               ownerTeams: ownerTeamNames || undefined,
               ownerUsers: ownerUserNames || undefined,
               affectedMonitors: affectedMonitors || undefined,
+              affectedSlos: affectedSlos || undefined,
               labels: incidentLabels || undefined,
               rootCause: incident.rootCause,
               remediationNotes: incident.remediationNotes,

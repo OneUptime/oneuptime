@@ -21,6 +21,7 @@ import VMwareVCenter from "./VMwareVCenter";
 import IoTFleet from "./IoTFleet";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import Service from "./Service";
+import ServiceLevelObjective from "./ServiceLevelObjective";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -1359,6 +1360,67 @@ export default class Alert extends BaseModel {
     },
   })
   public services?: Array<Service> = undefined;
+
+  /*
+   * The SLOs this alert is about. An SLO burn rate rule attaches its own SLO
+   * when it raises the alert, which is what lets the alert name the objective
+   * it was raised for and the SLO list the alerts it caused - before this, the
+   * only link was an opaque seriesFingerprint. Same column ACL as `services`.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: ServiceLevelObjective,
+    title: "Service Level Objectives",
+    description:
+      "List of Service Level Objectives (SLOs) affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return ServiceLevelObjective;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertServiceLevelObjective",
+    inverseJoinColumn: {
+      name: "serviceLevelObjectiveId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public serviceLevelObjectives?: Array<ServiceLevelObjective> = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -2435,6 +2435,47 @@ export default class Project extends TenantModel {
   })
   public planName?: PlanType = undefined;
 
+  /*
+   * Where this project's data is meant to live, as a free-text label ("EU
+   * (Frankfurt)"). Only master admins set it, from the Admin Dashboard, and
+   * only on a server with billing enabled - see ProjectService, which trims
+   * it, stores a blank as null, and refuses a value when billing is off.
+   * Every project role can read it, because the customer's Project Settings
+   * shows it once it is set.
+   *
+   * create and update are deliberately empty: a master admin's write never
+   * reaches ColumnPermissions (UpdatePermission returns early on
+   * isMasterAdmin), so an empty list means "master admin only" rather than
+   * "nobody".
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Data Residency",
+    description:
+      "Where this project's data is hosted. Set by OneUptime staff on OneUptime Cloud.",
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public dataResidency?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

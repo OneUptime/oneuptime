@@ -469,6 +469,12 @@ describe("POST /probe/network-device/list", () => {
     expect(snmpMonitor.communityString).toBe("public");
     expect(snmpMonitor.oids).toEqual(oids);
     expect(snmpMonitor.monitorInterfaces).toBe(true);
+    /*
+     * A device has no retry setting. With no value sent, probes of every
+     * version fall back to their own default of three attempts; a sent 3
+     * means four attempts to probes that count retries after the first.
+     */
+    expect(snmpMonitor).not.toHaveProperty("retries");
   });
 
   /*

@@ -32,11 +32,11 @@ Les moniteurs DNSSEC valident l'ensemble de la chaîne de confiance, de la zone 
 
 ### Paramètres avancés
 
-| Champ                                           | Description                                        | Par défaut |
-| ----------------------------------------------- | -------------------------------------------------- | ---------- |
-| Avertissement d'expiration de signature (jours) | Seuil par défaut pour le filtre d'expiration RRSIG | 7          |
-| Délai d'attente (ms)                            | Durée d'attente pour chaque requête DNS            | 10000      |
-| Tentatives                                      | Nombre de tentatives en cas d'échec                | 3          |
+| Champ                                           | Description                                                                        | Par défaut |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- |
+| Avertissement d'expiration de signature (jours) | Seuil par défaut pour le filtre d'expiration RRSIG                                 | 7          |
+| Délai d'attente (ms)                            | Durée d'attente pour chaque requête DNS                                            | 10000      |
+| Tentatives                                      | Nouvelles tentatives après l'échec de la première ; 0 signifie une seule tentative | 3          |
 
 ## Critères de surveillance
 

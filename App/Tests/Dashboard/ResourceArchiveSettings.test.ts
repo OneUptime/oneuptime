@@ -33,6 +33,7 @@ const RESOURCES: Array<ArchivableResource> = [
   { resource: "NetworkDevice", model: "NetworkDevice", overview: "Index.tsx" },
   { resource: "Service", model: "Service", overview: "Index.tsx" },
   { resource: "Inventory", model: "InventoryItem", overview: "Index.tsx" },
+  { resource: "Slo", model: "ServiceLevelObjective", overview: "Index.tsx" },
 ];
 
 function readSource(relativePath: string): string {

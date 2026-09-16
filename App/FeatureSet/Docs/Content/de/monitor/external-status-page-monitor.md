@@ -79,7 +79,7 @@ Die maximale Zeit (in Millisekunden), auf eine Antwort von der Status-Seite zu w
 
 #### Wiederholungsversuche
 
-Die Anzahl der Wiederholungsversuche der Anfrage bei Fehlschlag. Standard ist 3 Versuche.
+Die Anzahl der Wiederholungen der Anfrage, nachdem der erste Versuch fehlgeschlagen ist; 0 bedeutet nur einen Versuch. Standard sind 3 Wiederholungen, also bis zu 4 Versuche insgesamt.
 
 ## Überwachungskriterien
 

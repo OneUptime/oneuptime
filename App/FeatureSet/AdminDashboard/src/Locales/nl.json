@@ -277,7 +277,14 @@
       "title": "Project",
       "cardTitle": "Project",
       "cardDescription": "Projectgegevens",
-      "editButton": "Project bewerken"
+      "editButton": "Project bewerken",
+      "dataResidencyCardTitle": "Gegevenslocatie",
+      "dataResidencyCardDescription": "Waar de gegevens van dit project worden gehost. Zodra dit is ingesteld, wordt het aan de gebruikers van het project getoond in hun projectinstellingen.",
+      "dataResidencyEditButton": "Gegevenslocatie bewerken",
+      "dataResidencyFieldTitle": "Gegevenslocatie",
+      "dataResidencyFieldDescription": "Een label voor waar de gegevens van dit project worden gehost, bijvoorbeeld \"EU (Frankfurt)\". Laat leeg om het te verbergen voor de gebruikers van het project.",
+      "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
+      "dataResidencyNotSet": "Niet ingesteld"
     },
     "projectSubscription": {
       "title": "Abonnement van het project",
