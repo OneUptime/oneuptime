@@ -36,17 +36,24 @@ import { PaymentIntentResult, Stripe, StripeError } from "@stripe/stripe-js";
  * install is a request that never comes back.
  */
 import { loadStripe } from "@stripe/stripe-js/pure";
-import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
 
 export type ComponentProps = PageComponentProps;
+
+/*
+ * Some card debits are confirmed by the bank a day or more after they are
+ * made (India e-mandate cards sit in "processing" until the pre-debit window
+ * passes). Customers who saw an error here kept pressing Pay Invoice.
+ */
+const PAYMENT_PROCESSING_MESSAGE: string =
+  "Your bank is still processing a payment for this invoice. Some banks (for example cards issued in India) take up to 2 days to confirm recurring card payments. You do not need to pay again - the invoice will update automatically once the bank confirms.";
 
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isPaymentProcessing, setIsPaymentProcessing] =
+    useState<boolean>(false);
 
   type PayInvoiceFunction = (
     customerId: string,
@@ -57,6 +64,12 @@ const Settings: FunctionComponent<ComponentProps> = (
     customerId: string,
     invoiceId: string,
   ): Promise<void> => {
+    /*
+     * The table is hidden while loading. Every way out of this function has
+     * to bring it back, except a reload, which replaces the page anyway.
+     */
+    let isReloading: boolean = false;
+
     try {
       setIsLoading(true);
 
@@ -77,11 +90,22 @@ const Settings: FunctionComponent<ComponentProps> = (
         throw result;
       }
 
-      if (result.jsonData && (result.jsonData as JSONObject)["clientSecret"]) {
+      const responseData: JSONObject = (result.jsonData as JSONObject) || {};
+
+      if (responseData["paymentProcessing"]) {
+        /*
+         * A payment for this invoice is already with the bank. Paying again
+         * would be refused, so there is nothing for the customer to do but
+         * wait - which is not an error.
+         */
+        setIsPaymentProcessing(true);
+        return;
+      }
+
+      if (responseData["clientSecret"]) {
         // needs more authentication to pay the invoice with the payment intent.
-        const clientSecret: string = (result.jsonData as JSONObject)[
-          "clientSecret"
-        ] as string;
+        const clientSecret: string = responseData["clientSecret"] as string;
+
         const stripe: Stripe | null = await loadStripe(BILLING_PUBLIC_KEY);
 
         if (!stripe) {
@@ -89,58 +113,37 @@ const Settings: FunctionComponent<ComponentProps> = (
           return;
         }
 
-        if (!clientSecret) {
-          setError("Client secret is not available. Please try again later");
-          return;
-        }
-
-        // get payment methods.
-        const paymentMethodsResult: ListResult<BillingPaymentMethod> =
-          await ModelAPI.getList({
-            modelType: BillingPaymentMethod,
-            select: {
-              _id: true,
-              paymentProviderPaymentMethodId: true,
-              paymentProviderCustomerId: true,
-              isDefault: true,
-            },
-            query: {
-              paymentProviderCustomerId: customerId,
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            sort: {},
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-          });
-
-        if (!paymentMethodsResult || paymentMethodsResult.data.length === 0) {
-          setError(
-            "Payment methods not found. Please add one in Project Settings -> Billing.",
-          );
-          return;
-        }
-
+        /*
+         * No payment_method override: the PaymentIntent already carries the
+         * card the server charged. Swapping in another card here confirmed
+         * the invoice against whichever saved card happened to be listed
+         * first, not the one the customer chose as default.
+         */
         const paymentIntentResult: PaymentIntentResult =
-          await stripe.confirmCardPayment(clientSecret || "", {
-            payment_method:
-              paymentMethodsResult.data[0]!.paymentProviderPaymentMethodId ||
-              "",
-          });
+          await stripe.confirmCardPayment(clientSecret);
 
         if (paymentIntentResult.error) {
-          // Display error.message in your UI.
           setError(
             (paymentIntentResult.error as StripeError).message ||
               "Something is not quite right. Please try again",
           );
           return;
         }
+
+        if (paymentIntentResult.paymentIntent?.status === "processing") {
+          setIsPaymentProcessing(true);
+          return;
+        }
       }
 
+      isReloading = true;
       Navigation.reload();
     } catch (err) {
       setError(BaseAPI.getFriendlyMessage(err));
-      setIsLoading(false);
+    } finally {
+      if (!isReloading) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -350,6 +353,20 @@ const Settings: FunctionComponent<ComponentProps> = (
           submitButtonText={"Close"}
           onSubmit={() => {
             setError("");
+          }}
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isPaymentProcessing ? (
+        <ConfirmModal
+          title={`Payment is processing`}
+          description={PAYMENT_PROCESSING_MESSAGE}
+          submitButtonText={"Close"}
+          onSubmit={() => {
+            setIsPaymentProcessing(false);
           }}
           submitButtonType={ButtonStyleType.NORMAL}
         />
