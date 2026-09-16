@@ -77,8 +77,102 @@ export const DEFAULT_REVERSE_DNS_FAILURE_BUDGET: number = 64;
  * SUCCEEDED past its deadline and report it to the operator as failed. Names
  * are never worth that, so the pass stops and the hosts it did not reach keep
  * their addresses.
+ *
+ * This is the FLOOR of the budget, not the whole of it: see
+ * getReverseDnsTotalBudgetInMs, which grows it with the number of hosts.
  */
 export const DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS: number = 60 * 1000;
+
+/*
+ * The most the budget grows to on its own, however many hosts a sweep found.
+ *
+ * A flat sixty seconds covers only thirty waves — 960 addresses — when every
+ * lookup in them runs to its two-second timeout, and since addresses are
+ * asked in ascending order, a large sweep behind a slow resolver used to keep
+ * IP-address names for everything past the first thousand or so, with nothing
+ * but a probe log line to say so.
+ *
+ * Ten minutes covers 9,600 addresses in that worst case, and every address a
+ * scan can hold (MAX_SCAN_HOSTS, 32,768) when the resolver answers in well
+ * under a second. It stays well clear of the server's stale-scan reaper
+ * (App/FeatureSet/Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts),
+ * which fails a scan that has been In Progress AND silent for two hours. The
+ * probe uploads nothing while it names hosts, so this pass is silence on the
+ * row; even an older server that reaps on startedAt alone is not reached,
+ * because the default 90-minute sweep deadline plus this and the NetBIOS
+ * ceiling still ends inside two hours. Tests/ConfigDiscoveryNamingBudget.test.ts
+ * pins that arithmetic.
+ */
+export const MAX_AUTOMATIC_REVERSE_DNS_TOTAL_BUDGET_IN_MS: number =
+  10 * 60 * 1000;
+
+/*
+ * The most an operator may FIX the budget at, through
+ * PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS (Probe/Config.ts reads it against
+ * this). Twice the automatic ceiling, and still inside the reaper arithmetic
+ * above with the sweep's full 90-minute deadline spent ahead of it.
+ *
+ * Exported because the scan's status message needs it too: past this value
+ * Config falls back to automatic sizing, so advising an operator whose pass
+ * already ran this long to "raise" the variable would shrink their budget.
+ */
+export const MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS: number =
+  20 * 60 * 1000;
+
+/*
+ * Slack on top of the worst-case estimate below. The deadline is checked
+ * before each wave starts, and a wave takes its timeout plus however late the
+ * event loop gets round to it; without headroom a few milliseconds of jitter
+ * per wave on a large pass would leave the last wave or two unasked for want
+ * of a budget sized to exactly zero spare.
+ */
+const REVERSE_DNS_BUDGET_HEADROOM: number = 1.1;
+
+/**
+ * The wall-clock budget for one pass over `addressCount` distinct addresses.
+ *
+ * Sized to the WORST case: every wave running to its per-address timeout.
+ * That is the awkward middle case the budget exists for — a resolver that
+ * answers some addresses and times out on others — and a pass whose resolver
+ * answers promptly finishes long before the budget matters. Never below
+ * DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS, so a small sweep keeps exactly the
+ * budget it always had, and never above
+ * MAX_AUTOMATIC_REVERSE_DNS_TOTAL_BUDGET_IN_MS.
+ *
+ * Pure and exported so the sizing is pinned directly. Nonsense inputs are
+ * clamped rather than trusted: this runs on the way to a finished scan's
+ * upload, and a NaN here would be a deadline that is never reached.
+ */
+export function getReverseDnsTotalBudgetInMs(data: {
+  addressCount: number;
+  concurrency?: number | undefined;
+  timeoutInMs?: number | undefined;
+}): number {
+  const addressCount: number = Number.isFinite(data.addressCount)
+    ? Math.max(0, Math.floor(data.addressCount))
+    : 0;
+
+  const concurrency: number =
+    data.concurrency !== undefined && Number.isFinite(data.concurrency)
+      ? Math.max(1, Math.floor(data.concurrency))
+      : DEFAULT_REVERSE_DNS_CONCURRENCY;
+
+  const timeoutInMs: number =
+    data.timeoutInMs !== undefined && Number.isFinite(data.timeoutInMs)
+      ? Math.max(1, data.timeoutInMs)
+      : DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS;
+
+  const worstCaseInMs: number = Math.ceil(
+    Math.ceil(addressCount / concurrency) *
+      timeoutInMs *
+      REVERSE_DNS_BUDGET_HEADROOM,
+  );
+
+  return Math.min(
+    Math.max(worstCaseInMs, DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS),
+    MAX_AUTOMATIC_REVERSE_DNS_TOTAL_BUDGET_IN_MS,
+  );
+}
 
 /*
  * Codes that mean "this address has no name", as opposed to "this probe
@@ -138,6 +232,29 @@ export interface ReverseDnsResolution {
    * names resolved before it did are real and are returned.
    */
   isTimeBudgetExhausted: boolean;
+  /*
+   * Distinct addresses a lookup was STARTED for, whatever it came back with.
+   * lookedUpCount + notLookedUpCount is the number of distinct addresses
+   * passed in.
+   */
+  lookedUpCount: number;
+  /*
+   * Distinct addresses never asked about, because the pass stopped first —
+   * the wall-clock budget ran out, or the resolver was judged unusable. Zero
+   * for a pass that got through every address.
+   *
+   * This, not "addresses without a name", is the number that says how much a
+   * cut-short pass left on the table: most addresses on most networks have no
+   * PTR record, and those were asked.
+   */
+  notLookedUpCount: number;
+  /*
+   * The wall-clock budget this pass ran under, in milliseconds — sized to the
+   * address count unless the caller fixed it (getReverseDnsTotalBudgetInMs).
+   * Reported so a caller telling the operator the pass ran out of time can
+   * say how long it had.
+   */
+  totalBudgetInMs: number;
   /*
    * The FIRST infrastructure failure seen, verbatim-ish and truncated the way
    * SubnetScanner truncates SNMP errors.
@@ -270,9 +387,15 @@ export type NowFunction = () => number;
 
 export default class ReverseDnsResolver {
   private lookup: ReverseDnsLookupFunction;
+  private timeoutInMs: number;
   private concurrency: number;
   private failureBudget: number;
-  private totalBudgetInMs: number;
+  /*
+   * A budget the caller FIXED, or undefined to size one per pass from the
+   * number of addresses (getReverseDnsTotalBudgetInMs). Per pass rather than
+   * per instance because the address count is only known when a pass starts.
+   */
+  private fixedTotalBudgetInMs: number | undefined;
   private now: NowFunction;
 
   public constructor(options?: {
@@ -280,15 +403,18 @@ export default class ReverseDnsResolver {
     timeoutInMs?: number | undefined;
     concurrency?: number | undefined;
     failureBudget?: number | undefined;
+    /*
+     * Fixes the wall-clock budget for every pass. Omit it (or pass undefined)
+     * to have each pass sized to its own address count — which is what the
+     * probe does unless PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS is set.
+     */
     totalBudgetInMs?: number | undefined;
     // Injectable so the wall-clock budget is testable without waiting on one.
     now?: NowFunction | undefined;
   }) {
-    this.lookup =
-      options?.lookup ??
-      buildDefaultLookup(
-        options?.timeoutInMs ?? DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS,
-      );
+    this.timeoutInMs =
+      options?.timeoutInMs ?? DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS;
+    this.lookup = options?.lookup ?? buildDefaultLookup(this.timeoutInMs);
     this.concurrency = Math.max(
       1,
       options?.concurrency ?? DEFAULT_REVERSE_DNS_CONCURRENCY,
@@ -297,11 +423,34 @@ export default class ReverseDnsResolver {
       1,
       options?.failureBudget ?? DEFAULT_REVERSE_DNS_FAILURE_BUDGET,
     );
-    this.totalBudgetInMs = Math.max(
-      1,
-      options?.totalBudgetInMs ?? DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS,
-    );
+    /*
+     * A budget that is not a finite number is no budget at all: NaN makes a
+     * deadline no clock ever reaches, and Infinity is the same thing spelled
+     * honestly. Either would let a pass that must stay bounded run for as long
+     * as its addresses last, so both mean "size it automatically" instead.
+     */
+    this.fixedTotalBudgetInMs =
+      options?.totalBudgetInMs === undefined ||
+      !Number.isFinite(options.totalBudgetInMs)
+        ? undefined
+        : Math.max(1, options.totalBudgetInMs);
     this.now = options?.now ?? Date.now;
+  }
+
+  /*
+   * The budget one pass over `addressCount` distinct addresses runs under.
+   * Public so a caller can report the figure without re-deriving the rule.
+   */
+  public getTotalBudgetInMs(addressCount: number): number {
+    if (this.fixedTotalBudgetInMs !== undefined) {
+      return this.fixedTotalBudgetInMs;
+    }
+
+    return getReverseDnsTotalBudgetInMs({
+      addressCount: addressCount,
+      concurrency: this.concurrency,
+      timeoutInMs: this.timeoutInMs,
+    });
   }
 
   /**
@@ -325,15 +474,22 @@ export default class ReverseDnsResolver {
      */
     const uniqueAddresses: Array<string> = [...new Set<string>(ipAddresses)];
 
+    const totalBudgetInMs: number = this.getTotalBudgetInMs(
+      uniqueAddresses.length,
+    );
+
     if (uniqueAddresses.length === 0) {
       return {
         hostnameByIpAddress: hostnameByIpAddress,
         isReverseDnsAvailable: true,
         isTimeBudgetExhausted: false,
+        lookedUpCount: 0,
+        notLookedUpCount: 0,
+        totalBudgetInMs: totalBudgetInMs,
       };
     }
 
-    const deadline: number = this.now() + this.totalBudgetInMs;
+    const deadline: number = this.now() + totalBudgetInMs;
 
     /*
      * Held on an object rather than in bare `let`s: these are written from
@@ -342,6 +498,12 @@ export default class ReverseDnsResolver {
      */
     const state: {
       resolvedCount: number;
+      /*
+       * Distinct addresses whose lookup has been started. Advanced by whole
+       * waves, before each wave is awaited, so a pass that stops at a wave
+       * boundary has asked exactly this many.
+       */
+      lookedUpCount: number;
       /*
        * Lookups that came BACK, whether or not any answer survived
        * normalisation. This — not `resolvedCount` — is what disarms the
@@ -361,6 +523,7 @@ export default class ReverseDnsResolver {
       isTimeBudgetExhausted: boolean;
     } = {
       resolvedCount: 0,
+      lookedUpCount: 0,
       successfulLookupCount: 0,
       infrastructureFailureCount: 0,
       isTimeBudgetExhausted: false,
@@ -502,7 +665,7 @@ export default class ReverseDnsResolver {
       if (this.now() >= deadline) {
         state.isTimeBudgetExhausted = true;
         logger.warn(
-          `Discovery reverse DNS lookups exceeded their ${this.totalBudgetInMs}ms budget after naming ${state.resolvedCount} host(s); the remaining discovered hosts will be named by IP address. The sweep itself is unaffected.`,
+          `Discovery reverse DNS lookups exceeded their ${totalBudgetInMs}ms budget after naming ${state.resolvedCount} host(s); ${uniqueAddresses.length - state.lookedUpCount} of ${uniqueAddresses.length} discovered address(es) were never looked up and will be named by IP address. The sweep itself is unaffected; set PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS on the probe to allow longer.`,
         );
         break;
       }
@@ -514,12 +677,17 @@ export default class ReverseDnsResolver {
         break;
       }
 
+      const wave: Array<string> = uniqueAddresses.slice(
+        start,
+        start + this.concurrency,
+      );
+
+      state.lookedUpCount += wave.length;
+
       await Promise.all(
-        uniqueAddresses
-          .slice(start, start + this.concurrency)
-          .map((ipAddress: string) => {
-            return lookupOne(ipAddress);
-          }),
+        wave.map((ipAddress: string) => {
+          return lookupOne(ipAddress);
+        }),
       );
     }
 
@@ -527,6 +695,9 @@ export default class ReverseDnsResolver {
       hostnameByIpAddress: hostnameByIpAddress,
       isReverseDnsAvailable: !isReverseDnsUnusable(),
       isTimeBudgetExhausted: state.isTimeBudgetExhausted,
+      lookedUpCount: state.lookedUpCount,
+      notLookedUpCount: uniqueAddresses.length - state.lookedUpCount,
+      totalBudgetInMs: totalBudgetInMs,
       failureReason: state.failureReason,
     };
   }

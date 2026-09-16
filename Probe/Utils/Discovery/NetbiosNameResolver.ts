@@ -71,8 +71,87 @@ export const DEFAULT_NETBIOS_SEND_INTERVAL_IN_MS: number = 10;
  * so a name — a nicety — must never be what keeps a finished scan In
  * Progress. Half a minute is enough for one paced pass over the host cap plus
  * the listening window.
+ *
+ * This is the FLOOR of the budget: see getNetbiosTotalBudgetInMs, which sizes
+ * it to the lookup actually being run.
  */
 export const DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS: number = 30 * 1000;
+
+/*
+ * The most the budget grows to on its own.
+ *
+ * Half a minute fits ONE paced pass over the host cap, but not the retry pass
+ * the lookup also runs: two passes over 2,000 hosts at 10ms spacing, each
+ * followed by a listening window, need about 43 seconds. So a lookup near the
+ * cap silently lost its retries, in address order, and — now that a
+ * cut-short lookup is reported on the scan — would have said so on every
+ * large scan for a budget that was simply sized below its own work.
+ *
+ * Two minutes covers the whole default workload with room to spare and stays
+ * far inside the server's stale-scan reaper; see
+ * MAX_AUTOMATIC_REVERSE_DNS_TOTAL_BUDGET_IN_MS for that arithmetic, which
+ * Tests/ConfigDiscoveryNamingBudget.test.ts pins for both passes together.
+ */
+export const MAX_AUTOMATIC_NETBIOS_TOTAL_BUDGET_IN_MS: number = 2 * 60 * 1000;
+
+/*
+ * Slack on the estimate below. The pacing sleep is a setTimeout, which fires
+ * no EARLIER than asked and routinely a millisecond or two later; over four
+ * thousand paced sends that drift alone is several seconds.
+ */
+const NETBIOS_BUDGET_HEADROOM: number = 1.25;
+
+/**
+ * The wall-clock budget for a lookup that will ask `targetCount` hosts: every
+ * pass (the first and each retry) paced over every host, each followed by a
+ * full listening window, plus headroom. Never below
+ * DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS and never above
+ * MAX_AUTOMATIC_NETBIOS_TOTAL_BUDGET_IN_MS.
+ *
+ * Worst case on purpose — every host silent, so every pass asks everyone.
+ * A lookup whose hosts answer skips most of the retry pass and stops early.
+ * Pure and exported so the sizing is pinned directly; nonsense inputs are
+ * clamped rather than trusted.
+ */
+export function getNetbiosTotalBudgetInMs(data: {
+  targetCount: number;
+  sendIntervalInMs?: number | undefined;
+  perHostTimeoutInMs?: number | undefined;
+  retryPasses?: number | undefined;
+}): number {
+  const finiteOr: (value: number | undefined, fallback: number) => number = (
+    value: number | undefined,
+    fallback: number,
+  ): number => {
+    return value !== undefined && Number.isFinite(value)
+      ? Math.max(0, value)
+      : fallback;
+  };
+
+  const targetCount: number = Math.floor(finiteOr(data.targetCount, 0));
+  const sendIntervalInMs: number = finiteOr(
+    data.sendIntervalInMs,
+    DEFAULT_NETBIOS_SEND_INTERVAL_IN_MS,
+  );
+  const perHostTimeoutInMs: number = finiteOr(
+    data.perHostTimeoutInMs,
+    DEFAULT_NETBIOS_PER_HOST_TIMEOUT_IN_MS,
+  );
+  const passCount: number =
+    1 + Math.floor(finiteOr(data.retryPasses, DEFAULT_NETBIOS_RETRY_PASSES));
+
+  const onePassInMs: number =
+    Math.max(0, targetCount - 1) * sendIntervalInMs + perHostTimeoutInMs;
+
+  const worstCaseInMs: number = Math.ceil(
+    passCount * onePassInMs * NETBIOS_BUDGET_HEADROOM,
+  );
+
+  return Math.min(
+    Math.max(worstCaseInMs, DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS),
+    MAX_AUTOMATIC_NETBIOS_TOTAL_BUDGET_IN_MS,
+  );
+}
 
 /*
  * Hosts asked per scan. Beyond this the lookup cannot finish one pass inside
@@ -81,6 +160,19 @@ export const DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS: number = 30 * 1000;
  * by the budget in address order.
  */
 export const DEFAULT_NETBIOS_MAX_HOSTS: number = 2000;
+
+/*
+ * The highest cap an operator may raise that to, through
+ * PROBE_DISCOVERY_NETBIOS_MAX_HOSTS (Probe/Config.ts reads it against this).
+ *
+ * Bounded by the budget that has to cover it: at 4,000 hosts one paced pass
+ * and its retry need about 104 seconds (getNetbiosTotalBudgetInMs), still
+ * inside MAX_AUTOMATIC_NETBIOS_TOTAL_BUDGET_IN_MS, so raising the cap this far
+ * raises the budget with it and the lookup still finishes its retries. A
+ * higher cap would simply move the truncation from the cap to the clock, which
+ * is the silent failure this whole change exists to remove.
+ */
+export const MAX_NETBIOS_MAX_HOSTS_OVERRIDE: number = 4000;
 
 /*
  * One retry pass, for the hosts that did not answer the first. UDP is lossy
@@ -232,6 +324,20 @@ export interface NetbiosNameResolution {
   // True when more eligible addresses were passed in than maxHosts allows.
   isHostCapReached: boolean;
   /*
+   * Distinct addresses the address policy allowed (private IPv4), BEFORE the
+   * host cap. With maxHosts it says how many unnamed hosts the cap left out:
+   * eligibleCount - maxHosts, when isHostCapReached.
+   */
+  eligibleCount: number;
+  // The host cap this lookup ran under.
+  maxHosts: number;
+  /*
+   * The wall-clock budget this lookup ran under, in milliseconds — sized to
+   * the hosts being asked unless the caller fixed it
+   * (getNetbiosTotalBudgetInMs).
+   */
+  totalBudgetInMs: number;
+  /*
    * Why the socket could not be used — it could not be created or bound, or
    * it emitted 'error' mid-lookup. Undefined on a lookup whose socket worked,
    * however few hosts answered: silence from a host is the ordinary outcome,
@@ -295,7 +401,11 @@ export default class NetbiosNameResolver {
   private port: number;
   private perHostTimeoutInMs: number;
   private sendIntervalInMs: number;
-  private totalBudgetInMs: number;
+  /*
+   * A budget the caller FIXED, or undefined to size one per lookup from the
+   * number of hosts it will ask (getNetbiosTotalBudgetInMs).
+   */
+  private fixedTotalBudgetInMs: number | undefined;
   private maxHosts: number;
   private retryPasses: number;
   private now: NetbiosNowFunction;
@@ -309,6 +419,10 @@ export default class NetbiosNameResolver {
     port?: number | undefined;
     perHostTimeoutInMs?: number | undefined;
     sendIntervalInMs?: number | undefined;
+    /*
+     * Fixes the wall-clock budget. Omit it (or pass undefined) to size each
+     * lookup to the hosts it will ask.
+     */
     totalBudgetInMs?: number | undefined;
     maxHosts?: number | undefined;
     retryPasses?: number | undefined;
@@ -333,14 +447,21 @@ export default class NetbiosNameResolver {
       0,
       options?.sendIntervalInMs ?? DEFAULT_NETBIOS_SEND_INTERVAL_IN_MS,
     );
-    this.totalBudgetInMs = Math.max(
-      1,
-      options?.totalBudgetInMs ?? DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS,
-    );
-    this.maxHosts = Math.max(
-      1,
-      Math.floor(options?.maxHosts ?? DEFAULT_NETBIOS_MAX_HOSTS),
-    );
+    // Non-finite means automatic, as in ReverseDnsResolver: NaN never expires.
+    this.fixedTotalBudgetInMs =
+      options?.totalBudgetInMs === undefined ||
+      !Number.isFinite(options.totalBudgetInMs)
+        ? undefined
+        : Math.max(1, options.totalBudgetInMs);
+    /*
+     * A non-finite cap is no cap: NaN fails every comparison, so the lookup
+     * would treat any number of hosts as under it and pace queries to all of
+     * them. Read as "use the default" instead.
+     */
+    this.maxHosts =
+      options?.maxHosts !== undefined && Number.isFinite(options.maxHosts)
+        ? Math.max(1, Math.floor(options.maxHosts))
+        : DEFAULT_NETBIOS_MAX_HOSTS;
     this.retryPasses = Math.max(
       0,
       Math.floor(options?.retryPasses ?? DEFAULT_NETBIOS_RETRY_PASSES),
@@ -392,6 +513,15 @@ export default class NetbiosNameResolver {
       );
     }
 
+    const totalBudgetInMs: number =
+      this.fixedTotalBudgetInMs ??
+      getNetbiosTotalBudgetInMs({
+        targetCount: targetAddresses.length,
+        sendIntervalInMs: this.sendIntervalInMs,
+        perHostTimeoutInMs: this.perHostTimeoutInMs,
+        retryPasses: this.retryPasses,
+      });
+
     const run: LookupRun = {
       hostStates: new Map<string, HostQueryState>(),
       outstandingCount: 0,
@@ -421,6 +551,9 @@ export default class NetbiosNameResolver {
         skippedCount: uniqueAddresses.length - queriedCount,
         isTimeBudgetExhausted: extra.isTimeBudgetExhausted,
         isHostCapReached: isHostCapReached,
+        eligibleCount: eligibleAddresses.length,
+        maxHosts: this.maxHosts,
+        totalBudgetInMs: totalBudgetInMs,
         failureReason: extra.failureReason,
       };
     };
@@ -434,7 +567,7 @@ export default class NetbiosNameResolver {
       return buildResult({ isTimeBudgetExhausted: false });
     }
 
-    const deadline: number = this.now() + this.totalBudgetInMs;
+    const deadline: number = this.now() + totalBudgetInMs;
 
     for (const ipAddress of targetAddresses) {
       const transactionId: number = toNbstatTransactionId(
@@ -496,7 +629,7 @@ export default class NetbiosNameResolver {
 
       if (!run.isBound) {
         logger.warn(
-          `Discovery NetBIOS lookups did not start: the probe's UDP socket did not bind within ${this.totalBudgetInMs}ms. Hosts will keep being named by IP address. The sweep itself is unaffected.`,
+          `Discovery NetBIOS lookups did not start: the probe's UDP socket did not bind within ${totalBudgetInMs}ms. Hosts will keep being named by IP address. The sweep itself is unaffected.`,
         );
 
         return buildResult({
@@ -519,7 +652,7 @@ export default class NetbiosNameResolver {
         });
 
         logger.warn(
-          `Discovery NetBIOS lookups exceeded their ${this.totalBudgetInMs}ms budget after naming ${nameByIpAddress.size} host(s): ${result.queriedCount} of ${run.hostStates.size} host(s) were queried. The rest will keep being named by IP address. The sweep itself is unaffected.`,
+          `Discovery NetBIOS lookups exceeded their ${totalBudgetInMs}ms budget after naming ${nameByIpAddress.size} host(s): ${result.queriedCount} of ${run.hostStates.size} host(s) were queried. The rest will keep being named by IP address. The sweep itself is unaffected.`,
         );
 
         return result;
