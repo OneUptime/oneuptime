@@ -137,6 +137,7 @@ export default class DatabaseMonitor {
       );
 
       const responseTimeInMs: number = this.elapsedMs(startTime);
+      const responseReceivedAt: Date = new Date();
 
       const probeRow: Record<string, unknown> = probeRows[0] || {};
       const engineVersion: string | undefined = this.readString(
@@ -255,6 +256,19 @@ export default class DatabaseMonitor {
       metrics[MonitorMetricType.DatabaseMetricGroupsFailed] =
         unavailableGroups.length;
 
+      /*
+       * Recorded last, once nothing below can throw into the catch and log a
+       * second entry for this attempt. Timed at the probe query, which is
+       * what decided the database is online.
+       */
+      options.attempts.push({
+        attemptNumber: options.currentRetryCount,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs,
+        isOnline: true,
+      });
+
       return {
         isOnline: true,
         responseTimeInMs,
@@ -265,7 +279,7 @@ export default class DatabaseMonitor {
         engineVersion,
         connectionError: null,
         probeAttempts: options.attempts,
-        totalAttempts: options.attempts.length + 1,
+        totalAttempts: options.attempts.length,
       };
     } catch (err: unknown) {
       const sanitized: string = SqlMonitor.sanitizeError(err, config.password, [

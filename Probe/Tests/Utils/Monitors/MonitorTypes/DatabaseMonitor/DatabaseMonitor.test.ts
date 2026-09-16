@@ -591,6 +591,73 @@ describe("DatabaseMonitor.execute retries", () => {
     expect(response?.engineVersion).toBe("16.2");
     // The failed first attempt plus the successful one.
     expect(response?.totalAttempts).toBe(2);
+    expect(attemptNumbers(response)).toEqual([1, 2]);
+    expect(
+      (response?.probeAttempts || []).map((attempt: ProbeAttempt) => {
+        return attempt.isOnline;
+      }),
+    ).toEqual([false, true]);
+  });
+
+  /*
+   * The successful attempt is recorded like SqlMonitor records it, so
+   * totalAttempts and probeAttempts describe the same attempts. It used to be
+   * left out and papered over with `attempts.length + 1`.
+   */
+  test("records a first-try success as the one attempt it was", async () => {
+    stubOpenSession().mockResolvedValue({
+      runQuery: async (): Promise<Array<Record<string, unknown>>> => {
+        return [{ engine_version: "16.2" }];
+      },
+      close: async (): Promise<void> => {},
+    } as never);
+
+    const response: DatabaseMonitorResponse | null =
+      await DatabaseMonitor.execute(buildConfig(), {
+        retry: 2,
+        isOnlineCheckRequest: true,
+      });
+
+    expect(response?.isOnline).toBe(true);
+    expect(response?.totalAttempts).toBe(1);
+    expect(response?.probeAttempts).toHaveLength(1);
+
+    const attempt: ProbeAttempt = response!.probeAttempts![0]!;
+    expect(attempt.attemptNumber).toBe(1);
+    expect(attempt.isOnline).toBe(true);
+    expect(attempt.failureCause).toBeUndefined();
+    expect(attempt.responseTimeInMs).toBe(response?.responseTimeInMs);
+    expect(attempt.responseReceivedAt.getTime()).toBeGreaterThanOrEqual(
+      attempt.attemptedAt.getTime(),
+    );
+  });
+
+  test("records the success once even when a catalog query fails", async () => {
+    stubOpenSession().mockResolvedValue({
+      runQuery: async (
+        sql: string,
+      ): Promise<Array<Record<string, unknown>>> => {
+        if (sql.includes("engine_version")) {
+          return [{ engine_version: "16.2", has_stats_access: true }];
+        }
+        throw new Error("permission denied for relation pg_stat_activity");
+      },
+      close: async (): Promise<void> => {},
+    } as never);
+
+    const response: DatabaseMonitorResponse | null =
+      await DatabaseMonitor.execute(
+        {
+          ...buildConfig(),
+          enabledMetricGroups: [DatabaseMetricGroup.Connections],
+        },
+        { retry: 2, isOnlineCheckRequest: true },
+      );
+
+    // A failed catalog query is not a failed attempt.
+    expect(response?.isOnline).toBe(true);
+    expect(response?.unavailableGroups.length).toBeGreaterThan(0);
+    expect(response?.totalAttempts).toBe(1);
     expect(attemptNumbers(response)).toEqual([1]);
   });
 });

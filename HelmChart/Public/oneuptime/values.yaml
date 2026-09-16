@@ -1248,6 +1248,9 @@ probes:
     enabled: true
     monitoringWorkers: 3
     monitorFetchLimit: 10
+    # Retries after the first attempt of a failed check, used when a monitor
+    # step sets no retry count of its own. 0 checks once; 3 checks up to four
+    # times. Unset uses 3.
     monitorRetryLimit: 3
     # How many NetworkDevice SNMP walks this probe runs at once. Unset uses
     # the probe's own default (25). Raise it together with the server's

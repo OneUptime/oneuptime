@@ -22,8 +22,8 @@ import SnmpMonitor from "../../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 /*
  * A retry value counts retries AFTER the first attempt: 0 queries the device
  * once, 2 queries it up to three times. That holds whether the value arrives
- * as options.retry (the monitor step) or as config.retries (the SNMP form and
- * the network device poller, which passes no options.retry).
+ * as options.retry (the monitor step) or as config.retries (the SNMP form).
+ * The network device poller passes neither, so it gets the default.
  *
  * The GET is stubbed at executeSnmpQuery, the one seam between the retry loop
  * and net-snmp, so no UDP socket is opened.
@@ -152,7 +152,7 @@ describe("SnmpMonitor.query retries", () => {
     const executeSnmpQuery: jest.Mock = failEveryQuery();
 
     const response: SnmpMonitorResponse | null = await SnmpMonitor.query(
-      buildConfig({ retries: undefined as unknown as number }),
+      buildConfig({ retries: undefined }),
       { isOnlineCheckRequest: true },
     );
 

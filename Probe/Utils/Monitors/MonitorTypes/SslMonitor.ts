@@ -85,6 +85,12 @@ const LOG_PREFIX: string = "SSL Certificate Monitor";
  */
 const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
 
+/*
+ * Connection retries inside getCertificate when the caller passes none: three
+ * handshake attempts, the same as when its `retry` counted total attempts.
+ */
+const DEFAULT_CERTIFICATE_RETRIES_WHEN_UNSET: number = 2;
+
 export default class SSLMonitor {
   // burn domain names into the code to see if this probe is online.
 
@@ -528,13 +534,14 @@ export default class SSLMonitor {
     port: number;
     rejectUnauthorized: boolean;
     timeoutInMs?: number;
-    retry?: number;
-    currentRetryCount?: number;
+    // Retries after the first attempt, like every other probe retry value.
+    retry?: number | undefined;
+    // 1-based number of this attempt.
+    currentRetryCount?: number | undefined;
   }): Promise<tls.PeerCertificate> {
-    const { host, rejectUnauthorized } = data;
+    const { host, rejectUnauthorized, retry } = data;
 
     let { port } = data;
-    const retry: number = data.retry || 3;
     const currentRetryCount: number = data.currentRetryCount || 1;
     const timeoutInMs: number =
       data.timeoutInMs || DEFAULT_SSL_MONITOR_TIMEOUT_IN_MS;
@@ -678,7 +685,11 @@ export default class SSLMonitor {
       const code: string = SSLMonitor.getErrorCode(err);
 
       if (
-        currentRetryCount < retry &&
+        MonitorRetry.canRetry({
+          attemptNumber: currentRetryCount,
+          retries: retry,
+          defaultRetries: DEFAULT_CERTIFICATE_RETRIES_WHEN_UNSET,
+        }) &&
         !TLS_VALIDATION_ERROR_CODES.has(code) &&
         !SSLMonitor.isTimeoutError(err)
       ) {

@@ -139,12 +139,13 @@ spec:
               value: {{ $val.description }}
             - name: PROBE_MONITORING_WORKERS
               value: {{ $val.monitoringWorkers | squote }}
-              {{- if $val.monitorRetryLimit }}
+            # Retries after the first attempt; 0 turns retries off. Only an unset
+            # value falls back to 3: `if` and `default` both read 0 as empty.
             - name: PROBE_MONITOR_RETRY_LIMIT
-              value: {{ $val.monitorRetryLimit | squote }}
-              {{- else }}
-            - name: PROBE_MONITOR_RETRY_LIMIT
+              {{- if kindIs "invalid" $val.monitorRetryLimit }}
               value: {{ 3 | squote }}
+              {{- else }}
+              value: {{ $val.monitorRetryLimit | squote }}
               {{- end }}
             # syntheticMonitorScriptTimeoutInMs
             - name: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS

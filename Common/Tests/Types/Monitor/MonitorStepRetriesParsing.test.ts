@@ -22,10 +22,15 @@ interface RetriesParserCase {
   name: string;
   // Every one of these types defaults to three retries (four attempts).
   defaultRetries: number;
-  parse: (json: JSONObject) => number;
+  /*
+   * SNMP's field is optional on the type (Network Device configs omit it),
+   * but its parser and default always fill it in; every assertion below
+   * expects a number, so an undefined still fails.
+   */
+  parse: (json: JSONObject) => number | undefined;
   // The value the parsed config writes back out, to prove 0 survives a save.
   roundTrip: (json: JSONObject) => unknown;
-  getDefaultRetries: () => number;
+  getDefaultRetries: () => number | undefined;
 }
 
 const cases: Array<RetriesParserCase> = [
@@ -92,7 +97,7 @@ const cases: Array<RetriesParserCase> = [
   {
     name: "MonitorStepSnmpMonitorUtil",
     defaultRetries: 3,
-    parse: (json: JSONObject): number => {
+    parse: (json: JSONObject): number | undefined => {
       return MonitorStepSnmpMonitorUtil.fromJSON(json).retries;
     },
     roundTrip: (json: JSONObject): unknown => {
@@ -100,7 +105,7 @@ const cases: Array<RetriesParserCase> = [
         MonitorStepSnmpMonitorUtil.fromJSON(json),
       )["retries"];
     },
-    getDefaultRetries: (): number => {
+    getDefaultRetries: (): number | undefined => {
       return MonitorStepSnmpMonitorUtil.getDefault().retries;
     },
   },
