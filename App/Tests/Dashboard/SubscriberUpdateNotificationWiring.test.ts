@@ -171,3 +171,67 @@ describe("the note tables only offer the update checkbox when editing", () => {
     );
   });
 });
+
+/*
+ * Dashboard field titles and descriptions are translated by looking the
+ * English string up in each locale file, so a string the forms use but no
+ * locale has would render in English for everyone.
+ */
+describe("the update notification strings are translated", () => {
+  const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
+
+  const STRINGS: Array<string> = [
+    "Notify subscribers about this update",
+    "Send subscribers the edited announcement, marked as an update. Leave this unticked for small fixes such as typos.",
+    "Send subscribers the edited note, marked as an update. Leave this unticked for small fixes such as typos.",
+    "Update Notification Status",
+  ];
+
+  const localeFiles: Array<string> = fs
+    .readdirSync(LOCALES_DIR)
+    .filter((name: string): boolean => {
+      return name.endsWith(".json");
+    });
+
+  test("the pages use exactly these strings", () => {
+    const pages: string = PAGES.map((page: PageCase): string => {
+      return fs.readFileSync(path.join(DASHBOARD_SRC, ...page.file), "utf8");
+    })
+      .join(" ")
+      .replace(/\s+/g, " ");
+
+    expect(pages).toContain(STRINGS[1]);
+    expect(pages).toContain(STRINGS[2]);
+    expect(pages).toContain(STRINGS[3]);
+    expect(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Common",
+          "Types",
+          "StatusPage",
+          "SubscriberUpdateNotification.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain(`"${STRINGS[0]}"`);
+  });
+
+  test.each(localeFiles)("%s translates every string", (file: string) => {
+    const locale: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"),
+    ) as Record<string, unknown>;
+
+    for (const text of STRINGS) {
+      expect(typeof locale[text]).toBe("string");
+      expect((locale[text] as string).trim().length).toBeGreaterThan(0);
+
+      if (file !== "en.json") {
+        expect(locale[text]).not.toBe(text);
+      }
+    }
+  });
+});
