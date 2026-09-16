@@ -533,6 +533,66 @@ export default class HttpMonitorRequest {
     };
   }
 
+  /*
+   * TLS options for one hop of a monitor's redirect chain. MonitorTlsOptions
+   * holds two different kinds of setting, and a redirect treats them
+   * differently:
+   *
+   * - The client certificate, key and passphrase are a credential. They are
+   *   only presented while the chain is still on the monitor's origin; the
+   *   caller clears includeClientIdentity on the first cross-origin hop and
+   *   never sets it again, even if a later hop comes back.
+   * - allowSelfSignedCertificates only relaxes how the probe verifies the
+   *   server and sends nothing. It applies to every hop whose hostname is the
+   *   monitor's own, so an ordinary http://host -> https://host (or port)
+   *   redirect still works for a host the owner said has a self-signed
+   *   certificate.
+   *
+   * A hop to a different hostname is verified normally. The owner vouched
+   * for the certificate of the host they configured, not for any host a
+   * response points at, and a bad certificate there should fail the check
+   * rather than be hidden. A monitor that needs the relaxation on that host
+   * can target it directly.
+   */
+  public static getTlsOptionsForHop(data: {
+    tls: MonitorTlsOptions;
+    monitorUrl: string | URL;
+    hopUrl: string | URL;
+    includeClientIdentity: boolean;
+  }): MonitorTlsOptions | undefined {
+    const hopTls: MonitorTlsOptions = {};
+
+    if (
+      data.tls.allowSelfSignedCertificates &&
+      this.hasSameHostname(data.monitorUrl, data.hopUrl)
+    ) {
+      hopTls.allowSelfSignedCertificates = true;
+    }
+
+    if (data.includeClientIdentity) {
+      hopTls.tlsClientCertificate = data.tls.tlsClientCertificate;
+      hopTls.tlsClientKey = data.tls.tlsClientKey;
+      hopTls.tlsClientKeyPassphrase = data.tls.tlsClientKeyPassphrase;
+    }
+
+    return Object.keys(hopTls).length > 0 ? hopTls : undefined;
+  }
+
+  private static hasSameHostname(
+    firstUrl: string | URL,
+    secondUrl: string | URL,
+  ): boolean {
+    try {
+      // WHATWG hostnames are already lowercased and IDN/IP-normalized.
+      return (
+        new globalThis.URL(firstUrl.toString()).hostname ===
+        new globalThis.URL(secondUrl.toString()).hostname
+      );
+    } catch {
+      return false;
+    }
+  }
+
   private static getTlsAgentOptions(
     tlsOptions?: MonitorTlsOptions | undefined,
   ): https.AgentOptions {

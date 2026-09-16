@@ -113,24 +113,27 @@ export default class ApiMonitor {
         const prepareRequest: (
           requestUrl: string,
           requestHeaders: Headers,
-          includeTlsIdentity: boolean,
+          includeTlsClientIdentity: boolean,
         ) => Promise<PreparedHttpMonitorRequest> = async (
           requestUrl: string,
           requestHeaders: Headers,
-          includeTlsIdentity: boolean,
+          includeTlsClientIdentity: boolean,
         ): Promise<PreparedHttpMonitorRequest> => {
           return await executionContext.run(async () => {
             return await HttpMonitorRequest.prepare(requestUrl, {
               headers: requestHeaders,
-              tls: includeTlsIdentity
-                ? {
-                    allowSelfSignedCertificates:
-                      options.allowSelfSignedCertificates,
-                    tlsClientCertificate: options.tlsClientCertificate,
-                    tlsClientKey: options.tlsClientKey,
-                    tlsClientKeyPassphrase: options.tlsClientKeyPassphrase,
-                  }
-                : undefined,
+              tls: HttpMonitorRequest.getTlsOptionsForHop({
+                tls: {
+                  allowSelfSignedCertificates:
+                    options.allowSelfSignedCertificates,
+                  tlsClientCertificate: options.tlsClientCertificate,
+                  tlsClientKey: options.tlsClientKey,
+                  tlsClientKeyPassphrase: options.tlsClientKeyPassphrase,
+                },
+                monitorUrl: initialUrl,
+                hopUrl: requestUrl,
+                includeClientIdentity: includeTlsClientIdentity,
+              }),
               timingCollector: timingCollector,
             });
           });
@@ -141,13 +144,13 @@ export default class ApiMonitor {
         let currentHeaders: Headers = { ...initialHeaders };
         let currentBody: JSONObject | undefined = initialBody;
         let redirectsFollowed: number = 0;
-        let includeTlsIdentity: boolean = true;
+        let includeTlsClientIdentity: boolean = true;
 
         while (true) {
           const prepared: PreparedHttpMonitorRequest = await prepareRequest(
             currentUrl,
             currentHeaders,
-            includeTlsIdentity,
+            includeTlsClientIdentity,
           );
 
           const fetchOptions: any = {
@@ -205,7 +208,12 @@ export default class ApiMonitor {
           currentHeaders = redirect.headers;
           currentBody = redirect.body;
           if (redirect.crossesOrigin) {
-            includeTlsIdentity = false;
+            /*
+             * Only the client certificate stops here; the self-signed
+             * allowance follows the monitor's hostname. See
+             * HttpMonitorRequest.getTlsOptionsForHop.
+             */
+            includeTlsClientIdentity = false;
           }
           redirectsFollowed++;
         }

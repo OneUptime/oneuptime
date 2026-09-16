@@ -110,24 +110,27 @@ export default class WebsiteMonitor {
         const prepareRequest: (
           requestUrl: string,
           requestHeaders: Headers,
-          includeTlsIdentity: boolean,
+          includeTlsClientIdentity: boolean,
         ) => Promise<PreparedHttpMonitorRequest> = async (
           requestUrl: string,
           requestHeaders: Headers,
-          includeTlsIdentity: boolean,
+          includeTlsClientIdentity: boolean,
         ): Promise<PreparedHttpMonitorRequest> => {
           return await executionContext.run(async () => {
             return await HttpMonitorRequest.prepare(requestUrl, {
               headers: requestHeaders,
-              tls: includeTlsIdentity
-                ? {
-                    allowSelfSignedCertificates:
-                      options.allowSelfSignedCertificates,
-                    tlsClientCertificate: options.tlsClientCertificate,
-                    tlsClientKey: options.tlsClientKey,
-                    tlsClientKeyPassphrase: options.tlsClientKeyPassphrase,
-                  }
-                : undefined,
+              tls: HttpMonitorRequest.getTlsOptionsForHop({
+                tls: {
+                  allowSelfSignedCertificates:
+                    options.allowSelfSignedCertificates,
+                  tlsClientCertificate: options.tlsClientCertificate,
+                  tlsClientKey: options.tlsClientKey,
+                  tlsClientKeyPassphrase: options.tlsClientKeyPassphrase,
+                },
+                monitorUrl: initialUrl,
+                hopUrl: requestUrl,
+                includeClientIdentity: includeTlsClientIdentity,
+              }),
               timingCollector: timingCollector,
             });
           });
@@ -168,13 +171,13 @@ export default class WebsiteMonitor {
         let currentMethod: HTTPMethod = initialMethod;
         let currentHeaders: Headers = {};
         let redirectsFollowed: number = 0;
-        let includeTlsIdentity: boolean = true;
+        let includeTlsClientIdentity: boolean = true;
 
         while (true) {
           const prepared: PreparedHttpMonitorRequest = await prepareRequest(
             currentUrl,
             currentHeaders,
-            includeTlsIdentity,
+            includeTlsClientIdentity,
           );
 
           let result: WebsiteResponse;
@@ -215,7 +218,12 @@ export default class WebsiteMonitor {
           currentMethod = redirect.method;
           currentHeaders = redirect.headers;
           if (redirect.crossesOrigin) {
-            includeTlsIdentity = false;
+            /*
+             * Only the client certificate stops here; the self-signed
+             * allowance follows the monitor's hostname. See
+             * HttpMonitorRequest.getTlsOptionsForHop.
+             */
+            includeTlsClientIdentity = false;
           }
           redirectsFollowed++;
         }
