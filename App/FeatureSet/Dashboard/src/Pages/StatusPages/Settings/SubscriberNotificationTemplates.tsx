@@ -6,6 +6,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import SubscriberNotificationTemplateChannels from "Common/Types/StatusPage/SubscriberNotificationTemplateChannels";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -127,8 +128,11 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             description:
               "Select the type of event this template will be used for. The default template for this event will be loaded as a starting point.",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              StatusPageSubscriberNotificationEventType,
+            // Only the events this channel actually sends.
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromArray(
+              SubscriberNotificationTemplateChannels.getSupportedEventTypes(
+                notificationMethod,
+              ),
             ),
             required: true,
             placeholder: "Select Event Type",

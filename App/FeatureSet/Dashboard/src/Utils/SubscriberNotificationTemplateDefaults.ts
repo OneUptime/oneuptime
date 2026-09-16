@@ -17,9 +17,12 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
  *   is just `{{{body}}}`), so the user has to provide their own styling — the
  *   HTML below produces a similar visual result that is short enough to
  *   translate.
- * - Webhook defaults are best-effort JSON since the workers don't currently
- *   dispatch webhook notifications, but the form still allows creating these
- *   templates.
+ * - Webhook defaults reproduce the JSON payload the workers send when no
+ *   custom template is configured, so a Webhook template saved unchanged keeps
+ *   the payload webhook consumers already rely on. Variables are filled in as
+ *   JSON-escaped text, which is why each one sits inside a JSON string.
+ * - Only the event type / channel pairs a sender actually delivers have a
+ *   default here (see SubscriberNotificationTemplateChannels).
  */
 
 export interface DefaultSubscriberNotificationTemplate {
@@ -75,6 +78,86 @@ ${fieldsHtml}
 </div>`;
 };
 
+/*
+ * The default webhook payload: a fixed envelope around event-specific `data`.
+ * Each `data` entry is [payload key, value template].
+ */
+const buildWebhookJson: (
+  eventType: string,
+  data: Array<[string, string]>,
+) => string = (eventType: string, data: Array<[string, string]>): string => {
+  const dataJson: string = data
+    .map(([key, value]: [string, string]): string => {
+      return `    "${key}": "${value}"`;
+    })
+    .join(",\n");
+
+  return `{
+  "eventType": "${eventType}",
+  "statusPageId": "{{statusPageId}}",
+  "statusPageName": "{{statusPageName}}",
+  "statusPageUrl": "{{statusPageUrl}}",
+  "unsubscribeUrl": "{{unsubscribeUrl}}",
+  "data": {
+${dataJson}
+  }
+}`;
+};
+
+const INCIDENT_NOTE_WEBHOOK_DATA: Array<[string, string]> = [
+  ["incidentId", "{{incidentId}}"],
+  ["incidentNumber", "{{incidentNumber}}"],
+  ["incidentTitle", "{{incidentTitle}}"],
+  ["incidentSeverity", "{{incidentSeverity}}"],
+  ["resourcesAffected", "{{resourcesAffected}}"],
+  ["note", "{{note}}"],
+  ["detailsUrl", "{{detailsUrl}}"],
+];
+
+const ANNOUNCEMENT_WEBHOOK_DATA: Array<[string, string]> = [
+  ["announcementId", "{{announcementId}}"],
+  ["announcementTitle", "{{announcementTitle}}"],
+  ["announcementDescription", "{{announcementDescription}}"],
+  ["detailsUrl", "{{detailsUrl}}"],
+];
+
+const SM_NOTE_WEBHOOK_DATA: Array<[string, string]> = [
+  ["scheduledMaintenanceId", "{{scheduledMaintenanceId}}"],
+  ["scheduledMaintenanceTitle", "{{scheduledMaintenanceTitle}}"],
+  ["scheduledMaintenanceDescription", "{{scheduledMaintenanceDescription}}"],
+  ["resourcesAffected", "{{resourcesAffected}}"],
+  ["note", "{{note}}"],
+  ["detailsUrl", "{{detailsUrl}}"],
+];
+
+// Episode payloads keep the incident* keys webhook consumers already read.
+const EPISODE_NOTE_WEBHOOK_DATA: Array<[string, string]> = [
+  ["episodeId", "{{episodeId}}"],
+  ["episodeTitle", "{{episodeTitle}}"],
+  ["incidentSeverity", "{{episodeSeverity}}"],
+  ["resourcesAffected", "{{resourcesAffected}}"],
+  ["note", "{{note}}"],
+  ["detailsUrl", "{{detailsUrl}}"],
+];
+
+// The "you have subscribed" message Slack and Microsoft Teams subscribers get.
+const SUBSCRIBED_CHAT_MESSAGE: string = `## 📢 New Subscription to {{statusPageName}}
+
+**You have successfully subscribed to receive status updates!**
+
+🔗 **Status Page:** [{{statusPageName}}]({{statusPageUrl}})
+📧 **Manage Subscription:** [Update preferences or unsubscribe]({{unsubscribeUrl}})
+
+You will receive real-time notifications for:
+• Incidents and outages
+• Scheduled maintenance events
+• Service announcements
+• Status updates
+
+Stay informed about service availability! 🚀`;
+
+const MANAGE_SUBSCRIPTION_MESSAGE: string = `You have selected to manage your subscription for the status page: {{statusPageName}}. You can manage your subscription here: {{manageSubscriptionUrl}}`;
+
 const subscriptionConfirmationDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Email]: {
     subject: "{{statusPageName}} - Please confirm your subscription",
@@ -109,6 +192,20 @@ const subscribedDefaults: EventDefaults = {
   </p>
 </div>`,
   },
+  [StatusPageSubscriberNotificationMethod.SMS]: {
+    body: `You have been subscribed to {{statusPageName}}. To unsubscribe, click on the link: {{unsubscribeUrl}}`,
+  },
+  [StatusPageSubscriberNotificationMethod.Slack]: {
+    body: SUBSCRIBED_CHAT_MESSAGE,
+  },
+  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: SUBSCRIBED_CHAT_MESSAGE,
+  },
+  [StatusPageSubscriberNotificationMethod.Webhook]: {
+    body: buildWebhookJson("SubscriberSubscribed", [
+      ["message", "You have been subscribed to {{statusPageName}}."],
+    ]),
+  },
 };
 
 const manageSubscriptionDefaults: EventDefaults = {
@@ -125,10 +222,13 @@ const manageSubscriptionDefaults: EventDefaults = {
 </div>`,
   },
   [StatusPageSubscriberNotificationMethod.SMS]: {
-    body: `You have selected to manage your subscription for the status page: {{statusPageName}}. You can manage your subscription here: {{manageSubscriptionUrl}}`,
+    body: MANAGE_SUBSCRIPTION_MESSAGE,
   },
   [StatusPageSubscriberNotificationMethod.Slack]: {
-    body: `You have selected to manage your subscription for the status page: {{statusPageName}}. You can manage your subscription here: {{manageSubscriptionUrl}}`,
+    body: MANAGE_SUBSCRIPTION_MESSAGE,
+  },
+  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: MANAGE_SUBSCRIPTION_MESSAGE,
   },
 };
 
@@ -171,19 +271,15 @@ const incidentCreatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "incident.created",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "incident": {
-    "title": "{{incidentTitle}}",
-    "description": "{{incidentDescription}}",
-    "severity": "{{incidentSeverity}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("IncidentCreated", [
+      ["incidentId", "{{incidentId}}"],
+      ["incidentNumber", "{{incidentNumber}}"],
+      ["incidentTitle", "{{incidentTitle}}"],
+      ["incidentDescription", "{{incidentDescription}}"],
+      ["incidentSeverity", "{{incidentSeverity}}"],
+      ["resourcesAffected", "{{resourcesAffected}}"],
+      ["detailsUrl", "{{detailsUrl}}"],
+    ]),
   },
 };
 
@@ -228,20 +324,15 @@ const incidentStateChangedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "incident.stateChanged",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "incident": {
-    "title": "{{incidentTitle}}",
-    "description": "{{incidentDescription}}",
-    "severity": "{{incidentSeverity}}",
-    "state": "{{incidentState}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("IncidentStateChanged", [
+      ["incidentId", "{{incidentId}}"],
+      ["incidentNumber", "{{incidentNumber}}"],
+      ["incidentTitle", "{{incidentTitle}}"],
+      ["incidentSeverity", "{{incidentSeverity}}"],
+      ["incidentState", "{{incidentState}}"],
+      ["resourcesAffected", "{{resourcesAffected}}"],
+      ["detailsUrl", "{{detailsUrl}}"],
+    ]),
   },
 };
 
@@ -291,21 +382,7 @@ const incidentNoteCreatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "incident.noteCreated",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "incident": {
-    "title": "{{incidentTitle}}",
-    "severity": "{{incidentSeverity}}",
-    "state": "{{incidentState}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "note": "{{note}}",
-  "postedAt": "{{postedAt}}",
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("IncidentNoteCreated", INCIDENT_NOTE_WEBHOOK_DATA),
   },
 };
 
@@ -356,19 +433,7 @@ const incidentNoteUpdatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "incident.noteUpdated",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "incident": {
-    "title": "{{incidentTitle}}",
-    "severity": "{{incidentSeverity}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "note": "{{note}}",
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("IncidentNoteUpdated", INCIDENT_NOTE_WEBHOOK_DATA),
   },
 };
 
@@ -411,19 +476,15 @@ const incidentPostmortemPublishedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "incident.postmortemPublished",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "incident": {
-    "title": "{{incidentTitle}}",
-    "severity": "{{incidentSeverity}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "postmortemNote": "{{postmortemNote}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("IncidentPostmortemPublished", [
+      ["incidentId", "{{incidentId}}"],
+      ["incidentNumber", "{{incidentNumber}}"],
+      ["incidentTitle", "{{incidentTitle}}"],
+      ["incidentSeverity", "{{incidentSeverity}}"],
+      ["resourcesAffected", "{{resourcesAffected}}"],
+      ["postmortemNote", "{{postmortemNote}}"],
+      ["detailsUrl", "{{detailsUrl}}"],
+    ]),
   },
 };
 
@@ -459,17 +520,7 @@ const announcementCreatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "announcement.created",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "announcement": {
-    "title": "{{announcementTitle}}",
-    "description": "{{announcementDescription}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("AnnouncementCreated", ANNOUNCEMENT_WEBHOOK_DATA),
   },
 };
 
@@ -506,17 +557,7 @@ const announcementUpdatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "announcement.updated",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "announcement": {
-    "title": "{{announcementTitle}}",
-    "description": "{{announcementDescription}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("AnnouncementUpdated", ANNOUNCEMENT_WEBHOOK_DATA),
   },
 };
 
@@ -568,20 +609,18 @@ const scheduledMaintenanceCreatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "scheduledMaintenance.created",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "scheduledMaintenance": {
-    "title": "{{scheduledMaintenanceTitle}}",
-    "description": "{{scheduledMaintenanceDescription}}",
-    "scheduledStartTime": "{{scheduledStartTime}}",
-    "scheduledEndTime": "{{scheduledEndTime}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("ScheduledMaintenanceCreated", [
+      ["scheduledMaintenanceId", "{{scheduledMaintenanceId}}"],
+      ["scheduledMaintenanceTitle", "{{scheduledMaintenanceTitle}}"],
+      [
+        "scheduledMaintenanceDescription",
+        "{{scheduledMaintenanceDescription}}",
+      ],
+      ["scheduledStartTime", "{{scheduledStartTime}}"],
+      ["scheduledEndTime", "{{scheduledEndTime}}"],
+      ["resourcesAffected", "{{resourcesAffected}}"],
+      ["detailsUrl", "{{detailsUrl}}"],
+    ]),
   },
 };
 
@@ -623,19 +662,13 @@ const scheduledMaintenanceStateChangedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "scheduledMaintenance.stateChanged",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "scheduledMaintenance": {
-    "title": "{{scheduledMaintenanceTitle}}",
-    "description": "{{scheduledMaintenanceDescription}}",
-    "state": "{{scheduledMaintenanceState}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("ScheduledMaintenanceStateChanged", [
+      ["scheduledMaintenanceId", "{{scheduledMaintenanceId}}"],
+      ["scheduledMaintenanceTitle", "{{scheduledMaintenanceTitle}}"],
+      ["scheduledMaintenanceState", "{{scheduledMaintenanceState}}"],
+      ["resourcesAffected", "{{resourcesAffected}}"],
+      ["detailsUrl", "{{detailsUrl}}"],
+    ]),
   },
 };
 
@@ -684,20 +717,10 @@ const scheduledMaintenanceNoteCreatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "scheduledMaintenance.noteCreated",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "scheduledMaintenance": {
-    "title": "{{scheduledMaintenanceTitle}}",
-    "description": "{{scheduledMaintenanceDescription}}",
-    "state": "{{scheduledMaintenanceState}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "note": "{{note}}",
-  "postedAt": "{{postedAt}}",
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson(
+      "ScheduledMaintenanceNoteCreated",
+      SM_NOTE_WEBHOOK_DATA,
+    ),
   },
 };
 
@@ -743,18 +766,10 @@ const scheduledMaintenanceNoteUpdatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "scheduledMaintenance.noteUpdated",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "scheduledMaintenance": {
-    "title": "{{scheduledMaintenanceTitle}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "note": "{{note}}",
-  "postedAt": "{{postedAt}}",
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson(
+      "ScheduledMaintenanceNoteUpdated",
+      SM_NOTE_WEBHOOK_DATA,
+    ),
   },
 };
 
@@ -797,19 +812,14 @@ const episodeCreatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "episode.created",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "episode": {
-    "title": "{{episodeTitle}}",
-    "description": "{{episodeDescription}}",
-    "severity": "{{episodeSeverity}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("EpisodeCreated", [
+      ["episodeId", "{{episodeId}}"],
+      ["episodeTitle", "{{episodeTitle}}"],
+      ["episodeDescription", "{{episodeDescription}}"],
+      ["incidentSeverity", "{{episodeSeverity}}"],
+      ["resourcesAffected", "{{resourcesAffected}}"],
+      ["detailsUrl", "{{detailsUrl}}"],
+    ]),
   },
 };
 
@@ -854,19 +864,14 @@ const episodeStateChangedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "episode.stateChanged",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "episode": {
-    "title": "{{episodeTitle}}",
-    "severity": "{{episodeSeverity}}",
-    "state": "{{episodeState}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("EpisodeStateChanged", [
+      ["episodeId", "{{episodeId}}"],
+      ["episodeTitle", "{{episodeTitle}}"],
+      ["incidentSeverity", "{{episodeSeverity}}"],
+      ["incidentState", "{{episodeState}}"],
+      ["resourcesAffected", "{{resourcesAffected}}"],
+      ["detailsUrl", "{{detailsUrl}}"],
+    ]),
   },
 };
 
@@ -916,19 +921,7 @@ const episodeNoteCreatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "episode.noteCreated",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "episode": {
-    "title": "{{episodeTitle}}",
-    "severity": "{{episodeSeverity}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "note": "{{note}}",
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("EpisodeNoteCreated", EPISODE_NOTE_WEBHOOK_DATA),
   },
 };
 
@@ -979,19 +972,7 @@ const episodeNoteUpdatedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "episode.noteUpdated",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "episode": {
-    "title": "{{episodeTitle}}",
-    "severity": "{{episodeSeverity}}",
-    "resourcesAffected": "{{resourcesAffected}}",
-    "detailsUrl": "{{detailsUrl}}"
-  },
-  "note": "{{note}}",
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
+    body: buildWebhookJson("EpisodeNoteUpdated", EPISODE_NOTE_WEBHOOK_DATA),
   },
 };
 
@@ -1003,9 +984,8 @@ const episodeNoteUpdatedDefaults: EventDefaults = {
  * object. It is kept self-contained with inline CSS so it renders correctly in
  * email clients without depending on OneUptime's chrome partials (those remain
  * available to power users who add {{> Start this}} etc.).
- * SMS / Slack / Microsoft Teams / Webhook reports have no worker send path
- * today, so their defaults are best-effort summaries (like Webhook is for the
- * other events) and exist only so the form is usable.
+ * Reports are sent by email only (Status Page > Reports), so there is no
+ * default for any other channel.
  */
 const reportDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Email]: {
@@ -1088,46 +1068,6 @@ const reportDefaults: EventDefaults = {
   </p>
   {{/if}}
 </div>`,
-  },
-  [StatusPageSubscriberNotificationMethod.SMS]: {
-    body: `{{statusPageName}} uptime report for {{report.reportPeriodName}} ({{report.reportDates}}): {{report.averageUptimePercent}} average uptime, {{report.totalIncidents}} incidents, {{report.totalDowntimeInHoursAndMinutes}} downtime. {{statusPageUrl}}`,
-  },
-  [StatusPageSubscriberNotificationMethod.Slack]: {
-    body: `## 📊 Uptime Report - {{statusPageName}}
-
-**Period:** {{report.reportPeriodName}} ({{report.reportDates}} {{report.reportTimezone}})
-**Average Uptime:** {{report.averageUptimePercent}}
-**Total Downtime:** {{report.totalDowntimeInHoursAndMinutes}}
-**Incidents:** {{report.totalIncidents}}
-
-[View Status Page]({{statusPageUrl}})`,
-  },
-  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
-    body: `## 📊 Uptime Report - {{statusPageName}}
-**Period:** {{report.reportPeriodName}} ({{report.reportDates}} {{report.reportTimezone}})
-**Average Uptime:** {{report.averageUptimePercent}}
-**Total Downtime:** {{report.totalDowntimeInHoursAndMinutes}}
-**Incidents:** {{report.totalIncidents}}
-[View Status Page]({{statusPageUrl}})`,
-  },
-  [StatusPageSubscriberNotificationMethod.Webhook]: {
-    body: `{
-  "event": "subscriber.report",
-  "statusPage": "{{statusPageName}}",
-  "statusPageUrl": "{{statusPageUrl}}",
-  "report": {
-    "reportDates": "{{report.reportDates}}",
-    "reportPeriodName": "{{report.reportPeriodName}}",
-    "reportStartDate": "{{report.reportStartDate}}",
-    "reportEndDate": "{{report.reportEndDate}}",
-    "reportTimezone": "{{report.reportTimezone}}",
-    "averageUptimePercent": "{{report.averageUptimePercent}}",
-    "totalDowntimeInHoursAndMinutes": "{{report.totalDowntimeInHoursAndMinutes}}",
-    "totalIncidents": "{{report.totalIncidents}}",
-    "totalResources": "{{report.totalResources}}"
-  },
-  "unsubscribeUrl": "{{unsubscribeUrl}}"
-}`,
   },
 };
 

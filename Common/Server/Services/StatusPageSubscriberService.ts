@@ -531,8 +531,8 @@ export class Service extends DatabaseService<Model> {
 📧 **Manage Subscription:** [Update preferences or unsubscribe](${unsubscribeLink})
 
 You will receive real-time notifications for:
-• Incidents and outages 
-• Scheduled maintenance events  
+• Incidents and outages
+• Scheduled maintenance events
 • Service announcements
 • Status updates
 
@@ -614,8 +614,8 @@ Stay informed about service availability! 🚀`;
 📧 **Manage Subscription:** [Update preferences or unsubscribe](${unsubscribeLink})
 
 You will receive real-time notifications for:
-• Incidents and outages 
-• Scheduled maintenance events  
+• Incidents and outages
+• Scheduled maintenance events
 • Service announcements
 • Status updates
 

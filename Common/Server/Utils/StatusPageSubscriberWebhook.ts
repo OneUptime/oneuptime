@@ -6,6 +6,7 @@ import { JSONObject } from "../../Types/JSON";
 import logger from "./Logger";
 import SSRFProtection from "./SSRFProtection";
 
+// The body a webhook subscriber receives when no custom Webhook template is set.
 export interface StatusPageWebhookPayload extends JSONObject {
   eventType: string;
   statusPageId: string;
@@ -18,7 +19,11 @@ export interface StatusPageWebhookPayload extends JSONObject {
 export default class StatusPageSubscriberWebhookUtil {
   public static async sendWebhookNotification(data: {
     webhookUrl: URL;
-    payload: StatusPageWebhookPayload;
+    /*
+     * The default payload, or the body a custom Webhook template produced
+     * (see StatusPageSubscriberWebhookTemplate.getPayload).
+     */
+    payload: StatusPageWebhookPayload | JSONObject;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
     logger.debug("Sending status page subscriber webhook notification.");
 

@@ -1,23 +1,35 @@
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import SubscriberNotificationTemplateVariables, {
+  SubscriberNotificationTemplateVariable,
+} from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
 
 /**
  * Returns markdown documentation listing the template variables available for
  * the given event type. The actual default-template content is rendered
  * separately in the form (see SubscriberNotificationTemplateDefaults), so this
- * function focuses on the variable reference table only.
+ * function focuses on the variable reference table only. The variables come
+ * from the same list the senders fill, so the table cannot promise one they
+ * do not provide.
  */
 export const getSubscriberNotificationTemplateVariablesDocumentation: (
   eventType: StatusPageSubscriberNotificationEventType | undefined,
   notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
 ) => string = (
   eventType: StatusPageSubscriberNotificationEventType | undefined,
-  _notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
+  notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
 ): string => {
-  const commonVariablesRows: string = `| \`{{statusPageName}}\` | Name of the status page |
-| \`{{statusPageUrl}}\` | URL of the status page |
-| \`{{unsubscribeUrl}}\` | URL for subscribers to unsubscribe from notifications |
-| \`{{resourcesAffected}}\` | List of affected resources/monitors |`;
+  const toRows: (
+    variables: Array<SubscriberNotificationTemplateVariable>,
+  ) => string = (
+    variables: Array<SubscriberNotificationTemplateVariable>,
+  ): string => {
+    return variables
+      .map((variable: SubscriberNotificationTemplateVariable): string => {
+        return `| \`{{${variable.name}}}\` | ${variable.description} |`;
+      })
+      .join("\n");
+  };
 
   if (!eventType) {
     return `**Available Template Variables**
@@ -26,117 +38,23 @@ Please select an **Event Type** above to see all available variables for that ev
 
 | Variable | Description |
 |----------|-------------|
-${commonVariablesRows}`;
+${toRows(
+  SubscriberNotificationTemplateVariables.getVariables(
+    StatusPageSubscriberNotificationEventType.SubscriberSubscribed,
+  ),
+)}`;
   }
 
-  let eventSpecificRows: string = "";
-
-  switch (eventType) {
-    case StatusPageSubscriberNotificationEventType.SubscriberSubscriptionConfirmation:
-      eventSpecificRows = `| \`{{confirmationUrl}}\` | URL the subscriber clicks to confirm their subscription |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberSubscribed:
-      eventSpecificRows = `| \`{{statusPageUrl}}\` | URL of the status page (also covered by the common variables above) |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberManageSubscription:
-      eventSpecificRows = `| \`{{manageSubscriptionUrl}}\` | URL the subscriber uses to manage or unsubscribe from notifications |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated:
-      eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
-| \`{{incidentDescription}}\` | Description of the incident |
-| \`{{incidentSeverity}}\` | Severity level of the incident |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged:
-      eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
-| \`{{incidentDescription}}\` | Description of the incident |
-| \`{{incidentSeverity}}\` | Severity level of the incident |
-| \`{{incidentState}}\` | Current state of the incident (e.g., Investigating, Identified, Resolved) |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated:
-    case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated:
-      eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
-| \`{{incidentSeverity}}\` | Severity level of the incident |
-| \`{{incidentState}}\` | Current state of the incident |
-| \`{{postedAt}}\` | Date and time when the note was posted |
-| \`{{note}}\` | Content of the note |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished:
-      eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
-| \`{{incidentSeverity}}\` | Severity level of the incident |
-| \`{{postmortemNote}}\` | Postmortem summary content |
-| \`{{detailsUrl}}\` | URL to view the postmortem |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated:
-    case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementUpdated:
-      eventSpecificRows = `| \`{{announcementTitle}}\` | Title of the announcement |
-| \`{{announcementDescription}}\` | Description/content of the announcement |
-| \`{{detailsUrl}}\` | URL to view announcement details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated:
-      eventSpecificRows = `| \`{{scheduledMaintenanceTitle}}\` | Title of the scheduled maintenance |
-| \`{{scheduledMaintenanceDescription}}\` | Description of the scheduled maintenance |
-| \`{{scheduledStartTime}}\` | When the maintenance is scheduled to start |
-| \`{{scheduledEndTime}}\` | When the maintenance is scheduled to end |
-| \`{{detailsUrl}}\` | URL to view scheduled maintenance details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged:
-      eventSpecificRows = `| \`{{scheduledMaintenanceTitle}}\` | Title of the scheduled maintenance |
-| \`{{scheduledMaintenanceDescription}}\` | Description of the scheduled maintenance |
-| \`{{scheduledMaintenanceState}}\` | Current state (e.g., Scheduled, In Progress, Completed) |
-| \`{{detailsUrl}}\` | URL to view scheduled maintenance details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated:
-    case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated:
-      eventSpecificRows = `| \`{{scheduledMaintenanceTitle}}\` | Title of the scheduled maintenance |
-| \`{{scheduledMaintenanceState}}\` | Current state of the scheduled maintenance |
-| \`{{postedAt}}\` | Date and time when the note was posted |
-| \`{{note}}\` | Content of the note |
-| \`{{detailsUrl}}\` | URL to view scheduled maintenance details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeCreated:
-      eventSpecificRows = `| \`{{episodeTitle}}\` | Title of the incident |
-| \`{{episodeDescription}}\` | Description of the incident |
-| \`{{episodeSeverity}}\` | Severity level of the incident |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeStateChanged:
-      eventSpecificRows = `| \`{{episodeTitle}}\` | Title of the incident |
-| \`{{episodeSeverity}}\` | Severity level of the incident |
-| \`{{episodeState}}\` | Current state of the incident (e.g., Investigating, Identified, Resolved) |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated:
-    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteUpdated:
-      eventSpecificRows = `| \`{{episodeTitle}}\` | Title of the incident |
-| \`{{episodeSeverity}}\` | Severity level of the incident |
-| \`{{note}}\` | Content of the note |
-| \`{{detailsUrl}}\` | URL to view incident details |`;
-      break;
-
-    case StatusPageSubscriberNotificationEventType.SubscriberReport:
-      /*
-       * The report email is rendered through the full Handlebars engine, so it
-       * exposes a structured `report` object (not flat scalars) and supports
-       * loops, conditionals and partials. Return a dedicated doc rather than the
-       * common flat-variable table.
-       */
-      return `**Available Template Variables** - The report template is rendered with Handlebars, so you can use loops and conditionals in addition to \`{{variableName}}\` substitution.
+  if (
+    eventType === StatusPageSubscriberNotificationEventType.SubscriberReport
+  ) {
+    /*
+     * The report email is rendered through the full Handlebars engine, so it
+     * exposes a structured `report` object (not flat scalars) and supports
+     * loops, conditionals and partials. Return a dedicated doc rather than the
+     * common flat-variable table.
+     */
+    return `**Available Template Variables** - The report template is rendered with Handlebars, so you can use loops and conditionals in addition to \`{{variableName}}\` substitution.
 
 | Variable | Description |
 |----------|-------------|
@@ -203,17 +121,18 @@ ${commonVariablesRows}`;
 \`\`\`
 
 You may also use OneUptime's email partials (e.g. \`{{> Start this}}\`, \`{{> Footer this}}\`, \`{{> End this}}\`) if you want the standard chrome.`;
-
-    default:
-      return `**Available Template Variables**
-
-Please select an event type to see available variables.`;
   }
 
-  return `**Available Template Variables** - Use these variables in your template with the \`{{variableName}}\` syntax.
+  const webhookNote: string =
+    notificationMethod === StatusPageSubscriberNotificationMethod.Webhook
+      ? `
+
+**Webhook templates** - the template is the JSON body webhook subscribers receive. Each variable is inserted as JSON-escaped text, so put it inside double quotes, for example \`"title": "{{incidentTitle}}"\`. A template that is not a JSON object is rejected when you save it.`
+      : "";
+
+  return `**Available Template Variables** - Use these variables in your template with the \`{{variableName}}\` syntax.${webhookNote}
 
 | Variable | Description |
 |----------|-------------|
-${commonVariablesRows}
-${eventSpecificRows}`;
+${toRows(SubscriberNotificationTemplateVariables.getVariables(eventType))}`;
 };
