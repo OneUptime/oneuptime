@@ -1600,16 +1600,30 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       }`}
       data-testid="replay-rail"
     >
-      <div className="flex items-start justify-between gap-2 border-b border-gray-200 px-4 py-4">
-        <div className="min-w-0">
-          <h3 className="text-base font-semibold text-gray-900">Events</h3>
-          <p className="mt-1 text-xs text-gray-500">
-            Explore activity at each moment.
-          </p>
+      {/*
+       * One row of chrome: every pixel the header gives up is another list
+       * row. The subtitle stays for screen readers (and as the heading's
+       * tooltip) but no longer takes a line; the alignment note truncates
+       * beside the heading with the full sentence in its title. The heading
+       * keeps its bare "Events" name, so the sr-only copy sits outside it.
+       */}
+      <div
+        className="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-2"
+        data-testid="replay-rail-header"
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <h3
+            className="shrink-0 text-sm font-semibold text-gray-900"
+            title="Explore activity at each moment."
+          >
+            Events
+          </h3>
+          <p className="sr-only">Explore activity at each moment.</p>
           {alignmentNote && (
             <span
-              className="mt-1 block text-xs text-gray-400"
+              className="min-w-0 truncate text-[11px] text-gray-400"
               data-testid="rail-alignment-note"
+              title={alignmentNote}
             >
               {alignmentNote}
             </span>
@@ -1664,7 +1678,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
       {coverageNote && (
         <div
-          className="px-4 pt-2 text-xs text-gray-500"
+          className="px-3 pt-2 text-xs text-gray-500"
           data-testid="rail-coverage-note"
         >
           {coverageNote}
@@ -1675,14 +1689,22 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         role="tablist"
         aria-label="Signal tabs"
         data-testid="rail-tablist"
-        className="mx-4 mt-3 flex flex-wrap items-center gap-1 border-b border-gray-100 pb-3"
+        className="mx-3 mt-2 flex flex-wrap items-center gap-1 border-b border-gray-100 pb-2"
         onKeyDown={handleTabsKeyDown}
       >
         {tabModels.map(renderTab)}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pt-3">
-        <div className="relative w-full min-w-0">
+      {/*
+       * Search and scope share a row when the rail is wide enough and wrap
+       * onto two when it is not: the input keeps a 10rem floor so it never
+       * shrinks to an unusable sliver beside the scope toggle.
+       */}
+      <div
+        className="flex flex-wrap items-center gap-2 px-3 py-2"
+        data-testid="replay-rail-search-row"
+      >
+        <div className="relative min-w-[10rem] flex-1">
           <Icon
             icon={IconProp.Search}
             className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
@@ -1695,7 +1717,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             placeholder="Search events"
             title="Search text, status:>=400, level:error, or trace: followed by an ID"
             aria-label="Filter signals"
-            className="h-9 w-full rounded-md border border-gray-300 bg-white pl-8 pr-9 text-sm text-gray-800 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-8 w-full rounded-md border border-gray-300 bg-white pl-8 pr-9 text-sm text-gray-800 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
               setQuery(event.target.value);
             }}
@@ -1727,7 +1749,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           )}
         </div>
 
-        <span className="text-xs text-gray-500">Show events</span>
+        <span className="sr-only">Show events</span>
         <ReplayButtonGroup ariaLabel="Scope" dataTestId="rail-scope-toggle">
           <ReplayToolButton
             label="Whole session"
@@ -1754,7 +1776,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
       {tabChips.length > 0 && (
         <div
-          className="flex flex-wrap gap-1.5 px-4 pb-3"
+          className="flex flex-wrap gap-1.5 px-3 pb-2"
           role="group"
           aria-label="Quick filters"
         >

@@ -467,6 +467,24 @@ export interface SessionReplayManifestTabDto {
    * tab pill can say "Tab 2 - 30s (opened 2:14)".
    */
   firstChunkStartOffsetMs?: number;
+  /*
+   * Additive. Whether THIS tab has stopped recording - it sent its final
+   * chunk, or stored its last permitted chunk index (hasTabRecordingEnded
+   * in Common/Utils/Rum/SessionReplayRecordingEnded.ts) - so the player can
+   * list open tabs before closed ones. The recorder mints a new tab id on
+   * every page load, so the header's hasRecordingEnded ("every tab has
+   * ended") cannot say which tab is still open.
+   *
+   * True for every tab of a finalized session and of a session whose
+   * header says hasRecordingEnded. There is no grace per tab: the grace
+   * waits for a NEW tab id that may still register, which says nothing
+   * about whether this one sealed. False when the server cannot tell (no
+   * chunk facts for the tab yet, or the read that judges it failed), so
+   * false is "not known to have ended", never proof the tab is open.
+   * Absent from an older server, where the Dashboard cannot tell open tabs
+   * from closed ones at all.
+   */
+  hasRecordingEnded?: boolean;
 }
 
 export interface SessionReplayManifestResponseDto {

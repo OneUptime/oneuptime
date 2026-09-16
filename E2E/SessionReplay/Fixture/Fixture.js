@@ -42,6 +42,21 @@ const tabId = "b".repeat(32);
 const secondTabId = "c".repeat(32);
 const empty = params.get("fixture") === "empty";
 const mobileRecording = params.get("recorder") === "mobile";
+// ?tabs=multiple: three tabs of a finished recording (one without footage).
+// ?tabs=many: eight tabs of a recording that is STILL GOING, which is what
+// the tab switcher, its picker and its Open/Closed grouping are built for -
+// the browser recorder mints a new tab id on every page load, so a walk
+// through a shop arrives as a wall of "tabs" the viewer has to tell apart.
+const multipleTabs = params.get("tabs") === "multiple";
+const manyTabs = params.get("tabs") === "many";
+// ?neighbour=newer: the same person has a LATER recording, so the ended
+// card can offer "Next session by this user". That recording exists on its
+// own too - opening its player URL directly has to find it - so the flag is
+// also on whenever the page IS that session.
+const newerUserSessionId = "f".repeat(32);
+const hasNewerUserSession =
+  params.get("neighbour") === "newer" ||
+  window.location.pathname.endsWith(newerUserSessionId);
 const now = Date.now();
 const started = now - 7 * 60 * 1000;
 const count = empty ? 0 : Number(params.get("count") || 8);
@@ -237,6 +252,23 @@ const records = Array.from({ length: count }, (_, index) => {
     expiresAtUnixMs: now + 29 * 86400000,
   };
 });
+/*
+ * One more recording by the person in records[0], started AFTER it. The
+ * player's user-sessions lookup reads the same list route, so this is all
+ * it takes for "Next session by this user" to have somewhere to go; the
+ * row exists only for the two cases above, so every other spec keeps
+ * counting eight sessions.
+ */
+if (hasNewerUserSession && records.length > 0) {
+  const newerStartTimeUnixMs = started + 2 * 60 * 1000;
+  records.unshift({
+    ...records[0],
+    sessionId: newerUserSessionId,
+    startTimeUnixMs: newerStartTimeUnixMs,
+    startTime: new Date(newerStartTimeUnixMs).toISOString(),
+    endTime: new Date(newerStartTimeUnixMs + 90000).toISOString(),
+  });
+}
 const health = {
   // ?project=off: the project-wide master switch is off.
   isProjectAllowed: params.get("project") !== "off",
@@ -486,23 +518,99 @@ function usersResult(data) {
         : null,
   };
 }
-const manifestChunks = Array.from({ length: 3 }, (_, index) => ({
-  chunkIndex: index,
-  tabId,
-  chunkStartOffsetMs: index * 30000,
-  chunkEndOffsetMs: (index + 1) * 30000,
-  eventCount: 22,
-  hasFullSnapshot: true,
-  payloadBytes: 22000,
-  errorCount: index === 0 ? 1 : 0,
-  rageClickCount: index === 1 ? 1 : 0,
-  deadClickCount: 0,
-  errorClickCount: 0,
-  refreshRageCount: 0,
-  routeCount: 1,
-  clickCount: 4,
-  url: mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
-}));
+/*
+ * One stored chunk. chunkIndex doubles as the position on the session
+ * clock: the chunk endpoint below answers index N with chunkEvents(N),
+ * whose events start at N * 30s. So a tab's chunk indexes are what put
+ * its footage where it belongs in the recording.
+ */
+function makeChunk(ownerTabId, chunkIndex, url, signals = {}) {
+  return {
+    chunkIndex,
+    tabId: ownerTabId,
+    chunkStartOffsetMs: chunkIndex * 30000,
+    chunkEndOffsetMs: (chunkIndex + 1) * 30000,
+    eventCount: 22,
+    hasFullSnapshot: true,
+    payloadBytes: 22000,
+    errorCount: signals.errorCount || 0,
+    rageClickCount: signals.rageClickCount || 0,
+    deadClickCount: 0,
+    errorClickCount: 0,
+    refreshRageCount: 0,
+    routeCount: 1,
+    clickCount: 4,
+    url,
+  };
+}
+const manifestChunks = [0, 1, 2].map((index) => {
+  return makeChunk(
+    tabId,
+    index,
+    mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
+    { errorCount: index === 0 ? 1 : 0, rageClickCount: index === 1 ? 1 : 0 },
+  );
+});
+/*
+ * ?tabs=many, in opened order - which is where "Tab 1..8" comes from.
+ * The client sorts tabs by their first chunk (ReplayManifest.sortTabs),
+ * so the plan lists them by ascending first chunk index and tab N keeps
+ * the id "N" repeated. Two tabs are still open, five have sent their
+ * final chunk and one stored nothing at all, and every tab carries a
+ * different page so the pills, the picker's search and its per-tab span
+ * bars all have something real to show.
+ */
+const manyTabPlan = [
+  { page: "/collections", chunkIndexes: [0], hasRecordingEnded: true },
+  {
+    page: "/products/linen-shirt",
+    chunkIndexes: [0, 1],
+    hasRecordingEnded: true,
+  },
+  { page: "/cart", chunkIndexes: [0, 1, 2], hasRecordingEnded: false },
+  {
+    page: "/checkout",
+    chunkIndexes: [1],
+    hasRecordingEnded: true,
+    errorCount: 2,
+  },
+  { page: "/account", chunkIndexes: [1, 2], hasRecordingEnded: true },
+  { page: "/search?q=linen", chunkIndexes: [2], hasRecordingEnded: false },
+  {
+    page: "/orders",
+    chunkIndexes: [2],
+    hasRecordingEnded: true,
+    rageClickCount: 1,
+  },
+  { page: "/support", chunkIndexes: [], hasRecordingEnded: false },
+];
+// "1"x32 ... "8"x32: a tab id is an opaque token, and one repeated digit
+// makes a failure message say which tab without a lookup.
+const manyTabId = (position) => String(position).repeat(32);
+const manyManifestTabs = manyTabPlan.map((plan, index) => {
+  const ownerTabId = manyTabId(index + 1);
+  return {
+    tabId: ownerTabId,
+    // The per-tab flag the server now sends beside the session's own
+    // (SessionReplayManifestTabDto.hasRecordingEnded): true once that tab
+    // posted its final chunk, false while it may still record.
+    hasRecordingEnded: plan.hasRecordingEnded,
+    chunks: plan.chunkIndexes.map((chunkIndex, position) => {
+      return makeChunk(
+        ownerTabId,
+        chunkIndex,
+        `https://shop.example.com${plan.page}`,
+        position === 0
+          ? {
+              errorCount: plan.errorCount,
+              rageClickCount: plan.rageClickCount,
+            }
+          : {},
+      );
+    }),
+    gaps: [],
+  };
+});
 API.get = async () => new HTTPResponse(200, { data: [], count: 0 }, {});
 API.post = async ({ url, data }) => {
   const route = url.toString().split("/session-replay/")[1];
@@ -523,6 +631,18 @@ API.post = async ({ url, data }) => {
         header: {
           ...row,
           durationMs: 90000,
+          /*
+           * ?tabs=many is a recording in progress: a finalized session, or
+           * one the server has already declared ended, closes every tab by
+           * definition, and then there is no Open group to show.
+           */
+          ...(manyTabs
+            ? {
+                isFinalized: false,
+                hasRecordingEnded: false,
+                sealedReason: "",
+              }
+            : {}),
           consentState: "Granted",
           recorderVersion: "13.0.0",
           rrwebVersion: "2.0.0",
@@ -534,22 +654,41 @@ API.post = async ({ url, data }) => {
           traceIds: [],
           exceptionFingerprints: [],
         },
-        tabs: [
-          { tabId, chunks: manifestChunks, gaps: [] },
-          ...(params.get("tabs") === "multiple"
-            ? [
-                {
-                  tabId: secondTabId,
-                  chunks: manifestChunks.map((chunk) => ({
-                    ...chunk,
-                    tabId: secondTabId,
-                  })),
-                  gaps: [],
-                },
-                { tabId: "d".repeat(32), chunks: [], gaps: [] },
-              ]
-            : []),
-        ],
+        /*
+         * Every tab carries hasRecordingEnded, as the server does. A
+         * finalized recording reports true for all of them (no tab of a
+         * finished session is still open); ?tabs=many is the live case,
+         * where the flag differs per tab.
+         */
+        tabs: manyTabs
+          ? manyManifestTabs
+          : [
+              {
+                tabId,
+                chunks: manifestChunks,
+                gaps: [],
+                hasRecordingEnded: true,
+              },
+              ...(multipleTabs
+                ? [
+                    {
+                      tabId: secondTabId,
+                      chunks: manifestChunks.map((chunk) => ({
+                        ...chunk,
+                        tabId: secondTabId,
+                      })),
+                      gaps: [],
+                      hasRecordingEnded: true,
+                    },
+                    {
+                      tabId: "d".repeat(32),
+                      chunks: [],
+                      gaps: [],
+                      hasRecordingEnded: true,
+                    },
+                  ]
+                : []),
+            ],
         isChunkIndexTruncated: false,
       },
       {},

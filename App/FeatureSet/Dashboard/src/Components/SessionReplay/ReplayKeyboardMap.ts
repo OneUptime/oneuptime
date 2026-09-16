@@ -61,6 +61,14 @@ export type ReplayKeyboardAction =
   | { type: "toggle-theater" }
   | { type: "toggle-wide" }
   | { type: "toggle-follow" }
+  /*
+   * "r" shows or hides the events rail and "z" steps the stage fit
+   * (Fit -> Width -> 1:1): the two layout choices that decide how big the
+   * recording is drawn, one key each so a viewer can flip between a large
+   * picture and the evidence without reaching for the pointer.
+   */
+  | { type: "toggle-rail" }
+  | { type: "cycle-fit" }
   | { type: "focus-rail-search" }
   | { type: "copy-link" }
   | { type: "toggle-details" }
@@ -400,6 +408,10 @@ export function resolveReplayKeyboardAction(
       return isShift ? null : oneShot({ type: "toggle-wide" });
     case "m":
       return isShift ? null : oneShot({ type: "toggle-follow" });
+    case "r":
+      return isShift ? null : oneShot({ type: "toggle-rail" });
+    case "z":
+      return isShift ? null : oneShot({ type: "cycle-fit" });
     case "c":
       return isShift ? null : oneShot({ type: "copy-link" });
     case "i":
@@ -606,6 +618,16 @@ export const REPLAY_SHORTCUT_GROUPS: Array<ReplayShortcutGroup> = [
         id: "follow",
         keys: [["M"]],
         description: "Follow the playhead in the rail",
+      },
+      {
+        id: "toggle-rail",
+        keys: [["R"]],
+        description: "Show or hide the events rail",
+      },
+      {
+        id: "cycle-fit",
+        keys: [["Z"]],
+        description: "Cycle stage fit (Fit, Width, 1:1)",
       },
       { id: "rail-search", keys: [["/"]], description: "Search the rail" },
       {

@@ -21,7 +21,7 @@ import {
   ReplayRecordedSize,
 } from "./Engine/ReplayEngineTypes";
 import { ReplaySignal } from "./Rail/ReplaySignalTypes";
-import { ReplayStageFit } from "./ReplayStage";
+import { ReplayStageFit, ReplayStageSizing } from "./ReplayStage";
 import { ReplayHeaderTab, copyTextToClipboard } from "./ReplayHeader";
 import {
   ReplayFootageAbsence,
@@ -34,7 +34,8 @@ import { ReplayButtonGroup, ReplayToolButton } from "./ReplayUi";
 
 /*
  * Everything drawn OVER or AROUND the picture that is not the picture:
- * the URL bar above it (product-gap-6), the viewport chip with Fit / 1:1,
+ * the URL bar above it (product-gap-6), the viewport chip with Fit / Width
+ * / 1:1,
  * the idle chip, and the phase overlays - loading, seeking, buffering,
  * the gap interstitial, the idle-skip toast, the seek-clamped notice,
  * the ended card, the error card, and the "no footage" empty state.
@@ -148,6 +149,37 @@ const OPENABLE_URL_PATTERN: RegExp = /^https?:\/\//;
 export const REPLAY_GAP_TOAST_MS: number = 2000;
 export const REPLAY_IDLE_SKIP_TOAST_MS: number = 1500;
 
+/* The session the ended card offers next: the user's next newer session. */
+export interface ReplayNextUserSession {
+  sessionId: string;
+  /* When, where and how long - the button's tooltip. */
+  description: string;
+}
+
+/*
+ * Sizing mirrors ReplayStage's: the stage box can only take the leftover
+ * height if every box between it and the player card is a flex column
+ * that passes that height down. "responsive" does that from xl up (below
+ * xl the stage sizes itself from the recorded aspect in document flow);
+ * "fill" (theater) does it at every width.
+ */
+export function getReplayStageOverlaysRootClassName(
+  sizing: ReplayStageSizing,
+): string {
+  return sizing === "fill"
+    ? "relative flex h-full min-h-0 w-full flex-1 flex-col"
+    : "relative flex w-full min-w-0 flex-col xl:min-h-0 xl:flex-1";
+}
+
+/* The wrapper every overlay is positioned against: exactly the stage box. */
+export function getReplayStageOverlaysStageClassName(
+  sizing: ReplayStageSizing,
+): string {
+  return sizing === "fill"
+    ? "relative flex min-h-0 flex-1 flex-col"
+    : "relative flex flex-col xl:min-h-0 xl:flex-1";
+}
+
 export interface ReplayStageOverlaysProps {
   snapshot: ReplayEngineSnapshot;
   /* The stage. Omitted in the no-footage mode (`absence` set). */
@@ -162,6 +194,8 @@ export interface ReplayStageOverlaysProps {
   scale: number;
   fit: ReplayStageFit;
   onFitChange: (fit: ReplayStageFit) => void;
+  /* How the stage gets its height; must match the ReplayStage inside. */
+  sizing?: ReplayStageSizing | undefined;
   /* Read-only iframe hit-testing for selecting the captured DOM text. */
   canSelectText?: boolean | undefined;
   isTextSelectionEnabled: boolean;
@@ -180,6 +214,13 @@ export interface ReplayStageOverlaysProps {
   /* Set when the active tab has played out and another tab continues. */
   continueInTab?: ReplayHeaderTab | null | undefined;
   onSwitchTab?: ((tabId: string) => void) | undefined;
+
+  /*
+   * The ended card's "Next session by this user". Offered only when both
+   * are set, and never while live (a live session has not ended).
+   */
+  nextUserSession?: ReplayNextUserSession | null | undefined;
+  onOpenNextUserSession?: ((sessionId: string) => void) | undefined;
 
   /*
    * A shell-level transient notice ("Opened at the moment of the log
@@ -279,6 +320,8 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
 ): ReactElement => {
   const { snapshot } = props;
   const { phase, currentTimeMs } = snapshot;
+  const sizing: ReplayStageSizing = props.sizing ?? "responsive";
+  const rootClassName: string = getReplayStageOverlaysRootClassName(sizing);
 
   /* ---- URL bar. ---- */
 
@@ -461,7 +504,8 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
       <div
         data-testid="replay-overlay"
         data-replay-overlay="absent"
-        className="relative w-full bg-gray-50"
+        data-replay-sizing={sizing}
+        className={`${rootClassName} overflow-y-auto bg-gray-50`}
       >
         <span
           data-testid="replay-phase"
@@ -471,10 +515,16 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         >
           {copy.phaseWord}
         </span>
+        {/*
+         * my-auto rather than justify-center: auto margins centre the
+         * empty state in a tall box but, unlike justify-center, never push
+         * its top out of reach when the box is shorter than the copy.
+         */}
         <div
           data-testid="replay-footage-absent"
           data-kind={props.absence.kind}
           role="status"
+          className="my-auto"
         >
           <EmptyState
             id="replay-footage-absent"
@@ -514,7 +564,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
       <div
         data-testid="replay-overlay-error"
         role="alert"
-        className="pointer-events-auto max-w-md rounded-xl bg-white p-4 text-left shadow-2xl ring-1 ring-rose-200"
+        className="pointer-events-auto max-h-full max-w-md overflow-y-auto rounded-xl bg-white p-4 text-left shadow-2xl ring-1 ring-rose-200"
       >
         <div className="flex items-start gap-2">
           <Icon
@@ -670,7 +720,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
       <div
         data-testid="replay-overlay-ended"
         role="status"
-        className="pointer-events-auto rounded-xl bg-white p-5 text-center shadow-2xl ring-1 ring-gray-200"
+        className="pointer-events-auto max-h-full overflow-y-auto rounded-xl bg-white p-5 text-center shadow-2xl ring-1 ring-gray-200"
       >
         <div className="text-sm font-semibold text-gray-900">Replay ended</div>
         <p className="mt-1 text-xs text-gray-600">
@@ -699,6 +749,24 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
               Continue in {props.continueInTab.label}
             </button>
           )}
+          {props.nextUserSession && props.onOpenNextUserSession && (
+            <button
+              type="button"
+              data-testid="replay-ended-next-session"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50"
+              title={props.nextUserSession.description}
+              onClick={(): void => {
+                if (props.nextUserSession) {
+                  props.onOpenNextUserSession?.(
+                    props.nextUserSession.sessionId,
+                  );
+                }
+              }}
+            >
+              <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
+              Next session by this user
+            </button>
+          )}
         </div>
       </div>
     );
@@ -721,22 +789,32 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
     ? `${props.recordedSize.width}x${props.recordedSize.height}`
     : null;
   const scalePercent: number = Math.round(props.scale * 100);
+  /* 1:1 is 100% by definition; the percentage only informs a scaled fit. */
+  const isScaledFit: boolean = props.fit !== "actual";
 
   return (
     <div
       data-testid="replay-overlay"
       data-replay-overlay={phase}
-      className="relative flex w-full flex-col"
+      data-replay-sizing={sizing}
+      className={rootClassName}
     >
       {/*
        * URL bar: lock icon, the page at the playhead, copy, open. Drawn
        * as the player's own address bar - the top edge of the shell's
        * card, with no border or radius of its own - rather than as a
        * floating box stacked above another floating box.
+       *
+       * Wraps: the address is the only child that can give width back
+       * (min-w-0 truncate), and on a 320px phone the buttons alone -
+       * copy, open, Select text and the three fit segments - are wider
+       * than the card, so a single line pushed 45px of the player off
+       * the right edge of the page (the E2E no-overflow rule). A second
+       * line keeps every control reachable instead of hiding one.
        */}
       <div
         data-testid="replay-url-bar"
-        className="flex items-center gap-1.5 border-b border-gray-200 bg-gray-50/80 px-3 py-2 text-xs"
+        className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-gray-200 bg-gray-50/80 px-3 py-1.5 text-xs"
       >
         <Icon
           icon={
@@ -782,7 +860,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             title="Recorded viewport and the scale it is drawn at"
           >
             {viewportLabel}
-            {props.fit === "contain" && (
+            {isScaledFit && (
               <span className="text-gray-400">-&gt; {scalePercent}%</span>
             )}
           </span>
@@ -812,17 +890,27 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             label="Fit"
             variant="segment"
             isPressed={props.fit === "contain"}
-            title="Scale the picture to fit the stage"
+            title="Fit the whole page in view (z)"
             className="h-7"
             onClick={(): void => {
               props.onFitChange("contain");
             }}
           />
           <ReplayToolButton
+            label="Width"
+            variant="segment"
+            isPressed={props.fit === "width"}
+            title="Fill the width and scroll the page vertically (z)"
+            className="h-7"
+            onClick={(): void => {
+              props.onFitChange("width");
+            }}
+          />
+          <ReplayToolButton
             label="1:1"
             variant="segment"
             isPressed={props.fit === "actual"}
-            title="Draw the picture at its recorded size"
+            title="Actual size (z)"
             className="h-7"
             onClick={(): void => {
               props.onFitChange("actual");
@@ -831,7 +919,10 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         </ReplayButtonGroup>
       </div>
 
-      <div className="relative">
+      <div
+        data-testid="replay-stage-container"
+        className={getReplayStageOverlaysStageClassName(sizing)}
+      >
         {props.children}
 
         {/* Top strip: idle chip, background-tab chip, seek-clamped notice. */}
@@ -901,10 +992,15 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           </div>
         )}
 
-        {/* Centre overlay, one at a time. */}
+        {/*
+         * Centre overlay, one at a time. Padded and scrollable, and the
+         * cards cap themselves at its height, so the error card with its
+         * diagnostic text still fits (and scrolls) in a short stage.
+         */}
         {centreOverlay && (
           <div
-            className={`pointer-events-none absolute inset-0 flex items-center justify-center ${
+            data-testid="replay-overlay-centre"
+            className={`pointer-events-none absolute inset-0 flex items-center justify-center overflow-auto p-3 ${
               phase === "seeking" || phase === "error" ? "bg-gray-900/40" : ""
             }`}
           >

@@ -696,6 +696,228 @@ describe("ReplayTimeline activity lane", () => {
 
     expect(screen.getByTestId("timeline-activity").children).toHaveLength(2);
   });
+
+  /*
+   * A 10px label on its own row cost more height than the strip it named,
+   * for a lane nobody reads as a value - it is a shape you glance at to
+   * find where the session got busy. The word survives as an sr-only
+   * label in the gutter and as the strip's tooltip; what is DRAWN is a
+   * hairline sitting directly on top of the track it belongs to.
+   */
+  it("draws the strip as a hairline over the track with no labelled row of its own", () => {
+    render(
+      <ReplayTimeline
+        {...makeProps({
+          activity: [
+            {
+              chunkIndex: 0,
+              startMs: 0,
+              endMs: 15000,
+              intensity: 1,
+              isMeasured: true,
+            },
+          ],
+        })}
+      />,
+    );
+
+    const strip: HTMLElement = screen.getByTestId("timeline-activity");
+
+    expect(strip.className).toContain("h-1");
+    expect(strip.className).not.toContain("h-1.5");
+    expect(strip.getAttribute("title")).toContain("Activity");
+    expect(strip.parentElement?.className).toContain("mb-1");
+    expect(strip.parentElement?.className).not.toContain("mb-2");
+
+    /* Still named, even though the row draws no visible label. */
+    const label: HTMLElement = screen.getByText("Activity");
+
+    expect(label.className).toContain("sr-only");
+    expect(strip.parentElement).toContainElement(label);
+  });
+});
+
+/*
+ * The three marker lanes plus the legend are the tallest part of the
+ * timeline, and the player's stage is whatever height is left in the
+ * card. `showLanes` is how the shell hands that height back - it is a
+ * persisted view preference, so the default has to stay "shown" for every
+ * caller that does not know about it.
+ */
+describe("ReplayTimeline lanes", () => {
+  const laneMarkers: Array<ReplayTimelineMarker> = buildExactMarkers([
+    signal({
+      id: "rec:1:3",
+      kind: "client-error",
+      severity: "error",
+      offsetMs: 30000,
+      title: "TypeError: boom",
+    }),
+  ]);
+
+  const notice: ReplayTimelineMarker = {
+    id: "notice:snapshot-too-large",
+    lane: "track",
+    offsetMs: 90000,
+    kind: "notice",
+    severity: "warn",
+    title: "1:30 Snapshot too large - a stretch may be unplayable",
+    tone: "gray",
+    fidelity: "exact",
+    isHollow: false,
+  };
+
+  it("shows the three lanes and the legend when nothing says otherwise", () => {
+    render(<ReplayTimeline {...makeProps({ markers: laneMarkers })} />);
+
+    expect(screen.getByTestId("timeline-lane-errors")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-lane-network")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-lane-navigation")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-legend")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-marker")).toBeInTheDocument();
+  });
+
+  it("shows them for an explicit showLanes", () => {
+    render(
+      <ReplayTimeline
+        {...makeProps({ markers: laneMarkers, showLanes: true })}
+      />,
+    );
+
+    expect(screen.getByTestId("timeline-lane-errors")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-legend")).toBeInTheDocument();
+  });
+
+  it("hides the lanes, their markers and the legend when showLanes is false", () => {
+    render(
+      <ReplayTimeline
+        {...makeProps({ markers: laneMarkers, showLanes: false })}
+      />,
+    );
+
+    expect(screen.queryByTestId("timeline-lane-errors")).toBeNull();
+    expect(screen.queryByTestId("timeline-lane-network")).toBeNull();
+    expect(screen.queryByTestId("timeline-lane-navigation")).toBeNull();
+    expect(screen.queryByTestId("timeline-legend")).toBeNull();
+    expect(screen.queryAllByTestId("timeline-marker")).toHaveLength(0);
+    expect(screen.queryAllByTestId("timeline-marker-cluster")).toHaveLength(0);
+  });
+
+  /*
+   * A notice is not a lane: it says a stretch of the RECORDING cannot be
+   * played, which is the one thing a viewer must not be able to switch
+   * off by tidying the timeline. It stays on the track, and it still
+   * seeks a second early.
+   */
+  it("keeps the track, its bands and its notice markers with the lanes hidden", () => {
+    const seeks: Array<number> = [];
+
+    render(
+      <ReplayTimeline
+        {...makeProps({
+          showLanes: false,
+          markers: [...laneMarkers, notice],
+          bands: [
+            { kind: "gap", startMs: 0, endMs: 60000, label: "1m missing" },
+          ],
+          activity: [
+            {
+              chunkIndex: 0,
+              startMs: 0,
+              endMs: 15000,
+              intensity: 1,
+              isMeasured: true,
+            },
+          ],
+          onSeek: (offsetMs: number): void => {
+            seeks.push(offsetMs);
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId("timeline-track")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-playhead")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-gap-band")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-activity")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("timeline-notice-marker"));
+
+    expect(seeks).toEqual([89000]);
+  });
+
+  it("still seeks from the track while the lanes are hidden", () => {
+    const seeks: Array<number> = [];
+
+    render(
+      <ReplayTimeline
+        {...makeProps({
+          showLanes: false,
+          onSeek: (offsetMs: number): void => {
+            seeks.push(offsetMs);
+          },
+        })}
+      />,
+    );
+
+    const track: HTMLElement = getTrack();
+
+    firePointer(track, "pointerdown", 250);
+    firePointer(track, "pointerup", 250);
+
+    expect(seeks).toEqual([0.25 * DURATION_MS]);
+  });
+});
+
+/*
+ * The heights below are a budget, not a taste: the stage is what is left
+ * of the player card after this strip, so every row here is as short as
+ * it can be while staying a usable target. The label gutter and the
+ * legend's indent are ONE measurement (4rem + the 0.5rem gap = 4.5rem)
+ * and drift apart the moment somebody changes only one of them.
+ */
+describe("ReplayTimeline compact chrome", () => {
+  it("draws a 28px track and 16px lanes with a half-step between them", () => {
+    render(<ReplayTimeline {...makeProps()} />);
+
+    expect(screen.getByTestId("timeline-track").className).toContain("h-7");
+    expect(screen.getByTestId("timeline-track").className).not.toContain("h-8");
+
+    const errorsLane: HTMLElement = screen.getByTestId("timeline-lane-errors");
+
+    expect(errorsLane.className).toContain("h-4");
+    expect(errorsLane.className).not.toContain("h-5");
+
+    /* lane div -> the label+lane row -> the lanes wrapper. */
+    const lanesWrapper: HTMLElement | null | undefined =
+      errorsLane.parentElement?.parentElement;
+
+    expect(lanesWrapper?.className).toContain("mt-1.5");
+    expect(lanesWrapper?.className).toContain("space-y-0.5");
+  });
+
+  it("indents the legend by exactly the label gutter plus the gap", () => {
+    render(<ReplayTimeline {...makeProps()} />);
+
+    const legend: HTMLElement = screen.getByTestId("timeline-legend");
+
+    expect(screen.getByText("Recording").className).toContain("w-16");
+    expect(legend.className).toContain("pl-[4.5rem]");
+    expect(legend.className).not.toContain("pl-[5.5rem]");
+    /* Still one reserved line, so the lanes do not jump on hover. */
+    expect(legend.className).toContain("min-h-4");
+    expect(legend.className).toContain("mt-1.5");
+  });
+
+  it("names every lane in the gutter at the narrower width", () => {
+    render(<ReplayTimeline {...makeProps()} />);
+
+    ["Recording", "Errors", "Network", "Nav / clicks"].forEach(
+      (label: string): void => {
+        expect(screen.getByText(label).className).toContain("w-16");
+      },
+    );
+  });
 });
 
 /*

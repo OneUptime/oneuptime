@@ -3613,6 +3613,122 @@ describe("Session replay playback API", () => {
       ] as unknown as Array<JSONObject>;
       expect(chunks[0]!["clickCount"]).toBe(2);
       expect(chunks[0]!["url"]).toBe("https://example.com/help");
+      /* A finalized recording: every tab of it is closed, with no extra read. */
+      expect(tabs[0]!["hasRecordingEnded"]).toBe(true);
+    });
+
+    /*
+     * The recorder mints a new tab id on every page load, so the player
+     * needs to know WHICH tab of a live session is still open to list open
+     * tabs before closed ones. The route ships the read service's per-tab
+     * flag untouched, alongside the session-level one on the header.
+     */
+    test("each tab of a live recording carries its own hasRecordingEnded on the wire", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            ...buildHeaderRow({
+              sessionId: "session-1",
+              projectId: projectId,
+              rumApplicationId: applicationAId,
+            }),
+            aggIsFinalized: false,
+            aggSealedReason: "",
+          },
+        ]) as never,
+      );
+      mockApplication({ id: applicationAId, labelIds: [] });
+      mockRecordedView();
+
+      /*
+       * Two chunk-table statements run for a live session: the manifest
+       * index and the grouped per-tab end facts. Answer each by what it is.
+       */
+      chunkQuerySpy.mockImplementation(
+        async (statement: Statement): Promise<unknown> => {
+          if (statement.query.includes("tabHasFinalChunk")) {
+            return fakeResultSet([
+              {
+                sessionId: "session-1",
+                tabId: "tab-1",
+                tabHasFinalChunk: 1,
+                tabFinalChunkEndUnixMs: 1700000060000,
+                tabLastChunkStartUnixMs: 1700000045000,
+                tabMaxChunkIndex: 0,
+                tabLastChunkStoredAtUnixMs: 1700000061000,
+              },
+              {
+                sessionId: "session-1",
+                tabId: "tab-2",
+                tabHasFinalChunk: 0,
+                tabFinalChunkEndUnixMs: 0,
+                tabLastChunkStartUnixMs: 1700000100000,
+                tabMaxChunkIndex: 0,
+                tabLastChunkStoredAtUnixMs: 1700000101000,
+              },
+            ]);
+          }
+
+          return fakeResultSet([
+            {
+              tabId: "tab-1",
+              chunkIndex: 0,
+              chunkStartOffsetMs: 0,
+              chunkEndOffsetMs: 45000,
+              eventCount: 10,
+              hasFullSnapshot: 1,
+              chunkPayloadBytes: 10,
+              clickCount: 1,
+              url: "https://example.com/",
+            },
+            {
+              tabId: "tab-2",
+              chunkIndex: 0,
+              chunkStartOffsetMs: 100000,
+              chunkEndOffsetMs: 110000,
+              eventCount: 10,
+              hasFullSnapshot: 1,
+              chunkPayloadBytes: 10,
+              clickCount: 1,
+              url: "https://example.com/checkout",
+            },
+          ]);
+        },
+      );
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      const body: JSONObject = result.jsonBody as JSONObject;
+      const tabs: Array<JSONObject> = body[
+        "tabs"
+      ] as unknown as Array<JSONObject>;
+
+      const endedByTabId: Record<string, unknown> = {};
+
+      for (const tab of tabs) {
+        endedByTabId[tab["tabId"] as string] = tab["hasRecordingEnded"];
+      }
+
+      expect(endedByTabId).toEqual({ "tab-1": true, "tab-2": false });
+
+      /* One tab is still recording, so the session itself has not ended. */
+      const header: JSONObject = body["header"] as JSONObject;
+      expect(header["isFinalized"]).toBe(false);
+      expect(header["hasRecordingEnded"]).toBe(false);
     });
 
     /*
