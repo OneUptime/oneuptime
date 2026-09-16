@@ -11,18 +11,14 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Select from "Common/Types/BaseDatabase/Select";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import SecurityEventDetail from "./SecurityEventDetail";
 import securityEventColumns from "./SecurityEventsTableColumns";
 import SecurityEventAttributeUtil from "./SecurityEventAttributeUtil";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
-import Navigation from "Common/UI/Utils/Navigation";
-import Route from "Common/Types/API/Route";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
+import SecurityEventsEmptyState from "./SecurityEventsEmptyState";
 
 const severityDropdownOptions: Array<DropdownOption> = Object.values(
   OcsfSeverity,
@@ -134,30 +130,8 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
         /*
          * An empty table here means "nothing is sending yet" far more often
          * than "nothing happened", and the answer to that is a page away.
-         * Sentence plus a way to act on it, rather than a sentence alone.
          */
-        noItemsMessage={
-          <EmptyState
-            id="security-events-empty-state"
-            icon={IconProp.ShieldCheck}
-            title="No security events yet"
-            description="Any source that can POST JSON — a SIEM, a SOAR webhook, a log forwarder — can feed this table. Events are normalized to OCSF whatever dialect they arrive in."
-            footer={
-              <Button
-                title="Read the setup guide"
-                icon={IconProp.Book}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION] as Route,
-                    ),
-                  );
-                }}
-              />
-            }
-          />
-        }
+        noItemsMessage={<SecurityEventsEmptyState />}
         showRefreshButton={true}
         showViewIdButton={false}
         filters={[
