@@ -174,7 +174,16 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
  * draws an empty box. Exported so the predicate has exactly one owner.
  */
 export function hasRenderableActivity(events: Array<AIRunEvent>): boolean {
-  return buildSteps(events).length > 0;
+  return countActivitySteps(events) > 0;
+}
+
+/*
+ * How many steps the feed draws for these events. Hosts label the feed with
+ * this rather than the raw event count, which also counts the events that
+ * only close a step.
+ */
+export function countActivitySteps(events: Array<AIRunEvent>): number {
+  return buildSteps(events).length;
 }
 
 /*
