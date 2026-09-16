@@ -161,7 +161,7 @@ Sonden stöder följande miljövariabler:
 - `PROBE_DESCRIPTION` – Beskrivning av sonden
 - `PROBE_MONITORING_WORKERS` – Antal övervakningsarbetare (standard: 1)
 - `PROBE_MONITOR_FETCH_LIMIT` – Antal monitorer att hämta åt gången (standard: 10)
-- `PROBE_MONITOR_RETRY_LIMIT` – Antal försök för misslyckade monitorer (standard: 3)
+- `PROBE_MONITOR_RETRY_LIMIT` – Återförsök efter det första försöket vid en misslyckad övervakningskontroll, används när ett steg inte anger ett eget antal (standard: 3, alltså upp till 4 försök)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` – Timeout för syntetiska monitorskript i millisekunder (standard: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` – Timeout för anpassade kodmonitorskript i millisekunder (standard: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` – Tidsgräns för varje förfrågan som sonden skickar till OneUptime (standard: 45000)

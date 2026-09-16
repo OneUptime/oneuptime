@@ -30,10 +30,10 @@ Domeinmonitors bevragen WHOIS-gegevens voor uw domeinen om registratiedetails bi
 
 ### Geavanceerde instellingen
 
-| Veld            | Beschrijving                              | Standaard |
-| --------------- | ----------------------------------------- | --------- |
-| Time-out (ms)   | Hoe lang te wachten op een WHOIS-antwoord | 10000     |
-| Nieuwe pogingen | Aantal nieuwe pogingen bij mislukking     | 3         |
+| Veld            | Beschrijving                                                                 | Standaard |
+| --------------- | ---------------------------------------------------------------------------- | --------- |
+| Time-out (ms)   | Hoe lang te wachten op een WHOIS-antwoord                                    | 10000     |
+| Nieuwe pogingen | Nieuwe pogingen nadat de eerste poging mislukt; 0 betekent één enkele poging | 3         |
 
 ## Monitoringcriteria
 

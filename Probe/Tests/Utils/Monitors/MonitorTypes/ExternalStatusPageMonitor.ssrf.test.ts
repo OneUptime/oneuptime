@@ -896,3 +896,82 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
     expect(contextSleepSpy).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A retry value counts retries after the first attempt: 0 runs the fetch
+ * once, 2 runs it up to three times.
+ */
+describe("ExternalStatusPageMonitor retries", () => {
+  function attemptNumbers(
+    response: ExternalStatusPageMonitorResponse | null,
+  ): Array<number> {
+    return (response?.probeAttempts || []).map(
+      (attempt: { attemptNumber: number }): number => {
+        return attempt.attemptNumber;
+      },
+    );
+  }
+
+  beforeEach(() => {
+    // A reset socket is retryable, unlike a timeout or a guard refusal.
+    axiosGetSpy.mockRejectedValue(new AxiosError("socket reset", "ECONNRESET"));
+    contextSleepSpy.mockResolvedValue(undefined as never);
+  });
+
+  test("runs a persistent retryable failure exactly once when retry is 0", async () => {
+    const response: ExternalStatusPageMonitorResponse | null =
+      await ExternalStatusPageMonitorUtil.fetch(
+        buildConfig(ExternalStatusPageProviderType.RSS),
+        { retry: 0, isOnlineCheckRequest: true },
+      );
+
+    expect(response).not.toBeNull();
+    expect(response!.isOnline).toBe(false);
+    expect(response!.failureCause).toContain("socket reset");
+    expect(response!.totalAttempts).toBe(1);
+    expect(attemptNumbers(response)).toEqual([1]);
+    expect(contextSleepSpy).not.toHaveBeenCalled();
+  });
+
+  test("makes three attempts when retry is 2", async () => {
+    const response: ExternalStatusPageMonitorResponse | null =
+      await ExternalStatusPageMonitorUtil.fetch(
+        buildConfig(ExternalStatusPageProviderType.RSS),
+        { retry: 2, isOnlineCheckRequest: true },
+      );
+
+    expect(response).not.toBeNull();
+    expect(response!.isOnline).toBe(false);
+    expect(response!.totalAttempts).toBe(3);
+    expect(attemptNumbers(response)).toEqual([1, 2, 3]);
+    expect(contextSleepSpy).toHaveBeenCalledTimes(2);
+  });
+
+  test("counts the config's retries after the first attempt when no retry option is passed", async () => {
+    const response: ExternalStatusPageMonitorResponse | null =
+      await ExternalStatusPageMonitorUtil.fetch(
+        {
+          ...buildConfig(ExternalStatusPageProviderType.RSS),
+          retries: 0,
+        },
+        { isOnlineCheckRequest: true },
+      );
+
+    expect(response!.totalAttempts).toBe(1);
+  });
+
+  test("keeps three attempts when neither the caller nor the config sets retries", async () => {
+    const config: MonitorStepExternalStatusPageMonitor = {
+      ...buildConfig(ExternalStatusPageProviderType.RSS),
+      retries: undefined,
+    } as unknown as MonitorStepExternalStatusPageMonitor;
+
+    const response: ExternalStatusPageMonitorResponse | null =
+      await ExternalStatusPageMonitorUtil.fetch(config, {
+        isOnlineCheckRequest: true,
+      });
+
+    expect(response!.totalAttempts).toBe(3);
+    expect(attemptNumbers(response)).toEqual([1, 2, 3]);
+  });
+});

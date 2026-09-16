@@ -26,7 +26,7 @@ import PingMonitor from "../../../../Utils/Monitors/MonitorTypes/PingMonitor";
 /*
  * runDiagnosticPing is the one-shot ping behind the "Ping" button on the
  * topology map (Probe/Jobs/NetworkDevice/FetchDiagnostics.ts). It is
- * neither PingMonitor.ping — five retries with sleeps, an OnlineCheck
+ * neither PingMonitor.ping — up to five attempts with sleeps, an OnlineCheck
  * detour that can return null, a timeout reported as "up" — nor
  * checkReachability, the cheap two-packet fleet check that keeps only the
  * average RTT. These tests pin what a diagnostic needs instead: ONE probe

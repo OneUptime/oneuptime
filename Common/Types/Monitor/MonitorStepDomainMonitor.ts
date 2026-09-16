@@ -1,5 +1,6 @@
 import { JSONObject } from "../JSON";
 import DomainLookupMethod from "./DomainMonitor/DomainLookupMethod";
+import { parseMonitorStepRetries } from "./MonitorStepRetries";
 
 export default interface MonitorStepDomainMonitor {
   domainName: string;
@@ -29,7 +30,8 @@ export class MonitorStepDomainMonitorUtil {
         json["lookupMethod"],
       ),
       timeout: (json["timeout"] as number) || 10000,
-      retries: (json["retries"] as number) || 3,
+      // 0 retries is a real answer and must survive the round-trip.
+      retries: parseMonitorStepRetries(json["retries"], 3),
     };
   }
 

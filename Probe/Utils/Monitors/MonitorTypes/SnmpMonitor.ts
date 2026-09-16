@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import logger from "Common/Server/Utils/Logger";
 import IP from "Common/Types/IP/IP";
 import ObjectID from "Common/Types/ObjectID";
@@ -60,6 +61,12 @@ import {
   toMacAddressString,
 } from "../../Snmp/EndpointTableParsers";
 import snmp from "net-snmp";
+
+/*
+ * Retries when neither the caller nor the SNMP config sets any: three
+ * attempts, the same as before retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 2;
 
 /*
  * SNMPv2 system group scalars (1.3.6.1.2.1.1). Read in one GET; sysUpTime is
@@ -388,7 +395,13 @@ export default class SnmpMonitor {
         failureCause: (err as Error).message || (err as Error).toString(),
       });
 
-      if (options.currentRetryCount < (options.retry ?? config.retries ?? 3)) {
+      if (
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry ?? config.retries,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await SnmpMonitor.query(config, options);

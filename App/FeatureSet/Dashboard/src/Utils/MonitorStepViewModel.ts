@@ -480,7 +480,7 @@ export default class MonitorStepViewModel {
       optional({
         key: "retryCount",
         title: "Retry Count",
-        description: "How many times we retry a failed check.",
+        description: "How many times we retry after the first attempt fails.",
         valueType: MonitorStepViewValueType.Number,
         value: data.retryCount,
         placeholder: "Default",

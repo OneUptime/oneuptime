@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import SqlMonitor, {
   buildMicrosoftSqlServerPoolConfig,
   loadMicrosoftSqlServerDriver,
@@ -45,6 +46,12 @@ export interface DatabaseMonitorExecuteOptions {
   isOnlineCheckRequest?: boolean | undefined;
   timeout?: number | undefined;
 }
+
+/*
+ * Retries when the caller passes none: three attempts, the same as before
+ * retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 2;
 
 /*
  * One connection, opened for the whole check, that can run a statement and
@@ -282,7 +289,13 @@ export default class DatabaseMonitor {
         failureCause: sanitized,
       });
 
-      if (options.currentRetryCount < (options.retry || 3)) {
+      if (
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await DatabaseMonitor.execute(config, options);

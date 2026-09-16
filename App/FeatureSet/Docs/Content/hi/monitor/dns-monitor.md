@@ -47,11 +47,11 @@ DNS monitors specific record types के लिए DNS servers query करत�
 
 ### Advanced Settings
 
-| Field        | विवरण                               | Default |
-| ------------ | ----------------------------------- | ------- |
-| Port         | DNS port number                     | 53      |
-| Timeout (ms) | response के लिए कितना इंतज़ार करें  | 5000    |
-| Retries      | failure पर retry attempts की संख्या | 3       |
+| Field        | विवरण                                                              | Default |
+| ------------ | ------------------------------------------------------------------ | ------- |
+| Port         | DNS port number                                                    | 53      |
+| Timeout (ms) | response के लिए कितना इंतज़ार करें                                 | 5000    |
+| Retries      | पहला attempt fail होने के बाद retries; 0 का मतलब सिर्फ़ एक attempt | 3       |
 
 ## Monitoring Criteria
 

@@ -47,11 +47,11 @@ DNS monitors query DNS servers for specific record types and evaluate the result
 
 ### Advanced Settings
 
-| Field        | Description                         | Default |
-| ------------ | ----------------------------------- | ------- |
-| Port         | DNS port number                     | 53      |
-| Timeout (ms) | How long to wait for a response     | 5000    |
-| Retries      | Number of retry attempts on failure | 3       |
+| Field        | Description                                                     | Default |
+| ------------ | --------------------------------------------------------------- | ------- |
+| Port         | DNS port number                                                 | 53      |
+| Timeout (ms) | How long to wait for a response                                 | 5000    |
+| Retries      | Retries after the first attempt fails; 0 means a single attempt | 3       |
 
 ## Monitoring Criteria
 

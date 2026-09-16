@@ -79,7 +79,7 @@ O tempo máximo (em milissegundos) para aguardar uma resposta da página de stat
 
 #### Retries
 
-O número de vezes para tentar a requisição novamente se ela falhar. O padrão é 3 tentativas.
+O número de vezes que a requisição é repetida depois que a primeira tentativa falha; 0 significa uma única tentativa. O padrão é 3 novas tentativas, ou seja, até 4 tentativas no total.
 
 ## Critérios de Monitoramento
 

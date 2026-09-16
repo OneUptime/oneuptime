@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import { parseMonitorStepRetries } from "./MonitorStepRetries";
 
 export default interface MonitorStepDnssecMonitor {
   domainName: string;
@@ -42,7 +43,8 @@ export class MonitorStepDnssecMonitorUtil {
         (json["signatureExpiryWarningDays"] as number) ||
         defaults.signatureExpiryWarningDays,
       timeout: (json["timeout"] as number) || defaults.timeout,
-      retries: (json["retries"] as number) || defaults.retries,
+      // 0 retries is a real answer and must survive the round-trip.
+      retries: parseMonitorStepRetries(json["retries"], defaults.retries),
     };
   }
 

@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -38,6 +39,12 @@ export const DEVICE_REACHABILITY_RETRIES: number = 1;
 
 // Per-reply wait when the caller gives none; matches the SNMP step default.
 export const DEVICE_REACHABILITY_DEFAULT_TIMEOUT_IN_MS: number = 5000;
+
+/*
+ * Retries for ping() when the caller passes no retry option: five attempts,
+ * the same as before retries were counted after the first attempt.
+ */
+const DEFAULT_PING_RETRIES_WHEN_UNSET: number = 4;
 
 /*
  * Substrings in ping's output that mean pinging ITSELF is broken (no ICMP
@@ -169,8 +176,8 @@ export default class PingMonitor {
    *     every claimed device, and a device it stays silent about is left on
    *     whatever it was last recorded as. This never calls OnlineCheck and
    *     never returns null.
-   *   - ping() sends five packets and retries up to five times with a
-   *     one-second sleep in between. This runs once per device per cycle,
+   *   - ping() sends five packets and, by default, tries up to five times
+   *     with a one-second sleep in between. This runs once per device per cycle,
    *     in parallel with the SNMP walk, across a whole fleet: two packets
    *     and one retry keep a dead device from costing half a minute while
    *     still tolerating a single dropped echo.
@@ -598,7 +605,11 @@ export default class PingMonitor {
       if (
         responseTime?.toNumber() &&
         responseTime.toNumber() > 10000 &&
-        pingOptions.currentRetryCount < (pingOptions.retry || 5)
+        MonitorRetry.canRetry({
+          attemptNumber: pingOptions.currentRetryCount,
+          retries: pingOptions.retry,
+          defaultRetries: DEFAULT_PING_RETRIES_WHEN_UNSET,
+        })
       ) {
         pingOptions.currentRetryCount++;
         await Sleep.sleep(1000);
@@ -641,7 +652,13 @@ export default class PingMonitor {
         failureCause: (err as any).toString(),
       });
 
-      if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
+      if (
+        MonitorRetry.canRetry({
+          attemptNumber: pingOptions.currentRetryCount,
+          retries: pingOptions.retry,
+          defaultRetries: DEFAULT_PING_RETRIES_WHEN_UNSET,
+        })
+      ) {
         pingOptions.currentRetryCount++;
         await Sleep.sleep(1000);
         return await this.ping(host, pingOptions);

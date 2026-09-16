@@ -5,6 +5,7 @@ import SnmpVersion from "./SnmpMonitor/SnmpVersion";
 import SnmpSecurityLevel from "./SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "./SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "./SnmpMonitor/SnmpPrivProtocol";
+import { parseMonitorStepRetries } from "./MonitorStepRetries";
 
 export default interface MonitorStepSnmpMonitor {
   snmpVersion: SnmpVersion;
@@ -51,7 +52,8 @@ export class MonitorStepSnmpMonitorUtil {
         (json["oids"] as Array<JSONObject>) || [],
       ),
       timeout: (json["timeout"] as number) || 5000,
-      retries: (json["retries"] as number) || 3,
+      // 0 retries is a real answer and must survive the round-trip.
+      retries: parseMonitorStepRetries(json["retries"], 3),
       monitorInterfaces: Boolean(json["monitorInterfaces"]),
     };
   }

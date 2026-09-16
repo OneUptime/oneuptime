@@ -30,10 +30,10 @@ Les moniteurs de domaine interrogent les données WHOIS de vos domaines pour sui
 
 ### Paramètres avancés
 
-| Champ                | Description                         | Par défaut |
-| -------------------- | ----------------------------------- | ---------- |
-| Délai d'attente (ms) | Durée d'attente d'une réponse WHOIS | 10000      |
-| Tentatives           | Nombre de tentatives en cas d'échec | 3          |
+| Champ                | Description                                                                        | Par défaut |
+| -------------------- | ---------------------------------------------------------------------------------- | ---------- |
+| Délai d'attente (ms) | Durée d'attente d'une réponse WHOIS                                                | 10000      |
+| Tentatives           | Nouvelles tentatives après l'échec de la première ; 0 signifie une seule tentative | 3          |
 
 ## Critères de surveillance
 

@@ -153,7 +153,7 @@ Die Probe unterstützt die folgenden Umgebungsvariablen:
 - `PROBE_DESCRIPTION` - Beschreibung für die Probe
 - `PROBE_MONITORING_WORKERS` - Anzahl der Überwachungs-Worker (Standard: 1)
 - `PROBE_MONITOR_FETCH_LIMIT` - Anzahl der gleichzeitig abzurufenden Monitore (Standard: 10)
-- `PROBE_MONITOR_RETRY_LIMIT` - Anzahl der Wiederholungsversuche für fehlgeschlagene Monitore (Standard: 3)
+- `PROBE_MONITOR_RETRY_LIMIT` - Wiederholungsversuche nach dem ersten Versuch einer fehlgeschlagenen Monitorprüfung, verwendet wenn ein Schritt keinen eigenen Wert setzt (Standard: 3, also bis zu 4 Versuche)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout für synthetische Monitor-Skripte in Millisekunden (Standard: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout für benutzerdefinierte Code-Monitor-Skripte in Millisekunden (Standard: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Zeitlimit für jede Anfrage, die die Probe an OneUptime sendet (Standard: 45000)
