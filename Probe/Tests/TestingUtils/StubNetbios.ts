@@ -1,5 +1,9 @@
 import SubnetScanner from "../../Utils/Discovery/SubnetScanner";
-import { NetbiosNameResolution } from "../../Utils/Discovery/NetbiosNameResolver";
+import {
+  DEFAULT_NETBIOS_MAX_HOSTS,
+  DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS,
+  NetbiosNameResolution,
+} from "../../Utils/Discovery/NetbiosNameResolver";
 import { beforeEach, jest } from "@jest/globals";
 
 /*
@@ -42,6 +46,9 @@ export function installNetbiosStub(): void {
           skippedCount: new Set<string>(ipAddresses).size,
           isTimeBudgetExhausted: false,
           isHostCapReached: false,
+          eligibleCount: 0,
+          maxHosts: DEFAULT_NETBIOS_MAX_HOSTS,
+          totalBudgetInMs: DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS,
         };
       },
     );
