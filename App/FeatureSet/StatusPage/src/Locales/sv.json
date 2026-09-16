@@ -135,6 +135,8 @@
     "sendManagementLink": "Skicka hanteringslänk",
     "subscribedSuccessfully": "Du har prenumererat.",
     "emailSentCheckSpam": "Ett e-postmeddelande med länken har skickats till din e-postadress. Om du inte ser e-postmeddelandet, kontrollera din skräppostmapp.",
+    "manageLinkSent": "Om en prenumeration matchar uppgifterna du angav har vi skickat en länk för att hantera den.",
+    "manageLinkSentEmail": "Om den här e-postadressen har en prenumeration har vi skickat en hanteringslänk till adressen. Om du inte ser e-postmeddelandet, kontrollera din skräppostmapp.",
     "menu": {
       "email": "E-post",
       "sms": "SMS",

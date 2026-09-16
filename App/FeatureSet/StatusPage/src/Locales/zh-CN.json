@@ -135,6 +135,8 @@
     "sendManagementLink": "发送管理链接",
     "subscribedSuccessfully": "您已成功订阅。",
     "emailSentCheckSpam": "一封包含链接的电子邮件已发送到您的邮箱。如果您看不到该邮件，请检查您的垃圾邮件文件夹。",
+    "manageLinkSent": "如果有订阅与您输入的信息匹配，我们已发送用于管理该订阅的链接。",
+    "manageLinkSentEmail": "如果此电子邮件地址有订阅，我们已向该地址发送管理订阅的链接。如果您看不到该邮件，请检查您的垃圾邮件文件夹。",
     "menu": {
       "email": "电子邮件",
       "sms": "短信",

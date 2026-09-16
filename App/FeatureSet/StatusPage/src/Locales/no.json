@@ -135,6 +135,8 @@
     "sendManagementLink": "Send administrasjonslenke",
     "subscribedSuccessfully": "Du er abonnert.",
     "emailSentCheckSpam": "En e-post med lenken er sendt til e-postadressen din. Hvis du ikke ser e-posten, sjekk søppelpostmappen.",
+    "manageLinkSent": "Hvis et abonnement samsvarer med opplysningene du skrev inn, har vi sendt en lenke for å administrere det.",
+    "manageLinkSentEmail": "Hvis denne e-postadressen har et abonnement, har vi sendt en administrasjonslenke til adressen. Hvis du ikke ser e-posten, sjekk søppelpostmappen.",
     "menu": {
       "email": "E-post",
       "sms": "SMS",

@@ -110,6 +110,7 @@ import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/StatusPage/MasterPassword";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
@@ -118,6 +119,13 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "../Services/StatusPageSubscriberNotificationTemplateService";
 import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizationAccess";
+
+/*
+ * A manage-subscription request is unauthenticated, and one Slack or Microsoft
+ * Teams workspace name can match several subscriptions. Cap how many of them a
+ * single request sends a link to.
+ */
+export const MAX_SUBSCRIBERS_PER_MANAGE_SUBSCRIPTION_REQUEST: number = 20;
 
 type EscapeXmlFunction = (text: string) => string;
 
@@ -2605,7 +2613,8 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (
-      req.body.data["slackIncomingWebhookUrl"] &&
+      (req.body.data["slackIncomingWebhookUrl"] ||
+        req.body.data["slackWorkspaceName"]) &&
       !statusPage.enableSlackSubscribers
     ) {
       logger.debug(
@@ -2614,6 +2623,20 @@ export default class StatusPageAPI extends BaseAPI<
       );
       throw new BadDataException(
         "Slack subscribers not enabled for this status page.",
+      );
+    }
+
+    if (
+      (req.body.data["microsoftTeamsIncomingWebhookUrl"] ||
+        req.body.data["microsoftTeamsWorkspaceName"]) &&
+      !statusPage.enableMicrosoftTeamsSubscribers
+    ) {
+      logger.debug(
+        `Microsoft Teams subscribers not enabled for status page with ID: ${statusPageId}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      throw new BadDataException(
+        "Microsoft Teams subscribers not enabled for this status page.",
       );
     }
 
@@ -2627,19 +2650,41 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
-    // if no email or phone, throw error.
+    const identifiers: Array<unknown> = [
+      req.body.data["subscriberEmail"],
+      req.body.data["subscriberPhone"],
+      req.body.data["slackWorkspaceName"],
+      req.body.data["microsoftTeamsWorkspaceName"],
+    ].filter(Boolean);
 
-    if (
-      !req.body.data["subscriberEmail"] &&
-      !req.body.data["subscriberPhone"] &&
-      !req.body.data["slackWorkspaceName"]
-    ) {
+    const identifierCount: number = identifiers.length;
+
+    if (identifierCount === 0) {
       logger.debug(
-        `No email, slack workspace name or phone provided for subscription to status page with ID: ${statusPageId}`,
+        `No email, phone, Slack workspace name or Microsoft Teams workspace name provided to manage a subscription on status page with ID: ${statusPageId}`,
         getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
-        "Email, phone or slack workspace name is required to subscribe to this status page.",
+        "Email, phone, Slack workspace name or Microsoft Teams workspace name is required to manage your subscription.",
+      );
+    }
+
+    /*
+     * The manage link opens the subscription it belongs to, so it may only go
+     * to the contact stored on that subscriber. One identifier per request
+     * keeps the subscribers that are looked up and the channel the link is
+     * sent on the same.
+     */
+    if (identifierCount > 1) {
+      throw new BadDataException(
+        "Please provide only one of email, phone, Slack workspace name or Microsoft Teams workspace name.",
+      );
+    }
+
+    // The identifier goes straight into the subscriber query, so only plain text is accepted.
+    if (typeof identifiers[0] !== "string") {
+      throw new BadDataException(
+        "Email, phone, Slack workspace name or Microsoft Teams workspace name must be text.",
       );
     }
 
@@ -2657,95 +2702,99 @@ export default class StatusPageAPI extends BaseAPI<
       ? (req.body.data["slackWorkspaceName"] as string)
       : undefined;
 
-    let statusPageSubscriber: StatusPageSubscriber | null = null;
+    const microsoftTeamsWorkspaceName: string | undefined = req.body.data[
+      "microsoftTeamsWorkspaceName"
+    ]
+      ? (req.body.data["microsoftTeamsWorkspaceName"] as string)
+      : undefined;
+
+    /*
+     * Each lookup selects only the contact for its own channel, so a link can
+     * only be delivered where that subscriber signed up.
+     */
+    let lookupQuery: Query<StatusPageSubscriber>;
+    let lookupSelect: Select<StatusPageSubscriber>;
 
     if (email) {
-      logger.debug(
-        `Setting subscriber email: ${email}`,
-        getLogAttributesFromRequest(req as any),
-      );
-      statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
+      lookupQuery = { subscriberEmail: email };
+      lookupSelect = { _id: true, subscriberEmail: true };
+    } else if (phone) {
+      lookupQuery = { subscriberPhone: phone };
+      lookupSelect = { _id: true, subscriberPhone: true };
+    } else if (slackWorkspaceName) {
+      lookupQuery = { slackWorkspaceName: slackWorkspaceName };
+      lookupSelect = { _id: true, slackIncomingWebhookUrl: true };
+    } else {
+      lookupQuery = {
+        microsoftTeamsWorkspaceName: microsoftTeamsWorkspaceName!,
+      };
+      lookupSelect = { _id: true, microsoftTeamsIncomingWebhookUrl: true };
+    }
+
+    logger.debug(
+      `Looking up subscribers by email: ${email}, phone: ${phone}, Slack workspace: ${slackWorkspaceName}, or Microsoft Teams workspace: ${microsoftTeamsWorkspaceName}`,
+      getLogAttributesFromRequest(req as any),
+    );
+
+    /*
+     * An email or phone number is subscribed at most once per status page,
+     * but several channels of one Slack or Teams workspace can be subscribed
+     * under the same workspace name, so every match gets its own link on its
+     * own webhook. Oldest first, so subscriptions added later under the same
+     * name cannot push an existing one past the limit.
+     */
+    const statusPageSubscribers: Array<StatusPageSubscriber> =
+      await StatusPageSubscriberService.findBy({
         query: {
-          subscriberEmail: email,
+          ...lookupQuery,
           statusPageId: statusPageId,
         },
-        select: {
-          _id: true,
-          subscriberEmail: true,
+        select: lookupSelect,
+        sort: {
+          createdAt: SortOrder.Ascending,
         },
+        limit: MAX_SUBSCRIBERS_PER_MANAGE_SUBSCRIPTION_REQUEST,
+        skip: 0,
         props: {
           isRoot: true,
         },
       });
-    }
 
-    if (phone) {
+    if (statusPageSubscribers.length === 0) {
+      /*
+       * Answer exactly as when a subscriber matched, so this endpoint cannot
+       * be used to find out who is subscribed.
+       */
       logger.debug(
-        `Setting subscriber phone: ${phone}`,
+        `Subscriber not found for email: ${email}, phone: ${phone}, Slack workspace: ${slackWorkspaceName}, or Microsoft Teams workspace: ${microsoftTeamsWorkspaceName}`,
         getLogAttributesFromRequest(req as any),
       );
-      statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
-        query: {
-          subscriberPhone: phone,
-          statusPageId: statusPageId,
-        },
-        select: {
-          _id: true,
-          subscriberPhone: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      return;
     }
 
-    if (slackWorkspaceName) {
-      logger.debug(
-        `Setting subscriber slack workspace: ${slackWorkspaceName}`,
-        getLogAttributesFromRequest(req as any),
-      );
-      statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
-        query: {
-          slackWorkspaceName: slackWorkspaceName,
-          statusPageId: statusPageId,
-        },
-        select: {
-          _id: true,
-          slackWorkspaceName: true,
-          slackIncomingWebhookUrl: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    /*
+     * Send in the background so that neither the response time nor an error
+     * while sending reveals that a subscriber matched.
+     */
+    this.sendManageSubscriptionLinks({
+      statusPageId: statusPageId,
+      subscribers: statusPageSubscribers,
+      req: req,
+    }).catch((err: Error) => {
+      logger.error(err, getLogAttributesFromRequest(req as any));
+    });
+  }
 
-    if (!statusPageSubscriber) {
-      // not found, return bad data
-      logger.debug(
-        `Subscriber not found for email: ${email}, phone: ${phone}, or slack workspace: ${slackWorkspaceName}`,
-        getLogAttributesFromRequest(req as any),
-      );
-
-      let identifierType: string = "email";
-      if (phone) {
-        identifierType = "phone";
-      } else if (slackWorkspaceName) {
-        identifierType = "slack workspace name";
-      }
-
-      throw new BadDataException(
-        `Subscription not found for this status page. Please make sure your ${identifierType} is correct.`,
-      );
-    }
+  @CaptureSpan()
+  public async sendManageSubscriptionLinks(data: {
+    statusPageId: ObjectID;
+    subscribers: Array<StatusPageSubscriber>;
+    req: ExpressRequest;
+  }): Promise<void> {
+    const { statusPageId, subscribers, req } = data;
 
     const statusPageURL: string =
       await StatusPageService.getStatusPageURL(statusPageId);
-
-    const manageUrlink: string = StatusPageSubscriberService.getUnsubscribeLink(
-      URL.fromString(statusPageURL),
-      statusPageSubscriber.id!,
-    ).toString();
 
     const statusPages: Array<StatusPage> =
       await StatusPageSubscriberService.getStatusPagesToSendNotification([
@@ -2754,9 +2803,8 @@ export default class StatusPageAPI extends BaseAPI<
 
     for (const statusPage of statusPages) {
       /*
-       * Send email to subscriber or sms if phone is provided. The page is
-       * named the way every other subscriber message names it: its public
-       * title first, then its internal name.
+       * The page is named the way every other subscriber message names it:
+       * its public title first, then its internal name.
        */
       const statusPageNameStr: string =
         statusPage.pageTitle || statusPage.name || "Status Page";
@@ -2765,6 +2813,7 @@ export default class StatusPageAPI extends BaseAPI<
         manageEmailTemplate,
         manageSmsTemplate,
         manageSlackTemplate,
+        manageMicrosoftTeamsTemplate,
       ]: Array<StatusPageSubscriberNotificationTemplate | null> =
         await Promise.all([
           StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -2791,147 +2840,196 @@ export default class StatusPageAPI extends BaseAPI<
               notificationMethod: StatusPageSubscriberNotificationMethod.Slack,
             },
           ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statusPage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberManageSubscription,
+              notificationMethod:
+                StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+            },
+          ),
         ]);
 
-      /*
-       * The manage link is the subscriber's update-subscription page, which is
-       * the same URL every other sender passes as unsubscribeUrl, so a
-       * template may use either name for it.
-       */
-      const manageTemplateVariables: Record<string, string> = {
-        statusPageName: statusPageNameStr,
-        statusPageUrl: statusPageURL,
-        unsubscribeUrl: manageUrlink,
-        manageSubscriptionUrl: manageUrlink,
-      };
+      for (const statusPageSubscriber of subscribers) {
+        // Only ever the contacts stored on the subscriber, never ones from the request.
+        const subscriberEmail: Email | undefined =
+          statusPageSubscriber.subscriberEmail;
+        const subscriberPhone: Phone | undefined =
+          statusPageSubscriber.subscriberPhone;
+        const slackIncomingWebhookUrl: URL | undefined =
+          statusPageSubscriber.slackIncomingWebhookUrl;
+        const microsoftTeamsIncomingWebhookUrl: URL | undefined =
+          statusPageSubscriber.microsoftTeamsIncomingWebhookUrl;
 
-      if (email) {
-        const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-        const statusPageIdString: string | null =
-          statusPage.id?.toString() || statusPage._id?.toString() || null;
+        const manageUrlink: string =
+          StatusPageSubscriberService.getUnsubscribeLink(
+            URL.fromString(statusPageURL),
+            statusPageSubscriber.id!,
+          ).toString();
 
-        if (manageEmailTemplate?.templateBody && statusPage.smtpConfig) {
-          const compiledBody: string =
-            StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
-              manageEmailTemplate.templateBody,
-              manageTemplateVariables,
-            );
-          const compiledSubject: string = manageEmailTemplate.emailSubject
-            ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
-                manageEmailTemplate.emailSubject,
-                manageTemplateVariables,
-              )
-            : "Manage your Subscription for " + statusPageNameStr;
-
-          MailService.sendMail(
-            {
-              toEmail: email,
-              templateType: EmailTemplateType.BlankTemplate,
-              vars: {
-                body: compiledBody,
-              },
-              subject: compiledSubject,
-            },
-            {
-              mailServer: ProjectSmtpConfigService.toEmailServer(
-                statusPage.smtpConfig,
-              ),
-              projectId: statusPage.projectId!,
-              statusPageId: statusPage.id!,
-            },
-          );
-        } else {
-          MailService.sendMail(
-            {
-              toEmail: email,
-              templateType:
-                EmailTemplateType.ManageExistingStatusPageSubscriberSubscription,
-              vars: {
-                statusPageName: statusPageNameStr,
-                statusPageUrl: statusPageURL,
-                logoUrl:
-                  statusPage.logoFileId && statusPageIdString
-                    ? new URL(httpProtocol, host)
-                        .addRoute(StatusPageApiRoute)
-                        .addRoute(`/logo/${statusPageIdString}`)
-                        .toString()
-                    : "",
-                isPublicStatusPage: statusPage.isPublicStatusPage
-                  ? "true"
-                  : "false",
-                subscriberEmailNotificationFooterText:
-                  StatusPageServiceType.getSubscriberEmailFooterText(
-                    statusPage,
-                  ),
-
-                manageSubscriptionUrl: manageUrlink,
-              },
-              subject: "Manage your Subscription for " + statusPageNameStr,
-            },
-            {
-              mailServer: ProjectSmtpConfigService.toEmailServer(
-                statusPage.smtpConfig,
-              ),
-              projectId: statusPage.projectId!,
-              statusPageId: statusPage.id!,
-            },
-          );
-        }
-      }
-
-      if (phone) {
-        let smsMessage: string;
-        if (manageSmsTemplate?.templateBody && statusPage.callSmsConfig) {
-          smsMessage =
-            StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
-              manageSmsTemplate.templateBody,
-              manageTemplateVariables,
-            );
-        } else {
-          smsMessage = `You have selected to manage your subscription for the status page: ${statusPageNameStr}. You can manage your subscription here: ${manageUrlink}`;
-        }
-
-        const sms: SMS = {
-          message: smsMessage,
-          to: phone,
+        /*
+         * The manage link is the subscriber's update-subscription page, which
+         * is the same URL every other sender passes as unsubscribeUrl, so a
+         * template may use either name for it.
+         */
+        const manageTemplateVariables: Record<string, string> = {
+          statusPageName: statusPageNameStr,
+          statusPageUrl: statusPageURL,
+          unsubscribeUrl: manageUrlink,
+          manageSubscriptionUrl: manageUrlink,
         };
-        // send sms here.
-        SmsService.sendSms(sms, {
-          projectId: statusPage.projectId,
-          customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-            statusPage.callSmsConfig,
-          ),
-          statusPageId: statusPage.id!,
-        }).catch((err: Error) => {
-          logger.error(err, getLogAttributesFromRequest(req as any));
-        });
-      }
 
-      if (statusPageSubscriber.slackIncomingWebhookUrl) {
-        let slackMessage: string;
-        if (manageSlackTemplate?.templateBody) {
-          slackMessage =
-            StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
-              manageSlackTemplate.templateBody,
-              manageTemplateVariables,
+        const defaultChatMessage: string = `You have selected to manage your subscription for the status page: ${statusPageNameStr}. You can manage your subscription here: ${manageUrlink}`;
+
+        if (subscriberEmail) {
+          const host: Hostname = await DatabaseConfig.getHost();
+          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+          const statusPageIdString: string | null =
+            statusPage.id?.toString() || statusPage._id?.toString() || null;
+
+          if (manageEmailTemplate?.templateBody && statusPage.smtpConfig) {
+            const compiledBody: string =
+              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                manageEmailTemplate.templateBody,
+                manageTemplateVariables,
+              );
+            const compiledSubject: string = manageEmailTemplate.emailSubject
+              ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  manageEmailTemplate.emailSubject,
+                  manageTemplateVariables,
+                )
+              : "Manage your Subscription for " + statusPageNameStr;
+
+            MailService.sendMail(
+              {
+                toEmail: subscriberEmail,
+                templateType: EmailTemplateType.BlankTemplate,
+                vars: {
+                  body: compiledBody,
+                },
+                subject: compiledSubject,
+              },
+              {
+                mailServer: ProjectSmtpConfigService.toEmailServer(
+                  statusPage.smtpConfig,
+                ),
+                projectId: statusPage.projectId!,
+                statusPageId: statusPage.id!,
+              },
             );
-        } else {
-          slackMessage = `You have selected to manage your subscription for the status page: ${statusPageNameStr}. You can manage your subscription here: ${manageUrlink}`;
+          } else {
+            MailService.sendMail(
+              {
+                toEmail: subscriberEmail,
+                templateType:
+                  EmailTemplateType.ManageExistingStatusPageSubscriberSubscription,
+                vars: {
+                  statusPageName: statusPageNameStr,
+                  statusPageUrl: statusPageURL,
+                  logoUrl:
+                    statusPage.logoFileId && statusPageIdString
+                      ? new URL(httpProtocol, host)
+                          .addRoute(StatusPageApiRoute)
+                          .addRoute(`/logo/${statusPageIdString}`)
+                          .toString()
+                      : "",
+                  isPublicStatusPage: statusPage.isPublicStatusPage
+                    ? "true"
+                    : "false",
+                  subscriberEmailNotificationFooterText:
+                    StatusPageServiceType.getSubscriberEmailFooterText(
+                      statusPage,
+                    ),
+
+                  manageSubscriptionUrl: manageUrlink,
+                },
+                subject: "Manage your Subscription for " + statusPageNameStr,
+              },
+              {
+                mailServer: ProjectSmtpConfigService.toEmailServer(
+                  statusPage.smtpConfig,
+                ),
+                projectId: statusPage.projectId!,
+                statusPageId: statusPage.id!,
+              },
+            );
+          }
         }
 
-        SlackUtil.sendMessageToChannelViaIncomingWebhook({
-          url: statusPageSubscriber.slackIncomingWebhookUrl,
-          text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
-        }).catch((err: Error) => {
-          logger.error(err, getLogAttributesFromRequest(req as any));
-        });
-      }
+        if (subscriberPhone) {
+          let smsMessage: string;
+          if (manageSmsTemplate?.templateBody && statusPage.callSmsConfig) {
+            smsMessage =
+              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                manageSmsTemplate.templateBody,
+                manageTemplateVariables,
+              );
+          } else {
+            smsMessage = defaultChatMessage;
+          }
 
-      logger.debug(
-        `Subscription management link sent to subscriber with ID: ${statusPageSubscriber.id}`,
-        getLogAttributesFromRequest(req as any),
-      );
+          const sms: SMS = {
+            message: smsMessage,
+            to: subscriberPhone,
+          };
+          // send sms here.
+          SmsService.sendSms(sms, {
+            projectId: statusPage.projectId,
+            customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
+              statusPage.callSmsConfig,
+            ),
+            statusPageId: statusPage.id!,
+          }).catch((err: Error) => {
+            logger.error(err, getLogAttributesFromRequest(req as any));
+          });
+        }
+
+        if (slackIncomingWebhookUrl) {
+          let slackMessage: string;
+          if (manageSlackTemplate?.templateBody) {
+            slackMessage =
+              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                manageSlackTemplate.templateBody,
+                manageTemplateVariables,
+              );
+          } else {
+            slackMessage = defaultChatMessage;
+          }
+
+          SlackUtil.sendMessageToChannelViaIncomingWebhook({
+            url: slackIncomingWebhookUrl,
+            text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
+          }).catch((err: Error) => {
+            logger.error(err, getLogAttributesFromRequest(req as any));
+          });
+        }
+
+        if (microsoftTeamsIncomingWebhookUrl) {
+          let microsoftTeamsMessage: string;
+          if (manageMicrosoftTeamsTemplate?.templateBody) {
+            microsoftTeamsMessage =
+              StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                manageMicrosoftTeamsTemplate.templateBody,
+                manageTemplateVariables,
+              );
+          } else {
+            microsoftTeamsMessage = defaultChatMessage;
+          }
+
+          MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
+            url: microsoftTeamsIncomingWebhookUrl,
+            text: microsoftTeamsMessage,
+          }).catch((err: Error) => {
+            logger.error(err, getLogAttributesFromRequest(req as any));
+          });
+        }
+
+        logger.debug(
+          `Subscription management link sent to subscriber with ID: ${statusPageSubscriber.id}`,
+          getLogAttributesFromRequest(req as any),
+        );
+      }
     }
   }
 
