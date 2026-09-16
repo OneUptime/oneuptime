@@ -130,6 +130,9 @@ const manageSubscriptionDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Slack]: {
     body: `You have selected to manage your subscription for the status page: {{statusPageName}}. You can manage your subscription here: {{manageSubscriptionUrl}}`,
   },
+  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `You have selected to manage your subscription for the status page: {{statusPageName}}. You can manage your subscription here: {{manageSubscriptionUrl}}`,
+  },
 };
 
 const incidentCreatedDefaults: EventDefaults = {

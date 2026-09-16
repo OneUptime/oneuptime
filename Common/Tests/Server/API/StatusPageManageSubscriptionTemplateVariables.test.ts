@@ -21,6 +21,7 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
+import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import URL from "../../../Types/API/URL";
 import Email from "../../../Types/Email";
@@ -63,9 +64,9 @@ jest.mock("../../../Server/Utils/Response", () => {
 
 /*
  * "Send me a link to manage my subscription" on a status page: the
- * manage-subscription endpoint looks the subscriber up by email, phone or
- * Slack workspace and sends them the link on that channel, through the status
- * page's custom template when it has one.
+ * manage-subscription endpoint looks the subscriber up by email, phone, Slack
+ * workspace or Microsoft Teams workspace and sends them the link on that
+ * channel, through the status page's custom template when it has one.
  *
  * Template authors are promised the variables in
  * SubscriberNotificationTemplateVariables for this event. These tests drive
@@ -103,6 +104,9 @@ const SUBSCRIBER_PHONE: string = "+15550100123";
 const SLACK_WORKSPACE_NAME: string = "acme-ops-workspace";
 const SLACK_WEBHOOK_URL: string =
   "https://hooks.slack.com/services/T0ACME/B0ACME/fixturewebhook";
+const TEAMS_WORKSPACE_NAME: string = "acme-ops-teams";
+const TEAMS_WEBHOOK_URL: string =
+  "https://acme.webhook.office.com/webhookb2/fixturewebhook";
 
 const EMAIL_SUBJECT_TEMPLATE: string =
   "Manage {{statusPageName}} at {{manageSubscriptionUrl}}";
@@ -132,6 +136,12 @@ const CHANNELS: Array<ChannelCase> = [
     name: "slack",
     method: StatusPageSubscriberNotificationMethod.Slack,
     requestData: { slackWorkspaceName: SLACK_WORKSPACE_NAME },
+    compileCallsPerRequest: 1,
+  },
+  {
+    name: "teams",
+    method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+    requestData: { microsoftTeamsWorkspaceName: TEAMS_WORKSPACE_NAME },
     compileCallsPerRequest: 1,
   },
 ];
@@ -174,6 +184,7 @@ const statusPageFixture: StatusPageFixtureFunction = (
   page.enableEmailSubscribers = true;
   page.enableSmsSubscribers = true;
   page.enableSlackSubscribers = true;
+  page.enableMicrosoftTeamsSubscribers = true;
 
   // A title or name passed as undefined is left unset on the page.
   const pageTitle: string | undefined =
@@ -297,8 +308,8 @@ describe("StatusPageAPI manage-subscription templates", () => {
   }) => Record<string, string>;
 
   /*
-   * Gives the status page a custom template for this event on Email, SMS and
-   * Slack, each printing every offered variable, and (unless told otherwise)
+   * Gives the status page a custom template for this event on Email, SMS,
+   * Slack and Teams, each printing every offered variable, and (unless told otherwise)
    * custom SMTP and Twilio so the Email and SMS templates are used. Returns
    * the body configured for each channel.
    */
@@ -308,6 +319,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
         email: templateUsingEveryVariable("email"),
         sms: templateUsingEveryVariable("sms"),
         slack: templateUsingEveryVariable("slack"),
+        teams: templateUsingEveryVariable("teams"),
       };
 
       pageToSend = statusPageFixture({
@@ -325,6 +337,10 @@ describe("StatusPageAPI manage-subscription templates", () => {
         [StatusPageSubscriberNotificationMethod.Slack]: templateFixture({
           body: bodies["slack"]!,
         }),
+        [StatusPageSubscriberNotificationMethod.MicrosoftTeams]:
+          templateFixture({
+            body: bodies["teams"]!,
+          }),
       };
 
       return bodies;
@@ -354,6 +370,15 @@ describe("StatusPageAPI manage-subscription templates", () => {
     await mockRouter
       .match("post", MANAGE_ROUTE)
       .handlerFunction(request, mockResponse, nextFunction);
+
+    // The link is sent in the background; wait for it before reading what went out.
+    await Promise.all(
+      mockOf(
+        StatusPageAPI.prototype.sendManageSubscriptionLinks,
+      ).mock.results.map((result: jest.MockResult<unknown>): unknown => {
+        return result.value;
+      }),
+    );
 
     return request;
   };
@@ -412,6 +437,14 @@ describe("StatusPageAPI manage-subscription templates", () => {
     });
   };
 
+  const sentTeams: SentTextFunction = (): Array<string> => {
+    return mockOf(
+      MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+    ).mock.calls.map((call: Array<unknown>): string => {
+      return (call[0] as { text: string }).text;
+    });
+  };
+
   type RenderedMessageFunction = (channel: ChannelCase) => string;
 
   // What the subscriber received on the given channel.
@@ -428,22 +461,27 @@ describe("StatusPageAPI manage-subscription templates", () => {
       return sentSms()[0]!;
     }
 
-    expect(sentSlack()).toHaveLength(1);
-    return sentSlack()[0]!;
+    if (channel.method === StatusPageSubscriberNotificationMethod.Slack) {
+      expect(sentSlack()).toHaveLength(1);
+      return sentSlack()[0]!;
+    }
+
+    expect(sentTeams()).toHaveLength(1);
+    return sentTeams()[0]!;
   };
 
-  type FindSubscriberFunction = (findBy: {
+  type FindSubscribersFunction = (findBy: {
     query: JSONObject;
-  }) => Promise<StatusPageSubscriber | null>;
+  }) => Promise<Array<StatusPageSubscriber>>;
 
   // Stands in for the database: one subscriber, reachable on each channel.
-  const findSubscriberFake: FindSubscriberFunction = (findBy: {
+  const findSubscribersFake: FindSubscribersFunction = (findBy: {
     query: JSONObject;
-  }): Promise<StatusPageSubscriber | null> => {
+  }): Promise<Array<StatusPageSubscriber>> => {
     const query: JSONObject = findBy.query;
 
     if (query["statusPageId"]?.toString() !== STATUS_PAGE_ID.toString()) {
-      return Promise.resolve(null);
+      return Promise.resolve([]);
     }
 
     const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
@@ -451,21 +489,28 @@ describe("StatusPageAPI manage-subscription templates", () => {
 
     if (query["subscriberEmail"]?.toString() === SUBSCRIBER_EMAIL) {
       subscriber.subscriberEmail = new Email(SUBSCRIBER_EMAIL);
-      return Promise.resolve(subscriber);
+      return Promise.resolve([subscriber]);
     }
 
     if (query["subscriberPhone"]?.toString() === SUBSCRIBER_PHONE) {
       subscriber.subscriberPhone = new Phone(SUBSCRIBER_PHONE);
-      return Promise.resolve(subscriber);
+      return Promise.resolve([subscriber]);
     }
 
     if (query["slackWorkspaceName"] === SLACK_WORKSPACE_NAME) {
       subscriber.slackWorkspaceName = SLACK_WORKSPACE_NAME;
       subscriber.slackIncomingWebhookUrl = URL.fromString(SLACK_WEBHOOK_URL);
-      return Promise.resolve(subscriber);
+      return Promise.resolve([subscriber]);
     }
 
-    return Promise.resolve(null);
+    if (query["microsoftTeamsWorkspaceName"] === TEAMS_WORKSPACE_NAME) {
+      subscriber.microsoftTeamsWorkspaceName = TEAMS_WORKSPACE_NAME;
+      subscriber.microsoftTeamsIncomingWebhookUrl =
+        URL.fromString(TEAMS_WEBHOOK_URL);
+      return Promise.resolve([subscriber]);
+    }
+
+    return Promise.resolve([]);
   };
 
   type FindTemplateFunction = (data: {
@@ -512,8 +557,11 @@ describe("StatusPageAPI manage-subscription templates", () => {
       .mockResolvedValue(STATUS_PAGE_URL);
 
     jest
-      .spyOn(StatusPageSubscriberService, "findOneBy")
-      .mockImplementation(findSubscriberFake as never);
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockImplementation(findSubscribersFake as never);
+
+    // The real sender, watched, so a test can wait for what it sends.
+    jest.spyOn(StatusPageAPI.prototype, "sendManageSubscriptionLinks");
 
     jest
       .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
@@ -541,6 +589,9 @@ describe("StatusPageAPI manage-subscription templates", () => {
     jest.spyOn(SmsService, "sendSms").mockResolvedValue(undefined as never);
     jest
       .spyOn(SlackUtil, "sendMessageToChannelViaIncomingWebhook")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(MicrosoftTeamsUtil, "sendMessageToChannelViaIncomingWebhook")
       .mockResolvedValue(undefined as never);
 
     // Hands the message through as written, so tests can read it.
@@ -626,7 +677,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
       },
     );
 
-    it("every templated channel together: four compiles, each with every variable", async () => {
+    it("every templated channel together: five compiles, each with every variable", async () => {
       const bodies: Record<string, string> = useCustomTemplatesOnEveryChannel();
 
       for (const channel of CHANNELS) {
@@ -638,8 +689,8 @@ describe("StatusPageAPI manage-subscription templates", () => {
 
       const calls: Array<CompileCall> = compileCalls();
 
-      // Email body and subject, SMS and Slack.
-      expect(calls).toHaveLength(4);
+      // Email body and subject, SMS, Slack and Teams.
+      expect(calls).toHaveLength(5);
       expect(
         calls
           .map((call: CompileCall): string => {
@@ -652,6 +703,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
           EMAIL_SUBJECT_TEMPLATE,
           bodies["sms"]!,
           bodies["slack"]!,
+          bodies["teams"]!,
         ].sort(),
       );
 
@@ -666,9 +718,10 @@ describe("StatusPageAPI manage-subscription templates", () => {
       expect(sentMail()).toHaveLength(1);
       expect(sentSms()).toHaveLength(1);
       expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
     });
 
-    it("looks up this page's manage template on Email, SMS and Slack only", async () => {
+    it("looks up this page's manage template on Email, SMS, Slack and Teams only", async () => {
       useCustomTemplatesOnEveryChannel();
 
       await callManageSubscription({ subscriberEmail: SUBSCRIBER_EMAIL });
@@ -710,6 +763,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
           StatusPageSubscriberNotificationMethod.Email,
           StatusPageSubscriberNotificationMethod.SMS,
           StatusPageSubscriberNotificationMethod.Slack,
+          StatusPageSubscriberNotificationMethod.MicrosoftTeams,
         ].sort(),
       );
 
@@ -883,6 +937,16 @@ describe("StatusPageAPI manage-subscription templates", () => {
           ).mock.calls[0]![0] as { url: URL };
           expect(slack.url.toString()).toBe(SLACK_WEBHOOK_URL);
         }
+
+        if (
+          channel.method ===
+          StatusPageSubscriberNotificationMethod.MicrosoftTeams
+        ) {
+          const teams: { url: URL } = mockOf(
+            MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook,
+          ).mock.calls[0]![0] as { url: URL };
+          expect(teams.url.toString()).toBe(TEAMS_WEBHOOK_URL);
+        }
       },
     );
   });
@@ -962,6 +1026,25 @@ describe("StatusPageAPI manage-subscription templates", () => {
         expected,
       );
       expect(sentSlack()).toEqual([expected]);
+    });
+
+    it("teams without a custom template sends the dashboard's default text", async () => {
+      const request: ExpressRequest = await callManageSubscription({
+        microsoftTeamsWorkspaceName: TEAMS_WORKSPACE_NAME,
+      });
+      expectSucceeded(request);
+
+      expect(compileCalls()).toHaveLength(0);
+
+      const expected: string = dashboardDefault({
+        method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+        part: "body",
+        statusPageName: PAGE_TITLE,
+      });
+      expect(expected).toBe(
+        `You have selected to manage your subscription for the status page: Acme Cloud Status. You can manage your subscription here: ${MANAGE_URL}`,
+      );
+      expect(sentTeams()).toEqual([expected]);
     });
 
     it("a custom email template is not used without the page's own SMTP", async () => {
