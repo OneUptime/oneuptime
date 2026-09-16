@@ -170,19 +170,13 @@ export default class EvaluateOverTime {
     if (policy === NoDataPolicy.TreatAsZero) {
       /*
        * Zero for numeric series, and its boolean equivalent (false) for the
-       * online/timeout series, which EvaluateOverTime already maps 1 -> true.
+       * boolean series, whose samples evaluateOverTime maps 1 -> true.
        */
-      const isBooleanSeries: boolean =
-        data.criteriaFilter.checkOn === CheckOn.IsOnline ||
-        data.criteriaFilter.checkOn === CheckOn.IsRequestTimeout ||
-        data.criteriaFilter.checkOn === CheckOn.DnsIsOnline ||
-        data.criteriaFilter.checkOn === CheckOn.SnmpIsOnline ||
-        data.criteriaFilter.checkOn === CheckOn.DatabaseIsOnline ||
-        data.criteriaFilter.checkOn === CheckOn.ExternalStatusPageIsOnline;
-
       return {
         earlyReturn: null,
-        value: isBooleanSeries ? [false] : [0],
+        value: this.isBooleanSeries(data.criteriaFilter.checkOn)
+          ? [false]
+          : [0],
       };
     }
 
@@ -312,18 +306,16 @@ export default class EvaluateOverTime {
 
     const values: Array<number | boolean> = [];
 
+    const isBooleanSeries: boolean = this.isBooleanSeries(
+      data.criteriaFilter.checkOn,
+    );
+
     for (const item of metricItems) {
       if (item.value === undefined || item.value === null) {
         continue;
       }
 
-      if (
-        data.criteriaFilter.checkOn === CheckOn.IsOnline ||
-        data.criteriaFilter.checkOn === CheckOn.IsRequestTimeout ||
-        data.criteriaFilter.checkOn === CheckOn.DnsIsOnline ||
-        data.criteriaFilter.checkOn === CheckOn.SnmpIsOnline ||
-        data.criteriaFilter.checkOn === CheckOn.ExternalStatusPageIsOnline
-      ) {
+      if (isBooleanSeries) {
         values.push(item.value === 1);
       } else {
         values.push(item.value);
@@ -403,6 +395,27 @@ export default class EvaluateOverTime {
       noDataReason: null,
       isReadError: false,
     };
+  }
+
+  /**
+   * Whether the CheckOn's series records a yes / no signal as 1 / 0.
+   *
+   * CompareCriteria.isTrue / isFalse only match real booleans, so both the
+   * window samples and the Treat As Zero substitute have to be converted for
+   * these. Keep this the only list: the two used to be maintained
+   * separately, and Database Is Online was missing from the sample
+   * conversion, so its over-time filters never matched once the window
+   * filled.
+   */
+  private static isBooleanSeries(checkOn: CheckOn): boolean {
+    return (
+      checkOn === CheckOn.IsOnline ||
+      checkOn === CheckOn.IsRequestTimeout ||
+      checkOn === CheckOn.DnsIsOnline ||
+      checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.DatabaseIsOnline ||
+      checkOn === CheckOn.ExternalStatusPageIsOnline
+    );
   }
 
   /**

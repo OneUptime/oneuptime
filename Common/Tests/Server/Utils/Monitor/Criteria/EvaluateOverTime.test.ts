@@ -75,6 +75,28 @@ function criteria(overrides: Partial<CriteriaFilter> = {}): CriteriaFilter {
 }
 
 /*
+ * Probe CheckOns that write into the shared 1 / 0 online series instead of a
+ * series of their own.
+ */
+const SHARED_ONLINE_SERIES_CHECK_ONS: Array<CheckOn> = [
+  CheckOn.DnsIsOnline,
+  CheckOn.SnmpIsOnline,
+  CheckOn.ExternalStatusPageIsOnline,
+  CheckOn.DatabaseIsOnline,
+];
+
+/*
+ * Every CheckOn that evaluates over time against a 1 / 0 series.
+ * CompareCriteria.isTrue / isFalse match only real booleans, so the window
+ * and the Treat As Zero substitute must both come back as booleans for
+ * each of these.
+ */
+const BOOLEAN_SERIES_CHECK_ONS: Array<CheckOn> = [
+  CheckOn.IsOnline,
+  ...SHARED_ONLINE_SERIES_CHECK_ONS,
+];
+
+/*
  * The metric read is stubbed in memory rather than through a typed spy so
  * every query it receives can be asserted on directly.
  */
@@ -243,14 +265,12 @@ describe("EvaluateOverTime", () => {
      * DNS / SNMP / External Status Page probes write into the shared online
      * and response-time series. Their CheckOns had no entry in the metric
      * map at all, so "evaluate over time" was a no-op for every one of them.
+     *
+     * Database Is Online reads the same online series. It was mapped to it,
+     * but its samples came back as raw 0 / 1, which no True / False filter
+     * ever matches.
      */
-    const onlineCheckOns: Array<CheckOn> = [
-      CheckOn.DnsIsOnline,
-      CheckOn.SnmpIsOnline,
-      CheckOn.ExternalStatusPageIsOnline,
-    ];
-
-    for (const checkOn of onlineCheckOns) {
+    for (const checkOn of SHARED_ONLINE_SERIES_CHECK_ONS) {
       test(`${checkOn} reads the online series`, async () => {
         mockSamples(everyMinute([0, 0, 0, 0, 0]));
 
@@ -808,20 +828,23 @@ describe("EvaluateOverTime", () => {
   });
 
   describe("boolean series", () => {
-    test("1 becomes true and everything else becomes false", async () => {
-      mockSamples(everyMinute([1, 0, 1, 1, 0]));
+    for (const checkOn of BOOLEAN_SERIES_CHECK_ONS) {
+      test(`${checkOn}: 1 becomes true and everything else becomes false`, async () => {
+        mockSamples(everyMinute([1, 0, 1, 1, 0]));
 
-      const result: OverTimeEvaluation = await evaluate({
-        criteriaFilter: criteria({
-          checkOn: CheckOn.IsOnline,
-          filterType: FilterType.False,
-          value: undefined,
-        }),
-        monitoringInterval: "* * * * *",
+        const result: OverTimeEvaluation = await evaluate({
+          criteriaFilter: criteria({
+            checkOn: checkOn,
+            filterType: FilterType.False,
+            value: undefined,
+          }),
+          monitoringInterval: "* * * * *",
+        });
+
+        expect(result.status).toBe(OverTimeEvaluationStatus.Evaluated);
+        expect(result.value).toEqual([true, false, true, true, false]);
       });
-
-      expect(result.value).toEqual([true, false, true, true, false]);
-    });
+    }
   });
 
   describe("getOverTimeValueForCriteriaFilter", () => {
@@ -926,24 +949,27 @@ describe("EvaluateOverTime", () => {
       expect(result.value).toEqual([0]);
     });
 
-    test("Treat As Zero substitutes false for an online series", async () => {
-      mockSamples([]);
+    for (const checkOn of BOOLEAN_SERIES_CHECK_ONS) {
+      test(`Treat As Zero substitutes false for ${checkOn}`, async () => {
+        mockSamples([]);
 
-      const result: OverTimeCriteriaValue = await resolve({
-        criteriaFilter: criteria({
-          checkOn: CheckOn.IsOnline,
-          filterType: FilterType.False,
-          value: undefined,
-          evaluateOverTimeOptions: {
-            timeValueInMinutes: 5,
-            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-            onNoDataPolicy: NoDataPolicy.TreatAsZero,
-          },
-        }),
+        const result: OverTimeCriteriaValue = await resolve({
+          criteriaFilter: criteria({
+            checkOn: checkOn,
+            filterType: FilterType.False,
+            value: undefined,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: 5,
+              evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+              onNoDataPolicy: NoDataPolicy.TreatAsZero,
+            },
+          }),
+        });
+
+        expect(result.earlyReturn).toBeNull();
+        expect(result.value).toEqual([false]);
       });
-
-      expect(result.value).toEqual([false]);
-    });
+    }
 
     /*
      * A metric store we could not read tells us nothing about the monitor.
