@@ -59,6 +59,9 @@ const SCREENSHOTS: string = path.resolve(
 
 const INCIDENT_TLDR: string =
   "checkout-api restarted at 17:52 with its database pool cut from 40 to 10 connections, so checkout requests queued and p95 latency passed 2s — the same pool exhaustion as #1017, #1029 and #1036.";
+// ?tldr=long: a TL;DR at the server's 320-character cap.
+const INCIDENT_LONG_TLDR: string =
+  "checkout-api release 2026.09.14-2 restarted at 17:52:04 with DB_POOL_MAX=10 instead of 40, so requests waited up to 2s in pg.pool.connect for an orders-db connection and p95 latency rose from ~310 ms to 2.35 s (db.client.connections.usage pinned at 10/10). Rolling back to 2026.09.14-1 cleared it, as in #1017 and #1029.";
 const ALERT_TLDR: string =
   "A 17:35 config reload cut the ledger client timeout from 5s to 1s, so slow ledger writes fail and payment webhooks return 502 — the same cause as alert #298.";
 
@@ -1082,9 +1085,9 @@ test.describe("AI investigation report", () => {
     // #1029 has no investigation: neither the card nor the header summary.
     await expect(card(page, "Incident Feed")).toBeVisible();
     await expect(investigationCard(page)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Read report" })).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByRole("button", { name: "View full report" }),
+    ).toHaveCount(0);
     await expect(page.getByText(INCIDENT_TLDR)).toHaveCount(0);
 
     await page.goBack();
@@ -1186,7 +1189,7 @@ test.describe("AI investigation report", () => {
     ).toHaveLength(1);
   });
 
-  test("the header summary shows the TL;DR and Read report focuses the panel", async ({
+  test("the header summary shows the TL;DR and View full report focuses the panel", async ({
     page,
   }: {
     page: Page;
@@ -1200,10 +1203,10 @@ test.describe("AI investigation report", () => {
     await expect(
       header.getByText(INCIDENT_TLDR, { exact: true }),
     ).toBeVisible();
-    const readReport: Locator = header.getByRole("button", {
-      name: "Read report",
+    const viewReport: Locator = header.getByRole("button", {
+      name: "View full report",
     });
-    await expect(readReport).toHaveAttribute(
+    await expect(viewReport).toHaveAttribute(
       "aria-controls",
       "ai-investigation",
     );
@@ -1213,11 +1216,128 @@ test.describe("AI investigation report", () => {
         .filter({ hasText: "AI root cause analysis ready." }),
     ).toHaveCount(1);
 
-    await readReport.click();
+    await viewReport.click();
     const panel: Locator = page.locator("#ai-investigation");
     await expect(panel).toBeFocused();
     await expect(panel).toBeInViewport();
     await expect(panel).toHaveAttribute("role", "region");
+  });
+
+  test("the header summary keeps View full report beside its heading on a wide screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const header: Locator = hero(page);
+    const heading: Locator = header.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const viewReport: Locator = header.getByRole("button", {
+      name: "View full report",
+    });
+    const tldr: Locator = header.getByText(INCIDENT_TLDR, { exact: true });
+    await expect(tldr).toBeVisible();
+
+    const headingBox: Box = await documentBox(heading);
+    const buttonBox: Box = await documentBox(viewReport);
+    expect(
+      Math.abs(
+        buttonBox.y +
+          buttonBox.height / 2 -
+          (headingBox.y + headingBox.height / 2),
+      ),
+      "View full report shares the heading's row",
+    ).toBeLessThanOrEqual(2);
+    await expectAbove(viewReport, tldr, "the summary starts below that row");
+    // A short TL;DR fits in three lines: nothing to expand.
+    await expect(
+      header.getByRole("button", { name: /^Show (more|less)$/ }),
+    ).toHaveCount(0);
+  });
+
+  test("a long header TL;DR arrives whole, clamps on a phone and expands in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "tldr=long");
+
+    const header: Locator = hero(page);
+    const heading: Locator = header.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const tldr: Locator = header.getByText(INCIDENT_LONG_TLDR, {
+      exact: true,
+    });
+    const viewReport: Locator = header.getByRole("button", {
+      name: "View full report",
+    });
+
+    // All 320 characters the server stored, with no ellipsis of our own.
+    expect(INCIDENT_LONG_TLDR).toHaveLength(320);
+    await expect(tldr).toHaveText(INCIDENT_LONG_TLDR);
+
+    const isOverflowing: (locator: Locator) => Promise<boolean> = (
+      locator: Locator,
+    ): Promise<boolean> => {
+      return locator.evaluate((element: Element): boolean => {
+        return (
+          element.scrollHeight > element.clientHeight + 1 ||
+          element.scrollWidth > element.clientWidth + 1
+        );
+      });
+    };
+
+    // The heading gets the whole row on a phone, so it is not cut short.
+    expect(await isOverflowing(heading), "heading is truncated").toBe(false);
+
+    const showMore: Locator = header.getByRole("button", {
+      name: "Show more",
+    });
+    await expect(showMore).toBeVisible();
+    await expect(showMore).toHaveAttribute("aria-expanded", "false");
+    expect(await isOverflowing(tldr), "summary is clamped").toBe(true);
+
+    // View full report drops below the summary, level with Show more.
+    await expectAbove(
+      tldr,
+      viewReport,
+      "View full report is under the summary",
+    );
+    const toggleBox: Box = await documentBox(showMore);
+    const buttonBox: Box = await documentBox(viewReport);
+    expect(
+      Math.abs(
+        buttonBox.y +
+          buttonBox.height / 2 -
+          (toggleBox.y + toggleBox.height / 2),
+      ),
+      "View full report shares Show more's row",
+    ).toBeLessThanOrEqual(2);
+    expect(buttonBox.x).toBeGreaterThanOrEqual(toggleBox.x + toggleBox.width);
+
+    await showMore.click();
+    const showLess: Locator = header.getByRole("button", {
+      name: "Show less",
+    });
+    await expect(showLess).toHaveAttribute("aria-expanded", "true");
+    expect(await isOverflowing(tldr), "expanded summary is clipped").toBe(
+      false,
+    );
+    await expectNoHorizontalOverflow(page);
+
+    await showLess.click();
+    await expect(showMore).toHaveAttribute("aria-expanded", "false");
+    await expect(showMore).toBeFocused();
+    expect(await isOverflowing(tldr)).toBe(true);
+
+    await viewReport.click();
+    await expect(page.locator("#ai-investigation")).toBeFocused();
   });
 
   test("verdict buttons record Confirmed, then a changed verdict", async ({
@@ -1412,7 +1532,7 @@ test.describe("AI investigation report", () => {
 
     const header: Locator = hero(page);
     await expect(header.getByText(ALERT_TLDR, { exact: true })).toBeVisible();
-    await header.getByRole("button", { name: "Read report" }).click();
+    await header.getByRole("button", { name: "View full report" }).click();
     await expect(page.locator("#ai-investigation")).toBeFocused();
 
     const requests: Array<RecordedApiRequest> = await apiRequestsTo(
@@ -2130,7 +2250,7 @@ test.describe("investigation states", () => {
         await expect(page.locator("#ai-investigation")).toBeFocused();
       } else {
         await expect(
-          hero(page).getByRole("button", { name: "Read report" }),
+          hero(page).getByRole("button", { name: "View full report" }),
         ).toHaveCount(0);
         await expect(hero(page)).not.toContainText("AI is investigating");
       }
@@ -2149,7 +2269,7 @@ test.describe("investigation states", () => {
     ).toBeVisible();
     await expect(investigationCard(page)).toHaveCount(0);
     await expect(
-      hero(page).getByRole("button", { name: "Read report" }),
+      hero(page).getByRole("button", { name: "View full report" }),
     ).toHaveCount(0);
     await expect(
       card(page, "Incident Feed").getByText(
@@ -3175,6 +3295,19 @@ test.describe("screenshots", () => {
   test.describe("AI report close-ups", () => {
     // Close-ups of one column read better at twice the density.
     test.use({ deviceScaleFactor: 2 });
+
+    test("header summary with a long TL;DR", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE, "tldr=long");
+      await expect(
+        hero(page).getByText(INCIDENT_LONG_TLDR, { exact: true }),
+      ).toBeVisible();
+      await page.mouse.move(0, 0);
+      await screenshotElement(hero(page), "incident-header-ai-summary");
+    });
 
     test("summary, references and evidence", async ({
       page,

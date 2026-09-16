@@ -104,6 +104,11 @@ const eventsTableSource: string = readDashboardSource(
   "SecurityEvents",
   "SecurityEventsTable.tsx",
 );
+const eventsEmptyStateSource: string = readDashboardSource(
+  "Components",
+  "SecurityEvents",
+  "SecurityEventsEmptyState.tsx",
+);
 const ingestApiSource: string = fs.readFileSync(
   nodePath.join(
     __dirname,
@@ -255,9 +260,23 @@ describe("Security events setup guide wiring", () => {
     ).toEqual(["Project", "Security Events", "Setup Guide"]);
   });
 
-  test("the empty events table points at the setup guide", () => {
+  /*
+   * The empty state is its own component (rendered and clicked through in
+   * Common/Tests/App/Dashboard/SecurityEventsEmptyState.test.tsx); this pins
+   * that the table still uses it and that it still names both pages.
+   */
+  test("the empty events table points at the setup guide and at Connections", () => {
     expect(eventsTableSource).toContain(
-      "RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION] as Route",
+      "noItemsMessage={<SecurityEventsEmptyState />}",
+    );
+    expect(eventsEmptyStateSource).toContain(
+      "navigateTo(PageMap.SECURITY_EVENTS_DOCUMENTATION);",
+    );
+    expect(eventsEmptyStateSource).toContain(
+      "navigateTo(PageMap.SECURITY_EVENTS_CONNECTIONS);",
+    );
+    expect(eventsEmptyStateSource).toContain(
+      "RouteUtil.populateRouteParams(RouteMap[pageMap] as Route)",
     );
   });
 });

@@ -10,14 +10,11 @@ import { Green, Red } from "Common/Types/BrandColors";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
-  SecurityEventConnectorCatalog,
-  SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
   getSecurityEventConnectorTitle,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
-import Link from "Common/UI/Components/Link/Link";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -37,13 +34,13 @@ import {
 import SecurityEventConnectionDiagnostics from "./SecurityEventConnectionDiagnostics";
 import {
   SECURITY_EVENT_CONNECTION_TEST_ROUTE,
-  connectorDocsUrl,
   connectorHealth,
   connectorHealthPillColor,
   connectorHealthTooltip,
   connectorScopeSummary,
 } from "./SecurityEventConnectionDiagnosticsUtil";
 import SecurityEventConnectionFormModal from "./SecurityEventConnectionFormModal";
+import SecurityEventConnectionsEmptyState from "./SecurityEventConnectionsEmptyState";
 
 interface FormModalState {
   connection: SecurityEventConnection | null;
@@ -123,40 +120,10 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
     ModelAction.Update,
   );
 
-  const emptyState: ReactElement = (
-    <div className="space-y-3 text-sm text-gray-600">
-      <p>
-        No security event connections yet. A connection needs a read-only
-        credential for the product (a service principal, API client or API token
-        with permission to list its alerts, findings or log events) and a
-        running OneUptime worker to poll on a schedule.
-      </p>
-      <p>Setup guides:</p>
-      <ul className="list-disc space-y-1 pl-5">
-        {SecurityEventConnectorCatalog.map(
-          (definition: SecurityEventConnectorDefinition): ReactElement => {
-            return (
-              <li key={definition.provider}>
-                <Link
-                  className="font-medium text-indigo-600 hover:text-indigo-800"
-                  openInNewTab={true}
-                  to={connectorDocsUrl(definition)}
-                >
-                  {definition.title}
-                </Link>{" "}
-                <span className="text-gray-500">({definition.category})</span>
-              </li>
-            );
-          },
-        )}
-      </ul>
-      {createGate.isAllowed && (
-        <p>
-          Click Add connection to choose a provider and test it before saving.
-        </p>
-      )}
-    </div>
-  );
+  // The card's Add connection button and the empty state's open the same form.
+  const openCreateForm: VoidFunction = (): void => {
+    setFormModal({ connection: null, credentialsOnly: false });
+  };
 
   return (
     <Fragment>
@@ -203,9 +170,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
               tooltip: createGate.isAllowed
                 ? "Choose a provider, enter its credentials and test them before saving."
                 : createGate.disabledReason,
-              onClick: (): void => {
-                setFormModal({ connection: null, credentialsOnly: false });
-              },
+              onClick: openCreateForm,
             },
           ],
         }}
@@ -215,7 +180,13 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             "What a connection polls, how to test it, how to read its health, and provider-specific guidance",
           markdown: securityEventConnectionsHelpMarkdown(),
         }}
-        noItemsMessage={emptyState}
+        noItemsMessage={
+          <SecurityEventConnectionsEmptyState
+            canCreate={createGate.isAllowed}
+            createDisabledReason={createGate.disabledReason}
+            onAddConnection={openCreateForm}
+          />
+        }
         showRefreshButton={true}
         searchableFields={["name", "provider"]}
         showViewIdButton={true}
