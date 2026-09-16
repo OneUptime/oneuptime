@@ -49,7 +49,9 @@ import UserService from "./UserService";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
-import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
+import SubscriptionStatus, {
+  SubscriptionStatusUtil,
+} from "../../Types/Billing/SubscriptionStatus";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import {
@@ -2985,17 +2987,30 @@ These are no longer recorded against the project and have to be cancelled by han
     await this.sendSubscriptionChangeWebhookSlackNotification(projectId);
   }
 
+  /*
+   * Projects that are still served: monitors fetched and evaluated, heartbeat
+   * and online sweeps run, SLOs evaluated, server-monitor reports accepted.
+   *
+   * The statuses come from SubscriptionStatusUtil.getActiveSubscriptionStatuses
+   * rather than being listed here, so this query cannot disagree with
+   * isSubscriptionActive again. It used to list only active and trialing,
+   * which dropped a past_due project out of every monitoring path the moment
+   * one autopay attempt failed - while Stripe was still retrying the invoice
+   * and the dashboard still called the project active. past_due projects keep
+   * being monitored; only a subscription Stripe has given up on (unpaid,
+   * canceled, incomplete, incomplete_expired, expired, paused) stops it.
+   *
+   * NULL stays admitted: that is a project with no subscription at all
+   * (self-hosted, or created before billing was enabled).
+   */
   public getActiveProjectStatusQuery(): Query<Model> {
     return {
-      // get only active projects
-      paymentProviderSubscriptionStatus: QueryHelper.equalToOrNull([
-        SubscriptionStatus.Active,
-        SubscriptionStatus.Trialing,
-      ]),
-      paymentProviderMeteredSubscriptionStatus: QueryHelper.equalToOrNull([
-        SubscriptionStatus.Active,
-        SubscriptionStatus.Trialing,
-      ]),
+      paymentProviderSubscriptionStatus: QueryHelper.equalToOrNull(
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+      ),
+      paymentProviderMeteredSubscriptionStatus: QueryHelper.equalToOrNull(
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+      ),
     };
   }
 
