@@ -11,6 +11,7 @@ import { createReplayEngine } from "../../../../App/FeatureSet/Dashboard/src/Com
 import {
   REPLAY_FEED_AHEAD_MIN_MS,
   REPLAY_HIDDEN_TICK_MS,
+  REPLAY_PAUSED_TICK_MS,
   ReplayEngine,
   ReplayEngineSnapshot,
   ReplayScheduleHandle,
@@ -1165,6 +1166,159 @@ describe("ReplayEngine playback clock", () => {
     for (const snapshot of harness.snapshots.slice(publishedBeforeSeek)) {
       expect(snapshot.currentTimeMs).toBe(target);
     }
+  });
+
+  /*
+   * The tick is how the clock follows rrweb, so its cadence has to follow
+   * the state even when the state changes asynchronously. Autoplay sends
+   * PLAY while the first chunk is still loading, which puts the tick on
+   * the paused timer; the build then landed and started rrweb without
+   * moving it, so for up to REPLAY_PAUSED_TICK_MS the clock stood still at
+   * 0:00.0 while the recording played. A Pause in that window published
+   * 0:00.0 and the next paused tick showed 0:00.1 - the Session Replay UI
+   * suite's "switches tab by keyboard" failure on master.
+   */
+  it("puts the tick on the playing cadence when an autoplay build or a stalled feed lands", async () => {
+    const harness: Harness = makeHarness({
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2),
+      ],
+      deferFetch: true,
+    });
+    /* The last tick the engine scheduled; its other timers are far longer. */
+    const tickDelayMs: () => number | undefined = (): number | undefined => {
+      const ticks: Array<{ delayMs: number }> = harness.scheduled.filter(
+        (entry: { delayMs: number }): boolean => {
+          return entry.delayMs <= REPLAY_PAUSED_TICK_MS;
+        },
+      );
+      return ticks[ticks.length - 1]?.delayMs;
+    };
+
+    harness.engine.dispatch({ type: "LOAD", anchorChunkIndex: 0, targetMs: 0 });
+    harness.engine.dispatch({ type: "PLAY" });
+
+    expect(harness.snapshot().buffer).toBe("building");
+    expect(tickDelayMs()).toBe(REPLAY_PAUSED_TICK_MS);
+
+    /* The build lands outside any dispatch or tick. */
+    harness.resolveFetch();
+    await flush();
+
+    expect(harness.snapshot().phase).toBe("playing");
+    expect(tickDelayMs()).toBeLessThan(REPLAY_HIDDEN_TICK_MS);
+
+    /* A stall is not playing, so the engine may slow down while it waits... */
+    harness.replayers[0]!.emit("finish");
+
+    expect(harness.snapshot().buffer).toBe("stalled");
+    expect(tickDelayMs()).toBe(REPLAY_PAUSED_TICK_MS);
+
+    /* ...and the feed that ends it, also asynchronous, speeds it back up. */
+    harness.resolveFetch();
+    await flush();
+
+    expect(harness.snapshot().phase).toBe("playing");
+    expect(tickDelayMs()).toBeLessThan(REPLAY_HIDDEN_TICK_MS);
+  });
+
+  /*
+   * rrweb moves its clock in its own animation frame, and the engine only
+   * reads it on a tick, so when Pause lands the engine's last reading can
+   * trail rrweb (by a frame, or by the whole paused-timer interval the
+   * test above closes). The pause must publish where rrweb actually
+   * stopped: otherwise the next paused TICK moves a clock the viewer has
+   * already seen stop.
+   */
+  it("publishes the pause at the time rrweb stopped on, and holds it there", async () => {
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(80);
+    expect(harness.snapshot().currentTimeMs).toBe(80);
+
+    /* rrweb's frame ran after the engine's: its clock is already at 110. */
+    harness.live().advance(30, 1);
+    const clockTicksBefore: number = harness.clockTicks.length;
+    const snapshotsBefore: number = harness.snapshots.length;
+
+    harness.engine.dispatch({ type: "PAUSE" });
+
+    expect(harness.snapshot().phase).toBe("paused");
+    expect(harness.snapshot().currentTimeMs).toBe(110);
+    expect(harness.engine.getCurrentTimeMs?.()).toBe(110);
+    expect(harness.clockTicks.slice(clockTicksBefore)).toEqual([110]);
+
+    /* Paused TICKs read the same stopped clock, so nothing moves after. */
+    for (let i: number = 0; i < 4; i++) {
+      await harness.tick(250);
+    }
+
+    expect(harness.clockTicks.length).toBeGreaterThan(clockTicksBefore + 1);
+
+    for (const value of harness.clockTicks.slice(clockTicksBefore)) {
+      expect(value).toBe(110);
+    }
+
+    for (const snapshot of harness.snapshots.slice(snapshotsBefore)) {
+      expect(snapshot.phase).toBe("paused");
+      expect(snapshot.currentTimeMs).toBe(110);
+    }
+  });
+
+  /*
+   * (c) holds through a pause too. Seeking BACK to another anchor leaves
+   * the outgoing Replayer - still on screen as the held last frame -
+   * answering with a time past the target, so the monotonic rule alone
+   * would not stop a pause that consulted it from jumping the clock ahead.
+   */
+  it("keeps the seek target when paused during a rebuild", async () => {
+    const harness: Harness = makeHarness({
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2, { hasFullSnapshot: true }),
+        makeEntry(3),
+      ],
+      deferFetch: true,
+    });
+
+    harness.engine.dispatch({
+      type: "LOAD",
+      anchorChunkIndex: 2,
+      targetMs: 2 * CHUNK_MS,
+    });
+    harness.resolveFetch();
+    await flush();
+    harness.resolveFetch();
+    await flush();
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(500);
+    expect(harness.snapshot().currentTimeMs).toBe(2 * CHUNK_MS + 500);
+
+    const target: number = 4000;
+    harness.engine.dispatch({ type: "SEEK", offsetMs: target, token: 1 });
+    expect(harness.snapshot().pendingSeekMs).toBe(target);
+    expect(harness.snapshot().currentTimeMs).toBe(target);
+
+    harness.engine.dispatch({ type: "PAUSE" });
+
+    expect(harness.snapshot().phase).not.toBe("playing");
+    expect(harness.snapshot().currentTimeMs).toBe(target);
+    expect(harness.engine.getCurrentTimeMs?.()).toBe(target);
+
+    harness.resolveFetch();
+    await flush();
+    harness.resolveFetch();
+    await flush();
+
+    expect(harness.snapshot().phase).toBe("paused");
+    expect(harness.snapshot().currentTimeMs).toBe(target);
   });
 });
 
