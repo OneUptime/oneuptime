@@ -132,6 +132,7 @@ import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import AIRunCodeFixRecommendation from "../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
+import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -307,6 +308,7 @@ function renderPanel(data?: {
   onAnalysisAvailable?: (() => void) | undefined;
   onStatusChange?: ((status: AIRunStatus | null) => void) | undefined;
   onReportSummaryChange?: ((summary: string | null) => void) | undefined;
+  onVerdictChange?: ((verdict: AIRunHumanVerdict | null) => void) | undefined;
 }): ReturnType<typeof render> {
   return render(
     <InvestigationPanel
@@ -315,6 +317,7 @@ function renderPanel(data?: {
       onAnalysisAvailable={data?.onAnalysisAvailable}
       onStatusChange={data?.onStatusChange}
       onReportSummaryChange={data?.onReportSummaryChange}
+      onVerdictChange={data?.onVerdictChange}
     />,
   );
 }
@@ -3097,8 +3100,26 @@ describe("InvestigationPanel report summary callback", () => {
     await flush();
 
     const summary: string = nonNullCalls(onReportSummaryChange)[0] as string;
-    expect(summary.length).toBeLessThanOrEqual(280);
+    // Bounded by the analysisTldr column; the header clamps it on screen.
+    expect(summary.length).toBeLessThanOrEqual(500);
+    expect(summary.length).toBeGreaterThan(280);
     expect(summary.endsWith("…")).toBe(true);
+  });
+
+  test("reports a TL;DR at the server's 320-character cap whole", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    const longTldr: string =
+      "checkout-api release 2026.09.14-2 restarted at 17:52:04 with DB_POOL_MAX=10 instead of 40, so requests waited up to 2s in pg.pool.connect for an orders-db connection and p95 latency rose from ~310 ms to 2.35 s (db.client.connections.usage pinned at 10/10). Rolling back to 2026.09.14-1 cleared it, as in #1017 and #1029.";
+
+    expect(longTldr).toHaveLength(320);
+    postMock.mockResolvedValue(
+      structuredResponse({ analysisTldr: longTldr }) as never,
+    );
+
+    renderPanel({ onReportSummaryChange });
+    await flush();
+
+    expect(nonNullCalls(onReportSummaryChange)).toEqual([longTldr]);
   });
 
   test("reports null when a report has neither a TL;DR nor a Summary", async () => {
@@ -3246,5 +3267,335 @@ describe("InvestigationPanel report summary callback", () => {
     await tick(SETTLED_POLL_INTERVAL_MS);
 
     expect(second).toHaveBeenLastCalledWith("A newer summary.");
+  });
+});
+
+/*
+ * The header shows a responder's verdict next to the report's summary, so the
+ * panel reports it on the summary's terms: once per change, null until a
+ * report is on screen, and afresh for every subject.
+ */
+describe("InvestigationPanel verdict callback", () => {
+  function reportedVerdicts(callback: MockFunction): Array<unknown> {
+    return callback.mock.calls.map((call: Array<unknown>): unknown => {
+      return call[0];
+    });
+  }
+
+  function nonNullVerdicts(callback: MockFunction): Array<unknown> {
+    return reportedVerdicts(callback).filter((value: unknown): boolean => {
+      return value !== null;
+    });
+  }
+
+  test.each(Object.values(AIRunHumanVerdict))(
+    "reports a %s verdict saved with the completed report",
+    async (verdict: AIRunHumanVerdict) => {
+      const onVerdictChange: MockFunction = getJestMockFunction();
+      postMock.mockResolvedValue(
+        structuredResponse({ humanVerdict: verdict }) as never,
+      );
+
+      renderPanel({ onVerdictChange });
+      await flush();
+
+      expect(onVerdictChange).toHaveBeenLastCalledWith(verdict);
+      expect(nonNullVerdicts(onVerdictChange)).toEqual([verdict]);
+    },
+  );
+
+  test("reports null for a report nobody has rated", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel({ onVerdictChange });
+    await flush();
+
+    expect(onVerdictChange).toHaveBeenCalledWith(null);
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([]);
+  });
+
+  test("reports no verdict it cannot name", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      structuredResponse({ humanVerdict: "Edited" }) as never,
+    );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([]);
+  });
+
+  test.each([
+    [
+      "while a new run is in flight",
+      (): ApiResponse => {
+        return successfulResponse(
+          investigationPayload({
+            status: AIRunStatus.Running,
+            humanVerdict: AIRunHumanVerdict.Confirmed,
+          }),
+        );
+      },
+    ],
+    [
+      "while the report is still being prepared",
+      (): ApiResponse => {
+        return completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: true,
+          humanVerdict: AIRunHumanVerdict.Confirmed,
+        });
+      },
+    ],
+  ])(
+    "reports no verdict %s",
+    async (_label: string, response: () => ApiResponse) => {
+      const onVerdictChange: MockFunction = getJestMockFunction();
+      postMock.mockResolvedValue(response() as never);
+
+      renderPanel({ onVerdictChange });
+      await flush();
+
+      expect(nonNullVerdicts(onVerdictChange)).toEqual([]);
+    },
+  );
+
+  test("reports a rating the moment it is made, and a changed one", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(structuredResponse() as never)
+      .mockResolvedValueOnce(successfulResponse({}) as never)
+      .mockResolvedValueOnce(successfulResponse({}) as never);
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
+    // Optimistic, like the panel's own pill: before the save resolves.
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Confirmed,
+    );
+    await flush();
+
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+    await flush();
+
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([
+      AIRunHumanVerdict.Confirmed,
+      AIRunHumanVerdict.Rejected,
+    ]);
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Rejected,
+    );
+  });
+
+  test("takes a rating back out when the save fails", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(structuredResponse() as never)
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          500,
+          { message: "Verdict storage is unavailable." },
+          {},
+        ) as never,
+      );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+    await flush();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not save your verdict",
+    );
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([
+      AIRunHumanVerdict.Rejected,
+    ]);
+    expect(onVerdictChange).toHaveBeenLastCalledWith(null);
+  });
+
+  test("a poll started before a rating saved cannot flip the reported verdict", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    const stalePoll: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(structuredResponse() as never)
+      .mockReturnValueOnce(stalePoll.promise as never)
+      .mockResolvedValueOnce(successfulResponse({}) as never);
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    await tick(SETTLED_POLL_INTERVAL_MS);
+    expect(postMock).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
+    await flush();
+    const callsAfterRating: number = onVerdictChange.mock.calls.length;
+
+    await resolveDeferred(
+      stalePoll,
+      structuredResponse({ humanVerdict: null }),
+    );
+
+    expect(onVerdictChange).toHaveBeenCalledTimes(callsAfterRating);
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Confirmed,
+    );
+  });
+
+  test("follows a verdict another responder saves", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(structuredResponse() as never)
+      .mockResolvedValue(
+        structuredResponse({
+          humanVerdict: AIRunHumanVerdict.Rejected,
+        }) as never,
+      );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([]);
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Rejected,
+    );
+  });
+
+  test("does not repeat an unchanged verdict across polls", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      structuredResponse({
+        humanVerdict: AIRunHumanVerdict.Confirmed,
+      }) as never,
+    );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    const callsAfterLoad: number = onVerdictChange.mock.calls.length;
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(investigationPostCount()).toBe(3);
+    expect(onVerdictChange).toHaveBeenCalledTimes(callsAfterLoad);
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([
+      AIRunHumanVerdict.Confirmed,
+    ]);
+  });
+
+  test("drops the verdict when a new run starts", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(
+        structuredResponse({
+          humanVerdict: AIRunHumanVerdict.Confirmed,
+        }) as never,
+      )
+      .mockResolvedValue(
+        successfulResponse(
+          investigationPayload({
+            status: AIRunStatus.Queued,
+            runId: NEXT_RUN_ID,
+          }),
+        ) as never,
+      );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Confirmed,
+    );
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(onVerdictChange).toHaveBeenLastCalledWith(null);
+  });
+
+  test("reports null the moment the subject changes, then the new verdict", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    const nextSubject: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(
+        structuredResponse({
+          humanVerdict: AIRunHumanVerdict.Confirmed,
+        }) as never,
+      )
+      .mockReturnValueOnce(nextSubject.promise as never);
+
+    const view: ReturnType<typeof render> = renderPanel({ onVerdictChange });
+    await flush();
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Confirmed,
+    );
+
+    view.rerender(
+      <InvestigationPanel
+        subjectType="alert"
+        subjectId={ALERT_ID}
+        onVerdictChange={onVerdictChange}
+      />,
+    );
+    await flush();
+
+    // Before the alert's report arrives, and without a stale confirmation.
+    expect(onVerdictChange).toHaveBeenLastCalledWith(null);
+
+    await resolveDeferred(
+      nextSubject,
+      structuredResponse({
+        runId: NEXT_RUN_ID,
+        humanVerdict: AIRunHumanVerdict.Rejected,
+      }),
+    );
+
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Rejected,
+    );
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([
+      AIRunHumanVerdict.Confirmed,
+      AIRunHumanVerdict.Rejected,
+    ]);
+  });
+
+  test("uses the latest callback without re-reporting", async () => {
+    const first: MockFunction = getJestMockFunction();
+    const second: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      structuredResponse({
+        humanVerdict: AIRunHumanVerdict.Confirmed,
+      }) as never,
+    );
+
+    const view: ReturnType<typeof render> = renderPanel({
+      onVerdictChange: first,
+    });
+    await flush();
+    expect(first).toHaveBeenLastCalledWith(AIRunHumanVerdict.Confirmed);
+    const firstCallCount: number = first.mock.calls.length;
+
+    view.rerender(
+      <InvestigationPanel
+        subjectType="incident"
+        subjectId={INCIDENT_ID}
+        onVerdictChange={second}
+      />,
+    );
+    await flush();
+    expect(second).not.toHaveBeenCalled();
+
+    postMock.mockResolvedValue(
+      structuredResponse({ humanVerdict: AIRunHumanVerdict.Rejected }) as never,
+    );
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(reportedVerdicts(second)).toEqual([AIRunHumanVerdict.Rejected]);
+    expect(first).toHaveBeenCalledTimes(firstCallCount);
   });
 });

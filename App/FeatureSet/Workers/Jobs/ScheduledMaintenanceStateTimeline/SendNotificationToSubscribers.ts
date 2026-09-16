@@ -28,6 +28,7 @@ import StatusPageSubscriberNotificationTemplateService, {
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import Markdown from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -231,6 +232,15 @@ RunCron(
             }) || [],
           );
 
+        /*
+         * SMS cannot render Markdown, so SMS templates get the description as
+         * plain text. It does not vary per status page or subscriber, so it is
+         * converted once per state change.
+         */
+        const descriptionPlainText: string = Markdown.convertToPlainText(
+          event.description || "",
+        );
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -319,16 +329,31 @@ RunCron(
             ),
           ]);
 
-          // Prepare template variables for custom templates
+          /*
+           * Every variable SubscriberNotificationTemplateVariables advertises
+           * for the state changed event, built once per status page. Each
+           * channel below uses this object (SMS only swaps the description for
+           * plain text, and every channel adds the subscriber's
+           * unsubscribeUrl), so no channel can miss a variable the others have.
+           * {{scheduledMaintenanceState}} is the state the maintenance just
+           * moved to. {{scheduledAt}} is not advertised but has always been
+           * passed, so templates that use it keep working.
+           */
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
             detailsUrl: scheduledEventDetailsUrl,
             resourcesAffected: resourcesAffectedString,
             scheduledMaintenanceTitle: event.title || "",
+            scheduledMaintenanceDescription: event.description || "",
             scheduledMaintenanceState:
               scheduledEventStateTimeline.scheduledMaintenanceState?.name || "",
             scheduledAt: scheduledAtString,
+          };
+
+          const smsTemplateVariables: Record<string, string> = {
+            ...templateVariables,
+            scheduledMaintenanceDescription: descriptionPlainText,
           };
 
           // Send email to Email subscribers.
@@ -366,13 +391,19 @@ RunCron(
             };
 
             if (subscriber.subscriberPhone) {
+              // SMS-specific template variables with unsubscribe URL
+              const subscriberSmsTemplateVariables: Record<string, string> = {
+                ...smsTemplateVariables,
+                unsubscribeUrl: unsubscribeUrl,
+              };
+
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                 // Use custom template only when custom Twilio is configured
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     smsTemplate.templateBody,
-                    subscriberTemplateVariables,
+                    subscriberSmsTemplateVariables,
                   );
               } else {
                 // Use default hard-coded template

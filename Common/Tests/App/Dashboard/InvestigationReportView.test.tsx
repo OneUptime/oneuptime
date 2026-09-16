@@ -102,10 +102,14 @@ import {
   parseInvestigationEvidenceRows,
   parseInvestigationReferences,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationReportData";
+import AIRun from "../../../Models/DatabaseModels/AIRun";
 import {
   AIChatCitationTargetType,
   AIChatWidgetType,
 } from "../../../Types/AI/AIChatTypes";
+import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnLength";
+import { getTableColumn } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import {
   InvestigationEventReference,
   InvestigationEvidenceItem,
@@ -1340,5 +1344,55 @@ describe("InvestigationReportData summary text", () => {
 
     expect(summary!.length).toBeLessThanOrEqual(MAX_REPORT_SUMMARY_LENGTH);
     expect(summary!.endsWith("…")).toBe(true);
+  });
+
+  /*
+   * The server stores a TL;DR of up to 320 characters in a 500-character
+   * column. The header used to clip at 280, so a complete TL;DR ended
+   * mid-sentence ("... self-recovered within ~1 minute and the…"). The
+   * lengths are literals on purpose, like the server's width chain: a
+   * constant lowered on its own must not keep this green.
+   */
+  test("never clips a TL;DR the server can store", () => {
+    const serverCappedTldr: string =
+      "checkout-api release 2026.09.14-2 restarted at 17:52:04 with DB_POOL_MAX=10 instead of 40, so requests waited up to 2s in pg.pool.connect for an orders-db connection and p95 latency rose from ~310 ms to 2.35 s (db.client.connections.usage pinned at 10/10). Rolling back to 2026.09.14-1 cleared it, as in #1017 and #1029.";
+
+    expect(serverCappedTldr).toHaveLength(320);
+    expect(
+      getInvestigationReportSummaryText({
+        analysisTldr: serverCappedTldr,
+        report: null,
+      }),
+    ).toBe(serverCappedTldr);
+
+    const columnWideTldr: string = "a".repeat(500);
+
+    expect(
+      getInvestigationReportSummaryText({
+        analysisTldr: columnWideTldr,
+        report: null,
+      }),
+    ).toBe(columnWideTldr);
+  });
+
+  test("clips a TL;DR only past what the column holds", () => {
+    const summary: string | null = getInvestigationReportSummaryText({
+      analysisTldr: "a".repeat(501),
+      report: null,
+    });
+
+    expect(summary).toBe(`${"a".repeat(499)}…`);
+  });
+
+  test("bounds the summary by the analysisTldr column's width", () => {
+    const column: { type?: TableColumnType | undefined } = getTableColumn(
+      new AIRun(),
+      "analysisTldr",
+    );
+
+    expect(column.type).toBeDefined();
+    expect(MAX_REPORT_SUMMARY_LENGTH).toBe(
+      getMaxLengthFromTableColumnType(column.type as TableColumnType),
+    );
   });
 });

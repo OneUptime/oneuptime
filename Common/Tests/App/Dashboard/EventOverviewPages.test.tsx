@@ -318,6 +318,7 @@ import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Probe from "../../../Models/DatabaseModels/Probe";
+import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import Route from "../../../Types/API/Route";
 import Color from "../../../Types/Color";
@@ -407,6 +408,7 @@ interface ChangeStateProps {
   facts?: Array<EventStatusFact>;
   aiInvestigationStatus?: AIRunStatus | null;
   aiInvestigationSummary?: string | null;
+  aiInvestigationVerdict?: AIRunHumanVerdict | null;
   onActionComplete: () => void;
 }
 
@@ -414,6 +416,7 @@ interface InvestigationPanelProps {
   subjectType: string;
   onStatusChange: (status: AIRunStatus | null) => void;
   onReportSummaryChange: (summary: string | null) => void;
+  onVerdictChange: (verdict: AIRunHumanVerdict | null) => void;
   onAnalysisAvailable: () => void;
 }
 
@@ -896,7 +899,7 @@ describe.each([
       );
     });
 
-    test("lifts the investigation status and summary into the header", async () => {
+    test("lifts the investigation status, summary and verdict into the header", async () => {
       serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
 
       pageCase.renderPage();
@@ -947,7 +950,19 @@ describe.each([
       header = latestProps<ChangeStateProps>(pageCase.changeStateKey);
 
       expect(header.aiInvestigationSummary).toBeNull();
-      // Status and summary changes never remount the panel.
+      expect(header.aiInvestigationVerdict).toBeNull();
+
+      act(() => {
+        latestProps<InvestigationPanelProps>(
+          "InvestigationPanel",
+        ).onVerdictChange(AIRunHumanVerdict.Rejected);
+      });
+
+      expect(
+        latestProps<ChangeStateProps>(pageCase.changeStateKey)
+          .aiInvestigationVerdict,
+      ).toBe(AIRunHumanVerdict.Rejected);
+      // Status, summary and verdict changes never remount the panel.
       expect(mountCounts["InvestigationPanel"]).toBe(1);
     });
   });
@@ -1561,6 +1576,87 @@ describe.each([
         ),
       ).not.toContain("Stale title");
       expect(mountCounts["InvestigationPanel"]).toBe(2);
+    });
+
+    test("a responder's verdict stays with the event it was given on", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      const view: RenderResult = pageCase.renderPage();
+      await waitForPage();
+
+      const verdictInHeader: () => AIRunHumanVerdict | null | undefined = ():
+        | AIRunHumanVerdict
+        | null
+        | undefined => {
+        return latestProps<ChangeStateProps>(pageCase.changeStateKey)
+          .aiInvestigationVerdict;
+      };
+      const reportVerdict: (verdict: AIRunHumanVerdict | null) => void = (
+        verdict: AIRunHumanVerdict | null,
+      ): void => {
+        act(() => {
+          latestProps<InvestigationPanelProps>(
+            "InvestigationPanel",
+          ).onVerdictChange(verdict);
+        });
+      };
+
+      expect(verdictInHeader()).toBeNull();
+
+      reportVerdict(AIRunHumanVerdict.Rejected);
+      expect(verdictInHeader()).toBe(AIRunHumanVerdict.Rejected);
+
+      reportVerdict(AIRunHumanVerdict.Confirmed);
+      expect(verdictInHeader()).toBe(AIRunHumanVerdict.Confirmed);
+
+      // A repeated report changes nothing, and nothing remounts the panel.
+      const headerRenders: number = propsHistory<ChangeStateProps>(
+        pageCase.changeStateKey,
+      ).length;
+      reportVerdict(AIRunHumanVerdict.Confirmed);
+      expect(
+        propsHistory<ChangeStateProps>(pageCase.changeStateKey).length,
+      ).toBe(headerRenders);
+      expect(mountCounts["InvestigationPanel"]).toBe(1);
+
+      const otherItem: Deferred<Incident | Alert> = createDeferred<
+        Incident | Alert
+      >();
+      serveOther(otherItem.promise, "Checkout slow");
+
+      currentEventId = OTHER_EVENT_ID;
+      view.rerender(pageCase.pageElement());
+      await flush();
+
+      await act(async () => {
+        otherItem.resolve(pageCase.buildEvent("Payments failing"));
+      });
+
+      await waitFor(() => {
+        expect(
+          latestProps<ChangeStateProps>(pageCase.changeStateKey).title,
+        ).toBe("Payments failing");
+      });
+
+      // The next event's header never carried the previous confirmation.
+      const verdictsForOther: Array<AIRunHumanVerdict | null | undefined> =
+        propsHistory<ChangeStateProps & Record<string, unknown>>(
+          pageCase.changeStateKey,
+        )
+          .filter((props: ChangeStateProps & Record<string, unknown>) => {
+            const id: unknown = props["incidentId"] || props["alertId"];
+            return id instanceof ObjectID && id.toString() === OTHER_EVENT_ID;
+          })
+          .map((props: ChangeStateProps) => {
+            return props.aiInvestigationVerdict;
+          });
+
+      expect(verdictsForOther.length).toBeGreaterThan(0);
+      expect(new Set(verdictsForOther)).toEqual(new Set([null]));
+
+      // Its own panel reports its own verdict.
+      reportVerdict(AIRunHumanVerdict.Rejected);
+      expect(verdictInHeader()).toBe(AIRunHumanVerdict.Rejected);
     });
 
     test("a first load of the previous event that answers after the switch is ignored", async () => {

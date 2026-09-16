@@ -16,6 +16,7 @@ import {
 } from "./InvestigationReport/InvestigationReportData";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunCodeFixRecommendation from "Common/Types/AI/AIRunCodeFixRecommendation";
+import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import {
   InvestigationEventReference,
@@ -52,7 +53,10 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AI_INVESTIGATION_PANEL_ID } from "./AIInvestigationStatus";
+import {
+  AI_INVESTIGATION_PANEL_ID,
+  getAIInvestigationVerdict,
+} from "./AIInvestigationStatus";
 
 export type InvestigationSubjectType = "incident" | "alert";
 
@@ -64,12 +68,18 @@ export interface ComponentProps {
   onStatusChange?: ((status: AIRunStatus | null) => void) | undefined;
   onAnalysisAvailable?: (() => void) | undefined;
   /*
-   * The completed report's one-line summary for the event header: the TL;DR,
+   * The completed report's short summary for the event header: the TL;DR,
    * or the report's own Summary as plain text when there is no TL;DR. Called
    * whenever it changes, and with null on a subject change or when there is
    * no report to summarise.
    */
   onReportSummaryChange?: ((summary: string | null) => void) | undefined;
+  /*
+   * A responder's verdict on that report, for the same header. Reported
+   * alongside the summary (null while there is none), on the same terms,
+   * and it follows the rating control's optimistic value, rollback included.
+   */
+  onVerdictChange?: ((verdict: AIRunHumanVerdict | null) => void) | undefined;
 }
 
 const POLL_INTERVAL_MS: number = 2500;
@@ -84,6 +94,42 @@ const RECOMMENDATION_SETTLEMENT_MAX_AGE_MS: number = 3 * 60 * 1000;
 const MAX_RECOMMENDATION_POLL_RESPONSES: number = Math.ceil(
   RECOMMENDATION_SETTLEMENT_MAX_AGE_MS / POLL_INTERVAL_MS,
 );
+
+interface ReportedValue<T> {
+  subjectKey: string;
+  value: T;
+}
+
+/*
+ * Hands a value the event header shows to the host: once per change, and
+ * afresh for every subject, so a new subject always starts from its own
+ * first value (null until its report loads) and the header can never show
+ * the previous subject's. The callback is read through a ref, so a host that
+ * passes a new function on every render neither re-reports nor goes stale.
+ */
+function useReportToHost<T>(
+  subjectKey: string,
+  value: T,
+  callbackRef: React.MutableRefObject<((value: T) => void) | undefined>,
+): void {
+  const reportedRef: React.MutableRefObject<ReportedValue<T> | null> =
+    useRef<ReportedValue<T> | null>(null);
+
+  useEffect(() => {
+    const reported: ReportedValue<T> | null = reportedRef.current;
+
+    if (
+      reported &&
+      reported.subjectKey === subjectKey &&
+      reported.value === value
+    ) {
+      return;
+    }
+
+    reportedRef.current = { subjectKey, value };
+    callbackRef.current?.(value);
+  }, [callbackRef, subjectKey, value]);
+}
 
 /*
  * The AI's live "watch it think" panel, shared by the incident and alert
@@ -162,13 +208,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     props.onReportSummaryChange,
   );
   onReportSummaryChangeRef.current = props.onReportSummaryChange;
-  const reportedSummaryRef: React.MutableRefObject<{
-    subjectKey: string;
-    summary: string | null;
-  } | null> = useRef<{
-    subjectKey: string;
-    summary: string | null;
-  } | null>(null);
+  const onVerdictChangeRef: React.MutableRefObject<
+    ((verdict: AIRunHumanVerdict | null) => void) | undefined
+  > = useRef<((verdict: AIRunHumanVerdict | null) => void) | undefined>(
+    props.onVerdictChange,
+  );
+  onVerdictChangeRef.current = props.onVerdictChange;
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
   const focusRequestCounterRef: React.MutableRefObject<number> =
     useRef<number>(0);
@@ -916,25 +961,25 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     : null;
 
   /*
-   * The host shows this summary in the event header. Deliver each change
-   * once, and always start a new subject from null so the header can never
-   * show the previous incident's summary.
+   * The verdict goes with the summary it judges, so it is only reported
+   * while the report is on screen. It is the control's own value, so a
+   * rating shows in the header at once and a failed save takes it back out.
    */
-  useEffect(() => {
-    const reported: { subjectKey: string; summary: string | null } | null =
-      reportedSummaryRef.current;
+  const reportVerdict: AIRunHumanVerdict | null = isShowingReport
+    ? getAIInvestigationVerdict(humanVerdict)
+    : null;
 
-    if (
-      reported &&
-      reported.subjectKey === subjectKey &&
-      reported.summary === reportSummary
-    ) {
-      return;
-    }
-
-    reportedSummaryRef.current = { subjectKey, summary: reportSummary };
-    onReportSummaryChangeRef.current?.(reportSummary);
-  }, [reportSummary, subjectKey]);
+  // The host shows both in the event header.
+  useReportToHost<string | null>(
+    subjectKey,
+    reportSummary,
+    onReportSummaryChangeRef,
+  );
+  useReportToHost<AIRunHumanVerdict | null>(
+    subjectKey,
+    reportVerdict,
+    onVerdictChangeRef,
+  );
 
   // Nothing to show until an investigation exists for this subject.
   if (!hasLoadedOnce || loadedSubjectKey !== subjectKey || !runStatus) {
