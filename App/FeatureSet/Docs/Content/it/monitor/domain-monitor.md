@@ -30,10 +30,10 @@ I monitor di dominio interrogano i dati WHOIS per i tuoi domini per tracciare i 
 
 ### Impostazioni Avanzate
 
-| Campo        | Descrizione                               | Predefinito |
-| ------------ | ----------------------------------------- | ----------- |
-| Timeout (ms) | Tempo di attesa per una risposta WHOIS    | 10000       |
-| Tentativi    | Numero di tentativi in caso di fallimento | 3           |
+| Campo        | Descrizione                                                           | Predefinito |
+| ------------ | --------------------------------------------------------------------- | ----------- |
+| Timeout (ms) | Tempo di attesa per una risposta WHOIS                                | 10000       |
+| Tentativi    | Tentativi dopo il fallimento del primo; 0 significa un solo tentativo | 3           |
 
 ## Criteri di Monitoraggio
 

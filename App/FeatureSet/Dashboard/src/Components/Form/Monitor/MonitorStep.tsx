@@ -152,6 +152,7 @@ import ExternalStatusPageMonitorStepForm from "./ExternalStatusPageMonitor/Exter
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
+import { getRetriesOnFailureDescription } from "../../../Utils/MonitorRetryHelpText";
 
 /*
  * The interface picker on an SNMP criteria is a picker, not an inventory. A
@@ -740,9 +741,7 @@ return {
         <div>
           <FieldLabelElement
             title={"Retries on Failure"}
-            description={
-              "How many times to retry if the check fails. Set to 0 for no retries. Defaults to 3. Maximum is 3."
-            }
+            description={getRetriesOnFailureDescription(props.monitorType)}
             required={false}
           />
           <Input

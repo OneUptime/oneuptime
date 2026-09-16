@@ -30,10 +30,10 @@ Domänmonitorer frågar WHOIS-data för dina domäner för att spåra registreri
 
 ### Avancerade inställningar
 
-| Fält         | Beskrivning                            | Standard |
-| ------------ | -------------------------------------- | -------- |
-| Timeout (ms) | Hur länge man väntar på ett WHOIS-svar | 10000    |
-| Återförsök   | Antal återförsök vid fel               | 3        |
+| Fält         | Beskrivning                                                                    | Standard |
+| ------------ | ------------------------------------------------------------------------------ | -------- |
+| Timeout (ms) | Hur länge man väntar på ett WHOIS-svar                                         | 10000    |
+| Återförsök   | Återförsök efter att det första försöket misslyckas; 0 betyder ett enda försök | 3        |
 
 ## Övervakningskriterier
 

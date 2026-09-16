@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import ProxyConfig from "../../ProxyConfig";
 import URL from "Common/Types/API/URL";
 import Hostname from "Common/Types/API/Hostname";
@@ -78,6 +79,12 @@ export const DEFAULT_SSL_MONITOR_TIMEOUT_IN_MS: number = 5000;
 
 const LOG_PREFIX: string = "SSL Certificate Monitor";
 
+/*
+ * Retries for ping() when the caller passes no retry option: five attempts,
+ * the same as before retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
+
 export default class SSLMonitor {
   // burn domain names into the code to see if this probe is online.
 
@@ -153,7 +160,11 @@ export default class SSLMonitor {
         !res.isOnline &&
         !res.certificateValidationErrorCode &&
         !res.isTimeout &&
-        pingOptions.currentRetryCount < (pingOptions.retry ?? 5)
+        MonitorRetry.canRetry({
+          attemptNumber: pingOptions.currentRetryCount,
+          retries: pingOptions.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
       ) {
         pingOptions.currentRetryCount++;
         await Sleep.sleep(1000);
@@ -200,7 +211,13 @@ export default class SSLMonitor {
         failureCause: API.getFriendlyErrorMessage(err as Error),
       });
 
-      if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
+      if (
+        MonitorRetry.canRetry({
+          attemptNumber: pingOptions.currentRetryCount,
+          retries: pingOptions.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
         pingOptions.currentRetryCount++;
         await Sleep.sleep(1000);
         return await this.ping(url, pingOptions);

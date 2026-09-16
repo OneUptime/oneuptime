@@ -18,8 +18,15 @@ import HttpMonitorRequest, {
   PreparedHttpMonitorRequest,
   RedirectRequest,
 } from "../HttpMonitorRequest";
+import MonitorRetry from "../MonitorRetry";
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { XMLParser } from "fast-xml-parser";
+
+/*
+ * Retries when neither the caller nor the step config sets one: three
+ * attempts, the same as before retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 2;
 
 /*
  * XML object graphs can be tens of times larger than the wire representation.
@@ -503,13 +510,13 @@ export default class ExternalStatusPageMonitorUtil {
         failureCause: (err as Error).message || (err as Error).toString(),
       });
 
-      /*
-       * ?? not ||: a caller asking for zero retries means zero, not "fall
-       * through to the config default".
-       */
       if (
         !ExternalStatusPageMonitorUtil.isFailClosedError(err) &&
-        options.currentRetryCount < (options.retry ?? config.retries ?? 3) &&
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry ?? config.retries,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        }) &&
         executionContext.canWait(1000)
       ) {
         options.currentRetryCount++;

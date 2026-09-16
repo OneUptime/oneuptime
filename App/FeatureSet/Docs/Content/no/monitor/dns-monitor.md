@@ -47,11 +47,11 @@ DNS-monitorer spør DNS-servere om spesifikke posttyper og evaluerer resultatene
 
 ### Avanserte innstillinger
 
-| Felt             | Beskrivelse                      | Standard |
-| ---------------- | -------------------------------- | -------- |
-| Port             | DNS-portnummer                   | 53       |
-| Tidsavbrudd (ms) | Hvor lenge det ventes på et svar | 5000     |
-| Nye forsøk       | Antall nye forsøk ved feil       | 3        |
+| Felt             | Beskrivelse                                                                  | Standard |
+| ---------------- | ---------------------------------------------------------------------------- | -------- |
+| Port             | DNS-portnummer                                                               | 53       |
+| Tidsavbrudd (ms) | Hvor lenge det ventes på et svar                                             | 5000     |
+| Nye forsøk       | Nye forsøk etter at det første forsøket mislykkes; 0 betyr ett enkelt forsøk | 3        |
 
 ## Overvåkingskriterier
 

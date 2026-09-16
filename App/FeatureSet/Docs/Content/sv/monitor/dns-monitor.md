@@ -47,11 +47,11 @@ DNS-monitorer frågar DNS-servrar efter specifika posttyper och utvärderar resu
 
 ### Avancerade inställningar
 
-| Fält         | Beskrivning                      | Standard |
-| ------------ | -------------------------------- | -------- |
-| Port         | DNS-portnummer                   | 53       |
-| Timeout (ms) | Hur länge man väntar på ett svar | 5000     |
-| Återförsök   | Antal återförsök vid fel         | 3        |
+| Fält         | Beskrivning                                                                    | Standard |
+| ------------ | ------------------------------------------------------------------------------ | -------- |
+| Port         | DNS-portnummer                                                                 | 53       |
+| Timeout (ms) | Hur länge man väntar på ett svar                                               | 5000     |
+| Återförsök   | Återförsök efter att det första försöket misslyckas; 0 betyder ett enda försök | 3        |
 
 ## Övervakningskriterier
 

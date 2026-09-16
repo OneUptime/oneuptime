@@ -205,7 +205,7 @@ OneUptimeをセルフホストしている場合は、`ONEUPTIME_URL` をカス�
 - `PROBE_DESCRIPTION` - プローブの説明
 - `PROBE_MONITORING_WORKERS` - 監視ワーカーの数（デフォルト：1）
 - `PROBE_MONITOR_FETCH_LIMIT` - 一度に取得するモニター数（デフォルト：10）
-- `PROBE_MONITOR_RETRY_LIMIT` - 失敗したモニターの再試行回数（デフォルト：3）
+- `PROBE_MONITOR_RETRY_LIMIT` - 失敗したモニターチェックで最初の試行のあとに行う再試行回数。ステップが独自の値を設定していない場合に使用（デフォルト：3、合計最大 4 回）
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 合成モニタースクリプトのタイムアウト（ミリ秒、デフォルト：60000）
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - カスタムコードモニタースクリプトのタイムアウト（ミリ秒、デフォルト：60000）
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - プローブがOneUptimeに送信する各リクエストの期限（デフォルト：45000）

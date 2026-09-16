@@ -896,17 +896,17 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 			},
 		},
 		"retry_count_on_error": schema.Int64Attribute{
-			MarkdownDescription: "Number of retries on script error (Synthetic monitors).",
+			MarkdownDescription: "Retries on script error (Synthetic monitors). This counts retries AFTER the first attempt: `0` runs the script once, `2` runs it up to three times. Must be `0` or greater; the dashboard caps it at 5.",
 			Optional:            true,
-			Validators:          []validator.Int64{int64validator.AtLeast(1)},
+			Validators:          []validator.Int64{int64validator.AtLeast(0)},
 		},
 		"request_timeout_in_ms": schema.Int64Attribute{
-			MarkdownDescription: "Per-step request timeout in milliseconds for probe-based monitors. Capped at 60000 ms server-side.",
+			MarkdownDescription: "Per-step request timeout in milliseconds for probe-based monitors. The probe clamps anything above 60000 to 60000.",
 			Optional:            true,
 			Validators:          []validator.Int64{int64validator.AtLeast(1)},
 		},
 		"retry_count": schema.Int64Attribute{
-			MarkdownDescription: "Per-step retry count for probe-based monitors when a check fails. Capped at 3 server-side.",
+			MarkdownDescription: "Per-step retries for probe-based monitors when a check fails. This counts retries AFTER the first attempt: `0` runs the check once, `3` runs it up to four times. The probe clamps anything above 3 to 3.",
 			Optional:            true,
 			Validators:          []validator.Int64{int64validator.AtLeast(0)},
 		},

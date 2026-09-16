@@ -205,7 +205,7 @@ kubectl apply -f oneuptime-probe.yaml
 - `PROBE_DESCRIPTION` — توضیحات پروب
 - `PROBE_MONITORING_WORKERS` — شمار کارگرهای مانیتورینگ (پیش‌فرض: ۱)
 - `PROBE_MONITOR_FETCH_LIMIT` — شمار مانیتورهایی که یک‌جا گرفته می‌شوند (پیش‌فرض: ۱۰)
-- `PROBE_MONITOR_RETRY_LIMIT` — شمار تلاش‌های دوباره برای مانیتورهای شکست‌خورده (پیش‌فرض: ۳)
+- `PROBE_MONITOR_RETRY_LIMIT` — تلاش‌های دوباره پس از نخستین تلاشِ یک بررسی شکست‌خورده، وقتی گامی شمار تلاش دوباره خودش را تعیین نکرده باشد (پیش‌فرض: ۳، یعنی تا ۴ تلاش)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` — مهلت اسکریپت‌های مانیتور مصنوعی بر حسب میلی‌ثانیه (پیش‌فرض: ۶۰۰۰۰)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` — مهلت اسکریپت‌های مانیتور کد سفارشی بر حسب میلی‌ثانیه (پیش‌فرض: ۶۰۰۰۰)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` — مهلت هر درخواستی که پروب به OneUptime می‌فرستد (پیش‌فرض: ۴۵۰۰۰)

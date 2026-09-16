@@ -205,7 +205,7 @@ The probe supports the following environment variables:
 - `PROBE_DESCRIPTION` - Description for the probe
 - `PROBE_MONITORING_WORKERS` - Number of monitoring workers (default: 1)
 - `PROBE_MONITOR_FETCH_LIMIT` - Number of monitors to fetch at once (default: 10)
-- `PROBE_MONITOR_RETRY_LIMIT` - Number of retries for failed monitors (default: 3)
+- `PROBE_MONITOR_RETRY_LIMIT` - Retries after the first attempt of a failed monitor check, used when a step does not set its own retry count (default: 3, so up to 4 attempts)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout for synthetic monitor scripts in milliseconds (default: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout for custom code monitor scripts in milliseconds (default: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Deadline for each request the probe sends to OneUptime (default: 45000)

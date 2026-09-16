@@ -30,10 +30,10 @@ Domene-monitorer spør WHOIS-data for domenene dine for å spore registreringsde
 
 ### Avanserte innstillinger
 
-| Felt             | Beskrivelse                            | Standard |
-| ---------------- | -------------------------------------- | -------- |
-| Tidsavbrudd (ms) | Hvor lenge det ventes på et WHOIS-svar | 10000    |
-| Nye forsøk       | Antall nye forsøk ved feil             | 3        |
+| Felt             | Beskrivelse                                                                  | Standard |
+| ---------------- | ---------------------------------------------------------------------------- | -------- |
+| Tidsavbrudd (ms) | Hvor lenge det ventes på et WHOIS-svar                                       | 10000    |
+| Nye forsøk       | Nye forsøk etter at det første forsøket mislykkes; 0 betyr ett enkelt forsøk | 3        |
 
 ## Overvåkingskriterier
 
