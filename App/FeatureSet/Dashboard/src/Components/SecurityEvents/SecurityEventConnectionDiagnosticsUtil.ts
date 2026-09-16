@@ -832,6 +832,8 @@ const CONNECTOR_PROVIDER_DETAIL_LABELS: Record<string, string> = {
   ruleDetections: "Rule detections",
   curatedDetections: "Curated rule detections",
   alertsView: "Alerts view",
+  lateAlertsView: "Alerts view, late alerts from the previous day",
+  curatedRulesWithDetections: "Curated rules with recent detections",
   creationLag: "Creation lag",
   measured: "Records measured",
   lateCount: "Created later than the poll interval",

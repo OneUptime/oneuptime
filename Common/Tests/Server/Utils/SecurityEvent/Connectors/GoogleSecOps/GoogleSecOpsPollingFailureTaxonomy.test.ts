@@ -509,14 +509,16 @@ describe("Google SecOps lastError failure taxonomy through the shared poller", (
     expect(lastError).toContain("PERMISSION_DENIED");
 
     /*
-     * Token endpoint first, then Chronicle three times (the two quiet search
-     * passes, then the alerts view that failed): the failure is theirs.
+     * Token endpoint first, then Chronicle three times (the quiet rule
+     * search, the curated rule counts - which name no rule to search, so
+     * the wildcard-less curated search is never sent - then the alerts view
+     * that failed): the failure is theirs.
      */
     expect(
       run.tenant.requests.map((request: TenantRequest): string => {
         return request.route;
       }),
-    ).toEqual(["token", "search", "curated", "alerts"]);
+    ).toEqual(["token", "search", "curatedCounts", "alerts"]);
     expect(run.tenant.requests[3]!.url.origin).toBe(API_ORIGIN);
     expect(failedStepOf(run)).toBe("Read alerts view by detection time");
 
@@ -556,12 +558,17 @@ describe("Google SecOps lastError failure taxonomy through the shared poller", (
     const run: PollRun = await telemetryStoreFailureRun();
     const lastError: string = recordedLastError(run);
 
-    // The detection really did arrive: every Google call succeeded...
+    /*
+     * The detection really did arrive: every Google call succeeded - the
+     * rule search, the curated rule counts, the alerts view over the window
+     * and, because this scheduled window is shorter than a day, the sweep of
+     * the day before it for alerts Google made readable late.
+     */
     expect(
       run.tenant.requests.map((request: TenantRequest): string => {
         return request.route;
       }),
-    ).toEqual(["token", "search", "curated", "alerts"]);
+    ).toEqual(["token", "search", "curatedCounts", "alerts", "alerts"]);
 
     // ...and a row was built and handed to the store before it blew up.
     expect(run.insertedBatches).toHaveLength(1);
