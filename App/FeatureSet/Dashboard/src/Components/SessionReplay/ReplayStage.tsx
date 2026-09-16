@@ -39,7 +39,27 @@ import {
  * allowed to reference the package, behind a dynamic import() - hands in.
  */
 
-export type ReplayStageFit = "contain" | "actual";
+/*
+ * "contain" (Fit) scales the whole recorded viewport into the box;
+ * "width" fills the box's width and scrolls the page vertically inside it,
+ * which is what a tall recording in a wide player wants; "actual" draws it
+ * 1:1 in a scroll box.
+ */
+export type ReplayStageFit = "contain" | "width" | "actual";
+
+/*
+ * Where the box's height comes from.
+ *
+ * "responsive": below xl the box follows document flow - its height is the
+ * recorded aspect over the available width, capped so a tall recording does
+ * not push the transport off screen. From xl up the player is an app-like
+ * surface with a definite height, and the box takes all the height its
+ * flex column leaves over.
+ *
+ * "fill": the box takes the leftover height at every width. Theater
+ * (native fullscreen) always has a definite height, so it uses this.
+ */
+export type ReplayStageSizing = "responsive" | "fill";
 
 export interface ReplayStageProps {
   engine: ReplayEngine;
@@ -50,16 +70,19 @@ export interface ReplayStageProps {
    */
   viewportWidth?: number | null | undefined;
   viewportHeight?: number | null | undefined;
-  /* Native fullscreen: the height bound becomes 100vh instead of 70vh. */
+  /* How the box gets its height; see ReplayStageSizing. */
+  sizing?: ReplayStageSizing | undefined;
+  /*
+   * Superseded by `sizing`. Honoured only when `sizing` is absent, where
+   * theater means "fill", so a caller that has not moved over yet still
+   * gets a full-height stage in fullscreen.
+   */
   isTheater?: boolean | undefined;
-  /* "contain" (Fit) scales to fit both axes; "actual" is 1:1 in a scroll box. */
   fit?: ReplayStageFit | undefined;
   /* Draw the phone frame. Defaults to "recorded width below 600px". */
   isMobile?: boolean | undefined;
   /* The scale in force, for the "1440x900 -> 62%" chip. */
   onScaleChange?: ((scale: number) => void) | undefined;
-  /* Reserve space for the timeline and transport on desktop. */
-  reservedBottomHeightPx?: number | undefined;
   /*
    * Paused, read-only inspection mode. rrweb disables iframe hit-testing by
    * default; this opt-in lets a viewer select and copy the captured text.
@@ -75,13 +98,66 @@ export interface ReplayStageProps {
   className?: string | undefined;
 }
 
-/* Contain-fit bounds, from the design: 70vh normally, 100vh in theater. */
-export const REPLAY_STAGE_MAX_HEIGHT_VH: number = 70;
-export const REPLAY_STAGE_THEATER_MAX_HEIGHT_VH: number = 100;
-export const REPLAY_STAGE_MIN_HEIGHT_REM: number = 24;
+/*
+ * Flow-mode bounds (below xl, not theater). The cap keeps a tall recording
+ * from pushing the timeline and transport below the fold on a tablet; the
+ * floor keeps a very wide one from collapsing into a strip. From xl up the
+ * height comes from the player's flex column instead and neither applies.
+ * The class strings below spell these out literally (Tailwind needs whole
+ * class names in the source); a test keeps the two in step.
+ */
+export const REPLAY_STAGE_FLOW_MAX_HEIGHT_VH: number = 70;
+export const REPLAY_STAGE_FLOW_MIN_HEIGHT_REM: number = 14;
+
+/* The recorded "W / H", read by the responsive box's aspect-ratio class. */
+export const REPLAY_STAGE_ASPECT_CSS_VAR: string = "--oneuptime-replay-aspect";
+
+export const REPLAY_STAGE_RESPONSIVE_BOX_CLASS: string =
+  "oneuptime-replay-stage relative w-full bg-gray-100 [aspect-ratio:var(--oneuptime-replay-aspect)] max-h-[70vh] min-h-[14rem] xl:h-full xl:min-h-0 xl:max-h-none xl:flex-1 xl:[aspect-ratio:auto]";
+export const REPLAY_STAGE_FILL_BOX_CLASS: string =
+  "oneuptime-replay-stage relative h-full min-h-0 w-full flex-1 bg-gray-100";
+
+/*
+ * Scrolling per fit. Width-fit scrolls only vertically, and keeps the
+ * scrollbar gutter reserved: otherwise the scrollbar appearing narrows the
+ * box, the narrower box scales the page down until it no longer overflows,
+ * the scrollbar goes away and the two fight forever at the boundary.
+ */
+export const REPLAY_STAGE_FIT_OVERFLOW_CLASS: Record<ReplayStageFit, string> = {
+  contain: "overflow-hidden",
+  width: "overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]",
+  actual: "overflow-auto",
+};
+
+/*
+ * The stage box's classes, exported so the shell's placeholder (drawn
+ * before the engine exists) reserves exactly the same box and the layout
+ * does not jump when the real stage replaces it.
+ */
+export function getReplayStageBoxClassName(
+  sizing: ReplayStageSizing,
+  fit: ReplayStageFit,
+): string {
+  const sizingClass: string =
+    sizing === "fill"
+      ? REPLAY_STAGE_FILL_BOX_CLASS
+      : REPLAY_STAGE_RESPONSIVE_BOX_CLASS;
+
+  return `${sizingClass} ${
+    REPLAY_STAGE_FIT_OVERFLOW_CLASS[fit] ??
+    REPLAY_STAGE_FIT_OVERFLOW_CLASS.contain
+  }`;
+}
 
 /* Recordings narrower than this get the phone-shaped frame. */
 export const REPLAY_STAGE_MOBILE_MAX_WIDTH_PX: number = 600;
+
+/*
+ * The phone frame's ring (Tailwind ring-8) is a box-shadow drawn OUTSIDE
+ * the frame. The box clips, so the fit reserves this much on every side;
+ * otherwise a height-limited phone recording lost its ring top and bottom.
+ */
+export const REPLAY_STAGE_PHONE_RING_PX: number = 8;
 
 /* rrweb draws a 28px ring where a TouchStart landed. */
 export const REPLAY_STAGE_TOUCH_RING_PX: number = 28;
@@ -89,6 +165,22 @@ const TOUCH_RING_LIFETIME_MS: number = 700;
 
 /* Fallback aspect before any size is known. */
 const DEFAULT_ASPECT: ReplayRecordedSize = { width: 16, height: 9 };
+
+/*
+ * The value for REPLAY_STAGE_ASPECT_CSS_VAR: the recorded size, or 16 / 9
+ * before any size is known (a missing or non-positive dimension counts as
+ * unknown).
+ */
+export function formatReplayStageAspect(
+  recorded: ReplayRecordedSize | null | undefined,
+): string {
+  const aspect: ReplayRecordedSize =
+    recorded && recorded.width > 0 && recorded.height > 0
+      ? recorded
+      : DEFAULT_ASPECT;
+
+  return `${aspect.width} / ${aspect.height}`;
+}
 
 /*
  * The Content-Security-Policy injected INSIDE the replay document.
@@ -1287,17 +1379,138 @@ interface TouchRing {
   y: number;
 }
 
-interface BoxSize {
+export interface ReplayStageBoxSize {
   width: number;
   height: number;
 }
 
-export function computeReplayStageHeight(
-  viewportHeight: number,
-  stageTop: number,
-  reservedBottomHeight: number,
+/*
+ * Width-fit: the scale at which the recorded viewport spans the box's
+ * width exactly, whatever that does to the height (the box scrolls it).
+ * Like contain-fit it is not capped at 1, and an unmeasured box or an
+ * unknown size keeps the picture at 1:1.
+ */
+export function computeWidthScale(
+  containerWidth: number,
+  recorded: ReplayRecordedSize,
 ): number {
-  return Math.max(256, viewportHeight - stageTop - reservedBottomHeight);
+  if (!(containerWidth > 0) || !(recorded.width > 0)) {
+    return 1;
+  }
+
+  return containerWidth / recorded.width;
+}
+
+export interface ReplayStageFrameGeometryInput {
+  fit: ReplayStageFit;
+  /* The box's client size; null before the first measurement. */
+  box: ReplayStageBoxSize | null;
+  recorded: ReplayRecordedSize | null;
+  isPhoneFrame: boolean;
+}
+
+export interface ReplayStageFrameGeometry {
+  scale: number;
+  /*
+   * "absolute" (contain): centred and letterboxed inside the box.
+   * "relative" (width, actual): in flow, so the box's scroll area is the
+   * frame's own size.
+   */
+  position: "absolute" | "relative";
+  left: number;
+  top: number;
+  /* The drawn (scaled) size of the frame. */
+  width: number;
+  height: number;
+  /*
+   * Room kept around an in-flow phone frame so its ring is not clipped by
+   * the scroll box; 0 for everything else (an absolute frame reserves it
+   * through left/top instead).
+   */
+  margin: number;
+}
+
+/*
+ * Where the frame goes and how big it is drawn, for one fit. Pure, so every
+ * branch is pinned without layout.
+ *
+ * The phone ring is reserved only when the box is bigger than the ring on
+ * both axes: a box too small to hold even the ring is not measured yet in
+ * any meaningful sense, and insetting it would fall back to 1:1.
+ */
+export function computeReplayStageFrameGeometry(
+  input: ReplayStageFrameGeometryInput,
+): ReplayStageFrameGeometry {
+  const aspect: ReplayRecordedSize = input.recorded ?? DEFAULT_ASPECT;
+  const box: ReplayStageBoxSize | null = input.box;
+  const ringPx: number = REPLAY_STAGE_PHONE_RING_PX;
+
+  if (input.fit === "actual") {
+    return {
+      scale: 1,
+      position: "relative",
+      left: 0,
+      top: 0,
+      width: aspect.width,
+      height: aspect.height,
+      margin: input.isPhoneFrame ? ringPx : 0,
+    };
+  }
+
+  const inset: number =
+    input.isPhoneFrame &&
+    box !== null &&
+    box.width > 2 * ringPx &&
+    box.height > 2 * ringPx
+      ? ringPx
+      : 0;
+  const availableWidth: number = box ? box.width - 2 * inset : 0;
+  const availableHeight: number = box ? box.height - 2 * inset : 0;
+
+  let scale: number = 1;
+
+  if (input.recorded && box) {
+    scale =
+      input.fit === "width"
+        ? computeWidthScale(availableWidth, input.recorded)
+        : computeContainScale(availableWidth, availableHeight, input.recorded);
+  }
+
+  const width: number = Math.round(aspect.width * scale);
+  const height: number = Math.round(aspect.height * scale);
+
+  if (input.fit === "width") {
+    return {
+      scale: scale,
+      position: "relative",
+      left: 0,
+      /*
+       * A recording shorter than the box at full width sits in the middle,
+       * as it does under Fit, rather than jumping to the top on the switch.
+       */
+      top: Math.max(
+        0,
+        Math.round(((box ? availableHeight : height) - height) / 2),
+      ),
+      width: width,
+      height: height,
+      margin: inset,
+    };
+  }
+
+  return {
+    scale: scale,
+    position: "absolute",
+    left:
+      inset +
+      Math.max(0, Math.round(((box ? availableWidth : width) - width) / 2)),
+    top:
+      inset +
+      Math.max(0, Math.round(((box ? availableHeight : height) - height) / 2)),
+    width: width,
+    height: height,
+    margin: 0,
+  };
 }
 
 const ReplayStage: FunctionComponent<ReplayStageProps> = (
@@ -1305,7 +1518,8 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
 ): ReactElement => {
   const { engine } = props;
   const fit: ReplayStageFit = props.fit ?? "contain";
-  const isTheater: boolean = props.isTheater ?? false;
+  const sizing: ReplayStageSizing =
+    props.sizing ?? (props.isTheater ? "fill" : "responsive");
 
   /* Wrapped so a method-based engine keeps its `this`. */
   /*
@@ -1346,10 +1560,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
     useRef<boolean>(isTextSelectionEnabled);
   isTextSelectionEnabledRef.current = isTextSelectionEnabled;
 
-  const [boxSize, setBoxSize] = useState<BoxSize | null>(null);
-  const [viewportHeightLimit, setViewportHeightLimit] = useState<number | null>(
-    null,
-  );
+  const [boxSize, setBoxSize] = useState<ReplayStageBoxSize | null>(null);
   const [touchRings, setTouchRings] = useState<Array<TouchRing>>([]);
   const ringIdRef: React.MutableRefObject<number> = useRef<number>(0);
 
@@ -1477,9 +1688,17 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
 
   /*
    * Measure the box. Recomputed on CONTAINER resizes too, not only when
-   * the recorded size changes: entering theater, collapsing the sidebar or
-   * resizing the window all change the available space, and a stale scale
-   * either crops the recording or leaves it postage-stamped.
+   * the recorded size changes: entering theater, collapsing the sidebar,
+   * dragging the rail or resizing the window all change the available
+   * space, and a stale scale either crops the recording or leaves it
+   * postage-stamped.
+   *
+   * Only the box itself is observed. Its height comes from CSS (the flex
+   * column from xl up and in theater, the recorded aspect below xl), so
+   * anything that moves the space around it - a header notice, a longer
+   * tab strip, the scrubber growing - resizes the box, and that is what
+   * the observer reports. Nothing here reads the viewport or the page
+   * offset any more.
    */
   useEffect(() => {
     const outer: HTMLDivElement | null = outerRef.current;
@@ -1492,24 +1711,15 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       const width: number = outer.clientWidth;
       const height: number = outer.clientHeight;
 
-      setViewportHeightLimit(
-        props.reservedBottomHeightPx !== undefined && window.innerWidth >= 1280
-          ? computeReplayStageHeight(
-              window.innerHeight,
-              outer.getBoundingClientRect().top +
-                (isTheater ? 0 : window.scrollY),
-              props.reservedBottomHeightPx,
-            )
-          : null,
+      setBoxSize(
+        (current: ReplayStageBoxSize | null): ReplayStageBoxSize | null => {
+          if (current && current.width === width && current.height === height) {
+            return current;
+          }
+
+          return { width: width, height: height };
+        },
       );
-
-      setBoxSize((current: BoxSize | null): BoxSize | null => {
-        if (current && current.width === width && current.height === height) {
-          return current;
-        }
-
-        return { width: width, height: height };
-      });
     };
 
     measure();
@@ -1521,19 +1731,6 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         measure();
       });
       observer.observe(outer);
-
-      /*
-       * Header notices and clipboard fallbacks move the stage without
-       * resizing it. Observe that sibling even in a fixed-height theater.
-       */
-      const layout: Element | null = outer.closest("[data-replay-layout]");
-      const header: Element | null = layout?.querySelector("header") ?? null;
-      if (layout) {
-        observer.observe(layout);
-      }
-      if (header) {
-        observer.observe(header);
-      }
     }
 
     window.addEventListener("resize", measure);
@@ -1542,15 +1739,18 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       observer?.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [isTheater, fit, props.reservedBottomHeightPx]);
+  }, [sizing, fit]);
 
-  const scale: number = useMemo((): number => {
-    if (fit === "actual" || !recorded || !boxSize) {
-      return 1;
-    }
-
-    return computeContainScale(boxSize.width, boxSize.height, recorded);
-  }, [fit, recorded, boxSize]);
+  const geometry: ReplayStageFrameGeometry =
+    useMemo((): ReplayStageFrameGeometry => {
+      return computeReplayStageFrameGeometry({
+        fit: fit,
+        box: boxSize,
+        recorded: recorded,
+        isPhoneFrame: isMobile,
+      });
+    }, [fit, boxSize, recorded, isMobile]);
+  const scale: number = geometry.scale;
 
   const { onScaleChange } = props;
 
@@ -1578,42 +1778,28 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
     host.style.transform = scale === 1 ? "" : `scale(${scale})`;
   }, [engine, recorded, scale]);
 
-  const aspect: ReplayRecordedSize = recorded ?? DEFAULT_ASPECT;
-  const scaledWidth: number = Math.round(aspect.width * scale);
-  const scaledHeight: number = Math.round(aspect.height * scale);
-
-  const frameStyle: CSSProperties =
-    fit === "actual"
-      ? {
-          position: "relative",
-          width: `${aspect.width}px`,
-          height: `${aspect.height}px`,
-        }
-      : {
-          position: "absolute",
-          left: `${Math.max(
-            0,
-            Math.round(((boxSize?.width ?? scaledWidth) - scaledWidth) / 2),
-          )}px`,
-          top: `${Math.max(
-            0,
-            Math.round(((boxSize?.height ?? scaledHeight) - scaledHeight) / 2),
-          )}px`,
-          width: `${scaledWidth}px`,
-          height: `${scaledHeight}px`,
-        };
+  /*
+   * 1:1 keeps its historical in-flow frame with no offsets: the scroll box
+   * starts at the recording's top-left corner.
+   */
+  const frameStyle: CSSProperties = {
+    position: geometry.position,
+    ...(fit === "actual"
+      ? {}
+      : { left: `${geometry.left}px`, top: `${geometry.top}px` }),
+    width: `${geometry.width}px`,
+    height: `${geometry.height}px`,
+    ...(geometry.margin > 0 ? { margin: `${geometry.margin}px` } : {}),
+  };
 
   const outerStyle: CSSProperties & Record<string, string> = {
-    minHeight:
-      viewportHeightLimit !== null
-        ? "16rem"
-        : `${REPLAY_STAGE_MIN_HEIGHT_REM}rem`,
-    maxHeight:
-      viewportHeightLimit !== null
-        ? `${viewportHeightLimit}px`
-        : `${isTheater ? REPLAY_STAGE_THEATER_MAX_HEIGHT_VH : REPLAY_STAGE_MAX_HEIGHT_VH}vh`,
-    /* Aspect reserved from the recorded viewport before the first frame. */
-    aspectRatio: `${aspect.width} / ${aspect.height}`,
+    /*
+     * Aspect reserved from the recorded viewport before the first frame;
+     * only the responsive box below xl reads it (see the box classes).
+     * Spelled out rather than keyed by REPLAY_STAGE_ASPECT_CSS_VAR so the
+     * literal stays a typed style key; a test pins the two together.
+     */
+    "--oneuptime-replay-aspect": formatReplayStageAspect(recorded),
     "--oneuptime-replay-cursor-ms": `${resolveCursorTransitionMs(
       props.recorderCapabilities,
       snapshot.speed,
@@ -1631,13 +1817,14 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       data-testid="replay-stage"
       data-replay-phase={snapshot.phase}
       data-replay-fit={fit}
+      data-replay-sizing={sizing}
       data-replay-frame={isMobile ? "phone" : "desktop"}
       role="region"
       aria-label="Session replay"
       aria-busy={isBusy}
-      className={`oneuptime-replay-stage relative w-full bg-gray-100 ${
-        fit === "actual" ? "overflow-auto" : "overflow-hidden"
-      } ${props.className ?? ""}`}
+      className={`${getReplayStageBoxClassName(sizing, fit)} ${
+        props.className ?? ""
+      }`}
       style={outerStyle}
     >
       <style>{REPLAY_STAGE_CSS}</style>

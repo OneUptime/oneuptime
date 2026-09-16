@@ -69,8 +69,15 @@ function moreMenuZIndex(): number {
     "MoreMenu.tsx",
   );
 
+  /*
+   * The offset and the transform origin left this run when MoreMenu gained
+   * isOpeningUpwards: they are now `mt-2 origin-top-right` OR `bottom-full
+   * mb-2 origin-bottom-right`, appended per direction. The layer is not -
+   * it is the same for a menu whichever way it opens - so this anchors on
+   * the invariant part of the class list.
+   */
   const match: RegExpMatchArray | null = source.match(
-    /absolute right-0 z-(\d+) mt-2 w-56 origin-top-right/,
+    /absolute right-0 z-(\d+) w-56 rounded-lg/,
   );
 
   if (!match || match[1] === undefined) {

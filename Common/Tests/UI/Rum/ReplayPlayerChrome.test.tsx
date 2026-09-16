@@ -204,6 +204,27 @@ describe("player stacking order", () => {
     expect(scrubber.className).not.toContain("shadow");
     expect(scrubber.className).not.toContain("rounded");
   });
+
+  /*
+   * Every pixel this strip spends is a pixel the recording does not get:
+   * the stage is whatever is left of the card once the chrome has taken
+   * its share. So the scrubber's own padding is tight and the transport
+   * sits ONE step under the track rather than a paragraph below it.
+   */
+  it("keeps its own padding tight so the stage gets the height", () => {
+    render(<ReplayScrubber {...makeScrubberProps()} />);
+
+    const scrubber: HTMLElement = screen.getByTestId("replay-scrubber");
+
+    expect(scrubber.className).toContain("pt-2");
+    expect(scrubber.className).toContain("pb-2");
+    expect(scrubber.className).not.toContain("pt-2.5");
+    expect(scrubber.className).not.toContain("pb-3");
+
+    expect(screen.getByTestId("replay-controls").parentElement?.className).toBe(
+      "mt-2",
+    );
+  });
 });
 
 describe("transport row", () => {
@@ -322,6 +343,121 @@ describe("transport row", () => {
     expect(screen.getByTestId("replay-speed-menu").className).toContain(
       "bottom-full",
     );
+  });
+
+  /*
+   * And so does the overflow menu beside it, for a harder reason than
+   * looks. The transport is the LAST row of the player card, and in
+   * theater the player root is a fullscreen element with
+   * `overflow-hidden`: a menu opening downwards from here is drawn
+   * outside that element, where the browser will not scroll to it and a
+   * viewer cannot click it. "Hide mouse trail", "Follow the playhead" and
+   * "Hide signal lanes" were simply unreachable in fullscreen.
+   */
+  it("opens the overflow menu above its trigger", () => {
+    render(
+      <ReplayScrubber
+        {...makeScrubberProps({
+          onFollowChange: noop,
+          onMouseTrailChange: noop,
+          onTimelineLanesChange: noop,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("replay-more-menu"));
+
+    const menu: HTMLElement = screen.getByRole("menu");
+
+    expect(menu.className).toContain("bottom-full");
+    expect(menu.className).toContain("origin-bottom-right");
+    /* The downward anchoring must be gone, not merely overridden. */
+    expect(menu.className).not.toContain("mt-2");
+    expect(menu.className).not.toContain("origin-top-right");
+
+    /* The items a fullscreen viewer could not reach are in that menu. */
+    expect(
+      screen.getByRole("menuitem", { name: "Hide signal lanes" }),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * ONE row, not two. The signal jumps used to sit on a second line fenced
+   * off with a border-t, which cost about 50px of a card whose leftover
+   * height IS the recording. The clusters still read in the same order -
+   * they are siblings on one wrapping row now, not rows of their own.
+   */
+  it("lays every cluster out on one wrapping row", () => {
+    render(<ReplayScrubber {...makeScrubberProps()} />);
+
+    const controls: HTMLElement = screen.getByTestId("replay-controls");
+
+    expect(controls.className).toContain("flex-wrap");
+    expect(controls.className).not.toContain("space-y-");
+
+    const navigation: HTMLElement = screen.getByRole("group", {
+      name: "Jump between signals",
+    });
+
+    /* A direct child of the row, not the content of a second line. */
+    expect(navigation.parentElement).toBe(controls);
+
+    Array.from(controls.children).forEach((child: Element): void => {
+      expect(child.className).not.toContain("border-t");
+    });
+  });
+
+  /*
+   * The hairline says "a different kind of control starts here". Once the
+   * row wraps, the clusters are already on separate lines and the rule
+   * would dangle at the end of the first one, so it is hidden there.
+   */
+  it("hides the cluster hairline at the widths where the row wraps", () => {
+    render(<ReplayScrubber {...makeScrubberProps()} />);
+
+    const controls: HTMLElement = screen.getByTestId("replay-controls");
+    const dividers: Array<HTMLElement> = Array.from(
+      controls.querySelectorAll<HTMLElement>(
+        '[data-testid="replay-toolbar-divider"]',
+      ),
+    );
+
+    expect(dividers.length).toBeGreaterThan(1);
+
+    const responsive: Array<HTMLElement> = dividers.filter(
+      (divider: HTMLElement): boolean => {
+        return Boolean(divider.parentElement?.className.includes("hidden"));
+      },
+    );
+
+    expect(responsive).toHaveLength(1);
+    expect(responsive[0]?.parentElement?.className).toContain("md:inline-flex");
+  });
+
+  /*
+   * Status and the two "everything else" affordances belong at the far end
+   * of the row: everything a viewer presses stays on the left, and a
+   * buffering pill appearing mid-playback moves nothing they were aiming at.
+   */
+  it("pushes status, shortcuts and the overflow menu to the end of the row", () => {
+    render(<ReplayScrubber {...makeScrubberProps({ onFollowChange: noop })} />);
+
+    const controls: HTMLElement = screen.getByTestId("replay-controls");
+    const shortcuts: HTMLElement = screen.getByTestId(
+      "replay-shortcuts-button",
+    );
+    const endCluster: HTMLElement | null =
+      shortcuts.closest<HTMLElement>(".ml-auto");
+
+    expect(endCluster).not.toBeNull();
+    expect(controls).toContainElement(endCluster);
+    expect(endCluster).toContainElement(screen.getByTestId("replay-more-menu"));
+    expect(
+      comesBefore(
+        screen.getByRole("group", { name: "Jump between signals" }),
+        shortcuts,
+      ),
+    ).toBe(true);
   });
 });
 
@@ -443,6 +579,70 @@ describe("header hierarchy", () => {
       "Anonymous",
     );
   });
+
+  /*
+   * The header is the player's own bar, not the shared detail Card. The
+   * card's 24px of padding, its text-lg title and its three-column
+   * definition list were ~240px of viewport spent on chrome above a
+   * picture that then had to be drawn at a third of its recorded size.
+   * Nothing it said was dropped - the labels are sr-only - and the rule
+   * this pins is that the header never grows back into a card.
+   */
+  it("draws the header as a compact bar rather than the shared detail card", () => {
+    render(<ReplayHeader {...makeHeaderProps()} />);
+
+    const header: HTMLElement = screen.getByTestId("replay-header");
+
+    expect(screen.queryByTestId("card")).not.toBeInTheDocument();
+    expect(header.className).toContain("py-2");
+    expect(header.className).not.toContain("py-6");
+    expect(header.querySelector("dl")).toBeNull();
+    expect(
+      within(header).getByRole("heading", { name: "Session recording" })
+        .className,
+    ).toContain("sr-only");
+  });
+
+  /*
+   * The tab strip is a third row, and only when the recording has tabs to
+   * choose between: a one-tab session is the common case and must not pay
+   * a row for a control with one option.
+   */
+  it("gives the browser tabs a row only once there are several", () => {
+    const { rerender } = render(<ReplayHeader {...makeHeaderProps()} />);
+
+    expect(screen.queryByTestId("replay-tab-switcher")).not.toBeInTheDocument();
+
+    rerender(
+      <ReplayHeader
+        {...makeHeaderProps({
+          tabs: [
+            {
+              tabId: "tab-1",
+              label: "Tab 1",
+              durationMs: 252000,
+              openedAtMs: 0,
+              hasFootage: true,
+              isActive: true,
+            },
+            {
+              tabId: "tab-2",
+              label: "Tab 2",
+              durationMs: 30000,
+              openedAtMs: 134000,
+              hasFootage: true,
+              isActive: false,
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId("replay-tab-switcher")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("tablist")).getAllByTestId("replay-tab-pill"),
+    ).toHaveLength(2);
+  });
 });
 
 describe("rail row typography", () => {
@@ -557,5 +757,50 @@ describe("timeline lanes", () => {
     expect(track).toHaveAttribute("role", "slider");
     expect(track).toHaveAttribute("aria-valuenow", "12000");
     expect(track).toHaveAttribute("aria-valuetext", "0:12 of 10:00");
+  });
+
+  /*
+   * The lanes and their legend are the tallest part of the timeline. A
+   * viewer who is watching rather than investigating can put that height
+   * back into the picture - but the seek track, which is the thing the
+   * lanes hang off, never goes anywhere.
+   */
+  it("drops the lanes and the legend when the shell hides them, keeping the track", () => {
+    render(
+      <ReplayScrubber {...makeScrubberProps({ showTimelineLanes: false })} />,
+    );
+
+    expect(screen.queryByTestId("timeline-legend")).toBeNull();
+    expect(screen.queryByTestId("timeline-lane-errors")).toBeNull();
+    expect(screen.queryByTestId("timeline-lane-network")).toBeNull();
+    expect(screen.queryByTestId("timeline-lane-navigation")).toBeNull();
+    expect(screen.getByTestId("timeline-track")).toBeInTheDocument();
+  });
+
+  /*
+   * The gutter the lane labels sit in and the indent the legend starts at
+   * are ONE measurement: 4rem of gutter plus the 0.5rem gap between gutter
+   * and track is the 4.5rem the legend is pushed in by, so the legend's
+   * first swatch lines up with the track's left edge.
+   */
+  it("keeps the label gutter and the legend indent in step", () => {
+    render(<ReplayScrubber {...makeScrubberProps()} />);
+
+    expect(screen.getByText("Recording").className).toContain("w-16");
+    expect(screen.getByTestId("timeline-legend").className).toContain(
+      "pl-[4.5rem]",
+    );
+  });
+
+  it("draws the track and the lanes at the heights the card budgets for", () => {
+    render(<ReplayScrubber {...makeScrubberProps()} />);
+
+    expect(screen.getByTestId("timeline-track").className).toContain("h-7");
+
+    ["errors", "network", "navigation"].forEach((lane: string): void => {
+      expect(screen.getByTestId(`timeline-lane-${lane}`).className).toContain(
+        "h-4",
+      );
+    });
   });
 });

@@ -13,6 +13,8 @@ import ReplayStageOverlays, {
   REPLAY_IDLE_SKIP_TOAST_MS,
   ReplayStageOverlaysProps,
   findIdleBandAt,
+  getReplayStageOverlaysRootClassName,
+  getReplayStageOverlaysStageClassName,
   navigationUrlsFromSignals,
   resolveUrlAtPlayhead,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayStageOverlays";
@@ -29,8 +31,9 @@ import { SessionReplayManifestChunk } from "../../../../App/FeatureSet/Dashboard
 /*
  * Everything drawn over and around the picture. Pinned: the URL bar picks
  * the latest navigation at or before the playhead (falling back to the
- * chunk row's URL and the entry URL); the viewport chip and the Fit / 1:1
- * toggle; overlay precedence error > seeking > buffering > gap > paused;
+ * chunk row's URL and the entry URL); the viewport chip and the
+ * Fit / Width / 1:1 toggle; the flex classes that hand the stage the
+ * leftover height; overlay precedence error > seeking > buffering > gap > paused;
  * buffering only after the 300ms grace and Retry after 8s; the gap and
  * idle-skip toasts that go away on their own; the ended card's Watch
  * again; the expired EmptyState that carries the retention days; and the
@@ -365,7 +368,7 @@ describe("ReplayStageOverlays", () => {
       expect(screen.queryByTestId("replay-url-copy")).not.toBeInTheDocument();
     });
 
-    it("toggles Fit / 1:1 through onFitChange and hides the percentage at 1:1", () => {
+    it("toggles Fit / Width / 1:1 through onFitChange and hides the percentage at 1:1", () => {
       const props: ReplayStageOverlaysProps = makeProps({ fit: "actual" });
 
       render(<ReplayStageOverlays {...props} />);
@@ -377,6 +380,9 @@ describe("ReplayStageOverlays", () => {
       fireEvent.click(screen.getByRole("button", { name: "Fit" }));
       expect(props.onFitChange).toHaveBeenCalledWith("contain");
 
+      fireEvent.click(screen.getByRole("button", { name: "Width" }));
+      expect(props.onFitChange).toHaveBeenCalledWith("width");
+
       fireEvent.click(screen.getByRole("button", { name: "1:1" }));
       expect(props.onFitChange).toHaveBeenCalledWith("actual");
       expect(screen.getByRole("button", { name: "1:1" })).toHaveAttribute(
@@ -385,12 +391,186 @@ describe("ReplayStageOverlays", () => {
       );
     });
 
+    /*
+     * Width fit is the third segment, not a mode hidden behind a menu: a
+     * tall page in a wide player is the common case the old two-way
+     * toggle had no answer for.
+     */
+    it("offers three fit segments in one labelled group, each saying what it does", () => {
+      const { rerender } = render(
+        <ReplayStageOverlays {...makeProps({ fit: "width" })} />,
+      );
+
+      const group: HTMLElement = screen.getByTestId("replay-fit-toggle");
+
+      expect(group).toHaveAttribute("aria-label", "Stage fit");
+      expect(
+        Array.from(group.querySelectorAll("button")).map(
+          (button: HTMLButtonElement): string | null => {
+            return button.textContent;
+          },
+        ),
+      ).toEqual(["Fit", "Width", "1:1"]);
+
+      expect(screen.getByRole("button", { name: "Fit" })).toHaveAttribute(
+        "title",
+        "Fit the whole page in view (z)",
+      );
+      expect(screen.getByRole("button", { name: "Width" })).toHaveAttribute(
+        "title",
+        "Fill the width and scroll the page vertically (z)",
+      );
+      expect(screen.getByRole("button", { name: "1:1" })).toHaveAttribute(
+        "title",
+        "Actual size (z)",
+      );
+
+      expect(screen.getByRole("button", { name: "Width" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(screen.getByRole("button", { name: "Fit" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+
+      rerender(<ReplayStageOverlays {...makeProps({ fit: "contain" })} />);
+
+      expect(screen.getByRole("button", { name: "Fit" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(screen.getByRole("button", { name: "Width" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+
+    it("shows the scale under width fit too, where the picture is scaled as well", () => {
+      renderOverlays({ fit: "width", scale: 0.62 });
+
+      expect(screen.getByTestId("replay-viewport-chip")).toHaveTextContent(
+        "1440x900",
+      );
+      expect(screen.getByTestId("replay-viewport-chip")).toHaveTextContent(
+        "62%",
+      );
+    });
+
+    it("keeps the URL bar as compact chrome that never steals the stage's height", () => {
+      renderOverlays();
+
+      const bar: HTMLElement = screen.getByTestId("replay-url-bar");
+
+      expect(bar.className).toContain("shrink-0");
+      expect(bar.className).toContain("py-1.5");
+      expect(bar.className).not.toContain("py-2");
+    });
+
     it("omits the viewport chip when no size is known", () => {
       renderOverlays({ recordedSize: null });
 
       expect(
         screen.queryByTestId("replay-viewport-chip"),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("sizing", () => {
+    /*
+     * The stage box can only take the leftover height of the player card
+     * if every box between the two passes it down. Below xl the player is
+     * in document flow and the stage sizes itself from the recorded
+     * aspect, so the flex rules are xl-prefixed; theater ("fill") has a
+     * definite height at every width.
+     */
+    it("hands the stage the leftover height from xl up by default", () => {
+      renderOverlays();
+
+      const overlay: HTMLElement = screen.getByTestId("replay-overlay");
+
+      expect(overlay).toHaveAttribute("data-replay-sizing", "responsive");
+      expect(overlay.className).toBe(
+        getReplayStageOverlaysRootClassName("responsive"),
+      );
+      expect(overlay.className).toContain("xl:flex-1");
+      expect(overlay.className).toContain("xl:min-h-0");
+      expect(overlay.className).toContain("flex-col");
+
+      const container: HTMLElement = screen.getByTestId(
+        "replay-stage-container",
+      );
+
+      expect(container.className).toBe(
+        getReplayStageOverlaysStageClassName("responsive"),
+      );
+      /* Overlays are positioned against this wrapper, so it stays relative. */
+      expect(container.className).toContain("relative");
+      expect(container.className).toContain("xl:flex-1");
+    });
+
+    it("fills the height at every width in theater", () => {
+      renderOverlays({ sizing: "fill" });
+
+      const overlay: HTMLElement = screen.getByTestId("replay-overlay");
+
+      expect(overlay).toHaveAttribute("data-replay-sizing", "fill");
+      expect(overlay.className).toBe(
+        getReplayStageOverlaysRootClassName("fill"),
+      );
+      expect(overlay.className).toContain("h-full");
+      expect(overlay.className).toContain("flex-1");
+      expect(overlay.className).not.toContain("xl:");
+
+      const container: HTMLElement = screen.getByTestId(
+        "replay-stage-container",
+      );
+
+      expect(container.className).toBe(
+        getReplayStageOverlaysStageClassName("fill"),
+      );
+      expect(container.className).toContain("min-h-0");
+      expect(container.className).toContain("flex-1");
+    });
+
+    it("gives the no-footage mode the same flex classes so it fills the card too", () => {
+      render(
+        <ReplayStageOverlays
+          {...makeProps({ absence: { kind: "none-stored" }, sizing: "fill" })}
+        />,
+      );
+
+      const overlay: HTMLElement = screen.getByTestId("replay-overlay");
+
+      expect(overlay).toHaveAttribute("data-replay-overlay", "absent");
+      expect(overlay).toHaveAttribute("data-replay-sizing", "fill");
+      expect(overlay.className).toContain(
+        getReplayStageOverlaysRootClassName("fill"),
+      );
+      expect(overlay.className).toContain("bg-gray-50");
+      expect(overlay.className).toContain("overflow-y-auto");
+      /* Auto margins centre it without putting its top out of reach. */
+      expect(screen.getByTestId("replay-footage-absent").className).toContain(
+        "my-auto",
+      );
+    });
+
+    it("keeps the cards inside a short stage instead of spilling out of it", () => {
+      renderOverlays({
+        snapshot: makeSnapshot({
+          buffer: "halted",
+          error: { message: "Boom", retryable: true },
+        }),
+      });
+
+      const centre: HTMLElement = screen.getByTestId("replay-overlay-centre");
+
+      expect(centre.className).toContain("absolute");
+      expect(centre.className).toContain("overflow-auto");
+      expect(centre.className).toContain("p-3");
+      expect(screen.getByTestId("replay-overlay-error").className).toContain(
+        "max-h-full",
+      );
     });
   });
 
@@ -685,6 +865,83 @@ describe("ReplayStageOverlays", () => {
 
       fireEvent.click(screen.getByTestId("replay-ended-continue-in-tab"));
       expect(props.onSwitchTab).toHaveBeenCalledWith("tab-2");
+    });
+
+    it("offers the user's next session from the ended card", () => {
+      const props: ReplayStageOverlaysProps = makeProps({
+        snapshot: makeSnapshot({ buffer: "ended", currentTimeMs: DURATION_MS }),
+        nextUserSession: {
+          sessionId: "session-9",
+          description: "2 hours later - /checkout - 3m 20s",
+        },
+        onOpenNextUserSession: jest.fn(),
+      });
+
+      render(<ReplayStageOverlays {...props} />);
+
+      const next: HTMLElement = screen.getByTestId("replay-ended-next-session");
+
+      expect(next).toHaveTextContent("Next session by this user");
+      expect(next).toHaveAttribute(
+        "title",
+        "2 hours later - /checkout - 3m 20s",
+      );
+
+      fireEvent.click(next);
+      expect(props.onOpenNextUserSession).toHaveBeenCalledWith("session-9");
+    });
+
+    it("offers no next session when there is none, no handler, or the session is live", () => {
+      const { rerender } = render(
+        <ReplayStageOverlays
+          {...makeProps({
+            snapshot: makeSnapshot({
+              buffer: "ended",
+              currentTimeMs: DURATION_MS,
+            }),
+          })}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId("replay-ended-next-session"),
+      ).not.toBeInTheDocument();
+
+      /* A session id with nothing to do with it is not an offer. */
+      rerender(
+        <ReplayStageOverlays
+          {...makeProps({
+            snapshot: makeSnapshot({
+              buffer: "ended",
+              currentTimeMs: DURATION_MS,
+            }),
+            nextUserSession: { sessionId: "session-9", description: "later" },
+          })}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId("replay-ended-next-session"),
+      ).not.toBeInTheDocument();
+
+      /* Live: the recording has not ended, so there is no ended card. */
+      rerender(
+        <ReplayStageOverlays
+          {...makeProps({
+            snapshot: makeSnapshot({
+              buffer: "ended",
+              currentTimeMs: DURATION_MS,
+            }),
+            isLive: true,
+            nextUserSession: { sessionId: "session-9", description: "later" },
+            onOpenNextUserSession: jest.fn(),
+          })}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId("replay-ended-next-session"),
+      ).not.toBeInTheDocument();
     });
 
     /*

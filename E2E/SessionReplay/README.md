@@ -24,6 +24,30 @@ actual reconstructed footage advancing, pause/seek/speed, visibility of speed
 options, event search and details, rail collapse, keyboard tab navigation, and
 mobile overflow and controls.
 
+The player's own layout is measured, not just present:
+
+- **How big the recording is drawn.** At 1440 x 900 the 1200 x 760 recording
+  must reach at least 55% (it was 34% before this layout), the stage at least
+  380px tall, with the transport above the fold and the page not scrolled; a
+  1920 x 1080 window draws it larger still and a smaller one refits it live,
+  without a reload or a second manifest read.
+- **Stage fit.** The Fit / Width / 1:1 segments move `data-replay-fit`, the
+  viewport chip reports a percentage for the two scaled fits and none for 1:1,
+  and Width fills the box across and scrolls the page down inside it.
+- **Browser tabs.** `?tabs=many` is an unfinalized recording of eight tabs (two
+  still open, five closed, one that stored nothing, each on its own page), which
+  is what the strip, its cap of six pills and the picker are for: open tabs
+  lead, each pill names its page, and the picker groups Open / Closed / No
+  footage with counts, filters by page and by tab number, moves with the arrow
+  keys, switches tab on Enter and closes on Escape - and typing in its filter
+  never reaches the player's single-key shortcuts. `?tabs=multiple` stays the
+  three-tab finished recording (one tab without footage).
+- **Keyboard.** `r` hides and restores the events rail, `z` cycles the fit.
+- **Timeline lanes.** The More menu drops the marker lanes and the legend while
+  the track stays, and the height goes to the recording.
+- **The end of a recording.** `?neighbour=newer` gives the person a later
+  recording, so the ended card offers "Next session by this user" and opens it.
+
 The Replay Policy page is covered too: the policy card must settle after its
 mount reads and stay loaded (a page that hands it a new model id per render
 reloads it forever), the Recording pill must follow health that answers after
