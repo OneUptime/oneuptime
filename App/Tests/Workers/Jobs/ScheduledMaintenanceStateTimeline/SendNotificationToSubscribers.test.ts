@@ -302,18 +302,18 @@ const DASHBOARD_URL: string =
 const EVENT_TITLE: string = "Payments cluster failover drill";
 const DESCRIPTION: string =
   "Traffic moves to the **standby** region. See [the runbook](https://docs.acme.com/drill).";
-const DESCRIPTION_TEXT: string =
-  "Traffic moves to the standby region. See the runbook.";
 const DESCRIPTION_HTML: string =
   '<p>Traffic moves to the <strong>standby</strong> region. See <a href="https://docs.acme.com/drill">the runbook</a>.</p>';
+const DESCRIPTION_TEXT: string =
+  "Traffic moves to the standby region. See the runbook.";
 
 // What the mocked Markdown.convertToPlainText returns for each input.
 const PLAIN_TEXT: Record<string, string> = {
   [DESCRIPTION]: DESCRIPTION_TEXT,
 };
 
-// What the mocked Markdown.convertToHTML returns for each input.
-const HTML: Record<string, string> = {
+// What the mocked Markdown.convertToHTML returns for each email input.
+const EMAIL_HTML: Record<string, string> = {
   [DESCRIPTION]: DESCRIPTION_HTML,
 };
 
@@ -734,6 +734,22 @@ function expectedVariablesByChannel(): Record<string, Record<string, string>> {
   };
 }
 
+// The description each channel's template is given.
+function descriptionForChannel(channel: string): string {
+  switch (channel) {
+    case "Email":
+      return DESCRIPTION_HTML;
+    case "Subject":
+    case "SMS":
+      return DESCRIPTION_TEXT;
+    case "Slack":
+    case "Microsoft Teams":
+      return DESCRIPTION;
+    default:
+      throw new Error(`Unexpected channel ${channel}`);
+  }
+}
+
 function nothingSent(): void {
   expect(MailService.sendMail).not.toHaveBeenCalled();
   expect(SmsService.sendSms).not.toHaveBeenCalled();
@@ -854,8 +870,11 @@ beforeEach(() => {
     },
   );
   mock(Markdown.convertToHTML).mockImplementation(
-    async (markdown: unknown): Promise<string> => {
-      return HTML[markdown as string] ?? (markdown as string);
+    async (markdown: unknown, contentType: unknown): Promise<string> => {
+      if (contentType !== MarkdownContentType.Email) {
+        return "HTML for the wrong content type";
+      }
+      return EMAIL_HTML[markdown as string] ?? "";
     },
   );
 
@@ -959,7 +978,7 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
     });
   });
 
-  test("sends the webhook payload it always has", async () => {
+  test("sends the webhook payload it always has, plus the description as written", async () => {
     await runJob();
 
     expect(sentWebhooks()).toEqual([
@@ -972,6 +991,7 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
         data: {
           scheduledMaintenanceId: EVENT_ID.toString(),
           scheduledMaintenanceTitle: EVENT_TITLE,
+          scheduledMaintenanceDescription: DESCRIPTION,
           scheduledMaintenanceState: STATE_NAME,
           resourcesAffected: DEFAULT_RESOURCES_AFFECTED,
           detailsUrl: DETAILS_URL,
@@ -994,6 +1014,7 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
     expect(sentWebhooks()[0]!["data"]).toEqual({
       scheduledMaintenanceId: EVENT_ID.toString(),
       scheduledMaintenanceTitle: EVENT_TITLE,
+      scheduledMaintenanceDescription: DESCRIPTION,
       scheduledMaintenanceState: STATE_NAME,
       resourcesAffected: GROUPED_RESOURCES_TEXT,
       detailsUrl: DETAILS_URL,
@@ -1052,6 +1073,22 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
           StatusPageSubscriberNotificationStatus.Skipped,
       }),
     );
+  });
+
+  test("marks the state change Failed with the reason when the description cannot be converted", async () => {
+    useCustomTemplates({ body: "desc={{scheduledMaintenanceDescription}}" });
+    mock(Markdown.convertToHTML).mockRejectedValue(
+      new Error("markdown exploded") as never,
+    );
+
+    await runJob();
+
+    nothingSent();
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage: "markdown exploded",
+    });
   });
 
   test("skips a state with no name", async () => {
@@ -1159,6 +1196,59 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
         expect(value).not.toContain("<");
       }
     }
+  });
+
+  test("gives every channel the same variables, with only the description and the resource list's separator in each channel's format", async () => {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+    useCustomTemplates({ body: "Hello", subject: "Subject" });
+
+    await runJob();
+
+    const expected: Record<string, string> = {
+      statusPageName: "Acme Status",
+      statusPageUrl: STATUS_PAGE_URL,
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+      detailsUrl: DETAILS_URL,
+      resourcesAffected: GROUPED_RESOURCES_TEXT,
+      scheduledMaintenanceTitle: EVENT_TITLE,
+      scheduledMaintenanceDescription: DESCRIPTION,
+      scheduledMaintenanceState: STATE_NAME,
+      // Not advertised, but always passed, so existing templates keep it.
+      scheduledAt: STARTS_AT_STRING,
+    };
+
+    const calls: Array<CompileTemplateCall> = compileTemplateCalls();
+    expect(calls).toHaveLength(5);
+
+    for (const call of calls) {
+      expect({ channel: call.channel, variables: call.variables }).toEqual({
+        channel: call.channel,
+        variables: {
+          ...expected,
+          // The email body lists the groups one per line ("<br/>").
+          resourcesAffected:
+            call.channel === "Email"
+              ? GROUPED_RESOURCES_HTML
+              : GROUPED_RESOURCES_TEXT,
+          scheduledMaintenanceDescription: descriptionForChannel(call.channel),
+        },
+      });
+    }
+
+    const descriptions: Record<string, string> = {};
+    for (const call of calls) {
+      descriptions[call.channel] =
+        call.variables["scheduledMaintenanceDescription"]!;
+    }
+    expect(descriptions).toEqual({
+      Email: DESCRIPTION_HTML,
+      Subject: DESCRIPTION_TEXT,
+      SMS: DESCRIPTION_TEXT,
+      Slack: DESCRIPTION,
+      "Microsoft Teams": DESCRIPTION,
+    });
   });
 
   test("renders HTML in the email body, plain text in SMS and the subject, and Markdown in chat", async () => {
@@ -1292,6 +1382,32 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
     ).toBe(true);
   });
 
+  test("gives the description as HTML in the email body, as plain text in the email subject and SMS, and as written in Slack and Teams", async () => {
+    useCustomTemplates({ body: "desc={{scheduledMaintenanceDescription}}" });
+
+    await runJob();
+
+    expect(
+      new Set([DESCRIPTION, DESCRIPTION_HTML, DESCRIPTION_TEXT]).size,
+    ).toBe(3);
+    expect(sentCustomMessages()).toEqual(
+      expectedCustomMessages({
+        body: `desc=${DESCRIPTION}`,
+        emailBody: `desc=${DESCRIPTION_HTML}`,
+        plainTextBody: `desc=${DESCRIPTION_TEXT}`,
+      }),
+    );
+    expect(mock(Markdown.convertToHTML).mock.calls).toEqual([
+      [DESCRIPTION, MarkdownContentType.Email],
+    ]);
+    expect(mock(Markdown.convertToPlainText).mock.calls).toEqual([
+      [DESCRIPTION],
+    ]);
+    expect(
+      queryArgs(ScheduledMaintenanceService.findOneById).select["description"],
+    ).toBe(true);
+  });
+
   test("renders an empty description when the maintenance has none", async () => {
     storedEvent = scheduledEvent({ withoutDescription: true });
     useCustomTemplates({ body: "desc=[{{scheduledMaintenanceDescription}}]" });
@@ -1307,6 +1423,11 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
     for (const call of calls) {
       expect(call.variables["scheduledMaintenanceDescription"]).toBe("");
     }
+    expect(
+      (sentWebhooks()[0]!["data"] as JSONObject)[
+        "scheduledMaintenanceDescription"
+      ],
+    ).toBe("");
   });
 
   test("gives the state the maintenance moved to, not its current state or start date", async () => {
@@ -1398,13 +1519,6 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       [MAIN_PAGE.url]: GROUPED_RESOURCES_TEXT,
       [OTHER_PAGE.url]: OTHER_PAGE_RESOURCES_AFFECTED,
     };
-    const descriptionByChannel: Record<string, string> = {
-      Email: DESCRIPTION_HTML,
-      Subject: DESCRIPTION_TEXT,
-      SMS: DESCRIPTION_TEXT,
-      Slack: DESCRIPTION,
-      "Microsoft Teams": DESCRIPTION,
-    };
 
     const calls: Array<CompileTemplateCall> = compileTemplateCalls();
     // Five compiled messages for each of the two status pages.
@@ -1432,7 +1546,7 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
               ? htmlResourcesByPage[page!.url]
               : plainTextResourcesByPage[page!.url],
           scheduledMaintenanceTitle: EVENT_TITLE,
-          scheduledMaintenanceDescription: descriptionByChannel[call.channel],
+          scheduledMaintenanceDescription: descriptionForChannel(call.channel),
           scheduledMaintenanceState: STATE_NAME,
         }),
       );
@@ -1453,8 +1567,8 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       ].sort(),
     );
     // The description is converted once for the state change, not per page.
-    expect(Markdown.convertToPlainText).toHaveBeenCalledTimes(1);
     expect(Markdown.convertToHTML).toHaveBeenCalledTimes(1);
+    expect(Markdown.convertToPlainText).toHaveBeenCalledTimes(1);
   });
 
   test("falls back to the default custom subject when the email template has none", async () => {

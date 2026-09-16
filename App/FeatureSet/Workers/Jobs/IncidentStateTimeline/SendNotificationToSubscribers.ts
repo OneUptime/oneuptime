@@ -290,12 +290,11 @@ RunCron(
         );
 
       /*
-       * Custom templates get the incident description in the format their
-       * channel renders, like the incident created notification: HTML for
-       * the email body (it is wrapped only by BlankTemplate), plain text for
-       * SMS and the email subject, and the Markdown as written for Slack and
-       * Teams. It does not vary per status page or per subscriber, so it is
-       * converted once per state change.
+       * {{incidentDescription}} in the format each channel renders: HTML for a
+       * custom email body (BlankTemplate adds no markup of its own), plain
+       * text for SMS and the email subject, and the Markdown as written for
+       * Slack and Teams. It does not vary per status page or per subscriber,
+       * so it is converted once per state change.
        */
       const incidentDescriptionHtml: string = await Markdown.convertToHTML(
         incident.description || "",
@@ -779,6 +778,8 @@ RunCron(
                   incidentId: incident.id?.toString() || "",
                   incidentNumber: incident.incidentNumber?.toString() || "",
                   incidentTitle: incident.title || "",
+                  // As written, like the incident created webhook.
+                  incidentDescription: incident.description || "",
                   incidentSeverity: incident.incidentSeverity?.name || "",
                   incidentState:
                     incidentStateTimeline.incidentState?.name || "",

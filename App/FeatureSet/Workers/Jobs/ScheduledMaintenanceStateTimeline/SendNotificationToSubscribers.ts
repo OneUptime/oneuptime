@@ -233,11 +233,11 @@ RunCron(
           );
 
         /*
-         * Custom email bodies are HTML (they are wrapped only by
-         * BlankTemplate), and SMS and email subjects cannot render Markdown,
-         * so those templates get the description converted. It does not vary
-         * per status page or subscriber, so it is converted once per state
-         * change.
+         * {{scheduledMaintenanceDescription}} in the format each channel
+         * renders: HTML for a custom email body (BlankTemplate adds no markup
+         * of its own), plain text for SMS and the email subject, and the
+         * Markdown as written for Slack and Teams. It does not vary per status
+         * page or subscriber, so it is converted once per state change.
          */
         const descriptionHtml: string = await Markdown.convertToHTML(
           event.description || "",
@@ -541,6 +541,8 @@ RunCron(
                   data: {
                     scheduledMaintenanceId: event.id?.toString() || "",
                     scheduledMaintenanceTitle: event.title || "",
+                    // As written, like the maintenance note webhook.
+                    scheduledMaintenanceDescription: event.description || "",
                     scheduledMaintenanceState:
                       scheduledEventStateTimeline.scheduledMaintenanceState
                         ?.name || "",

@@ -4,6 +4,11 @@ import ChatActivityFeed, {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import InvestigationReportView from "./InvestigationReport/InvestigationReportView";
+import { EvidenceFocusRequest } from "./InvestigationReport/InvestigationEvidenceList";
+import InvestigationRunDetails, {
+  InvestigationRunUsage,
+  InvestigationUsageLine,
+} from "./InvestigationReport/InvestigationRunDetails";
 import {
   getInvestigationReportSummaryText,
   parseInvestigationEvidence,
@@ -163,10 +168,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const [references, setReferences] = useState<
     Array<InvestigationEventReference>
   >([]);
-  const [stats, setStats] = useState<{
-    toolCallCount: number;
-    totalTokens: number;
-  } | null>(null);
+  const [stats, setStats] = useState<InvestigationRunUsage | null>(null);
+  /*
+   * The latest citation chip a reader activated in the report. The run
+   * details below it open on that query; a new request id repeats it.
+   */
+  const [evidenceFocusRequest, setEvidenceFocusRequest] =
+    useState<EvidenceFocusRequest | null>(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const [loadedSubjectKey, setLoadedSubjectKey] = useState<string | null>(null);
   const [supportsSettledPolling, setSupportsSettledPolling] =
@@ -207,6 +215,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   );
   onVerdictChangeRef.current = props.onVerdictChange;
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
+  const focusRequestCounterRef: React.MutableRefObject<number> =
+    useRef<number>(0);
   const inFlightFetchRef: React.MutableRefObject<{
     subjectKey: string;
     promise: Promise<void>;
@@ -300,6 +310,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     setEvidence([]);
     setReferences([]);
     setStats(null);
+    setEvidenceFocusRequest(null);
     setHasLoadedOnce(false);
     setLoadedSubjectKey(null);
     setSupportsSettledPolling(false);
@@ -429,6 +440,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           setIsSavingVerdict(false);
           setVerdictError(null);
           setIsChangingVerdict(false);
+          // A chip from the previous run's report never opens this run's.
+          setEvidenceFocusRequest(null);
         }
 
         let codeFixRecommendationFromServer: AIRunCodeFixRecommendation | null =
@@ -614,6 +627,21 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       onStatusChangeRef.current?.(runStatus);
     }
   }, [hasLoadedOnce, loadedSubjectKey, runStatus, subjectKey]);
+
+  /*
+   * Request ids only ever grow, even across a reset to null, so a request
+   * can never be mistaken for one the details already handled.
+   */
+  const focusCitation: (citationId: string) => void = useCallback(
+    (citationId: string): void => {
+      focusRequestCounterRef.current += 1;
+      setEvidenceFocusRequest({
+        citationId,
+        requestId: focusRequestCounterRef.current,
+      });
+    },
+    [],
+  );
 
   /*
    * Human-triggered `code_fix`: enqueue a FixFromIncident task that takes
@@ -1025,7 +1053,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    * Ask the feed whether it will draw anything rather than counting events:
    * several event types only close a step an earlier event opened, so a run
    * can carry events yet render no steps, and a raw count would frame an
-   * empty box (or advertise a disclosure that opens onto nothing).
+   * empty box.
    */
   const hasActivity: boolean = hasRenderableActivity(events);
 
@@ -1048,71 +1076,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * One meta strip for both outcomes: what the run actually cost, plus the
-   * read-only guarantee. Responders ask "did this thing touch anything?"
-   * before they trust it, so the answer belongs on the card, not only in the
-   * report's own footer prose.
-   *
-   * Gated on isActive, not isRunning: a QUEUED run has a stats object whose
-   * counts are all zero, so the strip would tell a reader that the AI ran
-   * zero queries and changed nothing — a past-tense report on work that has
-   * not begun, sitting directly under "waiting for a worker".
+   * The model name only comes from the report's own footer, so it is shown
+   * only next to a report.
    */
   const modelName: string | undefined = analysisMarkdown
     ? parsedReport?.footer?.modelName
     : undefined;
-
-  const usageStrip: ReactElement =
-    !isActive && stats ? (
-      <div
-        aria-label="Investigation usage"
-        className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-gray-50 px-4 py-2.5 text-xs text-gray-500 ring-1 ring-inset ring-gray-200"
-      >
-        <span className="inline-flex items-center gap-1.5">
-          <Icon
-            icon={IconProp.Database}
-            className="h-3.5 w-3.5 text-gray-400"
-          />
-          {stats.toolCallCount} telemetry quer
-          {stats.toolCallCount === 1 ? "y" : "ies"}
-        </span>
-        {stats.totalTokens > 0 ? (
-          <span className="inline-flex items-center gap-1.5">
-            <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5 text-gray-400" />
-            {stats.totalTokens.toLocaleString()} tokens
-          </span>
-        ) : (
-          <></>
-        )}
-        {modelName ? (
-          <span className="inline-flex min-w-0 items-center gap-1.5">
-            <Icon
-              icon={IconProp.Sparkles}
-              className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
-            />
-            <span className="break-all">Model {modelName}</span>
-          </span>
-        ) : (
-          <></>
-        )}
-        <span className="inline-flex items-center gap-1.5 sm:ml-auto">
-          <Icon
-            icon={IconProp.ShieldCheck}
-            className="h-3.5 w-3.5 text-gray-400"
-          />
-          Read-only — nothing in your systems was changed
-        </span>
-        {analysisMarkdown ? (
-          <span className="basis-full text-gray-400">
-            AI-generated first pass — verify before acting.
-          </span>
-        ) : (
-          <></>
-        )}
-      </div>
-    ) : (
-      <></>
-    );
 
   return (
     <Card
@@ -1160,8 +1129,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 evidence={evidence}
                 references={references}
                 subjectType={subjectType}
-                subjectId={subjectIdString}
-                runId={runId}
+                onCitationActivate={focusCitation}
               />
             ) : isAnalysisPending ? (
               <div
@@ -1190,47 +1158,35 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                     No investigation report was published.
                   </p>
                   <p className="mt-1 text-xs leading-5 text-amber-700">
-                    The run finished without a final analysis. Review the
-                    activity below for details.
+                    The run finished without a final analysis.
+                    {hasActivity
+                      ? " Its steps are under Investigation activity below."
+                      : ""}
                   </p>
                 </div>
               </div>
             )}
 
-            {hasActivity ? (
-              <details className="group rounded-xl border border-gray-200 bg-gray-50/50">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-100/70 hover:text-gray-900">
-                  <span className="flex items-center gap-2">
-                    <Icon
-                      icon={IconProp.Activity}
-                      className="h-4 w-4 text-gray-400"
-                    />
-                    Investigation activity
-                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-normal text-gray-500 ring-1 ring-inset ring-gray-200">
-                      {events.length} event{events.length === 1 ? "" : "s"}
-                    </span>
-                  </span>
-                  <Icon
-                    icon={IconProp.ChevronDown}
-                    className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180"
-                  />
-                </summary>
-                <div className="border-t border-gray-200 px-4 py-4">
-                  {/*
-                    The disclosure's own summary row already names this
-                    section, so the feed drops its bubble and heading here.
-                  */}
-                  <ChatActivityFeed
-                    events={events}
-                    hideChrome={true}
-                    showLiveIndicator={false}
-                    maxVisibleSteps={10}
-                  />
-                </div>
-              </details>
-            ) : (
-              <></>
-            )}
+            {/*
+              Evidence, activity and usage share one collapsed section: the
+              report above is the answer, this is its working. Evidence only
+              ever describes the report it came with.
+            */}
+            <InvestigationRunDetails
+              evidence={analysisMarkdown ? evidence : []}
+              legacyEntries={
+                analysisMarkdown && parsedReport
+                  ? parsedReport.evidenceChecked
+                  : []
+              }
+              events={events}
+              usage={stats}
+              modelName={modelName}
+              subjectType={subjectType}
+              subjectId={subjectIdString}
+              runId={runId}
+              focusRequest={evidenceFocusRequest}
+            />
           </>
         ) : (
           /*
@@ -1306,10 +1262,21 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 </p>
               )}
             </div>
+            {/*
+              Gated on isActive: a queued run's counts are all zero, and a
+              past-tense "ran 0 queries" under "waiting for a worker" would
+              report on work that has not begun.
+            */}
+            {!isActive && stats ? (
+              <InvestigationUsageLine
+                usage={stats}
+                className="border-t border-gray-200 bg-gray-50/70 px-5 py-3"
+              />
+            ) : (
+              <></>
+            )}
           </section>
         )}
-
-        {usageStrip}
 
         {/*
           The server-authored recommendation decides whether a completed
@@ -1318,27 +1285,55 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           no pull request is applicable.
         */}
         {runStatus === AIRunStatus.Completed ? (
-          <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-4 sm:p-5">
-            <div
-              className={
-                isCodeFixRecommended
-                  ? "grid gap-5 lg:grid-cols-2 lg:gap-6"
-                  : "grid gap-5"
-              }
-            >
-              {isCodeFixRecommended ? (
-                <div>
-                  <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                    <Icon
-                      icon={IconProp.Code}
-                      className="h-4 w-4 text-gray-400"
-                    />
-                    Act on this investigation
-                  </h3>
-                  <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
-                    Create a fix pull request with this report as context.
-                  </p>
+          /*
+           * One row per decision, each a question on the left and its answer
+           * on the right. The question's text gives way first, and a column
+           * too narrow for both stacks the control under it instead of
+           * pushing it past the box.
+           */
+          <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-gray-50/70">
+            {isCodeFixRecommended ? (
+              <div className="px-4 py-4 sm:px-5">
+                <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+                  <div className="min-w-[12rem] flex-1">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <Icon
+                        icon={IconProp.Code}
+                        className="h-4 w-4 text-gray-400"
+                      />
+                      Act on this investigation
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                      Create a fix pull request with this report as context.
+                    </p>
+                  </div>
                   {fixTaskRunId ? (
+                    <></>
+                  ) : (
+                    /*
+                     * The bordered default style reads as a button. Its
+                     * side-by-side margin would only indent it here, and
+                     * its phone-sized text would wrap the label.
+                     */
+                    <div className="flex-shrink-0 [&>button]:ml-0 [&>button]:text-sm [&>button]:md:ml-0">
+                      <Button
+                        title="Open Fix PR from this analysis"
+                        icon={IconProp.Code}
+                        buttonStyle={ButtonStyleType.NORMAL}
+                        buttonSize={ButtonSize.Normal}
+                        isLoading={isCreatingFixTask}
+                        disabled={!analysisMarkdown}
+                        onClick={() => {
+                          createFixTask().catch(() => {
+                            // handled inside createFixTask
+                          });
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                {fixTaskRunId ? (
+                  <div className="mt-3">
                     <Alert
                       type={AlertType.SUCCESS}
                       strongTitle="Fix task created"
@@ -1358,164 +1353,141 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                         </span>
                       }
                     />
-                  ) : (
-                    <>
-                      {fixTaskError ? (
-                        <div className="mb-3">
-                          <Alert
-                            type={AlertType.DANGER}
-                            strongTitle="Could not create the fix task"
-                            title={
-                              <span>
-                                {fixTaskError}{" "}
-                                <Link
-                                  className="underline"
-                                  to={RouteUtil.populateRouteParams(
-                                    RouteMap[PageMap.AI_AGENT_TASKS] as Route,
-                                  )}
-                                >
-                                  View AI tasks
-                                </Link>
-                                .
-                              </span>
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <></>
-                      )}
-                      <Button
-                        title="Open Fix PR from this analysis"
-                        icon={IconProp.Code}
-                        buttonStyle={ButtonStyleType.OUTLINE}
-                        buttonSize={ButtonSize.Small}
-                        isLoading={isCreatingFixTask}
-                        disabled={!analysisMarkdown}
-                        onClick={() => {
-                          createFixTask().catch(() => {
-                            // handled inside createFixTask
-                          });
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
-              ) : (
-                <></>
-              )}
-
-              {/*
-                A quiet human verdict on the analysis. The server returns
-                `humanVerdict` on every investigation payload, so the state
-                survives polling refreshes; the buttons update optimistically.
-                The two choices sit in one segmented control so they read as a
-                single question with two answers rather than two unrelated
-                actions, and the prompt collapses to a pill once answered.
-              */}
-              <div
-                className={
-                  isCodeFixRecommended
-                    ? "lg:border-l lg:border-gray-200 lg:pl-6"
-                    : ""
-                }
-              >
-                <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-                  <div className="min-w-0">
-                    <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                      <Icon
-                        icon={IconProp.Star}
-                        className="h-4 w-4 text-gray-400"
-                      />
-                      Rate this investigation
-                    </h3>
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Your verdict helps measure OneUptime AI&apos;s public
-                      accuracy.
-                    </p>
                   </div>
-
-                  <div className="flex-shrink-0">
-                    {humanVerdict && !isChangingVerdict ? (
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${
-                            isConfirmed
-                              ? "bg-green-50 text-green-700 ring-green-200"
-                              : "bg-rose-50 text-rose-700 ring-rose-200"
-                          }`}
-                        >
-                          <Icon
-                            icon={isConfirmed ? IconProp.Check : IconProp.Close}
-                            className="h-3.5 w-3.5"
-                          />
-                          <span>
-                            You {isConfirmed ? "confirmed" : "rejected"} this
-                            analysis
-                          </span>
-                        </span>
-                        <button
-                          type="button"
-                          className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 underline-offset-2 hover:bg-gray-100 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                          onClick={() => {
-                            setIsChangingVerdict(true);
-                          }}
-                        >
-                          Change
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        role="group"
-                        aria-label="Rate this investigation"
-                        className="inline-flex items-center rounded-lg border border-gray-300 bg-white p-1 shadow-sm"
-                      >
-                        <button
-                          type="button"
-                          disabled={isVerdictLocked}
-                          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-green-50 hover:text-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
-                          onClick={() => {
-                            submitVerdict("Confirmed").catch(() => {
-                              // handled inside submitVerdict
-                            });
-                          }}
-                        >
-                          <Icon icon={IconProp.Check} className="h-4 w-4" />
-                          Confirmed
-                        </button>
-                        <span
-                          aria-hidden="true"
-                          className="mx-0.5 h-5 w-px flex-shrink-0 bg-gray-200"
-                        />
-                        <button
-                          type="button"
-                          disabled={isVerdictLocked}
-                          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
-                          onClick={() => {
-                            submitVerdict("Rejected").catch(() => {
-                              // handled inside submitVerdict
-                            });
-                          }}
-                        >
-                          <Icon icon={IconProp.Close} className="h-4 w-4" />
-                          Rejected
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {verdictError ? (
+                ) : fixTaskError ? (
                   <div className="mt-3">
                     <Alert
                       type={AlertType.DANGER}
-                      strongTitle="Could not save your verdict"
-                      title={verdictError}
+                      strongTitle="Could not create the fix task"
+                      title={
+                        <span>
+                          {fixTaskError}{" "}
+                          <Link
+                            className="underline"
+                            to={RouteUtil.populateRouteParams(
+                              RouteMap[PageMap.AI_AGENT_TASKS] as Route,
+                            )}
+                          >
+                            View AI tasks
+                          </Link>
+                          .
+                        </span>
+                      }
                     />
                   </div>
                 ) : (
                   <></>
                 )}
               </div>
+            ) : (
+              <></>
+            )}
+
+            {/*
+              A quiet human verdict on the analysis. The server returns
+              `humanVerdict` on every investigation payload, so the state
+              survives polling refreshes; the buttons update optimistically.
+              The two choices sit in one segmented control so they read as a
+              single question with two answers rather than two unrelated
+              actions, and the prompt collapses to a pill once answered.
+            */}
+            <div className="px-4 py-4 sm:px-5">
+              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+                <div className="min-w-[12rem] flex-1">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <Icon
+                      icon={IconProp.Star}
+                      className="h-4 w-4 text-gray-400"
+                    />
+                    Rate this investigation
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                    Your verdict helps measure OneUptime AI&apos;s public
+                    accuracy.
+                  </p>
+                </div>
+
+                <div className="max-w-full">
+                  {humanVerdict && !isChangingVerdict ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${
+                          isConfirmed
+                            ? "bg-green-50 text-green-700 ring-green-200"
+                            : "bg-rose-50 text-rose-700 ring-rose-200"
+                        }`}
+                      >
+                        <Icon
+                          icon={isConfirmed ? IconProp.Check : IconProp.Close}
+                          className="h-3.5 w-3.5"
+                        />
+                        <span>
+                          You {isConfirmed ? "confirmed" : "rejected"} this
+                          analysis
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 underline-offset-2 hover:bg-gray-100 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        onClick={() => {
+                          setIsChangingVerdict(true);
+                        }}
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      role="group"
+                      aria-label="Rate this investigation"
+                      className="inline-flex items-center rounded-lg border border-gray-300 bg-white p-0.5 shadow-sm"
+                    >
+                      <button
+                        type="button"
+                        disabled={isVerdictLocked}
+                        className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-green-50 hover:text-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                        onClick={() => {
+                          submitVerdict("Confirmed").catch(() => {
+                            // handled inside submitVerdict
+                          });
+                        }}
+                      >
+                        <Icon icon={IconProp.Check} className="h-4 w-4" />
+                        Confirmed
+                      </button>
+                      <span
+                        aria-hidden="true"
+                        className="mx-0.5 h-5 w-px flex-shrink-0 bg-gray-200"
+                      />
+                      <button
+                        type="button"
+                        disabled={isVerdictLocked}
+                        className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                        onClick={() => {
+                          submitVerdict("Rejected").catch(() => {
+                            // handled inside submitVerdict
+                          });
+                        }}
+                      >
+                        <Icon icon={IconProp.Close} className="h-4 w-4" />
+                        Rejected
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {verdictError ? (
+                <div className="mt-3">
+                  <Alert
+                    type={AlertType.DANGER}
+                    strongTitle="Could not save your verdict"
+                    title={verdictError}
+                  />
+                </div>
+              ) : (
+                <></>
+              )}
             </div>
           </div>
         ) : (

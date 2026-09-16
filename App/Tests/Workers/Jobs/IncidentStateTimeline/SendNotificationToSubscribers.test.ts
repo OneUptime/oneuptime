@@ -269,9 +269,10 @@ const INCIDENT_SEVERITY: string = "Critical";
 
 /*
  * The description as written (Markdown), the email HTML the Markdown helper
- * turns it into for the email body, and the plain text it turns it into for
- * SMS and the email subject. None appears in any other fixture, so a
- * description can only render if it came from the incident.
+ * turns it into for a custom email body, and the plain text it turns it into
+ * for SMS and the email subject. None appears in any other fixture, so a
+ * description can only render if it came from the incident, and each format
+ * can be told apart from the others.
  */
 const INCIDENT_DESCRIPTION: string =
   "Card payments **fail** for customers in [Europe](https://acme.com/eu).";
@@ -645,6 +646,29 @@ const CUSTOM_BODIES: Record<string, string> = {
     templateUsingEveryVariable("teams"),
 };
 
+type DescriptionFormat = "html" | "text" | "markdown";
+
+/*
+ * The format each custom template gets {{incidentDescription}} in: HTML for
+ * the email body, plain text for the email subject and SMS, and the Markdown
+ * as written for Slack and Teams.
+ */
+const DESCRIPTION_FORMAT_BY_TEMPLATE: Record<string, DescriptionFormat> = {
+  [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Email]!]: "html",
+  [EMAIL_SUBJECT_TEMPLATE]: "text",
+  [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]!]: "text",
+  [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Slack]!]: "markdown",
+  [CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!]:
+    "markdown",
+};
+
+function descriptionFormatOf(call: CompileCall): DescriptionFormat {
+  const format: DescriptionFormat | undefined =
+    DESCRIPTION_FORMAT_BY_TEMPLATE[call.template];
+  expect(format).toBeDefined();
+  return format!;
+}
+
 /*
  * Gives the status pages (custom SMTP and Twilio by default) a custom
  * template for the event on Email, SMS, Slack and Teams, each printing every
@@ -768,20 +792,21 @@ beforeEach(() => {
   ).mockResolvedValue(null as never);
 
   /*
-   * Only a known description has an HTML or plain-text form, so the email
-   * body, the subject and SMS can only show the right text if the worker
-   * converted the incident's own description (to email HTML for the body).
+   * Only a known description has a plain-text or HTML form, so a channel can
+   * only show the right text if the worker converted the incident's own
+   * description. HTML is only produced for email content.
    */
-  mock(Markdown.convertToHTML).mockImplementation(
-    async (markdown: unknown, contentType: unknown): Promise<string> => {
-      return contentType === MarkdownContentType.Email
-        ? HTML_BY_MARKDOWN[markdown as string] ?? ""
-        : "";
-    },
-  );
   mock(Markdown.convertToPlainText).mockImplementation(
     (markdown: unknown): string => {
       return PLAIN_TEXT_BY_MARKDOWN[markdown as string] ?? "";
+    },
+  );
+  mock(Markdown.convertToHTML).mockImplementation(
+    async (markdown: unknown, contentType: unknown): Promise<string> => {
+      if (contentType !== MarkdownContentType.Email) {
+        return "HTML for the wrong content type";
+      }
+      return HTML_BY_MARKDOWN[markdown as string] ?? "";
     },
   );
 
@@ -917,7 +942,7 @@ describe("IncidentStateTimeline {{incidentDescription}}", () => {
     expect(select["description"]).toBe(true);
   });
 
-  test("the email body gets the description as HTML, the subject and SMS as plain text, and Slack and Teams as written", async () => {
+  test("the email body gets the description as HTML, the email subject and SMS as plain text, and Slack and Teams as written", async () => {
     useCustomTemplatesOnEveryChannel();
 
     await runJob();
@@ -967,7 +992,34 @@ describe("IncidentStateTimeline {{incidentDescription}}", () => {
     );
   });
 
-  test("converts the description to HTML and plain text once per state change, not per page or subscriber", async () => {
+  test("only the description differs between channels", async () => {
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls).toHaveLength(5);
+
+    /*
+     * The fixture's resource is ungrouped, so the resource list reads the
+     * same in HTML and plain text. The grouped-resource tests below cover the
+     * channels whose resource separator differs.
+     */
+    const withoutDescription: Array<Record<string, string>> = calls.map(
+      (call: CompileCall): Record<string, string> => {
+        const variables: Record<string, string> = { ...call.variables };
+        delete variables["incidentDescription"];
+        return variables;
+      },
+    );
+
+    for (const variables of withoutDescription) {
+      expect(variables).toEqual(withoutDescription[0]);
+    }
+    expect(withoutDescription[0]!["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
+  });
+
+  test("converts the description once per state change, not per page or subscriber", async () => {
     useTwoStatusPagesWithTwoSubscribers();
 
     await runJob();
@@ -975,37 +1027,26 @@ describe("IncidentStateTimeline {{incidentDescription}}", () => {
     expect(Markdown.convertToHTML).toHaveBeenCalledTimes(1);
     expect(Markdown.convertToPlainText).toHaveBeenCalledTimes(1);
 
-    const descriptionsFor: (template: string) => Array<string> = (
-      template: string,
-    ): Array<string> => {
-      return compileCalls()
-        .filter((call: CompileCall): boolean => {
-          return call.template === template;
-        })
-        .map((call: CompileCall): string => {
-          return call.variables["incidentDescription"]!;
-        });
+    const descriptionsByFormat: Record<DescriptionFormat, Array<string>> = {
+      html: [],
+      text: [],
+      markdown: [],
     };
+    for (const call of compileCalls()) {
+      descriptionsByFormat[descriptionFormatOf(call)].push(
+        call.variables["incidentDescription"]!,
+      );
+    }
 
     // Two pages with two subscribers each.
-    const emailBodies: Array<string> = descriptionsFor(
-      CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Email]!,
-    );
-    expect(emailBodies).toHaveLength(4);
-    for (const description of emailBodies) {
-      expect(description).toBe(INCIDENT_DESCRIPTION_HTML);
-    }
-
-    const plainText: Array<string> = [
-      ...descriptionsFor(EMAIL_SUBJECT_TEMPLATE),
-      ...descriptionsFor(
-        CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]!,
-      ),
-    ];
-    expect(plainText).toHaveLength(8);
-    for (const description of plainText) {
-      expect(description).toBe(INCIDENT_DESCRIPTION_TEXT);
-    }
+    expect(descriptionsByFormat).toEqual({
+      // Email body.
+      html: new Array<string>(4).fill(INCIDENT_DESCRIPTION_HTML),
+      // Email subject and SMS.
+      text: new Array<string>(8).fill(INCIDENT_DESCRIPTION_TEXT),
+      // Slack and Teams.
+      markdown: new Array<string>(8).fill(INCIDENT_DESCRIPTION),
+    });
   });
 
   test("an incident without a description renders an empty description on every channel", async () => {
@@ -1033,6 +1074,12 @@ describe("IncidentStateTimeline {{incidentDescription}}", () => {
       expect(message).not.toMatch(/{{|}}/);
     }
     expect(sentSms()[0]).toContain("incidentDescription=[]");
+    expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toContain(
+      "incidentDescription=[]",
+    );
+    expect(
+      (sentWebhooks()[0]!["data"] as JSONObject)["incidentDescription"],
+    ).toBe("");
   });
 
   test("each state change in a tick carries its own incident's description", async () => {
@@ -1060,42 +1107,32 @@ describe("IncidentStateTimeline {{incidentDescription}}", () => {
     expect(calls).toHaveLength(10);
     expectEveryCallToCarryEveryVariable(calls);
 
-    // The format each template's channel renders.
-    const formatOf: (template: string) => string = (
-      template: string,
-    ): string => {
-      if (
-        template === CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Email]
-      ) {
-        return "html";
-      }
-
-      if (
-        template === EMAIL_SUBJECT_TEMPLATE ||
-        template === CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.SMS]
-      ) {
-        return "text";
-      }
-
-      return "markdown";
-    };
-
     const descriptions: Array<string> = calls.map(
       (call: CompileCall): string => {
-        return `${call.variables["incidentTitle"]} | ${call.variables["incidentState"]} | ${formatOf(call.template)} | ${call.variables["incidentDescription"]}`;
+        return `${call.variables["incidentTitle"]} | ${call.variables["incidentState"]} | ${descriptionFormatOf(call)} | ${call.variables["incidentDescription"]}`;
       },
     );
 
     expect(Array.from(new Set(descriptions)).sort()).toEqual(
       [
         `${INCIDENT_TITLE} | ${INCIDENT_STATE_NAME} | html | ${INCIDENT_DESCRIPTION_HTML}`,
-        `${INCIDENT_TITLE} | ${INCIDENT_STATE_NAME} | text | ${INCIDENT_DESCRIPTION_TEXT}`,
         `${INCIDENT_TITLE} | ${INCIDENT_STATE_NAME} | markdown | ${INCIDENT_DESCRIPTION}`,
+        `${INCIDENT_TITLE} | ${INCIDENT_STATE_NAME} | text | ${INCIDENT_DESCRIPTION_TEXT}`,
         `Search is stale | Resolved | html | ${SECOND_INCIDENT_DESCRIPTION_HTML}`,
-        `Search is stale | Resolved | text | ${SECOND_INCIDENT_DESCRIPTION_TEXT}`,
         `Search is stale | Resolved | markdown | ${SECOND_INCIDENT_DESCRIPTION}`,
+        `Search is stale | Resolved | text | ${SECOND_INCIDENT_DESCRIPTION_TEXT}`,
       ].sort(),
     );
+
+    // Each description is converted once, for its own state change.
+    expect(mock(Markdown.convertToHTML).mock.calls).toEqual([
+      [INCIDENT_DESCRIPTION, MarkdownContentType.Email],
+      [SECOND_INCIDENT_DESCRIPTION, MarkdownContentType.Email],
+    ]);
+    expect(mock(Markdown.convertToPlainText).mock.calls).toEqual([
+      [INCIDENT_DESCRIPTION],
+      [SECOND_INCIDENT_DESCRIPTION],
+    ]);
   });
 });
 
@@ -1216,7 +1253,7 @@ describe("IncidentStateTimeline custom template rendering", () => {
     ).mockImplementation(async (args: unknown) => {
       return (args as JSONObject)["notificationMethod"] ===
         StatusPageSubscriberNotificationMethod.Email
-        ? { templateBody: "<p>{{incidentDescription}}</p>" }
+        ? { templateBody: "<div>{{incidentDescription}}</div>" }
         : null;
     });
 
@@ -1230,7 +1267,7 @@ describe("IncidentStateTimeline custom template rendering", () => {
       `[Incident ${INCIDENT_STATE_NAME}] ${INCIDENT_TITLE}`,
     );
     expect(sentMail()[0]!["vars"]).toEqual({
-      body: `<p>${INCIDENT_DESCRIPTION_HTML}</p>`,
+      body: `<div>${INCIDENT_DESCRIPTION_HTML}</div>`,
     });
   });
 
@@ -1376,6 +1413,7 @@ describe("IncidentStateTimeline custom templates, with grouped resources", () =>
           incidentId: INCIDENT_ID.toString(),
           incidentNumber: "7",
           incidentTitle: INCIDENT_TITLE,
+          incidentDescription: INCIDENT_DESCRIPTION,
           incidentSeverity: INCIDENT_SEVERITY,
           incidentState: INCIDENT_STATE_NAME,
           resourcesAffected: GROUPED_RESOURCES_TEXT,
@@ -1484,7 +1522,7 @@ describe("IncidentStateTimeline default messages", () => {
     });
   });
 
-  test("the webhook payload is unchanged", async () => {
+  test("the webhook payload adds the description as written and is otherwise unchanged", async () => {
     await runJob();
 
     expect(sentWebhooks()).toEqual([
@@ -1498,6 +1536,7 @@ describe("IncidentStateTimeline default messages", () => {
           incidentId: INCIDENT_ID.toString(),
           incidentNumber: "7",
           incidentTitle: INCIDENT_TITLE,
+          incidentDescription: INCIDENT_DESCRIPTION,
           incidentSeverity: INCIDENT_SEVERITY,
           incidentState: INCIDENT_STATE_NAME,
           resourcesAffected: "Checkout API",

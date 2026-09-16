@@ -1,7 +1,4 @@
 import InvestigationCitationChip from "./InvestigationCitationChip";
-import InvestigationEvidenceList, {
-  EvidenceFocusRequest,
-} from "./InvestigationEvidenceList";
 import InvestigationReferenceLink from "./InvestigationReferenceLink";
 import {
   InvestigationReportSubjectType,
@@ -25,14 +22,7 @@ import type {
   MarkdownEventReference,
   MarkdownInlineReferenceRenderers,
 } from "Common/UI/Components/Markdown.tsx/InlineReferences";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useCallback,
-  useId,
-  useMemo,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useMemo } from "react";
 
 export interface ComponentProps {
   // The report exactly as published; "Copy report" copies this.
@@ -42,8 +32,11 @@ export interface ComponentProps {
   evidence: Array<InvestigationEvidenceItem>;
   references: Array<InvestigationEventReference>;
   subjectType: InvestigationReportSubjectType;
-  subjectId: string;
-  runId: string | null;
+  /*
+   * A citation chip was activated. The host reveals the matching query in
+   * the run's evidence, which it renders below the report.
+   */
+  onCitationActivate: (citationId: string) => void;
 }
 
 interface SectionAppearance {
@@ -68,7 +61,8 @@ function getSectionAppearance(
 
 /*
  * A completed AI investigation, laid out for a responder: the summary first,
- * then the report section by section, then every query the AI ran.
+ * then the report section by section. The queries its citations point at are
+ * the host's to show (see InvestigationRunDetails).
  *
  * The report is untrusted model output. Every piece of it renders through
  * MarkdownViewer in safeMode; the only interactive elements inside the prose
@@ -79,9 +73,6 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const idPrefix: string = useId();
-  const [focusRequest, setFocusRequest] = useState<EvidenceFocusRequest | null>(
-    null,
-  );
   const report: ParsedInvestigationReport = props.report;
   const legacyEntries: Array<InvestigationEvidenceCheckedEntry> =
     report.evidenceChecked;
@@ -122,21 +113,9 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
       return map;
     }, [props.references]);
 
-  const focusCitation: (citationId: string) => void = useCallback(
-    (citationId: string): void => {
-      setFocusRequest(
-        (previous: EvidenceFocusRequest | null): EvidenceFocusRequest => {
-          return {
-            citationId,
-            requestId: (previous?.requestId || 0) + 1,
-          };
-        },
-      );
-    },
-    [],
-  );
-
   const subjectType: InvestigationReportSubjectType = props.subjectType;
+  const onCitationActivate: (citationId: string) => void =
+    props.onCitationActivate;
 
   const inlineReferences: MarkdownInlineReferenceRenderers =
     useMemo((): MarkdownInlineReferenceRenderers => {
@@ -152,7 +131,7 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
             <InvestigationCitationChip
               citationId={citationId}
               label={label}
-              onActivate={focusCitation}
+              onActivate={onCitationActivate}
             />
           );
         },
@@ -179,7 +158,7 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
           );
         },
       };
-    }, [citationLabels, focusCitation, referencesByKey, subjectType]);
+    }, [citationLabels, onCitationActivate, referencesByKey, subjectType]);
 
   const tldr: string =
     typeof props.analysisTldr === "string" ? props.analysisTldr.trim() : "";
@@ -226,7 +205,7 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
       {tldr || summaryMarkdown ? (
         <section
           aria-label="Investigation summary"
-          className="overflow-hidden rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-indigo-50/40 to-white px-5 py-4 shadow-sm"
+          className="overflow-hidden rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white px-5 py-4 shadow-sm"
         >
           <div className="flex items-center gap-2.5">
             <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm">
@@ -274,8 +253,12 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
         aria-label="Investigation report"
         className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
       >
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-5 py-4">
-          <div className="flex min-w-0 items-start gap-2.5">
+        {/*
+          Wraps rather than squeezing the title: on a phone Copy report drops
+          under the title instead of drawing over it.
+        */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-gray-200 bg-gray-50/80 px-5 py-3.5">
+          <div className="flex min-w-0 items-center gap-2.5">
             <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
               <Icon icon={IconProp.DocumentText} className="h-4 w-4" />
             </span>
@@ -283,30 +266,28 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
               <h3 className="text-sm font-semibold text-gray-900">
                 Investigation report
               </h3>
-              <p className="mt-0.5 text-xs leading-5 text-gray-500">
-                Root cause, supporting evidence, and recommended next steps from
-                this investigation.
-              </p>
+              <div className="mt-0.5 flex items-start gap-1 text-xs leading-5 text-gray-500">
+                <Icon
+                  icon={IconProp.Sparkles}
+                  className="mt-1 h-3 w-3 flex-shrink-0 text-gray-400"
+                />
+                <span>AI-generated first pass — verify before acting.</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
-              <Icon icon={IconProp.Sparkles} className="h-3 w-3" />
-              AI generated
-            </span>
-            {/*
-              Responders paste the RCA into a channel or a postmortem long
-              before they act on it, so copy the report exactly as published
-              rather than the sections rendered below.
-            */}
-            <CopyTextButton
-              textToBeCopied={props.analysisMarkdown}
-              size="sm"
-              variant="ghost"
-              label="Copy report"
-              copiedLabel="Report copied"
-            />
-          </div>
+          {/*
+            Responders paste the RCA into a channel or a postmortem long
+            before they act on it, so copy the report exactly as published
+            rather than the sections rendered below.
+          */}
+          <CopyTextButton
+            className="flex-shrink-0 whitespace-nowrap"
+            textToBeCopied={props.analysisMarkdown}
+            size="sm"
+            variant="soft"
+            label="Copy report"
+            copiedLabel="Report copied"
+          />
         </div>
         <div className="space-y-5 px-5 py-5 text-sm leading-6 text-gray-700">
           {!hasReportBody ? (
@@ -391,15 +372,6 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
           )}
         </div>
       </section>
-
-      <InvestigationEvidenceList
-        items={props.evidence}
-        legacyEntries={legacyEntries}
-        subjectType={props.subjectType}
-        subjectId={props.subjectId}
-        runId={props.runId}
-        focusRequest={focusRequest}
-      />
     </>
   );
 };
