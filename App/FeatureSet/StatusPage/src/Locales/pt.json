@@ -135,6 +135,8 @@
     "sendManagementLink": "Enviar link de gerenciamento",
     "subscribedSuccessfully": "Você foi inscrito com sucesso.",
     "emailSentCheckSpam": "Um e-mail com o link foi enviado para seu e-mail. Se não ver o e-mail, verifique sua pasta de spam.",
+    "manageLinkSent": "Se alguma inscrição corresponder aos dados informados, enviamos um link para gerenciá-la.",
+    "manageLinkSentEmail": "Se este endereço de e-mail tiver uma inscrição, enviamos para ele um link para gerenciá-la. Se não encontrar o e-mail, verifique sua pasta de spam.",
     "menu": {
       "email": "E-mail",
       "sms": "SMS",

@@ -135,6 +135,8 @@
     "sendManagementLink": "Send administrationslink",
     "subscribedSuccessfully": "Du er blevet tilmeldt.",
     "emailSentCheckSpam": "En e-mail med linket er sendt til din e-mailadresse. Hvis du ikke kan se e-mailen, så tjek din spam-mappe.",
+    "manageLinkSent": "Hvis et abonnement matcher de oplysninger, du har indtastet, har vi sendt et link til at administrere det.",
+    "manageLinkSentEmail": "Hvis denne e-mailadresse har et abonnement, har vi sendt et administrationslink til adressen. Hvis du ikke kan se e-mailen, så tjek din spam-mappe.",
     "menu": {
       "email": "E-mail",
       "sms": "SMS",
