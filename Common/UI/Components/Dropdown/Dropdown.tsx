@@ -67,6 +67,11 @@ export interface ComponentProps {
   ariaLabel?: string | undefined;
   ariaLabelledby?: string | undefined;
   disabled?: boolean | undefined;
+  /*
+   * Show the clear (×) control. Defaults to true; turn it off for a choice
+   * that must always have a value, where clearing would only be undone.
+   */
+  isClearable?: boolean | undefined;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
@@ -787,7 +792,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         }}
         menuPortalTarget={menuPortalTarget}
         menuPosition="fixed"
-        isClearable={true}
+        isClearable={props.isClearable ?? true}
         isSearchable={true}
         placeholder={tx(props.placeholder) ?? props.placeholder}
         options={props.options as any}
