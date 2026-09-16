@@ -33,6 +33,8 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import StatusPageSubscriberWebhookTemplate from "Common/Server/Utils/StatusPageSubscriberWebhookTemplate";
+import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
@@ -247,7 +249,14 @@ const notifySubscribersOfAnnouncement: (data: {
             : statusPageURL;
 
         // Fetch custom templates for this status page
-        const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
+        const [
+          emailTemplate,
+          smsTemplate,
+          slackTemplate,
+          teamsTemplate,
+          webhookTemplate,
+        ]: [
+          StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
@@ -280,6 +289,14 @@ const notifySubscribersOfAnnouncement: (data: {
               eventType: copy.templateEventType,
               notificationMethod:
                 StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+            },
+          ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statuspage.id!,
+              eventType: copy.templateEventType,
+              notificationMethod:
+                StatusPageSubscriberNotificationMethod.Webhook,
             },
           ),
         ]);
@@ -317,6 +334,10 @@ const notifySubscribersOfAnnouncement: (data: {
               _id: true,
               displayName: true,
               statusPageId: true,
+              statusPageGroupId: true,
+              statusPageGroup: {
+                name: true,
+              },
             },
             skip: 0,
           });
@@ -329,6 +350,32 @@ const notifySubscribersOfAnnouncement: (data: {
             `Announcement ${announcement.id} has no monitors specified. All subscribers will be notified.`,
           );
         }
+
+        /*
+         * The resources of this status page the announcement's monitors map
+         * to. Empty when the announcement names no monitors, or none of them
+         * are shown on this page.
+         */
+        const resourcesAffectedString: string =
+          StatusPageResourceUtil.getResourcesGroupedByGroupName(
+            statusPageResources,
+          );
+
+        /*
+         * Template variables shared by every subscriber of this page. Slack,
+         * Teams and Webhook templates get the description as written; SMS
+         * and Email override it with the plain-text and HTML versions below.
+         */
+        const templateVariables: Record<string, string> = {
+          statusPageName: statusPageName,
+          statusPageUrl: statusPageURL,
+          statusPageId: statuspage.id!.toString(),
+          detailsUrl: announcementDetailsUrl,
+          resourcesAffected: resourcesAffectedString,
+          announcementId: announcement.id?.toString() || "",
+          announcementTitle: announcement.title || "",
+          announcementDescription: announcement.description || "",
+        };
 
         // Send email to Email subscribers.
 
@@ -368,6 +415,12 @@ const notifySubscribersOfAnnouncement: (data: {
               `Prepared unsubscribe link for subscriber ${subscriber._id} for announcement ${announcement.id}.`,
             );
 
+            // Add unsubscribeUrl to template variables
+            const subscriberTemplateVariables: Record<string, string> = {
+              ...templateVariables,
+              unsubscribeUrl: unsubscribeUrl,
+            };
+
             if (subscriber.subscriberPhone) {
               const phoneStr: string = subscriber.subscriberPhone.toString();
               const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
@@ -380,12 +433,8 @@ const notifySubscribersOfAnnouncement: (data: {
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                 // SMS-specific template variables with plain text (no HTML/Markdown)
                 const smsTemplateVariables: Record<string, string> = {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  detailsUrl: announcementDetailsUrl,
-                  announcementTitle: announcement.title || "",
+                  ...subscriberTemplateVariables,
                   announcementDescription: announcementDescriptionPlainText,
-                  unsubscribeUrl: unsubscribeUrl,
                 };
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
@@ -430,18 +479,10 @@ const notifySubscribersOfAnnouncement: (data: {
               // Build Slack message - use custom template if available
               let slackMessage: string;
               if (slackTemplate?.templateBody) {
-                const slackTemplateVariables: Record<string, string> = {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  detailsUrl: announcementDetailsUrl,
-                  announcementTitle: announcement.title || "",
-                  announcementDescription: announcement.description || "",
-                  unsubscribeUrl: unsubscribeUrl,
-                };
                 slackMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     slackTemplate.templateBody,
-                    slackTemplateVariables,
+                    subscriberTemplateVariables,
                   );
               } else {
                 // Default markdown message
@@ -469,18 +510,10 @@ const notifySubscribersOfAnnouncement: (data: {
               // Build Teams message - use custom template if available
               let teamsMessage: string;
               if (teamsTemplate?.templateBody) {
-                const teamsTemplateVariables: Record<string, string> = {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  detailsUrl: announcementDetailsUrl,
-                  announcementTitle: announcement.title || "",
-                  announcementDescription: announcement.description || "",
-                  unsubscribeUrl: unsubscribeUrl,
-                };
                 teamsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     teamsTemplate.templateBody,
-                    teamsTemplateVariables,
+                    subscriberTemplateVariables,
                   );
               } else {
                 // Default markdown message
@@ -505,21 +538,26 @@ const notifySubscribersOfAnnouncement: (data: {
                 `Queueing webhook notification to subscriber ${subscriber._id} for announcement ${announcement.id}.`,
               );
 
+              // Use the custom template if it compiles to a JSON object
               StatusPageSubscriberWebhookUtil.sendWebhookNotification({
                 webhookUrl: subscriber.subscriberWebhook,
-                payload: {
-                  eventType: copy.webhookEventType,
-                  statusPageId: statuspage.id!.toString(),
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  unsubscribeUrl: unsubscribeUrl,
-                  data: {
-                    announcementId: announcement.id?.toString() || "",
-                    announcementTitle: announcement.title || "",
-                    announcementDescription: announcement.description || "",
-                    detailsUrl: announcementDetailsUrl,
+                payload: StatusPageSubscriberWebhookTemplate.getPayload({
+                  templateBody: webhookTemplate?.templateBody,
+                  variables: subscriberTemplateVariables,
+                  defaultPayload: {
+                    eventType: copy.webhookEventType,
+                    statusPageId: statuspage.id!.toString(),
+                    statusPageName: statusPageName,
+                    statusPageUrl: statusPageURL,
+                    unsubscribeUrl: unsubscribeUrl,
+                    data: {
+                      announcementId: announcement.id?.toString() || "",
+                      announcementTitle: announcement.title || "",
+                      announcementDescription: announcement.description || "",
+                      detailsUrl: announcementDetailsUrl,
+                    },
                   },
-                },
+                }),
               }).catch((err: Error) => {
                 logger.error(err, EXTERNAL_FAULT);
               });
@@ -542,12 +580,8 @@ const notifySubscribersOfAnnouncement: (data: {
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                 // Use custom template with BlankTemplate only when custom SMTP is configured
                 const emailTemplateVariables: Record<string, string> = {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  detailsUrl: announcementDetailsUrl,
-                  announcementTitle: announcement.title || "",
+                  ...subscriberTemplateVariables,
                   announcementDescription: announcementDescriptionHtml,
-                  unsubscribeUrl: unsubscribeUrl,
                 };
                 const customEmailBody: string =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(

@@ -42,6 +42,7 @@ import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import StatusPageSubscriberWebhookTemplate from "Common/Server/Utils/StatusPageSubscriberWebhookTemplate";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -276,7 +277,14 @@ RunCron(
             OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!);
 
           // Fetch custom templates for this status page (if any)
-          const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
+          const [
+            emailTemplate,
+            smsTemplate,
+            slackTemplate,
+            teamsTemplate,
+            webhookTemplate,
+          ]: [
+            StatusPageSubscriberNotificationTemplate | null,
             StatusPageSubscriberNotificationTemplate | null,
             StatusPageSubscriberNotificationTemplate | null,
             StatusPageSubscriberNotificationTemplate | null,
@@ -317,15 +325,27 @@ RunCron(
                   StatusPageSubscriberNotificationMethod.MicrosoftTeams,
               },
             ),
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.Webhook,
+              },
+            ),
           ]);
 
           // Prepare template variables for custom templates
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
+            statusPageId: statuspage.id!.toString(),
             detailsUrl: scheduledEventDetailsUrl,
             resourcesAffected: resourcesAffectedString,
+            scheduledMaintenanceId: event.id?.toString() || "",
             scheduledMaintenanceTitle: event.title || "",
+            scheduledMaintenanceDescription: event.description || "",
             scheduledMaintenanceState:
               scheduledEventStateTimeline.scheduledMaintenanceState?.name || "",
             scheduledAt: scheduledAtString,
@@ -464,24 +484,29 @@ RunCron(
             }
 
             if (subscriber.subscriberWebhook) {
+              // A custom Webhook template replaces the default payload below.
               StatusPageSubscriberWebhookUtil.sendWebhookNotification({
                 webhookUrl: subscriber.subscriberWebhook,
-                payload: {
-                  eventType: "ScheduledMaintenanceStateChanged",
-                  statusPageId: statuspage.id!.toString(),
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  unsubscribeUrl: unsubscribeUrl,
-                  data: {
-                    scheduledMaintenanceId: event.id?.toString() || "",
-                    scheduledMaintenanceTitle: event.title || "",
-                    scheduledMaintenanceState:
-                      scheduledEventStateTimeline.scheduledMaintenanceState
-                        ?.name || "",
-                    resourcesAffected: resourcesAffectedString,
-                    detailsUrl: scheduledEventDetailsUrl,
+                payload: StatusPageSubscriberWebhookTemplate.getPayload({
+                  templateBody: webhookTemplate?.templateBody,
+                  variables: subscriberTemplateVariables,
+                  defaultPayload: {
+                    eventType: "ScheduledMaintenanceStateChanged",
+                    statusPageId: statuspage.id!.toString(),
+                    statusPageName: statusPageName,
+                    statusPageUrl: statusPageURL,
+                    unsubscribeUrl: unsubscribeUrl,
+                    data: {
+                      scheduledMaintenanceId: event.id?.toString() || "",
+                      scheduledMaintenanceTitle: event.title || "",
+                      scheduledMaintenanceState:
+                        scheduledEventStateTimeline.scheduledMaintenanceState
+                          ?.name || "",
+                      resourcesAffected: resourcesAffectedString,
+                      detailsUrl: scheduledEventDetailsUrl,
+                    },
                   },
-                },
+                }),
               }).catch((err: Error) => {
                 logger.error(err, EXTERNAL_FAULT);
               });

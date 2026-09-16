@@ -44,6 +44,7 @@ import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import StatusPageSubscriberWebhookTemplate from "Common/Server/Utils/StatusPageSubscriberWebhookTemplate";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -418,7 +419,14 @@ RunCron(
         );
 
         // Fetch custom templates for this status page (if any)
-        const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
+        const [
+          emailTemplate,
+          smsTemplate,
+          slackTemplate,
+          teamsTemplate,
+          webhookTemplate,
+        ]: [
+          StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
@@ -455,6 +463,15 @@ RunCron(
                 StatusPageSubscriberNotificationEventType.SubscriberEpisodeStateChanged,
               notificationMethod:
                 StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+            },
+          ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statuspage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberEpisodeStateChanged,
+              notificationMethod:
+                StatusPageSubscriberNotificationMethod.Webhook,
             },
           ),
         ]);
@@ -507,8 +524,10 @@ RunCron(
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
+            statusPageId: statuspage.id!.toString(),
             detailsUrl: episodeDetailsUrl,
             resourcesAffected: resourcesAffected || "None",
+            episodeId: episode.id?.toString() || "",
             episodeSeverity: episode.incidentSeverity?.name || " - ",
             episodeTitle: episode.title || "",
             episodeState: episodeStateTimeline.incidentState.name,
@@ -770,21 +789,27 @@ RunCron(
           if (subscriber.subscriberWebhook) {
             StatusPageSubscriberWebhookUtil.sendWebhookNotification({
               webhookUrl: subscriber.subscriberWebhook,
-              payload: {
-                eventType: "EpisodeStateChanged",
-                statusPageId: statuspage.id!.toString(),
-                statusPageName: statusPageName,
-                statusPageUrl: statusPageURL,
-                unsubscribeUrl: unsubscribeUrl,
-                data: {
-                  episodeId: episode.id?.toString() || "",
-                  episodeTitle: episode.title || "",
-                  incidentSeverity: episode.incidentSeverity?.name || "",
-                  incidentState: episodeStateTimeline.incidentState?.name || "",
-                  resourcesAffected: resourcesAffected || "",
-                  detailsUrl: episodeDetailsUrl,
+              // A custom Webhook template replaces the default payload below.
+              payload: StatusPageSubscriberWebhookTemplate.getPayload({
+                templateBody: webhookTemplate?.templateBody,
+                variables: templateVariables,
+                defaultPayload: {
+                  eventType: "EpisodeStateChanged",
+                  statusPageId: statuspage.id!.toString(),
+                  statusPageName: statusPageName,
+                  statusPageUrl: statusPageURL,
+                  unsubscribeUrl: unsubscribeUrl,
+                  data: {
+                    episodeId: episode.id?.toString() || "",
+                    episodeTitle: episode.title || "",
+                    incidentSeverity: episode.incidentSeverity?.name || "",
+                    incidentState:
+                      episodeStateTimeline.incidentState?.name || "",
+                    resourcesAffected: resourcesAffected || "",
+                    detailsUrl: episodeDetailsUrl,
+                  },
                 },
-              },
+              }),
             }).catch((err: Error) => {
               logger.error(err, {
                 ...EXTERNAL_FAULT,

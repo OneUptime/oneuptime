@@ -133,6 +133,31 @@ The **Notification Templates** card on **Subscriber Settings** lists the templat
 
 Project-wide templates live one level up, at **Status Pages → Settings → Subscriber Templates**, next to **Announcement Templates**.
 
+A template replaces the built-in message for one event type on one channel; without one, the built-in message goes out. The template editor only offers the event types a channel actually sends:
+
+- **Email** — every event type. A custom email template is used when the status page has a **Custom SMTP Config**.
+- **SMS** — every event type except **Subscriber Subscription Confirmation** and **Subscriber Report**. A custom SMS template is used when the status page has a **Twilio Config**.
+- **Slack** and **Microsoft Teams** — the same event types as SMS.
+- **Webhook** — the same event types as SMS, except **Subscriber Manage Subscription**: webhook subscribers have no way to ask for a management link.
+
+Status page reports are sent to email subscribers only, and only email subscribers confirm their subscription.
+
+Each event type has its own `{{variables}}`, listed under the template body in the editor. Every event except the report can use `{{statusPageId}}`, and incident, episode, announcement and scheduled maintenance events also carry the item's id (`{{incidentId}}` and `{{incidentNumber}}`, `{{episodeId}}`, `{{announcementId}}`, `{{scheduledMaintenanceId}}`).
+
+### Webhook templates
+
+A Webhook template is the JSON body webhook subscribers receive instead of the default payload. The editor pre-fills it with the default payload itself, so a template saved unchanged keeps every field your webhook consumers already read; change it when the receiving system expects a different shape:
+
+```json
+{
+  "text": "{{incidentTitle}} ({{incidentSeverity}}) on {{statusPageName}}: {{detailsUrl}}"
+}
+```
+
+- Each variable is inserted as JSON-escaped text, so put it inside double quotes. A title containing quotes, or a note that spans several lines, still produces valid JSON.
+- The template must be a JSON object. A template that is not is rejected when you save it.
+- If a template still does not produce a JSON object when a notification goes out, that subscriber receives the default payload, so a broken template never costs anyone a notification.
+
 ## Email footer, custom SMTP and Twilio
 
 Three more cards on **Subscriber Settings** control how subscriber messages leave your project:

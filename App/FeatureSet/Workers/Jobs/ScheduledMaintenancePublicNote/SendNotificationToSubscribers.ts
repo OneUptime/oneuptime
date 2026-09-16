@@ -44,6 +44,7 @@ import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import StatusPageSubscriberWebhookTemplate from "Common/Server/Utils/StatusPageSubscriberWebhookTemplate";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
@@ -178,6 +179,9 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           statusPages: {
             _id: true,
           },
+          currentScheduledMaintenanceState: {
+            name: true,
+          },
           isVisibleOnStatusPage: true,
           scheduledMaintenanceNumber: true,
         },
@@ -294,9 +298,10 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
     }
 
     /*
-     * Pre-compute markdown conversions for the note once per public note.
-     * These values do not vary per status page or per subscriber, so
-     * memoizing here avoids N redundant markdown parses during fan-out.
+     * Pre-compute markdown conversions for the note and the event description
+     * once per public note. These values do not vary per status page or per
+     * subscriber, so memoizing here avoids N redundant markdown parses during
+     * fan-out.
      */
     const noteHtml: string = await Markdown.convertToHTML(
       publicNote.note || "",
@@ -305,6 +310,18 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
     const notePlainText: string = Markdown.convertToPlainText(
       publicNote.note || "",
     );
+    const eventDescriptionPlainText: string = Markdown.convertToPlainText(
+      event.description || "",
+    );
+
+    /*
+     * When the note says it was posted, not when this job picked it up. A note
+     * written before postedAt existed has none, so it falls back to now.
+     */
+    const notePostedAt: string =
+      OneUptimeDate.getDateAsUserFriendlyFormattedString(
+        publicNote.postedAt || OneUptimeDate.getCurrentDate(),
+      );
 
     let notificationSentToAtLeastOneSubscriber: boolean = false;
 
@@ -351,7 +368,14 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
       );
 
       // Fetch custom templates for this status page (if any)
-      const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
+      const [
+        emailTemplate,
+        smsTemplate,
+        slackTemplate,
+        teamsTemplate,
+        webhookTemplate,
+      ]: [
+        StatusPageSubscriberNotificationTemplate | null,
         StatusPageSubscriberNotificationTemplate | null,
         StatusPageSubscriberNotificationTemplate | null,
         StatusPageSubscriberNotificationTemplate | null,
@@ -386,28 +410,45 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
               StatusPageSubscriberNotificationMethod.MicrosoftTeams,
           },
         ),
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+          {
+            statusPageId: statuspage.id!,
+            eventType: copy.templateEventType,
+            notificationMethod: StatusPageSubscriberNotificationMethod.Webhook,
+          },
+        ),
       ]);
+
+      const resourcesAffectedString: string =
+        statusPageToResources[statuspage._id!]
+          ?.map((r: StatusPageResource) => {
+            return r.displayName;
+          })
+          .join(", ") || "";
 
       // Prepare template variables for custom templates
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
         statusPageUrl: statusPageURL,
+        statusPageId: statuspage.id!.toString(),
         detailsUrl: scheduledEventDetailsUrl,
+        resourcesAffected: resourcesAffectedString,
+        scheduledMaintenanceId: event.id?.toString() || "",
         scheduledMaintenanceTitle: event.title || "",
+        scheduledMaintenanceDescription: event.description || "",
         scheduledMaintenanceState:
-          OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!),
+          event.currentScheduledMaintenanceState?.name || "",
         note: publicNote.note || "",
-        postedAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
-          OneUptimeDate.getCurrentDate(),
-        ),
+        postedAt: notePostedAt,
       };
 
       /*
        * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
-       * Uses the memoized plain-text conversion computed once per public note above.
+       * Uses the memoized plain-text conversions computed once per public note above.
        */
       const smsTemplateVariables: Record<string, string> = {
         ...templateVariables,
+        scheduledMaintenanceDescription: eventDescriptionPlainText,
         note: notePlainText,
       };
 
@@ -575,30 +616,32 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         }
 
         if (subscriber.subscriberWebhook) {
-          const resourcesAffectedStr: string =
-            statusPageToResources[statuspage._id!]
-              ?.map((r: StatusPageResource) => {
-                return r.displayName;
-              })
-              .join(", ") || "";
+          logger.debug(
+            `Queueing webhook notification to subscriber ${subscriber._id} for public note ${publicNote.id}.`,
+          );
 
+          // A custom Webhook template replaces the default payload below.
           StatusPageSubscriberWebhookUtil.sendWebhookNotification({
             webhookUrl: subscriber.subscriberWebhook,
-            payload: {
-              eventType: copy.webhookEventType,
-              statusPageId: statuspage.id!.toString(),
-              statusPageName: statusPageName,
-              statusPageUrl: statusPageURL,
-              unsubscribeUrl: unsubscribeUrl,
-              data: {
-                scheduledMaintenanceId: event.id?.toString() || "",
-                scheduledMaintenanceTitle: event.title || "",
-                scheduledMaintenanceDescription: event.description || "",
-                resourcesAffected: resourcesAffectedStr,
-                note: publicNote.note || "",
-                detailsUrl: scheduledEventDetailsUrl,
+            payload: StatusPageSubscriberWebhookTemplate.getPayload({
+              templateBody: webhookTemplate?.templateBody,
+              variables: subscriberTemplateVariables,
+              defaultPayload: {
+                eventType: copy.webhookEventType,
+                statusPageId: statuspage.id!.toString(),
+                statusPageName: statusPageName,
+                statusPageUrl: statusPageURL,
+                unsubscribeUrl: unsubscribeUrl,
+                data: {
+                  scheduledMaintenanceId: event.id?.toString() || "",
+                  scheduledMaintenanceTitle: event.title || "",
+                  scheduledMaintenanceDescription: event.description || "",
+                  resourcesAffected: resourcesAffectedString,
+                  note: publicNote.note || "",
+                  detailsUrl: scheduledEventDetailsUrl,
+                },
               },
-            },
+            }),
           }).catch((err: Error) => {
             logger.error(err, EXTERNAL_FAULT);
           });
@@ -665,12 +708,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"
                     : "false",
-                  resourcesAffected:
-                    statusPageToResources[statuspage._id!]
-                      ?.map((r: StatusPageResource) => {
-                        return r.displayName;
-                      })
-                      .join(", ") || "",
+                  resourcesAffected: resourcesAffectedString,
                   scheduledAt:
                     OneUptimeDate.getDateAsUserFriendlyFormattedString(
                       event.startsAt!,
@@ -788,6 +826,7 @@ RunCron(
           _id: true,
           note: true,
           scheduledMaintenanceId: true,
+          postedAt: true,
         },
       });
 
@@ -830,6 +869,7 @@ RunCron(
           _id: true,
           note: true,
           scheduledMaintenanceId: true,
+          postedAt: true,
           subscriberNotificationStatusOnNoteCreated: true,
         },
       });

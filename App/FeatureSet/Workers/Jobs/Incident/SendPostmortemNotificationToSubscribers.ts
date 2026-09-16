@@ -41,6 +41,7 @@ import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import StatusPageSubscriberWebhookTemplate from "Common/Server/Utils/StatusPageSubscriberWebhookTemplate";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -381,6 +382,17 @@ RunCron(
                 },
               );
 
+            const webhookTemplate: StatusPageSubscriberNotificationTemplate | null =
+              await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                {
+                  statusPageId: statuspage.id!,
+                  eventType:
+                    StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished,
+                  notificationMethod:
+                    StatusPageSubscriberNotificationMethod.Webhook,
+                },
+              );
+
             const statusPageURL: string =
               await StatusPageService.getStatusPageURL(statuspage.id);
             const statusPageName: string =
@@ -417,6 +429,20 @@ RunCron(
                 incidentId: incident.id?.toString(),
               },
             );
+
+            // Template variables shared by every subscriber of this status page
+            const templateVars: Dictionary<string> = {
+              statusPageName: statusPageName,
+              statusPageUrl: statusPageURL,
+              statusPageId: statuspage.id!.toString(),
+              detailsUrl: incidentDetailsUrl,
+              resourcesAffected: resourcesAffectedString,
+              incidentId: incident.id?.toString() || "",
+              incidentNumber: incident.incidentNumber?.toString() || "",
+              incidentSeverity: incident.incidentSeverity?.name || " - ",
+              incidentTitle: incident.title || "",
+              postmortemNote: incident.postmortemNote || "",
+            };
 
             for (const subscriber of subscribers) {
               try {
@@ -465,6 +491,12 @@ RunCron(
                   },
                 );
 
+                // Template variables for Email, Slack, Microsoft Teams and Webhook templates
+                const subscriberTemplateVars: Dictionary<string> = {
+                  ...templateVars,
+                  unsubscribeUrl: unsubscribeUrl,
+                };
+
                 if (subscriber.subscriberEmail) {
                   // send email here.
                   logger.debug(
@@ -475,29 +507,17 @@ RunCron(
                     },
                   );
 
-                  // Template variables for compilation
-                  const templateVars: Dictionary<string> = {
-                    statusPageName: statusPageName,
-                    statusPageUrl: statusPageURL,
-                    detailsUrl: incidentDetailsUrl,
-                    resourcesAffected: resourcesAffectedString,
-                    incidentSeverity: incident.incidentSeverity?.name || " - ",
-                    incidentTitle: incident.title || "",
-                    postmortemNote: incident.postmortemNote || "",
-                    unsubscribeUrl: unsubscribeUrl,
-                  };
-
                   // Use custom template if available and custom SMTP is configured, otherwise use default
                   if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                     const compiledBody: string =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         emailTemplate.templateBody,
-                        templateVars,
+                        subscriberTemplateVars,
                       );
                     const compiledSubject: string = emailTemplate.emailSubject
                       ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                           emailTemplate.emailSubject,
-                          templateVars,
+                          subscriberTemplateVars,
                         )
                       : "[Postmortem] " + incident.title || "";
 
@@ -604,16 +624,10 @@ RunCron(
                     },
                   );
 
-                  // Template variables for compilation
+                  // Template variables for compilation (SMS keeps its shorter severity fallback)
                   const smsTemplateVars: Dictionary<string> = {
-                    statusPageName: statusPageName,
-                    statusPageUrl: statusPageURL,
-                    detailsUrl: incidentDetailsUrl,
-                    resourcesAffected: resourcesAffectedString,
+                    ...subscriberTemplateVars,
                     incidentSeverity: incident.incidentSeverity?.name || "-",
-                    incidentTitle: incident.title || "",
-                    postmortemNote: incident.postmortemNote || "",
-                    unsubscribeUrl: unsubscribeUrl,
                   };
 
                   // Use custom template if available and custom Twilio is configured, otherwise use default
@@ -667,25 +681,13 @@ RunCron(
                     },
                   );
 
-                  // Template variables for compilation
-                  const slackTemplateVars: Dictionary<string> = {
-                    statusPageName: statusPageName,
-                    statusPageUrl: statusPageURL,
-                    detailsUrl: incidentDetailsUrl,
-                    resourcesAffected: resourcesAffectedString,
-                    incidentSeverity: incident.incidentSeverity?.name || " - ",
-                    incidentTitle: incident.title || "",
-                    postmortemNote: incident.postmortemNote || "",
-                    unsubscribeUrl: unsubscribeUrl,
-                  };
-
                   // Use custom template if available, otherwise use default
                   let markdownMessage: string;
                   if (slackTemplate?.templateBody) {
                     markdownMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         slackTemplate.templateBody,
-                        slackTemplateVars,
+                        subscriberTemplateVars,
                       );
                   } else {
                     markdownMessage = `## 🚨 Incident Postmortem - ${incident.title || ""}
@@ -730,25 +732,13 @@ RunCron(
                     },
                   );
 
-                  // Template variables for compilation
-                  const teamsTemplateVars: Dictionary<string> = {
-                    statusPageName: statusPageName,
-                    statusPageUrl: statusPageURL,
-                    detailsUrl: incidentDetailsUrl,
-                    resourcesAffected: resourcesAffectedString,
-                    incidentSeverity: incident.incidentSeverity?.name || " - ",
-                    incidentTitle: incident.title || "",
-                    postmortemNote: incident.postmortemNote || "",
-                    unsubscribeUrl: unsubscribeUrl,
-                  };
-
                   // Use custom template if available, otherwise use default
                   let teamsMarkdownMessage: string;
                   if (teamsTemplate?.templateBody) {
                     teamsMarkdownMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         teamsTemplate.templateBody,
-                        teamsTemplateVars,
+                        subscriberTemplateVars,
                       );
                   } else {
                     teamsMarkdownMessage = `## 🚨 Incident Postmortem - ${incident.title || ""}
@@ -779,25 +769,31 @@ RunCron(
                 }
 
                 if (subscriber.subscriberWebhook) {
+                  // Use custom template if available, otherwise send the default payload
                   StatusPageSubscriberWebhookUtil.sendWebhookNotification({
                     webhookUrl: subscriber.subscriberWebhook,
-                    payload: {
-                      eventType: "IncidentPostmortemPublished",
-                      statusPageId: statuspage.id!.toString(),
-                      statusPageName: statusPageName,
-                      statusPageUrl: statusPageURL,
-                      unsubscribeUrl: unsubscribeUrl,
-                      data: {
-                        incidentId: incident.id?.toString() || "",
-                        incidentNumber:
-                          incident.incidentNumber?.toString() || "",
-                        incidentTitle: incident.title || "",
-                        incidentSeverity: incident.incidentSeverity?.name || "",
-                        resourcesAffected: resourcesAffectedString,
-                        postmortemNote: incident.postmortemNote || "",
-                        detailsUrl: incidentDetailsUrl,
+                    payload: StatusPageSubscriberWebhookTemplate.getPayload({
+                      templateBody: webhookTemplate?.templateBody,
+                      variables: subscriberTemplateVars,
+                      defaultPayload: {
+                        eventType: "IncidentPostmortemPublished",
+                        statusPageId: statuspage.id!.toString(),
+                        statusPageName: statusPageName,
+                        statusPageUrl: statusPageURL,
+                        unsubscribeUrl: unsubscribeUrl,
+                        data: {
+                          incidentId: incident.id?.toString() || "",
+                          incidentNumber:
+                            incident.incidentNumber?.toString() || "",
+                          incidentTitle: incident.title || "",
+                          incidentSeverity:
+                            incident.incidentSeverity?.name || "",
+                          resourcesAffected: resourcesAffectedString,
+                          postmortemNote: incident.postmortemNote || "",
+                          detailsUrl: incidentDetailsUrl,
+                        },
                       },
-                    },
+                    }),
                   }).catch((err: Error) => {
                     logger.error(err, {
                       ...EXTERNAL_FAULT,

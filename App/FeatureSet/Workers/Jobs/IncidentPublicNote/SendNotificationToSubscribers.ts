@@ -4,6 +4,7 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
@@ -42,6 +43,7 @@ import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import StatusPageSubscriberWebhookTemplate from "Common/Server/Utils/StatusPageSubscriberWebhookTemplate";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
@@ -181,6 +183,9 @@ const notifySubscribersOfIncidentPublicNote: (data: {
           _id: true,
         },
         incidentSeverity: {
+          name: true,
+        },
+        currentIncidentState: {
           name: true,
         },
         isVisibleOnStatusPage: true,
@@ -324,6 +329,15 @@ const notifySubscribersOfIncidentPublicNote: (data: {
       incidentPublicNote.note || "",
     );
 
+    /*
+     * When the note says it was posted, not when this job picked it up. A note
+     * written before postedAt existed has none, so it falls back to now.
+     */
+    const notePostedAt: string =
+      OneUptimeDate.getDateAsUserFriendlyFormattedString(
+        incidentPublicNote.postedAt || OneUptimeDate.getCurrentDate(),
+      );
+
     let notificationSentToAtLeastOneSubscriber: boolean = false;
 
     for (const statuspage of statusPages) {
@@ -379,7 +393,14 @@ const notifySubscribersOfIncidentPublicNote: (data: {
       );
 
       // Fetch custom templates for this status page (if any)
-      const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
+      const [
+        emailTemplate,
+        smsTemplate,
+        slackTemplate,
+        teamsTemplate,
+        webhookTemplate,
+      ]: [
+        StatusPageSubscriberNotificationTemplate | null,
         StatusPageSubscriberNotificationTemplate | null,
         StatusPageSubscriberNotificationTemplate | null,
         StatusPageSubscriberNotificationTemplate | null,
@@ -414,6 +435,13 @@ const notifySubscribersOfIncidentPublicNote: (data: {
               StatusPageSubscriberNotificationMethod.MicrosoftTeams,
           },
         ),
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+          {
+            statusPageId: statuspage.id!,
+            eventType: copy.templateEventType,
+            notificationMethod: StatusPageSubscriberNotificationMethod.Webhook,
+          },
+        ),
       ]);
 
       // Prepare template variables for custom templates
@@ -425,10 +453,15 @@ const notifySubscribersOfIncidentPublicNote: (data: {
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
         statusPageUrl: statusPageURL,
+        statusPageId: statuspage.id!.toString(),
         detailsUrl: incidentDetailsUrl,
         resourcesAffected: resourcesAffectedString,
+        incidentId: incident.id?.toString() || "",
+        incidentNumber: incident.incidentNumber?.toString() || "",
         incidentSeverity: incident.incidentSeverity?.name || " - ",
+        incidentState: incident.currentIncidentState?.name || "",
         incidentTitle: incident.title || "",
+        postedAt: notePostedAt,
         note: incidentPublicNote.note || "",
       };
 
@@ -772,24 +805,29 @@ ${incidentPublicNote.note || ""}
             },
           );
 
+          // A custom Webhook template replaces the default payload below.
           StatusPageSubscriberWebhookUtil.sendWebhookNotification({
             webhookUrl: subscriber.subscriberWebhook,
-            payload: {
-              eventType: copy.webhookEventType,
-              statusPageId: statuspage.id!.toString(),
-              statusPageName: statusPageName,
-              statusPageUrl: statusPageURL,
-              unsubscribeUrl: unsubscribeUrl,
-              data: {
-                incidentId: incident.id?.toString() || "",
-                incidentNumber: incident.incidentNumber?.toString() || "",
-                incidentTitle: incident.title || "",
-                incidentSeverity: incident.incidentSeverity?.name || "",
-                resourcesAffected: resourcesAffectedString,
-                note: incidentPublicNote.note || "",
-                detailsUrl: incidentDetailsUrl,
+            payload: StatusPageSubscriberWebhookTemplate.getPayload({
+              templateBody: webhookTemplate?.templateBody,
+              variables: subscriberTemplateVariables,
+              defaultPayload: {
+                eventType: copy.webhookEventType,
+                statusPageId: statuspage.id!.toString(),
+                statusPageName: statusPageName,
+                statusPageUrl: statusPageURL,
+                unsubscribeUrl: unsubscribeUrl,
+                data: {
+                  incidentId: incident.id?.toString() || "",
+                  incidentNumber: incident.incidentNumber?.toString() || "",
+                  incidentTitle: incident.title || "",
+                  incidentSeverity: incident.incidentSeverity?.name || "",
+                  resourcesAffected: resourcesAffectedString,
+                  note: incidentPublicNote.note || "",
+                  detailsUrl: incidentDetailsUrl,
+                },
               },
-            },
+            }),
           }).catch((err: Error) => {
             logger.error(err, {
               ...EXTERNAL_FAULT,
@@ -910,6 +948,7 @@ RunCron(
           note: true,
           incidentId: true,
           projectId: true,
+          postedAt: true,
         },
       });
 
@@ -954,6 +993,7 @@ RunCron(
           note: true,
           incidentId: true,
           projectId: true,
+          postedAt: true,
           subscriberNotificationStatusOnNoteCreated: true,
         },
       });

@@ -39,6 +39,7 @@ import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import StatusPageSubscriberWebhookTemplate from "Common/Server/Utils/StatusPageSubscriberWebhookTemplate";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -309,6 +310,7 @@ RunCron(
               smsTemplate,
               slackTemplate,
               teamsTemplate,
+              webhookTemplate,
             ]: Array<StatusPageSubscriberNotificationTemplate | null> =
               await Promise.all([
                 StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -347,17 +349,29 @@ RunCron(
                       StatusPageSubscriberNotificationMethod.MicrosoftTeams,
                   },
                 ),
+                StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                  {
+                    statusPageId: statuspage.id!,
+                    eventType:
+                      StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+                    notificationMethod:
+                      StatusPageSubscriberNotificationMethod.Webhook,
+                  },
+                ),
               ]);
 
             // Prepare template variables for custom templates
             const templateVariables: Record<string, string> = {
               statusPageName: statusPageName,
               statusPageUrl: statusPageURL,
+              statusPageId: statuspage.id!.toString(),
               detailsUrl: incidentDetailsUrl,
               resourcesAffected: resourcesAffectedString,
               incidentSeverity: incident.incidentSeverity?.name || " - ",
               incidentTitle: incident.title || "",
               incidentDescription: incident.description || "",
+              incidentId: incident.id?.toString() || "",
+              incidentNumber: incident.incidentNumber?.toString() || "",
             };
 
             /*
@@ -641,25 +655,31 @@ RunCron(
                     `Queueing webhook notification to subscriber ${subscriber._id}.`,
                   );
 
+                  // A custom Webhook template replaces the default payload.
                   StatusPageSubscriberWebhookUtil.sendWebhookNotification({
                     webhookUrl: subscriber.subscriberWebhook,
-                    payload: {
-                      eventType: "IncidentCreated",
-                      statusPageId: statuspage.id!.toString(),
-                      statusPageName: statusPageName,
-                      statusPageUrl: statusPageURL,
-                      unsubscribeUrl: unsubscribeUrl,
-                      data: {
-                        incidentId: incident.id?.toString() || "",
-                        incidentNumber:
-                          incident.incidentNumber?.toString() || "",
-                        incidentTitle: incident.title || "",
-                        incidentDescription: incident.description || "",
-                        incidentSeverity: incident.incidentSeverity?.name || "",
-                        resourcesAffected: resourcesAffectedString,
-                        detailsUrl: incidentDetailsUrl,
+                    payload: StatusPageSubscriberWebhookTemplate.getPayload({
+                      templateBody: webhookTemplate?.templateBody,
+                      variables: subscriberTemplateVariables,
+                      defaultPayload: {
+                        eventType: "IncidentCreated",
+                        statusPageId: statuspage.id!.toString(),
+                        statusPageName: statusPageName,
+                        statusPageUrl: statusPageURL,
+                        unsubscribeUrl: unsubscribeUrl,
+                        data: {
+                          incidentId: incident.id?.toString() || "",
+                          incidentNumber:
+                            incident.incidentNumber?.toString() || "",
+                          incidentTitle: incident.title || "",
+                          incidentDescription: incident.description || "",
+                          incidentSeverity:
+                            incident.incidentSeverity?.name || "",
+                          resourcesAffected: resourcesAffectedString,
+                          detailsUrl: incidentDetailsUrl,
+                        },
                       },
-                    },
+                    }),
                   }).catch((err: Error) => {
                     logger.error(err, EXTERNAL_FAULT);
                   });

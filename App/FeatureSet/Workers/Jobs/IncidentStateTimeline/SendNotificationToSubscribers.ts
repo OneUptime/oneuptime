@@ -42,6 +42,7 @@ import { Blue500, Yellow500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import StatusPageSubscriberWebhookTemplate from "Common/Server/Utils/StatusPageSubscriberWebhookTemplate";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
@@ -155,6 +156,7 @@ RunCron(
         select: {
           _id: true,
           title: true,
+          description: true,
           projectId: true,
           monitors: {
             _id: true,
@@ -341,7 +343,14 @@ RunCron(
         );
 
         // Fetch custom templates for this status page (if any)
-        const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
+        const [
+          emailTemplate,
+          smsTemplate,
+          slackTemplate,
+          teamsTemplate,
+          webhookTemplate,
+        ]: [
+          StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
@@ -378,6 +387,15 @@ RunCron(
                 StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged,
               notificationMethod:
                 StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+            },
+          ),
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+            {
+              statusPageId: statuspage.id!,
+              eventType:
+                StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged,
+              notificationMethod:
+                StatusPageSubscriberNotificationMethod.Webhook,
             },
           ),
         ]);
@@ -430,10 +448,14 @@ RunCron(
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
+            statusPageId: statuspage.id!.toString(),
             detailsUrl: incidentDetailsUrl,
             resourcesAffected: resourcesAffected || "None",
+            incidentId: incident.id?.toString() || "",
+            incidentNumber: incident.incidentNumber?.toString() || "",
             incidentSeverity: incident.incidentSeverity?.name || " - ",
             incidentTitle: incident.title || "",
+            incidentDescription: incident.description || "",
             incidentState: incidentStateTimeline.incidentState.name,
             unsubscribeUrl: unsubscribeUrl,
           };
@@ -706,23 +728,27 @@ RunCron(
 
             StatusPageSubscriberWebhookUtil.sendWebhookNotification({
               webhookUrl: subscriber.subscriberWebhook,
-              payload: {
-                eventType: "IncidentStateChanged",
-                statusPageId: statuspage.id!.toString(),
-                statusPageName: statusPageName,
-                statusPageUrl: statusPageURL,
-                unsubscribeUrl: unsubscribeUrl,
-                data: {
-                  incidentId: incident.id?.toString() || "",
-                  incidentNumber: incident.incidentNumber?.toString() || "",
-                  incidentTitle: incident.title || "",
-                  incidentSeverity: incident.incidentSeverity?.name || "",
-                  incidentState:
-                    incidentStateTimeline.incidentState?.name || "",
-                  resourcesAffected: resourcesAffected || "",
-                  detailsUrl: incidentDetailsUrl,
+              payload: StatusPageSubscriberWebhookTemplate.getPayload({
+                templateBody: webhookTemplate?.templateBody,
+                variables: templateVariables,
+                defaultPayload: {
+                  eventType: "IncidentStateChanged",
+                  statusPageId: statuspage.id!.toString(),
+                  statusPageName: statusPageName,
+                  statusPageUrl: statusPageURL,
+                  unsubscribeUrl: unsubscribeUrl,
+                  data: {
+                    incidentId: incident.id?.toString() || "",
+                    incidentNumber: incident.incidentNumber?.toString() || "",
+                    incidentTitle: incident.title || "",
+                    incidentSeverity: incident.incidentSeverity?.name || "",
+                    incidentState:
+                      incidentStateTimeline.incidentState?.name || "",
+                    resourcesAffected: resourcesAffected || "",
+                    detailsUrl: incidentDetailsUrl,
+                  },
                 },
-              },
+              }),
             }).catch((err: Error) => {
               logger.error(err, {
                 ...EXTERNAL_FAULT,
