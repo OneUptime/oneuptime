@@ -51,7 +51,7 @@ export interface ComponentProps {
   /*
    * Lifted from the page's InvestigationPanel, exactly like the incident
    * header: a queued or running investigation shows a live notice, and a
-   * completed one with a summary shows it with "Read report".
+   * completed one with a summary shows it with "View full report".
    */
   aiInvestigationStatus?: AIRunStatus | null | undefined;
   aiInvestigationSummary?: string | null | undefined;

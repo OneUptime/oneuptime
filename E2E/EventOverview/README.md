@@ -65,13 +65,14 @@ Query parameters, parsed once per page load:
 |---|---|
 | `?state=` | `resolved` (default), `ongoing` (incident #1042, alert #311 and both episodes stop at Acknowledged) or `created` (they stop before it) |
 | `?ai=` | `report` (default), `none`, `queued`, `running`, `failed`, `pending`, `legacy` (a completed report from an API replica without `evidence` / `references`, so the panel falls back to the report's own "Evidence checked" block) |
+| `?tldr=` | `default` or `long` (incident #1042's TL;DR is 320 characters, the server's cap, so the header summary wraps and clamps) |
 | `?sm=` | `scheduled` (default, starts in 2 hours), `ongoing`, `ended`, `overdue` (still Scheduled 20 minutes after its start), `overrun` (still Ongoing 30 minutes after its end) |
 | `?fail=` | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused) |
 | `?theme=` | `dark` adds `html.dark` |
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (83 tests):
+`EventOverview.spec.ts` (86 tests):
 
 - **AI investigation report**: the summary section (TL;DR + summary) above the report; the
   report's sub-sections in order with the amber root-cause callout; no brand heading, server
@@ -79,9 +80,10 @@ Query parameters, parsed once per page load:
   incident and alert reference links (href, `title`, clicking loads the other incident on the
   same route, back returns); citation chips (title and spoken label, click expands and
   highlights the row, exactly one `POST /ai-investigation/evidence` with the right body, cached
-  on collapse and re-expand); header TL;DR with Read report focusing the panel; verdict and fix
-  task request bodies and their failure messages; the feed's compact AI item and its More
-  Information modal.
+  on collapse and re-expand); header TL;DR with View full report beside the heading, focusing
+  the panel; a 320-character TL;DR (`?tldr=long`) arriving whole, clamped on a phone with Show
+  more / Show less and View full report in the bottom row; verdict and fix task request bodies
+  and their failure messages; the feed's compact AI item and its More Information modal.
 - **Evidence checked**: every row's label, tool description, time and row count; per citation
   the "What was queried" rows, the Open in link, the pinned or current-data notice and the rows
   (incident list, chart, logs table, `<pre>` text, trace waterfall, no rows with the server's

@@ -690,7 +690,7 @@ describe.each([
       expect(screen.getByText("AI investigation queued")).toBeInTheDocument();
     });
 
-    test("leads with the completed report's summary and a Read report link", async () => {
+    test("leads with the completed report's summary and a View full report link", async () => {
       respondWith(headerCase);
 
       render(
@@ -706,20 +706,23 @@ describe.each([
       const panel: HTMLElement = header.closest(".rounded-xl") as HTMLElement;
 
       expect(
-        within(panel).getByText("AI root cause analysis"),
+        within(panel).getByRole("heading", {
+          level: 3,
+          name: "AI root cause analysis",
+        }),
       ).toBeInTheDocument();
       expect(
         within(panel).getByText(
           "A connection pool change in checkout-api exhausted database connections.",
         ),
-      ).toHaveClass("line-clamp-2");
+      ).toHaveClass("line-clamp-3");
 
-      const readReport: HTMLElement = within(panel).getByRole("button", {
-        name: /Read report/,
+      const viewReport: HTMLElement = within(panel).getByRole("button", {
+        name: /View full report/,
       });
 
-      expect(readReport).toHaveAttribute("type", "button");
-      expect(readReport).toHaveAttribute(
+      expect(viewReport).toHaveAttribute("type", "button");
+      expect(viewReport).toHaveAttribute(
         "aria-controls",
         AI_INVESTIGATION_PANEL_ID,
       );
@@ -770,7 +773,7 @@ describe.each([
 
         expect(screen.queryByText("AI root cause analysis")).toBeNull();
         expect(
-          screen.queryByRole("button", { name: /Read report/ }),
+          screen.queryByRole("button", { name: /View full report/ }),
         ).toBeNull();
         expect(getLiveRegionText()).toBe("");
       },

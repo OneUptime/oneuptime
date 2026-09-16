@@ -59,7 +59,7 @@ export interface ComponentProps {
   onStatusChange?: ((status: AIRunStatus | null) => void) | undefined;
   onAnalysisAvailable?: (() => void) | undefined;
   /*
-   * The completed report's one-line summary for the event header: the TL;DR,
+   * The completed report's short summary for the event header: the TL;DR,
    * or the report's own Summary as plain text when there is no TL;DR. Called
    * whenever it changes, and with null on a subject change or when there is
    * no report to summarise.
