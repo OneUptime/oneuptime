@@ -30,6 +30,8 @@ import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote"
 import User from "Common/Models/DatabaseModels/User";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
+import { getNotifySubscribersOfUpdateFormField } from "../../../Components/StatusPageSubscribers/SubscriberUpdateNotificationFormField";
+import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import React, {
   Fragment,
   FunctionComponent,
@@ -109,6 +111,26 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
           subscriberNotificationStatusOnNoteCreated:
             StatusPageSubscriberNotificationStatus.Pending,
           subscriberNotificationStatusMessage: null,
+        },
+      });
+      setRefreshToggle(!refreshToggle);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+  };
+
+  const handleResendUpdateNotification: (
+    item: IncidentPublicNote,
+  ) => Promise<void> = async (item: IncidentPublicNote): Promise<void> => {
+    try {
+      await ModelAPI.updateById({
+        modelType: IncidentPublicNote,
+        id: item.id!,
+        data: {
+          subscriberNotificationStatusOnNoteUpdated:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessageOnNoteUpdated:
+            SubscriberUpdateNotification.resendQueuedMessage,
         },
       });
       setRefreshToggle(!refreshToggle);
@@ -270,6 +292,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             defaultValue: true,
             required: false,
           },
+          getNotifySubscribersOfUpdateFormField<IncidentPublicNote>({
+            description:
+              "Send subscribers the edited note, marked as an update. Leave this unticked for small fixes such as typos.",
+          }),
           {
             field: {
               postedAt: true,
@@ -291,6 +317,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
           subscriberNotificationStatusMessage: true,
+          subscriberNotificationStatusMessageOnNoteUpdated: true,
           attachments: {
             _id: true,
             name: true,
@@ -405,6 +432,35 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     return handleResendNotification(item);
                   }}
                 />
+              );
+            },
+          },
+          {
+            field: {
+              subscriberNotificationStatusOnNoteUpdated: true,
+            },
+            title: "Update Notification Status",
+            type: FieldType.Element,
+            colSpan: 1,
+            getElement: (item: IncidentPublicNote): ReactElement => {
+              // Nothing to show until someone asks to notify about an edit.
+              if (!item.subscriberNotificationStatusOnNoteUpdated) {
+                return <></>;
+              }
+
+              return (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Update:</span>
+                  <SubscriberNotificationStatus
+                    status={item.subscriberNotificationStatusOnNoteUpdated}
+                    subscriberNotificationStatusMessage={
+                      item.subscriberNotificationStatusMessageOnNoteUpdated
+                    }
+                    onResendNotification={() => {
+                      return handleResendUpdateNotification(item);
+                    }}
+                  />
+                </div>
               );
             },
           },

@@ -138,6 +138,7 @@ export class Service extends DatabaseService<Model> {
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated:
+      case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated:
         return [
           ...commonVariables,
           { name: "incidentTitle", description: "Title of the incident" },
@@ -164,6 +165,7 @@ export class Service extends DatabaseService<Model> {
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated:
+      case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementUpdated:
         return [
           ...commonVariables,
           {
@@ -227,6 +229,7 @@ export class Service extends DatabaseService<Model> {
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated:
+      case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated:
         return [
           ...commonVariables,
           {
@@ -243,6 +246,16 @@ export class Service extends DatabaseService<Model> {
             name: "detailsUrl",
             description: "URL to view scheduled maintenance details",
           },
+        ];
+
+      case StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated:
+      case StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteUpdated:
+        return [
+          ...commonVariables,
+          { name: "episodeTitle", description: "Title of the incident" },
+          { name: "episodeSeverity", description: "Severity of the incident" },
+          { name: "note", description: "Content of the note" },
+          { name: "detailsUrl", description: "URL to view incident details" },
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberReport:

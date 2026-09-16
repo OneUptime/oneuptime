@@ -559,6 +559,80 @@ export default class IncidentPublicNote extends BaseModel {
   public subscriberNotificationStatusMessage?: string = undefined;
 
   @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentPublicNote,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentPublicNote,
+    ],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Subscriber Notification Status on Note Updated",
+    description:
+      "Status of the notification sent to subscribers when this note was last updated. Empty until an update notification is requested.",
+  })
+  @Index()
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+  })
+  public subscriberNotificationStatusOnNoteUpdated?: StatusPageSubscriberNotificationStatus =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentPublicNote,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentPublicNote,
+    ],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Notification Status Message on Note Updated",
+    description:
+      "Status message for the notification sent to subscribers when this note was last updated - includes success messages, failure reasons, or skip reasons",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public subscriberNotificationStatusMessageOnNoteUpdated?: string = undefined;
+
+  @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

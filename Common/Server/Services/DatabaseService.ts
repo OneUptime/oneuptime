@@ -3388,6 +3388,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         _id: updateById.id.toString() as any,
       },
       data: updateById.data as any,
+      miscDataProps: updateById.miscDataProps,
       props: updateById.props,
     });
   }

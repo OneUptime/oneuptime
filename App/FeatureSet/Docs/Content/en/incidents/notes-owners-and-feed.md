@@ -110,6 +110,8 @@ The **Subscriber Notification Status** column tracks the whole journey:
 
 Click **more details** on the status to open **Notification Status Details**. Where a resend makes sense, that modal's button is **Retry**, which puts the note back in the pending state so the next run picks it up again.
 
+**Editing a public note is silent unless you ask.** The note's edit form has a **Notify subscribers about this update** checkbox, unticked every time. Tick it for a change subscribers need to know about and they receive the edited note, marked as an update; the note then shows an **Update Notification Status** alongside the original one, with its own **Retry**. If the original notification has not been sent yet, no separate update goes out — the original carries the edit. See [Telling subscribers about an edit](/docs/status-pages/subscribers#telling-subscribers-about-an-edit).
+
 The actual message subscribers get is templated per status page and per channel — email, SMS, Slack and Microsoft Teams each have their own template for the **Subscriber Incident Note Created** event, with variables for the status page name and URL, the details link, the resources affected, the incident severity and title, the note body, and a per-subscriber unsubscribe link. See [Subscribers & Announcements](/docs/status-pages/subscribers) for how those templates and channels are configured.
 
 ## The incident feed

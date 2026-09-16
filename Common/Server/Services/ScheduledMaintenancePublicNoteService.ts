@@ -1,4 +1,5 @@
 import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import OneUptimeDate from "../../Types/Date";
@@ -12,6 +13,7 @@ import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SubscriberUpdateNotification from "../../Types/StatusPage/SubscriberUpdateNotification";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
@@ -46,6 +48,28 @@ export class Service extends DatabaseService<Model> {
 
     return {
       createBy: createBy,
+      carryForward: null,
+    };
+  }
+
+  /*
+   * An edit tells subscribers nothing unless the editor asked for it on this
+   * edit (see SubscriberUpdateNotification). When they did, queue the update
+   * notification; the ScheduledMaintenancePublicNote worker job sends it.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    if (SubscriberUpdateNotification.isRequested(updateBy.miscDataProps)) {
+      updateBy.data.subscriberNotificationStatusOnNoteUpdated =
+        StatusPageSubscriberNotificationStatus.Pending;
+      updateBy.data.subscriberNotificationStatusMessageOnNoteUpdated =
+        SubscriberUpdateNotification.queuedMessage;
+    }
+
+    return {
+      updateBy: updateBy,
       carryForward: null,
     };
   }
