@@ -9,7 +9,7 @@ import {
   computeReplayFillHeight,
   measureReplayFillHeight,
   observeReplayFillHeight,
-} from "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayFillHeight";
+} from "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayFillHeightMeasure";
 
 /*
  * The height the player fills at xl and up. What is pinned: the arithmetic
