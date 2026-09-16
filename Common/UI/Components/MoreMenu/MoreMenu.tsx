@@ -32,6 +32,15 @@ export interface ComponentProps {
   ariaLabel?: string | undefined;
   dataTestId?: string | undefined;
   isDisabled?: boolean | undefined;
+  /*
+   * Open the menu upwards, for a trigger that sits at the bottom of its
+   * surface. The menu is absolutely positioned and has no flipping logic,
+   * so a downward menu under a trigger a dozen pixels from the bottom of a
+   * clipped container (the session replay transport inside a fullscreen
+   * player) is drawn outside it and cannot be reached at all. Callers that
+   * know they are at the bottom say so; everything else keeps opening down.
+   */
+  isOpeningUpwards?: boolean | undefined;
 }
 
 const isMenuItemDisabled: (item: HTMLElement) => boolean = (
@@ -463,9 +472,11 @@ const MoreMenu: React.ForwardRefExoticComponent<
              * lingering scale would make it the containing block for any
              * position:fixed descendant (the Modal invariant).
              */
-            className={`absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1 transition duration-150 ease-out motion-reduce:transition-none ${
-              hasMenuEntered ? "opacity-100" : "opacity-0 scale-95"
-            }`}
+            className={`absolute right-0 z-50 w-56 rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1 transition duration-150 ease-out motion-reduce:transition-none ${
+              props.isOpeningUpwards
+                ? "bottom-full mb-2 origin-bottom-right"
+                : "mt-2 origin-top-right"
+            } ${hasMenuEntered ? "opacity-100" : "opacity-0 scale-95"}`}
             role="menu"
             aria-orientation="vertical"
             aria-labelledby={buttonId}

@@ -1417,6 +1417,300 @@ describe("ReplayRail pure helpers", () => {
   });
 });
 
+/*
+ * Player redesign: the rail's fixed chrome (header, tabs, search, scope) used
+ * to take ~250px above the list. It is compacted so the list gets more rows,
+ * without losing a test id, a role, an accessible name or the subtitle copy.
+ * Class names are pinned here deliberately: they ARE the compaction.
+ */
+describe("ReplayRail compact chrome", () => {
+  function header(): HTMLElement {
+    return screen.getByTestId("replay-rail-header");
+  }
+
+  function searchRow(): HTMLElement {
+    return screen.getByTestId("replay-rail-search-row");
+  }
+
+  it("renders the header as one centred row with slim padding", () => {
+    renderRail();
+
+    const element: HTMLElement = header();
+
+    expect(element).toHaveClass(
+      "flex",
+      "items-center",
+      "justify-between",
+      "gap-2",
+      "border-b",
+      "border-gray-200",
+      "px-3",
+      "py-2",
+    );
+    expect(element).not.toHaveClass("items-start");
+    expect(element).not.toHaveClass("px-4");
+    expect(element).not.toHaveClass("py-4");
+    expect(screen.getByTestId("replay-rail").firstElementChild).toBe(element);
+  });
+
+  it("keeps the Events heading's accessible name while shrinking it to text-sm", () => {
+    renderRail();
+
+    const heading: HTMLElement = screen.getByRole("heading", {
+      name: "Events",
+    });
+
+    expect(heading.tagName).toBe("H3");
+    expect(heading).toHaveTextContent(/^Events$/);
+    expect(heading).toHaveClass("text-sm", "font-semibold");
+    expect(heading).not.toHaveClass("text-base");
+    expect(header()).toContainElement(heading);
+  });
+
+  it("moves the subtitle to the heading's title and a screen-reader-only line", () => {
+    renderRail();
+
+    const heading: HTMLElement = screen.getByRole("heading", {
+      name: "Events",
+    });
+    const subtitle: HTMLElement = screen.getByText(
+      "Explore activity at each moment.",
+    );
+
+    expect(heading).toHaveAttribute(
+      "title",
+      "Explore activity at each moment.",
+    );
+    expect(subtitle).toHaveClass("sr-only");
+    expect(header()).toContainElement(subtitle);
+    /* The sr-only copy is a sibling, so it does not leak into the heading's name. */
+    expect(heading).not.toContainElement(subtitle);
+    expect(
+      screen.getAllByText("Explore activity at each moment."),
+    ).toHaveLength(1);
+  });
+
+  it("keeps the follow state and the collapse button on the header row", () => {
+    const collapse: MockFunction = getJestMockFunction();
+
+    renderRail({ onCollapse: collapse });
+
+    expect(within(header()).getByText("Following")).toBeInTheDocument();
+    expect(header()).toContainElement(
+      screen.getByTestId("replay-rail-collapse"),
+    );
+    expect(screen.getByTestId("replay-rail-collapse")).toHaveAttribute(
+      "aria-label",
+      "Collapse the events rail",
+    );
+
+    fireEvent.click(screen.getByTestId("replay-rail-collapse"));
+
+    expect(collapse).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps Resume following and Jump to now on the header row once following stops", () => {
+    renderRail({ follow: false, currentTimeMs: 3000 });
+
+    const list: HTMLElement = screen.getByTestId("rail-list");
+
+    Object.defineProperty(list, "clientHeight", {
+      configurable: true,
+      value: 100,
+    });
+    Object.defineProperty(list, "scrollTop", {
+      configurable: true,
+      value: 900,
+      writable: true,
+    });
+    Object.defineProperty(screen.getByTestId("rail-now-divider"), "offsetTop", {
+      configurable: true,
+      value: 50,
+    });
+
+    fireEvent.scroll(list);
+
+    expect(header()).toContainElement(screen.getByTestId("rail-resume-follow"));
+    expect(header()).toContainElement(screen.getByTestId("rail-jump-to-now"));
+    expect(within(header()).queryByText("Following")).not.toBeInTheDocument();
+  });
+
+  it("truncates the clock alignment note beside the heading with the full copy in its title", async () => {
+    const { store } = makeStore({
+      logs: [makeLog("bbbbbbbbbbbbbbbbbbbbbbbb", 5000, "charge failed")],
+    });
+
+    renderRail({ backendStore: store, activeTab: "logs" });
+
+    await waitFor((): void => {
+      expect(screen.getByTestId("rail-alignment-note")).toBeInTheDocument();
+    });
+
+    const note: HTMLElement = screen.getByTestId("rail-alignment-note");
+
+    expect(header()).toContainElement(note);
+    expect(note).toHaveClass("min-w-0", "truncate");
+    expect(note).not.toHaveClass("block");
+    expect(note).toHaveTextContent(/unanchored/);
+    expect(note.getAttribute("title")).toBe(note.textContent);
+  });
+
+  it("renders no alignment note before any telemetry arrives", () => {
+    renderRail();
+
+    expect(screen.queryByTestId("rail-alignment-note")).not.toBeInTheDocument();
+  });
+
+  it("tightens the tab strip's margins while it keeps wrapping", () => {
+    renderRail();
+
+    const tablist: HTMLElement = screen.getByRole("tablist", {
+      name: "Signal tabs",
+    });
+
+    expect(tablist).toBe(screen.getByTestId("rail-tablist"));
+    expect(tablist).toHaveClass("mx-3", "mt-2", "pb-2", "flex", "flex-wrap");
+    expect(tablist).not.toHaveClass("mx-4");
+    expect(tablist).not.toHaveClass("mt-3");
+    expect(tablist).not.toHaveClass("pb-3");
+    expect(tablist).not.toHaveClass("overflow-x-auto");
+    expect(within(tablist).getAllByRole("tab").length).toBeGreaterThan(1);
+  });
+
+  it("puts search and scope in one wrapping row", () => {
+    renderRail();
+
+    const row: HTMLElement = searchRow();
+
+    expect(row).toHaveClass(
+      "flex",
+      "flex-wrap",
+      "items-center",
+      "gap-2",
+      "px-3",
+      "py-2",
+    );
+    expect(row).not.toHaveClass("px-4");
+    expect(row).not.toHaveClass("pt-3");
+    expect(row).not.toHaveClass("pb-3");
+    expect(row).toContainElement(screen.getByTestId("rail-search-input"));
+    expect(row).toContainElement(screen.getByTestId("rail-scope-toggle"));
+    expect(
+      within(row).getByRole("group", { name: "Scope" }),
+    ).toBeInTheDocument();
+    /* The tabs sit above the row, not inside it. */
+    expect(row).not.toContainElement(screen.getByTestId("rail-tablist"));
+  });
+
+  it("lets the search input grow beside the scope toggle with a 10rem floor", () => {
+    renderRail();
+
+    const input: HTMLElement = screen.getByTestId("rail-search-input");
+    const wrapper: HTMLElement = input.parentElement as HTMLElement;
+
+    expect(wrapper.parentElement).toBe(searchRow());
+    expect(wrapper).toHaveClass("relative", "min-w-[10rem]", "flex-1");
+    expect(wrapper).not.toHaveClass("w-full");
+    expect(input).toHaveClass("h-8", "w-full");
+    expect(input).not.toHaveClass("h-9");
+    expect(input).toHaveAttribute("placeholder", "Search events");
+    expect(input).toHaveAttribute("aria-label", "Filter signals");
+  });
+
+  it("keeps the clear button inside the compact input wrapper", () => {
+    renderRail({ query: "checkout" });
+
+    const clear: HTMLElement = screen.getByRole("button", {
+      name: "Clear event search",
+    });
+
+    expect(clear).toBe(screen.getByTestId("rail-search-clear"));
+    expect(clear.parentElement).toBe(
+      screen.getByTestId("rail-search-input").parentElement,
+    );
+    expect(clear.parentElement).toHaveClass("min-w-[10rem]", "flex-1");
+  });
+
+  it("keeps the Show events label for screen readers only", () => {
+    renderRail();
+
+    const label: HTMLElement = screen.getByText("Show events");
+
+    expect(label).toHaveClass("sr-only");
+    expect(label).not.toHaveClass("text-xs");
+    expect(searchRow()).toContainElement(label);
+  });
+
+  it("keeps both scope buttons with their names and pressed state", () => {
+    renderRail();
+
+    const whole: HTMLElement = screen.getByRole("button", {
+      name: "Scope: whole session",
+    });
+    const around: HTMLElement = screen.getByRole("button", {
+      name: "Scope: within 30 seconds of the playhead",
+    });
+
+    expect(whole).toHaveAttribute("aria-pressed", "true");
+    expect(around).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(around);
+
+    expect(whole).toHaveAttribute("aria-pressed", "false");
+    expect(around).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("aligns the quick filters and coverage note with the slimmer gutter", () => {
+    renderRail({
+      activeTab: "network",
+      loadedChunkCount: 1,
+      totalChunkCount: 3,
+    });
+
+    const chips: HTMLElement = screen.getByRole("group", {
+      name: "Quick filters",
+    });
+
+    expect(chips).toHaveClass("flex", "flex-wrap", "px-3", "pb-2");
+    expect(chips).not.toHaveClass("px-4");
+    expect(chips).not.toHaveClass("pb-3");
+    expect(screen.getByTestId("rail-coverage-note")).toHaveClass(
+      "px-3",
+      "pt-2",
+    );
+    expect(screen.getByTestId("rail-coverage-note")).not.toHaveClass("px-4");
+  });
+
+  it("orders the chrome header, tabs, search row, then the list", () => {
+    renderRail();
+
+    const children: Array<Element> = Array.from(
+      screen.getByTestId("replay-rail").children,
+    );
+    const indexOf: (element: HTMLElement) => number = (
+      element: HTMLElement,
+    ): number => {
+      return children.indexOf(element);
+    };
+
+    const headerIndex: number = indexOf(header());
+    const tabsIndex: number = indexOf(screen.getByTestId("rail-tablist"));
+    const searchIndex: number = indexOf(searchRow());
+    const listIndex: number = indexOf(screen.getByTestId("rail-list"));
+
+    expect(headerIndex).toBe(0);
+    expect(tabsIndex).toBeGreaterThan(headerIndex);
+    expect(searchIndex).toBeGreaterThan(tabsIndex);
+    expect(listIndex).toBeGreaterThan(searchIndex);
+    /* The list still takes every leftover pixel. */
+    expect(screen.getByTestId("rail-list")).toHaveClass(
+      "min-h-0",
+      "flex-1",
+      "overflow-y-auto",
+    );
+  });
+});
+
 describe("ReplayRail hover", () => {
   it("reports the hovered row's offset for the ghost playhead and clears it on leave", () => {
     const hovers: Array<number | null> = [];

@@ -75,10 +75,31 @@ export interface ReplayTimelineProps {
   selectedSignalId?: string | null | undefined;
   /* Session start, for the wall-clock line in the hover bubble. */
   startTimeUnixMs?: number | null | undefined;
+  /*
+   * The three marker lanes and the legend that explains the band fills.
+   * They are the tallest part of the timeline, and a viewer who is
+   * watching rather than investigating wants that height in the picture
+   * instead - so the shell can turn them off (a persisted preference,
+   * toggled from the transport's overflow menu). Default true.
+   *
+   * The seek track keeps its notice markers either way: a stretch that
+   * cannot be played is not a lane, it is a warning about the recording.
+   */
+  showLanes?: boolean | undefined;
   onSeek: (offsetMs: number) => void;
   onSelectSignal?: ((signalId: string) => void) | undefined;
   onHover?: ((offsetMs: number | null) => void) | undefined;
 }
+
+/*
+ * The label gutter, and the legend's indent, are ONE measurement:
+ * 4rem of gutter + the 0.5rem gap between gutter and track = the 4.5rem
+ * the legend is pushed in by, so the legend's first swatch starts at the
+ * track's left edge. Change one of these two constants and you must
+ * change the other.
+ */
+const LANE_GUTTER_CLASS: string = "w-16 shrink-0";
+const LEGEND_INDENT_CLASS: string = "pl-[4.5rem]";
 
 /*
  * gray-500 rather than gray-400: gray-400 on white is about 2.9:1, which
@@ -89,11 +110,9 @@ export interface ReplayTimelineProps {
  * allowed to wrap: left-aligned labels of different lengths made the
  * track's left edge look like it moved from row to row, and "Nav /
  * clicks" wrapping to two lines made its own lane taller than the three
- * beside it. The gutter width and the legend's indent below are one
- * measurement and have to move together.
+ * beside it.
  */
-const LANE_LABEL_CLASS: string =
-  "w-20 shrink-0 whitespace-nowrap text-right text-[10px] font-medium uppercase tracking-wider text-gray-500";
+const LANE_LABEL_CLASS: string = `${LANE_GUTTER_CLASS} whitespace-nowrap text-right text-[10px] font-medium uppercase tracking-wider text-gray-500`;
 
 const HATCH_AMBER: string =
   "repeating-linear-gradient(135deg, rgba(251,191,36,0.55) 0 3px, transparent 3px 7px)";
@@ -274,19 +293,31 @@ interface ActivityStripProps {
   durationMs: number;
 }
 
-/* Activity strip: relative event density per chunk. */
+/*
+ * Activity strip: relative event density per chunk.
+ *
+ * A 10px label on its own row cost more height than the strip it named,
+ * for a lane nobody reads as a value - it is a shape you glance at to
+ * find where the session got busy. The word survives as an sr-only label
+ * in the gutter (so the strip is still named to assistive tech and to
+ * tests) and as the strip's own tooltip; what is drawn is a 4px rule
+ * sitting directly on top of the track it belongs to.
+ */
 const ActivityStripComponent: FunctionComponent<ActivityStripProps> = (
   props: ActivityStripProps,
 ): ReactElement => {
   const { activity, durationMs } = props;
 
   return (
-    <div className="mb-2 flex items-center gap-2">
-      <div className={LANE_LABEL_CLASS}>Activity</div>
+    <div className="mb-1 flex items-center gap-2">
+      <div className={LANE_GUTTER_CLASS}>
+        <span className="sr-only">Activity</span>
+      </div>
       <div
         data-testid="timeline-activity"
+        title="Activity: how busy each stretch of the recording is"
         aria-hidden="true"
-        className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100"
+        className="relative h-1 flex-1 overflow-hidden rounded-full bg-gray-100"
       >
         {activity.map((bucket: ReplayActivityBucket): ReactElement => {
           const left: number = offsetToPercent(bucket.startMs, durationMs);
@@ -390,7 +421,7 @@ const MarkerLaneComponent: FunctionComponent<MarkerLaneProps> = (
       </div>
       <div
         data-testid={`timeline-lane-${props.lane}`}
-        className="relative h-5 flex-1 rounded-md bg-gray-50 ring-1 ring-inset ring-gray-100/80"
+        className="relative h-4 flex-1 rounded-md bg-gray-50 ring-1 ring-inset ring-gray-100/80"
       >
         {clusters.map((cluster: ReplayMarkerCluster): ReactElement => {
           const first: ReplayTimelineMarker | undefined = cluster.markers[0];
@@ -857,6 +888,9 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
     return buildHoverPreview(props.signals || [], hoverMs);
   }, [hoverMs, props.signals]);
 
+  /* Undefined is "shown": the lanes are the timeline's default. */
+  const showLanes: boolean = props.showLanes !== false;
+
   const isActivityMeasured: boolean = Boolean(
     props.activity &&
       props.activity.some((bucket: ReplayActivityBucket) => {
@@ -950,7 +984,7 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
             aria-valuetext={`${formatReplayOffset(playheadMs)} of ${formatReplayOffset(
               durationMs,
             )}`}
-            className="relative h-8 w-full cursor-pointer touch-none rounded-lg bg-gray-100 ring-1 ring-inset ring-gray-200 transition-shadow hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="relative h-7 w-full cursor-pointer touch-none rounded-lg bg-gray-100 ring-1 ring-inset ring-gray-200 transition-shadow hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -1010,50 +1044,65 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
         </div>
       </div>
 
-      <div className="mt-2 space-y-1">
-        {REPLAY_TIMELINE_LANES.map((lane: ReplayTimelineLane): ReactElement => {
-          return (
-            <MarkerLane
-              key={lane}
-              lane={lane}
-              markers={markersByLane[lane]}
-              durationMs={durationMs}
-              widthPx={widthPx}
-              selectedSignalId={props.selectedSignalId || null}
-              onActivate={handleMarkerActivate}
-            />
-          );
-        })}
-      </div>
-
       {/*
-       * The legend is rendered unconditionally: showing anything only while
-       * hovering shifted every lane by a line the moment the pointer entered
-       * the track, which made the thing you were aiming at move.
-       *
-       * Reserve one line on wide layouts and let the legend grow when
-       * labels wrap. The transport must remain below every legend item,
-       * including on narrow screens.
+       * The lanes and the legend travel together: the legend exists to
+       * explain what the lanes and bands are drawn with, so a timeline
+       * without lanes does not need it either. Hidden, they give the
+       * recording back about 90px of the card.
        */}
-      <div
-        data-testid="timeline-legend"
-        className="mt-2.5 flex min-h-4 flex-wrap items-center gap-x-3 gap-y-1 pl-[5.5rem] text-[10px] text-gray-400"
-      >
-        {TIMELINE_LEGEND_ITEMS.map((item: TimelineLegendItem): ReactElement => {
-          return (
-            <span
-              key={item.label}
-              className="inline-flex items-center gap-1.5 whitespace-nowrap"
-            >
-              <span
-                aria-hidden="true"
-                className={`h-2 w-2 shrink-0 rounded-[2px] ${item.swatchClassName}`}
-              />
-              {item.label}
-            </span>
-          );
-        })}
-      </div>
+      {showLanes && (
+        <>
+          <div className="mt-1.5 space-y-0.5">
+            {REPLAY_TIMELINE_LANES.map(
+              (lane: ReplayTimelineLane): ReactElement => {
+                return (
+                  <MarkerLane
+                    key={lane}
+                    lane={lane}
+                    markers={markersByLane[lane]}
+                    durationMs={durationMs}
+                    widthPx={widthPx}
+                    selectedSignalId={props.selectedSignalId || null}
+                    onActivate={handleMarkerActivate}
+                  />
+                );
+              },
+            )}
+          </div>
+
+          {/*
+           * Within a shown timeline the legend is unconditional: showing
+           * anything only while hovering shifted every lane by a line the
+           * moment the pointer entered the track, which made the thing you
+           * were aiming at move.
+           *
+           * Reserve one line on wide layouts and let the legend grow when
+           * labels wrap. The transport must remain below every legend item,
+           * including on narrow screens.
+           */}
+          <div
+            data-testid="timeline-legend"
+            className={`mt-1.5 flex min-h-4 flex-wrap items-center gap-x-3 gap-y-1 ${LEGEND_INDENT_CLASS} text-[10px] text-gray-400`}
+          >
+            {TIMELINE_LEGEND_ITEMS.map(
+              (item: TimelineLegendItem): ReactElement => {
+                return (
+                  <span
+                    key={item.label}
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`h-2 w-2 shrink-0 rounded-[2px] ${item.swatchClassName}`}
+                    />
+                    {item.label}
+                  </span>
+                );
+              },
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

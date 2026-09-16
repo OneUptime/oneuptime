@@ -550,7 +550,7 @@ describe("ReplayScrubber keyboard shortcuts", () => {
     expect(toggles).toBe(1);
   });
 
-  it("covers the full vocabulary: j/l, digits, Home/End, speed, skip idle, errors, view keys", () => {
+  it("covers the full vocabulary: j/l, digits, Home/End, speed, skip idle, errors, view and layout keys", () => {
     const seeks: Array<number> = [];
     const speeds: Array<number> = [];
     const skips: Array<boolean> = [];
@@ -585,6 +585,8 @@ describe("ReplayScrubber keyboard shortcuts", () => {
           onFollowChange: (isEnabled: boolean): void => {
             calls.push(`follow:${isEnabled}`);
           },
+          onToggleRail: record("toggle-rail"),
+          onCycleFit: record("cycle-fit"),
           onFocusRailSearch: record("rail-search"),
           onCopyLink: record("copy"),
           onToggleDetails: record("details"),
@@ -619,6 +621,8 @@ describe("ReplayScrubber keyboard shortcuts", () => {
     fireEvent.keyDown(document.body, { key: "f" });
     fireEvent.keyDown(document.body, { key: "w" });
     fireEvent.keyDown(document.body, { key: "m" });
+    fireEvent.keyDown(document.body, { key: "r" });
+    fireEvent.keyDown(document.body, { key: "z" });
     fireEvent.keyDown(document.body, { key: "/" });
     fireEvent.keyDown(document.body, { key: "c" });
     fireEvent.keyDown(document.body, { key: "i" });
@@ -631,6 +635,8 @@ describe("ReplayScrubber keyboard shortcuts", () => {
       "theater",
       "wide",
       "follow:true",
+      "toggle-rail",
+      "cycle-fit",
       "rail-search",
       "copy",
       "details",
@@ -667,6 +673,117 @@ describe("ReplayScrubber keyboard shortcuts", () => {
     fireEvent.keyDown(document.body, { key: "Escape" });
 
     expect(calls).toEqual(["down", "up", "seek", "clear"]);
+  });
+
+  /*
+   * "r" and "z" are the two LAYOUT keys - how much of the window the
+   * recording gets. The shell owns both (the rail's collapsed state and
+   * the stage's fit are its persisted preferences), so the scrubber only
+   * routes them; and it routes them in the rail scope too, because
+   * someone reading the event list is exactly the person who wants to
+   * hide it and look at the picture.
+   */
+  it("routes the rail and fit keys to the shell in either scope", () => {
+    const calls: Array<string> = [];
+    const props: Partial<ReplayScrubberProps> = {
+      onToggleRail: (): void => {
+        calls.push("rail");
+      },
+      onCycleFit: (): void => {
+        calls.push("fit");
+      },
+    };
+
+    const { rerender } = render(<ReplayScrubber {...makeProps(props)} />);
+
+    fireEvent.keyDown(document.body, { key: "r" });
+    fireEvent.keyDown(document.body, { key: "z" });
+
+    expect(calls).toEqual(["rail", "fit"]);
+
+    rerender(
+      <ReplayScrubber {...makeProps({ ...props, keyboardScope: "rail" })} />,
+    );
+
+    fireEvent.keyDown(document.body, { key: "r" });
+    fireEvent.keyDown(document.body, { key: "z" });
+
+    expect(calls).toEqual(["rail", "fit", "rail", "fit"]);
+  });
+
+  it("treats the layout keys as one-shot and leaves their shifted twins alone", () => {
+    const calls: Array<string> = [];
+
+    render(
+      <ReplayScrubber
+        {...makeProps({
+          onToggleRail: (): void => {
+            calls.push("rail");
+          },
+          onCycleFit: (): void => {
+            calls.push("fit");
+          },
+        })}
+      />,
+    );
+
+    fireEvent.keyDown(document.body, { key: "r" });
+    fireEvent.keyDown(document.body, { key: "r", repeat: true });
+    fireEvent.keyDown(document.body, { key: "z" });
+    fireEvent.keyDown(document.body, { key: "z", repeat: true });
+
+    expect(calls).toEqual(["rail", "fit"]);
+
+    fireEvent.keyDown(document.body, { key: "R", shiftKey: true });
+    fireEvent.keyDown(document.body, { key: "Z", shiftKey: true });
+
+    expect(calls).toEqual(["rail", "fit"]);
+  });
+
+  it("makes the layout keys no-ops when the shell passes no handler", () => {
+    let toggles: number = 0;
+
+    render(
+      <ReplayScrubber
+        {...makeProps({
+          onPlayPause: (): void => {
+            toggles++;
+          },
+        })}
+      />,
+    );
+
+    expect((): void => {
+      fireEvent.keyDown(document.body, { key: "r" });
+      fireEvent.keyDown(document.body, { key: "z" });
+    }).not.toThrow();
+
+    expect(toggles).toBe(0);
+  });
+
+  /* With the sheet open only "?" and Escape mean anything. */
+  it("does not change the layout from behind the shortcuts sheet", () => {
+    const calls: Array<string> = [];
+
+    render(
+      <ReplayScrubber
+        {...makeProps({
+          onToggleRail: (): void => {
+            calls.push("rail");
+          },
+          onCycleFit: (): void => {
+            calls.push("fit");
+          },
+        })}
+      />,
+    );
+
+    fireEvent.keyDown(document.body, { key: "?", shiftKey: true });
+    fireEvent.keyDown(document.body, { key: "r" });
+    fireEvent.keyDown(document.body, { key: "z" });
+
+    expect(calls).toEqual([]);
+    expect(screen.getByTestId("keyboard-shortcuts-modal")).toBeInTheDocument();
   });
 
   it("does nothing while shortcuts are disabled", () => {
@@ -848,5 +965,100 @@ describe("ReplayScrubber buffering pill", () => {
     expect(screen.getByTestId("replay-buffering-pill")).toHaveTextContent(
       "Seeking to 1:12",
     );
+  });
+});
+
+/*
+ * The timeline's marker lanes are a persisted view preference the shell
+ * owns, and the scrubber is where its two halves meet: the timeline draws
+ * them (or does not), and the transport's overflow menu offers the
+ * switch. Both read the SAME value here - the alternative is a menu
+ * offering "Show signal lanes" over a timeline that is already showing
+ * them.
+ */
+describe("ReplayScrubber timeline lanes", () => {
+  it("shows the lanes and the legend when no preference is given", () => {
+    render(<ReplayScrubber {...makeProps()} />);
+
+    expect(screen.getByTestId("timeline-lane-errors")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-legend")).toBeInTheDocument();
+  });
+
+  it("passes the preference through to the timeline", () => {
+    const { rerender } = render(
+      <ReplayScrubber {...makeProps({ showTimelineLanes: false })} />,
+    );
+
+    expect(screen.queryByTestId("timeline-lane-errors")).toBeNull();
+    expect(screen.queryByTestId("timeline-legend")).toBeNull();
+    /* The track is not a lane; it never goes away. */
+    expect(screen.getByTestId("timeline-track")).toBeInTheDocument();
+    expect(screen.getByTestId("replay-controls")).toBeInTheDocument();
+
+    rerender(<ReplayScrubber {...makeProps({ showTimelineLanes: true })} />);
+
+    expect(screen.getByTestId("timeline-lane-errors")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-legend")).toBeInTheDocument();
+  });
+
+  it("offers no overflow menu until the shell passes an optional handler", () => {
+    const { rerender } = render(<ReplayScrubber {...makeProps()} />);
+
+    expect(screen.queryByTestId("replay-more-menu")).toBeNull();
+
+    rerender(
+      <ReplayScrubber
+        {...makeProps({
+          onTimelineLanesChange: (): void => {
+            // presence is what this asserts
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId("replay-more-menu")).toBeInTheDocument();
+  });
+
+  it("labels the overflow item by what the press does and reports the new value", () => {
+    const values: Array<boolean> = [];
+    const onTimelineLanesChange: (isVisible: boolean) => void = (
+      isVisible: boolean,
+    ): void => {
+      values.push(isVisible);
+    };
+
+    const { rerender } = render(
+      <ReplayScrubber
+        {...makeProps({ onTimelineLanesChange: onTimelineLanesChange })}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("replay-more-menu"));
+
+    expect(
+      screen.queryByRole("menuitem", { name: "Show signal lanes" }),
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Hide signal lanes" }),
+    );
+
+    expect(values).toEqual([false]);
+
+    rerender(
+      <ReplayScrubber
+        {...makeProps({
+          showTimelineLanes: false,
+          onTimelineLanesChange: onTimelineLanesChange,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("replay-more-menu"));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Show signal lanes" }),
+    );
+
+    expect(values).toEqual([false, true]);
   });
 });
