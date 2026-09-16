@@ -429,7 +429,10 @@ describe("Billing page paid usage flow", () => {
       confirmParams: {
         return_url: "https://example.com/dashboard/project/settings/billing",
       },
+      redirect: "if_required",
     });
+    // No SetupIntent came back, so there is no card to make the default.
+    expect(postMock).toHaveBeenCalledTimes(1);
     expect(getListMock).toHaveBeenCalledTimes(2);
     await userEvent.click(screen.getByRole("button", { name: "Change Plan" }));
     expect(openPlanEditorMock).toHaveBeenCalledTimes(1);

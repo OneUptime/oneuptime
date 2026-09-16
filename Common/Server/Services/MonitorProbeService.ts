@@ -14,6 +14,7 @@ import ProbeService from "./ProbeService";
 import { MonitorTypeHelper } from "../../Types/Monitor/MonitorType";
 import CronTab from "../Utils/CronTab";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
 
 export class Service extends DatabaseService<MonitorProbe> {
   public constructor() {
@@ -158,7 +159,23 @@ export class Service extends DatabaseService<MonitorProbe> {
          * FOR UPDATE SKIP LOCKED ensures that:
          * 1. Rows are locked for this transaction
          * 2. Rows already locked by other transactions are skipped
+         *
+         * The subscription predicate admits a project with no subscription
+         * (NULL) or one whose status is in
+         * SubscriptionStatusUtil.getActiveSubscriptionStatuses(), bound as $4
+         * rather than spelled out here. This SQL used to carry its own
+         * hand-written active / trialing list, which left out past_due: a
+         * project stopped being probed the moment ONE autopay attempt failed
+         * - including while an India e-mandate card debit was merely still
+         * processing - even though Stripe keeps retrying a past_due invoice
+         * and the dashboard still called the project active. Paying
+         * customers' monitoring was silently switched off. Monitoring now
+         * stops only when the subscription is truly inactive (unpaid,
+         * canceled, incomplete, incomplete_expired, expired, paused).
          */
+        const activeSubscriptionStatuses: Array<string> =
+          SubscriptionStatusUtil.getActiveSubscriptionStatuses();
+
         const selectQuery: string = `
         SELECT mp."_id", m."monitoringInterval"
         FROM "MonitorProbe" mp
@@ -174,9 +191,9 @@ export class Service extends DatabaseService<MonitorProbe> {
           AND m."deletedAt" IS NULL
           AND p."deletedAt" IS NULL
           AND (p."paymentProviderSubscriptionStatus" IS NULL
-               OR p."paymentProviderSubscriptionStatus" IN ('active', 'trialing'))
+               OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
-               OR p."paymentProviderMeteredSubscriptionStatus" IN ('active', 'trialing'))
+               OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
         ORDER BY mp."nextPingAt" ASC NULLS FIRST
         LIMIT $3
         FOR UPDATE OF mp SKIP LOCKED
@@ -189,6 +206,7 @@ export class Service extends DatabaseService<MonitorProbe> {
           data.probeId.toString(),
           currentDate,
           data.limit,
+          activeSubscriptionStatuses,
         ]);
 
         if (selectedRows.length === 0) {

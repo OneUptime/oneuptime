@@ -9,16 +9,28 @@ import {
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import CheckoutForm from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/BillingPaymentMethodForm";
+import CheckoutForm, {
+  DEFAULT_SETUP_ERROR_MESSAGE,
+  getSetupIntentPaymentMethodId,
+  SETUP_NOT_COMPLETED_ERROR_MESSAGE,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/BillingPaymentMethodForm";
 import Navigation from "../../../UI/Utils/Navigation";
 import URL from "../../../Types/API/URL";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+/*
+ * @stripe/* is a Dashboard dependency, not a Common one, so the SetupIntent
+ * type is taken from the helper's own signature.
+ */
+type SetupIntent = Parameters<typeof getSetupIntentPaymentMethodId>[0];
 
 const confirmSetupMock: MockFunction = getJestMockFunction();
 let stripeReady: boolean = true;
 let elementsReady: boolean = true;
 const mockElements: Record<string, unknown> = {};
+
+// The card the affected customer added to replace the declining one.
+const NEW_CARD_ID: string = "pm_new_default_card";
 
 jest.mock(
   "@stripe/react-stripe-js",
@@ -37,6 +49,23 @@ jest.mock(
   },
   { virtual: true },
 );
+
+type SetupIntentOverrides = Record<string, unknown>;
+
+function setupIntentResult(overrides: SetupIntentOverrides = {}): {
+  setupIntent: Record<string, unknown>;
+} {
+  return {
+    setupIntent: {
+      id: "seti_123",
+      object: "setup_intent",
+      status: "succeeded",
+      payment_method: NEW_CARD_ID,
+      last_setup_error: null,
+      ...overrides,
+    },
+  };
+}
 
 function renderForm(): {
   onError: MockFunction;
@@ -64,7 +93,7 @@ function renderForm(): {
 describe("Adding a payment method", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
-    confirmSetupMock.mockReset().mockResolvedValue({});
+    confirmSetupMock.mockReset().mockResolvedValue(setupIntentResult());
     stripeReady = true;
     elementsReady = true;
     getJestSpyOn(Navigation, "getCurrentURL").mockReturnValue(
@@ -94,7 +123,7 @@ describe("Adding a payment method", () => {
     expect(confirmSetupMock).not.toHaveBeenCalled();
   });
 
-  it("saves without an acknowledgement and returns to the clean billing URL", async () => {
+  it("saves without an acknowledgement, stays on the page when no redirect is needed, and keeps a clean return URL for redirect-based methods", async () => {
     const { submit, onSuccess, onError } = renderForm();
     submit();
     await waitFor(() => {
@@ -105,8 +134,141 @@ describe("Adding a payment method", () => {
       confirmParams: {
         return_url: "https://example.com/dashboard/project/settings/billing",
       },
+      redirect: "if_required",
     });
     expect(onError).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Production regression: the customer replaced a declining card, but the
+   * page never learned which card was added (confirmSetup always redirected)
+   * so it could not make it the default and autopay kept charging the old
+   * card.
+   */
+  it("hands the id of the card that was just added to the billing page so it can become the default", async () => {
+    const { submit, onSuccess, onError } = renderForm();
+    submit();
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith(NEW_CARD_ID);
+    });
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("reads the id from an expanded payment method object", async () => {
+    confirmSetupMock.mockResolvedValueOnce(
+      setupIntentResult({
+        payment_method: { id: "pm_expanded", object: "payment_method" },
+      }),
+    );
+    const { submit, onSuccess, onError } = renderForm();
+    submit();
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith("pm_expanded");
+    });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("still reports success without an id when a succeeded setup carries no payment method", async () => {
+    confirmSetupMock.mockResolvedValueOnce(
+      setupIntentResult({ payment_method: null }),
+    );
+    const { submit, onSuccess, onError } = renderForm();
+    submit();
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith(null);
+    });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("reports success without an id for a setup that is still processing, since it cannot be made default yet", async () => {
+    confirmSetupMock.mockResolvedValueOnce(
+      setupIntentResult({ status: "processing" }),
+    );
+    const { submit, onSuccess, onError } = renderForm();
+    submit();
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith(null);
+    });
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("keeps the previous success behaviour when the provider returns neither an error nor a setup intent", async () => {
+    confirmSetupMock.mockResolvedValueOnce({});
+    const { submit, onSuccess, onError } = renderForm();
+    submit();
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith(null);
+    });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it.each(["requires_action", "requires_confirmation", "canceled"])(
+    "does not treat a %s setup as saved",
+    async (status: string) => {
+      confirmSetupMock.mockResolvedValueOnce(
+        setupIntentResult({ status: status }),
+      );
+      const { submit, onSuccess, onError } = renderForm();
+      submit();
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(SETUP_NOT_COMPLETED_ERROR_MESSAGE);
+      });
+      expect(onSuccess).not.toHaveBeenCalled();
+    },
+  );
+
+  it("surfaces the provider's reason when the setup needs a different payment method", async () => {
+    confirmSetupMock.mockResolvedValueOnce(
+      setupIntentResult({
+        status: "requires_payment_method",
+        payment_method: null,
+        last_setup_error: {
+          code: "card_declined",
+          message: "Your card does not support this type of purchase.",
+        },
+      }),
+    );
+    const { submit, onSuccess, onError } = renderForm();
+    submit();
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledWith(
+        "Your card does not support this type of purchase.",
+      );
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("falls back to a readable message when a failed setup has no provider reason", async () => {
+    confirmSetupMock.mockResolvedValueOnce(
+      setupIntentResult({
+        status: "requires_payment_method",
+        payment_method: null,
+        last_setup_error: null,
+      }),
+    );
+    const { submit, onError } = renderForm();
+    submit();
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledWith(SETUP_NOT_COMPLETED_ERROR_MESSAGE);
+    });
+  });
+
+  it("can save after an authentication that did not complete", async () => {
+    confirmSetupMock
+      .mockResolvedValueOnce(setupIntentResult({ status: "requires_action" }))
+      .mockResolvedValueOnce(setupIntentResult());
+    const { submit, onSuccess, onError } = renderForm();
+    submit();
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledTimes(1);
+    });
+    submit();
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith(NEW_CARD_ID);
+    });
+    expect(confirmSetupMock).toHaveBeenCalledTimes(2);
   });
 
   it.each(["stripe", "elements"])(
@@ -126,7 +288,7 @@ describe("Adding a payment method", () => {
   it("reports a provider error and supports retry", async () => {
     confirmSetupMock
       .mockResolvedValueOnce({ error: { message: "Your card was declined." } })
-      .mockResolvedValueOnce({});
+      .mockResolvedValueOnce(setupIntentResult());
     const { submit, onSuccess, onError } = renderForm();
     submit();
     await waitFor(() => {
@@ -135,9 +297,19 @@ describe("Adding a payment method", () => {
     expect(onSuccess).not.toHaveBeenCalled();
     submit();
     await waitFor(() => {
-      expect(onSuccess).toHaveBeenCalledTimes(1);
+      expect(onSuccess).toHaveBeenCalledWith(NEW_CARD_ID);
     });
     expect(confirmSetupMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses a readable message for a provider error without one", async () => {
+    confirmSetupMock.mockResolvedValueOnce({ error: { type: "api_error" } });
+    const { submit, onSuccess, onError } = renderForm();
+    submit();
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledWith(DEFAULT_SETUP_ERROR_MESSAGE);
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it("recovers from an unexpected provider failure without an unhandled rejection", async () => {
@@ -170,9 +342,10 @@ describe("Adding a payment method", () => {
     submit();
     expect(confirmSetupMock).toHaveBeenCalledTimes(1);
     await act(async () => {
-      resolveSetup!({});
+      resolveSetup!(setupIntentResult());
     });
     expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onSuccess).toHaveBeenCalledWith(NEW_CARD_ID);
   });
 
   it("can save again when the add-card form is reopened", async () => {
@@ -183,13 +356,34 @@ describe("Adding a payment method", () => {
     });
     first.unmount();
 
+    confirmSetupMock.mockResolvedValueOnce(
+      setupIntentResult({ payment_method: "pm_second" }),
+    );
     const second: ReturnType<typeof renderForm> = renderForm();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     second.submit();
     await waitFor(() => {
-      expect(second.onSuccess).toHaveBeenCalledTimes(1);
+      expect(second.onSuccess).toHaveBeenCalledWith("pm_second");
     });
     expect(second.onError).not.toHaveBeenCalled();
     expect(confirmSetupMock).toHaveBeenCalledTimes(2);
   });
+});
+
+describe("getSetupIntentPaymentMethodId", () => {
+  it.each([
+    ["a string id", NEW_CARD_ID, NEW_CARD_ID],
+    ["an expanded payment method", { id: "pm_obj" }, "pm_obj"],
+    ["no payment method", null, null],
+    ["an expanded payment method without an id", { id: "" }, null],
+  ])(
+    "returns the right id for %s",
+    (_label: string, paymentMethod: unknown, expected: string | null) => {
+      expect(
+        getSetupIntentPaymentMethodId({
+          payment_method: paymentMethod,
+        } as unknown as SetupIntent),
+      ).toBe(expected);
+    },
+  );
 });
