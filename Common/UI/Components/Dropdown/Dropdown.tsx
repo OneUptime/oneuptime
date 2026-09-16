@@ -512,7 +512,20 @@ const Dropdown: FunctionComponent<ComponentProps> = (
    * is what a screen reader read out for every chip in every multi-select.
    * Name the button after the option's own text instead, translated the same
    * way the chip is.
+   *
+   * The identity has to hold still across renders: react-select rebuilds its
+   * component table whenever the components prop stops being shallow-equal, and
+   * a rebuilt table is a new element type, so React would throw the remove
+   * button away and mount a fresh one on every render - taking the focus with
+   * it if someone were tabbing through the chips. useTranslateValue hands back a
+   * new translateString each render, so keep the latest one in a ref and depend
+   * on nothing.
    */
+  const translateStringRef: React.MutableRefObject<
+    (value: string | undefined) => string | undefined
+  > = useRef(translateString);
+  translateStringRef.current = translateString;
+
   const MultiValueRemoveWithOptionName: FunctionComponent<
     MultiValueRemoveProps<DropdownOption, boolean, GroupBase<DropdownOption>>
   > = useMemo(() => {
@@ -526,7 +539,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       >,
     ): ReactElement => {
       const optionLabel: string =
-        translateString(removeProps.data.label) ?? removeProps.data.label;
+        translateStringRef.current(removeProps.data.label) ??
+        removeProps.data.label;
 
       return (
         <ReactSelectComponents.MultiValueRemove
@@ -542,7 +556,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     MultiValueRemove.displayName = "DropdownMultiValueRemove";
 
     return MultiValueRemove;
-  }, [translateString]);
+  }, []);
 
   useLayoutEffect(() => {
     if (firstUpdate.current && props.initialValue) {
