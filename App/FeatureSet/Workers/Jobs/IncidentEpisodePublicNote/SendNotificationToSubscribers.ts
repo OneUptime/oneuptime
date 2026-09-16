@@ -393,10 +393,16 @@ const notifySubscribersOfEpisodePublicNote: (data: {
       const statusPageIdString: string | null =
         statuspage.id?.toString() || statuspage._id?.toString() || null;
 
+      /*
+       * The status page has no /episodes page: it shows an episode on its
+       * incident detail route (/incidents/:id), which looks the id up as an
+       * incident first and then as an episode. Linking anywhere else lands
+       * subscribers on "page not found".
+       */
       const episodeDetailsUrl: string =
         episode.id && statusPageURL
           ? URL.fromString(statusPageURL)
-              .addRoute(`/episodes/${episode.id.toString()}`)
+              .addRoute(`/incidents/${episode.id.toString()}`)
               .toString()
           : statusPageURL;
 
@@ -456,11 +462,18 @@ const notifySubscribersOfEpisodePublicNote: (data: {
         );
 
       /*
+       * Every variable SubscriberNotificationTemplateVariables advertises for
+       * the episode note events, built once per status page. The base object
+       * holds the values that read the same on every channel; each channel
+       * object below adds the format-dependent ones (note and
+       * resourcesAffected), and every channel adds the subscriber's
+       * unsubscribeUrl, so no channel can miss a variable the others have.
+       *
        * Custom templates get each value in the format their channel renders:
        * HTML for the email body (it is wrapped only by BlankTemplate), plain
        * text for SMS and the email subject, and Markdown for Slack and Teams.
-       * The conversions are the memoized ones computed once per public note
-       * above.
+       * The note conversions are the memoized ones computed once per public
+       * note above.
        */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
@@ -623,7 +636,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                   emailTemplate.emailSubject,
                   subscriberPlainTextTemplateVariables,
                 )
-              : copy.customTemplateEmailSubjectPrefix + episode.title || "";
+              : copy.customTemplateEmailSubjectPrefix + (episode.title || "");
 
             MailService.sendMail(
               {

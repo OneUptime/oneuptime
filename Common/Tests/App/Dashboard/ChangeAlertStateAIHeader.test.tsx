@@ -83,6 +83,7 @@ import IncidentNoteTemplate from "../../../Models/DatabaseModels/IncidentNoteTem
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import Project from "../../../Models/DatabaseModels/Project";
+import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -118,6 +119,7 @@ interface HeaderProps {
   facts?: Array<EventStatusFact> | undefined;
   aiInvestigationStatus?: AIRunStatus | null | undefined;
   aiInvestigationSummary?: string | null | undefined;
+  aiInvestigationVerdict?: AIRunHumanVerdict | null | undefined;
 }
 
 interface HeaderCase {
@@ -800,6 +802,109 @@ describe.each([
         expect(screen.queryByText("AI is investigating")).toBeNull();
       },
     );
+
+    test.each([
+      [
+        AIRunHumanVerdict.Confirmed,
+        "Confirmed by a responder",
+        "text-gray-900",
+      ],
+      [AIRunHumanVerdict.Rejected, "Rejected by a responder", "text-gray-600"],
+    ])(
+      "shows a %s verdict beside the report's summary",
+      async (
+        verdict: AIRunHumanVerdict,
+        badgeText: string,
+        summaryClass: string,
+      ) => {
+        respondWith(headerCase);
+
+        const summaryText: string =
+          "A connection pool change in checkout-api exhausted database connections.";
+
+        render(
+          headerCase.renderHeader({
+            onActionComplete: jest.fn(),
+            aiInvestigationStatus: AIRunStatus.Completed,
+            aiInvestigationSummary: summaryText,
+            aiInvestigationVerdict: verdict,
+          }),
+        );
+
+        const header: HTMLElement = await waitForHeader();
+        const panel: HTMLElement = header.closest(".rounded-xl") as HTMLElement;
+        const heading: HTMLElement = within(panel).getByRole("heading", {
+          level: 3,
+          name: "AI root cause analysis",
+        });
+        const badge: HTMLElement = within(panel).getByText(badgeText);
+
+        expect(badge).toHaveAttribute("data-verdict", verdict);
+        expect(badge.parentElement).toBe(heading.parentElement!.parentElement);
+        expect(within(panel).getByText(summaryText)).toHaveClass(summaryClass);
+        // The rest of the notice is unchanged by a verdict.
+        expect(
+          within(panel).getByRole("button", { name: /View full report/ }),
+        ).toHaveAttribute("aria-controls", AI_INVESTIGATION_PANEL_ID);
+        expect(getLiveRegionText()).toBe("AI root cause analysis ready.");
+      },
+    );
+
+    test("shows no badge and a full-strength summary before anyone rates it", async () => {
+      respondWith(headerCase);
+
+      render(
+        headerCase.renderHeader({
+          onActionComplete: jest.fn(),
+          aiInvestigationStatus: AIRunStatus.Completed,
+          aiInvestigationSummary: "Pool exhaustion in checkout-api.",
+          aiInvestigationVerdict: null,
+        }),
+      );
+
+      await waitForHeader();
+
+      expect(screen.getByText("Pool exhaustion in checkout-api.")).toHaveClass(
+        "text-gray-900",
+      );
+      expect(screen.queryByText(/by a responder/)).toBeNull();
+    });
+
+    test("keeps an earlier verdict off a new investigation's live notice", async () => {
+      respondWith(headerCase);
+
+      render(
+        headerCase.renderHeader({
+          onActionComplete: jest.fn(),
+          aiInvestigationStatus: AIRunStatus.Running,
+          aiInvestigationSummary: "Stale text from an earlier report.",
+          aiInvestigationVerdict: AIRunHumanVerdict.Rejected,
+        }),
+      );
+
+      await waitForHeader();
+
+      expect(screen.getByText("AI is investigating")).toBeInTheDocument();
+      expect(screen.queryByText(/by a responder/)).toBeNull();
+    });
+
+    test("shows no verdict for a completed run without a summary", async () => {
+      respondWith(headerCase);
+
+      render(
+        headerCase.renderHeader({
+          onActionComplete: jest.fn(),
+          aiInvestigationStatus: AIRunStatus.Completed,
+          aiInvestigationSummary: null,
+          aiInvestigationVerdict: AIRunHumanVerdict.Confirmed,
+        }),
+      );
+
+      await waitForHeader();
+
+      expect(screen.queryByText("AI root cause analysis")).toBeNull();
+      expect(screen.queryByText(/by a responder/)).toBeNull();
+    });
 
     test("switches from live progress to the summary when the run completes", async () => {
       respondWith(headerCase);

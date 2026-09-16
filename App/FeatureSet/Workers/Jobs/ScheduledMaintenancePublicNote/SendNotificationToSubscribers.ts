@@ -30,6 +30,7 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -172,6 +173,10 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           description: true,
           projectId: true,
           startsAt: true,
+          // Templates offer {{scheduledMaintenanceState}}: the event's state right now.
+          currentScheduledMaintenanceState: {
+            name: true,
+          },
           monitors: {
             _id: true,
           },
@@ -246,6 +251,11 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           _id: true,
           displayName: true,
           statusPageId: true,
+          // {{resourcesAffected}} lists the resources by their group.
+          statusPageGroupId: true,
+          statusPageGroup: {
+            name: true,
+          },
         },
       });
     }
@@ -294,9 +304,10 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
     }
 
     /*
-     * Pre-compute markdown conversions for the note once per public note.
-     * These values do not vary per status page or per subscriber, so
-     * memoizing here avoids N redundant markdown parses during fan-out.
+     * Pre-compute markdown conversions for the note and the event description
+     * once per public note. These values do not vary per status page or per
+     * subscriber, so memoizing here avoids N redundant markdown parses during
+     * fan-out.
      */
     const noteHtml: string = await Markdown.convertToHTML(
       publicNote.note || "",
@@ -305,6 +316,26 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
     const notePlainText: string = Markdown.convertToPlainText(
       publicNote.note || "",
     );
+    const descriptionHtml: string = await Markdown.convertToHTML(
+      event.description || "",
+      MarkdownContentType.Email,
+    );
+    const descriptionPlainText: string = Markdown.convertToPlainText(
+      event.description || "",
+    );
+
+    /*
+     * {{postedAt}} is when the note says it was posted, which the author can
+     * edit, so an update notification reads it fresh from the row. Only a
+     * legacy row with no postedAt falls back to the time of sending.
+     */
+    const notePostedAt: string =
+      OneUptimeDate.getDateAsUserFriendlyFormattedString(
+        publicNote.postedAt || OneUptimeDate.getCurrentDate(),
+      );
+
+    const scheduledAtString: string =
+      OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!);
 
     let notificationSentToAtLeastOneSubscriber: boolean = false;
 
@@ -345,6 +376,20 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
               .addRoute(`/scheduled-events/${event.id.toString()}`)
               .toString()
           : statusPageURL;
+
+      /*
+       * The affected resources on this status page: one group per line for
+       * HTML email bodies, and on one line for every channel that shows
+       * "<br/>" as literal text.
+       */
+      const resourcesAffectedString: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupName(
+          statusPageToResources[statuspage._id!] || [],
+        );
+      const resourcesAffectedPlainText: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+          statusPageToResources[statuspage._id!] || [],
+        );
 
       logger.debug(
         `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for public note ${publicNote.id}.`,
@@ -389,11 +434,12 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
       ]);
 
       /*
-       * Custom templates get each value in the format their channel renders:
-       * HTML for the email body (it is wrapped only by BlankTemplate), plain
-       * text for SMS and the email subject, and Markdown for Slack and Teams.
-       * The conversions are the memoized ones computed once per public note
-       * above.
+       * Every variable SubscriberNotificationTemplateVariables advertises for
+       * the scheduled maintenance note events, built once per status page.
+       * The values below are the same on every channel; the three objects
+       * after them add the ones whose format depends on the channel, and
+       * every channel adds the subscriber's unsubscribeUrl, so no channel can
+       * miss a variable the others have.
        */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
@@ -401,24 +447,35 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         detailsUrl: scheduledEventDetailsUrl,
         scheduledMaintenanceTitle: event.title || "",
         scheduledMaintenanceState:
-          OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!),
-        postedAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
-          OneUptimeDate.getCurrentDate(),
-        ),
+          event.currentScheduledMaintenanceState?.name || "",
+        postedAt: notePostedAt,
       };
 
+      /*
+       * Custom templates get each value in the format their channel renders:
+       * HTML for the email body (it is wrapped only by BlankTemplate), plain
+       * text for SMS and the email subject, and Markdown for Slack and Teams.
+       * The conversions are the memoized ones computed once per public note
+       * above.
+       */
       const emailBodyTemplateVariables: Record<string, string> = {
         ...templateVariables,
+        resourcesAffected: resourcesAffectedString,
+        scheduledMaintenanceDescription: descriptionHtml,
         note: noteHtml,
       };
 
       const plainTextTemplateVariables: Record<string, string> = {
         ...templateVariables,
+        resourcesAffected: resourcesAffectedPlainText,
+        scheduledMaintenanceDescription: descriptionPlainText,
         note: notePlainText,
       };
 
       const markdownTemplateVariables: Record<string, string> = {
         ...templateVariables,
+        resourcesAffected: resourcesAffectedPlainText,
+        scheduledMaintenanceDescription: event.description || "",
         note: publicNote.note || "",
       };
 
@@ -588,13 +645,6 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         }
 
         if (subscriber.subscriberWebhook) {
-          const resourcesAffectedStr: string =
-            statusPageToResources[statuspage._id!]
-              ?.map((r: StatusPageResource) => {
-                return r.displayName;
-              })
-              .join(", ") || "";
-
           StatusPageSubscriberWebhookUtil.sendWebhookNotification({
             webhookUrl: subscriber.subscriberWebhook,
             payload: {
@@ -607,7 +657,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                 scheduledMaintenanceId: event.id?.toString() || "",
                 scheduledMaintenanceTitle: event.title || "",
                 scheduledMaintenanceDescription: event.description || "",
-                resourcesAffected: resourcesAffectedStr,
+                resourcesAffected: resourcesAffectedPlainText,
                 note: publicNote.note || "",
                 detailsUrl: scheduledEventDetailsUrl,
               },
@@ -635,7 +685,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   emailTemplate.emailSubject,
                   subscriberPlainTextTemplateVariables,
                 )
-              : copy.customTemplateEmailSubjectPrefix + event.title || "";
+              : copy.customTemplateEmailSubjectPrefix + (event.title || "");
 
             MailService.sendMail(
               {
@@ -678,16 +728,8 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"
                     : "false",
-                  resourcesAffected:
-                    statusPageToResources[statuspage._id!]
-                      ?.map((r: StatusPageResource) => {
-                        return r.displayName;
-                      })
-                      .join(", ") || "",
-                  scheduledAt:
-                    OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                      event.startsAt!,
-                    ),
+                  resourcesAffected: resourcesAffectedString,
+                  scheduledAt: scheduledAtString,
                   eventTitle: event.title || "",
                   eventDescription: event.description || "",
                   unsubscribeUrl: unsubscribeUrl,
@@ -800,6 +842,7 @@ RunCron(
         select: {
           _id: true,
           note: true,
+          postedAt: true,
           scheduledMaintenanceId: true,
         },
       });
@@ -842,6 +885,7 @@ RunCron(
         select: {
           _id: true,
           note: true,
+          postedAt: true,
           scheduledMaintenanceId: true,
           subscriberNotificationStatusOnNoteCreated: true,
         },

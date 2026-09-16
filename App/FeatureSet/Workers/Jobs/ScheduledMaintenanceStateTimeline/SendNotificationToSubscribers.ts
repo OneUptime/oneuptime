@@ -28,6 +28,7 @@ import StatusPageSubscriberNotificationTemplateService, {
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -231,6 +232,21 @@ RunCron(
             }) || [],
           );
 
+        /*
+         * Custom email bodies are HTML (they are wrapped only by
+         * BlankTemplate), and SMS and email subjects cannot render Markdown,
+         * so those templates get the description converted. It does not vary
+         * per status page or subscriber, so it is converted once per state
+         * change.
+         */
+        const descriptionHtml: string = await Markdown.convertToHTML(
+          event.description || "",
+          MarkdownContentType.Email,
+        );
+        const descriptionPlainText: string = Markdown.convertToPlainText(
+          event.description || "",
+        );
+
         let notificationSentToAtLeastOneSubscriber: boolean = false;
 
         for (const statuspage of statusPages) {
@@ -325,24 +341,49 @@ RunCron(
           ]);
 
           /*
-           * The custom email body is HTML (it is wrapped only by
-           * BlankTemplate). SMS, the email subject, Slack and Teams do not
-           * render HTML, so they get the plain-text resource list.
+           * Every variable SubscriberNotificationTemplateVariables advertises
+           * for the state changed event, built once per status page. The
+           * values that depend on the channel's format (the description and
+           * the resource list) are added by the three objects below, and
+           * every channel adds the subscriber's unsubscribeUrl, so no channel
+           * can miss a variable the others have.
+           * {{scheduledMaintenanceState}} is the state the maintenance just
+           * moved to. {{scheduledAt}} is not advertised but has always been
+           * passed, so templates that use it keep working.
            */
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
             detailsUrl: scheduledEventDetailsUrl,
-            resourcesAffected: resourcesAffectedString,
             scheduledMaintenanceTitle: event.title || "",
             scheduledMaintenanceState:
               scheduledEventStateTimeline.scheduledMaintenanceState?.name || "",
             scheduledAt: scheduledAtString,
           };
 
+          /*
+           * Custom templates get each value in the format their channel
+           * renders: HTML for the email body (it is wrapped only by
+           * BlankTemplate), plain text for SMS and the email subject, and
+           * the Markdown as written for Slack and Teams. Only the email body
+           * gets the "<br/>"-joined resource list.
+           */
+          const emailBodyTemplateVariables: Record<string, string> = {
+            ...templateVariables,
+            resourcesAffected: resourcesAffectedString,
+            scheduledMaintenanceDescription: descriptionHtml,
+          };
+
           const plainTextTemplateVariables: Record<string, string> = {
             ...templateVariables,
             resourcesAffected: resourcesAffectedPlainText,
+            scheduledMaintenanceDescription: descriptionPlainText,
+          };
+
+          const markdownTemplateVariables: Record<string, string> = {
+            ...templateVariables,
+            resourcesAffected: resourcesAffectedPlainText,
+            scheduledMaintenanceDescription: event.description || "",
           };
 
           // Send email to Email subscribers.
@@ -374,13 +415,19 @@ RunCron(
               ).toString();
 
             // Add unsubscribeUrl to template variables for this subscriber
-            const subscriberTemplateVariables: Record<string, string> = {
-              ...templateVariables,
-              unsubscribeUrl: unsubscribeUrl,
-            };
+            const subscriberEmailBodyTemplateVariables: Record<string, string> =
+              {
+                ...emailBodyTemplateVariables,
+                unsubscribeUrl: unsubscribeUrl,
+              };
             const subscriberPlainTextTemplateVariables: Record<string, string> =
               {
                 ...plainTextTemplateVariables,
+                unsubscribeUrl: unsubscribeUrl,
+              };
+            const subscriberMarkdownTemplateVariables: Record<string, string> =
+              {
+                ...markdownTemplateVariables,
                 unsubscribeUrl: unsubscribeUrl,
               };
 
@@ -431,7 +478,7 @@ RunCron(
                 markdownMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     slackTemplate.templateBody,
-                    subscriberPlainTextTemplateVariables,
+                    subscriberMarkdownTemplateVariables,
                   );
               } else {
                 // Use default hard-coded template
@@ -462,7 +509,7 @@ RunCron(
                 markdownMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     teamsTemplate.templateBody,
-                    subscriberPlainTextTemplateVariables,
+                    subscriberMarkdownTemplateVariables,
                   );
               } else {
                 // Use default hard-coded template
@@ -514,7 +561,7 @@ RunCron(
                 const compiledBody: string =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     emailTemplate.templateBody,
-                    subscriberTemplateVariables,
+                    subscriberEmailBodyTemplateVariables,
                   );
                 const compiledSubject: string = emailTemplate.emailSubject
                   ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(

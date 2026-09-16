@@ -4,6 +4,7 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
@@ -183,6 +184,10 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         incidentSeverity: {
           name: true,
         },
+        // Templates offer {{incidentState}}: the incident's state right now.
+        currentIncidentState: {
+          name: true,
+        },
         isVisibleOnStatusPage: true,
         incidentNumber: true,
         incidentNumberWithPrefix: true,
@@ -324,6 +329,16 @@ const notifySubscribersOfIncidentPublicNote: (data: {
       incidentPublicNote.note || "",
     );
 
+    /*
+     * {{postedAt}} is when the note says it was posted, which the author can
+     * edit, so an update notification reads it fresh from the row. Only a
+     * legacy row with no postedAt falls back to the time of sending.
+     */
+    const notePostedAt: string =
+      OneUptimeDate.getDateAsUserFriendlyFormattedString(
+        incidentPublicNote.postedAt || OneUptimeDate.getCurrentDate(),
+      );
+
     let notificationSentToAtLeastOneSubscriber: boolean = false;
 
     for (const statuspage of statusPages) {
@@ -426,11 +441,16 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         );
 
       /*
-       * Custom templates get each value in the format their channel renders:
-       * HTML for the email body (it is wrapped only by BlankTemplate), plain
-       * text for SMS and the email subject, and Markdown for Slack and Teams.
-       * The conversions are the memoized ones computed once per public note
-       * above.
+       * Every variable SubscriberNotificationTemplateVariables advertises for
+       * the incident note events, built once per status page. The base object
+       * holds the values that read the same on every channel; the three
+       * objects below add the format-dependent ones (note, resourcesAffected)
+       * in the format each channel renders: HTML for the email body (it is
+       * wrapped only by BlankTemplate), plain text for SMS and the email
+       * subject, and Markdown for Slack and Teams. The note conversions are
+       * the memoized ones computed once per public note above. Every channel
+       * then adds the subscriber's unsubscribeUrl, so no channel can miss a
+       * variable the others have.
        */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
@@ -438,6 +458,8 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         detailsUrl: incidentDetailsUrl,
         incidentSeverity: incident.incidentSeverity?.name || " - ",
         incidentTitle: incident.title || "",
+        incidentState: incident.currentIncidentState?.name || "",
+        postedAt: notePostedAt,
       };
 
       const emailBodyTemplateVariables: Record<string, string> = {
@@ -594,7 +616,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   emailTemplate.emailSubject,
                   subscriberPlainTextTemplateVariables,
                 )
-              : copy.customTemplateEmailSubjectPrefix + incident.title || "";
+              : copy.customTemplateEmailSubjectPrefix + (incident.title || "");
 
             MailService.sendMail(
               {
@@ -927,6 +949,7 @@ RunCron(
         select: {
           _id: true,
           note: true,
+          postedAt: true,
           incidentId: true,
           projectId: true,
         },
@@ -971,6 +994,7 @@ RunCron(
         select: {
           _id: true,
           note: true,
+          postedAt: true,
           incidentId: true,
           projectId: true,
           subscriberNotificationStatusOnNoteCreated: true,

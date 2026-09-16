@@ -3,6 +3,7 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
+import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import SMS from "Common/Types/SMS/SMS";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
@@ -33,6 +34,7 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
@@ -317,6 +319,10 @@ const notifySubscribersOfAnnouncement: (data: {
               _id: true,
               displayName: true,
               statusPageId: true,
+              statusPageGroupId: true,
+              statusPageGroup: {
+                name: true,
+              },
             },
             skip: 0,
           });
@@ -329,6 +335,52 @@ const notifySubscribersOfAnnouncement: (data: {
             `Announcement ${announcement.id} has no monitors specified. All subscribers will be notified.`,
           );
         }
+
+        /*
+         * Variables for this status page's custom templates, built once so
+         * every channel offers the same set. resourcesAffected lists only the
+         * announcement's resources on this page, and is empty when the
+         * announcement is not scoped to any resources.
+         *
+         * Each channel gets the description and the resource list in the
+         * format it renders. The email body is sent as HTML, so it gets
+         * both as HTML. SMS and the email subject are plain text. Slack and
+         * Teams render the description's Markdown as written, and show
+         * "<br/>" literally, so they get the plain-text resource list.
+         */
+        const resourcesAffectedHtml: string =
+          StatusPageResourceUtil.getResourcesGroupedByGroupName(
+            statusPageResources,
+          );
+        const resourcesAffectedPlainText: string =
+          StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+            statusPageResources,
+          );
+
+        const templateVariables: Record<string, string> = {
+          statusPageName: statusPageName,
+          statusPageUrl: statusPageURL,
+          detailsUrl: announcementDetailsUrl,
+          announcementTitle: announcement.title || "",
+        };
+
+        const emailBodyTemplateVariables: Record<string, string> = {
+          ...templateVariables,
+          resourcesAffected: resourcesAffectedHtml,
+          announcementDescription: announcementDescriptionHtml,
+        };
+
+        const plainTextTemplateVariables: Record<string, string> = {
+          ...templateVariables,
+          resourcesAffected: resourcesAffectedPlainText,
+          announcementDescription: announcementDescriptionPlainText,
+        };
+
+        const markdownTemplateVariables: Record<string, string> = {
+          ...templateVariables,
+          resourcesAffected: resourcesAffectedPlainText,
+          announcementDescription: announcement.description || "",
+        };
 
         // Send email to Email subscribers.
 
@@ -368,6 +420,19 @@ const notifySubscribersOfAnnouncement: (data: {
               `Prepared unsubscribe link for subscriber ${subscriber._id} for announcement ${announcement.id}.`,
             );
 
+            const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
+              ...emailBodyTemplateVariables,
+              unsubscribeUrl: unsubscribeUrl,
+            };
+            const subscriberPlainTextTemplateVariables: Dictionary<string> = {
+              ...plainTextTemplateVariables,
+              unsubscribeUrl: unsubscribeUrl,
+            };
+            const subscriberMarkdownTemplateVariables: Dictionary<string> = {
+              ...markdownTemplateVariables,
+              unsubscribeUrl: unsubscribeUrl,
+            };
+
             if (subscriber.subscriberPhone) {
               const phoneStr: string = subscriber.subscriberPhone.toString();
               const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
@@ -378,19 +443,11 @@ const notifySubscribersOfAnnouncement: (data: {
               // Build SMS message - use custom template if available and custom Twilio is configured
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
-                // SMS-specific template variables with plain text (no HTML/Markdown)
-                const smsTemplateVariables: Record<string, string> = {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  detailsUrl: announcementDetailsUrl,
-                  announcementTitle: announcement.title || "",
-                  announcementDescription: announcementDescriptionPlainText,
-                  unsubscribeUrl: unsubscribeUrl,
-                };
+                // SMS is plain text (no HTML/Markdown).
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     smsTemplate.templateBody,
-                    smsTemplateVariables,
+                    subscriberPlainTextTemplateVariables,
                   );
               } else {
                 smsMessage = `${copy.smsPrefix} ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${unsubscribeUrl}`;
@@ -430,18 +487,11 @@ const notifySubscribersOfAnnouncement: (data: {
               // Build Slack message - use custom template if available
               let slackMessage: string;
               if (slackTemplate?.templateBody) {
-                const slackTemplateVariables: Record<string, string> = {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  detailsUrl: announcementDetailsUrl,
-                  announcementTitle: announcement.title || "",
-                  announcementDescription: announcement.description || "",
-                  unsubscribeUrl: unsubscribeUrl,
-                };
+                // Slack gets the raw markdown description.
                 slackMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     slackTemplate.templateBody,
-                    slackTemplateVariables,
+                    subscriberMarkdownTemplateVariables,
                   );
               } else {
                 // Default markdown message
@@ -469,18 +519,11 @@ const notifySubscribersOfAnnouncement: (data: {
               // Build Teams message - use custom template if available
               let teamsMessage: string;
               if (teamsTemplate?.templateBody) {
-                const teamsTemplateVariables: Record<string, string> = {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  detailsUrl: announcementDetailsUrl,
-                  announcementTitle: announcement.title || "",
-                  announcementDescription: announcement.description || "",
-                  unsubscribeUrl: unsubscribeUrl,
-                };
+                // Teams gets the raw markdown description.
                 teamsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     teamsTemplate.templateBody,
-                    teamsTemplateVariables,
+                    subscriberMarkdownTemplateVariables,
                   );
               } else {
                 // Default markdown message
@@ -541,18 +584,10 @@ const notifySubscribersOfAnnouncement: (data: {
 
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                 // Use custom template with BlankTemplate only when custom SMTP is configured
-                const emailTemplateVariables: Record<string, string> = {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  detailsUrl: announcementDetailsUrl,
-                  announcementTitle: announcement.title || "",
-                  announcementDescription: announcementDescriptionHtml,
-                  unsubscribeUrl: unsubscribeUrl,
-                };
                 const customEmailBody: string =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     emailTemplate.templateBody,
-                    emailTemplateVariables,
+                    subscriberEmailBodyTemplateVariables,
                   );
 
                 // Use custom subject if provided. A subject is plain text.
@@ -560,11 +595,7 @@ const notifySubscribersOfAnnouncement: (data: {
                   emailSubject =
                     StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                       emailTemplate.emailSubject,
-                      {
-                        ...emailTemplateVariables,
-                        announcementDescription:
-                          announcementDescriptionPlainText,
-                      },
+                      subscriberPlainTextTemplateVariables,
                     );
                 }
 
