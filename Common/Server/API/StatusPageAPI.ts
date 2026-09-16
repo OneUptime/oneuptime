@@ -2605,7 +2605,8 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (
-      req.body.data["slackIncomingWebhookUrl"] &&
+      (req.body.data["slackIncomingWebhookUrl"] ||
+        req.body.data["slackWorkspaceName"]) &&
       !statusPage.enableSlackSubscribers
     ) {
       logger.debug(
@@ -2627,19 +2628,31 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
-    // if no email or phone, throw error.
+    const identifierCount: number = [
+      req.body.data["subscriberEmail"],
+      req.body.data["subscriberPhone"],
+      req.body.data["slackWorkspaceName"],
+    ].filter(Boolean).length;
 
-    if (
-      !req.body.data["subscriberEmail"] &&
-      !req.body.data["subscriberPhone"] &&
-      !req.body.data["slackWorkspaceName"]
-    ) {
+    if (identifierCount === 0) {
       logger.debug(
         `No email, slack workspace name or phone provided for subscription to status page with ID: ${statusPageId}`,
         getLogAttributesFromRequest(req as any),
       );
       throw new BadDataException(
         "Email, phone or slack workspace name is required to subscribe to this status page.",
+      );
+    }
+
+    /*
+     * The manage link opens the subscription it belongs to, so it may only go
+     * to the contact stored on that subscriber. One identifier per request
+     * keeps the subscriber that is looked up and the channel the link is sent
+     * on the same.
+     */
+    if (identifierCount > 1) {
+      throw new BadDataException(
+        "Please provide only one of email, phone or slack workspace name.",
       );
     }
 
@@ -2657,6 +2670,10 @@ export default class StatusPageAPI extends BaseAPI<
       ? (req.body.data["slackWorkspaceName"] as string)
       : undefined;
 
+    /*
+     * Each lookup selects only the contact for its own channel, so the link
+     * below can only be delivered where this subscriber signed up.
+     */
     let statusPageSubscriber: StatusPageSubscriber | null = null;
 
     if (email) {
@@ -2677,9 +2694,7 @@ export default class StatusPageAPI extends BaseAPI<
           isRoot: true,
         },
       });
-    }
-
-    if (phone) {
+    } else if (phone) {
       logger.debug(
         `Setting subscriber phone: ${phone}`,
         getLogAttributesFromRequest(req as any),
@@ -2697,9 +2712,7 @@ export default class StatusPageAPI extends BaseAPI<
           isRoot: true,
         },
       });
-    }
-
-    if (slackWorkspaceName) {
+    } else if (slackWorkspaceName) {
       logger.debug(
         `Setting subscriber slack workspace: ${slackWorkspaceName}`,
         getLogAttributesFromRequest(req as any),
@@ -2711,7 +2724,6 @@ export default class StatusPageAPI extends BaseAPI<
         },
         select: {
           _id: true,
-          slackWorkspaceName: true,
           slackIncomingWebhookUrl: true,
         },
         props: {
@@ -2721,23 +2733,45 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (!statusPageSubscriber) {
-      // not found, return bad data
+      /*
+       * Answer exactly as when a subscriber matched, so this endpoint cannot
+       * be used to find out who is subscribed.
+       */
       logger.debug(
         `Subscriber not found for email: ${email}, phone: ${phone}, or slack workspace: ${slackWorkspaceName}`,
         getLogAttributesFromRequest(req as any),
       );
-
-      let identifierType: string = "email";
-      if (phone) {
-        identifierType = "phone";
-      } else if (slackWorkspaceName) {
-        identifierType = "slack workspace name";
-      }
-
-      throw new BadDataException(
-        `Subscription not found for this status page. Please make sure your ${identifierType} is correct.`,
-      );
+      return;
     }
+
+    /*
+     * Send in the background so that neither the response time nor an error
+     * while sending reveals that a subscriber matched.
+     */
+    this.sendManageSubscriptionLink({
+      statusPageId: statusPageId,
+      subscriber: statusPageSubscriber,
+      req: req,
+    }).catch((err: Error) => {
+      logger.error(err, getLogAttributesFromRequest(req as any));
+    });
+  }
+
+  @CaptureSpan()
+  public async sendManageSubscriptionLink(data: {
+    statusPageId: ObjectID;
+    subscriber: StatusPageSubscriber;
+    req: ExpressRequest;
+  }): Promise<void> {
+    const { statusPageId, subscriber: statusPageSubscriber, req } = data;
+
+    // Only ever the contacts stored on the subscriber, never ones from the request.
+    const subscriberEmail: Email | undefined =
+      statusPageSubscriber.subscriberEmail;
+    const subscriberPhone: Phone | undefined =
+      statusPageSubscriber.subscriberPhone;
+    const slackIncomingWebhookUrl: URL | undefined =
+      statusPageSubscriber.slackIncomingWebhookUrl;
 
     const statusPageURL: string =
       await StatusPageService.getStatusPageURL(statusPageId);
@@ -2805,7 +2839,7 @@ export default class StatusPageAPI extends BaseAPI<
         manageSubscriptionUrl: manageUrlink,
       };
 
-      if (email) {
+      if (subscriberEmail) {
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
         const statusPageIdString: string | null =
@@ -2826,7 +2860,7 @@ export default class StatusPageAPI extends BaseAPI<
 
           MailService.sendMail(
             {
-              toEmail: email,
+              toEmail: subscriberEmail,
               templateType: EmailTemplateType.BlankTemplate,
               vars: {
                 body: compiledBody,
@@ -2844,7 +2878,7 @@ export default class StatusPageAPI extends BaseAPI<
         } else {
           MailService.sendMail(
             {
-              toEmail: email,
+              toEmail: subscriberEmail,
               templateType:
                 EmailTemplateType.ManageExistingStatusPageSubscriberSubscription,
               vars: {
@@ -2880,7 +2914,7 @@ export default class StatusPageAPI extends BaseAPI<
         }
       }
 
-      if (phone) {
+      if (subscriberPhone) {
         let smsMessage: string;
         if (manageSmsTemplate?.templateBody && statusPage.callSmsConfig) {
           smsMessage =
@@ -2894,7 +2928,7 @@ export default class StatusPageAPI extends BaseAPI<
 
         const sms: SMS = {
           message: smsMessage,
-          to: phone,
+          to: subscriberPhone,
         };
         // send sms here.
         SmsService.sendSms(sms, {
@@ -2908,7 +2942,7 @@ export default class StatusPageAPI extends BaseAPI<
         });
       }
 
-      if (statusPageSubscriber.slackIncomingWebhookUrl) {
+      if (slackIncomingWebhookUrl) {
         let slackMessage: string;
         if (manageSlackTemplate?.templateBody) {
           slackMessage =
@@ -2921,7 +2955,7 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         SlackUtil.sendMessageToChannelViaIncomingWebhook({
-          url: statusPageSubscriber.slackIncomingWebhookUrl,
+          url: slackIncomingWebhookUrl,
           text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
         }).catch((err: Error) => {
           logger.error(err, getLogAttributesFromRequest(req as any));
