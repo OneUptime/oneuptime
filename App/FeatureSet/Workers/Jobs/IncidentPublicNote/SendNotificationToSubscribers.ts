@@ -431,38 +431,53 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         ),
       ]);
 
-      // Prepare template variables for custom templates
       const resourcesAffectedString: string =
         StatusPageResourceUtil.getResourcesGroupedByGroupName(
+          statusPageToResources[statuspage._id!] || [],
+        );
+      const resourcesAffectedPlainText: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
           statusPageToResources[statuspage._id!] || [],
         );
 
       /*
        * Every variable SubscriberNotificationTemplateVariables advertises for
-       * the incident note events, built once per status page. Each channel
-       * below uses this object (SMS only swaps the note for plain text, and
-       * every channel adds the subscriber's unsubscribeUrl), so no channel
-       * can miss a variable the others have.
+       * the incident note events, built once per status page. The base object
+       * holds the values that read the same on every channel; the three
+       * objects below add the format-dependent ones (note, resourcesAffected)
+       * in the format each channel renders: HTML for the email body (it is
+       * wrapped only by BlankTemplate), plain text for SMS and the email
+       * subject, and Markdown for Slack and Teams. The note conversions are
+       * the memoized ones computed once per public note above. Every channel
+       * then adds the subscriber's unsubscribeUrl, so no channel can miss a
+       * variable the others have.
        */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
         statusPageUrl: statusPageURL,
         detailsUrl: incidentDetailsUrl,
-        resourcesAffected: resourcesAffectedString,
         incidentSeverity: incident.incidentSeverity?.name || " - ",
         incidentTitle: incident.title || "",
         incidentState: incident.currentIncidentState?.name || "",
         postedAt: notePostedAt,
-        note: incidentPublicNote.note || "",
       };
 
-      /*
-       * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
-       * Uses the memoized plain-text conversion computed once per public note above.
-       */
-      const smsTemplateVariables: Record<string, string> = {
+      const emailBodyTemplateVariables: Record<string, string> = {
         ...templateVariables,
+        resourcesAffected: resourcesAffectedString,
+        note: noteHtml,
+      };
+
+      const plainTextTemplateVariables: Record<string, string> = {
+        ...templateVariables,
+        resourcesAffected: resourcesAffectedPlainText,
         note: notePlainText,
+      };
+
+      const markdownTemplateVariables: Record<string, string> = {
+        ...templateVariables,
+        resourcesAffected: resourcesAffectedPlainText,
+        note: incidentPublicNote.note || "",
       };
 
       // Send email to Email subscribers.
@@ -512,8 +527,16 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         );
 
         // Add unsubscribeUrl to template variables
-        const subscriberTemplateVariables: Record<string, string> = {
-          ...templateVariables,
+        const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
+          ...emailBodyTemplateVariables,
+          unsubscribeUrl: unsubscribeUrl,
+        };
+        const subscriberPlainTextTemplateVariables: Dictionary<string> = {
+          ...plainTextTemplateVariables,
+          unsubscribeUrl: unsubscribeUrl,
+        };
+        const subscriberMarkdownTemplateVariables: Dictionary<string> = {
+          ...markdownTemplateVariables,
           unsubscribeUrl: unsubscribeUrl,
         };
 
@@ -528,19 +551,13 @@ const notifySubscribersOfIncidentPublicNote: (data: {
             },
           );
 
-          // SMS-specific template variables with unsubscribe URL
-          const subscriberSmsTemplateVariables: Record<string, string> = {
-            ...smsTemplateVariables,
-            unsubscribeUrl: unsubscribeUrl,
-          };
-
           let smsMessage: string;
           if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
             // Use custom template only when custom Twilio is configured
             smsMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 smsTemplate.templateBody,
-                subscriberSmsTemplateVariables,
+                subscriberPlainTextTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -592,12 +609,12 @@ const notifySubscribersOfIncidentPublicNote: (data: {
             const compiledBody: string =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 emailTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberEmailBodyTemplateVariables,
               );
             const compiledSubject: string = emailTemplate.emailSubject
               ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   emailTemplate.emailSubject,
-                  subscriberTemplateVariables,
+                  subscriberPlainTextTemplateVariables,
                 )
               : copy.customTemplateEmailSubjectPrefix + (incident.title || "");
 
@@ -699,7 +716,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
             markdownMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 slackTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberMarkdownTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -751,7 +768,7 @@ ${incidentPublicNote.note || ""}
             markdownMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 teamsTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberMarkdownTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -809,7 +826,7 @@ ${incidentPublicNote.note || ""}
                 incidentNumber: incident.incidentNumber?.toString() || "",
                 incidentTitle: incident.title || "",
                 incidentSeverity: incident.incidentSeverity?.name || "",
-                resourcesAffected: resourcesAffectedString,
+                resourcesAffected: resourcesAffectedPlainText,
                 note: incidentPublicNote.note || "",
                 detailsUrl: incidentDetailsUrl,
               },

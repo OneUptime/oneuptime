@@ -246,6 +246,9 @@ const OTHER_STATUS_PAGE_ID: ObjectID = new ObjectID(
 const CORE_GROUP_ID: ObjectID = new ObjectID(
   "99999999-9999-4999-8999-999999999999",
 );
+const STORAGE_GROUP_ID: ObjectID = new ObjectID(
+  "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+);
 
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/scheduled-events/${EVENT_ID.toString()}`;
@@ -259,7 +262,15 @@ const NOTE_HTML: string =
   "<p>The window moved to <strong>Sunday 02:00 UTC</strong>.</p>";
 const NOTE_TEXT: string = "The window moved to Sunday 02:00 UTC.";
 const DESCRIPTION: string = "The database engine will be **upgraded**.";
+const DESCRIPTION_HTML: string =
+  "<p>The database engine will be <strong>upgraded</strong>.</p>";
 const DESCRIPTION_TEXT: string = "The database engine will be upgraded.";
+
+// What the mocked Markdown.convertToHTML returns for each input.
+const HTML: Record<string, string> = {
+  [NOTE]: NOTE_HTML,
+  [DESCRIPTION]: DESCRIPTION_HTML,
+};
 
 // What the mocked Markdown.convertToPlainText returns for each input.
 const PLAIN_TEXT: Record<string, string> = {
@@ -368,6 +379,7 @@ function resource(data?: {
   statusPageId?: ObjectID;
   displayName?: string;
   groupName?: string;
+  groupId?: ObjectID;
 }): StatusPageResource {
   const row: StatusPageResource = new StatusPageResource();
   row._id = data
@@ -377,10 +389,11 @@ function resource(data?: {
   row.displayName = data?.displayName || "Primary database";
 
   if (data?.groupName) {
+    const groupId: ObjectID = data.groupId || CORE_GROUP_ID;
     const group: StatusPageGroup = new StatusPageGroup();
-    group._id = CORE_GROUP_ID.toString();
+    group._id = groupId.toString();
     group.name = data.groupName;
-    row.statusPageGroupId = CORE_GROUP_ID;
+    row.statusPageGroupId = groupId;
     row.statusPageGroup = group;
   }
 
@@ -388,10 +401,15 @@ function resource(data?: {
 }
 
 /*
- * The maintenance touches two resources in the "Core" group on this status
- * page, and one resource on a status page that is not being notified.
+ * The maintenance touches two resources in the "Core" group and one in the
+ * "Storage" group on this status page, and one resource on a status page that
+ * is not being notified. HTML email bodies put each group on its own line;
+ * every other channel shows "<br/>" as literal text, so it gets them on one.
  */
-const GROUPED_RESOURCES_AFFECTED: string = "Core: Primary database, Replica";
+const GROUPED_RESOURCES_AFFECTED_HTML: string =
+  "Core: Primary database, Replica<br/>Storage: Backups";
+const GROUPED_RESOURCES_AFFECTED_TEXT: string =
+  "Core: Primary database, Replica; Storage: Backups";
 
 function groupedResources(): Array<StatusPageResource> {
   return [
@@ -404,6 +422,12 @@ function groupedResources(): Array<StatusPageResource> {
       statusPageId: STATUS_PAGE_ID,
       displayName: "Replica",
       groupName: "Core",
+    }),
+    resource({
+      statusPageId: STATUS_PAGE_ID,
+      displayName: "Backups",
+      groupName: "Storage",
+      groupId: STORAGE_GROUP_ID,
     }),
     resource({
       statusPageId: OTHER_STATUS_PAGE_ID,
@@ -606,18 +630,41 @@ function sentCustomMessages(): Array<string> {
   ];
 }
 
-// The message each templated channel gets from a template rendering `body`.
+/*
+ * The message each templated channel gets from a template rendering `body`.
+ * Each channel gets values in the format it renders: `body` is what Slack and
+ * Teams show (the Markdown as written), `emailBody` what the custom email body
+ * shows (HTML) and `plainTextBody` what the email subject and SMS show. Both
+ * default to `body`, for values that are the same on every channel.
+ */
 function expectedCustomMessages(data: {
   body: string;
-  smsBody?: string;
+  emailBody?: string;
+  plainTextBody?: string;
 }): Array<string> {
   return [
-    `Email|${data.body}`,
-    `Subject|${data.body}`,
-    `SMS|${data.smsBody ?? data.body}`,
+    `Email|${data.emailBody ?? data.body}`,
+    `Subject|${data.plainTextBody ?? data.body}`,
+    `SMS|${data.plainTextBody ?? data.body}`,
     `Slack|${data.body}`,
     `Microsoft Teams|${data.body}`,
   ];
+}
+
+/*
+ * The variables each custom template was compiled with, by channel: "Email"
+ * (the body), "Subject", "SMS", "Slack" and "Microsoft Teams".
+ */
+function compiledVariablesByChannel(): Record<string, Record<string, string>> {
+  const byChannel: Record<string, Record<string, string>> = {};
+
+  for (const call of compileTemplateCalls()) {
+    const channel: string = call.template.split("|")[0]!;
+    expect(byChannel[channel]).toBeUndefined();
+    byChannel[channel] = call.variables;
+  }
+
+  return byChannel;
 }
 
 // Runs `run` while OneUptimeDate.getCurrentDate returns SENT_AT.
@@ -760,7 +807,11 @@ beforeEach(() => {
     StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
   ).mockResolvedValue(null as never);
 
-  mock(Markdown.convertToHTML).mockResolvedValue(NOTE_HTML as never);
+  mock(Markdown.convertToHTML).mockImplementation(
+    async (markdown: unknown): Promise<string> => {
+      return HTML[markdown as string] ?? (markdown as string);
+    },
+  );
   mock(Markdown.convertToPlainText).mockImplementation(
     (markdown: unknown): string => {
       return PLAIN_TEXT[markdown as string] ?? (markdown as string);
@@ -1205,12 +1256,15 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
         }
       }
 
-      // The value each variable must render as.
+      /*
+       * The value each variable must render as in Slack and Teams: the
+       * Markdown as written, and the resources on one line.
+       */
       const values: Record<string, string> = {
         statusPageName: "Acme Status",
         statusPageUrl: STATUS_PAGE_URL,
         unsubscribeUrl: UNSUBSCRIBE_URL,
-        resourcesAffected: GROUPED_RESOURCES_AFFECTED,
+        resourcesAffected: GROUPED_RESOURCES_AFFECTED_TEXT,
         scheduledMaintenanceTitle: EVENT_TITLE,
         scheduledMaintenanceDescription: DESCRIPTION,
         scheduledMaintenanceState: STATE_NAME,
@@ -1218,8 +1272,15 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
         note: NOTE,
         detailsUrl: DETAILS_URL,
       };
-      // SMS gets the Markdown fields as plain text.
-      const smsValues: Record<string, string> = {
+      // The custom email body is HTML, with a line per resource group.
+      const emailBodyValues: Record<string, string> = {
+        ...values,
+        resourcesAffected: GROUPED_RESOURCES_AFFECTED_HTML,
+        scheduledMaintenanceDescription: DESCRIPTION_HTML,
+        note: NOTE_HTML,
+      };
+      // The email subject and SMS get the Markdown fields as plain text.
+      const plainTextValues: Record<string, string> = {
         ...values,
         scheduledMaintenanceDescription: DESCRIPTION_TEXT,
         note: NOTE_TEXT,
@@ -1239,7 +1300,8 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
       expect(messages).toEqual(
         expectedCustomMessages({
           body: render(values),
-          smsBody: render(smsValues),
+          emailBody: render(emailBodyValues),
+          plainTextBody: render(plainTextValues),
         }),
       );
     },
@@ -1329,7 +1391,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
   );
 
   test.each(TRIGGERS)(
-    "gives the description as written, and as plain text on SMS ($name)",
+    "gives the description as HTML in the email body, as plain text in the subject and SMS, and as written in chat ($name)",
     async (trigger: TriggerCase) => {
       trigger.queue([publicNote()]);
       useCustomTemplates({
@@ -1340,12 +1402,21 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
       await runJob(trigger.job);
 
       expect(DESCRIPTION_TEXT).not.toBe(DESCRIPTION);
+      expect(DESCRIPTION_HTML).not.toBe(DESCRIPTION);
       expect(sentCustomMessages()).toEqual(
         expectedCustomMessages({
           body: `desc=${DESCRIPTION}`,
-          smsBody: `desc=${DESCRIPTION_TEXT}`,
+          emailBody: `desc=${DESCRIPTION_HTML}`,
+          plainTextBody: `desc=${DESCRIPTION_TEXT}`,
         }),
       );
+      expect(Markdown.convertToHTML).toHaveBeenCalledWith(DESCRIPTION, "Email");
+      // Webhooks are not templated and keep the Markdown as written.
+      expect(
+        (sentWebhooks()[0]!["data"] as JSONObject)[
+          "scheduledMaintenanceDescription"
+        ],
+      ).toBe(DESCRIPTION);
       expect(
         queryArgs(ScheduledMaintenanceService.findOneById).select[
           "description"
@@ -1368,15 +1439,17 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
 
       await runJob(trigger.job);
 
+      // A line per group in the HTML email body, one line everywhere else.
       expect(sentCustomMessages()).toEqual(
         expectedCustomMessages({
-          body: `resources=${GROUPED_RESOURCES_AFFECTED}`,
+          body: `resources=${GROUPED_RESOURCES_AFFECTED_TEXT}`,
+          emailBody: `resources=${GROUPED_RESOURCES_AFFECTED_HTML}`,
         }),
       );
-      // Webhooks are not templated, but list the same resources.
+      // Webhooks are not templated, but list the same resources on one line.
       expect(
         (sentWebhooks()[0]!["data"] as JSONObject)["resourcesAffected"],
-      ).toBe(GROUPED_RESOURCES_AFFECTED);
+      ).toBe(GROUPED_RESOURCES_AFFECTED_TEXT);
 
       const select: JSONObject = queryArgs(
         StatusPageResourceService.findAllBy,
@@ -1387,7 +1460,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
   );
 
   test.each(TRIGGERS)(
-    "lists the same resources in the default email and the webhook ($name)",
+    "lists the same resources in the default email (HTML) and the webhook (plain text) ($name)",
     async (trigger: TriggerCase) => {
       trigger.queue([publicNote()]);
       mock(StatusPageResourceService.findAllBy).mockResolvedValue(
@@ -1397,15 +1470,20 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
       await runJob(trigger.job);
 
       expect(sentMail()).toHaveLength(1);
+      // The default email is not a custom template: it still gets HTML.
+      expect(sentMail()[0]!["templateType"]).not.toBe(
+        EmailTemplateType.BlankTemplate,
+      );
       expect(sentMail()[0]!["vars"]).toEqual(
         expect.objectContaining({
-          resourcesAffected: GROUPED_RESOURCES_AFFECTED,
+          note: NOTE_HTML,
+          resourcesAffected: GROUPED_RESOURCES_AFFECTED_HTML,
           scheduledAt: STARTS_AT_STRING,
         }),
       );
       expect(
         (sentWebhooks()[0]!["data"] as JSONObject)["resourcesAffected"],
-      ).toBe(GROUPED_RESOURCES_AFFECTED);
+      ).toBe(GROUPED_RESOURCES_AFFECTED_TEXT);
     },
   );
 
@@ -1469,6 +1547,183 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
           return call.template;
         }),
       ).toEqual(["Slack|custom", "Microsoft Teams|custom"]);
+    },
+  );
+});
+
+/*
+ * Custom templates get each value in the format their channel renders: HTML
+ * in the email body (it is wrapped only by BlankTemplate), plain text in the
+ * email subject and SMS, and the Markdown as written in Slack and Teams. The
+ * grouped resource list is "<br/>"-joined only in the email body.
+ */
+describe("ScheduledMaintenancePublicNote custom templates, in each channel's format", () => {
+  const CHANNEL_BODY: string =
+    "note: {{note}} / description: {{scheduledMaintenanceDescription}} / resources: {{resourcesAffected}}";
+  const CHANNEL_SUBJECT: string =
+    "{{scheduledMaintenanceTitle}}: {{note}} ({{resourcesAffected}})";
+
+  function useChannelTemplates(trigger: TriggerCase): void {
+    trigger.queue([publicNote()]);
+    mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+      groupedResources() as never,
+    );
+    useCustomTemplates({
+      eventType: trigger.eventType,
+      body: CHANNEL_BODY,
+      subject: CHANNEL_SUBJECT,
+    });
+  }
+
+  test.each(TRIGGERS)(
+    "renders HTML in the email body, plain text in SMS and the subject, and Markdown in chat ($name)",
+    async (trigger: TriggerCase) => {
+      useChannelTemplates(trigger);
+
+      await runJob(trigger.job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["templateType"]).toBe(
+        EmailTemplateType.BlankTemplate,
+      );
+      expect(sentMail()[0]!["vars"]).toEqual({
+        body: `Email|note: ${NOTE_HTML} / description: ${DESCRIPTION_HTML} / resources: ${GROUPED_RESOURCES_AFFECTED_HTML}`,
+      });
+      expect(sentMail()[0]!["subject"]).toBe(
+        `Subject|${EVENT_TITLE}: ${NOTE_TEXT} (${GROUPED_RESOURCES_AFFECTED_TEXT})`,
+      );
+      expect(sentSms()).toEqual([
+        `SMS|note: ${NOTE_TEXT} / description: ${DESCRIPTION_TEXT} / resources: ${GROUPED_RESOURCES_AFFECTED_TEXT}`,
+      ]);
+      expect(sentSlack()).toEqual([
+        `Slack|note: ${NOTE} / description: ${DESCRIPTION} / resources: ${GROUPED_RESOURCES_AFFECTED_TEXT}`,
+      ]);
+      expect(sentTeams()).toEqual([
+        `Microsoft Teams|note: ${NOTE} / description: ${DESCRIPTION} / resources: ${GROUPED_RESOURCES_AFFECTED_TEXT}`,
+      ]);
+
+      // Only the HTML email body may contain "<br/>".
+      for (const message of [
+        sentMail()[0]!["subject"] as string,
+        ...sentSms(),
+        ...sentSlack(),
+        ...sentTeams(),
+      ]) {
+        expect(message).not.toContain("<br/>");
+      }
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "hands each channel's template every variable, in that channel's format ($name)",
+    async (trigger: TriggerCase) => {
+      useChannelTemplates(trigger);
+
+      await runJob(trigger.job);
+
+      // Values that are the same on every channel.
+      const shared: Record<string, string> = {
+        statusPageName: "Acme Status",
+        statusPageUrl: STATUS_PAGE_URL,
+        detailsUrl: DETAILS_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+        scheduledMaintenanceTitle: EVENT_TITLE,
+        scheduledMaintenanceState: STATE_NAME,
+        postedAt: NOTE_POSTED_AT_STRING,
+      };
+      const emailBody: Record<string, string> = {
+        ...shared,
+        resourcesAffected: GROUPED_RESOURCES_AFFECTED_HTML,
+        scheduledMaintenanceDescription: DESCRIPTION_HTML,
+        note: NOTE_HTML,
+      };
+      const plainText: Record<string, string> = {
+        ...shared,
+        resourcesAffected: GROUPED_RESOURCES_AFFECTED_TEXT,
+        scheduledMaintenanceDescription: DESCRIPTION_TEXT,
+        note: NOTE_TEXT,
+      };
+      const markdown: Record<string, string> = {
+        ...shared,
+        resourcesAffected: GROUPED_RESOURCES_AFFECTED_TEXT,
+        scheduledMaintenanceDescription: DESCRIPTION,
+        note: NOTE,
+      };
+
+      // Every advertised variable, and nothing else, on every channel.
+      expect(Object.keys(markdown).sort()).toEqual(
+        [
+          ...SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+            trigger.eventType,
+          ),
+        ].sort(),
+      );
+
+      expect(compiledVariablesByChannel()).toEqual({
+        Email: emailBody,
+        Subject: plainText,
+        SMS: plainText,
+        Slack: markdown,
+        "Microsoft Teams": markdown,
+      });
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "still sends webhooks the Markdown note and description, with the resources on one line ($name)",
+    async (trigger: TriggerCase) => {
+      useChannelTemplates(trigger);
+
+      await runJob(trigger.job);
+
+      expect(sentWebhooks()).toHaveLength(1);
+      expect(sentWebhooks()[0]!["data"]).toEqual({
+        scheduledMaintenanceId: EVENT_ID.toString(),
+        scheduledMaintenanceTitle: EVENT_TITLE,
+        scheduledMaintenanceDescription: DESCRIPTION,
+        resourcesAffected: GROUPED_RESOURCES_AFFECTED_TEXT,
+        note: NOTE,
+        detailsUrl: DETAILS_URL,
+      });
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "converts the note and the description once per public note, not per status page or subscriber ($name)",
+    async (trigger: TriggerCase) => {
+      useChannelTemplates(trigger);
+
+      const otherPage: StatusPage = statusPage({ withCustomDelivery: true });
+      otherPage._id = OTHER_STATUS_PAGE_ID.toString();
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        statusPage({ withCustomDelivery: true }),
+        otherPage,
+      ] as never);
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mockResolvedValue([subscriber(), subscriber()] as never);
+
+      await runJob(trigger.job);
+
+      // Two status pages with two subscribers each.
+      expect(sentMail()).toHaveLength(4);
+      expect(sentSms()).toHaveLength(4);
+
+      expect(mock(Markdown.convertToHTML).mock.calls).toEqual([
+        [NOTE, "Email"],
+        [DESCRIPTION, "Email"],
+      ]);
+      expect(mock(Markdown.convertToPlainText).mock.calls).toEqual([
+        [NOTE],
+        [DESCRIPTION],
+      ]);
+
+      for (const email of sentCustomEmails()) {
+        expect(email.body).toContain(`note: ${NOTE_HTML}`);
+        expect(email.body).toContain(`description: ${DESCRIPTION_HTML}`);
+      }
     },
   );
 });

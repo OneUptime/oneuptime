@@ -193,7 +193,7 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
-import Markdown from "Common/Server/Types/Markdown";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
@@ -236,6 +236,14 @@ const WEBSITE_MONITOR_ID: ObjectID = new ObjectID(
 const CORE_GROUP_ID: ObjectID = new ObjectID(
   "99999999-9999-4999-8999-999999999999",
 );
+const EDGE_GROUP_ID: ObjectID = new ObjectID(
+  "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+);
+
+const GROUP_IDS: Record<string, ObjectID> = {
+  Core: CORE_GROUP_ID,
+  Edge: EDGE_GROUP_ID,
+};
 
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/announcements/${ANNOUNCEMENT_ID.toString()}`;
@@ -252,6 +260,14 @@ const DESCRIPTION_TEXT: string = "The maintenance now starts on Sunday.";
 
 // The two affected resources, in the "Core" group, as the worker formats them.
 const RESOURCES_AFFECTED: string = "Core: API, Website";
+
+/*
+ * The same two resources split across the "Core" and "Edge" groups. The email
+ * body renders HTML, so it gets one group per line; every other channel shows
+ * "<br/>" literally, so it gets the groups on one line.
+ */
+const RESOURCES_AFFECTED_HTML: string = "Core: API<br/>Edge: Website";
+const RESOURCES_AFFECTED_TEXT: string = "Core: API; Edge: Website";
 
 type Row = StatusPageAnnouncement;
 
@@ -351,10 +367,11 @@ function resource(data: {
   row.statusPageId = data.statusPageId;
 
   if (data.groupName) {
+    const groupId: ObjectID = GROUP_IDS[data.groupName]!;
     const group: StatusPageGroup = new StatusPageGroup();
-    group._id = CORE_GROUP_ID.toString();
+    group._id = groupId.toString();
     group.name = data.groupName;
-    row.statusPageGroupId = CORE_GROUP_ID;
+    row.statusPageGroupId = groupId;
     row.statusPageGroup = group;
   }
 
@@ -373,6 +390,24 @@ function coreResources(statusPageId: ObjectID): Array<StatusPageResource> {
       statusPageId: statusPageId,
       displayName: "Website",
       groupName: "Core",
+    }),
+  ];
+}
+
+// The API resource in the "Core" group and the Website resource in "Edge".
+function resourcesInTwoGroups(
+  statusPageId: ObjectID,
+): Array<StatusPageResource> {
+  return [
+    resource({
+      statusPageId: statusPageId,
+      displayName: "API",
+      groupName: "Core",
+    }),
+    resource({
+      statusPageId: statusPageId,
+      displayName: "Website",
+      groupName: "Edge",
     }),
   ];
 }
@@ -477,6 +512,23 @@ function compileTemplateCalls(): Array<CompileTemplateCall> {
       variables: call[1] as Record<string, string>,
     };
   });
+}
+
+/*
+ * The variables each templated channel was compiled with, keyed by the prefix
+ * useCustomTemplates gives its template: the notification method, or
+ * "Subject" for the email subject. Expects one compile per channel.
+ */
+function variablesByChannel(): Record<string, Record<string, string>> {
+  const byChannel: Record<string, Record<string, string>> = {};
+
+  for (const call of compileTemplateCalls()) {
+    const channel: string = call.template.split("|")[0]!;
+    expect(byChannel[channel]).toBeUndefined();
+    byChannel[channel] = call.variables;
+  }
+
+  return byChannel;
 }
 
 function resourceLookups(): Array<{ query: JSONObject; select: JSONObject }> {
@@ -1213,7 +1265,10 @@ describe("Announcement:SendNotificationToSubscribers (created)", () => {
 /*
  * Custom templates. The dashboard tells template authors which {{variables}}
  * each event offers (SubscriberNotificationTemplateVariables). Both jobs must
- * pass every one of them, with real values, on every templated channel.
+ * pass every one of them, with real values, on every templated channel, in
+ * the format that channel renders: HTML in the email body, plain text in SMS
+ * and the email subject, and the description's Markdown as written in Slack
+ * and Teams. Resource lists are plain text everywhere but the email body.
  */
 
 interface TriggerCase {
@@ -1316,7 +1371,7 @@ describe.each(TRIGGERS)(
     test("renders a template that uses every advertised variable with none left unfilled", async () => {
       trigger.queue([scopedAnnouncement()]);
       resourcesByStatusPage[STATUS_PAGE_ID.toString()] =
-        coreResources(STATUS_PAGE_ID);
+        resourcesInTwoGroups(STATUS_PAGE_ID);
       givenStatusPages([statusPageWithCustomDelivery()]);
 
       const template: string = templateUsingEveryVariable(variableNames);
@@ -1324,54 +1379,61 @@ describe.each(TRIGGERS)(
 
       await runJob(trigger.job);
 
-      const valuesWithDescription: (
-        description: string,
-      ) => Record<string, string> = (
-        description: string,
-      ): Record<string, string> => {
+      // The values every channel shares, plus the two that depend on format.
+      const valuesInFormat: (formatted: {
+        description: string;
+        resourcesAffected: string;
+      }) => Record<string, string> = (formatted: {
+        description: string;
+        resourcesAffected: string;
+      }): Record<string, string> => {
         return {
           statusPageName: "Acme Status",
           statusPageUrl: STATUS_PAGE_URL,
           unsubscribeUrl: UNSUBSCRIBE_URL,
-          resourcesAffected: RESOURCES_AFFECTED,
+          resourcesAffected: formatted.resourcesAffected,
           announcementTitle: TITLE,
-          announcementDescription: description,
+          announcementDescription: formatted.description,
           detailsUrl: DETAILS_URL,
         };
       };
 
       // This test pins a value for every advertised variable.
-      expect(Object.keys(valuesWithDescription("")).sort()).toEqual(
-        [...variableNames].sort(),
-      );
+      expect(
+        Object.keys(
+          valuesInFormat({ description: "", resourcesAffected: "" }),
+        ).sort(),
+      ).toEqual([...variableNames].sort());
 
       const htmlRendering: string = renderedEveryVariable(
         variableNames,
-        valuesWithDescription(DESCRIPTION_HTML),
+        valuesInFormat({
+          description: DESCRIPTION_HTML,
+          resourcesAffected: RESOURCES_AFFECTED_HTML,
+        }),
+      );
+      const plainTextRendering: string = renderedEveryVariable(
+        variableNames,
+        valuesInFormat({
+          description: DESCRIPTION_TEXT,
+          resourcesAffected: RESOURCES_AFFECTED_TEXT,
+        }),
+      );
+      const markdownRendering: string = renderedEveryVariable(
+        variableNames,
+        valuesInFormat({
+          description: DESCRIPTION,
+          resourcesAffected: RESOURCES_AFFECTED_TEXT,
+        }),
       );
 
-      expect(sentSms()).toEqual([
-        `SMS|${renderedEveryVariable(
-          variableNames,
-          valuesWithDescription(DESCRIPTION_TEXT),
-        )}`,
-      ]);
-      expect(sentSlack()).toEqual([
-        `Slack|${renderedEveryVariable(
-          variableNames,
-          valuesWithDescription(DESCRIPTION),
-        )}`,
-      ]);
-      expect(sentTeams()).toEqual([
-        `Microsoft Teams|${renderedEveryVariable(
-          variableNames,
-          valuesWithDescription(DESCRIPTION),
-        )}`,
-      ]);
+      expect(sentSms()).toEqual([`SMS|${plainTextRendering}`]);
+      expect(sentSlack()).toEqual([`Slack|${markdownRendering}`]);
+      expect(sentTeams()).toEqual([`Microsoft Teams|${markdownRendering}`]);
       expect(sentCustomEmails()).toEqual([
         {
           body: `Email|${htmlRendering}`,
-          subject: `Subject|${htmlRendering}`,
+          subject: `Subject|${plainTextRendering}`,
         },
       ]);
 
@@ -1394,10 +1456,10 @@ describe.each(TRIGGERS)(
       }
     });
 
-    test("gives every channel the same variables apart from the description's format", async () => {
+    test("gives every channel the same variables apart from the format of the description and the resources", async () => {
       trigger.queue([scopedAnnouncement()]);
       resourcesByStatusPage[STATUS_PAGE_ID.toString()] =
-        coreResources(STATUS_PAGE_ID);
+        resourcesInTwoGroups(STATUS_PAGE_ID);
       givenStatusPages([statusPageWithCustomDelivery()]);
       useCustomTemplates({
         body: "{{announcementDescription}}",
@@ -1414,27 +1476,213 @@ describe.each(TRIGGERS)(
         expect({
           ...call.variables,
           announcementDescription: "",
+          resourcesAffected: "",
         }).toEqual({
           statusPageName: "Acme Status",
           statusPageUrl: STATUS_PAGE_URL,
           unsubscribeUrl: UNSUBSCRIBE_URL,
-          resourcesAffected: RESOURCES_AFFECTED,
+          resourcesAffected: "",
           announcementTitle: TITLE,
           announcementDescription: "",
           detailsUrl: DETAILS_URL,
         });
       }
 
-      // SMS gets plain text, email HTML, and Slack and Teams the markdown.
+      /*
+       * SMS and the email subject get plain text, the email body HTML, and
+       * Slack and Teams the markdown.
+       */
       expect(sentSms()).toEqual([`SMS|${DESCRIPTION_TEXT}`]);
       expect(sentSlack()).toEqual([`Slack|${DESCRIPTION}`]);
       expect(sentTeams()).toEqual([`Microsoft Teams|${DESCRIPTION}`]);
       expect(sentCustomEmails()).toEqual([
         {
           body: `Email|${DESCRIPTION_HTML}`,
-          subject: `Subject|${DESCRIPTION_HTML}`,
+          subject: `Subject|${DESCRIPTION_TEXT}`,
         },
       ]);
+    });
+
+    test("renders HTML in the email body, plain text in SMS and the subject, and Markdown in chat", async () => {
+      trigger.queue([scopedAnnouncement()]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] =
+        resourcesInTwoGroups(STATUS_PAGE_ID);
+      givenStatusPages([statusPageWithCustomDelivery()]);
+      useCustomTemplates({
+        body: "<div>{{announcementDescription}}</div><div>{{resourcesAffected}}</div>",
+        subject:
+          "{{announcementTitle}}: {{announcementDescription}} ({{resourcesAffected}})",
+      });
+
+      await runJob(trigger.job);
+
+      expect(sentCustomEmails()).toEqual([
+        {
+          body: `Email|<div>${DESCRIPTION_HTML}</div><div>${RESOURCES_AFFECTED_HTML}</div>`,
+          subject: `Subject|${TITLE}: ${DESCRIPTION_TEXT} (${RESOURCES_AFFECTED_TEXT})`,
+        },
+      ]);
+      expect(sentSms()).toEqual([
+        `SMS|<div>${DESCRIPTION_TEXT}</div><div>${RESOURCES_AFFECTED_TEXT}</div>`,
+      ]);
+      expect(sentSlack()).toEqual([
+        `Slack|<div>${DESCRIPTION}</div><div>${RESOURCES_AFFECTED_TEXT}</div>`,
+      ]);
+      expect(sentTeams()).toEqual([
+        `Microsoft Teams|<div>${DESCRIPTION}</div><div>${RESOURCES_AFFECTED_TEXT}</div>`,
+      ]);
+
+      // Only the email body is HTML, so only it may carry the line break.
+      for (const message of [
+        ...sentSms(),
+        ...sentSlack(),
+        ...sentTeams(),
+        sentCustomEmails()[0]!.subject,
+      ]) {
+        expect(message).not.toContain("<br/>");
+      }
+    });
+
+    test("gives each channel its variables in the format it renders", async () => {
+      trigger.queue([scopedAnnouncement()]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] =
+        resourcesInTwoGroups(STATUS_PAGE_ID);
+      givenStatusPages([statusPageWithCustomDelivery()]);
+      useCustomTemplates({
+        body: "{{announcementTitle}}",
+        subject: "{{announcementTitle}}",
+      });
+
+      await runJob(trigger.job);
+
+      const shared: Record<string, string> = {
+        statusPageName: "Acme Status",
+        statusPageUrl: STATUS_PAGE_URL,
+        detailsUrl: DETAILS_URL,
+        announcementTitle: TITLE,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      };
+
+      expect(variablesByChannel()).toEqual({
+        [StatusPageSubscriberNotificationMethod.Email]: {
+          ...shared,
+          announcementDescription: DESCRIPTION_HTML,
+          resourcesAffected: RESOURCES_AFFECTED_HTML,
+        },
+        Subject: {
+          ...shared,
+          announcementDescription: DESCRIPTION_TEXT,
+          resourcesAffected: RESOURCES_AFFECTED_TEXT,
+        },
+        [StatusPageSubscriberNotificationMethod.SMS]: {
+          ...shared,
+          announcementDescription: DESCRIPTION_TEXT,
+          resourcesAffected: RESOURCES_AFFECTED_TEXT,
+        },
+        [StatusPageSubscriberNotificationMethod.Slack]: {
+          ...shared,
+          announcementDescription: DESCRIPTION,
+          resourcesAffected: RESOURCES_AFFECTED_TEXT,
+        },
+        [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+          ...shared,
+          announcementDescription: DESCRIPTION,
+          resourcesAffected: RESOURCES_AFFECTED_TEXT,
+        },
+      });
+    });
+
+    test("compiles the email subject with the same variables as the body, as plain text", async () => {
+      trigger.queue([scopedAnnouncement()]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] =
+        resourcesInTwoGroups(STATUS_PAGE_ID);
+      givenStatusPages([statusPageWithCustomDelivery()]);
+      useCustomTemplates({
+        body: "{{announcementDescription}}",
+        subject: "{{announcementTitle}}: {{announcementDescription}}",
+      });
+
+      await runJob(trigger.job);
+
+      const byChannel: Record<
+        string,
+        Record<string, string>
+      > = variablesByChannel();
+      const body: Record<string, string> =
+        byChannel[StatusPageSubscriberNotificationMethod.Email]!;
+
+      expect(body["announcementDescription"]).toBe(DESCRIPTION_HTML);
+      expect(body["resourcesAffected"]).toBe(RESOURCES_AFFECTED_HTML);
+      expect(byChannel["Subject"]).toEqual({
+        ...body,
+        announcementDescription: DESCRIPTION_TEXT,
+        resourcesAffected: RESOURCES_AFFECTED_TEXT,
+      });
+      expect(sentCustomEmails()[0]!.subject).toBe(
+        `Subject|${TITLE}: ${DESCRIPTION_TEXT}`,
+      );
+    });
+
+    test("keeps the webhook's description as written when the page has custom templates", async () => {
+      trigger.queue([scopedAnnouncement()]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] =
+        resourcesInTwoGroups(STATUS_PAGE_ID);
+      givenStatusPages([statusPageWithCustomDelivery()]);
+      useCustomTemplates({
+        body: "{{announcementDescription}}",
+        subject: "{{announcementDescription}}",
+      });
+
+      await runJob(trigger.job);
+
+      expect(sentWebhooks()).toHaveLength(1);
+      expect(sentWebhooks()[0]!["data"]).toEqual({
+        announcementId: ANNOUNCEMENT_ID.toString(),
+        announcementTitle: TITLE,
+        announcementDescription: DESCRIPTION,
+        detailsUrl: DETAILS_URL,
+      });
+      expect(JSON.stringify(sentWebhooks()[0])).not.toMatch(/<br\/>|<p>/);
+    });
+
+    test("converts the description once per announcement, however many pages and subscribers", async () => {
+      trigger.queue([
+        announcement({
+          monitorIds: [API_MONITOR_ID, WEBSITE_MONITOR_ID],
+          statusPageIds: [STATUS_PAGE_ID, SECOND_STATUS_PAGE_ID],
+        }),
+      ]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] =
+        resourcesInTwoGroups(STATUS_PAGE_ID);
+      resourcesByStatusPage[SECOND_STATUS_PAGE_ID.toString()] =
+        resourcesInTwoGroups(SECOND_STATUS_PAGE_ID);
+      givenStatusPages([
+        statusPageWithCustomDelivery(STATUS_PAGE_ID),
+        statusPageWithCustomDelivery(SECOND_STATUS_PAGE_ID),
+      ]);
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mockResolvedValue([subscriber(), subscriber()] as never);
+      useCustomTemplates({
+        body: "{{announcementDescription}}",
+        subject: "{{announcementDescription}}",
+      });
+
+      await runJob(trigger.job);
+
+      // Two pages with two subscribers each.
+      expect(sentSms()).toEqual(
+        new Array<string>(4).fill(`SMS|${DESCRIPTION_TEXT}`),
+      );
+      expect(sentCustomEmails()).toHaveLength(4);
+
+      expect(Markdown.convertToHTML).toHaveBeenCalledTimes(1);
+      expect(Markdown.convertToHTML).toHaveBeenCalledWith(
+        DESCRIPTION,
+        MarkdownContentType.Email,
+      );
+      expect(Markdown.convertToPlainText).toHaveBeenCalledTimes(1);
+      expect(Markdown.convertToPlainText).toHaveBeenCalledWith(DESCRIPTION);
     });
 
     test("fills resourcesAffected with the announcement's resources, grouped by status page group", async () => {
@@ -1612,7 +1860,7 @@ describe.each(TRIGGERS)(
     test("keeps the default messages unchanged for an announcement scoped to resources", async () => {
       trigger.queue([scopedAnnouncement()]);
       resourcesByStatusPage[STATUS_PAGE_ID.toString()] =
-        coreResources(STATUS_PAGE_ID);
+        resourcesInTwoGroups(STATUS_PAGE_ID);
 
       await runJob(trigger.job);
 
@@ -1636,7 +1884,17 @@ describe.each(TRIGGERS)(
         ),
       ]);
 
-      const vars: JSONObject = sentMail()[0]!.mail["vars"] as JSONObject;
+      const mail: JSONObject = sentMail()[0]!.mail;
+      const vars: JSONObject = mail["vars"] as JSONObject;
+
+      // The default email template renders HTML, so it still gets HTML.
+      expect(mail["templateType"]).toBe(
+        trigger.eventType ===
+          StatusPageSubscriberNotificationEventType.SubscriberAnnouncementUpdated
+          ? EmailTemplateType.SubscriberAnnouncementUpdated
+          : EmailTemplateType.SubscriberAnnouncementCreated,
+      );
+      expect(vars["announcementDescription"]).toBe(DESCRIPTION_HTML);
 
       expect(Object.keys(vars).sort()).toEqual(
         [

@@ -287,6 +287,11 @@ RunCron(
               statusPageToResources[statuspage._id!] || [],
               "", // Use empty string as default for backward compatibility
             );
+          const resourcesAffectedPlainText: string =
+            StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+              statusPageToResources[statuspage._id!] || [],
+              "",
+            );
 
           const scheduledAtString: string =
             OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!);
@@ -337,10 +342,11 @@ RunCron(
 
           /*
            * Every variable SubscriberNotificationTemplateVariables advertises
-           * for the state changed event, built once per status page. Each
-           * channel below uses this object (only the description's format
-           * differs, and every channel adds the subscriber's unsubscribeUrl),
-           * so no channel can miss a variable the others have.
+           * for the state changed event, built once per status page. The
+           * values that depend on the channel's format (the description and
+           * the resource list) are added by the three objects below, and
+           * every channel adds the subscriber's unsubscribeUrl, so no channel
+           * can miss a variable the others have.
            * {{scheduledMaintenanceState}} is the state the maintenance just
            * moved to. {{scheduledAt}} is not advertised but has always been
            * passed, so templates that use it keep working.
@@ -349,24 +355,35 @@ RunCron(
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
             detailsUrl: scheduledEventDetailsUrl,
-            resourcesAffected: resourcesAffectedString,
             scheduledMaintenanceTitle: event.title || "",
-            scheduledMaintenanceDescription: event.description || "",
             scheduledMaintenanceState:
               scheduledEventStateTimeline.scheduledMaintenanceState?.name || "",
             scheduledAt: scheduledAtString,
           };
 
-          // For SMS and the email subject, which show neither HTML nor Markdown.
+          /*
+           * Custom templates get each value in the format their channel
+           * renders: HTML for the email body (it is wrapped only by
+           * BlankTemplate), plain text for SMS and the email subject, and
+           * the Markdown as written for Slack and Teams. Only the email body
+           * gets the "<br/>"-joined resource list.
+           */
+          const emailBodyTemplateVariables: Record<string, string> = {
+            ...templateVariables,
+            resourcesAffected: resourcesAffectedString,
+            scheduledMaintenanceDescription: descriptionHtml,
+          };
+
           const plainTextTemplateVariables: Record<string, string> = {
             ...templateVariables,
+            resourcesAffected: resourcesAffectedPlainText,
             scheduledMaintenanceDescription: descriptionPlainText,
           };
 
-          // For a custom email body, which is sent as HTML.
-          const emailBodyTemplateVariables: Record<string, string> = {
+          const markdownTemplateVariables: Record<string, string> = {
             ...templateVariables,
-            scheduledMaintenanceDescription: descriptionHtml,
+            resourcesAffected: resourcesAffectedPlainText,
+            scheduledMaintenanceDescription: event.description || "",
           };
 
           // Send email to Email subscribers.
@@ -398,25 +415,30 @@ RunCron(
               ).toString();
 
             // Add unsubscribeUrl to template variables for this subscriber
-            const subscriberTemplateVariables: Record<string, string> = {
-              ...templateVariables,
-              unsubscribeUrl: unsubscribeUrl,
-            };
-
-            if (subscriber.subscriberPhone) {
-              // SMS-specific template variables with unsubscribe URL
-              const subscriberSmsTemplateVariables: Record<string, string> = {
+            const subscriberEmailBodyTemplateVariables: Record<string, string> =
+              {
+                ...emailBodyTemplateVariables,
+                unsubscribeUrl: unsubscribeUrl,
+              };
+            const subscriberPlainTextTemplateVariables: Record<string, string> =
+              {
                 ...plainTextTemplateVariables,
                 unsubscribeUrl: unsubscribeUrl,
               };
+            const subscriberMarkdownTemplateVariables: Record<string, string> =
+              {
+                ...markdownTemplateVariables,
+                unsubscribeUrl: unsubscribeUrl,
+              };
 
+            if (subscriber.subscriberPhone) {
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                 // Use custom template only when custom Twilio is configured
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     smsTemplate.templateBody,
-                    subscriberSmsTemplateVariables,
+                    subscriberPlainTextTemplateVariables,
                   );
               } else {
                 // Use default hard-coded template
@@ -456,7 +478,7 @@ RunCron(
                 markdownMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     slackTemplate.templateBody,
-                    subscriberTemplateVariables,
+                    subscriberMarkdownTemplateVariables,
                   );
               } else {
                 // Use default hard-coded template
@@ -487,7 +509,7 @@ RunCron(
                 markdownMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     teamsTemplate.templateBody,
-                    subscriberTemplateVariables,
+                    subscriberMarkdownTemplateVariables,
                   );
               } else {
                 // Use default hard-coded template
@@ -524,7 +546,7 @@ RunCron(
                     scheduledMaintenanceState:
                       scheduledEventStateTimeline.scheduledMaintenanceState
                         ?.name || "",
-                    resourcesAffected: resourcesAffectedString,
+                    resourcesAffected: resourcesAffectedPlainText,
                     detailsUrl: scheduledEventDetailsUrl,
                   },
                 },
@@ -541,18 +563,12 @@ RunCron(
                 const compiledBody: string =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     emailTemplate.templateBody,
-                    {
-                      ...emailBodyTemplateVariables,
-                      unsubscribeUrl: unsubscribeUrl,
-                    },
+                    subscriberEmailBodyTemplateVariables,
                   );
                 const compiledSubject: string = emailTemplate.emailSubject
                   ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                       emailTemplate.emailSubject,
-                      {
-                        ...plainTextTemplateVariables,
-                        unsubscribeUrl: unsubscribeUrl,
-                      },
+                      subscriberPlainTextTemplateVariables,
                     )
                   : `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
                       scheduledEventStateTimeline.scheduledMaintenanceState

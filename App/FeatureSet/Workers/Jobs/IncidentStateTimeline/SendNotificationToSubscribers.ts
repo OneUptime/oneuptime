@@ -405,35 +405,47 @@ RunCron(
             statusPageToResources[statuspage._id!] || [],
             "", // Use empty string as default for backward compatibility
           );
+        const resourcesAffectedPlainText: string =
+          StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+            statusPageToResources[statuspage._id!] || [],
+            "",
+          );
 
         /*
          * Every variable SubscriberNotificationTemplateVariables advertises for
-         * the incident state changed event, built once per status page. Each
-         * channel below uses this object (only the description's format
-         * differs, and every channel adds the subscriber's unsubscribeUrl), so
-         * no channel can miss a variable the others have.
+         * the incident state changed event, built once per status page. The
+         * values that depend on the format a channel renders are added by the
+         * three objects below, and every channel adds the subscriber's
+         * unsubscribeUrl, so no channel can miss a variable the others have.
          */
         const templateVariables: Record<string, string> = {
           statusPageName: statusPageName,
           statusPageUrl: statusPageURL,
           detailsUrl: incidentDetailsUrl,
-          resourcesAffected: resourcesAffected || "None",
           incidentSeverity: incident.incidentSeverity?.name || " - ",
           incidentTitle: incident.title || "",
-          incidentDescription: incident.description || "",
           incidentState: incidentStateTimeline.incidentState.name,
         };
 
-        // For SMS and the email subject, which show neither HTML nor Markdown.
+        // The custom email body is HTML: nothing converts it after compiling.
+        const emailBodyTemplateVariables: Record<string, string> = {
+          ...templateVariables,
+          resourcesAffected: resourcesAffected || "None",
+          incidentDescription: incidentDescriptionHtml,
+        };
+
+        // SMS and the email subject render neither HTML nor Markdown.
         const plainTextTemplateVariables: Record<string, string> = {
           ...templateVariables,
+          resourcesAffected: resourcesAffectedPlainText || "None",
           incidentDescription: incidentDescriptionPlainText,
         };
 
-        // For a custom email body, which is sent as HTML.
-        const emailBodyTemplateVariables: Record<string, string> = {
+        // Slack and Teams render Markdown, but show "<br/>" as literal text.
+        const markdownTemplateVariables: Record<string, string> = {
           ...templateVariables,
-          incidentDescription: incidentDescriptionHtml,
+          resourcesAffected: resourcesAffectedPlainText || "None",
+          incidentDescription: incident.description || "",
         };
 
         // Send email to Email subscribers.
@@ -475,8 +487,16 @@ RunCron(
             ).toString();
 
           // Add unsubscribeUrl to template variables
-          const subscriberTemplateVariables: Record<string, string> = {
-            ...templateVariables,
+          const subscriberEmailBodyTemplateVariables: Record<string, string> = {
+            ...emailBodyTemplateVariables,
+            unsubscribeUrl: unsubscribeUrl,
+          };
+          const subscriberPlainTextTemplateVariables: Record<string, string> = {
+            ...plainTextTemplateVariables,
+            unsubscribeUrl: unsubscribeUrl,
+          };
+          const subscriberMarkdownTemplateVariables: Record<string, string> = {
+            ...markdownTemplateVariables,
             unsubscribeUrl: unsubscribeUrl,
           };
 
@@ -491,19 +511,13 @@ RunCron(
               },
             );
 
-            // SMS-specific template variables with unsubscribe URL
-            const subscriberSmsTemplateVariables: Record<string, string> = {
-              ...plainTextTemplateVariables,
-              unsubscribeUrl: unsubscribeUrl,
-            };
-
             let smsMessage: string;
             if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
               // Use custom template only when custom Twilio is configured
               smsMessage =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   smsTemplate.templateBody,
-                  subscriberSmsTemplateVariables,
+                  subscriberPlainTextTemplateVariables,
                 );
             } else {
               // Use default hard-coded template
@@ -563,18 +577,12 @@ RunCron(
               const compiledBody: string =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   emailTemplate.templateBody,
-                  {
-                    ...emailBodyTemplateVariables,
-                    unsubscribeUrl: unsubscribeUrl,
-                  },
+                  subscriberEmailBodyTemplateVariables,
                 );
               const compiledSubject: string = emailTemplate.emailSubject
                 ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     emailTemplate.emailSubject,
-                    {
-                      ...plainTextTemplateVariables,
-                      unsubscribeUrl: unsubscribeUrl,
-                    },
+                    subscriberPlainTextTemplateVariables,
                   )
                 : `[Incident ${Text.uppercaseFirstLetter(incidentStateTimeline.incidentState.name)}] ${incident.title || ""}`;
 
@@ -664,7 +672,7 @@ RunCron(
               slackTitle =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   slackTemplate.templateBody,
-                  subscriberTemplateVariables,
+                  subscriberMarkdownTemplateVariables,
                 );
             } else {
               // Use default hard-coded template
@@ -710,7 +718,7 @@ RunCron(
               teamsTitle =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   teamsTemplate.templateBody,
-                  subscriberTemplateVariables,
+                  subscriberMarkdownTemplateVariables,
                 );
             } else {
               // Use default hard-coded template
@@ -775,7 +783,7 @@ RunCron(
                   incidentSeverity: incident.incidentSeverity?.name || "",
                   incidentState:
                     incidentStateTimeline.incidentState?.name || "",
-                  resourcesAffected: resourcesAffected || "",
+                  resourcesAffected: resourcesAffectedPlainText || "",
                   detailsUrl: incidentDetailsUrl,
                 },
               },

@@ -464,6 +464,49 @@ RunCron(
           ),
         ]);
 
+        const resourcesAffected: string =
+          StatusPageResourceUtil.getResourcesGroupedByGroupName(
+            statusPageToResources[statuspage._id!] || [],
+            "", // Use empty string as default for backward compatibility
+          );
+        const resourcesAffectedPlainText: string =
+          StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+            statusPageToResources[statuspage._id!] || [],
+            "",
+          );
+
+        /*
+         * Every variable SubscriberNotificationTemplateVariables advertises
+         * for SubscriberEpisodeStateChanged, in the format each channel
+         * renders. These are the ones that read the same on every channel;
+         * the resource list is added per format below and unsubscribeUrl per
+         * subscriber.
+         */
+        const templateVariables: Record<string, string> = {
+          statusPageName: statusPageName,
+          statusPageUrl: statusPageURL,
+          detailsUrl: episodeDetailsUrl,
+          episodeSeverity: episode.incidentSeverity?.name || " - ",
+          episodeTitle: episode.title || "",
+          episodeState: episodeStateTimeline.incidentState.name,
+        };
+
+        // The custom email body is HTML: it is wrapped only by BlankTemplate.
+        const emailBodyTemplateVariables: Record<string, string> = {
+          ...templateVariables,
+          resourcesAffected: resourcesAffected || "None",
+        };
+
+        /*
+         * SMS, the email subject, Slack and Teams do not render HTML, so they
+         * get the resource list on one line. This event has no Markdown text,
+         * so Slack and Teams need nothing else of their own.
+         */
+        const plainTextTemplateVariables: Record<string, string> = {
+          ...templateVariables,
+          resourcesAffected: resourcesAffectedPlainText || "None",
+        };
+
         // Send email to Email subscribers.
 
         for (const subscriber of subscribers) {
@@ -502,25 +545,12 @@ RunCron(
               subscriber.id!,
             ).toString();
 
-          const resourcesAffected: string =
-            StatusPageResourceUtil.getResourcesGroupedByGroupName(
-              statusPageToResources[statuspage._id!] || [],
-              "", // Use empty string as default for backward compatibility
-            );
-
-          /*
-           * Every variable SubscriberNotificationTemplateVariables advertises
-           * for SubscriberEpisodeStateChanged. Email, SMS, Slack and Teams all
-           * compile their custom template with this one object.
-           */
-          const templateVariables: Record<string, string> = {
-            statusPageName: statusPageName,
-            statusPageUrl: statusPageURL,
-            detailsUrl: episodeDetailsUrl,
-            resourcesAffected: resourcesAffected || "None",
-            episodeSeverity: episode.incidentSeverity?.name || " - ",
-            episodeTitle: episode.title || "",
-            episodeState: episodeStateTimeline.incidentState.name,
+          const subscriberEmailBodyTemplateVariables: Record<string, string> = {
+            ...emailBodyTemplateVariables,
+            unsubscribeUrl: unsubscribeUrl,
+          };
+          const subscriberPlainTextTemplateVariables: Record<string, string> = {
+            ...plainTextTemplateVariables,
             unsubscribeUrl: unsubscribeUrl,
           };
 
@@ -541,7 +571,7 @@ RunCron(
               smsMessage =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   smsTemplate.templateBody,
-                  templateVariables,
+                  subscriberPlainTextTemplateVariables,
                 );
             } else {
               // Use default hard-coded template
@@ -600,12 +630,12 @@ RunCron(
               const compiledBody: string =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   emailTemplate.templateBody,
-                  templateVariables,
+                  subscriberEmailBodyTemplateVariables,
                 );
               const compiledSubject: string = emailTemplate.emailSubject
                 ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     emailTemplate.emailSubject,
-                    templateVariables,
+                    subscriberPlainTextTemplateVariables,
                   )
                 : `[Incident ${Text.uppercaseFirstLetter(episodeStateTimeline.incidentState.name)}] ${episode.title || ""}`;
 
@@ -691,7 +721,7 @@ RunCron(
               slackTitle =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   slackTemplate.templateBody,
-                  templateVariables,
+                  subscriberPlainTextTemplateVariables,
                 );
             } else {
               // Use default hard-coded template
@@ -737,7 +767,7 @@ RunCron(
               teamsTitle =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   teamsTemplate.templateBody,
-                  templateVariables,
+                  subscriberPlainTextTemplateVariables,
                 );
             } else {
               // Use default hard-coded template
@@ -790,7 +820,7 @@ RunCron(
                   episodeTitle: episode.title || "",
                   incidentSeverity: episode.incidentSeverity?.name || "",
                   incidentState: episodeStateTimeline.incidentState?.name || "",
-                  resourcesAffected: resourcesAffected || "",
+                  resourcesAffected: resourcesAffectedPlainText || "",
                   detailsUrl: episodeDetailsUrl,
                 },
               },

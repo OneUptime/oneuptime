@@ -6,6 +6,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import URL from "Common/Types/API/URL";
@@ -22,6 +23,10 @@ import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/Sub
 /*
  * Incident episode state change notifications: the job that tells status
  * page subscribers an episode moved to a new state.
+ *
+ * The resource list is formatted by the real StatusPageResourceUtil, so the
+ * grouped-resource tests see the same "<br/>" and "; " separators that
+ * production does.
  */
 
 type CronHandler = () => Promise<void>;
@@ -86,31 +91,6 @@ jest.mock("Common/Server/Services/IncidentEpisodeFeedService", () => {
 
 jest.mock("Common/Server/Services/StatusPageResourceService", () => {
   return { __esModule: true, default: { findByMonitors: jest.fn() } };
-});
-
-jest.mock("Common/Server/Utils/StatusPageResource", () => {
-  return {
-    __esModule: true,
-    default: {
-      /*
-       * Lists the resources it is given, as the real helper does for
-       * ungrouped resources, so a test can tell which status page's
-       * resources reached a message.
-       */
-      getResourcesGroupedByGroupName: jest.fn(
-        (resources: Array<{ displayName?: string | undefined }>): string => {
-          return resources
-            .map((row: { displayName?: string | undefined }): string => {
-              return row.displayName || "";
-            })
-            .filter((name: string): boolean => {
-              return Boolean(name);
-            })
-            .join(", ");
-        },
-      ),
-    },
-  };
 });
 
 jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
@@ -364,6 +344,43 @@ function resource(overrides?: {
   return row;
 }
 
+const GROUPED_RESOURCES_HTML: string =
+  "Europe: Edge network<br/>Americas: Core network";
+const GROUPED_RESOURCES_TEXT: string =
+  "Europe: Edge network; Americas: Core network";
+
+function resourceInGroup(
+  id: string,
+  displayName: string,
+  groupName: string,
+): StatusPageResource {
+  const row: StatusPageResource = resource({
+    id: id,
+    displayName: displayName,
+  });
+  row.statusPageGroupId = ObjectID.generate();
+  const group: StatusPageGroup = new StatusPageGroup();
+  group.name = groupName;
+  row.statusPageGroup = group;
+  return row;
+}
+
+// Two resources in two groups on the first status page.
+function groupedResources(): Array<StatusPageResource> {
+  return [
+    resourceInGroup(
+      "88888888-8888-4888-8888-888888888888",
+      "Edge network",
+      "Europe",
+    ),
+    resourceInGroup(
+      "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      "Core network",
+      "Americas",
+    ),
+  ];
+}
+
 function subscriber(overrides?: {
   id?: ObjectID;
   email?: string;
@@ -522,14 +539,42 @@ function templateUsingEveryVariable(channel: string): string {
   return [`channel=${channel}`, ...lines].join("\n");
 }
 
+// What templateUsingEveryVariable(channel) renders to, given these values.
+function renderedWithEveryVariable(
+  channel: string,
+  values: Record<string, string>,
+): string {
+  const lines: Array<string> =
+    SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+      EVENT,
+    ).map((name: string): string => {
+      return `${name}=[${values[name] ?? ""}]`;
+    });
+
+  return [`channel=${channel}`, ...lines].join("\n");
+}
+
+// The variables the job handed to compileTemplate for this template.
+function variablesCompiledInto(template: string): Record<string, string> {
+  const calls: Array<CompileCall> = compileCalls().filter(
+    (call: CompileCall): boolean => {
+      return call.template === template;
+    },
+  );
+
+  expect(calls).toHaveLength(1);
+  return calls[0]!.variables;
+}
+
 /*
  * Gives the status pages (custom SMTP and Twilio by default) a custom
  * template for the event on Email, SMS, Slack and Teams, each printing every
- * advertised variable. A lookup for any other event finds no template.
- * Returns the body used for each channel.
+ * advertised variable, and the email the given subject. A lookup for any
+ * other event finds no template. Returns the body used for each channel.
  */
 function useCustomTemplatesOnEveryChannel(
   pages?: Array<StatusPage>,
+  emailSubject: string = EMAIL_SUBJECT_TEMPLATE,
 ): Record<string, string> {
   mock(
     StatusPageSubscriberService.getStatusPagesToSendNotification,
@@ -559,7 +604,7 @@ function useCustomTemplatesOnEveryChannel(
     }
 
     return method === StatusPageSubscriberNotificationMethod.Email
-      ? { templateBody: bodies[method], emailSubject: EMAIL_SUBJECT_TEMPLATE }
+      ? { templateBody: bodies[method], emailSubject: emailSubject }
       : { templateBody: bodies[method] };
   });
 
@@ -1513,6 +1558,149 @@ describe("IncidentEpisodeStateTimeline custom template variable values", () => {
 
     expect(sentMail()[0]!["subject"]).toBe(
       `Subject: ${EPISODE_TITLE} is ${STATE_NAME}`,
+    );
+  });
+});
+
+describe("IncidentEpisodeStateTimeline custom templates get values in their channel's format", () => {
+  /*
+   * The custom email body is HTML (it is wrapped only by BlankTemplate), so
+   * it gets the grouped resource list one group per line. SMS, the email
+   * subject, Slack, Teams and webhooks do not render HTML, so they get it on
+   * one line. Everything else reads the same on every channel.
+   */
+  const SUBJECT_WITH_RESOURCES: string =
+    "{{episodeTitle}} is {{episodeState}} ({{resourcesAffected}})";
+
+  const SHARED_VALUES: Record<string, string> = {
+    statusPageName: "Acme Status",
+    statusPageUrl: STATUS_PAGE_URL,
+    detailsUrl: DETAILS_URL,
+    unsubscribeUrl: UNSUBSCRIBE_URL,
+    episodeSeverity: EPISODE_SEVERITY,
+    episodeTitle: EPISODE_TITLE,
+    episodeState: STATE_NAME,
+  };
+  const EMAIL_BODY_VALUES: Record<string, string> = {
+    ...SHARED_VALUES,
+    resourcesAffected: GROUPED_RESOURCES_HTML,
+  };
+  const PLAIN_TEXT_VALUES: Record<string, string> = {
+    ...SHARED_VALUES,
+    resourcesAffected: GROUPED_RESOURCES_TEXT,
+  };
+
+  beforeEach(() => {
+    pendingTimelines = [stateTimeline()];
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+  });
+
+  test("the fixtures cover every advertised variable", () => {
+    const names: Array<string> =
+      SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+        EVENT,
+      );
+
+    expect(Object.keys(EMAIL_BODY_VALUES).sort()).toEqual([...names].sort());
+    expect(Object.keys(PLAIN_TEXT_VALUES).sort()).toEqual([...names].sort());
+  });
+
+  test("renders HTML in the email body and a plain-text resource list everywhere else", async () => {
+    useCustomTemplatesOnEveryChannel(undefined, SUBJECT_WITH_RESOURCES);
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.BlankTemplate,
+    );
+    expect(sentMail()[0]!["vars"]).toEqual({
+      body: renderedWithEveryVariable("email", EMAIL_BODY_VALUES),
+    });
+    expect(sentMail()[0]!["subject"]).toBe(
+      `${EPISODE_TITLE} is ${STATE_NAME} (${GROUPED_RESOURCES_TEXT})`,
+    );
+    expect(sentSms()).toEqual([
+      renderedWithEveryVariable("sms", PLAIN_TEXT_VALUES),
+    ]);
+    expect(sentSlack()).toEqual([
+      renderedWithEveryVariable("slack", PLAIN_TEXT_VALUES),
+    ]);
+    expect(sentTeams()).toEqual([
+      renderedWithEveryVariable("teams", PLAIN_TEXT_VALUES),
+    ]);
+
+    for (const message of [
+      sentMail()[0]!["subject"] as string,
+      sentSms()[0]!,
+      sentSlack()[0]!,
+      sentTeams()[0]!,
+    ]) {
+      expect(message).not.toContain("<br/>");
+    }
+  });
+
+  test("hands each channel's template every advertised variable, in that channel's format", async () => {
+    const bodies: Record<string, string> = useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    expect(compileCalls()).toHaveLength(5);
+    expect(
+      variablesCompiledInto(
+        bodies[StatusPageSubscriberNotificationMethod.Email]!,
+      ),
+    ).toEqual(EMAIL_BODY_VALUES);
+    expect(variablesCompiledInto(EMAIL_SUBJECT_TEMPLATE)).toEqual(
+      PLAIN_TEXT_VALUES,
+    );
+    expect(
+      variablesCompiledInto(
+        bodies[StatusPageSubscriberNotificationMethod.SMS]!,
+      ),
+    ).toEqual(PLAIN_TEXT_VALUES);
+    expect(
+      variablesCompiledInto(
+        bodies[StatusPageSubscriberNotificationMethod.Slack]!,
+      ),
+    ).toEqual(PLAIN_TEXT_VALUES);
+    expect(
+      variablesCompiledInto(
+        bodies[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!,
+      ),
+    ).toEqual(PLAIN_TEXT_VALUES);
+  });
+
+  test("sends webhooks a plain-text resource list", async () => {
+    await runJob();
+
+    expect(sentWebhooks()).toHaveLength(1);
+    expect(sentWebhooks()[0]!["eventType"]).toBe("EpisodeStateChanged");
+    expect(sentWebhooks()[0]!["data"]).toEqual({
+      episodeId: EPISODE_ID.toString(),
+      episodeTitle: EPISODE_TITLE,
+      incidentSeverity: EPISODE_SEVERITY,
+      incidentState: STATE_NAME,
+      resourcesAffected: GROUPED_RESOURCES_TEXT,
+      detailsUrl: DETAILS_URL,
+    });
+  });
+
+  test("the default email still gets HTML for the resource list", async () => {
+    await runJob();
+
+    expect(compileCalls()).toHaveLength(0);
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberEpisodeStateChanged,
+    );
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        emailTitle: `Incident on ${GROUPED_RESOURCES_HTML} is ${STATE_NAME}`,
+        resourcesAffected: GROUPED_RESOURCES_HTML,
+      }),
     );
   });
 });

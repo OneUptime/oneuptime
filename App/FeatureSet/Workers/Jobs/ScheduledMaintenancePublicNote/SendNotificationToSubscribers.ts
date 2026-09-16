@@ -304,9 +304,10 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
     }
 
     /*
-     * Pre-compute markdown conversions for the note once per public note.
-     * These values do not vary per status page or per subscriber, so
-     * memoizing here avoids N redundant markdown parses during fan-out.
+     * Pre-compute markdown conversions for the note and the event description
+     * once per public note. These values do not vary per status page or per
+     * subscriber, so memoizing here avoids N redundant markdown parses during
+     * fan-out.
      */
     const noteHtml: string = await Markdown.convertToHTML(
       publicNote.note || "",
@@ -314,6 +315,10 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
     );
     const notePlainText: string = Markdown.convertToPlainText(
       publicNote.note || "",
+    );
+    const descriptionHtml: string = await Markdown.convertToHTML(
+      event.description || "",
+      MarkdownContentType.Email,
     );
     const descriptionPlainText: string = Markdown.convertToPlainText(
       event.description || "",
@@ -372,9 +377,17 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
               .toString()
           : statusPageURL;
 
-      // The affected resources on this status page, for every channel.
+      /*
+       * The affected resources on this status page: one group per line for
+       * HTML email bodies, and on one line for every channel that shows
+       * "<br/>" as literal text.
+       */
       const resourcesAffectedString: string =
         StatusPageResourceUtil.getResourcesGroupedByGroupName(
+          statusPageToResources[statuspage._id!] || [],
+        );
+      const resourcesAffectedPlainText: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
           statusPageToResources[statuspage._id!] || [],
         );
 
@@ -423,31 +436,47 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
       /*
        * Every variable SubscriberNotificationTemplateVariables advertises for
        * the scheduled maintenance note events, built once per status page.
-       * Each channel below uses this object (SMS only swaps the note and the
-       * description for plain text, and every channel adds the subscriber's
-       * unsubscribeUrl), so no channel can miss a variable the others have.
+       * The values below are the same on every channel; the three objects
+       * after them add the ones whose format depends on the channel, and
+       * every channel adds the subscriber's unsubscribeUrl, so no channel can
+       * miss a variable the others have.
        */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
         statusPageUrl: statusPageURL,
         detailsUrl: scheduledEventDetailsUrl,
-        resourcesAffected: resourcesAffectedString,
         scheduledMaintenanceTitle: event.title || "",
-        scheduledMaintenanceDescription: event.description || "",
         scheduledMaintenanceState:
           event.currentScheduledMaintenanceState?.name || "",
-        note: publicNote.note || "",
         postedAt: notePostedAt,
       };
 
       /*
-       * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
-       * Uses the memoized plain-text conversions computed once per public note above.
+       * Custom templates get each value in the format their channel renders:
+       * HTML for the email body (it is wrapped only by BlankTemplate), plain
+       * text for SMS and the email subject, and Markdown for Slack and Teams.
+       * The conversions are the memoized ones computed once per public note
+       * above.
        */
-      const smsTemplateVariables: Record<string, string> = {
+      const emailBodyTemplateVariables: Record<string, string> = {
         ...templateVariables,
+        resourcesAffected: resourcesAffectedString,
+        scheduledMaintenanceDescription: descriptionHtml,
+        note: noteHtml,
+      };
+
+      const plainTextTemplateVariables: Record<string, string> = {
+        ...templateVariables,
+        resourcesAffected: resourcesAffectedPlainText,
         scheduledMaintenanceDescription: descriptionPlainText,
         note: notePlainText,
+      };
+
+      const markdownTemplateVariables: Record<string, string> = {
+        ...templateVariables,
+        resourcesAffected: resourcesAffectedPlainText,
+        scheduledMaintenanceDescription: event.description || "",
+        note: publicNote.note || "",
       };
 
       // Send email to Email subscribers.
@@ -486,8 +515,16 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         );
 
         // Add unsubscribeUrl to template variables
-        const subscriberTemplateVariables: Record<string, string> = {
-          ...templateVariables,
+        const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
+          ...emailBodyTemplateVariables,
+          unsubscribeUrl: unsubscribeUrl,
+        };
+        const subscriberPlainTextTemplateVariables: Dictionary<string> = {
+          ...plainTextTemplateVariables,
+          unsubscribeUrl: unsubscribeUrl,
+        };
+        const subscriberMarkdownTemplateVariables: Dictionary<string> = {
+          ...markdownTemplateVariables,
           unsubscribeUrl: unsubscribeUrl,
         };
 
@@ -498,19 +535,13 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${publicNote.id}.`,
           );
 
-          // SMS-specific template variables with unsubscribe URL
-          const subscriberSmsTemplateVariables: Record<string, string> = {
-            ...smsTemplateVariables,
-            unsubscribeUrl: unsubscribeUrl,
-          };
-
           let smsMessage: string;
           if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
             // Use custom template only when custom Twilio is configured
             smsMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 smsTemplate.templateBody,
-                subscriberSmsTemplateVariables,
+                subscriberPlainTextTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -554,7 +585,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             markdownMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 slackTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberMarkdownTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -589,7 +620,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             markdownMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 teamsTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberMarkdownTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -626,7 +657,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                 scheduledMaintenanceId: event.id?.toString() || "",
                 scheduledMaintenanceTitle: event.title || "",
                 scheduledMaintenanceDescription: event.description || "",
-                resourcesAffected: resourcesAffectedString,
+                resourcesAffected: resourcesAffectedPlainText,
                 note: publicNote.note || "",
                 detailsUrl: scheduledEventDetailsUrl,
               },
@@ -647,12 +678,12 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             const compiledBody: string =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 emailTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberEmailBodyTemplateVariables,
               );
             const compiledSubject: string = emailTemplate.emailSubject
               ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   emailTemplate.emailSubject,
-                  subscriberTemplateVariables,
+                  subscriberPlainTextTemplateVariables,
                 )
               : copy.customTemplateEmailSubjectPrefix + (event.title || "");
 

@@ -4,6 +4,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import URL from "Common/Types/API/URL";
@@ -24,6 +25,10 @@ import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpda
  * the new "note updated" job share one send path. These tests drive a tick of
  * each against fakes and check what subscribers receive, which status columns
  * are written, and what lands in the incident feed.
+ *
+ * The resource list is formatted by the real StatusPageResourceUtil, so the
+ * grouped-resource tests see the same "<br/>" and "; " separators that
+ * production does.
  */
 
 type CronHandler = () => Promise<void>;
@@ -84,31 +89,6 @@ jest.mock("Common/Server/Services/IncidentFeedService", () => {
 
 jest.mock("Common/Server/Services/StatusPageResourceService", () => {
   return { __esModule: true, default: { findByMonitors: jest.fn() } };
-});
-
-jest.mock("Common/Server/Utils/StatusPageResource", () => {
-  return {
-    __esModule: true,
-    default: {
-      /*
-       * Lists the resources it is given, as the real helper does for
-       * ungrouped resources, so a test can tell which status page's
-       * resources reached a message.
-       */
-      getResourcesGroupedByGroupName: jest.fn(
-        (resources: Array<{ displayName?: string | undefined }>): string => {
-          return resources
-            .map((row: { displayName?: string | undefined }): string => {
-              return row.displayName || "";
-            })
-            .filter((name: string): boolean => {
-              return Boolean(name);
-            })
-            .join(", ");
-        },
-      ),
-    },
-  };
 });
 
 jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
@@ -228,7 +208,7 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
-import Markdown from "Common/Server/Types/Markdown";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
@@ -289,6 +269,11 @@ const INCIDENT_STATE_NAME: string = "Identified";
  * formatted from "now" can never pass for it.
  */
 const POSTED_AT: Date = new Date("2026-03-04T12:00:00.000Z");
+
+const GROUPED_RESOURCES_HTML: string =
+  "Europe: Checkout API<br/>Americas: Payments API";
+const GROUPED_RESOURCES_TEXT: string =
+  "Europe: Checkout API; Americas: Payments API";
 
 let createdNotes: Array<IncidentPublicNote> = [];
 let updatedNotes: Array<IncidentPublicNote> = [];
@@ -384,6 +369,37 @@ function resource(overrides?: {
   row.statusPageId = overrides?.statusPageId || STATUS_PAGE_ID;
   row.displayName = overrides?.displayName || "Checkout API";
   return row;
+}
+
+function resourceInGroup(
+  id: string,
+  displayName: string,
+  groupName: string,
+): StatusPageResource {
+  const row: StatusPageResource = new StatusPageResource();
+  row._id = id;
+  row.statusPageId = STATUS_PAGE_ID;
+  row.displayName = displayName;
+  row.statusPageGroupId = ObjectID.generate();
+  const group: StatusPageGroup = new StatusPageGroup();
+  group.name = groupName;
+  row.statusPageGroup = group;
+  return row;
+}
+
+function groupedResources(): Array<StatusPageResource> {
+  return [
+    resourceInGroup(
+      "88888888-8888-4888-8888-888888888888",
+      "Checkout API",
+      "Europe",
+    ),
+    resourceInGroup(
+      "99999999-9999-4999-8999-999999999999",
+      "Payments API",
+      "Americas",
+    ),
+  ];
 }
 
 function subscriber(): StatusPageSubscriber {
@@ -528,6 +544,18 @@ function compileCalls(): Array<CompileCall> {
   });
 }
 
+// The variables the job handed to compileTemplate for this template.
+function variablesCompiledInto(template: string): Record<string, string> {
+  const calls: Array<CompileCall> = compileCalls().filter(
+    (call: CompileCall): boolean => {
+      return call.template === template;
+    },
+  );
+
+  expect(calls).toHaveLength(1);
+  return calls[0]!.variables;
+}
+
 interface TriggerCase {
   name: string;
   job: string;
@@ -560,8 +588,12 @@ function queueNote(job: string, overrides?: { postedAt?: Date | null }): void {
   }
 }
 
+/*
+ * The custom email subject. It echoes the note and the resource list too,
+ * so a test can see that the subject gets them as plain text.
+ */
 const EMAIL_SUBJECT_TEMPLATE: string =
-  "Subject: {{incidentTitle}} ({{incidentState}}, {{postedAt}})";
+  "Subject: {{incidentTitle}} ({{incidentState}}, {{postedAt}}) {{note}} [{{resourcesAffected}}]";
 
 /*
  * A template body that prints every variable advertised for the event as
@@ -1198,8 +1230,222 @@ describe("IncidentPublicNote update job, with a custom update email template", (
     expect(sentMail()[0]!["subject"]).toBe(
       `[Incident Note Updated] ${INCIDENT_TITLE}`,
     );
-    expect(sentMail()[0]!["vars"]).toEqual({ body: `<p>Edited: ${NOTE}</p>` });
+    // The note is HTML here: nothing converts a custom email body later.
+    expect(sentMail()[0]!["vars"]).toEqual({
+      body: `<p>Edited: ${NOTE_HTML}</p>`,
+    });
   });
+});
+
+/*
+ * Custom templates get each value in the format their channel renders: HTML
+ * in the email body (BlankTemplate converts nothing), plain text in SMS and
+ * the email subject, and the Markdown as written in Slack and Teams. The
+ * resources here sit in two groups, so the real resource list is "<br/>"
+ * joined in HTML and "; " joined everywhere else.
+ */
+describe("IncidentPublicNote custom templates, in each channel's format", () => {
+  beforeEach(() => {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+  });
+
+  test.each(TRIGGERS)(
+    "$name: renders HTML in the email body, plain text in SMS and the subject, and Markdown in chat",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      useCustomTemplatesOnEveryChannel(trigger.eventType);
+
+      await runJob(trigger.job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["templateType"]).toBe(
+        EmailTemplateType.BlankTemplate,
+      );
+      expect(sentSms()).toHaveLength(1);
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+
+      const rendered: Record<string, string> = {
+        email: (sentMail()[0]!["vars"] as JSONObject)["body"] as string,
+        sms: sentSms()[0]!,
+        slack: sentSlack()[0]!,
+        teams: sentTeams()[0]!,
+      };
+
+      const expected: Record<
+        string,
+        { note: string; resourcesAffected: string }
+      > = {
+        email: { note: NOTE_HTML, resourcesAffected: GROUPED_RESOURCES_HTML },
+        sms: { note: NOTE_TEXT, resourcesAffected: GROUPED_RESOURCES_TEXT },
+        slack: { note: NOTE, resourcesAffected: GROUPED_RESOURCES_TEXT },
+        teams: { note: NOTE, resourcesAffected: GROUPED_RESOURCES_TEXT },
+      };
+
+      for (const [channel, message] of Object.entries(rendered)) {
+        expect(message).toContain(`channel=${channel}`);
+        expect(message).toContain(`note=[${expected[channel]!.note}]`);
+        expect(message).toContain(
+          `resourcesAffected=[${expected[channel]!.resourcesAffected}]`,
+        );
+
+        // Only the HTML email body may carry the HTML line break.
+        if (channel !== "email") {
+          expect(message).not.toContain("<br/>");
+        }
+      }
+
+      const postedAt: string =
+        OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT);
+      expect(sentMail()[0]!["subject"]).toBe(
+        `Subject: ${INCIDENT_TITLE} (${INCIDENT_STATE_NAME}, ${postedAt}) ${NOTE_TEXT} [${GROUPED_RESOURCES_TEXT}]`,
+      );
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: hands each channel's template every advertised variable, in that channel's format",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      const bodies: Record<string, string> = useCustomTemplatesOnEveryChannel(
+        trigger.eventType,
+      );
+
+      await runJob(trigger.job);
+
+      // Identical on every channel.
+      const shared: Record<string, string> = {
+        statusPageName: "Acme Status",
+        statusPageUrl: STATUS_PAGE_URL,
+        detailsUrl: DETAILS_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+        incidentSeverity: "Critical",
+        incidentTitle: INCIDENT_TITLE,
+        incidentState: INCIDENT_STATE_NAME,
+        postedAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT),
+      };
+      const html: Record<string, string> = {
+        ...shared,
+        note: NOTE_HTML,
+        resourcesAffected: GROUPED_RESOURCES_HTML,
+      };
+      const plainText: Record<string, string> = {
+        ...shared,
+        note: NOTE_TEXT,
+        resourcesAffected: GROUPED_RESOURCES_TEXT,
+      };
+      const markdown: Record<string, string> = {
+        ...shared,
+        note: NOTE,
+        resourcesAffected: GROUPED_RESOURCES_TEXT,
+      };
+
+      // Each dictionary is exactly the advertised variables.
+      const names: Array<string> =
+        SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+          trigger.eventType,
+        );
+      expect(Object.keys(html).sort()).toEqual([...names].sort());
+
+      expect(compileCalls()).toHaveLength(5);
+      expect(
+        variablesCompiledInto(
+          bodies[StatusPageSubscriberNotificationMethod.Email]!,
+        ),
+      ).toEqual(html);
+      expect(variablesCompiledInto(EMAIL_SUBJECT_TEMPLATE)).toEqual(plainText);
+      expect(
+        variablesCompiledInto(
+          bodies[StatusPageSubscriberNotificationMethod.SMS]!,
+        ),
+      ).toEqual(plainText);
+      expect(
+        variablesCompiledInto(
+          bodies[StatusPageSubscriberNotificationMethod.Slack]!,
+        ),
+      ).toEqual(markdown);
+      expect(
+        variablesCompiledInto(
+          bodies[StatusPageSubscriberNotificationMethod.MicrosoftTeams]!,
+        ),
+      ).toEqual(markdown);
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: converts the note once per note, however many pages and subscribers",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      useCustomTemplatesOnEveryChannel(trigger.eventType, [
+        statusPage({ withCustomSmtpAndSms: true }),
+        statusPage({
+          withCustomSmtpAndSms: true,
+          id: SECOND_STATUS_PAGE_ID,
+          pageTitle: "Beta Status",
+        }),
+      ]);
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mockResolvedValue([subscriber(), subscriber()] as never);
+
+      await runJob(trigger.job);
+
+      // Two pages, two subscribers each, five templates per subscriber.
+      expect(compileCalls()).toHaveLength(20);
+      expect(Markdown.convertToHTML).toHaveBeenCalledTimes(1);
+      expect(Markdown.convertToHTML).toHaveBeenCalledWith(
+        NOTE,
+        MarkdownContentType.Email,
+      );
+      expect(Markdown.convertToPlainText).toHaveBeenCalledTimes(1);
+      expect(Markdown.convertToPlainText).toHaveBeenCalledWith(NOTE);
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: sends webhooks the Markdown note and a plain-text resource list",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      useCustomTemplatesOnEveryChannel(trigger.eventType);
+
+      await runJob(trigger.job);
+
+      expect(sentWebhooks()).toHaveLength(1);
+      const data: JSONObject = sentWebhooks()[0]!["data"] as JSONObject;
+
+      expect(data["note"]).toBe(NOTE);
+      expect(data["resourcesAffected"]).toBe(GROUPED_RESOURCES_TEXT);
+    },
+  );
+});
+
+describe("IncidentPublicNote default email, with grouped resources", () => {
+  test.each(TRIGGERS)(
+    "$name: still gets HTML for the note and the resource list",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+        groupedResources() as never,
+      );
+
+      await runJob(trigger.job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["templateType"]).toBe(
+        trigger.job === UPDATED_JOB
+          ? EmailTemplateType.SubscriberIncidentNoteUpdated
+          : EmailTemplateType.SubscriberIncidentNoteCreated,
+      );
+      expect(sentMail()[0]!["vars"]).toEqual(
+        expect.objectContaining({
+          note: NOTE_HTML,
+          resourcesAffected: GROUPED_RESOURCES_HTML,
+        }),
+      );
+    },
+  );
 });
 
 describe("IncidentPublicNote custom email subject fallback", () => {
@@ -1510,19 +1756,25 @@ describe("IncidentPublicNote custom template variable values", () => {
         expect(message).not.toMatch(/{{|}}/);
 
         for (const name of names) {
-          // SMS gets the note as plain text; the rest get it as written.
-          const value: string =
-            channel === "sms" && name === "note"
-              ? NOTE_TEXT
-              : expectedValues[name]!;
+          /*
+           * The email body gets the note as HTML and SMS as plain text;
+           * Slack and Teams get it as written.
+           */
+          let value: string = expectedValues[name]!;
+          if (name === "note" && channel === "email") {
+            value = NOTE_HTML;
+          } else if (name === "note" && channel === "sms") {
+            value = NOTE_TEXT;
+          }
 
           expect(value).not.toBe("");
           expect(message).toContain(`${name}=[${value}]`);
         }
       }
 
+      // The subject is plain text too.
       expect(sentMail()[0]!["subject"]).toBe(
-        `Subject: ${INCIDENT_TITLE} (${INCIDENT_STATE_NAME}, ${postedAt})`,
+        `Subject: ${INCIDENT_TITLE} (${INCIDENT_STATE_NAME}, ${postedAt}) ${NOTE_TEXT} [Checkout API]`,
       );
     },
   );

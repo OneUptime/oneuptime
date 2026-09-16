@@ -25,9 +25,13 @@ import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/Sub
  * lists for it, on every channel that compiles one: email (with the page's own
  * SMTP), SMS (with the page's own Twilio), Slack and Microsoft Teams.
  * {{scheduledMaintenanceDescription}} used to be listed but never passed, so
- * it rendered as an empty string everywhere. Each channel gets it in the
- * format it renders: HTML in the email body, plain text in the email subject
- * and SMS, and the Markdown as written in Slack and Teams.
+ * it rendered as an empty string everywhere.
+ *
+ * Each channel gets the values in the format it renders: HTML in the custom
+ * email body (it is wrapped only by BlankTemplate), plain text in SMS and the
+ * email subject, and the Markdown as written in Slack and Teams. The resource
+ * list is formatted by the real StatusPageResourceUtil, so the grouped
+ * resource tests see the same "<br/>" and "; " separators production does.
  */
 
 type CronHandler = () => Promise<void>;
@@ -330,10 +334,13 @@ const DEFAULT_RESOURCES_AFFECTED: string = "Payments API";
 
 /*
  * Two resources in the "Core" group and one ungrouped resource on the main
- * status page, and one resource on the other status page.
+ * status page, and one resource on the other status page. Email bodies get
+ * one group per line; every other channel gets them on one line.
  */
-const GROUPED_RESOURCES_AFFECTED: string =
+const GROUPED_RESOURCES_HTML: string =
   "Core: Payments API, Card vault<br/>Public website";
+const GROUPED_RESOURCES_TEXT: string =
+  "Core: Payments API, Card vault; Public website";
 const OTHER_PAGE_RESOURCES_AFFECTED: string = "Billing API";
 
 let pendingTimelines: Array<ScheduledMaintenanceStateTimeline> = [];
@@ -667,22 +674,64 @@ function sentCustomMessages(): Array<string> {
 }
 
 /*
- * The message each templated channel gets from a template rendering `body`:
- * `emailBody` for the email body, which gets HTML, and `textBody` for the
- * email subject and SMS, which get plain text, where those differ.
+ * The message each templated channel gets from a template rendering `body`,
+ * in the order sentCustomMessages lists them. `body` is what Slack and Teams
+ * render (the Markdown as written). `emailBody` is the HTML email body and
+ * `plainTextBody` the email subject and SMS; each defaults to `body` for
+ * templates whose values read the same in every format.
  */
 function expectedCustomMessages(data: {
   body: string;
   emailBody?: string;
-  textBody?: string;
+  plainTextBody?: string;
 }): Array<string> {
   return [
     `Email|${data.emailBody ?? data.body}`,
-    `Subject|${data.textBody ?? data.body}`,
-    `SMS|${data.textBody ?? data.body}`,
+    `Subject|${data.plainTextBody ?? data.body}`,
+    `SMS|${data.plainTextBody ?? data.body}`,
     `Slack|${data.body}`,
     `Microsoft Teams|${data.body}`,
   ];
+}
+
+/*
+ * The variables each templated channel must be given for the main status page
+ * with the grouped resources, by channel label.
+ */
+function expectedVariablesByChannel(): Record<string, Record<string, string>> {
+  const shared: Record<string, string> = {
+    statusPageName: "Acme Status",
+    statusPageUrl: STATUS_PAGE_URL,
+    unsubscribeUrl: UNSUBSCRIBE_URL,
+    detailsUrl: DETAILS_URL,
+    scheduledMaintenanceTitle: EVENT_TITLE,
+    scheduledMaintenanceState: STATE_NAME,
+    // Not advertised, but always passed, so existing templates keep it.
+    scheduledAt: STARTS_AT_STRING,
+  };
+  const emailBody: Record<string, string> = {
+    ...shared,
+    resourcesAffected: GROUPED_RESOURCES_HTML,
+    scheduledMaintenanceDescription: DESCRIPTION_HTML,
+  };
+  const plainText: Record<string, string> = {
+    ...shared,
+    resourcesAffected: GROUPED_RESOURCES_TEXT,
+    scheduledMaintenanceDescription: DESCRIPTION_TEXT,
+  };
+  const markdown: Record<string, string> = {
+    ...shared,
+    resourcesAffected: GROUPED_RESOURCES_TEXT,
+    scheduledMaintenanceDescription: DESCRIPTION,
+  };
+
+  return {
+    Email: emailBody,
+    Subject: plainText,
+    SMS: plainText,
+    Slack: markdown,
+    "Microsoft Teams": markdown,
+  };
 }
 
 // The description each channel's template is given.
@@ -951,6 +1000,45 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
     ]);
   });
 
+  test("sends webhooks the grouped resources as a plain-text list", async () => {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+
+    await runJob();
+
+    expect(sentWebhooks()).toHaveLength(1);
+    expect(sentWebhooks()[0]!["eventType"]).toBe(
+      "ScheduledMaintenanceStateChanged",
+    );
+    expect(sentWebhooks()[0]!["data"]).toEqual({
+      scheduledMaintenanceId: EVENT_ID.toString(),
+      scheduledMaintenanceTitle: EVENT_TITLE,
+      scheduledMaintenanceDescription: DESCRIPTION,
+      scheduledMaintenanceState: STATE_NAME,
+      resourcesAffected: GROUPED_RESOURCES_TEXT,
+      detailsUrl: DETAILS_URL,
+    });
+  });
+
+  test("still gives the default email the grouped resources as HTML", async () => {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberScheduledMaintenanceEventStateChanged,
+    );
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        resourcesAffected: GROUPED_RESOURCES_HTML,
+      }),
+    );
+  });
+
   test("records the notification in the feed and marks the state change sent", async () => {
     await runJob();
 
@@ -1075,7 +1163,42 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
     expect(missing).toEqual([]);
   });
 
-  test("gives every channel the same variables, with only the description in each channel's format", async () => {
+  test("gives every channel the same variables, each in the format that channel renders", async () => {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+    useCustomTemplates({ body: "Hello", subject: "Subject" });
+
+    await runJob();
+
+    const expected: Record<
+      string,
+      Record<string, string>
+    > = expectedVariablesByChannel();
+
+    const calls: Array<CompileTemplateCall> = compileTemplateCalls();
+    expect(calls).toHaveLength(5);
+    expect(compiledChannels()).toEqual(Object.keys(expected).sort());
+
+    for (const call of calls) {
+      expect({ channel: call.channel, variables: call.variables }).toEqual({
+        channel: call.channel,
+        variables: expected[call.channel],
+      });
+    }
+
+    // Only the HTML email body gets "<br/>" or HTML markup.
+    for (const call of calls) {
+      if (call.channel === "Email") {
+        continue;
+      }
+      for (const value of Object.values(call.variables)) {
+        expect(value).not.toContain("<");
+      }
+    }
+  });
+
+  test("gives every channel the same variables, with only the description and the resource list's separator in each channel's format", async () => {
     mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
       groupedResources() as never,
     );
@@ -1088,7 +1211,7 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       statusPageUrl: STATUS_PAGE_URL,
       unsubscribeUrl: UNSUBSCRIBE_URL,
       detailsUrl: DETAILS_URL,
-      resourcesAffected: GROUPED_RESOURCES_AFFECTED,
+      resourcesAffected: GROUPED_RESOURCES_TEXT,
       scheduledMaintenanceTitle: EVENT_TITLE,
       scheduledMaintenanceDescription: DESCRIPTION,
       scheduledMaintenanceState: STATE_NAME,
@@ -1104,6 +1227,11 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
         channel: call.channel,
         variables: {
           ...expected,
+          // The email body lists the groups one per line ("<br/>").
+          resourcesAffected:
+            call.channel === "Email"
+              ? GROUPED_RESOURCES_HTML
+              : GROUPED_RESOURCES_TEXT,
           scheduledMaintenanceDescription: descriptionForChannel(call.channel),
         },
       });
@@ -1121,6 +1249,39 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       Slack: DESCRIPTION,
       "Microsoft Teams": DESCRIPTION,
     });
+  });
+
+  test("renders HTML in the email body, plain text in SMS and the subject, and Markdown in chat", async () => {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+    useCustomTemplates({
+      body: "{{scheduledMaintenanceState}}: {{scheduledMaintenanceDescription}} ({{resourcesAffected}})",
+      subject:
+        "{{scheduledMaintenanceTitle}} is {{scheduledMaintenanceState}}: {{scheduledMaintenanceDescription}} ({{resourcesAffected}})",
+    });
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.BlankTemplate,
+    );
+    expect(sentMail()[0]!["vars"]).toEqual({
+      body: `Email|${STATE_NAME}: ${DESCRIPTION_HTML} (${GROUPED_RESOURCES_HTML})`,
+    });
+    expect(sentMail()[0]!["subject"]).toBe(
+      `Subject|${EVENT_TITLE} is ${STATE_NAME}: ${DESCRIPTION_TEXT} (${GROUPED_RESOURCES_TEXT})`,
+    );
+    expect(sentSms()).toEqual([
+      `SMS|${STATE_NAME}: ${DESCRIPTION_TEXT} (${GROUPED_RESOURCES_TEXT})`,
+    ]);
+    expect(sentSlack()).toEqual([
+      `Slack|${STATE_NAME}: ${DESCRIPTION} (${GROUPED_RESOURCES_TEXT})`,
+    ]);
+    expect(sentTeams()).toEqual([
+      `Microsoft Teams|${STATE_NAME}: ${DESCRIPTION} (${GROUPED_RESOURCES_TEXT})`,
+    ]);
   });
 
   test("renders a template that uses every advertised variable with nothing left over", async () => {
@@ -1154,24 +1315,25 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       }
     }
 
-    // The value each variable must render as.
+    // The value each variable must render as in Slack and Teams.
     const values: Record<string, string> = {
       statusPageName: "Acme Status",
       statusPageUrl: STATUS_PAGE_URL,
       unsubscribeUrl: UNSUBSCRIBE_URL,
-      resourcesAffected: GROUPED_RESOURCES_AFFECTED,
+      resourcesAffected: GROUPED_RESOURCES_TEXT,
       scheduledMaintenanceTitle: EVENT_TITLE,
       scheduledMaintenanceDescription: DESCRIPTION,
       scheduledMaintenanceState: STATE_NAME,
       detailsUrl: DETAILS_URL,
     };
-    // The email body gets the Markdown description as HTML.
-    const emailValues: Record<string, string> = {
+    // The email body gets HTML.
+    const emailBodyValues: Record<string, string> = {
       ...values,
+      resourcesAffected: GROUPED_RESOURCES_HTML,
       scheduledMaintenanceDescription: DESCRIPTION_HTML,
     };
-    // The email subject and SMS get it as plain text.
-    const textValues: Record<string, string> = {
+    // SMS and the email subject get plain text.
+    const plainTextValues: Record<string, string> = {
       ...values,
       scheduledMaintenanceDescription: DESCRIPTION_TEXT,
     };
@@ -1190,10 +1352,34 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
     expect(messages).toEqual(
       expectedCustomMessages({
         body: render(values),
-        emailBody: render(emailValues),
-        textBody: render(textValues),
+        emailBody: render(emailBodyValues),
+        plainTextBody: render(plainTextValues),
       }),
     );
+  });
+
+  test("gives the description as HTML in the email body, plain text in SMS and the subject, and as written in chat", async () => {
+    useCustomTemplates({ body: "desc={{scheduledMaintenanceDescription}}" });
+
+    await runJob();
+
+    expect(DESCRIPTION_TEXT).not.toBe(DESCRIPTION);
+    expect(DESCRIPTION_HTML).not.toBe(DESCRIPTION);
+    expect(sentCustomMessages()).toEqual(
+      expectedCustomMessages({
+        body: `desc=${DESCRIPTION}`,
+        emailBody: `desc=${DESCRIPTION_HTML}`,
+        plainTextBody: `desc=${DESCRIPTION_TEXT}`,
+      }),
+    );
+    expect(Markdown.convertToPlainText).toHaveBeenCalledWith(DESCRIPTION);
+    expect(Markdown.convertToHTML).toHaveBeenCalledWith(
+      DESCRIPTION,
+      MarkdownContentType.Email,
+    );
+    expect(
+      queryArgs(ScheduledMaintenanceService.findOneById).select["description"],
+    ).toBe(true);
   });
 
   test("gives the description as HTML in the email body, as plain text in the email subject and SMS, and as written in Slack and Teams", async () => {
@@ -1208,7 +1394,7 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       expectedCustomMessages({
         body: `desc=${DESCRIPTION}`,
         emailBody: `desc=${DESCRIPTION_HTML}`,
-        textBody: `desc=${DESCRIPTION_TEXT}`,
+        plainTextBody: `desc=${DESCRIPTION_TEXT}`,
       }),
     );
     expect(mock(Markdown.convertToHTML).mock.calls).toEqual([
@@ -1267,18 +1453,20 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
 
     await runJob();
 
+    // One group per line in the email body, all on one line elsewhere.
     expect(sentCustomMessages()).toEqual(
       expectedCustomMessages({
-        body: `resources=${GROUPED_RESOURCES_AFFECTED}`,
+        body: `resources=${GROUPED_RESOURCES_TEXT}`,
+        emailBody: `resources=${GROUPED_RESOURCES_HTML}`,
       }),
     );
     for (const message of sentCustomMessages()) {
       expect(message).not.toContain(OTHER_PAGE_RESOURCES_AFFECTED);
     }
-    // Webhooks are not templated, but list the same resources.
+    // Webhooks are not templated, but list the same resources, as plain text.
     expect(
       (sentWebhooks()[0]!["data"] as JSONObject)["resourcesAffected"],
-    ).toBe(GROUPED_RESOURCES_AFFECTED);
+    ).toBe(GROUPED_RESOURCES_TEXT);
 
     const args: { monitors: Array<Monitor>; select: JSONObject } = mock(
       StatusPageResourceService.findByMonitors,
@@ -1322,8 +1510,13 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
 
     await runJob();
 
-    const resourcesByPage: Record<string, string> = {
-      [MAIN_PAGE.url]: GROUPED_RESOURCES_AFFECTED,
+    // The email body gets the main page's groups one per line.
+    const htmlResourcesByPage: Record<string, string> = {
+      [MAIN_PAGE.url]: GROUPED_RESOURCES_HTML,
+      [OTHER_PAGE.url]: OTHER_PAGE_RESOURCES_AFFECTED,
+    };
+    const plainTextResourcesByPage: Record<string, string> = {
+      [MAIN_PAGE.url]: GROUPED_RESOURCES_TEXT,
       [OTHER_PAGE.url]: OTHER_PAGE_RESOURCES_AFFECTED,
     };
 
@@ -1348,7 +1541,10 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
           statusPageUrl: page!.url,
           detailsUrl: detailsUrlFor(page!),
           unsubscribeUrl: unsubscribeUrlFor(page!),
-          resourcesAffected: resourcesByPage[page!.url],
+          resourcesAffected:
+            call.channel === "Email"
+              ? htmlResourcesByPage[page!.url]
+              : plainTextResourcesByPage[page!.url],
           scheduledMaintenanceTitle: EVENT_TITLE,
           scheduledMaintenanceDescription: descriptionForChannel(call.channel),
           scheduledMaintenanceState: STATE_NAME,
