@@ -50,7 +50,7 @@ export interface ComponentProps {
   aiInvestigationStatus?: AIRunStatus | null | undefined;
   /*
    * The completed investigation's TL;DR (or summary) as plain text. With a
-   * Completed status it turns the header notice into a "Read report" summary.
+   * Completed status it turns the header notice into the report's summary.
    */
   aiInvestigationSummary?: string | null | undefined;
   // Context shown under the header pills ("Declared", "Declared by", ...).

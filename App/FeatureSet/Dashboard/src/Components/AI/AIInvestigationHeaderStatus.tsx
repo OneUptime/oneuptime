@@ -1,7 +1,14 @@
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   AI_INVESTIGATION_PANEL_ID,
   isActiveAIInvestigationStatus,
@@ -104,51 +111,135 @@ interface CompletedSummaryNoticeProps {
 
 /*
  * A completed investigation's headline, lifted into the event header so the
- * most useful read on the page is visible without scrolling. The summary is
- * plain text clamped to two lines (the full text stays in the title and in
- * the report itself), and "Read report" jumps to the panel.
+ * most useful read on the page is visible without scrolling, and "View full
+ * report" jumps to the panel. The summary is model-authored, so it is only
+ * ever rendered as text.
+ *
+ * The label and the report button share the top row so the summary gets the
+ * card's full width below them, capped at a readable measure for wide
+ * screens. On a phone that row has no room for the button, so it drops to
+ * the bottom row beside Show more; the DOM order stays header, button,
+ * summary, the same as a Card's header actions.
  */
 const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
   props: CompletedSummaryNoticeProps,
 ): ReactElement => {
+  const summaryId: string = useId();
+  const summaryRef: React.RefObject<HTMLParagraphElement> =
+    useRef<HTMLParagraphElement>(null);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isClamped, setIsClamped] = useState<boolean>(false);
+  const [shownSummary, setShownSummary] = useState<string>(props.summary);
+
+  // A different summary is a different read: start it collapsed.
+  if (shownSummary !== props.summary) {
+    setShownSummary(props.summary);
+    setIsExpanded(false);
+  }
+
+  /*
+   * Whether the clamp hides anything is measured, not guessed from the
+   * length: the header runs from a phone's width to a wide monitor's, so
+   * the same summary is three lines on one and seven on the other. While
+   * the summary is expanded the last measurement stands, which keeps Show
+   * less on screen for the reader who opened it.
+   */
+  useLayoutEffect(() => {
+    const element: HTMLParagraphElement | null = summaryRef.current;
+
+    if (!element || isExpanded) {
+      return undefined;
+    }
+
+    const measure: () => void = (): void => {
+      // The extra pixel absorbs sub-pixel rounding between the two heights.
+      setIsClamped(element.scrollHeight > element.clientHeight + 1);
+    };
+
+    measure();
+
+    // ResizeObserver is missing in jsdom and in older browsers.
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+
+      return () => {
+        window.removeEventListener("resize", measure);
+      };
+    }
+
+    const observer: ResizeObserver = new ResizeObserver(measure);
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [isExpanded, props.summary]);
+
   return (
-    <div className="relative overflow-hidden rounded-lg border border-indigo-100 bg-gradient-to-r from-indigo-50 via-white to-white px-3.5 py-3 shadow-sm">
+    <div className="relative overflow-hidden rounded-lg border border-indigo-100 bg-gradient-to-r from-indigo-50 via-white to-white py-3 pl-4 pr-3 shadow-sm">
       <div
         aria-hidden="true"
         className="absolute inset-y-0 left-0 w-1 bg-indigo-500"
       />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
+        {/*
+          The button's column is as wide as the button even on a phone,
+          where the button sits in the bottom row, so the label spans both
+          columns there instead of truncating beside an empty cell.
+        */}
+        <div className="col-span-2 row-start-1 flex min-w-0 items-center gap-2 sm:col-span-1">
           <span
             aria-hidden="true"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-white shadow-sm"
           >
-            <Icon icon={IconProp.Sparkles} className="h-4 w-4" />
+            <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
           </span>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
-              AI root cause analysis
-            </p>
-            <p
-              className="mt-0.5 line-clamp-2 break-words text-sm leading-5 text-gray-900"
-              title={props.summary}
-            >
-              {props.summary}
-            </p>
-          </div>
+          <h3 className="truncate text-xs font-semibold uppercase tracking-wider text-indigo-600">
+            AI root cause analysis
+          </h3>
         </div>
         <button
           type="button"
           onClick={props.onViewReport}
           aria-controls={AI_INVESTIGATION_PANEL_ID}
-          className="group inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-md px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:self-auto"
+          className="group col-start-2 row-start-3 -my-1 inline-flex items-center justify-center gap-1.5 justify-self-end whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:row-start-1"
         >
-          Read report
+          View full report
           <Icon
-            icon={IconProp.ChevronDown}
+            icon={IconProp.ArrowDown}
             className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-y-0.5"
           />
         </button>
+        <p
+          ref={summaryRef}
+          id={summaryId}
+          className={`col-span-2 row-start-2 max-w-4xl break-words text-sm leading-6 text-gray-900 ${
+            isExpanded ? "" : "line-clamp-3"
+          }`}
+        >
+          {props.summary}
+        </p>
+        {isClamped ? (
+          <button
+            type="button"
+            onClick={() => {
+              setIsExpanded(!isExpanded);
+            }}
+            aria-expanded={isExpanded}
+            aria-controls={summaryId}
+            className="col-start-1 row-start-3 -my-1 -ml-1.5 inline-flex items-center gap-1 justify-self-start rounded-md px-1.5 py-1 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          >
+            {isExpanded ? "Show less" : "Show more"}
+            <Icon
+              icon={IconProp.ChevronDown}
+              className={`h-3.5 w-3.5 motion-safe:transition-transform ${
+                isExpanded ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+        ) : (
+          <></>
+        )}
       </div>
     </div>
   );
@@ -219,7 +310,7 @@ const AIInvestigationHeaderStatus: FunctionComponent<ComponentProps> = (
         >
           View live progress
           <Icon
-            icon={IconProp.ChevronDown}
+            icon={IconProp.ArrowDown}
             className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-y-0.5"
           />
         </button>

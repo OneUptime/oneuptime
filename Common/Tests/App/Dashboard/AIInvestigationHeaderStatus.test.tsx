@@ -7,8 +7,9 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { SpyInstance } from "jest-mock";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import AIInvestigationHeaderStatus, {
@@ -238,7 +239,7 @@ describe("shouldShowAIInvestigationHeaderStatus", () => {
 });
 
 describe("AIInvestigationHeaderStatus completed summary", () => {
-  test("shows the summary under an AI root cause eyebrow", () => {
+  test("shows the summary under an AI root cause heading", () => {
     render(
       <AIInvestigationHeaderStatus
         status={AIRunStatus.Completed}
@@ -247,7 +248,10 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
       />,
     );
 
-    const eyebrow: HTMLElement = screen.getByText("AI root cause analysis");
+    const eyebrow: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
     const summary: HTMLElement = screen.getByText(SUMMARY);
 
     expect(eyebrow).toHaveClass(
@@ -257,8 +261,10 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
       "tracking-wider",
       "text-indigo-600",
     );
-    expect(summary).toHaveClass("line-clamp-2", "text-sm");
-    expect(summary).toHaveAttribute("title", SUMMARY);
+    // Three lines at a readable measure; Show more has the rest.
+    expect(summary).toHaveClass("line-clamp-3", "max-w-4xl", "text-sm");
+    // The whole summary is reachable on the page, so no hover-only copy.
+    expect(summary).not.toHaveAttribute("title");
     expect(
       eyebrow.compareDocumentPosition(summary) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -287,7 +293,7 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("offers a native Read report button tied to the investigation panel", async () => {
+  test("offers a native View full report button tied to the investigation panel", async () => {
     const onViewProgress: MockFunction = getJestMockFunction();
     render(
       <AIInvestigationHeaderStatus
@@ -298,7 +304,7 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
     );
 
     const button: HTMLButtonElement = screen.getByRole("button", {
-      name: "Read report",
+      name: "View full report",
     });
 
     expect(button).toHaveAttribute("type", "button");
@@ -339,7 +345,8 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
       />,
     );
 
-    expect(screen.getByText(SUMMARY)).toHaveAttribute("title", SUMMARY);
+    // getByText ignores surrounding whitespace, so read the raw text.
+    expect(screen.getByText(SUMMARY).textContent).toBe(SUMMARY);
   });
 
   test.each([null, undefined, "", "   "])(
@@ -385,7 +392,7 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
 
       expect(screen.queryByText(SUMMARY)).not.toBeInTheDocument();
       expect(
-        screen.queryByRole("button", { name: "Read report" }),
+        screen.queryByRole("button", { name: "View full report" }),
       ).not.toBeInTheDocument();
       expect(
         screen.getByRole("button", {
@@ -428,15 +435,432 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
     );
 
     const summary: HTMLElement = screen.getByText(SUMMARY);
-    const textColumn: HTMLElement = summary.parentElement as HTMLElement;
-    const row: HTMLElement = textColumn.parentElement!
-      .parentElement as HTMLElement;
+    const grid: HTMLElement = summary.parentElement as HTMLElement;
+    const heading: HTMLElement = screen.getByRole("heading", {
+      name: "AI root cause analysis",
+    });
+    const header: HTMLElement = heading.parentElement as HTMLElement;
+    const viewReport: HTMLElement = screen.getByRole("button", {
+      name: "View full report",
+    });
 
-    expect(textColumn).toHaveClass("min-w-0");
-    expect(summary).toHaveClass("break-words");
-    expect(row).toHaveClass("flex-col", "sm:flex-row");
+    // The text column may shrink below its content; long tokens wrap.
+    expect(grid).toHaveClass("grid", "grid-cols-[minmax(0,1fr)_auto]");
+    expect(summary).toHaveClass("col-span-2", "break-words");
+    // On a phone the label spans the row; from sm up it shares it.
+    expect(header).toHaveClass("min-w-0", "col-span-2", "sm:col-span-1");
+    expect(heading).toHaveClass("truncate");
+    // On a phone the button drops to the bottom row, beside Show more.
+    expect(viewReport).toHaveClass(
+      "row-start-3",
+      "sm:row-start-1",
+      "whitespace-nowrap",
+    );
     // The paragraphs hold only text: Icon renders a <div>, never inside a <p>.
     expect(summary.querySelector("div")).toBeNull();
+    expect(heading.querySelector("div")).toBeNull();
+  });
+
+  test("reads as heading, report button, then summary", () => {
+    const { container } = render(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary={SUMMARY}
+        onViewProgress={() => {}}
+      />,
+    );
+
+    const heading: HTMLElement = screen.getByRole("heading", {
+      name: "AI root cause analysis",
+    });
+    const viewReport: HTMLElement = screen.getByRole("button", {
+      name: "View full report",
+    });
+    const summary: HTMLElement = screen.getByText(SUMMARY);
+
+    expect(
+      heading.compareDocumentPosition(viewReport) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      viewReport.compareDocumentPosition(summary) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // The only control while the summary fits is the report button.
+    expect(container.querySelectorAll("button")).toHaveLength(1);
+  });
+});
+
+/*
+ * jsdom does no layout: every element is 0px tall, so the clamp never looks
+ * like it hides anything. These tests give the summary paragraph a height
+ * that depends on whether it carries line-clamp-3, which is what the
+ * browser does.
+ */
+const CLAMPED_HEIGHT: number = 72;
+
+interface SummaryLayout {
+  // The paragraph's full height with no clamp.
+  setFullHeight: (height: number) => void;
+  restore: () => void;
+}
+
+function installSummaryLayout(fullHeight: number): SummaryLayout {
+  let currentFullHeight: number = fullHeight;
+
+  const isSummary: (element: Element) => boolean = (
+    element: Element,
+  ): boolean => {
+    return element.tagName === "P" && element.classList.contains("text-sm");
+  };
+
+  const scrollHeight: SpyInstance<() => number> = jest
+    .spyOn(Element.prototype, "scrollHeight", "get")
+    .mockImplementation(function (this: Element): number {
+      return isSummary(this) ? currentFullHeight : 0;
+    });
+  const clientHeight: SpyInstance<() => number> = jest
+    .spyOn(Element.prototype, "clientHeight", "get")
+    .mockImplementation(function (this: Element): number {
+      if (!isSummary(this)) {
+        return 0;
+      }
+
+      return this.classList.contains("line-clamp-3")
+        ? Math.min(currentFullHeight, CLAMPED_HEIGHT)
+        : currentFullHeight;
+    });
+
+  return {
+    setFullHeight: (height: number): void => {
+      currentFullHeight = height;
+    },
+    restore: (): void => {
+      scrollHeight.mockRestore();
+      clientHeight.mockRestore();
+    },
+  };
+}
+
+/*
+ * A ResizeObserver whose callbacks a test fires by hand. Like the real one,
+ * a disconnected observer is never called again.
+ */
+interface FakeResizeObserver {
+  observed: Array<Element>;
+  disconnectCount: () => number;
+  trigger: () => void;
+  restore: () => void;
+}
+
+function installResizeObserver(): FakeResizeObserver {
+  const original: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(window, "ResizeObserver");
+  const observed: Array<Element> = [];
+  const callbacks: Array<ResizeObserverCallback> = [];
+  const instances: Array<ResizeObserver> = [];
+  const disconnected: Set<ResizeObserver> = new Set<ResizeObserver>();
+
+  class TestResizeObserver implements ResizeObserver {
+    public constructor(callback: ResizeObserverCallback) {
+      callbacks.push(callback);
+      instances.push(this);
+    }
+    public observe(target: Element): void {
+      observed.push(target);
+    }
+    public unobserve(): void {
+      return;
+    }
+    public disconnect(): void {
+      disconnected.add(this);
+    }
+  }
+
+  Object.defineProperty(window, "ResizeObserver", {
+    configurable: true,
+    writable: true,
+    value: TestResizeObserver,
+  });
+
+  return {
+    observed: observed,
+    disconnectCount: (): number => {
+      return disconnected.size;
+    },
+    trigger: (): void => {
+      act((): void => {
+        for (let index: number = 0; index < callbacks.length; index++) {
+          const instance: ResizeObserver = instances[index] as ResizeObserver;
+
+          if (!disconnected.has(instance)) {
+            callbacks[index]?.([], instance);
+          }
+        }
+      });
+    },
+    restore: (): void => {
+      if (original) {
+        Object.defineProperty(window, "ResizeObserver", original);
+      } else {
+        delete (window as unknown as { ResizeObserver?: unknown })
+          .ResizeObserver;
+      }
+    },
+  };
+}
+
+describe("AIInvestigationHeaderStatus Show more", () => {
+  let layout: SummaryLayout | null = null;
+  let resizeObserver: FakeResizeObserver | null = null;
+
+  afterEach(() => {
+    layout?.restore();
+    layout = null;
+    resizeObserver?.restore();
+    resizeObserver = null;
+  });
+
+  test("offers no toggle when the summary fits in three lines", () => {
+    layout = installSummaryLayout(48);
+
+    render(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary={SUMMARY}
+        onViewProgress={() => {}}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /Show (more|less)/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(SUMMARY)).toHaveClass("line-clamp-3");
+  });
+
+  test("expands and collapses a summary the clamp cuts short", async () => {
+    layout = installSummaryLayout(168);
+
+    render(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary={SUMMARY}
+        onViewProgress={() => {}}
+      />,
+    );
+
+    const summary: HTMLElement = screen.getByText(SUMMARY);
+    const toggle: HTMLElement = screen.getByRole("button", {
+      name: "Show more",
+    });
+
+    expect(toggle).toHaveAttribute("type", "button");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAttribute("aria-controls", summary.id);
+    expect(summary.id).not.toBe("");
+    expect(summary).toHaveClass("line-clamp-3");
+    // Placed beside View full report on a phone, under the summary above.
+    expect(toggle).toHaveClass("col-start-1", "row-start-3");
+    expect(
+      summary.compareDocumentPosition(toggle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await userEvent.click(toggle);
+
+    // The same button, so keyboard focus stays where the reader left it.
+    expect(toggle).toHaveTextContent("Show less");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(summary).not.toHaveClass("line-clamp-3");
+
+    toggle.focus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(toggle).toHaveTextContent("Show more");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(summary).toHaveClass("line-clamp-3");
+    expect(toggle).toHaveFocus();
+  });
+
+  test("never calls the report handler from the toggle", async () => {
+    layout = installSummaryLayout(168);
+    const onViewProgress: MockFunction = getJestMockFunction();
+
+    render(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary={SUMMARY}
+        onViewProgress={onViewProgress}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Show more" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show less" }));
+
+    expect(onViewProgress).not.toHaveBeenCalled();
+  });
+
+  test("starts a new summary collapsed", async () => {
+    layout = installSummaryLayout(168);
+
+    const { rerender } = render(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary={SUMMARY}
+        onViewProgress={() => {}}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Show more" }));
+    expect(screen.getByText(SUMMARY)).not.toHaveClass("line-clamp-3");
+
+    const nextSummary: string =
+      "A config reload cut the ledger client timeout from 5s to 1s, so slow ledger writes failed.";
+
+    rerender(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary={nextSummary}
+        onViewProgress={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(nextSummary)).toHaveClass("line-clamp-3");
+    expect(screen.getByRole("button", { name: "Show more" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  test("drops the toggle when a new summary fits", () => {
+    layout = installSummaryLayout(168);
+
+    const { rerender } = render(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary={SUMMARY}
+        onViewProgress={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Show more" }),
+    ).toBeInTheDocument();
+
+    layout.setFullHeight(24);
+    rerender(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary="Short TL;DR."
+        onViewProgress={() => {}}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /Show (more|less)/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("re-measures when the notice is resized", () => {
+    layout = installSummaryLayout(48);
+    resizeObserver = installResizeObserver();
+
+    const { unmount } = render(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary={SUMMARY}
+        onViewProgress={() => {}}
+      />,
+    );
+
+    expect(resizeObserver.observed).toEqual([screen.getByText(SUMMARY)]);
+    expect(
+      screen.queryByRole("button", { name: "Show more" }),
+    ).not.toBeInTheDocument();
+
+    // The window narrowed: the same summary now needs seven lines.
+    layout.setFullHeight(168);
+    resizeObserver.trigger();
+
+    expect(
+      screen.getByRole("button", { name: "Show more" }),
+    ).toBeInTheDocument();
+
+    // And widened again.
+    layout.setFullHeight(48);
+    resizeObserver.trigger();
+
+    expect(
+      screen.queryByRole("button", { name: "Show more" }),
+    ).not.toBeInTheDocument();
+
+    const disconnectsBeforeUnmount: number = resizeObserver.disconnectCount();
+    unmount();
+    expect(resizeObserver.disconnectCount()).toBe(disconnectsBeforeUnmount + 1);
+  });
+
+  test("stops observing while expanded and keeps Show less", async () => {
+    layout = installSummaryLayout(168);
+    resizeObserver = installResizeObserver();
+
+    render(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary={SUMMARY}
+        onViewProgress={() => {}}
+      />,
+    );
+
+    const disconnectsBeforeExpanding: number = resizeObserver.disconnectCount();
+
+    await userEvent.click(screen.getByRole("button", { name: "Show more" }));
+
+    expect(resizeObserver.disconnectCount()).toBe(
+      disconnectsBeforeExpanding + 1,
+    );
+    /*
+     * Expanded, the paragraph is as tall as its text, which is no reason to
+     * take the only way back to the short form away.
+     */
+    resizeObserver.trigger();
+    expect(
+      screen.getByRole("button", { name: "Show less" }),
+    ).toBeInTheDocument();
+  });
+
+  test("falls back to window resize events without ResizeObserver", () => {
+    expect("ResizeObserver" in window).toBe(false);
+    layout = installSummaryLayout(48);
+    const removeEventListener: SpyInstance<typeof window.removeEventListener> =
+      jest.spyOn(window, "removeEventListener");
+
+    const { unmount } = render(
+      <AIInvestigationHeaderStatus
+        status={AIRunStatus.Completed}
+        summary={SUMMARY}
+        onViewProgress={() => {}}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Show more" }),
+    ).not.toBeInTheDocument();
+
+    layout.setFullHeight(168);
+    act((): void => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Show more" }),
+    ).toBeInTheDocument();
+
+    unmount();
+    expect(removeEventListener).toHaveBeenCalledWith(
+      "resize",
+      expect.any(Function),
+    );
+    removeEventListener.mockRestore();
   });
 });
 

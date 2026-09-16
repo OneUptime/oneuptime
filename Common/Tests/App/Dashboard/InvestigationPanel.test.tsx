@@ -2410,8 +2410,26 @@ describe("InvestigationPanel report summary callback", () => {
     await flush();
 
     const summary: string = nonNullCalls(onReportSummaryChange)[0] as string;
-    expect(summary.length).toBeLessThanOrEqual(280);
+    // Bounded by the analysisTldr column; the header clamps it on screen.
+    expect(summary.length).toBeLessThanOrEqual(500);
+    expect(summary.length).toBeGreaterThan(280);
     expect(summary.endsWith("…")).toBe(true);
+  });
+
+  test("reports a TL;DR at the server's 320-character cap whole", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    const longTldr: string =
+      "checkout-api release 2026.09.14-2 restarted at 17:52:04 with DB_POOL_MAX=10 instead of 40, so requests waited up to 2s in pg.pool.connect for an orders-db connection and p95 latency rose from ~310 ms to 2.35 s (db.client.connections.usage pinned at 10/10). Rolling back to 2026.09.14-1 cleared it, as in #1017 and #1029.";
+
+    expect(longTldr).toHaveLength(320);
+    postMock.mockResolvedValue(
+      structuredResponse({ analysisTldr: longTldr }) as never,
+    );
+
+    renderPanel({ onReportSummaryChange });
+    await flush();
+
+    expect(nonNullCalls(onReportSummaryChange)).toEqual([longTldr]);
   });
 
   test("reports null when a report has neither a TL;DR nor a Summary", async () => {
