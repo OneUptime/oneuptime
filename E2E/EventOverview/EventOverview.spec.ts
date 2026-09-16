@@ -59,8 +59,21 @@ const SCREENSHOTS: string = path.resolve(
 
 const INCIDENT_TLDR: string =
   "checkout-api restarted at 17:52 with its database pool cut from 40 to 10 connections, so checkout requests queued and p95 latency passed 2s — the same pool exhaustion as #1017, #1029 and #1036.";
+// The header summary's text colours: text-gray-900, and text-gray-600 once rejected.
+const SUMMARY_COLOR: string = "rgb(17, 24, 39)";
+const REJECTED_SUMMARY_COLOR: string = "rgb(75, 85, 99)";
+
+// ?tldr=long: a TL;DR at the server's 320-character cap.
+const INCIDENT_LONG_TLDR: string =
+  "checkout-api release 2026.09.14-2 restarted at 17:52:04 with DB_POOL_MAX=10 instead of 40, so requests waited up to 2s in pg.pool.connect for an orders-db connection and p95 latency rose from ~310 ms to 2.35 s (db.client.connections.usage pinned at 10/10). Rolling back to 2026.09.14-1 cleared it, as in #1017 and #1029.";
 const ALERT_TLDR: string =
   "A 17:35 config reload cut the ledger client timeout from 5s to 1s, so slow ledger writes fail and payment webhooks return 502 — the same cause as alert #298.";
+
+// The code-fix action on a completed investigation; the docs name it too.
+const OPEN_FIX_PR: string = "Open Fix PR from this analysis";
+
+// The investigation's guarantee, shown whether or not its details are open.
+const READ_ONLY: string = "Read-only — nothing in your systems was changed";
 
 interface RecordedApiRequest {
   method: string;
@@ -686,8 +699,46 @@ function reportSection(page: Page): Locator {
   });
 }
 
+/*
+ * The one section under the report that holds what the run did: the queries
+ * it ran, the steps it took and what it cost. It starts collapsed.
+ */
+function investigationDetails(page: Page): Locator {
+  return page.getByTestId("investigation-details");
+}
+
+function detailsToggle(page: Page): Locator {
+  return page.getByTestId("investigation-details-toggle");
+}
+
+type DetailsTabName = "Evidence" | "Activity";
+
+/*
+ * A tab of the details (or its panel, which the tab names) by the start of
+ * its name: every tab name ends with its count, and phones shorten
+ * "Evidence checked" to "Evidence".
+ */
+function detailsTab(page: Page, name: DetailsTabName): Locator {
+  return investigationDetails(page).getByRole("tab", {
+    name: new RegExp(`^${name}\\b`),
+    includeHidden: true,
+  });
+}
+
+function detailsPanel(page: Page, name: DetailsTabName): Locator {
+  return investigationDetails(page).getByRole("tabpanel", {
+    name: new RegExp(`^${name}\\b`),
+    includeHidden: true,
+  });
+}
+
+// Hidden lists count too: the details body stays mounted while collapsed.
+function namedList(scope: Page | Locator, name: string): Locator {
+  return scope.getByRole("list", { name, exact: true, includeHidden: true });
+}
+
 function evidenceList(page: Page): Locator {
-  return page.getByRole("region", { name: "Evidence checked", exact: true });
+  return namedList(page, "Evidence checked");
 }
 
 function evidenceRow(page: Page, citationId: string): Locator {
@@ -714,10 +765,37 @@ function citationChip(scope: Locator, citationId: string): Locator {
   return scope.locator(`button[data-citation-id="${citationId}"]`);
 }
 
+// Opens the collapsed details; a no-op once they are open.
+async function openInvestigationDetails(page: Page): Promise<Locator> {
+  const toggle: Locator = detailsToggle(page);
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  return investigationDetails(page);
+}
+
+/*
+ * The queries sit behind the collapsed details, on the Evidence tab. Safe to
+ * call again: it only opens and selects what is not open and selected yet.
+ */
+async function openEvidence(page: Page): Promise<Locator> {
+  await openInvestigationDetails(page);
+  const tab: Locator = detailsTab(page, "Evidence");
+  if ((await tab.getAttribute("aria-selected")) !== "true") {
+    await tab.click();
+  }
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+  const list: Locator = evidenceList(page);
+  await expect(list).toBeVisible();
+  return list;
+}
+
 async function expandEvidence(
   page: Page,
   citationId: string,
 ): Promise<Locator> {
+  await openEvidence(page);
   const row: Locator = evidenceRow(page, citationId);
   await evidenceToggle(row).click();
   await expect(evidenceToggle(row)).toHaveAttribute("aria-expanded", "true");
@@ -794,6 +872,16 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     return document.documentElement.scrollWidth - window.innerWidth;
   });
   expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(1);
+}
+
+// Whether an element cuts its own content off (a clamp or a truncation).
+async function isOverflowing(locator: Locator): Promise<boolean> {
+  return locator.evaluate((element: Element): boolean => {
+    return (
+      element.scrollHeight > element.clientHeight + 1 ||
+      element.scrollWidth > element.clientWidth + 1
+    );
+  });
 }
 
 async function expectNoErrorStates(page: Page): Promise<void> {
@@ -889,9 +977,18 @@ test.describe("AI investigation report", () => {
     await expect(report.getByRole("heading", { level: 3 })).toHaveText(
       "Investigation report",
     );
+    /*
+     * The header's own line says the report is an AI first pass, so there is
+     * no separate "AI generated" pill beside Copy report.
+     */
     await expect(
-      report.getByText("AI generated", { exact: true }),
+      report.getByText("AI-generated first pass — verify before acting.", {
+        exact: true,
+      }),
     ).toBeVisible();
+    await expect(report.getByText("AI generated", { exact: true })).toHaveCount(
+      0,
+    );
     await expect(
       report.getByRole("button", { name: "Copy report" }),
     ).toBeVisible();
@@ -923,19 +1020,46 @@ test.describe("AI investigation report", () => {
     await expect(investigation).not.toContainText(
       "Automated Root Cause Analysis",
     );
+    /*
+     * The report is prose only: the queries it cites live in the details
+     * section below it, not in the report and not in its markdown block.
+     */
     await expect(report).not.toContainText("Evidence checked");
     await expect(report).not.toContainText("row(s)");
     await expect(report).not.toContainText(
       "Investigated automatically by OneUptime AI",
     );
+    await expect(evidenceList(page)).toHaveCount(1);
+    await expect(namedList(report, "Evidence checked")).toHaveCount(0);
+    await expectAbove(report, investigationDetails(page), "report first");
 
-    const usage: Locator = investigation.getByLabel("Investigation usage");
-    await expect(usage).toContainText("10 telemetry queries");
-    await expect(usage).toContainText("48,212 tokens");
-    await expect(usage).toContainText("Model claude-sonnet-4-5");
-    await expect(usage).toContainText(
-      "AI-generated first pass — verify before acting.",
+    /*
+     * What the run did and the read-only guarantee stay on the card while the
+     * details are collapsed; tokens and the model wait inside them.
+     */
+    const usage: Locator = namedList(
+      investigationDetails(page),
+      "Investigation usage",
     );
+    await expect(usage).toBeVisible();
+    await expect(usage.getByRole("listitem")).toHaveText([
+      "10 telemetry queries",
+      "14 steps",
+      READ_ONLY,
+    ]);
+    await expect(namedList(investigation, "Investigation usage")).toHaveCount(
+      1,
+    );
+    const cost: Locator = namedList(
+      investigationDetails(page),
+      "Model and tokens",
+    );
+    await expect(cost).toBeHidden();
+    await openInvestigationDetails(page);
+    await expect(cost.getByRole("listitem")).toHaveText([
+      "48,212 tokens",
+      "Model claude-sonnet-4-5",
+    ]);
   });
 
   test("Copy report copies the report exactly as published", async ({
@@ -1082,9 +1206,9 @@ test.describe("AI investigation report", () => {
     // #1029 has no investigation: neither the card nor the header summary.
     await expect(card(page, "Incident Feed")).toBeVisible();
     await expect(investigationCard(page)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Read report" })).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByRole("button", { name: "View full report" }),
+    ).toHaveCount(0);
     await expect(page.getByText(INCIDENT_TLDR)).toHaveCount(0);
 
     await page.goBack();
@@ -1128,12 +1252,24 @@ test.describe("AI investigation report", () => {
     );
 
     expect(await evidenceRequestsFor(page, "C1")).toEqual([]);
+    /*
+     * The queries start collapsed behind the details, so the chip has to open
+     * them itself before it can reveal its row.
+     */
+    await expect(detailsToggle(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(evidenceList(page)).toBeHidden();
     await chip.click();
 
+    // First: the highlight only lasts two seconds.
     const row: Locator = evidenceRow(page, "C1");
+    await expect(row).toHaveAttribute("data-highlighted", "true");
+    await expect(detailsToggle(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(detailsTab(page, "Evidence")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     const toggle: Locator = evidenceToggle(row);
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
-    await expect(row).toHaveAttribute("data-highlighted", "true");
     await expect(row).toBeInViewport();
     await expect(toggle).toBeFocused();
 
@@ -1186,7 +1322,7 @@ test.describe("AI investigation report", () => {
     ).toHaveLength(1);
   });
 
-  test("the header summary shows the TL;DR and Read report focuses the panel", async ({
+  test("the header summary shows the TL;DR and View full report focuses the panel", async ({
     page,
   }: {
     page: Page;
@@ -1200,10 +1336,10 @@ test.describe("AI investigation report", () => {
     await expect(
       header.getByText(INCIDENT_TLDR, { exact: true }),
     ).toBeVisible();
-    const readReport: Locator = header.getByRole("button", {
-      name: "Read report",
+    const viewReport: Locator = header.getByRole("button", {
+      name: "View full report",
     });
-    await expect(readReport).toHaveAttribute(
+    await expect(viewReport).toHaveAttribute(
       "aria-controls",
       "ai-investigation",
     );
@@ -1213,11 +1349,117 @@ test.describe("AI investigation report", () => {
         .filter({ hasText: "AI root cause analysis ready." }),
     ).toHaveCount(1);
 
-    await readReport.click();
+    await viewReport.click();
     const panel: Locator = page.locator("#ai-investigation");
     await expect(panel).toBeFocused();
     await expect(panel).toBeInViewport();
     await expect(panel).toHaveAttribute("role", "region");
+  });
+
+  test("the header summary keeps View full report beside its heading on a wide screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const header: Locator = hero(page);
+    const heading: Locator = header.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const viewReport: Locator = header.getByRole("button", {
+      name: "View full report",
+    });
+    const tldr: Locator = header.getByText(INCIDENT_TLDR, { exact: true });
+    await expect(tldr).toBeVisible();
+
+    const headingBox: Box = await documentBox(heading);
+    const buttonBox: Box = await documentBox(viewReport);
+    expect(
+      Math.abs(
+        buttonBox.y +
+          buttonBox.height / 2 -
+          (headingBox.y + headingBox.height / 2),
+      ),
+      "View full report shares the heading's row",
+    ).toBeLessThanOrEqual(2);
+    await expectAbove(viewReport, tldr, "the summary starts below that row");
+    // A short TL;DR fits in three lines: nothing to expand.
+    await expect(
+      header.getByRole("button", { name: /^Show (more|less)$/ }),
+    ).toHaveCount(0);
+  });
+
+  test("a long header TL;DR arrives whole, clamps on a phone and expands in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "tldr=long");
+
+    const header: Locator = hero(page);
+    const heading: Locator = header.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const tldr: Locator = header.getByText(INCIDENT_LONG_TLDR, {
+      exact: true,
+    });
+    const viewReport: Locator = header.getByRole("button", {
+      name: "View full report",
+    });
+
+    // All 320 characters the server stored, with no ellipsis of our own.
+    expect(INCIDENT_LONG_TLDR).toHaveLength(320);
+    await expect(tldr).toHaveText(INCIDENT_LONG_TLDR);
+
+    // The heading gets the whole row on a phone, so it is not cut short.
+    expect(await isOverflowing(heading), "heading is truncated").toBe(false);
+
+    const showMore: Locator = header.getByRole("button", {
+      name: "Show more",
+    });
+    await expect(showMore).toBeVisible();
+    await expect(showMore).toHaveAttribute("aria-expanded", "false");
+    expect(await isOverflowing(tldr), "summary is clamped").toBe(true);
+
+    // View full report drops below the summary, level with Show more.
+    await expectAbove(
+      tldr,
+      viewReport,
+      "View full report is under the summary",
+    );
+    const toggleBox: Box = await documentBox(showMore);
+    const buttonBox: Box = await documentBox(viewReport);
+    expect(
+      Math.abs(
+        buttonBox.y +
+          buttonBox.height / 2 -
+          (toggleBox.y + toggleBox.height / 2),
+      ),
+      "View full report shares Show more's row",
+    ).toBeLessThanOrEqual(2);
+    expect(buttonBox.x).toBeGreaterThanOrEqual(toggleBox.x + toggleBox.width);
+
+    await showMore.click();
+    const showLess: Locator = header.getByRole("button", {
+      name: "Show less",
+    });
+    await expect(showLess).toHaveAttribute("aria-expanded", "true");
+    expect(await isOverflowing(tldr), "expanded summary is clipped").toBe(
+      false,
+    );
+    await expectNoHorizontalOverflow(page);
+
+    await showLess.click();
+    await expect(showMore).toHaveAttribute("aria-expanded", "false");
+    await expect(showMore).toBeFocused();
+    expect(await isOverflowing(tldr)).toBe(true);
+
+    await viewReport.click();
+    await expect(page.locator("#ai-investigation")).toBeFocused();
   });
 
   test("verdict buttons record Confirmed, then a changed verdict", async ({
@@ -1289,6 +1531,189 @@ test.describe("AI investigation report", () => {
     await expect(
       investigation.getByText("You confirmed this analysis"),
     ).toHaveCount(0);
+    // The header rolls back with the panel.
+    await expect(hero(page).getByText(/by a responder$/)).toHaveCount(0);
+    await expect(
+      hero(page).getByText(INCIDENT_TLDR, { exact: true }),
+    ).toHaveCSS("color", SUMMARY_COLOR);
+  });
+
+  test("a rating shows in the header at once, and a changed one replaces it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const header: Locator = hero(page);
+    const investigation: Locator = investigationCard(page);
+    const rating: Locator = investigation.getByRole("group", {
+      name: "Rate this investigation",
+    });
+    const tldr: Locator = header.getByText(INCIDENT_TLDR, { exact: true });
+    const rejected: Locator = header.getByText("Rejected by a responder", {
+      exact: true,
+    });
+    const confirmed: Locator = header.getByText("Confirmed by a responder", {
+      exact: true,
+    });
+
+    await expect(tldr).toHaveCSS("color", SUMMARY_COLOR);
+    await expect(header.getByText(/by a responder$/)).toHaveCount(0);
+
+    await rating.getByRole("button", { name: "Rejected" }).click();
+    await expect(rejected).toBeVisible();
+    await expect(rejected).toHaveAttribute("data-verdict", "Rejected");
+    // Still there to read, no longer presented as the root cause.
+    await expect(tldr).toBeVisible();
+    await expect(tldr).toHaveCSS("color", REJECTED_SUMMARY_COLOR);
+
+    await investigation
+      .getByRole("button", { name: "Change", exact: true })
+      .click();
+    await rating.getByRole("button", { name: "Confirmed" }).click();
+    await expect(confirmed).toBeVisible();
+    await expect(rejected).toHaveCount(0);
+    await expect(tldr).toHaveCSS("color", SUMMARY_COLOR);
+
+    // Both ratings were saved, in order.
+    await expect
+      .poll(async (): Promise<Array<unknown>> => {
+        return (await apiRequestsTo(page, "/ai-investigation/verdict")).map(
+          (request: RecordedApiRequest): unknown => {
+            return request.body["verdict"];
+          },
+        );
+      })
+      .toEqual(["Rejected", "Confirmed"]);
+  });
+
+  test("a saved verdict shows beside the heading when the page opens", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "verdict=confirmed");
+
+    const header: Locator = hero(page);
+    const heading: Locator = header.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const badge: Locator = header.getByText("Confirmed by a responder", {
+      exact: true,
+    });
+    await expect(badge).toBeVisible();
+    await expect(
+      investigationCard(page).getByText("You confirmed this analysis"),
+    ).toBeVisible();
+    await expect(header.getByText(INCIDENT_TLDR, { exact: true })).toHaveCSS(
+      "color",
+      SUMMARY_COLOR,
+    );
+
+    // One row: icon and heading, the badge, then View full report.
+    const headingBox: Box = await documentBox(heading);
+    const badgeBox: Box = await documentBox(badge);
+    const buttonBox: Box = await documentBox(
+      header.getByRole("button", { name: "View full report" }),
+    );
+    const middle: (box: Box) => number = (box: Box): number => {
+      return box.y + box.height / 2;
+    };
+    expect(Math.abs(middle(badgeBox) - middle(headingBox))).toBeLessThanOrEqual(
+      2,
+    );
+    expect(
+      Math.abs(middle(buttonBox) - middle(headingBox)),
+    ).toBeLessThanOrEqual(2);
+    expect(badgeBox.x).toBeGreaterThanOrEqual(headingBox.x + headingBox.width);
+    expect(buttonBox.x).toBeGreaterThanOrEqual(badgeBox.x + badgeBox.width);
+  });
+
+  test("the alert header shows its own saved verdict", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, "verdict=rejected");
+
+    const header: Locator = hero(page);
+    await expect(
+      header.getByText("Rejected by a responder", { exact: true }),
+    ).toBeVisible();
+    await expect(header.getByText(ALERT_TLDR, { exact: true })).toHaveCSS(
+      "color",
+      REJECTED_SUMMARY_COLOR,
+    );
+  });
+
+  test("on a phone a verdict wraps under the heading without cutting it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "verdict=rejected&tldr=long");
+
+    const header: Locator = hero(page);
+    const heading: Locator = header.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const badge: Locator = header.getByText("Rejected by a responder", {
+      exact: true,
+    });
+    const tldr: Locator = header.getByText(INCIDENT_LONG_TLDR, {
+      exact: true,
+    });
+    await expect(badge).toBeVisible();
+
+    expect(await isOverflowing(heading), "heading is truncated").toBe(false);
+    expect(await isOverflowing(badge), "badge is cut off").toBe(false);
+    const headingBox: Box = await documentBox(heading);
+    const badgeBox: Box = await documentBox(badge);
+    expect(badgeBox.y).toBeGreaterThanOrEqual(headingBox.y + headingBox.height);
+    await expectAbove(badge, tldr, "the badge is above the summary");
+    await expect(tldr).toHaveCSS("color", REJECTED_SUMMARY_COLOR);
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("beside a tablet's side menu the heading keeps its row whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // 768px: the side menu is out and the header card is at its narrowest.
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await openReady(page, INCIDENT_PAGE, "verdict=rejected");
+
+    const header: Locator = hero(page);
+    const heading: Locator = header.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const badge: Locator = header.getByText("Rejected by a responder", {
+      exact: true,
+    });
+    const tldr: Locator = header.getByText(INCIDENT_TLDR, { exact: true });
+    const viewReport: Locator = header.getByRole("button", {
+      name: "View full report",
+    });
+    await expect(badge).toBeVisible();
+
+    expect(await isOverflowing(heading), "heading is truncated").toBe(false);
+    // The report button waits in the bottom row, under the summary.
+    await expectAbove(
+      tldr,
+      viewReport,
+      "View full report is under the summary",
+    );
+    await expectAbove(badge, tldr, "the badge is above the summary");
+    await expectNoHorizontalOverflow(page);
+
+    await viewReport.click();
+    await expect(page.locator("#ai-investigation")).toBeFocused();
   });
 
   test("Open Fix PR creates a fix task for this run", async ({
@@ -1303,7 +1728,7 @@ test.describe("AI investigation report", () => {
       investigation.getByRole("heading", { name: "Act on this investigation" }),
     ).toBeVisible();
     await investigation
-      .getByRole("button", { name: "Open Fix PR from this analysis" })
+      .getByRole("button", { name: OPEN_FIX_PR, exact: true })
       .click();
 
     await expect(investigation.getByText("Fix task created")).toBeVisible();
@@ -1331,7 +1756,7 @@ test.describe("AI investigation report", () => {
 
     const investigation: Locator = investigationCard(page);
     await investigation
-      .getByRole("button", { name: "Open Fix PR from this analysis" })
+      .getByRole("button", { name: OPEN_FIX_PR, exact: true })
       .click();
     await expect(
       investigation.getByText("Could not create the fix task"),
@@ -1409,10 +1834,20 @@ test.describe("AI investigation report", () => {
       "Evidence",
       "Suggested next steps",
     ]);
+    // The alert's run keeps the same collapsed details under its report.
+    await expect(detailsToggle(page)).toHaveAccessibleName(
+      "Evidence and activity",
+    );
+    await openInvestigationDetails(page);
+    await expect(
+      namedList(investigationDetails(page), "Model and tokens").getByRole(
+        "listitem",
+      ),
+    ).toHaveText(["41,876 tokens", "Model claude-sonnet-4-5"]);
 
     const header: Locator = hero(page);
     await expect(header.getByText(ALERT_TLDR, { exact: true })).toBeVisible();
-    await header.getByRole("button", { name: "Read report" }).click();
+    await header.getByRole("button", { name: "View full report" }).click();
     await expect(page.locator("#ai-investigation")).toBeFocused();
 
     const requests: Array<RecordedApiRequest> = await apiRequestsTo(
@@ -1428,6 +1863,272 @@ test.describe("AI investigation report", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Alert - Payment webhook 5xx rate above 5%",
     );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Investigation details (evidence, activity and usage)
+ * ---------------------------------------------------------------------------
+ */
+
+test.describe("investigation details", () => {
+  /*
+   * The report is the answer; the queries, the steps and the run's cost are
+   * its working. They share one section under the report that stays out of
+   * the way until a responder asks for it.
+   */
+  test("evidence, activity and usage share one section that starts collapsed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const investigation: Locator = investigationCard(page);
+    const details: Locator = investigationDetails(page);
+    await expect(details).toHaveCount(1);
+    await expect(
+      investigation.getByRole("region", {
+        name: "Evidence and activity",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expectAbove(reportSection(page), details, "report before details");
+    await expectAbove(
+      details,
+      investigation.getByRole("heading", { name: "Act on this investigation" }),
+      "details before the actions",
+    );
+    // Neither the old usage strip nor the old activity disclosure is left.
+    await expect(namedList(investigation, "Investigation usage")).toHaveCount(
+      1,
+    );
+    await expect(investigation.getByText("Investigation activity")).toHaveCount(
+      0,
+    );
+
+    const toggle: Locator = detailsToggle(page);
+    await expect(details.getByRole("heading", { level: 3 })).toHaveText(
+      "Evidence and activity",
+    );
+    await expect(toggle).toHaveAccessibleName("Evidence and activity");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    const body: Locator = page.locator(
+      `[id="${(await toggle.getAttribute("aria-controls")) || "missing"}"]`,
+    );
+    await expect(body).toHaveCount(1);
+    await expect(body).toBeHidden();
+    await expect(
+      details.getByRole("tablist", {
+        name: "Investigation details",
+        includeHidden: true,
+      }),
+    ).toBeHidden();
+    await expect(evidenceList(page)).toBeHidden();
+    await expect(namedList(details, "Model and tokens")).toBeHidden();
+    await expect(namedList(details, "Investigation usage")).toBeVisible();
+
+    // Enter on the toggle opens it like a click.
+    await toggle.focus();
+    await page.keyboard.press("Enter");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(body).toBeVisible();
+    await expect(evidenceList(page)).toBeVisible();
+    await expect(
+      namedList(details, "Model and tokens").getByRole("listitem"),
+    ).toHaveText(["48,212 tokens", "Model claude-sonnet-4-5"]);
+    await expect(namedList(details, "Investigation usage")).toBeVisible();
+    // Opening the section re-runs nothing.
+    expect(await apiRequestsTo(page, "/ai-investigation/evidence")).toEqual([]);
+
+    /*
+     * The toggle stretches over the whole header, so a click on the usage
+     * line under the title collapses the section too.
+     */
+    const usage: Locator = namedList(details, "Investigation usage");
+    await usage.scrollIntoViewIfNeeded();
+    const usageBox: Box | null = await usage.boundingBox();
+    expect(usageBox, "usage line is on screen").not.toBeNull();
+    await page.mouse.click(
+      (usageBox?.x || 0) + (usageBox?.width || 0) / 2,
+      (usageBox?.y || 0) + (usageBox?.height || 0) / 2,
+    );
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(body).toBeHidden();
+    await expect(evidenceList(page)).toBeHidden();
+  });
+
+  test("the Evidence and Activity tabs switch panels by click and arrow keys", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const details: Locator = await openInvestigationDetails(page);
+    const evidenceTab: Locator = detailsTab(page, "Evidence");
+    const activityTab: Locator = detailsTab(page, "Activity");
+    const evidencePanel: Locator = detailsPanel(page, "Evidence");
+    const activityPanel: Locator = detailsPanel(page, "Activity");
+    await expect(
+      details
+        .getByRole("tablist", { name: "Investigation details" })
+        .getByRole("tab"),
+    ).toHaveCount(2);
+    // Each tab names its panel and carries its count.
+    await expect(evidenceTab).toHaveAccessibleName("Evidence checked 10");
+    await expect(activityTab).toHaveAccessibleName("Activity 14");
+    await expect(evidencePanel).toHaveAttribute(
+      "id",
+      (await evidenceTab.getAttribute("aria-controls")) || "missing",
+    );
+    await expect(activityPanel).toHaveAttribute(
+      "id",
+      (await activityTab.getAttribute("aria-controls")) || "missing",
+    );
+
+    // Evidence first, and only the selected tab is in the Tab order.
+    await expect(evidenceTab).toHaveAttribute("aria-selected", "true");
+    await expect(evidenceTab).toHaveAttribute("tabindex", "0");
+    await expect(activityTab).toHaveAttribute("aria-selected", "false");
+    await expect(activityTab).toHaveAttribute("tabindex", "-1");
+    await expect(evidencePanel).toBeVisible();
+    await expect(activityPanel).toBeHidden();
+
+    await activityTab.click();
+    await expect(activityTab).toHaveAttribute("aria-selected", "true");
+    await expect(evidenceTab).toHaveAttribute("aria-selected", "false");
+    await expect(activityPanel).toBeVisible();
+    await expect(evidencePanel).toBeHidden();
+    // A finished run shows its whole trail, not the live panel's recent tail.
+    await expect(activityPanel).toContainText("Starting investigation");
+    await expect(activityPanel).toContainText("Searching logs");
+    await expect(activityPanel).toContainText("Reading trace");
+    await expect(activityPanel).not.toContainText("earlier step");
+    // The section keeps its name whichever tab is showing.
+    await expect(detailsToggle(page)).toHaveAccessibleName(
+      "Evidence and activity",
+    );
+
+    // Arrow keys, Home and End move the selection and focus together.
+    await expect(activityTab).toBeFocused();
+    await page.keyboard.press("ArrowLeft");
+    await expect(evidenceTab).toBeFocused();
+    await expect(evidenceTab).toHaveAttribute("aria-selected", "true");
+    await expect(evidencePanel).toBeVisible();
+    await page.keyboard.press("ArrowLeft");
+    await expect(activityTab).toBeFocused();
+    await expect(activityPanel).toBeVisible();
+    await page.keyboard.press("Home");
+    await expect(evidenceTab).toBeFocused();
+    await expect(evidenceTab).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("End");
+    await expect(activityTab).toBeFocused();
+    await expect(activityTab).toHaveAttribute("aria-selected", "true");
+
+    // The activity has nothing focusable, so its panel takes the next Tab.
+    await page.keyboard.press("Tab");
+    await expect(activityPanel).toBeFocused();
+
+    // Collapsing and reopening keeps the reader on the tab they chose.
+    await detailsToggle(page).click();
+    await expect(activityPanel).toBeHidden();
+    await openInvestigationDetails(page);
+    await expect(activityTab).toHaveAttribute("aria-selected", "true");
+    await expect(activityPanel).toBeVisible();
+  });
+
+  /*
+   * A chip is the reader asking "what did you look at?": it opens collapsed
+   * details on the Evidence tab, whatever tab they were left on, and hands
+   * the row to the evidence list.
+   */
+  test("a citation chip opens the collapsed details on the Evidence tab", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await openInvestigationDetails(page);
+    await detailsTab(page, "Activity").click();
+    await expect(detailsPanel(page, "Activity")).toBeVisible();
+    await detailsToggle(page).click();
+    await expect(detailsToggle(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(evidenceList(page)).toBeHidden();
+
+    await citationChip(summarySection(page), "C3").click();
+    await expect(detailsToggle(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(detailsTab(page, "Evidence")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(detailsPanel(page, "Activity")).toBeHidden();
+    const row: Locator = evidenceRow(page, "C3");
+    await expect(evidenceToggle(row)).toHaveAttribute("aria-expanded", "true");
+    await expect(evidenceToggle(row)).toBeFocused();
+    await expect(row).toHaveAttribute("data-highlighted", "true");
+    await expect(row).toBeInViewport();
+    await expectRowsLoaded(evidenceDetails(row));
+    expect(await evidenceRequestsFor(page, "C3")).toHaveLength(1);
+
+    // Again from the open section on Activity: back to the row, no refetch.
+    await detailsTab(page, "Activity").click();
+    await expect(evidenceList(page)).toBeHidden();
+    await citationChip(reportSection(page), "C3").first().click();
+    await expect(detailsTab(page, "Evidence")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(evidenceToggle(row)).toHaveAttribute("aria-expanded", "true");
+    await expect(evidenceToggle(row)).toBeFocused();
+    await expect(row).toBeInViewport();
+    expect(await evidenceRequestsFor(page, "C3")).toHaveLength(1);
+  });
+
+  test("?ai=pending keeps the finished steps behind the details, with no tabs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=pending");
+
+    const investigation: Locator = investigationCard(page);
+    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      "Preparing investigation report…",
+      { timeout: 30000 },
+    );
+    const details: Locator = investigationDetails(page);
+    const toggle: Locator = detailsToggle(page);
+    // No report means no evidence, so the section is named for its steps.
+    await expect(toggle).toHaveAccessibleName("Investigation activity");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      namedList(details, "Investigation usage").getByRole("listitem"),
+    ).toHaveText(["10 telemetry queries", "14 steps", READ_ONLY]);
+    await expectAbove(
+      investigation.getByText("Preparing the final report"),
+      details,
+      "notice before details",
+    );
+
+    await openInvestigationDetails(page);
+    // One panel needs no tabs.
+    await expect(
+      details.getByRole("tablist", { includeHidden: true }),
+    ).toHaveCount(0);
+    await expect(
+      details.getByRole("tabpanel", { includeHidden: true }),
+    ).toHaveCount(0);
+    await expect(evidenceList(page)).toHaveCount(0);
+    await expect(details).toContainText("Starting investigation");
+    await expect(details).toContainText("Reading trace");
+    await expect(details).not.toContainText("earlier step");
+    // The model is only named next to a report.
+    await expect(
+      namedList(details, "Model and tokens").getByRole("listitem"),
+    ).toHaveText(["48,212 tokens"]);
   });
 });
 
@@ -1657,14 +2358,23 @@ test.describe("evidence checked", () => {
   }) => {
     await openReady(page, INCIDENT_PAGE);
 
-    const list: Locator = evidenceList(page);
-    await expect(list.getByRole("heading", { level: 3 })).toHaveText(
-      "Evidence checked",
+    /*
+     * The details section frames the list: its Evidence tab carries the name
+     * and the count, the panel the description, and the list is a named list
+     * rather than a second landmark inside that section.
+     */
+    const list: Locator = await openEvidence(page);
+    await expect(detailsTab(page, "Evidence")).toHaveAccessibleName(
+      "Evidence checked 10",
     );
-    await expect(list).toContainText(
-      "Every query OneUptime AI ran while investigating. Expand one to see what it asked and the rows it returned.",
+    await expect(detailsPanel(page, "Evidence")).toContainText(
+      "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned.",
     );
-    await expect(list.getByText("10 queries", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Evidence checked" }),
+    ).toHaveCount(0);
+    await expect(list.getByRole("heading")).toHaveCount(0);
+    await expect(list.locator(":scope > li")).toHaveCount(10);
     await expect(list.locator("li[data-citation-id]")).toHaveCount(10);
     expect(
       await list
@@ -1704,7 +2414,7 @@ test.describe("evidence checked", () => {
       evidenceToggle(evidenceRow(page, "C1")).getByText("C1", { exact: true }),
     ).toHaveClass(/bg-gray-900/);
 
-    // Nothing is fetched until a row is opened.
+    // Opening the details fetches nothing; only opening a row does.
     expect(await apiRequestsTo(page, "/ai-investigation/evidence")).toEqual([]);
   });
 
@@ -1924,12 +2634,15 @@ test.describe("evidence checked", () => {
     expect(Object.keys(payload.data || {})).not.toContain("evidence");
     expect(Object.keys(payload.data || {})).not.toContain("references");
 
-    const list: Locator = evidenceList(page);
-    await expect(list).toContainText(
+    const list: Locator = await openEvidence(page);
+    const panel: Locator = detailsPanel(page, "Evidence");
+    await expect(panel).toContainText(
       "Every query OneUptime AI ran while investigating.",
     );
-    await expect(list).not.toContainText("Expand one");
-    await expect(list.getByText("10 queries", { exact: true })).toBeVisible();
+    await expect(panel).not.toContainText("Expand one");
+    await expect(detailsTab(page, "Evidence")).toHaveAccessibleName(
+      "Evidence checked 10",
+    );
     await expect(list.locator("li[data-citation-id]")).toHaveCount(10);
     await expect(list.getByRole("button")).toHaveCount(0);
     await expect(evidenceRow(page, "C1")).toContainText(
@@ -1951,13 +2664,22 @@ test.describe("evidence checked", () => {
       investigationCard(page).locator("a[href]").filter({ hasText: /^#10/ }),
     ).toHaveCount(0);
 
-    // Chips still reveal the legacy row, and nothing is re-run.
+    /*
+     * Chips still reveal the legacy row, from collapsed details too, and
+     * nothing is re-run. A legacy row has no toggle, so the row itself takes
+     * keyboard focus.
+     */
+    await detailsToggle(page).click();
+    await expect(detailsToggle(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(list).toBeHidden();
     await citationChip(summary, "C3").click();
+    await expect(detailsToggle(page)).toHaveAttribute("aria-expanded", "true");
     await expect(evidenceRow(page, "C3")).toHaveAttribute(
       "data-highlighted",
       "true",
     );
     await expect(evidenceRow(page, "C3")).toBeInViewport();
+    await expect(evidenceRow(page, "C3")).toBeFocused();
     expect(await apiRequestsTo(page, "/ai-investigation/evidence")).toEqual([]);
   });
 
@@ -2058,6 +2780,15 @@ interface InvestigationStateCase {
   bodyTexts: ReadonlyArray<string>;
   // The notice in the event header, if this state earns one.
   headerText?: string | undefined;
+  /*
+   * The usage list inside the "Investigation activity" section. Only a run
+   * that has stopped gets one: a queued run's counts are all zero, and "ran
+   * 0 queries" under "waiting for a worker" would report on work that has
+   * not begun.
+   */
+  usage?: ReadonlyArray<string> | undefined;
+  // A finished run keeps its steps behind the collapsed details.
+  hasDetails: boolean;
 }
 
 const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
@@ -2069,6 +2800,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
       "Reading this project's own telemetry and narrating every step.",
     ],
     headerText: "AI is investigating",
+    hasDetails: false,
   },
   {
     ai: "queued",
@@ -2078,6 +2810,7 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
       "Waiting for a worker to pick this up.",
     ],
     headerText: "AI investigation queued",
+    hasDetails: false,
   },
   {
     ai: "failed",
@@ -2087,6 +2820,9 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
       "The LLM provider returned 529 Overloaded three times; the investigation stopped after 4 of 12 planned tool calls.",
       "What the investigation got through",
     ],
+    // The framed steps end with what the run spent before it stopped.
+    usage: ["4 telemetry queries", "12,840 tokens", READ_ONLY],
+    hasDetails: false,
   },
   {
     ai: "pending",
@@ -2095,6 +2831,8 @@ const INVESTIGATION_STATES: ReadonlyArray<InvestigationStateCase> = [
       "Preparing the final report",
       "The investigation is complete. OneUptime AI is organizing the findings and evidence.",
     ],
+    usage: ["10 telemetry queries", "14 steps", READ_ONLY],
+    hasDetails: true,
   },
 ];
 
@@ -2120,6 +2858,23 @@ test.describe("investigation states", () => {
       await expect(reportSection(page)).toHaveCount(0);
       await expect(evidenceList(page)).toHaveCount(0);
 
+      if (scenario.usage) {
+        const activity: Locator = investigation.getByRole("region", {
+          name: "Investigation activity",
+          exact: true,
+        });
+        await expect(
+          namedList(activity, "Investigation usage").getByRole("listitem"),
+        ).toHaveText(scenario.usage);
+      } else {
+        await expect(
+          namedList(investigation, "Investigation usage"),
+        ).toHaveCount(0);
+      }
+      await expect(investigationDetails(page)).toHaveCount(
+        scenario.hasDetails ? 1 : 0,
+      );
+
       if (scenario.headerText) {
         await expect(hero(page)).toContainText(scenario.headerText);
         await hero(page)
@@ -2130,7 +2885,7 @@ test.describe("investigation states", () => {
         await expect(page.locator("#ai-investigation")).toBeFocused();
       } else {
         await expect(
-          hero(page).getByRole("button", { name: "Read report" }),
+          hero(page).getByRole("button", { name: "View full report" }),
         ).toHaveCount(0);
         await expect(hero(page)).not.toContainText("AI is investigating");
       }
@@ -2149,7 +2904,7 @@ test.describe("investigation states", () => {
     ).toBeVisible();
     await expect(investigationCard(page)).toHaveCount(0);
     await expect(
-      hero(page).getByRole("button", { name: "Read report" }),
+      hero(page).getByRole("button", { name: "View full report" }),
     ).toHaveCount(0);
     await expect(
       card(page, "Incident Feed").getByText(
@@ -3117,10 +3872,26 @@ test.describe("responsive", () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openReady(page, INCIDENT_PAGE);
+    await expectNoHorizontalOverflow(page);
     for (const citationId of ["C1", "C3", "C7"]) {
       await expectRowsLoaded(await expandEvidence(page, citationId));
     }
     await expectNoHorizontalOverflow(page);
+
+    /*
+     * Phones shorten "Evidence checked" to "Evidence" so both tabs share one
+     * row; the count still follows the name.
+     */
+    const evidenceTab: Locator = detailsTab(page, "Evidence");
+    const activityTab: Locator = detailsTab(page, "Activity");
+    await expect(evidenceTab).toHaveAccessibleName("Evidence 10");
+    const evidenceBox: Box = await documentBox(evidenceTab);
+    const activityBox: Box = await documentBox(activityTab);
+    expect(
+      Math.abs(evidenceBox.y - activityBox.y),
+      "tabs share a row",
+    ).toBeLessThanOrEqual(1);
+    expect(activityBox.x).toBeGreaterThan(evidenceBox.x + evidenceBox.width);
   });
 
   for (const eventPage of EVENT_PAGES) {
@@ -3176,7 +3947,33 @@ test.describe("screenshots", () => {
     // Close-ups of one column read better at twice the density.
     test.use({ deviceScaleFactor: 2 });
 
-    test("summary, references and evidence", async ({
+    test("header summary with a rejected verdict", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE, "verdict=rejected");
+      await expect(
+        hero(page).getByText("Rejected by a responder", { exact: true }),
+      ).toBeVisible();
+      await page.mouse.move(0, 0);
+      await screenshotElement(hero(page), "incident-header-ai-verdict");
+    });
+
+    test("header summary with a long TL;DR", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE, "tldr=long");
+      await expect(
+        hero(page).getByText(INCIDENT_LONG_TLDR, { exact: true }),
+      ).toBeVisible();
+      await page.mouse.move(0, 0);
+      await screenshotElement(hero(page), "incident-header-ai-summary");
+    });
+
+    test("summary, references, evidence and activity", async ({
       page,
     }: {
       page: Page;
@@ -3203,13 +4000,25 @@ test.describe("screenshots", () => {
       await screenshotElement(summarySection(page), "ai-report-references");
       await page.mouse.move(0, 0);
 
+      // The collapsed section as the page first shows it.
+      await expect(detailsToggle(page)).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+      await screenshotElement(investigationDetails(page), "ai-report-details");
+
       const details: Locator = await expandEvidence(page, "C1");
       await expectRowsLoaded(details);
       await expect(
         details.getByRole("button", { name: /^#1017 · / }),
       ).toBeVisible();
       await page.mouse.move(0, 0);
-      await screenshotElement(evidenceList(page), "ai-report-evidence");
+      await screenshotElement(investigationDetails(page), "ai-report-evidence");
+
+      await detailsTab(page, "Activity").click();
+      await expect(detailsPanel(page, "Activity")).toBeVisible();
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationDetails(page), "ai-report-activity");
     });
   });
 });

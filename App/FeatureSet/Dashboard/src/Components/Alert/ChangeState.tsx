@@ -31,6 +31,7 @@ import EventStatusPanel, {
   EventStateItem,
   EventStatusFact,
 } from "../EventView/EventStatusPanel";
+import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import AIInvestigationHeaderStatus, {
   AIInvestigationStatusLiveRegion,
@@ -51,10 +52,15 @@ export interface ComponentProps {
   /*
    * Lifted from the page's InvestigationPanel, exactly like the incident
    * header: a queued or running investigation shows a live notice, and a
-   * completed one with a summary shows it with "Read report".
+   * completed one with a summary shows it with "View full report".
    */
   aiInvestigationStatus?: AIRunStatus | null | undefined;
   aiInvestigationSummary?: string | null | undefined;
+  /*
+   * A responder's Confirmed / Rejected verdict on that report, shown as a
+   * badge beside it.
+   */
+  aiInvestigationVerdict?: AIRunHumanVerdict | null | undefined;
   // Context shown under the header pills ("Created", "Monitor", "Episode").
   facts?: Array<EventStatusFact> | undefined;
 }
@@ -472,6 +478,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             <AIInvestigationHeaderStatus
               status={props.aiInvestigationStatus!}
               summary={props.aiInvestigationSummary}
+              verdict={props.aiInvestigationVerdict}
               onViewProgress={scrollToAIInvestigationPanel}
             />
           ) : undefined

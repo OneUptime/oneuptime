@@ -402,10 +402,15 @@ RunCron(
         const statusPageIdString: string | null =
           statuspage.id?.toString() || statuspage._id?.toString() || null;
 
+        /*
+         * The status page has no /episodes page: it shows an episode on its
+         * incident detail route (/incidents/:id), which looks the id up as an
+         * incident first and then as an episode.
+         */
         const episodeDetailsUrl: string =
           episode.id && statusPageURL
             ? URL.fromString(statusPageURL)
-                .addRoute(`/episodes/${episode.id.toString()}`)
+                .addRoute(`/incidents/${episode.id.toString()}`)
                 .toString()
             : statusPageURL;
 
@@ -503,7 +508,11 @@ RunCron(
               "", // Use empty string as default for backward compatibility
             );
 
-          // Prepare template variables for custom templates
+          /*
+           * Every variable SubscriberNotificationTemplateVariables advertises
+           * for SubscriberEpisodeStateChanged. Email, SMS, Slack and Teams all
+           * compile their custom template with this one object.
+           */
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
@@ -598,7 +607,7 @@ RunCron(
                     emailTemplate.emailSubject,
                     templateVariables,
                   )
-                : `[Incident ${Text.uppercaseFirstLetter(episodeStateTimeline.incidentState.name)}] ${episode.title}`;
+                : `[Incident ${Text.uppercaseFirstLetter(episodeStateTimeline.incidentState.name)}] ${episode.title || ""}`;
 
               MailService.sendMail(
                 {
@@ -656,7 +665,7 @@ RunCron(
                   },
                   subject: `[${Text.uppercaseFirstLetter(
                     episodeStateTimeline.incidentState.name,
-                  )} Incident] ${episode.title}`,
+                  )} Incident] ${episode.title || ""}`,
                 },
                 {
                   mailServer: ProjectSMTPConfigService.toEmailServer(

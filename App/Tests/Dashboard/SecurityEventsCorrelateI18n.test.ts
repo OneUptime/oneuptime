@@ -28,7 +28,7 @@ const SOURCE_FILES: Array<Array<string>> = [
   ["Components", "SecurityEvents", "CorrelateResultSummary.tsx"],
   ["Components", "SecurityEvents", "CorrelateFilterBuilder.tsx"],
   ["Components", "SecurityEvents", "CorrelateFilterChips.tsx"],
-  ["Components", "SecurityEvents", "SecurityEventsTable.tsx"],
+  ["Components", "SecurityEvents", "SecurityEventsEmptyState.tsx"],
   // Field and operator labels, shown through the chips and the centre card.
   ["Utils", "SecurityEventCorrelation.ts"],
 ];
@@ -113,8 +113,9 @@ const STRINGS: Array<string> = [
   "event",
   "events",
   "No security events yet",
-  "Any source that can POST JSON — a SIEM, a SOAR webhook, a log forwarder — can feed this table. Events are normalized to OCSF whatever dialect they arrive in.",
+  "Send events from any source that can POST JSON — a SIEM, a SOAR webhook, a log forwarder — or connect a security product and OneUptime polls it for you. Every event is normalized to OCSF, whatever dialect it arrives in.",
   "Read the setup guide",
+  "Connect a security product",
   "Principal User",
   "Principal Host",
   "Principal IP",

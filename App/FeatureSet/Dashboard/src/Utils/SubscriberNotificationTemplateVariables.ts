@@ -14,10 +14,25 @@ export const getSubscriberNotificationTemplateVariablesDocumentation: (
   eventType: StatusPageSubscriberNotificationEventType | undefined,
   _notificationMethod?: StatusPageSubscriberNotificationMethod | undefined,
 ): string => {
-  const commonVariablesRows: string = `| \`{{statusPageName}}\` | Name of the status page |
+  const statusPageVariablesRows: string = `| \`{{statusPageName}}\` | Name of the status page |
 | \`{{statusPageUrl}}\` | URL of the status page |
-| \`{{unsubscribeUrl}}\` | URL for subscribers to unsubscribe from notifications |
+| \`{{unsubscribeUrl}}\` | URL for subscribers to unsubscribe from notifications |`;
+
+  const commonVariablesRows: string = `${statusPageVariablesRows}
 | \`{{resourcesAffected}}\` | List of affected resources/monitors |`;
+
+  /*
+   * Messages about the subscription itself are not about any resource, so
+   * they do not offer {{resourcesAffected}} (see
+   * SubscriberNotificationTemplateVariables).
+   */
+  const isSubscriptionMessage: boolean =
+    eventType ===
+      StatusPageSubscriberNotificationEventType.SubscriberSubscriptionConfirmation ||
+    eventType ===
+      StatusPageSubscriberNotificationEventType.SubscriberSubscribed ||
+    eventType ===
+      StatusPageSubscriberNotificationEventType.SubscriberManageSubscription;
 
   if (!eventType) {
     return `**Available Template Variables**
@@ -101,6 +116,7 @@ ${commonVariablesRows}`;
     case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated:
     case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated:
       eventSpecificRows = `| \`{{scheduledMaintenanceTitle}}\` | Title of the scheduled maintenance |
+| \`{{scheduledMaintenanceDescription}}\` | Description of the scheduled maintenance |
 | \`{{scheduledMaintenanceState}}\` | Current state of the scheduled maintenance |
 | \`{{postedAt}}\` | Date and time when the note was posted |
 | \`{{note}}\` | Content of the note |
@@ -214,6 +230,6 @@ Please select an event type to see available variables.`;
 
 | Variable | Description |
 |----------|-------------|
-${commonVariablesRows}
+${isSubscriptionMessage ? statusPageVariablesRows : commonVariablesRows}
 ${eventSpecificRows}`;
 };

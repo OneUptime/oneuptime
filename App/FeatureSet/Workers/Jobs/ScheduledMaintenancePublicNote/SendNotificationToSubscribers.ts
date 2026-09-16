@@ -30,6 +30,7 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -172,6 +173,10 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           description: true,
           projectId: true,
           startsAt: true,
+          // Templates offer {{scheduledMaintenanceState}}: the event's state right now.
+          currentScheduledMaintenanceState: {
+            name: true,
+          },
           monitors: {
             _id: true,
           },
@@ -246,6 +251,11 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           _id: true,
           displayName: true,
           statusPageId: true,
+          // {{resourcesAffected}} lists the resources by their group.
+          statusPageGroupId: true,
+          statusPageGroup: {
+            name: true,
+          },
         },
       });
     }
@@ -305,6 +315,22 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
     const notePlainText: string = Markdown.convertToPlainText(
       publicNote.note || "",
     );
+    const descriptionPlainText: string = Markdown.convertToPlainText(
+      event.description || "",
+    );
+
+    /*
+     * {{postedAt}} is when the note says it was posted, which the author can
+     * edit, so an update notification reads it fresh from the row. Only a
+     * legacy row with no postedAt falls back to the time of sending.
+     */
+    const notePostedAt: string =
+      OneUptimeDate.getDateAsUserFriendlyFormattedString(
+        publicNote.postedAt || OneUptimeDate.getCurrentDate(),
+      );
+
+    const scheduledAtString: string =
+      OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!);
 
     let notificationSentToAtLeastOneSubscriber: boolean = false;
 
@@ -345,6 +371,12 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
               .addRoute(`/scheduled-events/${event.id.toString()}`)
               .toString()
           : statusPageURL;
+
+      // The affected resources on this status page, for every channel.
+      const resourcesAffectedString: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupName(
+          statusPageToResources[statuspage._id!] || [],
+        );
 
       logger.debug(
         `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for public note ${publicNote.id}.`,
@@ -388,26 +420,33 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         ),
       ]);
 
-      // Prepare template variables for custom templates
+      /*
+       * Every variable SubscriberNotificationTemplateVariables advertises for
+       * the scheduled maintenance note events, built once per status page.
+       * Each channel below uses this object (SMS only swaps the note and the
+       * description for plain text, and every channel adds the subscriber's
+       * unsubscribeUrl), so no channel can miss a variable the others have.
+       */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
         statusPageUrl: statusPageURL,
         detailsUrl: scheduledEventDetailsUrl,
+        resourcesAffected: resourcesAffectedString,
         scheduledMaintenanceTitle: event.title || "",
+        scheduledMaintenanceDescription: event.description || "",
         scheduledMaintenanceState:
-          OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!),
+          event.currentScheduledMaintenanceState?.name || "",
         note: publicNote.note || "",
-        postedAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
-          OneUptimeDate.getCurrentDate(),
-        ),
+        postedAt: notePostedAt,
       };
 
       /*
        * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
-       * Uses the memoized plain-text conversion computed once per public note above.
+       * Uses the memoized plain-text conversions computed once per public note above.
        */
       const smsTemplateVariables: Record<string, string> = {
         ...templateVariables,
+        scheduledMaintenanceDescription: descriptionPlainText,
         note: notePlainText,
       };
 
@@ -575,13 +614,6 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         }
 
         if (subscriber.subscriberWebhook) {
-          const resourcesAffectedStr: string =
-            statusPageToResources[statuspage._id!]
-              ?.map((r: StatusPageResource) => {
-                return r.displayName;
-              })
-              .join(", ") || "";
-
           StatusPageSubscriberWebhookUtil.sendWebhookNotification({
             webhookUrl: subscriber.subscriberWebhook,
             payload: {
@@ -594,7 +626,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                 scheduledMaintenanceId: event.id?.toString() || "",
                 scheduledMaintenanceTitle: event.title || "",
                 scheduledMaintenanceDescription: event.description || "",
-                resourcesAffected: resourcesAffectedStr,
+                resourcesAffected: resourcesAffectedString,
                 note: publicNote.note || "",
                 detailsUrl: scheduledEventDetailsUrl,
               },
@@ -622,7 +654,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   emailTemplate.emailSubject,
                   subscriberTemplateVariables,
                 )
-              : copy.customTemplateEmailSubjectPrefix + event.title || "";
+              : copy.customTemplateEmailSubjectPrefix + (event.title || "");
 
             MailService.sendMail(
               {
@@ -665,16 +697,8 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"
                     : "false",
-                  resourcesAffected:
-                    statusPageToResources[statuspage._id!]
-                      ?.map((r: StatusPageResource) => {
-                        return r.displayName;
-                      })
-                      .join(", ") || "",
-                  scheduledAt:
-                    OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                      event.startsAt!,
-                    ),
+                  resourcesAffected: resourcesAffectedString,
+                  scheduledAt: scheduledAtString,
                   eventTitle: event.title || "",
                   eventDescription: event.description || "",
                   unsubscribeUrl: unsubscribeUrl,
@@ -787,6 +811,7 @@ RunCron(
         select: {
           _id: true,
           note: true,
+          postedAt: true,
           scheduledMaintenanceId: true,
         },
       });
@@ -829,6 +854,7 @@ RunCron(
         select: {
           _id: true,
           note: true,
+          postedAt: true,
           scheduledMaintenanceId: true,
           subscriberNotificationStatusOnNoteCreated: true,
         },

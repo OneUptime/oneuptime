@@ -12,7 +12,6 @@ import {
   formatEvidenceDateTime,
   formatEvidenceDuration,
   formatEvidenceLabel,
-  formatQueryCount,
   formatRowCount,
   getEvidenceEmptyRowsMessage,
 } from "../../../Utils/InvestigationEvidenceFormat";
@@ -76,7 +75,7 @@ type EvidenceRowsState =
   | { status: "error"; message: string };
 
 const CITATION_BADGE_CLASS_NAME: string =
-  "inline-flex h-5 min-w-[1.75rem] flex-shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-semibold tabular-nums";
+  "inline-flex h-5 min-w-[2.25rem] flex-shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-semibold tabular-nums";
 
 function getRowsKey(runId: string | null, citationId: string): string {
   return `${runId || ""}:${citationId}`;
@@ -321,6 +320,13 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
   const focusCitationId: string | null = props.focusRequest
     ? props.focusRequest.citationId
     : null;
+  /*
+   * The list is mounted before any chip that points into it can be clicked,
+   * so a request that is already there on mount is an old one (the list was
+   * remounted after its evidence briefly disappeared) and must not replay.
+   */
+  const handledFocusRequestIdRef: React.MutableRefObject<number | null> =
+    useRef<number | null>(focusRequestId);
 
   const scrollToRow: (citationId: string) => void = (
     citationId: string,
@@ -353,9 +359,15 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
   });
 
   useEffect(() => {
-    if (focusRequestId === null || !focusCitationId) {
+    if (
+      focusRequestId === null ||
+      !focusCitationId ||
+      focusRequestId === handledFocusRequestIdRef.current
+    ) {
       return;
     }
+
+    handledFocusRequestIdRef.current = focusRequestId;
 
     const rowElement: HTMLElement | undefined =
       rowElementsRef.current.get(focusCitationId);
@@ -391,12 +403,13 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
 
     /*
      * Keyboard users land on the query they asked about, so Enter collapses
-     * it and Tab continues into its details.
+     * it and Tab continues into its details. A legacy row has no toggle, so
+     * the row itself takes focus and is read out.
      */
-    const toggle: HTMLButtonElement | undefined =
-      toggleElementsRef.current.get(focusCitationId);
+    const focusTarget: HTMLElement =
+      toggleElementsRef.current.get(focusCitationId) || rowElement;
 
-    toggle?.focus({ preventScroll: true });
+    focusTarget.focus({ preventScroll: true });
     /*
      * Keyed on the request id alone: only a new request should reveal a row
      * again, never an ordinary re-render of the list.
@@ -433,173 +446,154 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
     }`;
   };
 
+  /*
+   * Only the queries: InvestigationRunDetails frames the list, so it is a
+   * named list rather than a second landmark inside that section.
+   */
   return (
-    <section
+    <ul
+      role="list"
       aria-label="Evidence checked"
-      className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+      className="divide-y divide-gray-100"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-5 py-4">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
-            <Icon icon={IconProp.Database} className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900">
-              Evidence checked
-            </h3>
-            <p className="mt-0.5 text-xs leading-5 text-gray-500">
-              {hasItems
-                ? "Every query OneUptime AI ran while investigating. Expand one to see what it asked and the rows it returned."
-                : "Every query OneUptime AI ran while investigating."}
-            </p>
-          </div>
-        </div>
-        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-          {formatQueryCount(rowCount)}
-        </span>
-      </div>
+      {hasItems
+        ? props.items.map((item: InvestigationEvidenceItem): ReactElement => {
+            const isExpanded: boolean = expandedCitationIds.includes(
+              item.citationId,
+            );
+            const detailsId: string = `${idPrefix}-evidence-${item.citationId}`;
+            const tool: EvidenceToolDescription = describeEvidenceTool(
+              item.toolName,
+            );
+            const icon: IconProp = item.target
+              ? targetTypeToIcon[item.target.type] || tool.icon
+              : tool.icon;
+            const executedAt: string | null = formatEvidenceDateTime(
+              item.executedAt,
+            );
+            // Local times for reading; the raw label stays in the tooltip.
+            const displayLabel: string = formatEvidenceLabel(item.label);
 
-      <ul className="divide-y divide-gray-100">
-        {hasItems
-          ? props.items.map((item: InvestigationEvidenceItem): ReactElement => {
-              const isExpanded: boolean = expandedCitationIds.includes(
-                item.citationId,
-              );
-              const detailsId: string = `${idPrefix}-evidence-${item.citationId}`;
-              const tool: EvidenceToolDescription = describeEvidenceTool(
-                item.toolName,
-              );
-              const icon: IconProp = item.target
-                ? targetTypeToIcon[item.target.type] || tool.icon
-                : tool.icon;
-              const executedAt: string | null = formatEvidenceDateTime(
-                item.executedAt,
-              );
-              // Local times for reading; the raw label stays in the tooltip.
-              const displayLabel: string = formatEvidenceLabel(item.label);
-
+            return (
+              <li
+                key={item.citationId}
+                ref={(element: HTMLLIElement | null) => {
+                  registerRowElement(item.citationId, element);
+                }}
+                data-citation-id={item.citationId}
+                data-highlighted={
+                  highlightedCitationId === item.citationId ? "true" : undefined
+                }
+                className={getRowClassName(item.citationId)}
+              >
+                <button
+                  type="button"
+                  ref={(element: HTMLButtonElement | null) => {
+                    if (element) {
+                      toggleElementsRef.current.set(item.citationId, element);
+                    } else {
+                      toggleElementsRef.current.delete(item.citationId);
+                    }
+                  }}
+                  aria-expanded={isExpanded}
+                  aria-controls={detailsId}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5"
+                  onClick={() => {
+                    if (isExpanded) {
+                      collapse(item.citationId);
+                    } else {
+                      expand(item.citationId);
+                    }
+                  }}
+                >
+                  <span className={getCitationBadgeClassName(item.rowCount)}>
+                    {item.citationId}
+                  </span>
+                  <span className="hidden h-5 w-5 flex-shrink-0 items-center justify-center text-gray-400 sm:flex">
+                    <Icon icon={icon} className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className="line-clamp-2 text-sm font-medium text-gray-900 [overflow-wrap:anywhere] sm:line-clamp-1"
+                      title={item.label}
+                    >
+                      {displayLabel}
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs text-gray-500">
+                      {tool.description}
+                      {executedAt ? ` · ${executedAt}` : ""}
+                    </span>
+                  </span>
+                  <span className={getRowCountPillClassName(item.rowCount)}>
+                    {formatRowCount(item.rowCount)}
+                  </span>
+                  <Icon
+                    icon={IconProp.ChevronDown}
+                    className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                <div
+                  id={detailsId}
+                  role="region"
+                  aria-label={`${displayLabel} details`}
+                  hidden={!isExpanded}
+                  className="border-t border-gray-100 bg-gray-50/60 px-4 py-4 sm:px-5"
+                >
+                  {isExpanded ? (
+                    <EvidenceDetails
+                      item={item}
+                      rowsState={
+                        rowsByKey[getRowsKey(props.runId, item.citationId)]
+                      }
+                      onRetry={() => {
+                        loadRows(item.citationId).catch(() => {
+                          // handled inside loadRows
+                        });
+                      }}
+                    />
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              </li>
+            );
+          })
+        : props.legacyEntries.map(
+            (entry: InvestigationEvidenceCheckedEntry): ReactElement => {
               return (
                 <li
-                  key={item.citationId}
+                  key={entry.citationId}
                   ref={(element: HTMLLIElement | null) => {
-                    registerRowElement(item.citationId, element);
+                    registerRowElement(entry.citationId, element);
                   }}
-                  data-citation-id={item.citationId}
+                  data-citation-id={entry.citationId}
                   data-highlighted={
-                    highlightedCitationId === item.citationId
+                    highlightedCitationId === entry.citationId
                       ? "true"
                       : undefined
                   }
-                  className={getRowClassName(item.citationId)}
+                  tabIndex={-1}
+                  className={`flex items-center gap-3 px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5 ${getRowClassName(entry.citationId)}`}
                 >
-                  <button
-                    type="button"
-                    ref={(element: HTMLButtonElement | null) => {
-                      if (element) {
-                        toggleElementsRef.current.set(item.citationId, element);
-                      } else {
-                        toggleElementsRef.current.delete(item.citationId);
-                      }
-                    }}
-                    aria-expanded={isExpanded}
-                    aria-controls={detailsId}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5"
-                    onClick={() => {
-                      if (isExpanded) {
-                        collapse(item.citationId);
-                      } else {
-                        expand(item.citationId);
-                      }
-                    }}
+                  <span className={getCitationBadgeClassName(entry.rowCount)}>
+                    {entry.citationId}
+                  </span>
+                  <span
+                    className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900"
+                    title={entry.label}
                   >
-                    <span className={getCitationBadgeClassName(item.rowCount)}>
-                      {item.citationId}
-                    </span>
-                    <span className="hidden h-5 w-5 flex-shrink-0 items-center justify-center text-gray-400 sm:flex">
-                      <Icon icon={icon} className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className="line-clamp-2 text-sm font-medium text-gray-900 [overflow-wrap:anywhere] sm:line-clamp-1"
-                        title={item.label}
-                      >
-                        {displayLabel}
-                      </span>
-                      <span className="mt-0.5 block truncate text-xs text-gray-500">
-                        {tool.description}
-                        {executedAt ? ` · ${executedAt}` : ""}
-                      </span>
-                    </span>
-                    <span className={getRowCountPillClassName(item.rowCount)}>
-                      {formatRowCount(item.rowCount)}
-                    </span>
-                    <Icon
-                      icon={IconProp.ChevronDown}
-                      className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                  <div
-                    id={detailsId}
-                    role="region"
-                    aria-label={`${displayLabel} details`}
-                    hidden={!isExpanded}
-                    className="border-t border-gray-100 bg-gray-50/60 px-4 py-4 sm:px-5"
-                  >
-                    {isExpanded ? (
-                      <EvidenceDetails
-                        item={item}
-                        rowsState={
-                          rowsByKey[getRowsKey(props.runId, item.citationId)]
-                        }
-                        onRetry={() => {
-                          loadRows(item.citationId).catch(() => {
-                            // handled inside loadRows
-                          });
-                        }}
-                      />
-                    ) : (
-                      <></>
-                    )}
-                  </div>
+                    {formatEvidenceLabel(entry.label)}
+                  </span>
+                  <span className={getRowCountPillClassName(entry.rowCount)}>
+                    {formatRowCount(entry.rowCount)}
+                  </span>
                 </li>
               );
-            })
-          : props.legacyEntries.map(
-              (entry: InvestigationEvidenceCheckedEntry): ReactElement => {
-                return (
-                  <li
-                    key={entry.citationId}
-                    ref={(element: HTMLLIElement | null) => {
-                      registerRowElement(entry.citationId, element);
-                    }}
-                    data-citation-id={entry.citationId}
-                    data-highlighted={
-                      highlightedCitationId === entry.citationId
-                        ? "true"
-                        : undefined
-                    }
-                    className={`flex items-center gap-3 px-4 py-3 sm:px-5 ${getRowClassName(entry.citationId)}`}
-                  >
-                    <span className={getCitationBadgeClassName(entry.rowCount)}>
-                      {entry.citationId}
-                    </span>
-                    <span
-                      className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900"
-                      title={entry.label}
-                    >
-                      {formatEvidenceLabel(entry.label)}
-                    </span>
-                    <span className={getRowCountPillClassName(entry.rowCount)}>
-                      {formatRowCount(entry.rowCount)}
-                    </span>
-                  </li>
-                );
-              },
-            )}
-      </ul>
-    </section>
+            },
+          )}
+    </ul>
   );
 };
 

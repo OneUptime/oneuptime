@@ -353,8 +353,8 @@ describe("Network device overview empty state footer", () => {
 });
 
 /*
- * Why w-full is needed: EmptyState renders the footer inside a centred,
- * wrapping flex row. If that ever goes back to a plain block, this test
+ * Why w-full is needed: EmptyState renders the footer inside a centred
+ * flex row. If that ever goes back to a plain block, this test
  * says so, and the wrapper's classes above can be revisited.
  */
 describe("EmptyState footer row", () => {
@@ -384,8 +384,6 @@ describe("EmptyState footer row", () => {
       getStringAttribute(footerRows[0]!, "className", emptyStateSyntax),
     );
 
-    expect(tokens).toEqual(
-      expect.arrayContaining(["flex", "flex-wrap", "justify-center"]),
-    );
+    expect(tokens).toEqual(expect.arrayContaining(["flex", "justify-center"]));
   });
 });

@@ -1503,7 +1503,13 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
         paddingClassName="px-4 py-12"
         title="No events found"
         description="No security events matched this filter in the selected time range."
-        footer={actions.length > 0 ? <>{actions}</> : undefined}
+        footer={
+          actions.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-center gap-2 [&_button]:ml-0">
+              {actions}
+            </div>
+          ) : undefined
+        }
       />
     );
   };

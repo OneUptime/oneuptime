@@ -23,6 +23,14 @@
  *            Incident #1042 and Alert #311. Other incidents/alerts have no run.
  *            "legacy" is a completed report from an API replica that predates
  *            structured evidence: no `evidence` or `references` keys.
+ *   ?tldr=   default | long
+ *            "long" gives Incident #1042 a TL;DR at the server's
+ *            320-character cap (InvestigationTldr.MAX_TLDR_CHARS), long
+ *            enough to wrap and clamp in the event header.
+ *   ?verdict= none (default) | confirmed | rejected
+ *            A responder's verdict already saved on the completed runs of
+ *            Incident #1042 and Alert #311, as if rated before the page
+ *            loaded.
  *   ?sm=     scheduled (default, starts in 2h) | ongoing | ended | overdue
  *            | overrun
  *            Scheduled Maintenance #58. "overdue" is still Scheduled 20
@@ -166,6 +174,13 @@ const stateMode = ["ongoing", "created"].includes(params.get("state"))
   ? params.get("state")
   : "resolved";
 const aiMode = params.get("ai") || "report";
+const tldrMode = params.get("tldr") === "long" ? "long" : "default";
+const presetVerdict =
+  params.get("verdict") === "confirmed"
+    ? "Confirmed"
+    : params.get("verdict") === "rejected"
+      ? "Rejected"
+      : null;
 const smMode = params.get("sm") || "scheduled";
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
@@ -248,6 +263,8 @@ const fixture = {
   scenario: {
     state: stateMode,
     ai: aiMode,
+    tldr: tldrMode,
+    verdict: presetVerdict,
     sm: smMode,
     fail: Array.from(failures),
   },
@@ -2023,6 +2040,10 @@ const INCIDENT_ANALYSIS = [
 const INCIDENT_TLDR =
   "checkout-api restarted at 17:52 with its database pool cut from 40 to 10 connections, so checkout requests queued and p95 latency passed 2s — the same pool exhaustion as #1017, #1029 and #1036.";
 
+// ?tldr=long: exactly the server's 320-character cap.
+const INCIDENT_LONG_TLDR =
+  "checkout-api release 2026.09.14-2 restarted at 17:52:04 with DB_POOL_MAX=10 instead of 40, so requests waited up to 2s in pg.pool.connect for an orders-db connection and p95 latency rose from ~310 ms to 2.35 s (db.client.connections.usage pinned at 10/10). Rolling back to 2026.09.14-1 cleared it, as in #1017 and #1029.";
+
 const alertWindow = { start: at("17:30"), end: at("18:10") };
 
 const ALERT_CITATIONS = [
@@ -2374,8 +2395,8 @@ function defineInvestigation(spec) {
     ...spec,
     citations,
     markdown: brandedMarkdown(spec.analysis, citations, citations.length),
-    verdict: null,
-    verdictAt: null,
+    verdict: presetVerdict,
+    verdictAt: presetVerdict ? at("18:10") : null,
   };
 }
 
@@ -2390,7 +2411,7 @@ const investigations = {
     totalTokens: 48212,
     citations: INCIDENT_CITATIONS,
     analysis: INCIDENT_ANALYSIS,
-    tldr: INCIDENT_TLDR,
+    tldr: tldrMode === "long" ? INCIDENT_LONG_TLDR : INCIDENT_TLDR,
     references: [1017, 1029, 1036].map((number) => {
       const record = table(Incident).find((item) => {
         return item.incidentNumber === number;

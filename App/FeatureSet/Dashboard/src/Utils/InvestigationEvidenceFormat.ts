@@ -594,13 +594,6 @@ export function getEvidenceEmptyRowsMessage(
   return trimmed;
 }
 
-export function formatQueryCount(count: number): string {
-  const safeCount: number =
-    Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
-
-  return `${formatInteger(safeCount)} ${safeCount === 1 ? "query" : "queries"}`;
-}
-
 function formatInteger(value: number): string {
   // Fixed grouping so the same count reads the same for every viewer.
   return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");

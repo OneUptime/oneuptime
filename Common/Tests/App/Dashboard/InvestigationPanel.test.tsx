@@ -79,13 +79,16 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 });
 
 /*
- * The feed owns the "will this draw any steps?" predicate, because several
- * event types only close a step an earlier event opened. The panel asks it
- * instead of counting raw events, so the mock has to answer too — and
- * hasRenderableActivityMock lets a test make the two disagree, which is the
- * case that used to render an empty framed box.
+ * The feed owns "how many steps will this draw?", because several event
+ * types only close a step an earlier event opened. The panel and its run
+ * details ask it instead of counting raw events, so the mock has to answer
+ * too. countActivityStepsMock lets a test make events and steps disagree —
+ * the case that used to frame an empty box — and hasRenderableActivityMock
+ * follows it by default, exactly as the real predicate does, so the two
+ * exports can never contradict each other unless a test says so.
  */
 const hasRenderableActivityMock: MockFunction = getJestMockFunction();
+const countActivityStepsMock: MockFunction = getJestMockFunction();
 
 // Evidence rows render through the chat widgets; their output is not under test.
 jest.mock(
@@ -115,6 +118,9 @@ jest.mock(
       hasRenderableActivity: (events: Array<AIRunEvent>): boolean => {
         return hasRenderableActivityMock(events) as boolean;
       },
+      countActivitySteps: (events: Array<AIRunEvent>): number => {
+        return countActivityStepsMock(events) as number;
+      },
     };
   },
 );
@@ -126,6 +132,7 @@ import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import AIRunCodeFixRecommendation from "../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
+import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -301,6 +308,7 @@ function renderPanel(data?: {
   onAnalysisAvailable?: (() => void) | undefined;
   onStatusChange?: ((status: AIRunStatus | null) => void) | undefined;
   onReportSummaryChange?: ((summary: string | null) => void) | undefined;
+  onVerdictChange?: ((verdict: AIRunHumanVerdict | null) => void) | undefined;
 }): ReturnType<typeof render> {
   return render(
     <InvestigationPanel
@@ -309,6 +317,7 @@ function renderPanel(data?: {
       onAnalysisAvailable={data?.onAnalysisAvailable}
       onStatusChange={data?.onStatusChange}
       onReportSummaryChange={data?.onReportSummaryChange}
+      onVerdictChange={data?.onVerdictChange}
     />,
   );
 }
@@ -372,17 +381,59 @@ function lastActivityProps(): ActivityFeedProps {
   return calls[calls.length - 1]![0]!;
 }
 
+/*
+ * A completed run ends with one collapsed section holding its evidence, its
+ * activity and what it cost. Its body stays mounted while collapsed, so the
+ * role queries below (which skip hidden content) only find what a reader
+ * could actually reach; tests open the section before reaching inside it.
+ */
+function runDetails(): HTMLElement {
+  return screen.getByTestId("investigation-details");
+}
+
+function detailsToggle(): HTMLElement {
+  return screen.getByTestId("investigation-details-toggle");
+}
+
+function detailsBody(): HTMLElement {
+  const bodyId: string | null = detailsToggle().getAttribute("aria-controls");
+  expect(bodyId).toBeTruthy();
+  return document.getElementById(bodyId!)!;
+}
+
+function openDetails(): void {
+  expect(detailsToggle()).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(detailsToggle());
+  expect(detailsToggle()).toHaveAttribute("aria-expanded", "true");
+}
+
+function detailsTab(name: RegExp): HTMLElement {
+  return within(
+    screen.getByRole("tablist", { name: "Investigation details" }),
+  ).getByRole("tab", { name });
+}
+
+function evidenceList(): HTMLElement {
+  return screen.getByRole("list", { name: "Evidence checked" });
+}
+
 beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(new Date(COMPLETED_AT));
   getCommonHeadersMock.mockReturnValue({});
   /*
    * Default to the real component's behaviour for the ordinary event shapes
-   * these tests use: every step-opening event draws a step.
+   * these tests use: every step-opening event draws a step, and there is
+   * activity to render exactly when at least one step is drawn.
    */
+  countActivityStepsMock.mockImplementation(
+    (events: Array<AIRunEvent>): number => {
+      return events.length;
+    },
+  );
   hasRenderableActivityMock.mockImplementation(
     (events: Array<AIRunEvent>): boolean => {
-      return events.length > 0;
+      return (countActivityStepsMock(events) as number) > 0;
     },
   );
   getFriendlyMessageMock.mockImplementation((error: unknown): string => {
@@ -409,6 +460,7 @@ afterEach(() => {
   markdownViewerMock.mockReset();
   activityFeedMock.mockReset();
   hasRenderableActivityMock.mockReset();
+  countActivityStepsMock.mockReset();
   widgetRendererMock.mockReset();
 });
 
@@ -459,7 +511,7 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(getCommonHeadersMock).toHaveBeenCalledTimes(1);
   });
 
-  test("renders the completed report safely and demotes activity to a disclosure", async () => {
+  test("renders the completed report safely and folds its activity into a collapsed section", async () => {
     const onAnalysisAvailable: MockFunction = getJestMockFunction();
     postMock.mockResolvedValue(completedResponse() as never);
 
@@ -487,20 +539,28 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(
       screen.getByRole("heading", { level: 4, name: "Root cause" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Investigation activity")).toBeInTheDocument();
+    /*
+     * This report carries no evidence, so the section is only the activity
+     * and is named for it. It starts collapsed: the report is the answer.
+     */
+    expect(detailsToggle()).toHaveTextContent("Investigation activity");
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "false");
+    expect(detailsBody()).not.toBeVisible();
     expect(lastActivityProps()).toEqual(
       expect.objectContaining({
         hideChrome: true,
         showLiveIndicator: false,
-        maxVisibleSteps: 10,
       }),
     );
 
     const usage: HTMLElement = screen.getByLabelText("Investigation usage");
+    expect(usage).toBeVisible();
     expect(usage).toHaveTextContent("2 telemetry queries");
-    expect(usage).toHaveTextContent("1,234 tokens");
     expect(usage).toHaveTextContent(
       "Read-only — nothing in your systems was changed",
+    );
+    expect(screen.getByLabelText("Model and tokens")).toHaveTextContent(
+      "1,234 tokens",
     );
     expect(fixButton()).toBeEnabled();
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
@@ -531,6 +591,8 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(screen.getByText("Preparing investigation report…")).toBeVisible();
     expect(screen.getByText("Preparing the final report")).toBeVisible();
     expect(screen.queryByTestId("investigation-markdown")).toBeNull();
+    // The steps can already be checked while the report is being written.
+    expect(detailsToggle()).toHaveTextContent("Investigation activity");
     expect(onAnalysisAvailable).not.toHaveBeenCalled();
 
     /* Status, run id, events and recommendation remain identical. */
@@ -678,6 +740,19 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(
       screen.getByText("No investigation report was published."),
     ).toBeVisible();
+    /*
+     * No steps were recorded, so the notice does not point at an activity
+     * section that is not there, and there is nothing to expand: the run's
+     * usage is all that is left to say.
+     */
+    expect(
+      screen.getByText("The run finished without a final analysis."),
+    ).toBeVisible();
+    expect(screen.queryByText(/Investigation activity/)).toBeNull();
+    expect(screen.queryByTestId("investigation-details-toggle")).toBeNull();
+    expect(screen.getByLabelText("Investigation usage")).toHaveTextContent(
+      "0 telemetry queries",
+    );
     expect(fixButton()).toBeDisabled();
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Rejected" })).toBeDisabled();
@@ -771,14 +846,16 @@ describe("InvestigationPanel card states", () => {
     expect(screen.getByText("Starting investigation…")).toBeVisible();
   });
 
-  test("puts a copy control on the report so it can be pasted elsewhere", async () => {
+  test("puts a copy control and a verify-first note on the report", async () => {
     postMock.mockResolvedValue(completedResponse() as never);
 
     renderPanel();
     await flush();
 
     const report: HTMLElement = screen.getByLabelText("Investigation report");
-    expect(report).toHaveTextContent("AI generated");
+    expect(report).toHaveTextContent(
+      "AI-generated first pass — verify before acting.",
+    );
     expect(report).toContainElement(
       screen.getByRole("button", { name: "Copy report" }),
     );
@@ -814,6 +891,45 @@ describe("InvestigationPanel card states", () => {
   );
 
   /*
+   * A failed run has no report and no collapsed details, so what it ran and
+   * the read-only guarantee close its own activity frame instead — a reader
+   * deciding whether a half-finished run touched anything finds the answer
+   * right under the steps it took.
+   */
+  test("ends a failed run's activity with what it ran and that it changed nothing", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Error,
+          errorMessage: "The model provider timed out.",
+          events: [activityEvent],
+          toolCallCount: 3,
+          totalTokens: 900,
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const activity: HTMLElement = screen.getByRole("region", {
+      name: "Investigation activity",
+    });
+    const usage: HTMLElement = within(activity).getByRole("list", {
+      name: "Investigation usage",
+    });
+    expect(activity.lastElementChild).toBe(usage);
+    expect(usage).toBeVisible();
+    expect(usage).toHaveTextContent("3 telemetry queries");
+    expect(usage).toHaveTextContent("900 tokens");
+    expect(usage).toHaveTextContent(
+      "Read-only — nothing in your systems was changed",
+    );
+    expect(screen.queryByTestId("investigation-details")).toBeNull();
+    expect(screen.getAllByLabelText("Investigation usage")).toHaveLength(1);
+  });
+
+  /*
    * Events and rendered steps are not the same thing: RunFailed and the
    * completion halves of tool/LLM calls only close a step an earlier event
    * opened. A run whose RunStarted failed to persist and then failed outright
@@ -821,7 +937,7 @@ describe("InvestigationPanel card states", () => {
    * an empty panel instead of saying what happened.
    */
   test("explains an empty trail instead of framing a blank panel", async () => {
-    hasRenderableActivityMock.mockReturnValue(false);
+    countActivityStepsMock.mockReturnValue(0);
     postMock.mockResolvedValue(
       successfulResponse(
         investigationPayload({
@@ -841,8 +957,14 @@ describe("InvestigationPanel card states", () => {
     ).toBeVisible();
   });
 
-  test("hides the completed activity disclosure when no step would render", async () => {
-    hasRenderableActivityMock.mockReturnValue(false);
+  /*
+   * The same event/step mismatch on a completed run: with no evidence and no
+   * step to draw, a collapsed section would open onto nothing. The run's
+   * usage is all there is, so it stands alone — tokens included, since there
+   * is no body to hold them.
+   */
+  test("offers nothing to expand when a completed run has no evidence and no step would render", async () => {
+    countActivityStepsMock.mockReturnValue(0);
     postMock.mockResolvedValue(completedResponse() as never);
 
     renderPanel();
@@ -850,9 +972,17 @@ describe("InvestigationPanel card states", () => {
 
     expect(screen.getByLabelText("Investigation report")).toBeInTheDocument();
     expect(screen.queryByText("Investigation activity")).toBeNull();
+    expect(screen.queryByTestId("investigation-details-toggle")).toBeNull();
+    expect(screen.queryByTestId("investigation-activity")).toBeNull();
+
+    const usage: HTMLElement = screen.getByLabelText("Investigation usage");
+    expect(usage).toBeVisible();
+    expect(usage).toHaveTextContent("2 telemetry queries");
+    expect(usage).toHaveTextContent("1,234 tokens");
+    expect(usage).not.toHaveTextContent("step");
   });
 
-  test("reports a single query without pluralising it", async () => {
+  test("reports a single query and step without pluralising them", async () => {
     postMock.mockResolvedValue(
       completedResponse({ toolCallCount: 1, totalTokens: 0 }) as never,
     );
@@ -862,7 +992,49 @@ describe("InvestigationPanel card states", () => {
 
     const usage: HTMLElement = screen.getByLabelText("Investigation usage");
     expect(usage).toHaveTextContent("1 telemetry query");
+    expect(usage).not.toHaveTextContent("queries");
+    expect(usage).toHaveTextContent("1 step");
+    expect(usage).not.toHaveTextContent("steps");
     expect(usage).not.toHaveTextContent("tokens");
+  });
+
+  /*
+   * The no-report notice used to send every reader to "the activity below",
+   * even when no step had been recorded and there was nothing below to read.
+   */
+  test("points the no-report notice at the activity only when there is some", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        analysisMarkdown: null,
+        isAnalysisPending: false,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(
+      screen.getByText(
+        "The run finished without a final analysis. Its steps are under Investigation activity below.",
+      ),
+    ).toBeVisible();
+
+    /*
+     * Evidence only exists beside a report, so the section is the activity
+     * alone: named for it, and without tabs once opened.
+     */
+    expect(detailsToggle()).toHaveTextContent("Investigation activity");
+    expect(detailsToggle()).not.toHaveTextContent("Evidence");
+    expect(screen.getByLabelText("Investigation usage")).toHaveTextContent(
+      "2 telemetry queries",
+    );
+
+    openDetails();
+
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole("tabpanel")).toBeNull();
+    expect(screen.queryByLabelText("Evidence checked")).toBeNull();
+    expect(screen.getByTestId("investigation-activity")).toBeVisible();
   });
 });
 
@@ -1956,18 +2128,25 @@ describe("InvestigationPanel structured report", () => {
     renderPanel();
     await flush();
 
-    const evidence: HTMLElement = screen.getByRole("region", {
-      name: "Evidence checked",
-    });
-    expect(within(evidence).getByText("2 queries")).toBeVisible();
-    expect(
-      within(evidence).getByRole("button", { name: /Active incidents/ }),
-    ).toHaveAttribute("aria-expanded", "false");
     expect(
       screen
         .getByLabelText("Investigation report")
-        .compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING,
+        .compareDocumentPosition(runDetails()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+
+    openDetails();
+
+    // The tab carries the query count the old list header used to show.
+    expect(detailsTab(/^Evidence checked/)).toHaveTextContent(
+      "Evidence checked2",
+    );
+    const evidence: HTMLElement = evidenceList();
+    expect(runDetails()).toContainElement(evidence);
+    expect(within(evidence).getAllByRole("listitem")).toHaveLength(2);
+    expect(
+      within(evidence).getByRole("button", { name: /Active incidents/ }),
+    ).toHaveAttribute("aria-expanded", "false");
     // Rendering evidence never re-runs anything by itself.
     expect(evidencePosts()).toHaveLength(0);
     expect(jest.getTimerCount()).toBe(1);
@@ -1987,6 +2166,7 @@ describe("InvestigationPanel structured report", () => {
 
     renderPanel();
     await flush();
+    openDetails();
 
     const toggle: HTMLElement = screen.getByRole("button", {
       name: /Active incidents \(7 total\)/,
@@ -2019,10 +2199,12 @@ describe("InvestigationPanel structured report", () => {
 
     renderPanel();
     await flush();
+    openDetails();
 
-    const evidence: HTMLElement = screen.getByRole("region", {
-      name: "Evidence checked",
-    });
+    const evidence: HTMLElement = evidenceList();
+    expect(detailsTab(/^Evidence checked/)).toHaveTextContent(
+      "Evidence checked2",
+    );
     expect(evidence).toHaveTextContent("Active incidents (7 total)");
     expect(evidence).toHaveTextContent("Logs 17:20 – 18:20 (1 shown)");
     expect(within(evidence).queryAllByRole("button")).toHaveLength(0);
@@ -2045,17 +2227,15 @@ describe("InvestigationPanel structured report", () => {
 
     renderPanel();
     await flush();
-    expect(
-      within(screen.getByLabelText("Evidence checked")).queryAllByRole(
-        "button",
-      ),
-    ).toHaveLength(0);
+    openDetails();
+    expect(within(evidenceList()).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(evidenceList()).queryAllByRole("button")).toHaveLength(0);
 
     await tick(SETTLED_POLL_INTERVAL_MS);
 
-    expect(
-      within(screen.getByLabelText("Evidence checked")).getAllByRole("button"),
-    ).toHaveLength(2);
+    // Still open on the same list, now with a toggle per query.
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "true");
+    expect(within(evidenceList()).getAllByRole("button")).toHaveLength(2);
   });
 
   test("never shows evidence without the report it belongs to", async () => {
@@ -2073,6 +2253,13 @@ describe("InvestigationPanel structured report", () => {
 
     expect(screen.getByText("Preparing the final report")).toBeVisible();
     expect(screen.queryByLabelText("Evidence checked")).toBeNull();
+
+    // The section still offers the run's steps, and only those.
+    expect(detailsToggle()).toHaveTextContent("Investigation activity");
+    openDetails();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByLabelText("Evidence checked")).toBeNull();
+    expect(screen.getByTestId("investigation-activity")).toBeVisible();
   });
 
   test("drops evidence when the report disappears on a later poll", async () => {
@@ -2085,10 +2272,12 @@ describe("InvestigationPanel structured report", () => {
     renderPanel();
     await flush();
     expect(screen.getByLabelText("Evidence checked")).toBeInTheDocument();
+    expect(detailsToggle()).toHaveTextContent("Evidence and activity");
 
     await tick(SETTLED_POLL_INTERVAL_MS);
 
     expect(screen.queryByLabelText("Evidence checked")).toBeNull();
+    expect(detailsToggle()).toHaveTextContent("Investigation activity");
     expect(
       screen.getByText("No investigation report was published."),
     ).toBeVisible();
@@ -2110,13 +2299,11 @@ describe("InvestigationPanel structured report", () => {
 
     renderPanel();
     await flush();
+    openDetails();
 
     // Nothing valid survived, so the legacy list and plain numbers are used.
-    expect(
-      within(screen.getByLabelText("Evidence checked")).queryAllByRole(
-        "button",
-      ),
-    ).toHaveLength(0);
+    expect(within(evidenceList()).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(evidenceList()).queryAllByRole("button")).toHaveLength(0);
     expect(
       lastInlineReferences().renderEventReference!({
         kind: "incident",
@@ -2126,7 +2313,27 @@ describe("InvestigationPanel structured report", () => {
     ).toBeNull();
   });
 
-  test("a citation chip expands, scrolls to and highlights its evidence row", async () => {
+  /*
+   * The report's chips are rendered by the markdown viewer, which is mocked
+   * here, so render the panel's own chip renderer output and click it the
+   * way a reader would.
+   */
+  function clickCitation(citationId: string, name: string): void {
+    const chip: React.ReactElement | null =
+      lastInlineReferences().renderCitation!(citationId);
+    expect(chip).not.toBeNull();
+    render(chip!);
+
+    const chipButton: HTMLElement = screen.getByRole("button", { name });
+    fireEvent.click(chipButton);
+  }
+
+  /*
+   * The evidence sits in a section that starts collapsed, so a chip that only
+   * highlighted its row would highlight something nobody can see. The chip
+   * has to open the section on the Evidence tab first.
+   */
+  test("a citation chip opens the collapsed details and expands, scrolls to and highlights its row", async () => {
     routePosts({
       investigation: (): unknown => {
         return Promise.resolve(structuredResponse());
@@ -2136,6 +2343,8 @@ describe("InvestigationPanel structured report", () => {
     renderPanel();
     await flush();
     expect(jest.getTimerCount()).toBe(1);
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "false");
+    expect(detailsBody()).not.toBeVisible();
 
     const chip: React.ReactElement | null =
       lastInlineReferences().renderCitation!("C2");
@@ -2150,10 +2359,19 @@ describe("InvestigationPanel structured report", () => {
     fireEvent.click(chipButton);
     await flush();
 
-    const toggle: HTMLElement = within(
-      screen.getByLabelText("Evidence checked"),
-    ).getByRole("button", { name: /Logs 17:20/ });
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "true");
+    expect(detailsBody()).toBeVisible();
+    expect(detailsTab(/^Evidence checked/)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    const toggle: HTMLElement = within(evidenceList()).getByRole("button", {
+      name: /Logs 17:20/,
+    });
+    expect(toggle).toBeVisible();
     expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveFocus();
     expect(toggle.closest("li")).toHaveAttribute("data-highlighted", "true");
     expect(scrollIntoViewMock).toHaveBeenCalledWith({
       block: "nearest",
@@ -2168,6 +2386,157 @@ describe("InvestigationPanel structured report", () => {
 
     expect(toggle.closest("li")).not.toHaveAttribute("data-highlighted");
     expect(jest.getTimerCount()).toBe(1);
+    // The highlight fades; the section the reader was taken to stays open.
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("a citation chip switches an open section from Activity to Evidence", async () => {
+    routePosts({
+      investigation: (): unknown => {
+        return Promise.resolve(structuredResponse());
+      },
+    });
+
+    renderPanel();
+    await flush();
+    openDetails();
+    fireEvent.click(detailsTab(/^Activity/));
+    expect(screen.getByTestId("investigation-activity")).toBeVisible();
+    expect(screen.queryByRole("list", { name: "Evidence checked" })).toBeNull();
+
+    clickCitation("C1", "Citation C1: Active incidents (7 total)");
+    await flush();
+
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "true");
+    expect(detailsTab(/^Evidence checked/)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(detailsTab(/^Activity/)).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByTestId("investigation-activity")).not.toBeVisible();
+
+    const toggle: HTMLElement = within(evidenceList()).getByRole("button", {
+      name: /Active incidents/,
+    });
+    expect(toggle).toBeVisible();
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveFocus();
+    expect(toggle.closest("li")).toHaveAttribute("data-highlighted", "true");
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * An older API sends no structured evidence, so the report's own list is
+   * shown and its rows have no toggle. The row itself takes focus, or a
+   * keyboard or screen-reader user would be left on the chip.
+   */
+  test("a citation chip on an older report reveals and focuses its plain row", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({ analysisMarkdown: STRUCTURED_REPORT }) as never,
+    );
+
+    renderPanel();
+    await flush();
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "false");
+
+    clickCitation("C2", "Citation C2: Logs 17:20 – 18:20 (1 shown)");
+    await flush();
+
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "true");
+    expect(detailsTab(/^Evidence checked/)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    const row: HTMLElement = within(evidenceList())
+      .getAllByRole("listitem")
+      .find((item: HTMLElement): boolean => {
+        return item.textContent?.includes("Logs 17:20") === true;
+      })!;
+    expect(row).toBeVisible();
+    expect(row).toHaveFocus();
+    expect(row).toHaveAttribute("data-highlighted", "true");
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    // A plain row has nothing to re-run.
+    expect(evidencePosts()).toHaveLength(0);
+  });
+
+  /*
+   * A chip's request lives in the panel, so it outlives the evidence list
+   * when the report briefly disappears between polls. When the list comes
+   * back it must not replay that old request — scrolling the page and
+   * stealing focus with no click behind it.
+   */
+  test("does not replay a chip when the evidence comes back on a later poll", async () => {
+    let investigationCalls: number = 0;
+    routePosts({
+      investigation: (): unknown => {
+        investigationCalls += 1;
+        return Promise.resolve(
+          investigationCalls === 2
+            ? structuredResponse({ analysisMarkdown: null })
+            : structuredResponse(),
+        );
+      },
+    });
+
+    renderPanel();
+    await flush();
+    clickCitation("C2", "Citation C2: Logs 17:20 – 18:20 (1 shown)");
+    await flush();
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    await tick(2000);
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+    expect(screen.queryByLabelText("Evidence checked")).toBeNull();
+    expect(screen.getByTestId("investigation-activity")).toBeVisible();
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+    expect(investigationPostCount()).toBe(3);
+
+    const toggle: HTMLElement = within(evidenceList()).getByRole("button", {
+      name: /Logs 17:20/,
+    });
+    expect(toggle).toBeVisible();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).not.toHaveFocus();
+    expect(document.querySelector('[data-highlighted="true"]')).toBeNull();
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    expect(evidencePosts()).toHaveLength(1);
+  });
+
+  test("a new run on the same subject starts collapsed, even after a chip opened the last one", async () => {
+    let investigationCalls: number = 0;
+    routePosts({
+      investigation: (): unknown => {
+        investigationCalls += 1;
+        return Promise.resolve(
+          investigationCalls === 1
+            ? structuredResponse()
+            : structuredResponse({ runId: NEXT_RUN_ID }),
+        );
+      },
+    });
+
+    renderPanel();
+    await flush();
+    clickCitation("C2", "Citation C2: Logs 17:20 – 18:20 (1 shown)");
+    await flush();
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "true");
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(investigationPostCount()).toBe(2);
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "false");
+    expect(detailsBody()).not.toBeVisible();
+
+    openDetails();
+
+    expect(
+      within(evidenceList()).getByRole("button", { name: /Logs 17:20/ }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(document.querySelector('[data-highlighted="true"]')).toBeNull();
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
   test("leaves a citation that is not in the evidence as plain text", async () => {
@@ -2255,6 +2624,7 @@ describe("InvestigationPanel structured report", () => {
 
     const view: ReturnType<typeof render> = renderPanel();
     await flush();
+    openDetails();
     fireEvent.click(
       screen.getByRole("button", { name: /Active incidents \(7 total\)/ }),
     );
@@ -2271,6 +2641,8 @@ describe("InvestigationPanel structured report", () => {
     );
 
     expect(screen.queryByText(/Previous subject rows/)).toBeNull();
+    // The new subject's details start collapsed like any other.
+    openDetails();
     const toggle: HTMLElement = screen.getByRole("button", {
       name: /Active incidents \(7 total\)/,
     });
@@ -2315,18 +2687,40 @@ describe("InvestigationPanel structured report", () => {
     ).toBeUndefined();
   });
 
-  test("names the model and asks for verification in the usage strip", async () => {
+  /*
+   * Collapsed, the header answers "what did it do, and did it touch
+   * anything?". What the run cost and which model wrote the report are for
+   * the reader who opens the details, and the verify-first note belongs on
+   * the report it qualifies.
+   */
+  test("names the model and its tokens inside the details, not in the collapsed header", async () => {
     postMock.mockResolvedValue(structuredResponse() as never);
 
     renderPanel();
     await flush();
 
     const usage: HTMLElement = screen.getByLabelText("Investigation usage");
-    expect(usage).toHaveTextContent("Model gpt-5");
-    expect(usage).toHaveTextContent(
+    expect(usage).toBeVisible();
+    expect(usage).toHaveTextContent("2 telemetry queries");
+    expect(usage).not.toHaveTextContent("tokens");
+    expect(usage).not.toHaveTextContent("gpt-5");
+
+    const cost: HTMLElement = screen.getByLabelText("Model and tokens");
+    expect(detailsBody()).toContainElement(cost);
+    expect(cost).not.toBeVisible();
+    expect(cost).toHaveTextContent("1,234 tokens");
+    expect(cost).toHaveTextContent("Model gpt-5");
+    // Counts and the guarantee are already in the header; no repeats.
+    expect(cost).not.toHaveTextContent("telemetry");
+    expect(cost).not.toHaveTextContent("Read-only");
+
+    openDetails();
+
+    expect(screen.getByRole("list", { name: "Model and tokens" })).toBe(cost);
+    expect(cost).toBeVisible();
+    expect(screen.getByLabelText("Investigation report")).toHaveTextContent(
       "AI-generated first pass — verify before acting.",
     );
-    expect(usage).toHaveTextContent("2 telemetry queries");
   });
 
   test("does not ask to verify a report that does not exist", async () => {
@@ -2344,8 +2738,10 @@ describe("InvestigationPanel structured report", () => {
     await flush();
 
     const usage: HTMLElement = screen.getByLabelText("Investigation usage");
-    expect(usage).not.toHaveTextContent("verify before acting");
+    expect(usage).toHaveTextContent("3 telemetry queries");
     expect(usage).not.toHaveTextContent("Model");
+    expect(screen.queryByText(/verify before acting/)).toBeNull();
+    expect(screen.queryByLabelText("Model and tokens")).toBeNull();
   });
 
   test("titles the act and rate blocks with headings instead of icon-in-paragraph", async () => {
@@ -2361,6 +2757,300 @@ describe("InvestigationPanel structured report", () => {
       screen.getByRole("heading", { name: "Rate this investigation" }),
     ).toBeVisible();
     expect(container.querySelectorAll("p div")).toHaveLength(0);
+  });
+});
+
+/*
+ * "Evidence checked", "Investigation activity" and the usage strip used to be
+ * three stacked boxes under the report. They are now one section that starts
+ * collapsed: the report is the answer, this is its working. Collapsed, it
+ * still has to say what the run did and that it changed nothing, because a
+ * responder asks that before trusting the report at all.
+ */
+describe("InvestigationPanel run details", () => {
+  function tabNames(): Array<string> {
+    return within(
+      screen.getByRole("tablist", { name: "Investigation details" }),
+    )
+      .getAllByRole("tab")
+      .map((tab: HTMLElement): string => {
+        return tab.textContent || "";
+      });
+  }
+
+  test("starts collapsed and still says what the run did in its header", async () => {
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    const section: HTMLElement = screen.getByRole("region", {
+      name: "Evidence and activity",
+    });
+    expect(section).toBe(runDetails());
+
+    /*
+     * The toggle is named by the title alone: the usage line beside it is
+     * not part of the button, so a screen reader hears a short name.
+     */
+    const toggle: HTMLElement = within(section).getByRole("button", {
+      name: "Evidence and activity",
+    });
+    expect(toggle).toBe(detailsToggle());
+    expect(
+      within(section).getByRole("heading", {
+        level: 3,
+        name: "Evidence and activity",
+      }),
+    ).toContainElement(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(detailsBody()).not.toBeVisible();
+    expect(section).toContainElement(detailsBody());
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Evidence checked" })).toBeNull();
+    expect(screen.getByTestId("investigation-activity")).not.toBeVisible();
+
+    const usage: HTMLElement = within(section).getByRole("list", {
+      name: "Investigation usage",
+    });
+    expect(usage).toBeVisible();
+    expect(
+      within(usage)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual([
+      "2 telemetry queries",
+      "1 step",
+      "Read-only — nothing in your systems was changed",
+    ]);
+  });
+
+  /*
+   * The run's tool-call count also includes calls that failed and never
+   * became evidence. Inside a section whose Evidence tab lists the queries,
+   * the header has to count the same queries, or the two numbers a reader
+   * sees side by side disagree. Without evidence the run's own count is all
+   * there is.
+   */
+  test("counts the queries the Evidence tab lists, not the run's raw call count", async () => {
+    postMock
+      .mockResolvedValueOnce(structuredResponse({ toolCallCount: 3 }) as never)
+      .mockResolvedValue(
+        structuredResponse({ toolCallCount: 3, evidence: [] }) as never,
+      );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByLabelText("Investigation usage")).toHaveTextContent(
+      "2 telemetry queries",
+    );
+    openDetails();
+    expect(detailsTab(/^Evidence checked/)).toHaveTextContent(
+      "Evidence checked2",
+    );
+
+    /*
+     * An older API: the report's own list still names the queries, so the
+     * header follows it rather than the raw call count.
+     */
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(within(evidenceList()).queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getByLabelText("Investigation usage")).toHaveTextContent(
+      "2 telemetry queries",
+    );
+  });
+
+  test("falls back to the run's call count when there is no evidence at all", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({ toolCallCount: 3 }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(detailsToggle()).toHaveTextContent("Investigation activity");
+    expect(screen.getByLabelText("Investigation usage")).toHaveTextContent(
+      "3 telemetry queries",
+    );
+  });
+
+  test("opening reveals the tabs and the evidence list, and closing hides them again", async () => {
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+    openDetails();
+
+    expect(detailsBody()).toBeVisible();
+    expect(tabNames()).toEqual(["Evidence checked2", "Activity1"]);
+
+    const evidenceTab: HTMLElement = detailsTab(/^Evidence checked/);
+    expect(evidenceTab).toHaveAttribute("aria-selected", "true");
+    expect(evidenceTab).toHaveAttribute("tabindex", "0");
+    expect(detailsTab(/^Activity/)).toHaveAttribute("aria-selected", "false");
+    expect(detailsTab(/^Activity/)).toHaveAttribute("tabindex", "-1");
+
+    // Only the selected panel is reachable, and it is named by its tab.
+    const panel: HTMLElement = screen.getByRole("tabpanel");
+    expect(panel).toBe(
+      screen.getByRole("tabpanel", { name: /^Evidence checked/ }),
+    );
+    expect(evidenceTab).toHaveAttribute("aria-controls", panel.id);
+    expect(panel).toHaveAttribute("tabindex", "0");
+    expect(panel).toContainElement(evidenceList());
+    expect(
+      within(evidenceList()).getByRole("button", { name: /Active incidents/ }),
+    ).toBeVisible();
+    expect(
+      within(evidenceList()).getByRole("button", { name: /Logs 17:20/ }),
+    ).toBeVisible();
+    expect(screen.getByTestId("investigation-activity")).not.toBeVisible();
+
+    fireEvent.click(detailsToggle());
+
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "false");
+    expect(detailsBody()).not.toBeVisible();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole("tabpanel")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Evidence checked" })).toBeNull();
+    // The header's summary does not depend on the body being open.
+    expect(screen.getByLabelText("Investigation usage")).toBeVisible();
+  });
+
+  test("switches between the evidence and activity tabs", async () => {
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+    openDetails();
+
+    fireEvent.click(detailsTab(/^Activity/));
+
+    expect(detailsTab(/^Activity/)).toHaveAttribute("aria-selected", "true");
+    expect(detailsTab(/^Evidence checked/)).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    const activityPanel: HTMLElement = screen.getByRole("tabpanel", {
+      name: /^Activity/,
+    });
+    expect(activityPanel).toContainElement(
+      screen.getByTestId("investigation-activity"),
+    );
+    expect(screen.getByTestId("investigation-activity")).toBeVisible();
+    expect(screen.queryByRole("list", { name: "Evidence checked" })).toBeNull();
+
+    // The footer belongs to the body, not to one tab.
+    expect(
+      screen.getByRole("list", { name: "Model and tokens" }),
+    ).toBeVisible();
+
+    fireEvent.click(detailsTab(/^Evidence checked/));
+
+    expect(evidenceList()).toBeVisible();
+    expect(screen.getByTestId("investigation-activity")).not.toBeVisible();
+  });
+
+  /*
+   * The old disclosure advertised the raw event count and showed only the
+   * last ten steps. Several event types only close a step, so the count the
+   * reader sees has to be the steps the feed draws — and a finished run is
+   * short enough to show its whole trail.
+   */
+  test("counts the steps the feed draws and shows the whole finished trail", async () => {
+    const events: JSONArray = [];
+
+    for (let index: number = 0; index < 24; index++) {
+      events.push({
+        _id: `55555555-5555-4555-8555-${String(index).padStart(12, "0")}`,
+        sequence: index + 1,
+        eventType:
+          index % 2 === 0
+            ? AIRunEventType.ToolCallStarted
+            : AIRunEventType.ToolCallCompleted,
+        toolName: "search_logs",
+        createdAt: new Date("2026-08-07T10:00:00.000Z"),
+      });
+    }
+
+    countActivityStepsMock.mockReturnValue(12);
+    postMock.mockResolvedValue(structuredResponse({ events }) as never);
+
+    renderPanel();
+    await flush();
+
+    const usage: HTMLElement = screen.getByLabelText("Investigation usage");
+    expect(usage).toHaveTextContent("12 steps");
+    expect(usage).not.toHaveTextContent("24");
+
+    openDetails();
+
+    expect(tabNames()).toEqual(["Evidence checked2", "Activity12"]);
+    expect(lastActivityProps().events).toHaveLength(24);
+    expect(lastActivityProps()).toEqual(
+      expect.objectContaining({
+        hideChrome: true,
+        showLiveIndicator: false,
+        maxVisibleSteps: 12,
+      }),
+    );
+  });
+
+  /*
+   * Evidence can land on a later poll than the report. A reader who opened
+   * the section onto the activity is reading it; the arriving evidence adds
+   * a tab beside it rather than yanking the view to the new first tab.
+   */
+  test("keeps a reader on the activity when evidence arrives after they opened it", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+    openDetails();
+
+    expect(detailsToggle()).toHaveTextContent("Investigation activity");
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.getByTestId("investigation-activity")).toBeVisible();
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(detailsToggle()).toHaveTextContent("Evidence and activity");
+    expect(detailsToggle()).toHaveAttribute("aria-expanded", "true");
+    expect(tabNames()).toEqual(["Evidence checked2", "Activity1"]);
+    expect(detailsTab(/^Activity/)).toHaveAttribute("aria-selected", "true");
+    expect(detailsTab(/^Evidence checked/)).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    expect(screen.getByTestId("investigation-activity")).toBeVisible();
+    expect(screen.queryByRole("list", { name: "Evidence checked" })).toBeNull();
+  });
+
+  /*
+   * The counterpart: nobody has looked yet, so there is nothing to keep, and
+   * the section opens on the evidence like any report that has some.
+   */
+  test("opens on the evidence when it arrived before the reader looked", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockResolvedValue(structuredResponse() as never);
+
+    renderPanel();
+    await flush();
+    await tick(SETTLED_POLL_INTERVAL_MS);
+    openDetails();
+
+    expect(detailsTab(/^Evidence checked/)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(evidenceList()).toBeVisible();
   });
 });
 
@@ -2410,8 +3100,26 @@ describe("InvestigationPanel report summary callback", () => {
     await flush();
 
     const summary: string = nonNullCalls(onReportSummaryChange)[0] as string;
-    expect(summary.length).toBeLessThanOrEqual(280);
+    // Bounded by the analysisTldr column; the header clamps it on screen.
+    expect(summary.length).toBeLessThanOrEqual(500);
+    expect(summary.length).toBeGreaterThan(280);
     expect(summary.endsWith("…")).toBe(true);
+  });
+
+  test("reports a TL;DR at the server's 320-character cap whole", async () => {
+    const onReportSummaryChange: MockFunction = getJestMockFunction();
+    const longTldr: string =
+      "checkout-api release 2026.09.14-2 restarted at 17:52:04 with DB_POOL_MAX=10 instead of 40, so requests waited up to 2s in pg.pool.connect for an orders-db connection and p95 latency rose from ~310 ms to 2.35 s (db.client.connections.usage pinned at 10/10). Rolling back to 2026.09.14-1 cleared it, as in #1017 and #1029.";
+
+    expect(longTldr).toHaveLength(320);
+    postMock.mockResolvedValue(
+      structuredResponse({ analysisTldr: longTldr }) as never,
+    );
+
+    renderPanel({ onReportSummaryChange });
+    await flush();
+
+    expect(nonNullCalls(onReportSummaryChange)).toEqual([longTldr]);
   });
 
   test("reports null when a report has neither a TL;DR nor a Summary", async () => {
@@ -2559,5 +3267,335 @@ describe("InvestigationPanel report summary callback", () => {
     await tick(SETTLED_POLL_INTERVAL_MS);
 
     expect(second).toHaveBeenLastCalledWith("A newer summary.");
+  });
+});
+
+/*
+ * The header shows a responder's verdict next to the report's summary, so the
+ * panel reports it on the summary's terms: once per change, null until a
+ * report is on screen, and afresh for every subject.
+ */
+describe("InvestigationPanel verdict callback", () => {
+  function reportedVerdicts(callback: MockFunction): Array<unknown> {
+    return callback.mock.calls.map((call: Array<unknown>): unknown => {
+      return call[0];
+    });
+  }
+
+  function nonNullVerdicts(callback: MockFunction): Array<unknown> {
+    return reportedVerdicts(callback).filter((value: unknown): boolean => {
+      return value !== null;
+    });
+  }
+
+  test.each(Object.values(AIRunHumanVerdict))(
+    "reports a %s verdict saved with the completed report",
+    async (verdict: AIRunHumanVerdict) => {
+      const onVerdictChange: MockFunction = getJestMockFunction();
+      postMock.mockResolvedValue(
+        structuredResponse({ humanVerdict: verdict }) as never,
+      );
+
+      renderPanel({ onVerdictChange });
+      await flush();
+
+      expect(onVerdictChange).toHaveBeenLastCalledWith(verdict);
+      expect(nonNullVerdicts(onVerdictChange)).toEqual([verdict]);
+    },
+  );
+
+  test("reports null for a report nobody has rated", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(structuredResponse() as never);
+
+    renderPanel({ onVerdictChange });
+    await flush();
+
+    expect(onVerdictChange).toHaveBeenCalledWith(null);
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([]);
+  });
+
+  test("reports no verdict it cannot name", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      structuredResponse({ humanVerdict: "Edited" }) as never,
+    );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([]);
+  });
+
+  test.each([
+    [
+      "while a new run is in flight",
+      (): ApiResponse => {
+        return successfulResponse(
+          investigationPayload({
+            status: AIRunStatus.Running,
+            humanVerdict: AIRunHumanVerdict.Confirmed,
+          }),
+        );
+      },
+    ],
+    [
+      "while the report is still being prepared",
+      (): ApiResponse => {
+        return completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: true,
+          humanVerdict: AIRunHumanVerdict.Confirmed,
+        });
+      },
+    ],
+  ])(
+    "reports no verdict %s",
+    async (_label: string, response: () => ApiResponse) => {
+      const onVerdictChange: MockFunction = getJestMockFunction();
+      postMock.mockResolvedValue(response() as never);
+
+      renderPanel({ onVerdictChange });
+      await flush();
+
+      expect(nonNullVerdicts(onVerdictChange)).toEqual([]);
+    },
+  );
+
+  test("reports a rating the moment it is made, and a changed one", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(structuredResponse() as never)
+      .mockResolvedValueOnce(successfulResponse({}) as never)
+      .mockResolvedValueOnce(successfulResponse({}) as never);
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
+    // Optimistic, like the panel's own pill: before the save resolves.
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Confirmed,
+    );
+    await flush();
+
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+    await flush();
+
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([
+      AIRunHumanVerdict.Confirmed,
+      AIRunHumanVerdict.Rejected,
+    ]);
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Rejected,
+    );
+  });
+
+  test("takes a rating back out when the save fails", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(structuredResponse() as never)
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          500,
+          { message: "Verdict storage is unavailable." },
+          {},
+        ) as never,
+      );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+    await flush();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not save your verdict",
+    );
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([
+      AIRunHumanVerdict.Rejected,
+    ]);
+    expect(onVerdictChange).toHaveBeenLastCalledWith(null);
+  });
+
+  test("a poll started before a rating saved cannot flip the reported verdict", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    const stalePoll: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(structuredResponse() as never)
+      .mockReturnValueOnce(stalePoll.promise as never)
+      .mockResolvedValueOnce(successfulResponse({}) as never);
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    await tick(SETTLED_POLL_INTERVAL_MS);
+    expect(postMock).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
+    await flush();
+    const callsAfterRating: number = onVerdictChange.mock.calls.length;
+
+    await resolveDeferred(
+      stalePoll,
+      structuredResponse({ humanVerdict: null }),
+    );
+
+    expect(onVerdictChange).toHaveBeenCalledTimes(callsAfterRating);
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Confirmed,
+    );
+  });
+
+  test("follows a verdict another responder saves", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(structuredResponse() as never)
+      .mockResolvedValue(
+        structuredResponse({
+          humanVerdict: AIRunHumanVerdict.Rejected,
+        }) as never,
+      );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([]);
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Rejected,
+    );
+  });
+
+  test("does not repeat an unchanged verdict across polls", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      structuredResponse({
+        humanVerdict: AIRunHumanVerdict.Confirmed,
+      }) as never,
+    );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    const callsAfterLoad: number = onVerdictChange.mock.calls.length;
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(investigationPostCount()).toBe(3);
+    expect(onVerdictChange).toHaveBeenCalledTimes(callsAfterLoad);
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([
+      AIRunHumanVerdict.Confirmed,
+    ]);
+  });
+
+  test("drops the verdict when a new run starts", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock
+      .mockResolvedValueOnce(
+        structuredResponse({
+          humanVerdict: AIRunHumanVerdict.Confirmed,
+        }) as never,
+      )
+      .mockResolvedValue(
+        successfulResponse(
+          investigationPayload({
+            status: AIRunStatus.Queued,
+            runId: NEXT_RUN_ID,
+          }),
+        ) as never,
+      );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Confirmed,
+    );
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(onVerdictChange).toHaveBeenLastCalledWith(null);
+  });
+
+  test("reports null the moment the subject changes, then the new verdict", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    const nextSubject: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(
+        structuredResponse({
+          humanVerdict: AIRunHumanVerdict.Confirmed,
+        }) as never,
+      )
+      .mockReturnValueOnce(nextSubject.promise as never);
+
+    const view: ReturnType<typeof render> = renderPanel({ onVerdictChange });
+    await flush();
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Confirmed,
+    );
+
+    view.rerender(
+      <InvestigationPanel
+        subjectType="alert"
+        subjectId={ALERT_ID}
+        onVerdictChange={onVerdictChange}
+      />,
+    );
+    await flush();
+
+    // Before the alert's report arrives, and without a stale confirmation.
+    expect(onVerdictChange).toHaveBeenLastCalledWith(null);
+
+    await resolveDeferred(
+      nextSubject,
+      structuredResponse({
+        runId: NEXT_RUN_ID,
+        humanVerdict: AIRunHumanVerdict.Rejected,
+      }),
+    );
+
+    expect(onVerdictChange).toHaveBeenLastCalledWith(
+      AIRunHumanVerdict.Rejected,
+    );
+    expect(nonNullVerdicts(onVerdictChange)).toEqual([
+      AIRunHumanVerdict.Confirmed,
+      AIRunHumanVerdict.Rejected,
+    ]);
+  });
+
+  test("uses the latest callback without re-reporting", async () => {
+    const first: MockFunction = getJestMockFunction();
+    const second: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      structuredResponse({
+        humanVerdict: AIRunHumanVerdict.Confirmed,
+      }) as never,
+    );
+
+    const view: ReturnType<typeof render> = renderPanel({
+      onVerdictChange: first,
+    });
+    await flush();
+    expect(first).toHaveBeenLastCalledWith(AIRunHumanVerdict.Confirmed);
+    const firstCallCount: number = first.mock.calls.length;
+
+    view.rerender(
+      <InvestigationPanel
+        subjectType="incident"
+        subjectId={INCIDENT_ID}
+        onVerdictChange={second}
+      />,
+    );
+    await flush();
+    expect(second).not.toHaveBeenCalled();
+
+    postMock.mockResolvedValue(
+      structuredResponse({ humanVerdict: AIRunHumanVerdict.Rejected }) as never,
+    );
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(reportedVerdicts(second)).toEqual([AIRunHumanVerdict.Rejected]);
+    expect(first).toHaveBeenCalledTimes(firstCallCount);
   });
 });

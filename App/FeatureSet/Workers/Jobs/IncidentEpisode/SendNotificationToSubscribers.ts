@@ -372,10 +372,15 @@ RunCron(
             const statusPageIdString: string | null =
               statuspage.id?.toString() || statuspage._id?.toString() || null;
 
+            /*
+             * The status page has no /episodes page: it shows an episode on its
+             * incident detail route (/incidents/:id), which looks the id up as
+             * an incident first and then as an episode.
+             */
             const episodeDetailsUrl: string =
               episode.id && statusPageURL
                 ? URL.fromString(statusPageURL)
-                    .addRoute(`/episodes/${episode.id.toString()}`)
+                    .addRoute(`/incidents/${episode.id.toString()}`)
                     .toString()
                 : statusPageURL;
 
@@ -446,7 +451,13 @@ RunCron(
               ),
             ]);
 
-            // Prepare template variables for custom templates
+            /*
+             * Every variable SubscriberNotificationTemplateVariables advertises
+             * for SubscriberEpisodeCreated, built once per status page. Each
+             * channel below uses this object (SMS only swaps the description
+             * for plain text, and every channel adds the subscriber's
+             * unsubscribeUrl), so no channel can miss a variable the others have.
+             */
             const templateVariables: Record<string, string> = {
               statusPageName: statusPageName,
               statusPageUrl: statusPageURL,
@@ -543,7 +554,7 @@ RunCron(
                           emailTemplate.emailSubject,
                           subscriberTemplateVariables,
                         )
-                      : "[Incident] " + episode.title || "";
+                      : "[Incident] " + (episode.title || "");
 
                     MailService.sendMail(
                       {
@@ -609,7 +620,7 @@ RunCron(
                               statuspage,
                             ),
                         },
-                        subject: "[Incident] " + episode.title || "",
+                        subject: "[Incident] " + (episode.title || ""),
                       },
                       {
                         mailServer: ProjectSMTPConfigService.toEmailServer(
