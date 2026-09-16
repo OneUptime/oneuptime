@@ -513,10 +513,23 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
           type: "default",
           animated: false,
           label,
-          labelStyle: { fontSize: 11, fill: "#334155", fontWeight: 600 },
+          /*
+           * Keep the metric chip readable in both themes. A fixed slate fill
+           * becomes dark text on the dark surface, which makes the label all
+           * but disappear. The opaque, bordered background also separates a
+           * label from the several colored edges that can cross behind it.
+           */
+          labelShowBg: true,
+          labelStyle: {
+            fontSize: 11,
+            fill: "var(--ou-text-secondary, #4b5563)",
+            fontWeight: 600,
+          },
           labelBgStyle: {
             fill: "var(--ou-surface-primary, #ffffff)",
-            fillOpacity: 0.95,
+            fillOpacity: 1,
+            stroke: "var(--ou-border-default, #e5e7eb)",
+            strokeWidth: 1,
           },
           labelBgPadding: [6, 3],
           labelBgBorderRadius: 6,
