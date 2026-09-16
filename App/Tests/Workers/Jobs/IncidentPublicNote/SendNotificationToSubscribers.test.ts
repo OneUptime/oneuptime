@@ -1,11 +1,13 @@
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import URL from "Common/Types/API/URL";
+import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
@@ -14,6 +16,7 @@ import Phone from "Common/Types/Phone";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 
 /*
@@ -87,9 +90,23 @@ jest.mock("Common/Server/Utils/StatusPageResource", () => {
   return {
     __esModule: true,
     default: {
-      getResourcesGroupedByGroupName: jest.fn(() => {
-        return "Checkout API";
-      }),
+      /*
+       * Lists the resources it is given, as the real helper does for
+       * ungrouped resources, so a test can tell which status page's
+       * resources reached a message.
+       */
+      getResourcesGroupedByGroupName: jest.fn(
+        (resources: Array<{ displayName?: string | undefined }>): string => {
+          return resources
+            .map((row: { displayName?: string | undefined }): string => {
+              return row.displayName || "";
+            })
+            .filter((name: string): boolean => {
+              return Boolean(name);
+            })
+            .join(", ");
+        },
+      ),
     },
   };
 });
@@ -125,19 +142,22 @@ jest.mock(
       __esModule: true,
       default: { getTemplateForStatusPage: jest.fn() },
       Service: {
-        compileTemplate: (
-          template: string,
-          variables: Record<string, string>,
-        ): string => {
-          let compiled: string = template;
-          for (const [key, value] of Object.entries(variables)) {
-            compiled = compiled.replace(
-              new RegExp(`{{\\s*${key}\\s*}}`, "g"),
-              value || "",
-            );
-          }
-          return compiled;
-        },
+        /*
+         * The real substitution, wrapped in a mock so tests can read the
+         * variables each channel handed to its template.
+         */
+        compileTemplate: jest.fn(
+          (template: string, variables: Record<string, string>): string => {
+            let compiled: string = template;
+            for (const [key, value] of Object.entries(variables)) {
+              compiled = compiled.replace(
+                new RegExp(`{{\\s*${key}\\s*}}`, "g"),
+                value || "",
+              );
+            }
+            return compiled;
+          },
+        ),
       },
     };
   },
@@ -204,7 +224,9 @@ import MailService from "Common/Server/Services/MailService";
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
-import StatusPageSubscriberNotificationTemplateService from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import Markdown from "Common/Server/Types/Markdown";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
@@ -214,7 +236,14 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
 import "../../../../FeatureSet/Workers/Jobs/IncidentPublicNote/SendNotificationToSubscribers";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 const CREATED_JOB: string = "IncidentPublicNote:SendNotificationToSubscribers";
 const UPDATED_JOB: string =
@@ -239,6 +268,9 @@ const SUBSCRIBER_ID: ObjectID = new ObjectID(
 const MONITOR_ID: ObjectID = new ObjectID(
   "77777777-7777-4777-8777-777777777777",
 );
+const SECOND_STATUS_PAGE_ID: ObjectID = new ObjectID(
+  "99999999-9999-4999-8999-999999999999",
+);
 
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}`;
@@ -250,6 +282,13 @@ const NOTE: string = "Traffic moved to the **standby** region.";
 const NOTE_HTML: string =
   "<p>Traffic moved to the <strong>standby</strong> region.</p>";
 const NOTE_TEXT: string = "Traffic moved to the standby region.";
+const INCIDENT_STATE_NAME: string = "Identified";
+
+/*
+ * When the note says it was posted: months before any test runs, so a value
+ * formatted from "now" can never pass for it.
+ */
+const POSTED_AT: Date = new Date("2026-03-04T12:00:00.000Z");
 
 let createdNotes: Array<IncidentPublicNote> = [];
 let updatedNotes: Array<IncidentPublicNote> = [];
@@ -258,12 +297,17 @@ let storedIncident: Incident | null = null;
 function publicNote(overrides?: {
   id?: ObjectID;
   subscriberNotificationStatusOnNoteCreated?: StatusPageSubscriberNotificationStatus;
+  // null leaves postedAt unset, like a legacy row.
+  postedAt?: Date | null;
 }): IncidentPublicNote {
   const note: IncidentPublicNote = new IncidentPublicNote();
   note._id = (overrides?.id || NOTE_ID).toString();
   note.note = NOTE;
   note.incidentId = INCIDENT_ID;
   note.projectId = PROJECT_ID;
+  if (overrides?.postedAt !== null) {
+    note.postedAt = overrides?.postedAt || POSTED_AT;
+  }
   note.subscriberNotificationStatusOnNoteCreated =
     overrides?.subscriberNotificationStatusOnNoteCreated ||
     StatusPageSubscriberNotificationStatus.Success;
@@ -273,10 +317,14 @@ function publicNote(overrides?: {
 function incident(overrides?: {
   isVisibleOnStatusPage?: boolean;
   withoutMonitors?: boolean;
+  withoutCurrentState?: boolean;
+  withoutTitle?: boolean;
 }): Incident {
   const row: Incident = new Incident();
   row._id = INCIDENT_ID.toString();
-  row.title = INCIDENT_TITLE;
+  if (!overrides?.withoutTitle) {
+    row.title = INCIDENT_TITLE;
+  }
   row.description = "Payments fail in Europe.";
   row.projectId = PROJECT_ID;
   row.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
@@ -286,6 +334,12 @@ function incident(overrides?: {
   const severity: IncidentSeverity = new IncidentSeverity();
   severity.name = "Critical";
   row.incidentSeverity = severity;
+
+  if (!overrides?.withoutCurrentState) {
+    const state: IncidentState = new IncidentState();
+    state.name = INCIDENT_STATE_NAME;
+    row.currentIncidentState = state;
+  }
 
   if (!overrides?.withoutMonitors) {
     const monitor: Monitor = new Monitor();
@@ -300,23 +354,35 @@ function incident(overrides?: {
 
 function statusPage(overrides?: {
   showIncidentsOnStatusPage?: boolean;
+  id?: ObjectID;
+  pageTitle?: string;
+  // Custom SMTP and Twilio, which Email and SMS need to use custom templates.
+  withCustomSmtpAndSms?: boolean;
 }): StatusPage {
   const page: StatusPage = new StatusPage();
-  page._id = STATUS_PAGE_ID.toString();
+  page._id = (overrides?.id || STATUS_PAGE_ID).toString();
   page.projectId = PROJECT_ID;
   page.name = "Acme";
-  page.pageTitle = "Acme Status";
+  page.pageTitle = overrides?.pageTitle || "Acme Status";
   page.isPublicStatusPage = true;
   page.showIncidentsOnStatusPage =
     overrides?.showIncidentsOnStatusPage !== false;
+  if (overrides?.withCustomSmtpAndSms) {
+    (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+    (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+  }
   return page;
 }
 
-function resource(): StatusPageResource {
+function resource(overrides?: {
+  id?: string;
+  statusPageId?: ObjectID;
+  displayName?: string;
+}): StatusPageResource {
   const row: StatusPageResource = new StatusPageResource();
-  row._id = "88888888-8888-4888-8888-888888888888";
-  row.statusPageId = STATUS_PAGE_ID;
-  row.displayName = "Checkout API";
+  row._id = overrides?.id || "88888888-8888-4888-8888-888888888888";
+  row.statusPageId = overrides?.statusPageId || STATUS_PAGE_ID;
+  row.displayName = overrides?.displayName || "Checkout API";
   return row;
 }
 
@@ -446,6 +512,126 @@ async function runJob(name: string): Promise<void> {
   await mockCapturedJobs[name]!();
 }
 
+interface CompileCall {
+  template: string;
+  variables: Record<string, string>;
+}
+
+function compileCalls(): Array<CompileCall> {
+  return mock(
+    StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+  ).mock.calls.map((call: Array<unknown>): CompileCall => {
+    return {
+      template: call[0] as string,
+      variables: call[1] as Record<string, string>,
+    };
+  });
+}
+
+interface TriggerCase {
+  name: string;
+  job: string;
+  eventType: StatusPageSubscriberNotificationEventType;
+}
+
+const TRIGGERS: Array<TriggerCase> = [
+  {
+    name: "created job",
+    job: CREATED_JOB,
+    eventType:
+      StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+  },
+  {
+    name: "updated job",
+    job: UPDATED_JOB,
+    eventType:
+      StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated,
+  },
+];
+
+// Puts one note in the queue the given job reads.
+function queueNote(job: string, overrides?: { postedAt?: Date | null }): void {
+  const note: IncidentPublicNote = publicNote(overrides);
+
+  if (job === UPDATED_JOB) {
+    updatedNotes = [note];
+  } else {
+    createdNotes = [note];
+  }
+}
+
+const EMAIL_SUBJECT_TEMPLATE: string =
+  "Subject: {{incidentTitle}} ({{incidentState}}, {{postedAt}})";
+
+/*
+ * A template body that prints every variable advertised for the event as
+ * name=[value], so a test can see which ones rendered and with what.
+ */
+function templateUsingEveryVariable(
+  channel: string,
+  eventType: StatusPageSubscriberNotificationEventType,
+): string {
+  const lines: Array<string> =
+    SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+      eventType,
+    ).map((name: string): string => {
+      return `${name}=[{{${name}}}]`;
+    });
+
+  return [`channel=${channel}`, ...lines].join("\n");
+}
+
+/*
+ * Gives the status pages custom SMTP and Twilio and a custom template for
+ * the event on Email, SMS, Slack and Teams, each printing every advertised
+ * variable. A lookup for any other event finds no template. Returns the
+ * body used for each channel.
+ */
+function useCustomTemplatesOnEveryChannel(
+  eventType: StatusPageSubscriberNotificationEventType,
+  pages?: Array<StatusPage>,
+): Record<string, string> {
+  mock(
+    StatusPageSubscriberService.getStatusPagesToSendNotification,
+  ).mockResolvedValue(
+    (pages || [statusPage({ withCustomSmtpAndSms: true })]) as never,
+  );
+
+  const bodies: Record<string, string> = {
+    [StatusPageSubscriberNotificationMethod.Email]: templateUsingEveryVariable(
+      "email",
+      eventType,
+    ),
+    [StatusPageSubscriberNotificationMethod.SMS]: templateUsingEveryVariable(
+      "sms",
+      eventType,
+    ),
+    [StatusPageSubscriberNotificationMethod.Slack]: templateUsingEveryVariable(
+      "slack",
+      eventType,
+    ),
+    [StatusPageSubscriberNotificationMethod.MicrosoftTeams]:
+      templateUsingEveryVariable("teams", eventType),
+  };
+
+  mock(
+    StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+  ).mockImplementation(async (args: unknown) => {
+    const lookup: JSONObject = args as JSONObject;
+    const method: string = lookup["notificationMethod"] as string;
+
+    if (lookup["eventType"] !== eventType || !bodies[method]) {
+      return null;
+    }
+
+    return method === StatusPageSubscriberNotificationMethod.Email
+      ? { templateBody: bodies[method], emailSubject: EMAIL_SUBJECT_TEMPLATE }
+      : { templateBody: bodies[method] };
+  });
+
+  return bodies;
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
 
@@ -540,6 +726,7 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
     expect(args.select["subscriberNotificationStatusOnNoteCreated"]).toBe(true);
     expect(args.select["note"]).toBe(true);
     expect(args.select["incidentId"]).toBe(true);
+    expect(args.select["postedAt"]).toBe(true);
   });
 
   test("does not resolve the host when nothing is pending", async () => {
@@ -865,6 +1052,20 @@ describe("IncidentPublicNote:SendNotificationToSubscribers (created)", () => {
     });
   });
 
+  test("reads the note's own postedAt for {{postedAt}}", async () => {
+    await runJob(CREATED_JOB);
+
+    const select: JSONObject = (
+      mock(IncidentPublicNoteService.findBy).mock.calls[0]![0] as {
+        select: JSONObject;
+      }
+    ).select;
+
+    expect(select["postedAt"]).toBe(true);
+    expect(select["note"]).toBe(true);
+    expect(select["incidentId"]).toBe(true);
+  });
+
   test("sends the new-note messages it always has", async () => {
     createdNotes = [
       publicNote({
@@ -999,4 +1200,330 @@ describe("IncidentPublicNote update job, with a custom update email template", (
     );
     expect(sentMail()[0]!["vars"]).toEqual({ body: `<p>Edited: ${NOTE}</p>` });
   });
+});
+
+describe("IncidentPublicNote custom email subject fallback", () => {
+  test.each([
+    { name: "created job", job: CREATED_JOB, prefix: "[Incident Update] " },
+    {
+      name: "updated job",
+      job: UPDATED_JOB,
+      prefix: "[Incident Note Updated] ",
+    },
+  ])(
+    "$name: an untitled incident gets the bare prefix, not 'undefined'",
+    async (row: { name: string; job: string; prefix: string }) => {
+      queueNote(row.job);
+      storedIncident = incident({ withoutTitle: true });
+
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        statusPage({ withCustomSmtpAndSms: true }),
+      ] as never);
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        return (args as JSONObject)["notificationMethod"] ===
+          StatusPageSubscriberNotificationMethod.Email
+          ? { templateBody: "<p>{{note}}</p>" }
+          : null;
+      });
+
+      await runJob(row.job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["subject"]).toBe(row.prefix);
+    },
+  );
+});
+
+describe("IncidentPublicNote custom templates receive every advertised variable", () => {
+  test.each(TRIGGERS)(
+    "$name: Email, SMS, Slack and Teams each get all of them",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      const bodies: Record<string, string> = useCustomTemplatesOnEveryChannel(
+        trigger.eventType,
+      );
+
+      await runJob(trigger.job);
+
+      const calls: Array<CompileCall> = compileCalls();
+
+      // Email body and subject, SMS, Slack and Teams: one each.
+      expect(calls).toHaveLength(5);
+      expect(
+        calls.map((call: CompileCall): string => {
+          return call.template;
+        }),
+      ).toEqual(
+        expect.arrayContaining([
+          bodies[StatusPageSubscriberNotificationMethod.Email],
+          EMAIL_SUBJECT_TEMPLATE,
+          bodies[StatusPageSubscriberNotificationMethod.SMS],
+          bodies[StatusPageSubscriberNotificationMethod.Slack],
+          bodies[StatusPageSubscriberNotificationMethod.MicrosoftTeams],
+        ]),
+      );
+
+      const names: Array<string> =
+        SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+          trigger.eventType,
+        );
+      expect(names.length).toBeGreaterThan(0);
+
+      for (const call of calls) {
+        const missing: Array<string> = names.filter((name: string): boolean => {
+          return (
+            !Object.prototype.hasOwnProperty.call(call.variables, name) ||
+            typeof call.variables[name] !== "string"
+          );
+        });
+
+        expect({ template: call.template, missing }).toEqual({
+          template: call.template,
+          missing: [],
+        });
+      }
+    },
+  );
+});
+
+describe("IncidentPublicNote custom template variable values", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test.each(TRIGGERS)(
+    "$name: incidentState is the incident's current state name",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      useCustomTemplatesOnEveryChannel(trigger.eventType);
+
+      await runJob(trigger.job);
+
+      const select: JSONObject = (
+        mock(IncidentService.findOneById).mock.calls[0]![0] as {
+          select: JSONObject;
+        }
+      ).select;
+      expect(select["currentIncidentState"]).toEqual({ name: true });
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls).toHaveLength(5);
+      for (const call of calls) {
+        expect(call.variables["incidentState"]).toBe(INCIDENT_STATE_NAME);
+      }
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: incidentState renders empty when the incident has no current state",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      storedIncident = incident({ withoutCurrentState: true });
+      useCustomTemplatesOnEveryChannel(trigger.eventType);
+
+      await runJob(trigger.job);
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls).toHaveLength(5);
+      for (const call of calls) {
+        expect(call.variables["incidentState"]).toBe("");
+      }
+      expect(sentSms()[0]).toContain("incidentState=[]");
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: postedAt is the note's own postedAt, formatted for people",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      useCustomTemplatesOnEveryChannel(trigger.eventType);
+
+      await runJob(trigger.job);
+
+      const expected: string =
+        OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT);
+
+      // Server side the formatter uses a 12-hour clock and a zone name.
+      expect(expected).toMatch(/^Mar 0[45] 2026, \d{2}:\d{2} (AM|PM) \S+/);
+      expect(expected).not.toBe(
+        OneUptimeDate.getDateAsUserFriendlyFormattedString(new Date()),
+      );
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls).toHaveLength(5);
+      for (const call of calls) {
+        expect(call.variables["postedAt"]).toBe(expected);
+      }
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: postedAt follows an edited postedAt on the note",
+    async (trigger: TriggerCase) => {
+      const editedPostedAt: Date = new Date("2026-05-20T08:30:00.000Z");
+      queueNote(trigger.job, { postedAt: editedPostedAt });
+      useCustomTemplatesOnEveryChannel(trigger.eventType);
+
+      await runJob(trigger.job);
+
+      const expected: string =
+        OneUptimeDate.getDateAsUserFriendlyFormattedString(editedPostedAt);
+      expect(expected).not.toBe(
+        OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT),
+      );
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls).toHaveLength(5);
+      for (const call of calls) {
+        expect(call.variables["postedAt"]).toBe(expected);
+      }
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: postedAt falls back to the time of sending for a legacy note without one",
+    async (trigger: TriggerCase) => {
+      const sendingAt: Date = new Date("2026-09-16T15:45:00.000Z");
+      jest.useFakeTimers({
+        now: sendingAt,
+        doNotFake: [
+          "setTimeout",
+          "setImmediate",
+          "nextTick",
+          "queueMicrotask",
+          "performance",
+          "hrtime",
+        ],
+      });
+
+      queueNote(trigger.job, { postedAt: null });
+      useCustomTemplatesOnEveryChannel(trigger.eventType);
+
+      await runJob(trigger.job);
+
+      const expected: string =
+        OneUptimeDate.getDateAsUserFriendlyFormattedString(sendingAt);
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls).toHaveLength(5);
+      for (const call of calls) {
+        expect(call.variables["postedAt"]).toBe(expected);
+      }
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: resourcesAffected lists only the resources on that status page",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      useCustomTemplatesOnEveryChannel(trigger.eventType, [
+        statusPage({ withCustomSmtpAndSms: true }),
+        statusPage({
+          withCustomSmtpAndSms: true,
+          id: SECOND_STATUS_PAGE_ID,
+          pageTitle: "Beta Status",
+        }),
+      ]);
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
+        resource(),
+        resource({
+          id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          statusPageId: SECOND_STATUS_PAGE_ID,
+          displayName: "Search API",
+        }),
+      ] as never);
+
+      await runJob(trigger.job);
+
+      const calls: Array<CompileCall> = compileCalls();
+      expect(calls).toHaveLength(10);
+
+      const resourcesByPage: Record<string, Array<string>> = {};
+      for (const call of calls) {
+        const page: string = call.variables["statusPageName"] as string;
+        const resources: string = call.variables["resourcesAffected"] as string;
+        resourcesByPage[page] = resourcesByPage[page] || [];
+        if (!resourcesByPage[page]!.includes(resources)) {
+          resourcesByPage[page]!.push(resources);
+        }
+      }
+
+      expect(resourcesByPage).toEqual({
+        "Acme Status": ["Checkout API"],
+        "Beta Status": ["Search API"],
+      });
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: a template using every advertised variable renders completely on every channel",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      useCustomTemplatesOnEveryChannel(trigger.eventType);
+
+      await runJob(trigger.job);
+
+      const postedAt: string =
+        OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT);
+
+      // What the fixtures hold for each advertised variable.
+      const expectedValues: Record<string, string> = {
+        statusPageName: "Acme Status",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+        resourcesAffected: "Checkout API",
+        incidentTitle: INCIDENT_TITLE,
+        incidentSeverity: "Critical",
+        incidentState: INCIDENT_STATE_NAME,
+        postedAt: postedAt,
+        note: NOTE,
+        detailsUrl: DETAILS_URL,
+      };
+
+      const names: Array<string> =
+        SubscriberNotificationTemplateVariables.getVariableNamesForEventType(
+          trigger.eventType,
+        );
+      expect(Object.keys(expectedValues).sort()).toEqual([...names].sort());
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["templateType"]).toBe(
+        EmailTemplateType.BlankTemplate,
+      );
+      expect(sentSms()).toHaveLength(1);
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+
+      const rendered: Record<string, string> = {
+        email: (sentMail()[0]!["vars"] as JSONObject)["body"] as string,
+        sms: sentSms()[0]!,
+        slack: sentSlack()[0]!,
+        teams: sentTeams()[0]!,
+      };
+
+      for (const [channel, message] of Object.entries(rendered)) {
+        expect(message).toContain(`channel=${channel}`);
+        expect(message).not.toMatch(/{{|}}/);
+
+        for (const name of names) {
+          // SMS gets the note as plain text; the rest get it as written.
+          const value: string =
+            channel === "sms" && name === "note"
+              ? NOTE_TEXT
+              : expectedValues[name]!;
+
+          expect(value).not.toBe("");
+          expect(message).toContain(`${name}=[${value}]`);
+        }
+      }
+
+      expect(sentMail()[0]!["subject"]).toBe(
+        `Subject: ${INCIDENT_TITLE} (${INCIDENT_STATE_NAME}, ${postedAt})`,
+      );
+    },
+  );
 });

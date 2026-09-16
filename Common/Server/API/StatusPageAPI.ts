@@ -2753,8 +2753,13 @@ export default class StatusPageAPI extends BaseAPI<
       ]);
 
     for (const statusPage of statusPages) {
-      // send email to subscriber or sms if phone is provided.
-      const statusPageNameStr: string = statusPage.name || "Status Page";
+      /*
+       * Send email to subscriber or sms if phone is provided. The page is
+       * named the way every other subscriber message names it: its public
+       * title first, then its internal name.
+       */
+      const statusPageNameStr: string =
+        statusPage.pageTitle || statusPage.name || "Status Page";
 
       const [
         manageEmailTemplate,
@@ -2788,9 +2793,15 @@ export default class StatusPageAPI extends BaseAPI<
           ),
         ]);
 
+      /*
+       * The manage link is the subscriber's update-subscription page, which is
+       * the same URL every other sender passes as unsubscribeUrl, so a
+       * template may use either name for it.
+       */
       const manageTemplateVariables: Record<string, string> = {
         statusPageName: statusPageNameStr,
         statusPageUrl: statusPageURL,
+        unsubscribeUrl: manageUrlink,
         manageSubscriptionUrl: manageUrlink,
       };
 
