@@ -18,6 +18,7 @@ import HttpMonitorRequest, {
   HTTP_MONITOR_MAX_RESPONSE_BYTES,
   HttpMonitorExecutionContext,
   MONITOR_DNS_RESOLVE_BUDGET_IN_MS,
+  MonitorTlsOptions,
   PinnedHttpProxyAgent,
   PinnedHttpsProxyAgent,
   PreparedHttpMonitorRequest,
@@ -1080,4 +1081,113 @@ describe("HttpMonitorRequest.getRedirectRequest", () => {
       expect(redirect?.crossesOrigin).toBe(true);
     },
   );
+});
+
+describe("HttpMonitorRequest.getTlsOptionsForHop", () => {
+  const monitorTls: MonitorTlsOptions = {
+    allowSelfSignedCertificates: true,
+    tlsClientCertificate: "CLIENT CERTIFICATE",
+    tlsClientKey: "CLIENT PRIVATE KEY",
+    tlsClientKeyPassphrase: "CLIENT KEY PASSPHRASE",
+  };
+
+  test("passes every option through while the chain is on the monitor origin", () => {
+    expect(
+      HttpMonitorRequest.getTlsOptionsForHop({
+        tls: monitorTls,
+        monitorUrl: "https://example.com/start",
+        hopUrl: "https://example.com/next",
+        includeClientIdentity: true,
+      }),
+    ).toEqual(monitorTls);
+  });
+
+  test.each([
+    "https://example.com/next",
+    "https://example.com:8443/next",
+    "http://example.com:8080/next",
+    "https://EXAMPLE.com/next",
+  ])(
+    "keeps only the self-signed allowance for the monitor hostname after leaving its origin (%s)",
+    (hopUrl: string) => {
+      expect(
+        HttpMonitorRequest.getTlsOptionsForHop({
+          tls: monitorTls,
+          monitorUrl: "http://example.com/start",
+          hopUrl: hopUrl,
+          includeClientIdentity: false,
+        }),
+      ).toStrictEqual({ allowSelfSignedCertificates: true });
+    },
+  );
+
+  test("treats equivalent IPv6 spellings as the same hostname", () => {
+    expect(
+      HttpMonitorRequest.getTlsOptionsForHop({
+        tls: monitorTls,
+        monitorUrl: "http://[2606:4700:0:0:0:0:0:1111]/start",
+        hopUrl: "https://[2606:4700::1111]:8443/next",
+        includeClientIdentity: false,
+      }),
+    ).toStrictEqual({ allowSelfSignedCertificates: true });
+  });
+
+  test.each([
+    "https://www.example.com/next",
+    "https://example.com./next",
+    "https://example.org/next",
+    "https://93.184.216.34/next",
+    "not a url",
+  ])(
+    "drops the self-signed allowance for a different hostname (%s)",
+    (hopUrl: string) => {
+      expect(
+        HttpMonitorRequest.getTlsOptionsForHop({
+          tls: monitorTls,
+          monitorUrl: "http://example.com/start",
+          hopUrl: hopUrl,
+          includeClientIdentity: false,
+        }),
+      ).toBeUndefined();
+    },
+  );
+
+  test("never adds a self-signed allowance the monitor did not ask for", () => {
+    const withoutAllowance: MonitorTlsOptions = {
+      ...monitorTls,
+      allowSelfSignedCertificates: false,
+    };
+
+    expect(
+      HttpMonitorRequest.getTlsOptionsForHop({
+        tls: withoutAllowance,
+        monitorUrl: "http://example.com/start",
+        hopUrl: "https://example.com/next",
+        includeClientIdentity: false,
+      }),
+    ).toBeUndefined();
+    expect(
+      HttpMonitorRequest.getTlsOptionsForHop({
+        tls: withoutAllowance,
+        monitorUrl: "https://example.com/start",
+        hopUrl: "https://example.com/next",
+        includeClientIdentity: true,
+      })?.allowSelfSignedCertificates,
+    ).toBeUndefined();
+  });
+
+  test("scopes the self-signed allowance by hostname independently of client identity", () => {
+    expect(
+      HttpMonitorRequest.getTlsOptionsForHop({
+        tls: monitorTls,
+        monitorUrl: "https://example.com/start",
+        hopUrl: "https://example.org/next",
+        includeClientIdentity: true,
+      }),
+    ).toStrictEqual({
+      tlsClientCertificate: "CLIENT CERTIFICATE",
+      tlsClientKey: "CLIENT PRIVATE KEY",
+      tlsClientKeyPassphrase: "CLIENT KEY PASSPHRASE",
+    });
+  });
 });
