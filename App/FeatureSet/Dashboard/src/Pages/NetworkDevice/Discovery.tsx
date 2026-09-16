@@ -2,6 +2,7 @@ import PageComponentProps from "../PageComponentProps";
 import DiscoveryScanProgress, {
   isWaitingForDiscoveryProgress,
 } from "../../Components/NetworkDevice/DiscoveryScanProgress";
+import DiscoveryScanStatusMessage from "../../Components/NetworkDevice/DiscoveryScanStatusMessage";
 import useDiscoveryScanLiveUpdates, {
   DiscoveryScanLiveUpdates,
 } from "../../Components/NetworkDevice/useDiscoveryScanLiveUpdates";
@@ -1543,24 +1544,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       ? ` · Repeats${item.rescanIntervalInMinutes ? ` every ${item.rescanIntervalInMinutes} min` : " automatically"}`
                       : " · One-time"}
                   </p>
+                  {/*
+                   * The message renders once, as a two-line preview, and
+                   * offers "Show details" only when that preview actually
+                   * cuts it short (issue #3842).
+                   */}
                   {item.statusMessage && (
-                    <details className="group pt-1 text-xs leading-5 text-gray-600">
-                      <summary
-                        className="cursor-pointer list-none rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
-                        aria-label={`Scan details for ${ScanNameUtil.getScanLabel(item) || "this scan"}`}
-                      >
-                        <span className="line-clamp-2 group-open:hidden">
-                          {item.statusMessage}
-                        </span>
-                        <span className="text-blue-700 group-open:hidden">
-                          Show details
-                        </span>
-                        <span className="hidden text-blue-700 group-open:inline">
-                          Hide details
-                        </span>
-                      </summary>
-                      <p className="mt-1">{item.statusMessage}</p>
-                    </details>
+                    <DiscoveryScanStatusMessage
+                      message={item.statusMessage}
+                      scanLabel={ScanNameUtil.getScanLabel(item) || "this scan"}
+                    />
                   )}
                 </div>
               );

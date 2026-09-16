@@ -65,6 +65,10 @@ const scans = [
   scan(3, { name: "Guest network", cidr: "198.51.100.0/24", status: "Pending", startedAt: undefined, scannedHostCount: 0, respondedHostCount: 0, discoveredDevices: [], statusMessage: "Waiting for the assigned probe to start this scan." }),
   scan(4, { name: "Datacenter routers", cidr: "203.0.113.0/28", status: "Completed", scannedHostCount: 14, completedAt: new Date(), statusMessage: "Scan complete. 3 hosts responded, including 2 SNMP devices." }),
   scan(5, { name: "Remote office — Partial results", cidr: "192.0.2.0/24", status: "Failed", scannedHostCount: 128, completedAt: new Date(), statusMessage: "The scan reached its deadline. Results found before the timeout have been preserved." }),
+  // Issue #3842: the probe's summary of a healthy sweep, which fits in the two-line preview.
+  scan(6, { name: "Router Discovery — WBHQ Unit/Core Routers", cidr: "10.240-249.0-255.1", status: "Completed", scannedHostCount: 2560, completedAt: new Date(), statusMessage: "Swept 2560 hosts: 917 answered ICMP ping, 460 answered SNMP." }),
+  // A summary with diagnostics, which the two-line preview has to cut short.
+  scan(7, { name: "Access Discovery — WBHQ Unit/Access Switches", cidr: "10.250.0.0/24", status: "Completed", scannedHostCount: 254, completedAt: new Date(), statusMessage: "Swept 254 hosts: 41 answered ICMP ping, 3 answered SNMP. 12 host(s) replied with an SNMP error rather than silence; most common: Authentication failure (incorrect password, community or key). Answered by credentials: Core v3 on 3. No host answered: Legacy v2c community." }),
 ];
 window.__discoveryFixture = {
   requests: [],
