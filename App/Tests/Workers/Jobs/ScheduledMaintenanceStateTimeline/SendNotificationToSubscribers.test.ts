@@ -25,7 +25,9 @@ import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/Sub
  * lists for it, on every channel that compiles one: email (with the page's own
  * SMTP), SMS (with the page's own Twilio), Slack and Microsoft Teams.
  * {{scheduledMaintenanceDescription}} used to be listed but never passed, so
- * it rendered as an empty string everywhere.
+ * it rendered as an empty string everywhere. Each channel gets it in the
+ * format it renders: HTML in the email body, plain text in the email subject
+ * and SMS, and the Markdown as written in Slack and Teams.
  */
 
 type CronHandler = () => Promise<void>;
@@ -212,7 +214,7 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
-import Markdown from "Common/Server/Types/Markdown";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
@@ -296,12 +298,19 @@ const DASHBOARD_URL: string =
 const EVENT_TITLE: string = "Payments cluster failover drill";
 const DESCRIPTION: string =
   "Traffic moves to the **standby** region. See [the runbook](https://docs.acme.com/drill).";
+const DESCRIPTION_HTML: string =
+  '<p>Traffic moves to the <strong>standby</strong> region. See <a href="https://docs.acme.com/drill">the runbook</a>.</p>';
 const DESCRIPTION_TEXT: string =
   "Traffic moves to the standby region. See the runbook.";
 
 // What the mocked Markdown.convertToPlainText returns for each input.
 const PLAIN_TEXT: Record<string, string> = {
   [DESCRIPTION]: DESCRIPTION_TEXT,
+};
+
+// What the mocked Markdown.convertToHTML returns for each email input.
+const EMAIL_HTML: Record<string, string> = {
+  [DESCRIPTION]: DESCRIPTION_HTML,
 };
 
 /*
@@ -657,18 +666,39 @@ function sentCustomMessages(): Array<string> {
   ];
 }
 
-// The message each templated channel gets from a template rendering `body`.
+/*
+ * The message each templated channel gets from a template rendering `body`:
+ * `emailBody` for the email body, which gets HTML, and `textBody` for the
+ * email subject and SMS, which get plain text, where those differ.
+ */
 function expectedCustomMessages(data: {
   body: string;
-  smsBody?: string;
+  emailBody?: string;
+  textBody?: string;
 }): Array<string> {
   return [
-    `Email|${data.body}`,
-    `Subject|${data.body}`,
-    `SMS|${data.smsBody ?? data.body}`,
+    `Email|${data.emailBody ?? data.body}`,
+    `Subject|${data.textBody ?? data.body}`,
+    `SMS|${data.textBody ?? data.body}`,
     `Slack|${data.body}`,
     `Microsoft Teams|${data.body}`,
   ];
+}
+
+// The description each channel's template is given.
+function descriptionForChannel(channel: string): string {
+  switch (channel) {
+    case "Email":
+      return DESCRIPTION_HTML;
+    case "Subject":
+    case "SMS":
+      return DESCRIPTION_TEXT;
+    case "Slack":
+    case "Microsoft Teams":
+      return DESCRIPTION;
+    default:
+      throw new Error(`Unexpected channel ${channel}`);
+  }
 }
 
 function nothingSent(): void {
@@ -790,6 +820,14 @@ beforeEach(() => {
       return PLAIN_TEXT[markdown as string] ?? (markdown as string);
     },
   );
+  mock(Markdown.convertToHTML).mockImplementation(
+    async (markdown: unknown, contentType: unknown): Promise<string> => {
+      if (contentType !== MarkdownContentType.Email) {
+        return "HTML for the wrong content type";
+      }
+      return EMAIL_HTML[markdown as string] ?? "";
+    },
+  );
 
   mock(MailService.sendMail).mockResolvedValue(undefined as never);
   mock(SmsService.sendSms).mockResolvedValue(undefined as never);
@@ -891,7 +929,7 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
     });
   });
 
-  test("sends the webhook payload it always has", async () => {
+  test("sends the webhook payload it always has, plus the description as written", async () => {
     await runJob();
 
     expect(sentWebhooks()).toEqual([
@@ -904,6 +942,7 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
         data: {
           scheduledMaintenanceId: EVENT_ID.toString(),
           scheduledMaintenanceTitle: EVENT_TITLE,
+          scheduledMaintenanceDescription: DESCRIPTION,
           scheduledMaintenanceState: STATE_NAME,
           resourcesAffected: DEFAULT_RESOURCES_AFFECTED,
           detailsUrl: DETAILS_URL,
@@ -946,6 +985,22 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
           StatusPageSubscriberNotificationStatus.Skipped,
       }),
     );
+  });
+
+  test("marks the state change Failed with the reason when the description cannot be converted", async () => {
+    useCustomTemplates({ body: "desc={{scheduledMaintenanceDescription}}" });
+    mock(Markdown.convertToHTML).mockRejectedValue(
+      new Error("markdown exploded") as never,
+    );
+
+    await runJob();
+
+    nothingSent();
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Failed,
+      subscriberNotificationStatusMessage: "markdown exploded",
+    });
   });
 
   test("skips a state with no name", async () => {
@@ -1020,7 +1075,7 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
     expect(missing).toEqual([]);
   });
 
-  test("gives every channel the same variables, with only the description as plain text on SMS", async () => {
+  test("gives every channel the same variables, with only the description in each channel's format", async () => {
     mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
       groupedResources() as never,
     );
@@ -1047,12 +1102,25 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
     for (const call of calls) {
       expect({ channel: call.channel, variables: call.variables }).toEqual({
         channel: call.channel,
-        variables:
-          call.channel === "SMS"
-            ? { ...expected, scheduledMaintenanceDescription: DESCRIPTION_TEXT }
-            : expected,
+        variables: {
+          ...expected,
+          scheduledMaintenanceDescription: descriptionForChannel(call.channel),
+        },
       });
     }
+
+    const descriptions: Record<string, string> = {};
+    for (const call of calls) {
+      descriptions[call.channel] =
+        call.variables["scheduledMaintenanceDescription"]!;
+    }
+    expect(descriptions).toEqual({
+      Email: DESCRIPTION_HTML,
+      Subject: DESCRIPTION_TEXT,
+      SMS: DESCRIPTION_TEXT,
+      Slack: DESCRIPTION,
+      "Microsoft Teams": DESCRIPTION,
+    });
   });
 
   test("renders a template that uses every advertised variable with nothing left over", async () => {
@@ -1097,8 +1165,13 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       scheduledMaintenanceState: STATE_NAME,
       detailsUrl: DETAILS_URL,
     };
-    // SMS gets the Markdown description as plain text.
-    const smsValues: Record<string, string> = {
+    // The email body gets the Markdown description as HTML.
+    const emailValues: Record<string, string> = {
+      ...values,
+      scheduledMaintenanceDescription: DESCRIPTION_HTML,
+    };
+    // The email subject and SMS get it as plain text.
+    const textValues: Record<string, string> = {
       ...values,
       scheduledMaintenanceDescription: DESCRIPTION_TEXT,
     };
@@ -1117,24 +1190,33 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
     expect(messages).toEqual(
       expectedCustomMessages({
         body: render(values),
-        smsBody: render(smsValues),
+        emailBody: render(emailValues),
+        textBody: render(textValues),
       }),
     );
   });
 
-  test("gives the description as written, and as plain text on SMS", async () => {
+  test("gives the description as HTML in the email body, as plain text in the email subject and SMS, and as written in Slack and Teams", async () => {
     useCustomTemplates({ body: "desc={{scheduledMaintenanceDescription}}" });
 
     await runJob();
 
-    expect(DESCRIPTION_TEXT).not.toBe(DESCRIPTION);
+    expect(
+      new Set([DESCRIPTION, DESCRIPTION_HTML, DESCRIPTION_TEXT]).size,
+    ).toBe(3);
     expect(sentCustomMessages()).toEqual(
       expectedCustomMessages({
         body: `desc=${DESCRIPTION}`,
-        smsBody: `desc=${DESCRIPTION_TEXT}`,
+        emailBody: `desc=${DESCRIPTION_HTML}`,
+        textBody: `desc=${DESCRIPTION_TEXT}`,
       }),
     );
-    expect(Markdown.convertToPlainText).toHaveBeenCalledWith(DESCRIPTION);
+    expect(mock(Markdown.convertToHTML).mock.calls).toEqual([
+      [DESCRIPTION, MarkdownContentType.Email],
+    ]);
+    expect(mock(Markdown.convertToPlainText).mock.calls).toEqual([
+      [DESCRIPTION],
+    ]);
     expect(
       queryArgs(ScheduledMaintenanceService.findOneById).select["description"],
     ).toBe(true);
@@ -1155,6 +1237,11 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
     for (const call of calls) {
       expect(call.variables["scheduledMaintenanceDescription"]).toBe("");
     }
+    expect(
+      (sentWebhooks()[0]!["data"] as JSONObject)[
+        "scheduledMaintenanceDescription"
+      ],
+    ).toBe("");
   });
 
   test("gives the state the maintenance moved to, not its current state or start date", async () => {
@@ -1263,8 +1350,7 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
           unsubscribeUrl: unsubscribeUrlFor(page!),
           resourcesAffected: resourcesByPage[page!.url],
           scheduledMaintenanceTitle: EVENT_TITLE,
-          scheduledMaintenanceDescription:
-            call.channel === "SMS" ? DESCRIPTION_TEXT : DESCRIPTION,
+          scheduledMaintenanceDescription: descriptionForChannel(call.channel),
           scheduledMaintenanceState: STATE_NAME,
         }),
       );
@@ -1285,6 +1371,7 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       ].sort(),
     );
     // The description is converted once for the state change, not per page.
+    expect(Markdown.convertToHTML).toHaveBeenCalledTimes(1);
     expect(Markdown.convertToPlainText).toHaveBeenCalledTimes(1);
   });
 
@@ -1298,7 +1385,7 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
 
     expect(sentCustomEmails()).toEqual([
       {
-        body: `Email|desc=${DESCRIPTION}`,
+        body: `Email|desc=${DESCRIPTION_HTML}`,
         subject: `[Scheduled Maintenance ${STATE_NAME}] ${EVENT_TITLE}`,
       },
     ]);

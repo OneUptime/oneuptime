@@ -28,7 +28,7 @@ import StatusPageSubscriberNotificationTemplateService, {
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import Markdown from "Common/Server/Types/Markdown";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
@@ -290,10 +290,16 @@ RunCron(
         );
 
       /*
-       * SMS templates get the incident description as plain text, like the
-       * incident created notification. It does not vary per status page or
-       * per subscriber, so it is converted once per state change.
+       * {{incidentDescription}} in the format each channel renders: HTML for a
+       * custom email body (BlankTemplate adds no markup of its own), plain
+       * text for SMS and the email subject, and the Markdown as written for
+       * Slack and Teams. It does not vary per status page or per subscriber,
+       * so it is converted once per state change.
        */
+      const incidentDescriptionHtml: string = await Markdown.convertToHTML(
+        incident.description || "",
+        MarkdownContentType.Email,
+      );
       const incidentDescriptionPlainText: string = Markdown.convertToPlainText(
         incident.description || "",
       );
@@ -403,9 +409,9 @@ RunCron(
         /*
          * Every variable SubscriberNotificationTemplateVariables advertises for
          * the incident state changed event, built once per status page. Each
-         * channel below uses this object (SMS only swaps the description for
-         * plain text, and every channel adds the subscriber's unsubscribeUrl),
-         * so no channel can miss a variable the others have.
+         * channel below uses this object (only the description's format
+         * differs, and every channel adds the subscriber's unsubscribeUrl), so
+         * no channel can miss a variable the others have.
          */
         const templateVariables: Record<string, string> = {
           statusPageName: statusPageName,
@@ -418,10 +424,16 @@ RunCron(
           incidentState: incidentStateTimeline.incidentState.name,
         };
 
-        // SMS-specific template variables with plain text (no HTML/Markdown).
-        const smsTemplateVariables: Record<string, string> = {
+        // For SMS and the email subject, which show neither HTML nor Markdown.
+        const plainTextTemplateVariables: Record<string, string> = {
           ...templateVariables,
           incidentDescription: incidentDescriptionPlainText,
+        };
+
+        // For a custom email body, which is sent as HTML.
+        const emailBodyTemplateVariables: Record<string, string> = {
+          ...templateVariables,
+          incidentDescription: incidentDescriptionHtml,
         };
 
         // Send email to Email subscribers.
@@ -481,7 +493,7 @@ RunCron(
 
             // SMS-specific template variables with unsubscribe URL
             const subscriberSmsTemplateVariables: Record<string, string> = {
-              ...smsTemplateVariables,
+              ...plainTextTemplateVariables,
               unsubscribeUrl: unsubscribeUrl,
             };
 
@@ -551,12 +563,18 @@ RunCron(
               const compiledBody: string =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   emailTemplate.templateBody,
-                  subscriberTemplateVariables,
+                  {
+                    ...emailBodyTemplateVariables,
+                    unsubscribeUrl: unsubscribeUrl,
+                  },
                 );
               const compiledSubject: string = emailTemplate.emailSubject
                 ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     emailTemplate.emailSubject,
-                    subscriberTemplateVariables,
+                    {
+                      ...plainTextTemplateVariables,
+                      unsubscribeUrl: unsubscribeUrl,
+                    },
                   )
                 : `[Incident ${Text.uppercaseFirstLetter(incidentStateTimeline.incidentState.name)}] ${incident.title || ""}`;
 
@@ -752,6 +770,8 @@ RunCron(
                   incidentId: incident.id?.toString() || "",
                   incidentNumber: incident.incidentNumber?.toString() || "",
                   incidentTitle: incident.title || "",
+                  // As written, like the incident created webhook.
+                  incidentDescription: incident.description || "",
                   incidentSeverity: incident.incidentSeverity?.name || "",
                   incidentState:
                     incidentStateTimeline.incidentState?.name || "",
