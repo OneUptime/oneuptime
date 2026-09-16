@@ -725,6 +725,81 @@ export default class StatusPageAnnouncement extends BaseModel {
   public subscriberNotificationStatusMessage?: string = undefined;
 
   @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageAnnouncement,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageAnnouncement,
+    ],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Subscriber Notification Status on Announcement Updated",
+    description:
+      "Status of the notification sent to subscribers when this announcement was last updated. Empty until an update notification is requested.",
+  })
+  @Index()
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+  })
+  public subscriberNotificationStatusOnAnnouncementUpdated?: StatusPageSubscriberNotificationStatus =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageAnnouncement,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageAnnouncement,
+    ],
+  })
+  @TableColumn({
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Notification Status Message on Announcement Updated",
+    description:
+      "Status message for the notification sent to subscribers when this announcement was last updated - includes success messages, failure reasons, or skip reasons",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public subscriberNotificationStatusMessageOnAnnouncementUpdated?: string =
+    undefined;
+
+  @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

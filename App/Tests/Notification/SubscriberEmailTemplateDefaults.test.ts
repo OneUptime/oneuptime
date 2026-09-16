@@ -121,6 +121,19 @@ const EVENT_CASES: Array<EventCase> = [
     sms: `Incident update: Checkout requests failing on Customer Services. A new note is posted. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
   },
   {
+    event: Event.SubscriberIncidentNoteUpdated,
+    heading: "Incident: Checkout requests failing",
+    subject: "Incident Note Updated: Checkout requests failing",
+    fields: [
+      ["Incident Title", "Checkout requests failing"],
+      ["Resources Affected", "Checkout API, Search API"],
+      ["Severity", "Critical"],
+      ["Updated Note", "A replacement router is now receiving traffic."],
+    ],
+    action: "View Incident Details",
+    sms: `Incident update: Checkout requests failing on Customer Services. A note has been updated. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+  },
+  {
     event: Event.SubscriberIncidentPostmortemPublished,
     heading: "Postmortem Published: Checkout requests failing",
     subject: "Postmortem Published: Checkout requests failing",
@@ -176,6 +189,19 @@ const EVENT_CASES: Array<EventCase> = [
     sms: `Incident update: Regional network interruption on Customer Services. A new note is posted. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
   },
   {
+    event: Event.SubscriberEpisodeNoteUpdated,
+    heading: "Incident: Regional network interruption",
+    subject: "Incident Note Updated: Regional network interruption",
+    fields: [
+      ["Incident Title", "Regional network interruption"],
+      ["Resources Affected", "Checkout API, Search API"],
+      ["Severity", "Major"],
+      ["Updated Note", "A replacement router is now receiving traffic."],
+    ],
+    action: "View Incident Details",
+    sms: `Incident update: Regional network interruption on Customer Services. A note has been updated. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+  },
+  {
     event: Event.SubscriberAnnouncementCreated,
     heading: "📢 Announcement: New support hours",
     subject: "📢 Announcement: New support hours",
@@ -185,6 +211,17 @@ const EVENT_CASES: Array<EventCase> = [
     ],
     action: "View Announcement",
     sms: `Announcement New support hours on Customer Services. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+  },
+  {
+    event: Event.SubscriberAnnouncementUpdated,
+    heading: "📢 Announcement Updated: New support hours",
+    subject: "📢 Announcement Updated: New support hours",
+    fields: [
+      ["Announcement", "New support hours"],
+      ["Details", "Support is now available every day."],
+    ],
+    action: "View Announcement",
+    sms: `Announcement updated: New support hours on Customer Services. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
   },
   {
     event: Event.SubscriberScheduledMaintenanceCreated,
@@ -225,6 +262,17 @@ const EVENT_CASES: Array<EventCase> = [
     ],
     action: "View Maintenance Details",
     sms: `Maintenance update: Database engine upgrade on Customer Services. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
+  },
+  {
+    event: Event.SubscriberScheduledMaintenanceNoteUpdated,
+    heading: "Scheduled Maintenance: Database engine upgrade",
+    subject: "Scheduled Maintenance Note Updated: Database engine upgrade",
+    fields: [
+      ["Event Title", "Database engine upgrade"],
+      ["Updated Note", "A replacement router is now receiving traffic."],
+    ],
+    action: "View Maintenance Details",
+    sms: `Maintenance note updated: Database engine upgrade on Customer Services. Details: ${DETAILS_URL}. Unsub: ${UNSUBSCRIBE_URL}`,
   },
 ];
 
@@ -332,6 +380,10 @@ describe("subscriber email event content through the worker's real compiler", ()
       "scheduledMaintenanceDescription",
     ],
     [Event.SubscriberScheduledMaintenanceNoteCreated, "note"],
+    [Event.SubscriberIncidentNoteUpdated, "note"],
+    [Event.SubscriberEpisodeNoteUpdated, "note"],
+    [Event.SubscriberAnnouncementUpdated, "announcementDescription"],
+    [Event.SubscriberScheduledMaintenanceNoteUpdated, "note"],
   ] as Array<[StatusPageSubscriberNotificationEventType, string]>)(
     "%s preserves prepared rich HTML in %s",
     (event: StatusPageSubscriberNotificationEventType, field: string) => {
@@ -676,6 +728,16 @@ describe("non-email defaults remain independent of email presentation", () => {
       },
     ],
     [
+      Event.SubscriberAnnouncementUpdated,
+      "announcement.updated",
+      "announcement",
+      {
+        title: VARIABLES["announcementTitle"],
+        description: VARIABLES["announcementDescription"],
+        detailsUrl: DETAILS_URL,
+      },
+    ],
+    [
       Event.SubscriberScheduledMaintenanceCreated,
       "scheduledMaintenance.created",
       "scheduledMaintenance",
@@ -767,6 +829,40 @@ describe("non-email defaults remain independent of email presentation", () => {
       },
       true,
     ],
+    [
+      Event.SubscriberIncidentNoteUpdated,
+      "incident.noteUpdated",
+      "incident",
+      {
+        title: VARIABLES["incidentTitle"],
+        severity: "Critical",
+        resourcesAffected: VARIABLES["resourcesAffected"],
+        detailsUrl: DETAILS_URL,
+      },
+      false,
+    ],
+    [
+      Event.SubscriberEpisodeNoteUpdated,
+      "episode.noteUpdated",
+      "episode",
+      {
+        title: VARIABLES["episodeTitle"],
+        severity: "Major",
+        resourcesAffected: VARIABLES["resourcesAffected"],
+        detailsUrl: DETAILS_URL,
+      },
+      false,
+    ],
+    [
+      Event.SubscriberScheduledMaintenanceNoteUpdated,
+      "scheduledMaintenance.noteUpdated",
+      "scheduledMaintenance",
+      {
+        title: VARIABLES["scheduledMaintenanceTitle"],
+        detailsUrl: DETAILS_URL,
+      },
+      true,
+    ],
   ] as Array<
     [
       StatusPageSubscriberNotificationEventType,
@@ -831,4 +927,127 @@ describe("non-email defaults remain independent of email presentation", () => {
       unsubscribeUrl: "https://status.example.com/unsubscribe/123",
     });
   });
+});
+
+/*
+ * Editing an announcement or a public note can notify subscribers. The
+ * starters offered for those "updated" events must read as updates on every
+ * channel - a custom template copied from the "created" starter would tell
+ * subscribers about a brand new post that is not new at all.
+ */
+describe("update event starters", () => {
+  const UPDATE_PAIRS: Array<
+    [
+      StatusPageSubscriberNotificationEventType,
+      StatusPageSubscriberNotificationEventType,
+    ]
+  > = [
+    [Event.SubscriberAnnouncementCreated, Event.SubscriberAnnouncementUpdated],
+    [Event.SubscriberIncidentNoteCreated, Event.SubscriberIncidentNoteUpdated],
+    [Event.SubscriberEpisodeNoteCreated, Event.SubscriberEpisodeNoteUpdated],
+    [
+      Event.SubscriberScheduledMaintenanceNoteCreated,
+      Event.SubscriberScheduledMaintenanceNoteUpdated,
+    ],
+  ];
+
+  const METHODS: Array<StatusPageSubscriberNotificationMethod> = [
+    Method.Email,
+    Method.SMS,
+    Method.Slack,
+    Method.MicrosoftTeams,
+    Method.Webhook,
+  ];
+
+  test.each(UPDATE_PAIRS)(
+    "%s and %s both offer a starter for every channel",
+    (
+      created: StatusPageSubscriberNotificationEventType,
+      updated: StatusPageSubscriberNotificationEventType,
+    ) => {
+      for (const method of METHODS) {
+        expect(
+          getDefaultSubscriberNotificationTemplate(created, method),
+        ).not.toBeNull();
+        expect(
+          getDefaultSubscriberNotificationTemplate(updated, method),
+        ).not.toBeNull();
+      }
+    },
+  );
+
+  test.each(UPDATE_PAIRS)(
+    "%s's update twin %s says it is an update on every channel",
+    (
+      created: StatusPageSubscriberNotificationEventType,
+      updated: StatusPageSubscriberNotificationEventType,
+    ) => {
+      for (const method of METHODS) {
+        const createdBody: string = render(created, {}, method).body;
+        const updatedBody: string = render(updated, {}, method).body;
+
+        expect(updatedBody).not.toBe(createdBody);
+        expect(updatedBody).toMatch(/updated/i);
+        expect(createdBody).not.toMatch(/has been updated|noteUpdated/i);
+      }
+    },
+  );
+
+  test.each(UPDATE_PAIRS)(
+    "%s's update twin %s marks the email subject as an update",
+    (
+      _created: StatusPageSubscriberNotificationEventType,
+      updated: StatusPageSubscriberNotificationEventType,
+    ) => {
+      expect(render(updated).subject).toMatch(/Updated/);
+    },
+  );
+
+  test.each(UPDATE_PAIRS)(
+    "%s's update twin %s only uses variables its worker provides",
+    (
+      _created: StatusPageSubscriberNotificationEventType,
+      updated: StatusPageSubscriberNotificationEventType,
+    ) => {
+      for (const method of METHODS) {
+        const template: DefaultSubscriberNotificationTemplate = getTemplate(
+          updated,
+          method,
+        );
+        const used: Array<string> = Array.from(
+          `${template.subject || ""}${template.body}`.matchAll(
+            /{{\s*([\w.]+)\s*}}/g,
+          ),
+          (match: RegExpMatchArray): string => {
+            return match[1]!;
+          },
+        );
+
+        const provided: Array<string> =
+          SubscriberTemplateService.getAvailableVariablesForEventType(
+            updated,
+          ).map((variable: { name: string }): string => {
+            return variable.name;
+          });
+
+        for (const variable of used) {
+          expect(provided).toContain(variable);
+        }
+      }
+    },
+  );
+
+  test.each(UPDATE_PAIRS)(
+    "%s's update twin %s exposes the same template variables",
+    (
+      created: StatusPageSubscriberNotificationEventType,
+      updated: StatusPageSubscriberNotificationEventType,
+    ) => {
+      expect(
+        SubscriberTemplateService.getAvailableVariablesForEventType(updated),
+      ).toEqual(
+        SubscriberTemplateService.getAvailableVariablesForEventType(created),
+      );
+    },
+  );
 });

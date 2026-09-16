@@ -639,14 +639,18 @@ const SUBSCRIBER_CONTRACTS: Array<[string, string | null, string | null]> = [
     "View Status Page",
   ],
   ["SubscriberAnnouncementCreated", "View Announcement", "View Status Page"],
+  ["SubscriberAnnouncementUpdated", "View Announcement", "View Status Page"],
   [
     "StatusPageSubscriberReport",
     "View Full Status Page",
     "View Full Status Page",
   ],
   ["SubscriberIncidentNoteCreated", null, null],
+  ["SubscriberIncidentNoteUpdated", null, null],
   ["SubscriberEpisodeNoteCreated", null, null],
+  ["SubscriberEpisodeNoteUpdated", null, null],
   ["SubscriberScheduledMaintenanceEventNoteCreated", null, null],
+  ["SubscriberScheduledMaintenanceEventNoteUpdated", null, null],
   ["SubscriberScheduledMaintenanceEventStateChanged", null, null],
 ];
 

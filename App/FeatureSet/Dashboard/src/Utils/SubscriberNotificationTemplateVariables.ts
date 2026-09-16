@@ -60,6 +60,7 @@ ${commonVariablesRows}`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated:
+    case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated:
       eventSpecificRows = `| \`{{incidentTitle}}\` | Title of the incident |
 | \`{{incidentSeverity}}\` | Severity level of the incident |
 | \`{{incidentState}}\` | Current state of the incident |
@@ -76,6 +77,7 @@ ${commonVariablesRows}`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated:
+    case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementUpdated:
       eventSpecificRows = `| \`{{announcementTitle}}\` | Title of the announcement |
 | \`{{announcementDescription}}\` | Description/content of the announcement |
 | \`{{detailsUrl}}\` | URL to view announcement details |`;
@@ -97,6 +99,7 @@ ${commonVariablesRows}`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated:
+    case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated:
       eventSpecificRows = `| \`{{scheduledMaintenanceTitle}}\` | Title of the scheduled maintenance |
 | \`{{scheduledMaintenanceState}}\` | Current state of the scheduled maintenance |
 | \`{{postedAt}}\` | Date and time when the note was posted |
@@ -119,6 +122,7 @@ ${commonVariablesRows}`;
       break;
 
     case StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated:
+    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteUpdated:
       eventSpecificRows = `| \`{{episodeTitle}}\` | Title of the incident |
 | \`{{episodeSeverity}}\` | Severity level of the incident |
 | \`{{note}}\` | Content of the note |

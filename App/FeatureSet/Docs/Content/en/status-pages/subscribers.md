@@ -91,6 +91,42 @@ A scheduled maintenance event has its own set of subscriber columns: **Should su
 
 The **Notification Logs** section in the status page side menu (`{id}/notification-logs`) is where you go when you need to see what the page actually sent.
 
+### Telling subscribers about an edit
+
+Subscribers hear about an announcement or a public note once, when it is posted. Editing it afterwards changes what the status page shows but tells nobody, unless you ask for it on that edit.
+
+The edit form of an announcement, and of a public note on an incident, a scheduled maintenance event or an incident episode, has a **Notify subscribers about this update** checkbox. It starts unticked every time, so a typo fix stays quiet; tick it when the change matters — a new maintenance window, a revised impact, a corrected customer update. It is not on the create forms, which have their own **Notify Status Page Subscribers** choice.
+
+When you save with the box ticked, subscribers get the edited content marked as an update rather than as a new post:
+
+- **Email** uses its own template — for example the subject `[Announcement Updated] <title>` and the heading `Announcement Updated: <title>`, or **Updated Note** in the detail box of a note email.
+- **SMS**, **Slack** and **Microsoft Teams** say the announcement or note was updated.
+- **Webhook** subscribers receive `AnnouncementUpdated`, `IncidentNoteUpdated`, `ScheduledMaintenanceNoteUpdated` or `EpisodeNoteUpdated` as the `eventType`, with the latest content in `data`.
+
+The update goes to the same people the original would reach today: the same channel toggles, the same resource and event-type preferences, and the same visibility checks (a hidden incident or a page with **Show Announcements** off still sends nothing).
+
+Two cases send nothing on purpose, and record why:
+
+- **The original notification has not gone out yet.** If an announcement or note is still waiting to be announced, that notification reads the item when it is sent and already carries your edit, so a separate "updated" message would only confuse people.
+- **The announcement is scheduled for later.** Until **Start Showing Announcement At** passes, it is not on any status page, and whoever is notified when it goes live sees the edited version.
+
+The edited item shows an **Update Notification Status** next to the original one, with the same states (**Sending Soon**, **Notifications Sent**, **Failed** and so on). **Retry** on a failed update notification re-sends the update, never the original "posted" message. Each status page can customize these messages with the **Subscriber Announcement Updated**, **Subscriber Incident Note Updated**, **Subscriber Scheduled Maintenance Note Updated** and **Subscriber Episode Note Updated** template event types; without a custom template the built-in update wording is used.
+
+Through the API, send the choice next to the fields you change, in `miscDataProps`:
+
+```json
+{
+  "data": {
+    "description": "The maintenance now starts on Sunday at 02:00 UTC."
+  },
+  "miscDataProps": {
+    "notifySubscribersOfUpdate": true
+  }
+}
+```
+
+as the body of `PUT /api/status-page-announcement/<announcement-id>` (or `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Leave `miscDataProps` out and the edit is silent, as before.
+
 ## Customizing notification templates
 
 The **Notification Templates** card on **Subscriber Settings** lists the templates this status page uses, with columns **Template Name**, **Event Type** and **Notification Method** — so you can vary the wording per event type and per channel rather than accepting one house message for everything.

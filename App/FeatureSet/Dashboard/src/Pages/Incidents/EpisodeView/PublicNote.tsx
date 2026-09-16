@@ -19,6 +19,8 @@ import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpis
 import User from "Common/Models/DatabaseModels/User";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
+import { getNotifySubscribersOfUpdateFormField } from "../../../Components/StatusPageSubscribers/SubscriberUpdateNotificationFormField";
+import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import React, {
   Fragment,
@@ -49,6 +51,28 @@ const EpisodePublicNote: FunctionComponent<PageComponentProps> = (
           subscriberNotificationStatusOnNoteCreated:
             StatusPageSubscriberNotificationStatus.Pending,
           subscriberNotificationStatusMessage: null,
+        },
+      });
+      setRefreshToggle(!refreshToggle);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+  };
+
+  const handleResendUpdateNotification: (
+    item: IncidentEpisodePublicNote,
+  ) => Promise<void> = async (
+    item: IncidentEpisodePublicNote,
+  ): Promise<void> => {
+    try {
+      await ModelAPI.updateById({
+        modelType: IncidentEpisodePublicNote,
+        id: item.id!,
+        data: {
+          subscriberNotificationStatusOnNoteUpdated:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessageOnNoteUpdated:
+            SubscriberUpdateNotification.resendQueuedMessage,
         },
       });
       setRefreshToggle(!refreshToggle);
@@ -128,6 +152,10 @@ const EpisodePublicNote: FunctionComponent<PageComponentProps> = (
             defaultValue: true,
             required: false,
           },
+          getNotifySubscribersOfUpdateFormField<IncidentEpisodePublicNote>({
+            description:
+              "Send subscribers the edited note, marked as an update. Leave this unticked for small fixes such as typos.",
+          }),
           {
             field: {
               postedAt: true,
@@ -149,6 +177,7 @@ const EpisodePublicNote: FunctionComponent<PageComponentProps> = (
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
           subscriberNotificationStatusMessage: true,
+          subscriberNotificationStatusMessageOnNoteUpdated: true,
           attachments: {
             _id: true,
             name: true,
@@ -263,6 +292,35 @@ const EpisodePublicNote: FunctionComponent<PageComponentProps> = (
                     return handleResendNotification(item);
                   }}
                 />
+              );
+            },
+          },
+          {
+            field: {
+              subscriberNotificationStatusOnNoteUpdated: true,
+            },
+            title: "Update Notification Status",
+            type: FieldType.Element,
+            colSpan: 1,
+            getElement: (item: IncidentEpisodePublicNote): ReactElement => {
+              // Nothing to show until someone asks to notify about an edit.
+              if (!item.subscriberNotificationStatusOnNoteUpdated) {
+                return <></>;
+              }
+
+              return (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Update:</span>
+                  <SubscriberNotificationStatus
+                    status={item.subscriberNotificationStatusOnNoteUpdated}
+                    subscriberNotificationStatusMessage={
+                      item.subscriberNotificationStatusMessageOnNoteUpdated
+                    }
+                    onResendNotification={() => {
+                      return handleResendUpdateNotification(item);
+                    }}
+                  />
+                </div>
               );
             },
           },

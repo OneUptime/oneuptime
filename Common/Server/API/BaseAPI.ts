@@ -499,9 +499,26 @@ export default class BaseAPI<
       );
     }
 
+    /*
+     * Choices that ride along with the edit but are not columns - whether to
+     * tell status page subscribers about it, for one. createItem has always
+     * passed these on; updates dropped them, so a form could offer such a
+     * choice on create only. Anything that is not a plain object is ignored
+     * rather than refused: the field is optional and older clients send {}.
+     */
+    const miscDataInBody: JSONValue | undefined = body["miscDataProps"];
+
+    const miscDataProps: JSONObject =
+      miscDataInBody &&
+      typeof miscDataInBody === "object" &&
+      !Array.isArray(miscDataInBody)
+        ? JSONFunctions.deserialize(miscDataInBody as JSONObject)
+        : {};
+
     const numberOfDocsAffected: number = await this.service.updateOneById({
       id: new ObjectID(objectIdString),
       data: item,
+      miscDataProps: miscDataProps,
       props: await CommonAPI.getDatabaseCommonInteractionProps(req),
     });
 
