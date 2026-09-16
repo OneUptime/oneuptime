@@ -296,5 +296,22 @@ describe("MonitorCriteriaExpectationBuilder", () => {
         ),
       ).toBe("over the last 5 minutes using average");
     });
+
+    // The server judges a true/false series saved with an aggregate as All Values.
+    test("describes a true/false filter saved with an aggregate as all values", () => {
+      expect(
+        MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
+          makeFilter({
+            checkOn: CheckOn.DnsIsOnline,
+            filterType: FilterType.False,
+            evaluateOverTime: true,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: 5,
+              evaluateOverTimeType: EvaluateOverTimeType.Average,
+            },
+          }),
+        ),
+      ).toBe("over the last 5 minutes using all values");
+    });
   });
 });

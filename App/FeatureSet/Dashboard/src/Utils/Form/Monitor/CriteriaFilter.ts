@@ -75,40 +75,26 @@ export default class CriteriaFilterUtil {
           )
         : null;
 
+    /*
+     * The type the server judges the window with: a true/false filter (Is
+     * Online and the like) saved with an aggregate is judged as All Values.
+     */
+    const evaluateOverTimeType: EvaluateOverTimeType | undefined =
+      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(criteriaFilter);
+
     // check evaluation over time values.
-    if (
-      criteriaFilter?.evaluateOverTime &&
-      criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType
-    ) {
-      if (
-        criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
-        EvaluateOverTimeType.AllValues
-      ) {
+    if (criteriaFilter?.evaluateOverTime && evaluateOverTimeType) {
+      if (evaluateOverTimeType === EvaluateOverTimeType.AllValues) {
         text += `all values of `;
-      } else if (
-        criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
-        EvaluateOverTimeType.AnyValue
-      ) {
+      } else if (evaluateOverTimeType === EvaluateOverTimeType.AnyValue) {
         text += `any value of `;
-      } else if (
-        criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
-        EvaluateOverTimeType.Average
-      ) {
+      } else if (evaluateOverTimeType === EvaluateOverTimeType.Average) {
         text += `average ${isPercentage ? "percentage " : ""}value`;
-      } else if (
-        criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
-        EvaluateOverTimeType.MaximumValue
-      ) {
+      } else if (evaluateOverTimeType === EvaluateOverTimeType.MaximumValue) {
         text += `maximum ${isPercentage ? "percentage " : ""}value `;
-      } else if (
-        criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
-        EvaluateOverTimeType.MunimumValue
-      ) {
+      } else if (evaluateOverTimeType === EvaluateOverTimeType.MunimumValue) {
         text += `minimum ${isPercentage ? "percentage " : ""}value `;
-      } else if (
-        criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ===
-        EvaluateOverTimeType.Sum
-      ) {
+      } else if (evaluateOverTimeType === EvaluateOverTimeType.Sum) {
         text += `sum of all ${isPercentage ? "percentage " : ""}values `;
       }
     }
