@@ -35,8 +35,10 @@ import {
  * with the cursor held, so nothing created after the first poll was ever
  * imported. The retired GoogleSecOpsPoller fixed that itself; the shared
  * loop now does it for every provider, and these are the scenarios that
- * pinned the fix, re-run against the connector's real 20 page search budget
- * and 16 request alerts-view budget and Google's real response shapes.
+ * pinned the fix, re-run against the connector's real 20 page search budget,
+ * its 200 request curated budget and its 16 request alerts-view budget
+ * (shared by the window's own read and the late-alert sweep behind it), and
+ * Google's real response shapes.
  *
  * A simulated connection row carries cursor and lastPollResult from one poll
  * to the next the way the database does (a JSON copy, not the live object).
@@ -60,8 +62,15 @@ interface ConnectionRow {
 }
 
 interface TenantCalls {
-  // Rule and curated detection searches: they share one page budget.
+  // Rule detection search pages, under their own 20 page budget.
   search: number;
+  /*
+   * The curated pass, under its own 200 request budget: the count that names
+   * the curated rules with recent detections, then one search per rule,
+   * because the curated route has no wildcard.
+   */
+  curated: number;
+  // The window's own alerts-view read and the late-alert sweep behind it.
   alerts: number;
 }
 
@@ -151,13 +160,17 @@ async function runPolls(data: {
     const sent: Array<TenantRequest> = tenant.requests.slice(requestsBefore);
     const calls: TenantCalls = {
       search: sent.filter((request: TenantRequest): boolean => {
-        return request.route === "search" || request.route === "curated";
+        return request.route === "search";
+      }).length,
+      curated: sent.filter((request: TenantRequest): boolean => {
+        return request.route === "curatedCounts" || request.route === "curated";
       }).length,
       alerts: sent.filter((request: TenantRequest): boolean => {
         return request.route === "alerts";
       }).length,
     };
     expect(calls.search).toBeLessThanOrEqual(20);
+    expect(calls.curated).toBeLessThanOrEqual(200);
     expect(calls.alerts).toBeLessThanOrEqual(16);
 
     const record: PollRecord = { nowMs, cursorBefore, result, update, calls };
@@ -185,6 +198,25 @@ function checkMessage(
   key: string,
 ): string {
   return findCheck(result.checks, key).message;
+}
+
+/*
+ * The interval one countAllCuratedRuleSetDetections request asked for. That
+ * route is a POST, so its range is in the JSON body rather than the query
+ * string requestWindow reads.
+ */
+function countsInterval(request: TenantRequest): {
+  startTime: string;
+  endTime: string;
+} {
+  const interval: JSONObject = (JSON.parse(request.body || "{}") as JSONObject)[
+    "interval"
+  ] as JSONObject;
+
+  return {
+    startTime: String(interval["startTime"]),
+    endTime: String(interval["endTime"]),
+  };
 }
 
 describe("Google SecOps poll windows through the shared poller", () => {
@@ -226,17 +258,23 @@ describe("Google SecOps poll windows through the shared poller", () => {
     expect(result.warnings.join(" ")).toMatch(/24 hour windows/);
   });
 
+  /*
+   * The third column is where the late-alert sweep starts: a scheduled
+   * window shorter than a day is followed by an alerts-view read of the
+   * whole day before it, and a window that already reaches back that far
+   * (every 24 hour chunk here) is followed by none.
+   */
   test.each([
-    [90, "2026-09-10T13:30:00.000Z"],
-    [1, "2026-09-10T12:01:00.000Z"],
-    [0, "2026-09-11T12:00:00.000Z"],
-    [24 * 60 + 1, "2026-09-11T12:00:00.000Z"],
-    [2.5, "2026-09-11T12:00:00.000Z"],
-    ["90", "2026-09-11T12:00:00.000Z"],
-    [null, "2026-09-11T12:00:00.000Z"],
+    [90, "2026-09-10T13:30:00.000Z", "2026-09-09T13:30:00.000Z"],
+    [1, "2026-09-10T12:01:00.000Z", "2026-09-09T12:01:00.000Z"],
+    [0, "2026-09-11T12:00:00.000Z", null],
+    [24 * 60 + 1, "2026-09-11T12:00:00.000Z", null],
+    [2.5, "2026-09-11T12:00:00.000Z", null],
+    ["90", "2026-09-11T12:00:00.000Z", null],
+    [null, "2026-09-11T12:00:00.000Z", null],
   ])(
     "a stored nextChunkMinutes of %j sets the chunk only when it is a whole number of minutes in range",
-    async (stored: unknown, windowEnd: string) => {
+    async (stored: unknown, windowEnd: string, sweepStart: string | null) => {
       const result: SecurityEventConnectionRunResult = await pollOnce({
         cursor: "2026-09-10T12:00:00.000Z",
         lastPollResult: {
@@ -247,10 +285,10 @@ describe("Google SecOps poll windows through the shared poller", () => {
 
       expect(result.windowStart).toBe("2026-09-10T11:59:00.000Z");
       expect(result.windowEnd).toBe(windowEnd);
-      // Every pass read exactly that window.
+      // Both detection searches read exactly that window.
       for (const request of tenant.requests.filter(
         (candidate: TenantRequest): boolean => {
-          return candidate.route !== "token";
+          return candidate.route === "search" || candidate.route === "curated";
         },
       )) {
         expect(requestWindow(request)).toEqual({
@@ -258,6 +296,37 @@ describe("Google SecOps poll windows through the shared poller", () => {
           endTime: windowEnd,
         });
       }
+      /*
+       * The curated rule counts reach a week further back than the window:
+       * they name the rules the wildcard-less curated search then reads, and
+       * a detection created in this window can carry a detection time days
+       * earlier.
+       */
+      expect(countsInterval(tenant.requestsTo("curatedCounts")[0]!)).toEqual({
+        startTime: "2026-09-03T11:59:00.000Z",
+        endTime: windowEnd,
+      });
+      /*
+       * The alerts view reads the window itself, then sweeps the day in
+       * front of it for alerts Google made readable after their detection
+       * time - the sweep ends exactly where the window begins.
+       */
+      expect(
+        tenant
+          .requestsTo("alerts")
+          .map(
+            (
+              request: TenantRequest,
+            ): { startTime: string; endTime: string } => {
+              return requestWindow(request);
+            },
+          ),
+      ).toEqual([
+        { startTime: "2026-09-10T11:59:00.000Z", endTime: windowEnd },
+        ...(sweepStart
+          ? [{ startTime: sweepStart, endTime: "2026-09-10T11:59:00.000Z" }]
+          : []),
+      ]);
       expect(lastUpdate(persistence)["cursor"]).toBe(windowEnd);
     },
   );
@@ -296,11 +365,13 @@ describe("Google SecOps adaptive catch-up across polls through the shared poller
 
     const first: PollRecord = records[0]!;
     /*
-     * Two rule search pages and the curated page, while the alerts view
-     * splits the day around the burst. With the old shared budget of twelve
-     * requests that was not enough; on its own budget it finishes.
+     * Two rule search pages, and one curated request: the count, which names
+     * no curated rule for this tenant and so asks for no curated search.
+     * Meanwhile the alerts view splits the day around the burst eleven ways.
+     * With the old shared budget of twelve requests that was not enough; on
+     * its own budget it finishes.
      */
-    expect(first.calls.search).toBe(3);
+    expect(first.calls).toEqual({ search: 2, curated: 1, alerts: 11 });
     expect(first.calls.search + first.calls.alerts).toBeGreaterThan(12);
     expect(first.result).toMatchObject({
       windowStart: "2026-09-13T12:00:00.000Z",

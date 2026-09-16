@@ -36,6 +36,7 @@ import {
   readSettingString,
 } from "../Types";
 import GoogleSecOpsClient, {
+  CuratedRuleDetectionCount,
   FetchAlertsResult,
   FetchLike,
   GoogleSecOpsListBasis,
@@ -49,11 +50,17 @@ import GoogleSecOpsClient, {
  * One window is read in three passes and unioned by Collection.id:
  *   1. rule detections by CREATED time (legacySearchDetections),
  *   2. curated rule detections by created time (legacySearchCuratedDetections),
+ *      one search per curated rule that countAllCuratedRuleSetDetections
+ *      reports detections for — the curated route has no wildcard,
  *   3. the alerts view by DETECTION time (legacyFetchAlertsView).
  * The alerts view alone filters on detection time, and a rule that runs
  * hourly creates detections whose detection time is already behind a
  * forward-only cursor, so it can never be the primary read (see
- * Connectors/Types.ts for why creation time is the cursor basis).
+ * Connectors/Types.ts for why creation time is the cursor basis). A
+ * scheduled poll therefore also sweeps the alerts view over the day before
+ * its window, alerts only, so an alert Google makes readable hours after
+ * its detection time is still imported; that sweep is best effort and never
+ * holds the cursor.
  *
  * Settings come from the catalog's keys: config.region,
  * config.instanceResourceName and secrets.serviceAccountJson, the pasted
@@ -76,12 +83,46 @@ const PROVIDER_TITLE: string = "Google SecOps";
  * to split can no longer starve the searches (or the other way round).
  */
 export const GOOGLE_SECOPS_SEARCH_PAGE_BUDGET: number = 20;
+/*
+ * The curated pass: one count request plus at least one search page per
+ * curated rule that produced detections that week, per basis. It has its own
+ * budget because its request count grows with the number of active curated
+ * rules, not with the volume in the window, so sharing the rule pass's pages
+ * would let a tenant with many curated rules starve its own rule detections.
+ * It is a ceiling sized for tenants with many curated rule sets enabled; a
+ * quiet tenant spends one request per active rule.
+ */
+export const GOOGLE_SECOPS_CURATED_REQUEST_BUDGET: number = 200;
+/*
+ * The share of the fetch's wall clock after which the curated pass starts no
+ * further curated rule, so the alerts view still gets its turn when a tenant
+ * has more active curated rules than one poll can search.
+ */
+const CURATED_PASS_TIME_SHARE: number = 0.6;
 export const GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET: number = 16;
 // The worker job times out at ten minutes; importing follows the fetch.
 export const GOOGLE_SECOPS_FETCH_DURATION_MS: number = 4 * 60 * 1000;
+/*
+ * How far before a scheduled poll's window the alerts view is swept for
+ * alerts Google made readable after their detection time. A day covers
+ * Google's documented rule run frequencies (up to daily) and ingestion
+ * delay; the created-time passes, not this sweep, are the authoritative
+ * read of rule and curated detections.
+ * https://docs.cloud.google.com/chronicle/docs/detection/detection-delays
+ */
+export const GOOGLE_SECOPS_LATE_ALERTS_LOOKBACK_IN_MINUTES: number = 24 * 60;
+/*
+ * How far before the window's start the curated rule counts reach. The
+ * counts are what names the rules to search, and a detection created in the
+ * window can carry a detection time days earlier; a week is also the longest
+ * range a preview or backfill reads.
+ */
+export const GOOGLE_SECOPS_CURATED_DISCOVERY_LOOKBACK_IN_MINUTES: number =
+  7 * 24 * 60;
 const MAX_ALERTS_PER_REQUEST: number = 1000;
 const MAX_SEARCH_PAGE_SIZE: number = 1000;
 const DEFAULT_POLL_INTERVAL_IN_MINUTES: number = 5;
+const MINUTE_IN_MS: number = 60 * 1000;
 /*
  * A detection created within one poll interval plus this grace of its
  * detection time would still have been caught by a detection-time cursor;
@@ -117,7 +158,7 @@ const NO_DETECTIONS_MESSAGE: string =
 const CONFIGURATION_REMEDIATION: string =
   "Correct the highlighted setting and test again. Nothing was contacted.";
 const READ_REMEDIATION: string =
-  "Grant roles/chronicle.viewer on the instance to the service account (it includes chronicle.legacies.legacySearchDetections and legacySearchCuratedDetections), and confirm the instance resource name and region.";
+  "Grant roles/chronicle.viewer on the instance to the service account (it includes chronicle.legacies.legacySearchDetections, legacySearchCuratedDetections and chronicle.curatedRuleSetCategories.countAllCuratedRuleSetDetections), and confirm the instance resource name and region.";
 
 type ScopeLabel = "alerts-only" | "alerts-and-detections";
 
@@ -184,14 +225,47 @@ interface FetchRun {
   maxEvents: number;
   alertingOnly: boolean;
   searchRequests: number;
+  curatedRequests: number;
   alertsViewRequests: number;
   requestCount: number;
   complete: boolean;
   // A record was dropped because the record bound was reached.
   eventLimitHit: boolean;
   seen: Map<string, JSONObject>;
+  /*
+   * Records only the late-alert sweep returned. They were created long
+   * after their detection time by definition, so creation lag is measured
+   * without them.
+   */
+  sweptOnly: Set<string>;
   warnings: Array<string>;
   checks: Array<SecurityConnectorCheck>;
+}
+
+/*
+ * How one alerts-view read treats what it could not read. The poll window
+ * read is authoritative: a truncated or budget-stopped part makes the fetch
+ * incomplete, so the poller narrows and retries it. The late-alert sweep is
+ * best effort: it reaches back over windows earlier polls already
+ * completed, so narrowing the next window could never shrink it, and
+ * holding the cursor for it would stall polling for good.
+ */
+interface AlertsViewReadOptions {
+  includeNonAlertingDetections: boolean;
+  bestEffort: boolean;
+}
+
+// What the curated pass read, beyond the shared pass outcome.
+interface CuratedPassOutcome extends PassOutcome {
+  rulesWithDetections: number;
+  rulesSearched: number;
+  // Rules whose own search answered 400, 403 or 404 and were skipped.
+  rulesUnreadable: number;
+  /*
+   * Rules a bound stopped the pass before it started: their count does not
+   * shrink with the window, so this is reported, never made incomplete.
+   */
+  rulesNotStarted: number;
 }
 
 interface CreationLag {
@@ -215,9 +289,12 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
   public fetchBudget: ConnectorFetchBudget = {
     maxRequests:
       GOOGLE_SECOPS_SEARCH_PAGE_BUDGET +
+      GOOGLE_SECOPS_CURATED_REQUEST_BUDGET +
       GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET,
     maxEvents:
-      GOOGLE_SECOPS_SEARCH_PAGE_BUDGET * MAX_SEARCH_PAGE_SIZE +
+      (GOOGLE_SECOPS_SEARCH_PAGE_BUDGET +
+        GOOGLE_SECOPS_CURATED_REQUEST_BUDGET) *
+        MAX_SEARCH_PAGE_SIZE +
       GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET * MAX_ALERTS_PER_REQUEST,
     maxDurationMs: GOOGLE_SECOPS_FETCH_DURATION_MS,
   };
@@ -566,13 +643,22 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
       : "Read rule detections";
 
     try {
+      if (options.curated) {
+        return await this.curatedReadProbe(client, checks, {
+          key,
+          name,
+          startedAtMs,
+          now: options.now,
+          alertingOnly: options.alertingOnly,
+        });
+      }
+
       const page: SearchDetectionsResult = await client.searchDetections({
         startTime: new Date(options.now.getTime() - DAY_IN_MS),
         endTime: options.now,
         listBasis: "CREATED_TIME",
         alertingOnly: options.alertingOnly,
         pageSize: 1,
-        curated: options.curated,
       });
       checks.push(
         makeCheck({
@@ -580,7 +666,7 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
           name,
           status: "pass",
           startedAtMs,
-          message: `${options.curated ? "Curated rule" : "Rule"} detections can be read by created time (${page.detections.length} returned for a one-record probe over the last 24 hours).`,
+          message: `Rule detections can be read by created time (${page.detections.length} returned for a one-record probe over the last 24 hours).`,
           details: { returned: page.detections.length },
         }),
       );
@@ -622,6 +708,81 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
       );
       return { ok: false, record: null };
     }
+  }
+
+  /*
+   * The curated pass's two reads: the curated rule counts over the last 7
+   * days, then, when a curated rule produced detections, a one-record
+   * created-time search of the rule with the most detections over the same
+   * week. The curated search has no wildcard, so a tenant whose curated
+   * rules have not fired has nothing it could probe; that is still a pass,
+   * because the count proves the curated read is permitted.
+   */
+  private static async curatedReadProbe(
+    client: GoogleSecOpsClient,
+    checks: Array<SecurityConnectorCheck>,
+    options: {
+      key: string;
+      name: string;
+      startedAtMs: number;
+      now: Date;
+      alertingOnly: boolean;
+    },
+  ): Promise<ReadProbeOutcome> {
+    const weekAgo: Date = new Date(options.now.getTime() - WEEK_IN_MS);
+    const rules: Array<CuratedRuleDetectionCount> =
+      await client.countCuratedRuleDetections({
+        startTime: weekAgo,
+        endTime: options.now,
+      });
+
+    if (rules.length === 0) {
+      checks.push(
+        makeCheck({
+          key: options.key,
+          name: options.name,
+          status: "pass",
+          startedAtMs: options.startedAtMs,
+          message:
+            "Curated rule detection counts can be read. No curated rule produced detections in the last 7 days, so there are no curated detections to import yet.",
+          details: { curatedRulesWithDetections: 0, returned: 0 },
+        }),
+      );
+      return { ok: true, record: null };
+    }
+
+    const busiest: CuratedRuleDetectionCount = rules.reduce(
+      (
+        best: CuratedRuleDetectionCount,
+        candidate: CuratedRuleDetectionCount,
+      ): CuratedRuleDetectionCount => {
+        return candidate.count > best.count ? candidate : best;
+      },
+    );
+    const page: SearchDetectionsResult = await client.searchDetections({
+      startTime: weekAgo,
+      endTime: options.now,
+      listBasis: "CREATED_TIME",
+      alertingOnly: options.alertingOnly,
+      pageSize: 1,
+      curated: true,
+      ruleId: busiest.ruleId,
+    });
+
+    checks.push(
+      makeCheck({
+        key: options.key,
+        name: options.name,
+        status: "pass",
+        startedAtMs: options.startedAtMs,
+        message: `Curated rule detections can be read by created time: ${rules.length} curated ${rules.length === 1 ? "rule" : "rules"} produced detections in the last 7 days (${page.detections.length} returned for a one-record probe of ${busiest.ruleId}).`,
+        details: {
+          curatedRulesWithDetections: rules.length,
+          returned: page.detections.length,
+        },
+      }),
+    );
+    return { ok: true, record: page.detections[0] || null };
   }
 
   /*
@@ -953,11 +1114,13 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
       ),
       alertingOnly,
       searchRequests: 0,
+      curatedRequests: 0,
       alertsViewRequests: 0,
       requestCount: 0,
       complete: true,
       eventLimitHit: false,
       seen: new Map<string, JSONObject>(),
+      sweptOnly: new Set<string>(),
       warnings: [],
       checks: [],
     };
@@ -965,7 +1128,10 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
       ruleDetections: number;
       curatedDetections: number;
       alertsView: number;
+      // Present only when the late-alert sweep ran.
+      lateAlertsView?: number | undefined;
     } = { ruleDetections: 0, curatedDetections: 0, alertsView: 0 };
+    let curatedRulesWithDetections: number = 0;
 
     let phaseKey: string = "read-rule-detections";
     let phaseName: string = `Read rule detections by ${basisLabel}`;
@@ -976,7 +1142,7 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
         client,
         window,
         run,
-        { curated: false, bases: searchBases },
+        { bases: searchBases },
       );
       sourceCounts.ruleDetections = rulePass.returned;
       GoogleSecOpsConnector.recordPass({
@@ -993,20 +1159,19 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
       phaseStartedMs = Date.now();
 
       try {
-        const curatedPass: PassOutcome = await GoogleSecOpsConnector.searchPass(
-          client,
-          window,
-          run,
-          { curated: true, bases: searchBases },
-        );
+        const curatedPass: CuratedPassOutcome =
+          await GoogleSecOpsConnector.curatedPass(client, window, run, {
+            bases: searchBases,
+          });
         sourceCounts.curatedDetections = curatedPass.returned;
+        curatedRulesWithDetections = curatedPass.rulesWithDetections;
         GoogleSecOpsConnector.recordPass({
           run,
           key: phaseKey,
           name: phaseName,
           startedMs: phaseStartedMs,
           outcome: curatedPass,
-          countMessage: `${curatedPass.returned} curated rule detections returned for the window by ${basisLabel}.`,
+          countMessage: `${curatedPass.returned} curated rule detections returned for the window by ${basisLabel} (${curatedPass.rulesSearched} of ${curatedPass.rulesWithDetections} curated ${curatedPass.rulesWithDetections === 1 ? "rule" : "rules"} with recent detections searched${curatedPass.rulesUnreadable > 0 ? `, ${curatedPass.rulesUnreadable} could not be read` : ""}).`,
         });
       } catch (curatedError) {
         const status: number | null =
@@ -1048,6 +1213,10 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
         client,
         window,
         run,
+        {
+          includeNonAlertingDetections: !alertingOnly,
+          bestEffort: false,
+        },
       );
       sourceCounts.alertsView = alertsPass.returned;
       GoogleSecOpsConnector.recordPass({
@@ -1059,6 +1228,19 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
         countMessage: `${alertsPass.returned} alerts returned by detection time.`,
         successMessage: `${alertsPass.returned} alerts returned by detection time. The configured Google SecOps instance is reachable and allows reading detections.`,
       });
+
+      const sweep: ConnectorFetchWindow | null = isHistorical
+        ? null
+        : GoogleSecOpsConnector.lateAlertsWindow(window);
+
+      if (sweep) {
+        await GoogleSecOpsConnector.sweepLateAlerts(
+          client,
+          sweep,
+          run,
+          sourceCounts,
+        );
+      }
     } catch (error) {
       run.checks.push(
         makeCheck({
@@ -1093,9 +1275,14 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
       );
     }
 
-    const alerts: Array<JSONObject> = Array.from(run.seen.values());
     const creationLag: CreationLag = GoogleSecOpsConnector.measureCreationLag(
-      alerts,
+      Array.from(run.seen.entries())
+        .filter((entry: [string, JSONObject]): boolean => {
+          return !run.sweptOnly.has(entry[0]);
+        })
+        .map((entry: [string, JSONObject]): JSONObject => {
+          return entry[1];
+        }),
       options.pollIntervalInMinutes,
       run.warnings,
     );
@@ -1110,8 +1297,9 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
     const sampleLimit: number = Math.max(0, Math.floor(options.sampleLimit));
     let rejectedCount: number = 0;
     let failedCount: number = 0;
+    let sweptFailedCount: number = 0;
 
-    for (const alert of alerts) {
+    for (const [key, alert] of run.seen.entries()) {
       try {
         if (!GoogleSecOpsAlertNormalizer.isGoogleSecOpsAlert(alert)) {
           rejectedCount++;
@@ -1126,8 +1314,25 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
           samples.push(GoogleSecOpsConnector.toSample(alert, event));
         }
       } catch {
-        failedCount++;
+        /*
+         * A failure makes the fetch incomplete so the poller narrows and
+         * retries the window. A record only the late-alert sweep found sits
+         * behind the window, and the sweep returns it on every poll for a
+         * day, so counting it would pin polling to narrowing for that day.
+         * It is reported instead.
+         */
+        if (run.sweptOnly.has(key)) {
+          sweptFailedCount++;
+        } else {
+          failedCount++;
+        }
       }
+    }
+
+    if (sweptFailedCount > 0) {
+      run.warnings.push(
+        `${sweptFailedCount} alerts found by the late-alert sweep could not be normalized and were not imported.`,
+      );
     }
 
     return {
@@ -1143,6 +1348,7 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
       details: {
         basis,
         sourceCounts,
+        curatedRulesWithDetections,
         creationLag: { ...creationLag },
         includeNonAlertingDetections: !alertingOnly,
       },
@@ -1242,20 +1448,252 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
       return "The earlier passes collected every record this run allows.";
     }
 
-    // Only a search pass can find its own budget spent before it starts.
-    return "The search passes share one page budget and it was spent before this pass started.";
+    // Only a pass that shares its budget can find it spent before it starts.
+    return "The passes that share this request budget spent it before this pass started.";
+  }
+
+  /*
+   * The late-alert sweep of a scheduled poll: the day before the window's
+   * start, ending where the window's own alerts-view read begins. Null when
+   * the window already reaches that far back (a first poll reads a whole
+   * day).
+   */
+  private static lateAlertsWindow(
+    window: ConnectorFetchWindow,
+  ): ConnectorFetchWindow | null {
+    const startTime: Date = new Date(
+      window.endTime.getTime() -
+        GOOGLE_SECOPS_LATE_ALERTS_LOOKBACK_IN_MINUTES * MINUTE_IN_MS,
+    );
+
+    if (startTime.getTime() >= window.startTime.getTime()) {
+      return null;
+    }
+
+    return { startTime, endTime: window.startTime };
+  }
+
+  /*
+   * Runs the sweep and records it as its own check. Best effort all the
+   * way: a sweep Google rejects, truncates or times out is a warning on the
+   * run, never a failed or incomplete poll, because the window it reads was
+   * already completed by earlier polls and holding the cursor for it would
+   * re-read the same day forever.
+   */
+  private static async sweepLateAlerts(
+    client: GoogleSecOpsClient,
+    sweep: ConnectorFetchWindow,
+    run: FetchRun,
+    sourceCounts: { lateAlertsView?: number | undefined },
+  ): Promise<void> {
+    const key: string = "read-late-alerts-view";
+    const name: string = "Read late alerts by detection time";
+    const startedMs: number = Date.now();
+
+    try {
+      const outcome: PassOutcome = await this.fetchWindows(client, sweep, run, {
+        /*
+         * Alerts only: non-alerting rule and curated detections are read by
+         * created time, so the sweep only looks for what the alerts view
+         * alone can see, without re-reading every detection of the past day
+         * on every poll.
+         */
+        includeNonAlertingDetections: false,
+        bestEffort: true,
+      });
+      sourceCounts.lateAlertsView = outcome.returned;
+      this.recordPass({
+        run,
+        key,
+        name,
+        startedMs,
+        outcome,
+        /*
+         * The sweep's own range, not the lookback constant: a catch-up poll's
+         * window already covers part of the day, so its sweep is shorter.
+         */
+        countMessage: `${outcome.returned} alerts returned with a detection time from ${sweep.startTime.toISOString()} to ${sweep.endTime.toISOString()}, before the window, so alerts Google made readable after their detection time are imported.`,
+      });
+    } catch (error) {
+      const message: string = redactLogString(
+        ConnectorErrorMessage.toMessage(error, { truncate: false }),
+      );
+
+      this.addWarning(
+        run,
+        `The late-alert sweep of the alerts view could not be read, so alerts Google made readable more than one poll after their detection time may be missing from this poll: ${message}`,
+      );
+      run.checks.push(
+        makeCheck({
+          key,
+          name,
+          status: "warn",
+          startedAtMs: startedMs,
+          message,
+          remediation:
+            "Polling continues and later polls sweep the same day again. If this repeats, check the alerts view permission and Chronicle quota for the service account.",
+        }),
+      );
+    }
+  }
+
+  /*
+   * The curated pass. legacySearchCuratedDetections takes one curated rule
+   * id and no wildcard, so the pass first asks
+   * countAllCuratedRuleSetDetections which curated rules produced
+   * detections from a week before the window to its end, then searches each
+   * of those rules over the window, one basis at a time, following
+   * nextPageToken under the curated budget. A curated rule the search can
+   * no longer find (a 400, 403 or 404 for that rule alone) is a warning, and
+   * the remaining rules are still read.
+   */
+  private static async curatedPass(
+    client: GoogleSecOpsClient,
+    window: ConnectorFetchWindow,
+    run: FetchRun,
+    options: { bases: Array<GoogleSecOpsListBasis> },
+  ): Promise<CuratedPassOutcome> {
+    const outcome: CuratedPassOutcome = {
+      returned: 0,
+      requests: 0,
+      stoppedBy: null,
+      leftUnread: false,
+      rulesWithDetections: 0,
+      rulesSearched: 0,
+      rulesUnreadable: 0,
+      rulesNotStarted: 0,
+    };
+    const countStop: PassStop = this.budgetStop(
+      run,
+      run.curatedRequests,
+      GOOGLE_SECOPS_CURATED_REQUEST_BUDGET,
+    );
+
+    if (countStop) {
+      outcome.stoppedBy = countStop;
+      run.complete = false;
+      return outcome;
+    }
+
+    run.curatedRequests++;
+    outcome.requests++;
+    run.requestCount++;
+
+    const rules: Array<CuratedRuleDetectionCount> =
+      await client.countCuratedRuleDetections({
+        startTime: new Date(
+          window.startTime.getTime() -
+            GOOGLE_SECOPS_CURATED_DISCOVERY_LOOKBACK_IN_MINUTES * MINUTE_IN_MS,
+        ),
+        endTime: window.endTime,
+      });
+    outcome.rulesWithDetections = rules.length;
+
+    /*
+     * Busiest first: when a poll cannot search every active curated rule,
+     * the rules most likely to have created something new are the ones read.
+     */
+    const ordered: Array<CuratedRuleDetectionCount> = [...rules].sort(
+      (a: CuratedRuleDetectionCount, b: CuratedRuleDetectionCount): number => {
+        return b.count - a.count || (a.ruleId < b.ruleId ? -1 : 1);
+      },
+    );
+
+    for (let index: number = 0; index < ordered.length; index++) {
+      const rule: CuratedRuleDetectionCount = ordered[
+        index
+      ] as CuratedRuleDetectionCount;
+      const requestsBefore: number = run.curatedRequests;
+      /*
+       * Checked at the rule boundary, before searchPass would mark the fetch
+       * incomplete. The poller answers an incomplete fetch by narrowing the
+       * window, and a narrower window still has every one of these rules to
+       * search, so a boundary stop would pin polling to one-minute forced
+       * advances. It is reported instead: those rules' detections in this
+       * window are not read, and the warning says how many.
+       */
+      const boundaryStop: PassStop =
+        this.budgetStop(
+          run,
+          run.curatedRequests,
+          GOOGLE_SECOPS_CURATED_REQUEST_BUDGET,
+        ) ||
+        (Date.now() - run.startedMs >=
+        run.maxDurationMs * CURATED_PASS_TIME_SHARE
+          ? "time"
+          : null);
+
+      if (boundaryStop) {
+        outcome.stoppedBy = boundaryStop;
+        outcome.rulesNotStarted = ordered.length - index;
+        outcome.leftUnread = true;
+        this.addWarning(
+          run,
+          `${outcome.rulesNotStarted} of ${ordered.length} curated rules with recent detections were not searched in this poll because the curated pass reached the ${this.budgetName(boundaryStop)}; their detections created in this window were not imported. The rules with the most detections were searched first.`,
+        );
+        break;
+      }
+
+      try {
+        const rulePass: PassOutcome = await this.searchPass(
+          client,
+          window,
+          run,
+          { bases: options.bases, curatedRuleId: rule.ruleId },
+        );
+        outcome.returned += rulePass.returned;
+        outcome.leftUnread = outcome.leftUnread || rulePass.leftUnread;
+
+        if (rulePass.stoppedBy) {
+          outcome.stoppedBy = rulePass.stoppedBy;
+        }
+      } catch (error) {
+        const status: number | null = GoogleSecOpsClient.readHttpStatus(error);
+
+        if (status === null || !CURATED_OPTIONAL_STATUSES.includes(status)) {
+          throw error;
+        }
+
+        /*
+         * Not a reason to hold the cursor (re-reading will not make the rule
+         * readable), but never a green check either: that rule's detections
+         * were not read.
+         */
+        outcome.rulesUnreadable++;
+        outcome.leftUnread = true;
+        this.addWarning(
+          run,
+          `Detections of curated rule ${rule.ruleId} could not be read (HTTP ${status}); the other curated rules were still read.`,
+        );
+      } finally {
+        outcome.requests = run.curatedRequests;
+
+        if (run.curatedRequests > requestsBefore) {
+          outcome.rulesSearched++;
+        }
+      }
+
+      if (outcome.stoppedBy) {
+        break;
+      }
+    }
+
+    return outcome;
   }
 
   /*
    * The alerts-view pass (legacyFetchAlertsView, detection time). The
    * endpoint has no pagination, so a truncated window is split in half and
    * both halves are re-read until they fit or the alerts-view budget runs
-   * out.
+   * out. A best-effort read (the late-alert sweep) reads the newest half
+   * first, so a budget that runs out leaves the oldest alerts unread, and it
+   * never makes the fetch incomplete.
    */
   private static async fetchWindows(
     client: GoogleSecOpsClient,
     window: ConnectorFetchWindow,
     run: FetchRun,
+    options: AlertsViewReadOptions,
   ): Promise<PassOutcome> {
     const outcome: PassOutcome = {
       returned: 0,
@@ -1277,7 +1715,11 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
 
       if (stop) {
         outcome.stoppedBy = stop;
-        run.complete = false;
+
+        if (!options.bestEffort) {
+          run.complete = false;
+        }
+
         break;
       }
 
@@ -1290,11 +1732,11 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
         startTime: current.startTime,
         endTime: current.endTime,
         maxAlerts: MAX_ALERTS_PER_REQUEST,
-        includeNonAlertingDetections: !run.alertingOnly,
+        includeNonAlertingDetections: options.includeNonAlertingDetections,
       });
       outcome.returned += fetched.alerts.length;
 
-      if (!this.collectAll(run, fetched.alerts)) {
+      if (!this.collectAll(run, fetched.alerts, options.bestEffort)) {
         outcome.stoppedBy = "events";
         break;
       }
@@ -1314,12 +1756,25 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
           MIN_SPLIT_WINDOW_IN_MS
       ) {
         splits++;
-        pending.unshift(
-          { startTime: current.startTime, endTime: new Date(midpoint) },
-          { startTime: new Date(midpoint), endTime: current.endTime },
-        );
+        const older: { startTime: Date; endTime: Date } = {
+          startTime: current.startTime,
+          endTime: new Date(midpoint),
+        };
+        const newer: { startTime: Date; endTime: Date } = {
+          startTime: new Date(midpoint),
+          endTime: current.endTime,
+        };
+
+        if (options.bestEffort) {
+          pending.unshift(newer, older);
+        } else {
+          pending.unshift(older, newer);
+        }
       } else if (!fetched.complete || truncated) {
-        run.complete = false;
+        if (!options.bestEffort) {
+          run.complete = false;
+        }
+
         outcome.leftUnread = true;
         this.addWarning(
           run,
@@ -1341,17 +1796,22 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
   }
 
   /*
-   * A detections-search pass (legacySearchDetections or the curated
-   * variant), one basis at a time, following nextPageToken under the page
-   * budget the two search passes share.
+   * A detections search, one basis at a time, following nextPageToken:
+   * every rule through legacySearchDetections under the rule page budget,
+   * or one curated rule through legacySearchCuratedDetections under the
+   * curated budget.
    */
   private static async searchPass(
     client: GoogleSecOpsClient,
     window: ConnectorFetchWindow,
     run: FetchRun,
-    options: { curated: boolean; bases: Array<GoogleSecOpsListBasis> },
+    options: {
+      bases: Array<GoogleSecOpsListBasis>;
+      curatedRuleId?: string | undefined;
+    },
   ): Promise<PassOutcome> {
-    const label: string = options.curated
+    const curated: boolean = Boolean(options.curatedRuleId);
+    const label: string = curated
       ? "curated rule detections"
       : "rule detections";
     const outcome: PassOutcome = {
@@ -1365,11 +1825,17 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
       let pageToken: string | undefined = undefined;
 
       do {
-        const stop: PassStop = this.budgetStop(
-          run,
-          run.searchRequests,
-          GOOGLE_SECOPS_SEARCH_PAGE_BUDGET,
-        );
+        const stop: PassStop = curated
+          ? this.budgetStop(
+              run,
+              run.curatedRequests,
+              GOOGLE_SECOPS_CURATED_REQUEST_BUDGET,
+            )
+          : this.budgetStop(
+              run,
+              run.searchRequests,
+              GOOGLE_SECOPS_SEARCH_PAGE_BUDGET,
+            );
 
         if (stop) {
           outcome.stoppedBy = stop;
@@ -1377,7 +1843,12 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
           return outcome;
         }
 
-        run.searchRequests++;
+        if (curated) {
+          run.curatedRequests++;
+        } else {
+          run.searchRequests++;
+        }
+
         outcome.requests++;
         run.requestCount++;
 
@@ -1388,7 +1859,8 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
           alertingOnly: run.alertingOnly,
           pageSize: MAX_SEARCH_PAGE_SIZE,
           pageToken,
-          curated: options.curated,
+          curated,
+          ...(curated ? { ruleId: options.curatedRuleId } : {}),
         });
         outcome.returned += page.detections.length;
 
@@ -1463,11 +1935,12 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
   private static collectAll(
     run: FetchRun,
     records: Array<JSONObject>,
+    bestEffort: boolean = false,
   ): boolean {
     let kept: boolean = true;
 
     for (const record of records) {
-      if (!this.collect(run, record)) {
+      if (!this.collect(run, record, bestEffort)) {
         kept = false;
       }
     }
@@ -1480,8 +1953,14 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
    * chunks; a record with no id falls back to a content hash, and an
    * object that cannot even be inspected is kept under a positional key so
    * it is counted as rejected without hiding the valid records beside it.
+   * A best-effort read that reaches the record bound stops without making
+   * the fetch incomplete, and what it alone found is marked as swept.
    */
-  private static collect(run: FetchRun, record: JSONObject): boolean {
+  private static collect(
+    run: FetchRun,
+    record: JSONObject,
+    bestEffort: boolean = false,
+  ): boolean {
     let key: string;
 
     try {
@@ -1491,9 +1970,22 @@ export default class GoogleSecOpsConnector implements SecurityEventConnector {
     }
 
     if (!run.seen.has(key) && run.seen.size >= run.maxEvents) {
-      run.eventLimitHit = true;
-      run.complete = false;
+      /*
+       * A best-effort read stops itself here, but must not mark the run:
+       * eventLimitHit stops every later pass outright, and complete=false
+       * would have the poller narrow a window that is not what filled the
+       * record bound.
+       */
+      if (!bestEffort) {
+        run.eventLimitHit = true;
+        run.complete = false;
+      }
+
       return false;
+    }
+
+    if (bestEffort && !run.seen.has(key)) {
+      run.sweptOnly.add(key);
     }
 
     run.seen.set(key, record);

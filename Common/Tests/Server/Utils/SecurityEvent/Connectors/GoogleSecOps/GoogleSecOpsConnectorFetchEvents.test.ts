@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import GoogleSecOpsClient, {
+  CuratedRuleDetectionCount,
   FetchAlertsResult,
   SearchDetectionsResult,
 } from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
@@ -28,6 +29,7 @@ import {
   AlertsCall,
   ClientFactoryCall,
   ConnectorHarness,
+  FIXTURE_CURATED_RULE_ID,
   FakeClient,
   SearchCall,
   checkByKey,
@@ -49,14 +51,22 @@ import {
  * detections by created time, curated rule detections by created time and
  * the alerts view by detection time, and unioned by Collection.id. These
  * tests pin the pass requests (bases, scope, page sizes), the union, the
- * per-pass checks and their wording, the split budgets (20 shared search
- * pages, 16 alerts-view requests, the wall clock, and the poller's total
- * request and record bounds), the alerts view's midpoint splitting, the
- * curated-rule degradation, the failed-pass checks attached to a thrown
+ * per-pass checks and their wording, the split budgets (20 rule search
+ * pages, 200 curated requests, 16 alerts-view requests the late-alert sweep
+ * shares, the wall clock, and the poller's total request and record
+ * bounds), the alerts view's midpoint splitting, the curated-rule
+ * degradation, the failed-pass checks attached to a thrown
  * error, the diagnostics details, samples and creation lag. The cursor,
  * ingest and row bookkeeping around it belong to the generic poller.
  */
 
+const DAY_MS: number = 24 * 60 * 60 * 1000;
+
+/*
+ * A scheduled poll's few minutes. A poll window shorter than a day also
+ * sweeps the alerts view over the day before it (late alerts); DAY_WINDOW
+ * already reaches back a day and does not.
+ */
 const WINDOW: ConnectorFetchWindow = {
   startTime: new Date("2026-09-14T11:54:00.000Z"),
   endTime: new Date("2026-09-14T12:00:00.000Z"),
@@ -89,6 +99,19 @@ function uidsOf(result: ConnectorFetchResult): Array<string> {
     .sort();
 }
 
+/*
+ * The alerts-view requests that read the poll window itself, without the
+ * late-alert sweep, which is the request ending where the window starts.
+ */
+function windowReadsOf(
+  fake: FakeClient,
+  window: ConnectorFetchWindow = WINDOW,
+): Array<AlertsCall> {
+  return fake.alertsCalls.filter((call: AlertsCall): boolean => {
+    return call.endTime.getTime() !== window.startTime.getTime();
+  });
+}
+
 function endlessPages(id: string): Array<SearchDetectionsResult> {
   return [page([detection(id)], { nextPageToken: "again" })];
 }
@@ -102,18 +125,20 @@ describe("GoogleSecOpsConnector.fetchEvents passes", () => {
     const fake: FakeClient = makeFakeClient({
       rule: [page([detection("a"), detection("b")])],
       curated: [page([detection("b"), detection("c")])],
-      alerts: [fetched([detection("c"), detection("d")])],
+      // The window's alerts view, then a late-alert sweep that finds nothing.
+      alerts: [fetched([detection("c"), detection("d")]), fetched([])],
     });
 
     const result: ConnectorFetchResult = await fetchWith(fake);
 
     expect(uidsOf(result)).toEqual(["a", "b", "c", "d"]);
+    // Rule search, curated count, curated search, alerts view, sweep.
     expect(result).toMatchObject({
       fetchedCount: 4,
       rejectedCount: 0,
       failedCount: 0,
       complete: true,
-      requestCount: 3,
+      requestCount: 5,
       warnings: [],
     });
     expect(result.checks).toEqual([
@@ -130,7 +155,7 @@ describe("GoogleSecOpsConnector.fetchEvents passes", () => {
         status: "pass",
         durationMs: expect.any(Number),
         message:
-          "2 curated rule detections returned for the window by created time.",
+          "2 curated rule detections returned for the window by created time (1 of 1 curated rule with recent detections searched).",
       },
       {
         key: "read-alerts-view",
@@ -140,10 +165,24 @@ describe("GoogleSecOpsConnector.fetchEvents passes", () => {
         message:
           "2 alerts returned by detection time. The configured Google SecOps instance is reachable and allows reading detections.",
       },
+      {
+        key: "read-late-alerts-view",
+        name: "Read late alerts by detection time",
+        status: "pass",
+        durationMs: expect.any(Number),
+        message:
+          "0 alerts returned with a detection time from 2026-09-13T12:00:00.000Z to 2026-09-14T11:54:00.000Z, before the window, so alerts Google made readable after their detection time are imported.",
+      },
     ]);
     expect(result.details).toEqual({
       basis: "created-time",
-      sourceCounts: { ruleDetections: 2, curatedDetections: 2, alertsView: 2 },
+      sourceCounts: {
+        ruleDetections: 2,
+        curatedDetections: 2,
+        alertsView: 2,
+        lateAlertsView: 0,
+      },
+      curatedRulesWithDetections: 1,
       creationLag: { measured: 4, lateCount: 0, maxLagMinutes: 2 },
       includeNonAlertingDetections: false,
     });
@@ -184,23 +223,44 @@ describe("GoogleSecOpsConnector.fetchEvents passes", () => {
       curated: false,
     });
     expect(fake.searchCalls[0]!.pageToken).toBeUndefined();
+    expect(fake.searchCalls[0]!.ruleId).toBeUndefined();
     expect(fake.searchCalls[1]).toMatchObject({
       listBasis: "CREATED_TIME",
       alertingOnly: true,
       pageSize: 1000,
       curated: true,
+      ruleId: FIXTURE_CURATED_RULE_ID,
     });
     for (const call of fake.searchCalls) {
       expect(call.startTime).toEqual(WINDOW.startTime);
       expect(call.endTime).toEqual(WINDOW.endTime);
     }
-    expect(fake.alertsCalls).toHaveLength(1);
-    expect(fake.alertsCalls[0]).toEqual({
-      startTime: WINDOW.startTime,
-      endTime: WINDOW.endTime,
-      maxAlerts: 1000,
-      includeNonAlertingDetections: false,
-    });
+    // The curated rules are counted from a week before the window to its end.
+    expect(fake.countCalls).toEqual([
+      {
+        startTime: new Date(WINDOW.startTime.getTime() - 7 * DAY_MS),
+        endTime: WINDOW.endTime,
+      },
+    ]);
+    expect(fake.alertsCalls).toEqual([
+      {
+        startTime: WINDOW.startTime,
+        endTime: WINDOW.endTime,
+        maxAlerts: 1000,
+        includeNonAlertingDetections: false,
+      },
+      /*
+       * The late-alert sweep of a window shorter than a day: the 24 hours
+       * before the window's end, up to where the window's own read starts,
+       * alerts only.
+       */
+      {
+        startTime: new Date(WINDOW.endTime.getTime() - DAY_MS),
+        endTime: WINDOW.startTime,
+        maxAlerts: 1000,
+        includeNonAlertingDetections: false,
+      },
+    ]);
   });
 
   test("a fetch with no purpose reads like a poll", async () => {
@@ -252,7 +312,12 @@ describe("GoogleSecOpsConnector.fetchEvents passes", () => {
       });
       // The same record read by both bases is one record.
       expect(result.fetchedCount).toBe(1);
-      expect(result.requestCount).toBe(5);
+      /*
+       * Two rule searches, the curated count, the fixture curated rule by
+       * both bases and the alerts view; a preview or backfill never sweeps.
+       */
+      expect(result.requestCount).toBe(6);
+      expect(fake.alertsCalls).toHaveLength(1);
       expect(statusesOf(result.checks)).toEqual([
         "read-rule-detections:pass",
         "read-curated-detections:pass",
@@ -299,7 +364,8 @@ describe("GoogleSecOpsConnector.fetchEvents passes", () => {
       "DETECTION_TIME:t1",
     ]);
     expect(result.fetchedCount).toBe(2);
-    expect(result.requestCount).toBe(7);
+    // Four rule pages, the curated count, two curated pages, the alerts view.
+    expect(result.requestCount).toBe(8);
   });
 
   test.each([
@@ -323,11 +389,12 @@ describe("GoogleSecOpsConnector.fetchEvents passes", () => {
           return call.alertingOnly;
         }),
       ).toEqual([searchAlertingOnly, searchAlertingOnly]);
+      // The window's read follows the scope; the late-alert sweep reads alerts only.
       expect(
         fake.alertsCalls.map((call: AlertsCall): boolean | undefined => {
           return call.includeNonAlertingDetections;
         }),
-      ).toEqual([includeNonAlertingDetections]);
+      ).toEqual([includeNonAlertingDetections, false]);
       expect(result.details).toMatchObject({ includeNonAlertingDetections });
     },
   );
@@ -352,15 +419,17 @@ describe("GoogleSecOpsConnector.fetchEvents passes", () => {
           return call.pageToken;
         }),
     ).toEqual([undefined, "t1", "t2"]);
+    // Three rule pages, the curated count and search, alerts view, sweep.
     expect(result).toMatchObject({
       complete: true,
       fetchedCount: 3,
-      requestCount: 5,
+      requestCount: 7,
       details: expect.objectContaining({
         sourceCounts: {
           ruleDetections: 3,
           curatedDetections: 0,
           alertsView: 0,
+          lateAlertsView: 0,
         },
       }),
     });
@@ -505,14 +574,15 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
   test.each([400, 403, 404])(
     "a curated pass answering HTTP %s is a warning and the fetch continues",
     async (status: number) => {
+      // A tenant without curated access rejects the curated rule counts.
       const fake: FakeClient = makeFakeClient({
         rule: [page([detection("r")])],
-        curated: [
+        counts: [
           new APIException(
-            `Google SecOps detections search failed (HTTP ${status}): {"error":{"code":${status}}}`,
+            `Google SecOps curated rule detection counts failed (HTTP ${status}): {"error":{"code":${status}}}`,
           ),
         ],
-        alerts: [fetched([detection("v")])],
+        alerts: [fetched([detection("v")]), fetched([])],
       });
 
       const result: ConnectorFetchResult = await fetchWith(fake);
@@ -527,7 +597,7 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
         name: "Read curated rule detections by created time",
         status: "warn",
         durationMs: expect.any(Number),
-        message: `Google SecOps detections search failed (HTTP ${status}): {"error":{"code":${status}}}`,
+        message: `Google SecOps curated rule detection counts failed (HTTP ${status}): {"error":{"code":${status}}}`,
         remediation:
           "Curated (Google-authored) rule detections need that entitlement on the tenant. Nothing to fix unless you expect curated detections to be imported.",
         details: { httpStatus: status },
@@ -536,6 +606,7 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
         "read-rule-detections:pass",
         "read-curated-detections:warn",
         "read-alerts-view:pass",
+        "read-late-alerts-view:pass",
       ]);
       expect(result.details).toMatchObject({
         sourceCounts: {
@@ -543,8 +614,19 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
           curatedDetections: 0,
           alertsView: 1,
         },
+        curatedRulesWithDetections: 0,
       });
-      expect(fake.alertsCalls).toHaveLength(1);
+      // With no curated rules named, no curated search goes out.
+      expect(fake.countCalls).toHaveLength(1);
+      expect(
+        fake.searchCalls.map((call: SearchCall): boolean | undefined => {
+          return call.curated;
+        }),
+      ).toEqual([false]);
+      expect(result.requestCount).toBe(4);
+      // The alerts view over the window still ran, and so did the sweep.
+      expect(windowReadsOf(fake)).toHaveLength(1);
+      expect(fake.alertsCalls).toHaveLength(2);
     },
   );
 
@@ -688,9 +770,9 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
 
   test("an alerts-view failure after a curated warning keeps the warning check", async () => {
     const fake: FakeClient = makeFakeClient({
-      curated: [
+      counts: [
         new APIException(
-          'Google SecOps detections search failed (HTTP 403): {"error":{"code":403}}',
+          'Google SecOps curated rule detection counts failed (HTTP 403): {"error":{"code":403}}',
         ),
       ],
       alerts: [
@@ -748,11 +830,11 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
      * missing entitlement off mid-body.
      */
     const body: string = "curated entitlement missing ".repeat(45);
-    const message: string = `Google SecOps detections search failed (HTTP 403): {"error":{"private_key":"-----BEGIN PRIVATE KEY-----leaked"}} ${body}tail`;
+    const message: string = `Google SecOps curated rule detection counts failed (HTTP 403): {"error":{"private_key":"-----BEGIN PRIVATE KEY-----leaked"}} ${body}tail`;
     expect(message.length).toBeGreaterThan(1000);
     const fake: FakeClient = makeFakeClient({
       rule: [page([detection("r")])],
-      curated: [new APIException(message)],
+      counts: [new APIException(message)],
       alerts: [fetched([detection("v")])],
     });
 
@@ -770,7 +852,7 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
     expect(warned.message).not.toContain("leaked");
     expect(
       warned.message.startsWith(
-        "Google SecOps detections search failed (HTTP 403): ",
+        "Google SecOps curated rule detection counts failed (HTTP 403): ",
       ),
     ).toBe(true);
   });
@@ -787,9 +869,9 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
     );
     const fake: FakeClient = makeFakeClient({
       rule: [page([detection("r1"), detection("r2")])],
-      curated: [
+      counts: [
         new APIException(
-          'Google SecOps detections search failed (HTTP 403): {"error":{"code":403}}',
+          'Google SecOps curated rule detection counts failed (HTTP 403): {"error":{"code":403}}',
         ),
       ],
       alerts: [original],
@@ -816,8 +898,12 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
         "Curated rule detections could not be read (HTTP 403)",
       ),
     ).toBe(true);
-    // Two searches and the alerts-view request that failed.
-    expect(fake.searchCalls.length + fake.alertsCalls.length).toBe(3);
+    // The rule search, the curated count and the alerts-view request that failed.
+    expect(
+      fake.searchCalls.length +
+        fake.countCalls.length +
+        fake.alertsCalls.length,
+    ).toBe(3);
     expect(summary!.requestCount).toBe(3);
     expect(summary!.fetchedCount).toBe(2);
     expect(summary!.details).toEqual({
@@ -908,9 +994,10 @@ describe("GoogleSecOpsConnector.fetchEvents failures", () => {
       }),
     );
 
+    // Two rule searches, the curated count and the curated search that failed.
     expect(readConnectorFetchSummary(error)).toEqual({
       warnings: [],
-      requestCount: 3,
+      requestCount: 4,
       fetchedCount: 1,
       details: {
         basis: "detection-time",
@@ -969,20 +1056,30 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
     };
   }
 
-  test("the search passes share a 20 page budget and the alerts view keeps its own", async () => {
+  test("the rule pass stops at its own 20 pages while the curated pass and the alerts view keep their own budgets", async () => {
     const fake: FakeClient = makeFakeClient({ rule: endlessPages("endless") });
 
     const result: ConnectorFetchResult = await fetchWith(fake);
 
-    expect(fake.searchCalls).toHaveLength(20);
     expect(
-      fake.searchCalls.every((call: SearchCall): boolean => {
+      fake.searchCalls.filter((call: SearchCall): boolean => {
         return call.curated === false;
       }),
-    ).toBe(true);
-    // The alerts view still ran on its own budget.
-    expect(fake.alertsCalls).toHaveLength(1);
-    expect(result.requestCount).toBe(21);
+    ).toHaveLength(20);
+    // The curated pass still counted and searched on its own budget.
+    expect(fake.countCalls).toHaveLength(1);
+    expect(
+      fake.searchCalls
+        .filter((call: SearchCall): boolean => {
+          return call.curated === true;
+        })
+        .map((call: SearchCall): string | undefined => {
+          return call.ruleId;
+        }),
+    ).toEqual([FIXTURE_CURATED_RULE_ID]);
+    // The alerts view and the late-alert sweep still ran on theirs.
+    expect(fake.alertsCalls).toHaveLength(2);
+    expect(result.requestCount).toBe(24);
     expect(result.complete).toBe(false);
     expect(checkByKey(result.checks, "read-rule-detections")).toMatchObject({
       status: "warn",
@@ -990,14 +1087,18 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
         "20 rule detections returned for the window by created time. The pass was stopped by the request budget after 20 requests.",
     });
     expect(checkByKey(result.checks, "read-curated-detections")).toMatchObject({
-      status: "skip",
+      status: "pass",
       message:
-        "Not run: stopped by the request budget after 0 requests. The search passes share one page budget and it was spent before this pass started.",
+        "0 curated rule detections returned for the window by created time (1 of 1 curated rule with recent detections searched).",
     });
-    expect(checkByKey(result.checks, "read-alerts-view").status).toBe("pass");
+    expect(statusesOf(result.checks)).toEqual([
+      "read-rule-detections:warn",
+      "read-curated-detections:pass",
+      "read-alerts-view:pass",
+      "read-late-alerts-view:pass",
+    ]);
     expect(result.warnings).toEqual([
       "Read rule detections by created time was stopped by the request budget after 20 requests.",
-      "Read curated rule detections by created time was stopped by the request budget after 0 requests.",
     ]);
   });
 
@@ -1008,10 +1109,15 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
       options: { purpose: "preview" },
     });
 
+    const ruleCalls: Array<SearchCall> = fake.searchCalls.filter(
+      (call: SearchCall): boolean => {
+        return call.curated === false;
+      },
+    );
     // The created-time basis spends every page; detection time never starts.
-    expect(fake.searchCalls).toHaveLength(20);
+    expect(ruleCalls).toHaveLength(20);
     expect(
-      fake.searchCalls.every((call: SearchCall): boolean => {
+      ruleCalls.every((call: SearchCall): boolean => {
         return call.listBasis === "CREATED_TIME";
       }),
     ).toBe(true);
@@ -1041,8 +1147,10 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
       window: DAY_WINDOW,
     });
 
+    // A day's window never sweeps, so every alerts-view request is the window's.
     expect(fake.alertsCalls).toHaveLength(16);
-    expect(result.requestCount).toBe(19);
+    // Two rule pages, the curated count and search, 16 alerts-view requests.
+    expect(result.requestCount).toBe(20);
     expect(result.complete).toBe(false);
     expect(result.details).toMatchObject({
       sourceCounts: {
@@ -1065,6 +1173,50 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
     ]);
   });
 
+  test("the late-alert sweep shares the alerts view's 16 requests, so a window read that spends them leaves the sweep skipped and named", async () => {
+    // Shorter than a day, so a poll of it sweeps; long enough to split 16 times.
+    const halfDay: ConnectorFetchWindow = {
+      startTime: new Date("2026-09-14T00:00:00.000Z"),
+      endTime: new Date("2026-09-14T12:00:00.000Z"),
+    };
+    const fake: FakeClient = makeFakeClient({
+      alerts: [fetched([detection("burst")], { truncatedByCount: true })],
+    });
+
+    const result: ConnectorFetchResult = await fetchWith(fake, {
+      window: halfDay,
+    });
+
+    expect(fake.alertsCalls).toHaveLength(16);
+    expect(windowReadsOf(fake, halfDay)).toHaveLength(16);
+    // The rule search, the curated count and search, 16 alerts-view requests.
+    expect(result.requestCount).toBe(19);
+    // Incomplete because of the window read; the sweep never holds a poll.
+    expect(result.complete).toBe(false);
+    expect(statusesOf(result.checks)).toEqual([
+      "read-rule-detections:pass",
+      "read-curated-detections:pass",
+      "read-alerts-view:warn",
+      "read-late-alerts-view:skip",
+    ]);
+    expect(checkByKey(result.checks, "read-late-alerts-view").message).toBe(
+      "Not run: stopped by the request budget after 0 requests. The passes that share this request budget spent it before this pass started.",
+    );
+    expect(result.warnings).toEqual([
+      "Google limited the alerts view response for 2026-09-14T00:00:00.000Z to 2026-09-14T12:00:00.000Z, so it was split into smaller windows 16 times.",
+      "Read alerts view by detection time was stopped by the request budget after 16 requests.",
+      "Read late alerts by detection time was stopped by the request budget after 0 requests.",
+    ]);
+    expect(result.details).toMatchObject({
+      sourceCounts: {
+        ruleDetections: 0,
+        curatedDetections: 0,
+        alertsView: 16,
+        lateAlertsView: 0,
+      },
+    });
+  });
+
   test("a pass the time budget never let start is skipped and named", async () => {
     const clock: { advance: (ms: number) => void } = useClock();
     const fake: FakeClient = makeFakeClient({
@@ -1080,11 +1232,16 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
     const result: ConnectorFetchResult = await fetchWith(fake);
 
     expect(fake.searchCalls).toHaveLength(1);
+    expect(fake.countCalls).toHaveLength(0);
     expect(fake.alertsCalls).toHaveLength(0);
     expect(checkByKey(result.checks, "read-rule-detections").status).toBe(
       "pass",
     );
-    for (const key of ["read-curated-detections", "read-alerts-view"]) {
+    for (const key of [
+      "read-curated-detections",
+      "read-alerts-view",
+      "read-late-alerts-view",
+    ]) {
       expect(checkByKey(result.checks, key)).toMatchObject({
         status: "skip",
         message: "Not run: the poll time budget was spent.",
@@ -1093,6 +1250,7 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
     expect(result.warnings).toEqual([
       "Read curated rule detections by created time was not run: the poll time budget was spent.",
       "Read alerts view by detection time was not run: the poll time budget was spent.",
+      "Read late alerts by detection time was not run: the poll time budget was spent.",
     ]);
     expect(result.complete).toBe(false);
     // What was read is still returned for import.
@@ -1144,6 +1302,7 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
       "read-rule-detections:pass",
       "read-curated-detections:skip",
       "read-alerts-view:skip",
+      "read-late-alerts-view:skip",
     ]);
   });
 
@@ -1158,10 +1317,15 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
             return page([]);
           },
         ],
-        curated: [
-          (): SearchDetectionsResult => {
+        /*
+         * The curated pass's count is the last request the fallback clock
+         * still allows, and it leaves the run exactly at four minutes. No
+         * curated rule fired, so the pass ends there, on its count alone.
+         */
+        counts: [
+          (): Array<CuratedRuleDetectionCount> => {
             clock.set(4 * 60 * 1000);
-            return page([]);
+            return [];
           },
         ],
       });
@@ -1174,7 +1338,9 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
         "read-rule-detections:pass",
         "read-curated-detections:pass",
         "read-alerts-view:skip",
+        "read-late-alerts-view:skip",
       ]);
+      expect(fake.countCalls).toHaveLength(1);
       expect(fake.alertsCalls).toHaveLength(0);
     },
   );
@@ -1187,6 +1353,7 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
     });
 
     expect(fake.searchCalls).toHaveLength(3);
+    expect(fake.countCalls).toHaveLength(0);
     expect(fake.alertsCalls).toHaveLength(0);
     expect(result.requestCount).toBe(3);
     expect(result.complete).toBe(false);
@@ -1195,7 +1362,11 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
       message:
         "3 rule detections returned for the window by created time. The pass was stopped by the per-run request limit after 3 requests.",
     });
-    for (const key of ["read-curated-detections", "read-alerts-view"]) {
+    for (const key of [
+      "read-curated-detections",
+      "read-alerts-view",
+      "read-late-alerts-view",
+    ]) {
       expect(checkByKey(result.checks, key)).toMatchObject({
         status: "skip",
         message:
@@ -1206,6 +1377,7 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
       "Read rule detections by created time was stopped by the per-run request limit after 3 requests.",
       "Read curated rule detections by created time was stopped by the per-run request limit after 0 requests.",
       "Read alerts view by detection time was stopped by the per-run request limit after 0 requests.",
+      "Read late alerts by detection time was stopped by the per-run request limit after 0 requests.",
     ]);
   });
 
@@ -1234,7 +1406,8 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
         options: { maxRequests: maxRequests as number },
       });
 
-      expect(result.requestCount).toBe(21);
+      // 20 rule pages, the curated count and search, alerts view and sweep.
+      expect(result.requestCount).toBe(24);
     },
   );
 
@@ -1257,7 +1430,11 @@ describe("GoogleSecOpsConnector.fetchEvents budgets", () => {
       message:
         "3 rule detections returned for the window by created time. The pass was stopped by the per-run record limit after 1 request.",
     });
-    for (const key of ["read-curated-detections", "read-alerts-view"]) {
+    for (const key of [
+      "read-curated-detections",
+      "read-alerts-view",
+      "read-late-alerts-view",
+    ]) {
       expect(checkByKey(result.checks, key)).toMatchObject({
         status: "skip",
         message:
@@ -1360,13 +1537,16 @@ describe("GoogleSecOpsConnector.fetchEvents alerts view and truncation", () => {
           fetched([detection("a")], flags),
           fetched([detection("a")]),
           fetched([detection("b")]),
+          // The late-alert sweep finds nothing.
+          fetched([]),
         ],
       });
 
       const result: ConnectorFetchResult = await fetchWith(fake);
 
-      expect(fake.alertsCalls).toHaveLength(3);
-      const [whole, first, second] = fake.alertsCalls;
+      expect(fake.alertsCalls).toHaveLength(4);
+      expect(windowReadsOf(fake)).toHaveLength(3);
+      const [whole, first, second] = windowReadsOf(fake);
       const midpoint: number = Math.floor(
         (WINDOW.startTime.getTime() + WINDOW.endTime.getTime()) / 2,
       );
@@ -1374,15 +1554,17 @@ describe("GoogleSecOpsConnector.fetchEvents alerts view and truncation", () => {
       expect(first!.endTime.getTime()).toBe(midpoint);
       expect(second!.startTime.getTime()).toBe(midpoint);
       expect(second!.endTime).toEqual(whole!.endTime);
+      // Rule search, curated count and search, three window reads, sweep.
       expect(result).toMatchObject({
         complete: true,
         fetchedCount: 2,
-        requestCount: 5,
+        requestCount: 7,
         details: expect.objectContaining({
           sourceCounts: {
             ruleDetections: 0,
             curatedDetections: 0,
             alertsView: 3,
+            lateAlertsView: 0,
           },
         }),
       });
@@ -1398,8 +1580,12 @@ describe("GoogleSecOpsConnector.fetchEvents alerts view and truncation", () => {
       startTime: new Date("2026-09-14T11:59:58.000Z"),
       endTime: new Date("2026-09-14T12:00:00.000Z"),
     };
+    const burst: FetchAlertsResult = fetched([detection("burst")], {
+      truncatedByCount: true,
+    });
     const fake: FakeClient = makeFakeClient({
-      alerts: [fetched([detection("burst")], { truncatedByCount: true })],
+      // Three truncated window reads, then a late-alert sweep that finds nothing.
+      alerts: [burst, burst, burst, fetched([])],
     });
 
     const result: ConnectorFetchResult = await fetchWith(fake, {
@@ -1407,7 +1593,8 @@ describe("GoogleSecOpsConnector.fetchEvents alerts view and truncation", () => {
     });
 
     // The two-second window splits once; both one-second halves stay truncated.
-    expect(fake.alertsCalls).toHaveLength(3);
+    expect(windowReadsOf(fake, twoSeconds)).toHaveLength(3);
+    expect(fake.alertsCalls).toHaveLength(4);
     expect(result.complete).toBe(false);
     expect(result.warnings).toEqual([
       "Google still truncated a one-second window of the alerts view, so some alerts in it were not read.",
@@ -1422,12 +1609,17 @@ describe("GoogleSecOpsConnector.fetchEvents alerts view and truncation", () => {
 
   test("an alerts-view stream that never completed leaves the window unread without splitting", async () => {
     const fake: FakeClient = makeFakeClient({
-      alerts: [fetched([detection("partial")], { complete: false })],
+      alerts: [
+        fetched([detection("partial")], { complete: false }),
+        // The late-alert sweep finds nothing.
+        fetched([]),
+      ],
     });
 
     const result: ConnectorFetchResult = await fetchWith(fake);
 
-    expect(fake.alertsCalls).toHaveLength(1);
+    expect(windowReadsOf(fake)).toHaveLength(1);
+    expect(fake.alertsCalls).toHaveLength(2);
     expect(result.complete).toBe(false);
     expect(result.warnings).toEqual([
       "Google ended an alerts view response without confirming it was complete.",
@@ -1475,12 +1667,16 @@ describe("GoogleSecOpsConnector.fetchEvents alerts view and truncation", () => {
         fetched([detection("b")], { truncatedByBytes: true }),
         fetched([detection("c")]),
         fetched([detection("d")]),
+        fetched([detection("d")]),
+        // The late-alert sweep finds nothing.
+        fetched([]),
       ],
     });
 
     const result: ConnectorFetchResult = await fetchWith(fake);
 
-    expect(fake.alertsCalls).toHaveLength(5);
+    expect(windowReadsOf(fake)).toHaveLength(5);
+    expect(fake.alertsCalls).toHaveLength(6);
     expect(
       result.checks!.filter((check: SecurityConnectorCheck): boolean => {
         return check.key === "read-alerts-view";
@@ -1753,18 +1949,28 @@ describe("GoogleSecOpsConnector.fetchEvents samples and creation lag", () => {
   });
 
   test("an empty window measures nothing and returns empty diagnostics", async () => {
-    const result: ConnectorFetchResult = await fetchWith(makeFakeClient({}));
+    // No curated rule fired either, so the count is the only curated request.
+    const result: ConnectorFetchResult = await fetchWith(
+      makeFakeClient({ counts: [[]] }),
+    );
 
+    // Rule search, curated count, alerts view, late-alert sweep.
     expect(result).toMatchObject({
       events: [],
       fetchedCount: 0,
       samples: [],
       complete: true,
-      requestCount: 3,
+      requestCount: 4,
     });
     expect(result.details).toEqual({
       basis: "created-time",
-      sourceCounts: { ruleDetections: 0, curatedDetections: 0, alertsView: 0 },
+      sourceCounts: {
+        ruleDetections: 0,
+        curatedDetections: 0,
+        alertsView: 0,
+        lateAlertsView: 0,
+      },
+      curatedRulesWithDetections: 0,
       creationLag: { measured: 0, lateCount: 0, maxLagMinutes: 0 },
       includeNonAlertingDetections: false,
     });

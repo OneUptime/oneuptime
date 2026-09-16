@@ -7,6 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import GoogleSecOpsClient, {
+  CuratedRuleDetectionCount,
   FetchAlertsResult,
   SearchDetectionsResult,
 } from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
@@ -49,6 +50,12 @@ interface SearchCall {
   alertingOnly: boolean;
   pageSize?: number | undefined;
   curated?: boolean | undefined;
+  ruleId?: string | undefined;
+}
+
+interface CountCall {
+  startTime: Date;
+  endTime: Date;
 }
 
 interface AlertsCall {
@@ -77,7 +84,12 @@ interface Fixture {
   alertsAndDetections?: ScopeFixture | undefined;
   authError?: Error | undefined;
   ruleError?: Error | undefined;
+  // Thrown by the curated rule counts, the curated probe's first request.
   curatedError?: Error | undefined;
+  // Curated rules the counts report. Default: none fired.
+  curatedRules?: Array<CuratedRuleDetectionCount> | undefined;
+  // Thrown by the curated search, after the counts named a rule.
+  curatedSearchError?: Error | undefined;
   alertsError?: Error | undefined;
   // Fails the availability probes only (week-long reads).
   weekError?: Error | undefined;
@@ -90,6 +102,7 @@ interface FakeClient {
   client: GoogleSecOpsClient;
   searchCalls: Array<SearchCall>;
   alertsCalls: Array<AlertsCall>;
+  countCalls: Array<CountCall>;
   authCalls: Array<string>;
 }
 
@@ -110,6 +123,7 @@ function isWeek(call: { startTime: Date; endTime: Date }): boolean {
 function makeClient(fixture: Fixture): FakeClient {
   const searchCalls: Array<SearchCall> = [];
   const alertsCalls: Array<AlertsCall> = [];
+  const countCalls: Array<CountCall> = [];
   const authCalls: Array<string> = [];
 
   const scopeOf: (alertingOnly: boolean) => ScopeFixture = (
@@ -135,10 +149,14 @@ function makeClient(fixture: Fixture): FakeClient {
         throw fixture.weekError;
       }
       if (call.curated) {
-        if (fixture.curatedError) {
-          throw fixture.curatedError;
+        if (fixture.curatedSearchError) {
+          throw fixture.curatedSearchError;
         }
-        return { detections: [], nextPageToken: null, truncated: false };
+        return {
+          detections: [detection(`curated-${call.ruleId}`)],
+          nextPageToken: null,
+          truncated: false,
+        };
       }
       if (fixture.ruleError) {
         throw fixture.ruleError;
@@ -159,6 +177,15 @@ function makeClient(fixture: Fixture): FakeClient {
         nextPageToken: isWeek(call) && scope.rules7dHasMore ? "more" : null,
         truncated: isWeek(call) && scope.rules7dTruncated === true,
       };
+    },
+    countCuratedRuleDetections: async (
+      call: CountCall,
+    ): Promise<Array<CuratedRuleDetectionCount>> => {
+      countCalls.push(call);
+      if (fixture.curatedError) {
+        throw fixture.curatedError;
+      }
+      return fixture.curatedRules || [];
     },
     fetchDetectionAlerts: async (
       call: AlertsCall,
@@ -192,7 +219,7 @@ function makeClient(fixture: Fixture): FakeClient {
     },
   } as unknown as GoogleSecOpsClient;
 
-  return { client, searchCalls, alertsCalls, authCalls };
+  return { client, searchCalls, alertsCalls, countCalls, authCalls };
 }
 
 async function runTest(
@@ -271,9 +298,10 @@ describe("GoogleSecOpsConnector.testConnection", () => {
       details: { returned: 1 },
     });
     expect(checkByKey(result.checks, "curated-detections-read")).toMatchObject({
+      status: "pass",
       message:
-        "Curated rule detections can be read by created time (0 returned for a one-record probe over the last 24 hours).",
-      details: { returned: 0 },
+        "Curated rule detection counts can be read. No curated rule produced detections in the last 7 days, so there are no curated detections to import yet.",
+      details: { curatedRulesWithDetections: 0, returned: 0 },
     });
     expect(checkByKey(result.checks, "alerts-view-read")).toMatchObject({
       message:
@@ -331,22 +359,24 @@ describe("GoogleSecOpsConnector.testConnection", () => {
 
     await runTest(fake);
 
-    const [rule, curated] = fake.searchCalls;
+    const [rule] = fake.searchCalls;
     expect(rule).toMatchObject({
       listBasis: "CREATED_TIME",
       alertingOnly: true,
       pageSize: 1,
-      curated: false,
     });
+    expect(rule!.curated).toBeUndefined();
     expect(rule!.startTime.toISOString()).toBe("2026-09-13T12:00:00.000Z");
     expect(rule!.endTime).toEqual(NOW);
-    expect(curated).toMatchObject({
-      listBasis: "CREATED_TIME",
-      alertingOnly: true,
-      pageSize: 1,
-      curated: true,
-    });
-    expect(curated!.startTime.toISOString()).toBe("2026-09-13T12:00:00.000Z");
+    // The curated probe counts first; with no curated rule fired it searches nothing.
+    expect(fake.countCalls).toEqual([
+      { startTime: new Date("2026-09-07T12:00:00.000Z"), endTime: NOW },
+    ]);
+    expect(
+      fake.searchCalls.filter((call: SearchCall): boolean => {
+        return call.curated === true;
+      }),
+    ).toEqual([]);
     expect(fake.alertsCalls[0]).toMatchObject({
       maxAlerts: 1,
       includeNonAlertingDetections: false,
@@ -357,13 +387,79 @@ describe("GoogleSecOpsConnector.testConnection", () => {
     expect(fake.alertsCalls[0]!.endTime).toEqual(NOW);
   });
 
+  /*
+   * Regression: the curated probe used to send the rule wildcard to
+   * legacySearchCuratedDetections, which has none, and Google's empty 200
+   * made that a green check on a tenant whose curated detections never
+   * imported.
+   */
+  test("the curated probe searches the curated rule with the most detections this week by its own id", async () => {
+    const fake: FakeClient = makeClient({
+      curatedRules: [
+        { ruleId: "ur_quiet", count: 2 },
+        { ruleId: "ur_busy", count: 9 },
+      ],
+    });
+
+    const result: ConnectorTestResult = await runTest(fake, {
+      alertingOnly: false,
+    });
+
+    const curated: Array<SearchCall> = fake.searchCalls.filter(
+      (call: SearchCall): boolean => {
+        return call.curated === true;
+      },
+    );
+    expect(curated).toEqual([
+      {
+        startTime: new Date("2026-09-07T12:00:00.000Z"),
+        endTime: NOW,
+        listBasis: "CREATED_TIME",
+        alertingOnly: false,
+        pageSize: 1,
+        curated: true,
+        ruleId: "ur_busy",
+      },
+    ]);
+    expect(checkByKey(result.checks, "curated-detections-read")).toMatchObject({
+      status: "pass",
+      message:
+        "Curated rule detections can be read by created time: 2 curated rules produced detections in the last 7 days (1 returned for a one-record probe of ur_busy).",
+      details: { curatedRulesWithDetections: 2, returned: 1 },
+    });
+  });
+
+  test.each([400, 403, 404])(
+    "a curated search answering HTTP %s after the counts is still the curated warning",
+    async (status: number) => {
+      const fake: FakeClient = makeClient({
+        curatedRules: [{ ruleId: "ur_busy", count: 1 }],
+        curatedSearchError: new APIException(
+          `Google SecOps detections search failed (HTTP ${status}): {}`,
+        ),
+      });
+
+      const result: ConnectorTestResult = await runTest(fake);
+
+      expect(
+        checkByKey(result.checks, "curated-detections-read"),
+      ).toMatchObject({
+        status: "warn",
+        details: { httpStatus: status },
+      });
+    },
+  );
+
   test("availability is probed under BOTH scopes over 24 hours and 7 days, one page each", async () => {
     const fake: FakeClient = makeClient({});
 
     await runTest(fake);
 
-    // Three read probes (2 searches, 1 alerts view) plus 4 probes per scope.
-    const availabilitySearches: Array<SearchCall> = fake.searchCalls.slice(2);
+    /*
+     * Three read probes (2 searches, 1 alerts view) plus 4 probes per scope.
+     * The rule probe, then availability: no curated rule fired, so no curated search.
+     */
+    const availabilitySearches: Array<SearchCall> = fake.searchCalls.slice(1);
     const availabilityAlerts: Array<AlertsCall> = fake.alertsCalls.slice(1);
     expect(availabilitySearches).toHaveLength(4);
     expect(availabilityAlerts).toHaveLength(4);
@@ -407,11 +503,10 @@ describe("GoogleSecOpsConnector.testConnection", () => {
     });
 
     expect(fake.searchCalls[0]!.alertingOnly).toBe(false);
-    expect(fake.searchCalls[1]!.alertingOnly).toBe(false);
     expect(fake.alertsCalls[0]!.includeNonAlertingDetections).toBe(true);
     // The saved scope is probed first, then the other one.
     expect(
-      fake.searchCalls.slice(2).map((call: SearchCall): boolean => {
+      fake.searchCalls.slice(1).map((call: SearchCall): boolean => {
         return call.alertingOnly;
       }),
     ).toEqual([false, false, true, true]);
@@ -621,7 +716,7 @@ describe("GoogleSecOpsConnector.testConnection", () => {
         status: "fail",
         message: `Google SecOps detections search failed (HTTP ${status}): {"error":{"code":${status}}}`,
         remediation:
-          "Grant roles/chronicle.viewer on the instance to the service account (it includes chronicle.legacies.legacySearchDetections and legacySearchCuratedDetections), and confirm the instance resource name and region.",
+          "Grant roles/chronicle.viewer on the instance to the service account (it includes chronicle.legacies.legacySearchDetections, legacySearchCuratedDetections and chronicle.curatedRuleSetCategories.countAllCuratedRuleSetDetections), and confirm the instance resource name and region.",
       });
       expect(checkByKey(result.checks, "detections-available").status).toBe(
         "pass",
@@ -671,7 +766,9 @@ describe("GoogleSecOpsConnector.testConnection", () => {
       "Skipped because a read check failed; fix that first and test again.",
     );
     expect(fake.alertsCalls).toHaveLength(1);
-    expect(fake.searchCalls).toHaveLength(2);
+    // The rule probe; the curated probe counted and had no rule to search.
+    expect(fake.searchCalls).toHaveLength(1);
+    expect(fake.countCalls).toHaveLength(1);
     expect(result.counts).toBeUndefined();
     // The alerts-view probe still supplies a sample.
     expect(result.samples).toEqual([
@@ -701,7 +798,9 @@ describe("GoogleSecOpsConnector.testConnection", () => {
       remediation:
         "Grant roles/chronicle.viewer on the instance to the service account (it includes chronicle.legacies.legacyFetchAlertsView), and confirm the instance resource name and region.",
     });
-    expect(fake.searchCalls).toHaveLength(2);
+    // The rule probe; the curated probe counted and had no rule to search.
+    expect(fake.searchCalls).toHaveLength(1);
+    expect(fake.countCalls).toHaveLength(1);
     expect(fake.alertsCalls).toHaveLength(1);
   });
 
@@ -847,7 +946,9 @@ describe("GoogleSecOpsConnector.testConnection", () => {
       message:
         "Skipped in a queued test run: availability is only counted by the synchronous Test connection.",
     });
-    expect(fake.searchCalls).toHaveLength(2);
+    // The rule probe; the curated probe counted and had no rule to search.
+    expect(fake.searchCalls).toHaveLength(1);
+    expect(fake.countCalls).toHaveLength(1);
     expect(fake.alertsCalls).toHaveLength(1);
     expect(result.counts).toBeUndefined();
     expect(result.samples).toHaveLength(2);
