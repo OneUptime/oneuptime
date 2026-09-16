@@ -21,6 +21,7 @@ import SnmpAuthProtocol from "../../../../Types/Monitor/SnmpMonitor/SnmpAuthProt
 import SnmpPrivProtocol from "../../../../Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import SnmpOid from "../../../../Types/Monitor/SnmpMonitor/SnmpOid";
 import ObjectID from "../../../../Types/ObjectID";
+import { JSONArray, JSONObject } from "../../../../Types/JSON";
 
 /*
  * Network Device monitors carry only a reference to a NetworkDevice; the probe
@@ -116,6 +117,30 @@ function hydratedStep(
 describe("NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors", () => {
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  /*
+   * The step is serialized for the probe after hydration. With no retries
+   * key, the probe resolves the step's retry count, then its own
+   * PROBE_MONITOR_RETRY_LIMIT, like every other monitor type.
+   */
+  test("a hydrated step reaches the probe with no retries value of its own", async () => {
+    mockDevices([buildV3Device()]);
+    const monitor: HydratableMonitor = buildMonitor();
+
+    await NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors([monitor]);
+
+    const wire: JSONObject = JSON.parse(
+      JSON.stringify(monitor.monitorSteps!.toJSON()),
+    );
+    const stepValue: JSONObject = (
+      (wire["value"] as JSONObject)["monitorStepsInstanceArray"] as JSONArray
+    )[0]!["value"] as JSONObject;
+    const snmpWire: JSONObject = stepValue["snmpMonitor"] as JSONObject;
+
+    expect(snmpWire["hostname"]).toBe("10.0.0.1");
+    expect(snmpWire["timeout"]).toBe(5000);
+    expect(snmpWire).not.toHaveProperty("retries");
   });
 
   describe("SNMP v3 credential assembly", () => {
@@ -685,7 +710,7 @@ describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
     expect(config.monitorInterfaces).toBe(false);
   });
 
-  test("every config carries the fixed probe timeout and retry policy", () => {
+  test("every config carries the fixed probe timeout", () => {
     const config: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
         ...connectionOf(buildDevice({})),
@@ -694,7 +719,28 @@ describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
       });
 
     expect(config.timeout).toBe(5000);
-    expect(config.retries).toBe(3);
+  });
+
+  /*
+   * A device has no retry setting, so the config carries none and the probe
+   * applies its own default. It used to be a hardcoded 3, which probes now
+   * read as three retries (four attempts) rather than three attempts. Absent,
+   * probes old and new both make three attempts per poll.
+   */
+  test("carries no retries value, so the probe's own default applies", () => {
+    const config: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        ...connectionOf(
+          buildDevice({ snmpVersion: "V2c", snmpCommunityString: "s3cret" }),
+        ),
+        oids: [],
+        monitorInterfaces: true,
+      });
+
+    expect(config.retries).toBeUndefined();
+    expect(Object.keys(config)).not.toContain("retries");
+    // What the device poll list handler serializes for the probe.
+    expect(JSON.parse(JSON.stringify(config))).not.toHaveProperty("retries");
   });
 });
 

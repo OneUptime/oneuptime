@@ -16,8 +16,10 @@ import IPv4 from "Common/Types/IP/IPv4";
 import IPv6 from "Common/Types/IP/IPv6";
 import { JSONObject } from "Common/Types/JSON";
 import SnmpMonitorResponse from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
+import OnlineCheck from "../../../Utils/OnlineCheck";
 import PingMonitor, {
   DeviceReachabilityCheck,
 } from "../../../Utils/Monitors/MonitorTypes/PingMonitor";
@@ -49,6 +51,7 @@ import { PROBE_NETWORK_DEVICE_POLL_CONCURRENCY } from "../../../Config";
  * PingMonitor.checkReachability and SnmpMonitor.query are spied on.
  */
 
+// The server sends no `retries`: a device has no retry setting.
 function makeDevice(overrides?: Record<string, unknown>): DevicePollConfig {
   return {
     networkDeviceId: "device-1",
@@ -63,7 +66,6 @@ function makeDevice(overrides?: Record<string, unknown>): DevicePollConfig {
       communityString: "public",
       oids: [],
       timeout: 5000,
-      retries: 3,
     },
     ...overrides,
   } as unknown as DevicePollConfig;
@@ -663,6 +665,44 @@ describe("pollDevice — a successful poll's report", () => {
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(querySpy.mock.calls[0]![0]).toBe(device.snmpMonitor);
     expect((querySpy.mock.calls[0]![1] as JSONObject)["timeout"]).toBe(5000);
+    // The poll has no retry setting of its own to pass.
+    expect(querySpy.mock.calls[0]![1] as JSONObject).not.toHaveProperty(
+      "retry",
+    );
+  });
+
+  /*
+   * With neither the server nor the poll supplying a retry count, the walk
+   * keeps the three attempts it has always made. The server used to send
+   * `retries: 3`, which now reads as three retries after the first attempt.
+   */
+  test("a failing walk is attempted three times", async () => {
+    querySpy.mockRestore();
+    const executeSnmpQuery: jest.Mock = jest
+      .spyOn(
+        SnmpMonitor as unknown as {
+          executeSnmpQuery: (...args: Array<unknown>) => Promise<unknown>;
+        },
+        "executeSnmpQuery",
+      )
+      .mockRejectedValue(
+        new Error("Request timed out") as never,
+      ) as unknown as jest.Mock;
+    jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined as never);
+    jest
+      .spyOn(OnlineCheck, "canProbeMonitorPortMonitors")
+      .mockResolvedValue(true);
+    pingSpy.mockResolvedValue(makePingDown());
+
+    await pollDevice(makeDevice());
+
+    expect(executeSnmpQuery).toHaveBeenCalledTimes(3);
+
+    const snmpResponse: JSONObject = soleIngestBody()[
+      "snmpResponse"
+    ] as JSONObject;
+    expect(snmpResponse["isOnline"]).toBe(false);
+    expect(snmpResponse["totalAttempts"]).toBe(3);
   });
 
   /*

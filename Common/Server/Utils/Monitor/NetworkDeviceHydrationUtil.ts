@@ -516,6 +516,19 @@ export default class NetworkDeviceHydrationUtil {
    * its site's profile" unrepresentable. The caller chooses what to collect
    * (OIDs / interface walk) — for device polling those come from the
    * device's own snmpOids/walkInterfaces columns.
+   *
+   * `retries` is left out on purpose. A device (like its site and credential
+   * profile) has no retry setting, so there is no user value to carry, and a
+   * number restated here means whatever the probe reading it thinks it
+   * means. It used to be `retries: 3`, written when probes read it as total
+   * attempts; probes now read it as retries after the first attempt, so the
+   * same 3 became four attempts per poll. Absent, every probe version lands
+   * on three attempts from its own default (older probes `?? 3` total, newer
+   * ones two retries), and a failed walk is retried by the next poll cycle
+   * anyway. For Network Device monitors and tests, an absent value falls
+   * through to the step's retry count and then PROBE_MONITOR_RETRY_LIMIT,
+   * like every other monitor type. The timeout is fixed for the same reason:
+   * a device has no setting for it.
    */
   public static buildSnmpMonitorConfig(data: {
     hostname: string;
@@ -533,7 +546,6 @@ export default class NetworkDeviceHydrationUtil {
       snmpV3Auth: NetworkDeviceHydrationUtil.buildSnmpV3Auth(data.credentials),
       oids: data.oids,
       timeout: 5000,
-      retries: 3,
       monitorInterfaces: data.monitorInterfaces,
     };
   }
