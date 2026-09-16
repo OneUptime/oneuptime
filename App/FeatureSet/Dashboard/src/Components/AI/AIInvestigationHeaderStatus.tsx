@@ -1,3 +1,4 @@
+import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -24,6 +25,11 @@ export interface ComponentProps {
    * rendered as text.
    */
   summary?: string | null | undefined;
+  /*
+   * A responder's verdict on that report. Shown only with the summary; a
+   * rejected report stays readable but no longer reads as the root cause.
+   */
+  verdict?: AIRunHumanVerdict | null | undefined;
 }
 
 export interface LiveRegionProps {
@@ -104,8 +110,36 @@ export const AIInvestigationStatusLiveRegion: FunctionComponent<
   );
 };
 
+interface VerdictBadgeCopy {
+  text: string;
+  icon: IconProp;
+  className: string;
+}
+
+/*
+ * Worded for the other responders reading the header, not for the one who
+ * rated it (the panel says "You confirmed this analysis"), in the panel's
+ * pill colours.
+ */
+export const AI_INVESTIGATION_VERDICT_BADGES: Record<
+  AIRunHumanVerdict,
+  VerdictBadgeCopy
+> = {
+  [AIRunHumanVerdict.Confirmed]: {
+    text: "Confirmed by a responder",
+    icon: IconProp.Check,
+    className: "bg-green-50 text-green-700 ring-green-200",
+  },
+  [AIRunHumanVerdict.Rejected]: {
+    text: "Rejected by a responder",
+    icon: IconProp.Close,
+    className: "bg-rose-50 text-rose-700 ring-rose-200",
+  },
+};
+
 interface CompletedSummaryNoticeProps {
   summary: string;
+  verdict: AIRunHumanVerdict | null;
   onViewReport: () => void;
 }
 
@@ -113,13 +147,17 @@ interface CompletedSummaryNoticeProps {
  * A completed investigation's headline, lifted into the event header so the
  * most useful read on the page is visible without scrolling, and "View full
  * report" jumps to the panel. The summary is model-authored, so it is only
- * ever rendered as text.
+ * ever rendered as text. Once a responder has rated the report, a badge next
+ * to the label says so, because a rejected report must not keep presenting
+ * itself as the root cause.
  *
  * The label and the report button share the top row so the summary gets the
  * card's full width below them, capped at a readable measure for wide
- * screens. On a phone that row has no room for the button, so it drops to
- * the bottom row beside Show more; the DOM order stays header, button,
- * summary, the same as a Card's header actions.
+ * screens. Below lg that row has no room for the button: the notice is a
+ * phone's width, or about 340px beside a tablet's side menu at 768px, where
+ * the button would cut the label short. There it drops to the bottom row
+ * beside Show more; the DOM order stays header, button, summary, the same
+ * as a Card's header actions.
  */
 const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
   props: CompletedSummaryNoticeProps,
@@ -130,6 +168,15 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [isClamped, setIsClamped] = useState<boolean>(false);
   const [shownSummary, setShownSummary] = useState<string>(props.summary);
+  const verdictBadge: VerdictBadgeCopy | null = props.verdict
+    ? AI_INVESTIGATION_VERDICT_BADGES[props.verdict] || null
+    : null;
+  /*
+   * A rejected report is still worth reading, but as a claim a responder
+   * has ruled out, so it drops to secondary text. gray-600 keeps about
+   * 6.8:1 on the notice's indigo tint, where gray-500 would fall below 4.5:1.
+   */
+  const isRejected: boolean = props.verdict === AIRunHumanVerdict.Rejected;
 
   // A different summary is a different read: start it collapsed.
   if (shownSummary !== props.summary) {
@@ -183,26 +230,40 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
       />
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
         {/*
-          The button's column is as wide as the button even on a phone,
-          where the button sits in the bottom row, so the label spans both
-          columns there instead of truncating beside an empty cell.
+          The button's column is as wide as the button even where the
+          button sits in the bottom row, so the label spans both columns
+          there instead of truncating beside an empty cell. A verdict badge
+          wraps under the label when the row is too narrow for both.
         */}
-        <div className="col-span-2 row-start-1 flex min-w-0 items-center gap-2 sm:col-span-1">
-          <span
-            aria-hidden="true"
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-white shadow-sm"
-          >
-            <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
-          </span>
-          <h3 className="truncate text-xs font-semibold uppercase tracking-wider text-indigo-600">
-            AI root cause analysis
-          </h3>
+        <div className="col-span-2 row-start-1 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 lg:col-span-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-white shadow-sm"
+            >
+              <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
+            </span>
+            <h3 className="truncate text-xs font-semibold uppercase tracking-wider text-indigo-600">
+              AI root cause analysis
+            </h3>
+          </div>
+          {verdictBadge ? (
+            <span
+              data-verdict={props.verdict}
+              className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${verdictBadge.className}`}
+            >
+              <Icon icon={verdictBadge.icon} className="h-3 w-3" />
+              {verdictBadge.text}
+            </span>
+          ) : (
+            <></>
+          )}
         </div>
         <button
           type="button"
           onClick={props.onViewReport}
           aria-controls={AI_INVESTIGATION_PANEL_ID}
-          className="group col-start-2 row-start-3 -my-1 inline-flex items-center justify-center gap-1.5 justify-self-end whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:row-start-1"
+          className="group col-start-2 row-start-3 -my-0.5 inline-flex items-center justify-center gap-1.5 self-start justify-self-end whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 lg:row-start-1"
         >
           View full report
           <Icon
@@ -213,9 +274,9 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
         <p
           ref={summaryRef}
           id={summaryId}
-          className={`col-span-2 row-start-2 max-w-4xl break-words text-sm leading-6 text-gray-900 ${
-            isExpanded ? "" : "line-clamp-3"
-          }`}
+          className={`col-span-2 row-start-2 max-w-4xl break-words text-sm leading-6 ${
+            isRejected ? "text-gray-600" : "text-gray-900"
+          } ${isExpanded ? "" : "line-clamp-3"}`}
         >
           {props.summary}
         </p>
@@ -257,6 +318,7 @@ const AIInvestigationHeaderStatus: FunctionComponent<ComponentProps> = (
     return (
       <CompletedSummaryNotice
         summary={(props.summary || "").trim()}
+        verdict={props.verdict || null}
         onViewReport={props.onViewProgress}
       />
     );

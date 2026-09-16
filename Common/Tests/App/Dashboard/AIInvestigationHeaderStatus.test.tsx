@@ -14,16 +14,19 @@ import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import AIInvestigationHeaderStatus, {
   AI_INVESTIGATION_READY_ANNOUNCEMENT,
+  AI_INVESTIGATION_VERDICT_BADGES,
   AIInvestigationStatusLiveRegion,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationHeaderStatus";
 import {
   AI_INVESTIGATION_PANEL_ID,
+  getAIInvestigationVerdict,
   hasAIInvestigationSummary,
   isActiveAIInvestigationStatus,
   isCompletedAIInvestigationWithSummary,
   scrollToAIInvestigationPanel,
   shouldShowAIInvestigationHeaderStatus,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
+import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 
 const ACTIVE_STATUSES: Array<AIRunStatus> = [
@@ -439,23 +442,43 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
     const heading: HTMLElement = screen.getByRole("heading", {
       name: "AI root cause analysis",
     });
-    const header: HTMLElement = heading.parentElement as HTMLElement;
+    const headingGroup: HTMLElement = heading.parentElement as HTMLElement;
+    const header: HTMLElement = headingGroup.parentElement as HTMLElement;
     const viewReport: HTMLElement = screen.getByRole("button", {
       name: "View full report",
     });
 
     // The text column may shrink below its content; long tokens wrap.
     expect(grid).toHaveClass("grid", "grid-cols-[minmax(0,1fr)_auto]");
+    expect(header.parentElement).toBe(grid);
     expect(summary).toHaveClass("col-span-2", "break-words");
-    // On a phone the label spans the row; from sm up it shares it.
-    expect(header).toHaveClass("min-w-0", "col-span-2", "sm:col-span-1");
+    /*
+     * Below lg (a phone, or a tablet's column beside the side menu) the label
+     * has the row to itself; from lg up it shares it with the button.
+     */
+    expect(header).toHaveClass(
+      "min-w-0",
+      "col-span-2",
+      "lg:col-span-1",
+      "flex-wrap",
+    );
+    expect(header.className).not.toMatch(/(^|\s)(sm|md):col-span-1/);
+    // The icon and the label never wrap apart, whatever wraps beside them.
+    expect(headingGroup).toHaveClass("flex", "min-w-0");
+    expect(headingGroup).not.toHaveClass("flex-wrap");
     expect(heading).toHaveClass("truncate");
-    // On a phone the button drops to the bottom row, beside Show more.
+    // Below lg the button drops to the bottom row, beside Show more.
     expect(viewReport).toHaveClass(
       "row-start-3",
-      "sm:row-start-1",
+      "lg:row-start-1",
       "whitespace-nowrap",
     );
+    expect(viewReport.className).not.toMatch(/(^|\s)(sm|md):row-start-1/);
+    /*
+     * Aligned to the top of its row, so it stays level with the label's
+     * line when a verdict badge wraps below it.
+     */
+    expect(viewReport).toHaveClass("self-start", "-my-0.5");
     // The paragraphs hold only text: Icon renders a <div>, never inside a <p>.
     expect(summary.querySelector("div")).toBeNull();
     expect(heading.querySelector("div")).toBeNull();
@@ -862,6 +885,208 @@ describe("AIInvestigationHeaderStatus Show more", () => {
     );
     removeEventListener.mockRestore();
   });
+});
+
+/*
+ * A responder's Confirmed / Rejected verdict, lifted from the panel. Other
+ * responders read the header first, so a report someone has ruled out must
+ * say so there instead of standing as the root cause.
+ */
+describe("AIInvestigationHeaderStatus verdict", () => {
+  type RenderNoticeFunction = (options: {
+    verdict: AIRunHumanVerdict | null | undefined;
+    status?: AIRunStatus | undefined;
+    summary?: string | null | undefined;
+  }) => ReturnType<typeof render>;
+
+  const renderNotice: RenderNoticeFunction = (options: {
+    verdict: AIRunHumanVerdict | null | undefined;
+    status?: AIRunStatus | undefined;
+    summary?: string | null | undefined;
+  }): ReturnType<typeof render> => {
+    return render(
+      <AIInvestigationHeaderStatus
+        status={options.status || AIRunStatus.Completed}
+        summary={options.summary === undefined ? SUMMARY : options.summary}
+        verdict={options.verdict}
+        onViewProgress={() => {}}
+      />,
+    );
+  };
+
+  test.each([null, undefined])(
+    "shows no badge while the verdict is %p",
+    (verdict: null | undefined) => {
+      renderNotice({ verdict });
+
+      expect(screen.queryByText(/by a responder/)).not.toBeInTheDocument();
+      expect(screen.getByText(SUMMARY)).toHaveClass("text-gray-900");
+      expect(screen.getByText(SUMMARY)).not.toHaveClass("text-gray-600");
+    },
+  );
+
+  test("marks a confirmed report and leaves it at full strength", () => {
+    renderNotice({ verdict: AIRunHumanVerdict.Confirmed });
+
+    const badge: HTMLElement = screen.getByText("Confirmed by a responder");
+
+    expect(badge).toHaveAttribute("data-verdict", AIRunHumanVerdict.Confirmed);
+    expect(badge).toHaveClass(
+      "rounded-full",
+      "bg-green-50",
+      "text-green-700",
+      "ring-green-200",
+    );
+    expect(badge.querySelector("svg")).not.toBeNull();
+    expect(screen.getByText(SUMMARY)).toHaveClass("text-gray-900");
+    expect(screen.getByText(SUMMARY)).not.toHaveClass("text-gray-600");
+  });
+
+  test("marks a rejected report and mutes its summary", () => {
+    renderNotice({ verdict: AIRunHumanVerdict.Rejected });
+
+    const badge: HTMLElement = screen.getByText("Rejected by a responder");
+
+    expect(badge).toHaveAttribute("data-verdict", AIRunHumanVerdict.Rejected);
+    expect(badge).toHaveClass(
+      "rounded-full",
+      "bg-rose-50",
+      "text-rose-700",
+      "ring-rose-200",
+    );
+    expect(badge.querySelector("svg")).not.toBeNull();
+    // Still readable, no longer presented as the established root cause.
+    expect(screen.getByText(SUMMARY)).toHaveClass("text-gray-600");
+    expect(screen.getByText(SUMMARY)).not.toHaveClass("text-gray-900");
+    expect(
+      screen.getByRole("button", { name: "View full report" }),
+    ).toBeInTheDocument();
+  });
+
+  test("sits beside the heading, outside it, before the report button", () => {
+    renderNotice({ verdict: AIRunHumanVerdict.Rejected });
+
+    const heading: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const badge: HTMLElement = screen.getByText("Rejected by a responder");
+    const viewReport: HTMLElement = screen.getByRole("button", {
+      name: "View full report",
+    });
+    const summary: HTMLElement = screen.getByText(SUMMARY);
+
+    // The heading keeps its own name; the badge is its sibling group.
+    expect(heading).not.toContainElement(badge);
+    expect(badge.parentElement).toBe(heading.parentElement!.parentElement);
+    // It never breaks inside itself; the header row wraps around it instead.
+    expect(badge).toHaveClass("whitespace-nowrap");
+    expect(badge.parentElement).toHaveClass("flex-wrap");
+
+    const following: (earlier: HTMLElement, later: HTMLElement) => boolean = (
+      earlier: HTMLElement,
+      later: HTMLElement,
+    ): boolean => {
+      return Boolean(
+        earlier.compareDocumentPosition(later) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    };
+
+    expect(following(heading, badge)).toBe(true);
+    expect(following(badge, viewReport)).toBe(true);
+    expect(following(viewReport, summary)).toBe(true);
+  });
+
+  test("follows the verdict as responders change it", () => {
+    const { rerender } = renderNotice({ verdict: null });
+
+    const renderWith: (verdict: AIRunHumanVerdict | null) => void = (
+      verdict: AIRunHumanVerdict | null,
+    ): void => {
+      rerender(
+        <AIInvestigationHeaderStatus
+          status={AIRunStatus.Completed}
+          summary={SUMMARY}
+          verdict={verdict}
+          onViewProgress={() => {}}
+        />,
+      );
+    };
+
+    renderWith(AIRunHumanVerdict.Confirmed);
+    expect(screen.getByText("Confirmed by a responder")).toBeInTheDocument();
+    expect(screen.getByText(SUMMARY)).toHaveClass("text-gray-900");
+
+    renderWith(AIRunHumanVerdict.Rejected);
+    expect(
+      screen.queryByText("Confirmed by a responder"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Rejected by a responder")).toBeInTheDocument();
+    expect(screen.getByText(SUMMARY)).toHaveClass("text-gray-600");
+
+    renderWith(null);
+    expect(screen.queryByText(/by a responder/)).not.toBeInTheDocument();
+    expect(screen.getByText(SUMMARY)).toHaveClass("text-gray-900");
+  });
+
+  test.each(ACTIVE_STATUSES)(
+    "keeps the live %s notice free of an earlier report's verdict",
+    (status: AIRunStatus) => {
+      renderNotice({ status, verdict: AIRunHumanVerdict.Rejected });
+
+      expect(screen.queryByText(/by a responder/)).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", {
+          name: "View live AI investigation progress",
+        }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  test.each(Object.values(AIRunHumanVerdict))(
+    "shows nothing for a %s verdict without a summary",
+    (verdict: AIRunHumanVerdict) => {
+      const { container } = renderNotice({ verdict, summary: null });
+
+      expect(container).toBeEmptyDOMElement();
+    },
+  );
+
+  test("shows no badge for a verdict it cannot name", () => {
+    renderNotice({ verdict: "Edited" as unknown as AIRunHumanVerdict });
+
+    expect(screen.queryByText(/by a responder/)).not.toBeInTheDocument();
+    expect(screen.getByText(SUMMARY)).toHaveClass("text-gray-900");
+  });
+
+  test.each(Object.values(AIRunHumanVerdict))(
+    "has badge copy for the %s verdict",
+    (verdict: AIRunHumanVerdict) => {
+      const badge: { text: string; className: string } =
+        AI_INVESTIGATION_VERDICT_BADGES[verdict];
+
+      expect(badge.text).toBe(`${verdict} by a responder`);
+      expect(badge.className).toMatch(/^bg-\w+-50 text-\w+-700 ring-\w+-200$/);
+    },
+  );
+});
+
+describe("getAIInvestigationVerdict", () => {
+  test.each(Object.values(AIRunHumanVerdict))(
+    "reads %s",
+    (verdict: AIRunHumanVerdict) => {
+      expect(getAIInvestigationVerdict(verdict)).toBe(verdict);
+      expect(getAIInvestigationVerdict(`${verdict}`)).toBe(verdict);
+    },
+  );
+
+  test.each([null, undefined, "", "confirmed", "REJECTED", "Edited", 1, {}])(
+    "reads %p as no verdict",
+    (value: unknown) => {
+      expect(getAIInvestigationVerdict(value)).toBeNull();
+    },
+  );
 });
 
 describe("AIInvestigationStatusLiveRegion", () => {
