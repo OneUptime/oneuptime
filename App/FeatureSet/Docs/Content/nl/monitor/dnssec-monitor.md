@@ -32,11 +32,11 @@ DNSSEC-monitors valideren de volledige vertrouwensketen vanaf de rootzone tot aa
 
 ### Geavanceerde instellingen
 
-| Veld                                     | Beschrijving                                 | Standaard |
-| ---------------------------------------- | -------------------------------------------- | --------- |
-| Waarschuwing handtekeningverloop (dagen) | Standaarddrempel voor het RRSIG-vervalfilter | 7         |
-| Time-out (ms)                            | Hoe lang te wachten op elke DNS-opvraag      | 10000     |
-| Nieuwe pogingen                          | Aantal nieuwe pogingen bij mislukking        | 3         |
+| Veld                                     | Beschrijving                                                                 | Standaard |
+| ---------------------------------------- | ---------------------------------------------------------------------------- | --------- |
+| Waarschuwing handtekeningverloop (dagen) | Standaarddrempel voor het RRSIG-vervalfilter                                 | 7         |
+| Time-out (ms)                            | Hoe lang te wachten op elke DNS-opvraag                                      | 10000     |
+| Nieuwe pogingen                          | Nieuwe pogingen nadat de eerste poging mislukt; 0 betekent één enkele poging | 3         |
 
 ## Monitoringcriteria
 

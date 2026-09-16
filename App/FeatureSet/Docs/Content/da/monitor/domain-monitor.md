@@ -30,10 +30,10 @@ Domænemonitoer forespørger WHOIS-data for dine domæner for at spore registrer
 
 ### Avancerede indstillinger
 
-| Felt         | Beskrivelse                   | Standard |
-| ------------ | ----------------------------- | -------- |
-| Timeout (ms) | Tid at vente på et WHOIS-svar | 10000    |
-| Genforsøg    | Antal genforsøg ved fejl      | 3        |
+| Felt         | Beskrivelse                                                                | Standard |
+| ------------ | -------------------------------------------------------------------------- | -------- |
+| Timeout (ms) | Tid at vente på et WHOIS-svar                                              | 10000    |
+| Genforsøg    | Genforsøg efter at det første forsøg mislykkes; 0 betyder ét enkelt forsøg | 3        |
 
 ## Overvågningskriterier
 

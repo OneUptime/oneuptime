@@ -32,11 +32,11 @@ DNSSEC-Monitore validieren die gesamte Vertrauenskette von der Root-Zone bis zu 
 
 ### Erweiterte Einstellungen
 
-| Feld                          | Beschreibung                                     | Standard |
-| ----------------------------- | ------------------------------------------------ | -------- |
-| Signatur-Ablaufwarnung (Tage) | Standardschwellenwert für den RRSIG-Ablauffilter | 7        |
-| Timeout (ms)                  | Wartezeit für jede DNS-Abfrage                   | 10000    |
-| Wiederholungsversuche         | Anzahl der Wiederholungsversuche bei Fehlschlag  | 3        |
+| Feld                          | Beschreibung                                                                                 | Standard |
+| ----------------------------- | -------------------------------------------------------------------------------------------- | -------- |
+| Signatur-Ablaufwarnung (Tage) | Standardschwellenwert für den RRSIG-Ablauffilter                                             | 7        |
+| Timeout (ms)                  | Wartezeit für jede DNS-Abfrage                                                               | 10000    |
+| Wiederholungsversuche         | Wiederholungsversuche nach dem ersten fehlgeschlagenen Versuch; 0 bedeutet nur einen Versuch | 3        |
 
 ## Überwachungskriterien
 

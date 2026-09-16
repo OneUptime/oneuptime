@@ -79,7 +79,7 @@ Il tempo massimo (in millisecondi) di attesa per una risposta dalla pagina di st
 
 #### Tentativi
 
-Il numero di volte in cui ripetere la richiesta in caso di errore. Il valore predefinito è 3 tentativi.
+Il numero di volte in cui la richiesta viene ripetuta dopo il fallimento del primo tentativo; 0 significa un solo tentativo. Il valore predefinito è 3 tentativi aggiuntivi, quindi fino a 4 tentativi in totale.
 
 ## Criteri di Monitoraggio
 

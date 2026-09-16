@@ -47,11 +47,11 @@ DNS-monitors sturen opvragen naar DNS-servers voor specifieke recordtypen en eva
 
 ### Geavanceerde instellingen
 
-| Veld            | Beschrijving                          | Standaard |
-| --------------- | ------------------------------------- | --------- |
-| Poort           | DNS-poortnummer                       | 53        |
-| Time-out (ms)   | Hoe lang te wachten op een antwoord   | 5000      |
-| Nieuwe pogingen | Aantal nieuwe pogingen bij mislukking | 3         |
+| Veld            | Beschrijving                                                                 | Standaard |
+| --------------- | ---------------------------------------------------------------------------- | --------- |
+| Poort           | DNS-poortnummer                                                              | 53        |
+| Time-out (ms)   | Hoe lang te wachten op een antwoord                                          | 5000      |
+| Nieuwe pogingen | Nieuwe pogingen nadat de eerste poging mislukt; 0 betekent één enkele poging | 3         |
 
 ## Monitoringcriteria
 

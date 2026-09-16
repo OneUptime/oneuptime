@@ -26,7 +26,7 @@ import PingMonitor, {
  * checkReachability is the ping half of the ping-first network-device poll
  * (Probe/Jobs/NetworkDevice/FetchList.ts). It is NOT PingMonitor.ping — the
  * Ping-monitor path returns null when the probe looks offline, sends five
- * packets with up to five retries, and reports a timeout as "up". A device
+ * packets with up to five attempts, and reports a timeout as "up". A device
  * poll needs a verdict for every device, cheaply, and "no reply" means
  * down. These tests pin those differences, the exact config handed to the
  * `ping` library (packet count, per-reply wait, deadline, IPv6), and the

@@ -205,7 +205,7 @@ La sonda admite las siguientes variables de entorno:
 - `PROBE_DESCRIPTION`: Descripción para la sonda
 - `PROBE_MONITORING_WORKERS`: Número de workers de monitoreo (predeterminado: 1)
 - `PROBE_MONITOR_FETCH_LIMIT`: Número de monitores a obtener a la vez (predeterminado: 10)
-- `PROBE_MONITOR_RETRY_LIMIT`: Número de reintentos para monitores fallidos (predeterminado: 3)
+- `PROBE_MONITOR_RETRY_LIMIT`: Reintentos después del primer intento de una comprobación fallida, usado cuando un paso no define su propio número de reintentos (predeterminado: 3, es decir, hasta 4 intentos)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS`: Tiempo de espera para scripts de monitores sintéticos en milisegundos (predeterminado: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS`: Tiempo de espera para scripts de monitores de código personalizado en milisegundos (predeterminado: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS`: Plazo límite para cada solicitud que la sonda envía a OneUptime (predeterminado: 45000)

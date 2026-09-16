@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import Headers from "Common/Types/API/Headers";
 import Protocol from "Common/Types/API/Protocol";
@@ -22,6 +23,9 @@ import HttpMonitorRequest, {
   PreparedHttpMonitorRequest,
   RedirectRequest,
 } from "../HttpMonitorRequest";
+
+// Five attempts, the same as before retries were counted after the first attempt.
+const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
 
 export interface ProbeWebsiteResponse {
   url: URL;
@@ -243,7 +247,11 @@ export default class WebsiteMonitor {
 
       if (
         responseTimeInMS.toNumber() > 10000 &&
-        options.currentRetryCount < (options.retry ?? 5) &&
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        }) &&
         executionContext.canWait(1000)
       ) {
         options.currentRetryCount++;
@@ -329,7 +337,11 @@ export default class WebsiteMonitor {
       if (
         !(err instanceof BadDataException) &&
         !(err instanceof TimeoutException) &&
-        options.currentRetryCount < (options.retry ?? 5) &&
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        }) &&
         executionContext.canWait(1000)
       ) {
         options.currentRetryCount++;

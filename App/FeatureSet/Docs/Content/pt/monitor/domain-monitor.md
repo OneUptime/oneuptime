@@ -30,10 +30,10 @@ Os monitores de domínio consultam dados WHOIS para seus domínios para rastrear
 
 ### Configurações Avançadas
 
-| Campo        | Descrição                                          | Padrão |
-| ------------ | -------------------------------------------------- | ------ |
-| Timeout (ms) | Tempo de espera por uma resposta WHOIS             | 10000  |
-| Retries      | Número de tentativas de repetição em caso de falha | 3      |
+| Campo        | Descrição                                                          | Padrão |
+| ------------ | ------------------------------------------------------------------ | ------ |
+| Timeout (ms) | Tempo de espera por uma resposta WHOIS                             | 10000  |
+| Retries      | Tentativas após a primeira falhar; 0 significa uma única tentativa | 3      |
 
 ## Critérios de Monitoramento
 

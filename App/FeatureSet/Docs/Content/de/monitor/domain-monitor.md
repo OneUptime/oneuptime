@@ -30,10 +30,10 @@ Domain-Monitore fragen WHOIS-Daten für Ihre Domains ab, um Registrierungsdetail
 
 ### Erweiterte Einstellungen
 
-| Feld                  | Beschreibung                                    | Standard |
-| --------------------- | ----------------------------------------------- | -------- |
-| Timeout (ms)          | Wartezeit auf eine WHOIS-Antwort                | 10000    |
-| Wiederholungsversuche | Anzahl der Wiederholungsversuche bei Fehlschlag | 3        |
+| Feld                  | Beschreibung                                                                                 | Standard |
+| --------------------- | -------------------------------------------------------------------------------------------- | -------- |
+| Timeout (ms)          | Wartezeit auf eine WHOIS-Antwort                                                             | 10000    |
+| Wiederholungsversuche | Wiederholungsversuche nach dem ersten fehlgeschlagenen Versuch; 0 bedeutet nur einen Versuch | 3        |
 
 ## Überwachungskriterien
 

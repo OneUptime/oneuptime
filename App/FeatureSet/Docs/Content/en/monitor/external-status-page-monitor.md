@@ -79,7 +79,7 @@ The maximum time (in milliseconds) to wait for a response from the status page. 
 
 #### Retries
 
-The number of times to retry the request if it fails. Default is 3 retries.
+The number of times to retry the request after the first attempt fails; 0 means a single attempt. Default is 3 retries, so up to 4 attempts in total.
 
 ## Monitoring Criteria
 

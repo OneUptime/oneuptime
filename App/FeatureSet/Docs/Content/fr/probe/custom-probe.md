@@ -205,7 +205,7 @@ La sonde prend en charge les variables d'environnement suivantes :
 - `PROBE_DESCRIPTION` - Description de la sonde
 - `PROBE_MONITORING_WORKERS` - Nombre de workers de surveillance (par défaut : 1)
 - `PROBE_MONITOR_FETCH_LIMIT` - Nombre de moniteurs à récupérer à la fois (par défaut : 10)
-- `PROBE_MONITOR_RETRY_LIMIT` - Nombre de tentatives pour les moniteurs échoués (par défaut : 3)
+- `PROBE_MONITOR_RETRY_LIMIT` - Nouvelles tentatives après la première pour un contrôle de moniteur en échec, utilisé quand une étape ne définit pas sa propre valeur (par défaut : 3, soit jusqu'à 4 essais)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Délai d'attente pour les scripts de moniteur synthétique en millisecondes (par défaut : 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Délai d'attente pour les scripts de moniteur de code personnalisé en millisecondes (par défaut : 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Délai limite pour chaque requête que la sonde envoie à OneUptime (par défaut : 45000)

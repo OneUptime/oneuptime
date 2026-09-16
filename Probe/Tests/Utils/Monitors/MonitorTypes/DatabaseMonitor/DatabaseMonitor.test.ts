@@ -13,7 +13,17 @@ import MonitorStepDatabaseMonitor, {
   MonitorStepDatabaseMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDatabaseMonitor";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
-import { describe, expect, test } from "@jest/globals";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
+import Sleep from "Common/Types/Sleep";
+import logger from "Common/Server/Utils/Logger";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 const buildQuery: (
   overrides?: Partial<DatabaseHealthQuery>,
@@ -442,7 +452,8 @@ describe("DatabaseMonitor.execute", () => {
           port: 1,
           connectionTimeoutInMs: 1000,
         }),
-        { retry: 1, isOnlineCheckRequest: true },
+        // One attempt: retries are covered by the stubbed tests below.
+        { retry: 0, isOnlineCheckRequest: true },
       );
 
     expect(response?.isOnline).toBe(false);
@@ -452,4 +463,134 @@ describe("DatabaseMonitor.execute", () => {
     expect(response?.collectedGroups).toEqual([]);
     expect(response?.metrics).toEqual({});
   }, 30000);
+});
+
+/*
+ * A retry value counts retries AFTER the first attempt: 0 connects once, 2
+ * connects up to three times. The connection is stubbed at openSession, the
+ * one seam between the retry loop and the database drivers.
+ */
+describe("DatabaseMonitor.execute retries", () => {
+  type DatabaseMonitorPrivate = {
+    openSession: (input: unknown) => Promise<unknown>;
+  };
+
+  const buildConfig: () => MonitorStepDatabaseMonitor =
+    (): MonitorStepDatabaseMonitor => {
+      return {
+        ...MonitorStepDatabaseMonitorUtil.getDefault(),
+        databaseType: SqlDatabaseType.PostgreSQL,
+        host: "db.internal",
+        databaseName: "orders",
+        username: "monitoring",
+        password: "super-secret",
+        enabledMetricGroups: [],
+      };
+    };
+
+  const stubOpenSession: () => jest.Mock = (): jest.Mock => {
+    return jest.spyOn(
+      DatabaseMonitor as unknown as DatabaseMonitorPrivate,
+      "openSession",
+    ) as unknown as jest.Mock;
+  };
+
+  const attemptNumbers: (
+    response: DatabaseMonitorResponse | null,
+  ) => Array<number> = (
+    response: DatabaseMonitorResponse | null,
+  ): Array<number> => {
+    return (response?.probeAttempts || []).map((attempt: ProbeAttempt) => {
+      return attempt.attemptNumber;
+    });
+  };
+
+  let sleepSpy: jest.Mock;
+
+  beforeEach(() => {
+    // The retry backoff is a real second otherwise.
+    sleepSpy = jest
+      .spyOn(Sleep, "sleep")
+      .mockResolvedValue(undefined as never) as unknown as jest.Mock;
+    jest.spyOn(logger, "debug").mockImplementation((): void => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("connects exactly once when retry is 0 (an explicit 0 no longer means three)", async () => {
+    const openSession: jest.Mock = stubOpenSession().mockRejectedValue(
+      new Error("connect ECONNREFUSED") as never,
+    );
+
+    const response: DatabaseMonitorResponse | null =
+      await DatabaseMonitor.execute(buildConfig(), {
+        retry: 0,
+        isOnlineCheckRequest: true,
+      });
+
+    expect(openSession).toHaveBeenCalledTimes(1);
+    expect(sleepSpy).not.toHaveBeenCalled();
+    expect(response?.isOnline).toBe(false);
+    expect(response?.totalAttempts).toBe(1);
+    expect(attemptNumbers(response)).toEqual([1]);
+  });
+
+  test("connects three times when retry is 2", async () => {
+    const openSession: jest.Mock = stubOpenSession().mockRejectedValue(
+      new Error("connect ECONNREFUSED") as never,
+    );
+
+    const response: DatabaseMonitorResponse | null =
+      await DatabaseMonitor.execute(buildConfig(), {
+        retry: 2,
+        isOnlineCheckRequest: true,
+      });
+
+    expect(openSession).toHaveBeenCalledTimes(3);
+    expect(sleepSpy).toHaveBeenCalledTimes(2);
+    expect(response?.isOnline).toBe(false);
+    expect(response?.totalAttempts).toBe(3);
+    expect(attemptNumbers(response)).toEqual([1, 2, 3]);
+  });
+
+  test("keeps three attempts when no retry value is passed", async () => {
+    const openSession: jest.Mock = stubOpenSession().mockRejectedValue(
+      new Error("connect ECONNREFUSED") as never,
+    );
+
+    const response: DatabaseMonitorResponse | null =
+      await DatabaseMonitor.execute(buildConfig(), {
+        isOnlineCheckRequest: true,
+      });
+
+    expect(openSession).toHaveBeenCalledTimes(3);
+    expect(response?.totalAttempts).toBe(3);
+    expect(attemptNumbers(response)).toEqual([1, 2, 3]);
+  });
+
+  test("retries once and recovers when retry is 1", async () => {
+    const openSession: jest.Mock = stubOpenSession()
+      .mockRejectedValueOnce(new Error("connect ECONNREFUSED") as never)
+      .mockResolvedValueOnce({
+        runQuery: async (): Promise<Array<Record<string, unknown>>> => {
+          return [{ engine_version: "16.2" }];
+        },
+        close: async (): Promise<void> => {},
+      } as never);
+
+    const response: DatabaseMonitorResponse | null =
+      await DatabaseMonitor.execute(buildConfig(), {
+        retry: 1,
+        isOnlineCheckRequest: true,
+      });
+
+    expect(openSession).toHaveBeenCalledTimes(2);
+    expect(response?.isOnline).toBe(true);
+    expect(response?.engineVersion).toBe("16.2");
+    // The failed first attempt plus the successful one.
+    expect(response?.totalAttempts).toBe(2);
+    expect(attemptNumbers(response)).toEqual([1]);
+  });
 });

@@ -135,8 +135,8 @@ resource "oneuptime_monitor" "website" {
 | `tls_client_certificate` | رشته | Website، API | گواهی کارخواه mTLS (‏PEM یا ارجاع `{{monitorSecrets.name}}`). |
 | `tls_client_key` | رشته (حساس) | Website، API | کلید خصوصی کارخواه mTLS. همراه گواهی الزامی است. |
 | `tls_client_key_passphrase` | رشته (حساس) | Website، API | عبارت عبور کلید کارخواه. |
-| `request_timeout_in_ms` | عدد | پروب‌محور | مهلت هر گام؛ سمت کارساز به ۶۰۰۰۰ میلی‌ثانیه محدود می‌شود. |
-| `retry_count` | عدد | پروب‌محور | تلاش دوباره وقتی بررسی‌ای شکست بخورد؛ سمت کارساز به ۳ محدود می‌شود. |
+| `request_timeout_in_ms` | عدد | پروب‌محور | مهلت هر گام بر حسب میلی‌ثانیه. پروب هر مقدار بیشتر از ۶۰۰۰۰ را به ۶۰۰۰۰ محدود می‌کند. |
+| `retry_count` | عدد | پروب‌محور | تلاش دوباره پس از نخستین تلاش وقتی بررسی‌ای شکست بخورد: `0` بررسی را یک بار اجرا می‌کند و `3` تا چهار بار. پروب هر مقدار بیشتر از ۳ را به ۳ محدود می‌کند. |
 | `custom_code` | رشته | Custom JavaScript Code، Synthetic | اسکریپتی که این گام اجرا می‌کند. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`، `Tablet`، `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium`، `Firefox`. |

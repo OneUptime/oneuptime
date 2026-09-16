@@ -30,10 +30,10 @@ Domain monitors आपके domains के लिए WHOIS data query करत
 
 ### Advanced Settings
 
-| Field        | विवरण                                    | Default |
-| ------------ | ---------------------------------------- | ------- |
-| Timeout (ms) | WHOIS response के लिए कितना इंतज़ार करें | 10000   |
-| Retries      | failure पर retry attempts की संख्या      | 3       |
+| Field        | विवरण                                                              | Default |
+| ------------ | ------------------------------------------------------------------ | ------- |
+| Timeout (ms) | WHOIS response के लिए कितना इंतज़ार करें                           | 10000   |
+| Retries      | पहला attempt fail होने के बाद retries; 0 का मतलब सिर्फ़ एक attempt | 3       |
 
 ## Monitoring Criteria
 

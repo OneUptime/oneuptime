@@ -79,7 +79,7 @@ El tiempo máximo (en milisegundos) para esperar una respuesta de la página de 
 
 #### Reintentos
 
-El número de veces que se reintenta la solicitud si falla. El valor predeterminado es 3 reintentos.
+El número de veces que se reintenta la solicitud después de que falle el primer intento; 0 significa un único intento. El valor predeterminado es 3 reintentos, es decir, hasta 4 intentos en total.
 
 ## Criterios de monitoreo
 

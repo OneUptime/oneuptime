@@ -79,7 +79,7 @@ Den maksimale tid (i millisekunder) at vente på et svar fra statussiden. Standa
 
 #### Genforsøg
 
-Antallet af gange der skal genforsøges, hvis anmodningen mislykkes. Standard er 3 genforsøg.
+Antallet af gange anmodningen genforsøges, efter det første forsøg mislykkes; 0 betyder ét enkelt forsøg. Standard er 3 genforsøg, altså op til 4 forsøg i alt.
 
 ## Overvågningskriterier
 
