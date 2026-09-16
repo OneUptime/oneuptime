@@ -277,7 +277,14 @@
       "title": "Projekt",
       "cardTitle": "Projekt",
       "cardDescription": "Projektdetaljer",
-      "editButton": "Redigera projekt"
+      "editButton": "Redigera projekt",
+      "dataResidencyCardTitle": "Datalagringsplats",
+      "dataResidencyCardDescription": "Var det här projektets data lagras. När den är angiven visas den för projektets användare i deras projektinställningar.",
+      "dataResidencyEditButton": "Redigera datalagringsplats",
+      "dataResidencyFieldTitle": "Datalagringsplats",
+      "dataResidencyFieldDescription": "En etikett för var det här projektets data lagras, till exempel \"EU (Frankfurt)\". Lämna tomt för att dölja den för projektets användare.",
+      "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
+      "dataResidencyNotSet": "Inte angiven"
     },
     "projectSubscription": {
       "title": "Projektprenumeration",

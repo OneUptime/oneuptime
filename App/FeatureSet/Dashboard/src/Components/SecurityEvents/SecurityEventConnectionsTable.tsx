@@ -10,13 +10,11 @@ import { Green, Red } from "Common/Types/BrandColors";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
-  SecurityEventConnectorCatalog,
-  SecurityEventConnectorDefinition,
+  getSecurityEventConnectorDefinition,
   getSecurityEventConnectorTitle,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
-import Link from "Common/UI/Components/Link/Link";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -29,15 +27,20 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ConnectionTestModal, {
   runConnectionTestRequest,
 } from "./ConnectionTestModal";
+import {
+  ConnectorProviderHelpEntry,
+  connectorProviderHelpEntries,
+} from "./ConnectorProviderHelp";
 import SecurityEventConnectionDiagnostics from "./SecurityEventConnectionDiagnostics";
 import {
   SECURITY_EVENT_CONNECTION_TEST_ROUTE,
-  connectorDocsUrl,
   connectorHealth,
   connectorHealthPillColor,
   connectorHealthTooltip,
+  connectorScopeSummary,
 } from "./SecurityEventConnectionDiagnosticsUtil";
 import SecurityEventConnectionFormModal from "./SecurityEventConnectionFormModal";
+import SecurityEventConnectionsEmptyState from "./SecurityEventConnectionsEmptyState";
 
 interface FormModalState {
   connection: SecurityEventConnection | null;
@@ -59,9 +62,22 @@ Each provider's setup guide lists the exact roles, scopes and console locations 
 `;
 
 /*
- * The table for the managed Security Event Connections framework (every
- * provider except Google SecOps, which keeps its own model and table on
- * the same page).
+ * The help panel: the framework-level text above, then a section for each
+ * provider that has in-product help of its own (ConnectorProviderHelp), in
+ * catalog order.
+ */
+export function securityEventConnectionsHelpMarkdown(): string {
+  return connectorProviderHelpEntries().reduce(
+    (markdown: string, entry: ConnectorProviderHelpEntry): string => {
+      return `${markdown}\n---\n${entry.markdown}`;
+    },
+    documentationMarkdown,
+  );
+}
+
+/*
+ * The table for the managed Security Event Connections framework: every
+ * provider, Google SecOps included, in one list.
  *
  * Create and edit go through SecurityEventConnectionFormModal rather than
  * ModelTable's generated form: the fields depend on the provider picked in
@@ -104,40 +120,10 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
     ModelAction.Update,
   );
 
-  const emptyState: ReactElement = (
-    <div className="space-y-3 text-sm text-gray-600">
-      <p>
-        No security event connections yet. A connection needs a read-only
-        credential for the product (a service principal, API client or API token
-        with permission to list its alerts, findings or log events) and a
-        running OneUptime worker to poll on a schedule.
-      </p>
-      <p>Setup guides:</p>
-      <ul className="list-disc space-y-1 pl-5">
-        {SecurityEventConnectorCatalog.map(
-          (definition: SecurityEventConnectorDefinition): ReactElement => {
-            return (
-              <li key={definition.provider}>
-                <Link
-                  className="font-medium text-indigo-600 hover:text-indigo-800"
-                  openInNewTab={true}
-                  to={connectorDocsUrl(definition)}
-                >
-                  {definition.title}
-                </Link>{" "}
-                <span className="text-gray-500">({definition.category})</span>
-              </li>
-            );
-          },
-        )}
-      </ul>
-      {createGate.isAllowed && (
-        <p>
-          Click Add connection to choose a provider and test it before saving.
-        </p>
-      )}
-    </div>
-  );
+  // The card's Add connection button and the empty state's open the same form.
+  const openCreateForm: VoidFunction = (): void => {
+    setFormModal({ connection: null, credentialsOnly: false });
+  };
 
   return (
     <Fragment>
@@ -174,7 +160,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
         cardProps={{
           title: "Security Event Connections",
           description:
-            "Poll Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub and Okta as OCSF security events. Test access, run a poll, and inspect imports on demand.",
+            "Poll Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps as OCSF security events. Test access, run a poll, and inspect imports on demand.",
           buttons: [
             {
               title: "Add connection",
@@ -184,19 +170,23 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
               tooltip: createGate.isAllowed
                 ? "Choose a provider, enter its credentials and test them before saving."
                 : createGate.disabledReason,
-              onClick: (): void => {
-                setFormModal({ connection: null, credentialsOnly: false });
-              },
+              onClick: openCreateForm,
             },
           ],
         }}
         helpContent={{
           title: "How Security Event Connections Work",
           description:
-            "What a connection polls, how to test it, and how to read its health",
-          markdown: documentationMarkdown,
+            "What a connection polls, how to test it, how to read its health, and provider-specific guidance",
+          markdown: securityEventConnectionsHelpMarkdown(),
         }}
-        noItemsMessage={emptyState}
+        noItemsMessage={
+          <SecurityEventConnectionsEmptyState
+            canCreate={createGate.isAllowed}
+            createDisabledReason={createGate.disabledReason}
+            onAddConnection={openCreateForm}
+          />
+        }
         showRefreshButton={true}
         searchableFields={["name", "provider"]}
         showViewIdButton={true}
@@ -330,8 +320,23 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Provider",
             type: FieldType.Text,
             getElement: (item: SecurityEventConnection): ReactElement => {
+              /*
+               * A provider with an alerting distinction shows what the
+               * connection imports under its name ("Alerts only"), so a
+               * connection that skips non-alerting records is visible
+               * without opening it.
+               */
+              const scope: string | undefined = connectorScopeSummary(
+                getSecurityEventConnectorDefinition(item.provider),
+                item.alertingOnly,
+              );
               return (
-                <span>{getSecurityEventConnectorTitle(item.provider)}</span>
+                <div>
+                  <span>{getSecurityEventConnectorTitle(item.provider)}</span>
+                  {scope && (
+                    <div className="text-xs text-gray-500">{scope}</div>
+                  )}
+                </div>
               );
             },
           },

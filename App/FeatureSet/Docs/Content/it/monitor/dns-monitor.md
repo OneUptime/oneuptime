@@ -47,11 +47,11 @@ I monitor DNS interrogano i server DNS per tipi di record specifici e valutano i
 
 ### Impostazioni Avanzate
 
-| Campo        | Descrizione                               | Predefinito |
-| ------------ | ----------------------------------------- | ----------- |
-| Porta        | Numero di porta DNS                       | 53          |
-| Timeout (ms) | Tempo di attesa per una risposta          | 5000        |
-| Tentativi    | Numero di tentativi in caso di fallimento | 3           |
+| Campo        | Descrizione                                                           | Predefinito |
+| ------------ | --------------------------------------------------------------------- | ----------- |
+| Porta        | Numero di porta DNS                                                   | 53          |
+| Timeout (ms) | Tempo di attesa per una risposta                                      | 5000        |
+| Tentativi    | Tentativi dopo il fallimento del primo; 0 significa un solo tentativo | 3           |
 
 ## Criteri di Monitoraggio
 

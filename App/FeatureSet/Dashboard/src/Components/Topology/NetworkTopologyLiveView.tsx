@@ -4,6 +4,7 @@ import NetworkDeviceDetailPanel from "./NetworkDeviceDetailPanel";
 import AddNeighborToMonitoringModal from "./AddNeighborToMonitoringModal";
 import { isAdoptableNode } from "./AdoptNeighborUtil";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import NetworkLinkDetailPanel from "./NetworkLinkDetailPanel";
 import { edgeKeyForEdge } from "./NetworkTopologyMeta";
@@ -353,6 +354,15 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
    */
   const canCreateDevice: boolean = PermissionGate.check(
     new NetworkDevice(),
+    ModelAction.Create,
+  ).isAllowed;
+
+  /*
+   * Same rule for the drawer's Ping / Traceroute buttons: an operator who
+   * may not create a diagnostic row gets no button, not a button that fails.
+   */
+  const canRunDiagnostics: boolean = PermissionGate.check(
+    new NetworkDeviceDiagnostic(),
     ModelAction.Create,
   ).isAllowed;
 
@@ -965,6 +975,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
             setSelectedEdgeKey(edgeKeyForEdge(edge));
           }}
           onHideNode={hideNode}
+          canRunDiagnostics={canRunDiagnostics}
           onAddToMonitoring={
             canCreateDevice && isAdoptableNode(selectedNode)
               ? (node: NetworkTopologyNode) => {

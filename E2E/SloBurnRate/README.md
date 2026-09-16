@@ -7,8 +7,12 @@ with synthetic records, and serves it on `127.0.0.1:4213`. No Docker, no databas
 sign-in — so it runs against a branch without touching a shared dev stack.
 
 It exists because a burn rate rule's two outputs (raise an Alert, declare an Incident)
-are only legible in the rendered table: which rule declares what, which severities and
-on-call policies each output uses, and whether the rule is firing right now.
+are only legible in the rendered table: which rule declares what, which severities,
+on-call policies, owners and labels each output uses, which options depart from the
+defaults (resolved by hand, private, SLO owners added as owners), and whether the rule
+is firing right now. The spec also walks the create wizard (Rule, Burn Window, What It
+Declares, then an Alert Details / Alert Routing and Incident Details / Incident Routing
+pair per declared output) and checks that the step rail follows the output toggles.
 
 ## Run it
 

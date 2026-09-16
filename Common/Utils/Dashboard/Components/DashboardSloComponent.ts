@@ -55,15 +55,32 @@ export default class DashboardSloComponentUtil extends DashboardBaseComponentUti
     const componentArguments: Array<ComponentArgument<DashboardSloComponent>> =
       [];
 
+    /*
+     * Neither of the two source arguments is `required` on its own: a widget
+     * is valid with an SLO pinned OR with a variable to follow, and the form
+     * would otherwise refuse to save the second kind. A widget with neither
+     * renders its setup state and makes no request.
+     */
     componentArguments.push({
       name: "Service Level Objective",
-      description: "The SLO this widget reports on",
-      required: true,
+      description:
+        "Pin this widget to one SLO. Leave empty to follow an SLO variable instead.",
+      required: false,
       type: ComponentInputType.EntityDropdown,
       id: "serviceLevelObjectiveId",
       placeholder: "Select an SLO",
       section: DataSourceSection,
       entityFilterModelType: EntityFilterModelType.ServiceLevelObjective,
+    });
+
+    componentArguments.push({
+      name: "Follow SLO Variable",
+      description:
+        "Show whichever SLO is picked in this dashboard variable — a Telemetry Attribute variable on the sloName key. Ignored while an SLO is pinned above. On a public dashboard, viewers can pick any active SLO in the project.",
+      required: false,
+      type: ComponentInputType.TelemetryAttributeVariable,
+      id: "serviceLevelObjectiveVariableId",
+      section: DataSourceSection,
     });
 
     componentArguments.push({

@@ -94,6 +94,7 @@ import {
 } from "../../../Utils/EventOverview";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
+import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 
 interface AIInvestigationStatusState {
@@ -104,6 +105,11 @@ interface AIInvestigationStatusState {
 interface AIInvestigationSummaryState {
   subjectId: string;
   summary: string | null;
+}
+
+interface AIInvestigationVerdictState {
+  subjectId: string;
+  verdict: AIRunHumanVerdict | null;
 }
 
 /*
@@ -279,6 +285,42 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
       [modelIdString],
     );
+
+  /*
+   * A responder's verdict on that report, lifted the same way, so the header
+   * can say the report was confirmed or rejected. Keyed by subject so a
+   * verdict never outlives its alert.
+   */
+  const [aiInvestigationVerdict, setAIInvestigationVerdict] =
+    useState<AIInvestigationVerdictState>({
+      subjectId: modelIdString,
+      verdict: null,
+    });
+  const currentAIInvestigationVerdict: AIRunHumanVerdict | null =
+    aiInvestigationVerdict.subjectId === modelIdString
+      ? aiInvestigationVerdict.verdict
+      : null;
+  const onAIInvestigationVerdictChange: (
+    verdict: AIRunHumanVerdict | null,
+  ) => void = useCallback(
+    (verdict: AIRunHumanVerdict | null): void => {
+      setAIInvestigationVerdict(
+        (
+          currentVerdict: AIInvestigationVerdictState,
+        ): AIInvestigationVerdictState => {
+          if (
+            currentVerdict.subjectId === modelIdString &&
+            currentVerdict.verdict === verdict
+          ) {
+            return currentVerdict;
+          }
+
+          return { subjectId: modelIdString, verdict: verdict };
+        },
+      );
+    },
+    [modelIdString],
+  );
 
   const [feedRefreshToken, setFeedRefreshToken] = useState<number>(0);
 
@@ -656,6 +698,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           facts={headerFacts}
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
+          aiInvestigationVerdict={currentAIInvestigationVerdict}
           onActionComplete={() => {
             refreshData();
             // The state change is a new feed entry.
@@ -724,6 +767,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             subjectId={modelId}
             onStatusChange={onAIInvestigationStatusChange}
             onReportSummaryChange={onAIInvestigationReportSummaryChange}
+            onVerdictChange={onAIInvestigationVerdictChange}
             onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
           />
 
@@ -1100,7 +1144,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             name="Affected Resources"
             cardProps={{
               title: "Affected Resources",
-              description: "Services and infrastructure this alert affects.",
+              description:
+                "Services, infrastructure and SLOs this alert affects.",
               headerLayout: "stacked",
             }}
             isEditable={true}
@@ -1322,6 +1367,16 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       _id: true,
                       serviceColor: true,
                     },
+                    /*
+                     * Shown, never edited: the picker above does not offer
+                     * SLOs and no hidden registration loads them into the
+                     * form, so saving other resources leaves the link a burn
+                     * rate rule wrote untouched.
+                     */
+                    serviceLevelObjectives: {
+                      name: true,
+                      _id: true,
+                    },
                   },
                   title: "",
                   fieldType: FieldType.Element,
@@ -1338,6 +1393,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         services={item.services || []}
+                        serviceLevelObjectives={
+                          item.serviceLevelObjectives || []
+                        }
                         hideMonitors={true}
                         columns={1}
                       />

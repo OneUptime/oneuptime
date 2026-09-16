@@ -25,8 +25,9 @@ import {
 export interface ComponentProps {
   report: SecurityConnectorTestReport;
   /*
-   * Overrides the provider title derived from report.provider — the Google
-   * SecOps page passes its own because that provider is not in the catalog.
+   * Overrides the provider title derived from report.provider (its catalog
+   * title). Callers pass the title they already show, so the report and the
+   * modal around it name the provider the same way.
    */
   providerTitle?: string | undefined;
   /*
@@ -224,9 +225,10 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * Flattened so a nested count (Google SecOps' otherScope) reads as
-   * labelled rows instead of "[object Object]", and taken from the
-   * detections-available check when the tester did not fill report.counts.
+   * Flattened so a nested count (Google SecOps' otherScope, the other Data
+   * to import choice) reads as labelled rows instead of "[object Object]",
+   * and taken from the detections-available check when the connector did
+   * not return report.counts.
    */
   const countRows: Array<ConnectorCountRow> = connectorCountRows(
     connectorTestReportCounts(report),

@@ -2121,7 +2121,11 @@
                             "type": "integer"
                         },
                         "monitorRetryLimit": {
-                            "type": "integer"
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 0
                         },
                         "networkDevicePollConcurrency": {
                             "type": [

@@ -17,6 +17,7 @@ import NetworkDeviceRole from "./NetworkDeviceRole";
 import NetworkAlertPolicy from "./NetworkAlertPolicy";
 import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
+import NetworkDeviceDiagnostic from "./NetworkDeviceDiagnostic";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
 import NetworkSiteType from "./NetworkSiteType";
@@ -124,8 +125,6 @@ import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
-import GoogleSecOpsConnection from "./GoogleSecOpsConnection";
-import GoogleSecOpsConnectionRun from "./GoogleSecOpsConnectionRun";
 import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ThreatIntelFeed from "./ThreatIntelFeed";
@@ -407,6 +406,8 @@ import ServiceLevelObjective from "./ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "./ServiceLevelObjectiveBurnRateRule";
 import ServiceLevelObjectiveOwnerUser from "./ServiceLevelObjectiveOwnerUser";
 import ServiceLevelObjectiveOwnerTeam from "./ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveMonitorRule from "./ServiceLevelObjectiveMonitorRule";
+import ServiceLevelObjectiveFeed from "./ServiceLevelObjectiveFeed";
 import IncidentReminderRule from "./IncidentReminderRule";
 import AlertReminderRule from "./AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "./ScheduledMaintenanceReminderRule";
@@ -502,8 +503,6 @@ const AllModelTypes: Array<{
   LogPipelineProcessor,
   LogDropFilter,
   DetectionRule,
-  GoogleSecOpsConnection,
-  GoogleSecOpsConnectionRun,
   SecurityEventConnection,
   SecurityEventConnectionRun,
   ThreatIntelFeed,
@@ -621,6 +620,8 @@ const AllModelTypes: Array<{
   ServiceLevelObjectiveBurnRateRule,
   ServiceLevelObjectiveOwnerUser,
   ServiceLevelObjectiveOwnerTeam,
+  ServiceLevelObjectiveMonitorRule,
+  ServiceLevelObjectiveFeed,
   IncidentReminderRule,
   AlertReminderRule,
   ScheduledMaintenanceReminderRule,
@@ -908,6 +909,7 @@ const AllModelTypes: Array<{
   NetworkAlertPolicy,
   NetworkSnmpCredentialProfile,
   NetworkDeviceDiscoveryScan,
+  NetworkDeviceDiagnostic,
   NetworkInterface,
   NetworkSite,
   NetworkSiteType,

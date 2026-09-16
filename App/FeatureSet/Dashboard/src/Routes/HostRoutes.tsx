@@ -33,6 +33,8 @@ import HostAuditLogs from "../Pages/Host/View/AuditLogs";
 import HostSettings from "../Pages/Host/View/Settings";
 import HostDelete from "../Pages/Host/View/Delete";
 import HostViewDocumentation from "../Pages/Host/View/Documentation";
+import HostLabelRule from "Common/Models/DatabaseModels/HostLabelRule";
+import HostOwnerRule from "Common/Models/DatabaseModels/HostOwnerRule";
 
 const HostRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -65,11 +67,35 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={HostRoutePath[PageMap.HOST_SETTINGS_OWNER_RULE_VIEW] || ""}
+          element={
+            <HostSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.HOST_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={HostOwnerRule}
+            />
+          }
+        />
+        <PageRoute
           path={HostRoutePath[PageMap.HOST_SETTINGS_LABEL_RULES] || ""}
           element={
             <HostSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.HOST_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={HostRoutePath[PageMap.HOST_SETTINGS_LABEL_RULE_VIEW] || ""}
+          element={
+            <HostSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.HOST_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={HostLabelRule}
             />
           }
         />

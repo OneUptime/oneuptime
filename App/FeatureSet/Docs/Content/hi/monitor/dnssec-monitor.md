@@ -32,11 +32,11 @@ DNSSEC monitors root zone से आपके domain तक के पूरे 
 
 ### Advanced Settings
 
-| Field                           | विवरण                                        | Default |
-| ------------------------------- | -------------------------------------------- | ------- |
-| Signature Expiry Warning (days) | RRSIG expiry filter के लिए default threshold | 7       |
-| Timeout (ms)                    | प्रत्येक DNS query के लिए कितना इंतज़ार करें | 10000   |
-| Retries                         | failure पर retry attempts की संख्या          | 3       |
+| Field                           | विवरण                                                              | Default |
+| ------------------------------- | ------------------------------------------------------------------ | ------- |
+| Signature Expiry Warning (days) | RRSIG expiry filter के लिए default threshold                       | 7       |
+| Timeout (ms)                    | प्रत्येक DNS query के लिए कितना इंतज़ार करें                       | 10000   |
+| Retries                         | पहला attempt fail होने के बाद retries; 0 का मतलब सिर्फ़ एक attempt | 3       |
 
 ## Monitoring Criteria
 

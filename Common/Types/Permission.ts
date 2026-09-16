@@ -1399,6 +1399,11 @@ enum Permission {
   EditNetworkDeviceDiscoveryScan = "EditNetworkDeviceDiscoveryScan",
   ReadNetworkDeviceDiscoveryScan = "ReadNetworkDeviceDiscoveryScan",
 
+  CreateNetworkDeviceDiagnostic = "CreateNetworkDeviceDiagnostic",
+  DeleteNetworkDeviceDiagnostic = "DeleteNetworkDeviceDiagnostic",
+  EditNetworkDeviceDiagnostic = "EditNetworkDeviceDiagnostic",
+  ReadNetworkDeviceDiagnostic = "ReadNetworkDeviceDiagnostic",
+
   CreateNetworkSite = "CreateNetworkSite",
   DeleteNetworkSite = "DeleteNetworkSite",
   EditNetworkSite = "EditNetworkSite",
@@ -1989,6 +1994,17 @@ enum Permission {
   DeleteServiceLevelObjectiveBurnRateRule = "DeleteServiceLevelObjectiveBurnRateRule",
   EditServiceLevelObjectiveBurnRateRule = "EditServiceLevelObjectiveBurnRateRule",
   ReadServiceLevelObjectiveBurnRateRule = "ReadServiceLevelObjectiveBurnRateRule",
+
+  // Service Level Objective Monitor Rule Permissions
+  CreateServiceLevelObjectiveMonitorRule = "CreateServiceLevelObjectiveMonitorRule",
+  DeleteServiceLevelObjectiveMonitorRule = "DeleteServiceLevelObjectiveMonitorRule",
+  EditServiceLevelObjectiveMonitorRule = "EditServiceLevelObjectiveMonitorRule",
+  ReadServiceLevelObjectiveMonitorRule = "ReadServiceLevelObjectiveMonitorRule",
+
+  // Service Level Objective Feed Permissions
+  CreateServiceLevelObjectiveFeed = "CreateServiceLevelObjectiveFeed",
+  EditServiceLevelObjectiveFeed = "EditServiceLevelObjectiveFeed",
+  ReadServiceLevelObjectiveFeed = "ReadServiceLevelObjectiveFeed",
 
   // Service Level Objective Owner User Permissions
   CreateServiceLevelObjectiveOwnerUser = "CreateServiceLevelObjectiveOwnerUser",
@@ -8568,6 +8584,46 @@ export class PermissionHelper {
         title: "Read Network Device Discovery Scan",
         description:
           "This permission can read Network Device Discovery Scan of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkDeviceDiagnostic,
+        title: "Create Network Device Diagnostic",
+        description:
+          "This permission can run an on-demand ping or traceroute against a Network Device of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceDiagnostic,
+        title: "Delete Network Device Diagnostic",
+        description:
+          "This permission can delete Network Device Diagnostic of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkDeviceDiagnostic,
+        title: "Edit Network Device Diagnostic",
+        description:
+          "This permission can edit Network Device Diagnostic of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceDiagnostic,
+        title: "Read Network Device Diagnostic",
+        description:
+          "This permission can read Network Device Diagnostic of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -15931,6 +15987,77 @@ export class PermissionHelper {
         permission: Permission.ReadServiceLevelObjectiveBurnRateRule,
         title: "Read SLO Burn Rate Rule",
         description: "Permission to read SLO Burn Rate Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Monitor Rule Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveMonitorRule,
+        title: "Create SLO Monitor Rule",
+        description:
+          "Permission to create SLO Monitor Rules, which attach matching monitors to an SLO, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveMonitorRule,
+        title: "Delete SLO Monitor Rule",
+        description: "Permission to delete SLO Monitor Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveMonitorRule,
+        title: "Edit SLO Monitor Rule",
+        description: "Permission to edit SLO Monitor Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveMonitorRule,
+        title: "Read SLO Monitor Rule",
+        description: "Permission to read SLO Monitor Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Feed Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveFeed,
+        title: "Create SLO Feed",
+        description:
+          "This permission can create the activity feed of a Service Level Objective in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveFeed,
+        title: "Edit SLO Feed",
+        description:
+          "This permission can edit the activity feed of a Service Level Objective in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveFeed,
+        title: "Read SLO Feed",
+        description:
+          "This permission can read the activity feed of a Service Level Objective in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

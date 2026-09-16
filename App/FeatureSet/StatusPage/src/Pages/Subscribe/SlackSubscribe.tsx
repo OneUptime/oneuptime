@@ -43,6 +43,13 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
   const { t } = useTranslation();
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   /*
+   * The manage tab gets its own flag: the server answers a manage request the
+   * same way whether or not anything matched, so it must not reuse the
+   * subscribe tab's success copy.
+   */
+  const [isManageLinkRequested, setIsManageLinkRequested] =
+    useState<boolean>(false);
+  /*
    * Start in the loading state when the effect below is actually going to
    * fetch. Starting at false rendered the whole form, then swapped it for a
    * loader, then rendered it again — a visible flash on a page the reader is
@@ -253,7 +260,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
             return item;
           }}
           onSuccess={() => {
-            setIsSuccess(true);
+            setIsManageLinkRequested(true);
           }}
           maxPrimaryButtonWidth={true}
         />
@@ -307,7 +314,13 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
               </p>
             )}
 
-            {!isSuccess ? (
+            {isManageLinkRequested && (
+              <p className="text-center text-gray-400 mb-20 mt-20">
+                {t("subscribe.manageLinkSent")}
+              </p>
+            )}
+
+            {!isSuccess && !isManageLinkRequested ? (
               <div className="">
                 <Card
                   title={t("subscribe.slack.title")}

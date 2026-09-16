@@ -104,6 +104,12 @@ import EpisodeViewDelete from "../Pages/Alerts/EpisodeView/Delete";
 import EpisodeViewAuditLogs from "../Pages/Alerts/EpisodeView/AuditLogs";
 
 import AlertEpisodeDocs from "../Pages/Alerts/EpisodeDocs";
+import AlertLabelRule from "Common/Models/DatabaseModels/AlertLabelRule";
+import AlertEpisodeLabelRule from "Common/Models/DatabaseModels/AlertEpisodeLabelRule";
+import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
+import AlertEpisodeOwnerRule from "Common/Models/DatabaseModels/AlertEpisodeOwnerRule";
+import AlertPrivacyRule from "Common/Models/DatabaseModels/AlertPrivacyRule";
+import AlertEpisodePrivacyRule from "Common/Models/DatabaseModels/AlertEpisodePrivacyRule";
 
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -271,6 +277,35 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_OWNER_RULE_VIEW] || ""}
+          element={
+            <AlertSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={AlertOwnerRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULE_VIEW] ||
+            ""
+          }
+          element={
+            <AlertSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={AlertEpisodeOwnerRule}
+            />
+          }
+        />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_RUNBOOK_RULES] || ""}
@@ -324,6 +359,38 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_SETTINGS_PRIVACY_RULE_VIEW] || ""
+          }
+          element={
+            <AlertSettingsPrivacyRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_PRIVACY_RULE_VIEW] as Route
+              }
+              ruleViewModelType={AlertPrivacyRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            AlertsRoutePath[
+              PageMap.ALERTS_SETTINGS_EPISODE_PRIVACY_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <AlertSettingsPrivacyRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ALERTS_SETTINGS_EPISODE_PRIVACY_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={AlertEpisodePrivacyRule}
+            />
+          }
+        />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_LABEL_RULES] || ""}
@@ -331,6 +398,35 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <AlertSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_LABEL_RULE_VIEW] || ""}
+          element={
+            <AlertSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={AlertLabelRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_LABEL_RULE_VIEW] ||
+            ""
+          }
+          element={
+            <AlertSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ALERTS_SETTINGS_EPISODE_LABEL_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={AlertEpisodeLabelRule}
             />
           }
         />

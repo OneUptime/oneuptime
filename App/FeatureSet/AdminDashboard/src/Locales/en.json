@@ -277,7 +277,14 @@
       "title": "Project",
       "cardTitle": "Project",
       "cardDescription": "Project details",
-      "editButton": "Edit Project"
+      "editButton": "Edit Project",
+      "dataResidencyCardTitle": "Data Residency",
+      "dataResidencyCardDescription": "Where this project's data is hosted. Once set, it is shown to the project's users in their Project Settings.",
+      "dataResidencyEditButton": "Edit Data Residency",
+      "dataResidencyFieldTitle": "Data Residency",
+      "dataResidencyFieldDescription": "A label for where this project's data is hosted, for example \"EU (Frankfurt)\". Leave it blank to hide it from the project's users.",
+      "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
+      "dataResidencyNotSet": "Not set"
     },
     "projectSubscription": {
       "title": "Project Subscription",

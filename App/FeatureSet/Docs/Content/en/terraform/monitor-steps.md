@@ -135,8 +135,8 @@ Each element of `monitor_steps` is one probe target:
 | `tls_client_certificate` | string | Website, API | mTLS client certificate (PEM or `{{monitorSecrets.name}}` reference). |
 | `tls_client_key` | string (sensitive) | Website, API | mTLS client private key. Required together with the certificate. |
 | `tls_client_key_passphrase` | string (sensitive) | Website, API | Passphrase for the client key. |
-| `request_timeout_in_ms` | number | probe-based | Per-step timeout; capped at 60000 ms server-side. |
-| `retry_count` | number | probe-based | Retries when a check fails; capped at 3 server-side. |
+| `request_timeout_in_ms` | number | probe-based | Per-step timeout in milliseconds. The probe clamps anything above 60000 to 60000. |
+| `retry_count` | number | probe-based | Retries after the first attempt when a check fails: `0` runs the check once, `3` runs it up to four times. The probe clamps anything above 3 to 3. |
 | `custom_code` | string | Custom JavaScript Code, Synthetic | The script this step executes. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet`, `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium`, `Firefox`. |

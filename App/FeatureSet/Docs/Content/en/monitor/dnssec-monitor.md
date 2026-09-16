@@ -32,11 +32,11 @@ DNSSEC monitors validate the entire chain of trust from the root zone down to yo
 
 ### Advanced Settings
 
-| Field                           | Description                                   | Default |
-| ------------------------------- | --------------------------------------------- | ------- |
-| Signature Expiry Warning (days) | Default threshold for the RRSIG expiry filter | 7       |
-| Timeout (ms)                    | How long to wait for each DNS query           | 10000   |
-| Retries                         | Number of retry attempts on failure           | 3       |
+| Field                           | Description                                                     | Default |
+| ------------------------------- | --------------------------------------------------------------- | ------- |
+| Signature Expiry Warning (days) | Default threshold for the RRSIG expiry filter                   | 7       |
+| Timeout (ms)                    | How long to wait for each DNS query                             | 10000   |
+| Retries                         | Retries after the first attempt fails; 0 means a single attempt | 3       |
 
 ## Monitoring Criteria
 

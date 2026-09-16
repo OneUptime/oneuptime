@@ -66,6 +66,7 @@ import NetworkDeviceRoleService from "./NetworkDeviceRoleService";
 import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
 import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
+import NetworkDeviceDiagnosticService from "./NetworkDeviceDiagnosticService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
@@ -333,8 +334,6 @@ import AlertOwnerRuleService from "./AlertOwnerRuleService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
-import GoogleSecOpsConnectionService from "./GoogleSecOpsConnectionService";
-import GoogleSecOpsConnectionRunService from "./GoogleSecOpsConnectionRunService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
@@ -383,6 +382,8 @@ import LlmCostBudgetService from "./LlmCostBudgetService";
 import LlmModelPriceService from "./LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
+import ServiceLevelObjectiveMonitorRuleService from "./ServiceLevelObjectiveMonitorRuleService";
+import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import SloHistoryService from "./SloHistoryService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
 import AlertReminderRuleService from "./AlertReminderRuleService";
@@ -529,6 +530,7 @@ const services: Array<BaseService> = [
   NetworkAlertPolicyService,
   NetworkSnmpCredentialProfileService,
   NetworkDeviceDiscoveryScanService,
+  NetworkDeviceDiagnosticService,
   NetworkInterfaceService,
   NetworkSiteService,
   NetworkSiteTypeService,
@@ -766,8 +768,6 @@ const services: Array<BaseService> = [
   AlertOwnerUserService,
   AlertSeverityService,
   DetectionRuleService,
-  GoogleSecOpsConnectionService,
-  GoogleSecOpsConnectionRunService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
   ThreatIntelFeedService,
@@ -816,6 +816,8 @@ const services: Array<BaseService> = [
   LlmModelPriceService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,
+  ServiceLevelObjectiveMonitorRuleService,
+  ServiceLevelObjectiveFeedService,
   IncidentReminderRuleService,
   AlertReminderRuleService,
   ScheduledMaintenanceReminderRuleService,

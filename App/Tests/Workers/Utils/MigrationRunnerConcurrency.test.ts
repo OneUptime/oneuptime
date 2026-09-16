@@ -208,6 +208,29 @@ describe("migration runners take no lock", () => {
       expect(second.migrate).not.toHaveBeenCalled();
     });
 
+    test("never records a migration whose migrate() rejected as executed, so it runs again next time", async () => {
+      const passed: FakeMigration = buildMigration({ name: "one" });
+      const failed: FakeMigration = buildMigration({
+        name: "two",
+        fails: true,
+      });
+      dataMigrations.push(passed, failed);
+
+      await expect(RunDatabaseMigrations()).rejects.toThrow(/two/);
+
+      /*
+       * A migration that throws to be retried (a transient database error,
+       * say) relies on this: an executed row would skip it on every later
+       * run, and whatever it had not finished would stay unfinished.
+       */
+      expect(failed.migrate).toHaveBeenCalledTimes(1);
+      expect(
+        create.mock.calls.map((call: Array<unknown>): unknown => {
+          return (call[0] as { data: { name: string } }).data.name;
+        }),
+      ).toEqual(["one"]);
+    });
+
     test("still rolls back the migration that failed", async () => {
       const migration: FakeMigration = buildMigration({
         name: "one",

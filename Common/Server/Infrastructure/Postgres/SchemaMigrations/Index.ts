@@ -2,6 +2,13 @@ import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddCon
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
 import { AddSecurityEventConnections1792700000000 } from "./1792700000000-AddSecurityEventConnections";
+import { AddNetworkDeviceDiagnostic1792800000000 } from "./1792800000000-AddNetworkDeviceDiagnostic";
+import { AddNetworkDeviceDnsNameAndShortDeviceNames1792900000000 } from "./1792900000000-AddNetworkDeviceDnsNameAndShortDeviceNames";
+import { AddNetbiosLookupToNetworkDeviceDiscoveryScan1793000000000 } from "./1793000000000-AddNetbiosLookupToNetworkDeviceDiscoveryScan";
+import { SloProductOverhaul1793100000000 } from "./1793100000000-SloProductOverhaul";
+import { BackfillSloMonitorRulesAndAffectedResources1793200000000 } from "./1793200000000-BackfillSloMonitorRulesAndAffectedResources";
+import { AddDataResidencyToProject1793300000000 } from "./1793300000000-AddDataResidencyToProject";
+import { AddSubscriberUpdateNotificationStatus1793400000000 } from "./1793400000000-AddSubscriberUpdateNotificationStatus";
 import { AddSloBurnRateRuleIncidents1792400000000 } from "./1792400000000-AddSloBurnRateRuleIncidents";
 import { AddUserWebAuthnPurpose1792200000000 } from "./1792200000000-AddUserWebAuthnPurpose";
 import InitialMigration from "./1717605043663-InitialMigration";
@@ -1180,4 +1187,11 @@ export default [
   AddConfigurableRuleCriteria1792500000000,
   AddIncomingCallPolicyPhoneNumbers1792600000000,
   AddSecurityEventConnections1792700000000,
+  AddNetworkDeviceDiagnostic1792800000000,
+  AddNetworkDeviceDnsNameAndShortDeviceNames1792900000000,
+  AddNetbiosLookupToNetworkDeviceDiscoveryScan1793000000000,
+  SloProductOverhaul1793100000000,
+  BackfillSloMonitorRulesAndAffectedResources1793200000000,
+  AddDataResidencyToProject1793300000000,
+  AddSubscriberUpdateNotificationStatus1793400000000,
 ];

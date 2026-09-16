@@ -397,6 +397,7 @@ describe("getTelemetryEntityTypeLabel", () => {
     [ServiceType.Incident, "Incident"],
     [ServiceType.Alert, "Alert"],
     [ServiceType.ScheduledMaintenance, "Scheduled Maintenance"],
+    [ServiceType.ServiceLevelObjective, "SLO"],
     [ServiceType.Unknown, "Service"],
   ])("%s -> %s", (type: ServiceType, label: string) => {
     expect(getTelemetryEntityTypeLabel(type)).toBe(label);

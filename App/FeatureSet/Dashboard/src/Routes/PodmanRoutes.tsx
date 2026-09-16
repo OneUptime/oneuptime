@@ -30,6 +30,8 @@ import PodmanHostDocumentation from "../Pages/Podman/View/Documentation";
 import PodmanSettingsOwnerRules from "../Pages/Podman/Settings/OwnerRules";
 import PodmanSettingsLabelRules from "../Pages/Podman/Settings/LabelRules";
 import PodmanArchived from "../Pages/Podman/Archived";
+import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRule";
+import PodmanHostOwnerRule from "Common/Models/DatabaseModels/PodmanHostOwnerRule";
 
 const PodmanRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -65,11 +67,35 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={PodmanRoutePath[PageMap.PODMAN_SETTINGS_OWNER_RULE_VIEW] || ""}
+          element={
+            <PodmanSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PODMAN_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={PodmanHostOwnerRule}
+            />
+          }
+        />
+        <PageRoute
           path={PodmanRoutePath[PageMap.PODMAN_SETTINGS_LABEL_RULES] || ""}
           element={
             <PodmanSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.PODMAN_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={PodmanRoutePath[PageMap.PODMAN_SETTINGS_LABEL_RULE_VIEW] || ""}
+          element={
+            <PodmanSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PODMAN_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={PodmanHostLabelRule}
             />
           }
         />

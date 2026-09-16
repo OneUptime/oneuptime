@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import {
+  afterAll,
   afterEach,
   beforeEach,
   describe,
@@ -12,28 +13,30 @@ import {
   cleanup,
   fireEvent,
   render,
+  RenderResult,
   screen,
   waitFor,
   within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
+import {
+  ConnectorProviderHelp,
+  connectorProviderHelpEntries,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectorProviderHelp";
 import SecurityEventConnectionRunDetails from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionRunDetails";
-import SecurityEventConnectionsTable from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsTable";
+import SecurityEventConnectionsTable, {
+  securityEventConnectionsHelpMarkdown,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsTable";
 import {
   CONNECTOR_HEALTH_NO_EVENTS_YET,
   CONNECTOR_HEALTH_SUCCEEDED,
   connectorHealth,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionDiagnosticsUtil";
-import {
-  googleSecOpsHealth,
-  googleSecOpsTestBody,
-  GOOGLE_SECOPS_TEST_NEEDS_KEY_MESSAGE,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/GoogleSecOpsDiagnosticsUtil";
-import GoogleSecOpsConnectionsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/GoogleSecOpsConnections";
+import SecurityEventsConnectionsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Connections";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import GoogleSecOpsConnection from "../../../Models/DatabaseModels/GoogleSecOpsConnection";
 import Project from "../../../Models/DatabaseModels/Project";
+import Reseller from "../../../Models/DatabaseModels/Reseller";
 import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
 import SecurityEventConnectionRun from "../../../Models/DatabaseModels/SecurityEventConnectionRun";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -44,7 +47,6 @@ import ObjectID from "../../../Types/ObjectID";
 import { SecurityConnectorTestReport } from "../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import { SecurityEventConnectionRunResult } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
-import { GoogleSecOpsRunResult } from "../../../Types/SecurityEvent/GoogleSecOpsDiagnostics";
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import ModelColumn from "../../../UI/Components/ModelTable/Column";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
@@ -57,14 +59,14 @@ import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 /*
- * Replace only ModelTable's data-loading boundary, the way
- * GoogleSecOpsConnectionsErrors.test.tsx does: the real TableRow decides
+ * Replace only ModelTable's data-loading boundary: the real TableRow decides
  * action visibility and dispatches the selected row, and every modal the
- * table opens stays real. Rows are keyed by model so the Google SecOps
- * page, which renders both tables, gets each of its rows in the right one.
+ * table opens stays real. Rows are keyed by model, and mockIsMobile renders
+ * them the way the phone layout does, so both row layouts are exercised.
  */
 const mockRows: Map<string, Array<BaseModel>> = new Map();
 const mockTableProps: Map<string, ModelTableProps<BaseModel>> = new Map();
+let mockIsMobile: boolean = false;
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -86,6 +88,30 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
         ),
         { title: "Actions", type: FieldType.Actions },
       ];
+
+      if (mockIsMobile) {
+        return (
+          <div aria-label={props.cardProps?.title as string} role="list">
+            {(mockRows.get(tableName) || []).map(
+              (row: BaseModel): ReactElement => {
+                return (
+                  <section
+                    key={row._id}
+                    data-testid={(row as unknown as { name: string }).name}
+                  >
+                    <TableRow
+                      item={row}
+                      columns={columns}
+                      actionButtons={props.actionButtons}
+                      isMobile={true}
+                    />
+                  </section>
+                );
+              },
+            )}
+          </div>
+        );
+      }
 
       return (
         <table aria-label={props.cardProps?.title as string}>
@@ -125,6 +151,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const CONNECTION_ID: string = "22222222-2222-4222-8222-222222222222";
 const GOOGLE_ID: string = "33333333-3333-4333-8333-333333333333";
 const NOW: number = new Date("2026-09-10T12:00:00Z").getTime();
+const RESELLER_MESSAGE: string =
+  "Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project.";
 
 function pollResult(
   overrides: Partial<SecurityEventConnectionRunResult> = {},
@@ -182,6 +210,24 @@ function connection(
   return value;
 }
 
+function googleConnection(
+  overrides: SecurityEventConnectionOverrides = {},
+): SecurityEventConnection {
+  return connection({
+    _id: GOOGLE_ID,
+    name: "Customer SecOps",
+    provider: SecurityEventConnectorProvider.GoogleSecOps,
+    config: {
+      region: "europe",
+      instanceResourceName: "projects/acme/locations/europe/instances/i",
+    },
+    lastPollResult: pollResult({
+      provider: SecurityEventConnectorProvider.GoogleSecOps,
+    }) as unknown as JSONObject,
+    ...overrides,
+  });
+}
+
 function report(provider: string): SecurityConnectorTestReport {
   return {
     provider,
@@ -210,13 +256,23 @@ function report(provider: string): SecurityConnectorTestReport {
   };
 }
 
-function renderTable(rows: Array<SecurityEventConnection>): void {
-  mockRows.set("SecurityEventConnection", rows);
-  render(
+function tableElement(): ReactElement {
+  return (
     <MemoryRouter>
       <SecurityEventConnectionsTable />
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+}
+
+function renderTable(rows: Array<SecurityEventConnection>): RenderResult {
+  mockRows.set("SecurityEventConnection", rows);
+  return render(tableElement());
+}
+
+function tableProps(): ModelTableProps<BaseModel> {
+  return mockTableProps.get(
+    "SecurityEventConnection",
+  ) as ModelTableProps<BaseModel>;
 }
 
 function row(name: string = "Acme Okta"): HTMLElement {
@@ -227,30 +283,35 @@ function postCall(index: number = 0): JSONObject {
   return jest.mocked(API.post).mock.calls[index]?.[0] as unknown as JSONObject;
 }
 
+function mockTransport(): void {
+  jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+  jest
+    .spyOn(ModelAPI, "getCommonHeaders")
+    .mockReturnValue({ "project-id": PROJECT_ID.toString() });
+  jest
+    .spyOn(ModelAPI, "getList")
+    .mockResolvedValue({ data: [], count: 0, skip: 0, limit: 20 });
+  jest.spyOn(ModelAPI, "getItem").mockResolvedValue(connection());
+  jest
+    .spyOn(API, "post")
+    .mockResolvedValue(
+      new HTTPResponse(200, report("okta") as unknown as JSONObject, {}),
+    );
+}
+
 describe("SecurityEventConnectionsTable", () => {
   beforeEach((): void => {
     /*
      * Health is judged against the clock, so pin it next to the fixtures'
-     * timestamps the way GoogleSecOpsDiagnostics.test.tsx does.
+     * timestamps.
      */
     jest.useFakeTimers();
     jest.setSystemTime(NOW);
     mockRows.clear();
     mockTableProps.clear();
-    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
-    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
-    jest
-      .spyOn(ModelAPI, "getCommonHeaders")
-      .mockReturnValue({ "project-id": PROJECT_ID.toString() });
-    jest
-      .spyOn(ModelAPI, "getList")
-      .mockResolvedValue({ data: [], count: 0, skip: 0, limit: 20 });
-    jest.spyOn(ModelAPI, "getItem").mockResolvedValue(connection());
-    jest
-      .spyOn(API, "post")
-      .mockResolvedValue(
-        new HTTPResponse(200, report("okta") as unknown as JSONObject, {}),
-      );
+    mockIsMobile = false;
+    mockTransport();
   });
 
   afterEach((): void => {
@@ -263,9 +324,7 @@ describe("SecurityEventConnectionsTable", () => {
   test("declares the generic table without ModelTable's own create form and with an Add connection header button", (): void => {
     renderTable([]);
 
-    const props: ModelTableProps<BaseModel> = mockTableProps.get(
-      "SecurityEventConnection",
-    ) as ModelTableProps<BaseModel>;
+    const props: ModelTableProps<BaseModel> = tableProps();
     expect(props.isCreateable).toBe(false);
     expect(props.isEditable).toBe(false);
     expect(props.formFields).toBeUndefined();
@@ -274,6 +333,7 @@ describe("SecurityEventConnectionsTable", () => {
         lastError: true,
         provider: true,
         config: true,
+        alertingOnly: true,
         lastEventIngestedAt: true,
       }),
     );
@@ -300,22 +360,49 @@ describe("SecurityEventConnectionsTable", () => {
     ]);
   });
 
+  test("the card names every provider, Google SecOps included", (): void => {
+    renderTable([]);
+
+    const props: ModelTableProps<BaseModel> = tableProps();
+    expect(props.cardProps?.title).toBe("Security Event Connections");
+    expect(props.cardProps?.description).toBe(
+      "Poll Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps as OCSF security events. Test access, run a poll, and inspect imports on demand.",
+    );
+  });
+
   test("the empty state explains prerequisites and links every provider's setup guide", (): void => {
     renderTable([]);
 
-    const props: ModelTableProps<BaseModel> = mockTableProps.get(
-      "SecurityEventConnection",
-    ) as ModelTableProps<BaseModel>;
-    render(<MemoryRouter>{props.noItemsMessage as ReactElement}</MemoryRouter>);
+    render(
+      <MemoryRouter>
+        {tableProps().noItemsMessage as ReactElement}
+      </MemoryRouter>,
+    );
 
     expect(screen.getByText(/read-only credential/)).toBeVisible();
     expect(screen.getByText(/running OneUptime worker/)).toBeVisible();
-    const links: Array<HTMLElement> = screen.getAllByRole("link");
+    const links: Array<HTMLElement> = within(
+      screen.getByRole("list", { name: "Setup guides" }),
+    ).getAllByRole("link");
+    expect(screen.getAllByRole("link")).toEqual(links);
     expect(
       links.map((link: HTMLElement): string => {
-        return link.textContent || "";
+        return link.id.replace(
+          "security-event-connections-empty-state-guides-",
+          "",
+        );
       }),
     ).toEqual([
+      SecurityEventConnectorProvider.MicrosoftSentinel,
+      SecurityEventConnectorProvider.MicrosoftDefenderXdr,
+      SecurityEventConnectorProvider.CrowdStrikeFalcon,
+      SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+      SecurityEventConnectorProvider.ElasticSecurity,
+      SecurityEventConnectorProvider.AwsSecurityHub,
+      SecurityEventConnectorProvider.OktaSystemLog,
+      SecurityEventConnectorProvider.GoogleSecOps,
+    ]);
+    for (const [index, title] of [
       "Microsoft Sentinel",
       "Microsoft Defender XDR",
       "CrowdStrike Falcon",
@@ -323,13 +410,126 @@ describe("SecurityEventConnectionsTable", () => {
       "Elastic Security",
       "AWS Security Hub",
       "Okta System Log",
-    ]);
+      "Google SecOps",
+    ].entries()) {
+      expect(within(links[index]!).getByText(title)).toBeVisible();
+    }
     for (const link of links) {
       expect(link).toHaveAttribute("target", "_blank");
       expect(link.getAttribute("href")).toMatch(
         /\/docs\/integrations\/[a-z-]+$/,
       );
     }
+    expect(links[links.length - 1]?.getAttribute("href")).toMatch(
+      /\/docs\/integrations\/google-secops$/,
+    );
+  });
+
+  test("the empty state's Add connection opens the same create form as the card button", async (): Promise<void> => {
+    renderTable([]);
+
+    render(
+      <MemoryRouter>
+        {tableProps().noItemsMessage as ReactElement}
+      </MemoryRouter>,
+    );
+
+    const button: HTMLElement = screen.getByTestId(
+      "security-event-connections-empty-state-add-connection",
+    );
+    expect(button).toBeEnabled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(button);
+
+    expect(
+      await screen.findByRole("dialog", { name: "Add connection" }),
+    ).toBeInTheDocument();
+  });
+
+  test("the card button and the empty state's button share one create handler", (): void => {
+    renderTable([]);
+
+    const cardButton: CardButtonSchema = tableProps().cardProps
+      ?.buttons?.[0] as CardButtonSchema;
+    const emptyState: ReactElement<{ onAddConnection: () => void }> =
+      tableProps().noItemsMessage as ReactElement<{
+        onAddConnection: () => void;
+      }>;
+    expect(emptyState.props.onAddConnection).toBe(cardButton.onClick);
+  });
+
+  test("members who cannot create connections get a disabled empty-state button with the reason", (): void => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({
+      isAllowed: false,
+      disabledReason: "You do not have permission to create connections.",
+    });
+    renderTable([]);
+
+    const emptyState: ReactElement<{
+      canCreate: boolean;
+      createDisabledReason?: string;
+    }> = tableProps().noItemsMessage as ReactElement<{
+      canCreate: boolean;
+      createDisabledReason?: string;
+    }>;
+    expect(emptyState.props.canCreate).toBe(false);
+    expect(emptyState.props.createDisabledReason).toBe(
+      "You do not have permission to create connections.",
+    );
+
+    render(<MemoryRouter>{emptyState}</MemoryRouter>);
+
+    const button: HTMLElement = screen.getByTestId(
+      "security-event-connections-empty-state-add-connection",
+    );
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The guides stay useful to someone who cannot add a connection.
+    expect(
+      within(screen.getByRole("list", { name: "Setup guides" })).getAllByRole(
+        "link",
+      ),
+    ).toHaveLength(8);
+  });
+
+  /*
+   * The help panel used to be two: the framework card's and the retired
+   * SecOps card's. Both now live behind the one card's help button.
+   */
+  test("the help panel is the framework guide followed by the Google SecOps guide", (): void => {
+    renderTable([]);
+
+    const help: { title: string; description?: string; markdown: string } =
+      tableProps().helpContent as {
+        title: string;
+        description?: string;
+        markdown: string;
+      };
+    expect(help.title).toBe("How Security Event Connections Work");
+    expect(help.markdown).toBe(securityEventConnectionsHelpMarkdown());
+
+    const googleHelp: string =
+      ConnectorProviderHelp[SecurityEventConnectorProvider.GoogleSecOps]!
+        .markdown;
+    const frameworkIndex: number = help.markdown.indexOf(
+      "### How Security Event Connections Work",
+    );
+    const googleIndex: number = help.markdown.indexOf(googleHelp);
+    expect(frameworkIndex).toBe(1);
+    expect(googleIndex).toBeGreaterThan(frameworkIndex);
+    expect(help.markdown).toContain(
+      "### How the Google SecOps Connector Works",
+    );
+    expect(help.markdown).toContain("\n---\n\n### How the Google SecOps");
+    expect(help.markdown).toContain(
+      "select **Detections** under **Data to import**",
+    );
+    expect(help.markdown).toContain("row's **Update credentials** action");
+    expect(help.markdown).not.toContain("Update Service Account JSON");
+    // One section per provider that has help, and only Google has one today.
+    expect(connectorProviderHelpEntries()).toHaveLength(1);
   });
 
   test("shows the catalog title, status and the honest health vocabulary per row", (): void => {
@@ -345,7 +545,7 @@ describe("SecurityEventConnectionsTable", () => {
       provider: SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
       isEnabled: false,
     });
-    renderTable([connection(), imported, paused]);
+    renderTable([connection(), imported, paused, googleConnection()]);
 
     expect(row("Acme Okta")).toHaveTextContent("Okta System Log");
     expect(row("Acme Okta")).toHaveTextContent("Enabled");
@@ -362,6 +562,46 @@ describe("SecurityEventConnectionsTable", () => {
     );
     expect(row("Paused Splunk")).toHaveTextContent("Disabled");
     expect(row("Paused Splunk")).toHaveTextContent("Schedule paused");
+
+    // A Google row is judged by the same rule: no import yet is not success.
+    expect(row("Customer SecOps")).toHaveTextContent("Google SecOps");
+    expect(row("Customer SecOps")).toHaveTextContent(
+      CONNECTOR_HEALTH_NO_EVENTS_YET,
+    );
+  });
+
+  /*
+   * The retired SecOps table had a Scope column. "Alerts only" is still
+   * visible at a glance, under the provider name, for a provider whose
+   * records have an alerting distinction, and absent for every other one.
+   */
+  test("a Google SecOps row shows its Data to import choice under the provider name", (): void => {
+    renderTable([
+      googleConnection({ alertingOnly: true }),
+      googleConnection({
+        _id: "66666666-6666-4666-8666-666666666666",
+        name: "All detections",
+        alertingOnly: false,
+      }),
+      connection(),
+    ]);
+
+    const alertsOnly: HTMLElement = row("Customer SecOps");
+    const providerCell: HTMLElement = within(alertsOnly).getByText(
+      "Google SecOps",
+    ).parentElement as HTMLElement;
+    expect(providerCell).toHaveTextContent("Google SecOpsAlerts only");
+    expect(within(providerCell).getByText("Alerts only")).toHaveClass(
+      "text-gray-500",
+    );
+
+    expect(row("All detections")).toHaveTextContent(
+      "Google SecOpsAlerts and detections",
+    );
+    expect(row("All detections")).not.toHaveTextContent("Alerts only");
+
+    expect(row("Acme Okta")).not.toHaveTextContent("Alerts only");
+    expect(row("Acme Okta")).not.toHaveTextContent("Alerts and detections");
   });
 
   test("read-only members keep View Error and Diagnostics while every write action is locked", (): void => {
@@ -391,10 +631,7 @@ describe("SecurityEventConnectionsTable", () => {
       within(current).getByRole("button", { name: "View Error" }),
     ).toBeEnabled();
 
-    const props: ModelTableProps<BaseModel> = mockTableProps.get(
-      "SecurityEventConnection",
-    ) as ModelTableProps<BaseModel>;
-    const button: CardButtonSchema = props.cardProps
+    const button: CardButtonSchema = tableProps().cardProps
       ?.buttons?.[0] as CardButtonSchema;
     expect(button.disabled).toBe(true);
     expect(button.tooltip).toBe(
@@ -452,6 +689,41 @@ describe("SecurityEventConnectionsTable", () => {
     expect(Array.from(destination.searchParams.keys()).sort()).toEqual([]);
   });
 
+  /*
+   * Ported from the retired Google SecOps page: a Google row's test is the
+   * same synchronous checklist, now through the shared route.
+   */
+  test("a Google SecOps row tests synchronously through the shared test route", async (): Promise<void> => {
+    jest
+      .mocked(API.post)
+      .mockResolvedValue(
+        new HTTPResponse(
+          200,
+          report("google-secops") as unknown as JSONObject,
+          {},
+        ),
+      );
+    renderTable([googleConnection()]);
+
+    fireEvent.click(
+      within(row("Customer SecOps")).getByRole("button", {
+        name: "Test connection",
+      }),
+    );
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Test connection: Customer SecOps",
+    });
+    expect(
+      await within(dialog).findByText("Passed with warnings"),
+    ).toBeVisible();
+    expect(dialog).toHaveTextContent("Access to Google SecOps");
+    expect(API.post).toHaveBeenCalledTimes(1);
+    expect(postCall()["data"]).toEqual({ connectionId: GOOGLE_ID });
+    expect(new globalThis.URL(String(postCall()["url"])).pathname).toMatch(
+      /\/security-event-connection\/test$/,
+    );
+  });
+
   test("Run now opens diagnostics and queues a poll for that connection", async (): Promise<void> => {
     jest
       .mocked(API.post)
@@ -500,6 +772,33 @@ describe("SecurityEventConnectionsTable", () => {
     )[0] as HTMLElement;
     expect(lastAttempt.getAttribute("title")).toMatch(/^Local time: /);
     expect(API.post).not.toHaveBeenCalled();
+  });
+
+  test("Diagnostics for a Google SecOps row speaks in detections and Data to import", async (): Promise<void> => {
+    jest
+      .mocked(ModelAPI.getItem)
+      .mockResolvedValue(googleConnection({ alertingOnly: false }));
+    renderTable([googleConnection({ alertingOnly: false })]);
+
+    fireEvent.click(
+      within(row("Customer SecOps")).getByRole("button", {
+        name: "Diagnostics",
+      }),
+    );
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Connection diagnostics: Customer SecOps",
+    });
+    const scheduled: HTMLElement = within(dialog).getByRole("region", {
+      name: "Scheduled polling",
+    });
+    expect(within(scheduled).getByText("Data to import")).toBeVisible();
+    expect(within(scheduled).getByText("Alerts and detections")).toBeVisible();
+    expect(
+      within(dialog).getByRole("button", { name: "Preview detections" }),
+    ).toBeVisible();
+    expect(
+      within(dialog).queryByRole("button", { name: "Preview records" }),
+    ).not.toBeInTheDocument();
   });
 
   /*
@@ -576,6 +875,398 @@ describe("SecurityEventConnectionsTable", () => {
     expect(
       within(credentials).queryByLabelText(/^Okta organization URL/),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Security Events > Connections used to render this table above a second,
+ * Google-only table. It is now just the reseller gate and this table.
+ */
+describe("Security Events > Connections page", () => {
+  beforeEach((): void => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+    mockRows.clear();
+    mockTableProps.clear();
+    mockIsMobile = false;
+    mockTransport();
+  });
+
+  afterEach((): void => {
+    cleanup();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  function renderPage(project: Project | null): void {
+    render(
+      <MemoryRouter>
+        <SecurityEventsConnectionsPage
+          pageRoute={new Route("/dashboard/security-events/connections")}
+          currentProject={project}
+          hasPaymentMethod={true}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  function project(enableTelemetryFeatures?: boolean): Project {
+    const value: Project = new Project();
+    value.id = PROJECT_ID;
+    if (enableTelemetryFeatures !== undefined) {
+      const reseller: Reseller = new Reseller();
+      reseller.enableTelemetryFeatures = enableTelemetryFeatures;
+      value.reseller = reseller;
+    }
+    return value;
+  }
+
+  test("renders one table, where a Google SecOps connection is a row like any other", async (): Promise<void> => {
+    mockRows.set("SecurityEventConnection", [connection(), googleConnection()]);
+    await act(async (): Promise<void> => {
+      renderPage(project());
+    });
+
+    expect(
+      screen.getAllByRole("table").map((table: HTMLElement): string | null => {
+        return table.getAttribute("aria-label");
+      }),
+    ).toEqual(["Security Event Connections"]);
+    expect(Array.from(mockTableProps.keys())).toEqual([
+      "SecurityEventConnection",
+    ]);
+    expect(row("Customer SecOps")).toHaveTextContent("Google SecOps");
+    expect(row("Acme Okta")).toHaveTextContent("Okta System Log");
+    expect(screen.queryByText(RESELLER_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  test.each([
+    ["a plan that includes telemetry", true],
+    ["no reseller plan", undefined],
+  ])(
+    "shows the table for %s",
+    async (_label: string, enabled: boolean | undefined): Promise<void> => {
+      await act(async (): Promise<void> => {
+        renderPage(project(enabled));
+      });
+
+      expect(
+        screen.getByRole("table", { name: "Security Event Connections" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(RESELLER_MESSAGE)).not.toBeInTheDocument();
+    },
+  );
+
+  test("shows the table while the project is still loading", async (): Promise<void> => {
+    await act(async (): Promise<void> => {
+      renderPage(null);
+    });
+
+    expect(
+      screen.getByRole("table", { name: "Security Event Connections" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a reseller plan without telemetry shows only the gate message", async (): Promise<void> => {
+    mockRows.set("SecurityEventConnection", [googleConnection()]);
+    await act(async (): Promise<void> => {
+      renderPage(project(false));
+    });
+
+    expect(screen.getByText(RESELLER_MESSAGE)).toBeVisible();
+    expect(screen.queryAllByRole("table")).toHaveLength(0);
+    expect(mockTableProps.size).toBe(0);
+    expect(API.post).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Ported from the retired GoogleSecOpsConnectionsErrors suite. Last Error
+ * used to be a truncated column; the outage behind this page was an error
+ * nobody could read. It is now an action that opens the complete message
+ * and copies it for support, on both row layouts.
+ */
+describe("Last Error actions", () => {
+  const originalClipboard: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(navigator, "clipboard");
+  const writeText: ReturnType<typeof jest.fn<(text: string) => Promise<void>>> =
+    jest.fn<(text: string) => Promise<void>>();
+
+  const LONG_ERROR: string =
+    "Google SecOps alerts fetch failed (HTTP 400):\n" +
+    "Customer context: café / 日本語 / 🚨\n" +
+    JSON.stringify(
+      {
+        error: {
+          message: "Request contains an invalid argument.",
+          details: [
+            {
+              description: "Diagnostic context ".repeat(600),
+              field: "instance",
+              resolution:
+                "Verify the instance resource name in tenant settings.",
+              received: "<script>alert('literal error text')</script>",
+            },
+          ],
+        },
+      },
+      null,
+      2,
+    );
+
+  function errorConnection(
+    name: string,
+    error: string | null | undefined,
+  ): SecurityEventConnection {
+    const value: SecurityEventConnection = googleConnection({
+      _id: ObjectID.generate().toString(),
+      name,
+    });
+    if (error !== undefined) {
+      // API responses can contain null even though the model field is a string.
+      value.lastError = error as string;
+    }
+    return value;
+  }
+
+  function openError(connectionName: string = "Production"): HTMLElement {
+    fireEvent.click(
+      within(screen.getByTestId(connectionName)).getByRole("button", {
+        name: "View Error",
+      }),
+    );
+    act((): void => {
+      // Finish the modal's entry animation without relying on wall-clock timing.
+      jest.advanceTimersByTime(80);
+    });
+    return screen.getByRole("dialog", { name: "Last Error" });
+  }
+
+  beforeEach((): void => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+    mockRows.clear();
+    mockTableProps.clear();
+    mockIsMobile = false;
+    writeText.mockReset();
+    writeText.mockResolvedValue();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    mockTransport();
+  });
+
+  afterEach((): void => {
+    cleanup();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  afterAll((): void => {
+    if (originalClipboard) {
+      Object.defineProperty(navigator, "clipboard", originalClipboard);
+    } else {
+      Reflect.deleteProperty(navigator, "clipboard");
+    }
+  });
+
+  test("replaces the Last Error column with an action while still fetching the stored error", (): void => {
+    renderTable([errorConnection("Production", LONG_ERROR)]);
+
+    expect(
+      screen.queryByRole("columnheader", { name: "Last Error" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Actions" })).toBeVisible();
+    expect(tableProps().selectMoreFields).toEqual(
+      expect.objectContaining({ lastError: true }),
+    );
+
+    const current: HTMLElement = screen.getByTestId("Production");
+    const viewError: HTMLElement = within(current).getByRole("button", {
+      name: "View Error",
+    });
+    expect(viewError).toBeEnabled();
+    expect(viewError.closest("td")).toBe(
+      current.querySelector("td:last-child"),
+    );
+    expect(current).not.toHaveTextContent("Google SecOps alerts fetch failed");
+    expect(screen.queryByRole("button", { name: "Copy Error" })).toBeNull();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  describe.each([
+    { layout: "desktop", isMobile: false },
+    { layout: "mobile", isMobile: true },
+  ])("$layout rows", ({ isMobile }: { isMobile: boolean }): void => {
+    beforeEach((): void => {
+      mockIsMobile = isMobile;
+    });
+
+    test.each([undefined, null, ""])(
+      "shows no error action for a healthy connection with lastError=%s",
+      (error: string | null | undefined): void => {
+        renderTable([errorConnection("Production", error)]);
+
+        expect(screen.getByTestId("Production")).toBeVisible();
+        expect(screen.queryByRole("button", { name: "View Error" })).toBeNull();
+        expect(screen.queryByRole("button", { name: "Copy Error" })).toBeNull();
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(writeText).not.toHaveBeenCalled();
+      },
+    );
+
+    test("opens and copies the complete multiline error, then can reopen after closing", async (): Promise<void> => {
+      renderTable([errorConnection("Production", LONG_ERROR)]);
+
+      const dialog: HTMLElement = openError();
+      expect(dialog).toHaveTextContent(
+        "Copy this message when contacting support. Credentials are redacted.",
+      );
+      const fullError: HTMLElement =
+        within(dialog).getByLabelText("Full error message");
+      expect(fullError.textContent).toBe(LONG_ERROR);
+      expect(fullError.tagName).toBe("PRE");
+      expect(fullError).toHaveAttribute("tabindex", "0");
+      expect(dialog.querySelector("script")).toBeNull();
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(dialog).getByRole("button", { name: "Copy Error" }),
+        );
+      });
+      expect(writeText).toHaveBeenCalledTimes(1);
+      expect(writeText).toHaveBeenCalledWith(LONG_ERROR);
+      expect(within(dialog).getByText("Copied!")).toBeVisible();
+
+      act((): void => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(
+        within(dialog).getByRole("button", { name: "Copy Error" }),
+      ).toHaveTextContent("Copy Error");
+
+      fireEvent.click(
+        within(dialog).getAllByRole("button", { name: "Close" })[1]!,
+      );
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Copy Error" })).toBeNull();
+      expect(screen.getByRole("button", { name: "View Error" })).toBeEnabled();
+
+      // A missing action-completion callback leaves this button stuck loading.
+      expect(
+        within(openError()).getByLabelText("Full error message").textContent,
+      ).toBe(LONG_ERROR);
+    });
+
+    test.each(["Enter", " "])(
+      "copies the full message from the dialog with the %s key",
+      async (key: string): Promise<void> => {
+        renderTable([errorConnection("Production", LONG_ERROR)]);
+        const dialog: HTMLElement = openError();
+        await act(async (): Promise<void> => {
+          fireEvent.keyDown(
+            within(dialog).getByRole("button", { name: "Copy Error" }),
+            { key },
+          );
+        });
+        expect(writeText).toHaveBeenCalledTimes(1);
+        expect(writeText).toHaveBeenCalledWith(LONG_ERROR);
+      },
+    );
+
+    test("opens the selected connection's error and leaves healthy rows without the action", async (): Promise<void> => {
+      const firstError: string = "First tenant: permission denied";
+      const secondError: string = "Second tenant: instance not found";
+      renderTable([
+        errorConnection("First tenant", firstError),
+        errorConnection("Healthy tenant", undefined),
+        errorConnection("Second tenant", secondError),
+      ]);
+
+      expect(
+        screen.getAllByRole("button", { name: "View Error" }),
+      ).toHaveLength(2);
+      expect(
+        within(screen.getByTestId("Healthy tenant")).queryByRole("button", {
+          name: "View Error",
+        }),
+      ).toBeNull();
+
+      const secondDialog: HTMLElement = openError("Second tenant");
+      expect(
+        within(secondDialog).getByLabelText("Full error message").textContent,
+      ).toBe(secondError);
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(secondDialog).getByRole("button", { name: "Copy Error" }),
+        );
+      });
+      expect(writeText).toHaveBeenCalledWith(secondError);
+      fireEvent.click(
+        within(secondDialog).getAllByRole("button", { name: "Close" })[0]!,
+      );
+
+      const firstDialog: HTMLElement = openError("First tenant");
+      expect(
+        within(firstDialog).getByLabelText("Full error message").textContent,
+      ).toBe(firstError);
+    });
+
+    test("hides a cleared error after refresh and opens the latest error if the connection fails again", (): void => {
+      const current: SecurityEventConnection = errorConnection(
+        "Production",
+        "Previous failure",
+      );
+      const view: RenderResult = renderTable([current]);
+
+      openError();
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      current.lastError = "";
+      view.rerender(tableElement());
+      expect(screen.queryByRole("button", { name: "View Error" })).toBeNull();
+
+      current.lastError = "Latest failure after a successful poll";
+      view.rerender(tableElement());
+      expect(
+        within(openError()).getByLabelText("Full error message").textContent,
+      ).toBe(current.lastError);
+    });
+
+    test("allows read-only members to view and copy errors while update actions remain disabled", async (): Promise<void> => {
+      jest.spyOn(PermissionGate, "check").mockReturnValue({
+        isAllowed: false,
+        disabledReason: "You do not have permission to update connections.",
+      });
+      const error: string =
+        "Google SecOps alerts fetch failed (HTTP 403): permission denied";
+      renderTable([errorConnection("Production", error)]);
+
+      for (const title of [
+        "Test connection",
+        "Run now",
+        "Edit",
+        "Update credentials",
+      ]) {
+        expect(screen.getByRole("button", { name: title })).toBeDisabled();
+      }
+      expect(screen.getByRole("button", { name: "View Error" })).toBeEnabled();
+
+      const dialog: HTMLElement = openError();
+      expect(
+        within(dialog).getByLabelText("Full error message").textContent,
+      ).toBe(error);
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(dialog).getByRole("button", { name: "Copy Error" }),
+        );
+      });
+      expect(writeText).toHaveBeenCalledWith(error);
+    });
   });
 });
 
@@ -730,129 +1421,6 @@ describe("run details for a window one poll could not read", () => {
   });
 });
 
-describe("Google SecOps page test action", () => {
-  function googleConnection(): GoogleSecOpsConnection {
-    const value: GoogleSecOpsConnection = new GoogleSecOpsConnection();
-    value._id = GOOGLE_ID;
-    value.projectId = PROJECT_ID;
-    value.name = "Customer SecOps";
-    value.isEnabled = true;
-    value.pollIntervalInMinutes = 5;
-    value.createdAt = new Date(NOW - 60 * 60_000);
-    value.lastPolledAt = new Date(NOW - 60_000);
-    value.lastPollResult = {
-      ...pollResult(),
-      includeNonAlertingDetections: false,
-    } as unknown as JSONObject;
-    return value;
-  }
-
-  beforeEach((): void => {
-    jest.useFakeTimers();
-    jest.setSystemTime(NOW);
-    mockRows.clear();
-    mockTableProps.clear();
-    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
-    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
-    jest
-      .spyOn(ModelAPI, "getCommonHeaders")
-      .mockReturnValue({ "project-id": PROJECT_ID.toString() });
-    jest
-      .spyOn(API, "post")
-      .mockResolvedValue(
-        new HTTPResponse(
-          200,
-          report("google-secops") as unknown as JSONObject,
-          {},
-        ),
-      );
-  });
-
-  afterEach((): void => {
-    cleanup();
-    jest.clearAllTimers();
-    jest.useRealTimers();
-    jest.restoreAllMocks();
-  });
-
-  test("renders the generic table above the Google table and tests a Google row synchronously", async (): Promise<void> => {
-    mockRows.set("GoogleSecOpsConnection", [googleConnection()]);
-    const project: Project = new Project();
-    project.id = PROJECT_ID;
-    await act(async (): Promise<void> => {
-      render(
-        <MemoryRouter>
-          <GoogleSecOpsConnectionsPage
-            pageRoute={new Route("/dashboard/security-events/connections")}
-            currentProject={project}
-            hasPaymentMethod={true}
-          />
-        </MemoryRouter>,
-      );
-    });
-
-    const tables: Array<HTMLElement> = screen.getAllByRole("table");
-    expect(
-      tables.map((table: HTMLElement): string | null => {
-        return table.getAttribute("aria-label");
-      }),
-    ).toEqual(["Security Event Connections", "Google SecOps Connections"]);
-
-    const googleRow: HTMLElement = screen.getByTestId("Customer SecOps");
-    expect(googleRow).toHaveTextContent(CONNECTOR_HEALTH_NO_EVENTS_YET);
-
-    fireEvent.click(
-      within(googleRow).getByRole("button", { name: "Test connection" }),
-    );
-    const dialog: HTMLElement = await screen.findByRole("dialog", {
-      name: "Test connection: Customer SecOps",
-    });
-    expect(
-      await within(dialog).findByText("Passed with warnings"),
-    ).toBeVisible();
-    expect(dialog).toHaveTextContent("Access to Google SecOps");
-    expect(API.post).toHaveBeenCalledTimes(1);
-    expect(postCall()["data"]).toEqual({ connectionId: GOOGLE_ID });
-    expect(new globalThis.URL(String(postCall()["url"])).pathname).toMatch(
-      /\/google-secops-connection\/test$/,
-    );
-  });
-
-  test("the unsaved-settings body sends the pasted key, or the id when editing without one", (): void => {
-    expect(
-      googleSecOpsTestBody({
-        region: " us ",
-        instanceResourceName: "projects/p/locations/us/instances/i",
-        serviceAccountJson: '{"client_email":"a@b"}',
-        includeNonAlertingDetections: true,
-      }),
-    ).toEqual({
-      region: "us",
-      instanceResourceName: "projects/p/locations/us/instances/i",
-      serviceAccountJson: '{"client_email":"a@b"}',
-      includeNonAlertingDetections: true,
-    });
-
-    expect(
-      googleSecOpsTestBody({
-        _id: GOOGLE_ID,
-        region: "europe",
-        instanceResourceName: "projects/p/locations/europe/instances/i",
-        serviceAccountJson: "",
-      }),
-    ).toEqual({
-      connectionId: GOOGLE_ID,
-      region: "europe",
-      instanceResourceName: "projects/p/locations/europe/instances/i",
-      includeNonAlertingDetections: false,
-    });
-
-    expect((): void => {
-      googleSecOpsTestBody({ region: "us" });
-    }).toThrow(GOOGLE_SECOPS_TEST_NEEDS_KEY_MESSAGE);
-  });
-});
-
 describe("connection health vocabulary", () => {
   test("a succeeding poll that never imported reads as polling, not success", (): void => {
     const item: SecurityEventConnection = connection();
@@ -862,7 +1430,7 @@ describe("connection health vocabulary", () => {
     expect(connectorHealth(item, NOW)).toBe(CONNECTOR_HEALTH_SUCCEEDED);
   });
 
-  test("mirrors the Google decision tree for every other state", (): void => {
+  test("walks every other state in order of precedence", (): void => {
     const item: SecurityEventConnection = connection({
       lastPolledAt: undefined,
       lastSuccessfulPollAt: undefined,
@@ -883,23 +1451,5 @@ describe("connection health vocabulary", () => {
     expect(connectorHealth(item, NOW)).toBe("Poll overdue");
     item.isEnabled = false;
     expect(connectorHealth(item, NOW)).toBe("Schedule paused");
-  });
-
-  test("Google SecOps applies the same rule to its own success state", (): void => {
-    const item: GoogleSecOpsConnection = new GoogleSecOpsConnection();
-    item._id = GOOGLE_ID;
-    item.isEnabled = true;
-    item.pollIntervalInMinutes = 5;
-    item.createdAt = new Date(NOW - 60 * 60_000);
-    item.lastPolledAt = new Date(NOW - 60_000);
-    const result: GoogleSecOpsRunResult = {
-      ...pollResult(),
-      includeNonAlertingDetections: false,
-    } as unknown as GoogleSecOpsRunResult;
-    item.lastPollResult = result as unknown as JSONObject;
-
-    expect(googleSecOpsHealth(item, NOW)).toBe(CONNECTOR_HEALTH_NO_EVENTS_YET);
-    item.lastEventIngestedAt = new Date(NOW - 30_000);
-    expect(googleSecOpsHealth(item, NOW)).toBe(CONNECTOR_HEALTH_SUCCEEDED);
   });
 });

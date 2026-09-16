@@ -1,4 +1,11 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
 import {
   afterEach,
@@ -43,8 +50,9 @@ import InvestigationPanel from "../../../../App/FeatureSet/Dashboard/src/Compone
 import { AI_INVESTIGATION_PANEL_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 
 const SUBJECT_ID: ObjectID = new ObjectID(
@@ -259,6 +267,120 @@ describe("InvestigationPanel status reporting", () => {
 
     advance();
     expect(postMock).toHaveBeenCalledTimes(3);
+  });
+
+  /*
+   * A run is Completed a moment before its report is posted, so the panel
+   * keeps polling and the report (with its evidence) lands on a later poll.
+   * The run details are React state now, not a native disclosure: that poll
+   * must neither collapse the section a reader opened nor switch them from
+   * the activity they were reading to the evidence tab it adds.
+   */
+  test("keeps the reader's open run details when the report lands on a later poll", async () => {
+    jest.useFakeTimers();
+    const onStatusChange: MockFunction = getJestMockFunction();
+    const runJson: JSONObject = {
+      _id: "33333333-3333-4333-8333-333333333333",
+      status: AIRunStatus.Completed,
+      toolCallCount: 1,
+      totalTokens: 0,
+    };
+    const events: JSONArray = [
+      {
+        _id: "44444444-4444-4444-8444-444444444444",
+        sequence: 1,
+        eventType: AIRunEventType.ToolCallStarted,
+        toolName: "search_logs",
+      },
+    ];
+    postMock
+      .mockResolvedValueOnce(
+        new HTTPResponse<JSONObject>(
+          200,
+          {
+            run: runJson,
+            events: events,
+            analysisMarkdown: null,
+            isAnalysisPending: true,
+          },
+          {},
+        ),
+      )
+      .mockResolvedValueOnce(
+        new HTTPResponse<JSONObject>(
+          200,
+          {
+            run: runJson,
+            events: events,
+            analysisMarkdown:
+              "## Root cause\n\nThe database connection pool was exhausted.",
+            isAnalysisPending: false,
+            evidence: [
+              {
+                citationId: "C1",
+                toolName: "search_logs",
+                label: "Logs 17:20 – 18:20 (1 shown)",
+                rowCount: 1,
+                queryArguments: { bodySearchText: "pool timeout" },
+                canLoadRows: true,
+              },
+            ],
+          },
+          {},
+        ),
+      );
+
+    render(
+      <InvestigationPanel
+        subjectType="incident"
+        subjectId={SUBJECT_ID}
+        onStatusChange={onStatusChange}
+      />,
+    );
+    expect(
+      await screen.findByText("Preparing investigation report…"),
+    ).toBeInTheDocument();
+    expect(onStatusChange).toHaveBeenLastCalledWith(AIRunStatus.Completed);
+
+    const toggle: HTMLElement = screen.getByRole("button", {
+      name: "Investigation activity",
+    });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText(/Searching logs/)).not.toBeVisible();
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(/Searching logs/)).toBeVisible();
+    expect(jest.getTimerCount()).toBe(1);
+
+    advance();
+    expect(
+      await screen.findByText("Investigation complete"),
+    ).toBeInTheDocument();
+    expect(postMock).toHaveBeenCalledTimes(2);
+
+    // Same button, still open, renamed for what it now holds.
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveTextContent("Evidence and activity");
+
+    const tabs: HTMLElement = screen.getByRole("tablist", {
+      name: "Investigation details",
+    });
+    const evidenceTab: HTMLElement = within(tabs).getByRole("tab", {
+      name: /^Evidence checked/,
+    });
+    const activityTab: HTMLElement = within(tabs).getByRole("tab", {
+      name: /^Activity/,
+    });
+    expect(evidenceTab).toHaveAttribute("aria-selected", "false");
+    expect(activityTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(/Searching logs/)).toBeVisible();
+    expect(screen.getByLabelText("Evidence checked")).not.toBeVisible();
+
+    // A finished run with a report settles into the slow watch.
+    expect(onStatusChange).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(1);
   });
 
   test("does not start a poller for an already completed investigation", async () => {

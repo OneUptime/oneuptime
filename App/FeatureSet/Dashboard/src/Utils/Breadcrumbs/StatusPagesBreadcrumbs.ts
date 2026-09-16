@@ -76,6 +76,16 @@ export function getStatusPagesBreadcrumbs(
       "Monitor Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.STATUS_PAGE_VIEW_MONITOR_RULE_VIEW,
+      [
+        "Project",
+        "Status Pages",
+        "View Status Page",
+        "Monitor Rules",
+        "View Monitor Rule",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS,
       ["Project", "Status Pages", "View Status Page", "Email Subscribers"],
     ),

@@ -24,7 +24,7 @@ export const CONNECTION_TEST_PROGRESS_MESSAGE: string =
 
 /*
  * Posts a synchronous connection test and returns the report. Shared by the
- * Google SecOps page, the generic connections table and the create/edit
+ * connections table's row action, the diagnostics modal and the create/edit
  * form so every caller sends the same headers and handles a non-2xx answer
  * the same way (thrown, so the modal can show it as a friendly message).
  *

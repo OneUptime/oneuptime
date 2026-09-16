@@ -1206,11 +1206,14 @@ dashboard:
 # browser-worker boundaries, but not the additional per-execution UID boundary.
 #
 # Kubernetes RuntimeDefault is available without provisioning files on every
-# node, so it is the operational default. Some runtimes block the user-namespace
-# syscalls used by Chromium's OS sandbox in RuntimeDefault. To use the
-# Chromium sandbox, install a CRI/OCI-compatible profile derived from your
-# runtime default with `clone`, `setns`, and `unshare` enabled in the kubelet
-# seccomp directory on every Probe node, then override a probe with:
+# node, so it is the operational default. RuntimeDefault blocks the
+# user-namespace syscalls both browsers' OS sandboxes use; Firefox then falls
+# back to its seccomp-only sandbox and Chromium's must stay disabled. To use
+# the full sandboxes, install a CRI/OCI-compatible profile derived from your
+# runtime default with `clone`, `setns`, `unshare` AND `chroot` allowed in the
+# kubelet seccomp directory on every Probe node (both browsers chroot inside
+# the namespace they create; without `chroot` every Firefox and Chromium
+# launch crashes), then override a probe with:
 #
 # Do not install `Probe/seccomp_profile.json` verbatim in Kubernetes: that file
 # uses Moby-specific `includes`/`excludes` fields for Docker Compose.
@@ -1245,6 +1248,9 @@ probes:
     enabled: true
     monitoringWorkers: 3
     monitorFetchLimit: 10
+    # Retries after the first attempt of a failed check, used when a monitor
+    # step sets no retry count of its own. 0 checks once; 3 checks up to four
+    # times. Unset uses 3.
     monitorRetryLimit: 3
     # How many NetworkDevice SNMP walks this probe runs at once. Unset uses
     # the probe's own default (25). Raise it together with the server's
@@ -1295,12 +1301,14 @@ probes:
     # watchdog is the primary limit; this emptyDir ceiling contains failures
     # across all concurrent executions and other temporary Probe data.
     syntheticMonitorTempStorageSizeLimit: 2Gi
-    # Size of /dev/shm, which Chromium uses for shared memory between its
-    # browser, renderer and network processes. A container gets 64Mi by
-    # default -- not enough for syntheticMonitorMaxConcurrency browsers at a
-    # 1920x1080 viewport, and running out does not produce a clean error: the
-    # browser starts, then its first navigation never completes. This is
-    # memory-backed, so it counts against the pod's memory limit.
+    # Size of the memory-backed /dev/shm mounted into the probe (a container
+    # gets 64Mi by default). The synthetic runtime's browsers do not use it:
+    # Playwright starts Chromium with --disable-dev-shm-usage, so Chromium
+    # keeps its shared memory in the per-execution run directory under /tmp,
+    # and Firefox uses memfd. Synthetic checks write their browser state to
+    # that /tmp, so it is /tmp that needs storage which acknowledges writes
+    # promptly. This is memory-backed, so it counts against the pod's memory
+    # limit.
     syntheticMonitorSharedMemorySizeLimit: 512Mi
     # RuntimeDefault is available on every conforming cluster but commonly
     # blocks the user-namespace creation Chromium's OS sandbox needs. Leave the

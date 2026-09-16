@@ -47,11 +47,11 @@ Los monitores DNS consultan servidores DNS para tipos de registros específicos 
 
 ### Configuración avanzada
 
-| Campo                 | Descripción                                      | Predeterminado |
-| --------------------- | ------------------------------------------------ | -------------- |
-| Puerto                | Número de puerto DNS                             | 53             |
-| Tiempo de espera (ms) | Tiempo de espera para una respuesta              | 5000           |
-| Reintentos            | Número de intentos de reintento en caso de fallo | 3              |
+| Campo                 | Descripción                                                                     | Predeterminado |
+| --------------------- | ------------------------------------------------------------------------------- | -------------- |
+| Puerto                | Número de puerto DNS                                                            | 53             |
+| Tiempo de espera (ms) | Tiempo de espera para una respuesta                                             | 5000           |
+| Reintentos            | Reintentos después de que falle el primer intento; 0 significa un único intento | 3              |
 
 ## Criterios de monitoreo
 

@@ -3,8 +3,9 @@ import logger from "../Logger";
 /*
  * Recording a failure must never itself become a failure.
  *
- * Both security-event background loops — the Google SecOps poller and the
- * detection rule evaluator — catch a per-item error and then write it back
+ * Both security-event background loops — the security event connection
+ * poller and the detection rule evaluator — catch a per-item error and then
+ * write it back
  * onto the row: lastError, plus the lastPolledAt / lastEvaluatedAt stamp
  * that says the item was attempted at all. That bookkeeping write used to
  * run bare inside the catch block, where it had two ways to throw:

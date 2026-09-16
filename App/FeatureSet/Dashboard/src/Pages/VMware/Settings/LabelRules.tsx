@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import VMwareVCenterLabelRule from "Common/Models/DatabaseModels/VMwareVCenterLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -28,12 +30,22 @@ A rule matches a vCenter only when **all** specified criteria pass. Empty criter
 When a rule matches, every label listed in \`Labels to Add\` is attached to the vCenter. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
 `;
 
-const VMwareVCenterLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const VMwareVCenterLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
-    <ModelTable<VMwareVCenterLabelRule>
+    <RuleTable<VMwareVCenterLabelRule>
       modelType={VMwareVCenterLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, VMwareVCenterLabelRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.VMWARE_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: VMwareVCenterLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.VMWARE_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="vmwareVCenter-label-rules-table"
       name="Settings > vCenter Label Rules"
       userPreferencesKey="vmwareVCenter-label-rules-table"
@@ -84,7 +96,6 @@ const VMwareVCenterLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

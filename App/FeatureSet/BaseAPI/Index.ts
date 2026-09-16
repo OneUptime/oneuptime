@@ -116,6 +116,7 @@ import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import NetworkRuleRunAPI from "./API/NetworkRuleRun";
+import RuleRunAPI from "./API/RuleRun";
 import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
@@ -495,6 +496,12 @@ import ServiceLevelObjectiveOwnerUserService, {
 import ServiceLevelObjectiveOwnerTeamService, {
   Service as ServiceLevelObjectiveOwnerTeamServiceType,
 } from "Common/Server/Services/ServiceLevelObjectiveOwnerTeamService";
+import ServiceLevelObjectiveMonitorRuleService, {
+  Service as ServiceLevelObjectiveMonitorRuleServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveMonitorRuleService";
+import ServiceLevelObjectiveFeedService, {
+  Service as ServiceLevelObjectiveFeedServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveFeedService";
 import SloHistoryService, {
   SloHistoryService as SloHistoryServiceType,
 } from "Common/Server/Services/SloHistoryService";
@@ -544,10 +551,6 @@ import LogDropFilterService, {
 import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
-import GoogleSecOpsConnectionAPI from "Common/Server/API/GoogleSecOpsConnectionAPI";
-import GoogleSecOpsConnectionRunService, {
-  Service as GoogleSecOpsConnectionRunServiceType,
-} from "Common/Server/Services/GoogleSecOpsConnectionRunService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
@@ -1229,6 +1232,8 @@ import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import LlmModelPrice from "Common/Models/DatabaseModels/LlmModelPrice";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
+import ServiceLevelObjectiveFeed from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
@@ -1436,7 +1441,6 @@ import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
-import GoogleSecOpsConnectionRun from "Common/Models/DatabaseModels/GoogleSecOpsConnectionRun";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
@@ -1717,6 +1721,12 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import NetworkDeviceDiscoveryScanService, {
   Service as NetworkDeviceDiscoveryScanServiceType,
 } from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
+
+// NetworkDeviceDiagnostic
+import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
+import NetworkDeviceDiagnosticService, {
+  Service as NetworkDeviceDiagnosticServiceType,
+} from "Common/Server/Services/NetworkDeviceDiagnosticService";
 
 // NetworkSite
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
@@ -3039,6 +3049,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // ServiceLevelObjectiveMonitorRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveMonitorRule,
+        ServiceLevelObjectiveMonitorRuleServiceType
+      >(
+        ServiceLevelObjectiveMonitorRule,
+        ServiceLevelObjectiveMonitorRuleService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveFeed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveFeed,
+        ServiceLevelObjectiveFeedServiceType
+      >(
+        ServiceLevelObjectiveFeed,
+        ServiceLevelObjectiveFeedService,
+      ).getRouter(),
+    );
+
     // SloHistory (ClickHouse — SLO evaluation history for charts)
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -3545,22 +3579,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ThreatIntelFeed, ThreatIntelFeedServiceType>(
         ThreatIntelFeed,
         ThreatIntelFeedService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new GoogleSecOpsConnectionAPI().getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        GoogleSecOpsConnectionRun,
-        GoogleSecOpsConnectionRunServiceType
-      >(
-        GoogleSecOpsConnectionRun,
-        GoogleSecOpsConnectionRunService,
       ).getRouter(),
     );
 
@@ -5448,6 +5466,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // network device diagnostic (on-demand ping / traceroute)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceDiagnostic, NetworkDeviceDiagnosticServiceType>(
+        NetworkDeviceDiagnostic,
+        NetworkDeviceDiagnosticService,
+      ).getRouter(),
+    );
+
     // network site
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5581,6 +5608,8 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkRuleRunAPI().getRouter(),
     );
+    // "Run now" for label, owner, privacy and status page monitor rules.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new RuleRunAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceDependencyTimeseriesAPI().getRouter(),

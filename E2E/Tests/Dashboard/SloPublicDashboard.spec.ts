@@ -62,8 +62,13 @@ const PUBLISHED_FIELDS: Array<string> = [
 ];
 
 /*
- * Columns that describe HOW the SLO is defined rather than how it is doing.
- * None of these may ever appear in a public response.
+ * Columns that describe HOW the SLO is defined, managed or evaluated rather
+ * than how it is doing. None of these may ever appear in a public response.
+ *
+ * The archive columns are listed explicitly: public SLO reads filter on
+ * isArchived (a widget that follows an SLO variable, and the SLO List widget,
+ * only reach active SLOs), which makes it an easy column to add to a select by
+ * accident - and archivedByUser(Id) would name a project member to anyone.
  */
 const PRIVATE_FIELDS: Array<string> = [
   "description",
@@ -83,6 +88,13 @@ const PRIVATE_FIELDS: Array<string> = [
   "errorBudgetTotalSeconds",
   "lastEvaluatedAt",
   "nextEvaluationAt",
+  "lastAccumulatedBucketEndAt",
+  "statusChangeNotificationSentAt",
+  "isEnabled",
+  "isArchived",
+  "archivedAt",
+  "archivedByUser",
+  "archivedByUserId",
   "createdByUserId",
 ];
 

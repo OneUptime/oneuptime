@@ -1,14 +1,21 @@
 import {
+  HasRegisterProbeKey,
   PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS,
   PROBE_DISCOVERY_MAX_CONCURRENT_SCANS,
+  PROBE_DISCOVERY_NETBIOS_MAX_HOSTS,
+  PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS,
   PROBE_DISCOVERY_SCAN_CONCURRENCY,
   PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS,
   PROBE_INGEST_URL,
 } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import DiscoveryScanScheduler from "../../Utils/Discovery/DiscoveryScanScheduler";
+import { MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS } from "../../Utils/Discovery/ReverseDnsResolver";
+import { MAX_NETBIOS_MAX_HOSTS_OVERRIDE } from "../../Utils/Discovery/NetbiosNameResolver";
 import SubnetScanner, {
   DiscoveredHost,
+  type NetbiosNamingOutcome,
+  type ReverseDnsNamingOutcome,
   type SubnetScanConfig,
   type SubnetScanProgress,
   type SubnetScanResult,
@@ -251,6 +258,595 @@ function clipStatusMessage(message: string): string {
 }
 
 /*
+ * How a host-naming note is composed into the message: see
+ * buildHostNamingNote and finishStatusMessage.
+ *
+ * The note is the one part of the message whose facts appear nowhere else in
+ * the product. The headline already says how many hosts answered; only the
+ * note says that thousands of them have no reverse DNS name because the pass
+ * ran out of time. Appended last and clipped with everything else, it would be
+ * the first thing lost on exactly the large, busy sweeps that produce it.
+ *
+ * So it is never simply clipped away. It comes in two forms: the FULL
+ * sentences, used whenever they fit, and a COMPACT form of each sentence, used
+ * when the full ones would push the message past the column. Only when even
+ * the compact note does not fit are the sweep's own sentences clipped, and
+ * then never the headline (see finishStatusMessage).
+ */
+
+// A quoted error inside a full note sentence: enough to name the failure.
+const MAX_NAMING_REASON_EXCERPT_LENGTH: number = 80;
+
+// The same, inside a compact note sentence.
+const MAX_COMPACT_NAMING_REASON_EXCERPT_LENGTH: number = 40;
+
+/*
+ * The shortest tail of clipped sweep sentences worth keeping. Below this the
+ * tail is replaced by a lone ellipsis: a dozen characters of a sentence say
+ * nothing and read as a typo.
+ */
+const MIN_CLIPPED_SENTENCE_TAIL_LENGTH: number = 20;
+
+function formatCount(count: number): string {
+  return count.toLocaleString("en-US");
+}
+
+function formatHosts(count: number): string {
+  return `${formatCount(count)} ${count === 1 ? "host" : "hosts"}`;
+}
+
+// "1 was" or "4 were": the count and the verb that agrees with it.
+function formatCountWas(count: number): string {
+  return `${formatCount(count)} ${count === 1 ? "was" : "were"}`;
+}
+
+/*
+ * The one outcome every reverse-DNS failure note reports. Phrased about
+ * reverse DNS ONLY, and deliberately not as "listed by IP address": a host
+ * reverse DNS could not name may still be named by its SNMP sysName, or by
+ * NetBIOS, which runs afterwards precisely for these hosts. Claiming the
+ * operator will see bare addresses would be false exactly when the other
+ * sources did their job.
+ */
+function formatNoneGotReverseDnsName(count: number): string {
+  return count === 1
+    ? "the one host got no reverse DNS name"
+    : `none of the ${formatHosts(count)} got a reverse DNS name`;
+}
+
+function excerpt(text: string, maxLength: number): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return maxLength > 1 ? text.substring(0, maxLength - 1) + "…" : "…";
+}
+
+/*
+ * A reason for quoting in parentheses. Resolver reasons are sometimes whole
+ * sentences ("The UDP socket did not bind in time."), and a trailing period
+ * inside the parentheses doubles the punctuation of the sentence around it.
+ */
+function quoteReason(reason: string, maxLength: number): string {
+  const trimmed: string = reason.trim();
+  const withoutTrailingStop: string = trimmed.replace(/[.\s]+$/, "");
+
+  /*
+   * Stripping must never empty the quote. A reason of "..." would otherwise
+   * be printed as an empty pair of parentheses, which reads as a bug in the
+   * probe rather than as a reason nobody can use.
+   */
+  return excerpt(withoutTrailingStop || trimmed || "unknown error", maxLength);
+}
+
+/*
+ * A budget as an operator reads it: "60s", "4m 10s", "10m". Undefined when
+ * the pass did not report a usable one, so the caller can leave the figure out
+ * rather than print a wrong one.
+ *
+ * Rounded to whole milliseconds BEFORE the unit is chosen, so 999.5ms reads
+ * "1s" rather than "1000ms", and a figure that rounds to nothing is no figure
+ * at all rather than a "0ms time limit".
+ */
+export function formatNamingBudget(
+  durationInMs: number | undefined,
+): string | undefined {
+  if (durationInMs === undefined || !Number.isFinite(durationInMs)) {
+    return undefined;
+  }
+
+  const roundedMs: number = Math.round(durationInMs);
+
+  if (roundedMs <= 0) {
+    return undefined;
+  }
+
+  if (roundedMs < 1000) {
+    return `${roundedMs}ms`;
+  }
+
+  const totalSeconds: number = Math.round(roundedMs / 1000);
+
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+
+  const minutes: number = Math.floor(totalSeconds / 60);
+  const seconds: number = totalSeconds % 60;
+
+  return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+}
+
+// Which form of the naming note to build. See finishStatusMessage.
+export type HostNamingNoteForm = "full" | "compact";
+
+/*
+ * How a budget is named inside a note: "its 4m 10s time limit", or "its 4m 10s
+ * limit" in the compact form, which drops the word the sentence around it
+ * already implies. Compact must never be the longer of the two - it is only
+ * ever chosen to save characters.
+ */
+function formatBudgetLimit(
+  totalBudgetInMs: number | undefined,
+  form: HostNamingNoteForm,
+): string {
+  const budget: string | undefined = formatNamingBudget(totalBudgetInMs);
+
+  if (!budget) {
+    return "time limit";
+  }
+
+  return form === "compact" ? `${budget} limit` : `${budget} time limit`;
+}
+
+/*
+ * The reverse-DNS half of the naming note, or "" when the pass has nothing
+ * to confess.
+ *
+ * A pass that got through every host says NOTHING, however few names it
+ * found: most addresses on most networks have no PTR record, and a clause on
+ * every healthy scan would teach operators to skip it. Only the three ways
+ * the pass can leave hosts unnamed for a reason other than "no record" are
+ * reported, most fundamental first.
+ */
+function buildReverseDnsNote(
+  outcome: ReverseDnsNamingOutcome | undefined,
+  form: HostNamingNoteForm,
+): string {
+  if (!outcome || !(outcome.addressCount > 0)) {
+    return "";
+  }
+
+  const isCompact: boolean = form === "compact";
+  const reasonLength: number = isCompact
+    ? MAX_COMPACT_NAMING_REASON_EXCERPT_LENGTH
+    : MAX_NAMING_REASON_EXCERPT_LENGTH;
+
+  const total: number = outcome.addressCount;
+  const named: number = Math.min(
+    Math.max(0, outcome.namedAddressCount || 0),
+    total,
+  );
+
+  if (outcome.error) {
+    const reason: string = quoteReason(outcome.error, reasonLength);
+
+    if (isCompact) {
+      return `Reverse DNS failed (${reason}).`;
+    }
+
+    return named > 0
+      ? `Reverse DNS lookups failed on this probe (${reason}) after naming ${formatCount(named)} of ${formatHosts(total)}.`
+      : `Reverse DNS lookups failed on this probe (${reason}), so ${formatNoneGotReverseDnsName(total)}.`;
+  }
+
+  /*
+   * A resolver that never answered. First, because it makes the time budget
+   * irrelevant: more time would not have named anything. Guarded on zero
+   * names (which the resolver guarantees for this verdict) so a test double
+   * reporting both cannot make the message claim no host was named.
+   *
+   * The advice names BOTH places the fault can be. The verdict means only that
+   * the first waves of lookups all failed, and a whole reverse zone delegated
+   * to a dead nameserver produces it through a perfectly healthy probe
+   * resolver; the quoted reason (ESERVFAIL, ECONNREFUSED, a timeout) is what
+   * tells the two apart.
+   */
+  if (!outcome.isReverseDnsAvailable && named === 0) {
+    const reason: string | undefined = outcome.failureReason
+      ? quoteReason(outcome.failureReason, reasonLength)
+      : undefined;
+
+    if (isCompact) {
+      return `Reverse DNS got no answers${reason ? ` (${reason})` : ""}.`;
+    }
+
+    return (
+      `Reverse DNS lookups from this probe got no answers${reason ? ` (${reason})` : ""}, ` +
+      `so ${formatNoneGotReverseDnsName(total)} - check the probe's DNS resolver and the reverse DNS zone for this range.`
+    );
+  }
+
+  if (outcome.isTimeBudgetExhausted) {
+    const budget: string = formatBudgetLimit(outcome.totalBudgetInMs, form);
+    const notLookedUp: number | undefined = outcome.notLookedUpAddressCount;
+
+    if (isCompact) {
+      return notLookedUp !== undefined && notLookedUp > 0
+        ? `Reverse DNS hit its ${budget}; ${formatCount(notLookedUp)} of ${formatHosts(total)} not looked up.`
+        : `Reverse DNS hit its ${budget} after naming ${formatCount(named)} of ${formatHosts(total)}.`;
+    }
+
+    /*
+     * No advice to raise the variable when the pass already ran under its
+     * maximum: Config falls back to AUTOMATIC sizing (at most ten minutes) for
+     * a value above it, so following the advice there would cut the budget,
+     * not extend it.
+     */
+    const canBeRaised: boolean = !(
+      (outcome.totalBudgetInMs as number) >=
+      MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS
+    );
+
+    return (
+      `Reverse DNS named ${formatCount(named)} of ${formatHosts(total)} before its ${budget}` +
+      (notLookedUp === undefined
+        ? "; the hosts it did not reach got no reverse DNS name"
+        : notLookedUp > 0
+          ? `; ${formatCountWas(notLookedUp)} never looked up`
+          : "") +
+      (canBeRaised
+        ? ` (raise PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS on the probe to allow longer).`
+        : ".")
+    );
+  }
+
+  return "";
+}
+
+/*
+ * The NetBIOS half of the naming note, or "" when the lookup did not run or
+ * got through every host it was allowed to ask. Hosts refused by the address
+ * policy (public addresses) are never reported: that is the lookup working as
+ * designed, not being cut short.
+ */
+function buildNetbiosNote(
+  outcome: NetbiosNamingOutcome | undefined,
+  form: HostNamingNoteForm,
+): string {
+  if (!outcome || !(outcome.unnamedAddressCount > 0)) {
+    return "";
+  }
+
+  const isCompact: boolean = form === "compact";
+  const reasonLength: number = isCompact
+    ? MAX_COMPACT_NAMING_REASON_EXCERPT_LENGTH
+    : MAX_NAMING_REASON_EXCERPT_LENGTH;
+
+  const sentences: Array<string> = [];
+  const named: number = Math.max(0, outcome.namedAddressCount || 0);
+
+  if (outcome.isHostCapReached) {
+    const leftOut: number | undefined =
+      outcome.eligibleAddressCount !== undefined &&
+      outcome.maxHosts !== undefined
+        ? Math.max(0, outcome.eligibleAddressCount - outcome.maxHosts)
+        : undefined;
+
+    if (outcome.maxHosts !== undefined && leftOut !== undefined) {
+      /*
+       * The cap is raisable up to MAX_NETBIOS_MAX_HOSTS_OVERRIDE, past which
+       * the lookup would be cut off by its clock instead, so the advice stops
+       * where the knob does.
+       */
+      const canBeRaised: boolean =
+        outcome.maxHosts < MAX_NETBIOS_MAX_HOSTS_OVERRIDE;
+
+      sentences.push(
+        isCompact
+          ? `NetBIOS skipped ${formatHosts(leftOut)} over its ${formatCount(outcome.maxHosts)}-host cap.`
+          : `NetBIOS lookups are capped at ${formatHosts(outcome.maxHosts)} per scan, so ${formatCount(leftOut)} unnamed ${leftOut === 1 ? "host was" : "hosts were"} not asked` +
+              (canBeRaised
+                ? ` (raise PROBE_DISCOVERY_NETBIOS_MAX_HOSTS on the probe to ask more).`
+                : "."),
+      );
+    } else {
+      sentences.push(
+        isCompact
+          ? `NetBIOS hit its host cap.`
+          : `NetBIOS lookups reached their per-scan host cap, so some unnamed hosts were not asked.`,
+      );
+    }
+  }
+
+  if (outcome.error) {
+    const reason: string = quoteReason(outcome.error, reasonLength);
+
+    sentences.push(
+      isCompact
+        ? `NetBIOS failed (${reason}).`
+        : `NetBIOS lookups failed on this probe (${reason}).`,
+    );
+  } else if (outcome.failureReason) {
+    /*
+     * Ahead of the time budget: a socket that never bound also reports the
+     * budget as spent, and "raise the budget" is the wrong advice for it.
+     * A socket that failed before a single query went out did not STOP the
+     * lookups; they never started, and the sentence says which.
+     */
+    const reason: string = quoteReason(outcome.failureReason, reasonLength);
+
+    if (isCompact) {
+      sentences.push(`NetBIOS socket failed (${reason}).`);
+    } else if (outcome.queriedAddressCount === 0) {
+      sentences.push(
+        `NetBIOS lookups did not run because the probe's UDP socket failed (${reason}).`,
+      );
+    } else {
+      sentences.push(
+        `NetBIOS lookups stopped because the probe's UDP socket failed (${reason})` +
+          (named > 0 ? ` after naming ${formatHosts(named)}.` : "."),
+      );
+    }
+  } else if (outcome.isTimeBudgetExhausted) {
+    const budget: string = formatBudgetLimit(outcome.totalBudgetInMs, form);
+
+    /*
+     * The hosts the lookup MEANT to ask: the eligible ones, cut to the cap.
+     * Unknown from a resolution that did not say, in which case the sentence
+     * falls back to the unnamed hosts it was handed.
+     */
+    const targetCount: number =
+      outcome.eligibleAddressCount !== undefined
+        ? outcome.maxHosts !== undefined
+          ? Math.min(outcome.eligibleAddressCount, outcome.maxHosts)
+          : outcome.eligibleAddressCount
+        : outcome.unnamedAddressCount;
+
+    const notQueried: number | undefined =
+      outcome.queriedAddressCount !== undefined
+        ? Math.max(0, targetCount - outcome.queriedAddressCount)
+        : undefined;
+
+    const namedOfTarget: string = `${formatCount(Math.min(named, targetCount))} of ${formatHosts(targetCount)}`;
+
+    if (isCompact) {
+      sentences.push(
+        notQueried !== undefined && notQueried > 0
+          ? `NetBIOS hit its ${budget}; ${formatCount(notQueried)} of ${formatHosts(targetCount)} not queried.`
+          : `NetBIOS hit its ${budget} after naming ${namedOfTarget}.`,
+      );
+    } else {
+      sentences.push(
+        `NetBIOS named ${namedOfTarget} before its ${budget}` +
+          (notQueried !== undefined && notQueried > 0
+            ? `; ${formatCountWas(notQueried)} never queried.`
+            : "."),
+      );
+    }
+  }
+
+  return sentences.join(" ");
+}
+
+/*
+ * The clause a FINAL status message carries when naming the sweep's hosts
+ * was cut short (reverse DNS out of time, failing, or with no answers at all;
+ * NetBIOS capped, out of time, failing or without a socket) or "" when there
+ * is nothing to say.
+ *
+ * `form` picks the full sentences (the default) or the compact ones
+ * finishStatusMessage falls back to when the full ones do not fit.
+ *
+ * Exported for tests. Lives on the final message only: partial uploads carry
+ * no names at all (see SubnetScanProgress.discoveredHosts), so there is
+ * nothing to qualify until the passes have run.
+ */
+export function buildHostNamingNote(
+  scanResult: SubnetScanResult,
+  form: HostNamingNoteForm = "full",
+): string {
+  return [
+    shorterNoteForm(
+      buildReverseDnsNote(scanResult.reverseDnsOutcome, "full"),
+      buildReverseDnsNote(scanResult.reverseDnsOutcome, "compact"),
+      form,
+    ),
+    shorterNoteForm(
+      buildNetbiosNote(scanResult.netbiosOutcome, "full"),
+      buildNetbiosNote(scanResult.netbiosOutcome, "compact"),
+      form,
+    ),
+  ]
+    .filter((note: string) => {
+      return note.length > 0;
+    })
+    .join(" ");
+}
+
+/*
+ * The requested form of one half of the note, except that the compact form is
+ * never allowed to be the LONGER of the two.
+ *
+ * Compact wording exists only to buy characters back, and for a sentence or
+ * two it does not: "NetBIOS hit its time limit after naming 0 of 1,500 hosts."
+ * is four characters longer than the full "NetBIOS named 0 of 1,500 hosts
+ * before its time limit." when there is no figure to print. Falling back to
+ * the full sentence there means the compact rung of finishStatusMessage can
+ * never cost the sweep's own sentences more room than the full one would.
+ */
+function shorterNoteForm(
+  full: string,
+  compact: string,
+  form: HostNamingNoteForm,
+): string {
+  if (form === "full") {
+    return full;
+  }
+
+  return compact.length <= full.length ? compact : full;
+}
+
+/*
+ * Joins the sweep's sentences and the naming note into one message that fits
+ * the column, giving up as little as it can, in this order:
+ *
+ *   1. everything, with the full note, when it fits;
+ *   2. everything, with the COMPACT note, when that fits;
+ *   3. the ESSENTIAL sentences whole, the rest of the sweep's sentences clipped
+ *      with an ellipsis, and the compact note.
+ *
+ * `essentialPartCount` is how many leading parts are never clipped: the
+ * headline with its counts, and on an incomplete ICMP-only sweep the caveat
+ * that has to be read with it. Clipping from the END alone used to be able to
+ * eat the headline itself on that path, leaving "S..." where the number of
+ * hosts that answered belonged.
+ *
+ * With no note at all this is exactly the clipStatusMessage it replaced, so a
+ * message about a sweep whose naming went well is unchanged byte for byte.
+ */
+function finishStatusMessage(
+  parts: Array<string>,
+  essentialPartCount: number,
+  scanResult: SubnetScanResult,
+): string {
+  const body: string = parts.join(" ");
+  const fullNote: string = buildHostNamingNote(scanResult, "full");
+
+  if (!fullNote) {
+    return clipStatusMessage(body);
+  }
+
+  const withFullNote: string = joinBeforeNote(body, fullNote);
+
+  if (withFullNote.length <= MAX_STATUS_MESSAGE_LENGTH) {
+    return withFullNote;
+  }
+
+  const compactNote: string = buildHostNamingNote(scanResult, "compact");
+  const withCompactNote: string = joinBeforeNote(body, compactNote);
+
+  if (withCompactNote.length <= MAX_STATUS_MESSAGE_LENGTH) {
+    return withCompactNote;
+  }
+
+  const essential: string = parts.slice(0, essentialPartCount).join(" ");
+  const rest: Array<string> = parts.slice(essentialPartCount);
+
+  /*
+   * Room for the rest between the essential sentences and the note, less the
+   * two spaces that separate the three. Can be negative only for inputs the
+   * sweep never produces (an essential part hundreds of characters long), in
+   * which case the rest is dropped and the final clip below still guarantees
+   * the column.
+   */
+  const room: number =
+    MAX_STATUS_MESSAGE_LENGTH - essential.length - compactNote.length - 2;
+
+  const compose: (roomForRest: number) => string = (
+    roomForRest: number,
+  ): string => {
+    return joinBeforeNote(
+      [essential, fitSentences(rest, roomForRest)]
+        .filter((part: string) => {
+          return part.length > 0;
+        })
+        .join(" "),
+      compactNote,
+    );
+  };
+
+  const composed: string = compose(room);
+
+  /*
+   * One character short, and the character is the full stop joinBeforeNote
+   * adds when the last sentence kept has no terminal punctuation of its own -
+   * which is the SNMP-error sentence, the commonest last sentence there is.
+   * Whether that stop is needed depends on which sentences fit, so it cannot
+   * be priced before they are chosen; it is cheaper to fit again one
+   * character tighter than to leave the final clip to take the note's tail,
+   * which is the one thing this ladder exists to protect.
+   */
+  if (composed.length > MAX_STATUS_MESSAGE_LENGTH) {
+    return clipStatusMessage(compose(room - 1));
+  }
+
+  return clipStatusMessage(composed);
+}
+
+/*
+ * As many WHOLE sentences of `parts` as `room` allows, plus a clipped opening
+ * of the next one when what is left is long enough to say something.
+ *
+ * Sentence by sentence rather than one clip of the joined text, because the
+ * cut otherwise lands wherever the arithmetic puts it: a message could end
+ * "Answer...", the first seven characters of "Answered by credentials: ...",
+ * which tells the operator strictly less than leaving that sentence out and
+ * marking the cut.
+ */
+function fitSentences(parts: Array<string>, room: number): string {
+  if (room <= 0) {
+    return "";
+  }
+
+  const kept: Array<string> = [];
+  let length: number = 0;
+
+  for (const part of parts) {
+    // The space this part needs after the one before it, if any.
+    const gap: number = kept.length > 0 ? 1 : 0;
+
+    if (length + gap + part.length <= room) {
+      kept.push(part);
+      length += gap + part.length;
+      continue;
+    }
+
+    /*
+     * Not room for this sentence whole. Keep its opening when enough of it
+     * survives to be read, otherwise just mark that something was cut - and
+     * stop either way, because a later sentence printed after the ellipsis
+     * would read as the clipped text rather than as what followed it.
+     */
+    const remaining: number = room - length - gap;
+
+    if (remaining >= MIN_CLIPPED_SENTENCE_TAIL_LENGTH) {
+      kept.push(part.substring(0, remaining - 1) + "\u2026");
+    } else if (remaining >= 1) {
+      kept.push("\u2026");
+    }
+
+    break;
+  }
+
+  return kept.join(" ");
+}
+
+/*
+ * The sweep's sentences and the note, with a full stop between them when the
+ * sweep's last sentence has none.
+ *
+ * The SNMP-error sentence ends with the quoted error itself - "most common:
+ * Authentication failure" - so without this the note ran straight on from it
+ * and read as part of the error text.
+ */
+function joinBeforeNote(body: string, note: string): string {
+  if (!body) {
+    return note;
+  }
+
+  if (!note) {
+    return body;
+  }
+
+  const endsSentence: boolean = ".!?\u2026".includes(
+    body.charAt(body.length - 1),
+  );
+
+  return `${body}${endsSentence ? "" : "."} ${note}`;
+}
+
+/*
  * The operator-facing summary of one sweep.
  *
  * Exported for tests: every "the scan found nothing" support case is decided
@@ -305,6 +901,13 @@ export function buildScanStatusMessage(
         `(Check SNMP is off for this scan): ${aliveHostCount} answered ping.`,
     );
 
+    /*
+     * Everything so far is essential: the headline, and the caveat that has
+     * to be read with it. finishStatusMessage never clips these to make room
+     * for a naming note.
+     */
+    const essentialPartCount: number = parts.length;
+
     if (aliveHostCount === 0) {
       parts.push(
         "Nothing answered ICMP ping. Check that this probe can reach the range and that ICMP echo is permitted to it. " +
@@ -319,9 +922,11 @@ export function buildScanStatusMessage(
      * sweep that also found nothing — so this cannot currently fire. It is here
      * so the guarantee this function documents ("fits the statusMessage
      * column") holds on EVERY return rather than on the one somebody
-     * remembered.
+     * remembered. The naming note rides on this return too: an ICMP-only
+     * sweep is the one whose hosts have no sysName to fall back on, so a
+     * cut-short naming pass costs it the most.
      */
-    return clipStatusMessage(parts.join(" "));
+    return finishStatusMessage(parts, essentialPartCount, scanResult);
   }
 
   if (scanResult.respondedToPingCount !== undefined) {
@@ -419,7 +1024,8 @@ export function buildScanStatusMessage(
     );
   }
 
-  return clipStatusMessage(parts.join(" "));
+  // The headline, pushed first above, is the one essential part here.
+  return finishStatusMessage(parts, 1, scanResult);
 }
 
 /*
@@ -704,6 +1310,29 @@ export function getRejectionReason(
 }
 
 /*
+ * Who may run the NetBIOS name lookup (OneUptime issue #3677), as a seam.
+ *
+ * An object with a method rather than a bare read of HasRegisterProbeKey,
+ * because that constant is fixed when Config.ts is first imported and a test
+ * cannot flip it for one case without rebuilding the whole module graph. Tests
+ * spy on `isGlobalProbe`; production always reads the real value.
+ *
+ * WHY a global probe never runs it, whatever the scan row says: a probe
+ * registered with REGISTER_PROBE_KEY is operated by the OneUptime instance,
+ * not by the customer whose network it would be sending UDP 137 into. It is
+ * the same line PROBE_ALLOW_PRIVATE_NETWORK_MONITORS draws — global probes do
+ * not touch private address space on a tenant's say-so — and the lookup only
+ * ever targets private space.
+ */
+export const DiscoveryNetbiosPolicy: {
+  isGlobalProbe: () => boolean;
+} = {
+  isGlobalProbe: (): boolean => {
+    return HasRegisterProbeKey;
+  },
+};
+
+/*
  * Exported for tests: bounds ONE sweep in time.
  *
  * Mirrors probeMonitorWithDeadline in Jobs/Monitor/FetchList.ts, and exists
@@ -772,8 +1401,10 @@ export async function scanWithDeadline(
      * budget, so a sweep that had already found every host on the subnet
      * could be discarded wholesale because looking up their names took the
      * run past the line. An enrichment must not be able to destroy the result
-     * it exists to improve, and the pass's own 60s cap bounds how much it
-     * adds without stopping it being the straw that breaks the deadline.
+     * it exists to improve, and the pass's own budget - sized to the hosts
+     * found, ten minutes at most, or the twenty an operator may fix it at -
+     * bounds how much it adds without stopping it being the straw that breaks
+     * the deadline.
      *
      * Past this line the sweep has WON its race. `result` is final, the
      * deadline can no longer discard it, and attachReverseDnsHostnames never
@@ -781,7 +1412,7 @@ export async function scanWithDeadline(
      * were before this feature existed.
      *
      * The timer is disarmed FIRST rather than left to the finally. It is
-     * still armed at this point, and the enrichment can take up to a minute:
+     * still armed at this point, and the enrichment can take many minutes:
      * leaving it running would let it fire mid-lookup and write
      * "did not settle ... Abandoning this sweep" to the probe log at ERROR
      * level about a sweep that finished cleanly and whose result is on its
@@ -793,8 +1424,60 @@ export async function scanWithDeadline(
       deadlineTimer = undefined;
     }
 
-    result.reverseDnsResolvedCount =
-      await SubnetScanner.attachReverseDnsHostnames(result.discoveredHosts);
+    /*
+     * The pass's whole verdict is kept, not just its count, so the final
+     * status message can say when names were cut short (see
+     * buildHostNamingNote). The budget override is read here, where Config
+     * already is; unset (0) lets the resolver size the budget to the hosts.
+     */
+    const reverseDnsOutcome: ReverseDnsNamingOutcome =
+      await SubnetScanner.attachReverseDnsHostnames(result.discoveredHosts, {
+        totalBudgetInMs: PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS || undefined,
+      });
+
+    result.reverseDnsResolvedCount = reverseDnsOutcome.resolvedCount;
+    result.reverseDnsOutcome = reverseDnsOutcome;
+
+    /*
+     * NetBIOS names (OneUptime issue #3677), for whatever is STILL unnamed —
+     * which is why this comes after reverse DNS and not before or beside it:
+     * a host with a PTR record is never sent a datagram.
+     *
+     * Past the race for the same reason reverse DNS is, and gated three ways:
+     *
+     *   - `=== true`: the scan must have opted in. An absent column (an older
+     *     server) and every scan created before the column existed mean off,
+     *     so upgrading a probe never starts sending UDP 137 unannounced.
+     *   - not a global probe (DiscoveryNetbiosPolicy above).
+     *   - and, inside the resolver, private IPv4 addresses only.
+     *
+     * Wrapped in its OWN try/catch even though attachNetbiosNames never
+     * throws. This try has no catch of its own — it exists for the finally —
+     * so anything escaping here would reject scanWithDeadline, and runScan
+     * would report a sweep that had fully succeeded as Failed and never upload
+     * its hosts. A name is never worth that.
+     */
+    if (config.isNetbiosLookupEnabled === true) {
+      if (DiscoveryNetbiosPolicy.isGlobalProbe()) {
+        logger.debug(
+          `Discovery scan ${scanId} asked for NetBIOS names, but this is a global probe, which never sends NetBIOS queries. Skipped.`,
+        );
+      } else {
+        try {
+          const netbiosOutcome: NetbiosNamingOutcome =
+            await SubnetScanner.attachNetbiosNames(result.discoveredHosts, {
+              maxHosts: PROBE_DISCOVERY_NETBIOS_MAX_HOSTS || undefined,
+            });
+
+          result.netbiosResolvedCount = netbiosOutcome.resolvedCount;
+          result.netbiosOutcome = netbiosOutcome;
+        } catch (err) {
+          logger.warn(
+            `Discovery scan ${scanId}: NetBIOS name lookup failed; its hosts will be reported without NetBIOS names. ${err}`,
+          );
+        }
+      }
+    }
 
     return result;
   } finally {
@@ -946,6 +1629,14 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
          * with an explicit PROBE_DISCOVERY_SCAN_CONCURRENCY overrides it.
          */
         maxConcurrency: PROBE_DISCOVERY_SCAN_CONCURRENCY || undefined,
+        /*
+         * Strictly `=== true`, unlike isSnmpEnabled above. That column's
+         * absence has to keep meaning the SNMP sweep every old scan ran; this
+         * one's absence — a server too old to select it — has to mean OFF,
+         * because the lookup sends UDP 137 to scanned hosts and must never
+         * start on a network whose operator did not ask for it.
+         */
+        isNetbiosLookupEnabled: scan.isNetbiosLookupEnabled === true,
       },
       scanIdString,
     );
@@ -1107,9 +1798,18 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
      * between the two.
      */
     const namedSuffix: string =
-      scanResult.reverseDnsResolvedCount === undefined
+      (scanResult.reverseDnsResolvedCount === undefined
         ? ""
-        : `, ${scanResult.reverseDnsResolvedCount} named by reverse DNS`;
+        : `, ${scanResult.reverseDnsResolvedCount} named by reverse DNS`) +
+      /*
+       * The NetBIOS tally follows the same rule: omitted when the lookup did
+       * not run (not asked for, global probe, or it threw), shown — zero
+       * included — when it did. Zero with the lookup on is the operator's cue
+       * that UDP 137 is filtered between the probe and those hosts.
+       */
+      (scanResult.netbiosResolvedCount === undefined
+        ? ""
+        : `, ${scanResult.netbiosResolvedCount} named by NetBIOS`);
 
     logger.debug(
       scanResult.isIcmpOnlySweep

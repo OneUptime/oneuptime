@@ -77,11 +77,25 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Services",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_LABEL_RULES, [
       "Project",
       "Services",
       "Settings",
       "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Services",
+      "Settings",
+      "Label Rules",
+      "View Rule",
     ]),
   };
   return breadcrumpLinksMap[path];

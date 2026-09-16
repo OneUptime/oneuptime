@@ -1,3 +1,5 @@
+import { MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS } from "./Utils/Discovery/ReverseDnsResolver";
+import { MAX_NETBIOS_MAX_HOSTS_OVERRIDE } from "./Utils/Discovery/NetbiosNameResolver";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
@@ -159,6 +161,19 @@ export const PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: boolean =
  * default sentence names the API server's webhook settings, which are neither
  * read by this process nor usually editable by whoever runs this probe.
  */
+/*
+ * Whether this process is a GLOBAL probe — one registered with the
+ * server-issued REGISTER_PROBE_KEY rather than deployed by a customer inside
+ * their own network.
+ *
+ * Re-exported so other probe code can apply the same "global probes never
+ * touch private space" rule PROBE_ALLOW_PRIVATE_NETWORK_MONITORS applies,
+ * without reaching past this file into Common's environment config. Discovery
+ * uses it to refuse NetBIOS name lookups outright on a global probe (OneUptime
+ * issue #3677), whatever the scan row asks for.
+ */
+export { HasRegisterProbeKey };
+
 export const PROBE_PRIVATE_NETWORK_HINT: string = HasRegisterProbeKey
   ? " Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."
   : " Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it.";
@@ -348,6 +363,68 @@ export const PROBE_DISCOVERY_SCAN_CONCURRENCY: number =
     defaultValue: 0,
     min: 0,
     max: 1024,
+  });
+
+/*
+ * Fixed wall-clock budget for the reverse-DNS pass that names a finished
+ * sweep's hosts, overriding the size-derived budget the resolver works out for
+ * itself (ReverseDnsResolver.getReverseDnsTotalBudgetInMs).
+ *
+ * Unset (or 0) means "work it out": sixty seconds for a sweep of up to ~860
+ * hosts, growing with the host count to at most ten minutes. The pass asks
+ * addresses in ascending order and stops when the budget runs out, so the
+ * hosts it did not reach get no reverse DNS name — and the scan's status
+ * message now says so, naming this variable. Raise it for a large estate
+ * behind a slow resolver; lower it to make scans finish sooner at the cost of
+ * names.
+ *
+ * The ceiling is twenty minutes, and it is a ceiling for the SERVER's sake.
+ * The probe uploads nothing while it names hosts, and the server fails a scan
+ * that has been In Progress and silent for two hours
+ * (App/FeatureSet/Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts);
+ * an older server fails it two hours after it started, silent or not. Twenty
+ * minutes of naming after a sweep that used its whole 90-minute deadline, plus
+ * the NetBIOS lookup and the upload, still lands inside that window, so a
+ * sweep that has already succeeded is never reaped for its enrichment.
+ * Values outside 1 second to 20 minutes fall back to automatic sizing
+ * (ReverseDnsResolver.MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS).
+ * Tests/ConfigDiscoveryNamingBudget.test.ts pins the arithmetic.
+ */
+export const PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS"],
+    // 0 means automatic: the resolver sizes the budget to the host count.
+    defaultValue: 0,
+    min: 1000,
+    max: MAX_REVERSE_DNS_TOTAL_BUDGET_OVERRIDE_IN_MS,
+  });
+
+/*
+ * How many still-unnamed hosts one scan's NetBIOS lookup may ask, overriding
+ * the resolver's built-in cap of 2,000.
+ *
+ * Unset (or 0) keeps that cap. It exists because the cap is the commonest way
+ * the lookup stops short on a large estate - a /16 of Windows hosts with no
+ * reverse DNS leaves far more than 2,000 unnamed - and the scan's status
+ * message now reports it, so the operator needs something to do about it.
+ *
+ * The lookup's wall-clock budget is sized from this number
+ * (NetbiosNameResolver.getNetbiosTotalBudgetInMs), so raising the cap lengthens
+ * the lookup too: 4,000 hosts is about 104 seconds of paced queries and
+ * retries. That is why the ceiling is 4,000 rather than "as many as you like" -
+ * beyond it the lookup would be truncated by its clock instead of by its cap,
+ * which is the silent failure this change exists to remove.
+ *
+ * Raising it also puts more NBSTAT datagrams on the network, which is exactly
+ * what intrusion detection rules watch for; the per-scan opt-in still applies.
+ */
+export const PROBE_DISCOVERY_NETBIOS_MAX_HOSTS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_NETBIOS_MAX_HOSTS"],
+    // 0 means "use the resolver's own cap".
+    defaultValue: 0,
+    min: 1,
+    max: MAX_NETBIOS_MAX_HOSTS_OVERRIDE,
   });
 
 export const PORT: Port = new Port(

@@ -21,6 +21,7 @@ import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/S
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -28,8 +29,52 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class ScheduledMaintenanceLabelRuleEngineServiceClass {
+class ScheduledMaintenanceLabelRuleEngineServiceClass
+  implements RuleRunEngine<ScheduledMaintenance, ScheduledMaintenanceLabelRule>
+{
+  public readonly ruleSelect: Select<ScheduledMaintenanceLabelRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    monitors: { _id: true },
+    scheduledMaintenanceLabels: { _id: true },
+    monitorLabels: { _id: true },
+    titlePattern: true,
+    descriptionPattern: true,
+    monitorNamePattern: true,
+    monitorDescriptionPattern: true,
+    labelsToAdd: { _id: true },
+    inheritLabelsFromMonitors: true,
+    inheritLabelsFromHosts: true,
+    inheritLabelsFromKubernetesClusters: true,
+    inheritLabelsFromDockerHosts: true,
+    inheritLabelsFromPodmanHosts: true,
+    inheritLabelsFromServices: true,
+  };
+
+  /*
+   * Matching and monitor inheritance read these straight off the event they
+   * are handed, so a run has to load every one: a column left out here is a
+   * criterion a run silently never matches on. The event's hosts, clusters,
+   * Docker and Podman hosts and services are re-read when a rule inherits
+   * from them, so they are not needed here.
+   */
+  public readonly resourceSelectForRuleRun: Select<ScheduledMaintenance> = {
+    _id: true,
+    projectId: true,
+    title: true,
+    description: true,
+    labels: { _id: true },
+    monitors: { _id: true },
+  };
+
   /**
    * Evaluates ScheduledMaintenanceLabelRule rows for the given event and
    * attaches matched labels to the event. Each matched rule contributes:
@@ -59,25 +104,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            monitors: { _id: true },
-            scheduledMaintenanceLabels: { _id: true },
-            monitorLabels: { _id: true },
-            titlePattern: true,
-            descriptionPattern: true,
-            monitorNamePattern: true,
-            monitorDescriptionPattern: true,
-            labelsToAdd: { _id: true },
-            inheritLabelsFromMonitors: true,
-            inheritLabelsFromHosts: true,
-            inheritLabelsFromKubernetesClusters: true,
-            inheritLabelsFromDockerHosts: true,
-            inheritLabelsFromPodmanHosts: true,
-            inheritLabelsFromServices: true,
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -92,248 +119,9 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
         return;
       }
 
-      const labelIdsToAdd: Set<string> = new Set();
-      let inheritFromMonitors: boolean = false;
-      let inheritFromHosts: boolean = false;
-      let inheritFromKubernetesClusters: boolean = false;
-      let inheritFromDockerHosts: boolean = false;
-      let inheritFromPodmanHosts: boolean = false;
-      let inheritFromServices: boolean = false;
-      const matchedRules: Array<ScheduledMaintenanceLabelRule> = [];
-
-      for (const rule of rules) {
-        const matches: boolean = await this.doesScheduledMaintenanceMatchRule(
-          scheduledMaintenance,
-          rule,
-        );
-        if (!matches) {
-          continue;
-        }
-        matchedRules.push(rule);
-        for (const label of rule.labelsToAdd || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-        if (rule.inheritLabelsFromMonitors) {
-          inheritFromMonitors = true;
-        }
-        if (rule.inheritLabelsFromHosts) {
-          inheritFromHosts = true;
-        }
-        if (rule.inheritLabelsFromKubernetesClusters) {
-          inheritFromKubernetesClusters = true;
-        }
-        if (rule.inheritLabelsFromDockerHosts) {
-          inheritFromDockerHosts = true;
-        }
-        if (rule.inheritLabelsFromPodmanHosts) {
-          inheritFromPodmanHosts = true;
-        }
-        if (rule.inheritLabelsFromServices) {
-          inheritFromServices = true;
-        }
-      }
-
-      const needsRelatedResources: boolean =
-        inheritFromHosts ||
-        inheritFromKubernetesClusters ||
-        inheritFromDockerHosts ||
-        inheritFromPodmanHosts ||
-        inheritFromServices;
-
-      let eventWithResources: ScheduledMaintenance | null = null;
-      if (needsRelatedResources) {
-        eventWithResources = await ScheduledMaintenanceService.findOneById({
-          id: scheduledMaintenance.id,
-          select: {
-            hosts: { _id: true },
-            kubernetesClusters: { _id: true },
-            dockerHosts: { _id: true },
-            podmanHosts: { _id: true },
-            services: { _id: true },
-          },
-          props: { isRoot: true },
-        });
-      }
-
-      if (inheritFromMonitors && scheduledMaintenance.monitors?.length) {
-        for (const eventMonitor of scheduledMaintenance.monitors) {
-          if (!eventMonitor.id) {
-            continue;
-          }
-          const monitor: Monitor | null = await MonitorService.findOneById({
-            id: eventMonitor.id,
-            select: { labels: { _id: true } },
-            props: { isRoot: true },
-          });
-          for (const label of monitor?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (inheritFromHosts && eventWithResources?.hosts?.length) {
-        for (const eventHost of eventWithResources.hosts) {
-          if (!eventHost.id) {
-            continue;
-          }
-          const host: Host | null = await HostService.findOneById({
-            id: eventHost.id,
-            select: { labels: { _id: true } },
-            props: { isRoot: true },
-          });
-          for (const label of host?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (
-        inheritFromKubernetesClusters &&
-        eventWithResources?.kubernetesClusters?.length
-      ) {
-        for (const eventCluster of eventWithResources.kubernetesClusters) {
-          if (!eventCluster.id) {
-            continue;
-          }
-          const cluster: KubernetesCluster | null =
-            await KubernetesClusterService.findOneById({
-              id: eventCluster.id,
-              select: { labels: { _id: true } },
-              props: { isRoot: true },
-            });
-          for (const label of cluster?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (inheritFromDockerHosts && eventWithResources?.dockerHosts?.length) {
-        for (const eventDockerHost of eventWithResources.dockerHosts) {
-          if (!eventDockerHost.id) {
-            continue;
-          }
-          const dockerHost: DockerHost | null =
-            await DockerHostService.findOneById({
-              id: eventDockerHost.id,
-              select: { labels: { _id: true } },
-              props: { isRoot: true },
-            });
-          for (const label of dockerHost?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (inheritFromPodmanHosts && eventWithResources?.podmanHosts?.length) {
-        for (const eventPodmanHost of eventWithResources.podmanHosts) {
-          if (!eventPodmanHost.id) {
-            continue;
-          }
-          const podmanHost: PodmanHost | null =
-            await PodmanHostService.findOneById({
-              id: eventPodmanHost.id,
-              select: { labels: { _id: true } },
-              props: { isRoot: true },
-            });
-          for (const label of podmanHost?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (inheritFromServices && eventWithResources?.services?.length) {
-        for (const eventService of eventWithResources.services) {
-          if (!eventService.id) {
-            continue;
-          }
-          const service: Service | null = await ServiceService.findOneById({
-            id: eventService.id,
-            select: { labels: { _id: true } },
-            props: { isRoot: true },
-          });
-          for (const label of service?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (labelIdsToAdd.size === 0) {
-        return;
-      }
-
-      const eventWithLabels: ScheduledMaintenance | null =
-        await ScheduledMaintenanceService.findOneById({
-          id: scheduledMaintenance.id,
-          select: { labels: { _id: true } },
-          props: { isRoot: true },
-        });
-      const existingLabelIds: Set<string> = new Set(
-        (eventWithLabels?.labels || [])
-          .map((l: Label) => {
-            return l.id?.toString() || "";
-          })
-          .filter((id: string) => {
-            return id !== "";
-          }),
-      );
-
-      const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-        (id: string) => {
-          return !existingLabelIds.has(id);
-        },
-      );
-      if (newLabelIds.length === 0) {
-        return;
-      }
-
-      await ScheduledMaintenanceService.getRepository()
-        .createQueryBuilder()
-        .relation(ScheduledMaintenance, "labels")
-        .of(scheduledMaintenance.id.toString())
-        .add(newLabelIds);
-
-      /*
-       * Sync in-memory event.labels with the now-persisted set so any
-       * downstream consumers in the same onCreateSuccess chain see the new
-       * labels.
-       */
-      const mergedLabelIds: Set<string> = new Set([
-        ...existingLabelIds,
-        ...newLabelIds,
-      ]);
-      scheduledMaintenance.labels = Array.from(mergedLabelIds).map(
-        (id: string) => {
-          const label: Label = new Label();
-          label.id = new ObjectID(id);
-          return label;
-        },
-      );
-
-      logger.debug(
-        `ScheduledMaintenanceLabelRuleEngine attached ${newLabelIds.length} labels to event ${scheduledMaintenance.id}`,
-        {
-          projectId: scheduledMaintenance.projectId.toString(),
-        } as LogAttributes,
-      );
-
-      await this.createRuleExecutedFeedItem({
-        scheduledMaintenance,
-        matchedRules,
-        addedLabelIds: newLabelIds,
+      await this.applyRules({
+        scheduledMaintenance: scheduledMaintenance,
+        rules: rules,
       });
     } catch (error) {
       logger.error(
@@ -344,6 +132,312 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass {
         } as LogAttributes,
       );
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for an event that already exists and only
+   * the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<
+      ScheduledMaintenance,
+      ScheduledMaintenanceLabelRule
+    >,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        scheduledMaintenance: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(
+        `Error running scheduled maintenance label rules: ${error}`,
+        {
+          projectId: data.resource.projectId?.toString(),
+          scheduledMaintenanceId: data.resource.id?.toString(),
+        } as LogAttributes,
+      );
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    scheduledMaintenance: ScheduledMaintenance;
+    rules: Array<ScheduledMaintenanceLabelRule>;
+  }): Promise<RuleApplicationResult> {
+    const { scheduledMaintenance, rules } = data;
+
+    if (
+      !scheduledMaintenance.id ||
+      !scheduledMaintenance.projectId ||
+      rules.length === 0
+    ) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const labelIdsToAdd: Set<string> = new Set();
+    let inheritFromMonitors: boolean = false;
+    let inheritFromHosts: boolean = false;
+    let inheritFromKubernetesClusters: boolean = false;
+    let inheritFromDockerHosts: boolean = false;
+    let inheritFromPodmanHosts: boolean = false;
+    let inheritFromServices: boolean = false;
+    const matchedRules: Array<ScheduledMaintenanceLabelRule> = [];
+
+    for (const rule of rules) {
+      const matches: boolean = await this.doesScheduledMaintenanceMatchRule(
+        scheduledMaintenance,
+        rule,
+      );
+      if (!matches) {
+        continue;
+      }
+      matchedRules.push(rule);
+      for (const label of rule.labelsToAdd || []) {
+        if (label.id) {
+          labelIdsToAdd.add(label.id.toString());
+        }
+      }
+      if (rule.inheritLabelsFromMonitors) {
+        inheritFromMonitors = true;
+      }
+      if (rule.inheritLabelsFromHosts) {
+        inheritFromHosts = true;
+      }
+      if (rule.inheritLabelsFromKubernetesClusters) {
+        inheritFromKubernetesClusters = true;
+      }
+      if (rule.inheritLabelsFromDockerHosts) {
+        inheritFromDockerHosts = true;
+      }
+      if (rule.inheritLabelsFromPodmanHosts) {
+        inheritFromPodmanHosts = true;
+      }
+      if (rule.inheritLabelsFromServices) {
+        inheritFromServices = true;
+      }
+    }
+
+    if (matchedRules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const needsRelatedResources: boolean =
+      inheritFromHosts ||
+      inheritFromKubernetesClusters ||
+      inheritFromDockerHosts ||
+      inheritFromPodmanHosts ||
+      inheritFromServices;
+
+    let eventWithResources: ScheduledMaintenance | null = null;
+    if (needsRelatedResources) {
+      eventWithResources = await ScheduledMaintenanceService.findOneById({
+        id: scheduledMaintenance.id,
+        select: {
+          hosts: { _id: true },
+          kubernetesClusters: { _id: true },
+          dockerHosts: { _id: true },
+          podmanHosts: { _id: true },
+          services: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+      // The event is gone, so there is nothing left to label.
+      if (!eventWithResources) {
+        return RuleApplicationResultUtil.noMatch();
+      }
+    }
+
+    if (inheritFromMonitors && scheduledMaintenance.monitors?.length) {
+      for (const eventMonitor of scheduledMaintenance.monitors) {
+        if (!eventMonitor.id) {
+          continue;
+        }
+        const monitor: Monitor | null = await MonitorService.findOneById({
+          id: eventMonitor.id,
+          select: { labels: { _id: true } },
+          props: { isRoot: true },
+        });
+        for (const label of monitor?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    if (inheritFromHosts && eventWithResources?.hosts?.length) {
+      for (const eventHost of eventWithResources.hosts) {
+        if (!eventHost.id) {
+          continue;
+        }
+        const host: Host | null = await HostService.findOneById({
+          id: eventHost.id,
+          select: { labels: { _id: true } },
+          props: { isRoot: true },
+        });
+        for (const label of host?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    if (
+      inheritFromKubernetesClusters &&
+      eventWithResources?.kubernetesClusters?.length
+    ) {
+      for (const eventCluster of eventWithResources.kubernetesClusters) {
+        if (!eventCluster.id) {
+          continue;
+        }
+        const cluster: KubernetesCluster | null =
+          await KubernetesClusterService.findOneById({
+            id: eventCluster.id,
+            select: { labels: { _id: true } },
+            props: { isRoot: true },
+          });
+        for (const label of cluster?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    if (inheritFromDockerHosts && eventWithResources?.dockerHosts?.length) {
+      for (const eventDockerHost of eventWithResources.dockerHosts) {
+        if (!eventDockerHost.id) {
+          continue;
+        }
+        const dockerHost: DockerHost | null =
+          await DockerHostService.findOneById({
+            id: eventDockerHost.id,
+            select: { labels: { _id: true } },
+            props: { isRoot: true },
+          });
+        for (const label of dockerHost?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    if (inheritFromPodmanHosts && eventWithResources?.podmanHosts?.length) {
+      for (const eventPodmanHost of eventWithResources.podmanHosts) {
+        if (!eventPodmanHost.id) {
+          continue;
+        }
+        const podmanHost: PodmanHost | null =
+          await PodmanHostService.findOneById({
+            id: eventPodmanHost.id,
+            select: { labels: { _id: true } },
+            props: { isRoot: true },
+          });
+        for (const label of podmanHost?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    if (inheritFromServices && eventWithResources?.services?.length) {
+      for (const eventService of eventWithResources.services) {
+        if (!eventService.id) {
+          continue;
+        }
+        const service: Service | null = await ServiceService.findOneById({
+          id: eventService.id,
+          select: { labels: { _id: true } },
+          props: { isRoot: true },
+        });
+        for (const label of service?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    // Matched, but the rules add nothing (e.g. inherited from unlabelled monitors).
+    if (labelIdsToAdd.size === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    const eventWithLabels: ScheduledMaintenance | null =
+      await ScheduledMaintenanceService.findOneById({
+        id: scheduledMaintenance.id,
+        select: { labels: { _id: true } },
+        props: { isRoot: true },
+      });
+
+    // The event is gone, so there is nothing left to label.
+    if (!eventWithLabels) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const existingLabelIds: Set<string> = new Set(
+      (eventWithLabels.labels || [])
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id !== "";
+        }),
+    );
+
+    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
+      (id: string) => {
+        return !existingLabelIds.has(id);
+      },
+    );
+    if (newLabelIds.length === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await ScheduledMaintenanceService.getRepository()
+      .createQueryBuilder()
+      .relation(ScheduledMaintenance, "labels")
+      .of(scheduledMaintenance.id.toString())
+      .add(newLabelIds);
+
+    /*
+     * Sync in-memory event.labels with the now-persisted set so any
+     * downstream consumers in the same onCreateSuccess chain see the new
+     * labels.
+     */
+    const mergedLabelIds: Set<string> = new Set([
+      ...existingLabelIds,
+      ...newLabelIds,
+    ]);
+    scheduledMaintenance.labels = Array.from(mergedLabelIds).map(
+      (id: string) => {
+        const label: Label = new Label();
+        label.id = new ObjectID(id);
+        return label;
+      },
+    );
+
+    logger.debug(
+      `ScheduledMaintenanceLabelRuleEngine attached ${newLabelIds.length} labels to event ${scheduledMaintenance.id}`,
+      {
+        projectId: scheduledMaintenance.projectId.toString(),
+      } as LogAttributes,
+    );
+
+    await this.createRuleExecutedFeedItem({
+      scheduledMaintenance,
+      matchedRules,
+      addedLabelIds: newLabelIds,
+    });
+
+    return RuleApplicationResultUtil.updated(newLabelIds.length);
   }
 
   @CaptureSpan()

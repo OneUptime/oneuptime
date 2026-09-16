@@ -110,6 +110,9 @@ import BackfillMonitorBackedDeviceReachability from "./BackfillMonitorBackedDevi
 import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMonitoringMethod";
 import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
 import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
+import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
+import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
+import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -428,6 +431,32 @@ const DataMigrations: Array<DataMigrationBase> = [
    * on clusters, so this is recorded rather than run there.
    */
   new AddSessionReplayVisitorIdColumn(),
+  /*
+   * Issue #3807: secrets typed into dashboard Password fields (TAXII feed
+   * tokens, data source and runner credentials, webhook signing secrets)
+   * were stored inside a '{"_type":"HashedString","value":...}' envelope.
+   * Rewrites each envelope to the string it holds, in SQL, so ciphertexts
+   * move untouched. Idempotent.
+   */
+  new RepairHashedStringEnvelopeSecrets(),
+  /*
+   * Google SecOps moved into Security Event Connections: copies each
+   * GoogleSecOpsConnection (same _id and poller state, key re-encrypted as the
+   * connection's secrets) and its most recent 500 runs, then disables the
+   * legacy row so an old pod stops polling it. The legacy tables stay.
+   * Idempotent.
+   */
+  new MoveGoogleSecOpsConnectionsToSecurityEventConnections(),
+  /*
+   * AuditLog rows gained a root-resource pointer (rootResourceType /
+   * rootResourceId) so a resource's audit page can list its children's
+   * history - the SLO page shows its burn-rate rules, monitor rules and
+   * owners. Rows written before the columns existed point at nothing and
+   * would disappear from those pages; this points each at itself, which is
+   * what current code writes for a top-level resource. Async ON CLUSTER
+   * mutation over NULL pointers only, so it is idempotent.
+   */
+  new BackfillAuditLogRootResource(),
 ];
 
 export default DataMigrations;

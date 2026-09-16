@@ -2,6 +2,9 @@ import DatabaseMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteri
 import EvaluateOverTime, {
   OverTimeCriteriaValue,
 } from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
+import MetricService from "../../../../../Server/Services/MetricService";
+import FindBy from "../../../../../Server/Types/AnalyticsDatabase/FindBy";
+import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import {
   CheckOn,
   CriteriaFilter,
@@ -647,6 +650,184 @@ describe("DatabaseMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       );
 
       expect(result).toBeNull();
+    });
+  });
+
+  /*
+   * The block above mocks the window away, which is how a Database Is Online
+   * filter that never matched once its window filled went unnoticed: the
+   * samples came back as raw 0 / 1, and True / False only match booleans.
+   *
+   * Only the metric read is stubbed here, so the samples go through the real
+   * conversion, coverage check and comparison.
+   */
+  describe("Database Is Online over a recorded window", () => {
+    const NOW: Date = new Date("2026-08-20T12:00:00.000Z");
+
+    let windowSamples: Array<Metric> = [];
+
+    /** Once a minute, oldest first, ending at `now`. */
+    function everyMinute(values: Array<number>): Array<Metric> {
+      return values.map((value: number, index: number) => {
+        const metric: Metric = new Metric();
+        metric.value = value;
+        metric.time = new Date(
+          NOW.getTime() - (values.length - 1 - index) * 60 * 1000,
+        );
+        return metric;
+      });
+    }
+
+    function isOnlineFilter(
+      filterType: FilterType,
+      evaluateOverTimeType: EvaluateOverTimeType = EvaluateOverTimeType.AllValues,
+    ): CriteriaFilter {
+      return {
+        checkOn: CheckOn.DatabaseIsOnline,
+        filterType: filterType,
+        value: undefined,
+        evaluateOverTime: true,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: evaluateOverTimeType,
+        },
+      };
+    }
+
+    function evaluateWindow(input: {
+      isOnline: boolean;
+      criteriaFilter: CriteriaFilter;
+    }): Promise<string | null> {
+      return DatabaseMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: buildDataToProcess({ isOnline: input.isOnline }),
+        criteriaFilter: input.criteriaFilter,
+        monitoringInterval: "* * * * *",
+      });
+    }
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(NOW);
+
+      windowSamples = [];
+
+      jest
+        .spyOn(MetricService, "findBy")
+        .mockImplementation(
+          (_findBy: FindBy<Metric>): Promise<Array<Metric>> => {
+            return Promise.resolve(windowSamples);
+          },
+        );
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    test("a window that was offline throughout fires False", async () => {
+      windowSamples = everyMinute([0, 0, 0, 0, 0]);
+
+      const result: string | null = await evaluateWindow({
+        isOnline: false,
+        criteriaFilter: isOnlineFilter(FilterType.False),
+      });
+
+      expect(result).toContain("All values of");
+      expect(result).toContain(CheckOn.DatabaseIsOnline as string);
+      expect(result).toContain("over the last 5 minutes");
+      expect(result).toContain("is false");
+    });
+
+    test("a window that was offline throughout does not match True", async () => {
+      windowSamples = everyMinute([0, 0, 0, 0, 0]);
+
+      const result: string | null = await evaluateWindow({
+        isOnline: false,
+        criteriaFilter: isOnlineFilter(FilterType.True),
+      });
+
+      expect(result).toBeNull();
+    });
+
+    test("a window that was online throughout matches True", async () => {
+      windowSamples = everyMinute([1, 1, 1, 1, 1]);
+
+      const result: string | null = await evaluateWindow({
+        isOnline: true,
+        criteriaFilter: isOnlineFilter(FilterType.True),
+      });
+
+      expect(result).toContain("All values of");
+      expect(result).toContain(CheckOn.DatabaseIsOnline as string);
+      expect(result).toContain("is true");
+    });
+
+    test("a window that was online throughout does not fire False", async () => {
+      windowSamples = everyMinute([1, 1, 1, 1, 1]);
+
+      const result: string | null = await evaluateWindow({
+        isOnline: true,
+        criteriaFilter: isOnlineFilter(FilterType.False),
+      });
+
+      expect(result).toBeNull();
+    });
+
+    /*
+     * Whichever way this check went, it agrees with one of the two filters,
+     * so a comparison against the live value instead of the window would
+     * show up here.
+     */
+    test("a mixed window matches neither True nor False with All Values", async () => {
+      windowSamples = everyMinute([1, 1, 1, 0, 0]);
+
+      for (const isOnline of [true, false]) {
+        for (const filterType of [FilterType.True, FilterType.False]) {
+          const result: string | null = await evaluateWindow({
+            isOnline: isOnline,
+            criteriaFilter: isOnlineFilter(filterType),
+          });
+
+          expect(result).toBeNull();
+        }
+      }
+    });
+
+    test("Any Value fires False on a single offline sample", async () => {
+      windowSamples = everyMinute([1, 1, 1, 1, 0]);
+
+      const result: string | null = await evaluateWindow({
+        isOnline: false,
+        criteriaFilter: isOnlineFilter(
+          FilterType.False,
+          EvaluateOverTimeType.AnyValue,
+        ),
+      });
+
+      expect(result).toContain("Any value of");
+      expect(result).toContain("is false");
+    });
+
+    /*
+     * The intentional exemption: a window that does not cover the last five
+     * minutes yet falls back to this check, so a monitor that has only just
+     * started can still go offline.
+     */
+    test("a window that is still filling falls back to this check", async () => {
+      windowSamples = everyMinute([0]);
+
+      const whileOffline: string | null = await evaluateWindow({
+        isOnline: false,
+        criteriaFilter: isOnlineFilter(FilterType.False),
+      });
+
+      const whileOnline: string | null = await evaluateWindow({
+        isOnline: true,
+        criteriaFilter: isOnlineFilter(FilterType.False),
+      });
+
+      expect(whileOffline).toContain(CheckOn.DatabaseIsOnline as string);
+      expect(whileOnline).toBeNull();
     });
   });
 

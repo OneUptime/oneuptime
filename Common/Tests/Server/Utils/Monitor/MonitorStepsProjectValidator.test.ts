@@ -1,15 +1,21 @@
 import MonitorStepsProjectValidator from "../../../../Server/Utils/Monitor/MonitorStepsProjectValidator";
 import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
+import IncidentRoleService from "../../../../Server/Services/IncidentRoleService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import LabelService from "../../../../Server/Services/LabelService";
 import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import ServiceService from "../../../../Server/Services/ServiceService";
+import TeamService from "../../../../Server/Services/TeamService";
+import UserService from "../../../../Server/Services/UserService";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
+import IncidentRole from "../../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../../Models/DatabaseModels/Label";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "../../../../Models/DatabaseModels/Team";
+import User from "../../../../Models/DatabaseModels/User";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject, ObjectType } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -57,6 +63,10 @@ const UNKNOWN_ON_CALL_POLICY_ID: string =
 const FOREIGN_LABEL_ID: string = "5127fc38-4d61-4ea3-9e62-b037e5f60718";
 const UNKNOWN_TELEMETRY_SERVICE_ID: string =
   "62380d49-5e72-4fb4-8f73-c148f6071829";
+const OWN_TEAM_ID: string = "7349e15a-6f83-4ac5-9084-d259f718293a";
+const OWN_INCIDENT_ROLE_ID: string = "845af26b-7094-4bd6-8195-e36a08293a4b";
+const USER_ID: string = "956b037c-81a5-4ce7-92a6-f47b193a4b5c";
+const UNKNOWN_USER_ID: string = "a67c148d-92b6-4df8-83b7-058c2a4b5c6d";
 
 const STEP_ID: string = "4b752ccd-92e8-4295-9d33-b670e1721fbb";
 const CRITERIA_ID: string = "5c863dde-a3f9-43a6-8e44-c781f2832acc";
@@ -95,6 +105,35 @@ const label: (id: string, projectId: ObjectID) => Label = (
   return item;
 };
 
+const team: (id: string, projectId: ObjectID) => Team = (
+  id: string,
+  projectId: ObjectID,
+): Team => {
+  const item: Team = new Team();
+  item._id = id;
+  item.name = "Platform";
+  item.projectId = projectId;
+  return item;
+};
+
+const incidentRole: (id: string, projectId: ObjectID) => IncidentRole = (
+  id: string,
+  projectId: ObjectID,
+): IncidentRole => {
+  const item: IncidentRole = new IncidentRole();
+  item._id = id;
+  item.name = "Incident Commander";
+  item.projectId = projectId;
+  return item;
+};
+
+// Users are global: a User has no project to compare against.
+const user: (id: string) => User = (id: string): User => {
+  const item: User = new User();
+  item._id = id;
+  return item;
+};
+
 type FoundRecords = {
   monitorStatuses?: Array<MonitorStatus>;
   incidentSeverities?: Array<IncidentSeverity>;
@@ -102,6 +141,9 @@ type FoundRecords = {
   onCallDutyPolicies?: Array<OnCallDutyPolicy>;
   labels?: Array<Label>;
   telemetryServices?: Array<JSONObject>;
+  teams?: Array<Team>;
+  incidentRoles?: Array<IncidentRole>;
+  users?: Array<User>;
 };
 
 const stubLookups: (found: FoundRecords) => void = (
@@ -123,6 +165,11 @@ const stubLookups: (found: FoundRecords) => void = (
   jest
     .spyOn(ServiceService, "findBy")
     .mockResolvedValue((found.telemetryServices || []) as never);
+  jest.spyOn(TeamService, "findBy").mockResolvedValue(found.teams || []);
+  jest
+    .spyOn(IncidentRoleService, "findBy")
+    .mockResolvedValue(found.incidentRoles || []);
+  jest.spyOn(UserService, "findBy").mockResolvedValue(found.users || []);
 };
 
 const objectIdJSON: (id: string) => JSONObject = (id: string): JSONObject => {
@@ -401,6 +448,95 @@ describe("MonitorStepsProjectValidator", () => {
           projectId: PROJECT_ID,
         }),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  describe("users the criteria name", () => {
+    it("accepts owner users and incident members, which belong to no project", async () => {
+      /*
+       * The shape from a support report: the person creating the monitor made
+       * themselves both an owner and a member of the incidents it opens. User
+       * has no tenant column, so the record is only checked for existing.
+       */
+      stubLookups({
+        monitorStatuses: [monitorStatus(OWN_STATUS_ID, PROJECT_ID)],
+        incidentSeverities: [
+          incidentSeverity(OWN_INCIDENT_SEVERITY_ID, PROJECT_ID),
+        ],
+        teams: [team(OWN_TEAM_ID, PROJECT_ID)],
+        incidentRoles: [incidentRole(OWN_INCIDENT_ROLE_ID, PROJECT_ID)],
+        users: [user(USER_ID)],
+      });
+
+      await expect(
+        MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
+          monitorSteps: steps({
+            defaultMonitorStatusId: OWN_STATUS_ID,
+            criteria: {
+              createIncidents: true,
+              incidents: [
+                {
+                  id: INCIDENT_TEMPLATE_ID,
+                  title: "Down",
+                  description: "",
+                  incidentSeverityId: objectIdJSON(OWN_INCIDENT_SEVERITY_ID),
+                  ownerTeamIds: [objectIdJSON(OWN_TEAM_ID)],
+                  ownerUserIds: [objectIdJSON(USER_ID)],
+                  incidentMemberRoles: [
+                    {
+                      roleId: objectIdJSON(OWN_INCIDENT_ROLE_ID),
+                      userId: objectIdJSON(USER_ID),
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+          projectId: PROJECT_ID,
+        }),
+      ).resolves.toBeUndefined();
+
+      // Owner users and incident members share one User lookup.
+      expect(UserService.findBy).toHaveBeenCalledTimes(1);
+      expect(IncidentRoleService.findBy).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects an incident member who does not exist", () => {
+      stubLookups({
+        monitorStatuses: [monitorStatus(OWN_STATUS_ID, PROJECT_ID)],
+        incidentSeverities: [
+          incidentSeverity(OWN_INCIDENT_SEVERITY_ID, PROJECT_ID),
+        ],
+        incidentRoles: [incidentRole(OWN_INCIDENT_ROLE_ID, PROJECT_ID)],
+      });
+
+      return expect(
+        MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
+          monitorSteps: steps({
+            defaultMonitorStatusId: OWN_STATUS_ID,
+            criteria: {
+              createIncidents: true,
+              incidents: [
+                {
+                  id: INCIDENT_TEMPLATE_ID,
+                  title: "Down",
+                  description: "",
+                  incidentSeverityId: objectIdJSON(OWN_INCIDENT_SEVERITY_ID),
+                  incidentMemberRoles: [
+                    {
+                      roleId: objectIdJSON(OWN_INCIDENT_ROLE_ID),
+                      userId: objectIdJSON(UNKNOWN_USER_ID),
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+          projectId: PROJECT_ID,
+        }),
+      ).rejects.toThrow(
+        `User (criteria "Monitor is offline" incident member) "${UNKNOWN_USER_ID}"`,
+      );
     });
   });
 

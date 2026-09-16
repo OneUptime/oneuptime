@@ -79,7 +79,7 @@ De maximale tijd (in milliseconden) om te wachten op een antwoord van de statusp
 
 #### Nieuwe pogingen
 
-Het aantal keren dat het verzoek opnieuw wordt geprobeerd bij mislukking. Standaard is 3 nieuwe pogingen.
+Het aantal keren dat het verzoek opnieuw wordt geprobeerd nadat de eerste poging mislukt; 0 betekent één enkele poging. Standaard zijn dat 3 nieuwe pogingen, dus maximaal 4 pogingen in totaal.
 
 ## Monitoringcriteria
 

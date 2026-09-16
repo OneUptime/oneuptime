@@ -3594,3 +3594,109 @@ describe("NetworkDeviceDiscoveryScanService: a legacy save leaves the list rebui
     }
   });
 });
+
+/*
+ * The short-device-names toggle (issue #3678) is a NAMING choice, not a sweep
+ * input, and it is deliberately left out of SWEEP_COLUMNS.
+ *
+ * It changes what the scan's hosts are CALLED when they are imported — by the
+ * Review dialog and by the auto-import engine, both of which read it at import
+ * time — and nothing about what the probe asks of any address. The hosts
+ * already on the row are exactly the hosts a sweep with the toggle flipped
+ * would find. Retiring the run on this save would delete a finished result
+ * set (possibly a 24-hour sweep of a /16) to re-find the same hosts, and the
+ * dashboard copy promises the opposite: the toggle applies to the Review
+ * dialog without a rescan.
+ */
+describe("NetworkDeviceDiscoveryScanService: the short-device-names toggle is not a sweep setting", () => {
+  it("reads nothing and writes nothing when only the toggle is turned on", async () => {
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      useShortDeviceNames: true,
+    });
+
+    // The cheap exit: not a sweep column, not a schedule column.
+    expect(lastFindByArgs).toBeNull();
+    expect(writes).toEqual([]);
+  });
+
+  it("reads nothing and writes nothing when only the toggle is turned off", async () => {
+    storedScans = [storedScan()];
+    (storedScans[0] as unknown as Record<string, unknown>)[
+      "useShortDeviceNames"
+    ] = true;
+
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      useShortDeviceNames: false,
+    });
+
+    expect(lastFindByArgs).toBeNull();
+    expect(writes).toEqual([]);
+  });
+
+  /*
+   * Handed back as the SAME updateBy with no carry-forward, the pass-through
+   * the hook-free writers depend on — a toggle-only payload must look to this
+   * hook exactly like a rename.
+   */
+  it("passes a toggle-only update through untouched", async () => {
+    const updateBy: UpdateBy<NetworkDeviceDiscoveryScan> = makeUpdateBy({
+      useShortDeviceNames: true,
+    });
+
+    const result: { updateBy: unknown; carryForward: unknown } =
+      (await onBeforeUpdate(updateBy)) as {
+        updateBy: unknown;
+        carryForward: unknown;
+      };
+
+    expect(result.carryForward).toBeNull();
+    expect(result.updateBy).toBe(updateBy);
+    expect(Object.keys(updateBy.data)).toEqual(["useShortDeviceNames"]);
+  });
+
+  /*
+   * What the Edit dialog really sends: every declared field, the toggle
+   * flipped and nothing else changed. The sweep columns ride along, so the
+   * hook DOES read the stored row here — and must conclude nothing changed.
+   */
+  it("does not retire the run when the whole form is re-posted with only the toggle flipped", async () => {
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      ...unchangedSave(),
+      useShortDeviceNames: true,
+    });
+
+    expect(writes).toEqual([]);
+  });
+
+  /*
+   * A sweep still in flight is the expensive case: retiring it would abandon
+   * the run and throw away the partial results already uploaded.
+   */
+  it("does not abandon a run that is still in progress when the toggle is flipped", async () => {
+    storedScans = [storedScan({ status: "In Progress" })];
+
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      ...unchangedSave(),
+      useShortDeviceNames: true,
+    });
+
+    expect(writes).toEqual([]);
+  });
+
+  /*
+   * And the toggle does not mask a real change saved alongside it: the
+   * comparison is per sweep column, so a new target in the same save still
+   * retires the run.
+   */
+  it("still retires the run when a sweep setting changes in the same save", async () => {
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      ...unchangedSave(),
+      useShortDeviceNames: true,
+      cidr: "10.0.0.0/24",
+    });
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.data["status"]).toBe("Pending");
+    expect(writes[0]!.data["discoveredDevices"]).toBeNull();
+  });
+});

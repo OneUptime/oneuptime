@@ -212,11 +212,15 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       };
     });
 
+  /*
+   * A true/false filter (Is Online and the like) saved with an aggregate is
+   * judged as All Values, so show that rather than a blank dropdown.
+   */
   const evaluateOverTimeTypeValue: DropdownOption | undefined =
     evalOverTimeDropdownOptions.find((item: DropdownOption) => {
       return (
         item.value ===
-        criteriaFilter?.evaluateOverTimeOptions?.evaluateOverTimeType
+        CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(criteriaFilter)
       );
     });
 

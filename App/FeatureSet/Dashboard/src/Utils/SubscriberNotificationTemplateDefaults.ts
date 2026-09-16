@@ -130,6 +130,9 @@ const manageSubscriptionDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Slack]: {
     body: `You have selected to manage your subscription for the status page: {{statusPageName}}. You can manage your subscription here: {{manageSubscriptionUrl}}`,
   },
+  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `You have selected to manage your subscription for the status page: {{statusPageName}}. You can manage your subscription here: {{manageSubscriptionUrl}}`,
+  },
 };
 
 const incidentCreatedDefaults: EventDefaults = {
@@ -309,6 +312,69 @@ const incidentNoteCreatedDefaults: EventDefaults = {
   },
 };
 
+const incidentNoteUpdatedDefaults: EventDefaults = {
+  [StatusPageSubscriberNotificationMethod.Email]: {
+    subject: "Incident Note Updated: {{incidentTitle}}",
+    body: buildEmailHtml({
+      title: "Incident: {{incidentTitle}}",
+      intro:
+        "A note on this incident has been updated. Here is the latest version:",
+      fields: [
+        { label: "Incident Title", value: "{{incidentTitle}}" },
+        { label: "Resources Affected", value: "{{resourcesAffected}}" },
+        { label: "Severity", value: "{{incidentSeverity}}" },
+        { label: "Updated Note", value: "{{note}}" },
+      ],
+      buttonUrl: "{{detailsUrl}}",
+      buttonText: "View Incident Details",
+    }),
+  },
+  [StatusPageSubscriberNotificationMethod.SMS]: {
+    body: `Incident update: {{incidentTitle}} on {{statusPageName}}. A note has been updated. Details: {{detailsUrl}}. Unsub: {{unsubscribeUrl}}`,
+  },
+  [StatusPageSubscriberNotificationMethod.Slack]: {
+    body: `## Incident - {{incidentTitle}}
+
+**A note on this incident has been updated**
+
+**Resources Affected:** {{resourcesAffected}}
+**Severity:** {{incidentSeverity}}
+
+**Note:**
+{{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## Incident - {{incidentTitle}}
+
+**A note on this incident has been updated**
+
+**Resources Affected:** {{resourcesAffected}}
+**Severity:** {{incidentSeverity}}
+
+**Note:**
+{{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Webhook]: {
+    body: `{
+  "event": "incident.noteUpdated",
+  "statusPage": "{{statusPageName}}",
+  "statusPageUrl": "{{statusPageUrl}}",
+  "incident": {
+    "title": "{{incidentTitle}}",
+    "severity": "{{incidentSeverity}}",
+    "resourcesAffected": "{{resourcesAffected}}",
+    "detailsUrl": "{{detailsUrl}}"
+  },
+  "note": "{{note}}",
+  "unsubscribeUrl": "{{unsubscribeUrl}}"
+}`,
+  },
+};
+
 const incidentPostmortemPublishedDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Email]: {
     subject: "Postmortem Published: {{incidentTitle}}",
@@ -398,6 +464,53 @@ const announcementCreatedDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Webhook]: {
     body: `{
   "event": "announcement.created",
+  "statusPage": "{{statusPageName}}",
+  "statusPageUrl": "{{statusPageUrl}}",
+  "announcement": {
+    "title": "{{announcementTitle}}",
+    "description": "{{announcementDescription}}",
+    "detailsUrl": "{{detailsUrl}}"
+  },
+  "unsubscribeUrl": "{{unsubscribeUrl}}"
+}`,
+  },
+};
+
+const announcementUpdatedDefaults: EventDefaults = {
+  [StatusPageSubscriberNotificationMethod.Email]: {
+    subject: "📢 Announcement Updated: {{announcementTitle}}",
+    body: buildEmailHtml({
+      title: "📢 Announcement Updated: {{announcementTitle}}",
+      intro:
+        "An announcement on {{statusPageName}} has been updated. Here is the latest version.",
+      fields: [
+        { label: "Announcement", value: "{{announcementTitle}}" },
+        { label: "Details", value: "{{announcementDescription}}" },
+      ],
+      buttonUrl: "{{detailsUrl}}",
+      buttonText: "View Announcement",
+    }),
+  },
+  [StatusPageSubscriberNotificationMethod.SMS]: {
+    body: `Announcement updated: {{announcementTitle}} on {{statusPageName}}. Details: {{detailsUrl}}. Unsub: {{unsubscribeUrl}}`,
+  },
+  [StatusPageSubscriberNotificationMethod.Slack]: {
+    body: `## 📢 Announcement Updated - {{announcementTitle}}
+
+**Description:** {{announcementDescription}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## 📢 Announcement Updated - {{announcementTitle}}
+
+**Description:** {{announcementDescription}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Webhook]: {
+    body: `{
+  "event": "announcement.updated",
   "statusPage": "{{statusPageName}}",
   "statusPageUrl": "{{statusPageUrl}}",
   "announcement": {
@@ -591,6 +704,63 @@ const scheduledMaintenanceNoteCreatedDefaults: EventDefaults = {
   },
 };
 
+const scheduledMaintenanceNoteUpdatedDefaults: EventDefaults = {
+  [StatusPageSubscriberNotificationMethod.Email]: {
+    subject:
+      "Scheduled Maintenance Note Updated: {{scheduledMaintenanceTitle}}",
+    body: buildEmailHtml({
+      title: "Scheduled Maintenance: {{scheduledMaintenanceTitle}}",
+      intro:
+        "A note on this scheduled event has been updated. Here is the latest version:",
+      fields: [
+        { label: "Event Title", value: "{{scheduledMaintenanceTitle}}" },
+        { label: "Updated Note", value: "{{note}}" },
+      ],
+      buttonUrl: "{{detailsUrl}}",
+      buttonText: "View Maintenance Details",
+    }),
+  },
+  [StatusPageSubscriberNotificationMethod.SMS]: {
+    body: `Maintenance note updated: {{scheduledMaintenanceTitle}} on {{statusPageName}}. Details: {{detailsUrl}}. Unsub: {{unsubscribeUrl}}`,
+  },
+  [StatusPageSubscriberNotificationMethod.Slack]: {
+    body: `## Scheduled Maintenance Update - {{statusPageName}}
+
+**Event:** {{scheduledMaintenanceTitle}}
+
+**Note Updated**
+
+**Note:** {{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## Scheduled Maintenance Update - {{statusPageName}}
+
+**Event:** {{scheduledMaintenanceTitle}}
+
+**Note Updated**
+
+**Note:** {{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Webhook]: {
+    body: `{
+  "event": "scheduledMaintenance.noteUpdated",
+  "statusPage": "{{statusPageName}}",
+  "statusPageUrl": "{{statusPageUrl}}",
+  "scheduledMaintenance": {
+    "title": "{{scheduledMaintenanceTitle}}",
+    "detailsUrl": "{{detailsUrl}}"
+  },
+  "note": "{{note}}",
+  "postedAt": "{{postedAt}}",
+  "unsubscribeUrl": "{{unsubscribeUrl}}"
+}`,
+  },
+};
+
 const episodeCreatedDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Email]: {
     subject: "New Incident: {{episodeTitle}}",
@@ -765,6 +935,69 @@ const episodeNoteCreatedDefaults: EventDefaults = {
   },
 };
 
+const episodeNoteUpdatedDefaults: EventDefaults = {
+  [StatusPageSubscriberNotificationMethod.Email]: {
+    subject: "Incident Note Updated: {{episodeTitle}}",
+    body: buildEmailHtml({
+      title: "Incident: {{episodeTitle}}",
+      intro:
+        "A note on this incident has been updated. Here is the latest version:",
+      fields: [
+        { label: "Incident Title", value: "{{episodeTitle}}" },
+        { label: "Resources Affected", value: "{{resourcesAffected}}" },
+        { label: "Severity", value: "{{episodeSeverity}}" },
+        { label: "Updated Note", value: "{{note}}" },
+      ],
+      buttonUrl: "{{detailsUrl}}",
+      buttonText: "View Incident Details",
+    }),
+  },
+  [StatusPageSubscriberNotificationMethod.SMS]: {
+    body: `Incident update: {{episodeTitle}} on {{statusPageName}}. A note has been updated. Details: {{detailsUrl}}. Unsub: {{unsubscribeUrl}}`,
+  },
+  [StatusPageSubscriberNotificationMethod.Slack]: {
+    body: `## Incident - {{episodeTitle}}
+
+**A note on this incident has been updated**
+
+**Resources Affected:** {{resourcesAffected}}
+**Severity:** {{episodeSeverity}}
+
+**Note:**
+{{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
+    body: `## Incident - {{episodeTitle}}
+
+**A note on this incident has been updated**
+
+**Resources Affected:** {{resourcesAffected}}
+**Severity:** {{episodeSeverity}}
+
+**Note:**
+{{note}}
+
+[View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
+  },
+  [StatusPageSubscriberNotificationMethod.Webhook]: {
+    body: `{
+  "event": "episode.noteUpdated",
+  "statusPage": "{{statusPageName}}",
+  "statusPageUrl": "{{statusPageUrl}}",
+  "episode": {
+    "title": "{{episodeTitle}}",
+    "severity": "{{episodeSeverity}}",
+    "resourcesAffected": "{{resourcesAffected}}",
+    "detailsUrl": "{{detailsUrl}}"
+  },
+  "note": "{{note}}",
+  "unsubscribeUrl": "{{unsubscribeUrl}}"
+}`,
+  },
+};
+
 /*
  * The recurring report is the one subscriber notification rendered through the
  * real Handlebars engine (templateType omitted on the notification side), so
@@ -917,22 +1150,30 @@ const defaultsByEvent: Record<
     incidentStateChangedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated]:
     incidentNoteCreatedDefaults,
+  [StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated]:
+    incidentNoteUpdatedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished]:
     incidentPostmortemPublishedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated]:
     announcementCreatedDefaults,
+  [StatusPageSubscriberNotificationEventType.SubscriberAnnouncementUpdated]:
+    announcementUpdatedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated]:
     scheduledMaintenanceCreatedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged]:
     scheduledMaintenanceStateChangedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated]:
     scheduledMaintenanceNoteCreatedDefaults,
+  [StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated]:
+    scheduledMaintenanceNoteUpdatedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberEpisodeCreated]:
     episodeCreatedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberEpisodeStateChanged]:
     episodeStateChangedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated]:
     episodeNoteCreatedDefaults,
+  [StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteUpdated]:
+    episodeNoteUpdatedDefaults,
   [StatusPageSubscriberNotificationEventType.SubscriberReport]: reportDefaults,
 };
 

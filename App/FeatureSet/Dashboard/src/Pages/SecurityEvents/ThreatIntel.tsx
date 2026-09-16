@@ -92,7 +92,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
   /*
    * The rotate-credential action writes through ModelAPI directly, which
    * ModelTable's own edit gating never sees — same discipline as the
-   * Google SecOps connections page.
+   * Security Event Connections table's Update credentials action.
    */
   const updateGate: PermissionGateResult = PermissionGate.check(
     new ThreatIntelFeed(),

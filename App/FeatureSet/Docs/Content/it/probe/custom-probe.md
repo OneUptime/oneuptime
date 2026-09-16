@@ -205,7 +205,7 @@ Il probe supporta le seguenti variabili d'ambiente:
 - `PROBE_DESCRIPTION` - Descrizione per il probe
 - `PROBE_MONITORING_WORKERS` - Numero di worker di monitoraggio (predefinito: 1)
 - `PROBE_MONITOR_FETCH_LIMIT` - Numero di monitor da recuperare alla volta (predefinito: 10)
-- `PROBE_MONITOR_RETRY_LIMIT` - Numero di tentativi per monitor falliti (predefinito: 3)
+- `PROBE_MONITOR_RETRY_LIMIT` - Tentativi dopo il primo per un controllo fallito, usato quando uno step non imposta il proprio numero di tentativi (predefinito: 3, quindi fino a 4 tentativi)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout per gli script dei monitor sintetici in millisecondi (predefinito: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout per gli script dei monitor codice personalizzato in millisecondi (predefinito: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Tempo limite per ogni richiesta che il probe invia a OneUptime (predefinito: 45000)

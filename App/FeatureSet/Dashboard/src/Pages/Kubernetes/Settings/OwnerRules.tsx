@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -32,11 +34,24 @@ When a rule matches, every user and team listed on the rule is added as an owner
 `;
 
 const KubernetesClusterOwnerRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+  RuleSettingsPageProps
+> = (props: RuleSettingsPageProps): ReactElement => {
   return (
-    <ModelTable<KubernetesClusterOwnerRule>
+    <RuleTable<KubernetesClusterOwnerRule>
       modelType={KubernetesClusterOwnerRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(
+        props,
+        KubernetesClusterOwnerRule,
+      )}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.KUBERNETES_SETTINGS_OWNER_RULES,
+      )}
+      getRuleViewRoute={(rule: KubernetesClusterOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.KUBERNETES_SETTINGS_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="kubernetesCluster-owner-rules-table"
       name="Settings > Kubernetes Cluster Owner Rules"
       userPreferencesKey="kubernetesCluster-owner-rules-table"
@@ -89,7 +104,6 @@ const KubernetesClusterOwnerRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

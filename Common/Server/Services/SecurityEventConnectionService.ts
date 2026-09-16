@@ -59,6 +59,13 @@ export class Service extends DatabaseService<Model> {
    * Keys are the catalog's; values are strings, numbers or booleans. Unknown
    * keys are rejected rather than stored, so a typo in a field key cannot
    * silently become "the setting was never provided".
+   *
+   * A "json" field (a Google Cloud service-account key) holds the JSON
+   * document as the text that was pasted. It must parse to an object, so a
+   * truncated paste is a form error rather than a poll that fails forever,
+   * but it is stored and handed to the connector as that string, never as
+   * a parsed object: the secrets blob only holds scalar values and the
+   * connector parses the document itself.
    */
   public static validateFields(data: {
     definition: SecurityEventConnectorDefinition;
@@ -67,20 +74,38 @@ export class Service extends DatabaseService<Model> {
     label: string;
     requireRequiredFields: boolean;
   }): void {
-    const knownKeys: Set<string> = new Set(
-      data.fields.map((field: ConnectorField): string => {
-        return field.key;
+    const fieldsByKey: Map<string, ConnectorField> = new Map(
+      data.fields.map((field: ConnectorField): [string, ConnectorField] => {
+        return [field.key, field];
       }),
     );
 
     for (const key of Object.keys(data.values)) {
-      if (!knownKeys.has(key)) {
+      const field: ConnectorField | undefined = fieldsByKey.get(key);
+
+      if (!field) {
         throw new BadDataException(
           `${data.label} contains an unknown setting "${key}" for ${data.definition.title}.`,
         );
       }
 
       const value: JSONValue = data.values[key] as JSONValue;
+
+      if (
+        field.type === "json" &&
+        value !== null &&
+        value !== undefined &&
+        typeof value === "object"
+      ) {
+        /*
+         * An API client, or a form that converted its editor's text, sent
+         * the document already parsed. "Must be a JSON object" would read
+         * as nonsense for an object, so name the shape that is expected.
+         */
+        throw new BadDataException(
+          `${field.title} must be sent as JSON text (a string), not as a parsed object.`,
+        );
+      }
 
       if (
         value !== null &&
@@ -138,6 +163,10 @@ export class Service extends DatabaseService<Model> {
         throw new BadDataException(`${field.title} must be true or false.`);
       }
 
+      if (field.type === "json" && !Service.isJsonObjectText(raw)) {
+        throw new BadDataException(`${field.title} must be a JSON object.`);
+      }
+
       if (field.type === "url") {
         let parsed: URL;
 
@@ -162,6 +191,29 @@ export class Service extends DatabaseService<Model> {
         }
       }
     }
+  }
+
+  /*
+   * True for text that parses to a JSON object. An array, a scalar or text
+   * that is not JSON at all cannot be a service-account key, and neither
+   * can a value that is not text (see validateFields).
+   */
+  private static isJsonObjectText(value: unknown): boolean {
+    if (typeof value !== "string") {
+      return false;
+    }
+
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return false;
+    }
+
+    return (
+      Boolean(parsed) && typeof parsed === "object" && !Array.isArray(parsed)
+    );
   }
 
   /*

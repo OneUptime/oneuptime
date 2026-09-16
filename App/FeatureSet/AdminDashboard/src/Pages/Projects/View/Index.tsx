@@ -12,6 +12,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import SideMenuComponent from "./SideMenu";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import DataResidencyUtil from "Common/Utils/Project/DataResidency";
 
 const Projects: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -87,6 +89,60 @@ const Projects: FunctionComponent = (): ReactElement => {
             modelId: modelId,
           }}
         />
+
+        {/*
+         * Data residency is a SaaS concept - a self-hosted install is wherever
+         * its operator put it, and the server refuses a value when billing is
+         * off - so the card is not offered there at all.
+         */}
+        {BILLING_ENABLED ? (
+          <CardModelDetail<Project>
+            name="Project Data Residency"
+            modelAPI={AdminModelAPI}
+            cardProps={{
+              title: t("pages.projectView.dataResidencyCardTitle"),
+              description: t("pages.projectView.dataResidencyCardDescription"),
+            }}
+            isEditable={true}
+            editButtonText={t("pages.projectView.dataResidencyEditButton")}
+            formFields={[
+              {
+                field: {
+                  dataResidency: true,
+                },
+                title: t("pages.projectView.dataResidencyFieldTitle"),
+                description: t(
+                  "pages.projectView.dataResidencyFieldDescription",
+                ),
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                placeholder: t(
+                  "pages.projectView.dataResidencyFieldPlaceholder",
+                ),
+                validation: {
+                  maxLength: DataResidencyUtil.MAX_LENGTH,
+                },
+              },
+            ]}
+            modelDetailProps={{
+              modelType: Project,
+              id: "model-detail-project-data-residency",
+              fields: [
+                {
+                  field: {
+                    dataResidency: true,
+                  },
+                  title: t("pages.projectView.dataResidencyFieldTitle"),
+                  fieldType: FieldType.Text,
+                  placeholder: t("pages.projectView.dataResidencyNotSet"),
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
+        ) : (
+          <></>
+        )}
       </div>
     </ModelPage>
   );

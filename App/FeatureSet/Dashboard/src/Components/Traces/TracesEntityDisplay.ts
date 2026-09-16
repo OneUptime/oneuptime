@@ -40,18 +40,10 @@ import {
 } from "./TracesSearchCompile";
 import { getAttributeDisplayName } from "../Logs/LogsAttributeFilterChips";
 import { LockedFilterDetail } from "Common/Types/Telemetry/LockedFilterDetail";
-/*
- * The PURE describers only. Their route-aware sibling
- * (Utils/LockedTelemetryScopeLink) reads `window` at load through RouteMap
- * and must never be imported here: this module's suite runs in plain Node.
- */
 import {
   ENTITY_KEYS_FACET_KEY,
-  LOCKED_FILTER_SOURCE_STORED_QUERY,
   describeLockedEntityFilter,
-  describeLockedSpanFilter,
   describeLockedStoredQueryFilter,
-  describeLockedTraceFilter,
 } from "../../Utils/LockedTelemetryScope";
 import {
   LockedEntityKeyDisplayMap,
@@ -435,9 +427,9 @@ type BuildLockedAttributeChipFunction = (
  * function ARN — while already holding the resource's friendly name, so the
  * chip shows that name. The filter value itself is untouched.
  *
- * Label only. The chip's explanation (its LockedFilterDetail) is attached by
- * the viewer, next to the entity scope only the viewer knows; the display
- * rules here stay independent of what the tooltip says.
+ * Label only. The viewer attaches the chip's search syntax (its
+ * LockedFilterDetail) from the same key and value, just as it does for the
+ * entity and stored-query chips once their labels are resolved.
  */
 export const buildLockedAttributeChip: BuildLockedAttributeChipFunction = (
   data: BuildLockedAttributeChipInput,
@@ -458,90 +450,25 @@ export const buildLockedAttributeChip: BuildLockedAttributeChipFunction = (
   };
 };
 
-/** The shape of a host page's `entityScope` prop. */
-export interface AttributeEntityScope {
-  entityKeys: Array<string>;
-  attributeKey: string;
-  attributeValue: string;
-}
-
-type EntityScopeForAttributeKeyFunction = (
-  entityScope: AttributeEntityScope | undefined,
-  attributeKey: string,
-) => AttributeEntityScope | undefined;
-
-/**
- * The host's entity scope, but only for the chip whose attribute it names.
- *
- * A page can pin several attributes while its entity key belongs to exactly
- * one of them — a Docker host's Logs tab pins the host name AND the container
- * runtime, and only the host name has an entity key behind it. Attaching the
- * scope to every chip would have the runtime chip claim an entity-key match
- * the query never makes for it.
- */
-export const entityScopeForAttributeKey: EntityScopeForAttributeKeyFunction = (
-  entityScope: AttributeEntityScope | undefined,
-  attributeKey: string,
-): AttributeEntityScope | undefined => {
-  if (!entityScope || entityScope.attributeKey !== attributeKey) {
-    return undefined;
-  }
-
-  return entityScope;
-};
-
-export interface StoredQueryChipContext {
-  /*
-   * Columns whose single stored value the viewer compiles as a SUBSTRING
-   * match — `name` when the scope carries `spanNameSearch`, `statusMessage`
-   * for `statusMessageSearch` (a trace monitor stores `new Search(name)`,
-   * and the viewer mirrors that for one value). The chip cannot tell this
-   * from its value alone; the scope that produced it can.
-   */
-  substringColumns?: ReadonlySet<string> | undefined;
-}
-
 type DescribeStoredQueryChipFunction = (
   chip: ActiveFilter,
-  context?: StoredQueryChipContext | undefined,
 ) => LockedFilterDetail;
 
 /**
- * What a chip derived from the host's stored span query (an incident, alert
- * or monitor snapshot) says about itself. The columns with a search token
- * (trace, span, the entity id) get the same explanation a page-pinned chip
- * would, under the stored-query source line; everything else — a status, a
- * kind, an attribute the query pinned — is explained as the predicate it is.
- * Reads the RESOLVED chip so the entity label and value are the ones the
- * chip shows, not the "Service"/id seed the scope started with.
+ * The search syntax of a chip derived from the host's stored span query (an
+ * incident, alert or monitor snapshot). An entity-id chip — under either
+ * alias — gets the same token (or reason) a page-pinned entity chip would;
+ * every other column — a trace or span id, a status, a kind, an attribute
+ * the query pinned — gets the traces grammar's token for its column and
+ * value, or the generic reason when there is none.
  */
 export const describeStoredQueryChip: DescribeStoredQueryChipFunction = (
   chip: ActiveFilter,
-  context?: StoredQueryChipContext | undefined,
 ): LockedFilterDetail => {
-  if (chip.facetKey === "traceId") {
-    return describeLockedTraceFilter({
-      signal: "traces",
-      traceId: chip.value,
-      source: LOCKED_FILTER_SOURCE_STORED_QUERY,
-    });
-  }
-
-  if (chip.facetKey === "spanId") {
-    return describeLockedSpanFilter({
-      signal: "traces",
-      spanId: chip.value,
-      source: LOCKED_FILTER_SOURCE_STORED_QUERY,
-    });
-  }
-
   if (TRACE_ENTITY_FACET_KEYS.has(chip.facetKey)) {
     return describeLockedEntityFilter({
       signal: "traces",
-      entityTypeLabel: chip.displayKey,
       id: chip.value,
-      name: chip.displayValue,
-      source: LOCKED_FILTER_SOURCE_STORED_QUERY,
     });
   }
 
@@ -549,11 +476,6 @@ export const describeStoredQueryChip: DescribeStoredQueryChipFunction = (
     signal: "traces",
     facetKey: chip.facetKey,
     value: chip.value,
-    displayKey: chip.displayKey,
-    displayValue: chip.displayValue,
-    matches: context?.substringColumns?.has(chip.facetKey)
-      ? "contains"
-      : "equals",
   });
 };
 
@@ -562,13 +484,6 @@ export interface BuildTracesLockedEntityKeyChipsInput {
   entityKeysFilter: ReadonlyArray<string> | undefined;
   /** How the page names each key; a key without an entry reads "Resource". */
   displays?: LockedEntityKeyDisplayMap | undefined;
-  /*
-   * The stored span query's entity keys (`spanScope.entityKeys`). The query
-   * unions them with the page's keys into ONE `hasAny`, so they widen the
-   * page's scope, and each page chip has to count them among the "other
-   * resources" rather than read as the only key that matches.
-   */
-  storedQueryEntityKeys?: ReadonlyArray<string> | undefined;
   /*
    * The locked chips already on the bar. A key one of them shows (the stored
    * query's own "Resource: <key>" chip) is not shown twice: the chip bar keys
@@ -588,12 +503,12 @@ type BuildTracesLockedEntityKeyChipsFunction = (
  * used to show an empty chip bar above it.
  *
  * Only `entityKeysFilter` yields chips. A Kubernetes / Host page's
- * `entityScope` is explained by its attribute chip, and a stored query's keys
- * already have their own chips, so neither is read here as a source of chips.
- * The duplicate check reads the chips the viewer has ALREADY built, not the
- * stored scope, because the viewer can withhold a stored chip (a column the
- * user filtered themselves); a page key must stay visible then, since the
- * query still applies it.
+ * `entityScope` is represented by its attribute chip, and a stored query's
+ * keys already have their own chips, so neither is read here as a source of
+ * chips. The duplicate check reads the chips the viewer has ALREADY built,
+ * not the stored scope, because the viewer can withhold a stored chip (a
+ * column the user filtered themselves); a page key must stay visible then,
+ * since the query still applies it.
  *
  * Display only: the query unions the keys on its own.
  */
@@ -603,13 +518,10 @@ export const buildTracesLockedEntityKeyChips: BuildTracesLockedEntityKeyChipsFun
       input.entityKeysFilter,
     );
 
+    // No page keys, no chips — the locked chips need not be read at all.
     if (pageEntityKeys.length === 0) {
       return [];
     }
-
-    const storedEntityKeys: Array<string> = normalizeLockedEntityKeys(
-      input.storedQueryEntityKeys,
-    );
 
     const shownEntityKeys: Array<string> = [];
 
@@ -619,22 +531,11 @@ export const buildTracesLockedEntityKeyChips: BuildTracesLockedEntityKeyChipsFun
       }
     }
 
-    /*
-     * A key only the stored query pins is in `entityKeys` so the page chips
-     * count it, and in the skip list so it never gets a page chip ("Pinned by
-     * this page") of its own.
-     */
-    const storedOnlyEntityKeys: Array<string> = storedEntityKeys.filter(
-      (entityKey: string): boolean => {
-        return !pageEntityKeys.includes(entityKey);
-      },
-    );
-
     return buildLockedEntityKeyChips({
       rows: "traces",
-      entityKeys: [...pageEntityKeys, ...storedOnlyEntityKeys],
+      entityKeys: pageEntityKeys,
       displays: input.displays,
-      skipEntityKeys: [...shownEntityKeys, ...storedOnlyEntityKeys],
+      skipEntityKeys: shownEntityKeys,
     });
   };
 

@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -28,12 +30,25 @@ A rule matches a Proxmox cluster only when **all** specified criteria pass. Empt
 When a rule matches, every label listed in \`Labels to Add\` is attached to the Proxmox cluster. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
 `;
 
-const ProxmoxClusterLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const ProxmoxClusterLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
     <LabelRuleTable<ProxmoxClusterLabelRule>
       modelType={ProxmoxClusterLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(
+        props,
+        ProxmoxClusterLabelRule,
+      )}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.PROXMOX_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: ProxmoxClusterLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.PROXMOX_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="proxmoxCluster-label-rules-table"
       name="Settings > Proxmox Cluster Label Rules"
       userPreferencesKey="proxmoxCluster-label-rules-table"
@@ -85,7 +100,6 @@ const ProxmoxClusterLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

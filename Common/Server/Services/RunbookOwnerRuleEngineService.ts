@@ -8,13 +8,43 @@ import RunbookOwnerUserService from "./RunbookOwnerUserService";
 import RunbookOwnerTeamService from "./RunbookOwnerTeamService";
 import RunbookService from "./RunbookService";
 import ObjectID from "../../Types/ObjectID";
+import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import OwnerRuleAssignment, {
+  OwnersToAssign,
+} from "../Utils/Rules/OwnerRuleAssignment";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class RunbookOwnerRuleEngineServiceClass {
+class RunbookOwnerRuleEngineServiceClass
+  implements RuleRunEngine<Runbook, RunbookOwnerRule>
+{
+  public readonly ruleSelect: Select<RunbookOwnerRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    notifyOwners: true,
+    runbookLabels: { _id: true },
+    runbookNamePattern: true,
+    runbookDescriptionPattern: true,
+    ownerUsers: { _id: true },
+    ownerTeams: { _id: true },
+  };
+
+  // Evaluation re-reads the runbook, so a run only has to name it.
+  public readonly resourceSelectForRuleRun: Select<Runbook> = {
+    _id: true,
+    projectId: true,
+  };
+
   /**
    * Evaluates RunbookOwnerRule rows for the given runbook and adds matched
    * owner users / teams via RunbookOwnerUserService / RunbookOwnerTeamService. Rules
@@ -35,17 +65,7 @@ class RunbookOwnerRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            notifyOwners: true,
-            runbookLabels: { _id: true },
-            runbookNamePattern: true,
-            runbookDescriptionPattern: true,
-            ownerUsers: { _id: true },
-            ownerTeams: { _id: true },
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -60,102 +80,203 @@ class RunbookOwnerRuleEngineServiceClass {
         return;
       }
 
-      const runbookWithDetails: Runbook | null =
-        await RunbookService.findOneById({
-          id: runbook.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
-
-      if (!runbookWithDetails) {
-        return;
-      }
-
-      const usersByNotify: Map<boolean, Set<string>> = new Map([
-        [true, new Set()],
-        [false, new Set()],
-      ]);
-      const teamsByNotify: Map<boolean, Set<string>> = new Map([
-        [true, new Set()],
-        [false, new Set()],
-      ]);
-
-      const matchedRules: Array<RunbookOwnerRule> = [];
-
-      for (const rule of rules) {
-        const matches: boolean = this.doesRunbookMatchRule(
-          runbookWithDetails,
-          rule,
-        );
-        if (!matches) {
-          continue;
-        }
-        let ruleAddedAny: boolean = false;
-        const notify: boolean = rule.notifyOwners !== false;
-        for (const user of rule.ownerUsers || []) {
-          if (user.id) {
-            usersByNotify.get(notify)!.add(user.id.toString());
-            ruleAddedAny = true;
-          }
-        }
-        for (const team of rule.ownerTeams || []) {
-          if (team.id) {
-            teamsByNotify.get(notify)!.add(team.id.toString());
-            ruleAddedAny = true;
-          }
-        }
-        if (ruleAddedAny) {
-          matchedRules.push(rule);
-        }
-      }
-
-      if (matchedRules.length === 0) {
-        return;
-      }
-
-      for (const notify of [true, false]) {
-        const userIds: Set<string> = usersByNotify.get(notify)!;
-        const teamIds: Set<string> = teamsByNotify.get(notify)!;
-
-        for (const userId of userIds) {
-          const owner: RunbookOwnerUser = new RunbookOwnerUser();
-          owner.runbookId = runbook.id;
-          owner.projectId = runbook.projectId;
-          owner.userId = new ObjectID(userId);
-          owner.isOwnerNotified = !notify;
-          await RunbookOwnerUserService.create({
-            data: owner,
-            props: { isRoot: true },
-          });
-        }
-
-        for (const teamId of teamIds) {
-          const owner: RunbookOwnerTeam = new RunbookOwnerTeam();
-          owner.runbookId = runbook.id;
-          owner.projectId = runbook.projectId;
-          owner.teamId = new ObjectID(teamId);
-          owner.isOwnerNotified = !notify;
-          await RunbookOwnerTeamService.create({
-            data: owner,
-            props: { isRoot: true },
-          });
-        }
-      }
-
-      logger.debug(
-        `RunbookOwnerRuleEngine added owners to runbook ${runbook.id}`,
-        { projectId: runbook.projectId.toString() } as LogAttributes,
-      );
+      await this.applyRules({
+        runbook: runbook,
+        rules: rules,
+        allowOwnerNotification: true,
+      });
     } catch (error) {
       logger.error(`Error applying runbook owner rules: ${error}`, {
         projectId: runbook.projectId?.toString(),
         runbookId: runbook.id?.toString(),
       } as LogAttributes);
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for a runbook that already exists and
+   * only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<Runbook, RunbookOwnerRule>,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        runbook: data.resource,
+        rules: data.rules,
+        allowOwnerNotification: data.allowOwnerNotification,
+      });
+    } catch (error) {
+      logger.error(`Error running runbook owner rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        runbookId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    runbook: Runbook;
+    rules: Array<RunbookOwnerRule>;
+    allowOwnerNotification: boolean;
+  }): Promise<RuleApplicationResult> {
+    const { runbook, rules } = data;
+
+    if (!runbook.id || !runbook.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const runbookWithDetails: Runbook | null = await RunbookService.findOneById(
+      {
+        id: runbook.id,
+        select: {
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+        props: { isRoot: true },
+      },
+    );
+
+    if (!runbookWithDetails) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const usersByNotify: Map<boolean, Set<string>> = new Map([
+      [true, new Set()],
+      [false, new Set()],
+    ]);
+    const teamsByNotify: Map<boolean, Set<string>> = new Map([
+      [true, new Set()],
+      [false, new Set()],
+    ]);
+
+    const matchedRules: Array<RunbookOwnerRule> = [];
+    const allUserIds: Set<string> = new Set();
+    const allTeamIds: Set<string> = new Set();
+    let anyRuleMatched: boolean = false;
+
+    for (const rule of rules) {
+      const matches: boolean = this.doesRunbookMatchRule(
+        runbookWithDetails,
+        rule,
+      );
+      if (!matches) {
+        continue;
+      }
+      anyRuleMatched = true;
+      let ruleAddedAny: boolean = false;
+      const notify: boolean =
+        rule.notifyOwners !== false && data.allowOwnerNotification;
+      for (const user of rule.ownerUsers || []) {
+        if (user.id) {
+          usersByNotify.get(notify)!.add(user.id.toString());
+          allUserIds.add(user.id.toString());
+          ruleAddedAny = true;
+        }
+      }
+      for (const team of rule.ownerTeams || []) {
+        if (team.id) {
+          teamsByNotify.get(notify)!.add(team.id.toString());
+          allTeamIds.add(team.id.toString());
+          ruleAddedAny = true;
+        }
+      }
+      if (ruleAddedAny) {
+        matchedRules.push(rule);
+      }
+    }
+
+    if (!anyRuleMatched) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    if (
+      matchedRules.length === 0 ||
+      (allUserIds.size === 0 && allTeamIds.size === 0)
+    ) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    // Owners already on the runbook are skipped rather than duplicated.
+    const notYetAssigned: OwnersToAssign =
+      await OwnerRuleAssignment.getOwnersNotYetAssigned({
+        ownerUserService: RunbookOwnerUserService,
+        ownerTeamService: RunbookOwnerTeamService,
+        resourceIdColumn: "runbookId",
+        resourceId: runbook.id,
+        userIds: Array.from(allUserIds),
+        teamIds: Array.from(allTeamIds),
+      });
+
+    const userIdsToAdd: Set<string> = new Set(
+      notYetAssigned.userIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    );
+    const teamIdsToAdd: Set<string> = new Set(
+      notYetAssigned.teamIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    );
+
+    let ownersAdded: number = 0;
+
+    /*
+     * The notifying set goes first, so an owner two matching rules disagree
+     * about is added once, and notified.
+     */
+    for (const notify of [true, false]) {
+      const userIds: Array<string> = Array.from(
+        usersByNotify.get(notify)!,
+      ).filter((id: string) => {
+        return userIdsToAdd.delete(id);
+      });
+      const teamIds: Array<string> = Array.from(
+        teamsByNotify.get(notify)!,
+      ).filter((id: string) => {
+        return teamIdsToAdd.delete(id);
+      });
+
+      for (const userId of userIds) {
+        const owner: RunbookOwnerUser = new RunbookOwnerUser();
+        owner.runbookId = runbook.id;
+        owner.projectId = runbook.projectId;
+        owner.userId = new ObjectID(userId);
+        owner.isOwnerNotified = !notify;
+        await RunbookOwnerUserService.create({
+          data: owner,
+          props: { isRoot: true },
+        });
+        ownersAdded++;
+      }
+
+      for (const teamId of teamIds) {
+        const owner: RunbookOwnerTeam = new RunbookOwnerTeam();
+        owner.runbookId = runbook.id;
+        owner.projectId = runbook.projectId;
+        owner.teamId = new ObjectID(teamId);
+        owner.isOwnerNotified = !notify;
+        await RunbookOwnerTeamService.create({
+          data: owner,
+          props: { isRoot: true },
+        });
+        ownersAdded++;
+      }
+    }
+
+    if (ownersAdded === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    logger.debug(
+      `RunbookOwnerRuleEngine added owners to runbook ${runbook.id}`,
+      { projectId: runbook.projectId.toString() } as LogAttributes,
+    );
+
+    return RuleApplicationResultUtil.updated(ownersAdded);
   }
 
   private doesRunbookMatchRule(

@@ -13,20 +13,24 @@ enum StatusPageSubscriberNotificationEventType {
   SubscriberIncidentCreated = "Subscriber Incident Created",
   SubscriberIncidentStateChanged = "Subscriber Incident State Changed",
   SubscriberIncidentNoteCreated = "Subscriber Incident Note Created",
+  SubscriberIncidentNoteUpdated = "Subscriber Incident Note Updated",
   SubscriberIncidentPostmortemPublished = "Subscriber Incident Postmortem Published",
 
   // Incident Episode related events
   SubscriberEpisodeCreated = "Subscriber Episode Created",
   SubscriberEpisodeStateChanged = "Subscriber Episode State Changed",
   SubscriberEpisodeNoteCreated = "Subscriber Episode Note Created",
+  SubscriberEpisodeNoteUpdated = "Subscriber Episode Note Updated",
 
   // Announcement related events
   SubscriberAnnouncementCreated = "Subscriber Announcement Created",
+  SubscriberAnnouncementUpdated = "Subscriber Announcement Updated",
 
   // Scheduled Maintenance related events
   SubscriberScheduledMaintenanceCreated = "Subscriber Scheduled Maintenance Created",
   SubscriberScheduledMaintenanceStateChanged = "Subscriber Scheduled Maintenance State Changed",
   SubscriberScheduledMaintenanceNoteCreated = "Subscriber Scheduled Maintenance Note Created",
+  SubscriberScheduledMaintenanceNoteUpdated = "Subscriber Scheduled Maintenance Note Updated",
 
   // Recurring report events
   SubscriberReport = "Subscriber Report",

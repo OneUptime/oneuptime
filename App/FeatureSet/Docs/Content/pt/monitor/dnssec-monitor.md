@@ -32,11 +32,11 @@ Os monitores DNSSEC validam toda a cadeia de confiança desde a zona raiz até o
 
 ### Configurações Avançadas
 
-| Campo                           | Descrição                                          | Padrão |
-| ------------------------------- | -------------------------------------------------- | ------ |
-| Signature Expiry Warning (days) | Limite padrão para o filtro de expiração RRSIG     | 7      |
-| Timeout (ms)                    | Tempo de espera para cada consulta DNS             | 10000  |
-| Retries                         | Número de tentativas de repetição em caso de falha | 3      |
+| Campo                           | Descrição                                                          | Padrão |
+| ------------------------------- | ------------------------------------------------------------------ | ------ |
+| Signature Expiry Warning (days) | Limite padrão para o filtro de expiração RRSIG                     | 7      |
+| Timeout (ms)                    | Tempo de espera para cada consulta DNS                             | 10000  |
+| Retries                         | Tentativas após a primeira falhar; 0 significa uma única tentativa | 3      |
 
 ## Critérios de Monitoramento
 

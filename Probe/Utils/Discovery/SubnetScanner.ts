@@ -5,6 +5,10 @@ import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import ReverseDnsResolver, { ReverseDnsResolution } from "./ReverseDnsResolver";
+import NetbiosNameResolver, {
+  NetbiosNameResolution,
+} from "./NetbiosNameResolver";
+import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
 import logger from "Common/Server/Utils/Logger";
 import DiscoveryPing from "./DiscoveryPing";
 
@@ -28,6 +32,21 @@ export interface DiscoveredHost {
    * not stop a device being polled.
    */
   dnsHostname?: string | undefined;
+  /*
+   * The host's NetBIOS name, lower-cased, when the scan asked for one and the
+   * host answered (OneUptime issue #3677).
+   *
+   * Only ever looked up for hosts left with neither a sysName nor a
+   * dnsHostname, only on scans that opted in, only for private addresses, and
+   * never by a global probe — see attachNetbiosNames. SELF-REPORTED by the host
+   * and already normalised by NetbiosNameUtil.normalizeNetbiosName, which every
+   * reader applies again.
+   *
+   * The key is ABSENT, not undefined, whenever no name was found, so every
+   * host literal written before this field existed still describes the same
+   * object.
+   */
+  netbiosName?: string | undefined;
   /*
    * The rest of the SNMP system group. probeSystemInfo reads all six
    * scalars in the same single GET that fetches sysName/sysDescr, so
@@ -185,6 +204,111 @@ export interface SubnetScanConfig {
    * at all, so it carries no credentials.
    */
   snmpConfigs?: Array<SubnetScanSnmpConfig> | undefined;
+  /*
+   * Whether to ask still-unnamed hosts for their NetBIOS name after the sweep
+   * (OneUptime issue #3677). Read off the scan row as `=== true`, so an
+   * ABSENT column — a server too old to select it — means off.
+   *
+   * NOT read by scan(). Like reverse DNS, the lookup runs in
+   * FetchScans.scanWithDeadline after the sweep has won its deadline race, and
+   * that is also where the global-probe guard lives. It rides on this config
+   * only because this is the object runScan hands scanWithDeadline.
+   */
+  isNetbiosLookupEnabled?: boolean | undefined;
+}
+
+/*
+ * What the reverse-DNS pass achieved, and — the reason this exists — whether
+ * it was cut short.
+ *
+ * The pass asks addresses in ascending order and stops when its wall-clock
+ * budget runs out or the resolver proves unusable, so on a large sweep behind
+ * a slow resolver the TAIL of the range keeps IP-address names. Before this
+ * was carried out of attachReverseDnsHostnames, the only trace of that was a
+ * warning in the probe log: the scan's status message said nothing, and a
+ * Review dialog full of bare addresses from 10.0.4.0 upwards looked exactly
+ * like a network that publishes no PTR records.
+ *
+ * Address counts are over DISTINCT addresses — what the resolver actually
+ * asks — while `resolvedCount` counts host ENTRIES stamped, which is what
+ * SubnetScanResult.reverseDnsResolvedCount has always held. The two differ
+ * only for a host list that repeats an address.
+ */
+export interface ReverseDnsNamingOutcome {
+  // Host entries that got a dnsHostname.
+  resolvedCount: number;
+  // Distinct addresses handed to the pass.
+  addressCount: number;
+  // Distinct addresses that got a name.
+  namedAddressCount: number;
+  /*
+   * Distinct addresses never looked up because the pass stopped first.
+   * Undefined when the resolver did not say — a test double, say — which is
+   * a different statement from zero.
+   */
+  notLookedUpAddressCount?: number | undefined;
+  // The wall-clock budget ran out with addresses still unasked.
+  isTimeBudgetExhausted: boolean;
+  /*
+   * False when not one lookup got an answer and the rest were skipped: this
+   * probe cannot resolve at all. See ReverseDnsResolution.
+   */
+  isReverseDnsAvailable: boolean;
+  // The budget the pass ran under, when the resolver reported it.
+  totalBudgetInMs?: number | undefined;
+  /*
+   * The resolver's first infrastructure failure (ESERVFAIL, ECONNREFUSED, a
+   * timeout), trimmed. Only meaningful beside isReverseDnsAvailable false:
+   * that verdict means the first waves of lookups all failed, which a broken
+   * probe resolver and a reverse zone delegated to a dead nameserver both
+   * produce, and this reason is what tells the operator which one it is.
+   */
+  failureReason?: string | undefined;
+  /*
+   * Set only when the pass itself threw — unreachable by design, since the
+   * resolver never rejects — so every host was left unnamed for a reason
+   * that is neither the budget nor the resolver.
+   */
+  error?: string | undefined;
+}
+
+/*
+ * What the NetBIOS lookup achieved and whether it was cut short (OneUptime
+ * issue #3677) — the same idea as ReverseDnsNamingOutcome, for the three ways
+ * this lookup can stop early: the host cap, the wall-clock budget, and a
+ * socket that failed.
+ *
+ * Address counts are over DISTINCT addresses among the hosts that were still
+ * unnamed when the lookup ran; `resolvedCount` counts host entries, as
+ * SubnetScanResult.netbiosResolvedCount always has.
+ */
+export interface NetbiosNamingOutcome {
+  // Host entries that got a netbiosName.
+  resolvedCount: number;
+  // Distinct addresses still unnamed after SNMP and reverse DNS.
+  unnamedAddressCount: number;
+  // Distinct addresses that got a NetBIOS name.
+  namedAddressCount: number;
+  /*
+   * Distinct unnamed addresses the address policy allowed (private IPv4),
+   * before the host cap. Undefined when the resolver did not say.
+   */
+  eligibleAddressCount?: number | undefined;
+  // Distinct addresses at least one query was sent to.
+  queriedAddressCount?: number | undefined;
+  // More eligible addresses than the cap allows; `maxHosts` says what it is.
+  isHostCapReached: boolean;
+  maxHosts?: number | undefined;
+  // The wall-clock budget ended the lookup with hosts still to ask or hear.
+  isTimeBudgetExhausted: boolean;
+  totalBudgetInMs?: number | undefined;
+  /*
+   * Why the probe's UDP socket could not be used, when it could not. The
+   * resolver's failureReason, already truncated.
+   */
+  failureReason?: string | undefined;
+  // Set only when the lookup itself threw. See ReverseDnsNamingOutcome.error.
+  error?: string | undefined;
 }
 
 export interface SubnetScanResult {
@@ -287,6 +411,54 @@ export interface SubnetScanResult {
    * achieved without re-walking the hosts.
    */
   reverseDnsResolvedCount?: number | undefined;
+  /*
+   * How many discovered hosts were named by NetBIOS (OneUptime issue #3677).
+   *
+   * Same rule as reverseDnsResolvedCount: NOT set by scan(), and absent means
+   * the lookup did not run on this result at all — the scan did not ask for
+   * it, the probe is a global probe, or the lookup threw — which is a
+   * different statement from zero ("it ran and named nobody"). Only logged.
+   */
+  netbiosResolvedCount?: number | undefined;
+  /*
+   * The reverse-DNS pass's verdict: how far it got and whether it was cut
+   * short. Same rule as reverseDnsResolvedCount — NOT set by scan(), absent
+   * when the pass has not run on this result. FetchScans.buildScanStatusMessage
+   * turns a cut-short pass into a clause on the scan's status message.
+   */
+  reverseDnsOutcome?: ReverseDnsNamingOutcome | undefined;
+  /*
+   * The NetBIOS lookup's verdict. Same rule as netbiosResolvedCount: absent
+   * when the lookup did not run on this result.
+   */
+  netbiosOutcome?: NetbiosNamingOutcome | undefined;
+}
+
+/*
+ * Knobs for the post-sweep reverse-DNS pass. Only the budget, today: the
+ * probe's PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS, read by FetchScans rather
+ * than here so this file stays importable without the probe's Config.
+ */
+export interface ReverseDnsPassOptions {
+  /*
+   * A fixed wall-clock budget for the pass, in milliseconds. Undefined sizes
+   * it to the number of hosts (getReverseDnsTotalBudgetInMs).
+   */
+  totalBudgetInMs?: number | undefined;
+}
+
+/*
+ * Knobs for the post-sweep NetBIOS lookup - the probe's
+ * PROBE_DISCOVERY_NETBIOS_MAX_HOSTS, read by FetchScans for the same reason
+ * ReverseDnsPassOptions is.
+ */
+export interface NetbiosPassOptions {
+  /*
+   * How many unnamed hosts the lookup may ask. Undefined uses the resolver's
+   * own DEFAULT_NETBIOS_MAX_HOSTS. The wall-clock budget is sized from this,
+   * so raising it lengthens the lookup as well as widening it.
+   */
+  maxHosts?: number | undefined;
 }
 
 /*
@@ -1288,8 +1460,10 @@ export default class SubnetScanner {
    * enrichment inside scan() spends that same budget, so a sweep that had
    * already found forty hosts could be thrown away entirely because looking
    * up their names took the run past the line — the enrichment destroying the
-   * very result it was meant to improve. The 60s cap on the pass bounds how
-   * much it can add; it cannot stop that addition being the straw.
+   * very result it was meant to improve. The pass's own budget - sized to the
+   * hosts found, ten minutes at most, or the twenty an operator may fix it at
+   * - bounds how much it can add; it cannot stop that addition being the
+   * straw.
    *
    * So the lookups happen AFTER the race has settled, on a result that is
    * already final and already safe. Nothing this method does can be
@@ -1300,15 +1474,37 @@ export default class SubnetScanner {
    * are decided — there is nothing left for it to disturb.
    *
    * NEVER throws. A sweep that found twelve hosts found twelve hosts whether
-   * or not any of them can be named; the only visible consequence of total
-   * failure is a warning in the probe log (ReverseDnsResolver) and hosts
-   * named by address, which is exactly the behaviour that predates this.
+   * or not any of them can be named; the consequence of total failure is
+   * hosts named by address, which is exactly the behaviour that predates
+   * this.
+   *
+   * Answers the pass's VERDICT rather than a bare count: how many hosts were
+   * named, and whether the pass was cut short by its time budget or by a
+   * resolver that does not work from here. The caller puts that on the scan's
+   * status message, because a cut-short pass is otherwise invisible to anyone
+   * not reading the probe log (see ReverseDnsNamingOutcome).
    */
   public static async attachReverseDnsHostnames(
     hosts: Array<DiscoveredHost>,
-  ): Promise<number> {
-    if (hosts.length === 0) {
-      return 0;
+    options?: ReverseDnsPassOptions | undefined,
+  ): Promise<ReverseDnsNamingOutcome> {
+    const addresses: Set<string> = new Set<string>(
+      (Array.isArray(hosts) ? hosts : []).map((host: DiscoveredHost) => {
+        return host.ipAddress;
+      }),
+    );
+
+    const outcome: ReverseDnsNamingOutcome = {
+      resolvedCount: 0,
+      addressCount: addresses.size,
+      namedAddressCount: 0,
+      notLookedUpAddressCount: 0,
+      isTimeBudgetExhausted: false,
+      isReverseDnsAvailable: true,
+    };
+
+    if (addresses.size === 0) {
+      return outcome;
     }
 
     try {
@@ -1317,9 +1513,10 @@ export default class SubnetScanner {
           hosts.map((host: DiscoveredHost) => {
             return host.ipAddress;
           }),
+          options,
         );
 
-      let resolvedCount: number = 0;
+      const namedAddresses: Set<string> = new Set<string>();
 
       for (const host of hosts) {
         const dnsHostname: string | undefined =
@@ -1327,28 +1524,113 @@ export default class SubnetScanner {
 
         if (dnsHostname) {
           host.dnsHostname = dnsHostname;
-          resolvedCount++;
+          outcome.resolvedCount++;
+          namedAddresses.add(host.ipAddress);
         }
       }
 
-      logger.debug(
-        `Discovery reverse DNS named ${resolvedCount} of ${hosts.length} discovered host(s).`,
+      outcome.namedAddressCount = namedAddresses.size;
+      /*
+       * Read as flags only when they are exactly booleans. The seam is public
+       * and spied on, and a double that leaves a field out must not read as a
+       * pass that was cut short — or, worse, as a broken resolver.
+       */
+      outcome.isTimeBudgetExhausted = resolution.isTimeBudgetExhausted === true;
+      outcome.isReverseDnsAvailable =
+        resolution.isReverseDnsAvailable !== false;
+      /*
+       * Bounded by the addresses left unnamed: an address that was never
+       * asked cannot have been named, so a figure above that is a double
+       * describing some other list. Unknown — not zero — when a pass that
+       * stopped early did not say how early.
+       */
+      const reportedNotLookedUpCount: number | undefined =
+        SubnetScanner.readCount(resolution.notLookedUpCount);
+
+      outcome.notLookedUpAddressCount =
+        reportedNotLookedUpCount !== undefined
+          ? Math.min(
+              reportedNotLookedUpCount,
+              addresses.size - namedAddresses.size,
+            )
+          : outcome.isTimeBudgetExhausted || !outcome.isReverseDnsAvailable
+            ? undefined
+            : 0;
+      outcome.totalBudgetInMs = SubnetScanner.readCount(
+        resolution.totalBudgetInMs,
+      );
+      outcome.failureReason = SubnetScanner.readReason(
+        resolution.failureReason,
       );
 
-      return resolvedCount;
+      logger.debug(
+        `Discovery reverse DNS named ${outcome.resolvedCount} of ${hosts.length} discovered host(s)` +
+          (outcome.isTimeBudgetExhausted
+            ? `, stopping at its time budget with ${outcome.notLookedUpAddressCount ?? "some"} address(es) not looked up`
+            : "") +
+          (outcome.isReverseDnsAvailable
+            ? ""
+            : ", and reverse DNS is not usable from this probe") +
+          ".",
+      );
+
+      return outcome;
     } catch (err) {
       /*
        * Unreachable by design — resolveHostnames swallows every per-address
        * failure itself — and caught anyway, because the ONE thing this
        * enrichment must never do is lose a completed sweep's results on the
        * way out of it.
+       *
+       * Names already stamped before the throw stay stamped and are counted:
+       * the outcome has to describe the hosts the caller is about to upload.
        */
+      /*
+       * Described FIRST, and interpolated as that string rather than as the
+       * thrown value: `${err}` throws for a symbol and for a null-prototype
+       * object, and a throw here - inside the catch that exists to keep a
+       * finished sweep's hosts - would lose them.
+       */
+      const described: string = SubnetScanner.describeEnrichmentError(err);
+
       logger.warn(
-        `Discovery reverse DNS enrichment failed; discovered hosts will be named by IP address. ${err}`,
+        `Discovery reverse DNS enrichment failed; discovered hosts will be named by IP address. ${described}`,
       );
 
-      return 0;
+      return SubnetScanner.describeFailedReverseDnsPass(
+        hosts,
+        outcome,
+        described,
+      );
     }
+  }
+
+  /*
+   * The outcome of a pass that threw, recounted from the hosts themselves so
+   * it cannot disagree with what is uploaded.
+   */
+  private static describeFailedReverseDnsPass(
+    hosts: Array<DiscoveredHost>,
+    outcome: ReverseDnsNamingOutcome,
+    describedError: string,
+  ): ReverseDnsNamingOutcome {
+    const namedAddresses: Set<string> = new Set<string>();
+    let resolvedCount: number = 0;
+
+    for (const host of hosts) {
+      if (host && host.dnsHostname) {
+        resolvedCount++;
+        namedAddresses.add(host.ipAddress);
+      }
+    }
+
+    return {
+      ...outcome,
+      resolvedCount: resolvedCount,
+      namedAddressCount: namedAddresses.size,
+      notLookedUpAddressCount: undefined,
+      error: describedError,
+    };
   }
 
   /*
@@ -1362,8 +1644,244 @@ export default class SubnetScanner {
    */
   public static async resolveReverseDnsHostnames(
     ipAddresses: Array<string>,
+    options?: ReverseDnsPassOptions | undefined,
   ): Promise<ReverseDnsResolution> {
-    return await new ReverseDnsResolver().resolveHostnames(ipAddresses);
+    return await new ReverseDnsResolver({
+      totalBudgetInMs: options?.totalBudgetInMs,
+    }).resolveHostnames(ipAddresses);
+  }
+
+  /*
+   * Stamps `netbiosName` onto the hosts that answer a NetBIOS node status
+   * query, in place, and answers how many got one (OneUptime issue #3677).
+   *
+   * Asks ONLY hosts that are still unnamed: no non-empty sysName and no
+   * non-empty dnsHostname. Those are the hosts the issue is about — the ones
+   * the Review dialog can otherwise only show as an address — and a host that
+   * already has a better name costs nothing here. On an estate with working
+   * reverse DNS that means no datagram is sent at all, which is why this runs
+   * AFTER attachReverseDnsHostnames rather than beside it.
+   *
+   * Like attachReverseDnsHostnames, deliberately NOT called by scan(): it runs
+   * in FetchScans.scanWithDeadline after the sweep has won its deadline race,
+   * and only when the scan opted in and the probe is not a global probe. The
+   * gates live THERE rather than here so this method stays a plain, directly
+   * testable enrichment; the address policy lives in NetbiosNameResolver, so
+   * no caller can skip it.
+   *
+   * Every name is put through normalizeNetbiosName again on the way onto the
+   * host, whatever the seam returned. The resolver already normalises, but the
+   * seam is public and spied on, and the one thing that must hold for every
+   * path to the upload is that `netbiosName` is never a raw self-reported
+   * string.
+   *
+   * NEVER throws. A sweep that found twelve hosts found twelve hosts whether
+   * or not any of them answer on UDP 137; total failure means a warning in the
+   * probe log and hosts named by address, exactly as before this existed.
+   *
+   * Answers the lookup's VERDICT rather than a bare count, for the same
+   * reason attachReverseDnsHostnames does: a lookup stopped by its host cap,
+   * its time budget or a failed socket is otherwise visible only in the probe
+   * log (see NetbiosNamingOutcome).
+   */
+  public static async attachNetbiosNames(
+    hosts: Array<DiscoveredHost>,
+    options?: NetbiosPassOptions | undefined,
+  ): Promise<NetbiosNamingOutcome> {
+    const outcome: NetbiosNamingOutcome = {
+      resolvedCount: 0,
+      unnamedAddressCount: 0,
+      namedAddressCount: 0,
+      isHostCapReached: false,
+      isTimeBudgetExhausted: false,
+    };
+
+    /*
+     * Held outside the try so the catch can recount what was stamped before
+     * a throw, the same way attachReverseDnsHostnames does.
+     */
+    let unnamedHosts: Array<DiscoveredHost> = [];
+
+    try {
+      if (!Array.isArray(hosts) || hosts.length === 0) {
+        return outcome;
+      }
+
+      unnamedHosts = hosts.filter((host: DiscoveredHost) => {
+        return (
+          Boolean(host) &&
+          !SubnetScanner.hasText(host.sysName) &&
+          !SubnetScanner.hasText(host.dnsHostname)
+        );
+      });
+
+      if (unnamedHosts.length === 0) {
+        return outcome;
+      }
+
+      const unnamedAddresses: Set<string> = new Set<string>(
+        unnamedHosts.map((host: DiscoveredHost) => {
+          return host.ipAddress;
+        }),
+      );
+
+      outcome.unnamedAddressCount = unnamedAddresses.size;
+
+      const resolution: NetbiosNameResolution =
+        await SubnetScanner.resolveNetbiosNames(
+          unnamedHosts.map((host: DiscoveredHost) => {
+            return host.ipAddress;
+          }),
+          options,
+        );
+
+      const namedAddresses: Set<string> = new Set<string>();
+
+      for (const host of unnamedHosts) {
+        const netbiosName: string | undefined = normalizeNetbiosName(
+          resolution.nameByIpAddress.get(host.ipAddress),
+        );
+
+        if (netbiosName) {
+          host.netbiosName = netbiosName;
+          outcome.resolvedCount++;
+          namedAddresses.add(host.ipAddress);
+        }
+      }
+
+      outcome.namedAddressCount = namedAddresses.size;
+      // Exactly-boolean reads, for the reason given in attachReverseDnsHostnames.
+      outcome.isHostCapReached = resolution.isHostCapReached === true;
+      outcome.isTimeBudgetExhausted = resolution.isTimeBudgetExhausted === true;
+      outcome.eligibleAddressCount = SubnetScanner.readCount(
+        resolution.eligibleCount,
+      );
+      outcome.queriedAddressCount = SubnetScanner.readCount(
+        resolution.queriedCount,
+      );
+      outcome.maxHosts = SubnetScanner.readCount(resolution.maxHosts);
+      outcome.totalBudgetInMs = SubnetScanner.readCount(
+        resolution.totalBudgetInMs,
+      );
+      outcome.failureReason = SubnetScanner.readReason(
+        resolution.failureReason,
+      );
+
+      logger.debug(
+        `Discovery NetBIOS named ${outcome.resolvedCount} of ${unnamedHosts.length} otherwise unnamed discovered host(s).`,
+      );
+
+      return outcome;
+    } catch (err) {
+      /*
+       * Unreachable by design — NetbiosNameResolver never rejects — and caught
+       * anyway, for the same reason attachReverseDnsHostnames catches: this
+       * runs on the way to a completed sweep's upload.
+       */
+      // Described first, for the reason attachReverseDnsHostnames describes.
+      const described: string = SubnetScanner.describeEnrichmentError(err);
+
+      logger.warn(
+        `Discovery NetBIOS enrichment failed; discovered hosts will be named by IP address. ${described}`,
+      );
+
+      const namedAddresses: Set<string> = new Set<string>();
+      let resolvedCount: number = 0;
+
+      for (const host of unnamedHosts) {
+        if (host && SubnetScanner.hasText(host.netbiosName)) {
+          resolvedCount++;
+          namedAddresses.add(host.ipAddress);
+        }
+      }
+
+      return {
+        ...outcome,
+        resolvedCount: resolvedCount,
+        namedAddressCount: namedAddresses.size,
+        error: described,
+      };
+    }
+  }
+
+  /*
+   * The NetBIOS lookup, as a seam — the same shape and the same reason as
+   * resolveReverseDnsHostnames: every scanner and job test spies on this
+   * rather than opening a UDP socket, and the resolver's own behaviour is
+   * tested directly against NetbiosNameResolver with a fake socket.
+   */
+  public static async resolveNetbiosNames(
+    ipAddresses: Array<string>,
+    options?: NetbiosPassOptions | undefined,
+  ): Promise<NetbiosNameResolution> {
+    return await new NetbiosNameResolver({
+      maxHosts: options?.maxHosts,
+    }).resolveNames(ipAddresses);
+  }
+
+  // A string with something in it besides whitespace.
+  private static hasText(value: unknown): boolean {
+    return typeof value === "string" && value.trim().length > 0;
+  }
+
+  /*
+   * A count or duration read off a resolution, or undefined when it is not a
+   * finite, non-negative number. The naming seams are public and spied on, so
+   * a field can be missing or nonsense, and a status message that printed
+   * "NaN hosts" would be worse than one that said less.
+   */
+  private static readCount(value: unknown): number | undefined {
+    return typeof value === "number" && Number.isFinite(value) && value >= 0
+      ? Math.floor(value)
+      : undefined;
+  }
+
+  // A non-blank reason string off a resolution, trimmed, or undefined.
+  private static readReason(value: unknown): string | undefined {
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
+  }
+
+  /*
+   * A thrown enrichment error, bounded the way SNMP errors are, because it
+   * can end up on the scan's status message.
+   *
+   * Every step here is about one of the shapes a rejection really takes on
+   * this path, and about NEVER throwing while describing one - this runs
+   * inside the catch that keeps a finished sweep's hosts:
+   *
+   *   - an Error's message is used even when it is EMPTY. Falling back to
+   *     String(error) there printed the class name, so `new Error("")` put
+   *     "(Error)" on the status message while `new Error(" ")` said "unknown
+   *     error" about the same nothing;
+   *   - a rejection that is not an Error but carries a string `message` (the
+   *     shape most libraries and a structured-clone'd Error take) is described
+   *     by it rather than as "[object Object]";
+   *   - anything else is stringified defensively: String() throws for a
+   *     null-prototype object, and a template literal throws for a symbol.
+   */
+  private static describeEnrichmentError(error: unknown): string {
+    const message: unknown =
+      error instanceof Error
+        ? error.message
+        : (error as { message?: unknown } | undefined)?.message;
+
+    let described: string = typeof message === "string" ? message.trim() : "";
+
+    if (!described && !(error instanceof Error)) {
+      try {
+        described = String(error ?? "").trim();
+      } catch {
+        described = "";
+      }
+    }
+
+    if (!described) {
+      described = "unknown error";
+    }
+
+    return described.length > SNMP_ERROR_EXCERPT_LENGTH
+      ? described.substring(0, SNMP_ERROR_EXCERPT_LENGTH)
+      : described;
   }
 
   /*

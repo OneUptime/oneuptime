@@ -10,8 +10,10 @@ import RouteMap, {
   MonitorsRoutePath,
   ScheduledMaintenanceEventsRoutePath,
   SettingsRoutePath,
+  SloRoutePath,
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import { getSloBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/Utils/Breadcrumbs";
 import { getAlertsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/AlertBreadcrumbs";
 import { getIncidentsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/IncidentBreadcrumbs";
 import { getMonitorBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MonitorBreadcrumbs";
@@ -68,9 +70,21 @@ const products: Array<Product> = [
     routes: SettingsRoutePath,
     getBreadcrumbs: getSettingsBreadcrumbs,
   },
+  {
+    /*
+     * SloRoutePath mixes list-layout pages (archived) with the `:id` view
+     * pages, so this also proves `archived` is not matched as an SLO id.
+     */
+    name: "SLOs",
+    landing: PageMap.SLOS,
+    routes: SloRoutePath,
+    getBreadcrumbs: getSloBreadcrumbs,
+  },
 ];
 
 const modelId: string = "7b3b1548-23cd-46ab-8359-280eb34362af";
+// A rule's view page nested below its resource (an SLO's monitor rules) also carries :subModelId.
+const subModelId: string = "9c4a2b1e-7d3f-4e8a-9b6c-1f2e3d4c5b6a";
 const realRoutes: Array<{ path: string }> = Object.values(RouteMap)
   .map((route: Route): { path: string } => {
     return { path: route.toString() };
@@ -82,7 +96,8 @@ const realRoutes: Array<{ path: string }> = Object.values(RouteMap)
 function visit(page: string): string {
   const path: string = RouteUtil.getRouteString(page)
     .replace(":projectId", PROJECT_ID)
-    .replace(":id", modelId);
+    .replace(":id", modelId)
+    .replace(":subModelId", subModelId);
   goTo(path);
   return path;
 }

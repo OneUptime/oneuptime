@@ -199,11 +199,19 @@ Synthetic executions always run in short-lived processes and browser workers.
 The image's default root Probe supervisor additionally assigns each execution a
 unique, low-privilege UID. An explicit non-root Probe override remains supported,
 but workers then share the Probe UID and lose that extra UID boundary. The stock
-`RuntimeDefault` seccomp profile keeps the chart portable but commonly blocks
-the user-namespace calls Chromium's additional OS sandbox requires. To enable
-that defense in depth, install a CRI/OCI-compatible profile derived from your
-container runtime's default with `clone`, `setns`, and `unshare` enabled in the
+`RuntimeDefault` seccomp profile keeps the chart portable but blocks the
+user-namespace calls both browsers' additional OS sandbox layer requires:
+Chromium's sandbox must then stay disabled, and Firefox falls back to its
+seccomp-only sandbox. To enable that defense in depth, install a
+CRI/OCI-compatible profile derived from your container runtime's default with
+`clone`, `setns`, `unshare` **and `chroot`** allowed unconditionally in the
 kubelet seccomp directory on every Probe node, then configure the matching path.
+Firefox and Chromium both call `chroot` inside the user namespace they create.
+A profile that allows the namespace but not `chroot` crashes every Firefox
+content process (`Sandbox: chroot: EPERM`) and the Chromium zygote
+(`Check failed: sys_chroot`), so every synthetic check fails. No capability is
+needed for either call, and adding `SYS_CHROOT` does not help when the
+profile omits `chroot`.
 Do not use `Probe/seccomp_profile.json` verbatim here: it contains
 Moby-specific conditional fields for Docker Compose rather than Kubernetes CRI.
 

@@ -5,6 +5,24 @@ import {
   EvaluateOverTimeType,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
+import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
+import MonitorMetricTypeUtil from "../../../Utils/Monitor/MonitorMetricType";
+
+// The true/false checks that can be evaluated over time.
+const BOOLEAN_SERIES_CHECK_ONS: Array<CheckOn> = [
+  CheckOn.IsOnline,
+  CheckOn.DnsIsOnline,
+  CheckOn.SnmpIsOnline,
+  CheckOn.ExternalStatusPageIsOnline,
+  CheckOn.DatabaseIsOnline,
+];
+
+const AGGREGATE_TYPES: Array<EvaluateOverTimeType> = [
+  EvaluateOverTimeType.Average,
+  EvaluateOverTimeType.Sum,
+  EvaluateOverTimeType.MaximumValue,
+  EvaluateOverTimeType.MunimumValue,
+];
 
 describe("CriteriaFilterUtil", () => {
   describe("isAnomalyFilterType", () => {
@@ -188,37 +206,211 @@ describe("CriteriaFilterUtil", () => {
       ).toEqual([]);
     });
 
-    test("returns AllValues / AnyValue for IsOnline", () => {
-      const result: Array<EvaluateOverTimeType> =
-        CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
-          checkOn: CheckOn.IsOnline,
-          filterType: FilterType.True,
+    /*
+     * DNS, SNMP and External Status Page used to be offered Average / Sum /
+     * Maximum / Minimum as well. Averaging a true/false window gives a number
+     * such as 0.6, which neither True nor False matches, so a filter
+     * configured that way never fired.
+     */
+    test.each(BOOLEAN_SERIES_CHECK_ONS)(
+      "returns only AllValues / AnyValue for %s",
+      (checkOn: CheckOn) => {
+        const result: Array<EvaluateOverTimeType> =
+          CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
+            checkOn: checkOn,
+            filterType: FilterType.True,
+            value: undefined,
+          } as CriteriaFilter);
+
+        expect(result).toEqual([
+          EvaluateOverTimeType.AllValues,
+          EvaluateOverTimeType.AnyValue,
+        ]);
+      },
+    );
+
+    test.each([
+      CheckOn.ResponseTime,
+      CheckOn.DnsResponseTime,
+      CheckOn.SnmpResponseTime,
+      CheckOn.ExternalStatusPageResponseTime,
+      CheckOn.DatabaseMetric,
+    ])(
+      "returns the full set of aggregation types for the numeric filter %s",
+      (checkOn: CheckOn) => {
+        const result: Array<EvaluateOverTimeType> =
+          CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
+            checkOn: checkOn,
+            filterType: FilterType.GreaterThan,
+            value: 100,
+          } as CriteriaFilter);
+
+        expect(result).toEqual([
+          EvaluateOverTimeType.Average,
+          EvaluateOverTimeType.Sum,
+          EvaluateOverTimeType.MaximumValue,
+          EvaluateOverTimeType.MunimumValue,
+          EvaluateOverTimeType.AllValues,
+          EvaluateOverTimeType.AnyValue,
+        ]);
+      },
+    );
+
+    test("offers no aggregate on any over-time filter that reads the online series", () => {
+      const overTimeOnlineCheckOns: Array<CheckOn> = Object.values(
+        CheckOn,
+      ).filter((checkOn: CheckOn) => {
+        return (
+          CriteriaFilterUtil.isEvaluateOverTimeFilter(checkOn) &&
+          MonitorMetricTypeUtil.getMonitorMetricTypeByCriteriaFilterOrNull({
+            checkOn: checkOn,
+            filterType: FilterType.True,
+            value: undefined,
+          }) === MonitorMetricType.IsOnline
+        );
+      });
+
+      // Guards the filter above against silently matching nothing.
+      expect(overTimeOnlineCheckOns.length).toBeGreaterThanOrEqual(5);
+
+      for (const checkOn of overTimeOnlineCheckOns) {
+        expect(
+          CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
+            checkOn: checkOn,
+            filterType: FilterType.True,
+            value: undefined,
+          }),
+        ).toEqual([
+          EvaluateOverTimeType.AllValues,
+          EvaluateOverTimeType.AnyValue,
+        ]);
+      }
+    });
+  });
+
+  describe("isBooleanSeries", () => {
+    test.each(BOOLEAN_SERIES_CHECK_ONS)(
+      "returns true for %s",
+      (checkOn: CheckOn) => {
+        expect(CriteriaFilterUtil.isBooleanSeries(checkOn)).toBe(true);
+      },
+    );
+
+    test("returns true for Is Request Timeout", () => {
+      expect(CriteriaFilterUtil.isBooleanSeries(CheckOn.IsRequestTimeout)).toBe(
+        true,
+      );
+    });
+
+    test.each([
+      CheckOn.ResponseTime,
+      CheckOn.ResponseStatusCode,
+      CheckOn.CPUUsagePercent,
+      CheckOn.DnsResponseTime,
+      CheckOn.SnmpResponseTime,
+      CheckOn.ExternalStatusPageResponseTime,
+      CheckOn.DatabaseMetric,
+      CheckOn.MetricValue,
+    ])("returns false for the numeric series %s", (checkOn: CheckOn) => {
+      expect(CriteriaFilterUtil.isBooleanSeries(checkOn)).toBe(false);
+    });
+
+    test("returns false for undefined", () => {
+      expect(CriteriaFilterUtil.isBooleanSeries(undefined)).toBe(false);
+    });
+  });
+
+  describe("getEffectiveEvaluateOverTimeType", () => {
+    function overTimeFilter(input: {
+      checkOn: CheckOn;
+      evaluateOverTimeType: EvaluateOverTimeType | undefined;
+    }): CriteriaFilter {
+      return {
+        checkOn: input.checkOn,
+        filterType: FilterType.False,
+        value: undefined,
+        evaluateOverTime: true,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: input.evaluateOverTimeType,
+        },
+      };
+    }
+
+    test("returns undefined when no filter is provided", () => {
+      expect(
+        CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(undefined),
+      ).toBeUndefined();
+    });
+
+    test("returns undefined when the filter has no over-time options", () => {
+      expect(
+        CriteriaFilterUtil.getEffectiveEvaluateOverTimeType({
+          checkOn: CheckOn.DnsIsOnline,
+          filterType: FilterType.False,
           value: undefined,
-        } as CriteriaFilter);
-
-      expect(result).toEqual([
-        EvaluateOverTimeType.AllValues,
-        EvaluateOverTimeType.AnyValue,
-      ]);
+        }),
+      ).toBeUndefined();
     });
 
-    test("returns the full set of aggregation types for a numeric filter", () => {
-      const result: Array<EvaluateOverTimeType> =
-        CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
-          checkOn: CheckOn.ResponseTime,
-          filterType: FilterType.GreaterThan,
-          value: 100,
-        } as CriteriaFilter);
+    describe.each(BOOLEAN_SERIES_CHECK_ONS)("on %s", (checkOn: CheckOn) => {
+      /*
+       * Filters saved before the dashboard stopped offering these, and ones
+       * sent through the API or Terraform, still carry them.
+       */
+      test.each(AGGREGATE_TYPES)(
+        "judges %s as All Values",
+        (evaluateOverTimeType: EvaluateOverTimeType) => {
+          expect(
+            CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+              overTimeFilter({
+                checkOn: checkOn,
+                evaluateOverTimeType: evaluateOverTimeType,
+              }),
+            ),
+          ).toBe(EvaluateOverTimeType.AllValues);
+        },
+      );
 
-      expect(result).toEqual([
-        EvaluateOverTimeType.Average,
-        EvaluateOverTimeType.Sum,
-        EvaluateOverTimeType.MaximumValue,
-        EvaluateOverTimeType.MunimumValue,
+      test.each([
         EvaluateOverTimeType.AllValues,
         EvaluateOverTimeType.AnyValue,
-      ]);
+      ])("keeps %s as saved", (evaluateOverTimeType: EvaluateOverTimeType) => {
+        expect(
+          CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+            overTimeFilter({
+              checkOn: checkOn,
+              evaluateOverTimeType: evaluateOverTimeType,
+            }),
+          ),
+        ).toBe(evaluateOverTimeType);
+      });
+
+      test("leaves a missing type missing", () => {
+        expect(
+          CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+            overTimeFilter({
+              checkOn: checkOn,
+              evaluateOverTimeType: undefined,
+            }),
+          ),
+        ).toBeUndefined();
+      });
     });
+
+    test.each(AGGREGATE_TYPES)(
+      "keeps %s on a numeric series",
+      (evaluateOverTimeType: EvaluateOverTimeType) => {
+        expect(
+          CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+            overTimeFilter({
+              checkOn: CheckOn.DnsResponseTime,
+              evaluateOverTimeType: evaluateOverTimeType,
+            }),
+          ),
+        ).toBe(evaluateOverTimeType);
+      },
+    );
   });
 
   describe("getInverseFilterType", () => {

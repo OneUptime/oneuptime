@@ -707,15 +707,61 @@ describe("DashboardTemplates invariants (all templates)", () => {
   });
 
   /*
-   * The Slo widget names exactly ONE ServiceLevelObjective, by id, and
-   * that id is a per-project Postgres row. A template that shipped one
-   * would point at nothing in every project except the one it was
-   * authored in — and on a PUBLIC dashboard the stored id IS the
-   * authorization decision (PublicDashboardSloWidget), so a baked-in id
-   * is the wrong kind of mistake to make twice. The widget's own setup
-   * state ("Click to select an SLO") is the intended first render.
+   * The Slo widget shows exactly ONE ServiceLevelObjective. A pinned id is a
+   * per-project Postgres row: a template that shipped one would point at
+   * nothing in every project except the one it was authored in — and on a
+   * PUBLIC dashboard the stored id IS the authorization decision
+   * (PublicDashboardSloWidget), so a baked-in id is the wrong kind of mistake
+   * to make twice. Templates bind their Slo widgets to a toolbar variable
+   * instead (serviceLevelObjectiveVariableId).
    */
   describe("slo widgets", () => {
+    /*
+     * A binding to a variable the template does not ship — or to one whose
+     * selection the public route would not resolve — renders a broken-binding
+     * placeholder on every dashboard created from it. Checked per template, so
+     * a variable borrowed from a sibling template does not count.
+     */
+    test("every Slo widget that follows a variable follows a Telemetry Attribute variable of its own template", (): void => {
+      const offenders: Array<string> = [];
+      let followingWidgets: number = 0;
+
+      for (const loaded of loadAllTemplates()) {
+        for (const component of loaded.config.components) {
+          if (component.componentType !== DashboardComponentType.Slo) {
+            continue;
+          }
+
+          const variableId: unknown =
+            getArguments(component)["serviceLevelObjectiveVariableId"];
+
+          if (variableId === undefined) {
+            continue;
+          }
+
+          followingWidgets++;
+
+          const variable: DashboardVariable | undefined = (
+            loaded.config.variables || []
+          ).find((candidate: DashboardVariable): boolean => {
+            return candidate.id === variableId;
+          });
+
+          if (
+            !variable ||
+            variable.type !== DashboardVariableType.TelemetryAttribute
+          ) {
+            offenders.push(
+              `${loaded.type} ${describeComponent(component)} -> ${String(variableId)}`,
+            );
+          }
+        }
+      }
+
+      expect(followingWidgets).toBeGreaterThan(0);
+      expect(offenders).toEqual([]);
+    });
+
     test("no template hardcodes a service level objective id", (): void => {
       const offenders: Array<string> = [];
 

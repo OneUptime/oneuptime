@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import HostLabelRule from "Common/Models/DatabaseModels/HostLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -28,12 +30,22 @@ A rule matches a host only when **all** specified criteria pass. Empty criteria 
 When a rule matches, every label listed in \`Labels to Add\` is attached to the host. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
 `;
 
-const HostLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const HostLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
     <LabelRuleTable<HostLabelRule>
       modelType={HostLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, HostLabelRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.HOST_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: HostLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.HOST_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="host-label-rules-table"
       name="Settings > Host Label Rules"
       userPreferencesKey="host-label-rules-table"
@@ -84,7 +96,6 @@ const HostLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

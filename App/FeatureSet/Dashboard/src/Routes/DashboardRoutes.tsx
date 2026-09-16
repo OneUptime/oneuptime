@@ -34,6 +34,8 @@ import DashboardSettingsLabelRules from "../Pages/Dashboards/Settings/LabelRules
 import DashboardSettingsDataSources from "../Pages/Dashboards/Settings/DataSources";
 
 import DashboardSettingsDataSourceView from "../Pages/Dashboards/Settings/DataSourceView";
+import DashboardLabelRule from "Common/Models/DatabaseModels/DashboardLabelRule";
+import DashboardOwnerRule from "Common/Models/DatabaseModels/DashboardOwnerRule";
 
 const DashboardsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -64,6 +66,21 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={
+            DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_OWNER_RULE_VIEW] ||
+            ""
+          }
+          element={
+            <DashboardSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DASHBOARDS_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={DashboardOwnerRule}
+            />
+          }
+        />
 
         <PageRoute
           path={
@@ -75,6 +92,21 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.DASHBOARDS_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_LABEL_RULE_VIEW] ||
+            ""
+          }
+          element={
+            <DashboardSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DASHBOARDS_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={DashboardLabelRule}
             />
           }
         />

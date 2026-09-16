@@ -107,6 +107,10 @@ curl --cert client.crt --key client.key https://api.example.com/health
 
 For sensitive values, store the certificate and key as [Monitor Secrets](/docs/monitor/monitor-secrets) and reference them with `{{monitorSecrets.name}}`. Monitor Secrets are resolved server-side and the rendered values never appear in the dashboard.
 
+#### Retries on Failure
+
+**Retries on Failure** counts retries _after_ the first attempt, so `0` runs the check once and `2` runs it up to three times. The default is 3 and the maximum is 3. Timeouts are not retried, because the request timeout already covers the attempt.
+
 ## Monitoring Criteria
 
 You can configure criteria to determine when your API is considered online, degraded, or offline based on:

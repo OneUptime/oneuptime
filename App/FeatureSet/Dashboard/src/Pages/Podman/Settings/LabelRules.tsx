@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -28,12 +30,22 @@ A rule matches a Podman host only when **all** specified criteria pass. Empty cr
 When a rule matches, every label listed in \`Labels to Add\` is attached to the Podman host. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
 `;
 
-const PodmanHostLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const PodmanHostLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
     <LabelRuleTable<PodmanHostLabelRule>
       modelType={PodmanHostLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, PodmanHostLabelRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.PODMAN_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: PodmanHostLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.PODMAN_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="podmanHost-label-rules-table"
       name="Settings > Podman Host Label Rules"
       userPreferencesKey="podmanHost-label-rules-table"
@@ -85,7 +97,6 @@ const PodmanHostLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

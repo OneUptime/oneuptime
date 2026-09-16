@@ -20,6 +20,7 @@ import {
   SecurityEventConnectionRunType,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
 import {
+  ConnectorAlertingOnlyControl,
   SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
@@ -40,6 +41,9 @@ import {
   connectorHealthTooltip,
   connectorNextPoll,
   connectorProviderTitle,
+  connectorScopeImportNoun,
+  connectorScopeLabel,
+  connectorScopeSummary,
   formatConnectionDate,
   readSecurityEventConnectionResult,
   securityEventConnectionRunLabels,
@@ -69,13 +73,15 @@ function localDateInput(date: Date): string {
 }
 
 /*
- * Provider-agnostic twin of GoogleSecOpsDiagnostics. Structure and wording
- * match on purpose so a customer with both families learns one modal.
+ * One diagnostics modal for every provider. Wording that depends on the
+ * provider comes from the catalog: the record name ("Preview detections")
+ * and, for a provider with its own alertingOnly presentation, that control's
+ * words ("Data to import", "Import alerts and detections").
  *
- * One deliberate difference: Test connection here is synchronous (the API
- * runs it, no worker involved) and its checklist renders inline, so the
- * modal can say "no worker is consuming the queue" in exactly the
- * situation where a queued test would hang forever.
+ * Test connection here is synchronous (the API runs it, no worker involved)
+ * and its checklist renders inline, so the modal can say "no worker is
+ * consuming the queue" in exactly the situation where a queued test would
+ * hang forever.
  */
 const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -117,6 +123,13 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
     connection.provider || "",
   );
   const recordName: string = definition?.importedRecordName || "record";
+  const scopeControl: ConnectorAlertingOnlyControl | undefined =
+    definition?.supportsAlertingOnlyToggle
+      ? definition.alertingOnlyControl
+      : undefined;
+  const importNoun: string =
+    connectorScopeImportNoun(definition, connection.alertingOnly) ||
+    `${recordName}s`;
 
   const refreshHistory: () => Promise<boolean> =
     useCallback(async (): Promise<boolean> => {
@@ -440,19 +453,21 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
             </div>
             {definition?.supportsAlertingOnlyToggle && (
               <div>
-                <dt className="text-gray-500">Scope</dt>
+                <dt className="text-gray-500">
+                  {connectorScopeLabel(definition)}
+                </dt>
                 <dd>
-                  {connection.alertingOnly === false
-                    ? "Alerts and detections"
-                    : "Alerts only"}
+                  {connectorScopeSummary(definition, connection.alertingOnly)}
                 </dd>
               </div>
             )}
           </dl>
           <p className="mt-3 text-xs text-gray-500">
             Enabled controls the schedule. Poll outcomes include Run now; review
-            scheduled runs in history to confirm recurring polling. Change
-            settings using Edit connection.
+            scheduled runs in history to confirm recurring polling.{" "}
+            {scopeControl
+              ? `To import ${scopeControl.nonAlertingLabel.toLowerCase()} too, select ${scopeControl.nonAlertingLabel} under ${scopeControl.title} using Edit connection.`
+              : "Change settings using Edit connection."}
           </p>
         </section>
 
@@ -479,11 +494,11 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
             />
           </div>
           <p className="text-sm text-gray-600">
-            Test connection checks access to {providerTitle}, what it has
-            available to import, and whether OneUptime&apos;s workers and
-            scheduler are running. It runs immediately and imports nothing. Run
-            now imports the next poll window immediately, including when the
-            schedule is paused.
+            {`Test connection checks access to ${providerTitle}, what it has available to import${
+              scopeControl
+                ? ` with and without ${scopeControl.nonAlertingLabel}`
+                : ""
+            }, and whether OneUptime's workers and scheduler are running. It runs immediately and imports nothing. Run now imports the next poll window immediately, including when the schedule is paused.`}
           </p>
           {!props.canRun && (
             <p className="text-sm text-gray-500">
@@ -518,7 +533,12 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
 
         {error && <ErrorMessage message={error} />}
         {historyError && <ErrorMessage message={historyError} />}
-        {selectedRun && <SecurityEventConnectionRunDetails run={selectedRun} />}
+        {selectedRun && (
+          <SecurityEventConnectionRunDetails
+            run={selectedRun}
+            provider={connection.provider}
+          />
+        )}
         {!selectedRun && selectedRunId && !error && !historyError && (
           <p role="status" className="text-sm text-gray-600">
             Waiting for the run to appear in history…
@@ -535,7 +555,9 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
           <p className="text-sm text-gray-600">
             Preview a window before importing. The first scheduled poll looks
             back 24 hours; older {recordName}s need a historical import. Choose
-            up to 7 days per run.
+            up to 7 days per run. When Last Error says polling moved past a
+            minute it could not read in full, import that minute here to recover
+            what one run can read.
           </p>
           <label
             className="block text-sm font-medium text-gray-700"
@@ -607,7 +629,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
           )}
           <div className="flex flex-wrap gap-2">
             <Button
-              title="Preview records"
+              title={`Preview ${recordName}s`}
               buttonStyle={ButtonStyleType.OUTLINE}
               disabled={disableActions || Boolean(rangeError)}
               onClick={(): void => {
@@ -630,7 +652,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
               className="space-y-3 rounded-md bg-indigo-50 p-3 text-sm text-gray-800"
             >
               <p>
-                Import {recordName}s from{" "}
+                Import {importNoun} from{" "}
                 {formatConnectionDate(new Date(startTime))} to{" "}
                 {formatConnectionDate(new Date(endTime))} into OneUptime?
                 Imported events become available to security rules and monitors.

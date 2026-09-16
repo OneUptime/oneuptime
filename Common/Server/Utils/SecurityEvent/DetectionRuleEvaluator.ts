@@ -142,7 +142,7 @@ export default class DetectionRuleEvaluator {
 
         /*
          * Best-effort bookkeeping, guarded for the same reason as the
-         * SecOps poller's: one rule whose error will not store must not
+         * connection poller's: one rule whose error will not store must not
          * throw its way out of this loop and stop every other rule in
          * the project from being evaluated. ClickHouse errors echo the
          * failing query back, so they are the long ones.

@@ -41,7 +41,7 @@ Indicator values are matched **case-insensitively** against event observables, m
 
 ## Enrichment at ingest
 
-Every incoming security event — HTTP ingest and the Google SecOps connector alike — is checked against your active indicators *before* it is stored. When any of the event's observables (IPs, hosts, domains, hashes, users) matches, the event is stamped with flattened attributes:
+Every incoming security event — HTTP ingest and every managed connector alike — is checked against your active indicators *before* it is stored. When any of the event's observables (IPs, hosts, domains, hashes, users) matches, the event is stamped with flattened attributes:
 
 | Attribute | Value |
 |---|---|

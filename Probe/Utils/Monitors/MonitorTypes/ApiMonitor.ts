@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -22,6 +23,9 @@ import HttpMonitorRequest, {
   PreparedHttpMonitorRequest,
   RedirectRequest,
 } from "../HttpMonitorRequest";
+
+// Five attempts, the same as before retries were counted after the first attempt.
+const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
 
 export interface APIResponse {
   url: URL;
@@ -267,7 +271,11 @@ export default class ApiMonitor {
         }
 
         if (
-          options.currentRetryCount < (options.retry ?? 5) &&
+          MonitorRetry.canRetry({
+            attemptNumber: options.currentRetryCount,
+            retries: options.retry,
+            defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+          }) &&
           executionContext.canWait(1000)
         ) {
           options.currentRetryCount++;
@@ -280,7 +288,11 @@ export default class ApiMonitor {
 
       if (
         responseTimeInMS.toNumber() > 10000 &&
-        options.currentRetryCount < (options.retry ?? 5) &&
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        }) &&
         executionContext.canWait(1000)
       ) {
         options.currentRetryCount++;
@@ -362,7 +374,11 @@ export default class ApiMonitor {
       if (
         !(err instanceof BadDataException) &&
         !(err instanceof TimeoutException) &&
-        options.currentRetryCount < (options.retry ?? 5) &&
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        }) &&
         executionContext.canWait(1000)
       ) {
         options.currentRetryCount++;

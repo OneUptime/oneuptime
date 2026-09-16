@@ -10,15 +10,18 @@ import SecurityEventConnectionTester, {
 import SecurityEventConnectorRegistry from "../../../../../Server/Utils/SecurityEvent/Connectors/SecurityEventConnectorRegistry";
 import {
   ConnectorTestOptions,
+  ConnectorTestResult,
   SecurityConnectorSettings,
   SecurityEventConnector,
 } from "../../../../../Server/Utils/SecurityEvent/Connectors/Types";
 import SecurityEventDedupe from "../../../../../Server/Utils/SecurityEvent/SecurityEventDedupe";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
   ConnectorPlatformStatus,
   SecurityConnectorCheck,
+  SecurityConnectorSample,
   SecurityConnectorTestReport,
 } from "../../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import SecurityEventConnectorProvider from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
@@ -109,8 +112,13 @@ interface FakeConnector {
   validateCalls: Array<SecurityConnectorSettings>;
 }
 
+/*
+ * `result` is a ConnectorTestResult (checks plus counts and samples) for a
+ * connector that reports availability; it wins over `checks`.
+ */
 function makeFakeConnector(script: {
   checks?: Array<SecurityConnectorCheck> | Error | undefined;
+  result?: ConnectorTestResult | undefined;
   validate?: Error | undefined;
 }): FakeConnector {
   const fake: FakeConnector = {
@@ -125,8 +133,11 @@ function makeFakeConnector(script: {
       testConnection: (
         settings: SecurityConnectorSettings,
         options: ConnectorTestOptions,
-      ): Promise<Array<SecurityConnectorCheck>> => {
+      ): Promise<Array<SecurityConnectorCheck> | ConnectorTestResult> => {
         fake.testCalls.push({ settings, options });
+        if (script.result) {
+          return Promise.resolve(script.result);
+        }
         if (script.checks instanceof Error) {
           return Promise.reject(script.checks);
         }
@@ -252,7 +263,7 @@ describe("SecurityEventConnectionTester.test - provider checks", () => {
     expect(SecurityEventConnectorRegistry.getConnector).not.toHaveBeenCalled();
   });
 
-  test("the connector is asked with the test timeout by default and a custom one when given", async () => {
+  test("the connector is asked with the test timeout by default and a custom one when given, and never told to skip availability", async () => {
     const fake: FakeConnector = makeFakeConnector({});
 
     await SecurityEventConnectionTester.test({
@@ -268,13 +279,28 @@ describe("SecurityEventConnectionTester.test - provider checks", () => {
     });
 
     expect(CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS).toBe(20 * 1000);
+    /*
+     * skipAvailability is only for a test queued to a worker; the
+     * synchronous test says false explicitly so a connector cannot read an
+     * absent flag either way.
+     */
     expect(fake.testCalls).toEqual([
       {
         settings: SETTINGS,
-        options: { requestTimeoutInMs: CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS },
+        options: {
+          requestTimeoutInMs: CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS,
+          skipAvailability: false,
+        },
       },
-      { settings: SETTINGS, options: { requestTimeoutInMs: 5000 } },
+      {
+        settings: SETTINGS,
+        options: { requestTimeoutInMs: 5000, skipAvailability: false },
+      },
     ]);
+    expect(fake.testCalls[0]!.options).toHaveProperty(
+      "skipAvailability",
+      false,
+    );
   });
 
   test("without an override the connector comes from the registry", async () => {
@@ -902,5 +928,288 @@ describe("SecurityEventConnectionTester.test - run history", () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining("could not record the test run"),
     );
+  });
+});
+
+/*
+ * A connector that counts what is available to import (Google SecOps:
+ * alerts-view and rule-detection counts for the saved and the other Data to
+ * import selection) or can show sample records returns a
+ * ConnectorTestResult instead of a bare check list. The tester copies both
+ * onto the report, where the test modal renders them.
+ */
+describe("SecurityEventConnectionTester.test - availability counts and samples", () => {
+  const COUNTS: JSONObject = {
+    scope: "alerts-only",
+    alertsViewLast24h: 3,
+    alertsViewLast7d: 12,
+    ruleDetectionsCreatedLast24h: "4",
+    ruleDetectionsCreatedLast7d: "1000+",
+    hasMoreLast7d: true,
+    otherScope: {
+      scope: "alerts-and-detections",
+      alertsViewLast24h: 5,
+      alertsViewLast7d: 20,
+      ruleDetectionsCreatedLast24h: "9",
+      ruleDetectionsCreatedLast7d: "1000+",
+      hasMoreLast7d: true,
+    },
+  };
+  const SAMPLES: Array<SecurityConnectorSample> = [
+    {
+      id: "de_0a1b2c3d",
+      title: "Suspicious sign-in from a new country",
+      severity: "High",
+      createdTime: "2026-09-10T11:58:00.000Z",
+      eventTime: "2026-09-10T11:40:00.000Z",
+      isAlert: true,
+    },
+    {
+      id: "de_4e5f6a7b",
+      title: "Rare process",
+      severity: "Low",
+      isAlert: false,
+    },
+  ];
+
+  test("counts and samples the connector reports are copied onto the report unchanged, with its checks in order", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      result: {
+        checks: [
+          check("authentication", "pass"),
+          check("detections-available", "pass"),
+        ],
+        counts: COUNTS,
+        samples: SAMPLES,
+      },
+    });
+
+    const report: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connectorOverride: fake.connector,
+        platformOverride: HEALTHY_PLATFORM,
+      });
+
+    expect(report.counts).toEqual(COUNTS);
+    expect(report.samples).toEqual(SAMPLES);
+    expect(keysAndStatuses(report)).toEqual([
+      "configuration:pass",
+      "authentication:pass",
+      "detections-available:pass",
+      "worker-consumers:pass",
+      "scheduler:pass",
+      "storage:pass",
+    ]);
+    expect(report.status).toBe("pass");
+  });
+
+  test("a connector that returns a bare check list leaves counts and samples off the report", async () => {
+    const report: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connectorOverride: makeFakeConnector({
+          checks: [check("authentication", "pass")],
+        }).connector,
+        platformOverride: HEALTHY_PLATFORM,
+      });
+
+    expect(report).not.toHaveProperty("counts");
+    expect(report).not.toHaveProperty("samples");
+  });
+
+  test("a result with checks but neither counts nor samples leaves both off the report", async () => {
+    const report: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connectorOverride: makeFakeConnector({
+          result: { checks: [check("authentication", "pass")] },
+        }).connector,
+        platformOverride: HEALTHY_PLATFORM,
+      });
+
+    expect(report.checks[1]!.key).toBe("authentication");
+    expect(report).not.toHaveProperty("counts");
+    expect(report).not.toHaveProperty("samples");
+  });
+
+  test("counts alone are copied without inventing samples, and an empty sample list is kept as reported", async () => {
+    const countsOnly: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connectorOverride: makeFakeConnector({
+          result: { checks: [], counts: { createdLast24h: 0 } },
+        }).connector,
+        platformOverride: HEALTHY_PLATFORM,
+      });
+    const emptySamples: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connectorOverride: makeFakeConnector({
+          result: { checks: [], samples: [] },
+        }).connector,
+        platformOverride: HEALTHY_PLATFORM,
+      });
+
+    expect(countsOnly.counts).toEqual({ createdLast24h: 0 });
+    expect(countsOnly).not.toHaveProperty("samples");
+    expect(emptySamples.samples).toEqual([]);
+    expect(emptySamples).not.toHaveProperty("counts");
+  });
+
+  test("counts ride along with a warning verdict, which is when the reader needs them most", async () => {
+    const report: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connectorOverride: makeFakeConnector({
+          result: {
+            checks: [
+              check("authentication", "pass"),
+              check(
+                "detections-available",
+                "warn",
+                "Nothing is available with the saved Data to import.",
+              ),
+            ],
+            counts: COUNTS,
+          },
+        }).connector,
+        platformOverride: HEALTHY_PLATFORM,
+      });
+
+    expect(report.status).toBe("warn");
+    expect(report.counts).toEqual(COUNTS);
+  });
+
+  test("a configuration failure asks the connector nothing, so there are no counts or samples", async () => {
+    const fake: FakeConnector = makeFakeConnector({
+      validate: new BadDataException("Region is required for Google SecOps."),
+      result: { checks: [], counts: COUNTS, samples: SAMPLES },
+    });
+
+    const report: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connectorOverride: fake.connector,
+        platformOverride: HEALTHY_PLATFORM,
+      });
+
+    expect(fake.testCalls).toHaveLength(0);
+    expect(report).not.toHaveProperty("counts");
+    expect(report).not.toHaveProperty("samples");
+  });
+
+  test("a connector that throws leaves no counts or samples behind", async () => {
+    const report: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connectorOverride: makeFakeConnector({
+          checks: new Error("availability probe crashed"),
+        }).connector,
+        platformOverride: HEALTHY_PLATFORM,
+      });
+
+    expect(findCheck(report, "provider-error").status).toBe("fail");
+    expect(report).not.toHaveProperty("counts");
+    expect(report).not.toHaveProperty("samples");
+  });
+
+  test("the recorded run keeps the counts and samples, since its result is the report", async () => {
+    const report: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connection: makeSavedConnection(),
+        connectorOverride: makeFakeConnector({
+          result: {
+            checks: [check("authentication", "pass")],
+            counts: COUNTS,
+            samples: SAMPLES,
+          },
+        }).connector,
+        platformOverride: HEALTHY_PLATFORM,
+      });
+
+    expect(createdRuns).toHaveLength(1);
+    expect(createdRuns[0]!.result).toBe(report);
+    expect(
+      (createdRuns[0]!.result as unknown as SecurityConnectorTestReport).counts,
+    ).toEqual(COUNTS);
+    expect(
+      (createdRuns[0]!.result as unknown as SecurityConnectorTestReport)
+        .samples,
+    ).toEqual(SAMPLES);
+  });
+});
+
+/*
+ * recordRun: false is how the API tests a saved connection with the edit
+ * form's unsaved values without writing a history row that describes
+ * settings the connection never had (ported from the Google SecOps tester).
+ */
+describe("SecurityEventConnectionTester.test - recordRun", () => {
+  test("recordRun false runs the whole test for a saved connection, schedule check included, but writes no row", async () => {
+    const report: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connection: makeSavedConnection(),
+        connectorOverride: makeFakeConnector({
+          checks: [check("authentication", "pass")],
+        }).connector,
+        platformOverride: HEALTHY_PLATFORM,
+        recordRun: false,
+      });
+
+    expect(report.status).toBe("pass");
+    expect(findCheck(report, "connection-schedule").status).toBe("pass");
+    expect(SecurityEventConnectionRunService.findOneBy).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(SecurityEventConnectionRunService.create).not.toHaveBeenCalled();
+    expect(createdRuns).toHaveLength(0);
+  });
+
+  test("recordRun false writes no row for a failing test either", async () => {
+    const report: SecurityConnectorTestReport =
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connection: makeSavedConnection(),
+        connectorOverride: makeFakeConnector({
+          checks: [check("authentication", "fail")],
+        }).connector,
+        platformOverride: HEALTHY_PLATFORM,
+        recordRun: false,
+      });
+
+    expect(report.status).toBe("fail");
+    expect(SecurityEventConnectionRunService.create).not.toHaveBeenCalled();
+  });
+
+  test.each([true, undefined])(
+    "recordRun %j records a saved connection's test",
+    async (recordRun: boolean | undefined) => {
+      await SecurityEventConnectionTester.test({
+        settings: SETTINGS,
+        connection: makeSavedConnection(),
+        connectorOverride: makeFakeConnector({
+          checks: [check("authentication", "pass")],
+        }).connector,
+        platformOverride: HEALTHY_PLATFORM,
+        recordRun,
+      });
+
+      expect(createdRuns).toHaveLength(1);
+      expect(createdRuns[0]!.securityEventConnectionId).toEqual(CONNECTION_ID);
+    },
+  );
+
+  test("recordRun true cannot record a test of settings that were never saved", async () => {
+    await SecurityEventConnectionTester.test({
+      settings: SETTINGS,
+      connectorOverride: makeFakeConnector({}).connector,
+      platformOverride: HEALTHY_PLATFORM,
+      recordRun: true,
+    });
+
+    expect(SecurityEventConnectionRunService.create).not.toHaveBeenCalled();
   });
 });

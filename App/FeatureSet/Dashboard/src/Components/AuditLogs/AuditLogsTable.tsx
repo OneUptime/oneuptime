@@ -4,12 +4,15 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
+import Project from "Common/Models/DatabaseModels/Project";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import OneUptimeDate from "Common/Types/Date";
 import Route from "Common/Types/API/Route";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONArray } from "Common/Types/JSON";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
@@ -18,10 +21,19 @@ import AuditLogChangesModal from "./AuditLogChangesModal";
 import AuditLogsEnterpriseUpgrade, {
   isAuditLogsEnterpriseEligible,
 } from "./AuditLogsEnterpriseUpgrade";
+import {
+  ResourceLink,
+  ResourceMeta,
+  getActorInitials,
+  getAuditLogsQuery,
+  getResourceLink,
+  getResourceMeta,
+} from "./AuditLogsTableUtils";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -29,8 +41,14 @@ import React, {
 export interface ComponentProps {
   title: string;
   description: string;
-  resourceType?: string;
-  resourceId?: ObjectID;
+  resourceType?: string | undefined;
+  resourceId?: ObjectID | undefined;
+  /*
+   * Lists every entry that rolls up to this resource: its own, and those of
+   * the rows it owns (see EnableAuditLogOn.rootResource). Pass it instead of
+   * resourceType / resourceId, which match the resource's own entries only.
+   */
+  rootResourceId?: ObjectID | undefined;
 }
 
 interface ActionStyle {
@@ -61,175 +79,6 @@ const ACTION_STYLES: { [key: string]: ActionStyle } = {
   },
 };
 
-interface ResourceMeta {
-  icon: IconProp;
-  color: string;
-  bgColor: string;
-  viewRoute?: PageMap | undefined;
-}
-
-const RESOURCE_META: { [key: string]: ResourceMeta } = {
-  Monitor: {
-    icon: IconProp.AltGlobe,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50 border-blue-100",
-    viewRoute: PageMap.MONITOR_VIEW,
-  },
-  "Monitor Group": {
-    icon: IconProp.Folder,
-    color: "text-blue-700",
-    bgColor: "bg-blue-50 border-blue-100",
-    viewRoute: PageMap.MONITOR_GROUP_VIEW,
-  },
-  Incident: {
-    icon: IconProp.Alert,
-    color: "text-red-600",
-    bgColor: "bg-red-50 border-red-100",
-    viewRoute: PageMap.INCIDENT_VIEW,
-  },
-  "Incident Episode": {
-    icon: IconProp.Alert,
-    color: "text-red-700",
-    bgColor: "bg-red-50 border-red-100",
-    viewRoute: PageMap.INCIDENT_EPISODE_VIEW,
-  },
-  Alert: {
-    icon: IconProp.Bell,
-    color: "text-orange-600",
-    bgColor: "bg-orange-50 border-orange-100",
-    viewRoute: PageMap.ALERT_VIEW,
-  },
-  "Alert Episode": {
-    icon: IconProp.Bell,
-    color: "text-orange-700",
-    bgColor: "bg-orange-50 border-orange-100",
-    viewRoute: PageMap.ALERT_EPISODE_VIEW,
-  },
-  "Status Page": {
-    icon: IconProp.Window,
-    color: "text-indigo-600",
-    bgColor: "bg-indigo-50 border-indigo-100",
-    viewRoute: PageMap.STATUS_PAGE_VIEW,
-  },
-  "Scheduled Maintenance Event": {
-    icon: IconProp.Clock,
-    color: "text-yellow-700",
-    bgColor: "bg-yellow-50 border-yellow-100",
-    viewRoute: PageMap.SCHEDULED_MAINTENANCE_VIEW,
-  },
-  "On-Call Policy": {
-    icon: IconProp.Call,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50 border-purple-100",
-    viewRoute: PageMap.ON_CALL_DUTY_POLICY_VIEW,
-  },
-  "On-Call Policy Schedule": {
-    icon: IconProp.Calendar,
-    color: "text-purple-700",
-    bgColor: "bg-purple-50 border-purple-100",
-    viewRoute: PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
-  },
-  "Incoming Call Policy": {
-    icon: IconProp.Call,
-    color: "text-purple-700",
-    bgColor: "bg-purple-50 border-purple-100",
-    viewRoute: PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW,
-  },
-  Service: {
-    icon: IconProp.SquareStack,
-    color: "text-fuchsia-700",
-    bgColor: "bg-fuchsia-50 border-fuchsia-100",
-    viewRoute: PageMap.SERVICE_VIEW,
-  },
-  Runbook: {
-    icon: IconProp.BookOpen,
-    color: "text-amber-700",
-    bgColor: "bg-amber-50 border-amber-100",
-    viewRoute: PageMap.RUNBOOK_VIEW,
-  },
-  Dashboard: {
-    icon: IconProp.Window,
-    color: "text-indigo-700",
-    bgColor: "bg-indigo-50 border-indigo-100",
-    viewRoute: PageMap.DASHBOARD_VIEW,
-  },
-  Host: {
-    icon: IconProp.Server,
-    color: "text-teal-700",
-    bgColor: "bg-teal-50 border-teal-100",
-    viewRoute: PageMap.HOST_VIEW,
-  },
-  "Docker Host": {
-    icon: IconProp.Cube,
-    color: "text-cyan-700",
-    bgColor: "bg-cyan-50 border-cyan-100",
-    viewRoute: PageMap.DOCKER_HOST_VIEW,
-  },
-  "Kubernetes Cluster": {
-    icon: IconProp.Cube,
-    color: "text-blue-700",
-    bgColor: "bg-blue-50 border-blue-100",
-    viewRoute: PageMap.KUBERNETES_CLUSTER_VIEW,
-  },
-  "API Key": {
-    icon: IconProp.Key,
-    color: "text-violet-600",
-    bgColor: "bg-violet-50 border-violet-100",
-  },
-  Label: {
-    icon: IconProp.Label,
-    color: "text-pink-600",
-    bgColor: "bg-pink-50 border-pink-100",
-  },
-  Team: {
-    icon: IconProp.Team,
-    color: "text-cyan-700",
-    bgColor: "bg-cyan-50 border-cyan-100",
-    viewRoute: PageMap.TEAM_VIEW,
-  },
-  Probe: {
-    icon: IconProp.Signal,
-    color: "text-emerald-700",
-    bgColor: "bg-emerald-50 border-emerald-100",
-    viewRoute: PageMap.MONITORS_SETTINGS_PROBE_VIEW,
-  },
-  Workflow: {
-    icon: IconProp.Workflow,
-    color: "text-slate-700",
-    bgColor: "bg-slate-50 border-slate-200",
-    viewRoute: PageMap.WORKFLOW_VIEW,
-  },
-};
-
-const DEFAULT_RESOURCE_META: ResourceMeta = {
-  icon: IconProp.Cube,
-  color: "text-gray-600",
-  bgColor: "bg-gray-50 border-gray-200",
-};
-
-const getResourceMeta: (type: string | undefined) => ResourceMeta = (
-  type: string | undefined,
-): ResourceMeta => {
-  if (!type) {
-    return DEFAULT_RESOURCE_META;
-  }
-  return RESOURCE_META[type] || DEFAULT_RESOURCE_META;
-};
-
-const getActorInitials: (name: string | undefined) => string = (
-  name: string | undefined,
-): string => {
-  if (!name) {
-    return "?";
-  }
-  const parts: Array<string> = name.trim().split(/\s+/).slice(0, 2);
-  return parts
-    .map((p: string) => {
-      return p.charAt(0).toUpperCase();
-    })
-    .join("");
-};
-
 const AuditLogsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -239,25 +88,68 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
 
   const [detailItem, setDetailItem] = useState<AuditLog | null>(null);
 
-  const computedQuery: Query<AuditLog> = useMemo(() => {
-    const query: Query<AuditLog> = {};
+  /*
+   * Whether this project records audit logs at all. Recording is off by
+   * default and switched on only in Settings, so without saying so an empty
+   * table reads as "nothing has changed" when the truth is "nothing is being
+   * recorded". null until known - a failed or partial read shows nothing
+   * rather than a guess.
+   */
+  const [isAuditLoggingEnabled, setIsAuditLoggingEnabled] = useState<
+    boolean | null
+  >(null);
+
+  useEffect(() => {
+    /*
+     * A project that cannot have audit logs gets the upsell card instead of
+     * the table, and has no setting worth reporting.
+     */
+    if (!isEnterpriseEligible) {
+      return;
+    }
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-    if (projectId) {
-      query.projectId = projectId;
+    if (!projectId) {
+      return;
     }
 
-    if (props.resourceType) {
-      query.resourceType = props.resourceType;
-    }
+    let isUnmounted: boolean = false;
 
-    if (props.resourceId) {
-      query.resourceId = props.resourceId;
-    }
+    const loadAuditLoggingSetting: PromiseVoidFunction =
+      async (): Promise<void> => {
+        try {
+          const project: Project | null = await ModelAPI.getItem<Project>({
+            modelType: Project,
+            id: projectId,
+            select: { enableAuditLogs: true },
+          });
 
-    return query;
-  }, [props.resourceType, props.resourceId]);
+          if (!isUnmounted && typeof project?.enableAuditLogs === "boolean") {
+            setIsAuditLoggingEnabled(project.enableAuditLogs);
+          }
+        } catch {
+          // Advisory only: the table works without it.
+        }
+      };
+
+    loadAuditLoggingSetting().catch(() => {
+      // loadAuditLoggingSetting handles its own errors.
+    });
+
+    return () => {
+      isUnmounted = true;
+    };
+  }, [isEnterpriseEligible]);
+
+  const computedQuery: Query<AuditLog> = useMemo(() => {
+    return getAuditLogsQuery({
+      projectId: ProjectUtil.getCurrentProjectId(),
+      resourceType: props.resourceType,
+      resourceId: props.resourceId,
+      rootResourceId: props.rootResourceId,
+    });
+  }, [props.resourceType, props.resourceId, props.rootResourceId]);
 
   if (!isEnterpriseEligible) {
     return (
@@ -271,6 +163,8 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
   const extraSelect: Select<AuditLog> = {
     resourceName: true,
     resourceId: true,
+    rootResourceType: true,
+    rootResourceId: true,
     userId: true,
     userName: true,
     userType: true,
@@ -278,6 +172,85 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     apiKeyId: true,
     changes: true,
   };
+
+  const isAuditLoggingOff: boolean = isAuditLoggingEnabled === false;
+
+  const auditLogSettingsRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS] as Route,
+  );
+
+  /*
+   * A small pill in the card header rather than a banner: the table below
+   * stays the page, and rows recorded before logging was turned off stay in
+   * view.
+   */
+  const auditLoggingOffNotice: ReactElement | undefined = isAuditLoggingOff ? (
+    <div
+      data-testid="audit-logging-disabled-notice"
+      role="status"
+      title="New changes to this project are not being recorded until audit logging is turned on in Settings."
+      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 py-1 pl-2 pr-3 text-xs text-amber-800"
+    >
+      <Icon
+        icon={IconProp.ExclaimationCircle}
+        size={SizeProp.Small}
+        thick={ThickProp.Thick}
+        className="h-3.5 w-3.5 flex-shrink-0 text-amber-600"
+      />
+      <span className="truncate">Audit logging is off</span>
+      <AppLink
+        to={auditLogSettingsRoute}
+        className="flex-shrink-0 font-semibold text-amber-900 underline-offset-2 hover:underline"
+      >
+        Turn on
+      </AppLink>
+    </div>
+  ) : undefined;
+
+  const noItemsMessage: ReactElement = isAuditLoggingOff ? (
+    <div
+      data-testid="audit-logging-disabled-empty-state"
+      className="flex flex-col items-center justify-center py-10 text-center"
+    >
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 mb-3">
+        <Icon
+          icon={IconProp.ClipboardDocumentList}
+          size={SizeProp.Large}
+          thick={ThickProp.Thick}
+        />
+      </div>
+      <div className="text-sm font-medium text-gray-900">
+        Audit logging is turned off
+      </div>
+      <div className="text-xs text-gray-500 mt-1 max-w-sm">
+        Changes to this project are not being recorded. Turn on audit logging to
+        start keeping a history of who changed what.
+      </div>
+      <AppLink
+        to={auditLogSettingsRoute}
+        className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
+      >
+        Open Audit Logs settings
+      </AppLink>
+    </div>
+  ) : (
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 mb-3">
+        <Icon
+          icon={IconProp.ClipboardDocumentList}
+          size={SizeProp.Large}
+          thick={ThickProp.Thick}
+        />
+      </div>
+      <div className="text-sm font-medium text-gray-900">
+        No audit entries yet
+      </div>
+      <div className="text-xs text-gray-500 mt-1 max-w-sm">
+        Changes made to resources in this project will appear here
+        automatically. Create, update, or delete a resource to see an entry.
+      </div>
+    </div>
+  );
 
   return (
     <Fragment>
@@ -295,30 +268,13 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: props.title,
           description: props.description,
+          rightElement: auditLoggingOffNotice,
         }}
         query={computedQuery}
         sortBy="createdAt"
         sortOrder={SortOrder.Descending}
         selectMoreFields={extraSelect}
-        noItemsMessage={
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 mb-3">
-              <Icon
-                icon={IconProp.ClipboardDocumentList}
-                size={SizeProp.Large}
-                thick={ThickProp.Thick}
-              />
-            </div>
-            <div className="text-sm font-medium text-gray-900">
-              No audit entries yet
-            </div>
-            <div className="text-xs text-gray-500 mt-1 max-w-sm">
-              Changes made to resources in this project will appear here
-              automatically. Create, update, or delete a resource to see an
-              entry.
-            </div>
-          </div>
-        }
+        noItemsMessage={noItemsMessage}
         showRefreshButton={true}
         showViewIdButton={false}
         filters={[
@@ -410,7 +366,6 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
             getElement: (item: AuditLog): ReactElement => {
               const type: string | undefined = item.resourceType;
               const name: string | undefined = item.resourceName;
-              const resourceId: ObjectID | undefined = item.resourceId;
               const meta: ResourceMeta = getResourceMeta(type);
 
               const nameEl: ReactElement = (
@@ -421,16 +376,18 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                 </span>
               );
 
+              const link: ResourceLink | null = getResourceLink({
+                meta,
+                action: item.action,
+                resourceId: item.resourceId,
+                rootResourceId: item.rootResourceId,
+              });
+
               let linkedNameEl: ReactElement = nameEl;
-              if (
-                meta.viewRoute &&
-                resourceId &&
-                item.action !== "Delete" &&
-                RouteMap[meta.viewRoute]
-              ) {
+              if (link && RouteMap[link.page]) {
                 const route: Route = RouteUtil.populateRouteParams(
-                  RouteMap[meta.viewRoute] as Route,
-                  { modelId: resourceId },
+                  RouteMap[link.page] as Route,
+                  { modelId: link.modelId, subModelId: link.subModelId },
                 );
                 linkedNameEl = (
                   <AppLink

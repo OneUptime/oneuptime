@@ -18,6 +18,19 @@ const SloSideMenu: FunctionComponent = (): ReactElement => {
           }}
           icon={IconProp.Gauge}
         />
+        {/*
+         * Archived SLOs are filtered out of the list above, so without this
+         * entry the only way back to one would be its URL.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLOS_ARCHIVED] as Route,
+            ),
+          }}
+          icon={IconProp.Archive}
+        />
       </SideMenuSection>
     </SideMenu>
   );

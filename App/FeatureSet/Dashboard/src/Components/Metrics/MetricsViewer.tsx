@@ -70,8 +70,6 @@ import {
   getMetricsAppliedEntityFilterIds,
 } from "../../Utils/MetricsEntityChipDisplay";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
-import { buildLockedScopeFilterActions } from "../../Utils/LockedTelemetryScopeLink";
-import { LockedFilterActionOptions } from "Common/UI/Components/TelemetryViewer/components/LockedFilterActions";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import TelemetrySavedViewType from "Common/Types/Telemetry/TelemetrySavedViewType";
@@ -1397,10 +1395,9 @@ const MetricsViewer: FunctionComponent<Props> = (
       attributeFilters: props.attributeFilters,
       attributeFilterDisplayKeys: props.attributeFilterDisplayKeys,
       attributeFilterDisplayValues: props.attributeFilterDisplayValues,
-      entityScope: props.entityScope,
       /*
        * The bare entity-key scope gets its own locked chip; `entityScope`
-       * above does not (its attribute chip already explains it).
+       * does not (its attribute chip already stands for it).
        */
       entityKeysFilter: props.entityKeysFilter,
       entityKeyDisplays: props.entityKeyDisplays,
@@ -1414,32 +1411,12 @@ const MetricsViewer: FunctionComponent<Props> = (
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
     props.attributeFilterDisplayValues,
-    props.entityScope,
     props.entityKeysFilter,
     props.entityKeyDisplays,
     activeFilters,
     facetConfigs,
     entityNameMap,
   ]);
-
-  /*
-   * "Copy filter" / "Open in Metrics" for the chips the page pinned. Only
-   * the locked chips travel: the user's own chips already live in this
-   * explorer's URL, and the main /metrics page has no locked chips at all,
-   * so there the group never renders. The link resolves the current route
-   * and project; a host that cannot (a preview outside the dashboard shell)
-   * still gets the copyable text. The locked-chip filter, the carried-count
-   * guard and that fallback live in the shared builder, where they are
-   * exercised on real chips rather than on a copy of this memo.
-   */
-  const lockedFilterActions: LockedFilterActionOptions | undefined =
-    useMemo(() => {
-      return buildLockedScopeFilterActions({
-        signal: "metrics",
-        chips: mergedActiveFilters,
-        timeRange,
-      });
-    }, [mergedActiveFilters, timeRange]);
 
   // Row click → navigate to metric viewer
   const handleRowClick: (metric: MetricType) => void = useCallback(
@@ -1728,7 +1705,6 @@ const MetricsViewer: FunctionComponent<Props> = (
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
       lockedFilterSignal="metrics"
-      lockedFilterActions={lockedFilterActions}
       // No top histogram for metrics
       showHistogram={false}
       // Pagination

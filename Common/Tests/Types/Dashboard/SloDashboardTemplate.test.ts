@@ -17,71 +17,64 @@ import {
   DashboardTemplateType,
   getDashboardTemplatesByCategory,
   getTemplateConfig,
+  SLO_TEMPLATE_CHART_GROUP_BY_KEYS,
 } from "../../../Types/Dashboard/DashboardTemplates";
 import IconProp from "../../../Types/Icon/IconProp";
 import AlertMetricType from "../../../Types/Alerts/AlertMetricType";
 import IncidentMetricType from "../../../Types/Incident/IncidentMetricType";
+import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
+import SloMetricType from "../../../Types/ServiceLevelObjective/SloMetricType";
+import DashboardSloComponentUtil from "../../../Utils/Dashboard/Components/DashboardSloComponent";
+import DashboardSloListComponentUtil from "../../../Utils/Dashboard/Components/DashboardSloListComponent";
+import {
+  resolveSloWidgetSource,
+  SloWidgetSourceState,
+} from "../../../Utils/Dashboard/SloWidgetSource";
+import {
+  SLO_LIST_ATTRIBUTE_TO_COLUMN,
+  SLO_LIST_DEFAULT_MAX_ROWS,
+} from "../../../Utils/Slo/SloListWidgetFormat";
+import SloMetricTypeUtil, {
+  SLO_METRIC_SLO_NAME_ATTRIBUTE,
+} from "../../../Utils/Slo/SloMetricType";
 import { describe, expect, it } from "@jest/globals";
 
 /*
- * Editorial invariants for the SLO template specifically. The structural
- * rules every template must satisfy (grid bounds, overlap, unique ids,
- * aggregation spelling) live in DashboardTemplateInvariants — this file
- * pins the things that make THIS template the SLO one: that it carries the
- * Slo widget at all, which of the SLO's three numbers it shows and how,
- * that it ships those widgets unconfigured, and that the metric widgets
- * beside them cannot disagree with the Monitor variable.
+ * Editorial invariants for the SLO template specifically. The structural rules
+ * every template must satisfy (grid bounds, overlap, unique ids, aggregation
+ * spelling) live in DashboardTemplateInvariants and the reading rules in
+ * DashboardTemplateEditorialInvariants — this file pins what makes THIS the SLO
+ * dashboard:
+ *
+ *   - it opens on the fleet and is useful with zero configuration,
+ *   - one toolbar variable scopes every section,
+ *   - the per-SLO widgets follow that variable instead of waiting for edit
+ *     mode, so the template carries no instruction row and no inert widget,
+ *   - and nothing on it is project-wide data presented beside an objective.
  */
 
 /*
- * The persisted strings. Both enums are written verbatim into the saved
- * dashboard's JSON config, so renaming a member's VALUE silently breaks
- * every dashboard already created from this template. Pinned as literals
- * rather than as enum members so that rename fails here instead of
- * shipping.
+ * Persisted strings, pinned as literals rather than enum members: they are
+ * written verbatim into every saved dashboard and every metric row, so a
+ * renamed VALUE must fail here instead of silently blanking saved widgets.
  */
 const SLI_METRIC: string = "Sli";
 const ERROR_BUDGET_REMAINING_METRIC: string = "ErrorBudgetRemaining";
 const BURN_RATE_METRIC: string = "BurnRate";
-
 const TILE_DISPLAY: string = "Tile";
 const CHART_DISPLAY: string = "Chart";
 
-/*
- * The two metric series this template is allowed to query. Both are emitted
- * by MonitorMetricUtil for every probeable monitor, and both carry the bare
- * `monitorName` attribute the Monitor variable binds to.
- */
-const IS_ONLINE_METRIC: string = "oneuptime.monitor.online";
-const RESPONSE_TIME_METRIC: string = "oneuptime.monitor.response.time";
+const BUDGET_PERCENT_SERIES: string =
+  "oneuptime.slo.error.budget.remaining.percent";
+const BUDGET_SECONDS_SERIES: string =
+  "oneuptime.slo.error.budget.remaining.seconds";
+const BURN_RATE_SERIES: string = "oneuptime.slo.burn.rate";
 
 /*
- * Every incident and alert metric, taken from the enums so a member added
- * later is covered without editing this list.
- *
- * Neither family survives this template's Monitor variable.
- * IncidentService stamps its metrics with `monitorNames` (plural,
- * comma-joined) rather than `monitorName`, so a pick would empty every
- * incident tile while the uptime tiles beside them stayed populated.
- * AlertService does write the singular key — but a burn-rate alert is
- * declared with no monitor attached at all, so it carries no `monitorName`
- * and a scoped alert tile would hide precisely the alerts an SLO dashboard
- * exists for.
+ * The bare attribute key SloMetricUtil stamps on every `oneuptime.slo.*` row.
+ * A `resource.`-prefixed key would compile and offer an empty picker.
  */
-const MONITOR_VARIABLE_HOSTILE_METRICS: Array<string> = [
-  ...Object.values(IncidentMetricType),
-  ...Object.values(AlertMetricType),
-];
-
-/*
- * The bare attribute key MonitorMetricUtil.buildAttributes writes. It
- * carries no `resource.` prefix, so a variable that guessed
- * "resource.monitorName" would compile and offer an empty picker.
- */
-const MONITOR_ATTRIBUTE: string = "monitorName";
-
-const AVG_AGGREGATION: string = "Avg";
-const MAX_AGGREGATION: string = "Max";
+const SLO_NAME_ATTRIBUTE: string = "sloName";
 
 const GRID_WIDTH_IN_UNITS: number = 12;
 
@@ -103,9 +96,8 @@ function argumentsOf(component: DashboardBaseComponent): WidgetArguments {
 
 /*
  * Every widget family stores its title under a different argument key, and
- * titles are the only stable handle: ids are freshly generated on every
- * call and array positions move whenever a row is inserted. The Slo widget
- * uses `widgetTitle`, which no other family does.
+ * titles are the only stable handle: ids regenerate on every call and array
+ * positions move whenever a row is inserted.
  */
 const TITLE_ARGUMENT_KEYS: Array<string> = [
   "title",
@@ -141,7 +133,7 @@ function findWidget(
     },
   );
 
-  expect(matches).toHaveLength(1);
+  expect(`${title}: ${matches.length} widget(s)`).toBe(`${title}: 1 widget(s)`);
   return matches[0] as DashboardBaseComponent;
 }
 
@@ -156,21 +148,28 @@ function componentsOfType(
   );
 }
 
-function sloWidgets(
-  config: DashboardViewConfig,
-): Array<DashboardBaseComponent> {
-  return componentsOfType(config, DashboardComponentType.Slo);
-}
-
-function filterDataOf(component: DashboardBaseComponent): WidgetArguments {
+function queryDataOf(component: DashboardBaseComponent): WidgetArguments {
   const queryConfig: WidgetArguments =
     (argumentsOf(component)["metricQueryConfig"] as
       | WidgetArguments
       | undefined) || {};
-  const queryData: WidgetArguments =
-    (queryConfig["metricQueryData"] as WidgetArguments | undefined) || {};
 
-  return (queryData["filterData"] as WidgetArguments | undefined) || {};
+  return (queryConfig["metricQueryData"] as WidgetArguments | undefined) || {};
+}
+
+function filterDataOf(component: DashboardBaseComponent): WidgetArguments {
+  return (
+    (queryDataOf(component)["filterData"] as WidgetArguments | undefined) || {}
+  );
+}
+
+function aliasDataOf(component: DashboardBaseComponent): WidgetArguments {
+  const queryConfig: WidgetArguments =
+    (argumentsOf(component)["metricQueryConfig"] as
+      | WidgetArguments
+      | undefined) || {};
+
+  return (queryConfig["metricAliasData"] as WidgetArguments | undefined) || {};
 }
 
 function metricNameOf(component: DashboardBaseComponent): string | undefined {
@@ -178,12 +177,19 @@ function metricNameOf(component: DashboardBaseComponent): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-/*
- * The aggregation is stored under the MISSPELLED key `aggegationType`.
- * That misspelling is what the fetch layer reads, so it is the contract.
- */
+// The MISSPELLED key is what the fetch layer reads, so it is the contract.
 function aggregationOf(component: DashboardBaseComponent): unknown {
   return filterDataOf(component)["aggegationType"];
+}
+
+function metricWidgets(
+  config: DashboardViewConfig,
+): Array<DashboardBaseComponent> {
+  return config.components.filter(
+    (component: DashboardBaseComponent): boolean => {
+      return metricNameOf(component) !== undefined;
+    },
+  );
 }
 
 function lowestOccupiedEdge(config: DashboardViewConfig): number {
@@ -194,18 +200,28 @@ function lowestOccupiedEdge(config: DashboardViewConfig): number {
   );
 }
 
+function onlyVariable(config: DashboardViewConfig): DashboardVariable {
+  const variables: Array<DashboardVariable> = config.variables || [];
+
+  expect(variables).toHaveLength(1);
+  return variables[0] as DashboardVariable;
+}
+
+// A one-line layout record, so a moved widget reads as a plain diff.
+function placementOf(component: DashboardBaseComponent): string {
+  return `${component.componentType} "${titleOf(component)}" @ row ${component.topInDashboardUnits}, col ${component.leftInDashboardUnits}, ${component.widthInDashboardUnits}x${component.heightInDashboardUnits}`;
+}
+
 // -- Tests -----------------------------------------------------------------
 
 describe("SLO dashboard template", () => {
   describe("catalog entry", () => {
     it("is registered exactly once", () => {
-      const entries: Array<DashboardTemplate> = DashboardTemplates.filter(
-        (template: DashboardTemplate): boolean => {
+      expect(
+        DashboardTemplates.filter((template: DashboardTemplate): boolean => {
           return template.type === DashboardTemplateType.Slo;
-        },
-      );
-
-      expect(entries).toHaveLength(1);
+        }),
+      ).toHaveLength(1);
     });
 
     it("is filed under Monitoring with the percent icon the SLO pages use", () => {
@@ -218,629 +234,73 @@ describe("SLO dashboard template", () => {
       expect(entry.name).toBe("SLO Dashboard");
       expect(entry.category).toBe(DashboardTemplateCategory.Monitoring);
       expect(entry.icon).toBe(IconProp.Percent);
-      expect(entry.description.trim().length).toBeGreaterThan(0);
-    });
-
-    it("is listed by getDashboardTemplatesByCategory for Monitoring", () => {
-      const types: Array<DashboardTemplateType> =
-        getDashboardTemplatesByCategory(
-          DashboardTemplateCategory.Monitoring,
-        ).map((template: DashboardTemplate): DashboardTemplateType => {
-          return template.type;
-        });
-
-      expect(types).toContain(DashboardTemplateType.Slo);
-    });
-
-    it("resolves to a config rather than to null the way Blank does", () => {
-      expect(getTemplateConfig(DashboardTemplateType.Slo)).not.toBeNull();
+      expect(
+        getDashboardTemplatesByCategory(DashboardTemplateCategory.Monitoring),
+      ).toContain(entry);
     });
 
     /*
-     * The enum value is persisted on the Dashboard row that records which
-     * template it was created from, so it is a wire string, not a label.
+     * The card is the whole of what the modal tells a reader. It used to end
+     * "Pick the SLO on each widget after creating it" — a chore. It must now
+     * describe a dashboard that works on creation and is scoped from the
+     * toolbar, and must not promise the monitor, incident or alert widgets the
+     * template no longer carries.
      */
+    it("describes the fleet view and the toolbar, and promises nothing the template does not ship", () => {
+      const description: string = (
+        DashboardTemplates.find((template: DashboardTemplate): boolean => {
+          return template.type === DashboardTemplateType.Slo;
+        }) as DashboardTemplate
+      ).description;
+
+      expect(description).toContain("Every SLO");
+      expect(description).toContain("toolbar");
+
+      for (const stale of [
+        "monitor",
+        "incident",
+        "alert",
+        "Pick the SLO on each widget",
+      ]) {
+        expect(
+          `description mentions "${stale}": ${description.toLowerCase().includes(stale.toLowerCase())}`,
+        ).toBe(`description mentions "${stale}": false`);
+      }
+    });
+
     it("uses the persisted enum value 'Slo'", () => {
       expect(DashboardTemplateType.Slo).toBe("Slo");
     });
   });
 
-  describe("the SLO widgets", () => {
-    /*
-     * This is the whole reason the template exists. The three SLO numbers
-     * live in Postgres and in SloHistory, not in the metric store, so no
-     * Chart / Value / Gauge widget can ever render them — only the
-     * dedicated Slo widget can.
-     */
-    it("carries the Slo widget, which nothing else on a dashboard can stand in for", () => {
-      expect(sloWidgets(getConfig()).length).toBeGreaterThan(0);
-    });
-
-    /*
-     * Title, metric and display asserted TOGETHER, per widget. Checking
-     * only the SET of (metric, display) pairs would pass unchanged if the
-     * three titles were permuted across the three metrics — a dashboard
-     * whose "Burn Rate" tile reports the SLI, which is the single worst
-     * way this template can be wrong and the one a reader cannot see.
-     */
-    it("labels each SLO widget with the number it actually reports", () => {
-      const config: DashboardViewConfig = getConfig();
-
-      const expected: Array<[string, string, string]> = [
-        ["SLI", SLI_METRIC, TILE_DISPLAY],
-        ["Error Budget Remaining", ERROR_BUDGET_REMAINING_METRIC, TILE_DISPLAY],
-        ["Burn Rate", BURN_RATE_METRIC, TILE_DISPLAY],
-        ["SLI Over Time", SLI_METRIC, CHART_DISPLAY],
-        [
-          "Error Budget Remaining Over Time",
-          ERROR_BUDGET_REMAINING_METRIC,
-          CHART_DISPLAY,
-        ],
-        ["Burn Rate Over Time", BURN_RATE_METRIC, CHART_DISPLAY],
-      ];
-
-      for (const [title, metric, display] of expected) {
-        const args: WidgetArguments = argumentsOf(findWidget(config, title));
-
-        expect(`${title} -> ${String(args["sloMetric"])}`).toBe(
-          `${title} -> ${metric}`,
-        );
-        expect(`${title} -> ${String(args["displayType"])}`).toBe(
-          `${title} -> ${display}`,
-        );
-      }
-
-      // Nothing beyond that table is on the dashboard.
-      expect(sloWidgets(config)).toHaveLength(expected.length);
-    });
-
-    /*
-     * The titles themselves are the contract the table above is written
-     * against, so assert the set independently: a renamed widget must fail
-     * here rather than silently making the table above vacuous.
-     */
-    it("ships exactly the six SLO widget titles the template documents", () => {
-      expect(sloWidgets(getConfig()).map(titleOf).sort()).toEqual(
-        [
-          "SLI",
-          "Error Budget Remaining",
-          "Burn Rate",
-          "SLI Over Time",
-          "Error Budget Remaining Over Time",
-          "Burn Rate Over Time",
-        ].sort(),
-      );
-    });
-
-    /*
-     * Every member of SloWidgetMetric, not just the three we happen to
-     * have written above: a fourth number added to the widget should show
-     * up on the template that exists to report SLO numbers, and this fails
-     * when it does not.
-     */
-    it("leaves none of the widget's supported metrics off the dashboard", () => {
-      const metrics: Set<string> = new Set<string>(
-        sloWidgets(getConfig()).map(
-          (component: DashboardBaseComponent): string => {
-            return String(argumentsOf(component)["sloMetric"]);
-          },
-        ),
-      );
-
-      for (const metric of Object.values(SloWidgetMetric)) {
-        expect(`${metric} on the dashboard: ${metrics.has(metric)}`).toBe(
-          `${metric} on the dashboard: true`,
-        );
-      }
-    });
-
-    /*
-     * A template cannot know which of a project's SLOs a reader means, and
-     * an id baked into a shipped template would point at nothing in every
-     * project but the one it was copied from. The widget's own setup state
-     * ("Click to select an SLO") is the intended first render.
-     */
-    it("ships every SLO widget unconfigured, with no SLO id baked in", () => {
-      const configured: Array<string> = [];
-
-      for (const component of sloWidgets(getConfig())) {
-        if (argumentsOf(component)["serviceLevelObjectiveId"] !== undefined) {
-          configured.push(titleOf(component));
-        }
-      }
-
-      expect(configured).toEqual([]);
-    });
-
-    /*
-     * Left untitled, the renderer names a widget "<SLO name> · <metric>",
-     * which is nicer once an SLO is picked but leaves all six widgets
-     * reading "SLO Widget" in a template the reader has just created and
-     * cannot yet tell apart.
-     */
-    it("titles every SLO widget so an unconfigured dashboard still reads", () => {
-      const widgets: Array<DashboardBaseComponent> = sloWidgets(getConfig());
-
-      expect(widgets.length).toBeGreaterThan(0);
-
-      for (const component of widgets) {
-        const title: unknown = argumentsOf(component)["widgetTitle"];
-
-        expect(typeof title).toBe("string");
-        expect(String(title).trim().length).toBeGreaterThan(0);
-      }
-    });
-
-    it("stores only real SloWidgetMetric and SloWidgetDisplayType values", () => {
-      const validMetrics: Array<string> = Object.values(SloWidgetMetric);
-      const validDisplays: Array<string> = Object.values(SloWidgetDisplayType);
-
-      for (const component of sloWidgets(getConfig())) {
-        const args: WidgetArguments = argumentsOf(component);
-        const label: string = titleOf(component);
-        const metric: string = String(args["sloMetric"]);
-        const display: string = String(args["displayType"]);
-
-        expect(`${label} metric=${metric}`).toBe(
-          `${label} metric=${
-            validMetrics.includes(metric) ? metric : "<not a SloWidgetMetric>"
-          }`,
-        );
-        expect(`${label} display=${display}`).toBe(
-          `${label} display=${
-            validDisplays.includes(display)
-              ? display
-              : "<not a SloWidgetDisplayType>"
-          }`,
-        );
-      }
-    });
-
-    /*
-     * The enum values are persisted verbatim into the dashboard's JSON
-     * config. Renaming one compiles everywhere and silently blanks every
-     * saved widget, so both directions are pinned.
-     */
-    it("pins the persisted metric and display strings", () => {
-      expect(SloWidgetMetric.Sli).toBe(SLI_METRIC);
-      expect(SloWidgetMetric.ErrorBudgetRemaining).toBe(
-        ERROR_BUDGET_REMAINING_METRIC,
-      );
-      expect(SloWidgetMetric.BurnRate).toBe(BURN_RATE_METRIC);
-      expect(SloWidgetDisplayType.Tile).toBe(TILE_DISPLAY);
-      expect(SloWidgetDisplayType.Chart).toBe(CHART_DISPLAY);
-      expect(DashboardComponentType.Slo).toBe("Slo");
-    });
-
-    it("declares the same minimum footprint the widget's own default does", () => {
-      for (const component of sloWidgets(getConfig())) {
-        expect(component.minWidthInDashboardUnits).toBe(2);
-        expect(component.minHeightInDashboardUnits).toBe(2);
-      }
-    });
-
-    /*
-     * A tile renders a big number, a status pill and a subline; a chart
-     * renders a time series under a title row. Both need more than the
-     * 2x2 floor to be legible, and the charts need the extra width a
-     * series needs to be readable at all.
-     */
-    it("gives the charts a wider tile than the single-number tiles", () => {
-      const config: DashboardViewConfig = getConfig();
-      const tiles: Array<DashboardBaseComponent> = sloWidgets(config).filter(
-        (component: DashboardBaseComponent): boolean => {
-          return argumentsOf(component)["displayType"] === TILE_DISPLAY;
-        },
-      );
-      const charts: Array<DashboardBaseComponent> = sloWidgets(config).filter(
-        (component: DashboardBaseComponent): boolean => {
-          return argumentsOf(component)["displayType"] === CHART_DISPLAY;
-        },
-      );
-
-      expect(tiles.length).toBeGreaterThan(0);
-      expect(charts.length).toBeGreaterThan(0);
-
-      for (const tile of tiles) {
-        expect(tile.widthInDashboardUnits).toBeGreaterThanOrEqual(3);
-        expect(tile.heightInDashboardUnits).toBeGreaterThanOrEqual(3);
-      }
-
-      for (const chart of charts) {
-        expect(chart.widthInDashboardUnits).toBeGreaterThanOrEqual(6);
-        expect(chart.heightInDashboardUnits).toBeGreaterThanOrEqual(4);
-      }
-    });
-
-    /*
-     * Dashboard variables never reach the Slo widget — it resolves one SLO
-     * from its stored id and has nothing to interpolate. A widget that
-     * carried a metric query would be read by the metric fetch layer and
-     * scoped by the Monitor variable, which is not what it reports on.
-     */
-    it("carries no metric query on any SLO widget", () => {
-      for (const component of sloWidgets(getConfig())) {
-        expect(argumentsOf(component)["metricQueryConfig"]).toBeUndefined();
-        expect(metricNameOf(component)).toBeUndefined();
-      }
-    });
-
-    it("reads the objective before the trend: tiles sit above the charts", () => {
-      const config: DashboardViewConfig = getConfig();
-      const lowestTileEdge: number = Math.max(
-        ...sloWidgets(config)
-          .filter((component: DashboardBaseComponent): boolean => {
-            return argumentsOf(component)["displayType"] === TILE_DISPLAY;
-          })
-          .map((component: DashboardBaseComponent): number => {
-            return (
-              component.topInDashboardUnits + component.heightInDashboardUnits
-            );
-          }),
-      );
-      const highestChartTop: number = Math.min(
-        ...sloWidgets(config)
-          .filter((component: DashboardBaseComponent): boolean => {
-            return argumentsOf(component)["displayType"] === CHART_DISPLAY;
-          })
-          .map((component: DashboardBaseComponent): number => {
-            return component.topInDashboardUnits;
-          }),
-      );
-
-      expect(highestChartTop).toBeGreaterThanOrEqual(lowestTileEdge);
-    });
-  });
-
-  describe("metric queries", () => {
-    it("queries only the two monitor series that carry monitorName", () => {
-      const config: DashboardViewConfig = getConfig();
-
-      expect(metricNameOf(findWidget(config, "Monitor Uptime (avg)"))).toBe(
-        IS_ONLINE_METRIC,
-      );
-      expect(metricNameOf(findWidget(config, "Avg Response Time"))).toBe(
-        RESPONSE_TIME_METRIC,
-      );
-      expect(metricNameOf(findWidget(config, "Worst Response Time"))).toBe(
-        RESPONSE_TIME_METRIC,
-      );
-      expect(metricNameOf(findWidget(config, "Monitor Uptime Over Time"))).toBe(
-        IS_ONLINE_METRIC,
-      );
-      expect(metricNameOf(findWidget(config, "Response Time Over Time"))).toBe(
-        RESPONSE_TIME_METRIC,
-      );
-
-      const metrics: Array<string> = [];
-
-      for (const component of config.components) {
-        const metric: string | undefined = metricNameOf(component);
-
-        if (metric) {
-          metrics.push(metric);
-        }
-      }
-
-      expect(metrics.length).toBeGreaterThan(0);
-      expect(Array.from(new Set(metrics)).sort()).toEqual(
-        [IS_ONLINE_METRIC, RESPONSE_TIME_METRIC].sort(),
-      );
-    });
-
-    /*
-     * THE invariant of this template's second half, and it holds for the
-     * two families for DIFFERENT reasons.
-     *
-     * IncidentService stamps its metrics with `monitorNames` (plural,
-     * comma-joined) and never the singular key, so picking a monitor in
-     * this template's variable empties every incident tile while the
-     * uptime tile beside it stays populated — two widgets side by side
-     * disagreeing about what is selected.
-     *
-     * AlertService DOES write the singular `monitorName`, so alert metrics
-     * scope correctly for any monitor-attached alert. They are excluded
-     * anyway: createBurnRateAlert never sets a monitor, so the burn-rate
-     * alerts this dashboard exists for carry no `monitorName` and would be
-     * the rows a scoped tile dropped.
-     *
-     * The incident and alert LISTS read Postgres and are immune to
-     * telemetry variables, which is why they are the form those signals
-     * take here.
-     */
-    it("carries no incident or alert metric, which the Monitor variable would empty", () => {
-      const offenders: Array<string> = [];
-
-      for (const component of getConfig().components) {
-        const metric: string | undefined = metricNameOf(component);
-
-        if (metric && MONITOR_VARIABLE_HOSTILE_METRICS.includes(metric)) {
-          offenders.push(`${titleOf(component)} -> ${metric}`);
-        }
-      }
-
-      expect(offenders).toEqual([]);
-    });
-
-    it("picks the aggregation that makes each number mean what its title says", () => {
-      const config: DashboardViewConfig = getConfig();
-
-      for (const title of [
-        "Monitor Uptime (avg)",
-        "Avg Response Time",
-        "Monitor Uptime Over Time",
-        "Response Time Over Time",
-      ]) {
-        expect(aggregationOf(findWidget(config, title))).toBe(AVG_AGGREGATION);
-      }
-
-      expect(aggregationOf(findWidget(config, "Worst Response Time"))).toBe(
-        MAX_AGGREGATION,
-      );
-    });
-
-    /*
-     * IsOnline is emitted as 0/1 with unit "", so Avg is a RATIO in [0, 1]
-     * and not a percent. A widget labelled with a "%" would print "0.99%"
-     * for a service that was up all window.
-     */
-    it("labels the uptime widgets as an average rather than as a percentage", () => {
-      const config: DashboardViewConfig = getConfig();
-
-      /*
-       * Read the titles out of the CONFIG. Looping over a local array of
-       * string literals and asserting those literals lack a "%" is a
-       * tautology: it tests the test.
-       */
-      const uptimeWidgetTitles: Array<string> = config.components
-        .filter((component: DashboardBaseComponent): boolean => {
-          return metricNameOf(component) === IS_ONLINE_METRIC;
-        })
-        .map(titleOf);
-
-      expect(uptimeWidgetTitles.length).toBeGreaterThan(0);
-
-      for (const title of uptimeWidgetTitles) {
-        expect(`${title} contains %: ${title.includes("%")}`).toBe(
-          `${title} contains %: false`,
-        );
-        // "(avg)" or "Over Time" — either way it must not read as a percent.
-        expect(title.trim().length).toBeGreaterThan(0);
-      }
-
-      // The single-number tile has to say it is an average outright.
-      expect(titleOf(findWidget(config, "Monitor Uptime (avg)"))).toContain(
-        "(avg)",
-      );
-    });
-
-    /*
-     * Nothing anywhere on the dashboard may promise a percentage, because
-     * the only percentage-valued numbers here (SLI, error budget) are
-     * rendered by the Slo widget, which formats its own units. A metric
-     * widget titled with a "%" would be claiming a unit its series does
-     * not carry.
-     */
-    it("puts no percent sign in any metric widget's title", () => {
-      const offenders: Array<string> = [];
-
-      for (const component of getConfig().components) {
-        if (metricNameOf(component) && titleOf(component).includes("%")) {
-          offenders.push(titleOf(component));
-        }
-      }
-
-      expect(offenders).toEqual([]);
-    });
-
-    it("marks each tile so its trend arrow is colored the right way", () => {
-      const config: DashboardViewConfig = getConfig();
-
-      expect(
-        argumentsOf(findWidget(config, "Monitor Uptime (avg)"))[
-          "trendDirection"
-        ],
-      ).toBe(DashboardValueTrendDirection.HigherIsBetter);
-
-      for (const title of ["Avg Response Time", "Worst Response Time"]) {
-        expect(argumentsOf(findWidget(config, title))["trendDirection"]).toBe(
-          DashboardValueTrendDirection.HigherIsWorse,
-        );
-      }
-    });
-
-    it("stores its aggregation under the misspelled key the fetch layer reads", () => {
-      const config: DashboardViewConfig = getConfig();
-      let metricWidgets: number = 0;
-
-      for (const component of config.components) {
-        if (!metricNameOf(component)) {
-          continue;
-        }
-
-        metricWidgets++;
-
-        expect(typeof aggregationOf(component)).toBe("string");
-        expect(
-          Object.prototype.hasOwnProperty.call(
-            filterDataOf(component),
-            "aggregationType",
-          ),
-        ).toBe(false);
-      }
-
-      expect(metricWidgets).toBeGreaterThan(0);
-    });
-
-    /*
-     * A dashboard that prints the same figure under two names is a smaller
-     * dashboard pretending to be a bigger one. A number paired with its
-     * own trend chart is fine — that is a different widget family, not a
-     * repeat — so the check is on (family, metric, aggregation).
-     */
-    it("never prints the same metric and aggregation twice in the same widget family", () => {
-      const seen: Map<string, string> = new Map<string, string>();
-      const duplicates: Array<string> = [];
-
-      for (const component of getConfig().components) {
-        const metric: string | undefined = metricNameOf(component);
-
-        if (!metric) {
-          continue;
-        }
-
-        const key: string = `${component.componentType}|${metric}|${String(
-          aggregationOf(component),
-        )}`;
-        const existing: string | undefined = seen.get(key);
-
-        if (existing) {
-          duplicates.push(
-            `${key} on "${existing}" and "${titleOf(component)}"`,
-          );
-        }
-
-        seen.set(key, titleOf(component));
-      }
-
-      expect(duplicates).toEqual([]);
-    });
-
-    it("gives every widget on the dashboard a distinct, non-empty title", () => {
-      const titles: Array<string> = getConfig().components.map(titleOf);
-
-      expect(
-        titles.every((title: string): boolean => {
-          return title.trim().length > 0;
-        }),
-      ).toBe(true);
-      expect(new Set(titles).size).toBe(titles.length);
-    });
-  });
-
-  describe("the entity lists", () => {
-    /*
-     * An error budget is spent by downtime, and downtime is what incidents
-     * and alerts record. These three read Postgres rather than the metric
-     * store, so unlike a metric tile they stay correct whatever the
-     * Monitor variable is set to.
-     */
-    it("puts exactly one monitor, incident and alert list on the dashboard", () => {
-      const config: DashboardViewConfig = getConfig();
-
-      expect(
-        componentsOfType(config, DashboardComponentType.MonitorList),
-      ).toHaveLength(1);
-      expect(
-        componentsOfType(config, DashboardComponentType.IncidentList),
-      ).toHaveLength(1);
-      expect(
-        componentsOfType(config, DashboardComponentType.AlertList),
-      ).toHaveLength(1);
-    });
-
-    it("renders each list as a list and caps its rows at a positive whole number", () => {
-      const config: DashboardViewConfig = getConfig();
-
-      for (const title of [
-        "All Monitors",
-        "Latest Incidents",
-        "Latest Alerts",
-      ]) {
-        const args: WidgetArguments = argumentsOf(findWidget(config, title));
-
-        expect(args["viewMode"]).toBe("list");
-        expect(typeof args["maxRows"]).toBe("number");
-        expect(Number.isInteger(args["maxRows"] as number)).toBe(true);
-        expect(args["maxRows"] as number).toBeGreaterThan(0);
-      }
-    });
-
-    /*
-     * Both lists sort newest first, so an unfiltered list is the record of
-     * what the budget was spent on — open and recently resolved alike.
-     * Pre-filtering to "unresolved" would hide every incident that has
-     * already been closed, which is most of the budget.
-     */
-    it("does not pre-filter the incident or alert list to a lifecycle state", () => {
-      const config: DashboardViewConfig = getConfig();
-
-      for (const title of ["Latest Incidents", "Latest Alerts"]) {
-        expect(
-          argumentsOf(findWidget(config, title))["stateFilter"],
-        ).toBeUndefined();
-      }
-    });
-
-    /*
-     * Which monitors back an objective is a per-project question, so the
-     * list opens on all of them; the reader narrows it with the widget's
-     * own Labels filter.
-     */
-    it("does not pin the monitor list to a monitor type or status", () => {
-      const args: WidgetArguments = argumentsOf(
-        findWidget(getConfig(), "All Monitors"),
-      );
-
-      expect(args["monitorTypes"]).toBeUndefined();
-      expect(args["statusFilter"]).toBeUndefined();
-    });
-  });
-
-  describe("variables", () => {
-    /*
-     * The uptime and response-time widgets query series every probeable
-     * monitor in the project emits. Unscoped they describe the project,
-     * not the objective — this variable is what scopes them.
-     */
-    it("ships one multi-select Monitor picker", () => {
-      const variables: Array<DashboardVariable> = getConfig().variables || [];
-
-      expect(
-        variables.map((variable: DashboardVariable): string => {
-          return variable.name;
-        }),
-      ).toEqual(["monitor"]);
-
-      const variable: DashboardVariable = variables[0] as DashboardVariable;
-
-      expect(variable.type).toBe(DashboardVariableType.TelemetryAttribute);
-      // An objective is normally backed by several monitors, not one.
-      expect(variable.isMultiSelect).toBe(true);
-      expect((variable.label || "").trim().length).toBeGreaterThan(0);
-    });
-
-    /*
-     * Monitor metrics carry a BARE attribute key — see
-     * MonitorMetricUtil.buildAttributes. A variable bound to
-     * `resource.monitorName` would compile and offer an empty picker, and
-     * one bound to the incident metrics' `monitorNames` would filter the
-     * uptime widgets against a key they do not carry.
-     */
-    it("binds to the bare monitorName key, not a prefixed or plural one", () => {
-      const variable: DashboardVariable = (getConfig().variables ||
-        [])[0] as DashboardVariable;
-
-      expect(variable.attributeKey).toBe(MONITOR_ATTRIBUTE);
-      expect(variable.attributeKey).not.toBe("monitorNames");
-      expect(variable.attributeKey).not.toBe("resource.monitorName");
-    });
-
-    /*
-     * A multi-select resolves from its picks alone and starts with none,
-     * so it opens on "All" and a default would never apply — the widgets
-     * would look scoped behind a control reading "unfiltered".
-     */
-    it("leaves the multi-select variable without a default", () => {
-      const variable: DashboardVariable = (getConfig().variables ||
-        [])[0] as DashboardVariable;
-
-      expect(variable.defaultValue ?? "").toBe("");
-    });
-  });
-
   describe("layout", () => {
-    it("lays every widget out inside the 12-unit grid", () => {
+    /*
+     * The whole board as one table. Each row of the table is a placement; a
+     * widget that moves, resizes, changes type or is renamed fails here with
+     * a readable diff, and the per-section tests below say WHY each placement
+     * is what it is.
+     */
+    it("lays the dashboard out exactly as designed", () => {
+      expect(getConfig().components.map(placementOf)).toEqual([
+        'Text "SLO Dashboard" @ row 0, col 0, 12x1',
+        'SloList "Service Level Objectives" @ row 1, col 0, 12x5',
+        'Text "Error Budget & Burn Rate" @ row 6, col 0, 12x1',
+        'Value "Lowest Error Budget Remaining" @ row 7, col 0, 4x1',
+        'Value "Least Error Budget Time Left" @ row 7, col 4, 4x1',
+        'Value "Peak Burn Rate" @ row 7, col 8, 4x1',
+        'Chart "Error Budget Remaining by SLO" @ row 8, col 0, 6x4',
+        'Chart "Burn Rate by SLO" @ row 8, col 6, 6x4',
+        'Text "Selected SLO" @ row 12, col 0, 12x1',
+        'Slo "SLI" @ row 13, col 0, 4x3',
+        'Slo "Error Budget Remaining" @ row 13, col 4, 4x3',
+        'Slo "Burn Rate" @ row 13, col 8, 4x3',
+        'Slo "SLI History" @ row 16, col 0, 4x4',
+        'Slo "Error Budget History" @ row 16, col 4, 4x4',
+        'Slo "Burn Rate History" @ row 16, col 8, 4x4',
+      ]);
+    });
+
+    it("keeps every widget inside the 12-unit grid", () => {
       for (const component of getConfig().components) {
         expect(component.leftInDashboardUnits).toBeGreaterThanOrEqual(0);
         expect(component.topInDashboardUnits).toBeGreaterThanOrEqual(0);
@@ -887,12 +347,13 @@ describe("SLO dashboard template", () => {
     });
 
     /*
-     * A band of empty rows in the middle of a template reads as a widget
-     * that failed to render rather than as whitespace.
+     * Stronger than "no empty row": every row of the board is covered edge to
+     * edge. A ragged row — two tiles and a gap — reads as a widget that failed
+     * to render, which is exactly what a half-edited template leaves behind.
      */
-    it("leaves no empty row between the title and the last widget", () => {
+    it("fills every row of the grid edge to edge, with no holes", () => {
       const config: DashboardViewConfig = getConfig();
-      const occupiedRows: Set<number> = new Set<number>();
+      const covered: Set<string> = new Set<string>();
 
       for (const component of config.components) {
         for (
@@ -901,27 +362,37 @@ describe("SLO dashboard template", () => {
           component.topInDashboardUnits + component.heightInDashboardUnits;
           row++
         ) {
-          occupiedRows.add(row);
+          for (
+            let column: number = component.leftInDashboardUnits;
+            column <
+            component.leftInDashboardUnits + component.widthInDashboardUnits;
+            column++
+          ) {
+            covered.add(`${row}:${column}`);
+          }
         }
       }
 
-      const emptyRows: Array<number> = [];
+      const holes: Array<string> = [];
 
       for (let row: number = 0; row < lowestOccupiedEdge(config); row++) {
-        if (!occupiedRows.has(row)) {
-          emptyRows.push(row);
+        for (let column: number = 0; column < GRID_WIDTH_IN_UNITS; column++) {
+          if (!covered.has(`${row}:${column}`)) {
+            holes.push(`${row}:${column}`);
+          }
         }
       }
 
-      expect(emptyRows).toEqual([]);
+      expect(holes).toEqual([]);
     });
 
-    it("is tall enough to contain everything on it", () => {
+    it("is exactly as tall as its content", () => {
       const config: DashboardViewConfig = getConfig();
 
       expect(config.heightInDashboardUnits).toBeGreaterThanOrEqual(
         lowestOccupiedEdge(config),
       );
+      expect(lowestOccupiedEdge(config)).toBe(20);
     });
 
     it("renders no widget smaller than the minimum it declares", () => {
@@ -935,7 +406,7 @@ describe("SLO dashboard template", () => {
       }
     });
 
-    it("opens with a bold title row across the full width", () => {
+    it("opens with a bold, full-width title row", () => {
       const title: DashboardBaseComponent = findWidget(
         getConfig(),
         "SLO Dashboard",
@@ -943,237 +414,790 @@ describe("SLO dashboard template", () => {
 
       expect(title.componentType).toBe(DashboardComponentType.Text);
       expect(title.topInDashboardUnits).toBe(0);
-      expect(title.leftInDashboardUnits).toBe(0);
       expect(title.widthInDashboardUnits).toBe(GRID_WIDTH_IN_UNITS);
       expect(argumentsOf(title)["isBold"]).toBe(true);
     });
 
     /*
-     * Rows are asserted, not just boldness: a header that does not sit
-     * immediately above the band it names labels the wrong widgets, and
-     * checking only componentType/width/isBold cannot see that.
+     * Like the Monitor and Kubernetes templates, the board opens on its
+     * headline band directly under the title. The SLO List card carries its
+     * own title, so a section heading above it would stack three titles on
+     * one card.
      */
-    it("labels each band with its own bold section header, on the right row", () => {
+    it("opens on the fleet list directly under the title, with no heading between them", () => {
       const config: DashboardViewConfig = getConfig();
+      const title: DashboardBaseComponent = findWidget(config, "SLO Dashboard");
+      const list: DashboardBaseComponent = findWidget(
+        config,
+        "Service Level Objectives",
+      );
 
+      expect(list.topInDashboardUnits).toBe(
+        title.topInDashboardUnits + title.heightInDashboardUnits,
+      );
+
+      const headingsAboveTheList: Array<string> = componentsOfType(
+        config,
+        DashboardComponentType.Text,
+      )
+        .filter((component: DashboardBaseComponent): boolean => {
+          return (
+            component !== title &&
+            component.topInDashboardUnits < list.topInDashboardUnits
+          );
+        })
+        .map(titleOf);
+
+      expect(headingsAboveTheList).toEqual([]);
+    });
+
+    /*
+     * The reading order of the whole product: the fleet, how its budget is
+     * being spent, then the one objective the reader picks. The budget band's
+     * heading names burn rate too, because two of its widgets are burn rate.
+     */
+    it("labels its two sections in reading order, each directly above its band", () => {
+      const config: DashboardViewConfig = getConfig();
       const headers: Array<[string, number]> = [
-        ["Objective Health", 2],
-        ["Error Budget Trends", 6],
-        ["Monitor Health", 15],
+        ["Error Budget & Burn Rate", 6],
+        ["Selected SLO", 12],
       ];
+
+      expect(
+        componentsOfType(config, DashboardComponentType.Text).map(titleOf),
+      ).toEqual([
+        "SLO Dashboard",
+        ...headers.map((header: [string, number]): string => {
+          return header[0];
+        }),
+      ]);
 
       for (const [heading, expectedTop] of headers) {
         const header: DashboardBaseComponent = findWidget(config, heading);
 
         expect(header.componentType).toBe(DashboardComponentType.Text);
         expect(header.widthInDashboardUnits).toBe(GRID_WIDTH_IN_UNITS);
-        expect(header.leftInDashboardUnits).toBe(0);
         expect(header.heightInDashboardUnits).toBe(1);
         expect(argumentsOf(header)["isBold"]).toBe(true);
         expect(`${heading} top=${header.topInDashboardUnits}`).toBe(
           `${heading} top=${expectedTop}`,
         );
-
-        /*
-         * Something must actually start on the row directly below the
-         * header, or it heads an empty band.
-         */
-        const bandStarts: Array<DashboardBaseComponent> =
-          config.components.filter(
+        expect(
+          config.components.some(
             (component: DashboardBaseComponent): boolean => {
               return component.topInDashboardUnits === expectedTop + 1;
             },
-          );
+          ),
+        ).toBe(true);
+      }
+    });
 
-        expect(`${heading} band widgets=${bandStarts.length > 0}`).toBe(
-          `${heading} band widgets=true`,
-        );
+    /*
+     * The old template needed a non-bold "Edit this dashboard to pick an
+     * objective on each SLO widget" row, because six widgets were inert until
+     * edit mode. Every Text widget now is a heading: nothing on a freshly
+     * created board needs explaining.
+     */
+    it("carries no instruction row — every Text widget is a bold heading", () => {
+      const nonHeadings: Array<string> = componentsOfType(
+        getConfig(),
+        DashboardComponentType.Text,
+      )
+        .filter((component: DashboardBaseComponent): boolean => {
+          return argumentsOf(component)["isBold"] !== true;
+        })
+        .map(titleOf);
+
+      expect(nonHeadings).toEqual([]);
+    });
+
+    it("puts the fleet above the selected objective", () => {
+      const config: DashboardViewConfig = getConfig();
+      const selectedHeaderTop: number = findWidget(
+        config,
+        "Selected SLO",
+      ).topInDashboardUnits;
+
+      for (const component of [
+        ...componentsOfType(config, DashboardComponentType.SloList),
+        ...metricWidgets(config),
+      ]) {
+        expect(
+          component.topInDashboardUnits + component.heightInDashboardUnits,
+        ).toBeLessThanOrEqual(selectedHeaderTop);
       }
 
-      // Headers are in reading order, top to bottom.
-      const tops: Array<number> = headers.map(
-        ([heading]: [string, number]): number => {
-          return findWidget(config, heading).topInDashboardUnits;
-        },
-      );
-
-      expect(tops).toEqual(
-        tops.slice().sort((a: number, b: number): number => {
-          return a - b;
-        }),
-      );
+      for (const component of componentsOfType(
+        config,
+        DashboardComponentType.Slo,
+      )) {
+        expect(component.topInDashboardUnits).toBeGreaterThan(
+          selectedHeaderTop,
+        );
+      }
     });
 
     /*
-     * Every Slo widget on this template is inert until somebody picks an
-     * objective, which no other template has to explain. One guidance row
-     * says it once, directly under the title, instead of leaving six
-     * identical setup placeholders to explain themselves.
+     * Each Selected SLO column reads "now, and how it got here": the tile's
+     * history sits directly beneath it, at the same width.
      */
-    it("carries exactly one non-bold guidance row, directly under the title", () => {
+    it("stacks each tile's history directly beneath it", () => {
       const config: DashboardViewConfig = getConfig();
-      const guidance: Array<DashboardBaseComponent> = componentsOfType(
+      const tiles: Array<DashboardBaseComponent> = componentsOfType(
         config,
-        DashboardComponentType.Text,
+        DashboardComponentType.Slo,
       ).filter((component: DashboardBaseComponent): boolean => {
-        return argumentsOf(component)["isBold"] !== true;
+        return argumentsOf(component)["displayType"] === TILE_DISPLAY;
       });
 
-      expect(guidance).toHaveLength(1);
+      expect(tiles).toHaveLength(3);
 
-      const row: DashboardBaseComponent = guidance[0] as DashboardBaseComponent;
+      for (const tile of tiles) {
+        const metric: unknown = argumentsOf(tile)["sloMetric"];
+        const history: Array<DashboardBaseComponent> = componentsOfType(
+          config,
+          DashboardComponentType.Slo,
+        ).filter((component: DashboardBaseComponent): boolean => {
+          return (
+            argumentsOf(component)["displayType"] === CHART_DISPLAY &&
+            argumentsOf(component)["sloMetric"] === metric
+          );
+        });
 
-      expect(row.topInDashboardUnits).toBe(1);
-      expect(row.leftInDashboardUnits).toBe(0);
-      expect(row.widthInDashboardUnits).toBe(GRID_WIDTH_IN_UNITS);
-      const text: string = titleOf(row);
+        expect(history).toHaveLength(1);
 
-      expect(text.trim().length).toBeGreaterThan(0);
+        const chart: DashboardBaseComponent =
+          history[0] as DashboardBaseComponent;
 
-      /*
-       * It must name the SLO widgets it is about, and the EDIT step. The
-       * widgets' own placeholder says "Click to select an SLO", but that
-       * click only opens the settings panel in edit mode — and a dashboard
-       * created from a template opens in view mode, where following the
-       * instruction does nothing. A guidance row that repeats "click"
-       * without naming edit sends the reader down a dead end.
-       */
-      expect(`guidance names SLO: ${text.includes("SLO")}`).toBe(
-        "guidance names SLO: true",
-      );
-      expect(
-        `guidance names edit: ${text.toLowerCase().includes("edit")}`,
-      ).toBe("guidance names edit: true");
-
-      /*
-       * The Text widget scales its font to the widget's height, so a long
-       * sentence wraps out of a height-1 row and is clipped. Keep it short
-       * enough to render on one line at full width.
-       */
-      expect(`guidance length ${text.length} <= 80`).toBe(
-        `guidance length ${Math.min(text.length, 80)} <= 80`,
-      );
+        expect(
+          `${titleOf(tile)} -> ${titleOf(chart)}: left ${chart.leftInDashboardUnits}, width ${chart.widthInDashboardUnits}, top ${chart.topInDashboardUnits}`,
+        ).toBe(
+          `${titleOf(tile)} -> ${titleOf(chart)}: left ${tile.leftInDashboardUnits}, width ${tile.widthInDashboardUnits}, top ${tile.topInDashboardUnits + tile.heightInDashboardUnits}`,
+        );
+      }
     });
 
-    /*
-     * The objective is the subject of this dashboard; the monitors,
-     * incidents and alerts are the explanation. Putting a monitor tile
-     * above the SLI would make it a monitor dashboard with an SLO on it.
-     */
-    it("puts the objective above everything that explains it", () => {
-      const config: DashboardViewConfig = getConfig();
-      const lowestSloEdge: number = Math.max(
-        ...sloWidgets(config).map(
-          (component: DashboardBaseComponent): number => {
-            return (
-              component.topInDashboardUnits + component.heightInDashboardUnits
-            );
+    it("gives every widget a distinct, non-empty title", () => {
+      const titles: Array<string> = getConfig().components.map(titleOf);
+
+      for (const title of titles) {
+        expect(title.trim().length).toBeGreaterThan(0);
+      }
+
+      expect(new Set(titles).size).toBe(titles.length);
+    });
+  });
+
+  describe("what is not on the template", () => {
+    it("uses only the widget kinds that can be scoped to an objective", () => {
+      const types: Set<string> = new Set<string>(
+        getConfig().components.map(
+          (component: DashboardBaseComponent): string => {
+            return component.componentType;
           },
         ),
       );
 
-      for (const title of [
-        "Monitor Uptime (avg)",
-        "Avg Response Time",
-        "Worst Response Time",
-        "Monitor Uptime Over Time",
-        "Response Time Over Time",
-        "All Monitors",
-        "Latest Alerts",
+      expect(Array.from(types).sort()).toEqual(
+        [
+          DashboardComponentType.Chart,
+          DashboardComponentType.Slo,
+          DashboardComponentType.SloList,
+          DashboardComponentType.Text,
+          DashboardComponentType.Value,
+        ].sort(),
+      );
+    });
+
+    /*
+     * Project-wide lists beside an objective read as that objective's
+     * incidents, alerts and monitors. None of them can be narrowed to an SLO,
+     * so none of them belongs here.
+     */
+    it("ships no project-wide incident, alert or monitor list", () => {
+      const config: DashboardViewConfig = getConfig();
+
+      for (const listType of [
+        DashboardComponentType.IncidentList,
+        DashboardComponentType.AlertList,
+        DashboardComponentType.MonitorList,
       ]) {
-        expect(
-          `${title} top=${findWidget(config, title).topInDashboardUnits} >= ${lowestSloEdge}`,
-        ).toBe(
-          `${title} top=${Math.max(
-            findWidget(config, title).topInDashboardUnits,
-            lowestSloEdge,
-          )} >= ${lowestSloEdge}`,
-        );
+        expect(componentsOfType(config, listType)).toHaveLength(0);
       }
     });
 
     /*
-     * A burn-rate rule declares an incident when the budget starts going
-     * fast, so the spike and the record of what was done about it belong
-     * on the same row.
+     * Monitor series carry `monitorName` and incident / alert metrics their
+     * own monitor keys — none carries `sloName`, so the SLO variable would
+     * leave them showing the whole project under a toolbar naming one SLO.
      */
-    it("sets the incident list beside the burn rate chart", () => {
-      const config: DashboardViewConfig = getConfig();
-      const burnRateChart: DashboardBaseComponent = findWidget(
-        config,
-        "Burn Rate Over Time",
-      );
-      const incidents: DashboardBaseComponent = findWidget(
-        config,
-        "Latest Incidents",
+    it("queries no monitor, incident or alert series", () => {
+      const foreignSeries: Array<string> = [
+        ...Object.values(MonitorMetricType),
+        ...Object.values(IncidentMetricType),
+        ...Object.values(AlertMetricType),
+      ];
+
+      const offenders: Array<string> = [];
+
+      for (const component of metricWidgets(getConfig())) {
+        const metric: string = metricNameOf(component) as string;
+
+        if (foreignSeries.includes(metric)) {
+          offenders.push(`${titleOf(component)} -> ${metric}`);
+        }
+      }
+
+      expect(offenders).toEqual([]);
+    });
+  });
+
+  describe("the Objectives list", () => {
+    it("is one full-width SLO List of every active objective", () => {
+      const lists: Array<DashboardBaseComponent> = componentsOfType(
+        getConfig(),
+        DashboardComponentType.SloList,
       );
 
-      expect(incidents.topInDashboardUnits).toBe(
-        burnRateChart.topInDashboardUnits,
+      expect(lists).toHaveLength(1);
+
+      const list: DashboardBaseComponent = lists[0] as DashboardBaseComponent;
+
+      expect(titleOf(list)).toBe("Service Level Objectives");
+      expect(list.widthInDashboardUnits).toBe(GRID_WIDTH_IN_UNITS);
+    });
+
+    /*
+     * The fleet view has to show the fleet: a stored status or label filter
+     * would hide objectives on a board the reader has not configured yet.
+     */
+    it("pre-filters nothing and caps its rows at the widget's own default", () => {
+      const args: WidgetArguments = argumentsOf(
+        findWidget(getConfig(), "Service Level Objectives"),
       );
-      expect(incidents.leftInDashboardUnits).toBe(
-        burnRateChart.leftInDashboardUnits +
-          burnRateChart.widthInDashboardUnits,
+
+      expect(args).toEqual({
+        title: "Service Level Objectives",
+        maxRows: SLO_LIST_DEFAULT_MAX_ROWS,
+        viewMode: "list",
+      });
+    });
+
+    it("declares the same floors the widget's own default does", () => {
+      const list: DashboardBaseComponent = findWidget(
+        getConfig(),
+        "Service Level Objectives",
+      );
+
+      expect(list.minWidthInDashboardUnits).toBe(
+        DashboardSloListComponentUtil.getDefaultComponent()
+          .minWidthInDashboardUnits,
+      );
+      expect(list.minHeightInDashboardUnits).toBe(
+        DashboardSloListComponentUtil.getDefaultComponent()
+          .minHeightInDashboardUnits,
+      );
+    });
+  });
+
+  describe("the Error Budget row", () => {
+    it("charts and totals exactly the designed series, with the designed aggregations", () => {
+      expect(
+        metricWidgets(getConfig()).map(
+          (component: DashboardBaseComponent): string => {
+            return `${component.componentType} "${titleOf(component)}": ${metricNameOf(
+              component,
+            )} ${String(aggregationOf(component))}`;
+          },
+        ),
+      ).toEqual([
+        `Value "Lowest Error Budget Remaining": ${BUDGET_PERCENT_SERIES} Min`,
+        `Value "Least Error Budget Time Left": ${BUDGET_SECONDS_SERIES} Min`,
+        `Value "Peak Burn Rate": ${BURN_RATE_SERIES} Max`,
+        `Chart "Error Budget Remaining by SLO": ${BUDGET_PERCENT_SERIES} Avg`,
+        `Chart "Burn Rate by SLO": ${BURN_RATE_SERIES} Max`,
+      ]);
+    });
+
+    it("names every series through SloMetricType", () => {
+      const known: Array<string> = Object.values(SloMetricType);
+
+      for (const component of metricWidgets(getConfig())) {
+        expect(known).toContain(metricNameOf(component) as string);
+      }
+    });
+
+    /*
+     * The fleet charts must aggregate each series the way the series is meant
+     * to be read — the same table the SLO Metrics page and the MetricType
+     * catalog use — so a burn-rate spike is a Max, never averaged away.
+     */
+    it("aggregates, labels and units each chart from SloMetricTypeUtil", () => {
+      const charts: Array<DashboardBaseComponent> = componentsOfType(
+        getConfig(),
+        DashboardComponentType.Chart,
+      );
+
+      expect(charts.length).toBeGreaterThan(0);
+
+      for (const chart of charts) {
+        const metric: SloMetricType = metricNameOf(chart) as SloMetricType;
+        const label: string = titleOf(chart);
+
+        expect(`${label} aggregation=${String(aggregationOf(chart))}`).toBe(
+          `${label} aggregation=${SloMetricTypeUtil.getAggregationType(metric)}`,
+        );
+        expect(`${label} legend=${String(aliasDataOf(chart)["legend"])}`).toBe(
+          `${label} legend=${SloMetricTypeUtil.getLegend(metric)}`,
+        );
+        expect(
+          `${label} legendUnit=${String(aliasDataOf(chart)["legendUnit"])}`,
+        ).toBe(
+          `${label} legendUnit=${SloMetricTypeUtil.getLegendUnit(metric)}`,
+        );
+      }
+    });
+
+    it("prints percent and multiplier units on the charts", () => {
+      const config: DashboardViewConfig = getConfig();
+
+      expect(
+        aliasDataOf(findWidget(config, "Error Budget Remaining by SLO"))[
+          "legendUnit"
+        ],
+      ).toBe("%");
+      expect(
+        aliasDataOf(findWidget(config, "Burn Rate by SLO"))["legendUnit"],
+      ).toBe("x");
+    });
+
+    /*
+     * The tiles read Min / Max, not the series' own Avg, because they must be
+     * true in BOTH states of the toolbar: across the fleet an average of
+     * several objectives' budgets is nobody's budget, while the lowest budget
+     * and the peak burn are the numbers someone acts on.
+     */
+    it("totals the worst case, and says so in each title", () => {
+      const config: DashboardViewConfig = getConfig();
+
+      expect(
+        aggregationOf(findWidget(config, "Lowest Error Budget Remaining")),
+      ).toBe("Min");
+      expect(
+        aggregationOf(findWidget(config, "Least Error Budget Time Left")),
+      ).toBe("Min");
+      expect(aggregationOf(findWidget(config, "Peak Burn Rate"))).toBe("Max");
+    });
+
+    it("colours each tile's trend the right way round", () => {
+      const config: DashboardViewConfig = getConfig();
+
+      expect(
+        argumentsOf(findWidget(config, "Lowest Error Budget Remaining"))[
+          "trendDirection"
+        ],
+      ).toBe(DashboardValueTrendDirection.HigherIsBetter);
+      expect(
+        argumentsOf(findWidget(config, "Least Error Budget Time Left"))[
+          "trendDirection"
+        ],
+      ).toBe(DashboardValueTrendDirection.HigherIsBetter);
+      expect(
+        argumentsOf(findWidget(config, "Peak Burn Rate"))["trendDirection"],
+      ).toBe(DashboardValueTrendDirection.HigherIsWorse);
+    });
+
+    /*
+     * One line per OBJECTIVE. By the attribute the toolbar variable binds to,
+     * leading so the legend reads by name — and by sloId, because SLO names
+     * are not unique: grouped by name alone, two same-named SLOs were drawn as
+     * one averaged line under one legend entry (regression). A whole-map
+     * `groupBy: { attributes: true }` would split every line by every label.
+     */
+    it("fans each chart out by sloName then sloId, and nothing else", () => {
+      expect([...SLO_TEMPLATE_CHART_GROUP_BY_KEYS]).toEqual([
+        SLO_NAME_ATTRIBUTE,
+        "sloId",
+      ]);
+
+      for (const chart of componentsOfType(
+        getConfig(),
+        DashboardComponentType.Chart,
+      )) {
+        expect(queryDataOf(chart)["groupByAttributeKeys"]).toEqual([
+          SLO_NAME_ATTRIBUTE,
+          "sloId",
+        ]);
+        expect(queryDataOf(chart)["groupBy"]).toBeUndefined();
+        expect(argumentsOf(chart)["chartType"]).toBe(DashboardChartType.Line);
+      }
+    });
+
+    it("leaves the tiles ungrouped, so each prints ONE number", () => {
+      for (const tile of componentsOfType(
+        getConfig(),
+        DashboardComponentType.Value,
+      )) {
+        expect(queryDataOf(tile)["groupByAttributeKeys"]).toBeUndefined();
+      }
+    });
+
+    /*
+     * With the toolbar on All the row must describe the fleet; a filter baked
+     * into a widget would describe a subset behind a toolbar reading "All".
+     */
+    it("stores no attribute filter on any metric widget", () => {
+      for (const component of metricWidgets(getConfig())) {
+        expect(filterDataOf(component)["attributes"]).toBeUndefined();
+      }
+    });
+
+    /*
+     * Objectives run at different targets, so one axis of SLIs reads as a
+     * flat line and a dot. The SLI is shown per objective, against its own
+     * target, in the Selected SLO section — never fleet-wide.
+     */
+    it("does not chart the SLI, the target or the status series fleet-wide", () => {
+      const queried: Array<string> = metricWidgets(getConfig()).map(
+        (component: DashboardBaseComponent): string => {
+          return metricNameOf(component) as string;
+        },
+      );
+
+      for (const series of [
+        SloMetricType.SliPercent,
+        SloMetricType.TargetPercent,
+        SloMetricType.Status,
+      ]) {
+        expect(queried).not.toContain(series);
+      }
+    });
+
+    it("puts no percent sign in a metric widget's title — the unit comes from the catalog", () => {
+      const offenders: Array<string> = metricWidgets(getConfig())
+        .map(titleOf)
+        .filter((title: string): boolean => {
+          return title.includes("%");
+        });
+
+      expect(offenders).toEqual([]);
+    });
+
+    it("stores every aggregation under the misspelled key the fetch layer reads", () => {
+      for (const component of metricWidgets(getConfig())) {
+        expect(typeof aggregationOf(component)).toBe("string");
+        expect(
+          Object.prototype.hasOwnProperty.call(
+            filterDataOf(component),
+            "aggregationType",
+          ),
+        ).toBe(false);
+      }
+    });
+  });
+
+  describe("the Selected SLO widgets", () => {
+    /*
+     * Title, metric and display asserted TOGETHER per widget: a permutation of
+     * titles across metrics — a "Burn Rate" tile reporting the SLI — is the
+     * worst way this template can be wrong and the one a reader cannot see.
+     */
+    it("labels each SLO widget with the number it actually reports", () => {
+      const config: DashboardViewConfig = getConfig();
+      const expected: Array<[string, string, string]> = [
+        ["SLI", SLI_METRIC, TILE_DISPLAY],
+        ["Error Budget Remaining", ERROR_BUDGET_REMAINING_METRIC, TILE_DISPLAY],
+        ["Burn Rate", BURN_RATE_METRIC, TILE_DISPLAY],
+        ["SLI History", SLI_METRIC, CHART_DISPLAY],
+        ["Error Budget History", ERROR_BUDGET_REMAINING_METRIC, CHART_DISPLAY],
+        ["Burn Rate History", BURN_RATE_METRIC, CHART_DISPLAY],
+      ];
+
+      for (const [title, metric, display] of expected) {
+        const args: WidgetArguments = argumentsOf(findWidget(config, title));
+
+        expect(
+          `${title} -> ${String(args["sloMetric"])}/${String(args["displayType"])}`,
+        ).toBe(`${title} -> ${metric}/${display}`);
+      }
+
+      expect(componentsOfType(config, DashboardComponentType.Slo)).toHaveLength(
+        expected.length,
       );
     });
 
-    it("picks a chart shape that suits each monitor series", () => {
-      const config: DashboardViewConfig = getConfig();
+    it("shows every metric the widget supports, as both a tile and a history", () => {
+      const pairs: Set<string> = new Set<string>(
+        componentsOfType(getConfig(), DashboardComponentType.Slo).map(
+          (component: DashboardBaseComponent): string => {
+            const args: WidgetArguments = argumentsOf(component);
+            return `${String(args["sloMetric"])}/${String(args["displayType"])}`;
+          },
+        ),
+      );
 
-      // A filled area for a ratio that should read as coverage...
-      expect(
-        argumentsOf(findWidget(config, "Monitor Uptime Over Time"))[
-          "chartType"
-        ],
-      ).toBe(DashboardChartType.Area);
-      // ...and a line for a latency series read against its own history.
-      expect(
-        argumentsOf(findWidget(config, "Response Time Over Time"))["chartType"],
-      ).toBe(DashboardChartType.Line);
+      for (const metric of Object.values(SloWidgetMetric)) {
+        for (const display of Object.values(SloWidgetDisplayType)) {
+          expect(
+            `${metric}/${display} on the board: ${pairs.has(`${metric}/${display}`)}`,
+          ).toBe(`${metric}/${display} on the board: true`);
+        }
+      }
+    });
+
+    /*
+     * A template cannot know a project's SLO ids: a baked-in id would point at
+     * nothing elsewhere, and on a public dashboard a stored id is the
+     * authorization decision.
+     */
+    it("pins no SLO id on any widget", () => {
+      for (const component of componentsOfType(
+        getConfig(),
+        DashboardComponentType.Slo,
+      )) {
+        expect(
+          argumentsOf(component)["serviceLevelObjectiveId"],
+        ).toBeUndefined();
+      }
+    });
+
+    it("binds every SLO widget to the template's own SLO variable", () => {
+      const config: DashboardViewConfig = getConfig();
+      const variableId: string = onlyVariable(config).id;
+
+      for (const component of componentsOfType(
+        config,
+        DashboardComponentType.Slo,
+      )) {
+        expect(
+          `${titleOf(component)} follows ${String(
+            argumentsOf(component)["serviceLevelObjectiveVariableId"],
+          )}`,
+        ).toBe(`${titleOf(component)} follows ${variableId}`);
+      }
+    });
+
+    /*
+     * THE property the rewrite exists for, established through the resolver
+     * the renderer and the public policy both use: as created, every SLO
+     * widget asks for a TOOLBAR pick (never "Click to select an SLO", which
+     * does nothing outside edit mode), and one pick resolves all six at once.
+     */
+    it("waits for one toolbar pick — and one pick resolves every SLO widget", () => {
+      const config: DashboardViewConfig = getConfig();
+      const variable: DashboardVariable = onlyVariable(config);
+      const sloWidgets: Array<DashboardBaseComponent> = componentsOfType(
+        config,
+        DashboardComponentType.Slo,
+      );
+
+      expect(sloWidgets.length).toBeGreaterThan(0);
+
+      for (const component of sloWidgets) {
+        const args: WidgetArguments = argumentsOf(component);
+
+        expect(
+          `${titleOf(component)} as created: ${
+            resolveSloWidgetSource({
+              serviceLevelObjectiveId: args["serviceLevelObjectiveId"] as
+                | string
+                | undefined,
+              serviceLevelObjectiveVariableId: args[
+                "serviceLevelObjectiveVariableId"
+              ] as string | undefined,
+              variables: config.variables,
+            }).state
+          }`,
+        ).toBe(
+          `${titleOf(component)} as created: ${SloWidgetSourceState.NoSelection}`,
+        );
+
+        expect(
+          resolveSloWidgetSource({
+            serviceLevelObjectiveVariableId: args[
+              "serviceLevelObjectiveVariableId"
+            ] as string | undefined,
+            variables: [{ ...variable, selectedValue: "Checkout API" }],
+          }),
+        ).toEqual({
+          state: SloWidgetSourceState.FollowsSelection,
+          sloName: "Checkout API",
+        });
+      }
+    });
+
+    it("titles every SLO widget so the placeholders can be told apart", () => {
+      for (const component of componentsOfType(
+        getConfig(),
+        DashboardComponentType.Slo,
+      )) {
+        expect(
+          String(argumentsOf(component)["widgetTitle"] || "").trim().length,
+        ).toBeGreaterThan(0);
+      }
+    });
+
+    it("stores only real SloWidgetMetric and SloWidgetDisplayType values", () => {
+      expect(SloWidgetMetric.Sli).toBe(SLI_METRIC);
+      expect(SloWidgetMetric.ErrorBudgetRemaining).toBe(
+        ERROR_BUDGET_REMAINING_METRIC,
+      );
+      expect(SloWidgetMetric.BurnRate).toBe(BURN_RATE_METRIC);
+      expect(SloWidgetDisplayType.Tile).toBe(TILE_DISPLAY);
+      expect(SloWidgetDisplayType.Chart).toBe(CHART_DISPLAY);
+
+      for (const component of componentsOfType(
+        getConfig(),
+        DashboardComponentType.Slo,
+      )) {
+        const args: WidgetArguments = argumentsOf(component);
+
+        expect(Object.values(SloWidgetMetric)).toContain(args["sloMetric"]);
+        expect(Object.values(SloWidgetDisplayType)).toContain(
+          args["displayType"],
+        );
+      }
+    });
+
+    it("declares the same floors the widget's own default does, and gives charts room to be read", () => {
+      const floor: DashboardBaseComponent =
+        DashboardSloComponentUtil.getDefaultComponent();
+
+      for (const component of componentsOfType(
+        getConfig(),
+        DashboardComponentType.Slo,
+      )) {
+        expect(component.minWidthInDashboardUnits).toBe(
+          floor.minWidthInDashboardUnits,
+        );
+        expect(component.minHeightInDashboardUnits).toBe(
+          floor.minHeightInDashboardUnits,
+        );
+
+        const isChart: boolean =
+          argumentsOf(component)["displayType"] === CHART_DISPLAY;
+
+        expect(component.widthInDashboardUnits).toBeGreaterThanOrEqual(4);
+        expect(component.heightInDashboardUnits).toBeGreaterThanOrEqual(
+          isChart ? 4 : 3,
+        );
+      }
+    });
+
+    // A metric query on an Slo widget would be read by the metric fetch layer.
+    it("carries no metric query on any SLO widget", () => {
+      for (const component of componentsOfType(
+        getConfig(),
+        DashboardComponentType.Slo,
+      )) {
+        expect(argumentsOf(component)["metricQueryConfig"]).toBeUndefined();
+      }
+    });
+  });
+
+  describe("the SLO variable", () => {
+    it("is one single-select Telemetry Attribute variable labelled SLO", () => {
+      const variable: DashboardVariable = onlyVariable(getConfig());
+
+      expect(variable.name).toBe("slo");
+      expect(variable.label).toBe("SLO");
+      expect(variable.type).toBe(DashboardVariableType.TelemetryAttribute);
+      /*
+       * Single-select because the Selected SLO widgets can show ONE objective;
+       * a multi-pick would leave six widgets asking for a single pick while
+       * the charts above compared.
+       */
+      expect(variable.isMultiSelect).toBe(false);
+    });
+
+    /*
+     * SloMetricUtil stamps a BARE key. `resource.sloName` would compile and
+     * offer an empty picker; `sloId` would offer UUIDs and match no name.
+     */
+    it("binds to the bare sloName key the SLO metrics carry", () => {
+      const variable: DashboardVariable = onlyVariable(getConfig());
+
+      expect(variable.attributeKey).toBe(SLO_NAME_ATTRIBUTE);
+      expect(variable.attributeKey).toBe(SLO_METRIC_SLO_NAME_ATTRIBUTE);
+      expect(variable.attributeKey).not.toBe("resource.sloName");
+      expect(variable.attributeKey).not.toBe("sloId");
+    });
+
+    /*
+     * One key, three consumers: the charts group by it, the SLO List maps it
+     * to the name column, and the variable binds to it. If any of the three
+     * spells it differently, a pick narrows some sections and not others.
+     */
+    it("is the same key the charts group by and the SLO List maps to its name column", () => {
+      const config: DashboardViewConfig = getConfig();
+      const key: string = onlyVariable(config).attributeKey as string;
+
+      expect(SLO_LIST_ATTRIBUTE_TO_COLUMN[key]).toBe("name");
+
+      for (const chart of componentsOfType(
+        config,
+        DashboardComponentType.Chart,
+      )) {
+        // The variable's key leads; sloId after it keeps same-named SLOs apart.
+        expect(
+          (queryDataOf(chart)["groupByAttributeKeys"] as Array<string>)[0],
+        ).toBe(key);
+      }
+    });
+
+    // A template cannot know a project's SLO names.
+    it("ships no default and no selection", () => {
+      const variable: DashboardVariable = onlyVariable(getConfig());
+
+      expect(variable.defaultValue ?? "").toBe("");
+      expect(variable.selectedValue ?? "").toBe("");
+      expect(variable.selectedValues ?? []).toEqual([]);
     });
   });
 
   describe("freshness", () => {
-    /*
-     * Two dashboards created from this template must not share component
-     * or variable ids — they are independent saved rows from the moment
-     * they are created.
-     */
     it("generates fresh component and variable ids on every call", () => {
       const first: DashboardViewConfig = getConfig();
       const second: DashboardViewConfig = getConfig();
 
-      expect(second.components.length).toBe(first.components.length);
-
-      const firstComponentIds: Set<string> = new Set<string>(
+      const firstIds: Set<string> = new Set<string>(
         first.components.map((component: DashboardBaseComponent): string => {
           return component.componentId.toString();
         }),
       );
+
       for (const component of second.components) {
-        expect(firstComponentIds.has(component.componentId.toString())).toBe(
-          false,
-        );
+        expect(firstIds.has(component.componentId.toString())).toBe(false);
       }
 
-      const firstVariableIds: Set<string> = new Set<string>(
-        (first.variables || []).map((variable: DashboardVariable): string => {
-          return variable.id;
-        }),
-      );
-      for (const variable of second.variables || []) {
-        expect(firstVariableIds.has(variable.id)).toBe(false);
+      expect(onlyVariable(second).id).not.toBe(onlyVariable(first).id);
+    });
+
+    /*
+     * The binding must point at THIS config's variable. A variable id captured
+     * once at module load would bind every dashboard created afterwards to a
+     * variable it does not have.
+     */
+    it("binds each call's SLO widgets to that same call's variable", () => {
+      for (let call: number = 0; call < 3; call++) {
+        const config: DashboardViewConfig = getConfig();
+        const variableId: string = onlyVariable(config).id;
+
+        for (const component of componentsOfType(
+          config,
+          DashboardComponentType.Slo,
+        )) {
+          expect(
+            argumentsOf(component)["serviceLevelObjectiveVariableId"],
+          ).toBe(variableId);
+        }
       }
     });
 
-    it("returns the same widget set on every call", () => {
-      const first: DashboardViewConfig = getConfig();
-      const second: DashboardViewConfig = getConfig();
-
-      expect(second.components.map(titleOf)).toEqual(
-        first.components.map(titleOf),
+    it("returns the same layout on every call", () => {
+      expect(getConfig().components.map(placementOf)).toEqual(
+        getConfig().components.map(placementOf),
       );
-      expect(second.heightInDashboardUnits).toBe(first.heightInDashboardUnits);
     });
   });
 });

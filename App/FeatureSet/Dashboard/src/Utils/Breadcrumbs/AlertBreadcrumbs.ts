@@ -211,6 +211,17 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Rules",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "Owner Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULE_VIEW,
+      ["Project", "Alerts", "Rules", "Owner Rules", "View Episode Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_RUNBOOK_RULES, [
       "Project",
       "Alerts",
@@ -223,12 +234,34 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Rules",
       "Privacy Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_PRIVACY_RULE_VIEW, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "Privacy Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ALERTS_SETTINGS_EPISODE_PRIVACY_RULE_VIEW,
+      ["Project", "Alerts", "Rules", "Privacy Rules", "View Episode Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_LABEL_RULES, [
       "Project",
       "Alerts",
       "Rules",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "Label Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ALERTS_SETTINGS_EPISODE_LABEL_RULE_VIEW,
+      ["Project", "Alerts", "Rules", "Label Rules", "View Episode Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_REMINDER_RULES, [
       "Project",
       "Alerts",

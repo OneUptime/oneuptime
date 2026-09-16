@@ -32,11 +32,11 @@ DNSSEC-monitorer validerar hela förtroendekedjan från rotzonen ner till din do
 
 ### Avancerade inställningar
 
-| Fält                              | Beskrivning                              | Standard |
-| --------------------------------- | ---------------------------------------- | -------- |
-| Varning om signaturutgång (dagar) | Standardtröskel för RRSIG-utgångsfiltret | 7        |
-| Timeout (ms)                      | Hur länge man väntar på varje DNS-fråga  | 10000    |
-| Återförsök                        | Antal återförsök vid fel                 | 3        |
+| Fält                              | Beskrivning                                                                    | Standard |
+| --------------------------------- | ------------------------------------------------------------------------------ | -------- |
+| Varning om signaturutgång (dagar) | Standardtröskel för RRSIG-utgångsfiltret                                       | 7        |
+| Timeout (ms)                      | Hur länge man väntar på varje DNS-fråga                                        | 10000    |
+| Återförsök                        | Återförsök efter att det första försöket misslyckas; 0 betyder ett enda försök | 3        |
 
 ## Övervakningskriterier
 

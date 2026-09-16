@@ -66,7 +66,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import ResourceFeed, {
+  GetResourceFeedIconFunction,
   getIconForEventType,
+  resolveResourceFeedIcon,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceFeed/ResourceFeed";
 import KubernetesClusterFeed, {
   KubernetesClusterFeedEventType,
@@ -180,11 +182,20 @@ describe("ResourceFeed", () => {
 
     renderFeed();
 
-    await waitFor(() => {
-      expect(
-        screen.getByText(/cluster was created automatically/),
-      ).toBeInTheDocument();
-    });
+    /*
+     * The first test to render markdown pays for the lazy MarkdownViewer
+     * chunk: until import() settles, each item shows the "Loading content"
+     * placeholder. On a loaded CI runner that took longer than waitFor's
+     * default 1s, so give the cold load room (later tests hit the warm cache).
+     */
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/cluster was created automatically/),
+        ).toBeInTheDocument();
+      },
+      { timeout: 20000 },
+    );
 
     expect(
       screen.getByText(/Jane Doe was added as an owner/),
@@ -623,5 +634,114 @@ describe("getIconForEventType", () => {
       IconProp.Circle,
     );
     expect(getIconForEventType("")).toBe(IconProp.Circle);
+  });
+});
+
+/*
+ * A feed whose events the suffix rules cannot express - the SLO feed's
+ * StatusChanged, BurnRateAlertRaised, MonitorsDetached - passes getIcon. The
+ * contract: the feed's own answer wins, "no answer" falls back to the shared
+ * rules, and a feed that passes nothing renders exactly as before.
+ */
+describe("resolveResourceFeedIcon", () => {
+  const getOwnIcon: GetResourceFeedIconFunction = (
+    eventType: string,
+  ): IconProp | undefined => {
+    return eventType === "StatusChanged"
+      ? IconProp.ArrowCircleRight
+      : undefined;
+  };
+
+  test("uses the feed's own icon when it has one", () => {
+    expect(
+      resolveResourceFeedIcon({
+        eventType: "StatusChanged",
+        getIcon: getOwnIcon,
+      }),
+    ).toBe(IconProp.ArrowCircleRight);
+  });
+
+  test("falls back to the shared rules when the feed has no answer", () => {
+    expect(
+      resolveResourceFeedIcon({
+        eventType: "ServiceLevelObjectiveCreated",
+        getIcon: getOwnIcon,
+      }),
+    ).toBe(IconProp.Add);
+    expect(
+      resolveResourceFeedIcon({
+        eventType: "OwnerTeamRemoved",
+        getIcon: getOwnIcon,
+      }),
+    ).toBe(IconProp.Close);
+    expect(
+      resolveResourceFeedIcon({ eventType: "Unknown", getIcon: getOwnIcon }),
+    ).toBe(IconProp.Circle);
+  });
+
+  test("without getIcon it is exactly the shared rules", () => {
+    for (const eventType of [
+      "KubernetesClusterCreated",
+      "ServiceArchived",
+      "OwnerUserAdded",
+      "LabelRuleExecuted",
+      "StatusChanged",
+      "",
+    ]) {
+      expect(resolveResourceFeedIcon({ eventType: eventType })).toBe(
+        getIconForEventType(eventType),
+      );
+    }
+  });
+});
+
+describe("ResourceFeed - a feed's own icons", () => {
+  test("asks getIcon about every item it renders, by that item's event type", async () => {
+    const askedEventTypes: Array<string> = [];
+
+    const getIcon: GetResourceFeedIconFunction = (
+      eventType: string,
+    ): IconProp | undefined => {
+      askedEventTypes.push(eventType);
+      return undefined;
+    };
+
+    mockGetListResponse = (): Promise<unknown> => {
+      return Promise.resolve({
+        data: [
+          feedItem(
+            KubernetesClusterFeedEventType.KubernetesClusterCreated,
+            "created-item",
+          ),
+          feedItem(KubernetesClusterFeedEventType.OwnerUserAdded, "owner-item"),
+        ],
+        count: 2,
+      });
+    };
+
+    render(
+      <ResourceFeed<KubernetesClusterFeed>
+        modelType={KubernetesClusterFeed}
+        resourceIdColumn="kubernetesClusterId"
+        resourceId={CLUSTER_ID}
+        eventTypeColumn="kubernetesClusterFeedEventType"
+        title="Kubernetes Cluster Feed"
+        description="Everything that has happened to this Kubernetes cluster."
+        noItemsMessage="No activity has been recorded for this Kubernetes cluster yet."
+        getIcon={getIcon}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/owner-item/)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/created-item/)).toBeInTheDocument();
+    expect(askedEventTypes).toContain(
+      KubernetesClusterFeedEventType.KubernetesClusterCreated,
+    );
+    expect(askedEventTypes).toContain(
+      KubernetesClusterFeedEventType.OwnerUserAdded,
+    );
   });
 });

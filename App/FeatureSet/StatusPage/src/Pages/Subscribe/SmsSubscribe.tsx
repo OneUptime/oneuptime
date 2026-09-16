@@ -40,6 +40,13 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 ): ReactElement => {
   const { t } = useTranslation();
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  /*
+   * The manage tab gets its own flag: the server answers a manage request the
+   * same way whether or not anything matched, so it must not reuse the
+   * subscribe tab's success copy.
+   */
+  const [isManageLinkRequested, setIsManageLinkRequested] =
+    useState<boolean>(false);
 
   const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
 
@@ -241,7 +248,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             return item;
           }}
           onSuccess={() => {
-            setIsSuccess(true);
+            setIsManageLinkRequested(true);
           }}
           maxPrimaryButtonWidth={true}
         />
@@ -296,7 +303,14 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
               </p>
             )}
 
-            {!isSuccess ? (
+            {isManageLinkRequested && (
+              <p className="text-center text-gray-400 mb-20 mt-20">
+                {" "}
+                {t("subscribe.manageLinkSent")}
+              </p>
+            )}
+
+            {!isSuccess && !isManageLinkRequested ? (
               <div className="">
                 <Card
                   title={t("subscribe.sms.title")}

@@ -216,7 +216,8 @@ describe("BrowserType enum drives the probe image", () => {
     /*
      * Guards the other half of the contract: installing an engine is pointless
      * if nothing can launch it. The worker config validator rejects any
-     * browserType outside the enum, and the worker picks the engine from an
+     * browserType outside the enum, and SyntheticBrowser -- which starts the
+     * browser for every check the worker runs -- picks the engine from an
      * explicit Chromium/Firefox branch.
      */
     const workerTypes: string = fs.readFileSync(
@@ -236,17 +237,17 @@ describe("BrowserType enum drives the probe image", () => {
       );
     }
 
-    const worker: string = fs.readFileSync(
+    const browserStarter: string = fs.readFileSync(
       path.join(
         PROBE_ROOT,
         "Utils",
         "Monitors",
         "SyntheticRuntime",
-        "SyntheticMonitorWorker.ts",
+        "SyntheticBrowser.ts",
       ),
       "utf8",
     );
-    expect(worker).toContain(
+    expect(browserStarter).toContain(
       "config.browserType === BrowserType.Chromium ? chromium : firefox",
     );
   });

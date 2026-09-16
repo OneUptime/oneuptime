@@ -595,7 +595,7 @@ describe("runConnectionTestRequest", () => {
 
       await expect(
         runConnectionTestRequest({
-          route: "/google-secops-connection/test",
+          route: "/security-event-connection/test",
           body: { connectionId: CONNECTION_ID },
         }),
       ).rejects.toThrow("The server did not return a test report");

@@ -135,6 +135,8 @@
     "sendManagementLink": "Beheerlink verzenden",
     "subscribedSuccessfully": "U bent succesvol geabonneerd.",
     "emailSentCheckSpam": "Er is een e-mail met de link naar uw e-mailadres verzonden. Als u de e-mail niet ziet, controleer dan uw spammap.",
+    "manageLinkSent": "Als er een abonnement is dat overeenkomt met de gegevens die u hebt ingevoerd, hebben we een link verzonden om het te beheren.",
+    "manageLinkSentEmail": "Als er voor dit e-mailadres een abonnement bestaat, hebben we een link om het te beheren naar dit adres verzonden. Als u de e-mail niet ziet, controleer dan uw spammap.",
     "menu": {
       "email": "E-mail",
       "sms": "SMS",

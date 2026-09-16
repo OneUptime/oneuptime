@@ -1,12 +1,15 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
-import Navigation from "Common/UI/Utils/Navigation";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
 import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -58,10 +61,27 @@ A rule matches an episode only when **all** specified criteria pass. Empty crite
 When a rule matches, every label listed under \`Labels to Add\` is attached to the episode. Labels already on the episode are not duplicated.
 `;
 
-const IncidentRulesTable: FunctionComponent = (): ReactElement => {
+interface RulesTableProps {
+  // Set when the page is routed as this rule's view page.
+  viewRuleId?: ObjectID | undefined;
+}
+
+const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
   return (
     <LabelRuleTable<IncidentLabelRule>
       modelType={IncidentLabelRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.INCIDENTS_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: IncidentLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.INCIDENTS_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="incident-label-rules-table"
       name="Settings > Incident Label Rules"
       userPreferencesKey="incident-label-rules-table"
@@ -114,7 +134,6 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
@@ -314,10 +333,22 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
-const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
+const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
   return (
     <LabelRuleTable<IncidentEpisodeLabelRule>
       modelType={IncidentEpisodeLabelRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.INCIDENTS_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: IncidentEpisodeLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="incident-episode-label-rules-table"
       name="Settings > Incident Episode Label Rules"
       userPreferencesKey="incident-episode-label-rules-table"
@@ -369,7 +400,6 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
@@ -470,9 +500,30 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
-const IncidentLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const IncidentLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
+  /*
+   * Routed as a rule's view page, the page shows only that rule, through
+   * the table that lists it, instead of the tabs.
+   */
+  const incidentRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    IncidentLabelRule,
+  );
+  const episodeRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    IncidentEpisodeLabelRule,
+  );
+
+  if (incidentRuleId) {
+    return <IncidentRulesTable viewRuleId={incidentRuleId} />;
+  }
+
+  if (episodeRuleId) {
+    return <EpisodeRulesTable viewRuleId={episodeRuleId} />;
+  }
+
   return (
     <Fragment>
       <Tabs

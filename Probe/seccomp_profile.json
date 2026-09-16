@@ -51,8 +51,9 @@
 	],
 	"syscalls": [
 		{
-			"comment": "Allow create user namespaces",
+			"comment": "Allow create user namespaces, and chroot inside them: the Firefox and Chromium sandboxes do both, and the probe drops CAP_SYS_CHROOT",
 			"names": [
+				"chroot",
 				"clone",
 				"setns",
 				"unshare"

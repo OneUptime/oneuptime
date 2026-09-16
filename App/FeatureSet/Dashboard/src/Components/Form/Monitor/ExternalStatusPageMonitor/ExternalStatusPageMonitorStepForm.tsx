@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
+import { parseMonitorStepRetriesInput } from "Common/Types/Monitor/MonitorStepRetries";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
@@ -154,7 +155,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
           <div>
             <FieldLabelElement
               title="Retries"
-              description="Number of times to retry on failure"
+              description="Number of times to retry after the first attempt fails. For example, 2 means up to 3 attempts in total. Set to 0 for no retries. Defaults to 3."
               required={false}
             />
             <Input
@@ -167,7 +168,8 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
               onChange={(value: string) => {
                 props.onChange({
                   ...props.monitorStepExternalStatusPageMonitor,
-                  retries: parseInt(value) || 3,
+                  // A typed 0 means no retries, so it must not read as "unset".
+                  retries: parseMonitorStepRetriesInput(value, 3),
                 });
               }}
             />

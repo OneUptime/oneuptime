@@ -1,11 +1,13 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -29,11 +31,24 @@ When a rule matches, every label listed in \`Labels to Add\` is attached to the 
 `;
 
 const DockerSwarmClusterLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+  RuleSettingsPageProps
+> = (props: RuleSettingsPageProps): ReactElement => {
   return (
     <LabelRuleTable<DockerSwarmClusterLabelRule>
       modelType={DockerSwarmClusterLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(
+        props,
+        DockerSwarmClusterLabelRule,
+      )}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: DockerSwarmClusterLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="dockerSwarmCluster-label-rules-table"
       name="Settings > Docker Swarm Cluster Label Rules"
       userPreferencesKey="dockerSwarmCluster-label-rules-table"
@@ -86,7 +101,6 @@ const DockerSwarmClusterLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

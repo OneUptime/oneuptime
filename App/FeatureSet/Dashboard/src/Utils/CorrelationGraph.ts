@@ -16,13 +16,22 @@ export const CLASS_NODE_PREFIX: string = "class:";
 
 export const DEFAULT_MAX_CO_OBSERVABLES: number = 30;
 
+/*
+ * The class bucket for events that arrived without a className. It is a
+ * display name only — no stored row carries it, so it can't be filtered on.
+ */
+export const UNCLASSIFIED_CLASS_NAME: string = "Unclassified";
+
 export type CorrelationGraphNodeKind = "center" | "class" | "observable";
 
 export interface CorrelationGraphNode {
   id: string;
   label: string;
   kind: CorrelationGraphNodeKind;
-  // Number of matching events (class nodes) — undefined otherwise.
+  /*
+   * Number of matching events: in the class (class nodes), or that mention
+   * the observable (observable nodes). Undefined for the center node.
+   */
   count?: number | undefined;
   // Worst severity among the node's events (class nodes) — undefined otherwise.
   worstSeverity?: OcsfSeverity | undefined;
@@ -126,7 +135,7 @@ export function buildCorrelationGraph(
   >();
 
   for (const event of input.events) {
-    const className: string = event.className || "Unclassified";
+    const className: string = event.className || UNCLASSIFIED_CLASS_NAME;
     classCounts.set(className, (classCounts.get(className) || 0) + 1);
 
     const currentWorst: string | undefined = classWorstSeverity.get(className);
@@ -240,7 +249,12 @@ export function buildCorrelationGraph(
       const coId: string = `${OBSERVABLE_NODE_PREFIX}${observable}`;
       if (!addedObservableNodes.has(coId)) {
         addedObservableNodes.add(coId);
-        nodes.push({ id: coId, label: observable, kind: "observable" });
+        nodes.push({
+          id: coId,
+          label: observable,
+          kind: "observable",
+          count: coObservableCounts.get(observable) || 0,
+        });
       }
       edges.push({
         id: `${classId}->${coId}`,
@@ -252,4 +266,154 @@ export function buildCorrelationGraph(
   }
 
   return { nodes, edges, droppedCoObservableCount };
+}
+
+export interface CorrelationGraphSummary {
+  classCount: number;
+  // Classes whose worst event is High, Critical or Fatal.
+  highRiskClassCount: number;
+  observableCount: number;
+  droppedObservableCount: number;
+  // The class to look at first — undefined when no class has a severity.
+  worstClass: CorrelationGraphNode | undefined;
+}
+
+function compareClassNodes(
+  a: CorrelationGraphNode,
+  b: CorrelationGraphNode,
+): number {
+  const severityDiff: number =
+    severityRank(b.worstSeverity) - severityRank(a.worstSeverity);
+  if (severityDiff !== 0) {
+    return severityDiff;
+  }
+  const countDiff: number = (b.count || 0) - (a.count || 0);
+  if (countDiff !== 0) {
+    return countDiff;
+  }
+  return a.label.localeCompare(b.label);
+}
+
+/*
+ * Classes in the order an analyst should read them: worst severity first,
+ * then the busiest, then by name.
+ */
+export function rankClassNodes(
+  data: CorrelationGraphData,
+): Array<CorrelationGraphNode> {
+  return data.nodes
+    .filter((node: CorrelationGraphNode): boolean => {
+      return node.kind === "class";
+    })
+    .sort(compareClassNodes);
+}
+
+// Observables by how many matching events mention them, then by value.
+export function rankObservableNodes(
+  data: CorrelationGraphData,
+): Array<CorrelationGraphNode> {
+  return data.nodes
+    .filter((node: CorrelationGraphNode): boolean => {
+      return node.kind === "observable";
+    })
+    .sort((a: CorrelationGraphNode, b: CorrelationGraphNode): number => {
+      const countDiff: number = (b.count || 0) - (a.count || 0);
+      if (countDiff !== 0) {
+        return countDiff;
+      }
+      return a.label.localeCompare(b.label);
+    });
+}
+
+export function getCorrelationGraphSummary(
+  data: CorrelationGraphData,
+): CorrelationGraphSummary {
+  const classes: Array<CorrelationGraphNode> = rankClassNodes(data);
+  const highRank: number = severityRank(OcsfSeverity.High);
+
+  const worstClass: CorrelationGraphNode | undefined = classes[0];
+
+  return {
+    classCount: classes.length,
+    highRiskClassCount: classes.filter(
+      (node: CorrelationGraphNode): boolean => {
+        return severityRank(node.worstSeverity) >= highRank;
+      },
+    ).length,
+    observableCount: data.nodes.filter(
+      (node: CorrelationGraphNode): boolean => {
+        return node.kind === "observable";
+      },
+    ).length,
+    droppedObservableCount: data.droppedCoObservableCount,
+    worstClass:
+      worstClass && severityRank(worstClass.worstSeverity) > 0
+        ? worstClass
+        : undefined,
+  };
+}
+
+export interface CorrelationNeighborhood {
+  nodeIds: Set<string>;
+  edgeIds: Set<string>;
+}
+
+/*
+ * What stays lit when a node is selected: the node, the filter, and
+ * everything one hop away through the classes. Null means "nothing
+ * selected" — for no selection, the center, or an id not in the graph.
+ */
+export function getCorrelationNeighborhood(
+  data: CorrelationGraphData,
+  selectedNodeId: string | null,
+): CorrelationNeighborhood | null {
+  if (!selectedNodeId || selectedNodeId === CENTER_NODE_ID) {
+    return null;
+  }
+
+  const selected: CorrelationGraphNode | undefined = data.nodes.find(
+    (node: CorrelationGraphNode): boolean => {
+      return node.id === selectedNodeId;
+    },
+  );
+
+  if (!selected || selected.kind === "center") {
+    return null;
+  }
+
+  const nodeIds: Set<string> = new Set<string>([
+    CENTER_NODE_ID,
+    selectedNodeId,
+  ]);
+  const edgeIds: Set<string> = new Set<string>();
+
+  if (selected.kind === "class") {
+    for (const edge of data.edges) {
+      if (edge.to === selectedNodeId && edge.from === CENTER_NODE_ID) {
+        edgeIds.add(edge.id);
+      }
+      if (edge.from === selectedNodeId) {
+        edgeIds.add(edge.id);
+        nodeIds.add(edge.to);
+      }
+    }
+    return { nodeIds, edgeIds };
+  }
+
+  // Observable: every class it appeared in, and those classes' spokes.
+  const linkedClasses: Set<string> = new Set<string>();
+  for (const edge of data.edges) {
+    if (edge.to === selectedNodeId) {
+      edgeIds.add(edge.id);
+      linkedClasses.add(edge.from);
+      nodeIds.add(edge.from);
+    }
+  }
+  for (const edge of data.edges) {
+    if (edge.from === CENTER_NODE_ID && linkedClasses.has(edge.to)) {
+      edgeIds.add(edge.id);
+    }
+  }
+
+  return { nodeIds, edgeIds };
 }

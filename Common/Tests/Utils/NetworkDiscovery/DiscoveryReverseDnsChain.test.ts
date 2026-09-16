@@ -1,5 +1,6 @@
 import {
   DiscoveredDeviceScanSource,
+  DiscoveredHostNaming,
   buildDeviceName,
   buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
@@ -7,7 +8,11 @@ import {
 } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "../../../Utils/NetworkDiscovery/DiscoveredHostUtil";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
-import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkDeviceDiscoveryScan, {
+  DiscoveredNetworkDevice,
+} from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { JSONObject } from "../../../Types/JSON";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, it } from "@jest/globals";
@@ -68,6 +73,14 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const PING_ONLY_SCAN: DiscoveredDeviceScanSource = {};
 
 /*
+ * Full names: the naming every case below was written against, and what
+ * PING_ONLY_SCAN (which says nothing about short names) imports under. The
+ * short-name journey from issue #3678 has its own block at the end of the
+ * file.
+ */
+const FULL_NAMES: DiscoveredHostNaming = { useShortDeviceNames: false };
+
+/*
  * The two ceilings this chain has to reconcile, written as literals rather
  * than imported from the modules under test.
  *
@@ -119,7 +132,7 @@ function hostsFromPayload(
 function namesFromPayload(payload: Array<unknown>): Array<string> {
   return hostsFromPayload(payload).map(
     (host: DiscoveredNetworkDevice): string => {
-      return buildDeviceName(host);
+      return buildDeviceName(host, FULL_NAMES);
     },
   );
 }
@@ -254,7 +267,7 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
 
     expect(
       hosts.map((host: DiscoveredNetworkDevice): string => {
-        return buildDeviceName(host);
+        return buildDeviceName(host, FULL_NAMES);
       }),
     ).toEqual(["core-switch-01", "10.18.166.53", "10.18.166.54"]);
 
@@ -339,7 +352,7 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
 
     expect(
       hosts.map((host: DiscoveredNetworkDevice): string => {
-        return buildDeviceName(host);
+        return buildDeviceName(host, FULL_NAMES);
       }),
     ).toEqual(addresses);
 
@@ -364,7 +377,7 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
     expect(
       storedScanResults(payload).map(
         (host: DiscoveredNetworkDevice): string => {
-          return getDiscoveredHostDisplayName(host);
+          return getDiscoveredHostDisplayName(host, FULL_NAMES);
         },
       ),
     ).toEqual(addresses);
@@ -423,7 +436,9 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
      * later reader with a wider column is not stuck with this one's ceiling.
      */
     expect(hosts[0]?.dnsHostname).toBe(LONG_PTR_NAME);
-    expect(getDiscoveredHostDisplayName(hosts[0]!)).toBe(LONG_PTR_NAME);
+    expect(getDiscoveredHostDisplayName(hosts[0]!, FULL_NAMES)).toBe(
+      LONG_PTR_NAME,
+    );
 
     // The 304-character one is not a name at all, so the key is gone.
     expect(hosts[1]).not.toHaveProperty("dnsHostname");
@@ -554,12 +569,12 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
 
     const namesOnce: Array<string> = once.map(
       (host: DiscoveredNetworkDevice): string => {
-        return buildDeviceName(host);
+        return buildDeviceName(host, FULL_NAMES);
       },
     );
     const namesTwice: Array<string> = twice.map(
       (host: DiscoveredNetworkDevice): string => {
-        return buildDeviceName(host);
+        return buildDeviceName(host, FULL_NAMES);
       },
     );
 
@@ -609,7 +624,7 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
 
     expect(
       hosts.map((host: DiscoveredNetworkDevice): string => {
-        return buildDeviceName(host);
+        return buildDeviceName(host, FULL_NAMES);
       }),
     ).toEqual([
       "unassigned.dhcp.corp.example.net",
@@ -619,7 +634,7 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
 
     const fallbacks: Array<string> = hosts.map(
       (host: DiscoveredNetworkDevice): string => {
-        return buildFallbackDeviceName(host);
+        return buildFallbackDeviceName(host, FULL_NAMES);
       },
     );
 
@@ -664,7 +679,7 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
 
     const fallbacks: Array<string> = hosts.map(
       (host: DiscoveredNetworkDevice): string => {
-        return buildFallbackDeviceName(host);
+        return buildFallbackDeviceName(host, FULL_NAMES);
       },
     );
 
@@ -712,7 +727,10 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
       },
     ]);
 
-    const junkFallback: string = buildFallbackDeviceName(junkHosts[0]!);
+    const junkFallback: string = buildFallbackDeviceName(
+      junkHosts[0]!,
+      FULL_NAMES,
+    );
 
     expect(junkFallback.length).toBe(MAX_NAME_LENGTH);
     expect(junkFallback.startsWith("h (10.18.166.55-")).toBe(true);
@@ -756,7 +774,7 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
       projectId: PROJECT_ID,
       host: host,
       scan: PING_ONLY_SCAN,
-      name: buildFallbackDeviceName(host),
+      name: buildFallbackDeviceName(host, FULL_NAMES),
     });
 
     expect(retry.name).toBe("unassigned.dhcp.corp.example.net (10.18.166.51)");
@@ -1053,5 +1071,635 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
       "10.18.166.51",
       "10.18.166.51",
     ]);
+  });
+});
+
+/*
+ * The same journey with issue #3678's short-name setting switched on.
+ *
+ * Short names add a SECOND reading of every name — the full one that goes to
+ * `dnsName` and the short one that goes to `name` — so they add a new joint
+ * the per-module suites cannot see: the Review dialog's row (the display
+ * name), the device the import creates (the builder, reading the scan's own
+ * setting), and the DNS name kept on that device all have to come out of one
+ * stored row consistently. A dialog that previewed "wb-0660-kds01" over a
+ * device created as "wb-0660-kds01.wbhq.com", or a device that kept its short
+ * name but lost the FQDN, would each pass every unit test on its own.
+ *
+ * The scan is round-tripped through the MODEL serializer as well, because it
+ * too is a row: the dashboard reads it out of the API as a
+ * NetworkDeviceDiscoveryScan built by BaseModel.fromJSON, and the builder turns
+ * short names on only for an exact `true`  so a serializer that handed the
+ * setting back as "true" would silently import full names.
+ */
+describe("Reverse DNS with short device names, probe payload to created NetworkDevice", () => {
+  const SHORT_NAMES_SCAN: DiscoveredDeviceScanSource =
+    ((): DiscoveredDeviceScanSource => {
+      const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+      scan.useShortDeviceNames = true;
+
+      const wire: JSONObject = JSON.parse(
+        JSON.stringify(
+          DatabaseBaseModel.toJSON(scan, NetworkDeviceDiscoveryScan),
+        ),
+      ) as JSONObject;
+
+      return DatabaseBaseModel.fromJSONObject(wire, NetworkDeviceDiscoveryScan);
+    })();
+
+  function shortNamedDevicesFromPayload(
+    payload: Array<unknown>,
+  ): Array<NetworkDevice> {
+    return hostsFromPayload(payload).map(
+      (host: DiscoveredNetworkDevice): NetworkDevice => {
+        return buildNetworkDeviceFromDiscoveredHost({
+          projectId: PROJECT_ID,
+          host: host,
+          scan: SHORT_NAMES_SCAN,
+        });
+      },
+    );
+  }
+
+  function deviceDnsNames(
+    devices: Array<NetworkDevice>,
+  ): Array<string | undefined> {
+    return devices.map((device: NetworkDevice): string | undefined => {
+      return device.dnsName;
+    });
+  }
+
+  /*
+   * The reporter's estate, as a probe would send it: PTR names under one
+   * corporate domain (one with the root dot some resolvers include), a host
+   * with no PTR record, an SNMP switch reporting its FQDN as sysName, a
+   * switch with a hand-typed sysName, a host whose PTR name is an OS version
+   * string, and one whose PTR answer is hostile.
+   */
+  const ESTATE_PAYLOAD: Array<unknown> = [
+    {
+      ipAddress: "10.18.167.31",
+      snmpReachable: false,
+      dnsHostname: "wb-0660-kds01.wbhq.com.",
+    },
+    {
+      ipAddress: "10.18.167.32",
+      snmpReachable: false,
+      dnsHostname: "wb-0660-kds02.wbhq.com",
+    },
+    { ipAddress: "10.18.167.33", snmpReachable: false },
+    {
+      ipAddress: "10.18.167.34",
+      snmpReachable: true,
+      sysName: "wb-0660-sw01.wbhq.com",
+      dnsHostname: "vlan20-gw.wbhq.com",
+    },
+    {
+      ipAddress: "10.18.167.35",
+      snmpReachable: true,
+      sysName: "Core Switch",
+      dnsHostname: "wb-0660-core.wbhq.com",
+    },
+    {
+      ipAddress: "10.18.167.36",
+      snmpReachable: false,
+      dnsHostname: "ubuntu-22.04",
+    },
+    {
+      ipAddress: "10.18.167.37",
+      snmpReachable: false,
+      dnsHostname: "<img src=x>.wbhq.com",
+    },
+  ];
+
+  const EXPECTED_SHORT_NAMES: Array<string> = [
+    "wb-0660-kds01",
+    "wb-0660-kds02",
+    "10.18.167.33",
+    "wb-0660-sw01",
+    "Core Switch",
+    "ubuntu-22.04",
+    "10.18.167.37",
+  ];
+
+  it("keeps the setting as a real boolean through the scan model's serializer", () => {
+    expect(SHORT_NAMES_SCAN).toBeInstanceOf(NetworkDeviceDiscoveryScan);
+    expect(typeof SHORT_NAMES_SCAN.useShortDeviceNames).toBe("boolean");
+    expect(SHORT_NAMES_SCAN.useShortDeviceNames).toBe(true);
+  });
+
+  it("names the reporter's estate by short hostname in the Review rows", () => {
+    const hosts: Array<DiscoveredNetworkDevice> =
+      hostsFromPayload(ESTATE_PAYLOAD);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string => {
+        return getDiscoveredHostDisplayName(host, SHORT_NAMES_SCAN);
+      }),
+    ).toEqual(EXPECTED_SHORT_NAMES);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string => {
+        return buildDeviceName(host, SHORT_NAMES_SCAN);
+      }),
+    ).toEqual(EXPECTED_SHORT_NAMES);
+  });
+
+  /*
+   * THE joint. The operator ticks a row showing a name; the device created
+   * from that row must carry exactly that name, and must also carry the full
+   * reverse-DNS name the short one was cut from.
+   */
+  it("creates each device under the name its Review row showed, keeping the full PTR name as its DNS name", () => {
+    const hosts: Array<DiscoveredNetworkDevice> =
+      hostsFromPayload(ESTATE_PAYLOAD);
+    const devices: Array<NetworkDevice> =
+      shortNamedDevicesFromPayload(ESTATE_PAYLOAD);
+
+    expect(devices).toHaveLength(hosts.length);
+
+    hosts.forEach((host: DiscoveredNetworkDevice, index: number): void => {
+      expect(devices[index]?.name).toBe(
+        getDiscoveredHostDisplayName(host, SHORT_NAMES_SCAN),
+      );
+    });
+
+    expect(deviceNames(devices)).toEqual(EXPECTED_SHORT_NAMES);
+
+    expect(deviceDnsNames(devices)).toEqual([
+      // The root dot is gone from the stored DNS name too.
+      "wb-0660-kds01.wbhq.com",
+      "wb-0660-kds02.wbhq.com",
+      // No PTR record: no DNS name, rather than a blank one.
+      undefined,
+      // Named by its sysName, but its DNS name is still the PTR record's.
+      "vlan20-gw.wbhq.com",
+      "wb-0660-core.wbhq.com",
+      // Not shortened, but still a real PTR name, so still kept.
+      "ubuntu-22.04",
+      // Hostile: refused by normalisation, so nothing is stored.
+      undefined,
+    ]);
+
+    // Shortening names never touches the address the poller dials.
+    expect(deviceHostnames(devices)).toEqual([
+      "10.18.167.31",
+      "10.18.167.32",
+      "10.18.167.33",
+      "10.18.167.34",
+      "10.18.167.35",
+      "10.18.167.36",
+      "10.18.167.37",
+    ]);
+  });
+
+  /*
+   * The same payload with the setting off imports exactly what it did before
+   * the setting existed — except that the DNS name is now kept either way,
+   * because it is a fact about the host rather than a naming choice.
+   */
+  it("imports the same payload under full names when the setting is off, with the same DNS names", () => {
+    const shortDevices: Array<NetworkDevice> =
+      shortNamedDevicesFromPayload(ESTATE_PAYLOAD);
+    const fullDevices: Array<NetworkDevice> =
+      devicesFromPayload(ESTATE_PAYLOAD);
+
+    expect(deviceNames(fullDevices)).toEqual([
+      "wb-0660-kds01.wbhq.com",
+      "wb-0660-kds02.wbhq.com",
+      "10.18.167.33",
+      "wb-0660-sw01.wbhq.com",
+      "Core Switch",
+      "ubuntu-22.04",
+      "10.18.167.37",
+    ]);
+
+    expect(deviceDnsNames(fullDevices)).toEqual(deviceDnsNames(shortDevices));
+
+    // And the full names are exactly the names the Review dialog shows off.
+    expect(deviceNames(fullDevices)).toEqual(
+      hostsFromPayload(ESTATE_PAYLOAD).map(
+        (host: DiscoveredNetworkDevice): string => {
+          return getDiscoveredHostDisplayName(host, FULL_NAMES);
+        },
+      ),
+    );
+  });
+
+  /*
+   * Rows written by an older probe, or straight through the API, never
+   * passed through normalizeDiscoveredHosts. The builder normalises the PTR
+   * name at the point of use, so the RAW stored rows must name and keep
+   * exactly what the normalised ones do.
+   */
+  it("names and keeps the same DNS names from the raw stored rows as from the normalised ones", () => {
+    const rawDevices: Array<NetworkDevice> = storedScanResults(
+      ESTATE_PAYLOAD,
+    ).map((host: DiscoveredNetworkDevice): NetworkDevice => {
+      return buildNetworkDeviceFromDiscoveredHost({
+        projectId: PROJECT_ID,
+        host: host,
+        scan: SHORT_NAMES_SCAN,
+      });
+    });
+
+    const normalisedDevices: Array<NetworkDevice> =
+      shortNamedDevicesFromPayload(ESTATE_PAYLOAD);
+
+    expect(deviceNames(rawDevices)).toEqual(deviceNames(normalisedDevices));
+    expect(deviceDnsNames(rawDevices)).toEqual(
+      deviceDnsNames(normalisedDevices),
+    );
+  });
+
+  /*
+   * A wildcard reverse zone under short names: every host in the range
+   * shares one SHORT name, the second create collides, and the retry
+   * rebuilds the device under the short fallback name — which must still be
+   * distinct per host, and must still keep the full PTR name.
+   */
+  it("gives a wildcard zone one short name, distinct short fallbacks, and the full DNS name on the retried device", () => {
+    const payload: Array<unknown> = [
+      {
+        ipAddress: "10.18.166.51",
+        snmpReachable: false,
+        dnsHostname: "unassigned.dhcp.corp.example.net",
+      },
+      {
+        ipAddress: "10.18.166.53",
+        snmpReachable: false,
+        dnsHostname: "unassigned.dhcp.corp.example.net",
+      },
+    ];
+
+    const hosts: Array<DiscoveredNetworkDevice> = hostsFromPayload(payload);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string => {
+        return buildDeviceName(host, SHORT_NAMES_SCAN);
+      }),
+    ).toEqual(["unassigned", "unassigned"]);
+
+    const fallbacks: Array<string> = hosts.map(
+      (host: DiscoveredNetworkDevice): string => {
+        return buildFallbackDeviceName(host, SHORT_NAMES_SCAN);
+      },
+    );
+
+    expect(fallbacks).toEqual([
+      "unassigned (10.18.166.51)",
+      "unassigned (10.18.166.53)",
+    ]);
+
+    const retry: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+      projectId: PROJECT_ID,
+      host: hosts[1]!,
+      scan: SHORT_NAMES_SCAN,
+      name: fallbacks[1],
+    });
+
+    expect(retry.name).toBe("unassigned (10.18.166.53)");
+    expect(retry.hostname).toBe("10.18.166.53");
+    expect(retry.dnsName).toBe("unassigned.dhcp.corp.example.net");
+  });
+
+  /*
+   * The 85-character PTR name that the full-name path has to clamp: under
+   * short names its 63-character first label fits whole, and the full name
+   * is kept intact as the DNS name rather than at the device ceiling.
+   */
+  it("shortens a legal-but-long PTR name to a whole first label and keeps all 85 characters as the DNS name", () => {
+    const devices: Array<NetworkDevice> = shortNamedDevicesFromPayload([
+      {
+        ipAddress: "10.18.166.51",
+        snmpReachable: false,
+        dnsHostname: LONG_PTR_NAME,
+      },
+    ]);
+
+    expect(deviceNames(devices)).toEqual([LONG_LABEL]);
+    expect(LONG_LABEL.length).toBeLessThan(MAX_NAME_LENGTH);
+    expect(deviceDnsNames(devices)).toEqual([LONG_PTR_NAME]);
+    expect(LONG_PTR_NAME.length).toBeGreaterThan(MAX_NAME_LENGTH);
+  });
+
+  /*
+   * A scan row whose setting arrived as a string — an API client that
+   * stringifies booleans — is not a scan that asked for short names.
+   */
+  it("imports full names from a scan row whose setting is the string true", () => {
+    const stringlyScan: DiscoveredDeviceScanSource = JSON.parse(
+      JSON.stringify({ useShortDeviceNames: "true" }),
+    ) as DiscoveredDeviceScanSource;
+
+    const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+      projectId: PROJECT_ID,
+      host: hostsFromPayload([ESTATE_PAYLOAD[0]])[0]!,
+      scan: stringlyScan,
+    });
+
+    expect(device.name).toBe("wb-0660-kds01.wbhq.com");
+    expect(device.dnsName).toBe("wb-0660-kds01.wbhq.com");
+  });
+});
+
+/*
+ * OneUptime issue #3677: the same journey for a NetBIOS name.
+ *
+ * The reporter's 10.18.167.31-36 have no PTR record and answer no SNMP, so
+ * every link above hands them nothing but their address. A scan with NetBIOS
+ * lookup on has the probe ask them, and it stores what they answer as
+ * `netbiosName`. That value crosses the same five joints a PTR name does —
+ * payload, jsonb, normalisation, display name, device — and it is SELF-
+ * REPORTED, so each joint has to agree about what it may become.
+ */
+describe("NetBIOS names, probe payload to created NetworkDevice", () => {
+  /*
+   * A scan the way the dashboard really hands one over: through the model's
+   * serializer and back, so the two booleans are what a stored row yields,
+   * not literals typed into the test.
+   */
+  function scanThroughSerializer(settings: {
+    isNetbiosLookupEnabled: boolean;
+    useShortDeviceNames: boolean;
+  }): NetworkDeviceDiscoveryScan {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+    scan.isNetbiosLookupEnabled = settings.isNetbiosLookupEnabled;
+    scan.useShortDeviceNames = settings.useShortDeviceNames;
+
+    const wire: JSONObject = JSON.parse(
+      JSON.stringify(
+        DatabaseBaseModel.toJSON(scan, NetworkDeviceDiscoveryScan),
+      ),
+    ) as JSONObject;
+
+    return DatabaseBaseModel.fromJSONObject(wire, NetworkDeviceDiscoveryScan);
+  }
+
+  const NETBIOS_SCAN: NetworkDeviceDiscoveryScan = scanThroughSerializer({
+    isNetbiosLookupEnabled: true,
+    useShortDeviceNames: false,
+  });
+
+  const NETBIOS_SHORT_NAMES_SCAN: NetworkDeviceDiscoveryScan =
+    scanThroughSerializer({
+      isNetbiosLookupEnabled: true,
+      useShortDeviceNames: true,
+    });
+
+  function devicesFromPayloadWith(
+    payload: Array<unknown>,
+    scan: DiscoveredDeviceScanSource,
+  ): Array<NetworkDevice> {
+    return hostsFromPayload(payload).map(
+      (host: DiscoveredNetworkDevice): NetworkDevice => {
+        return buildNetworkDeviceFromDiscoveredHost({
+          projectId: PROJECT_ID,
+          host: host,
+          scan: scan,
+        });
+      },
+    );
+  }
+
+  /*
+   * The reporter's range as a probe with the lookup on would send it, plus
+   * the shapes a probe of another version, or a hand-written API row, could
+   * leave in the column:
+   *
+   *   .31  the normalised name the current probe stores
+   *   .32  the raw wire form: upper case, space-padded to fifteen bytes
+   *   .33  a host that did not answer NBSTAT: no key at all
+   *   .34  a hostile answer, markup in the name field
+   *   .35  a host that has a PTR record too (the probe would not have asked,
+   *        but the column cannot refuse the row), so the PTR name must win
+   *   .36  a sixteen-character answer, one past the NetBIOS name field
+   */
+  const REPORTER_PAYLOAD: Array<unknown> = [
+    { ipAddress: "10.18.167.31", snmpReachable: false, netbiosName: "reg01" },
+    {
+      ipAddress: "10.18.167.32",
+      snmpReachable: false,
+      netbiosName: "REG02          ",
+    },
+    { ipAddress: "10.18.167.33", snmpReachable: false },
+    {
+      ipAddress: "10.18.167.34",
+      snmpReachable: false,
+      netbiosName: "<img src=x>",
+    },
+    {
+      ipAddress: "10.18.167.35",
+      snmpReachable: false,
+      dnsHostname: "wb-0660-kds05.wbhq.com",
+      netbiosName: "WB-0660-KDS05",
+    },
+    {
+      ipAddress: "10.18.167.36",
+      snmpReachable: false,
+      netbiosName: "ABCDEFGHIJKLMNOP",
+    },
+  ];
+
+  const EXPECTED_FULL_NAMES: Array<string> = [
+    "reg01",
+    "reg02",
+    "10.18.167.33",
+    "10.18.167.34",
+    "wb-0660-kds05.wbhq.com",
+    "10.18.167.36",
+  ];
+
+  it("keeps the lookup setting as a real boolean through the scan model's serializer", () => {
+    expect(NETBIOS_SCAN).toBeInstanceOf(NetworkDeviceDiscoveryScan);
+    expect(typeof NETBIOS_SCAN.isNetbiosLookupEnabled).toBe("boolean");
+    expect(NETBIOS_SCAN.isNetbiosLookupEnabled).toBe(true);
+  });
+
+  it("stores each row's NetBIOS name normalised, and drops the ones that are not names", () => {
+    const hosts: Array<DiscoveredNetworkDevice> =
+      hostsFromPayload(REPORTER_PAYLOAD);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string | undefined => {
+        return host.netbiosName;
+      }),
+    ).toEqual([
+      "reg01",
+      "reg02",
+      undefined,
+      undefined,
+      "wb-0660-kds05",
+      undefined,
+    ]);
+
+    // Deleted, not blanked: `in` and truthiness agree on every row.
+    expect("netbiosName" in hosts[2]!).toBe(false);
+    expect("netbiosName" in hosts[3]!).toBe(false);
+    expect("netbiosName" in hosts[5]!).toBe(false);
+  });
+
+  it("names the reporter's hosts by NetBIOS name in the Review rows, and still addresses them by IP", () => {
+    const hosts: Array<DiscoveredNetworkDevice> =
+      hostsFromPayload(REPORTER_PAYLOAD);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string => {
+        return getDiscoveredHostDisplayName(host, NETBIOS_SCAN);
+      }),
+    ).toEqual(EXPECTED_FULL_NAMES);
+
+    const devices: Array<NetworkDevice> = devicesFromPayloadWith(
+      REPORTER_PAYLOAD,
+      NETBIOS_SCAN,
+    );
+
+    // THE joint: the row an operator ticks names the device it creates.
+    hosts.forEach((host: DiscoveredNetworkDevice, index: number): void => {
+      expect(devices[index]?.name).toBe(
+        getDiscoveredHostDisplayName(host, NETBIOS_SCAN),
+      );
+    });
+
+    expect(deviceNames(devices)).toEqual(EXPECTED_FULL_NAMES);
+
+    expect(deviceHostnames(devices)).toEqual([
+      "10.18.167.31",
+      "10.18.167.32",
+      "10.18.167.33",
+      "10.18.167.34",
+      "10.18.167.35",
+      "10.18.167.36",
+    ]);
+  });
+
+  /*
+   * A NetBIOS name is what the host says about itself; a DNS name is a record
+   * someone published. Only the row that really has a PTR record gets one.
+   */
+  it("never stores a NetBIOS name as the device's DNS name", () => {
+    for (const scan of [NETBIOS_SCAN, NETBIOS_SHORT_NAMES_SCAN]) {
+      const devices: Array<NetworkDevice> = devicesFromPayloadWith(
+        REPORTER_PAYLOAD,
+        scan,
+      );
+
+      expect(
+        devices.map((device: NetworkDevice): string | undefined => {
+          return device.dnsName;
+        }),
+      ).toEqual([
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "wb-0660-kds05.wbhq.com",
+        undefined,
+      ]);
+    }
+  });
+
+  /*
+   * A NetBIOS name is one label, so short names have nothing to cut. The only
+   * name that changes with the setting on is the PTR name on .35.
+   */
+  it("imports the same NetBIOS names with short names on", () => {
+    expect(
+      deviceNames(
+        devicesFromPayloadWith(REPORTER_PAYLOAD, NETBIOS_SHORT_NAMES_SCAN),
+      ),
+    ).toEqual([
+      "reg01",
+      "reg02",
+      "10.18.167.33",
+      "10.18.167.34",
+      "wb-0660-kds05",
+      "10.18.167.36",
+    ]);
+  });
+
+  /*
+   * Rows written by an older probe, or through the API, may never have been
+   * normalised. The builder normalises the NetBIOS name at the point of use,
+   * so the RAW stored rows must name exactly what the normalised ones do.
+   */
+  it("names the same devices from the raw stored rows as from the normalised ones", () => {
+    const rawDevices: Array<NetworkDevice> = storedScanResults(
+      REPORTER_PAYLOAD,
+    ).map((host: DiscoveredNetworkDevice): NetworkDevice => {
+      return buildNetworkDeviceFromDiscoveredHost({
+        projectId: PROJECT_ID,
+        host: host,
+        scan: NETBIOS_SCAN,
+      });
+    });
+
+    expect(deviceNames(rawDevices)).toEqual(
+      deviceNames(devicesFromPayloadWith(REPORTER_PAYLOAD, NETBIOS_SCAN)),
+    );
+  });
+
+  /*
+   * The flag decides whether the probe ASKS, not how a stored answer is
+   * used: a result gathered with the lookup on names its devices the same way
+   * after someone turns the lookup off.
+   */
+  it("names a stored result's devices the same after the lookup is turned off", () => {
+    const lookupOffScan: NetworkDeviceDiscoveryScan = scanThroughSerializer({
+      isNetbiosLookupEnabled: false,
+      useShortDeviceNames: false,
+    });
+
+    expect(lookupOffScan.isNetbiosLookupEnabled).toBe(false);
+    expect(
+      deviceNames(devicesFromPayloadWith(REPORTER_PAYLOAD, lookupOffScan)),
+    ).toEqual(EXPECTED_FULL_NAMES);
+  });
+
+  /*
+   * Cloned Windows images answer with one name. The second create collides,
+   * and the retry's fallback is the NetBIOS name with the address — distinct
+   * per host, and still no DNS name.
+   */
+  it("gives hosts answering with one NetBIOS name distinct fallbacks, and no DNS name on the retried device", () => {
+    const payload: Array<unknown> = [
+      {
+        ipAddress: "10.18.167.31",
+        snmpReachable: false,
+        netbiosName: "REG01",
+      },
+      {
+        ipAddress: "10.18.167.32",
+        snmpReachable: false,
+        netbiosName: "reg01",
+      },
+    ];
+
+    const hosts: Array<DiscoveredNetworkDevice> = hostsFromPayload(payload);
+
+    expect(
+      hosts.map((host: DiscoveredNetworkDevice): string => {
+        return buildDeviceName(host, NETBIOS_SCAN);
+      }),
+    ).toEqual(["reg01", "reg01"]);
+
+    const fallbacks: Array<string> = hosts.map(
+      (host: DiscoveredNetworkDevice): string => {
+        return buildFallbackDeviceName(host, NETBIOS_SCAN);
+      },
+    );
+
+    expect(fallbacks).toEqual(["reg01 (10.18.167.31)", "reg01 (10.18.167.32)"]);
+
+    const retry: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+      projectId: PROJECT_ID,
+      host: hosts[1]!,
+      scan: NETBIOS_SCAN,
+      name: fallbacks[1],
+    });
+
+    expect(retry.name).toBe("reg01 (10.18.167.32)");
+    expect(retry.hostname).toBe("10.18.167.32");
+    expect(retry.dnsName).toBeUndefined();
   });
 });

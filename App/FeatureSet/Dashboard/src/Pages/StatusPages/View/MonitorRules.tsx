@@ -1,4 +1,7 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -9,7 +12,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -51,10 +54,21 @@ A rule only ever removes resources it added itself. A monitor you added to this 
 Disabling or deleting a rule removes the resources that rule added, and leaves everything else alone. A monitor that is already on the page is never added a second time, so rules and manual resources cannot produce duplicates.
 `;
 
-const StatusPageMonitorRulesPage: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
+const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
 ): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const viewRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    StatusPageMonitorRule,
+  );
+
+  /*
+   * The status page is the route's model id. On a rule's view page the rule
+   * id is the last URL segment, so the status page id is the one before it.
+   */
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(
+    props.ruleViewModelType ? 2 : 1,
+  );
 
   /*
    * Groups nest, so the picker shows the full path - two groups can easily be
@@ -106,8 +120,20 @@ const StatusPageMonitorRulesPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <ModelTable<StatusPageMonitorRule>
+      <RuleTable<StatusPageMonitorRule>
         modelType={StatusPageMonitorRule}
+        viewRuleId={viewRuleId}
+        listRoute={RuleViewPageUtil.getListRoute(
+          PageMap.STATUS_PAGE_VIEW_MONITOR_RULES,
+          modelId,
+        )}
+        getRuleViewRoute={(rule: StatusPageMonitorRule): Route => {
+          return RuleViewPageUtil.getRuleViewRoute(
+            PageMap.STATUS_PAGE_VIEW_MONITOR_RULE_VIEW,
+            rule,
+            modelId,
+          );
+        }}
         id="status-page-monitor-rules-table"
         name="Status Page > Monitor Rules"
         userPreferencesKey="status-page-monitor-rules-table"
@@ -117,7 +143,6 @@ const StatusPageMonitorRulesPage: FunctionComponent<PageComponentProps> = (
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
-        isViewable={false}
         createEditModalWidth={ModalWidth.Large}
         query={{
           statusPageId: modelId,
@@ -308,7 +333,6 @@ const StatusPageMonitorRulesPage: FunctionComponent<PageComponentProps> = (
           },
         ]}
         showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
       />
     </Fragment>
   );

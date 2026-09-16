@@ -1,12 +1,15 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
-import Navigation from "Common/UI/Utils/Navigation";
 import OnCallDutyPolicyLabelRule from "Common/Models/DatabaseModels/OnCallDutyPolicyLabelRule";
 import OnCallDutyPolicyScheduleLabelRule from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLabelRule";
 import IncomingCallPolicyLabelRule from "Common/Models/DatabaseModels/IncomingCallPolicyLabelRule";
@@ -65,10 +68,27 @@ A rule matches a policy only when **all** specified criteria pass. Empty criteri
 When a rule matches, every label listed in \`Labels to Add\` is attached to the policy. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
 `;
 
-const OnCallPolicyLabelRulesTable: FunctionComponent = (): ReactElement => {
+interface RulesTableProps {
+  // Set when the page is routed as this rule's view page.
+  viewRuleId?: ObjectID | undefined;
+}
+
+const OnCallPolicyLabelRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
   return (
     <LabelRuleTable<OnCallDutyPolicyLabelRule>
       modelType={OnCallDutyPolicyLabelRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: OnCallDutyPolicyLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="on-call-policy-label-rules-table"
       name="Settings > On-Call Policy Label Rules"
       userPreferencesKey="on-call-policy-label-rules-table"
@@ -120,7 +140,6 @@ const OnCallPolicyLabelRulesTable: FunctionComponent = (): ReactElement => {
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
@@ -208,10 +227,22 @@ const OnCallPolicyLabelRulesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
-const OnCallScheduleLabelRulesTable: FunctionComponent = (): ReactElement => {
+const OnCallScheduleLabelRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
   return (
     <LabelRuleTable<OnCallDutyPolicyScheduleLabelRule>
       modelType={OnCallDutyPolicyScheduleLabelRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: OnCallDutyPolicyScheduleLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.ON_CALL_DUTY_SETTINGS_SCHEDULE_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="on-call-schedule-label-rules-table"
       name="Settings > On-Call Schedule Label Rules"
       userPreferencesKey="on-call-schedule-label-rules-table"
@@ -265,7 +296,6 @@ const OnCallScheduleLabelRulesTable: FunctionComponent = (): ReactElement => {
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
@@ -353,154 +383,193 @@ const OnCallScheduleLabelRulesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
-const IncomingCallPolicyLabelRulesTable: FunctionComponent =
-  (): ReactElement => {
-    return (
-      <LabelRuleTable<IncomingCallPolicyLabelRule>
-        modelType={IncomingCallPolicyLabelRule}
-        id="incoming-call-policy-label-rules-table"
-        name="Settings > Incoming Call Policy Label Rules"
-        userPreferencesKey="incoming-call-policy-label-rules-table"
-        saveFilterProps={{
-          tableId: "incoming-call-policy-label-rules-table",
-        }}
-        isDeleteable={true}
-        isEditable={true}
-        isCreateable={true}
-        createEditModalWidth={ModalWidth.Large}
-        cardProps={{
-          title: "Incoming Call Policy Label Rules",
-          description:
-            "Auto-attach labels when matching incoming call policies are created.",
-        }}
-        helpContent={{
-          title: "How Incoming Call Policy Label Rules Work",
-          description:
-            "Match incoming call policies and attach labels automatically.",
-          markdown: incomingCallDocumentation,
-        }}
-        sortBy="name"
-        sortOrder={SortOrder.Ascending}
-        selectMoreFields={{ isEnabled: true }}
-        filters={[
-          { field: { name: true }, title: "Name", type: FieldType.Text },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            type: FieldType.Boolean,
+const IncomingCallPolicyLabelRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
+  return (
+    <LabelRuleTable<IncomingCallPolicyLabelRule>
+      modelType={IncomingCallPolicyLabelRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.ON_CALL_DUTY_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: IncomingCallPolicyLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.ON_CALL_DUTY_SETTINGS_INCOMING_CALL_POLICY_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
+      id="incoming-call-policy-label-rules-table"
+      name="Settings > Incoming Call Policy Label Rules"
+      userPreferencesKey="incoming-call-policy-label-rules-table"
+      saveFilterProps={{
+        tableId: "incoming-call-policy-label-rules-table",
+      }}
+      isDeleteable={true}
+      isEditable={true}
+      isCreateable={true}
+      createEditModalWidth={ModalWidth.Large}
+      cardProps={{
+        title: "Incoming Call Policy Label Rules",
+        description:
+          "Auto-attach labels when matching incoming call policies are created.",
+      }}
+      helpContent={{
+        title: "How Incoming Call Policy Label Rules Work",
+        description:
+          "Match incoming call policies and attach labels automatically.",
+        markdown: incomingCallDocumentation,
+      }}
+      sortBy="name"
+      sortOrder={SortOrder.Ascending}
+      selectMoreFields={{ isEnabled: true }}
+      filters={[
+        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          type: FieldType.Boolean,
+        },
+      ]}
+      columns={[
+        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { description: true },
+          title: "Description",
+          type: FieldType.Text,
+        },
+        {
+          field: { isEnabled: true },
+          title: "Status",
+          type: FieldType.Boolean,
+          getElement: (item: IncomingCallPolicyLabelRule): ReactElement => {
+            return item.isEnabled ? (
+              <Pill color={Green} text="Enabled" />
+            ) : (
+              <Pill color={Red} text="Disabled" />
+            );
           },
-        ]}
-        columns={[
-          { field: { name: true }, title: "Name", type: FieldType.Text },
-          {
-            field: { description: true },
-            title: "Description",
-            type: FieldType.Text,
+        },
+      ]}
+      formSteps={[
+        { title: "Basic Info", id: "basic-info" },
+        { title: "Match Criteria", id: "match-criteria", columns: 2 },
+        { title: "Labels", id: "labels", columns: 2 },
+      ]}
+      formFields={[
+        {
+          field: { name: true },
+          title: "Name",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.Text,
+          required: true,
+          placeholder: "Tag matching incoming call policies",
+          validation: { minLength: 2 },
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+        },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          stepId: "basic-info",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description: "Enable or disable this rule.",
+        },
+        {
+          field: { incomingCallPolicyLabels: true },
+          title: "Incoming Call Policy Labels",
+          stepId: "match-criteria",
+          sectionTitle: "Match by Attributes",
+          sectionDescription:
+            "Only trigger for incoming call policies that already have at least one of these labels. Leave empty to skip the filter.",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Label,
+            labelField: "name",
+            valueField: "_id",
           },
-          {
-            field: { isEnabled: true },
-            title: "Status",
-            type: FieldType.Boolean,
-            getElement: (item: IncomingCallPolicyLabelRule): ReactElement => {
-              return item.isEnabled ? (
-                <Pill color={Green} text="Enabled" />
-              ) : (
-                <Pill color={Red} text="Disabled" />
-              );
-            },
+          required: false,
+          placeholder: "Select Incoming Call Policy Labels (optional)",
+        },
+        {
+          field: { incomingCallPolicyNamePattern: true },
+          title: "Incoming Call Policy Name Pattern",
+          stepId: "match-criteria",
+          sectionTitle: "Match by Pattern",
+          sectionDescription:
+            "Case-insensitive regex matched against the incoming call policy name and description.",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "support-.*",
+        },
+        {
+          field: { incomingCallPolicyDescriptionPattern: true },
+          title: "Incoming Call Policy Description Pattern",
+          stepId: "match-criteria",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "billing|support",
+        },
+        {
+          field: { labelsToAdd: true },
+          title: "Labels to Add",
+          stepId: "labels",
+          sectionTitle: "Labels to Attach",
+          sectionDescription:
+            "When this rule matches, every selected label is attached to the incoming call policy. Already-attached labels are not duplicated.",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Label,
+            labelField: "name",
+            valueField: "_id",
           },
-        ]}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Match Criteria", id: "match-criteria", columns: 2 },
-          { title: "Labels", id: "labels", columns: 2 },
-        ]}
-        formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Tag matching incoming call policies",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-          },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this rule.",
-          },
-          {
-            field: { incomingCallPolicyLabels: true },
-            title: "Incoming Call Policy Labels",
-            stepId: "match-criteria",
-            sectionTitle: "Match by Attributes",
-            sectionDescription:
-              "Only trigger for incoming call policies that already have at least one of these labels. Leave empty to skip the filter.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Incoming Call Policy Labels (optional)",
-          },
-          {
-            field: { incomingCallPolicyNamePattern: true },
-            title: "Incoming Call Policy Name Pattern",
-            stepId: "match-criteria",
-            sectionTitle: "Match by Pattern",
-            sectionDescription:
-              "Case-insensitive regex matched against the incoming call policy name and description.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "support-.*",
-          },
-          {
-            field: { incomingCallPolicyDescriptionPattern: true },
-            title: "Incoming Call Policy Description Pattern",
-            stepId: "match-criteria",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "billing|support",
-          },
-          {
-            field: { labelsToAdd: true },
-            title: "Labels to Add",
-            stepId: "labels",
-            sectionTitle: "Labels to Attach",
-            sectionDescription:
-              "When this rule matches, every selected label is attached to the incoming call policy. Already-attached labels are not duplicated.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Labels",
-          },
-        ]}
-        showRefreshButton={true}
-      />
-    );
-  };
+          required: false,
+          placeholder: "Select Labels",
+        },
+      ]}
+      showRefreshButton={true}
+    />
+  );
+};
 
-const OnCallDutyLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const OnCallDutyLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
+  /*
+   * Routed as a rule's view page, the page shows only that rule, through
+   * the table that lists it, instead of the tabs.
+   */
+  const policyRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    OnCallDutyPolicyLabelRule,
+  );
+  const scheduleRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    OnCallDutyPolicyScheduleLabelRule,
+  );
+  const incomingCallRuleId: ObjectID | undefined =
+    RuleViewPageUtil.getViewRuleId(props, IncomingCallPolicyLabelRule);
+
+  if (policyRuleId) {
+    return <OnCallPolicyLabelRulesTable viewRuleId={policyRuleId} />;
+  }
+
+  if (scheduleRuleId) {
+    return <OnCallScheduleLabelRulesTable viewRuleId={scheduleRuleId} />;
+  }
+
+  if (incomingCallRuleId) {
+    return (
+      <IncomingCallPolicyLabelRulesTable viewRuleId={incomingCallRuleId} />
+    );
+  }
+
   return (
     <Fragment>
       <Tabs

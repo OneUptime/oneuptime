@@ -1,12 +1,15 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
-import Navigation from "Common/UI/Utils/Navigation";
 import AlertPrivacyRule from "Common/Models/DatabaseModels/AlertPrivacyRule";
 import AlertEpisodePrivacyRule from "Common/Models/DatabaseModels/AlertEpisodePrivacyRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -42,10 +45,27 @@ Match an alert episode on creation and mark it as **private** automatically. Emp
 - **Title / Description Pattern** — case-insensitive regex
 `;
 
-const AlertRulesTable: FunctionComponent = (): ReactElement => {
+interface RulesTableProps {
+  // Set when the page is routed as this rule's view page.
+  viewRuleId?: ObjectID | undefined;
+}
+
+const AlertRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
   return (
-    <ModelTable<AlertPrivacyRule>
+    <RuleTable<AlertPrivacyRule>
       modelType={AlertPrivacyRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.ALERTS_SETTINGS_PRIVACY_RULES,
+      )}
+      getRuleViewRoute={(rule: AlertPrivacyRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.ALERTS_SETTINGS_PRIVACY_RULE_VIEW,
+          rule,
+        );
+      }}
       id="alert-privacy-rules-table"
       name="Settings > Alert Privacy Rules"
       userPreferencesKey="alert-privacy-rules-table"
@@ -96,7 +116,6 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
@@ -222,10 +241,22 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
-const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
+const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
+  props: RulesTableProps,
+): ReactElement => {
   return (
-    <ModelTable<AlertEpisodePrivacyRule>
+    <RuleTable<AlertEpisodePrivacyRule>
       modelType={AlertEpisodePrivacyRule}
+      viewRuleId={props.viewRuleId}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.ALERTS_SETTINGS_PRIVACY_RULES,
+      )}
+      getRuleViewRoute={(rule: AlertEpisodePrivacyRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.ALERTS_SETTINGS_EPISODE_PRIVACY_RULE_VIEW,
+          rule,
+        );
+      }}
       id="alert-episode-privacy-rules-table"
       name="Settings > Alert Episode Privacy Rules"
       userPreferencesKey="alert-episode-privacy-rules-table"
@@ -277,7 +308,6 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },
@@ -359,9 +389,30 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
-const AlertPrivacyRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const AlertPrivacyRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
+  /*
+   * Routed as a rule's view page, the page shows only that rule, through
+   * the table that lists it, instead of the tabs.
+   */
+  const alertRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    AlertPrivacyRule,
+  );
+  const episodeRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
+    props,
+    AlertEpisodePrivacyRule,
+  );
+
+  if (alertRuleId) {
+    return <AlertRulesTable viewRuleId={alertRuleId} />;
+  }
+
+  if (episodeRuleId) {
+    return <EpisodeRulesTable viewRuleId={episodeRuleId} />;
+  }
+
   return (
     <Fragment>
       <Tabs

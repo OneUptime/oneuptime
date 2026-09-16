@@ -92,6 +92,8 @@ import MonitorTemplateSyncFieldUtil from "./MonitorTemplateSyncField";
 /*
  * Caps and defaults for per-step request timeout and retry settings.
  * Users may lower these via the UI; values higher than the cap are clamped.
+ * The retry values count retries AFTER the first attempt, so 0 means exactly
+ * one attempt and 3 means up to four.
  */
 export const MAX_MONITOR_REQUEST_TIMEOUT_IN_MS: number = 60000; // 60 seconds
 export const DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS: number = 60000;
@@ -168,8 +170,9 @@ export interface MonitorStepType {
   requestTimeoutInMs?: number | undefined;
 
   /*
-   * Per-step retry count for probe-based monitors when a check fails.
-   * Defaults to and is capped at 3.
+   * Per-step retry count for probe-based monitors when a check fails. It
+   * counts retries after the first attempt: 0 means one attempt, 2 means up
+   * to three. Defaults to and is capped at 3 on the probe.
    */
   retryCount?: number | undefined;
 

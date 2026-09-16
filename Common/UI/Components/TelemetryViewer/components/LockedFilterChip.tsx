@@ -10,10 +10,7 @@ import Icon from "../../Icon/Icon";
 import Tooltip from "../../Tooltip/Tooltip";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Clipboard from "../../../Utils/Clipboard";
-import {
-  LockedFilterDetail,
-  LockedFilterPredicate,
-} from "../../../../Types/Telemetry/LockedFilterDetail";
+import { LockedFilterDetail } from "../../../../Types/Telemetry/LockedFilterDetail";
 import {
   TELEMETRY_EXPLORER_LABELS,
   TelemetrySignal,
@@ -23,23 +20,20 @@ import {
  * The grey lock chip every telemetry explorer shows for a filter its host
  * page pinned — "Cluster: production" on a Kubernetes cluster's Logs tab.
  *
- * The chip used to say nothing beyond "(applied filter)", so a reader could
- * not tell whether the match was by resource attribute, by entity membership
- * or by service id, nor how to reproduce it on the main explorer. When the
- * builder attaches a LockedFilterDetail the chip carries a rich tooltip that
- * spells all of that out and offers the search syntax to copy; without one it
- * keeps the plain, non-focusable pill it always was — a chip with nothing to
- * open must not be a tab stop.
+ * When the builder attaches a LockedFilterDetail the chip carries a tooltip
+ * with the search syntax that reproduces the filter on the main explorer, and
+ * a button to copy it; without one it keeps the plain, non-focusable pill it
+ * always was — a chip with nothing to open must not be a tab stop.
  *
- * Keyboard path: the explanation lives in a Tippy popover that is appended
+ * Keyboard path: the search syntax lives in a Tippy popover that is appended
  * after the chip row, so Tab from the chip lands on the next chip and never
  * inside the popover. The chip with a detail is therefore a real button —
- * focus opens the explanation (Tippy's focus trigger, read out through
+ * focus opens the tooltip (Tippy's focus trigger, read out through
  * aria-describedby), and Enter / Space copies the search syntax right there,
  * with the result announced through a live region.
  *
  * Shared by the logs chip list and the traces / metrics chip list so the two
- * explain a locked filter the same way.
+ * present a locked filter the same way.
  */
 
 export const COPIED_FEEDBACK_MS: number = 1500;
@@ -49,6 +43,10 @@ export const LOCKED_FILTER_CHIP_CLASS_NAME: string =
 
 export const COPIED_SEARCH_SYNTAX_ANNOUNCEMENT: string = "Copied search syntax";
 export const COPY_FAILED_ANNOUNCEMENT: string = "Copy failed";
+
+/** Shown in the tooltip when a detail names neither a token nor a reason. */
+export const NO_SEARCH_SYNTAX_REASON: string =
+  "This filter has no search syntax.";
 
 type GetLockedFilterChipAriaLabelFunction = (
   displayKey: string,
@@ -138,8 +136,6 @@ export function useCopiedFeedback(): CopiedFeedback {
 }
 
 export interface LockedFilterTooltipContentProps {
-  displayKey: string;
-  displayValue: string;
   lockedDetail: LockedFilterDetail;
   signal?: TelemetrySignal | undefined;
 }
@@ -232,94 +228,34 @@ const SearchSyntaxRow: FunctionComponent<SearchSyntaxRowProps> = (
 };
 
 /**
- * The body of the locked chip's tooltip. Exported so tests can render it
- * without going through Tippy's hover timers.
+ * The body of the locked chip's tooltip: the search syntax that reproduces
+ * the filter on the explorer, with a Copy button — or, when the grammar
+ * cannot spell the filter, the reason why. Nothing else: the syntax is what a
+ * reader opens the chip for. Exported so tests can render it without going
+ * through Tippy's hover timers.
  */
 export const LockedFilterTooltipContent: FunctionComponent<
   LockedFilterTooltipContentProps
 > = (props: LockedFilterTooltipContentProps): ReactElement => {
   const detail: LockedFilterDetail = props.lockedDetail;
-  const predicates: Array<LockedFilterPredicate> = detail.predicates || [];
-
-  const combinatorLabel: string | null =
-    predicates.length > 1
-      ? detail.combinator === "any"
-        ? "(any of)"
-        : "(all of)"
-      : null;
 
   return (
     <div
-      className="w-80 max-w-full space-y-2 p-1 text-left text-xs"
+      className="w-80 max-w-full space-y-1 p-1 text-left text-xs"
       data-testid="locked-filter-tooltip"
     >
-      <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-        <Icon icon={IconProp.Lock} className="h-3 w-3" />
-        <span>Locked filter</span>
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+        Search syntax
       </div>
-
-      <div className="font-medium text-gray-900">
-        <span className="text-gray-500">{props.displayKey}:</span>{" "}
-        <span className="break-all">{props.displayValue}</span>
-      </div>
-
-      <p className="text-gray-700">{detail.summary}</p>
-
-      <p className="text-[11px] text-gray-400">{detail.source}</p>
-
-      {predicates.length > 0 && (
-        <div className="space-y-1 border-t border-gray-100 pt-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-            How rows are matched{combinatorLabel ? ` ${combinatorLabel}` : ""}
-          </div>
-          <ul className="space-y-1.5">
-            {predicates.map(
-              (predicate: LockedFilterPredicate, index: number) => {
-                return (
-                  <li
-                    key={`${predicate.label}-${index}`}
-                    className="space-y-0.5"
-                  >
-                    {/*
-                     * Label above the expression, not beside it: an
-                     * expression that wraps under a side label reads as a
-                     * hanging indent, and attribute predicates wrap often.
-                     */}
-                    <div className="text-[11px] text-gray-500">
-                      {predicate.label}
-                    </div>
-                    <code className="block break-all rounded bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-800">
-                      {predicate.expression}
-                    </code>
-                    {predicate.note && (
-                      <p className="text-[11px] text-gray-400">
-                        {predicate.note}
-                      </p>
-                    )}
-                  </li>
-                );
-              },
-            )}
-          </ul>
-        </div>
-      )}
-
-      {(detail.searchToken || detail.searchTokenUnavailableReason) && (
-        <div className="space-y-1 border-t border-gray-100 pt-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-            Search syntax
-          </div>
-          {detail.searchToken ? (
-            <SearchSyntaxRow
-              searchToken={detail.searchToken}
-              signal={props.signal}
-            />
-          ) : (
-            <p className="text-[11px] text-gray-400">
-              {detail.searchTokenUnavailableReason}
-            </p>
-          )}
-        </div>
+      {detail.searchToken ? (
+        <SearchSyntaxRow
+          searchToken={detail.searchToken}
+          signal={props.signal}
+        />
+      ) : (
+        <p className="text-[11px] text-gray-400">
+          {detail.searchTokenUnavailableReason || NO_SEARCH_SYNTAX_REASON}
+        </p>
       )}
     </div>
   );
@@ -374,7 +310,7 @@ const LockedFilterChipBody: FunctionComponent<LockedFilterChipBodyProps> = (
   );
 };
 
-interface ExplainedLockedFilterChipProps {
+interface DetailedLockedFilterChipProps {
   displayKey: string;
   displayValue: string;
   lockedDetail: LockedFilterDetail;
@@ -384,12 +320,12 @@ interface ExplainedLockedFilterChipProps {
 
 /*
  * The chip that has something to say. The control is a native button so it
- * is focusable with a role that permits a name; Tippy attaches its
- * explanation to it (focus and hover open it; aria-describedby reads it).
+ * is focusable with a role that permits a name; Tippy attaches the search
+ * syntax tooltip to it (focus and hover open it; aria-describedby reads it).
  */
-const ExplainedLockedFilterChip: FunctionComponent<
-  ExplainedLockedFilterChipProps
-> = (props: ExplainedLockedFilterChipProps): ReactElement => {
+const DetailedLockedFilterChip: FunctionComponent<
+  DetailedLockedFilterChipProps
+> = (props: DetailedLockedFilterChipProps): ReactElement => {
   const feedback: CopiedFeedback = useCopiedFeedback();
   const searchToken: string | undefined = props.lockedDetail.searchToken;
 
@@ -412,7 +348,7 @@ const ExplainedLockedFilterChip: FunctionComponent<
         /*
          * Enter and Space arrive here as clicks on a native button. A chip
          * without syntax has nothing to copy; its button exists so the
-         * explanation is reachable from the keyboard at all.
+         * reason in its tooltip is reachable from the keyboard at all.
          */
         event.preventDefault();
         event.stopPropagation();
@@ -439,8 +375,6 @@ const ExplainedLockedFilterChip: FunctionComponent<
       <Tooltip
         richContent={
           <LockedFilterTooltipContent
-            displayKey={props.displayKey}
-            displayValue={props.displayValue}
             lockedDetail={props.lockedDetail}
             signal={props.signal}
           />
@@ -461,7 +395,7 @@ const LockedFilterChip: FunctionComponent<LockedFilterChipProps> = (
 ): ReactElement => {
   if (!props.lockedDetail) {
     /*
-     * Exactly the pill from before the explainer: not focusable, no name of
+     * Exactly the pill from before the tooltip: not focusable, no name of
      * its own, the plain title. Nothing would open on focus, so a tab stop
      * here would be a dead one.
      */
@@ -483,7 +417,7 @@ const LockedFilterChip: FunctionComponent<LockedFilterChipProps> = (
   }
 
   return (
-    <ExplainedLockedFilterChip
+    <DetailedLockedFilterChip
       displayKey={props.displayKey}
       displayValue={props.displayValue}
       lockedDetail={props.lockedDetail}

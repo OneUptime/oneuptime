@@ -27,3 +27,22 @@ jobs:
       # the agent's secret out of its world-readable log file. -race is cheap
       # here and the agent runs a scheduler, so it is worth the coverage.
       - run: cd InfrastructureAgent && go test ./... -race
+      # The agent ships for Windows and macOS too, but the tests above only
+      # compile the Linux build. Vet the other release targets so code behind
+      # a //go:build tag (utils/disk_drives_windows.go) is at least type-checked.
+      - run: cd InfrastructureAgent && GOOS=windows GOARCH=amd64 go vet ./...
+      - run: cd InfrastructureAgent && GOOS=darwin GOARCH=arm64 go vet ./...
+
+  # Disk collection handles what gopsutil returns on Windows - partial partition
+  # lists, drive-letter devices - and the Linux job can only reproduce that with
+  # stubs. Run the disk tests on Windows too, including disk_windows_test.go,
+  # which checks those stubs against the real Windows APIs.
+  test-windows-disk:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: InfrastructureAgent/go.mod
+      - working-directory: InfrastructureAgent
+        run: go test ./utils/ -count=1 -v -run "^Test(ListDiskMetrics|Disk|WindowsDisk|LookupIOCounters|IOCountersKeyCandidates|DescribeDiskError|MissingDrives)"

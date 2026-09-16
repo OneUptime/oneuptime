@@ -157,9 +157,9 @@ describe("static rule criteria runtime coverage", () => {
     discoverStaticRuleForms();
   const inheritedRuleModelNames: Array<string> = getInheritedRuleModelNames();
 
-  test("all 61 static match-criteria forms route their 73 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(61);
-    expect(formsByModel.size).toBe(73);
+  test("all 62 static match-criteria forms route their 74 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(62);
+    expect(formsByModel.size).toBe(74);
     expect([...formsByModel.keys()].sort()).toEqual(inheritedRuleModelNames);
     expect(Object.keys(RULE_CRITERIA_FIELDS_BY_MODEL).sort()).toEqual(
       inheritedRuleModelNames,
@@ -186,7 +186,13 @@ describe("static rule criteria runtime coverage", () => {
         modelTypeOffset,
       );
 
-      expect(openingTag).toMatch(/<(?:ModelTable|LabelRuleTable)<[^>]+>\s*$/);
+      /*
+       * RuleTable (and LabelRuleTable, which wraps it) renders a ModelTable
+       * with the same props, so its forms go through ModelForm just the same.
+       */
+      expect(openingTag).toMatch(
+        /<(?:ModelTable|LabelRuleTable|RuleTable)<[^>]+>\s*$/,
+      );
     }
 
     const modelFormSource: string = fs.readFileSync(

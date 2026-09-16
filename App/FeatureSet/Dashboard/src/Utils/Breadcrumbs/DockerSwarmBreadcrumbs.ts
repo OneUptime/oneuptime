@@ -144,12 +144,20 @@ export function getDockerSwarmBreadcrumbs(
       "Settings",
       "Owner Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULE_VIEW,
+      ["Project", "DockerSwarm", "Settings", "Owner Rules", "View Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES, [
       "Project",
       "DockerSwarm",
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULE_VIEW,
+      ["Project", "DockerSwarm", "Settings", "Label Rules", "View Rule"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

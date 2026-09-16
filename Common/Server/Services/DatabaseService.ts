@@ -63,7 +63,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import Exception from "../../Types/Exception/Exception";
 import HashedString from "../../Types/HashedString";
-import { JSONObject, JSONValue } from "../../Types/JSON";
+import { JSONObject, JSONValue, ObjectType } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
 import TelemetryContext from "../Utils/Telemetry/TelemetryContext";
@@ -94,6 +94,8 @@ import Realtime from "../Utils/Realtime";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import type AuditLogServiceType from "./AuditLogService";
+import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
+import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -316,6 +318,67 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return await this.onBeforeCreate(createBy);
   }
 
+  /*
+   * BasicForm wraps every FormFieldSchemaType.Password value in a HashedString
+   * before submit, so a model form can post one straight at a hashed column.
+   * The same field also collects secrets that are stored rather than hashed —
+   * a TAXII feed token, data source credentials, a webhook signing secret —
+   * and those columns want the string the user typed. Left wrapped, encrypt()
+   * walked the HashedString's own fields as if it were a JSON column, and the
+   * Postgres driver serialized the object through toJSON(), so the column
+   * held '{"_type":"HashedString","value":"<ciphertext>"}' instead of the
+   * ciphertext. https://github.com/OneUptime/oneuptime/issues/3807
+   *
+   * Runs before the hooks, so they validate the same string that is saved.
+   */
+  private unwrapHashedStringsForUnhashedColumns(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): void {
+    for (const columnName of Object.keys(data)) {
+      const value: unknown = (data as Record<string, unknown>)[columnName];
+
+      if (
+        value instanceof HashedString &&
+        this.model.isTableColumn(columnName) &&
+        !this.model.isHashedStringColumn(columnName)
+      ) {
+        (data as Record<string, unknown>)[columnName] = value.toString();
+      }
+    }
+  }
+
+  /*
+   * Rows written before the fix above hold their ciphertext inside that
+   * HashedString envelope. Decrypting the envelope itself is not just wrong
+   * but random — it carries no OpenSSL salt, so crypto-js derives the key
+   * from a fresh random one on every call and returns "" or throws
+   * "Malformed UTF-8 data". A ciphertext is base64 and never starts with
+   * "{", so the envelope is unambiguous: unwrap it and those rows decrypt
+   * without anyone re-entering the secret.
+   */
+  private static unwrapHashedStringEnvelope(storedValue: string): string {
+    if (typeof storedValue !== "string" || !storedValue.startsWith("{")) {
+      return storedValue;
+    }
+
+    try {
+      const parsed: JSONValue = JSON.parse(storedValue);
+
+      if (
+        parsed &&
+        typeof parsed === Typeof.Object &&
+        (parsed as JSONObject)["_type"] === ObjectType.HashedString &&
+        typeof (parsed as JSONObject)["value"] === Typeof.String
+      ) {
+        return (parsed as JSONObject)["value"] as string;
+      }
+    } catch {
+      // Not JSON, so not the envelope.
+    }
+
+    return storedValue;
+  }
+
   protected async encrypt(
     data: TBaseModel | PartialEntity<TBaseModel>,
   ): Promise<TBaseModel | PartialEntity<TBaseModel>> {
@@ -527,7 +590,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         data.setValue(key, dataObj);
       } else {
         //If its string or other type.
-        data.setValue(key, await Encryption.decrypt((data as any)[key]));
+        data.setValue(
+          key,
+          await Encryption.decrypt(
+            DatabaseService.unwrapHashedStringEnvelope((data as any)[key]),
+          ),
+        );
       }
     }
 
@@ -1300,6 +1368,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+    this.unwrapHashedStringsForUnhashedColumns(createBy.data);
+
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
       ? { createBy, carryForward: [] }
       : await this._onBeforeCreate(createBy);
@@ -2799,6 +2869,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
 
+      this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
+
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);
@@ -2873,24 +2945,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           true;
       }
 
-      /*
-       * When audit logging on update is enabled, ensure the resource's display
-       * name is loaded on the `before` snapshot so the audit entry records the
-       * human-readable resource name even when the update doesn't touch it.
-       */
       if (this.getModel().enableAuditLogOn?.update) {
-        const nameCandidates: ReadonlyArray<string> = [
-          "name",
-          "title",
-          "displayName",
-        ];
-        const modelColumns: Array<string> =
-          this.getModel().getTableColumns().columns;
-        for (const candidate of nameCandidates) {
-          if (modelColumns.includes(candidate)) {
-            (selectColumns as any)[candidate] = true;
-          }
-        }
+        this.addAuditLogColumnsToUpdateSelect(selectColumns, dataKeys);
       }
 
       const items: Array<TBaseModel> = hasColumnsToUpdate
@@ -3147,14 +3203,107 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  /*
+   * The `before` row an update loads is sparse on purpose - the columns the
+   * write touches, plus `_id` and the tenant column - so everything
+   * AuditLogService reads off it has to be requested here:
+   *   - the resource's display name, even when the update does not touch it;
+   *   - the parent id a child's entries roll up to (rootResource);
+   *   - the id of the row that names a nameless row (resourceNameRelation);
+   *   - the related rows' names for relation columns the write touches, so
+   *     the diff reads "Production -> Staging" rather than as two ids. A
+   *     relation selected as `true` loads only `_id`.
+   */
+  private addAuditLogColumnsToUpdateSelect(
+    select: Select<TBaseModel>,
+    dataKeys: Array<string>,
+  ): void {
+    const model: TBaseModel = this.getModel();
+    const auditLogOn: EnableAuditLogOn | undefined = model.enableAuditLogOn;
+    const selectRecord: Record<string, unknown> = select as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const candidate of ["name", "title", "displayName"]) {
+      if (model.isTableColumn(candidate)) {
+        selectRecord[candidate] = true;
+      }
+    }
+
+    const rootColumn: string | undefined = auditLogOn?.rootResource?.column;
+
+    if (rootColumn && model.isTableColumn(rootColumn)) {
+      selectRecord[rootColumn] = true;
+    }
+
+    const nameRelation: string | undefined = auditLogOn?.resourceNameRelation;
+
+    if (nameRelation && model.isTableColumn(nameRelation)) {
+      const nameRelationIdColumn: string | undefined =
+        model.getTableColumnMetadata(nameRelation)?.manyToOneRelationColumn;
+
+      if (nameRelationIdColumn && model.isTableColumn(nameRelationIdColumn)) {
+        selectRecord[nameRelationIdColumn] = true;
+      }
+    }
+
+    for (const key of dataKeys) {
+      if (!model.isTableColumn(key)) {
+        continue;
+      }
+
+      const metadata: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(key);
+
+      if (
+        !metadata?.modelType ||
+        (metadata.type !== TableColumnType.EntityArray &&
+          metadata.type !== TableColumnType.Entity)
+      ) {
+        continue;
+      }
+
+      selectRecord[key] = new metadata.modelType().isTableColumn("name")
+        ? { _id: true, name: true }
+        : { _id: true };
+    }
+  }
+
   private hasSameValues(data: { item: TBaseModel; updatedItem: any }): boolean {
     const { item, updatedItem } = data;
     const columns: string[] = Object.keys(updatedItem);
     for (const column of columns) {
       const currentValue: unknown = item.getColumnValue(column);
       const updatedValue: unknown = updatedItem[column];
-      const isJSONColumn: boolean =
-        item.getTableColumnMetadata(column)?.type === TableColumnType.JSON;
+      const columnType: TableColumnType | undefined =
+        item.getTableColumnMetadata(column)?.type;
+      const isJSONColumn: boolean = columnType === TableColumnType.JSON;
+
+      /*
+       * A relation value is a model instance (or an array of them), and those
+       * stringify as "[object Object]" too - so swapping a resource's labels
+       * A,B for C,D compared as unchanged, and the update fired neither its
+       * workflow nor its audit entry. Compare the referenced ids, as sets:
+       * the order a relation comes back in means nothing. When either side
+       * has no ids to compare (the relation was not loaded, or holds something
+       * that is not a reference), fall through to the comparison below.
+       */
+      if (
+        columnType === TableColumnType.EntityArray ||
+        columnType === TableColumnType.Entity
+      ) {
+        const sameRelationIds: boolean | null =
+          RelationValueUtil.haveSameRelationIds(currentValue, updatedValue);
+
+        if (sameRelationIds === false) {
+          return false;
+        }
+
+        if (sameRelationIds === true) {
+          continue;
+        }
+      }
 
       /*
        * Plain JSON objects all stringify through Object.toString as
@@ -3239,6 +3388,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         _id: updateById.id.toString() as any,
       },
       data: updateById.data as any,
+      miscDataProps: updateById.miscDataProps,
       props: updateById.props,
     });
   }

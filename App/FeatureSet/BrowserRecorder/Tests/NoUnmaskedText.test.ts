@@ -173,6 +173,51 @@ describe("no unmasked page text reaches the wire", (): void => {
       .join("\n");
   };
 
+  /*
+   * The upload envelope carries ids the recorder minted rather than anything
+   * the page said: 32 random hex characters each for the session, the tab and
+   * the visitor. A fragment that is itself all hex digits can land inside one
+   * of them by chance - "4111" turns up in about one in 2,200 such ids, and a
+   * sessionId of 4111abd3... is exactly what failed this file on master - so a
+   * short card fragment is looked for everywhere EXCEPT those three values.
+   * Nothing from the page can hide there instead: envelopeIdsAreHex() holds
+   * every one of them to [0-9a-f], so page text reaching an id fails that check
+   * rather than slipping past this one.
+   */
+  const ENVELOPE_ID_PATTERN: RegExp =
+    /"(sessionId|tabId|visitorId)":"([^"]*)"/g;
+
+  const HEX_ID_PATTERN: RegExp = /^[0-9a-f]+$/;
+
+  const postedWithoutEnvelopeIds: () => string = (): string => {
+    return allPostedBytes().replace(
+      ENVELOPE_ID_PATTERN,
+      (_match: string, field: string): string => {
+        return `"${field}":"<id>"`;
+      },
+    );
+  };
+
+  const envelopeIdsAreHex: () => boolean = (): boolean => {
+    const posted: string = allPostedBytes();
+    const pattern: RegExp = new RegExp(ENVELOPE_ID_PATTERN.source, "g");
+    const ids: Array<string> = [];
+
+    let match: RegExpExecArray | null = pattern.exec(posted);
+
+    while (match !== null) {
+      ids.push(match[2] as string);
+      match = pattern.exec(posted);
+    }
+
+    return (
+      ids.length > 0 &&
+      ids.every((id: string): boolean => {
+        return HEX_ID_PATTERN.test(id);
+      })
+    );
+  };
+
   beforeEach((): void => {
     window.localStorage.clear();
     window.sessionStorage.clear();
@@ -500,7 +545,8 @@ describe("no unmasked page text reaches the wire", (): void => {
     expect(posted).not.toContain(blockedSecret);
     expect(posted).not.toContain("sertraline");
     expect(posted).not.toContain(cardSecret);
-    expect(posted).not.toContain("4111");
+    expect(envelopeIdsAreHex()).toBe(true);
+    expect(postedWithoutEnvelopeIds()).not.toContain("4111");
   });
 
   /*

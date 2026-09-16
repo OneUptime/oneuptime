@@ -1,5 +1,9 @@
 import SubnetScanner from "../../Utils/Discovery/SubnetScanner";
-import { ReverseDnsResolution } from "../../Utils/Discovery/ReverseDnsResolver";
+import {
+  DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS,
+  ReverseDnsResolution,
+} from "../../Utils/Discovery/ReverseDnsResolver";
+import { installNetbiosStub } from "./StubNetbios";
 import { beforeEach, jest } from "@jest/globals";
 
 /*
@@ -25,7 +29,15 @@ import { beforeEach, jest } from "@jest/globals";
  * not about naming: hosts come back with no `dnsHostname`, exactly as they
  * did before the feature existed, so every pre-existing assertion in these
  * files still describes what it always described. Suites that ARE about
- * naming (SubnetScannerReverseDns.test.ts) install their own spy instead.
+ * naming (Jobs/Discovery/DiscoveryReverseDns.test.ts) install their own spy
+ * instead.
+ *
+ * The same sweep can end in a NetBIOS lookup too (OneUptime issue #3677), so
+ * installing this stub installs the NetBIOS one as well (StubNetbios.ts). Both
+ * seams sit at the same point after the sweep and every reason above applies
+ * to a UDP 137 datagram at least as strongly as to a PTR query; keeping them
+ * behind one call means no suite, and no mid-test re-install, can cover one
+ * and forget the other.
  */
 
 /**
@@ -50,13 +62,22 @@ import { beforeEach, jest } from "@jest/globals";
 export function installReverseDnsStub(): void {
   jest
     .spyOn(SubnetScanner, "resolveReverseDnsHostnames")
-    .mockImplementation(async (): Promise<ReverseDnsResolution> => {
-      return {
-        hostnameByIpAddress: new Map<string, string>(),
-        isReverseDnsAvailable: true,
-        isTimeBudgetExhausted: false,
-      };
-    });
+    .mockImplementation(
+      async (ipAddresses: Array<string>): Promise<ReverseDnsResolution> => {
+        return {
+          hostnameByIpAddress: new Map<string, string>(),
+          isReverseDnsAvailable: true,
+          isTimeBudgetExhausted: false,
+          // Every address asked, none named: a complete, unremarkable pass.
+          lookedUpCount: new Set<string>(ipAddresses).size,
+          notLookedUpCount: 0,
+          totalBudgetInMs: DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS,
+        };
+      },
+    );
+
+  // And the other post-sweep network seam — see the note at the top.
+  installNetbiosStub();
 }
 
 /**

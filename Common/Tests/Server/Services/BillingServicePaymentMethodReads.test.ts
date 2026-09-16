@@ -296,7 +296,12 @@ describe("BillingService payment-method reads", () => {
       { id: "pm_card", type: "visa", last4Digits: "4242", isDefault: true },
     ]);
     expect(list).toHaveBeenCalledTimes(4);
-    expect(retrieveCustomer).toHaveBeenCalledTimes(2);
+    /*
+     * Two reads for the retried lookup, plus one more: promoting a first
+     * default re-syncs the subscriptions' payment method, and that sync reads
+     * the default back. It only happens on this no-default branch.
+     */
+    expect(retrieveCustomer).toHaveBeenCalledTimes(3);
     expect(updateCustomer).toHaveBeenCalledTimes(1);
     expect(updateCustomer).toHaveBeenCalledWith(CUSTOMER_ID, {
       invoice_settings: { default_payment_method: "pm_card" },
@@ -309,7 +314,14 @@ describe("BillingService payment-method reads", () => {
       invoice_settings: { default_payment_method: null },
     });
     updateCustomer.mockRejectedValue(failure);
-    await expect(service.getPaymentMethods(CUSTOMER_ID)).rejects.toBe(failure);
+    /*
+     * A retried write can apply the change twice, so the write is attempted
+     * once - but the failure is still named: a raw StripeError reaches the
+     * express handler's fallback and becomes an opaque 500 "Server Error".
+     */
+    await expect(service.getPaymentMethods(CUSTOMER_ID)).rejects.toThrow(
+      ServiceUnavailableException,
+    );
     expect(updateCustomer).toHaveBeenCalledTimes(1);
     expect(retrieveCustomer).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenCalledTimes(4);

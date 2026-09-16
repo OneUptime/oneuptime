@@ -277,7 +277,14 @@
       "title": "परियोजना",
       "cardTitle": "परियोजना",
       "cardDescription": "परियोजना का विवरण",
-      "editButton": "परियोजना संपादित करें"
+      "editButton": "परियोजना संपादित करें",
+      "dataResidencyCardTitle": "डेटा रेजिडेंसी",
+      "dataResidencyCardDescription": "इस प्रोजेक्ट का डेटा कहाँ होस्ट किया जाता है। सेट होने के बाद, यह प्रोजेक्ट के उपयोगकर्ताओं को उनकी प्रोजेक्ट सेटिंग्स में दिखाया जाता है।",
+      "dataResidencyEditButton": "डेटा रेजिडेंसी संपादित करें",
+      "dataResidencyFieldTitle": "डेटा रेजिडेंसी",
+      "dataResidencyFieldDescription": "इस प्रोजेक्ट का डेटा कहाँ होस्ट किया जाता है, इसके लिए एक लेबल, उदाहरण के लिए \"EU (Frankfurt)\"। प्रोजेक्ट के उपयोगकर्ताओं से छिपाने के लिए इसे खाली छोड़ें।",
+      "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
+      "dataResidencyNotSet": "सेट नहीं है"
     },
     "projectSubscription": {
       "title": "परियोजना सदस्यता",

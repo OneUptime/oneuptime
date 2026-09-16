@@ -18,6 +18,7 @@ import ChunkMath from "../../../Utils/Rum/ChunkMath";
 import {
   SessionReplayTabEndFacts,
   hasSessionRecordingEnded,
+  hasTabRecordingEnded,
 } from "../../../Utils/Rum/SessionReplayRecordingEnded";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_READ,
@@ -539,6 +540,24 @@ export interface SessionReplayManifestTab {
   totalPayloadBytes: number;
   /* Where this tab's footage begins on the session clock. */
   firstChunkStartOffsetMs: number;
+  /*
+   * Whether THIS tab has stopped recording, so the player can list open
+   * tabs before closed ones. A session id is shared by every tab and every
+   * page load of a multi-page app (the recorder mints a new tab id per
+   * load), so the header's hasRecordingEnded - "every tab has ended" -
+   * cannot say which of them is still open.
+   *
+   * - A finalized header: true for every tab, with no extra read.
+   * - Otherwise judged by getManifest from the same grouped chunk read as
+   *   the header's hasRecordingEnded: true when the session as a whole has
+   *   ended, or when hasTabRecordingEnded holds for this tab's facts. There
+   *   is no grace per tab: the grace exists because a NEW tab id may still
+   *   be about to register, which says nothing about whether this one
+   *   sealed.
+   * - No facts for the tab, or a failed read: false, the same "report it
+   *   as still recording" fallback the header uses.
+   */
+  hasRecordingEnded: boolean;
 }
 
 export interface SessionReplayManifest {
@@ -1191,6 +1210,59 @@ const TAB_END_FACT_AGGREGATES: Array<AggregatedColumn> = [
     expression: "toFloat64(max(version))",
   },
 ];
+
+/* One tab-end-facts row, read with the defensive readers above. */
+function readTabEndFacts(row: JSONObject): SessionReplayTabEndFacts {
+  return {
+    hasFinalChunk: readBoolean(row, TAB_HAS_FINAL_CHUNK_ALIAS),
+    finalChunkEndUnixMs: readMeasuredNumber(row, TAB_FINAL_CHUNK_END_ALIAS),
+    lastChunkStartUnixMs: readMeasuredNumber(row, TAB_LAST_CHUNK_START_ALIAS),
+    maxChunkIndex: readMeasuredNumber(row, TAB_MAX_CHUNK_INDEX_ALIAS),
+    lastChunkStoredAtUnixMs: readMeasuredNumber(
+      row,
+      TAB_LAST_CHUNK_STORED_AT_ALIAS,
+    ),
+  };
+}
+
+/*
+ * GROUP BY sessionId, tabId makes every (session, tab) pair one row, so
+ * this only ever runs on a result that repeats a pair. It folds the two
+ * rows with the same maxima the GROUP BY applies, which is what one group
+ * over both rows' chunks would have answered. A value that was not
+ * measured on either side stays unmeasured (NaN), so a fold can never
+ * read as "ended" on less evidence than its rows had.
+ */
+function foldTabEndFacts(
+  first: SessionReplayTabEndFacts,
+  second: SessionReplayTabEndFacts,
+): SessionReplayTabEndFacts {
+  const maxMeasured: (a: number, b: number) => number = (
+    a: number,
+    b: number,
+  ): number => {
+    return Number.isFinite(a) && Number.isFinite(b)
+      ? Math.max(a, b)
+      : Number.NaN;
+  };
+
+  return {
+    hasFinalChunk: first.hasFinalChunk || second.hasFinalChunk,
+    finalChunkEndUnixMs: maxMeasured(
+      first.finalChunkEndUnixMs,
+      second.finalChunkEndUnixMs,
+    ),
+    lastChunkStartUnixMs: maxMeasured(
+      first.lastChunkStartUnixMs,
+      second.lastChunkStartUnixMs,
+    ),
+    maxChunkIndex: maxMeasured(first.maxChunkIndex, second.maxChunkIndex),
+    lastChunkStoredAtUnixMs: maxMeasured(
+      first.lastChunkStoredAtUnixMs,
+      second.lastChunkStoredAtUnixMs,
+    ),
+  };
+}
 
 /*
  * The capability list chunk 0 declared, filtered to the vocabulary this
@@ -2286,23 +2358,48 @@ export default class SessionReplayReadService {
      * a truncated manifest would lose a tab's newest chunks - exactly the
      * rows that say whether it kept recording after its final chunk. A
      * finalized header is authoritative and runs no second read. The
-     * helper never rejects (a failure answers "not ended"), so it cannot
-     * fail the manifest. The manifest statement is issued first.
+     * helper never rejects (a failure answers "no facts", which is "not
+     * ended"), so it cannot fail the manifest. The manifest statement is
+     * issued first.
+     *
+     * The same one read also answers each tab's own hasRecordingEnded:
+     * it is already grouped per tab, because the session rule is per tab.
      */
     const manifestResultPromise: Promise<Results> =
       RumSessionChunkService.executeQuery(statement);
 
-    const endedSessionIdsPromise: Promise<Set<string>> = data.header.isFinalized
-      ? Promise.resolve(new Set<string>())
-      : SessionReplayReadService.readRecordingEndedSessionIds({
-          projectId: data.projectId,
-          rumApplicationId: data.rumApplicationId,
-          sessionIds: [data.sessionId],
-          nowUnixMs: data.nowUnixMs ?? Date.now(),
-        });
+    const tabEndFactsPromise: Promise<Map<string, SessionReplayTabEndFacts>> =
+      data.header.isFinalized
+        ? Promise.resolve(new Map<string, SessionReplayTabEndFacts>())
+        : SessionReplayReadService.readTabEndFactsBySession({
+            projectId: data.projectId,
+            rumApplicationId: data.rumApplicationId,
+            sessionIds: [data.sessionId],
+          }).then(
+            (
+              factsBySessionId: Map<
+                string,
+                Map<string, SessionReplayTabEndFacts>
+              >,
+            ): Map<string, SessionReplayTabEndFacts> => {
+              return (
+                factsBySessionId.get(data.sessionId) ||
+                new Map<string, SessionReplayTabEndFacts>()
+              );
+            },
+          );
 
-    const [dbResult, endedSessionIds]: [Results, Set<string>] =
-      await Promise.all([manifestResultPromise, endedSessionIdsPromise]);
+    const [dbResult, tabEndFactsByTabId]: [
+      Results,
+      Map<string, SessionReplayTabEndFacts>,
+    ] = await Promise.all([manifestResultPromise, tabEndFactsPromise]);
+
+    const hasRecordingEnded: boolean =
+      !data.header.isFinalized &&
+      hasSessionRecordingEnded(
+        Array.from(tabEndFactsByTabId.values()),
+        data.nowUnixMs ?? Date.now(),
+      );
     const response: DbJSONResponse = await dbResult.json<{
       data?: Array<JSONObject>;
     }>();
@@ -2396,6 +2493,13 @@ export default class SessionReplayReadService {
           },
           Number.POSITIVE_INFINITY,
         ),
+        hasRecordingEnded: SessionReplayReadService.isManifestTabRecordingEnded(
+          {
+            isSessionFinalized: data.header.isFinalized,
+            hasSessionRecordingEnded: hasRecordingEnded,
+            tabEndFacts: tabEndFactsByTabId.get(tabId),
+          },
+        ),
       });
     }
 
@@ -2412,7 +2516,7 @@ export default class SessionReplayReadService {
         liveDurationMs: liveDurationMs,
         liveEventCount: liveEventCount,
         liveMaxChunkIndex: liveMaxChunkIndex,
-        hasRecordingEnded: endedSessionIds.has(data.sessionId),
+        hasRecordingEnded: hasRecordingEnded,
       }),
       tabs: tabs,
       isChunkIndexTruncated: rows.length >= MAX_MANIFEST_ROWS,
@@ -2473,10 +2577,77 @@ export default class SessionReplayReadService {
   }
 
   /*
+   * One manifest tab's hasRecordingEnded (see
+   * SessionReplayManifestTab.hasRecordingEnded). A finalized session or one
+   * that has ended as a whole ends every tab, including a tab the grouped
+   * read has no facts for (its rows can land in the manifest read and not
+   * yet in the facts read, or the other way round). Otherwise the tab is
+   * judged on its own facts, and no facts is "not known to have ended".
+   */
+  private static isManifestTabRecordingEnded(data: {
+    isSessionFinalized: boolean;
+    hasSessionRecordingEnded: boolean;
+    tabEndFacts: SessionReplayTabEndFacts | undefined;
+  }): boolean {
+    if (data.isSessionFinalized || data.hasSessionRecordingEnded) {
+      return true;
+    }
+
+    if (!data.tabEndFacts) {
+      return false;
+    }
+
+    return hasTabRecordingEnded(data.tabEndFacts);
+  }
+
+  /*
    * Which of these unfinalized sessions have stopped recording, judged by
    * the shared rule (Common/Utils/Rum/SessionReplayRecordingEnded.ts) over
-   * their chunk rows. The one helper behind both the list badge and the
-   * player's Live pill.
+   * the tab end facts readTabEndFactsBySession reads. The list badge's
+   * helper; getManifest reads the same facts itself because it also judges
+   * each tab, and applies the same rule to the same one read, so the list
+   * badge and the player's Live pill can never disagree about a session.
+   *
+   * Best-effort, like the read: a failure answers "nothing has ended".
+   */
+  private static async readRecordingEndedSessionIds(data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    sessionIds: Array<string>;
+    /* Server unix ms the grace is measured against. */
+    nowUnixMs: number;
+  }): Promise<Set<string>> {
+    const endedSessionIds: Set<string> = new Set<string>();
+
+    const factsBySessionId: Map<
+      string,
+      Map<string, SessionReplayTabEndFacts>
+    > = await SessionReplayReadService.readTabEndFactsBySession({
+      projectId: data.projectId,
+      rumApplicationId: data.rumApplicationId,
+      sessionIds: data.sessionIds,
+    });
+
+    for (const [sessionId, tabEndFactsByTabId] of factsBySessionId) {
+      if (
+        hasSessionRecordingEnded(
+          Array.from(tabEndFactsByTabId.values()),
+          data.nowUnixMs,
+        )
+      ) {
+        endedSessionIds.add(sessionId);
+      }
+    }
+
+    return endedSessionIds;
+  }
+
+  /*
+   * The per-tab end facts of these sessions, keyed by sessionId and then
+   * tabId, for the shared rule in
+   * Common/Utils/Rum/SessionReplayRecordingEnded.ts. The one read behind
+   * the list badge, the player's Live pill and each manifest tab's own
+   * hasRecordingEnded.
    *
    * One statement for any number of sessions:
    *
@@ -2514,21 +2685,24 @@ export default class SessionReplayReadService {
    * rows' version against this process's Date.now()). The list, the player
    * and the finalizer therefore call a session ended at the same moment,
    * give or take the finalizer's one-minute schedule, and none of them
-   * depends on Redis for it.
+   * depends on Redis for it. The grace is judged by the callers; this read
+   * only returns the facts it is judged on.
    *
-   * Best-effort. A failure logs a warning and answers "nothing has ended",
-   * which is what the Dashboard showed before this existed; neither the
-   * list nor the manifest may fail because of it. A session with no chunk
-   * rows has no tabs, and no tabs is "not known", never "ended".
+   * Best-effort. Never rejects: a failure logs a warning and answers an
+   * empty map, which every caller reads as "nothing has ended" - what the
+   * Dashboard showed before this existed; neither the list nor the
+   * manifest may fail because of it. A session with no chunk rows is
+   * absent from the map, and no tabs is "not known", never "ended".
    */
-  private static async readRecordingEndedSessionIds(data: {
+  private static async readTabEndFactsBySession(data: {
     projectId: ObjectID;
     rumApplicationId: ObjectID;
     sessionIds: Array<string>;
-    /* Server unix ms the grace is measured against. */
-    nowUnixMs: number;
-  }): Promise<Set<string>> {
-    const endedSessionIds: Set<string> = new Set<string>();
+  }): Promise<Map<string, Map<string, SessionReplayTabEndFacts>>> {
+    const factsBySessionId: Map<
+      string,
+      Map<string, SessionReplayTabEndFacts>
+    > = new Map<string, Map<string, SessionReplayTabEndFacts>>();
 
     const sessionIds: Array<string> = Array.from(
       new Set<string>(
@@ -2539,7 +2713,7 @@ export default class SessionReplayReadService {
     );
 
     if (sessionIds.length === 0) {
-      return endedSessionIds;
+      return factsBySessionId;
     }
 
     const statement: Statement = SQL`
@@ -2586,14 +2760,10 @@ export default class SessionReplayReadService {
       );
       logger.warn(err);
 
-      return endedSessionIds;
+      return factsBySessionId;
     }
 
     const requested: Set<string> = new Set<string>(sessionIds);
-    const tabsBySessionId: Map<
-      string,
-      Array<SessionReplayTabEndFacts>
-    > = new Map<string, Array<SessionReplayTabEndFacts>>();
 
     for (const row of rows) {
       const sessionId: string = readString(row, "sessionId");
@@ -2603,37 +2773,28 @@ export default class SessionReplayReadService {
         continue;
       }
 
-      const tab: SessionReplayTabEndFacts = {
-        hasFinalChunk: readBoolean(row, TAB_HAS_FINAL_CHUNK_ALIAS),
-        finalChunkEndUnixMs: readMeasuredNumber(row, TAB_FINAL_CHUNK_END_ALIAS),
-        lastChunkStartUnixMs: readMeasuredNumber(
-          row,
-          TAB_LAST_CHUNK_START_ALIAS,
-        ),
-        maxChunkIndex: readMeasuredNumber(row, TAB_MAX_CHUNK_INDEX_ALIAS),
-        lastChunkStoredAtUnixMs: readMeasuredNumber(
-          row,
-          TAB_LAST_CHUNK_STORED_AT_ALIAS,
-        ),
-      };
+      const tabId: string = readString(row, "tabId");
+      const facts: SessionReplayTabEndFacts = readTabEndFacts(row);
 
-      const existing: Array<SessionReplayTabEndFacts> | undefined =
-        tabsBySessionId.get(sessionId);
+      let tabEndFactsByTabId:
+        | Map<string, SessionReplayTabEndFacts>
+        | undefined = factsBySessionId.get(sessionId);
 
-      if (existing) {
-        existing.push(tab);
-      } else {
-        tabsBySessionId.set(sessionId, [tab]);
+      if (!tabEndFactsByTabId) {
+        tabEndFactsByTabId = new Map<string, SessionReplayTabEndFacts>();
+        factsBySessionId.set(sessionId, tabEndFactsByTabId);
       }
+
+      const existing: SessionReplayTabEndFacts | undefined =
+        tabEndFactsByTabId.get(tabId);
+
+      tabEndFactsByTabId.set(
+        tabId,
+        existing ? foldTabEndFacts(existing, facts) : facts,
+      );
     }
 
-    for (const [sessionId, tabs] of tabsBySessionId) {
-      if (hasSessionRecordingEnded(tabs, data.nowUnixMs)) {
-        endedSessionIds.add(sessionId);
-      }
-    }
-
-    return endedSessionIds;
+    return factsBySessionId;
   }
 
   /*

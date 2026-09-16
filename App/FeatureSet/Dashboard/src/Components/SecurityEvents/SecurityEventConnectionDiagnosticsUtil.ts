@@ -4,7 +4,7 @@ import URL from "Common/Types/API/URL";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { Green, LightGray, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   SecurityConnectorCheck,
   SecurityConnectorCheckStatus,
@@ -12,10 +12,13 @@ import {
   SecurityConnectorTestReport,
 } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import {
+  LEGACY_GOOGLE_SECOPS_CONNECTION_ID_ATTRIBUTE,
+  SECURITY_CONNECTION_ID_ATTRIBUTE,
   SecurityEventConnectionRunResult,
   SecurityEventConnectionRunType,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
 import {
+  ConnectorAlertingOnlyControl,
   SecurityEventConnectorDefinition,
   getSecurityEventConnectorTitle,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
@@ -25,10 +28,10 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 
 /*
- * Provider-agnostic twins of GoogleSecOpsDiagnosticsUtil. The vocabulary
- * (health labels, run labels, date format, range rules) is kept identical
- * on purpose: a customer with a Google SecOps connection and a Sentinel
- * connection side by side should read the same words for the same state.
+ * Shared by every provider on the Security Event Connections page. The
+ * vocabulary (health labels, run labels, date format, range rules) lives in
+ * one place on purpose: a customer with a Google SecOps connection and a
+ * Sentinel connection side by side reads the same words for the same state.
  */
 
 // API path (under APP_API_URL) of the synchronous connection test.
@@ -154,9 +157,9 @@ export function connectorNextPoll(
 }
 
 /*
- * The Health vocabulary shared by every connection family. Exported as
- * constants so the Google SecOps column, the generic column and their
- * tests spell each state exactly once.
+ * The Health vocabulary shared by every provider. Exported as constants so
+ * the table column, the diagnostics modal and their tests spell each state
+ * exactly once.
  */
 export const CONNECTOR_HEALTH_SUCCEEDED: string = "Last poll succeeded";
 export const CONNECTOR_HEALTH_NO_EVENTS_YET: string =
@@ -187,8 +190,7 @@ export function connectorHealthAfterSuccessfulPoll(connection: {
 }
 
 /*
- * Same decision tree and labels as googleSecOpsHealth so the two Health
- * columns on the Connections page agree. "No records returned" replaces
+ * One decision tree for every provider. "No records returned" rather than
  * "No detections returned" because not every provider imports detections
  * (Okta imports log events, Security Hub imports findings).
  */
@@ -242,6 +244,10 @@ export function connectorHealth(
 export type ConnectorHealthTone = "good" | "bad" | "attention" | "neutral";
 
 export function connectorHealthTone(health: string): ConnectorHealthTone {
+  /*
+   * "No detections returned" is what the retired Google SecOps page called
+   * an empty poll; kept so that label still reads as good.
+   */
   if (
     health === CONNECTOR_HEALTH_SUCCEEDED ||
     health === "No records returned" ||
@@ -262,7 +268,7 @@ export function connectorHealthTone(health: string): ConnectorHealthTone {
   return "neutral";
 }
 
-// Pill colour for a Health value; one mapping for both connection families.
+// Pill colour for a Health value; one mapping for every provider.
 export function connectorHealthPillColor(health: string): Color {
   switch (connectorHealthTone(health)) {
     case "good":
@@ -334,10 +340,115 @@ export function validateConnectionRange(
 }
 
 /*
+ * Runs carried over from the retired Google SecOps connector were written
+ * before the shared result shape: samples name the rule and the detection
+ * time, checks say "success" and "failed", and the provider diagnostics sit
+ * at the top level of the result. The readers below accept both shapes, so
+ * run history from before the move renders truthfully instead of as
+ * "Untitled" rows and failed checks painted green.
+ */
+interface LegacyConnectorSampleFields {
+  ruleName?: string | undefined;
+  detectionTime?: string | undefined;
+}
+
+type ConnectorSampleWithLegacyFields = SecurityConnectorSample &
+  LegacyConnectorSampleFields;
+
+export function connectorSampleTitle(sample: SecurityConnectorSample): string {
+  return (
+    sample.title || (sample as ConnectorSampleWithLegacyFields).ruleName || ""
+  );
+}
+
+// The record's own event (detection) time, never its creation time.
+export function connectorSampleEventTime(
+  sample: SecurityConnectorSample,
+): string | undefined {
+  return (
+    sample.eventTime ||
+    (sample as ConnectorSampleWithLegacyFields).detectionTime ||
+    undefined
+  );
+}
+
+const LEGACY_CHECK_STATUSES: Record<string, SecurityConnectorCheckStatus> = {
+  success: "pass",
+  failed: "fail",
+};
+
+export function normalizeConnectorCheckStatus(
+  status: string,
+): SecurityConnectorCheckStatus | string {
+  return LEGACY_CHECK_STATUSES[status] || status;
+}
+
+// Keys the retired Google SecOps connector stored at the top of a result.
+const LEGACY_PROVIDER_DETAIL_KEYS: Array<string> = [
+  "basis",
+  "sourceCounts",
+  "creationLag",
+  "includeNonAlertingDetections",
+];
+
+/*
+ * The provider diagnostics of a run: result.providerDetails, or for a run
+ * carried over from the retired Google SecOps connector the same fields read
+ * from the top level of its result. Undefined when there are none.
+ */
+export function readConnectorProviderDetails(
+  result: SecurityEventConnectionRunResult,
+): JSONObject | undefined {
+  if (isPlainCountObject(result.providerDetails)) {
+    return result.providerDetails;
+  }
+
+  const raw: JSONObject = result as unknown as JSONObject;
+  const legacy: JSONObject = {};
+
+  for (const key of LEGACY_PROVIDER_DETAIL_KEYS) {
+    if (raw[key] !== undefined && raw[key] !== null) {
+      legacy[key] = raw[key] as JSONValue;
+    }
+  }
+
+  return Object.keys(legacy).length > 0 ? legacy : undefined;
+}
+
+/*
+ * The event attribute the rows this run imported carry the connection id
+ * under. A run that names none was written by the shared poller, which
+ * stamps SECURITY_CONNECTION_ID_ATTRIBUTE. The one exception is a run
+ * carried over from the retired Google SecOps connector without the key
+ * named: its result is recognisable by the includeNonAlertingDetections flag
+ * that connector stored at the top level (the shared poller files provider
+ * fields under providerDetails), and its rows carry the legacy attribute.
+ * Filtering those on the new attribute would open an empty table.
+ */
+export function connectionEventAttributeKey(
+  result: SecurityEventConnectionRunResult,
+): string {
+  if (result.eventAttributeKey) {
+    return result.eventAttributeKey;
+  }
+
+  if (
+    typeof (result as unknown as JSONObject)["includeNonAlertingDetections"] ===
+    "boolean"
+  ) {
+    return LEGACY_GOOGLE_SECOPS_CONNECTION_ID_ATTRIBUTE;
+  }
+
+  return SECURITY_CONNECTION_ID_ATTRIBUTE;
+}
+
+/*
  * Link to the Security Events table filtered on the event-time range this
  * run touched and, when something was imported, on this connection's
- * attribute (the poller stamps oneuptime.security_connection.id on every
- * event it writes).
+ * attribute (connectionEventAttributeKey). Without a stored event-time
+ * range the samples' EVENT times are used before their creation times: a
+ * duplicate-only run of late-created detections must open the range the
+ * detections are stored under, not the day the source created them.
  */
 export function connectionEventsRoute(
   result: SecurityEventConnectionRunResult,
@@ -345,7 +456,9 @@ export function connectionEventsRoute(
 ): Route {
   const sampleTimes: Array<number> = result.samples
     .map((sample: SecurityConnectorSample): number => {
-      return new Date(sample.eventTime || sample.createdTime || "").getTime();
+      return new Date(
+        connectorSampleEventTime(sample) || sample.createdTime || "",
+      ).getTime();
     })
     .filter(Number.isFinite);
   const start: Date = new Date(
@@ -369,7 +482,7 @@ export function connectionEventsRoute(
         ...(connectionId && result.ingestedCount > 0
           ? {
               attributes: {
-                "oneuptime.security_connection.id": connectionId,
+                [connectionEventAttributeKey(result)]: connectionId,
               },
             }
           : {}),
@@ -425,16 +538,69 @@ export function connectorCheckGroupTitle(
   }
 }
 
-/*
- * Google SecOps is not in the catalog (it predates the framework) but its
- * report carries provider "google-secops"; give it a readable title too.
- */
+// The catalog title, or the raw identifier for a provider it does not list.
 export function connectorProviderTitle(provider: string): string {
-  if (provider === "google-secops") {
-    return "Google SecOps";
+  return getSecurityEventConnectorTitle(provider) || provider;
+}
+
+type ConnectorScopeDefinition = Pick<
+  SecurityEventConnectorDefinition,
+  "supportsAlertingOnlyToggle" | "alertingOnlyControl"
+>;
+
+/*
+ * How a provider's alertingOnly setting is named and summarised: in the
+ * words of its catalog alertingOnlyControl ("Data to import": "Alerts only"
+ * or "Alerts and detections") when it has one, generically otherwise.
+ */
+export function connectorScopeLabel(
+  definition: ConnectorScopeDefinition | undefined,
+): string {
+  return definition?.alertingOnlyControl?.title || "Scope";
+}
+
+// Undefined for a provider whose records have no alerting distinction.
+export function connectorScopeSummary(
+  definition: ConnectorScopeDefinition | undefined,
+  alertingOnly: boolean | undefined,
+): string | undefined {
+  if (!definition?.supportsAlertingOnlyToggle) {
+    return undefined;
   }
 
-  return getSecurityEventConnectorTitle(provider) || provider;
+  const control: ConnectorAlertingOnlyControl | undefined =
+    definition.alertingOnlyControl;
+
+  if (alertingOnly === false) {
+    return control?.withNonAlertingSummary || "Alerts and detections";
+  }
+
+  return control?.alertingOnlySummary || "Alerts only";
+}
+
+/*
+ * What an import brings in, in the control's own words: "alerts and
+ * detections" or "alerts". Undefined without a control, where the record
+ * name ("findings") already says it.
+ */
+export function connectorScopeImportNoun(
+  definition: ConnectorScopeDefinition | undefined,
+  alertingOnly: boolean | undefined,
+): string | undefined {
+  const control: ConnectorAlertingOnlyControl | undefined =
+    definition?.supportsAlertingOnlyToggle
+      ? definition.alertingOnlyControl
+      : undefined;
+
+  if (!control) {
+    return undefined;
+  }
+
+  const alerting: string = control.alertingLabel.toLowerCase();
+
+  return alertingOnly === false
+    ? `${alerting} and ${control.nonAlertingLabel.toLowerCase()}`
+    : alerting;
 }
 
 export const connectorCheckStatusLabels: Record<
@@ -448,12 +614,12 @@ export const connectorCheckStatusLabels: Record<
 };
 
 /*
- * Human labels for the count keys the testers emit. The generic connectors
- * put { createdLast24h, createdLast7d, hasMoreLast24h, hasMoreLast7d } (plus
+ * Human labels for the count keys the connectors report. Most put
+ * { createdLast24h, createdLast7d, hasMoreLast24h, hasMoreLast7d } (plus
  * Okta's usingDefaultFilter) in their detections-available check details;
- * the Google SecOps tester emits report.counts with its own keys and a
- * nested otherScope object. Unknown keys fall back to a spaced-out version
- * of the key so a new count is never silently hidden.
+ * Google SecOps returns report counts with its own keys and a nested
+ * otherScope object. Unknown keys fall back to a spaced-out version of the
+ * key so a new count is never silently hidden.
  */
 const CONNECTOR_COUNT_LABELS: Record<string, string> = {
   createdLast24h: "Created in the last 24 hours",
@@ -541,9 +707,9 @@ export function formatConnectorCountValue(value: unknown): string {
 }
 
 /*
- * The Google SecOps tester reports its scope as a machine value; show it in
- * the form's own vocabulary (Data to import: Alerts always, Detections
- * optional), worded as the tester's check messages word it.
+ * The Google SecOps connector reports its scope as a machine value; show it
+ * in the form's own vocabulary (Data to import: Alerts always, Detections
+ * optional), worded as its check messages word it.
  */
 function formatConnectorCountEntry(key: string, value: unknown): string {
   if (key === "scope") {
@@ -610,9 +776,9 @@ export function connectorCountRows(
 }
 
 /*
- * The counts a report's "Availability counts" table shows. Google SecOps
- * fills report.counts; the generic tester leaves it unset and each
- * connector carries the same numbers in its detections-available check
+ * The counts a report's "Availability counts" table shows. A connector that
+ * returns counts from testConnection (Google SecOps) fills report.counts;
+ * the others carry the same numbers in their detections-available check
  * details, so those are used when the report has none.
  */
 export function connectorTestReportCounts(
@@ -637,6 +803,124 @@ export function connectorTestReportCounts(
   }
 
   return {};
+}
+
+export interface ConnectorProviderDetailRow {
+  // Dotted path in providerDetails, e.g. "sourceCounts.alertsView".
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface ConnectorProviderDetailGroup {
+  key: string;
+  // Absent for the group of top-level values.
+  title?: string | undefined;
+  rows: Array<ConnectorProviderDetailRow>;
+}
+
+/*
+ * Labels for the provider diagnostics a connector reports on a run
+ * (providerDetails). Google SecOps reports the time basis it read, how many
+ * records each of its three passes returned, and how late Google created
+ * records relative to their detection time. Unknown keys are spaced out the
+ * way count keys are, so a new detail is never silently hidden.
+ */
+const CONNECTOR_PROVIDER_DETAIL_LABELS: Record<string, string> = {
+  basis: "Time basis read",
+  sourceCounts: "Returned by each pass",
+  ruleDetections: "Rule detections",
+  curatedDetections: "Curated rule detections",
+  alertsView: "Alerts view",
+  lateAlertsView: "Alerts view, late alerts from the previous day",
+  curatedRulesWithDetections: "Curated rules with recent detections",
+  creationLag: "Creation lag",
+  measured: "Records measured",
+  lateCount: "Created later than the poll interval",
+  maxLagMinutes: "Longest lag (minutes)",
+  includeNonAlertingDetections: "Includes non-alerting records",
+};
+
+const CONNECTOR_PROVIDER_DETAIL_VALUE_LABELS: Record<
+  string,
+  Record<string, string>
+> = {
+  basis: {
+    "created-time": "Created time",
+    "detection-time": "Detection time, with created time also read",
+  },
+};
+
+export function connectorProviderDetailLabel(key: string): string {
+  return CONNECTOR_PROVIDER_DETAIL_LABELS[key] || connectorCountLabel(key);
+}
+
+function formatConnectorProviderDetailValue(
+  key: string,
+  value: unknown,
+): string {
+  if (typeof value === "string") {
+    return CONNECTOR_PROVIDER_DETAIL_VALUE_LABELS[key]?.[value] || value;
+  }
+
+  return formatConnectorCountValue(value);
+}
+
+/*
+ * Top-level values first as one untitled group, then one titled group per
+ * nested object ("Returned by each pass": rule detections, curated rule
+ * detections, alerts view). Anything nested deeper is shown as JSON.
+ * omitKeys drops details the caller renders in its own words, such as
+ * includeNonAlertingDetections shown as the Data to import line.
+ */
+export function connectorProviderDetailGroups(
+  details: JSONObject | undefined,
+  omitKeys: Array<string> = [],
+): Array<ConnectorProviderDetailGroup> {
+  if (!details) {
+    return [];
+  }
+
+  const general: ConnectorProviderDetailGroup = { key: "", rows: [] };
+  const groups: Array<ConnectorProviderDetailGroup> = [general];
+
+  for (const key of Object.keys(details)) {
+    const value: unknown = details[key];
+
+    if (omitKeys.includes(key) || value === undefined || value === null) {
+      continue;
+    }
+
+    if (isPlainCountObject(value)) {
+      groups.push({
+        key,
+        title: connectorProviderDetailLabel(key),
+        rows: Object.keys(value).map(
+          (childKey: string): ConnectorProviderDetailRow => {
+            return {
+              key: `${key}.${childKey}`,
+              label: connectorProviderDetailLabel(childKey),
+              value: formatConnectorProviderDetailValue(
+                childKey,
+                value[childKey],
+              ),
+            };
+          },
+        ),
+      });
+      continue;
+    }
+
+    general.rows.push({
+      key,
+      label: connectorProviderDetailLabel(key),
+      value: formatConnectorProviderDetailValue(key, value),
+    });
+  }
+
+  return groups.filter((group: ConnectorProviderDetailGroup): boolean => {
+    return group.rows.length > 0;
+  });
 }
 
 // A whole number of minutes from a run result, or null when absent or invalid.

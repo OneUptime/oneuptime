@@ -13,7 +13,6 @@ import {
   formatEvidenceDuration,
   formatEvidenceLabel,
   formatEvidenceTimeWindow,
-  formatQueryCount,
   formatRowCount,
   getEvidenceEmptyRowsMessage,
   shortenIdentifier,
@@ -257,7 +256,7 @@ describe("describeCitationTargetPage", () => {
   });
 });
 
-describe("formatRowCount and formatQueryCount", () => {
+describe("formatRowCount", () => {
   test.each([
     [0, "No rows"],
     [1, "1 row"],
@@ -276,17 +275,6 @@ describe("formatRowCount and formatQueryCount", () => {
   test("formatRowCount treats a missing count as no rows", () => {
     expect(formatRowCount(undefined)).toBe("No rows");
     expect(formatRowCount(null)).toBe("No rows");
-  });
-
-  test.each([
-    [0, "0 queries"],
-    [1, "1 query"],
-    [12, "12 queries"],
-    [1500, "1,500 queries"],
-    [-1, "0 queries"],
-    [Number.NaN, "0 queries"],
-  ])("formatQueryCount(%p) is %p", (count: number, expected: string) => {
-    expect(formatQueryCount(count)).toBe(expected);
   });
 });
 

@@ -21,9 +21,9 @@ export const SECURITY_EVENT_DEDUPE_TIME_LIMIT_MS: number = 2 * 60 * 1000;
  * looks up before it inserts, under a per-source lock. This is a
  * correctness lookup, not a dashboard query: a partial result on timeout
  * or a lagging replica would create duplicates, so it reads every replica
- * and fails closed on an unavailable shard. Shared by the Google SecOps
- * poller and the Security Event Connections poller so the two cannot
- * drift.
+ * and fails closed on an unavailable shard. Shared by the Security Event
+ * Connections poller and its connection test, for every provider including
+ * Google SecOps, so the two cannot drift.
  */
 export default class SecurityEventDedupe {
   public static async findExistingEventUids(data: {

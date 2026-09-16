@@ -1,22 +1,34 @@
-import PageComponentProps from "../../PageComponentProps";
+import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import PageMap from "../../../Utils/PageMap";
+import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const CloudResourceLabelRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const CloudResourceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
+  props: RuleSettingsPageProps,
+): ReactElement => {
   return (
     <LabelRuleTable<CloudResourceLabelRule>
       modelType={CloudResourceLabelRule}
+      viewRuleId={RuleViewPageUtil.getViewRuleId(props, CloudResourceLabelRule)}
+      listRoute={RuleViewPageUtil.getListRoute(
+        PageMap.CLOUD_SETTINGS_LABEL_RULES,
+      )}
+      getRuleViewRoute={(rule: CloudResourceLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.CLOUD_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="cloud-resource-label-rules-table"
       name="Settings > Cloud Resource Label Rules"
       userPreferencesKey="cloud-resource-label-rules-table"
@@ -60,7 +72,6 @@ const CloudResourceLabelRulesPage: FunctionComponent<
           },
         },
       ]}
-      viewPageRoute={Navigation.getCurrentRoute()}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Match Criteria", id: "match-criteria", columns: 2 },

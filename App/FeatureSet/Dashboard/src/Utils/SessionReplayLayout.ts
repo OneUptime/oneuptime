@@ -62,6 +62,52 @@ export function isSessionReplayPlayerPath(
   return parent === PLAYER_PARENT_SEGMENT && SESSION_ID_SEGMENT.test(last);
 }
 
+export interface SessionReplayPlayerRoute {
+  /* The RUM application the recording belongs to. */
+  rumApplicationId: string;
+  /* The 32-character session id the player must load. */
+  sessionId: string;
+}
+
+/*
+ * The application and the session a player path names, or null when the
+ * path is not a player path.
+ *
+ * The view reads the ids from HERE rather than from window.location so it
+ * can re-render when the router's location changes. React bails out of a
+ * subtree whose element is the same object as last time, and a route
+ * element is created once by the routes component - so navigating from one
+ * session's player to another's (the header's Older/Newer buttons, the
+ * sessions menu, the ended card's "Next session by this user") changed the
+ * URL while the mounted player kept polling the session it was already on.
+ */
+export function parseSessionReplayPlayerRoute(
+  path: string | null | undefined,
+): SessionReplayPlayerRoute | null {
+  if (!isSessionReplayPlayerPath(path)) {
+    return null;
+  }
+
+  const segments: Array<string> = pathSegments(path as string);
+
+  /*
+   * ".../rum/<applicationId>/session-replay/<sessionId>": the application
+   * is two segments back from the session id, the same count
+   * SessionReplayView used to pass to Navigation.getLastParamAsObjectID.
+   */
+  const sessionId: string = segments[segments.length - 1] as string;
+  const rumApplicationId: string | undefined = segments[segments.length - 3];
+
+  if (!rumApplicationId) {
+    return null;
+  }
+
+  return {
+    rumApplicationId: rumApplicationId,
+    sessionId: sessionId,
+  };
+}
+
 export interface SessionReplayPlayerLayout {
   isPlayerPath: boolean;
   /* Drop ModelPage's sideMenu prop: only on the player, only when wide. */

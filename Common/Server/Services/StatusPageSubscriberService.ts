@@ -1400,6 +1400,12 @@ Stay informed about service availability! 🚀`;
         showAnnouncementsOnStatusPage: true,
         showIncidentsOnStatusPage: true,
         showScheduledMaintenanceEventsOnStatusPage: true,
+        /*
+         * The episode workers skip every page where this is off, and a column
+         * that is not selected reads as undefined - so leaving it out stopped
+         * every episode notification from being sent.
+         */
+        showEpisodesOnStatusPage: true,
       },
     });
 

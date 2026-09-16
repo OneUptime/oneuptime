@@ -56,6 +56,7 @@ import {
   DeviceHealthGroup,
   parseDeviceHealthGroup,
 } from "../Utils/NetworkDevice/DeviceHealthAggregation";
+import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
 
 /**
  * The fleet-wide numbers the device summary strip and the network overview
@@ -78,11 +79,19 @@ export interface DeviceFleetSummary {
  * a discovery import stores the responding IP in `hostname` and only the SNMP
  * walk fills `sysName` in later, so a device's real identity usually lands
  * AFTER creation.
+ *
+ * `dnsName` is on the list because the matcher tries hostname patterns
+ * against it too (see RuleMatchTarget): the bulk "shorten names" action
+ * writes `{ name, dnsName }`, and a later write that fills or corrects only
+ * the DNS name can equally move the device into or out of a `*.corp.com`
+ * rule. It is compared through normalizeIdentityValue like the others, so
+ * re-writing the same FQDN in a different case is not a change.
  */
 const SITE_RULE_IDENTITY_COLUMNS: Array<string> = [
   "hostname",
   "name",
   "sysName",
+  "dnsName",
 ];
 
 /*
@@ -348,18 +357,25 @@ const HOSTNAME_LOOKUP_CHUNK_SIZE: number = 500;
  * as both — ipInCidr rejects non-IP strings safely. Mirrors the single-device
  * path in applySiteAssignmentRulesToDevice; both must stay in step or a
  * manual run would disagree with what discovery does.
+ *
+ * `dnsName` rides along so a device named by its short hostname still
+ * matches the patterns written against its FQDN (OneUptime/oneuptime#3678).
+ * Every device read that feeds this function has to select it, or the
+ * candidate is silently undefined and the match quietly disappears.
  */
 function toRuleMatchTarget(device: Model): {
   ip: string | undefined;
   hostname: string | undefined;
   sysName: string | undefined;
   name: string | undefined;
+  dnsName: string | undefined;
 } {
   return {
     ip: device.hostname,
     hostname: device.hostname,
     sysName: device.sysName,
     name: device.name,
+    dnsName: device.dnsName,
   };
 }
 
@@ -1753,6 +1769,8 @@ export class Service extends DatabaseService<Model> {
         hostname: true,
         name: true,
         sysName: true,
+        // An identity column too; shouldReapplySiteAssignmentRules compares it.
+        dnsName: true,
         /*
          * Whether the device already has a probe. The site-default
          * inheritance below must never overwrite one, and this column is
@@ -2705,6 +2723,8 @@ export class Service extends DatabaseService<Model> {
         hostname: true,
         sysName: true,
         name: true,
+        // Read by toRuleMatchTarget; unselected it would never match.
+        dnsName: true,
       },
       props: {
         isRoot: true,
@@ -2890,6 +2910,8 @@ export class Service extends DatabaseService<Model> {
           hostname: true,
           sysName: true,
           name: true,
+          // Read by toRuleMatchTarget, exactly as on the per-device path.
+          dnsName: true,
         },
         /*
          * Sorted by id so paging stays stable while the run writes to the
@@ -3031,6 +3053,17 @@ export class Service extends DatabaseService<Model> {
    * skips them; archived devices keep polling on purpose ("archived devices
    * keep collecting telemetry").
    *
+   * "Suspended" means a subscription status outside
+   * SubscriptionStatusUtil.getActiveSubscriptionStatuses(), bound as $4 -
+   * the same list MonitorProbeService and ProjectService use. This query
+   * used to spell out its own active / trialing list, which left out
+   * past_due: a device stopped being polled the moment ONE autopay attempt
+   * failed (including while an India e-mandate card debit was merely still
+   * processing), even though Stripe keeps retrying a past_due invoice and
+   * the dashboard still called the project active. Polling now stops only
+   * when the subscription is truly inactive (unpaid, canceled, incomplete,
+   * incomplete_expired, expired, paused).
+   *
    * The Probe join is a TENANCY backstop rather than a lookup — nothing from
    * the probe row is selected. See the predicate for why the write-time
    * guard is not enough on its own.
@@ -3044,6 +3077,9 @@ export class Service extends DatabaseService<Model> {
 
     const claimedIds: Array<ObjectID> = await this.executeTransaction(
       async (transactionalEntityManager: EntityManager) => {
+        const activeSubscriptionStatuses: Array<string> =
+          SubscriptionStatusUtil.getActiveSubscriptionStatuses();
+
         const selectQuery: string = `
         SELECT nd."_id", nd."pollingIntervalInMinutes"
         FROM "NetworkDevice" nd
@@ -3068,9 +3104,9 @@ export class Service extends DatabaseService<Model> {
           AND nd."nextPollAt" <= $2
           AND p."deletedAt" IS NULL
           AND (p."paymentProviderSubscriptionStatus" IS NULL
-               OR p."paymentProviderSubscriptionStatus" IN ('active', 'trialing'))
+               OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
-               OR p."paymentProviderMeteredSubscriptionStatus" IN ('active', 'trialing'))
+               OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
         -- Plain ASC, which is the order the (probeId, nextPollAt) btree is
         -- already in, so this is a range scan that stops at LIMIT rather than
         -- a scan-and-sort of the probe's whole slice of the fleet. See the
@@ -3088,6 +3124,7 @@ export class Service extends DatabaseService<Model> {
           data.probeId.toString(),
           currentDate,
           data.limit,
+          activeSubscriptionStatuses,
         ]);
 
         if (selectedRows.length === 0) {

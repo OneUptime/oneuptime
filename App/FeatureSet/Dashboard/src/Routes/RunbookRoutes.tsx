@@ -20,6 +20,8 @@ import RunbookSettings from "../Pages/Runbook/View/Settings";
 import RunbookDelete from "../Pages/Runbook/View/Delete";
 import RunbookSettingsOwnerRules from "../Pages/Runbook/Settings/OwnerRules";
 import RunbookSettingsLabelRules from "../Pages/Runbook/Settings/LabelRules";
+import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
+import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
 
 const RunbookRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -66,6 +68,20 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={
+            RunbookRoutePath[PageMap.RUNBOOKS_SETTINGS_OWNER_RULE_VIEW] || ""
+          }
+          element={
+            <RunbookSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUNBOOKS_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={RunbookOwnerRule}
+            />
+          }
+        />
+        <PageRoute
           path={RunbookRoutePath[PageMap.RUNBOOKS_SETTINGS_LABEL_RULES] || ""}
           element={
             <RunbookSettingsLabelRules
@@ -73,6 +89,20 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.RUNBOOKS_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            RunbookRoutePath[PageMap.RUNBOOKS_SETTINGS_LABEL_RULE_VIEW] || ""
+          }
+          element={
+            <RunbookSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUNBOOKS_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={RunbookLabelRule}
             />
           }
         />

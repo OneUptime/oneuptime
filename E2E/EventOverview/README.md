@@ -65,31 +65,44 @@ Query parameters, parsed once per page load:
 |---|---|
 | `?state=` | `resolved` (default), `ongoing` (incident #1042, alert #311 and both episodes stop at Acknowledged) or `created` (they stop before it) |
 | `?ai=` | `report` (default), `none`, `queued`, `running`, `failed`, `pending`, `legacy` (a completed report from an API replica without `evidence` / `references`, so the panel falls back to the report's own "Evidence checked" block) |
+| `?tldr=` | `default` or `long` (incident #1042's TL;DR is 320 characters, the server's cap, so the header summary wraps and clamps) |
+| `?verdict=` | none (default), `confirmed` or `rejected` (a responder's verdict already saved on the runs of incident #1042 and alert #311) |
 | `?sm=` | `scheduled` (default, starts in 2 hours), `ongoing`, `ended`, `overdue` (still Scheduled 20 minutes after its start), `overrun` (still Ongoing 30 minutes after its end) |
 | `?fail=` | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused) |
 | `?theme=` | `dark` adds `html.dark` |
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (83 tests):
+`EventOverview.spec.ts` (96 tests):
 
 - **AI investigation report**: the summary section (TL;DR + summary) above the report; the
   report's sub-sections in order with the amber root-cause callout; no brand heading, server
   "Evidence checked" block or footer in the prose; Copy report copies the published markdown;
   incident and alert reference links (href, `title`, clicking loads the other incident on the
-  same route, back returns); citation chips (title and spoken label, click expands and
-  highlights the row, exactly one `POST /ai-investigation/evidence` with the right body, cached
-  on collapse and re-expand); header TL;DR with Read report focusing the panel; verdict and fix
-  task request bodies and their failure messages; the feed's compact AI item and its More
-  Information modal.
+  same route, back returns); citation chips (title and spoken label, click opens the collapsed
+  details on the Evidence tab and expands, highlights and focuses the row, exactly one
+  `POST /ai-investigation/evidence` with the right body, cached on collapse and re-expand);
+  header TL;DR with View full report beside the heading, focusing the panel; a 320-character
+  TL;DR (`?tldr=long`) arriving whole, clamped on a phone with Show more / Show less and View
+  full report in the bottom row; verdict and fix task request bodies and their failure
+  messages; the verdict badge in the header (at once after rating, replaced by a changed
+  rating, rolled back with a failed save, already there with `?verdict=`, beside the heading
+  at 1440px, wrapped under it at 390px and at 768px with View full report moved to the bottom
+  row, on the alert page too) and the muted summary of a rejected report; the feed's compact
+  AI item and its More Information modal.
+- **Investigation details**: evidence, activity and usage share one section below the report
+  that starts collapsed. Its header names what the run did (queries, steps) and the read-only
+  guarantee; tokens and the model sit inside. The Evidence checked and Activity tabs switch by
+  click and arrow keys, a citation chip opens the collapsed section on the Evidence tab, and
+  `?ai=pending` shows only the finished steps, with no tabs.
 - **Evidence checked**: every row's label, tool description, time and row count; per citation
   the "What was queried" rows, the Open in link, the pinned or current-data notice and the rows
   (incident list, chart, logs table, `<pre>` text, trace waterfall, no rows with the server's
   explanation, timeline table); a query that cannot be re-run; alert and exception lists on the
   alert page; `?fail=evidence` with Try again sending a second request while focus stays in
-  the row; `?ai=legacy`.
+  the row; `?ai=legacy`, where a chip focuses the report's own row.
 - **Investigation states**: running, queued, failed, pending and none, including the header
-  notice.
+  notice and how much of its usage each run shows (a failed run ends its steps with it).
 - **Incident and alert**: hero (identifier, title, state, severity, duration, facts and their
   links), stat bar cells, the AI card leading the left column, the right column's stacked card
   headers, Edit buttons and details field order, Resolve / Acknowledge from the hero through

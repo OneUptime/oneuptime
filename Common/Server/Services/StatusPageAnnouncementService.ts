@@ -4,6 +4,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SubscriberUpdateNotification from "../../Types/StatusPage/SubscriberUpdateNotification";
 import ObjectID from "../../Types/ObjectID";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -48,6 +49,18 @@ export class Service extends DatabaseService<Model> {
         updateBy.data.subscriberNotificationStatus =
           StatusPageSubscriberNotificationStatus.Pending;
       }
+    }
+
+    /*
+     * An edit tells subscribers nothing unless the editor asked for it on this
+     * edit (see SubscriberUpdateNotification). When they did, queue the update
+     * notification; the Announcement worker job sends it.
+     */
+    if (SubscriberUpdateNotification.isRequested(updateBy.miscDataProps)) {
+      updateBy.data.subscriberNotificationStatusOnAnnouncementUpdated =
+        StatusPageSubscriberNotificationStatus.Pending;
+      updateBy.data.subscriberNotificationStatusMessageOnAnnouncementUpdated =
+        SubscriberUpdateNotification.queuedMessage;
     }
 
     return {

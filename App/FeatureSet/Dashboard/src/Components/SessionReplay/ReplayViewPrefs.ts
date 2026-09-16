@@ -7,7 +7,9 @@ import { REPLAY_RAIL_TAB_IDS, ReplayRailTabId } from "./Rail/ReplaySignalTypes";
  * speed they watch at (finding player-shell-16: 8x had to be re-selected
  * on every open), whether idle time is skipped, which rail tab was open,
  * how wide the rail is, whether the rail follows the playhead, whether the
- * page goes wide (no side menu) and whether the mouse trail is drawn.
+ * page goes wide (no side menu), whether the mouse trail is drawn, how the
+ * recording is fitted to the stage and whether the timeline's signal lanes
+ * are shown.
  *
  * Every read and write is wrapped: localStorage throws in private windows
  * on some browsers, under a storage quota, and in sandboxed frames, and a
@@ -30,12 +32,35 @@ export const REPLAY_LIST_URL_STORAGE_KEY: string = "oneuptime.replay.listUrl";
 export const REPLAY_PREFS_MIN_SPEED: number = 0.25;
 export const REPLAY_PREFS_MAX_SPEED: number = 8;
 
-/* The rail's drag handle range, in rem, from the design. */
+/*
+ * The rail's drag handle range, in rem, from the design. The default is
+ * 26rem, not the 30rem it once was: the player now fills the viewport
+ * beside the rail, and every rem the rail takes by default is a rem of
+ * recording width the stage loses on a 1440px screen. 26rem still fits a
+ * rail row's time, icon, title and one line of detail without wrapping;
+ * a viewer who wants more drags it wider and the width is remembered.
+ */
 export const REPLAY_RAIL_MIN_WIDTH_REM: number = 22;
 export const REPLAY_RAIL_MAX_WIDTH_REM: number = 44;
-export const REPLAY_RAIL_DEFAULT_WIDTH_REM: number = 30;
+export const REPLAY_RAIL_DEFAULT_WIDTH_REM: number = 26;
 
 export type ReplayDetailsTabId = "session" | "provenance" | "fidelity";
+
+/*
+ * How the recording is fitted to the stage:
+ *   contain  the whole page in view (scaled down to fit both dimensions)
+ *   width    fill the stage's width and scroll the page vertically - a tall
+ *            mobile or narrow recording is readable instead of a thumbnail
+ *   actual   1:1 pixels, scrolling both ways
+ */
+export type ReplayStageFitPref = "contain" | "width" | "actual";
+
+/* The order the fit toggle and the "z" key step through. */
+export const REPLAY_STAGE_FIT_PREFS: ReadonlyArray<ReplayStageFitPref> = [
+  "contain",
+  "width",
+  "actual",
+];
 
 export interface ReplayViewPrefs {
   speed: number;
@@ -50,6 +75,13 @@ export interface ReplayViewPrefs {
   mouseTrail: boolean;
   /* The last open tab of the details panel. */
   detailsTab: ReplayDetailsTabId;
+  /* How the recording is fitted to the stage. */
+  stageFit: ReplayStageFitPref;
+  /*
+   * The timeline's error / frustration / navigation lanes and legend. A
+   * viewer who only scrubs can hide them to give the recording the height.
+   */
+  timelineLanes: boolean;
 }
 
 /* The subset of Storage the store touches, so tests can hand in a fake. */
@@ -71,7 +103,25 @@ export function getDefaultReplayViewPrefs(): ReplayViewPrefs {
     wide: true,
     mouseTrail: true,
     detailsTab: "session",
+    stageFit: "contain",
+    timelineLanes: true,
   };
+}
+
+/* contain -> width -> actual -> contain; anything unrecognised restarts at contain. */
+export function cycleReplayStageFit(
+  fit: ReplayStageFitPref,
+): ReplayStageFitPref {
+  const index: number = REPLAY_STAGE_FIT_PREFS.indexOf(fit);
+
+  if (index < 0) {
+    return "contain";
+  }
+
+  return (
+    REPLAY_STAGE_FIT_PREFS[(index + 1) % REPLAY_STAGE_FIT_PREFS.length] ??
+    "contain"
+  );
 }
 
 function readBoolean(value: unknown, fallback: boolean): boolean {
@@ -115,6 +165,17 @@ function readDetailsTab(value: unknown): ReplayDetailsTabId {
   return "session";
 }
 
+function readStageFit(value: unknown): ReplayStageFitPref {
+  if (
+    typeof value === "string" &&
+    (REPLAY_STAGE_FIT_PREFS as ReadonlyArray<string>).includes(value)
+  ) {
+    return value as ReplayStageFitPref;
+  }
+
+  return "contain";
+}
+
 /*
  * Merge whatever was stored onto the defaults, field by field. A single
  * malformed field (an older Dashboard, a hand-edited value) costs that
@@ -149,6 +210,8 @@ export function parseReplayViewPrefs(raw: unknown): ReplayViewPrefs {
     wide: readBoolean(row["wide"], defaults.wide),
     mouseTrail: readBoolean(row["mouseTrail"], defaults.mouseTrail),
     detailsTab: readDetailsTab(row["detailsTab"]),
+    stageFit: readStageFit(row["stageFit"]),
+    timelineLanes: readBoolean(row["timelineLanes"], defaults.timelineLanes),
   };
 }
 

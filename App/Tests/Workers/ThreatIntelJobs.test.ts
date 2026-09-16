@@ -6,13 +6,13 @@ import path from "path";
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
  * type annotations below must resolve to the same @types/jest global
  * namespace as the jest.fn()/jest.mock() calls, or tsc sees two
- * incompatible Mock shapes (the PollGoogleSecOpsConnectionsJob pattern).
+ * incompatible Mock shapes (the PollSecurityEventConnectionsJob pattern).
  */
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The two threat-intel crons are SCHEDULED AT ALL, and scheduled the way
- * the feature needs — the PollGoogleSecOpsConnectionsJob discipline
+ * the feature needs — the PollSecurityEventConnectionsJob discipline
  * applied to its threat-intel twins. RunCron registers purely as a module
  * side effect, so the single import line in App/FeatureSet/Workers/
  * Index.ts is load-bearing: delete it and every poller/matcher suite

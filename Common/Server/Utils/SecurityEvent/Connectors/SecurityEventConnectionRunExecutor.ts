@@ -45,8 +45,7 @@ export interface EnqueueSecurityEventConnectionRun {
  * Every operation on a connection — scheduled poll, on-demand poll,
  * preview, historical import — is a run row plus a queue job, so the
  * dashboard can show what is queued, what ran and what it found.
- * Structure mirrors GoogleSecOpsRunExecutor so the two stay legible side
- * by side.
+ * Google SecOps runs go through here like every other provider's.
  */
 export default class SecurityEventConnectionRunExecutor {
   public static validateOptions(

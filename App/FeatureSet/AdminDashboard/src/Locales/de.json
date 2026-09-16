@@ -277,7 +277,14 @@
       "title": "Projekt",
       "cardTitle": "Projekt",
       "cardDescription": "Projektdetails",
-      "editButton": "Projekt bearbeiten"
+      "editButton": "Projekt bearbeiten",
+      "dataResidencyCardTitle": "Datenresidenz",
+      "dataResidencyCardDescription": "Wo die Daten dieses Projekts gehostet werden. Sobald festgelegt, wird dies den Benutzern des Projekts in den Projekteinstellungen angezeigt.",
+      "dataResidencyEditButton": "Datenresidenz bearbeiten",
+      "dataResidencyFieldTitle": "Datenresidenz",
+      "dataResidencyFieldDescription": "Eine Bezeichnung dafür, wo die Daten dieses Projekts gehostet werden, zum Beispiel \"EU (Frankfurt)\". Leer lassen, um sie vor den Benutzern des Projekts auszublenden.",
+      "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
+      "dataResidencyNotSet": "Nicht festgelegt"
     },
     "projectSubscription": {
       "title": "Projekt-Abonnement",

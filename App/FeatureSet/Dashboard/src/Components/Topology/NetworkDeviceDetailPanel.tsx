@@ -36,6 +36,9 @@ import {
   learnedAttachmentForNode,
   portLabelForEdgeEnd,
 } from "../NetworkDevice/EndpointNodeUtil";
+import DeviceDiagnostics from "../NetworkDevice/DeviceDiagnostics";
+import DeviceLatencyTrend from "../NetworkDevice/DeviceLatencyTrend";
+import { canRunDiagnosticsOnNode } from "../NetworkDevice/DeviceDiagnosticsViewModel";
 
 /*
  * Right-hand detail drawer for a topology device node. Keeps the user on
@@ -65,6 +68,14 @@ export interface ComponentProps {
    * know which node kinds qualify.
    */
   onAddToMonitoring?: ((node: NetworkTopologyNode) => void) | undefined;
+  /*
+   * Whether the Ping / Traceroute buttons are offered under Connectivity.
+   * Decided by the caller from the create permission on
+   * NetworkDeviceDiagnostic, for the same reason as the two handlers above:
+   * hidden for a viewer, never disabled with nothing honest to say. The
+   * latency trend under the same heading is read-only and shows regardless.
+   */
+  canRunDiagnostics?: boolean | undefined;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -284,6 +295,38 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                 {translateString("The switch reports that port down.") ||
                   "The switch reports that port down."}
               </p>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * Issue #3745: "is it reachable, and how has it been?" answered from
+         * the drawer, without leaving the map. Managed device nodes only —
+         * an unmanaged neighbour has no row and no probe, and an endpoint
+         * has no device page to be pinged from.
+         */}
+        {canRunDiagnosticsOnNode(node) ? (
+          /*
+           * Keyed per node: the drawer is re-rendered, not remounted, for
+           * the next node the operator clicks, and the trend and the
+           * diagnostics below hold per-device state (a fetch in flight, a
+           * run being polled) that must not carry over to another device.
+           */
+          <div key={node.id} data-testid="network-topology-connectivity">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {translateString("Connectivity") || "Connectivity"}
+            </h3>
+            <div className="mt-2">
+              <DeviceLatencyTrend networkDeviceId={new ObjectID(node.id)} />
+            </div>
+            {props.canRunDiagnostics ? (
+              <div className="mt-3">
+                <DeviceDiagnostics networkDeviceId={new ObjectID(node.id)} />
+              </div>
             ) : (
               <></>
             )}

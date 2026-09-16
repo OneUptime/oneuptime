@@ -22,6 +22,7 @@ import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed"
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -29,8 +30,58 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import {
+  ApplyRulesToExistingResourceData,
+  RuleApplicationResult,
+  RuleApplicationResultUtil,
+  RuleRunEngine,
+} from "../Utils/Rules/RuleRun/RuleApplication";
 
-class IncidentLabelRuleEngineServiceClass {
+class IncidentLabelRuleEngineServiceClass
+  implements RuleRunEngine<Incident, IncidentLabelRule>
+{
+  public readonly ruleSelect: Select<IncidentLabelRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    monitors: { _id: true },
+    incidentSeverities: { _id: true },
+    incidentLabels: { _id: true },
+    monitorLabels: { _id: true },
+    incidentTitlePattern: true,
+    incidentDescriptionPattern: true,
+    monitorNamePattern: true,
+    monitorDescriptionPattern: true,
+    labelsToAdd: { _id: true },
+    inheritLabelsFromMonitors: true,
+    inheritLabelsFromHosts: true,
+    inheritLabelsFromKubernetesClusters: true,
+    inheritLabelsFromDockerHosts: true,
+    inheritLabelsFromPodmanHosts: true,
+    inheritLabelsFromServices: true,
+  };
+
+  /*
+   * Matching and inheritance read all of these straight off the incident they
+   * are handed instead of re-reading it, so a run has to load every one: a
+   * column left out here is a criterion a run silently never matches on, or
+   * a resource it silently never inherits from.
+   */
+  public readonly resourceSelectForRuleRun: Select<Incident> = {
+    _id: true,
+    projectId: true,
+    title: true,
+    description: true,
+    incidentSeverityId: true,
+    labels: { _id: true },
+    monitors: { _id: true },
+    hosts: { _id: true },
+    kubernetesClusters: { _id: true },
+    dockerHosts: { _id: true },
+    podmanHosts: { _id: true },
+    services: { _id: true },
+  };
+
   /**
    * Evaluates IncidentLabelRule rows for the given incident and attaches
    * matched labels to the incident. Each matched rule contributes:
@@ -58,26 +109,7 @@ class IncidentLabelRuleEngineServiceClass {
             isEnabled: true,
           },
           props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            monitors: { _id: true },
-            incidentSeverities: { _id: true },
-            incidentLabels: { _id: true },
-            monitorLabels: { _id: true },
-            incidentTitlePattern: true,
-            incidentDescriptionPattern: true,
-            monitorNamePattern: true,
-            monitorDescriptionPattern: true,
-            labelsToAdd: { _id: true },
-            inheritLabelsFromMonitors: true,
-            inheritLabelsFromHosts: true,
-            inheritLabelsFromKubernetesClusters: true,
-            inheritLabelsFromDockerHosts: true,
-            inheritLabelsFromPodmanHosts: true,
-            inheritLabelsFromServices: true,
-          },
+          select: this.ruleSelect,
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
@@ -92,230 +124,273 @@ class IncidentLabelRuleEngineServiceClass {
         return;
       }
 
-      const labelIdsToAdd: Set<string> = new Set();
-      let inheritFromMonitors: boolean = false;
-      let inheritFromHosts: boolean = false;
-      let inheritFromKubernetesClusters: boolean = false;
-      let inheritFromDockerHosts: boolean = false;
-      let inheritFromPodmanHosts: boolean = false;
-      let inheritFromServices: boolean = false;
-      const matchedRules: Array<IncidentLabelRule> = [];
-
-      for (const rule of rules) {
-        const matches: boolean = await this.doesIncidentMatchRule(
-          incident,
-          rule,
-        );
-        if (!matches) {
-          continue;
-        }
-        matchedRules.push(rule);
-        for (const label of rule.labelsToAdd || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-        if (rule.inheritLabelsFromMonitors) {
-          inheritFromMonitors = true;
-        }
-        if (rule.inheritLabelsFromHosts) {
-          inheritFromHosts = true;
-        }
-        if (rule.inheritLabelsFromKubernetesClusters) {
-          inheritFromKubernetesClusters = true;
-        }
-        if (rule.inheritLabelsFromDockerHosts) {
-          inheritFromDockerHosts = true;
-        }
-        if (rule.inheritLabelsFromPodmanHosts) {
-          inheritFromPodmanHosts = true;
-        }
-        if (rule.inheritLabelsFromServices) {
-          inheritFromServices = true;
-        }
-      }
-
-      if (inheritFromMonitors && incident.monitors?.length) {
-        for (const incidentMonitor of incident.monitors) {
-          if (!incidentMonitor.id) {
-            continue;
-          }
-          const monitor: Monitor | null = await MonitorService.findOneById({
-            id: incidentMonitor.id,
-            select: { labels: { _id: true } },
-            props: { isRoot: true },
-          });
-          for (const label of monitor?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (inheritFromHosts && incident.hosts?.length) {
-        for (const incidentHost of incident.hosts) {
-          if (!incidentHost.id) {
-            continue;
-          }
-          const host: Host | null = await HostService.findOneById({
-            id: incidentHost.id,
-            select: { labels: { _id: true } },
-            props: { isRoot: true },
-          });
-          for (const label of host?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (
-        inheritFromKubernetesClusters &&
-        incident.kubernetesClusters?.length
-      ) {
-        for (const incidentCluster of incident.kubernetesClusters) {
-          if (!incidentCluster.id) {
-            continue;
-          }
-          const cluster: KubernetesCluster | null =
-            await KubernetesClusterService.findOneById({
-              id: incidentCluster.id,
-              select: { labels: { _id: true } },
-              props: { isRoot: true },
-            });
-          for (const label of cluster?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (inheritFromDockerHosts && incident.dockerHosts?.length) {
-        for (const incidentDockerHost of incident.dockerHosts) {
-          if (!incidentDockerHost.id) {
-            continue;
-          }
-          const dockerHost: DockerHost | null =
-            await DockerHostService.findOneById({
-              id: incidentDockerHost.id,
-              select: { labels: { _id: true } },
-              props: { isRoot: true },
-            });
-          for (const label of dockerHost?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (inheritFromPodmanHosts && incident.podmanHosts?.length) {
-        for (const incidentPodmanHost of incident.podmanHosts) {
-          if (!incidentPodmanHost.id) {
-            continue;
-          }
-          const podmanHost: PodmanHost | null =
-            await PodmanHostService.findOneById({
-              id: incidentPodmanHost.id,
-              select: { labels: { _id: true } },
-              props: { isRoot: true },
-            });
-          for (const label of podmanHost?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (inheritFromServices && incident.services?.length) {
-        for (const incidentService of incident.services) {
-          if (!incidentService.id) {
-            continue;
-          }
-          const service: Service | null = await ServiceService.findOneById({
-            id: incidentService.id,
-            select: { labels: { _id: true } },
-            props: { isRoot: true },
-          });
-          for (const label of service?.labels || []) {
-            if (label.id) {
-              labelIdsToAdd.add(label.id.toString());
-            }
-          }
-        }
-      }
-
-      if (labelIdsToAdd.size === 0) {
-        return;
-      }
-
-      const incidentWithLabels: Incident | null =
-        await IncidentService.findOneById({
-          id: incident.id,
-          select: { labels: { _id: true } },
-          props: { isRoot: true },
-        });
-      const existingLabelIds: Set<string> = new Set(
-        (incidentWithLabels?.labels || [])
-          .map((l: Label) => {
-            return l.id?.toString() || "";
-          })
-          .filter((id: string) => {
-            return id !== "";
-          }),
-      );
-
-      const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-        (id: string) => {
-          return !existingLabelIds.has(id);
-        },
-      );
-      if (newLabelIds.length === 0) {
-        return;
-      }
-
-      await IncidentService.getRepository()
-        .createQueryBuilder()
-        .relation(Incident, "labels")
-        .of(incident.id.toString())
-        .add(newLabelIds);
-
-      /*
-       * Sync in-memory incident.labels with the now-persisted set so downstream
-       * rule engines (IncidentOnCallRuleEngineService) can match on these labels
-       * in the same onCreateSuccess chain. Without this, the on-call engine sees
-       * only the criteria-time labels and skips rules keyed on rule-added labels.
-       */
-      const mergedLabelIds: Set<string> = new Set([
-        ...existingLabelIds,
-        ...newLabelIds,
-      ]);
-      incident.labels = Array.from(mergedLabelIds).map((id: string) => {
-        const label: Label = new Label();
-        label.id = new ObjectID(id);
-        return label;
-      });
-
-      logger.debug(
-        `IncidentLabelRuleEngine attached ${newLabelIds.length} labels to incident ${incident.id}`,
-        { projectId: incident.projectId.toString() } as LogAttributes,
-      );
-
-      await this.createRuleExecutedFeedItem({
-        incident,
-        matchedRules,
-        addedLabelIds: newLabelIds,
-      });
+      await this.applyRules({ incident: incident, rules: rules });
     } catch (error) {
       logger.error(`Error applying incident label rules: ${error}`, {
         projectId: incident.projectId?.toString(),
         incidentId: incident.id?.toString(),
       } as LogAttributes);
     }
+  }
+
+  /*
+   * "Run now": the same evaluation, for an incident that already exists and
+   * only the rules being run.
+   */
+  @CaptureSpan()
+  public async applyRulesToExistingResource(
+    data: ApplyRulesToExistingResourceData<Incident, IncidentLabelRule>,
+  ): Promise<RuleApplicationResult> {
+    try {
+      return await this.applyRules({
+        incident: data.resource,
+        rules: data.rules,
+      });
+    } catch (error) {
+      logger.error(`Error running incident label rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        incidentId: data.resource.id?.toString(),
+      } as LogAttributes);
+
+      return RuleApplicationResultUtil.failed();
+    }
+  }
+
+  private async applyRules(data: {
+    incident: Incident;
+    rules: Array<IncidentLabelRule>;
+  }): Promise<RuleApplicationResult> {
+    const { incident, rules } = data;
+
+    if (!incident.id || !incident.projectId || rules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const labelIdsToAdd: Set<string> = new Set();
+    let inheritFromMonitors: boolean = false;
+    let inheritFromHosts: boolean = false;
+    let inheritFromKubernetesClusters: boolean = false;
+    let inheritFromDockerHosts: boolean = false;
+    let inheritFromPodmanHosts: boolean = false;
+    let inheritFromServices: boolean = false;
+    const matchedRules: Array<IncidentLabelRule> = [];
+
+    for (const rule of rules) {
+      const matches: boolean = await this.doesIncidentMatchRule(incident, rule);
+      if (!matches) {
+        continue;
+      }
+      matchedRules.push(rule);
+      for (const label of rule.labelsToAdd || []) {
+        if (label.id) {
+          labelIdsToAdd.add(label.id.toString());
+        }
+      }
+      if (rule.inheritLabelsFromMonitors) {
+        inheritFromMonitors = true;
+      }
+      if (rule.inheritLabelsFromHosts) {
+        inheritFromHosts = true;
+      }
+      if (rule.inheritLabelsFromKubernetesClusters) {
+        inheritFromKubernetesClusters = true;
+      }
+      if (rule.inheritLabelsFromDockerHosts) {
+        inheritFromDockerHosts = true;
+      }
+      if (rule.inheritLabelsFromPodmanHosts) {
+        inheritFromPodmanHosts = true;
+      }
+      if (rule.inheritLabelsFromServices) {
+        inheritFromServices = true;
+      }
+    }
+
+    if (matchedRules.length === 0) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    if (inheritFromMonitors && incident.monitors?.length) {
+      for (const incidentMonitor of incident.monitors) {
+        if (!incidentMonitor.id) {
+          continue;
+        }
+        const monitor: Monitor | null = await MonitorService.findOneById({
+          id: incidentMonitor.id,
+          select: { labels: { _id: true } },
+          props: { isRoot: true },
+        });
+        for (const label of monitor?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    if (inheritFromHosts && incident.hosts?.length) {
+      for (const incidentHost of incident.hosts) {
+        if (!incidentHost.id) {
+          continue;
+        }
+        const host: Host | null = await HostService.findOneById({
+          id: incidentHost.id,
+          select: { labels: { _id: true } },
+          props: { isRoot: true },
+        });
+        for (const label of host?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    if (inheritFromKubernetesClusters && incident.kubernetesClusters?.length) {
+      for (const incidentCluster of incident.kubernetesClusters) {
+        if (!incidentCluster.id) {
+          continue;
+        }
+        const cluster: KubernetesCluster | null =
+          await KubernetesClusterService.findOneById({
+            id: incidentCluster.id,
+            select: { labels: { _id: true } },
+            props: { isRoot: true },
+          });
+        for (const label of cluster?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    if (inheritFromDockerHosts && incident.dockerHosts?.length) {
+      for (const incidentDockerHost of incident.dockerHosts) {
+        if (!incidentDockerHost.id) {
+          continue;
+        }
+        const dockerHost: DockerHost | null =
+          await DockerHostService.findOneById({
+            id: incidentDockerHost.id,
+            select: { labels: { _id: true } },
+            props: { isRoot: true },
+          });
+        for (const label of dockerHost?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    if (inheritFromPodmanHosts && incident.podmanHosts?.length) {
+      for (const incidentPodmanHost of incident.podmanHosts) {
+        if (!incidentPodmanHost.id) {
+          continue;
+        }
+        const podmanHost: PodmanHost | null =
+          await PodmanHostService.findOneById({
+            id: incidentPodmanHost.id,
+            select: { labels: { _id: true } },
+            props: { isRoot: true },
+          });
+        for (const label of podmanHost?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    if (inheritFromServices && incident.services?.length) {
+      for (const incidentService of incident.services) {
+        if (!incidentService.id) {
+          continue;
+        }
+        const service: Service | null = await ServiceService.findOneById({
+          id: incidentService.id,
+          select: { labels: { _id: true } },
+          props: { isRoot: true },
+        });
+        for (const label of service?.labels || []) {
+          if (label.id) {
+            labelIdsToAdd.add(label.id.toString());
+          }
+        }
+      }
+    }
+
+    // Matched, but the rules add nothing (e.g. inherited from unlabelled monitors).
+    if (labelIdsToAdd.size === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    const incidentWithLabels: Incident | null =
+      await IncidentService.findOneById({
+        id: incident.id,
+        select: { labels: { _id: true } },
+        props: { isRoot: true },
+      });
+
+    // The incident is gone, so there is nothing left to label.
+    if (!incidentWithLabels) {
+      return RuleApplicationResultUtil.noMatch();
+    }
+
+    const existingLabelIds: Set<string> = new Set(
+      (incidentWithLabels.labels || [])
+        .map((l: Label) => {
+          return l.id?.toString() || "";
+        })
+        .filter((id: string) => {
+          return id !== "";
+        }),
+    );
+
+    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
+      (id: string) => {
+        return !existingLabelIds.has(id);
+      },
+    );
+    if (newLabelIds.length === 0) {
+      return RuleApplicationResultUtil.alreadyApplied();
+    }
+
+    await IncidentService.getRepository()
+      .createQueryBuilder()
+      .relation(Incident, "labels")
+      .of(incident.id.toString())
+      .add(newLabelIds);
+
+    /*
+     * Sync in-memory incident.labels with the now-persisted set so downstream
+     * rule engines (IncidentOnCallRuleEngineService) can match on these labels
+     * in the same onCreateSuccess chain. Without this, the on-call engine sees
+     * only the criteria-time labels and skips rules keyed on rule-added labels.
+     */
+    const mergedLabelIds: Set<string> = new Set([
+      ...existingLabelIds,
+      ...newLabelIds,
+    ]);
+    incident.labels = Array.from(mergedLabelIds).map((id: string) => {
+      const label: Label = new Label();
+      label.id = new ObjectID(id);
+      return label;
+    });
+
+    logger.debug(
+      `IncidentLabelRuleEngine attached ${newLabelIds.length} labels to incident ${incident.id}`,
+      { projectId: incident.projectId.toString() } as LogAttributes,
+    );
+
+    await this.createRuleExecutedFeedItem({
+      incident,
+      matchedRules,
+      addedLabelIds: newLabelIds,
+    });
+
+    return RuleApplicationResultUtil.updated(newLabelIds.length);
   }
 
   @CaptureSpan()

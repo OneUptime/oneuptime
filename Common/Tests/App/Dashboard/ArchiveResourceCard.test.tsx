@@ -22,6 +22,13 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
+import {
+  SLO_ARCHIVE_CARD_DESCRIPTION,
+  SLO_ARCHIVE_CONFIRM_MESSAGE,
+  SLO_UNARCHIVE_CARD_DESCRIPTION,
+  SLO_UNARCHIVE_CONFIRM_MESSAGE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloArchiveCopy";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -473,4 +480,286 @@ describe("ArchiveResourceCard request and confirmation handling", () => {
       expect(navigateMock).not.toHaveBeenCalled();
     },
   );
+});
+
+/*
+ * Not every archive is only a visibility flag. An archived SLO stops being
+ * evaluated and has its open burn-rate alerts and incidents resolved, so a card
+ * promising it "keeps collecting telemetry" would tell the user the opposite of
+ * what happens. The copy props let such a resource say what its archive does,
+ * while every assertion above pins the defaults as they always were.
+ */
+describe("ArchiveResourceCard copy overrides", () => {
+  interface CopyProps {
+    archiveCardDescription?: string | undefined;
+    unarchiveCardDescription?: string | undefined;
+    archiveConfirmMessage?: string | undefined;
+    unarchiveConfirmMessage?: string | undefined;
+  }
+
+  const sloResource: ResourceCase = {
+    name: "SLO",
+    modelType: ServiceLevelObjective,
+    modelId: new ObjectID("44444444-0000-4000-8000-000000000004"),
+    listRoute: new Route("/dashboard/project/slos"),
+    singularName: "SLO",
+    editPermission: Permission.EditServiceLevelObjective,
+    readPermission: Permission.ReadServiceLevelObjective,
+    deletePermission: Permission.DeleteServiceLevelObjective,
+  };
+
+  const SLO_COPY: CopyProps = {
+    archiveCardDescription: SLO_ARCHIVE_CARD_DESCRIPTION,
+    unarchiveCardDescription: SLO_UNARCHIVE_CARD_DESCRIPTION,
+    archiveConfirmMessage: SLO_ARCHIVE_CONFIRM_MESSAGE,
+    unarchiveConfirmMessage: SLO_UNARCHIVE_CONFIRM_MESSAGE,
+  };
+
+  beforeEach(() => {
+    permissions = [sloResource.editPermission];
+  });
+
+  /*
+   * `withListRoute` rather than an optional route parameter: a default value
+   * would also apply to an explicit `undefined`, silently turning the
+   * archive-in-place case back into one that navigates away.
+   */
+  async function renderSloCard(
+    copy: CopyProps,
+    options: { withListRoute: boolean } = { withListRoute: true },
+  ): Promise<void> {
+    render(
+      <ArchiveResourceCard
+        {...sloResource}
+        listRoute={options.withListRoute ? sloResource.listRoute : undefined}
+        {...copy}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    });
+  }
+
+  test("a live SLO describes and confirms its archive in its own words", async () => {
+    await renderSloCard(SLO_COPY);
+
+    expect(
+      screen.getByRole("heading", { name: "Archive SLO" }),
+    ).toBeInTheDocument();
+
+    const description: HTMLElement = screen.getByTestId("card-description");
+    expect(description).toHaveTextContent(SLO_ARCHIVE_CARD_DESCRIPTION);
+    expect(description).not.toHaveTextContent("telemetry");
+
+    const dialog: HTMLElement = openConfirmation("Archive");
+    const body: HTMLElement = within(dialog).getByTestId(
+      "confirm-modal-description",
+    );
+    expect(body).toHaveTextContent(SLO_ARCHIVE_CONFIRM_MESSAGE);
+    expect(body).not.toHaveTextContent("telemetry");
+
+    submitConfirmation(dialog);
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith(sloResource.listRoute);
+    });
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(updateByIdMock).toHaveBeenCalledWith({
+      modelType: ServiceLevelObjective,
+      id: sloResource.modelId,
+      data: { isArchived: true },
+    });
+  });
+
+  test("an archived SLO describes and confirms its unarchive in its own words", async () => {
+    getItemMock.mockResolvedValue({ isArchived: true });
+    await renderSloCard(SLO_COPY);
+
+    const description: HTMLElement = screen.getByTestId("card-description");
+    expect(description).toHaveTextContent(SLO_UNARCHIVE_CARD_DESCRIPTION);
+    expect(description).not.toHaveTextContent("telemetry");
+
+    const dialog: HTMLElement = openConfirmation("Unarchive");
+    expect(
+      within(dialog).getByTestId("confirm-modal-description"),
+    ).toHaveTextContent(SLO_UNARCHIVE_CONFIRM_MESSAGE);
+
+    submitConfirmation(dialog);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(updateByIdMock).toHaveBeenCalledWith({
+      modelType: ServiceLevelObjective,
+      id: sloResource.modelId,
+      data: { isArchived: false },
+    });
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  test("after archiving in place, the card switches to the unarchive copy", async () => {
+    await renderSloCard(SLO_COPY, { withListRoute: false });
+
+    submitConfirmation(openConfirmation("Archive"));
+    await screen.findByRole("button", { name: "Unarchive" });
+
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      SLO_UNARCHIVE_CARD_DESCRIPTION,
+    );
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  test("an override for one state leaves the other state's default copy untouched", async () => {
+    getItemMock.mockResolvedValue({ isArchived: true });
+    await renderSloCard({
+      archiveCardDescription: SLO_ARCHIVE_CARD_DESCRIPTION,
+      archiveConfirmMessage: SLO_ARCHIVE_CONFIRM_MESSAGE,
+    });
+
+    const description: HTMLElement = screen.getByTestId("card-description");
+    expect(description).toHaveTextContent("is archived and hidden from lists");
+    expect(description).toHaveTextContent("still collecting telemetry");
+
+    const dialog: HTMLElement = openConfirmation("Unarchive");
+    expect(
+      within(dialog).getByTestId("confirm-modal-description"),
+    ).toHaveTextContent(
+      "Are you sure you want to unarchive this SLO? It will reappear in the main list.",
+    );
+  });
+
+  test("an empty override falls back to the default copy instead of rendering a blank", async () => {
+    await renderSloCard({
+      archiveCardDescription: "",
+      archiveConfirmMessage: "",
+    });
+
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "Archive this SLO to hide it from lists while it keeps collecting telemetry. You can unarchive it anytime.",
+    );
+
+    const dialog: HTMLElement = openConfirmation("Archive");
+    expect(
+      within(dialog).getByTestId("confirm-modal-description"),
+    ).toHaveTextContent(
+      "Are you sure you want to archive this SLO? It will be hidden from the list but will keep collecting telemetry.",
+    );
+  });
+});
+
+/*
+ * A page can show the archive state in more places than this card - the SLO
+ * Settings page has a notice banner above it that says "This SLO is
+ * archived". onArchiveChange is how such a page hears the state changed, and
+ * it must only hear once the server has accepted the change. Every test above
+ * renders without it, which pins that leaving it out changes nothing.
+ */
+describe("ArchiveResourceCard onArchiveChange", () => {
+  const resource: ResourceCase = RESOURCE_CASES[0]!;
+  const onArchiveChangeMock: Mock<(isArchived: boolean) => void> =
+    jest.fn<(isArchived: boolean) => void>();
+
+  beforeEach(() => {
+    onArchiveChangeMock.mockReset();
+  });
+
+  async function renderWithCallback(
+    options: { withListRoute: boolean } = { withListRoute: true },
+  ): Promise<void> {
+    render(
+      <ArchiveResourceCard
+        {...resource}
+        listRoute={options.withListRoute ? resource.listRoute : undefined}
+        onArchiveChange={onArchiveChangeMock}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    });
+  }
+
+  test("reports an archive once the save succeeds, before leaving for the list", async () => {
+    await renderWithCallback();
+    submitConfirmation(openConfirmation("Archive"));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith(resource.listRoute);
+    });
+    expect(onArchiveChangeMock).toHaveBeenCalledTimes(1);
+    expect(onArchiveChangeMock).toHaveBeenCalledWith(true);
+    // The caller reacts on the page where the change was made.
+    expect(onArchiveChangeMock.mock.invocationCallOrder[0]!).toBeLessThan(
+      navigateMock.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("reports an unarchive without leaving the page", async () => {
+    getItemMock.mockResolvedValue({ isArchived: true });
+    await renderWithCallback();
+    submitConfirmation(openConfirmation("Unarchive"));
+
+    await waitFor(() => {
+      expect(onArchiveChangeMock).toHaveBeenCalledWith(false);
+    });
+    expect(onArchiveChangeMock).toHaveBeenCalledTimes(1);
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  test("reports each change in turn when archiving and unarchiving in place", async () => {
+    await renderWithCallback({ withListRoute: false });
+
+    submitConfirmation(openConfirmation("Archive"));
+    await screen.findByRole("button", { name: "Unarchive" });
+    submitConfirmation(openConfirmation("Unarchive"));
+
+    await waitFor(() => {
+      expect(onArchiveChangeMock).toHaveBeenCalledTimes(2);
+    });
+    expect(onArchiveChangeMock.mock.calls).toEqual([[true], [false]]);
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  test("stays silent while the save is pending", async () => {
+    const pending: Deferred<void> = deferred<void>();
+    updateByIdMock.mockReturnValue(pending.promise);
+    await renderWithCallback();
+    submitConfirmation(openConfirmation("Archive"));
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(onArchiveChangeMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      pending.resolve(undefined);
+      await pending.promise;
+    });
+
+    expect(onArchiveChangeMock).toHaveBeenCalledTimes(1);
+    expect(onArchiveChangeMock).toHaveBeenCalledWith(true);
+  });
+
+  test.each([false, true])(
+    "stays silent when the save fails (archived: %s)",
+    async (isArchived: boolean) => {
+      const error: Error = new Error("The archive update could not be saved");
+      getItemMock.mockResolvedValue({ isArchived: isArchived });
+      updateByIdMock.mockRejectedValue(error);
+      await renderWithCallback();
+      submitConfirmation(
+        openConfirmation(isArchived ? "Unarchive" : "Archive"),
+      );
+
+      expect(await screen.findByText(error.message)).toBeInTheDocument();
+      expect(onArchiveChangeMock).not.toHaveBeenCalled();
+    },
+  );
+
+  test("stays silent when the confirmation is cancelled", async () => {
+    await renderWithCallback();
+    const dialog: HTMLElement = openConfirmation("Archive");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(onArchiveChangeMock).not.toHaveBeenCalled();
+  });
 });

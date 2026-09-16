@@ -135,6 +135,8 @@
     "sendManagementLink": "傳送管理連結",
     "subscribedSuccessfully": "您已成功訂閱。",
     "emailSentCheckSpam": "一封包含連結的電子郵件已傳送到您的信箱。如果您看不到該郵件，請檢查您的垃圾郵件資料夾。",
+    "manageLinkSent": "如果有訂閱與您輸入的資訊相符，我們已傳送用於管理該訂閱的連結。",
+    "manageLinkSentEmail": "如果此電子郵件地址有訂閱，我們已向該地址傳送管理訂閱的連結。如果您看不到該郵件，請檢查您的垃圾郵件資料夾。",
     "menu": {
       "email": "電子郵件",
       "sms": "簡訊",

@@ -19,7 +19,7 @@ import RuleCriteria, {
   RuleCriteriaFilter,
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
-import { describe, expect, it, afterEach } from "@jest/globals";
+import { describe, expect, it, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * Contract under test - the network device label and owner rule engines, and
@@ -599,6 +599,15 @@ describe("NetworkDeviceLabelRuleEngineService - rule selection and attach", () =
 });
 
 describe("NetworkDeviceOwnerRuleEngineService - wildcard patterns", () => {
+  beforeEach(() => {
+    /*
+     * The engine skips owners the device already has, which reads the owner
+     * rows first. None of these devices has owners yet.
+     */
+    jest.spyOn(NetworkDeviceOwnerUserService, "findBy").mockResolvedValue([]);
+    jest.spyOn(NetworkDeviceOwnerTeamService, "findBy").mockResolvedValue([]);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

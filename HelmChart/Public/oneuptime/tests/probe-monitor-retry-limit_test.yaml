@@ -1,0 +1,94 @@
+# PROBE_MONITOR_RETRY_LIMIT counts retries after the first attempt, so 0 is a
+# real setting: check once, never retry. The template used to test the value
+# with `if`, which reads 0 as empty, so `monitorRetryLimit: 0` deployed as 3 and
+# an operator could not turn retries off. Only an unset value may fall back.
+suite: probe monitor retry limit
+templates:
+  - templates/probe.yaml
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: renders the shipped default of 3
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_MONITOR_RETRY_LIMIT
+            value: "3"
+
+  - it: keeps an explicit 0 instead of replacing it with 3
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes.one.monitorRetryLimit: 0
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_MONITOR_RETRY_LIMIT
+            value: "0"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_MONITOR_RETRY_LIMIT
+            value: "3"
+
+  - it: passes any other value through
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes.one.monitorRetryLimit: 1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_MONITOR_RETRY_LIMIT
+            value: "1"
+
+  - it: falls back to 3 when the value is unset
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes.one.monitorRetryLimit: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_MONITOR_RETRY_LIMIT
+            value: "3"
+
+  # An operator-added probe that never mentions the key gets the same default,
+  # and a 0 on another probe does not leak into it.
+  - it: gives a probe without the key the default, independently of its siblings
+    # The probe's Service shares the Deployment's name; only a Deployment has
+    # a pod template.
+    documentSelector:
+      path: spec.template.metadata.labels.app
+      value: oneuptime-probe-two
+    set:
+      probes.one.monitorRetryLimit: 0
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+      probes.two.ports.http: 3874
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_MONITOR_RETRY_LIMIT
+            value: "3"
+
+  # The probe reads a negative value as unset, so reject it at install time
+  # rather than deploying something other than what was written.
+  - it: rejects a negative value
+    set:
+      probes.one.monitorRetryLimit: -1
+    asserts:
+      - failedTemplate:
+          errorPattern: "probes.one.monitorRetryLimit: Must be greater than or equal to 0"

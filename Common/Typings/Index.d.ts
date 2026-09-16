@@ -29,18 +29,68 @@ declare module "@stripe/stripe-js" {
 
   export type StripeElements = Record<string, unknown>;
 
-  export interface PaymentIntentResult {
-    error?: StripeError;
+  export interface PaymentIntent {
+    id?: string;
+    status:
+      | "requires_payment_method"
+      | "requires_confirmation"
+      | "requires_action"
+      | "processing"
+      | "requires_capture"
+      | "canceled"
+      | "succeeded";
   }
+
+  /*
+   * A confirmed payment can come back still processing - a card debit the
+   * bank confirms later - so the caller has to be able to read the status,
+   * not just the error.
+   */
+  export type PaymentIntentResult =
+    | { paymentIntent: PaymentIntent; error?: undefined }
+    | { paymentIntent?: undefined; error: StripeError };
+
+  export interface PaymentMethod {
+    id: string;
+  }
+
+  export interface SetupIntent {
+    id?: string;
+    status:
+      | "requires_payment_method"
+      | "requires_confirmation"
+      | "requires_action"
+      | "processing"
+      | "canceled"
+      | "succeeded";
+    payment_method: string | PaymentMethod | null;
+    last_setup_error: { message?: string } | null;
+  }
+
+  export type SetupIntentResult =
+    | { setupIntent: SetupIntent; error?: undefined }
+    | { setupIntent?: undefined; error: StripeError };
 
   export interface Stripe {
     confirmSetup(options: {
       elements: StripeElements;
       confirmParams: { return_url: string };
+      redirect: "if_required";
+    }): Promise<SetupIntentResult>;
+    confirmSetup(options: {
+      elements: StripeElements;
+      confirmParams: { return_url: string };
     }): Promise<{ error?: StripeError }>;
+    retrieveSetupIntent(clientSecret: string): Promise<SetupIntentResult>;
+    /*
+     * The card is optional: a PaymentIntent created by an invoice charge
+     * already carries the payment method it was charged against, and passing
+     * another one here would confirm it against a card the customer did not
+     * choose.
+     */
     confirmCardPayment(
       clientSecret: string,
-      options: { payment_method: string },
+      options?: { payment_method?: string },
     ): Promise<PaymentIntentResult>;
   }
 
