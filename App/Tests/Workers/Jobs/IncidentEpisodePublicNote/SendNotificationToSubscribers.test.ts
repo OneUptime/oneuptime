@@ -5,6 +5,7 @@ import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpis
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import URL from "Common/Types/API/URL";
@@ -21,6 +22,10 @@ import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpda
 /*
  * Incident episode public note notifications: "note posted" and the new
  * "note updated" job share one send path.
+ *
+ * The resource list is formatted by the real StatusPageResourceUtil, so the
+ * grouped-resource tests see the same "<br/>" and "; " separators that
+ * production does.
  */
 
 type CronHandler = () => Promise<void>;
@@ -87,17 +92,6 @@ jest.mock("Common/Server/Services/StatusPageResourceService", () => {
   return { __esModule: true, default: { findByMonitors: jest.fn() } };
 });
 
-jest.mock("Common/Server/Utils/StatusPageResource", () => {
-  return {
-    __esModule: true,
-    default: {
-      getResourcesGroupedByGroupName: jest.fn(() => {
-        return "Edge network";
-      }),
-    },
-  };
-});
-
 jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
   return {
     __esModule: true,
@@ -128,20 +122,20 @@ jest.mock(
     return {
       __esModule: true,
       default: { getTemplateForStatusPage: jest.fn() },
+      // The real substitution, recorded so tests can read the variables.
       Service: {
-        compileTemplate: (
-          template: string,
-          variables: Record<string, string>,
-        ): string => {
-          let compiled: string = template;
-          for (const [key, value] of Object.entries(variables)) {
-            compiled = compiled.replace(
-              new RegExp(`{{\\s*${key}\\s*}}`, "g"),
-              value || "",
-            );
-          }
-          return compiled;
-        },
+        compileTemplate: jest.fn(
+          (template: string, variables: Record<string, string>): string => {
+            let compiled: string = template;
+            for (const [key, value] of Object.entries(variables)) {
+              compiled = compiled.replace(
+                new RegExp(`{{\\s*${key}\\s*}}`, "g"),
+                value || "",
+              );
+            }
+            return compiled;
+          },
+        ),
       },
     };
   },
@@ -209,7 +203,9 @@ import MailService from "Common/Server/Services/MailService";
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
-import StatusPageSubscriberNotificationTemplateService from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import Markdown from "Common/Server/Types/Markdown";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
@@ -252,6 +248,24 @@ const EPISODE_TITLE: string = "Regional network interruption";
 const NOTE: string = "Traffic is back on the **primary** links.";
 const NOTE_HTML: string =
   "<p>Traffic is back on the <strong>primary</strong> links.</p>";
+const NOTE_TEXT: string = "Traffic is back on the primary links.";
+
+const GROUPED_RESOURCES_HTML: string =
+  "Europe: Edge network<br/>Americas: Core network";
+const GROUPED_RESOURCES_TEXT: string =
+  "Europe: Edge network; Americas: Core network";
+
+/*
+ * One custom template per channel. Each echoes the note and the resource
+ * list, so the message shows which format that channel was given.
+ */
+const CUSTOM_EMAIL_BODY: string =
+  "<div>{{note}}</div><div>{{resourcesAffected}}</div>";
+const CUSTOM_EMAIL_SUBJECT: string =
+  "{{episodeTitle}}: {{note}} ({{resourcesAffected}})";
+const CUSTOM_SMS_BODY: string = "SMS {{note}} ({{resourcesAffected}})";
+const CUSTOM_SLACK_BODY: string = "Slack {{note}} ({{resourcesAffected}})";
+const CUSTOM_TEAMS_BODY: string = "Teams {{note}} ({{resourcesAffected}})";
 
 let createdNotes: Array<IncidentEpisodePublicNote> = [];
 let updatedNotes: Array<IncidentEpisodePublicNote> = [];
@@ -317,6 +331,79 @@ function resource(): StatusPageResource {
   row.statusPageId = STATUS_PAGE_ID;
   row.displayName = "Edge network";
   return row;
+}
+
+function resourceInGroup(
+  id: string,
+  displayName: string,
+  groupName: string,
+): StatusPageResource {
+  const row: StatusPageResource = new StatusPageResource();
+  row._id = id;
+  row.statusPageId = STATUS_PAGE_ID;
+  row.displayName = displayName;
+  row.statusPageGroupId = ObjectID.generate();
+  const group: StatusPageGroup = new StatusPageGroup();
+  group.name = groupName;
+  row.statusPageGroup = group;
+  return row;
+}
+
+function groupedResources(): Array<StatusPageResource> {
+  return [
+    resourceInGroup(
+      "88888888-8888-4888-8888-888888888888",
+      "Edge network",
+      "Europe",
+    ),
+    resourceInGroup(
+      "99999999-9999-4999-8999-999999999999",
+      "Core network",
+      "Americas",
+    ),
+  ];
+}
+
+// A page with its own SMTP and Twilio, and a custom template on every channel.
+function useCustomTemplatesOnEveryChannel(): void {
+  const page: StatusPage = statusPage();
+  (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+  (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+  mock(
+    StatusPageSubscriberService.getStatusPagesToSendNotification,
+  ).mockResolvedValue([page] as never);
+
+  const bodies: Record<string, string> = {
+    [StatusPageSubscriberNotificationMethod.Email]: CUSTOM_EMAIL_BODY,
+    [StatusPageSubscriberNotificationMethod.SMS]: CUSTOM_SMS_BODY,
+    [StatusPageSubscriberNotificationMethod.Slack]: CUSTOM_SLACK_BODY,
+    [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: CUSTOM_TEAMS_BODY,
+  };
+
+  mock(
+    StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+  ).mockImplementation(async (args: unknown) => {
+    const method: string = (args as JSONObject)["notificationMethod"] as string;
+    return {
+      templateBody: bodies[method],
+      emailSubject:
+        method === StatusPageSubscriberNotificationMethod.Email
+          ? CUSTOM_EMAIL_SUBJECT
+          : undefined,
+    };
+  });
+}
+
+// The variables the job handed to compileTemplate for this template.
+function variablesCompiledInto(template: string): Record<string, string> {
+  const calls: Array<Array<unknown>> = mock(
+    StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+  ).mock.calls.filter((call: Array<unknown>): boolean => {
+    return call[0] === template;
+  });
+
+  expect(calls).toHaveLength(1);
+  return calls[0]![1] as Record<string, string>;
 }
 
 function subscriber(): StatusPageSubscriber {
@@ -513,9 +600,7 @@ beforeEach(() => {
   ).mockResolvedValue(null as never);
 
   mock(Markdown.convertToHTML).mockResolvedValue(NOTE_HTML as never);
-  mock(Markdown.convertToPlainText).mockReturnValue(
-    "Traffic is back on the primary links.",
-  );
+  mock(Markdown.convertToPlainText).mockReturnValue(NOTE_TEXT);
 
   mock(MailService.sendMail).mockResolvedValue(undefined as never);
   mock(SmsService.sendSms).mockResolvedValue(undefined as never);
@@ -839,5 +924,110 @@ describe("IncidentEpisodePublicNote:SendNotificationToSubscribers (created)", ()
           "Notifications sent successfully to all subscribers",
       },
     ]);
+  });
+});
+
+describe.each([
+  ["created", CREATED_JOB],
+  ["updated", UPDATED_JOB],
+])(
+  "IncidentEpisodePublicNote %s job, with custom templates and grouped resources",
+  (_trigger: string, job: string) => {
+    beforeEach(() => {
+      createdNotes = [publicNote()];
+      updatedNotes = [publicNote()];
+      useCustomTemplatesOnEveryChannel();
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+        groupedResources() as never,
+      );
+    });
+
+    test("renders HTML in the email body, plain text in SMS and the subject, and Markdown in chat", async () => {
+      await runJob(job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["templateType"]).toBe(
+        EmailTemplateType.BlankTemplate,
+      );
+      expect(sentMail()[0]!["vars"]).toEqual({
+        body: `<div>${NOTE_HTML}</div><div>${GROUPED_RESOURCES_HTML}</div>`,
+      });
+      expect(sentMail()[0]!["subject"]).toBe(
+        `${EPISODE_TITLE}: ${NOTE_TEXT} (${GROUPED_RESOURCES_TEXT})`,
+      );
+      expect(sentSms()).toEqual([
+        `SMS ${NOTE_TEXT} (${GROUPED_RESOURCES_TEXT})`,
+      ]);
+      expect(sentSlack()).toEqual([
+        `Slack ${NOTE} (${GROUPED_RESOURCES_TEXT})`,
+      ]);
+      expect(sentTeams()).toEqual([
+        `Teams ${NOTE} (${GROUPED_RESOURCES_TEXT})`,
+      ]);
+    });
+
+    test("hands each channel's template the same variables, in that channel's format", async () => {
+      await runJob(job);
+
+      const shared: Record<string, string> = {
+        statusPageName: "Acme Status",
+        statusPageUrl: STATUS_PAGE_URL,
+        detailsUrl: DETAILS_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+        episodeSeverity: "Major",
+        episodeTitle: EPISODE_TITLE,
+      };
+      const html: Record<string, string> = {
+        ...shared,
+        note: NOTE_HTML,
+        resourcesAffected: GROUPED_RESOURCES_HTML,
+      };
+      const plainText: Record<string, string> = {
+        ...shared,
+        note: NOTE_TEXT,
+        resourcesAffected: GROUPED_RESOURCES_TEXT,
+      };
+      const markdown: Record<string, string> = {
+        ...shared,
+        note: NOTE,
+        resourcesAffected: GROUPED_RESOURCES_TEXT,
+      };
+
+      expect(variablesCompiledInto(CUSTOM_EMAIL_BODY)).toEqual(html);
+      expect(variablesCompiledInto(CUSTOM_EMAIL_SUBJECT)).toEqual(plainText);
+      expect(variablesCompiledInto(CUSTOM_SMS_BODY)).toEqual(plainText);
+      expect(variablesCompiledInto(CUSTOM_SLACK_BODY)).toEqual(markdown);
+      expect(variablesCompiledInto(CUSTOM_TEAMS_BODY)).toEqual(markdown);
+    });
+
+    test("sends webhooks the Markdown note and a plain-text resource list", async () => {
+      await runJob(job);
+
+      const data: JSONObject = sentWebhooks()[0]!["data"] as JSONObject;
+
+      expect(data["note"]).toBe(NOTE);
+      expect(data["resourcesAffected"]).toBe(GROUPED_RESOURCES_TEXT);
+    });
+  },
+);
+
+describe("IncidentEpisodePublicNote default email, with grouped resources", () => {
+  test("still gets HTML for the note and the resource list", async () => {
+    createdNotes = [publicNote()];
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      groupedResources() as never,
+    );
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()[0]!["templateType"]).toBe(
+      EmailTemplateType.SubscriberEpisodeNoteCreated,
+    );
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        note: NOTE_HTML,
+        resourcesAffected: GROUPED_RESOURCES_HTML,
+      }),
+    );
   });
 });

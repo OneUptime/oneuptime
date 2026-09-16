@@ -392,6 +392,10 @@ RunCron(
               StatusPageResourceUtil.getResourcesGroupedByGroupName(
                 statusPageToResources[statuspage._id!] || [],
               );
+            const resourcesAffectedPlainText: string =
+              StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+                statusPageToResources[statuspage._id!] || [],
+              );
 
             logger.debug(
               `Resources affected for episode ${episode.id} on status page ${statuspage.id}: ${resourcesAffectedString}`,
@@ -446,24 +450,37 @@ RunCron(
               ),
             ]);
 
-            // Prepare template variables for custom templates
+            /*
+             * Custom templates get each value in the format their channel
+             * renders: HTML for the email body (it is wrapped only by
+             * BlankTemplate), plain text for SMS and the email subject, and
+             * Markdown for Slack and Teams. The conversions are the memoized
+             * ones computed once per episode above.
+             */
             const templateVariables: Record<string, string> = {
               statusPageName: statusPageName,
               statusPageUrl: statusPageURL,
               detailsUrl: episodeDetailsUrl,
-              resourcesAffected: resourcesAffectedString,
               episodeSeverity: episode.incidentSeverity?.name || " - ",
               episodeTitle: episode.title || "",
-              episodeDescription: episode.description || "",
             };
 
-            /*
-             * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
-             * Uses the memoized plain-text conversion computed once per episode above.
-             */
-            const smsTemplateVariables: Record<string, string> = {
+            const emailBodyTemplateVariables: Record<string, string> = {
               ...templateVariables,
+              resourcesAffected: resourcesAffectedString,
+              episodeDescription: episodeDescriptionHtml,
+            };
+
+            const plainTextTemplateVariables: Record<string, string> = {
+              ...templateVariables,
+              resourcesAffected: resourcesAffectedPlainText,
               episodeDescription: episodeDescriptionPlainText,
+            };
+
+            const markdownTemplateVariables: Record<string, string> = {
+              ...templateVariables,
+              resourcesAffected: resourcesAffectedPlainText,
+              episodeDescription: episode.description || "",
             };
 
             for (const subscriber of subscribers) {
@@ -516,10 +533,21 @@ RunCron(
                 );
 
                 // Add unsubscribeUrl to template variables
-                const subscriberTemplateVariables: Record<string, string> = {
-                  ...templateVariables,
-                  unsubscribeUrl: unsubscribeUrl,
-                };
+                const subscriberEmailBodyTemplateVariables: Dictionary<string> =
+                  {
+                    ...emailBodyTemplateVariables,
+                    unsubscribeUrl: unsubscribeUrl,
+                  };
+                const subscriberPlainTextTemplateVariables: Dictionary<string> =
+                  {
+                    ...plainTextTemplateVariables,
+                    unsubscribeUrl: unsubscribeUrl,
+                  };
+                const subscriberMarkdownTemplateVariables: Dictionary<string> =
+                  {
+                    ...markdownTemplateVariables,
+                    unsubscribeUrl: unsubscribeUrl,
+                  };
 
                 if (subscriber.subscriberEmail) {
                   // send email here.
@@ -536,12 +564,12 @@ RunCron(
                     const compiledBody: string =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         emailTemplate.templateBody,
-                        subscriberTemplateVariables,
+                        subscriberEmailBodyTemplateVariables,
                       );
                     const compiledSubject: string = emailTemplate.emailSubject
                       ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                           emailTemplate.emailSubject,
-                          subscriberTemplateVariables,
+                          subscriberPlainTextTemplateVariables,
                         )
                       : "[Incident] " + episode.title || "";
 
@@ -647,20 +675,13 @@ RunCron(
                     },
                   );
 
-                  // SMS-specific template variables with unsubscribe URL
-                  const subscriberSmsTemplateVariables: Record<string, string> =
-                    {
-                      ...smsTemplateVariables,
-                      unsubscribeUrl: unsubscribeUrl,
-                    };
-
                   let smsMessage: string;
                   if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                     // Use custom template only when custom Twilio is configured
                     smsMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         smsTemplate.templateBody,
-                        subscriberSmsTemplateVariables,
+                        subscriberPlainTextTemplateVariables,
                       );
                   } else {
                     // Use default hard-coded template
@@ -711,7 +732,7 @@ RunCron(
                     markdownMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         slackTemplate.templateBody,
-                        subscriberTemplateVariables,
+                        subscriberMarkdownTemplateVariables,
                       );
                   } else {
                     // Use default hard-coded template
@@ -763,7 +784,7 @@ RunCron(
                     markdownMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         teamsTemplate.templateBody,
-                        subscriberTemplateVariables,
+                        subscriberMarkdownTemplateVariables,
                       );
                   } else {
                     // Use default hard-coded template
@@ -808,7 +829,7 @@ RunCron(
                         episodeTitle: episode.title || "",
                         episodeDescription: episode.description || "",
                         incidentSeverity: episode.incidentSeverity?.name || "",
-                        resourcesAffected: resourcesAffectedString,
+                        resourcesAffected: resourcesAffectedPlainText,
                         detailsUrl: episodeDetailsUrl,
                       },
                     },

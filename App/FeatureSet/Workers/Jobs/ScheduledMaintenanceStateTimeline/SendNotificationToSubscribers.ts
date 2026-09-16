@@ -271,6 +271,11 @@ RunCron(
               statusPageToResources[statuspage._id!] || [],
               "", // Use empty string as default for backward compatibility
             );
+          const resourcesAffectedPlainText: string =
+            StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+              statusPageToResources[statuspage._id!] || [],
+              "",
+            );
 
           const scheduledAtString: string =
             OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!);
@@ -319,7 +324,11 @@ RunCron(
             ),
           ]);
 
-          // Prepare template variables for custom templates
+          /*
+           * The custom email body is HTML (it is wrapped only by
+           * BlankTemplate). SMS, the email subject, Slack and Teams do not
+           * render HTML, so they get the plain-text resource list.
+           */
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
@@ -329,6 +338,11 @@ RunCron(
             scheduledMaintenanceState:
               scheduledEventStateTimeline.scheduledMaintenanceState?.name || "",
             scheduledAt: scheduledAtString,
+          };
+
+          const plainTextTemplateVariables: Record<string, string> = {
+            ...templateVariables,
+            resourcesAffected: resourcesAffectedPlainText,
           };
 
           // Send email to Email subscribers.
@@ -364,6 +378,11 @@ RunCron(
               ...templateVariables,
               unsubscribeUrl: unsubscribeUrl,
             };
+            const subscriberPlainTextTemplateVariables: Record<string, string> =
+              {
+                ...plainTextTemplateVariables,
+                unsubscribeUrl: unsubscribeUrl,
+              };
 
             if (subscriber.subscriberPhone) {
               let smsMessage: string;
@@ -372,7 +391,7 @@ RunCron(
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     smsTemplate.templateBody,
-                    subscriberTemplateVariables,
+                    subscriberPlainTextTemplateVariables,
                   );
               } else {
                 // Use default hard-coded template
@@ -412,7 +431,7 @@ RunCron(
                 markdownMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     slackTemplate.templateBody,
-                    subscriberTemplateVariables,
+                    subscriberPlainTextTemplateVariables,
                   );
               } else {
                 // Use default hard-coded template
@@ -443,7 +462,7 @@ RunCron(
                 markdownMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     teamsTemplate.templateBody,
-                    subscriberTemplateVariables,
+                    subscriberPlainTextTemplateVariables,
                   );
               } else {
                 // Use default hard-coded template
@@ -478,7 +497,7 @@ RunCron(
                     scheduledMaintenanceState:
                       scheduledEventStateTimeline.scheduledMaintenanceState
                         ?.name || "",
-                    resourcesAffected: resourcesAffectedString,
+                    resourcesAffected: resourcesAffectedPlainText,
                     detailsUrl: scheduledEventDetailsUrl,
                   },
                 },
@@ -500,7 +519,7 @@ RunCron(
                 const compiledSubject: string = emailTemplate.emailSubject
                   ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                       emailTemplate.emailSubject,
-                      subscriberTemplateVariables,
+                      subscriberPlainTextTemplateVariables,
                     )
                   : `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
                       scheduledEventStateTimeline.scheduledMaintenanceState

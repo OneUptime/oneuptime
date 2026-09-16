@@ -446,29 +446,46 @@ const notifySubscribersOfEpisodePublicNote: (data: {
         ),
       ]);
 
-      // Prepare template variables for custom templates
       const resourcesAffectedString: string =
         StatusPageResourceUtil.getResourcesGroupedByGroupName(
           statusPageToResources[statuspage._id!] || [],
         );
+      const resourcesAffectedPlainText: string =
+        StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+          statusPageToResources[statuspage._id!] || [],
+        );
 
+      /*
+       * Custom templates get each value in the format their channel renders:
+       * HTML for the email body (it is wrapped only by BlankTemplate), plain
+       * text for SMS and the email subject, and Markdown for Slack and Teams.
+       * The conversions are the memoized ones computed once per public note
+       * above.
+       */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
         statusPageUrl: statusPageURL,
         detailsUrl: episodeDetailsUrl,
-        resourcesAffected: resourcesAffectedString,
         episodeSeverity: episode.incidentSeverity?.name || " - ",
         episodeTitle: episode.title || "",
-        note: episodePublicNote.note || "",
       };
 
-      /*
-       * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
-       * Uses the memoized plain-text conversion computed once per public note above.
-       */
-      const smsTemplateVariables: Record<string, string> = {
+      const emailBodyTemplateVariables: Record<string, string> = {
         ...templateVariables,
+        resourcesAffected: resourcesAffectedString,
+        note: noteHtml,
+      };
+
+      const plainTextTemplateVariables: Record<string, string> = {
+        ...templateVariables,
+        resourcesAffected: resourcesAffectedPlainText,
         note: notePlainText,
+      };
+
+      const markdownTemplateVariables: Record<string, string> = {
+        ...templateVariables,
+        resourcesAffected: resourcesAffectedPlainText,
+        note: episodePublicNote.note || "",
       };
 
       // Send email to Email subscribers.
@@ -518,8 +535,16 @@ const notifySubscribersOfEpisodePublicNote: (data: {
         );
 
         // Add unsubscribeUrl to template variables
-        const subscriberTemplateVariables: Record<string, string> = {
-          ...templateVariables,
+        const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
+          ...emailBodyTemplateVariables,
+          unsubscribeUrl: unsubscribeUrl,
+        };
+        const subscriberPlainTextTemplateVariables: Dictionary<string> = {
+          ...plainTextTemplateVariables,
+          unsubscribeUrl: unsubscribeUrl,
+        };
+        const subscriberMarkdownTemplateVariables: Dictionary<string> = {
+          ...markdownTemplateVariables,
           unsubscribeUrl: unsubscribeUrl,
         };
 
@@ -534,19 +559,13 @@ const notifySubscribersOfEpisodePublicNote: (data: {
             },
           );
 
-          // SMS-specific template variables with unsubscribe URL
-          const subscriberSmsTemplateVariables: Record<string, string> = {
-            ...smsTemplateVariables,
-            unsubscribeUrl: unsubscribeUrl,
-          };
-
           let smsMessage: string;
           if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
             // Use custom template only when custom Twilio is configured
             smsMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 smsTemplate.templateBody,
-                subscriberSmsTemplateVariables,
+                subscriberPlainTextTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -597,12 +616,12 @@ const notifySubscribersOfEpisodePublicNote: (data: {
             const compiledBody: string =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 emailTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberEmailBodyTemplateVariables,
               );
             const compiledSubject: string = emailTemplate.emailSubject
               ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   emailTemplate.emailSubject,
-                  subscriberTemplateVariables,
+                  subscriberPlainTextTemplateVariables,
                 )
               : copy.customTemplateEmailSubjectPrefix + episode.title || "";
 
@@ -702,7 +721,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
             markdownMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 slackTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberMarkdownTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -754,7 +773,7 @@ ${episodePublicNote.note || ""}
             markdownMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 teamsTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberMarkdownTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -803,7 +822,7 @@ ${episodePublicNote.note || ""}
                 episodeId: episode.id?.toString() || "",
                 episodeTitle: episode.title || "",
                 incidentSeverity: episode.incidentSeverity?.name || "",
-                resourcesAffected: resourcesAffectedString,
+                resourcesAffected: resourcesAffectedPlainText,
                 note: episodePublicNote.note || "",
                 detailsUrl: episodeDetailsUrl,
               },

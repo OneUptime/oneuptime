@@ -5,6 +5,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import URL from "Common/Types/API/URL";
+import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
@@ -118,20 +119,20 @@ jest.mock(
     return {
       __esModule: true,
       default: { getTemplateForStatusPage: jest.fn() },
+      // The real substitution, recorded so tests can read the variables.
       Service: {
-        compileTemplate: (
-          template: string,
-          variables: Record<string, string>,
-        ): string => {
-          let compiled: string = template;
-          for (const [key, value] of Object.entries(variables)) {
-            compiled = compiled.replace(
-              new RegExp(`{{\\s*${key}\\s*}}`, "g"),
-              value || "",
-            );
-          }
-          return compiled;
-        },
+        compileTemplate: jest.fn(
+          (template: string, variables: Record<string, string>): string => {
+            let compiled: string = template;
+            for (const [key, value] of Object.entries(variables)) {
+              compiled = compiled.replace(
+                new RegExp(`{{\\s*${key}\\s*}}`, "g"),
+                value || "",
+              );
+            }
+            return compiled;
+          },
+        ),
       },
     };
   },
@@ -198,7 +199,9 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
-import StatusPageSubscriberNotificationTemplateService from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import Markdown from "Common/Server/Types/Markdown";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
@@ -240,6 +243,17 @@ const EVENT_TITLE: string = "Database engine upgrade";
 const NOTE: string = "The window moved to **Sunday 02:00 UTC**.";
 const NOTE_HTML: string =
   "<p>The window moved to <strong>Sunday 02:00 UTC</strong>.</p>";
+const NOTE_TEXT: string = "The window moved to Sunday 02:00 UTC.";
+
+/*
+ * One custom template per channel. Each echoes the note, so the message
+ * shows which format that channel was given.
+ */
+const CUSTOM_EMAIL_BODY: string = "<div>{{note}}</div>";
+const CUSTOM_EMAIL_SUBJECT: string = "{{scheduledMaintenanceTitle}}: {{note}}";
+const CUSTOM_SMS_BODY: string = "SMS {{note}}";
+const CUSTOM_SLACK_BODY: string = "Slack {{note}}";
+const CUSTOM_TEAMS_BODY: string = "Teams {{note}}";
 
 let createdNotes: Array<ScheduledMaintenancePublicNote> = [];
 let updatedNotes: Array<ScheduledMaintenancePublicNote> = [];
@@ -307,6 +321,48 @@ function resource(): StatusPageResource {
   row.statusPageId = STATUS_PAGE_ID;
   row.displayName = "Primary database";
   return row;
+}
+
+// A page with its own SMTP and Twilio, and a custom template on every channel.
+function useCustomTemplatesOnEveryChannel(): void {
+  const page: StatusPage = statusPage();
+  (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+  (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+  mock(
+    StatusPageSubscriberService.getStatusPagesToSendNotification,
+  ).mockResolvedValue([page] as never);
+
+  const bodies: Record<string, string> = {
+    [StatusPageSubscriberNotificationMethod.Email]: CUSTOM_EMAIL_BODY,
+    [StatusPageSubscriberNotificationMethod.SMS]: CUSTOM_SMS_BODY,
+    [StatusPageSubscriberNotificationMethod.Slack]: CUSTOM_SLACK_BODY,
+    [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: CUSTOM_TEAMS_BODY,
+  };
+
+  mock(
+    StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+  ).mockImplementation(async (args: unknown) => {
+    const method: string = (args as JSONObject)["notificationMethod"] as string;
+    return {
+      templateBody: bodies[method],
+      emailSubject:
+        method === StatusPageSubscriberNotificationMethod.Email
+          ? CUSTOM_EMAIL_SUBJECT
+          : undefined,
+    };
+  });
+}
+
+// The variables the job handed to compileTemplate for this template.
+function variablesCompiledInto(template: string): Record<string, string> {
+  const calls: Array<Array<unknown>> = mock(
+    StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+  ).mock.calls.filter((call: Array<unknown>): boolean => {
+    return call[0] === template;
+  });
+
+  expect(calls).toHaveLength(1);
+  return calls[0]![1] as Record<string, string>;
 }
 
 function subscriber(): StatusPageSubscriber {
@@ -484,9 +540,7 @@ beforeEach(() => {
   ).mockResolvedValue(null as never);
 
   mock(Markdown.convertToHTML).mockResolvedValue(NOTE_HTML as never);
-  mock(Markdown.convertToPlainText).mockReturnValue(
-    "The window moved to Sunday 02:00 UTC.",
-  );
+  mock(Markdown.convertToPlainText).mockReturnValue(NOTE_TEXT);
 
   mock(MailService.sendMail).mockResolvedValue(undefined as never);
   mock(SmsService.sendSms).mockResolvedValue(undefined as never);
@@ -821,3 +875,77 @@ describe("ScheduledMaintenancePublicNote:SendNotificationToSubscribers (created)
     ]);
   });
 });
+
+describe.each([
+  ["created", CREATED_JOB],
+  ["updated", UPDATED_JOB],
+])(
+  "ScheduledMaintenancePublicNote %s job, with custom templates",
+  (_trigger: string, job: string) => {
+    beforeEach(() => {
+      createdNotes = [publicNote()];
+      updatedNotes = [publicNote()];
+      useCustomTemplatesOnEveryChannel();
+    });
+
+    test("renders HTML in the email body, plain text in SMS and the subject, and Markdown in chat", async () => {
+      await runJob(job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["templateType"]).toBe(
+        EmailTemplateType.BlankTemplate,
+      );
+      expect(sentMail()[0]!["vars"]).toEqual({
+        body: `<div>${NOTE_HTML}</div>`,
+      });
+      expect(sentMail()[0]!["subject"]).toBe(`${EVENT_TITLE}: ${NOTE_TEXT}`);
+      expect(sentSms()).toEqual([`SMS ${NOTE_TEXT}`]);
+      expect(sentSlack()).toEqual([`Slack ${NOTE}`]);
+      expect(sentTeams()).toEqual([`Teams ${NOTE}`]);
+    });
+
+    test("hands each channel's template the same variables, in that channel's format", async () => {
+      await runJob(job);
+
+      const shared: Record<string, unknown> = {
+        statusPageName: "Acme Status",
+        statusPageUrl: STATUS_PAGE_URL,
+        detailsUrl: DETAILS_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+        scheduledMaintenanceTitle: EVENT_TITLE,
+        scheduledMaintenanceState:
+          OneUptimeDate.getDateAsUserFriendlyFormattedString(
+            storedEvent!.startsAt!,
+          ),
+        postedAt: expect.any(String),
+      };
+
+      expect(variablesCompiledInto(CUSTOM_EMAIL_BODY)).toEqual({
+        ...shared,
+        note: NOTE_HTML,
+      });
+      expect(variablesCompiledInto(CUSTOM_EMAIL_SUBJECT)).toEqual({
+        ...shared,
+        note: NOTE_TEXT,
+      });
+      expect(variablesCompiledInto(CUSTOM_SMS_BODY)).toEqual({
+        ...shared,
+        note: NOTE_TEXT,
+      });
+      expect(variablesCompiledInto(CUSTOM_SLACK_BODY)).toEqual({
+        ...shared,
+        note: NOTE,
+      });
+      expect(variablesCompiledInto(CUSTOM_TEAMS_BODY)).toEqual({
+        ...shared,
+        note: NOTE,
+      });
+    });
+
+    test("still sends webhooks the Markdown note", async () => {
+      await runJob(job);
+
+      expect((sentWebhooks()[0]!["data"] as JSONObject)["note"]).toBe(NOTE);
+    });
+  },
+);

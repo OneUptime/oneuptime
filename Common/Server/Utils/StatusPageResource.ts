@@ -6,21 +6,66 @@ export interface GetResourcesGroupedByGroupNameOptions {
   defaultValue?: string;
 }
 
+// Groups go on their own line in HTML emails.
+export const HTML_RESOURCE_GROUP_SEPARATOR: string = "<br/>";
+
+/*
+ * SMS, Slack, Teams, email subjects and webhooks show "<br/>" as literal
+ * text, so they get every group on one line. The names inside a group are
+ * already comma-separated, which is why groups are split with a semicolon.
+ */
+export const PLAIN_TEXT_RESOURCE_GROUP_SEPARATOR: string = "; ";
+
 export default class StatusPageResourceUtil {
   /**
-   * Formats an array of StatusPageResource items into a string grouped by their resource group.
+   * Formats an array of StatusPageResource items into an HTML string grouped by their resource group.
    *
    * If resources have no group or only one resource exists without a group, returns a simple comma-separated list.
-   * If resources are grouped, returns a formatted string like:
-   * "EU: Infrastructure, Website; UK: Infrastructure, API"
+   * If resources are grouped, returns one group per line, like:
+   * "EU: Infrastructure, Website<br/>UK: Infrastructure, API"
+   *
+   * Use this only where the value is rendered as HTML (email bodies). Use
+   * getResourcesGroupedByGroupNameAsPlainText everywhere else.
    *
    * @param resources - Array of StatusPageResource items with displayName, statusPageGroupId, and optionally statusPageGroup.name
-   * @param defaultValue - Value to return if no resources (defaults to "None")
+   * @param defaultValue - Value to return if no resources (defaults to "")
    * @returns Formatted string of resources grouped by their resource group
    */
   public static getResourcesGroupedByGroupName(
     resources: Array<StatusPageResource>,
     defaultValue: string = "",
+  ): string {
+    return StatusPageResourceUtil.formatResourcesGroupedByGroupName(
+      resources,
+      defaultValue,
+      HTML_RESOURCE_GROUP_SEPARATOR,
+    );
+  }
+
+  /**
+   * The plain-text form of getResourcesGroupedByGroupName, for channels that
+   * do not render HTML. Grouped resources come back on one line, like:
+   * "EU: Infrastructure, Website; UK: Infrastructure, API"
+   *
+   * @param resources - Array of StatusPageResource items with displayName, statusPageGroupId, and optionally statusPageGroup.name
+   * @param defaultValue - Value to return if no resources (defaults to "")
+   * @returns Formatted string of resources grouped by their resource group
+   */
+  public static getResourcesGroupedByGroupNameAsPlainText(
+    resources: Array<StatusPageResource>,
+    defaultValue: string = "",
+  ): string {
+    return StatusPageResourceUtil.formatResourcesGroupedByGroupName(
+      resources,
+      defaultValue,
+      PLAIN_TEXT_RESOURCE_GROUP_SEPARATOR,
+    );
+  }
+
+  private static formatResourcesGroupedByGroupName(
+    resources: Array<StatusPageResource>,
+    defaultValue: string,
+    groupSeparator: string,
   ): string {
     if (!resources || resources.length === 0) {
       return defaultValue;
@@ -84,6 +129,6 @@ export default class StatusPageResourceUtil {
       }
     }
 
-    return formattedGroups.join("<br/>") || defaultValue;
+    return formattedGroups.join(groupSeparator) || defaultValue;
   }
 }

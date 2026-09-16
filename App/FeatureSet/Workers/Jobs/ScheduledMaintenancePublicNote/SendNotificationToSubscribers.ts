@@ -388,7 +388,13 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         ),
       ]);
 
-      // Prepare template variables for custom templates
+      /*
+       * Custom templates get each value in the format their channel renders:
+       * HTML for the email body (it is wrapped only by BlankTemplate), plain
+       * text for SMS and the email subject, and Markdown for Slack and Teams.
+       * The conversions are the memoized ones computed once per public note
+       * above.
+       */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
         statusPageUrl: statusPageURL,
@@ -396,19 +402,24 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         scheduledMaintenanceTitle: event.title || "",
         scheduledMaintenanceState:
           OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!),
-        note: publicNote.note || "",
         postedAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
           OneUptimeDate.getCurrentDate(),
         ),
       };
 
-      /*
-       * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
-       * Uses the memoized plain-text conversion computed once per public note above.
-       */
-      const smsTemplateVariables: Record<string, string> = {
+      const emailBodyTemplateVariables: Record<string, string> = {
+        ...templateVariables,
+        note: noteHtml,
+      };
+
+      const plainTextTemplateVariables: Record<string, string> = {
         ...templateVariables,
         note: notePlainText,
+      };
+
+      const markdownTemplateVariables: Record<string, string> = {
+        ...templateVariables,
+        note: publicNote.note || "",
       };
 
       // Send email to Email subscribers.
@@ -447,8 +458,16 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         );
 
         // Add unsubscribeUrl to template variables
-        const subscriberTemplateVariables: Record<string, string> = {
-          ...templateVariables,
+        const subscriberEmailBodyTemplateVariables: Dictionary<string> = {
+          ...emailBodyTemplateVariables,
+          unsubscribeUrl: unsubscribeUrl,
+        };
+        const subscriberPlainTextTemplateVariables: Dictionary<string> = {
+          ...plainTextTemplateVariables,
+          unsubscribeUrl: unsubscribeUrl,
+        };
+        const subscriberMarkdownTemplateVariables: Dictionary<string> = {
+          ...markdownTemplateVariables,
           unsubscribeUrl: unsubscribeUrl,
         };
 
@@ -459,19 +478,13 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${publicNote.id}.`,
           );
 
-          // SMS-specific template variables with unsubscribe URL
-          const subscriberSmsTemplateVariables: Record<string, string> = {
-            ...smsTemplateVariables,
-            unsubscribeUrl: unsubscribeUrl,
-          };
-
           let smsMessage: string;
           if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
             // Use custom template only when custom Twilio is configured
             smsMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 smsTemplate.templateBody,
-                subscriberSmsTemplateVariables,
+                subscriberPlainTextTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -515,7 +528,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             markdownMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 slackTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberMarkdownTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -550,7 +563,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             markdownMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 teamsTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberMarkdownTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -615,12 +628,12 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             const compiledBody: string =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 emailTemplate.templateBody,
-                subscriberTemplateVariables,
+                subscriberEmailBodyTemplateVariables,
               );
             const compiledSubject: string = emailTemplate.emailSubject
               ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   emailTemplate.emailSubject,
-                  subscriberTemplateVariables,
+                  subscriberPlainTextTemplateVariables,
                 )
               : copy.customTemplateEmailSubjectPrefix + event.title || "";
 

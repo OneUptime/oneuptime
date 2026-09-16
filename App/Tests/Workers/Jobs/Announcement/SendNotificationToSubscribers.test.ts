@@ -99,21 +99,20 @@ jest.mock(
     return {
       __esModule: true,
       default: { getTemplateForStatusPage: jest.fn() },
-      // The real substitution: {{name}} -> value.
+      // The real substitution: {{name}} -> value, recorded.
       Service: {
-        compileTemplate: (
-          template: string,
-          variables: Record<string, string>,
-        ): string => {
-          let compiled: string = template;
-          for (const [key, value] of Object.entries(variables)) {
-            compiled = compiled.replace(
-              new RegExp(`{{\\s*${key}\\s*}}`, "g"),
-              value || "",
-            );
-          }
-          return compiled;
-        },
+        compileTemplate: jest.fn(
+          (template: string, variables: Record<string, string>): string => {
+            let compiled: string = template;
+            for (const [key, value] of Object.entries(variables)) {
+              compiled = compiled.replace(
+                new RegExp(`{{\\s*${key}\\s*}}`, "g"),
+                value || "",
+              );
+            }
+            return compiled;
+          },
+        ),
       },
     };
   },
@@ -181,7 +180,9 @@ import MailService from "Common/Server/Services/MailService";
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageAnnouncementService from "Common/Server/Services/StatusPageAnnouncementService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
-import StatusPageSubscriberNotificationTemplateService from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import Markdown from "Common/Server/Types/Markdown";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
@@ -260,6 +261,7 @@ function announcement(overrides?: {
 function statusPage(overrides?: {
   showAnnouncementsOnStatusPage?: boolean;
   withCustomSmtp?: boolean;
+  withCustomTwilio?: boolean;
 }): StatusPage {
   const page: StatusPage = new StatusPage();
   page._id = STATUS_PAGE_ID.toString();
@@ -272,6 +274,10 @@ function statusPage(overrides?: {
 
   if (overrides?.withCustomSmtp) {
     (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+  }
+
+  if (overrides?.withCustomTwilio) {
+    (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
   }
 
   return page;
@@ -1003,6 +1009,87 @@ describe("Announcement:SendNotificationToSubscribers (created)", () => {
       subscriberNotificationStatus:
         StatusPageSubscriberNotificationStatus.Failed,
       subscriberNotificationStatusMessage: "markdown exploded",
+    });
+  });
+});
+
+describe("Announcement custom templates", () => {
+  const CUSTOM_BODIES: Record<string, string> = {
+    [StatusPageSubscriberNotificationMethod.Email]:
+      "<div>{{announcementDescription}}</div>",
+    [StatusPageSubscriberNotificationMethod.SMS]:
+      "SMS {{announcementDescription}}",
+    [StatusPageSubscriberNotificationMethod.Slack]:
+      "Slack {{announcementDescription}}",
+    [StatusPageSubscriberNotificationMethod.MicrosoftTeams]:
+      "Teams {{announcementDescription}}",
+  };
+  const CUSTOM_SUBJECT: string =
+    "{{announcementTitle}}: {{announcementDescription}}";
+
+  function variablesCompiledInto(template: string): Record<string, string> {
+    const calls: Array<Array<unknown>> = mock(
+      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+    ).mock.calls.filter((call: Array<unknown>): boolean => {
+      return call[0] === template;
+    });
+
+    expect(calls).toHaveLength(1);
+    return calls[0]![1] as Record<string, string>;
+  }
+
+  beforeEach(() => {
+    createdRows = [announcement()];
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([
+      statusPage({ withCustomSmtp: true, withCustomTwilio: true }),
+    ] as never);
+
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      const method: string = (args as JSONObject)[
+        "notificationMethod"
+      ] as string;
+      const template: StatusPageSubscriberNotificationTemplate =
+        new StatusPageSubscriberNotificationTemplate();
+      template.templateBody = CUSTOM_BODIES[method]!;
+
+      if (method === StatusPageSubscriberNotificationMethod.Email) {
+        template.emailSubject = CUSTOM_SUBJECT;
+      }
+
+      return template;
+    });
+  });
+
+  test("renders HTML in the email body, plain text in SMS and the subject, and Markdown in chat", async () => {
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()[0]!.mail["vars"]).toEqual({
+      body: `<div>${DESCRIPTION_HTML}</div>`,
+    });
+    expect(sentMail()[0]!.mail["subject"]).toBe(
+      `${TITLE}: ${DESCRIPTION_TEXT}`,
+    );
+    expect(sentSms()).toEqual([`SMS ${DESCRIPTION_TEXT}`]);
+    expect(sentSlack()).toEqual([`Slack ${DESCRIPTION}`]);
+    expect(sentTeams()).toEqual([`Teams ${DESCRIPTION}`]);
+  });
+
+  test("compiles the email subject with the same variables as the body, as plain text", async () => {
+    await runJob(CREATED_JOB);
+
+    const body: Record<string, string> = variablesCompiledInto(
+      CUSTOM_BODIES[StatusPageSubscriberNotificationMethod.Email]!,
+    );
+
+    expect(body["announcementDescription"]).toBe(DESCRIPTION_HTML);
+    expect(variablesCompiledInto(CUSTOM_SUBJECT)).toEqual({
+      ...body,
+      announcementDescription: DESCRIPTION_TEXT,
     });
   });
 });

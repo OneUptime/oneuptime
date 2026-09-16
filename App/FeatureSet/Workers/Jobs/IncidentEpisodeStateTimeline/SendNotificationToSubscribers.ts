@@ -502,8 +502,17 @@ RunCron(
               statusPageToResources[statuspage._id!] || [],
               "", // Use empty string as default for backward compatibility
             );
+          const resourcesAffectedPlainText: string =
+            StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+              statusPageToResources[statuspage._id!] || [],
+              "",
+            );
 
-          // Prepare template variables for custom templates
+          /*
+           * The custom email body is HTML (it is wrapped only by
+           * BlankTemplate). SMS, the email subject, Slack and Teams do not
+           * render HTML, so they get the plain-text resource list.
+           */
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
@@ -513,6 +522,11 @@ RunCron(
             episodeTitle: episode.title || "",
             episodeState: episodeStateTimeline.incidentState.name,
             unsubscribeUrl: unsubscribeUrl,
+          };
+
+          const plainTextTemplateVariables: Record<string, string> = {
+            ...templateVariables,
+            resourcesAffected: resourcesAffectedPlainText || "None",
           };
 
           if (subscriber.subscriberPhone) {
@@ -532,7 +546,7 @@ RunCron(
               smsMessage =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   smsTemplate.templateBody,
-                  templateVariables,
+                  plainTextTemplateVariables,
                 );
             } else {
               // Use default hard-coded template
@@ -596,7 +610,7 @@ RunCron(
               const compiledSubject: string = emailTemplate.emailSubject
                 ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     emailTemplate.emailSubject,
-                    templateVariables,
+                    plainTextTemplateVariables,
                   )
                 : `[Incident ${Text.uppercaseFirstLetter(episodeStateTimeline.incidentState.name)}] ${episode.title}`;
 
@@ -682,7 +696,7 @@ RunCron(
               slackTitle =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   slackTemplate.templateBody,
-                  templateVariables,
+                  plainTextTemplateVariables,
                 );
             } else {
               // Use default hard-coded template
@@ -728,7 +742,7 @@ RunCron(
               teamsTitle =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   teamsTemplate.templateBody,
-                  templateVariables,
+                  plainTextTemplateVariables,
                 );
             } else {
               // Use default hard-coded template
@@ -781,7 +795,7 @@ RunCron(
                   episodeTitle: episode.title || "",
                   incidentSeverity: episode.incidentSeverity?.name || "",
                   incidentState: episodeStateTimeline.incidentState?.name || "",
-                  resourcesAffected: resourcesAffected || "",
+                  resourcesAffected: resourcesAffectedPlainText || "",
                   detailsUrl: episodeDetailsUrl,
                 },
               },

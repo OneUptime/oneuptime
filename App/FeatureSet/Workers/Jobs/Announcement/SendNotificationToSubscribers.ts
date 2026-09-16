@@ -555,12 +555,16 @@ const notifySubscribersOfAnnouncement: (data: {
                     emailTemplateVariables,
                   );
 
-                // Use custom subject if provided
+                // Use custom subject if provided. A subject is plain text.
                 if (emailTemplate.emailSubject) {
                   emailSubject =
                     StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                       emailTemplate.emailSubject,
-                      emailTemplateVariables,
+                      {
+                        ...emailTemplateVariables,
+                        announcementDescription:
+                          announcementDescriptionPlainText,
+                      },
                     );
                 }
 
