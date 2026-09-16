@@ -140,13 +140,14 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
           <EmptyState
             id="security-events-empty-state"
             icon={IconProp.ShieldCheck}
+            paddingClassName="py-12"
             title="No security events yet"
             description="Any source that can POST JSON — a SIEM, a SOAR webhook, a log forwarder — can feed this table. Events are normalized to OCSF whatever dialect they arrive in."
             footer={
               <Button
                 title="Read the setup guide"
                 icon={IconProp.Book}
-                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
                   Navigation.navigate(
                     RouteUtil.populateRouteParams(

@@ -45,10 +45,21 @@ const EmptyState: FunctionComponent<ComponentProps> = (
           <h3 className="mt-2 text-sm font-medium text-gray-900">
             {translateValue(props.title)}
           </h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mx-auto mt-1 max-w-lg text-sm text-gray-500">
             {translateValue(props.description)}
           </p>
-          {props.footer && <div className="mt-6">{props.footer}</div>}
+          {/*
+           * A flex row rather than text-center: several Button variants are
+           * block-level flex boxes (OUTLINE fills the width and left-aligns
+           * its label), which text-center cannot centre. ml-0 cancels
+           * Button's md:ml-3 so a lone button sits dead centre and a group is
+           * spaced by the gap alone.
+           */}
+          {props.footer && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3 [&_button]:ml-0">
+              {props.footer}
+            </div>
+          )}
         </div>
       </div>
     </React.Fragment>
