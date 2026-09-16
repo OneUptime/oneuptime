@@ -59,6 +59,10 @@ const SCREENSHOTS: string = path.resolve(
 
 const INCIDENT_TLDR: string =
   "checkout-api restarted at 17:52 with its database pool cut from 40 to 10 connections, so checkout requests queued and p95 latency passed 2s — the same pool exhaustion as #1017, #1029 and #1036.";
+// The header summary's text colours: text-gray-900, and text-gray-600 once rejected.
+const SUMMARY_COLOR: string = "rgb(17, 24, 39)";
+const REJECTED_SUMMARY_COLOR: string = "rgb(75, 85, 99)";
+
 // ?tldr=long: a TL;DR at the server's 320-character cap.
 const INCIDENT_LONG_TLDR: string =
   "checkout-api release 2026.09.14-2 restarted at 17:52:04 with DB_POOL_MAX=10 instead of 40, so requests waited up to 2s in pg.pool.connect for an orders-db connection and p95 latency rose from ~310 ms to 2.35 s (db.client.connections.usage pinned at 10/10). Rolling back to 2026.09.14-1 cleared it, as in #1017 and #1029.";
@@ -799,6 +803,16 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(1);
 }
 
+// Whether an element cuts its own content off (a clamp or a truncation).
+async function isOverflowing(locator: Locator): Promise<boolean> {
+  return locator.evaluate((element: Element): boolean => {
+    return (
+      element.scrollHeight > element.clientHeight + 1 ||
+      element.scrollWidth > element.clientWidth + 1
+    );
+  });
+}
+
 async function expectNoErrorStates(page: Page): Promise<void> {
   await expect(page.getByText("Something went wrong")).toHaveCount(0);
   await expect(page.getByText("An unexpected error has occurred")).toHaveCount(
@@ -1282,17 +1296,6 @@ test.describe("AI investigation report", () => {
     expect(INCIDENT_LONG_TLDR).toHaveLength(320);
     await expect(tldr).toHaveText(INCIDENT_LONG_TLDR);
 
-    const isOverflowing: (locator: Locator) => Promise<boolean> = (
-      locator: Locator,
-    ): Promise<boolean> => {
-      return locator.evaluate((element: Element): boolean => {
-        return (
-          element.scrollHeight > element.clientHeight + 1 ||
-          element.scrollWidth > element.clientWidth + 1
-        );
-      });
-    };
-
     // The heading gets the whole row on a phone, so it is not cut short.
     expect(await isOverflowing(heading), "heading is truncated").toBe(false);
 
@@ -1409,6 +1412,189 @@ test.describe("AI investigation report", () => {
     await expect(
       investigation.getByText("You confirmed this analysis"),
     ).toHaveCount(0);
+    // The header rolls back with the panel.
+    await expect(hero(page).getByText(/by a responder$/)).toHaveCount(0);
+    await expect(
+      hero(page).getByText(INCIDENT_TLDR, { exact: true }),
+    ).toHaveCSS("color", SUMMARY_COLOR);
+  });
+
+  test("a rating shows in the header at once, and a changed one replaces it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const header: Locator = hero(page);
+    const investigation: Locator = investigationCard(page);
+    const rating: Locator = investigation.getByRole("group", {
+      name: "Rate this investigation",
+    });
+    const tldr: Locator = header.getByText(INCIDENT_TLDR, { exact: true });
+    const rejected: Locator = header.getByText("Rejected by a responder", {
+      exact: true,
+    });
+    const confirmed: Locator = header.getByText("Confirmed by a responder", {
+      exact: true,
+    });
+
+    await expect(tldr).toHaveCSS("color", SUMMARY_COLOR);
+    await expect(header.getByText(/by a responder$/)).toHaveCount(0);
+
+    await rating.getByRole("button", { name: "Rejected" }).click();
+    await expect(rejected).toBeVisible();
+    await expect(rejected).toHaveAttribute("data-verdict", "Rejected");
+    // Still there to read, no longer presented as the root cause.
+    await expect(tldr).toBeVisible();
+    await expect(tldr).toHaveCSS("color", REJECTED_SUMMARY_COLOR);
+
+    await investigation
+      .getByRole("button", { name: "Change", exact: true })
+      .click();
+    await rating.getByRole("button", { name: "Confirmed" }).click();
+    await expect(confirmed).toBeVisible();
+    await expect(rejected).toHaveCount(0);
+    await expect(tldr).toHaveCSS("color", SUMMARY_COLOR);
+
+    // Both ratings were saved, in order.
+    await expect
+      .poll(async (): Promise<Array<unknown>> => {
+        return (await apiRequestsTo(page, "/ai-investigation/verdict")).map(
+          (request: RecordedApiRequest): unknown => {
+            return request.body["verdict"];
+          },
+        );
+      })
+      .toEqual(["Rejected", "Confirmed"]);
+  });
+
+  test("a saved verdict shows beside the heading when the page opens", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "verdict=confirmed");
+
+    const header: Locator = hero(page);
+    const heading: Locator = header.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const badge: Locator = header.getByText("Confirmed by a responder", {
+      exact: true,
+    });
+    await expect(badge).toBeVisible();
+    await expect(
+      investigationCard(page).getByText("You confirmed this analysis"),
+    ).toBeVisible();
+    await expect(header.getByText(INCIDENT_TLDR, { exact: true })).toHaveCSS(
+      "color",
+      SUMMARY_COLOR,
+    );
+
+    // One row: icon and heading, the badge, then View full report.
+    const headingBox: Box = await documentBox(heading);
+    const badgeBox: Box = await documentBox(badge);
+    const buttonBox: Box = await documentBox(
+      header.getByRole("button", { name: "View full report" }),
+    );
+    const middle: (box: Box) => number = (box: Box): number => {
+      return box.y + box.height / 2;
+    };
+    expect(Math.abs(middle(badgeBox) - middle(headingBox))).toBeLessThanOrEqual(
+      2,
+    );
+    expect(
+      Math.abs(middle(buttonBox) - middle(headingBox)),
+    ).toBeLessThanOrEqual(2);
+    expect(badgeBox.x).toBeGreaterThanOrEqual(headingBox.x + headingBox.width);
+    expect(buttonBox.x).toBeGreaterThanOrEqual(badgeBox.x + badgeBox.width);
+  });
+
+  test("the alert header shows its own saved verdict", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, "verdict=rejected");
+
+    const header: Locator = hero(page);
+    await expect(
+      header.getByText("Rejected by a responder", { exact: true }),
+    ).toBeVisible();
+    await expect(header.getByText(ALERT_TLDR, { exact: true })).toHaveCSS(
+      "color",
+      REJECTED_SUMMARY_COLOR,
+    );
+  });
+
+  test("on a phone a verdict wraps under the heading without cutting it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "verdict=rejected&tldr=long");
+
+    const header: Locator = hero(page);
+    const heading: Locator = header.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const badge: Locator = header.getByText("Rejected by a responder", {
+      exact: true,
+    });
+    const tldr: Locator = header.getByText(INCIDENT_LONG_TLDR, {
+      exact: true,
+    });
+    await expect(badge).toBeVisible();
+
+    expect(await isOverflowing(heading), "heading is truncated").toBe(false);
+    expect(await isOverflowing(badge), "badge is cut off").toBe(false);
+    const headingBox: Box = await documentBox(heading);
+    const badgeBox: Box = await documentBox(badge);
+    expect(badgeBox.y).toBeGreaterThanOrEqual(headingBox.y + headingBox.height);
+    await expectAbove(badge, tldr, "the badge is above the summary");
+    await expect(tldr).toHaveCSS("color", REJECTED_SUMMARY_COLOR);
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("beside a tablet's side menu the heading keeps its row whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // 768px: the side menu is out and the header card is at its narrowest.
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await openReady(page, INCIDENT_PAGE, "verdict=rejected");
+
+    const header: Locator = hero(page);
+    const heading: Locator = header.getByRole("heading", {
+      level: 3,
+      name: "AI root cause analysis",
+    });
+    const badge: Locator = header.getByText("Rejected by a responder", {
+      exact: true,
+    });
+    const tldr: Locator = header.getByText(INCIDENT_TLDR, { exact: true });
+    const viewReport: Locator = header.getByRole("button", {
+      name: "View full report",
+    });
+    await expect(badge).toBeVisible();
+
+    expect(await isOverflowing(heading), "heading is truncated").toBe(false);
+    // The report button waits in the bottom row, under the summary.
+    await expectAbove(
+      tldr,
+      viewReport,
+      "View full report is under the summary",
+    );
+    await expectAbove(badge, tldr, "the badge is above the summary");
+    await expectNoHorizontalOverflow(page);
+
+    await viewReport.click();
+    await expect(page.locator("#ai-investigation")).toBeFocused();
   });
 
   test("Open Fix PR creates a fix task for this run", async ({
@@ -3295,6 +3481,19 @@ test.describe("screenshots", () => {
   test.describe("AI report close-ups", () => {
     // Close-ups of one column read better at twice the density.
     test.use({ deviceScaleFactor: 2 });
+
+    test("header summary with a rejected verdict", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, INCIDENT_PAGE, "verdict=rejected");
+      await expect(
+        hero(page).getByText("Rejected by a responder", { exact: true }),
+      ).toBeVisible();
+      await page.mouse.move(0, 0);
+      await screenshotElement(hero(page), "incident-header-ai-verdict");
+    });
 
     test("header summary with a long TL;DR", async ({
       page,

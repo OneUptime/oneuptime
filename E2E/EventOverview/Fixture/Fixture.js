@@ -27,6 +27,10 @@
  *            "long" gives Incident #1042 a TL;DR at the server's
  *            320-character cap (InvestigationTldr.MAX_TLDR_CHARS), long
  *            enough to wrap and clamp in the event header.
+ *   ?verdict= none (default) | confirmed | rejected
+ *            A responder's verdict already saved on the completed runs of
+ *            Incident #1042 and Alert #311, as if rated before the page
+ *            loaded.
  *   ?sm=     scheduled (default, starts in 2h) | ongoing | ended | overdue
  *            | overrun
  *            Scheduled Maintenance #58. "overdue" is still Scheduled 20
@@ -171,6 +175,12 @@ const stateMode = ["ongoing", "created"].includes(params.get("state"))
   : "resolved";
 const aiMode = params.get("ai") || "report";
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
+const presetVerdict =
+  params.get("verdict") === "confirmed"
+    ? "Confirmed"
+    : params.get("verdict") === "rejected"
+      ? "Rejected"
+      : null;
 const smMode = params.get("sm") || "scheduled";
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
@@ -254,6 +264,7 @@ const fixture = {
     state: stateMode,
     ai: aiMode,
     tldr: tldrMode,
+    verdict: presetVerdict,
     sm: smMode,
     fail: Array.from(failures),
   },
@@ -2384,8 +2395,8 @@ function defineInvestigation(spec) {
     ...spec,
     citations,
     markdown: brandedMarkdown(spec.analysis, citations, citations.length),
-    verdict: null,
-    verdictAt: null,
+    verdict: presetVerdict,
+    verdictAt: presetVerdict ? at("18:10") : null,
   };
 }
 
