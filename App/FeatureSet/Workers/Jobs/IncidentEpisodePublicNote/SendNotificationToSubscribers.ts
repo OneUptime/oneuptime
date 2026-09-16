@@ -393,10 +393,16 @@ const notifySubscribersOfEpisodePublicNote: (data: {
       const statusPageIdString: string | null =
         statuspage.id?.toString() || statuspage._id?.toString() || null;
 
+      /*
+       * The status page has no /episodes page: it shows an episode on its
+       * incident detail route (/incidents/:id), which looks the id up as an
+       * incident first and then as an episode. Linking anywhere else lands
+       * subscribers on "page not found".
+       */
       const episodeDetailsUrl: string =
         episode.id && statusPageURL
           ? URL.fromString(statusPageURL)
-              .addRoute(`/episodes/${episode.id.toString()}`)
+              .addRoute(`/incidents/${episode.id.toString()}`)
               .toString()
           : statusPageURL;
 
@@ -452,6 +458,13 @@ const notifySubscribersOfEpisodePublicNote: (data: {
           statusPageToResources[statuspage._id!] || [],
         );
 
+      /*
+       * Every variable SubscriberNotificationTemplateVariables advertises for
+       * the episode note events, built once per status page. Each channel
+       * below uses this object (SMS only swaps the note for plain text, and
+       * every channel adds the subscriber's unsubscribeUrl), so no channel
+       * can miss a variable the others have.
+       */
       const templateVariables: Record<string, string> = {
         statusPageName: statusPageName,
         statusPageUrl: statusPageURL,
@@ -604,7 +617,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                   emailTemplate.emailSubject,
                   subscriberTemplateVariables,
                 )
-              : copy.customTemplateEmailSubjectPrefix + episode.title || "";
+              : copy.customTemplateEmailSubjectPrefix + (episode.title || "");
 
             MailService.sendMail(
               {
