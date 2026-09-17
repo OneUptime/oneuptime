@@ -29,6 +29,8 @@ export interface NavItem {
 export interface MoreMenuItem {
   title: string;
   description: string;
+  /** Acronyms and alternate names users can search for in navigation. */
+  keywords?: Array<string> | undefined;
   route: Route;
   icon: IconProp;
   iconColor?: string; // Tailwind color name like "blue", "purple", "amber"

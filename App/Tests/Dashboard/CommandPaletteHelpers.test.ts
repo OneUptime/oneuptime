@@ -86,6 +86,37 @@ describe("buildNavigationCommandDescriptors", () => {
     expect(descriptors[0]!.routePath).toBe("/dashboard/abc123/monitors");
   });
 
+  test("preserves search aliases while keeping command ids tied to routes", () => {
+    const descriptors: Array<PaletteNavigationCommandDescriptor> =
+      buildNavigationCommandDescriptors([
+        entry({
+          title: "Real User Monitoring",
+          keywords: ["rum", "browser monitoring"],
+          routePath: "/dashboard/abc123/rum",
+          templatePath: "/dashboard/:projectId/rum",
+        }),
+        entry({
+          title: "Kubernetes",
+          keywords: ["k8s", "pods"],
+          routePath: "/dashboard/abc123/kubernetes",
+          templatePath: "/dashboard/:projectId/kubernetes",
+        }),
+        entry({}),
+      ]);
+
+    expect(descriptors[0]).toMatchObject({
+      id: "nav-dashboard-projectid-rum",
+      keywords: ["rum", "browser monitoring"],
+      routePath: "/dashboard/abc123/rum",
+    });
+    expect(descriptors[1]).toMatchObject({
+      id: "nav-dashboard-projectid-kubernetes",
+      keywords: ["k8s", "pods"],
+      routePath: "/dashboard/abc123/kubernetes",
+    });
+    expect(descriptors[2]!.keywords).toBeUndefined();
+  });
+
   test("drops entries whose populated route still has a ':' placeholder", () => {
     const descriptors: Array<PaletteNavigationCommandDescriptor> =
       buildNavigationCommandDescriptors([

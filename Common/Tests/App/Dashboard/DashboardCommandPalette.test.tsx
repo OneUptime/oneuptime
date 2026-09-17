@@ -17,6 +17,12 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import Route from "../../../Types/API/Route";
+import ObjectID from "../../../Types/ObjectID";
+import DashboardCommandPalette from "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette";
+import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
+import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
+import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 
 /*
  * The flagship interaction of the command palette — press Cmd/Ctrl+K anywhere
@@ -28,8 +34,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * Escape/close-key semantics inside the open palette are deliberately NOT
  * pinned here — they belong to the Common CommandPalette's own contract. This
- * suite owns only the host's chord, its politeness rules, the global toggle
- * event, and listener cleanup.
+ * suite owns the host's chord, its politeness rules, the global toggle event,
+ * listener cleanup, and searching the real dashboard navigation catalog.
  */
 
 const navigateMock: MockFunction = getJestMockFunction();
@@ -37,6 +43,7 @@ const getListMock: MockFunction = getJestMockFunction();
 const getCurrentProjectIdMock: MockFunction = getJestMockFunction();
 const getAllPermissionsMock: MockFunction = getJestMockFunction();
 const isMasterAdminMock: MockFunction = getJestMockFunction();
+let navigationTranslations: Record<string, string> = {};
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the
@@ -49,7 +56,7 @@ jest.mock("react-i18next", () => {
     useTranslation: () => {
       return {
         t: (key: string, defaultValue?: string): string => {
-          return defaultValue ?? key;
+          return navigationTranslations[key] ?? defaultValue ?? key;
         },
       };
     },
@@ -117,67 +124,6 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
-/*
- * The real catalog hook walks the full RouteMap through useTranslation; the
- * host and dashboard NavBar only need a compact catalog, so one page plus one
- * product keeps the suite about shortcut ownership rather than catalog data.
- */
-jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Utils/NavigationItems",
-  () => {
-    const useDashboardNavigationItemsStub: () => unknown = (): unknown => {
-      /*
-       * Route is loaded lazily for the same hoisting reason as the mock
-       * functions above; requireActual keeps it the real class.
-       */
-      const RouteClass: typeof import("../../../Types/API/Route").default = (
-        jest.requireActual("../../../Types/API/Route") as {
-          default: typeof import("../../../Types/API/Route").default;
-        }
-      ).default;
-      return {
-        navItems: [
-          {
-            id: "home-nav-bar-item",
-            title: "Home",
-            icon: "Home",
-            route: new RouteClass("/dashboard/abc123/home"),
-          },
-        ],
-        moreMenuItems: [
-          {
-            title: "Monitors",
-            description: "Monitor anything that can go down.",
-            icon: "AltGlobe",
-            iconColor: "blue",
-            category: "Essentials",
-            route: new RouteClass("/dashboard/abc123/monitors"),
-          },
-        ],
-        rightElement: {
-          id: "user-profile-nav-bar-item",
-          title: "User Profile",
-          description: "Your account",
-          icon: "User",
-          route: new RouteClass("/dashboard/user-profile/picture"),
-        },
-      };
-    };
-
-    // The App source consumes the hook as the module's default export.
-    return {
-      __esModule: true,
-      default: useDashboardNavigationItemsStub,
-      useDashboardNavigationItems: useDashboardNavigationItemsStub,
-    };
-  },
-);
-
-import DashboardCommandPalette from "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette";
-import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
-import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
-import GlobalEvents from "../../../UI/Utils/GlobalEvents";
-
 function palette(): HTMLElement | null {
   return screen.queryByTestId("command-palette");
 }
@@ -214,6 +160,12 @@ beforeEach(() => {
    * timer); fake timers keep those under act()'s control.
    */
   jest.useFakeTimers();
+  window.localStorage.clear();
+  navigationTranslations = {
+    "navbar.items.rumTitle": "Real User Monitoring",
+    "navbar.items.kubernetesTitle": "Kubernetes",
+    "navbar.items.servicesTitle": "Services",
+  };
   getCurrentProjectIdMock.mockReturnValue(null);
   getAllPermissionsMock.mockReturnValue([]);
   isMasterAdminMock.mockReturnValue(false);
@@ -297,6 +249,146 @@ describe("DashboardCommandPalette Cmd/Ctrl+K chord", () => {
 
     expect(palette()).toBeNull();
   });
+});
+
+describe("DashboardCommandPalette navigation keyword search", () => {
+  test.each([
+    ["RUM", "Real User Monitoring", "rum"],
+    ["  rUm  ", "Real User Monitoring", "rum"],
+    ["web vitals", "Real User Monitoring", "rum"],
+    ["session replay", "Real User Monitoring", "rum"],
+    ["k8s", "Kubernetes", "kubernetes"],
+    ["  K8S  ", "Kubernetes", "kubernetes"],
+    ["pods", "Kubernetes", "kubernetes"],
+    ["apm", "Services", "service"],
+    ["error budgets", "SLOs", "slos"],
+    ["siem", "Security Events", "security-events"],
+  ])(
+    "%s finds %s and navigates to the selected project's page",
+    (query: string, title: string, path: string) => {
+      getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+      render(<DashboardCommandPalette />);
+      pressChord({ key: "k", metaKey: true });
+
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: query },
+      });
+
+      const option: HTMLElement = screen.getByTestId(
+        `command-palette-option-nav-dashboard-projectid-${path}`,
+      );
+      expect(option).toHaveTextContent(title);
+      fireEvent.click(option);
+
+      expect(navigateMock).toHaveBeenCalledTimes(1);
+      expect(navigateMock).toHaveBeenCalledWith(
+        new Route(`/dashboard/project-a/${path}`),
+      );
+      expect(palette()).not.toBeInTheDocument();
+    },
+  );
+
+  test("Enter opens the Kubernetes keyword result", () => {
+    getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+    render(<DashboardCommandPalette />);
+    pressChord({ key: "k", ctrlKey: true });
+    const input: HTMLElement = screen.getByTestId("command-palette-input");
+
+    fireEvent.change(input, { target: { value: "k8s" } });
+    expect(screen.getAllByRole("option")[0]).toHaveTextContent("Kubernetes");
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(navigateMock).toHaveBeenCalledWith(
+      new Route("/dashboard/project-a/kubernetes"),
+    );
+    expect(palette()).not.toBeInTheDocument();
+  });
+
+  test.each([
+    ["RUM", "rum"],
+    ["k8s", "kubernetes"],
+  ])(
+    "%s keeps using the current project's route after a project switch",
+    (query: string, path: string) => {
+      getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+      const view: ReturnType<typeof render> = render(
+        <DashboardCommandPalette />,
+      );
+      pressChord({ key: "k", metaKey: true });
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: query },
+      });
+      expect(
+        screen.getByTestId(
+          `command-palette-option-nav-dashboard-projectid-${path}`,
+        ),
+      ).toBeInTheDocument();
+
+      getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-b"));
+      view.rerender(<DashboardCommandPalette />);
+      fireEvent.click(
+        screen.getByTestId(
+          `command-palette-option-nav-dashboard-projectid-${path}`,
+        ),
+      );
+
+      expect(navigateMock).toHaveBeenCalledWith(
+        new Route(`/dashboard/project-b/${path}`),
+      );
+    },
+  );
+
+  test.each([
+    ["RUM", "rum", "navbar.items.rumTitle", "Surveillance des utilisateurs"],
+    ["k8s", "kubernetes", "navbar.items.kubernetesTitle", "Orchestration"],
+  ])(
+    "%s still finds the page after its title is translated",
+    (query: string, path: string, translationKey: string, title: string) => {
+      getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+      const view: ReturnType<typeof render> = render(
+        <DashboardCommandPalette />,
+      );
+      pressChord({ key: "k", metaKey: true });
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: query },
+      });
+
+      navigationTranslations[translationKey] = title;
+      view.rerender(<DashboardCommandPalette />);
+
+      const option: HTMLElement = screen.getByTestId(
+        `command-palette-option-nav-dashboard-projectid-${path}`,
+      );
+      expect(option).toHaveTextContent(title);
+      fireEvent.click(option);
+      expect(navigateMock).toHaveBeenCalledWith(
+        new Route(`/dashboard/project-a/${path}`),
+      );
+    },
+  );
+
+  test.each(["RUM", "k8s"])(
+    "%s does not expose project routes when no project is selected",
+    (query: string) => {
+      render(<DashboardCommandPalette />);
+      pressChord({ key: "k", metaKey: true });
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: query },
+      });
+
+      expect(
+        screen.queryByTestId(
+          "command-palette-option-nav-dashboard-projectid-rum",
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId(
+          "command-palette-option-nav-dashboard-projectid-kubernetes",
+        ),
+      ).not.toBeInTheDocument();
+      expect(navigateMock).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("dashboard Cmd/Ctrl+K ownership with the products menu mounted", () => {

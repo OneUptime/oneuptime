@@ -46,6 +46,7 @@ export function isRoutePathNavigable(routePath: string): boolean {
 export interface PaletteNavigationCatalogEntry {
   title: string;
   description?: string | undefined;
+  keywords?: Array<string> | undefined;
   icon?: IconProp | undefined;
   /** Tailwind color name like "blue" | "violet" — same convention as NavBar. */
   iconColor?: string | undefined;
