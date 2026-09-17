@@ -2546,6 +2546,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const hasPermissionToReadField: HasPermissionToReadFieldFunction = (
     field: keyof TBaseModel,
   ): boolean => {
+    /*
+     * Secondary fields use this check when building the request, so they need
+     * the same master-admin access as the visible columns that render them.
+     */
+    if (User.isMasterAdmin()) {
+      return true;
+    }
+
     const accessControl: Dictionary<ColumnAccessControl> =
       model.getColumnAccessControlForAllColumns();
 
