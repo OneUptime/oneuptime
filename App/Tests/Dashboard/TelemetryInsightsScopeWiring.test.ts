@@ -502,7 +502,7 @@ describe("the error drill-down explains and hands off", () => {
     );
 
     expect(source).toContain(
-      "useEventTimeReferenceLines({ enabled: true, window: patternWindow, })",
+      "useEventTimeReferenceLines({ enabled: true, window: patternWindow, queryConfigs: eventQueryConfigs, })",
     );
     expect(source).toContain("What else happened in this window");
     expect(source).toContain("readEventKindFromLabel(label)");

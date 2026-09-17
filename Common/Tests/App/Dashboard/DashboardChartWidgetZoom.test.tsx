@@ -41,6 +41,20 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const fetchResultsMock: MockFunction = getJestMockFunction();
 const metricChartsRenderMock: MockFunction = getJestMockFunction();
+const eventOverlayMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/UseEventTimeReferenceLines",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: unknown) => {
+        eventOverlayMock(props);
+        return { lines: [], markerCount: 0 };
+      },
+    };
+  },
+);
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the
@@ -94,6 +108,10 @@ import DashboardChartType from "../../../Types/Dashboard/Chart/ChartType";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import DashboardChartComponent from "../../../Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
+import DashboardVariable, {
+  DashboardVariableType,
+} from "../../../Types/Dashboard/DashboardVariable";
+import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import { ObjectType } from "../../../Types/JSON";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
@@ -216,6 +234,7 @@ function lastFetchArgs(): CapturedFetchArgs {
 beforeEach(() => {
   fetchResultsMock.mockReset();
   metricChartsRenderMock.mockReset();
+  eventOverlayMock.mockReset();
   fetchResultsMock.mockReturnValue(
     Promise.resolve([{ data: [], truncated: false }]),
   );
@@ -389,5 +408,84 @@ describe("dashboard chart widget drag-to-zoom (standalone fallback)", () => {
     const captured: CapturedChartProps = lastChartProps();
     expect(captured.onTimeRangeSelect).toBeUndefined();
     expect(captured.enableSeriesActions).toBe(false);
+  });
+});
+
+describe("dashboard widget event scope", () => {
+  test("uses every effective query after dashboard variables are applied", async () => {
+    const component: DashboardChartComponent = buildChartComponent();
+    component.arguments.metricQueryConfigs = [
+      {
+        metricQueryData: {
+          filterData: {
+            metricName: "memory.usage",
+            attributes: { monitorId: "monitor-2" },
+          },
+        },
+      },
+    ];
+    const variables: Array<DashboardVariable> = [
+      {
+        id: "host",
+        name: "host",
+        type: DashboardVariableType.TelemetryAttribute,
+        attributeKey: "resource.host.id",
+        selectedValue: "host-a",
+      },
+    ];
+    const { rerender } = render(
+      <DashboardChartComponentElement
+        {...buildBaseProps({ variables, refreshTick: 5 })}
+        component={component}
+      />,
+    );
+    await waitFor(() => {
+      expect(fetchResultsMock).toHaveBeenCalled();
+    });
+    let overlay: {
+      queryConfigs: Array<MetricQueryConfigData>;
+      window: InBetween<Date>;
+      refreshTick: number;
+    } = eventOverlayMock.mock.calls[eventOverlayMock.mock.calls.length - 1]![0];
+    expect(overlay.queryConfigs).toBe(
+      lastFetchArgs().metricViewData.queryConfigs,
+    );
+    expect(overlay.queryConfigs).toHaveLength(2);
+    for (const query of overlay.queryConfigs) {
+      expect(
+        (query.metricQueryData.filterData.attributes as
+          | Record<string, unknown>
+          | undefined)?.["resource.host.id"],
+      ).toBe("host-a");
+    }
+    expect(
+      (overlay.queryConfigs[1]?.metricQueryData.filterData.attributes as
+        | Record<string, unknown>
+        | undefined)?.["monitorId"],
+    ).toBe("monitor-2");
+    expect(overlay.refreshTick).toBe(5);
+    expect(overlay.window).toEqual(
+      new InBetween<Date>(DASHBOARD_START, DASHBOARD_END),
+    );
+
+    rerender(
+      <DashboardChartComponentElement
+        {...buildBaseProps({
+          variables: [{ ...variables[0]!, selectedValue: "host-b" }],
+          refreshTick: 6,
+        })}
+        component={component}
+      />,
+    );
+    await waitFor(() => {
+      overlay =
+        eventOverlayMock.mock.calls[eventOverlayMock.mock.calls.length - 1]![0];
+      expect(
+        (overlay.queryConfigs[0]?.metricQueryData.filterData.attributes as
+          | Record<string, unknown>
+          | undefined)?.["resource.host.id"],
+      ).toBe("host-b");
+      expect(overlay.refreshTick).toBe(6);
+    });
   });
 });

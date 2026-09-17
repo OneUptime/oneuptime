@@ -74,6 +74,7 @@ export interface SerializedMetricQuery {
    */
   variable?: string | undefined;
   attributes?: Dictionary<SerializedMetricAttributeValue> | undefined;
+  eventScope?: Dictionary<SerializedMetricAttributeValue> | undefined;
   aggregationType?: MetricsAggregationType | undefined;
   alias?: SerializedMetricQueryAlias | undefined;
   groupByAttributeKeys?: Array<string> | undefined;
@@ -304,6 +305,13 @@ export default class MetricExplorerUrl {
         ? { variable: queryConfig.metricAliasData.metricVariable }
         : {}),
       attributes,
+      ...(queryConfig.eventScope !== undefined
+        ? {
+            eventScope: MetricExplorerUrl.sanitizeAttributes(
+              queryConfig.eventScope,
+            ),
+          }
+        : {}),
       ...(aggregationType ? { aggregationType } : {}),
       ...(alias ? { alias } : {}),
       ...(groupByAttributeKeys.length > 0 ? { groupByAttributeKeys } : {}),
@@ -451,6 +459,13 @@ export default class MetricExplorerUrl {
         metricName,
         ...(variable ? { variable } : {}),
         attributes,
+        ...(Object.prototype.hasOwnProperty.call(entryRecord, "eventScope")
+          ? {
+              eventScope: MetricExplorerUrl.sanitizeAttributes(
+                entryRecord["eventScope"],
+              ),
+            }
+          : {}),
         ...(aggregationType ? { aggregationType } : {}),
         ...(alias ? { alias } : {}),
         ...(groupByAttributeKeys.length > 0 ? { groupByAttributeKeys } : {}),
@@ -558,6 +573,10 @@ export default class MetricExplorerUrl {
    */
   public static isMeaningfulMetricQuery(query: SerializedMetricQuery): boolean {
     if (query.metricName) {
+      return true;
+    }
+
+    if (query.eventScope !== undefined) {
       return true;
     }
 

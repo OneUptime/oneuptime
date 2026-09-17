@@ -135,6 +135,8 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
 
   const dateRange: InBetween<Date> = props.startAndEndDate || internalDateRange;
 
+  const [refreshNonce, setRefreshNonce] = useState<number>(0);
+
   /*
    * Incident/alert/change-event markers for the charted window — the
    * card is the shared surface behind monitor metrics tabs,
@@ -145,6 +147,8 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
     useEventTimeReferenceLines({
       enabled: true,
       window: dateRange,
+      queryConfigs: props.queryConfigs,
+      refreshTick: refreshNonce,
     });
 
   const handleTimeRangeChange: (
@@ -186,8 +190,6 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
    * would be a no-op there (including after a failed fetch, which would
    * otherwise have no retry path).
    */
-  const [refreshNonce, setRefreshNonce] = useState<number>(0);
-
   const handleRefresh: () => void = useCallback((): void => {
     setRefreshNonce((nonce: number) => {
       return nonce + 1;

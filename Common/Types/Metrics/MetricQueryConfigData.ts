@@ -1,6 +1,7 @@
 import AggregatedModel from "../BaseDatabase/AggregatedModel";
 import MetricAliasData from "./MetricAliasData";
 import MetricQueryData from "./MetricQueryData";
+import MetricsQuery from "./MetricsQuery";
 
 export enum MetricChartType {
   LINE = "line",
@@ -25,6 +26,13 @@ export default interface MetricQueryConfigData {
   id?: string | undefined;
   metricAliasData?: MetricAliasData | undefined;
   metricQueryData: MetricQueryData;
+  /**
+   * Resource identity for event markers when the metric list is scoped by
+   * entity membership instead of telemetry attributes (e.g. RUM, Inventory).
+   * Kept separate from the metric filter: these identifiers are not stored
+   * in its attributes map. An explicit empty scope suppresses event markers.
+   */
+  eventScope?: MetricsQuery["attributes"] | undefined;
   getSeries?: ((data: AggregatedModel) => ChartSeries) | undefined;
   chartType?: MetricChartType | undefined;
   yAxisValueFormatter?: ((value: number) => string) | undefined;

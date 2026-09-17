@@ -29,6 +29,20 @@ const histogramMock: MockFunction = getJestMockFunction();
 const patternsMock: MockFunction = getJestMockFunction();
 const companionTabsMock: MockFunction = getJestMockFunction();
 const embeddedCardMock: MockFunction = getJestMockFunction();
+const eventOverlayMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/UseEventTimeReferenceLines",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: unknown) => {
+        eventOverlayMock(props);
+        return { lines: [], markerCount: 0 };
+      },
+    };
+  },
+);
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Logs/LogsInsightsApi",
@@ -119,6 +133,7 @@ beforeEach(() => {
   patternsMock.mockReset();
   companionTabsMock.mockReset();
   embeddedCardMock.mockReset();
+  eventOverlayMock.mockReset();
   histogramMock.mockReturnValue(
     Promise.resolve([
       { time: "2026-08-20T10:00:00.000Z", severity: "Information", count: 90 },
@@ -210,6 +225,12 @@ describe("InvestigationDrawer", () => {
     );
     // Pinned — never a rolling token.
     expect(viewData.rangeToken).toBeUndefined();
+    const overlayProps: {
+      queryConfigs: MetricViewData["queryConfigs"];
+      window: InBetween<Date>;
+    } = eventOverlayMock.mock.calls[eventOverlayMock.mock.calls.length - 1]![0];
+    expect(overlayProps.queryConfigs).toBe(viewData.queryConfigs);
+    expect(overlayProps.window).toBe(viewData.startAndEndDate);
     expect(tabsProps["eventNoun"]).toBe("view");
 
     const snapshotWindow: InBetween<Date> = tabsProps[
