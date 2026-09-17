@@ -1,5 +1,8 @@
 import MonitorType from "Common/Types/Monitor/MonitorType";
 
+export const PROBE_DEFAULT_RETRY_COUNT_LABEL: string =
+  "Probe default (usually 3)";
+
 /*
  * Help text for the "Retries on Failure" field on probe-based monitor steps.
  *

@@ -4127,6 +4127,7 @@
   "Probabilistically keep a percentage of matched rows and drop the rest. Cuts volume on high-frequency metrics while keeping a representative sample.": "मेल खाने वाली पंक्तियों के एक प्रतिशत को प्रायिकता के आधार पर रखें और बाकी को छोड़ दें। एक प्रतिनिधि नमूना बनाए रखते हुए उच्च-आवृत्ति वाले मेट्रिक्स का आयतन कम करता है।",
   "Probabilistically keep a percentage of matched rows.": "मेल खाने वाली पंक्तियों के एक प्रतिशत को प्रायिकता के आधार पर रखें।",
   "Probe Agreement Settings": "प्रोब सहमति सेटिंग्स",
+  "Probe default (usually 3)": "प्रोब का डिफ़ॉल्ट मान (आमतौर पर 3)",
   "Probe Details": "प्रोब विवरण",
   "Probe ID": "प्रोब ID",
   "Probe Key": "प्रोब कुंजी",

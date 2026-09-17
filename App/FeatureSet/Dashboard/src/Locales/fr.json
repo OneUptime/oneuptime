@@ -4127,6 +4127,7 @@
   "Probabilistically keep a percentage of matched rows and drop the rest. Cuts volume on high-frequency metrics while keeping a representative sample.": "Conserve de manière probabiliste un pourcentage des lignes correspondantes et supprime le reste. Réduit le volume des métriques à haute fréquence tout en conservant un échantillon représentatif.",
   "Probabilistically keep a percentage of matched rows.": "Conserve de manière probabiliste un pourcentage des lignes correspondantes.",
   "Probe Agreement Settings": "Paramètres d'accord de la sonde",
+  "Probe default (usually 3)": "Valeur par défaut de la sonde (généralement 3)",
   "Probe Details": "Détails de la sonde",
   "Probe ID": "ID de la sonde",
   "Probe Key": "Clé de la sonde",

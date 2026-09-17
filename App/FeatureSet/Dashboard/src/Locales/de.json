@@ -4127,6 +4127,7 @@
   "Probabilistically keep a percentage of matched rows and drop the rest. Cuts volume on high-frequency metrics while keeping a representative sample.": "Behält probabilistisch einen Prozentsatz der übereinstimmenden Zeilen und verwirft den Rest. Reduziert das Volumen bei hochfrequenten Metriken und behält gleichzeitig eine repräsentative Stichprobe bei.",
   "Probabilistically keep a percentage of matched rows.": "Behält probabilistisch einen Prozentsatz der übereinstimmenden Zeilen.",
   "Probe Agreement Settings": "Einstellungen zur Sondenübereinstimmung",
+  "Probe default (usually 3)": "Probe-Standardwert (normalerweise 3)",
   "Probe Details": "Sondendetails",
   "Probe ID": "Sonden-ID",
   "Probe Key": "Probe-Schlüssel",

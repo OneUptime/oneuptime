@@ -4127,6 +4127,7 @@
   "Probabilistically keep a percentage of matched rows and drop the rest. Cuts volume on high-frequency metrics while keeping a representative sample.": "Вероятностно сохраняет процент совпавших строк и отбрасывает остальные. Снижает объём высокочастотных метрик, сохраняя репрезентативную выборку.",
   "Probabilistically keep a percentage of matched rows.": "Вероятностно сохраняет процент совпавших строк.",
   "Probe Agreement Settings": "Настройки соглашения зонда",
+  "Probe default (usually 3)": "Значение зонда по умолчанию (обычно 3)",
   "Probe Details": "Детали зонда",
   "Probe ID": "ID зонда",
   "Probe Key": "Ключ зонда",

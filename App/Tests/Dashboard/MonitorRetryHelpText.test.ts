@@ -5,6 +5,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
   HTTP_RETRIES_ON_FAILURE_DESCRIPTION,
   NETWORK_RETRIES_ON_FAILURE_DESCRIPTION,
+  PROBE_DEFAULT_RETRY_COUNT_LABEL,
   SSL_RETRIES_ON_FAILURE_DESCRIPTION,
   getRetriesOnFailureDescription,
 } from "../../FeatureSet/Dashboard/src/Utils/MonitorRetryHelpText";
@@ -95,6 +96,11 @@ const DESCRIPTIONS: Array<string> = [
   HTTP_RETRIES_ON_FAILURE_DESCRIPTION,
   NETWORK_RETRIES_ON_FAILURE_DESCRIPTION,
   SSL_RETRIES_ON_FAILURE_DESCRIPTION,
+];
+
+const TRANSLATED_TEXT: Array<string> = [
+  ...DESCRIPTIONS,
+  PROBE_DEFAULT_RETRY_COUNT_LABEL,
 ];
 
 /*
@@ -252,7 +258,7 @@ describe("Locales", () => {
   test("en.json carries every variant as an identity pair", () => {
     const en: Record<string, unknown> = readLocale("en");
 
-    for (const description of DESCRIPTIONS) {
+    for (const description of TRANSLATED_TEXT) {
       expect(en[description]).toBe(description);
     }
   });
@@ -262,7 +268,7 @@ describe("Locales", () => {
     (locale: string) => {
       const json: Record<string, unknown> = readLocale(locale);
 
-      for (const description of DESCRIPTIONS) {
+      for (const description of TRANSLATED_TEXT) {
         const translated: unknown = json[description];
         expect(typeof translated).toBe("string");
         expect((translated as string).trim().length).toBeGreaterThan(0);
@@ -279,7 +285,7 @@ describe("Locales", () => {
 
       const json: Record<string, unknown> = readLocale(locale);
 
-      for (const description of DESCRIPTIONS) {
+      for (const description of TRANSLATED_TEXT) {
         expect(json[description]).not.toBe(description);
       }
     }

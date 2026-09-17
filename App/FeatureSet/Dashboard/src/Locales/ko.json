@@ -4127,6 +4127,7 @@
   "Probabilistically keep a percentage of matched rows and drop the rest. Cuts volume on high-frequency metrics while keeping a representative sample.": "일치하는 행의 일정 비율을 확률적으로 유지하고 나머지는 삭제합니다. 대표 샘플을 유지하면서 고빈도 메트릭의 볼륨을 줄입니다.",
   "Probabilistically keep a percentage of matched rows.": "일치하는 행의 일정 비율을 확률적으로 유지합니다.",
   "Probe Agreement Settings": "프로브 합의 설정",
+  "Probe default (usually 3)": "프로브 기본값(일반적으로 3)",
   "Probe Details": "프로브 세부 정보",
   "Probe ID": "프로브 ID",
   "Probe Key": "프로브 키",

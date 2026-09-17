@@ -4127,6 +4127,7 @@
   "Probabilistically keep a percentage of matched rows and drop the rest. Cuts volume on high-frequency metrics while keeping a representative sample.": "Houd op probabilistische wijze een percentage van de overeenkomende rijen aan en laat de rest vallen. Vermindert het volume bij hoogfrequente metrieken terwijl een representatieve steekproef behouden blijft.",
   "Probabilistically keep a percentage of matched rows.": "Houd op probabilistische wijze een percentage van de overeenkomende rijen aan.",
   "Probe Agreement Settings": "Instellingen voor sonde-overeenkomst",
+  "Probe default (usually 3)": "Standaardwaarde van de probe (meestal 3)",
   "Probe Details": "Sondedetails",
   "Probe ID": "Sonde-ID",
   "Probe Key": "Probe-sleutel",

@@ -539,7 +539,7 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
     });
   });
 
-  it("shows per-step timeout and retry overrides only when the user set them", () => {
+  it("shows configured retries and names the inherited default when omitted", () => {
     expect(getRow(MonitorType.API, "requestTimeoutInMs")?.value).toBe(
       "5000 ms",
     );
@@ -558,6 +558,15 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
         return row.key === "requestTimeoutInMs";
       }),
     ).toBeUndefined();
+
+    expect(
+      withoutOverrides.find((row: MonitorStepViewRow) => {
+        return row.key === "retryCount";
+      }),
+    ).toMatchObject({
+      value: undefined,
+      placeholder: "Probe default (usually 3)",
+    });
   });
 
   it("shows the port monitor's destination and port", () => {

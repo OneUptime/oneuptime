@@ -4127,6 +4127,7 @@
   "Probabilistically keep a percentage of matched rows and drop the rest. Cuts volume on high-frequency metrics while keeping a representative sample.": "Behold sannsynlighetsbasert en prosentandel av samsvarende rader og forkast resten. Reduserer volumet på høyfrekvente målinger samtidig som et representativt utvalg beholdes.",
   "Probabilistically keep a percentage of matched rows.": "Behold sannsynlighetsbasert en prosentandel av samsvarende rader.",
   "Probe Agreement Settings": "Innstillinger for sondeavtale",
+  "Probe default (usually 3)": "Probens standardverdi (vanligvis 3)",
   "Probe Details": "Sondedetaljer",
   "Probe ID": "Sonde-ID",
   "Probe Key": "Probe-nøkkel",

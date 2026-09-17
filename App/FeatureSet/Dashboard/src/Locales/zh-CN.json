@@ -4127,6 +4127,7 @@
   "Probabilistically keep a percentage of matched rows and drop the rest. Cuts volume on high-frequency metrics while keeping a representative sample.": "按概率保留一定百分比的匹配行并丢弃其余行。在保留代表性样本的同时减少高频指标的数据量。",
   "Probabilistically keep a percentage of matched rows.": "按概率保留一定百分比的匹配行。",
   "Probe Agreement Settings": "探测器一致性设置",
+  "Probe default (usually 3)": "探针默认值（通常为 3）",
   "Probe Details": "探测器详情",
   "Probe ID": "探测器 ID",
   "Probe Key": "探针密钥",

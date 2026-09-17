@@ -4127,6 +4127,7 @@
   "Probabilistically keep a percentage of matched rows and drop the rest. Cuts volume on high-frequency metrics while keeping a representative sample.": "به‌صورت احتمالاتی درصدی از سطرهای منطبق را نگه دار و بقیه را حذف کن. حجم متریک‌های پرتکرار را کم می‌کند و در عین حال نمونه‌ای نماینده نگه می‌دارد.",
   "Probabilistically keep a percentage of matched rows.": "به‌صورت احتمالاتی درصدی از سطرهای منطبق را نگه دار.",
   "Probe Agreement Settings": "تنظیمات توافق پراب‌ها",
+  "Probe default (usually 3)": "مقدار پیش‌فرض پروب (معمولاً ۳)",
   "Probe Details": "جزئیات پراب",
   "Probe ID": "شناسه پراب",
   "Probe Key": "کلید پراب",
