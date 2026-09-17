@@ -9,7 +9,9 @@ Coverage includes progress on the reported 15,360-address target, zero respondin
 hosts, live row updates without loading flicker, polling stopping at completion
 and resuming when a recurring scan is due, connection failure/retry, a stalled HTTP request timing out through the real
 browser transport, reviewing preserved results after failure, accessible progress
-values, desktop layout, and a narrow mobile viewport.
+values, desktop layout, and a narrow mobile viewport. It also checks that a scan's
+status message offers "Show details" only when the two-line preview cuts it short,
+at several widths and across live updates (issue #3842).
 
 Screenshots are written to `output/playwright/discovery/`. The screenshots in
 `E2E/Discovery/screenshots/` document the reviewed UI for issue #3672 and use the
