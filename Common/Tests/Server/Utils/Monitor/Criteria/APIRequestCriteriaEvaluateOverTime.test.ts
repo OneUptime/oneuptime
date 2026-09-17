@@ -171,10 +171,9 @@ describe("APIRequestCriteria evaluate over time", () => {
         dataToProcess: buildResponse({ responseCode: 404 }),
       });
 
-      expect(result).toContain("All values of");
-      expect(result).toContain(CheckOn.ResponseStatusCode as string);
-      expect(result).toContain("over the last 5 minutes");
-      expect(result).toContain("not equal to 200");
+      expect(result).toBe(
+        `${CheckOn.ResponseStatusCode} over the last 5 minutes was 404 in all 5 readings, different from the 200 threshold.`,
+      );
     });
 
     /*
@@ -229,8 +228,9 @@ describe("APIRequestCriteria evaluate over time", () => {
         dataToProcess: buildResponse({ responseTimeInMs: 8800 }),
       });
 
-      expect(result).toContain("All values of");
-      expect(result).toContain("greater than 8000");
+      expect(result).toBe(
+        `${CheckOn.ResponseTime} over the last 2 minutes ranged from 8800 to 9171 across all 3 readings, above the 8000 threshold.`,
+      );
     });
 
     /*
@@ -251,7 +251,9 @@ describe("APIRequestCriteria evaluate over time", () => {
         dataToProcess: buildResponse({ responseTimeInMs: 9171 }),
       });
 
-      expect(result).toContain("Any value of");
+      expect(result).toBe(
+        `${CheckOn.ResponseTime} over the last 2 minutes was 9171 in 1 of 3 readings, above the 8000 threshold.`,
+      );
     });
 
     test("Any Value fires off the very first sample", async () => {
@@ -371,7 +373,7 @@ describe("APIRequestCriteria evaluate over time", () => {
       });
 
       // 0 is not equal to 200, so the filter is met.
-      expect(result).toContain("not equal to 200");
+      expect(result).toContain("different from the 200 threshold");
     });
   });
 
@@ -456,7 +458,7 @@ describe("APIRequestCriteria evaluate over time", () => {
         dataToProcess: buildResponse({ responseCode: 404 }),
       });
 
-      expect(result).toContain("not equal to 200");
+      expect(result).toContain("different from the 200 threshold");
     });
 
     test("the metric store is never read for them", async () => {

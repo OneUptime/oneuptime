@@ -478,8 +478,8 @@ export default class CompareCriteria {
     unit?: string | undefined;
     /**
      * The metric NAME, when there is a real one. Distinct from
-     * metricDisplayName, which is the formula expression for a formula
-     * criteria and is only ever used as a label: this one feeds
+     * metricDisplayName, which is only a label (a configured title or a
+     * formula expression). This one feeds
      * ValueFormatter.isFractionMetric, which would read the trailing
      * `_ratio` of a formula like `a / b_ratio` as a signal to multiply
      * the value by 100. Callers pass it only for plain metric criteria.
@@ -644,17 +644,15 @@ export default class CompareCriteria {
     unit?: string | undefined;
     /**
      * The metric NAME, when there is a real one. Distinct from
-     * metricDisplayName, which is the formula expression for a formula
-     * criteria and is only ever used as a label: this one feeds
+     * metricDisplayName, which is only a label (a configured title or a
+     * formula expression). This one feeds
      * ValueFormatter.isFractionMetric, which would read the trailing
      * `_ratio` of a formula like `a / b_ratio` as a signal to multiply
      * the value by 100. Callers pass it only for plain metric criteria.
      */
     metricName?: string | undefined;
   }): string {
-    // CPU Percent over the last 5 minutes is 10 which is less than the threshold of 20
     let message: string = "";
-    let breachSummary: string = "";
 
     /*
      * Name the type the window was judged with. A boolean series saved with
@@ -702,48 +700,34 @@ export default class CompareCriteria {
      * Prefer a metric-specific display name over the generic "Metric Value"
      * label when evaluating metric monitors.
      */
-    const label: string =
+    let label: string =
       data.metricDisplayName &&
       data.criteriaFilter.checkOn === CheckOn.MetricValue
         ? data.metricDisplayName
         : data.criteriaFilter.checkOn;
 
-    message += ` ${label}`;
-
     if (data.criteriaFilter.checkOn === CheckOn.DiskUsagePercent) {
       const diskPath: string =
         data.criteriaFilter.serverMonitorOptions?.diskPath || "/";
 
-      message += ` on disk ${diskPath}`;
+      label += ` on disk ${diskPath}`;
     }
 
     if (
       data.criteriaFilter.evaluateOverTime &&
       data.criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
     ) {
-      message += ` over the last ${data.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes} minutes`;
+      const minutes: number =
+        data.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes;
+      label += ` over the last ${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
     }
 
+    message += ` ${label}`;
+
     /*
-     * A metric value is written the way the dashboard writes it —
-     * "1.07 GB", "1.5 sec", "25.34%" — rather than as raw digits with a
-     * raw UCUM code glued on. Only two of the ~35 callers pass a unit at
-     * all (MetricMonitorCriteria and DatabaseMonitorCriteria); everything
-     * else carries its unit inside the CheckOn label ("Response Time (in
-     * ms)") and must keep its exact digits, so an absent unit leaves this
-     * sentence byte-for-byte as it was.
-     *
-     * MetricValueFormatter also subsumes the unit-suppression rules this
-     * block used to spell out by hand: OTel's dimensionless "1" (which
-     * made a CLS breach read "is 0.31 1 which is greater than or equal to
-     * 0.25 1") and UCUM's annotation-only "{cpu}" / "{packets}" both
-     * disappear, and a fraction metric still carrying "1" is rendered as
-     * the percentage it means.
-     *
-     * The unit rides each NUMBER instead of the sentence, because
-     * auto-scaling can land two samples in the same sentence on different
-     * scales — "is 900 KB, 1.2 MB" — which one trailing suffix cannot
-     * express.
+     * Format each number in its own unit and scale, including the threshold
+     * and both ends of a range. Keep the original precision when no unit is
+     * available; metric-name hints apply only to plain metrics, not formulas.
      */
     const withUnit: ((value: number) => string) | undefined =
       MetricValueFormatter.hasDisplayableUnit(data.unit, data.metricName)
@@ -756,62 +740,48 @@ export default class CompareCriteria {
           }
         : undefined;
 
+    const numericValues: Array<number | boolean> = Array.isArray(data.values)
+      ? data.values
+      : typeof data.values === "number"
+        ? [data.values]
+        : [];
+
+    if (
+      typeof data.threshold === "number" &&
+      Number.isFinite(data.threshold) &&
+      numericValues.length > 0 &&
+      numericValues.every((value: number | boolean) => {
+        return typeof value === "number" && Number.isFinite(value);
+      })
+    ) {
+      const numericMessage: string | null =
+        CompareCriteria.getNumericCompareMessage({
+          values: numericValues as Array<number>,
+          isSeries: Array.isArray(data.values),
+          threshold: data.threshold,
+          filterType: data.criteriaFilter.filterType as FilterType,
+          // Use the same precedence as compareCriteriaNumbers.
+          evaluationType:
+            data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
+            data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
+          label,
+          withUnit,
+        });
+
+      if (numericMessage !== null) {
+        return numericMessage;
+      }
+    }
+
     if (
       data.criteriaFilter.filterType !== FilterType.True &&
       data.criteriaFilter.filterType !== FilterType.False
     ) {
-      /*
-       * Print the samples that actually breached, not the whole window.
-       *
-       * `AnyValue` is an existential quantifier: it is met when ONE sample
-       * crosses the threshold. Printing the entire window and then
-       * asserting "which is greater than 90" produced the sentence a real
-       * customer received — "is 72.35, 81.54, 79.95, 91.53, 87.73 % which
-       * is greater than 90 %" — in which four of the five listed numbers
-       * are below the threshold the sentence claims they all exceed.
-       *
-       * For every other evaluation type the reported set and the compared
-       * set are the same thing (a reducing aggregation collapses to one
-       * value; AllValues requires all of them), so this narrowing is a
-       * no-op and the existing wording is preserved exactly.
-       */
-      const reportedValues:
-        | Array<number | boolean>
-        | number
-        | boolean
-        | string = CompareCriteria.getReportedValues({
-        values: data.values,
-        threshold: data.threshold,
-        filterType: data.criteriaFilter.filterType as FilterType,
-        evaluationType: evaluationType,
-      });
-
       const formattedValues: string = CompareCriteria.formatCriteriaValues(
-        reportedValues,
+        data.values,
         withUnit,
       );
-
-      message += ` is ${formattedValues}`;
-
-      message += " which is";
-
-      /*
-       * How much of the window actually breached.
-       *
-       * Without it "Any value ... is 91.53 % which is greater than 90 %"
-       * is true but hides the thing the reader needs in order to judge
-       * whether to get out of bed: whether that was one transient sample
-       * or the whole five minutes. One-in-five is a spike; five-in-five is
-       * an outage. Only added when the two counts differ, so a fully
-       * breaching window keeps the shorter sentence.
-       */
-      if (
-        Array.isArray(data.values) &&
-        Array.isArray(reportedValues) &&
-        reportedValues.length < data.values.length
-      ) {
-        breachSummary = ` ${reportedValues.length} of ${data.values.length} samples in the evaluation window breached this threshold.`;
-      }
+      message += ` is ${formattedValues} which is`;
     }
 
     switch (data.criteriaFilter.filterType) {
@@ -853,65 +823,106 @@ export default class CompareCriteria {
         break;
     }
 
-    return `${message.trim()}${breachSummary}`;
+    return message.trim();
   }
 
-  /*
-   * Narrow the window down to what the message should quote.
-   *
-   * Only `AnyValue` needs narrowing — see the comment at the call site.
-   * A reducing aggregation is collapsed to its single aggregate so the
-   * sentence quotes the average it actually compared, not the raw samples.
-   * If nothing is found to breach (a caller rendering a message for a
-   * filter that did not match, or a non-numeric window) the original
-   * values are returned unchanged rather than an empty list, so the
-   * message degrades to its previous behaviour instead of to "is ".
-   */
-  private static getReportedValues(data: {
-    values: Array<number | boolean> | number | boolean | string;
-    threshold: number | string | boolean;
+  private static getNumericCompareMessage(data: {
+    values: Array<number>;
+    isSeries: boolean;
+    threshold: number;
     filterType: FilterType;
-    evaluationType?: EvaluateOverTimeType | undefined;
-  }): Array<number | boolean> | number | boolean | string {
-    if (!Array.isArray(data.values)) {
-      return data.values;
-    }
-
-    if (typeof data.threshold !== Typeof.Number) {
-      return data.values;
-    }
-
-    const numericValues: Array<number> = data.values.filter(
-      (value: number | boolean): value is number => {
-        return typeof value === Typeof.Number && Number.isFinite(value);
-      },
-    );
-
-    if (numericValues.length !== data.values.length) {
-      return data.values;
-    }
-
+    evaluationType: EvaluateOverTimeType | undefined;
+    label: string;
+    withUnit: ((value: number) => string) | undefined;
+  }): string | null {
+    const relations: Partial<Record<FilterType, string>> = {
+      [FilterType.GreaterThan]: "above",
+      [FilterType.GreaterThanOrEqualTo]: "at or above",
+      [FilterType.LessThan]: "below",
+      [FilterType.LessThanOrEqualTo]: "at or below",
+      [FilterType.EqualTo]: "equal to",
+      [FilterType.NotEqualTo]: "different from",
+    };
+    const relation: string | undefined = relations[data.filterType];
     const predicate: ((value: number) => boolean) | null =
-      CompareCriteria.getNumericPredicate({
-        filterType: data.filterType,
-        threshold: data.threshold as number,
-      });
+      CompareCriteria.getNumericPredicate(data);
 
-    if (!predicate) {
-      return data.values;
+    if (!relation || !predicate) {
+      return null;
     }
 
-    const breaching: Array<number> = CompareCriteria.getBreachingValues({
-      values: numericValues,
+    const aggregations: Partial<Record<EvaluateOverTimeType, string>> = {
+      [EvaluateOverTimeType.Average]: "average",
+      [EvaluateOverTimeType.Sum]: "sum",
+      [EvaluateOverTimeType.MaximumValue]: "maximum",
+      [EvaluateOverTimeType.MunimumValue]: "minimum",
+    };
+    const aggregation: string | undefined = data.evaluationType
+      ? aggregations[data.evaluationType]
+      : undefined;
+    const reducedValues: Array<number> = CompareCriteria.reduceWindow({
+      values: data.values,
       evaluationType: data.evaluationType,
-      predicate: predicate,
     });
+    const matchingValues: Array<number> = reducedValues.filter(predicate);
+    const reportedValues: Array<number> =
+      data.evaluationType === EvaluateOverTimeType.AnyValue &&
+      matchingValues.length > 0
+        ? matchingValues
+        : reducedValues;
 
-    if (breaching.length === 0) {
-      return data.values;
+    // Avoid listing repeated readings or unbounded windows in notifications.
+    let minimum: number = reportedValues[0]!;
+    let maximum: number = reportedValues[0]!;
+    for (const value of reportedValues) {
+      minimum = Math.min(minimum, value);
+      maximum = Math.max(maximum, value);
+    }
+    const low: string = CompareCriteria.formatSingleValue(
+      minimum,
+      data.withUnit,
+    );
+    const high: string = CompareCriteria.formatSingleValue(
+      maximum,
+      data.withUnit,
+    );
+    const subject: string = aggregation
+      ? `The ${aggregation} of ${data.label}`
+      : data.label;
+    let observation: string =
+      low === high
+        ? `${subject} was ${low}`
+        : `${subject} ranged from ${low} to ${high}`;
+
+    if (data.isSeries && !aggregation) {
+      let readings: string = "1 reading";
+      if (reportedValues.length < data.values.length) {
+        readings = `${reportedValues.length} of ${data.values.length} readings`;
+      } else if (data.values.length > 1) {
+        readings = `all ${data.values.length} readings`;
+      }
+      observation += ` ${low === high ? "in" : "across"} ${readings}`;
     }
 
-    return breaching;
+    const comparison: string = `${relation} the ${CompareCriteria.formatSingleValue(data.threshold, data.withUnit)} threshold`;
+    const matches: boolean =
+      data.evaluationType === EvaluateOverTimeType.AnyValue
+        ? matchingValues.length > 0
+        : matchingValues.length === reducedValues.length;
+
+    if (!matches) {
+      // Direct callers can request a description even when a filter did not match.
+      const requirement: string = aggregation
+        ? `the ${aggregation}`
+        : !data.isSeries
+          ? "the value"
+          : data.evaluationType === EvaluateOverTimeType.AnyValue
+            ? "at least one reading"
+            : "every reading";
+      return `${observation}. The condition requires ${requirement} to be ${comparison}.`;
+    }
+
+    return `${observation}, ${comparison}.`;
   }
 
   /*

@@ -118,7 +118,7 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
      * ms is written "2.5 sec"; the threshold gets the same treatment so
      * the two halves of the sentence cannot disagree.
      */
-    expect(message).toContain("greater than 2 sec");
+    expect(message).toContain("above the 2 sec threshold");
     expect(message).toContain("2.5 sec");
     expect(criteriaFilter.metricCriteriaContext?.unit).toBe("ms");
     expect(criteriaFilter.metricCriteriaContext?.breachingSample?.value).toBe(
@@ -149,7 +149,7 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs);
 
     expect(message).toBeTruthy();
-    expect(message).toContain("greater than 2 sec");
+    expect(message).toContain("above the 2 sec threshold");
     expect(message).toContain("2.5 sec");
     expect(criteriaFilter.metricCriteriaContext?.unit).toBe("sec");
     expect(criteriaFilter.metricCriteriaContext?.breachingSample?.value).toBe(
@@ -179,7 +179,7 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs);
 
     expect(message).toBeTruthy();
-    expect(message).toContain("greater than 2 GB");
+    expect(message).toContain("above the 2 GB threshold");
     expect(message).toContain("2.5 GB");
     expect(criteriaFilter.metricCriteriaContext?.unit).toBe("GB");
   });
@@ -519,8 +519,10 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
      * land on a different scale than the other once values spread far
      * enough apart.
      */
-    expect(message).toContain("10 samples between 110 ms and 200 ms");
-    expect(message).toContain("greater than 100 ms");
+    expect(message).toContain(
+      "ranged from 110 ms to 200 ms across all 10 readings",
+    );
+    expect(message).toContain("above the 100 ms threshold");
     // The raw comma-joined dump is no longer in the message
     expect(message).not.toContain("110, 120, 130, 140, 150, 160");
   });

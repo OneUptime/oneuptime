@@ -614,7 +614,7 @@ describe("DnsMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       );
 
       expect(result).toContain("DNS record (MX)");
-      expect(result).toContain("greater than");
+      expect(result).toContain("above the 200 threshold");
     });
 
     test("numeric record value + GreaterThan numeric threshold not exceeded → undecidable", async () => {
