@@ -44,6 +44,8 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.Probes]: PageMap.MONITORS_SETTINGS_PROBES,
   [AIChatCitationTargetType.Teams]: PageMap.TEAMS,
   [AIChatCitationTargetType.SecurityEvents]: PageMap.SECURITY_EVENTS,
+  [AIChatCitationTargetType.RumApplications]: PageMap.RUM_APPLICATIONS,
+  [AIChatCitationTargetType.RumApplicationView]: PageMap.RUM_APPLICATION_VIEW,
 };
 
 export const targetTypeToIcon: {
@@ -75,6 +77,8 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.Probes]: IconProp.Signal,
   [AIChatCitationTargetType.Teams]: IconProp.Team,
   [AIChatCitationTargetType.SecurityEvents]: IconProp.ShieldExclamation,
+  [AIChatCitationTargetType.RumApplications]: IconProp.AltGlobe,
+  [AIChatCitationTargetType.RumApplicationView]: IconProp.AltGlobe,
 };
 
 export function getRouteForCitationTarget(

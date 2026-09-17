@@ -1,4 +1,8 @@
 import ObjectID from "Common/Types/ObjectID";
+import {
+  WebVitalDefinitions,
+  WebVitalDefinition,
+} from "Common/Types/Rum/WebVitals";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -279,75 +283,6 @@ export interface WebVital {
  * for each vital and surface the first that reports data. Empty when the
  * browser SDK does not emit web vitals (the page renders a clear hint).
  */
-const WEB_VITAL_DEFS: Array<{
-  key: string;
-  label: string;
-  unit: "ms" | "score";
-  thresholds: { warn: number; danger: number };
-  names: Array<string>;
-}> = [
-  {
-    key: "lcp",
-    label: "Largest Contentful Paint",
-    unit: "ms",
-    thresholds: { warn: 2500, danger: 4000 },
-    names: [
-      "web_vital.lcp",
-      "browser.largest_contentful_paint",
-      "largest_contentful_paint",
-      "web.vitals.lcp",
-    ],
-  },
-  {
-    key: "inp",
-    label: "Interaction to Next Paint",
-    unit: "ms",
-    thresholds: { warn: 200, danger: 500 },
-    names: [
-      "web_vital.inp",
-      "browser.interaction_to_next_paint",
-      "interaction_to_next_paint",
-      "web.vitals.inp",
-    ],
-  },
-  {
-    key: "cls",
-    label: "Cumulative Layout Shift",
-    unit: "score",
-    thresholds: { warn: 0.1, danger: 0.25 },
-    names: [
-      "web_vital.cls",
-      "browser.cumulative_layout_shift",
-      "cumulative_layout_shift",
-      "web.vitals.cls",
-    ],
-  },
-  {
-    key: "fcp",
-    label: "First Contentful Paint",
-    unit: "ms",
-    thresholds: { warn: 1800, danger: 3000 },
-    names: [
-      "web_vital.fcp",
-      "browser.first_contentful_paint",
-      "first_contentful_paint",
-      "web.vitals.fcp",
-    ],
-  },
-  {
-    key: "ttfb",
-    label: "Time to First Byte",
-    unit: "ms",
-    thresholds: { warn: 800, danger: 1800 },
-    names: [
-      "web_vital.ttfb",
-      "browser.time_to_first_byte",
-      "time_to_first_byte",
-      "web.vitals.ttfb",
-    ],
-  },
-];
-
 export const fetchWebVitals: (data: {
   primaryEntityId: ObjectID;
   start: Date;
@@ -358,8 +293,8 @@ export const fetchWebVitals: (data: {
   end: Date;
 }): Promise<Array<WebVital>> => {
   const results: Array<WebVital> = await Promise.all(
-    WEB_VITAL_DEFS.map(
-      async (def: (typeof WEB_VITAL_DEFS)[number]): Promise<WebVital> => {
+    WebVitalDefinitions.map(
+      async (def: WebVitalDefinition): Promise<WebVital> => {
         let value: number | null = null;
         for (const name of def.names) {
           // eslint-disable-next-line no-await-in-loop

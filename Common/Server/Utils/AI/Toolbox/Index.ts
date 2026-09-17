@@ -16,6 +16,7 @@ import {
 import { QueryIncidentsTool, SearchIncidentsTool } from "./IncidentTools";
 import { QueryAlertsTool } from "./AlertTools";
 import { QueryMonitorsTool } from "./MonitorTools";
+import { QueryRumApplicationsTool, QueryRumWebVitalsTool } from "./RumTools";
 import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
 import {
   GetOnCallStatusTool,
@@ -100,6 +101,8 @@ export default class AIToolbox {
     GetAlertTimelineTool,
     QueryAlertsTool,
     QueryMonitorsTool,
+    QueryRumApplicationsTool,
+    QueryRumWebVitalsTool,
     QueryScheduledMaintenanceTool,
     /*
      * Platform reads: the operational surface an on-call product exists to

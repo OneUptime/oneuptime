@@ -5,8 +5,9 @@ import { JSONObject } from "../JSON";
  * dashboard. The client detects the current page (an incident, a monitor, a
  * trace waterfall, the logs explorer, …) and attaches this small descriptor to
  * each message it sends; the server folds it into the system prompt so "this
- * incident" resolves to the entity on screen. It is a per-turn hint, never
- * persisted — the user can detach it in the composer at any time.
+ * incident" resolves to the entity on screen. The latest context is kept as
+ * the conversation's subject. Sending null explicitly detaches and clears
+ * that subject; omitting context lets a full-page conversation keep it.
  */
 enum AIChatPageContextType {
   // Entity pages — carry the entity's id (and usually a display title).
@@ -15,6 +16,7 @@ enum AIChatPageContextType {
   Monitor = "Monitor",
   ScheduledMaintenanceEvent = "ScheduledMaintenanceEvent",
   TelemetryService = "TelemetryService",
+  RumApplication = "RumApplication",
   Trace = "Trace",
   Exception = "Exception",
 
@@ -27,6 +29,8 @@ enum AIChatPageContextType {
   TracesExplorer = "TracesExplorer",
   MetricsExplorer = "MetricsExplorer",
   ExceptionsList = "ExceptionsList",
+  RumApplications = "RumApplications",
+  TelemetryServicesList = "TelemetryServicesList",
 }
 
 export default AIChatPageContextType;
@@ -58,6 +62,7 @@ const ENTITY_TYPES: Array<AIChatPageContextType> = [
   AIChatPageContextType.Monitor,
   AIChatPageContextType.ScheduledMaintenanceEvent,
   AIChatPageContextType.TelemetryService,
+  AIChatPageContextType.RumApplication,
   AIChatPageContextType.Trace,
   AIChatPageContextType.Exception,
 ];

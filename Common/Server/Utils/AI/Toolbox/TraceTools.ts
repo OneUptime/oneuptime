@@ -99,7 +99,8 @@ export const QueryTracesTool: ObservabilityTool = {
       },
       serviceId: {
         type: "string",
-        description: "Only spans from this telemetry service.",
+        description:
+          "Only spans from this telemetry service or RUM application (its OneUptime UUID). RUM counts describe spans/requests, not unique visitors or page views.",
       },
       hasException: {
         type: "boolean",

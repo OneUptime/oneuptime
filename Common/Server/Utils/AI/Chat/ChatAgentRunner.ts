@@ -54,9 +54,10 @@ export interface ChatTurnRequest {
    * subject; later turns that arrive without a page context (the user
    * navigated away mid-conversation) fall back to that persisted subject so
    * "this incident" keeps resolving. Not needed on resume (the paused state
-   * already contains the built prompt).
+   * already contains the built prompt). Explicit null detaches the page and
+   * clears that persisted subject.
    */
-  pageContext?: AIChatPageContext | undefined;
+  pageContext?: AIChatPageContext | null | undefined;
   // The requesting user's real permission props, captured at request time.
   props: DatabaseCommonInteractionProps;
 }
@@ -1377,6 +1378,15 @@ export default class ChatAgentRunner {
     request: ChatTurnRequest,
   ): Promise<AIChatPageContext | undefined> {
     try {
+      if (request.pageContext === null) {
+        await AIConversationService.updateOneById({
+          id: request.conversationId,
+          data: { pageContext: null } as never,
+          props: { isRoot: true },
+        });
+        return undefined;
+      }
+
       const conversation: AIConversation | null =
         await AIConversationService.findOneById({
           id: request.conversationId,
@@ -1423,7 +1433,7 @@ export default class ChatAgentRunner {
           error instanceof Error ? error.message : String(error)
         }`,
       );
-      return request.pageContext;
+      return request.pageContext || undefined;
     }
   }
 
