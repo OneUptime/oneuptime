@@ -6,10 +6,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * descriptions. Rollback refuses values over 500 characters instead of
  * silently truncating them.
  */
-export class RemoveMonitorDescriptionLengthLimit1793600000000
+export class RemoveMonitorDescriptionLengthLimit1793800000000
   implements MigrationInterface
 {
-  public name: string = "RemoveMonitorDescriptionLengthLimit1793600000000";
+  public name: string = "RemoveMonitorDescriptionLengthLimit1793800000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
