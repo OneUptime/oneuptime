@@ -93,6 +93,30 @@ packages/*/Key.key
 agents/*/Cert.crt
 agents/*/Key.key
 
+# Top-level folders that moved into packages/ and agents/. Older checkouts keep
+# ignored build output and local secrets in them (for example the Terraform
+# e2e test-env.sh API key), which nothing else ignores any more. Nothing
+# tracked lives here now; delete these folders once you have moved your files.
+/App/
+/Common/
+/Home/
+/Probe/
+/Runner/
+/Nginx/
+/CLI/
+/MobileApp/
+/E2E/
+/TestServer/
+/CephAgent/
+/DockerAgent/
+/DockerSwarmAgent/
+/InfrastructureAgent/
+/KubernetesCostAgent/
+/KubernetesLogTailer/
+/PodmanAgent/
+/ProxmoxAgent/
+/VMwareAgent/
+
 # Certificates left behind by installs from before the ingress wrote its own.
 # Keep ignoring them so private keys on old checkouts are never committed.
 Certs/StatusPageCerts/*.crt

@@ -1,3 +1,10 @@
+# Development stack. Every path below is relative to the repository root, so
+# run it from the root with --project-directory . (npm run dev, npm run build
+# and npm run force-build already do):
+#
+#   docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml up -d
+#
+# Without the flag, Compose resolves the paths against Scripts/Dev/ and fails.
 x-common-depends-on: &common-depends-on
   postgres:
     condition: service_healthy

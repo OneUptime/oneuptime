@@ -49,7 +49,7 @@ import {
  *
  * Opt in against a local development ClickHouse server. The suite creates and
  * removes only its own uniquely named database, never application tables.
- * Load local credentials with DOTENV_CONFIG_PATH=../config.env node -r dotenv/config.
+ * Load local credentials with DOTENV_CONFIG_PATH=../../config.env node -r dotenv/config.
  * Set SECOPS_TEST_CLICKHOUSE_URL=http://localhost:8189 to enable the suite.
  */
 const endpoint: string | undefined = process.env["SECOPS_TEST_CLICKHOUSE_URL"];

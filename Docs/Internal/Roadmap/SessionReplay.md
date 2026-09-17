@@ -833,7 +833,7 @@ Content-addressed `RumSessionAssetV1` stylesheet/font table (only if measured CS
 
 ## 13. Mobile phase
 
-**`MobileApp/` is not the vehicle.** It is Expo ~54 / RN 0.81.5 / react-navigation 7 / nativewind with **zero** telemetry dependencies, and its README describes it as OneUptime's own on-call app. Extending it would be a category error.
+**`packages/MobileApp/` is not the vehicle.** It is Expo ~54 / RN 0.81.5 / react-navigation 7 / nativewind with **zero** telemetry dependencies, and its README describes it as OneUptime's own on-call app. Extending it would be a category error.
 
 **New package: `packages/App/FeatureSet/MobileRecorder/` → `@oneuptime/react-native-replay`.**
 

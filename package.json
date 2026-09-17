@@ -63,7 +63,7 @@
         "exec": "export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.yml exec -it",
         "prune": "docker system prune",
         "remove-all-containers": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) || echo 'No running containers'",
-        "prepare": "git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git config core.hooksPath .github/hooks || true",
+        "prepare": "node ./Scripts/Install/SetupGitHooks.js",
         "backup": "bash backup.sh",
         "pull": "export $(grep -v '^#' config.env | xargs) && docker compose pull",
         "update": "npm run prerun && export $(grep -v '^#' config.env | xargs) && docker compose pull && npm run start",

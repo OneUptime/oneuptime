@@ -11,7 +11,7 @@ PollCodeFixWork  →  TaskHandler  →  RepositoryManager (clone, branch)
                                  →  PullRequestCreator (open the PR)
 ```
 
-Scope: `Runner/` (the worker), plus the pure guards it shares in
+Scope: `packages/Runner/` (the worker), plus the pure guards it shares in
 `packages/Common/Server/Utils/AI/CodeFix/`. The server-side control plane
 (`packages/Common/Server/API/AIAgentDataAPI.ts`, the GitHub token minting in
 `packages/Common/Server/Utils/CodeRepository/GitHub/GitHub.ts`) was audited but is
