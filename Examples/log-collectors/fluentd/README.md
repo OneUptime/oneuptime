@@ -11,7 +11,7 @@ This guide will help you test fluentd logs with OneUptime.
 
 ## Configuration and Testing
 
-- Please make sure the correct token and url is in the configuration file located at `Fluentd/fluent.conf`.
+- Please make sure the correct token and url is in the configuration file located at `Examples/log-collectors/fluentd/fluent.conf`.
 - Build the docker image using the command `npm run force-build fluentd`
 - Run the docker image using the command `npm run dev fluentd`
 - Send logs to the Fluentd container using the curl command

@@ -12,7 +12,7 @@ This guide will help you test fluent-bit logs with OneUptime.
 
 ## Configuration and Testing
 
-- Please make sure the correct token and url is in the configuration file located at `FluentBut/etc/fluent-bit.yaml`.
+- Please make sure the correct token and url is in the configuration file located at `Examples/log-collectors/fluent-bit/etc/fluent-bit.yaml`.
 - Build the docker image using the command `npm run force-build fluent-bit`
 - Run the docker image using the command `npm run dev fluent-bit`
 - Send logs to the Fluentd container using the curl command
