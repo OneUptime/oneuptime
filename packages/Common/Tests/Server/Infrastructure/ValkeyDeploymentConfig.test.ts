@@ -28,6 +28,12 @@ const BASE_COMPOSE_PATH: string = path.join(
   "docker-compose.base.yml",
 );
 const EXAMPLE_ENV_PATH: string = path.join(REPO_ROOT, "config.example.env");
+const BILLING_OVERLAY_PATH: string = path.join(
+  REPO_ROOT,
+  "packages",
+  "E2E",
+  "docker-compose.billing.yml",
+);
 const HELM_VALUES_PATH: string = path.join(
   REPO_ROOT,
   "HelmChart",
@@ -36,11 +42,10 @@ const HELM_VALUES_PATH: string = path.join(
   "values.yaml",
 );
 
-// The three compose files an operator actually invokes; each extends the base.
+// The compose files an operator actually invokes; each extends the base.
 const OVERLAY_COMPOSE_FILES: Array<string> = [
   "docker-compose.yml",
   "docker-compose.dev.yml",
-  "docker-compose.billing.yml",
 ];
 
 // Every cache setting, by the suffix the two spellings share.
@@ -61,6 +66,7 @@ interface ComposeService {
   healthcheck?: { test?: Array<string> };
   networks?: Record<string, { aliases?: Array<string> } | null>;
   extends?: { file?: string; service?: string };
+  depends_on?: Record<string, { condition?: string }>;
 }
 
 interface ComposeFile {
@@ -223,6 +229,21 @@ describe("valkey cache and queue backend", () => {
       expect(dependsOn["redis"]).toBeUndefined();
     },
   );
+
+  /*
+   * The SaaS CI stack layers packages/E2E/docker-compose.billing.yml on top of
+   * docker-compose.yml, so it takes valkey from there; the container it adds
+   * has to wait on that service by its current name.
+   */
+  test("the billing overlay's home container waits on the valkey service", () => {
+    const overlay: ComposeFile = readCompose(BILLING_OVERLAY_PATH);
+
+    expect(overlay.services["redis"]).toBeUndefined();
+    expect(overlay.services["home"]?.depends_on?.["valkey"]?.condition).toBe(
+      "service_healthy",
+    );
+    expect(overlay.services["home"]?.depends_on?.["redis"]).toBeUndefined();
+  });
 
   /*
    * Compose and Helm claim in their comments to run the same engine version.

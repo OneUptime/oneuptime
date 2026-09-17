@@ -15,13 +15,18 @@ import yaml from "js-yaml";
  * network_mode: host and no ClickHouse settings, the stacks CI starts publish
  * no ClickHouse port, and every e2e job on master failed in beforeAll. So:
  *
- *  - production compose files publish no ClickHouse port at all;
+ *  - production compose files publish no ClickHouse port at all, and neither
+ *    does the SaaS CI stack's billing overlay;
  *  - the test-only overlay publishes ClickHouse HTTP on loopback only, on the
  *    host port docker-compose.dev.yml uses and the fixture maps to;
  *  - the host-networked e2e service receives the connection settings;
  *  - every workflow job that runs the e2e service starts its stack with the
  *    overlay (the release workflow is where a partial fix would slip through,
  *    since it only runs when a release is cut).
+ *
+ * The overlays live in packages/E2E but their paths are relative to the repo
+ * root, which holds only while each command passes them after
+ * `-f docker-compose.yml`. That is guarded here too.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -30,7 +35,10 @@ const WORKFLOWS_DIRECTORY: string = path.join(
   ".github",
   "workflows",
 );
-const OVERLAY_FILE_NAME: string = "docker-compose.e2e-clickhouse.yml";
+const OVERLAY_FILE_NAME: string =
+  "packages/E2E/docker-compose.e2e-clickhouse.yml";
+const BILLING_OVERLAY_FILE_NAME: string =
+  "packages/E2E/docker-compose.billing.yml";
 const FIXTURE_PATH: string = path.join(
   REPO_ROOT,
   "packages",
@@ -44,7 +52,6 @@ const FIXTURE_PATH: string = path.join(
 const PRODUCTION_COMPOSE_FILES: Array<string> = [
   "docker-compose.base.yml",
   "docker-compose.yml",
-  "docker-compose.billing.yml",
 ];
 
 const CLICKHOUSE_CONNECTION_SETTINGS: Array<string> = [
@@ -57,10 +64,16 @@ const CLICKHOUSE_CONNECTION_SETTINGS: Array<string> = [
 
 const CLICKHOUSE_HTTP_CONTAINER_PORT: string = "8123";
 
-// The step that runs the suite: `docker compose -f docker-compose.dev.yml up ... e2e`.
+/*
+ * The step that runs the suite: `docker compose -f docker-compose.dev.yml up ... e2e`,
+ * or `... -f packages/E2E/docker-compose.e2e.yml up ... e2e` for the release image.
+ */
 const RUNS_E2E_SERVICE: RegExp =
-  /docker compose\s[^\n]*-f docker-compose\.(?:dev|e2e)\.yml\s+up\b[^\n]*\se2e\b/;
+  /docker compose\s[^\n]*-f (?:docker-compose\.dev|packages\/E2E\/docker-compose\.e2e)\.yml\s+up\b[^\n]*\se2e\b/;
 const UP_SUBCOMMAND: RegExp = /\sup(?:\s|$)/;
+const DOWN_SUBCOMMAND: RegExp = /\sdown(?:\s|$)/;
+const ROOT_COMPOSE_FILE_FLAG: RegExp = /-f docker-compose\.yml\s/;
+const E2E_OVERLAY_FLAG: string = "-f packages/E2E/docker-compose.";
 const WORKFLOW_FILE: RegExp = /\.ya?ml$/;
 const FIXTURE_LOCAL_PORT: RegExp =
   /LOCAL_CLICKHOUSE_HTTP_PORT: string = "(\d+)"/;
@@ -86,6 +99,11 @@ interface WorkflowJob {
 
 interface WorkflowFile {
   jobs?: Record<string, WorkflowJob>;
+}
+
+interface WorkflowJobRun {
+  job: string;
+  runText: string;
 }
 
 interface PublishedPort {
@@ -129,6 +147,34 @@ function clickHouseHttpHostPort(compose: ComposeFile): string | undefined {
     })?.hostPort;
 }
 
+// Every workflow job, with the run scripts of its steps joined.
+function readWorkflowJobRuns(): Array<WorkflowJobRun> {
+  const jobRuns: Array<WorkflowJobRun> = [];
+
+  for (const fileName of fs.readdirSync(WORKFLOWS_DIRECTORY).sort()) {
+    if (!WORKFLOW_FILE.test(fileName)) {
+      continue;
+    }
+
+    const workflow: WorkflowFile = readYaml<WorkflowFile>(
+      path.join(WORKFLOWS_DIRECTORY, fileName),
+    );
+
+    for (const [jobName, job] of Object.entries(workflow.jobs || {})) {
+      jobRuns.push({
+        job: `${fileName}#${jobName}`,
+        runText: (job.steps || [])
+          .map((step: WorkflowStep) => {
+            return step.run || "";
+          })
+          .join("\n"),
+      });
+    }
+  }
+
+  return jobRuns;
+}
+
 function startsStackWithOverlay(runText: string): boolean {
   return runText.split("\n").some((line: string) => {
     return (
@@ -149,6 +195,13 @@ describe("E2E ClickHouse fixture access", () => {
       expect(compose.services?.["clickhouse"]?.ports).toBeUndefined();
     },
   );
+
+  test("the billing overlay leaves ClickHouse to docker-compose.yml, so the SaaS stack publishes no port either", () => {
+    const overlay: ComposeFile = readCompose(BILLING_OVERLAY_FILE_NAME);
+
+    expect(overlay.services?.["home"]).toBeDefined();
+    expect(overlay.services?.["clickhouse"]).toBeUndefined();
+  });
 
   test("the overlay publishes only ClickHouse HTTP, and only on loopback", () => {
     const overlay: ComposeFile = readCompose(OVERLAY_FILE_NAME);
@@ -202,30 +255,14 @@ describe("E2E ClickHouse fixture access", () => {
     const e2eJobs: Array<string> = [];
     const jobsWithoutOverlay: Array<string> = [];
 
-    for (const fileName of fs.readdirSync(WORKFLOWS_DIRECTORY).sort()) {
-      if (!WORKFLOW_FILE.test(fileName)) {
+    for (const { job, runText } of readWorkflowJobRuns()) {
+      if (!RUNS_E2E_SERVICE.test(runText)) {
         continue;
       }
 
-      const workflow: WorkflowFile = readYaml<WorkflowFile>(
-        path.join(WORKFLOWS_DIRECTORY, fileName),
-      );
-
-      for (const [jobName, job] of Object.entries(workflow.jobs || {})) {
-        const runText: string = (job.steps || [])
-          .map((step: WorkflowStep) => {
-            return step.run || "";
-          })
-          .join("\n");
-
-        if (!RUNS_E2E_SERVICE.test(runText)) {
-          continue;
-        }
-
-        e2eJobs.push(`${fileName}#${jobName}`);
-        if (!startsStackWithOverlay(runText)) {
-          jobsWithoutOverlay.push(`${fileName}#${jobName}`);
-        }
+      e2eJobs.push(job);
+      if (!startsStackWithOverlay(runText)) {
+        jobsWithoutOverlay.push(job);
       }
     }
 
@@ -237,5 +274,41 @@ describe("E2E ClickHouse fixture access", () => {
       ]),
     );
     expect(jobsWithoutOverlay).toEqual([]);
+  });
+
+  /*
+   * A later -f resolves its paths against the first file's folder, so an
+   * overlay passed on its own looks for docker-compose.base.yml inside
+   * packages/E2E. And `down` on an overlay pair tears down the stack it sits
+   * on, volumes included, not just the overlay's service.
+   */
+  test("workflows pass packages/E2E compose overlays after docker-compose.yml, and never run down on them", () => {
+    const overlayCommands: Array<string> = [];
+    const misusedOverlayCommands: Array<string> = [];
+
+    for (const { job, runText } of readWorkflowJobRuns()) {
+      for (const line of runText.split("\n")) {
+        const overlayIndex: number = line.indexOf(E2E_OVERLAY_FLAG);
+
+        if (!line.includes("docker compose") || overlayIndex === -1) {
+          continue;
+        }
+
+        const command: string = `${job}: ${line.trim()}`;
+        const rootIndex: number = line.search(ROOT_COMPOSE_FILE_FLAG);
+
+        overlayCommands.push(command);
+        if (
+          rootIndex === -1 ||
+          rootIndex > overlayIndex ||
+          DOWN_SUBCOMMAND.test(line)
+        ) {
+          misusedOverlayCommands.push(command);
+        }
+      }
+    }
+
+    expect(overlayCommands.length).toBeGreaterThan(0);
+    expect(misusedOverlayCommands).toEqual([]);
   });
 });

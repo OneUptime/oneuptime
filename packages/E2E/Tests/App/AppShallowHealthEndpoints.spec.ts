@@ -10,8 +10,9 @@ import URL from "Common/Types/API/URL";
  * StatusCheck.spec.ts suites all probe the ROOT paths — /status, /status/ready
  * and /status/live. But nginx's catch-all `location /`
  * (Nginx/default.conf.template) proxies the root to the *Home* service when
- * BILLING_ENABLED=true (the SaaS CI stack, docker-compose.billing.yml) and only
- * to *App* otherwise. So in a billing deployment those root-path suites are
+ * BILLING_ENABLED=true (the SaaS CI stack,
+ * packages/E2E/docker-compose.billing.yml) and only to *App* otherwise. So in a
+ * billing deployment those root-path suites are
  * actually exercising Home's probes, and the App's own shallow /status,
  * /status/ready and /status/live handlers (StatusAPI in
  * Common/Server/API/StatusAPI.ts, wired in App/Index.ts) are never asserted

@@ -23,8 +23,9 @@ import URL from "Common/Types/API/URL";
  *
  * Why the "/api" prefix instead of the root path: nginx's catch-all
  * `location /` (Nginx/default.conf.template) proxies to the *Home* service when
- * BILLING_ENABLED=true (the SaaS CI stack, docker-compose.billing.yml) and to
- * the *App* service otherwise (the self-hosted stack). Home only passes
+ * BILLING_ENABLED=true (the SaaS CI stack,
+ * packages/E2E/docker-compose.billing.yml) and to the *App* service otherwise
+ * (the self-hosted stack). Home only passes
  * liveCheck/readyCheck to StatusAPI.init, so the three deep routes answer 400
  * "check not implemented" there. `location /api` is unconditional and always
  * proxies to App, and Common/Server/API/Index.ts mounts StatusAPI at both

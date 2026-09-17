@@ -1547,8 +1547,8 @@ jobs:
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}
           # The e2e overlay publishes ClickHouse on the runner's loopback for the
-          # exception fixtures; see the header of docker-compose.e2e-clickhouse.yml.
-          docker compose -f docker-compose.billing.yml -f docker-compose.e2e-clickhouse.yml up --remove-orphans -d
+          # exception fixtures; see the header of packages/E2E/docker-compose.e2e-clickhouse.yml.
+          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml up --remove-orphans -d
           npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
@@ -1559,21 +1559,21 @@ jobs:
           grep -n "EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E" config.env || echo "  (not in config.env)"
           echo "runner env flag: [${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"
           echo "app container flag:"
-          docker compose -f docker-compose.billing.yml exec -T app sh -lc 'echo "  APP_FLAG=[${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"' || echo "  (exec into app failed)"
+          docker compose -f docker-compose.yml exec -T app sh -lc 'echo "  APP_FLAG=[${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"' || echo "  (exec into app failed)"
       - name: Pull E2E test image
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.e2e.yml pull e2e
+          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml pull e2e
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}
-          trap 'docker compose -f docker-compose.e2e.yml down -v || true' EXIT
-          if ! docker compose -f docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
-            docker compose -f docker-compose.e2e.yml logs e2e
+          trap 'docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml rm -sfv e2e || true' EXIT
+          if ! docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml logs e2e
             exit 1
           fi
       - name: Upload test results
@@ -1700,8 +1700,8 @@ jobs:
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}
           # The e2e overlay publishes ClickHouse on the runner's loopback for the
-          # exception fixtures; see the header of docker-compose.e2e-clickhouse.yml.
-          docker compose -f docker-compose.yml -f docker-compose.e2e-clickhouse.yml up --remove-orphans -d
+          # exception fixtures; see the header of packages/E2E/docker-compose.e2e-clickhouse.yml.
+          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml up --remove-orphans -d
           npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
@@ -1710,15 +1710,15 @@ jobs:
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.e2e.yml pull e2e
+          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml pull e2e
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}
-          trap 'docker compose -f docker-compose.e2e.yml down -v || true' EXIT
-          if ! docker compose -f docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
-            docker compose -f docker-compose.e2e.yml logs e2e
+          trap 'docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml rm -sfv e2e || true' EXIT
+          if ! docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml logs e2e
             exit 1
           fi
       - name: Upload test results
