@@ -224,7 +224,7 @@ helm install oneuptime oneuptime/oneuptime
 - 🐛 **[未解決の Issue](https://github.com/OneUptime/oneuptime/issues)** — ひとつ選んで取り組むか、[新しく起票](https://github.com/OneUptime/oneuptime/issues/new)してください
 - ✅ コードベースの **[テスト作成を手伝う](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)**
 - 🧑‍💻 環境構築のための **[ローカル開発ガイド](/App/FeatureSet/Docs/Content/en/installation/local-development.md)**
-- 📖 **[コントリビューションガイドライン](/CONTRIBUTING.md)** を読む
+- 📖 **[コントリビューションガイドライン](/.github/CONTRIBUTING.md)** を読む
 - 💬 **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** または **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** で私たちとチャット
 
 ## ❤️ プロジェクトを支援する

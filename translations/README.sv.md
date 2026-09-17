@@ -224,7 +224,7 @@ Vi välkomnar bidrag av alla storlekar. Börja här:
 - 🐛 **[Öppna issues](https://github.com/OneUptime/oneuptime/issues)** — plocka upp en, eller [skapa en ny](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[Hjälp till att skriva tester](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** för kodbasen
 - 🧑‍💻 **[Guide för lokal utveckling](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** för att komma igång
-- 📖 Läs **[riktlinjerna för bidrag](/CONTRIBUTING.md)**
+- 📖 Läs **[riktlinjerna för bidrag](/.github/CONTRIBUTING.md)**
 - 💬 Chatta med oss i **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** eller **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
 
 ## ❤️ Stöd projektet

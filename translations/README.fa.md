@@ -224,7 +224,7 @@ helm install oneuptime oneuptime/oneuptime
 - 🐛 **[مسائل باز](https://github.com/OneUptime/oneuptime/issues)** — یکی را بردارید، یا [مسئله جدیدی ثبت کنید](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[در نوشتن تست کمک کنید](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** برای این کدبیس
 - 🧑‍💻 **[راهنمای توسعه محلی](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** برای راه‌اندازی
-- 📖 **[راهنمای مشارکت](/CONTRIBUTING.md)** را بخوانید
+- 📖 **[راهنمای مشارکت](/.github/CONTRIBUTING.md)** را بخوانید
 - 💬 در **[Slack توسعه‌دهندگان](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** یا **[Slack انجمن](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** با ما گفتگو کنید
 
 ## ❤️ از پروژه حمایت کنید

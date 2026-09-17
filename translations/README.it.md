@@ -224,7 +224,7 @@ Diamo il benvenuto a contributi di ogni dimensione. Inizia da qui:
 - 🐛 **[Issue aperte](https://github.com/OneUptime/oneuptime/issues)** — prendine una in carico, oppure [aprine una nuova](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[Aiuta a scrivere i test](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** per il codebase
 - 🧑‍💻 **[Guida allo sviluppo locale](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** per configurare l'ambiente
-- 📖 Leggi le **[linee guida per contribuire](/CONTRIBUTING.md)**
+- 📖 Leggi le **[linee guida per contribuire](/.github/CONTRIBUTING.md)**
 - 💬 Chatta con noi nel **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** o nel **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
 
 ## ❤️ Sostieni il progetto

@@ -224,7 +224,7 @@ helm install oneuptime oneuptime/oneuptime
 - 🐛 **[열린 이슈](https://github.com/OneUptime/oneuptime/issues)** — 하나 골라 맡거나, [새로 등록](https://github.com/OneUptime/oneuptime/issues/new)하세요
 - ✅ 코드베이스를 위한 **[테스트 작성 돕기](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)**
 - 🧑‍💻 환경을 설정하려면 **[로컬 개발 가이드](/App/FeatureSet/Docs/Content/en/installation/local-development.md)**
-- 📖 **[기여 가이드라인](/CONTRIBUTING.md)**을 읽어보세요
+- 📖 **[기여 가이드라인](/.github/CONTRIBUTING.md)**을 읽어보세요
 - 💬 **[개발자 Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** 또는 **[커뮤니티 Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**에서 대화하세요
 
 ## ❤️ 프로젝트 후원하기

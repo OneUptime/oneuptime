@@ -224,7 +224,7 @@ helm install oneuptime oneuptime/oneuptime
 - 🐛 **[खुले मुद्दे](https://github.com/OneUptime/oneuptime/issues)** — कोई एक चुनें, या [एक नया दर्ज करें](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[टेस्ट लिखने में मदद करें](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** कोडबेस के लिए
 - 🧑‍💻 **[लोकल डेवलपमेंट गाइड](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** सेट अप करने के लिए
-- 📖 **[योगदान दिशानिर्देश](/CONTRIBUTING.md)** पढ़ें
+- 📖 **[योगदान दिशानिर्देश](/.github/CONTRIBUTING.md)** पढ़ें
 - 💬 हमसे **[डेवलपर Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** या **[कम्युनिटी Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** में बात करें
 
 ## ❤️ प्रोजेक्ट का समर्थन करें

@@ -224,7 +224,7 @@ helm install oneuptime oneuptime/oneuptime
 - 🐛 **[待处理的 issue](https://github.com/OneUptime/oneuptime/issues)** —— 认领一个，或[提交一个新的](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ 为代码库 **[帮忙编写测试](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)**
 - 🧑‍💻 **[本地开发指南](/App/FeatureSet/Docs/Content/en/installation/local-development.md)**，帮你完成环境搭建
-- 📖 阅读 **[贡献指南](/CONTRIBUTING.md)**
+- 📖 阅读 **[贡献指南](/.github/CONTRIBUTING.md)**
 - 💬 在 **[开发者 Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** 或 **[社区 Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** 与我们交流
 
 ## ❤️ 支持这个项目

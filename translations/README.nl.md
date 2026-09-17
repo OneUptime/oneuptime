@@ -224,7 +224,7 @@ We verwelkomen bijdragen van elke omvang. Begin hier:
 - 🐛 **[Open issues](https://github.com/OneUptime/oneuptime/issues)** — pak er een op, of [maak een nieuwe aan](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[Help mee tests schrijven](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** voor de codebase
 - 🧑‍💻 **[Handleiding voor lokale ontwikkeling](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** om aan de slag te gaan
-- 📖 Lees de **[bijdragerichtlijnen](/CONTRIBUTING.md)**
+- 📖 Lees de **[bijdragerichtlijnen](/.github/CONTRIBUTING.md)**
 - 💬 Chat met ons in de **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** of **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
 
 ## ❤️ Steun het project

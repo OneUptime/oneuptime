@@ -224,7 +224,7 @@ Vi ønsker bidrag av alle størrelser velkommen. Start her:
 - 🐛 **[Åpne saker](https://github.com/OneUptime/oneuptime/issues)** — plukk opp en, eller [meld inn en ny](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[Hjelp til med å skrive tester](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** for kodebasen
 - 🧑‍💻 **[Veiledning for lokal utvikling](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** for å komme i gang
-- 📖 Les **[retningslinjene for bidrag](/CONTRIBUTING.md)**
+- 📖 Les **[retningslinjene for bidrag](/.github/CONTRIBUTING.md)**
 - 💬 Prat med oss i **[utvikler-Slacken](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** eller **[community-Slacken](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
 
 ## ❤️ Støtt prosjektet
