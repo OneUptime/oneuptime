@@ -246,7 +246,7 @@ describe("PublicDashboardRateLimit", () => {
     clientIp?: string;
   }) => {
     return PublicDashboardRateLimit.consume({
-      dashboardKey: data.dashboardKey || "id:dashboard-a",
+      resourceKey: data.dashboardKey || "id:dashboard-a",
       clientIp: data.clientIp || "203.0.113.7",
       bucket: PublicDashboardRateLimitBucket.Read,
     });
@@ -811,7 +811,7 @@ describe("PublicDashboardRateLimit", () => {
     const consumePassword: () => Promise<PublicDashboardRateLimitDecision> =
       () => {
         return PublicDashboardRateLimit.consume({
-          dashboardKey: "id:dashboard-a",
+          resourceKey: "id:dashboard-a",
           clientIp: "203.0.113.7",
           bucket: PublicDashboardRateLimitBucket.MasterPassword,
         });
@@ -851,7 +851,7 @@ describe("PublicDashboardRateLimit", () => {
       for (let i: number = 0; i < MASTER_PASSWORD_PER_IP_LIMIT + 5; i++) {
         const decision: PublicDashboardRateLimitDecision =
           await PublicDashboardRateLimit.consume({
-            dashboardKey: `id:dashboard-${i}`,
+            resourceKey: `id:dashboard-${i}`,
             clientIp: "203.0.113.7",
             bucket: PublicDashboardRateLimitBucket.MasterPassword,
           });
@@ -903,7 +903,7 @@ describe("PublicDashboardRateLimit", () => {
         i++
       ) {
         await PublicDashboardRateLimit.consume({
-          dashboardKey: "id:dashboard-a",
+          resourceKey: "id:dashboard-a",
           clientIp: "203.0.113.7",
           bucket: PublicDashboardRateLimitBucket.MasterPassword,
         });
@@ -1441,7 +1441,7 @@ describe("PublicDashboardRateLimit configuration", () => {
       expect(
         (
           await limiter.consume({
-            dashboardKey: "id:a",
+            resourceKey: "id:a",
             clientIp: "203.0.113.7",
             bucket: PublicDashboardRateLimitBucket.Read,
           })
@@ -1452,7 +1452,7 @@ describe("PublicDashboardRateLimit configuration", () => {
     expect(
       (
         await limiter.consume({
-          dashboardKey: "id:a",
+          resourceKey: "id:a",
           clientIp: "203.0.113.7",
           bucket: PublicDashboardRateLimitBucket.Read,
         })
@@ -1469,7 +1469,7 @@ describe("PublicDashboardRateLimit configuration", () => {
 
     for (let i: number = 0; i < 6; i++) {
       const decision: PublicDashboardRateLimitDecision = await limiter.consume({
-        dashboardKey: `id:rotating-${i}`,
+        resourceKey: `id:rotating-${i}`,
         clientIp: "203.0.113.7",
         bucket: PublicDashboardRateLimitBucket.Read,
       });
@@ -1492,7 +1492,7 @@ describe("PublicDashboardRateLimit configuration", () => {
 
     for (let i: number = 0; i < 2; i++) {
       await limiter.consume({
-        dashboardKey: "id:a",
+        resourceKey: "id:a",
         clientIp: "203.0.113.7",
         bucket: PublicDashboardRateLimitBucket.MasterPassword,
       });
@@ -1501,7 +1501,7 @@ describe("PublicDashboardRateLimit configuration", () => {
     expect(
       (
         await limiter.consume({
-          dashboardKey: "id:a",
+          resourceKey: "id:a",
           clientIp: "203.0.113.7",
           bucket: PublicDashboardRateLimitBucket.MasterPassword,
         })
@@ -1517,7 +1517,7 @@ describe("PublicDashboardRateLimit configuration", () => {
 
     for (let i: number = 0; i < READ_PER_DASHBOARD_LIMIT; i++) {
       await limiter.consume({
-        dashboardKey: "id:a",
+        resourceKey: "id:a",
         clientIp: "203.0.113.7",
         bucket: PublicDashboardRateLimitBucket.Read,
       });
@@ -1526,7 +1526,7 @@ describe("PublicDashboardRateLimit configuration", () => {
     expect(
       (
         await limiter.consume({
-          dashboardKey: "id:a",
+          resourceKey: "id:a",
           clientIp: "203.0.113.7",
           bucket: PublicDashboardRateLimitBucket.Read,
         })
@@ -1543,7 +1543,7 @@ describe("PublicDashboardRateLimit configuration", () => {
     expect(
       (
         await limiter.consume({
-          dashboardKey: "id:a",
+          resourceKey: "id:a",
           clientIp: "203.0.113.7",
           bucket: PublicDashboardRateLimitBucket.Read,
         })

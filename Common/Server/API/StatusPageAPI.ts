@@ -1,4 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
+import PublicDashboardRateLimit, {
+  PublicDashboardRateLimitBucket,
+} from "../Middleware/PublicDashboardRateLimit";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import AcmeChallengeService from "../Services/AcmeChallengeService";
 import IncidentEpisodeService from "../Services/IncidentEpisodeService";
@@ -1029,10 +1032,20 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
+    /*
+     * Every request here runs a scrypt verify, so the route carries a
+     * password attempt limit, the same one the dashboard master password
+     * route uses but with its own counters. It runs ahead of UserMiddleware so
+     * a refused attempt costs neither a session lookup nor a hash. See
+     * PublicDashboardRateLimit for the budget and why it fails closed.
+     */
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/master-password/:statusPageId`,
+      PublicDashboardRateLimit.getMiddleware(
+        PublicDashboardRateLimitBucket.StatusPageMasterPassword,
+      ),
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {

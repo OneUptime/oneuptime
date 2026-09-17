@@ -14,7 +14,9 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * Attempt limiting for the anonymous identity routes that accept a
  * credential: POST /login, POST /verify-totp-auth, POST /verify-webauthn-auth
  * and POST /verify-totp-enrolment
- * (App/FeatureSet/Identity/API/Authentication.ts).
+ * (App/FeatureSet/Identity/API/Authentication.ts), and the status page
+ * private user POST /login
+ * (App/FeatureSet/Identity/API/StatusPageAuthentication.ts).
  *
  * WHY THESE ROUTES NEED IT
  *
@@ -110,6 +112,14 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
 export enum IdentityRateLimitBucket {
   /* POST /login. Password guessing. */
   Login = "login",
+
+  /*
+   * POST /status-page/login -- a status page private user's password. The
+   * same guessing as /login against a different set of accounts, so its own
+   * counter: attempts against a status page login must not refuse dashboard
+   * sign-ins from the same address, or the other way round.
+   */
+  StatusPageLogin = "status-page-login",
 
   /*
    * POST /verify-totp-auth, POST /verify-webauthn-auth and
@@ -223,6 +233,25 @@ const LOGIN_BUCKET: BucketConfig = {
   ),
   perIpLimit: parsePositiveIntFromEnv(
     "IDENTITY_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW",
+    150,
+  ),
+};
+
+/*
+ * Status page private user password budget. The same numbers as the dashboard
+ * login for the same reasons, with its own settings.
+ */
+const STATUS_PAGE_LOGIN_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_STATUS_PAGE_LOGIN_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: parsePositiveIntFromEnv(
+    "IDENTITY_STATUS_PAGE_LOGIN_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    10,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "IDENTITY_STATUS_PAGE_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW",
     150,
   ),
 };
@@ -539,6 +568,10 @@ export default class IdentityRateLimit {
 
     if (bucket === IdentityRateLimitBucket.WebAuthnChallenge) {
       return WEBAUTHN_CHALLENGE_BUCKET;
+    }
+
+    if (bucket === IdentityRateLimitBucket.StatusPageLogin) {
+      return STATUS_PAGE_LOGIN_BUCKET;
     }
 
     return LOGIN_BUCKET;

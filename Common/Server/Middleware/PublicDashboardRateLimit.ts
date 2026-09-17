@@ -21,15 +21,23 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * Why this exists: holding a public dashboard id was previously enough to
  * drive unbounded ClickHouse and Postgres work — a 400-day SLO-style
  * aggregation, or a metrics aggregation at the finest bucket interval,
- * issued in a loop. /master-password was worse still: it verifies a bcrypt
+ * issued in a loop. /master-password was worse still: it verifies a scrypt
  * hash per request, so with no attempt limit it is an online
- * password-guessing oracle that also burns a CPU-bound hash per guess.
+ * password-guessing oracle that also burns a CPU- and memory-bound hash per
+ * guess.
  *
  * One limiter covers the whole surface rather than per-route budgets. The
  * routes differ enormously in cost, but the thing being bounded is request
  * volume from a single origin, and a uniform ceiling is the one an operator
  * can reason about. Only /master-password gets its own, much tighter bucket,
  * because it is the one route where the abuse is guessing rather than load.
+ *
+ * The status page master password route (/status-page-api/master-password,
+ * rewritten to /api/status-page) is the same oracle on a different surface,
+ * so it is served by this limiter too, on a bucket of its own. It shares the
+ * mechanics — two counters, trusted client address, fail closed — but not the
+ * counters themselves: its keys live under a separate prefix, so guesses
+ * against a status page neither spend nor draw on a dashboard's allowance.
  */
 
 /*
@@ -50,6 +58,10 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * allowance for free.
  */
 export enum PublicDashboardRateLimitScope {
+  /*
+   * The per-resource counter: the dashboard, or the status page for the
+   * status page bucket.
+   */
   Dashboard = "dashboard",
   Ip = "ip",
 }
@@ -58,8 +70,14 @@ export enum PublicDashboardRateLimitBucket {
   /* Every public dashboard read route. */
   Read = "read",
 
-  /* /master-password only. Tighter, because each request costs a bcrypt. */
+  /*
+   * Dashboard /master-password only. Tighter, because each request costs a
+   * password hash.
+   */
   MasterPassword = "master-password",
+
+  /* Status page /master-password. Same budget shape, separate counters. */
+  StatusPageMasterPassword = "status-page-master-password",
 }
 
 export enum PublicDashboardRateLimitOutcome {
@@ -107,11 +125,58 @@ const parsePositiveIntFromEnv: (envKey: string, fallback: number) => number = (
   return parsedValue;
 };
 
+/*
+ * A public surface the limiter serves. Everything that differs between the
+ * dashboard and status page routes lives here, so the counting and decision
+ * logic below stays one implementation.
+ */
+interface RateLimitedSurface {
+  /*
+   * Redis namespace. One per surface, so the two never share a counter and a
+   * SCAN for one surface's keys never shows the other's.
+   */
+  keyPrefix: string;
+
+  /* Marks the per-resource counter in the key. */
+  resourceKeyTag: string;
+
+  /* What the per-resource counter is called in log lines. */
+  resourceLabel: string;
+
+  /* The resource this request is about, as a bounded key segment. */
+  resolveResourceKey: (req: ExpressRequest) => string;
+}
+
 interface BucketConfig {
   windowSeconds: number;
-  perDashboardLimit: number;
+  perResourceLimit: number;
   perIpLimit: number;
+  surface: RateLimitedSurface;
+
+  /*
+   * An authentication attempt counter rather than a load control: refuses
+   * when the counter is unavailable, and says "password" when it rejects.
+   */
+  isPasswordAttempt: boolean;
 }
+
+const DASHBOARD_SURFACE: RateLimitedSurface = {
+  keyPrefix: "pdash:rl:",
+  resourceKeyTag: "d",
+  resourceLabel: "dashboard",
+  resolveResourceKey: (req: ExpressRequest): string => {
+    return PublicDashboardRateLimit.resolveDashboardKey(req);
+  },
+};
+
+const STATUS_PAGE_SURFACE: RateLimitedSurface = {
+  keyPrefix: "pspage:rl:",
+  resourceKeyTag: "s",
+  resourceLabel: "status page",
+  resolveResourceKey: (req: ExpressRequest): string => {
+    return PublicDashboardRateLimit.resolveStatusPageKey(req);
+  },
+};
 
 /*
  * Read budget.
@@ -135,7 +200,7 @@ const READ_BUCKET: BucketConfig = {
     "PUBLIC_DASHBOARD_RATE_LIMIT_WINDOW_SECONDS",
     60,
   ),
-  perDashboardLimit: parsePositiveIntFromEnv(
+  perResourceLimit: parsePositiveIntFromEnv(
     "PUBLIC_DASHBOARD_RATE_LIMIT_PER_DASHBOARD_PER_WINDOW",
     600,
   ),
@@ -143,21 +208,23 @@ const READ_BUCKET: BucketConfig = {
     "PUBLIC_DASHBOARD_RATE_LIMIT_PER_IP_PER_WINDOW",
     1800,
   ),
+  surface: DASHBOARD_SURFACE,
+  isPasswordAttempt: false,
 };
 
 /*
  * Master password budget. This is an authentication attempt counter, not a
  * load control, so it is sized for humans rather than for load: 15 tries per
  * 15 minutes covers a team behind one office address each mistyping a shared
- * password, and still takes guessing from roughly 600 attempts a minute (what
- * a bcrypt verify allows unthrottled) down to one a minute.
+ * password, and still takes guessing from as fast as the process can hash
+ * down to one a minute.
  */
 const MASTER_PASSWORD_BUCKET: BucketConfig = {
   windowSeconds: parsePositiveIntFromEnv(
     "PUBLIC_DASHBOARD_MASTER_PASSWORD_RATE_LIMIT_WINDOW_SECONDS",
     15 * 60,
   ),
-  perDashboardLimit: parsePositiveIntFromEnv(
+  perResourceLimit: parsePositiveIntFromEnv(
     "PUBLIC_DASHBOARD_MASTER_PASSWORD_RATE_LIMIT_PER_DASHBOARD_PER_WINDOW",
     15,
   ),
@@ -165,9 +232,31 @@ const MASTER_PASSWORD_BUCKET: BucketConfig = {
     "PUBLIC_DASHBOARD_MASTER_PASSWORD_RATE_LIMIT_PER_IP_PER_WINDOW",
     45,
   ),
+  surface: DASHBOARD_SURFACE,
+  isPasswordAttempt: true,
 };
 
-const KEY_PREFIX: string = "pdash:rl:";
+/*
+ * Status page master password budget. Same reasoning and the same defaults as
+ * the dashboard one, with its own settings so an operator can tune one
+ * surface without touching the other.
+ */
+const STATUS_PAGE_MASTER_PASSWORD_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "STATUS_PAGE_MASTER_PASSWORD_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perResourceLimit: parsePositiveIntFromEnv(
+    "STATUS_PAGE_MASTER_PASSWORD_RATE_LIMIT_PER_STATUS_PAGE_PER_WINDOW",
+    15,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "STATUS_PAGE_MASTER_PASSWORD_RATE_LIMIT_PER_IP_PER_WINDOW",
+    45,
+  ),
+  surface: STATUS_PAGE_SURFACE,
+  isPasswordAttempt: true,
+};
 
 /*
  * Counter keys outlive their window by one full window, so a request landing
@@ -276,6 +365,30 @@ export default class PublicDashboardRateLimit {
     return "invalid";
   }
 
+  /*
+   * The status page this request is about, as a key segment.
+   *
+   * The status page master password route names it only by :statusPageId,
+   * and a value that is not an id cannot match a status page, so there is no
+   * domain form here: everything else shares the one "invalid" bucket, which
+   * bounds Redis memory against junk path segments.
+   */
+  public static resolveStatusPageKey(req: ExpressRequest): string {
+    const raw: unknown = req.params?.["statusPageId"];
+
+    if (typeof raw !== "string" || raw.trim().length === 0) {
+      return "none";
+    }
+
+    const value: string = raw.trim();
+
+    if (ObjectID.isValidUUID(value)) {
+      return `id:${value.toLowerCase()}`;
+    }
+
+    return "invalid";
+  }
+
   private static sanitizeKeySegment(value: string): string {
     return (
       value
@@ -291,9 +404,14 @@ export default class PublicDashboardRateLimit {
   private static getBucketConfig(
     bucket: PublicDashboardRateLimitBucket,
   ): BucketConfig {
-    return bucket === PublicDashboardRateLimitBucket.MasterPassword
-      ? MASTER_PASSWORD_BUCKET
-      : READ_BUCKET;
+    switch (bucket) {
+      case PublicDashboardRateLimitBucket.MasterPassword:
+        return MASTER_PASSWORD_BUCKET;
+      case PublicDashboardRateLimitBucket.StatusPageMasterPassword:
+        return STATUS_PAGE_MASTER_PASSWORD_BUCKET;
+      default:
+        return READ_BUCKET;
+    }
   }
 
   /*
@@ -304,7 +422,8 @@ export default class PublicDashboardRateLimit {
    * created a key.
    */
   public static async consume(data: {
-    dashboardKey: string;
+    /* From resolveDashboardKey or resolveStatusPageKey, to match the bucket. */
+    resourceKey: string;
     clientIp: string;
     bucket: PublicDashboardRateLimitBucket;
   }): Promise<PublicDashboardRateLimitDecision> {
@@ -321,14 +440,16 @@ export default class PublicDashboardRateLimit {
     const windowMs: number = config.windowSeconds * 1000;
     const windowIndex: number = Math.floor(Date.now() / windowMs);
 
-    const dashboardCounterKey: string = `${KEY_PREFIX}${data.bucket}:d:${data.dashboardKey}:${data.clientIp}:${windowIndex}`;
-    const ipCounterKey: string = `${KEY_PREFIX}${data.bucket}:i:${data.clientIp}:${windowIndex}`;
+    const surface: RateLimitedSurface = config.surface;
+
+    const resourceCounterKey: string = `${surface.keyPrefix}${data.bucket}:${surface.resourceKeyTag}:${data.resourceKey}:${data.clientIp}:${windowIndex}`;
+    const ipCounterKey: string = `${surface.keyPrefix}${data.bucket}:i:${data.clientIp}:${windowIndex}`;
 
     try {
       const pipelineResults: Array<[Error | null, unknown]> | null =
         (await client
           .pipeline()
-          .incr(dashboardCounterKey)
+          .incr(resourceCounterKey)
           .incr(ipCounterKey)
           .exec()) as Array<[Error | null, unknown]> | null;
 
@@ -336,7 +457,7 @@ export default class PublicDashboardRateLimit {
         throw new Error("Rate limit pipeline returned no result");
       }
 
-      const dashboardCount: number = PublicDashboardRateLimit.readCounterResult(
+      const resourceCount: number = PublicDashboardRateLimit.readCounterResult(
         pipelineResults[0],
       );
       const ipCount: number = PublicDashboardRateLimit.readCounterResult(
@@ -352,8 +473,8 @@ export default class PublicDashboardRateLimit {
       const ttlSeconds: number = config.windowSeconds * TTL_MULTIPLIER;
       const keysToExpire: Array<string> = [];
 
-      if (dashboardCount === 1) {
-        keysToExpire.push(dashboardCounterKey);
+      if (resourceCount === 1) {
+        keysToExpire.push(resourceCounterKey);
       }
 
       if (ipCount === 1) {
@@ -375,17 +496,17 @@ export default class PublicDashboardRateLimit {
         PublicDashboardRateLimit.getSecondsUntilWindowEnd(config.windowSeconds);
 
       /*
-       * Dashboard counter is reported first when both are over, because it is
-       * the more specific of the two and the more useful thing to see in a log
-       * line.
+       * The per-resource counter is reported first when both are over,
+       * because it is the more specific of the two and the more useful thing
+       * to see in a log line.
        */
-      if (dashboardCount > config.perDashboardLimit) {
+      if (resourceCount > config.perResourceLimit) {
         return {
           outcome: PublicDashboardRateLimitOutcome.RateLimited,
           retryAfterSeconds,
           scope: PublicDashboardRateLimitScope.Dashboard,
           isFirstRejectionInWindow:
-            dashboardCount === config.perDashboardLimit + 1,
+            resourceCount === config.perResourceLimit + 1,
         };
       }
 
@@ -407,7 +528,7 @@ export default class PublicDashboardRateLimit {
        */
       if (PublicDashboardRateLimit.shouldLogCounterUnavailable(data.bucket)) {
         logger.warn(
-          `PublicDashboardRateLimit: counter failed for ${data.dashboardKey}`,
+          `PublicDashboardRateLimit: counter failed for ${config.surface.resourceLabel} ${data.resourceKey}`,
         );
         logger.warn(err);
       }
@@ -450,8 +571,9 @@ export default class PublicDashboardRateLimit {
 
   /*
    * Express middleware. Registered ahead of UserMiddleware on every public
-   * dashboard route so a flood is rejected before it costs a session lookup,
-   * let alone a database read.
+   * dashboard route, and on the status page master password route, so a
+   * flood is rejected before it costs a session lookup, let alone a database
+   * read or a password hash.
    */
   public static getMiddleware(
     bucket: PublicDashboardRateLimitBucket = PublicDashboardRateLimitBucket.Read,
@@ -465,13 +587,14 @@ export default class PublicDashboardRateLimit {
       res: ExpressResponse,
       next: NextFunction,
     ): Promise<void> => {
-      const dashboardKey: string =
-        PublicDashboardRateLimit.resolveDashboardKey(req);
+      const config: BucketConfig =
+        PublicDashboardRateLimit.getBucketConfig(bucket);
+      const resourceKey: string = config.surface.resolveResourceKey(req);
       const clientIp: string = PublicDashboardRateLimit.resolveClientIp(req);
 
       const decision: PublicDashboardRateLimitDecision =
         await PublicDashboardRateLimit.consume({
-          dashboardKey,
+          resourceKey,
           clientIp,
           bucket,
         });
@@ -485,8 +608,13 @@ export default class PublicDashboardRateLimit {
         }
 
         if (decision.isFirstRejectionInWindow) {
+          const scopeLabel: string =
+            decision.scope === PublicDashboardRateLimitScope.Ip
+              ? "ip"
+              : config.surface.resourceLabel;
+
           logger.warn(
-            `PublicDashboardRateLimit: rejected ${bucket} request for ${dashboardKey} from ${clientIp} (${decision.scope} limit)`,
+            `PublicDashboardRateLimit: rejected ${bucket} request for ${config.surface.resourceLabel} ${resourceKey} from ${clientIp} (${scopeLabel} limit)`,
           );
         }
 
@@ -494,7 +622,7 @@ export default class PublicDashboardRateLimit {
           req,
           res,
           new TooManyRequestsException(
-            bucket === PublicDashboardRateLimitBucket.MasterPassword
+            config.isPasswordAttempt
               ? "Too many password attempts. Please try again later."
               : "Too many requests. Please try again later.",
           ),
@@ -505,7 +633,8 @@ export default class PublicDashboardRateLimit {
         decision.outcome === PublicDashboardRateLimitOutcome.CounterUnavailable
       ) {
         /*
-         * The two buckets fail in opposite directions, on purpose.
+         * The read and password buckets fail in opposite directions, on
+         * purpose.
          *
          * Reads fail OPEN. These are unauthenticated read-only endpoints and
          * the counter is a load control; blacking out every customer's public
@@ -513,15 +642,16 @@ export default class PublicDashboardRateLimit {
          * unbounded window for the duration of that blip, which is itself
          * alarmed on.
          *
-         * /master-password fails CLOSED. There the counter is not a load
-         * control, it is the only thing bounding password guesses. Serving
-         * the endpoint without it means serving an unlimited guessing oracle,
-         * so we answer 503 and let the viewer retry when Redis is back.
+         * /master-password (dashboard and status page alike) fails CLOSED.
+         * There the counter is not a load control, it is the only thing
+         * bounding password guesses. Serving the endpoint without it means
+         * serving an unlimited guessing oracle, so we answer 503 and let the
+         * viewer retry when Redis is back.
          */
-        if (bucket === PublicDashboardRateLimitBucket.MasterPassword) {
+        if (config.isPasswordAttempt) {
           if (PublicDashboardRateLimit.shouldLogCounterUnavailable(bucket)) {
             logger.error(
-              `PublicDashboardRateLimit: rate limit counter unavailable, refusing master password attempts for ${dashboardKey}`,
+              `PublicDashboardRateLimit: rate limit counter unavailable, refusing master password attempts for ${config.surface.resourceLabel} ${resourceKey}`,
             );
           }
 

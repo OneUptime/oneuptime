@@ -1,4 +1,7 @@
 import CredentialGuard from "../Utils/CredentialGuard";
+import IdentityRateLimit, {
+  IdentityRateLimitBucket,
+} from "Common/Server/Middleware/IdentityRateLimit";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
@@ -872,8 +875,15 @@ router.post(
   },
 );
 
+/*
+ * Registered ahead of the handler so a refused attempt costs neither the user
+ * lookup nor the scrypt verify. See
+ * Common/Server/Middleware/IdentityRateLimit.ts for the budget and for why it
+ * fails closed when Redis is unreachable.
+ */
 router.post(
   "/login",
+  IdentityRateLimit.getMiddleware(IdentityRateLimitBucket.StatusPageLogin),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
