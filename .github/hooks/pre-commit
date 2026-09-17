@@ -1,5 +1,8 @@
 #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
+set -e
+
+# HUSKY=0 skips the hook, as it did when husky installed it.
+[ "${HUSKY:-}" = "0" ] && exit 0
 
 # Keep every internal package.json's "version" field in sync with the VERSION
 # file. Vulnerability scanners read package.json from source and flag stale
