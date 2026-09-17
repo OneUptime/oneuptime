@@ -1,6 +1,6 @@
 // improt API
 import "./API/BlogAPI";
-import { StaticPath, ViewsPath } from "./Utils/Config";
+import { InstallScriptPath, StaticPath, ViewsPath } from "./Utils/Config";
 import NotFoundUtil from "./Utils/NotFound";
 import ProductCompare, {
   Product,
@@ -384,9 +384,11 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/install.sh", (_req: ExpressRequest, res: ExpressResponse) => {
-      res.redirect(
-        "https://raw.githubusercontent.com/OneUptime/oneuptime/release/Home/Scripts/Install.sh",
-      );
+      /*
+       * Served from this image rather than redirected to raw GitHub, so the
+       * installer keeps working when files move in the repository.
+       */
+      res.sendFile(InstallScriptPath);
     });
 
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {

@@ -164,14 +164,37 @@ describe("route table wiring", () => {
     expect(internalRedirects).toBeNull();
   });
 
-  test("the only remaining res.redirect calls are the external install scripts", () => {
+  test("the only remaining res.redirect call is the infrastructure agent installer", () => {
     const remaining: RegExpMatchArray | null =
       routesSource.match(/res\.redirect\(/g);
 
-    expect(remaining).toHaveLength(2);
-    expect(routesSource).toContain(
+    expect(remaining).toHaveLength(1);
+    expect(routesSource).not.toContain(
       "https://raw.githubusercontent.com/OneUptime/oneuptime/release/Home/Scripts/Install.sh",
     );
+  });
+
+  test("/install.sh serves the installer shipped in the image", () => {
+    const configSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Config.ts"),
+      "utf-8",
+    );
+    const dockerfileTemplate: string = fs.readFileSync(
+      path.join(__dirname, "..", "Dockerfile.tpl"),
+      "utf-8",
+    );
+
+    expect(routesSource).toContain("res.sendFile(InstallScriptPath)");
+    expect(configSource).toContain(
+      'export const InstallScriptPath: string = "/usr/src/app/Scripts/Install.sh";',
+    );
+    // The image puts the Home package at /usr/src/app, so the script ships there.
+    expect(dockerfileTemplate).toMatch(
+      /^COPY\s+(?:--chown=\S+\s+)?\.\/(?:\S+\/)?Home \/usr\/src\/app$/m,
+    );
+    expect(
+      fs.existsSync(path.join(__dirname, "..", "Scripts", "Install.sh")),
+    ).toBe(true);
   });
 
   test.each([

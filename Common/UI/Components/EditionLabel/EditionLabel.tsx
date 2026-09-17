@@ -38,13 +38,15 @@ export interface ComponentProps {
 const ENTERPRISE_URL: string = "https://oneuptime.com/enterprise/demo";
 
 /*
- * Linked only for major upgrades. Points at GitHub rather than the docs site
- * on this installation, because the guide for the version you are moving TO is
- * the one you need, and this installation only ships the guide for the version
- * it is already running.
+ * Linked only for major upgrades. Points at the oneuptime.com docs rather than
+ * the docs site on this installation, because the guide for the version you are
+ * moving TO is the one you need, and this installation only ships the guide for
+ * the version it is already running. The oneuptime.com docs always carry the
+ * latest release, and unlike a GitHub file link this URL does not break when
+ * the docs move in the repository.
  */
 const UPGRADE_GUIDE_URL: string =
-  "https://github.com/OneUptime/oneuptime/blob/master/App/FeatureSet/Docs/Content/en/installation/upgrading.md";
+  "https://oneuptime.com/docs/installation/upgrading";
 const SALES_EMAIL: string = "sales@oneuptime.com";
 const SALES_MAILTO_URL: string = "mailto:sales@oneuptime.com";
 
