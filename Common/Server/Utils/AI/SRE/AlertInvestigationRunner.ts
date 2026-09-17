@@ -1,3 +1,8 @@
+import {
+  InvestigationNotStartedCode,
+  InvestigationGateDetails,
+} from "../../../../Types/AI/InvestigationNotStartedReason";
+import InvestigationEligibility from "./InvestigationEligibility";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -16,7 +21,10 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import AlertAIContextBuilder, {
   AlertContextData,
 } from "../AlertAIContextBuilder";
-import { AI_ALERT_INVESTIGATION_FEATURE } from "../../../Services/AIService";
+import {
+  AI_ALERT_INVESTIGATION_FEATURE,
+  AutonomousBudgetStatus,
+} from "../../../Services/AIService";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
@@ -51,6 +59,8 @@ const MAX_DEDUPE_WINDOW_MINUTES: number = 24 * 60;
 
 export interface AlertGateDecision {
   investigate: boolean;
+  notStartedCode?: InvestigationNotStartedCode | undefined;
+  notStartedDetails?: InvestigationGateDetails | undefined;
   // Human-readable reason recorded in the debug log when skipping.
   reason: string;
   // Passed through to the AIRun as the dedupe key for future windows.
@@ -77,9 +87,10 @@ export default class AIAlertInvestigationRunner {
     const { alertId, projectId } = data;
 
     try {
-      if (
-        !(await AIInvestigationEngine.isEnabledForProject(projectId, "Alert"))
-      ) {
+      const disabled: InvestigationNotStartedCode | null =
+        await AIInvestigationEngine.getDisabledReason(projectId, "Alert");
+      if (disabled) {
+        await InvestigationEligibility.recordSkipped(data, disabled);
         return false;
       }
 
@@ -89,6 +100,12 @@ export default class AIAlertInvestigationRunner {
       });
 
       if (!gate.investigate) {
+        await InvestigationEligibility.recordSkipped(
+          data,
+          gate.notStartedCode || "eligibility_check_failed",
+          undefined,
+          gate.notStartedDetails,
+        );
         logger.debug(
           `AI: skipping investigation for alert ${alertId.toString()} — ${gate.reason}.`,
         );
@@ -100,11 +117,21 @@ export default class AIAlertInvestigationRunner {
           projectId,
           subjectAlertId: alertId,
           subjectMonitorId: gate.monitorId,
+          onNotEnqueued: async (
+            code: InvestigationNotStartedCode,
+            budget?: AutonomousBudgetStatus,
+          ): Promise<void> => {
+            await InvestigationEligibility.recordSkipped(data, code, budget);
+          },
         },
       );
 
       return enqueuedRunId !== null;
     } catch (error) {
+      await InvestigationEligibility.recordSkipped(
+        data,
+        "eligibility_check_failed",
+      );
       logger.error(
         `AI: unexpected error enqueueing investigation for alert ${alertId.toString()}: ${error}`,
       );
@@ -276,13 +303,18 @@ export default class AIAlertInvestigationRunner {
         monitorId: true,
         alertSeverity: {
           order: true,
+          name: true,
         },
       },
       props: { isRoot: true },
     });
 
     if (!alert) {
-      return { investigate: false, reason: "alert not found" };
+      return {
+        investigate: false,
+        reason: "alert not found",
+        notStartedCode: "eligibility_check_failed",
+      };
     }
 
     // One project read serves both the severity floor and the dedupe window.
@@ -296,19 +328,25 @@ export default class AIAlertInvestigationRunner {
     });
 
     // Severity floor.
-    const floorOrder: number | null = await this.getSeverityFloorOrder(
+    const floorSeverity: AlertSeverity | null = await this.getSeverityFloor(
       projectId,
       project?.alertInvestigationMinimumSeverityId,
     );
+    const floorOrder: number | undefined = floorSeverity?.order;
     const alertOrder: number | undefined = alert.alertSeverity?.order;
 
     if (
-      floorOrder !== null &&
+      floorOrder !== undefined &&
       alertOrder !== undefined &&
       alertOrder > floorOrder
     ) {
       return {
         investigate: false,
+        notStartedCode: "severity_below_threshold",
+        notStartedDetails: {
+          severityName: alert.alertSeverity?.name,
+          minimumSeverityName: floorSeverity?.name,
+        },
         reason: `severity order ${alertOrder} is below the investigation floor (order ${floorOrder})`,
         monitorId: alert.monitorId,
       };
@@ -349,6 +387,8 @@ export default class AIAlertInvestigationRunner {
       if (recentRunCount > 0) {
         return {
           investigate: false,
+          notStartedCode: "monitor_cooldown",
+          notStartedDetails: { cooldownWindowMinutes: dedupeWindowMinutes },
           reason: `monitor ${alert.monitorId.toString()} was already investigated within the last ${dedupeWindowMinutes} minutes`,
           monitorId: alert.monitorId,
         };
@@ -369,27 +409,27 @@ export default class AIAlertInvestigationRunner {
    * configured severity has been deleted — the default is the project's top
    * two tiers. Returns null when no floor applies (no severities configured).
    */
-  private static async getSeverityFloorOrder(
+  private static async getSeverityFloor(
     projectId: ObjectID,
     minimumSeverityId: ObjectID | undefined,
-  ): Promise<number | null> {
+  ): Promise<AlertSeverity | null> {
     if (minimumSeverityId) {
       const floorSeverity: AlertSeverity | null =
         await AlertSeverityService.findOneById({
           id: minimumSeverityId,
-          select: { order: true },
+          select: { order: true, name: true },
           props: { isRoot: true },
         });
 
       if (floorSeverity && floorSeverity.order !== undefined) {
-        return floorSeverity.order;
+        return floorSeverity;
       }
     }
 
     // Default: the top two severity tiers (the two lowest order values).
     const topTiers: Array<AlertSeverity> = await AlertSeverityService.findBy({
       query: { projectId },
-      select: { order: true },
+      select: { order: true, name: true },
       sort: { order: SortOrder.Ascending },
       limit: 2,
       skip: 0,
@@ -401,7 +441,7 @@ export default class AIAlertInvestigationRunner {
     }
 
     const lastTier: AlertSeverity = topTiers[topTiers.length - 1]!;
-    return lastTier.order ?? null;
+    return lastTier.order !== undefined ? lastTier : null;
   }
 
   // Build a compact alert record to seed the investigation.

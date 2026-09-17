@@ -1,3 +1,4 @@
+import { InvestigationNotStartedCode } from "../../../../Types/AI/InvestigationNotStartedReason";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import Query from "../../../../Types/BaseDatabase/Query";
@@ -127,6 +128,12 @@ export default class AIInvestigationQueue {
     subjectAlertId?: ObjectID | undefined;
     subjectMonitorId?: ObjectID | undefined;
     subjectAIInsightId?: ObjectID | undefined;
+    onNotEnqueued?:
+      | ((
+          code: InvestigationNotStartedCode,
+          budget?: AutonomousBudgetStatus,
+        ) => Promise<void>)
+      | undefined;
     /*
      * When set, the run is a remediation run (not an Investigation): by
      * default a read-only RemediationPlan that picks a runbook for this
@@ -145,6 +152,21 @@ export default class AIInvestigationQueue {
       | undefined;
   }): Promise<ObjectID | null> {
     const { projectId } = data;
+
+    // Diagnostic persistence must never change queue admission or remediation.
+    const recordSkip: (
+      code: InvestigationNotStartedCode,
+      budget?: AutonomousBudgetStatus,
+    ) => Promise<void> = async (
+      code: InvestigationNotStartedCode,
+      budget?: AutonomousBudgetStatus,
+    ): Promise<void> => {
+      try {
+        await data.onNotEnqueued?.(code, budget);
+      } catch (error) {
+        logger.error(`AI: could not record queue admission decision: ${error}`);
+      }
+    };
 
     if (data.subjectIncidentId && data.subjectAlertId) {
       logger.error(
@@ -166,12 +188,14 @@ export default class AIInvestigationQueue {
         });
 
       if (budget.exhausted) {
+        await recordSkip("daily_budget_exhausted", budget);
         logger.debug(
           `AI: not enqueueing investigation for project ${projectId.toString()} — daily autonomous token budget exhausted (${budget.usedTokensToday} of ${budget.limitInTokens} tokens used today).`,
         );
         return null;
       }
     } catch (error) {
+      await recordSkip("budget_check_failed");
       logger.error(
         `AI: budget check failed, not enqueueing investigation: ${error}`,
       );
@@ -240,6 +264,7 @@ export default class AIInvestigationQueue {
             )
           : await createRun();
     } catch (error) {
+      await recordSkip("enqueue_failed");
       logger.error(`AI: failed to enqueue investigation run: ${error}`);
       return null;
     }

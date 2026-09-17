@@ -148,7 +148,7 @@ describe("InvestigationPanel status reporting", () => {
       ),
     );
 
-    const { container } = render(
+    render(
       <InvestigationPanel
         subjectType="incident"
         subjectId={SUBJECT_ID}
@@ -164,7 +164,9 @@ describe("InvestigationPanel status reporting", () => {
     });
 
     expect(onStatusChange).toHaveBeenCalledWith(null);
-    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.getByText("No investigation has been recorded"),
+    ).toBeVisible();
   });
 
   test("discovers an AI run that is enqueued after the incident page loads", async () => {
@@ -447,13 +449,13 @@ describe("InvestigationPanel status reporting", () => {
     expect(jest.getTimerCount()).toBe(0);
   });
 
-  test("degrades silently when the initial request fails", async () => {
+  test("shows an unavailable status when the initial request fails", async () => {
     const onStatusChange: MockFunction = getJestMockFunction();
     postMock.mockResolvedValue(
       new HTTPErrorResponse(500, { message: "boom" }, {}),
     );
 
-    const { container } = render(
+    render(
       <InvestigationPanel
         subjectType="incident"
         subjectId={SUBJECT_ID}
@@ -464,7 +466,10 @@ describe("InvestigationPanel status reporting", () => {
     await waitFor(() => {
       expect(onStatusChange).toHaveBeenCalledWith(null);
     });
-    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.getByText("Investigation status is unavailable"),
+    ).toBeVisible();
+    expect(screen.queryByText("Not investigated")).toBeNull();
   });
 
   test("preserves the last active status through a transient polling failure", async () => {
@@ -534,7 +539,7 @@ describe("InvestigationPanel status reporting", () => {
         new HTTPErrorResponse(503, { message: "try again" }, {}),
       );
 
-    const { container, rerender } = render(
+    const { rerender } = render(
       <InvestigationPanel
         subjectType="incident"
         subjectId={SUBJECT_ID}
@@ -552,10 +557,13 @@ describe("InvestigationPanel status reporting", () => {
     );
 
     await waitFor(() => {
-      expect(container).toBeEmptyDOMElement();
+      expect(
+        screen.getByText("Investigation status is unavailable"),
+      ).toBeVisible();
       expect(onStatusChange).toHaveBeenLastCalledWith(null);
     });
     expect(postMock).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText("Investigating…")).toBeNull();
   });
 
   test("ignores a late response from the previous subject", async () => {

@@ -759,8 +759,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
           {/*
-           * The AI's root-cause report leads the page: it is the fastest read
-           * on what happened. It renders nothing until a run exists.
+           * Lead with the AI investigation, or explain why it did not start,
+           * before showing the alert's supporting telemetry.
            */}
           <InvestigationPanel
             subjectType="alert"

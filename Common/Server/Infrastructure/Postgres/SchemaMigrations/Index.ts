@@ -1,3 +1,4 @@
+import { AddAIInvestigationDecision1793700000000 } from "./1793700000000-AddAIInvestigationDecision";
 import { RemoveMonitorDescriptionLengthLimit1793600000000 } from "./1793600000000-RemoveMonitorDescriptionLengthLimit";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
@@ -1197,5 +1198,6 @@ export default [
   AddDataResidencyToProject1793300000000,
   AddSubscriberUpdateNotificationStatus1793400000000,
   MakeOwnerRowsUnique1793500000000,
+  AddAIInvestigationDecision1793700000000,
   RemoveMonitorDescriptionLengthLimit1793600000000,
 ];

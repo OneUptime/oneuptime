@@ -44,6 +44,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import InvestigationNotStartedReason from "../../Types/AI/InvestigationNotStartedReason";
 import Permission from "../../Types/Permission";
 import {
   Column,
@@ -1786,6 +1787,17 @@ export default class Alert extends BaseModel {
     nullable: true,
   })
   public customFields?: JSONObject = undefined;
+
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "AI Investigation Decision",
+    description:
+      "Internal: the reason automatic AI investigation did not start when this record was created.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public aiInvestigationDecision?: InvestigationNotStartedReason = undefined;
 
   @ColumnAccessControl({
     create: [],
