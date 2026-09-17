@@ -192,6 +192,22 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     useRef<boolean>(false);
   isPageContextAttachedRef.current = isPageContextAttached;
 
+  /*
+   * Keep an explicit removal when navigation leaves no composer chip. Omitting
+   * pageContext would otherwise restore the conversation's saved subject.
+   */
+  const isPageContextExplicitlyDetachedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const changePageContextAttachment: (attached: boolean) => void = useCallback(
+    (attached: boolean): void => {
+      isPageContextExplicitlyDetachedRef.current = !attached;
+      isPageContextAttachedRef.current = attached;
+      setIsPageContextAttached(attached);
+    },
+    [],
+  );
+
   const latestRunIdRef: React.MutableRefObject<string | undefined> = useRef<
     string | undefined
   >(undefined);
@@ -473,6 +489,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
       return;
     }
     lastProjectIdRef.current = projectIdString;
+    isPageContextExplicitlyDetachedRef.current = false;
     setConversations([]);
     setActiveConversationId(undefined);
     activeConversationIdRef.current = undefined;
@@ -535,7 +552,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
      * re-attaching would send context they just removed.
      */
     const signature: string = detected
-      ? `${detected.type}:${detected.entityId || ""}`
+      ? `${projectIdString}:${detected.type}:${detected.entityId || ""}`
       : "";
     const contextChanged: boolean =
       signature !== lastContextSignatureRef.current;
@@ -544,17 +561,26 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     setPageContext(detected);
     if (contextChanged) {
       setIsPageContextAttached(Boolean(detected));
+      if (detected) {
+        isPageContextExplicitlyDetachedRef.current = false;
+      }
     }
+
+    let isCurrentPage: boolean = true;
 
     if (detected?.isEntity) {
       PageContextUtil.resolveEntityTitle(detected)
         .then((title: string | null) => {
-          if (!title) {
+          if (!title || !isCurrentPage) {
             return;
           }
           setPageContext((current: DashboardPageContext | null) => {
             // Only decorate the context this fetch was started for.
-            if (current && current.entityId === detected.entityId) {
+            if (
+              current &&
+              current.type === detected.type &&
+              current.entityId === detected.entityId
+            ) {
               return { ...current, entityTitle: title };
             }
             return current;
@@ -564,7 +590,11 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
           // The generic chip label is fine without a title.
         });
     }
-  }, [enabled, locationPathname]);
+
+    return () => {
+      isCurrentPage = false;
+    };
+  }, [enabled, locationPathname, projectIdString]);
 
   // ---- working state + polling ---------------------------------------------
 
@@ -780,11 +810,15 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
               ...(selectedProviderIdRef.current
                 ? { llmProviderId: selectedProviderIdRef.current }
                 : {}),
-              ...(isPageContextAttachedRef.current && pageContextRef.current
+              ...(pageContextRef.current ||
+              isPageContextExplicitlyDetachedRef.current
                 ? {
-                    pageContext: PageContextUtil.toRequestPayload(
-                      pageContextRef.current,
-                    ),
+                    pageContext:
+                      pageContextRef.current && isPageContextAttachedRef.current
+                        ? PageContextUtil.toRequestPayload(
+                            pageContextRef.current,
+                          )
+                        : null,
                   }
                 : {}),
             },
@@ -1031,7 +1065,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     setPermissionMode,
     pageContext,
     isPageContextAttached,
-    setIsPageContextAttached,
+    setIsPageContextAttached: changePageContextAttachment,
     isSubmittingApproval,
     respondToApproval,
     sendMessage,

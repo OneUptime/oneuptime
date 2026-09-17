@@ -357,7 +357,7 @@ describe("buildReplayedHistoryMessage", () => {
 const INCIDENT_ID: string = "0b6ff65a-71a1-40b0-8b9c-6c11f5f6a123";
 
 function buildRequest(data?: {
-  pageContext?: AIChatPageContext | undefined;
+  pageContext?: AIChatPageContext | null | undefined;
 }): ChatTurnRequest {
   return {
     projectId: ObjectID.generate(),
@@ -510,6 +510,62 @@ describe("ChatAgentRunner.runTurn — cooperative cancellation", () => {
 });
 
 describe("ChatAgentRunner.runTurn — page context persistence", () => {
+  test("explicitly detaching clears the saved subject and omits it from the prompt", async () => {
+    const conversation: AIConversation = new AIConversation();
+    conversation.pageContext = {
+      type: AIChatPageContextType.RumApplication,
+      entityId: INCIDENT_ID,
+      entityTitle: "Checkout browser",
+    };
+    const spies: RunnerSpies = installRunnerSpies({
+      conversation,
+      titleCount: 5,
+    });
+
+    await ChatAgentRunner.runTurn(buildRequest({ pageContext: null }));
+    await flushAsync();
+
+    expect(
+      findCallWithDataKey(spies.conversationUpdateOneById, "pageContext"),
+    ).toEqual({ pageContext: null });
+    const llmRequest: AILogRequest = spies.executeWithLogging.mock
+      .calls[0]?.[0] as AILogRequest;
+    expect(llmRequest.messages[0]?.content).not.toContain(
+      "## Current page context",
+    );
+    expect(llmRequest.messages[0]?.content).not.toContain(INCIDENT_ID);
+  });
+
+  test("a RUM application replaces the previous module as the conversation subject", async () => {
+    const conversation: AIConversation = new AIConversation();
+    conversation.pageContext = { type: AIChatPageContextType.MonitorsList };
+    const spies: RunnerSpies = installRunnerSpies({
+      conversation,
+      titleCount: 5,
+    });
+    const pageContext: AIChatPageContext = {
+      type: AIChatPageContextType.RumApplication,
+      entityId: INCIDENT_ID,
+      entityTitle: "Checkout browser",
+    };
+
+    await ChatAgentRunner.runTurn(buildRequest({ pageContext }));
+    await flushAsync();
+
+    expect(
+      findCallWithDataKey(spies.conversationUpdateOneById, "pageContext"),
+    ).toEqual({ pageContext });
+    const llmRequest: AILogRequest = spies.executeWithLogging.mock
+      .calls[0]?.[0] as AILogRequest;
+    expect(llmRequest.messages[0]?.content).toContain(
+      `rumApplicationId="${INCIDENT_ID}"`,
+    );
+    expect(llmRequest.messages[0]?.content).toContain("query_rum_web_vitals");
+    expect(llmRequest.messages[0]?.content).not.toContain(
+      "browsing the monitors list",
+    );
+  });
+
   test("persists a fresh page context on the conversation and folds it into the prompt", async () => {
     const pageContext: AIChatPageContext = {
       type: AIChatPageContextType.Incident,

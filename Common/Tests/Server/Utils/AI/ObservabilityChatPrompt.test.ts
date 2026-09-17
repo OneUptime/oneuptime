@@ -50,6 +50,10 @@ describe("buildPageContextSection", () => {
     ],
     [AIChatPageContextType.TelemetryService, `serviceId="${ENTITY_ID}"`],
     [
+      AIChatPageContextType.RumApplication,
+      `query_rum_applications using rumApplicationId="${ENTITY_ID}"`,
+    ],
+    [
       AIChatPageContextType.Exception,
       `find_code_for_exception with exceptionId="${ENTITY_ID}"`,
     ],
@@ -108,6 +112,8 @@ describe("buildPageContextSection", () => {
     [AIChatPageContextType.TracesExplorer, "query_traces"],
     [AIChatPageContextType.MetricsExplorer, "query_metrics"],
     [AIChatPageContextType.ExceptionsList, "top_exceptions"],
+    [AIChatPageContextType.RumApplications, "query_rum_applications"],
+    [AIChatPageContextType.TelemetryServicesList, "lookup_context"],
   ])(
     "area context %s names its primary tool",
     (type: AIChatPageContextType, expectedTool: string) => {

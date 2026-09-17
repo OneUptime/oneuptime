@@ -502,6 +502,8 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.Traces]: "Traces",
   [AIChatCitationTargetType.TraceView]: "Trace",
   [AIChatCitationTargetType.Metrics]: "Metrics",
+  [AIChatCitationTargetType.RumApplications]: "RUM applications",
+  [AIChatCitationTargetType.RumApplicationView]: "RUM application",
   [AIChatCitationTargetType.Exceptions]: "Exceptions",
   [AIChatCitationTargetType.Incidents]: "Incidents",
   [AIChatCitationTargetType.IncidentView]: "Incident",

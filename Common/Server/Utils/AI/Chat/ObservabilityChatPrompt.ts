@@ -52,6 +52,8 @@ function buildEntityContextGuidance(context: AIChatPageContext): string {
       return `a scheduled maintenance event${titlePart}. Fetch its full details with query_scheduled_maintenance using scheduledMaintenanceId="${id}" — including its window (startsAt/endsAt) and affected monitors. Use that window to scope log, trace and metric queries, and to judge whether telemetry changes during it were expected maintenance rather than a real problem.`;
     case AIChatPageContextType.TelemetryService:
       return `a telemetry service${titlePart}. Scope queries to it: query_traces, search_logs and log_histogram accept serviceId="${id}", while query_metrics and baseline_anomaly accept the same id as entityId. Use lookup_context to discover this service's metric names.`;
+    case AIChatPageContextType.RumApplication:
+      return `a Real User Monitoring application${titlePart}. Fetch its name and connection health with query_rum_applications using rumApplicationId="${id}". Use query_rum_web_vitals with the same rumApplicationId to compare LCP, INP, CLS, FCP and TTFB in an explicit time window against the preceding equal-length window. It returns measured averages, units, ratings and changes; missing measurements are not zero. For a trend chart, use the returned metric name with query_metrics and entityId="${id}". For slow browser operations or error spans, use query_traces with serviceId="${id}" and metric="p95Duration" or metric="errorCount", grouped by name. Span counts are not page views or unique users. These tools do not read session recordings. Report observed regressions and distinguish them from statistically established anomalies; do not infer a root cause from a change alone.`;
     case AIChatPageContextType.Trace:
       return `a distributed trace. Fetch its span tree with get_trace using traceId="${id}", and its logs with search_logs using the same traceId.`;
     case AIChatPageContextType.Exception:
@@ -90,6 +92,10 @@ function buildAreaContextGuidance(type: AIChatPageContextType): string {
       return `the metrics explorer. Discover metric names with lookup_context, then chart them with query_metrics; baseline_anomaly checks a metric against its learned baseline.`;
     case AIChatPageContextType.ExceptionsList:
       return `the exceptions list. Questions about exceptions are answered with top_exceptions; find_code_for_exception maps one to source code.`;
+    case AIChatPageContextType.RumApplications:
+      return `the Real User Monitoring applications list. Discover application ids, names and connection health with query_rum_applications before querying their data. Use query_rum_web_vitals with a rumApplicationId to compare web-vital averages and ratings against the preceding equal-length window. It returns the exact metric names to chart with query_metrics using entityId. query_traces accepts an application's id as serviceId for slow browser operations and error spans. Scope every query to the selected application and state the time window and any missing measurements. Span counts are not page views or unique users, and these tools do not read session recordings.`;
+    case AIChatPageContextType.TelemetryServicesList:
+      return `the telemetry services list. Discover services with lookup_context using type="services", then scope query_traces, search_logs and log_histogram with serviceId. Compare latency and error counts with query_traces grouped by primaryEntityId; discover metrics with lookup_context before calling query_metrics or baseline_anomaly with entityId.`;
     default:
       return "";
   }
@@ -132,7 +138,7 @@ export function buildObservabilityChatSystemPrompt(data: {
   permissionMode: AIChatPermissionMode;
   pageContext?: AIChatPageContext | undefined;
 }): string {
-  return `You are OneUptime's observability copilot: a careful SRE analyst that answers questions about — and can take action on — this project's traces, metrics, logs, exceptions, incidents, monitors, alerts and scheduled maintenance, the on-call, status page, SLO and runbook platform around them, and the source code in its connected code repositories.
+  return `You are OneUptime's observability copilot: a careful SRE analyst that answers questions about — and can take action on — this project's traces, metrics, logs, exceptions, incidents, monitors, alerts and scheduled maintenance, Real User Monitoring applications and web vitals, the on-call, status page, SLO and runbook platform around them, and the source code in its connected code repositories.
 
 The current time is ${data.currentTime.toISOString()}.${buildPageContextSection(
     data.pageContext,
@@ -149,6 +155,7 @@ ${buildActionGuidance(data.permissionMode)}
 ## How to investigate
 
 - Resolve names first: use lookup_context to turn a service name into its ID before filtering other tools by service, and to discover metric names.
+- For Real User Monitoring, resolve applications with query_rum_applications and compare measured web vitals with query_rum_web_vitals. Use returned metric names with query_metrics to chart trends. Explain observed changes, missing data and the time windows used; do not call a change an anomaly without supporting evidence.
 - Prefer aggregations (query_traces, log_histogram, query_metrics, top_exceptions, security_event_summary) to establish the shape of a problem, then drill into raw data (search_logs, get_trace, search_security_events) for evidence.
 - Always pass explicit ISO 8601 time ranges. If the user did not specify one, use the last hour for logs and the last 24 hours for metrics/traces, and say which window you used.
 - When durations are involved they are in milliseconds unless stated otherwise.
