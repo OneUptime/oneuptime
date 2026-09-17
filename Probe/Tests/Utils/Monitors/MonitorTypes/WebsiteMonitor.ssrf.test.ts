@@ -11,6 +11,7 @@ import {
   describe,
   expect,
   it,
+  jest as jestTimers,
 } from "@jest/globals";
 import WebsiteMonitor, {
   ProbeWebsiteResponse,
@@ -48,6 +49,20 @@ function websiteResponse(data: {
     responseBody: new HTML(data.body),
     isOnline: true,
   };
+}
+
+async function waitForRequestCount(
+  spy: jest.SpyInstance,
+  count: number,
+): Promise<void> {
+  for (
+    let turn: number = 0;
+    turn < 1000 && spy.mock.calls.length < count;
+    turn++
+  ) {
+    await Promise.resolve();
+  }
+  expect(spy).toHaveBeenCalledTimes(count);
 }
 
 describe("WebsiteMonitor SSRF protection", () => {
@@ -131,6 +146,7 @@ describe("WebsiteMonitor SSRF protection", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    jestTimers.useRealTimers();
   });
 
   afterAll(async () => {
@@ -418,32 +434,145 @@ describe("WebsiteMonitor SSRF protection", () => {
     );
   });
 
-  it("aborts an active request at one whole-check deadline without retrying", async () => {
-    let requestSignal: AbortSignal | undefined;
+  it.each([0, 1, 3])(
+    "aborts every timed-out attempt and retries %i times with fresh deadlines",
+    async (retries: number) => {
+      jestTimers.useFakeTimers({ doNotFake: ["performance"] });
+      jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
+      const requestOptions: Array<Parameters<typeof WebsiteRequest.fetch>[1]> =
+        [];
+      const fetchSpy: jest.SpyInstance = jest
+        .spyOn(WebsiteRequest, "fetch")
+        .mockImplementation(
+          (_url: URL, options: Parameters<typeof WebsiteRequest.fetch>[1]) => {
+            requestOptions.push(options);
+            return new Promise(() => {});
+          },
+        );
+      const options: Parameters<typeof WebsiteMonitor.ping>[1] = {
+        timeout: new PositiveNumber(100),
+        retry: retries,
+        isOnlineCheckRequest: true,
+      };
+      const pending: Promise<ProbeWebsiteResponse | null> = WebsiteMonitor.ping(
+        URL.fromString("http://1.1.1.1/hangs"),
+        options,
+      );
+
+      for (let attempt: number = 1; attempt <= retries + 1; attempt++) {
+        await waitForRequestCount(fetchSpy, attempt);
+        jest.advanceTimersByTime(100);
+      }
+      const response: ProbeWebsiteResponse | null = await pending;
+
+      expect(response).not.toBeNull();
+      expect(response!.isOnline).toBe(false);
+      expect(response!.isTimeout).toBe(true);
+      expect(response!.totalAttempts).toBe(retries + 1);
+      expect(fetchSpy).toHaveBeenCalledTimes(retries + 1);
+      expect(
+        new Set(
+          requestOptions.map(
+            (request: Parameters<typeof WebsiteRequest.fetch>[1]) => {
+              expect(request.signal?.aborted).toBe(true);
+              expect(request.timeout).toBe(100);
+              return request.signal;
+            },
+          ),
+        ).size,
+      ).toBe(retries + 1);
+      expect(options.executionContext).toBeUndefined();
+      expect(jest.getTimerCount()).toBe(0);
+    },
+  );
+
+  it("shares a deadline with HEAD fallback but renews it for the next attempt", async () => {
+    jestTimers.useFakeTimers({ doNotFake: ["performance"] });
+    jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
     const fetchSpy: jest.SpyInstance = jest
       .spyOn(WebsiteRequest, "fetch")
       .mockImplementation(
         (_url: URL, options: Parameters<typeof WebsiteRequest.fetch>[1]) => {
-          requestSignal = options.signal;
+          if (options.isHeadRequest) {
+            jest.advanceTimersByTime(60);
+            return Promise.reject(new Error("HEAD is not supported"));
+          }
           return new Promise(() => {});
         },
       );
-
-    const response: ProbeWebsiteResponse | null = await WebsiteMonitor.ping(
-      URL.fromString("http://1.1.1.1/hangs"),
+    const pending: Promise<ProbeWebsiteResponse | null> = WebsiteMonitor.ping(
+      URL.fromString("http://1.1.1.1/head-timeout"),
       {
-        timeout: new PositiveNumber(30),
-        retry: 9,
+        isHeadRequest: true,
+        retry: 1,
+        timeout: new PositiveNumber(100),
         isOnlineCheckRequest: true,
       },
     );
 
-    expect(response).not.toBeNull();
-    expect(response!.isOnline).toBe(false);
+    for (let attempt: number = 1; attempt <= 2; attempt++) {
+      await waitForRequestCount(fetchSpy, attempt * 2);
+      const head: Parameters<typeof WebsiteRequest.fetch>[1] = fetchSpy.mock
+        .calls[(attempt - 1) * 2]![1] as Parameters<
+        typeof WebsiteRequest.fetch
+      >[1];
+      const get: Parameters<typeof WebsiteRequest.fetch>[1] = fetchSpy.mock
+        .calls[(attempt - 1) * 2 + 1]![1] as Parameters<
+        typeof WebsiteRequest.fetch
+      >[1];
+      expect(head.timeout).toBe(100);
+      expect(get.timeout).toBe(40);
+      expect(get.signal).toBe(head.signal);
+      expect(get.responseBodyBudget).toBe(head.responseBodyBudget);
+      jest.advanceTimersByTime(40);
+    }
+
+    const response: ProbeWebsiteResponse | null = await pending;
+    expect(response!.totalAttempts).toBe(2);
     expect(response!.isTimeout).toBe(true);
-    expect(response!.totalAttempts).toBe(1);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(requestSignal?.aborted).toBe(true);
+    expect(
+      (fetchSpy.mock.calls[0]![1] as Parameters<typeof WebsiteRequest.fetch>[1])
+        .signal,
+    ).not.toBe(
+      (fetchSpy.mock.calls[2]![1] as Parameters<typeof WebsiteRequest.fetch>[1])
+        .signal,
+    );
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("gives the next attempt a fresh bounded response budget", async () => {
+    jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
+    const requests: Array<Parameters<typeof WebsiteRequest.fetch>[1]> = [];
+    jest
+      .spyOn(WebsiteRequest, "fetch")
+      .mockImplementation(
+        (_url: URL, options: Parameters<typeof WebsiteRequest.fetch>[1]) => {
+          requests.push(options);
+          expect(options.responseBodyBudget!.remainingBytes).toBe(
+            HTTP_MONITOR_MAX_RESPONSE_BYTES,
+          );
+          options.responseBodyBudget!.consume(HTTP_MONITOR_MAX_RESPONSE_BYTES);
+          return Promise.resolve(
+            websiteResponse({
+              url: "http://1.1.1.1/budget",
+              statusCode: requests.length === 1 ? 503 : 200,
+              body: "response",
+            }),
+          );
+        },
+      );
+
+    const response: ProbeWebsiteResponse | null = await WebsiteMonitor.ping(
+      URL.fromString("http://1.1.1.1/budget"),
+      { retry: 1, isOnlineCheckRequest: true },
+    );
+
+    expect(response!.statusCode).toBe(200);
+    expect(response!.totalAttempts).toBe(2);
+    expect(requests[0]!.responseBodyBudget).not.toBe(
+      requests[1]!.responseBodyBudget,
+    );
+    expect(requests[0]!.signal).not.toBe(requests[1]!.signal);
   });
 
   it("uses one cumulative response budget across redirect hops", async () => {

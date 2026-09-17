@@ -8,6 +8,7 @@ import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Sleep from "Common/Types/Sleep";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
@@ -235,7 +236,7 @@ export default class ApiMonitor {
         requestType === HTTPMethod.HEAD
       ) {
         /*
-         * Preserve the whole-check execution context/deadline, but report
+         * Preserve this attempt's execution context/deadline, but report
          * response time and phase timings for the GET that produced the
          * caller-visible result (the established HEAD fallback behavior).
          */
@@ -263,13 +264,12 @@ export default class ApiMonitor {
         responseCode: result.statusCode,
         isOnline: true,
         failureCause:
-          result.statusCode >= 500 && result.statusCode < 600
+          result.statusCode >= 400 && result.statusCode < 600
             ? `Server returned ${result.statusCode}`
             : undefined,
       });
 
-      if (result.statusCode >= 500 && result.statusCode < 600) {
-        // implement retry, just to be sure server is down.
+      if (result.statusCode >= 400 && result.statusCode < 600) {
         if (!options) {
           options = {};
         }
@@ -283,11 +283,12 @@ export default class ApiMonitor {
             attemptNumber: options.currentRetryCount,
             retries: options.retry,
             defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
-          }) &&
-          executionContext.canWait(1000)
+          })
         ) {
           options.currentRetryCount++;
-          await executionContext.sleep(1000);
+          executionContext.dispose();
+          delete options.executionContext;
+          await Sleep.sleep(1000);
           return await this.ping(url, options);
         }
       }
@@ -300,11 +301,12 @@ export default class ApiMonitor {
           attemptNumber: options.currentRetryCount,
           retries: options.retry,
           defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
-        }) &&
-        executionContext.canWait(1000)
+        })
       ) {
         options.currentRetryCount++;
-        await executionContext.sleep(1000);
+        executionContext.dispose();
+        delete options.executionContext;
+        await Sleep.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -381,16 +383,16 @@ export default class ApiMonitor {
 
       if (
         !(err instanceof BadDataException) &&
-        !(err instanceof TimeoutException) &&
         MonitorRetry.canRetry({
           attemptNumber: options.currentRetryCount,
           retries: options.retry,
           defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
-        }) &&
-        executionContext.canWait(1000)
+        })
       ) {
         options.currentRetryCount++;
-        await executionContext.sleep(1000);
+        executionContext.dispose();
+        delete options.executionContext;
+        await Sleep.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -444,9 +446,11 @@ export default class ApiMonitor {
         totalAttempts: options.attempts.length,
       };
 
-      // check if timeout exceeded and if yes, return null
+      // Preserve timeout metadata after the configured attempts are exhausted.
       if (
         err instanceof TimeoutException ||
+        requestFailedDetails.errorCode === "ETIMEDOUT" ||
+        requestFailedDetails.errorCode === "ESOCKETTIMEDOUT" ||
         ((err as any).toString().includes("timeout") &&
           (err as any).toString().includes("exceeded"))
       ) {

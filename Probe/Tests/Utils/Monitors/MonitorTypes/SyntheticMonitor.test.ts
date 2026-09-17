@@ -1106,6 +1106,34 @@ describe("SyntheticMonitor secure worker orchestration", () => {
       timeoutSpy.mockRestore();
     }
   });
+  test.each([0, 1, 3])(
+    "honors retryCountOnError=%s for a script timeout",
+    async (retryCountOnError: number) => {
+      const timeoutSpy: jest.SpyInstance = runRetryDelaysImmediately();
+      runSpy.mockResolvedValue(
+        workerRunResult({
+          logMessages: [],
+          capturedMetrics: [],
+          screenshots: {},
+          scriptError: "Script execution timed out.",
+        }),
+      );
+      try {
+        const responses: SyntheticMonitorResponse[] | null =
+          await SyntheticMonitor.execute({
+            script: "await new Promise(() => {});",
+            browserTypes: [BrowserType.Chromium],
+            screenSizeTypes: [ScreenSizeType.Desktop],
+            retryCountOnError,
+          });
+        expect(runSpy).toHaveBeenCalledTimes(retryCountOnError + 1);
+        expect(responses?.[0]?.totalAttempts).toBe(retryCountOnError + 1);
+        expect(responses?.[0]?.scriptError).toBe("Script execution timed out.");
+      } finally {
+        timeoutSpy.mockRestore();
+      }
+    },
+  );
 });
 
 function workerRunResult(result: SyntheticMonitorWorkerResult): {

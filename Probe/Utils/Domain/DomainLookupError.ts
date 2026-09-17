@@ -1,12 +1,12 @@
 /*
  * Lookup failures split into two kinds, and the split is what decides
- * whether DomainMonitorUtil.query retries.
+ * how domain lookup chooses protocol fallback and checks probe connectivity.
  *
  * A retryable failure is a transient one - the registry timed out, rate
  * limited us, or answered 5xx. A permanent failure is a fact about the
  * domain or the TLD: the domain is not registered, or the TLD publishes no
- * usable registration service. Retrying those three more times with a
- * one-second sleep in between only delays the (identical) answer.
+ * usable registration service. Both kinds still consume the monitor's
+ * configured retry budget before the final result is reported.
  */
 export class DomainLookupError extends Error {
   public readonly isRetryable: boolean;

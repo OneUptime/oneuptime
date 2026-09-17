@@ -3,12 +3,14 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 export const PROBE_DEFAULT_RETRY_COUNT_LABEL: string =
   "Probe default (usually 3)";
 
+export const REQUEST_TIMEOUT_DESCRIPTION: string =
+  "How long to wait for a response on each request or connection attempt. Each retry gets a new timeout. Defaults to 60 seconds. Maximum is 60 seconds.";
+
 /*
  * Help text for the "Retries on Failure" field on probe-based monitor steps.
  *
- * Three variants, because the probe genuinely behaves in three ways. Each
- * string is also its own i18n key in every Dashboard locale file, so changing
- * a word here means changing the key in all seventeen of them.
+ * The variants name the failures relevant to each monitor type. Every string
+ * is also its own i18n key in all seventeen Dashboard locale files.
  *
  * What every variant states, and where the probe says so:
  *
@@ -31,13 +33,12 @@ export const PROBE_DEFAULT_RETRY_COUNT_LABEL: string =
  * Website and API (WebsiteMonitor.ts, ApiMonitor.ts).
  *
  * A successful response slower than 10 seconds re-runs the check from the same
- * budget, so 0 also switches that re-check off. Failures are retried except a
- * TimeoutException (the request timeout already covers the whole attempt) and
- * a BadDataException, which is what the probe's egress checks throw for a
- * target it cannot resolve or is not allowed to reach.
+ * budget, so 0 also switches that re-check off. HTTP error responses and
+ * timeouts use this same budget, with a fresh timeout for every request.
+ * Invalid targets and protective size/redirect limits still stop retries.
  */
 export const HTTP_RETRIES_ON_FAILURE_DESCRIPTION: string =
-  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. It also limits re-checks of a successful response slower than 10 seconds. Timeouts are not retried, and neither are targets that do not resolve or are blocked.";
+  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. It also limits re-checks of a successful response slower than 10 seconds. Connection failures, timeouts, and HTTP 4xx and 5xx responses are retried. Each request attempt gets a new timeout. Invalid or blocked targets, oversized responses, and too many redirects are not retried.";
 
 /*
  * Ping, IP and Port (PingMonitor.ts, PortMonitor.ts; Ping and IP take the same
@@ -53,16 +54,11 @@ export const NETWORK_RETRIES_ON_FAILURE_DESCRIPTION: string =
 /*
  * SSL Certificate (SslMonitor.ts).
  *
- * The retry is skipped when the peer answered with a certificate that failed
- * validation (a deterministic verdict) or when the handshake timed out, so
- * neither outcome is ever retried however high this value is set. It does NOT
- * follow that such a result arrives after one attempt: both retry sites only
- * stop FURTHER retries, so a connection failure retried into a timeout is
- * reported after two attempts. There is no slow-response re-check on this
- * type.
+ * Connection errors, failed certificate validation and handshake timeouts
+ * share one retry budget. There is no slow-response re-check on this type.
  */
 export const SSL_RETRIES_ON_FAILURE_DESCRIPTION: string =
-  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. Only connection failures are retried: a certificate that fails validation, and a check that times out, are not retried.";
+  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. Connection failures, certificate validation failures, and timeouts are retried.";
 
 /*
  * The field is rendered for six monitor types (the API, Website and

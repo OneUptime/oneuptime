@@ -659,6 +659,7 @@ export default class API {
               options.limitRedirectResponseBody || false,
               method === HTTPMethod.HEAD,
               options.maximumResponseBytes,
+              options.signal,
             );
           }
 
@@ -681,6 +682,7 @@ export default class API {
               options.limitRedirectResponseBody || false,
               method === HTTPMethod.HEAD,
               options.maximumResponseBytes,
+              options.signal,
             );
           }
 
@@ -871,6 +873,7 @@ export default class API {
     limitRedirectResponseBody: boolean,
     isHeadResponse: boolean,
     maximumResponseBytes?: number | undefined,
+    signal?: AbortSignal | undefined,
   ): Promise<unknown> {
     const body: Buffer = await HTTPResponseBodyReader.read(response.data, {
       budget: budget,
@@ -879,6 +882,7 @@ export default class API {
       limitRedirectResponseBody: limitRedirectResponseBody,
       isHeadResponse: isHeadResponse,
       maximumResponseBytes: maximumResponseBytes,
+      signal: signal,
     });
     const text: string = HTTPResponseBodyReader.decodeUtf8(body);
 
@@ -1246,7 +1250,12 @@ export default class API {
     const axiosError: AxiosError | null = axios.isAxiosError(error)
       ? (error as AxiosError)
       : null;
-    const errorCode: string | undefined = axiosError?.code;
+    const nativeErrorCode: unknown =
+      typeof error === "object" && error !== null && "code" in error
+        ? error.code
+        : undefined;
+    const errorCode: string | undefined =
+      typeof nativeErrorCode === "string" ? nativeErrorCode : undefined;
     const rawErrorMessage: string =
       (error as Error)?.message || String(error) || "Unknown error";
 

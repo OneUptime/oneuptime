@@ -155,6 +155,7 @@ import MonitorStepExternalStatusPageMonitor, {
 import {
   getRetriesOnFailureDescription,
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
+  REQUEST_TIMEOUT_DESCRIPTION,
 } from "../../../Utils/MonitorRetryHelpText";
 
 /*
@@ -711,9 +712,7 @@ return {
         <div>
           <FieldLabelElement
             title={"Request Timeout (seconds)"}
-            description={
-              "How long to wait for a response before timing out. Defaults to 60 seconds. Maximum is 60 seconds."
-            }
+            description={REQUEST_TIMEOUT_DESCRIPTION}
             required={false}
           />
           <Input

@@ -1,9 +1,10 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 import BadDataException from "../../Types/Exception/BadDataException";
 import HTTPResponseBodyReader, {
   HTTPResponseBodyBudget,
 } from "../../Utils/HTTPResponseBodyReader";
 import { Readable } from "stream";
+import type { Mock, MockInstance } from "jest-mock";
 
 const read: (
   body: AsyncIterable<unknown>,
@@ -14,6 +15,7 @@ const read: (
     headers?: unknown;
     isHeadResponse?: boolean;
     maximumResponseBytes?: number;
+    signal?: AbortSignal;
   },
 ) => Promise<Buffer> = async (
   body: AsyncIterable<unknown>,
@@ -24,6 +26,7 @@ const read: (
     headers?: unknown;
     isHeadResponse?: boolean;
     maximumResponseBytes?: number;
+    signal?: AbortSignal;
   } = {},
 ): Promise<Buffer> => {
   return await HTTPResponseBodyReader.read(body, {
@@ -33,10 +36,194 @@ const read: (
     headers: options.headers,
     isHeadResponse: options.isHeadResponse,
     maximumResponseBytes: options.maximumResponseBytes,
+    signal: options.signal,
   });
 };
 
 describe("HTTPResponseBodyReader", () => {
+  test.each([200, 400, 503])(
+    "destroys a stalled status %s body and removes its listener on abort",
+    async (statusCode: number) => {
+      const controller: AbortController = new AbortController();
+      const addListener: MockInstance<AbortSignal["addEventListener"]> =
+        jest.spyOn(controller.signal, "addEventListener");
+      const removeListener: MockInstance<AbortSignal["removeEventListener"]> =
+        jest.spyOn(controller.signal, "removeEventListener");
+      const body: Readable = new Readable({ read: (): void => {} });
+      const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(10);
+      const pending: Promise<Buffer> = read(body, budget, {
+        statusCode: statusCode,
+        signal: controller.signal,
+      });
+      const rejected: Promise<void> = expect(pending).rejects.toMatchObject({
+        name: "AbortError",
+      });
+
+      controller.abort();
+      await rejected;
+
+      expect(body.destroyed).toBe(true);
+      expect(budget.remainingBytes).toBe(10);
+      expect(removeListener).toHaveBeenCalledWith(
+        "abort",
+        addListener.mock.calls[0]![1],
+      );
+    },
+  );
+
+  test("destroys an already-aborted body without starting its iterator", async () => {
+    const controller: AbortController = new AbortController();
+    controller.abort();
+    const body: Readable = Readable.from([Buffer.from("unread")]);
+    const iterate: MockInstance<Readable[typeof Symbol.asyncIterator]> =
+      jest.spyOn(body, Symbol.asyncIterator);
+    const removeListener: MockInstance<AbortSignal["removeEventListener"]> =
+      jest.spyOn(controller.signal, "removeEventListener");
+    const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(10);
+
+    await expect(
+      read(body, budget, { signal: controller.signal }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+
+    expect(iterate).not.toHaveBeenCalled();
+    expect(body.destroyed).toBe(true);
+    expect(budget.remainingBytes).toBe(10);
+    expect(removeListener).toHaveBeenCalledTimes(1);
+  });
+
+  test("removes its abort listener after a successful duck-typed stream", async () => {
+    const controller: AbortController = new AbortController();
+    const destroy: Mock<() => void> = jest.fn<() => void>();
+    const body: AsyncIterable<Buffer> & { destroy: () => void } = {
+      async *[Symbol.asyncIterator](): ReturnType<
+        AsyncIterable<Buffer>[typeof Symbol.asyncIterator]
+      > {
+        yield Buffer.from("data");
+      },
+      destroy: destroy,
+    };
+    const removeListener: MockInstance<AbortSignal["removeEventListener"]> =
+      jest.spyOn(controller.signal, "removeEventListener");
+
+    await expect(
+      read(body, new HTTPResponseBodyBudget(10), { signal: controller.signal }),
+    ).resolves.toEqual(Buffer.from("data"));
+    controller.abort();
+
+    expect(removeListener).toHaveBeenCalledTimes(1);
+    expect(destroy).not.toHaveBeenCalled();
+  });
+
+  test("removes its abort listener after the source iterator fails", async () => {
+    const controller: AbortController = new AbortController();
+    const destroy: Mock<() => void> = jest.fn<() => void>();
+    const sourceError: Error = new Error("source failed");
+    const body: AsyncIterable<Buffer> & { destroy: () => void } = {
+      [Symbol.asyncIterator](): AsyncIterator<Buffer> {
+        return {
+          next: (): Promise<IteratorResult<Buffer>> => {
+            return Promise.reject(sourceError);
+          },
+        };
+      },
+      destroy: destroy,
+    };
+    const removeListener: MockInstance<AbortSignal["removeEventListener"]> =
+      jest.spyOn(controller.signal, "removeEventListener");
+
+    await expect(
+      read(body, new HTTPResponseBodyBudget(10), { signal: controller.signal }),
+    ).rejects.toBe(sourceError);
+    controller.abort();
+
+    expect(removeListener).toHaveBeenCalledTimes(1);
+    expect(destroy).not.toHaveBeenCalled();
+  });
+
+  test.each(["declared length", "streamed length", "exhausted budget"])(
+    "removes its abort listener after rejecting %s",
+    async (failure: string) => {
+      const controller: AbortController = new AbortController();
+      const removeListener: MockInstance<AbortSignal["removeEventListener"]> =
+        jest.spyOn(controller.signal, "removeEventListener");
+      const body: Readable = Readable.from([Buffer.from("12345")]);
+      const destroy: MockInstance<Readable["destroy"]> = jest.spyOn(
+        body,
+        "destroy",
+      );
+      const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(
+        failure === "exhausted budget" ? 0 : 4,
+      );
+
+      await expect(
+        read(body, budget, {
+          signal: controller.signal,
+          headers:
+            failure === "declared length" ? { "content-length": "5" } : {},
+        }),
+      ).rejects.toBeInstanceOf(BadDataException);
+      const destroyCalls: number = destroy.mock.calls.length;
+      controller.abort();
+
+      expect(body.destroyed).toBe(true);
+      expect(removeListener).toHaveBeenCalledTimes(1);
+      expect(destroy).toHaveBeenCalledTimes(destroyCalls);
+    },
+  );
+
+  test("settles on abort without destroy and never charges a late chunk", async () => {
+    const controller: AbortController = new AbortController();
+    const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(10);
+    let resolveWaiting: () => void = (): void => {};
+    const waiting: Promise<void> = new Promise((resolve: () => void) => {
+      resolveWaiting = resolve;
+    });
+    let resolveLateChunk: (
+      chunk: IteratorResult<Buffer>,
+    ) => void = (): void => {};
+    const lateChunk: Promise<IteratorResult<Buffer>> = new Promise(
+      (resolve: (chunk: IteratorResult<Buffer>) => void) => {
+        resolveLateChunk = resolve;
+      },
+    );
+    let nextCalls: number = 0;
+    const body: AsyncIterable<Buffer> = {
+      [Symbol.asyncIterator](): AsyncIterator<Buffer> {
+        return {
+          next: (): Promise<IteratorResult<Buffer>> => {
+            nextCalls++;
+            if (nextCalls === 1) {
+              return Promise.resolve({
+                done: false,
+                value: Buffer.from("abc"),
+              });
+            }
+            resolveWaiting();
+            return lateChunk;
+          },
+        };
+      },
+    };
+    const pending: Promise<Buffer> = read(body, budget, {
+      signal: controller.signal,
+    });
+    const rejected: Promise<void> = expect(pending).rejects.toMatchObject({
+      name: "AbortError",
+    });
+
+    await waiting;
+    expect(budget.remainingBytes).toBe(7);
+    controller.abort();
+    await rejected;
+    resolveLateChunk({ done: false, value: Buffer.from("late") });
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(budget.remainingBytes).toBe(7);
+    expect(nextCalls).toBe(2);
+  });
+
   test("charges sequential responses against one cumulative byte budget", async () => {
     const budget: HTTPResponseBodyBudget = new HTTPResponseBodyBudget(6);
 

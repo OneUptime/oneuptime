@@ -40,7 +40,12 @@ import https from "https";
 import net, { AddressInfo } from "net";
 import tls from "tls";
 import Sleep from "Common/Types/Sleep";
-import SSLMonitor from "../../../../Utils/Monitors/MonitorTypes/SslMonitor";
+import URL from "Common/Types/API/URL";
+import PositiveNumber from "Common/Types/PositiveNumber";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
+import SSLMonitor, {
+  SslResponse,
+} from "../../../../Utils/Monitors/MonitorTypes/SslMonitor";
 import SelfSignedCertificate from "./SslTestCertificates";
 
 /*
@@ -59,6 +64,9 @@ import SelfSignedCertificate from "./SslTestCertificates";
 let droppingServer: net.Server;
 let droppingPort: number = 0;
 let droppedConnections: number = 0;
+let silentServer: net.Server;
+let silentPort: number = 0;
+let silentConnections: number = 0;
 
 /*
  * Serves HTTPS with a self-signed certificate, and drops the first
@@ -97,6 +105,17 @@ beforeAll(async () => {
   });
   droppingPort = await listen(droppingServer);
 
+  silentServer = net.createServer((socket: net.Socket) => {
+    silentConnections++;
+    socket.resume();
+    socket.on("error", () => {});
+    openSockets.add(socket);
+    socket.on("close", () => {
+      openSockets.delete(socket);
+    });
+  });
+  silentPort = await listen(silentServer);
+
   flakyServer = https.createServer(
     {
       key: SelfSignedCertificate.key,
@@ -132,6 +151,7 @@ afterAll(async () => {
   }
 
   await close(droppingServer);
+  await close(silentServer);
   await close(flakyServer);
 });
 
@@ -260,4 +280,87 @@ describe("SSLMonitor.getCertificate retries", () => {
     expect(flakyConnections).toBe(1);
     expect(sleepSpy).not.toHaveBeenCalled();
   }, 20000);
+});
+
+describe("SSL monitor attempt budgets over real TLS connections", () => {
+  beforeEach(() => {
+    droppedConnections = 0;
+    flakyConnections = 0;
+    silentConnections = 0;
+    dropsBeforeServing = 0;
+    jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([0, 1, 3])(
+    "does not multiply retry %s with hidden certificate retries",
+    async (retry: number) => {
+      const response: SslResponse | null = await SSLMonitor.ping(
+        URL.fromString("https://127.0.0.1:" + droppingPort),
+        {
+          retry,
+          timeout: new PositiveNumber(1000),
+          isOnlineCheckRequest: true,
+        },
+      );
+
+      expect(response?.isOnline).toBe(false);
+      expect(response?.totalAttempts).toBe(retry + 1);
+      expect(droppedConnections).toBe(retry + 1);
+      expect(Sleep.sleep).toHaveBeenCalledTimes(retry);
+    },
+  );
+
+  test.each([0, 1, 3])(
+    "revalidates an invalid certificate for retry %s",
+    async (retry: number) => {
+      const response: SslResponse | null = await SSLMonitor.ping(
+        URL.fromString("https://127.0.0.1:" + flakyPort),
+        {
+          retry,
+          timeout: new PositiveNumber(1000),
+          isOnlineCheckRequest: true,
+        },
+      );
+
+      expect(response?.isOnline).toBe(true);
+      expect(response?.isValidCertificate).toBe(false);
+      expect(response?.certificateValidationErrorCode).toBe(
+        "DEPTH_ZERO_SELF_SIGNED_CERT",
+      );
+      expect(response?.totalAttempts).toBe(retry + 1);
+      // Each attempt validates strictly, then reads details without trusting them.
+      expect(flakyConnections).toBe(2 * (retry + 1));
+      expect(
+        response?.probeAttempts?.every((attempt: ProbeAttempt) => {
+          return Boolean(attempt.failureCause);
+        }),
+      ).toBe(true);
+      expect(Sleep.sleep).toHaveBeenCalledTimes(retry);
+    },
+  );
+
+  test.each([0, 1, 3])(
+    "gives every TLS timeout retry %s its own bounded connection",
+    async (retry: number) => {
+      const response: SslResponse | null = await SSLMonitor.ping(
+        URL.fromString("https://127.0.0.1:" + silentPort),
+        {
+          retry,
+          timeout: new PositiveNumber(500),
+          isOnlineCheckRequest: true,
+        },
+      );
+
+      expect(response?.isOnline).toBe(false);
+      expect(response?.isTimeout).toBe(true);
+      expect(response?.totalAttempts).toBe(retry + 1);
+      expect(silentConnections).toBe(retry + 1);
+      expect(Sleep.sleep).toHaveBeenCalledTimes(retry);
+    },
+    20000,
+  );
 });

@@ -6,6 +6,7 @@ import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import HTML from "Common/Types/Html";
 import ObjectID from "Common/Types/ObjectID";
+import Sleep from "Common/Types/Sleep";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
@@ -13,7 +14,7 @@ import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import API from "Common/Utils/API";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
-import { AxiosError } from "axios";
+import axios from "axios";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import EgressGuardException from "Common/Types/Exception/EgressGuardException";
 import TimeoutException from "Common/Types/Exception/TimeoutException";
@@ -249,21 +250,28 @@ export default class WebsiteMonitor {
         responseTimeInMs: responseTimeInMS.toNumber(),
         responseCode: result.responseStatusCode,
         isOnline: true,
+        failureCause:
+          result.responseStatusCode >= 400 && result.responseStatusCode < 600
+            ? `Server returned ${result.responseStatusCode}`
+            : undefined,
       });
 
-      // if response time is greater than 10 seconds then give it one more try
+      // Recheck error responses and responses slower than ten seconds.
 
       if (
-        responseTimeInMS.toNumber() > 10000 &&
+        ((result.responseStatusCode >= 400 &&
+          result.responseStatusCode < 600) ||
+          responseTimeInMS.toNumber() > 10000) &&
         MonitorRetry.canRetry({
           attemptNumber: options.currentRetryCount,
           retries: options.retry,
           defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
-        }) &&
-        executionContext.canWait(1000)
+        })
       ) {
         options.currentRetryCount++;
-        await executionContext.sleep(1000);
+        executionContext.dispose();
+        delete options.executionContext;
+        await Sleep.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -310,8 +318,9 @@ export default class WebsiteMonitor {
       const failureCauseForAttempt: string = API.getFriendlyErrorMessage(
         err as Error,
       );
-      const statusCodeForAttempt: number | undefined =
-        err instanceof AxiosError ? err.response?.status : undefined;
+      const statusCodeForAttempt: number | undefined = axios.isAxiosError(err)
+        ? err.response?.status
+        : undefined;
 
       /*
        * A sanitized guard refusal must not report how long it took. The two
@@ -344,16 +353,16 @@ export default class WebsiteMonitor {
 
       if (
         !(err instanceof BadDataException) &&
-        !(err instanceof TimeoutException) &&
         MonitorRetry.canRetry({
           attemptNumber: options.currentRetryCount,
           retries: options.retry,
           defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
-        }) &&
-        executionContext.canWait(1000)
+        })
       ) {
         options.currentRetryCount++;
-        await executionContext.sleep(1000);
+        executionContext.dispose();
+        delete options.executionContext;
+        await Sleep.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -372,7 +381,7 @@ export default class WebsiteMonitor {
       const requestFailedDetails: RequestFailedDetails =
         API.getRequestFailedDetails(err);
 
-      if (err instanceof AxiosError) {
+      if (axios.isAxiosError(err)) {
         probeWebsiteResponse = {
           url: url,
           isOnline: Boolean(err.response),
@@ -436,9 +445,11 @@ export default class WebsiteMonitor {
         }
       }
 
-      // check if timeout exceeded and if yes, return null
+      // Preserve timeout metadata after the configured attempts are exhausted.
       if (
         err instanceof TimeoutException ||
+        requestFailedDetails.errorCode === "ETIMEDOUT" ||
+        requestFailedDetails.errorCode === "ESOCKETTIMEDOUT" ||
         ((err as any).toString().includes("timeout") &&
           (err as any).toString().includes("exceeded"))
       ) {
