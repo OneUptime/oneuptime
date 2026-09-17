@@ -61,6 +61,7 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
       BILLING_PRIVATE_KEY: ${{ secrets.TEST_BILLING_PRIVATE_KEY }}
       RUN_POSTGRES_EVENT_OVERLAY_TESTS: "true"
+      RUN_POSTGRES_MONITOR_DESCRIPTION_MIGRATION_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

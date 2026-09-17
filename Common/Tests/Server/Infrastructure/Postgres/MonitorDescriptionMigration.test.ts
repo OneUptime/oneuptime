@@ -84,6 +84,26 @@ const describePostgres: typeof describe.skip =
     ? describe
     : describe.skip;
 
+function descriptionDatabase(schema: string): DataSource {
+  return new DataSource({
+    type: "postgres",
+    host:
+      process.env["MONITOR_DESCRIPTION_MIGRATION_TEST_DATABASE_HOST"] ||
+      "localhost",
+    port: Number(
+      process.env["MONITOR_DESCRIPTION_MIGRATION_TEST_DATABASE_PORT"] || "5400",
+    ),
+    username: process.env["DATABASE_USERNAME"] || "postgres",
+    password: process.env["DATABASE_PASSWORD"] || "password",
+    database: process.env["DATABASE_NAME"] || "oneuptimedb",
+    entities: [],
+    migrations: [RemoveMonitorDescriptionLengthLimit1793600000000],
+    schema,
+    synchronize: false,
+    extra: { options: `-c search_path=${schema}` },
+  });
+}
+
 describePostgres("monitor descriptions against Postgres", () => {
   const schema: string = `monitor_description_${ObjectID.generate().toString().replace(/-/g, "")}`;
   const migration: RemoveMonitorDescriptionLengthLimit1793600000000 =
@@ -107,23 +127,7 @@ describePostgres("monitor descriptions against Postgres", () => {
   }
 
   beforeAll(async () => {
-    database = new DataSource({
-      type: "postgres",
-      host:
-        process.env["MONITOR_DESCRIPTION_MIGRATION_TEST_DATABASE_HOST"] ||
-        "localhost",
-      port: Number(
-        process.env["MONITOR_DESCRIPTION_MIGRATION_TEST_DATABASE_PORT"] ||
-          "5400",
-      ),
-      username: process.env["DATABASE_USERNAME"] || "postgres",
-      password: process.env["DATABASE_PASSWORD"] || "password",
-      database: process.env["DATABASE_NAME"] || "oneuptimedb",
-      entities: [],
-      schema,
-      synchronize: false,
-      extra: { options: `-c search_path=${schema}` },
-    });
+    database = descriptionDatabase(schema);
     await database.initialize();
     await database.query(`CREATE SCHEMA "${schema}"`);
     runner = database.createQueryRunner();
@@ -249,4 +253,170 @@ describePostgres("monitor descriptions against Postgres", () => {
       expect(await rows(column)).toContainEqual({ _id: 100, description });
     },
   );
+});
+
+describePostgres("monitor description startup migrations", () => {
+  let database: DataSource;
+  let schema: string;
+  const migrationName: string =
+    "RemoveMonitorDescriptionLengthLimit1793600000000";
+  const originalDescription: string = "x".repeat(500);
+
+  async function expectColumnTypes(
+    dataType: string,
+    maximumLength: number | null,
+  ): Promise<void> {
+    for (const column of DESCRIPTION_COLUMNS) {
+      const result: Array<{
+        data_type: string;
+        character_maximum_length: number | null;
+      }> = await database.query(
+        "SELECT data_type, character_maximum_length FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3",
+        [schema, column.table, column.column],
+      );
+      expect(result).toEqual([
+        { data_type: dataType, character_maximum_length: maximumLength },
+      ]);
+    }
+  }
+
+  async function expectStoredDescriptions(description: string): Promise<void> {
+    for (const column of DESCRIPTION_COLUMNS) {
+      expect(
+        await database.query(
+          `SELECT "${column.column}" AS description FROM "${column.table}" WHERE "_id" = 1`,
+        ),
+      ).toEqual([{ description }]);
+    }
+  }
+
+  beforeEach(async () => {
+    schema = `monitor_description_startup_${ObjectID.generate().toString().replace(/-/g, "")}`;
+    database = descriptionDatabase(schema);
+    await database.initialize();
+    await database.query(`CREATE SCHEMA "${schema}"`);
+    expect(await database.query("SELECT current_schema()")).toEqual([
+      { current_schema: schema },
+    ]);
+    for (const column of DESCRIPTION_COLUMNS) {
+      await database.query(
+        `CREATE TABLE "${column.table}" ("_id" integer PRIMARY KEY, "${column.column}" character varying(500))`,
+      );
+      await database.query(
+        `INSERT INTO "${column.table}" ("_id", "${column.column}") VALUES ($1, $2)`,
+        [1, originalDescription],
+      );
+    }
+  });
+
+  afterEach(async () => {
+    if (database?.isInitialized) {
+      await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+      await database.destroy();
+    }
+  });
+
+  test("runs once through TypeORM and preserves long values on the next startup", async () => {
+    expect(await database.runMigrations({ transaction: "all" })).toHaveLength(
+      1,
+    );
+    await expectColumnTypes("text", null);
+    await expectStoredDescriptions(originalDescription);
+
+    const description: string = "## Runbook 監視 🚀\nCPU > 90%\n".repeat(1_000);
+    for (const column of DESCRIPTION_COLUMNS) {
+      await database.query(
+        `UPDATE "${column.table}" SET "${column.column}" = $1 WHERE "_id" = 1`,
+        [description],
+      );
+    }
+
+    expect(await database.runMigrations({ transaction: "all" })).toEqual([]);
+    expect(await database.query('SELECT "name" FROM "migrations"')).toEqual([
+      { name: migrationName },
+    ]);
+    await expectStoredDescriptions(description);
+  });
+
+  test("can be rolled back and applied again without changing existing descriptions", async () => {
+    await database.runMigrations({ transaction: "all" });
+    await database.undoLastMigration({ transaction: "all" });
+
+    await expectColumnTypes("character varying", 500);
+    await expectStoredDescriptions(originalDescription);
+    expect(await database.query('SELECT "name" FROM "migrations"')).toEqual([]);
+
+    expect(await database.runMigrations({ transaction: "all" })).toHaveLength(
+      1,
+    );
+    await expectColumnTypes("text", null);
+    await expectStoredDescriptions(originalDescription);
+  });
+
+  test.each(DESCRIPTION_COLUMNS)(
+    "failed rollback keeps both columns and migration history intact for an oversized $table description",
+    async (column: DescriptionColumn) => {
+      await database.runMigrations({ transaction: "all" });
+      const description: string = "x".repeat(501);
+      await database.query(
+        `UPDATE "${column.table}" SET "${column.column}" = $1 WHERE "_id" = 1`,
+        [description],
+      );
+
+      await expect(
+        database.undoLastMigration({ transaction: "all" }),
+      ).rejects.toThrow(/value too long for type character varying\(500\)/);
+
+      await expectColumnTypes("text", null);
+      expect(await database.query('SELECT "name" FROM "migrations"')).toEqual([
+        { name: migrationName },
+      ]);
+      for (const storedColumn of DESCRIPTION_COLUMNS) {
+        expect(
+          await database.query(
+            `SELECT "${storedColumn.column}" AS description FROM "${storedColumn.table}" WHERE "_id" = 1`,
+          ),
+        ).toEqual([
+          {
+            description:
+              storedColumn.table === column.table
+                ? description
+                : originalDescription,
+          },
+        ]);
+      }
+
+      // Correcting the oversized value makes the same rollback safe to retry.
+      await database.query(
+        `UPDATE "${column.table}" SET "${column.column}" = $1 WHERE "_id" = 1`,
+        [originalDescription],
+      );
+      await database.undoLastMigration({ transaction: "all" });
+      await expectColumnTypes("character varying", 500);
+      await expectStoredDescriptions(originalDescription);
+    },
+  );
+
+  test("rolls back the first column change if migration of the second column fails", async () => {
+    await database.query(
+      'ALTER TABLE "Monitor" RENAME COLUMN "description" TO "legacyDescription"',
+    );
+
+    await expect(
+      database.runMigrations({ transaction: "all" }),
+    ).rejects.toThrow(/column "description".*does not exist/);
+
+    expect(await database.query('SELECT "name" FROM "migrations"')).toEqual([]);
+    await database.query(
+      'ALTER TABLE "Monitor" RENAME COLUMN "legacyDescription" TO "description"',
+    );
+    await expectColumnTypes("character varying", 500);
+    await expectStoredDescriptions(originalDescription);
+
+    expect(await database.runMigrations({ transaction: "all" })).toHaveLength(
+      1,
+    );
+    await expectColumnTypes("text", null);
+    await expectStoredDescriptions(originalDescription);
+  });
 });
