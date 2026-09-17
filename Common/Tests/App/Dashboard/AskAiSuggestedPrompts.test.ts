@@ -8,6 +8,7 @@ import { QueryAlertsTool } from "../../../Server/Utils/AI/Toolbox/AlertTools";
 import AIChatPageContextType, {
   AIChatPageContextHelper,
 } from "../../../Types/AI/AIChatPageContext";
+import { AIResourceType } from "../../../Types/AI/AIResourceContext";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 
@@ -66,6 +67,12 @@ function buildContext(type: AIChatPageContextType): DashboardPageContext {
 
   return {
     type: type,
+    ...([
+      AIChatPageContextType.Resource,
+      AIChatPageContextType.ResourcesList,
+    ].includes(type)
+      ? { resourceType: AIResourceType.Host }
+      : {}),
     noun: "thing",
     chipLabel: "Thing",
     icon: IconProp.Alert,

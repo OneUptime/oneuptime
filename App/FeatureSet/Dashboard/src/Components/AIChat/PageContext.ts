@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import ResourcePageContextUtil from "./ResourcePageContext";
 import RouteMap from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -225,6 +226,12 @@ export default class PageContextUtil {
    */
   public static detectPageContext(): DashboardPageContext | null {
     try {
+      const resourceContext: DashboardPageContext | null =
+        ResourcePageContextUtil.detect();
+      if (resourceContext) {
+        return resourceContext;
+      }
+
       for (const rule of entityPageRules) {
         const route: Route | undefined = RouteMap[rule.pageMapKey];
 
@@ -287,6 +294,8 @@ export default class PageContextUtil {
 
     try {
       switch (context.type) {
+        case AIChatPageContextType.Resource:
+          return await ResourcePageContextUtil.resolveTitle(context);
         case AIChatPageContextType.Incident: {
           const item: Incident | null = await ModelAPI.getItem<Incident>({
             modelType: Incident,
@@ -373,6 +382,10 @@ export default class PageContextUtil {
       type: context.type,
       ...(context.entityId ? { entityId: context.entityId } : {}),
       ...(context.entityTitle ? { entityTitle: context.entityTitle } : {}),
+      ...(context.resourceType ? { resourceType: context.resourceType } : {}),
+      ...(context.subresource
+        ? { subresource: { ...context.subresource } }
+        : {}),
     };
   }
 
@@ -381,6 +394,9 @@ export default class PageContextUtil {
     context: DashboardPageContext,
   ): Array<SuggestedQuestion> {
     switch (context.type) {
+      case AIChatPageContextType.Resource:
+      case AIChatPageContextType.ResourcesList:
+        return ResourcePageContextUtil.getSuggestions(context);
       case AIChatPageContextType.RumApplication:
         return [
           {

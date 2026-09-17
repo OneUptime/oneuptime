@@ -30,6 +30,18 @@ import CloudResourceOwnerTeamService from "../../../Services/CloudResourceOwnerT
 import CloudResourceOwnerUserService from "../../../Services/CloudResourceOwnerUserService";
 import RumApplicationOwnerTeamService from "../../../Services/RumApplicationOwnerTeamService";
 import RumApplicationOwnerUserService from "../../../Services/RumApplicationOwnerUserService";
+import ProxmoxClusterOwnerTeamService from "../../../Services/ProxmoxClusterOwnerTeamService";
+import ProxmoxClusterOwnerUserService from "../../../Services/ProxmoxClusterOwnerUserService";
+import CephClusterOwnerTeamService from "../../../Services/CephClusterOwnerTeamService";
+import CephClusterOwnerUserService from "../../../Services/CephClusterOwnerUserService";
+import DockerSwarmClusterOwnerTeamService from "../../../Services/DockerSwarmClusterOwnerTeamService";
+import DockerSwarmClusterOwnerUserService from "../../../Services/DockerSwarmClusterOwnerUserService";
+import VMwareVCenterOwnerTeamService from "../../../Services/VMwareVCenterOwnerTeamService";
+import VMwareVCenterOwnerUserService from "../../../Services/VMwareVCenterOwnerUserService";
+import IoTFleetOwnerTeamService from "../../../Services/IoTFleetOwnerTeamService";
+import IoTFleetOwnerUserService from "../../../Services/IoTFleetOwnerUserService";
+import NetworkDeviceOwnerTeamService from "../../../Services/NetworkDeviceOwnerTeamService";
+import NetworkDeviceOwnerUserService from "../../../Services/NetworkDeviceOwnerUserService";
 import StatusPageOwnerTeamService from "../../../Services/StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "../../../Services/StatusPageOwnerUserService";
 import WorkflowOwnerTeamService from "../../../Services/WorkflowOwnerTeamService";
@@ -49,6 +61,12 @@ import KubernetesClusterService from "../../../Services/KubernetesClusterService
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../../Services/CloudResourceService";
 import RumApplicationService from "../../../Services/RumApplicationService";
+import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
+import CephClusterService from "../../../Services/CephClusterService";
+import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterService";
+import VMwareVCenterService from "../../../Services/VMwareVCenterService";
+import IoTFleetService from "../../../Services/IoTFleetService";
+import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 
 /*
  * Maps an operational model name (e.g. "Monitor") to the two services that
@@ -246,6 +264,70 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       fkColumn: "rumApplicationId",
       canOwnTelemetry: true,
       modelService: RumApplicationService,
+    },
+  ],
+  [
+    "ProxmoxCluster",
+    {
+      ownerUserService: ProxmoxClusterOwnerUserService,
+      ownerTeamService: ProxmoxClusterOwnerTeamService,
+      fkColumn: "proxmoxClusterId",
+      canOwnTelemetry: true,
+      modelService: ProxmoxClusterService,
+    },
+  ],
+  [
+    "CephCluster",
+    {
+      ownerUserService: CephClusterOwnerUserService,
+      ownerTeamService: CephClusterOwnerTeamService,
+      fkColumn: "cephClusterId",
+      canOwnTelemetry: true,
+      modelService: CephClusterService,
+    },
+  ],
+  [
+    "DockerSwarmCluster",
+    {
+      ownerUserService: DockerSwarmClusterOwnerUserService,
+      ownerTeamService: DockerSwarmClusterOwnerTeamService,
+      fkColumn: "dockerSwarmClusterId",
+      canOwnTelemetry: true,
+      modelService: DockerSwarmClusterService,
+    },
+  ],
+  [
+    "VMwareVCenter",
+    {
+      ownerUserService: VMwareVCenterOwnerUserService,
+      ownerTeamService: VMwareVCenterOwnerTeamService,
+      fkColumn: "vmwareVCenterId",
+      canOwnTelemetry: true,
+      modelService: VMwareVCenterService,
+    },
+  ],
+  [
+    /*
+     * IoT telemetry carries the fleet ID in primaryEntityId even though its
+     * primaryEntityType discriminator is IoTDevice. Ownership is fleet-wide.
+     */
+    "IoTFleet",
+    {
+      ownerUserService: IoTFleetOwnerUserService,
+      ownerTeamService: IoTFleetOwnerTeamService,
+      fkColumn: "iotFleetId",
+      canOwnTelemetry: true,
+      modelService: IoTFleetService,
+    },
+  ],
+  [
+    "NetworkDevice",
+    {
+      ownerUserService: NetworkDeviceOwnerUserService,
+      ownerTeamService: NetworkDeviceOwnerTeamService,
+      fkColumn: "networkDeviceId",
+      canOwnTelemetry: true,
+      modelService: NetworkDeviceService,
     },
   ],
   [

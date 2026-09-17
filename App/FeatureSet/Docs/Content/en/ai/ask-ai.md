@@ -9,6 +9,7 @@ Open it from the **Ask AI** sparkles button in the header, with **Cmd/Ctrl + I**
 Ask AI answers only from tool results — it queries your project live rather than answering from memory. Its read tools cover:
 
 - **Telemetry**: log search and histograms, trace aggregations and span trees, metrics, exceptions, and anomaly checks against learned baselines.
+- **Infrastructure**: hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware vCenter, Ceph, serverless functions, cloud environments, IoT fleets and network devices. Ask about accessible inventory, reported connection state, metric trends, log severity counts and trace operation summaries. Infrastructure queries include telemetry associated with both a service and an infrastructure resource.
 - **Incident response**: incidents and alerts (including state filters — "what is active right now?"), their full activity timelines (state changes, internal and public notes, feed), owners, and free-text search over past incidents to reuse prior resolutions.
 - **On-call**: who is on call right now, policies and escalation chains, and whether recent pages were delivered and acknowledged.
 - **The AI's own work**: the results of autonomous AI SRE investigations and AI Insights, so "what did the AI find?" is answered from the posted analysis instead of re-derived from scratch.
@@ -17,6 +18,10 @@ Ask AI answers only from tool results — it queries your project live rather th
 ## Page context
 
 Ask AI knows what page you opened it from. On an incident page, "why did this happen?" means that incident — the composer shows a context chip you can detach. If you navigate to another page while the panel is open, the context follows you. The conversation also remembers its original subject server-side, so follow-up turns keep resolving "this incident" even days later.
+
+Infrastructure lists and resource pages offer questions for the selected resource type. For example, open a Kubernetes cluster and ask "Which metrics changed over the last 24 hours?", or open a Docker host and ask "Summarize log severity and trace errors over the last six hours." Evidence links return to the relevant resource page. Reads respect your project, resource and telemetry permissions, including ownership and label restrictions.
+
+On child pages, the context also records the selected pod, container, VM, process or other child. The current infrastructure tools query the parent resource's telemetry; they cannot establish child-specific measurements from a child name alone. The assistant states this scope and does not infer a Kubernetes namespace that the page does not supply. Connection state is not workload health, and missing telemetry does not establish that a resource is healthy.
 
 ## Actions and permission modes
 

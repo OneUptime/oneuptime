@@ -1,6 +1,7 @@
 import { getRouteForCitationTarget } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/CitationTargetNav";
 import { describeCitationTargetPage } from "../../../../App/FeatureSet/Dashboard/src/Utils/InvestigationEvidenceFormat";
 import { AIChatCitationTargetType } from "../../../Types/AI/AIChatTypes";
+import { AIResourceType } from "../../../Types/AI/AIResourceContext";
 import ProjectUtil from "../../../UI/Utils/Project";
 import PageContextUtil, {
   DashboardPageContext,
@@ -46,6 +47,12 @@ function contextFor(
 ): DashboardPageContext {
   return {
     type,
+    ...([
+      AIChatPageContextType.Resource,
+      AIChatPageContextType.ResourcesList,
+    ].includes(type)
+      ? { resourceType: AIResourceType.Host }
+      : {}),
     entityId,
     noun: "application",
     chipLabel: "This application",

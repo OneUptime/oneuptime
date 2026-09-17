@@ -9,7 +9,10 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import AIChatMessageRole from "../../../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../../../Types/AI/AIChatMessageStatus";
-import { AIChatPageContext } from "../../../../Types/AI/AIChatPageContext";
+import {
+  AIChatPageContext,
+  AIChatPageContextHelper,
+} from "../../../../Types/AI/AIChatPageContext";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
@@ -1410,11 +1413,11 @@ export default class ChatAgentRunner {
        * stale first subject would silently flip the conversation back.
        */
       const persistedSignature: string = persisted
-        ? `${persisted.type}:${persisted.entityId || ""}`
+        ? AIChatPageContextHelper.getIdentity(persisted)
         : "";
-      const incomingSignature: string = `${request.pageContext.type}:${
-        request.pageContext.entityId || ""
-      }`;
+      const incomingSignature: string = AIChatPageContextHelper.getIdentity(
+        request.pageContext,
+      );
 
       if (persistedSignature !== incomingSignature) {
         await AIConversationService.updateOneById({

@@ -39,6 +39,8 @@ export enum AIChatCitationTargetType {
   SecurityEvents = "SecurityEvents",
   RumApplications = "RumApplications",
   RumApplicationView = "RumApplicationView",
+  TelemetryResources = "TelemetryResources",
+  TelemetryResourceView = "TelemetryResourceView",
 }
 
 export interface AIChatCitationTarget {

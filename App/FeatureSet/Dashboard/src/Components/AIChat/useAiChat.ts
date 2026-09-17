@@ -9,6 +9,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
+import { AIChatPageContextHelper } from "Common/Types/AI/AIChatPageContext";
 import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
 } from "Common/Types/AI/AIChatPermissionMode";
@@ -552,7 +553,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
      * re-attaching would send context they just removed.
      */
     const signature: string = detected
-      ? `${projectIdString}:${detected.type}:${detected.entityId || ""}`
+      ? `${projectIdString}:${AIChatPageContextHelper.getIdentity(detected)}`
       : "";
     const contextChanged: boolean =
       signature !== lastContextSignatureRef.current;
@@ -578,8 +579,8 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
             // Only decorate the context this fetch was started for.
             if (
               current &&
-              current.type === detected.type &&
-              current.entityId === detected.entityId
+              AIChatPageContextHelper.getIdentity(current) ===
+                AIChatPageContextHelper.getIdentity(detected)
             ) {
               return { ...current, entityTitle: title };
             }
