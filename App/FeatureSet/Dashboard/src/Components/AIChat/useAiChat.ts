@@ -192,8 +192,10 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     useRef<boolean>(false);
   isPageContextAttachedRef.current = isPageContextAttached;
 
-  // Keep an explicit removal when navigation leaves no composer chip. Omitting
-  // pageContext would otherwise restore the conversation's saved subject.
+  /*
+   * Keep an explicit removal when navigation leaves no composer chip. Omitting
+   * pageContext would otherwise restore the conversation's saved subject.
+   */
   const isPageContextExplicitlyDetachedRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 

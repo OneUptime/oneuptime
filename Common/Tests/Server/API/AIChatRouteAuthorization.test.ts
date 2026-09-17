@@ -876,20 +876,29 @@ describe("POST /ai-chat/send-message page context contract", () => {
       },
       expected: { type: AIChatPageContextType.RumApplications },
     },
-  ])("$name", async ({ input, expected }) => {
-    const call: RouteCall = await callRoute({
-      uri: "/ai-chat/send-message",
-      body: { content: "What changed?", pageContext: input },
-    });
-    expect(call.thrown).toBeUndefined();
-    expect(ChatAgentRunner.runTurn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pageContext: expected,
-        projectId: PROJECT_B_ID,
-        userId: ATTACKER_USER_ID,
-      }),
-    );
-  });
+  ])(
+    "$name",
+    async ({
+      input,
+      expected,
+    }: {
+      input: JSONObject | null;
+      expected: JSONObject | null | undefined;
+    }) => {
+      const call: RouteCall = await callRoute({
+        uri: "/ai-chat/send-message",
+        body: { content: "What changed?", pageContext: input },
+      });
+      expect(call.thrown).toBeUndefined();
+      expect(ChatAgentRunner.runTurn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pageContext: expected,
+          projectId: PROJECT_B_ID,
+          userId: ATTACKER_USER_ID,
+        }),
+      );
+    },
+  );
 
   test("omitting context preserves the conversation subject", async () => {
     const call: RouteCall = await callRoute({

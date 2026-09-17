@@ -250,8 +250,10 @@ export const QueryRumWebVitalsTool: ObservabilityTool = {
       maxDays: 30,
     });
 
-    // Resolve the application under the caller's access before reading any
-    // telemetry. The project predicate also applies to root-backed callers.
+    /*
+     * Resolve the application under the caller's access before reading any
+     * telemetry. The project predicate also applies to root-backed callers.
+     */
     const application: RumApplication | null =
       await RumApplicationService.findOneBy({
         query: { _id: applicationId.toString(), projectId: ctx.projectId },
@@ -287,8 +289,10 @@ export const QueryRumWebVitalsTool: ObservabilityTool = {
           primaryEntityId: applicationId,
           primaryEntityType: ServiceType.RealUserMonitor,
           name: new Includes(names),
-          // InBetween is inclusive. Lower its end by one millisecond to
-          // keep the two comparison windows disjoint at Date precision.
+          /*
+           * InBetween is inclusive. Lower its end by one millisecond to
+           * keep the two comparison windows disjoint at Date precision.
+           */
           time: new InBetween(start, new Date(end.getTime() - 1)),
         },
         aggregationType: aggregationType,
@@ -338,10 +342,12 @@ export const QueryRumWebVitalsTool: ObservabilityTool = {
     for (const definition of definitions) {
       const metricName: string | undefined = definition.names.find(
         (name: string) => {
-          // Histogram/Summary exporters may report a zero-count interval;
-          // the metric Avg implementation returns zero for that interval.
-          // Count is observation-aware, so only a positive count proves
-          // that the average (including a legitimate CLS zero) was observed.
+          /*
+           * Histogram/Summary exporters may report a zero-count interval;
+           * the metric Avg implementation returns zero for that interval.
+           * Count is observation-aware, so only a positive count proves
+           * that the average (including a legitimate CLS zero) was observed.
+           */
           return (
             currentValues.has(name) && (currentObservations.get(name) ?? 0) > 0
           );
@@ -352,8 +358,10 @@ export const QueryRumWebVitalsTool: ObservabilityTool = {
         continue;
       }
       const value: number = currentValues.get(metricName)!;
-      // Never compare different aliases across windows: both may coexist with
-      // different populations. Missing prior data is not a zero baseline.
+      /*
+       * Never compare different aliases across windows: both may coexist with
+       * different populations. Missing prior data is not a zero baseline.
+       */
       const previousValue: number | undefined =
         (previousObservations.get(metricName) ?? 0) > 0
           ? previousValues.get(metricName)
