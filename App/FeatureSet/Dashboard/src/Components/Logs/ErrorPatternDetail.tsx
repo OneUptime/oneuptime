@@ -13,6 +13,9 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import { RESOURCE_ENTITY_FACET_KEYS } from "Common/Types/Telemetry/ResourceEntityFacet";
 import OneUptimeDate from "Common/Types/Date";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import Route from "Common/Types/API/Route";
@@ -325,6 +328,26 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
     );
   }, [props.scope.timeRange]);
 
+  const eventQueryConfigs: Array<MetricQueryConfigData> = useMemo(() => {
+    const attributes: Record<string, Includes> = {};
+
+    if (props.scope.serviceIds && props.scope.serviceIds.length > 0) {
+      attributes["serviceId"] = new Includes(props.scope.serviceIds);
+    }
+
+    for (const facetKey of RESOURCE_ENTITY_FACET_KEYS) {
+      const ids: Array<string> | undefined =
+        props.scope.resourceFilters?.[facetKey];
+      if (ids && ids.length > 0) {
+        attributes[facetKey] = new Includes(ids);
+      }
+    }
+
+    return Object.keys(attributes).length > 0
+      ? [{ metricQueryData: { filterData: { attributes } } }]
+      : [];
+  }, [props.scope.serviceIds, props.scope.resourceFilters]);
+
   /*
    * Deploys, config changes, incidents and alerts inside the window — the
    * "what else happened around when this spiked" the issue behind this panel
@@ -335,6 +358,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
     useEventTimeReferenceLines({
       enabled: true,
       window: patternWindow,
+      queryConfigs: eventQueryConfigs,
     });
 
   const events: Array<ErrorPatternEvent> = useMemo(() => {

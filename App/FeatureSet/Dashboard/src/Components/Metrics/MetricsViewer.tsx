@@ -42,6 +42,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -1453,6 +1454,58 @@ const MetricsViewer: FunctionComponent<Props> = (
       if (Object.keys(presetAttributes).length > 0) {
         queryPayload["attributes"] = presetAttributes;
       }
+      /*
+       * Entity-scoped lists can have no attribute filters at all. Carry
+       * their identity separately so the chart's event markers cannot
+       * silently broaden to the whole project during this navigation.
+       */
+      const eventScope: MetricsQuery["attributes"] = {};
+      const scopedServiceIds: Includes | undefined = (
+        metricQuery as Record<string, unknown>
+      )["services"] as Includes | undefined;
+      if (scopedServiceIds) {
+        eventScope["primaryEntityId"] = new Includes(
+          scopedServiceIds.values.map(
+            (id: string | number | ObjectID): string => {
+              return id.toString();
+            },
+          ),
+        );
+        eventScope["primaryEntityType"] =
+          props.scopeEntityType || ServiceType.OpenTelemetry;
+      }
+      if (props.entityKeysFilter !== undefined) {
+        const singleEntityKey: string | undefined =
+          props.entityKeysFilter.length === 1
+            ? props.entityKeysFilter[0]
+            : undefined;
+        const searchAttributes: Record<string, string> | undefined =
+          singleEntityKey
+            ? props.entityKeyDisplays?.[singleEntityKey]?.searchAttributes
+            : undefined;
+        if (searchAttributes && Object.keys(searchAttributes).length > 0) {
+          Object.assign(eventScope, searchAttributes);
+        } else {
+          eventScope["entityKeys"] = new Includes(props.entityKeysFilter);
+        }
+      } else if (props.entityScope) {
+        /*
+         * The membership fallback identifies the same host or cluster by its
+         * telemetry attribute, which the event overlay can resolve exactly.
+         */
+        if (
+          props.entityScope.attributeKey &&
+          props.entityScope.attributeValue
+        ) {
+          eventScope[props.entityScope.attributeKey] =
+            props.entityScope.attributeValue;
+        } else {
+          eventScope["entityKeys"] = new Includes(props.entityScope.entityKeys);
+        }
+      }
+      if (Object.keys(eventScope).length > 0) {
+        queryPayload["eventScope"] = eventScope;
+      }
       const metricQueriesPayload: Array<Record<string, unknown>> = [
         queryPayload,
       ];
@@ -1486,7 +1539,15 @@ const MetricsViewer: FunctionComponent<Props> = (
 
       Navigation.navigate(metricUrl);
     },
-    [effectiveAttributes, timeRange],
+    [
+      effectiveAttributes,
+      timeRange,
+      metricQuery,
+      props.scopeEntityType,
+      props.entityKeysFilter,
+      props.entityKeyDisplays,
+      props.entityScope,
+    ],
   );
 
   /*

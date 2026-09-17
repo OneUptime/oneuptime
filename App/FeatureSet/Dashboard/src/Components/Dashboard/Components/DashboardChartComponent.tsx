@@ -385,6 +385,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     useEventTimeReferenceLines({
       enabled: true,
       window: effectiveStartAndEndDate,
+      queryConfigs: queryConfigs,
       refreshTick: props.refreshTick,
     });
 
