@@ -247,11 +247,15 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass
         owner.projectId = onCallDutyPolicy.projectId;
         owner.userId = new ObjectID(userId);
         owner.isOwnerNotified = !notify;
-        await OnCallDutyPolicyOwnerUserService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: OnCallDutyPolicyOwnerUserService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
 
       for (const teamId of teamIds) {
@@ -261,11 +265,15 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass
         owner.projectId = onCallDutyPolicy.projectId;
         owner.teamId = new ObjectID(teamId);
         owner.isOwnerNotified = !notify;
-        await OnCallDutyPolicyOwnerTeamService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: OnCallDutyPolicyOwnerTeamService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
     }
 

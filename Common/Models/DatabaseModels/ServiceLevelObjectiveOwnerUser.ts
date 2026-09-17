@@ -14,6 +14,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnsTogether from "../../Types/Database/UniqueColumnsTogether";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -80,7 +81,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "ServiceLevelObjectiveOwnerUser",
 })
-@Index(["serviceLevelObjectiveId", "userId", "projectId"])
+@Index(["serviceLevelObjectiveId", "userId", "projectId"], { unique: true })
+@UniqueColumnsTogether(
+  ["serviceLevelObjectiveId", "userId", "projectId"],
+  "This user is already an owner of this service level objective.",
+)
 export default class ServiceLevelObjectiveOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [

@@ -12,6 +12,7 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -846,8 +847,9 @@ class AlertGroupingEngineServiceClass {
             ownerUser.projectId = alert.projectId!;
             ownerUser.alertEpisodeId = createdEpisode.id;
             ownerUser.userId = user.id;
-            await AlertEpisodeOwnerUserService.create({
-              data: ownerUser,
+            await OwnerRuleAssignment.createOwner({
+              ownerService: AlertEpisodeOwnerUserService,
+              owner: ownerUser,
               props: {
                 isRoot: true,
               },
@@ -877,8 +879,9 @@ class AlertGroupingEngineServiceClass {
             ownerTeam.projectId = alert.projectId!;
             ownerTeam.alertEpisodeId = createdEpisode.id;
             ownerTeam.teamId = team.id;
-            await AlertEpisodeOwnerTeamService.create({
-              data: ownerTeam,
+            await OwnerRuleAssignment.createOwner({
+              ownerService: AlertEpisodeOwnerTeamService,
+              owner: ownerTeam,
               props: {
                 isRoot: true,
               },

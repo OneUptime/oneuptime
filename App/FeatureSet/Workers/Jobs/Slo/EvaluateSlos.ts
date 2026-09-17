@@ -2822,14 +2822,15 @@ async function addBurnRateRecordOwners(data: {
 }
 
 /*
- * The owners actually worth adding. Owner rows have no unique constraint, and
- * the owner-added jobs notify every member of a team row and every user row
- * independently, so two overlaps would each add - and notify - one person
- * twice:
+ * The owners actually worth adding. The owner-added jobs notify every member
+ * of a team row and every user row independently, so two overlaps would each
+ * notify one person twice:
  *
  *   - an owner already on the record. The project's own alert and incident
  *     owner rules run from the create hook and can get there first; the rule
- *     engines skip owners already present through this same helper.
+ *     engines skip owners already present through this same helper. Owner
+ *     rows are unique per owner, so addOwners would skip them too - they are
+ *     dropped here so that what this returns is what actually gets added.
  *   - a user who is a member of a team being added. With "add SLO owners" on,
  *     the SLO's owner teams arrive expanded into users (see
  *     ServiceLevelObjectiveService.findOwners), so a team that owns both the

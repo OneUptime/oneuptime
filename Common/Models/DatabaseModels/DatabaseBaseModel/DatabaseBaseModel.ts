@@ -9,6 +9,7 @@ import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { getColumnAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnAccessControl";
 import { getColumnBillingAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
+import { UniqueColumnsTogetherMetadata } from "../../../Types/Database/UniqueColumnsTogether";
 import Columns from "../../../Types/Database/Columns";
 import ColumnType from "../../../Types/Database/ColumnType";
 import TableColumn, {
@@ -202,6 +203,9 @@ export default class DatabaseBaseModel extends BaseEntity {
   public totalItemsNumber!: number | null;
   public totalItemsErrorMessage!: string | null;
 
+  // set by the @UniqueColumnsTogether() decorator.
+  public uniqueColumnsTogether!: Array<UniqueColumnsTogetherMetadata> | null;
+
   public isPermissionIf: Dictionary<JSONObject> = {};
 
   public isMultiTenantRequestAllowed!: boolean | null;
@@ -377,6 +381,10 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public getTotalItemsNumber(): number | null {
     return this.totalItemsNumber;
+  }
+
+  public getUniqueColumnsTogether(): Array<UniqueColumnsTogetherMetadata> {
+    return this.uniqueColumnsTogether || [];
   }
 
   public getRequiredColumns(): Columns {

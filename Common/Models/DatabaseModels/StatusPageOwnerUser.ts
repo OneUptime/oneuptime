@@ -16,6 +16,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnsTogether from "../../Types/Database/UniqueColumnsTogether";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -77,7 +78,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "StatusPageOwnerUser",
 })
-@Index(["statusPageId", "userId", "projectId"])
+@Index(["statusPageId", "userId", "projectId"], { unique: true })
+@UniqueColumnsTogether(
+  ["statusPageId", "userId", "projectId"],
+  "This user is already an owner of this status page.",
+)
 export default class StatusPageOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [

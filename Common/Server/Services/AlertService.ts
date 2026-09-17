@@ -28,7 +28,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Typeof from "../../Types/Typeof";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import Model from "../../Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
@@ -82,6 +81,7 @@ import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
 import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
 
@@ -1264,37 +1264,18 @@ ${alert.remediationNotes || "No remediation notes provided."}
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: AlertOwnerTeam = new AlertOwnerTeam();
-      teamOwner.alertId = alertId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-
-      await AlertOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-      const teamOwner: AlertOwnerUser = new AlertOwnerUser();
-      teamOwner.alertId = alertId;
-      teamOwner.projectId = projectId;
-      teamOwner.userId = userId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-      await AlertOwnerUserService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
+    // Owners already on the alert are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: AlertOwnerUserService,
+      ownerTeamService: AlertOwnerTeamService,
+      resourceIdColumn: "alertId",
+      resourceId: alertId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
   }
 
   @CaptureSpan()

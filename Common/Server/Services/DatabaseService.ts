@@ -1420,6 +1420,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // check uniqueColumns by:
     createBy = await this.checkUniqueColumnBy(createBy);
 
+    await this.checkUniqueColumnsTogether(createBy.data);
+
     // serialize.
     createBy.data = (await this.sanitizeCreateOrUpdate(
       createBy.data,
@@ -1583,8 +1585,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     try {
+      /*
+       * A new row every time. getModel() is the owner service's own shared
+       * instance, and a save writes the generated _id back onto whatever it
+       * was handed - so reusing it would turn the next auto-owner insert into
+       * an update of this row.
+       */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ownerModel: any = entry.ownerUserService.getModel();
+      const ownerModel: any = new entry.ownerUserService.modelType();
       ownerModel[entry.fkColumn] = resourceId;
       ownerModel.userId = props.userId;
       ownerModel.projectId = projectId;
@@ -1594,6 +1602,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         props: { isRoot: true },
       });
     } catch (err) {
+      /*
+       * The create form can name the creator as an owner too, and that path
+       * may have added them first. They are an owner either way.
+       */
+      if (PostgresErrorTranslator.isUniqueViolation(err)) {
+        return;
+      }
+
       logger.error(
         `auto-owner-on-create failed for ${modelName} ${resourceId.toString()}`,
       );
@@ -1776,6 +1792,90 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return Promise.resolve(createBy);
+  }
+
+  /*
+   * Enforces @UniqueColumnsTogether before the row is written, so a duplicate
+   * is rejected with the model's own message and never reaches
+   * onCreateSuccess (and whatever feed items or notifications it sends).
+   *
+   * A key column can arrive as its id column (`teamId`) or only as the
+   * relation that fills it (`team`), so both are read. When a value is
+   * missing altogether there is nothing to compare; the unique index decides.
+   */
+  private async checkUniqueColumnsTogether(data: TBaseModel): Promise<void> {
+    for (const constraint of this.model.getUniqueColumnsTogether()) {
+      const query: Dictionary<ObjectID | JSONValue> = {};
+      let isKeyComplete: boolean = true;
+
+      for (const columnName of constraint.columnNames) {
+        const value: ObjectID | JSONValue | null = this.getUniqueKeyValue(
+          data,
+          columnName,
+        );
+
+        if (value === null) {
+          isKeyComplete = false;
+          break;
+        }
+
+        query[columnName] = value;
+      }
+
+      if (!isKeyComplete) {
+        continue;
+      }
+
+      const count: PositiveNumber = await this.countBy({
+        query: query as Query<TBaseModel>,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (count.toNumber() > 0) {
+        throw PostgresErrorTranslator.createUniqueViolationException(
+          constraint.errorMessage,
+        );
+      }
+    }
+  }
+
+  private getUniqueKeyValue(
+    data: TBaseModel,
+    columnName: string,
+  ): ObjectID | JSONValue | null {
+    const metadata: TableColumnMetadata | undefined =
+      this.model.getTableColumnMetadata(columnName);
+
+    if (metadata?.type !== TableColumnType.ObjectID) {
+      const value: JSONValue = (data as any)[columnName];
+      return value === undefined || value === null ? null : value;
+    }
+
+    let id: string | null = RelationValueUtil.getRelationId(
+      (data as any)[columnName],
+    );
+
+    if (!id) {
+      const relationColumnName: string | undefined = this.model
+        .getTableColumns()
+        .columns.find((column: string): boolean => {
+          const relationMetadata: TableColumnMetadata =
+            this.model.getTableColumnMetadata(column);
+
+          return (
+            relationMetadata.type === TableColumnType.Entity &&
+            relationMetadata.manyToOneRelationColumn === columnName
+          );
+        });
+
+      if (relationColumnName) {
+        id = RelationValueUtil.getRelationId((data as any)[relationColumnName]);
+      }
+    }
+
+    return id ? new ObjectID(id) : null;
   }
 
   @CaptureSpan()

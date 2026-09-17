@@ -47,7 +47,6 @@ import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Typeof from "../../Types/Typeof";
 import Model from "../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
@@ -97,6 +96,7 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
@@ -1985,37 +1985,18 @@ ${createdItem.description?.trim() || "No description provided."}
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: MonitorOwnerTeam = new MonitorOwnerTeam();
-      teamOwner.monitorId = monitorId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-
-      await MonitorOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-      const teamOwner: MonitorOwnerUser = new MonitorOwnerUser();
-      teamOwner.monitorId = monitorId;
-      teamOwner.projectId = projectId;
-      teamOwner.userId = userId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-      await MonitorOwnerUserService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
+    // Owners already on the monitor are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: MonitorOwnerUserService,
+      ownerTeamService: MonitorOwnerTeamService,
+      resourceIdColumn: "monitorId",
+      resourceId: monitorId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
   }
 
   /*

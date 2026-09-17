@@ -14,6 +14,7 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceOwnerUserService from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import logger from "Common/Server/Utils/Logger";
+import OwnerRuleAssignment from "Common/Server/Utils/Rules/OwnerRuleAssignment";
 import Recurring from "Common/Types/Events/Recurring";
 
 RunCron(
@@ -200,8 +201,9 @@ RunCron(
           scheduledMaintenanceOwnerUser.projectId =
             scheduledMaintenanceEvent.projectId!;
           scheduledMaintenanceOwnerUser.userId = ownerUser.userId!;
-          await ScheduledMaintenanceOwnerUserService.create({
-            data: scheduledMaintenanceOwnerUser,
+          await OwnerRuleAssignment.createOwner({
+            ownerService: ScheduledMaintenanceOwnerUserService,
+            owner: scheduledMaintenanceOwnerUser,
             props: {
               isRoot: true,
             },
@@ -218,8 +220,9 @@ RunCron(
           scheduledMaintenanceOwnerTeam.projectId =
             scheduledMaintenanceEvent.projectId!;
           scheduledMaintenanceOwnerTeam.teamId = ownerTeam.teamId!;
-          await ScheduledMaintenanceOwnerTeamService.create({
-            data: scheduledMaintenanceOwnerTeam,
+          await OwnerRuleAssignment.createOwner({
+            ownerService: ScheduledMaintenanceOwnerTeamService,
+            owner: scheduledMaintenanceOwnerTeam,
             props: {
               isRoot: true,
             },

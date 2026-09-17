@@ -68,6 +68,20 @@ export default class PostgresErrorTranslator {
   }
 
   /*
+   * The exception for a duplicate the application found before the database
+   * had to (see @UniqueColumnsTogether). It is tagged exactly like a
+   * translated unique violation, so isUniqueViolation() answers the same way
+   * whichever layer caught the duplicate.
+   */
+  public static createUniqueViolationException(
+    message: string,
+  ): BadDataException {
+    return this.tag(new BadDataException(message), {
+      code: UNIQUE_VIOLATION,
+    });
+  }
+
+  /*
    * True for a unique violation whether or not it has been through translate().
    * Callers that recover from a duplicate must use this rather than checking
    * `code === "23505"` themselves: by the time a service's own catch block sees
