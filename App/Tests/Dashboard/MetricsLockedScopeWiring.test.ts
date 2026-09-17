@@ -306,7 +306,9 @@ describe("MetricsViewer hands its locked chips to the shared viewer and builds n
  * the page's names, hands the bare entity-key scope (and never the
  * entityScope or its keys) to the builder, recomputes when either changes,
  * and that the chip array stays display only: nothing that builds a query,
- * the URL or a saved view reads it.
+ * the URL or a saved view reads it. The display map also carries raw search
+ * attributes for the metric-detail event scope, which must stay separate
+ * from metric filters and the explorer's persisted state.
  */
 describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
   type ImportListFromFunction = (
@@ -355,13 +357,13 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
   type DependenciesOfFunction = (memo: string) => Array<string>;
 
   /*
-   * A memo's dependency list, sliced from its closing `]);` back to the last
-   * `}, [` — not from a return statement, which a memo body can repeat.
+   * A memo or callback's dependency list, sliced from its final `]` back to
+   * the last `}, [` — not from a return statement, which its body can repeat.
    */
   const dependenciesOf: DependenciesOfFunction = (
     memo: string,
   ): Array<string> => {
-    const close: number = memo.lastIndexOf("]);");
+    const close: number = memo.lastIndexOf("]");
     const open: number = memo.lastIndexOf("}, [", close);
 
     expect(open).toBeGreaterThanOrEqual(0);
@@ -389,10 +391,28 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
     METRICS_VIEWER.indexOf("]);", memoStart) + "]);".length;
   const MEMO: string = METRICS_VIEWER.slice(memoStart, memoEnd);
 
-  test("the chip memo is where the slices below expect it", () => {
+  const rowClickDeclaration: number = METRICS_VIEWER.indexOf(
+    "const handleRowClick:",
+  );
+  const ROW_CLICK: string = blockAfter(
+    METRICS_VIEWER.slice(rowClickDeclaration),
+    "useCallback(",
+    "(",
+    ")",
+  );
+  const rowClickStart: number = METRICS_VIEWER.indexOf(
+    ROW_CLICK,
+    rowClickDeclaration,
+  );
+  const rowClickEnd: number = rowClickStart + ROW_CLICK.length;
+
+  test("the chip memo and detail callback are where the slices below expect them", () => {
     expect(memoStart).toBeGreaterThanOrEqual(0);
     expect(memoEnd).toBeGreaterThan(memoStart);
     expect(MEMO).toContain("buildMetricsActiveFilterChips({");
+    expect(rowClickDeclaration).toBeGreaterThanOrEqual(0);
+    expect(rowClickStart).toBeGreaterThan(rowClickDeclaration);
+    expect(ROW_CLICK).toContain("Navigation.navigate(metricUrl);");
   });
 
   test("declares the display map next to the entity-key filter, typed from the shared chip module", () => {
@@ -440,7 +460,7 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
     expect(dependencies).not.toContain("props.entityScope");
   });
 
-  test("the page's names reach the chip builder and nothing else", () => {
+  test("the page's display map reaches only the chip builder and the detail callback", () => {
     const uses: Array<number> = indexesOf(
       METRICS_VIEWER,
       "props.entityKeyDisplays",
@@ -448,15 +468,60 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
 
     expect(uses.length).toBeGreaterThan(0);
 
-    const outsideTheChipMemo: Array<string> = uses
+    const unexpectedReads: Array<string> = uses
       .filter((index: number): boolean => {
-        return index < memoStart || index >= memoEnd;
+        const inChipMemo: boolean = index >= memoStart && index < memoEnd;
+        const inRowClick: boolean =
+          index >= rowClickStart && index < rowClickEnd;
+
+        return !inChipMemo && !inRowClick;
       })
       .map((index: number): string => {
         return contextAt(METRICS_VIEWER, index);
       });
 
-    expect(outsideTheChipMemo).toEqual([]);
+    expect(unexpectedReads).toEqual([]);
+  });
+
+  test("the detail callback reads only raw search attributes for one entity's event scope", () => {
+    const body: string = bodyAfter(ROW_CLICK, "(metric: MetricType)");
+    const entityKeyScope: string = blockAfter(
+      body,
+      "if (props.entityKeysFilter !== undefined)",
+      "{",
+      "}",
+    );
+
+    /*
+     * REGRESSION: these attributes reproduce one entity's identity for the
+     * event overlay. Display names must never become filters, and multiple
+     * entity keys must retain their membership semantics.
+     */
+    expect(entityKeyScope).toContain(
+      "const singleEntityKey: string | undefined = props.entityKeysFilter.length === 1 ? props.entityKeysFilter[0] : undefined;",
+    );
+    expect(entityKeyScope).toContain(
+      "const searchAttributes: Record<string, string> | undefined = singleEntityKey ? props.entityKeyDisplays?.[singleEntityKey]?.searchAttributes : undefined;",
+    );
+    expect(entityKeyScope).toContain(
+      'if (searchAttributes && Object.keys(searchAttributes).length > 0) { Object.assign(eventScope, searchAttributes); } else { eventScope["entityKeys"] = new Includes(props.entityKeysFilter); }',
+    );
+    expect(indexesOf(body, "props.entityKeyDisplays")).toHaveLength(1);
+
+    // The lookup cannot leak into metric filters or other URL state.
+    expect(body.replace(entityKeyScope, "")).not.toContain("searchAttributes");
+    expect(body).toContain(
+      'if (Object.keys(eventScope).length > 0) { queryPayload["eventScope"] = eventScope; }',
+    );
+  });
+
+  test("the detail callback recomputes when entity search attributes change", () => {
+    const dependencies: Array<string> = dependenciesOf(ROW_CLICK);
+
+    expect(dependencies).toContain("props.entityKeysFilter");
+    expect(dependencies).toContain("props.entityKeyDisplays");
+    // One raw lookup in the callback body and one dependency, with no other use.
+    expect(indexesOf(ROW_CLICK, "props.entityKeyDisplays")).toHaveLength(2);
   });
 
   test("the chip array is display only: it reaches the chip bar, and nothing that builds a query, the URL or a saved view", () => {
