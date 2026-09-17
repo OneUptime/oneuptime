@@ -169,8 +169,10 @@ describe("route table wiring", () => {
       routesSource.match(/res\.redirect\(/g);
 
     expect(remaining).toHaveLength(1);
-    // The OneUptime installer is served from the image, never redirected to
-    // raw GitHub (under any path the script has lived at).
+    /*
+     * The OneUptime installer is served from the image, never redirected to
+     * raw GitHub (under any path the script has lived at).
+     */
     expect(routesSource).not.toMatch(
       /raw\.githubusercontent\.com\/OneUptime\/oneuptime\/[^"]*Home\/Scripts\/Install\.sh/,
     );

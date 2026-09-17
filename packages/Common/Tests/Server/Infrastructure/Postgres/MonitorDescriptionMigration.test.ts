@@ -1,4 +1,4 @@
-import { RemoveMonitorDescriptionLengthLimit1793600000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1793600000000-RemoveMonitorDescriptionLengthLimit";
+import { RemoveMonitorDescriptionLengthLimit1793800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1793800000000-RemoveMonitorDescriptionLengthLimit";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -35,7 +35,7 @@ async function queriesFor(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new RemoveMonitorDescriptionLengthLimit1793600000000()[direction](
+  await new RemoveMonitorDescriptionLengthLimit1793800000000()[direction](
     runner,
   );
   return statements;
@@ -67,7 +67,7 @@ describe("monitor description migration", () => {
     expect(
       SchemaMigrations.filter(
         (migration: new () => MigrationInterface): boolean => {
-          return migration === RemoveMonitorDescriptionLengthLimit1793600000000;
+          return migration === RemoveMonitorDescriptionLengthLimit1793800000000;
         },
       ),
     ).toHaveLength(1);
@@ -97,7 +97,7 @@ function descriptionDatabase(schema: string): DataSource {
     password: process.env["DATABASE_PASSWORD"] || "password",
     database: process.env["DATABASE_NAME"] || "oneuptimedb",
     entities: [],
-    migrations: [RemoveMonitorDescriptionLengthLimit1793600000000],
+    migrations: [RemoveMonitorDescriptionLengthLimit1793800000000],
     schema,
     synchronize: false,
     extra: { options: `-c search_path=${schema}` },
@@ -106,8 +106,8 @@ function descriptionDatabase(schema: string): DataSource {
 
 describePostgres("monitor descriptions against Postgres", () => {
   const schema: string = `monitor_description_${ObjectID.generate().toString().replace(/-/g, "")}`;
-  const migration: RemoveMonitorDescriptionLengthLimit1793600000000 =
-    new RemoveMonitorDescriptionLengthLimit1793600000000();
+  const migration: RemoveMonitorDescriptionLengthLimit1793800000000 =
+    new RemoveMonitorDescriptionLengthLimit1793800000000();
   const existingDescriptions: ReadonlyArray<string | null> = [
     null,
     "",
@@ -259,7 +259,7 @@ describePostgres("monitor description startup migrations", () => {
   let database: DataSource;
   let schema: string;
   const migrationName: string =
-    "RemoveMonitorDescriptionLengthLimit1793600000000";
+    "RemoveMonitorDescriptionLengthLimit1793800000000";
   const originalDescription: string = "x".repeat(500);
 
   async function expectColumnTypes(
