@@ -1,4 +1,5 @@
 import { getRouteForCitationTarget } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/CitationTargetNav";
+import { describeCitationTargetPage } from "../../../../App/FeatureSet/Dashboard/src/Utils/InvestigationEvidenceFormat";
 import { AIChatCitationTargetType } from "../../../Types/AI/AIChatTypes";
 import ProjectUtil from "../../../UI/Utils/Project";
 import PageContextUtil, {
@@ -429,6 +430,9 @@ describe("RUM citation destinations", () => {
         params: { rumApplicationId: ENTITY_ID },
       })?.toString(),
     ).toBe(`/dashboard/${PROJECT_ID}/rum/${ENTITY_ID}`);
+    expect(
+      describeCitationTargetPage(AIChatCitationTargetType.RumApplicationView),
+    ).toBe("RUM application");
   });
 
   test("inventory citations link to the applications list", () => {
@@ -440,5 +444,8 @@ describe("RUM citation destinations", () => {
         type: AIChatCitationTargetType.RumApplications,
       })?.toString(),
     ).toBe(`/dashboard/${PROJECT_ID}/rum`);
+    expect(
+      describeCitationTargetPage(AIChatCitationTargetType.RumApplications),
+    ).toBe("RUM applications");
   });
 });
