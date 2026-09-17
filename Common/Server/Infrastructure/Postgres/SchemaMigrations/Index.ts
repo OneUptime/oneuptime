@@ -1,3 +1,4 @@
+import { RemoveMonitorDescriptionLengthLimit1793600000000 } from "./1793600000000-RemoveMonitorDescriptionLengthLimit";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1196,4 +1197,5 @@ export default [
   AddDataResidencyToProject1793300000000,
   AddSubscriberUpdateNotificationStatus1793400000000,
   MakeOwnerRowsUnique1793500000000,
+  RemoveMonitorDescriptionLengthLimit1793600000000,
 ];
