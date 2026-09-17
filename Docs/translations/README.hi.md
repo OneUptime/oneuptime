@@ -1,22 +1,22 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
   <a href="/README.md">English</a> ·
-  <a href="/translations/README.zh-CN.md">简体中文</a> ·
-  <a href="/translations/README.zh-TW.md">繁體中文</a> ·
-  <a href="/translations/README.ja.md">日本語</a> ·
-  <a href="/translations/README.ko.md">한국어</a> ·
-  <a href="/translations/README.es.md">Español</a> ·
-  <a href="/translations/README.fr.md">Français</a> ·
-  <a href="/translations/README.de.md">Deutsch</a> ·
-  <a href="/translations/README.pt.md">Português</a> ·
-  <a href="/translations/README.it.md">Italiano</a> ·
-  <a href="/translations/README.ru.md">Русский</a> ·
-  <a href="/translations/README.hi.md">हिन्दी</a> ·
-  <a href="/translations/README.fa.md">فارسی</a> ·
-  <a href="/translations/README.nl.md">Nederlands</a> ·
-  <a href="/translations/README.da.md">Dansk</a> ·
-  <a href="/translations/README.sv.md">Svenska</a> ·
-  <a href="/translations/README.no.md">Norsk</a>
+  <a href="/Docs/translations/README.zh-CN.md">简体中文</a> ·
+  <a href="/Docs/translations/README.zh-TW.md">繁體中文</a> ·
+  <a href="/Docs/translations/README.ja.md">日本語</a> ·
+  <a href="/Docs/translations/README.ko.md">한국어</a> ·
+  <a href="/Docs/translations/README.es.md">Español</a> ·
+  <a href="/Docs/translations/README.fr.md">Français</a> ·
+  <a href="/Docs/translations/README.de.md">Deutsch</a> ·
+  <a href="/Docs/translations/README.pt.md">Português</a> ·
+  <a href="/Docs/translations/README.it.md">Italiano</a> ·
+  <a href="/Docs/translations/README.ru.md">Русский</a> ·
+  <a href="/Docs/translations/README.hi.md">हिन्दी</a> ·
+  <a href="/Docs/translations/README.fa.md">فارسی</a> ·
+  <a href="/Docs/translations/README.nl.md">Nederlands</a> ·
+  <a href="/Docs/translations/README.da.md">Dansk</a> ·
+  <a href="/Docs/translations/README.sv.md">Svenska</a> ·
+  <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
 <div align="center">
