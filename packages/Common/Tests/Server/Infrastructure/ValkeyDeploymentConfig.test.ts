@@ -45,7 +45,7 @@ const HELM_VALUES_PATH: string = path.join(
 // The compose files an operator actually invokes; each extends the base.
 const OVERLAY_COMPOSE_FILES: Array<string> = [
   "docker-compose.yml",
-  "docker-compose.dev.yml",
+  "Scripts/Dev/docker-compose.dev.yml",
 ];
 
 // Every cache setting, by the suffix the two spellings share.

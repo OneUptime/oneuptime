@@ -558,7 +558,8 @@ services:
       # ExceptionOccurrenceFixture writes to ClickHouse directly, so pass exactly
       # the connection settings it reads. From this host-networked container the
       # "clickhouse" hostname does not resolve; with HOST=localhost the fixture
-      # maps it to the loopback port published by docker-compose.dev.yml or
+      # maps it to the loopback port published by
+      # Scripts/Dev/docker-compose.dev.yml or
       # packages/E2E/docker-compose.e2e-clickhouse.yml. E2E_CLICKHOUSE_URL
       # overrides both.
       CLICKHOUSE_USER: ${CLICKHOUSE_USER}

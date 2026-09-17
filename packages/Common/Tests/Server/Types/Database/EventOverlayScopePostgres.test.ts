@@ -21,7 +21,7 @@ import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 /*
  * Opt in with RUN_POSTGRES_EVENT_OVERLAY_TESTS=true and config.env loaded.
  * Common Test CI enables this after test-setup.sh starts its Postgres service.
- * The default localhost:5400 endpoint matches docker-compose.dev.yml; set
+ * The default localhost:5400 endpoint matches Scripts/Dev/docker-compose.dev.yml; set
  * EVENT_OVERLAY_TEST_DATABASE_HOST / EVENT_OVERLAY_TEST_DATABASE_PORT to use
  * another endpoint. Credentials come from DATABASE_USERNAME,
  * DATABASE_PASSWORD and DATABASE_NAME.

@@ -1,6 +1,6 @@
 # Lokal utveckling
 
-För lokal utveckling måste du använda filen docker-compose.dev.yml.
+För lokal utveckling måste du använda filen Scripts/Dev/docker-compose.dev.yml.
 
 Du måste se till att du har:
 

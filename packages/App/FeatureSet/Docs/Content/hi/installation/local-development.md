@@ -1,6 +1,6 @@
 # Local Development
 
-Local development के लिए आपको docker-compose.dev.yml फ़ाइल उपयोग करनी होगी।
+Local development के लिए आपको Scripts/Dev/docker-compose.dev.yml फ़ाइल उपयोग करनी होगी।
 
 सुनिश्चित करें कि आपके पास है:
 

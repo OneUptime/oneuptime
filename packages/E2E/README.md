@@ -52,7 +52,7 @@ It refuses payment setup unless the dashboard's publishable key starts with
 writing straight to ClickHouse over HTTP, using `CLICKHOUSE_USER`,
 `CLICKHOUSE_PASSWORD`, `CLICKHOUSE_DATABASE` and `CLICKHOUSE_HOST` from
 config.env. With `HOST=localhost` and `CLICKHOUSE_HOST=clickhouse` it connects to
-`127.0.0.1:8189`, which `docker-compose.dev.yml` publishes. `docker-compose.yml`
+`127.0.0.1:8189`, which `Scripts/Dev/docker-compose.dev.yml` publishes. `docker-compose.yml`
 publishes no ClickHouse port, with or without the billing overlay, so start
 those stacks with the test-only loopback overlay, as CI does (from the
 repository root):

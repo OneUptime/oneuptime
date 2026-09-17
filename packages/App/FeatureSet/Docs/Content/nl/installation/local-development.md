@@ -1,6 +1,6 @@
 # Lokale ontwikkeling
 
-Voor lokale ontwikkeling dient u het bestand docker-compose.dev.yml te gebruiken.
+Voor lokale ontwikkeling dient u het bestand Scripts/Dev/docker-compose.dev.yml te gebruiken.
 
 Zorg dat u het volgende heeft:
 

@@ -35,6 +35,14 @@ const SNMP_SIMULATOR_DOCKERFILE: string = path.join(
 );
 
 /*
+ * The dev stack's compose file lives in Scripts/Dev but is always run from the
+ * repo root with `--project-directory .`, so compose resolves its build paths
+ * against the repo root instead of the file's own folder.
+ */
+const DEV_COMPOSE_FILE: string = "Scripts/Dev/docker-compose.dev.yml";
+const ROOT_PROJECT_COMPOSE_FILES: Array<string> = [DEV_COMPOSE_FILE];
+
+/*
  * Run a git command against the checkout under test. A failure here is a real
  * test failure and not something to swallow: the whole point of this file is to
  * assert on what git tracks and ignores, so a suite that cannot ask git has
@@ -141,7 +149,9 @@ const parseImageBuilds: (composeFile: string) => Array<ImageBuild> = (
   composeFile: string,
 ): Array<ImageBuild> => {
   const builds: Array<ImageBuild> = [];
-  const composeDir: string = path.dirname(composeFile);
+  const composeDir: string = ROOT_PROJECT_COMPOSE_FILES.includes(composeFile)
+    ? "."
+    : path.dirname(composeFile);
   const lines: Array<string> = readRepoFile(composeFile).split("\n");
 
   let inServices: boolean = false;
@@ -283,7 +293,7 @@ describe("Every Dockerfile a compose file builds survives a fresh clone", () => 
      * list is silently green -- the suite would keep passing while checking
      * nothing at all.
      */
-    expect(composeFiles).toContain("docker-compose.dev.yml");
+    expect(composeFiles).toContain(DEV_COMPOSE_FILE);
     expect(composeFiles).toContain(
       path
         .join(SNMP_SIMULATOR_DIR, "docker-compose.yml")
@@ -316,6 +326,22 @@ describe("Every Dockerfile a compose file builds survives a fresh clone", () => 
       });
     },
   );
+
+  test("the dev compose file is run with the repo root as its project directory", () => {
+    /*
+     * Ties the build-path resolution above to the commands that run the file.
+     * Without the flag compose would resolve every build under Scripts/Dev.
+     */
+    const scripts: Record<string, string> = JSON.parse(
+      readRepoFile("package.json"),
+    ).scripts;
+
+    for (const script of ["build", "force-build", "dev"]) {
+      expect(scripts[script]).toContain(
+        `docker compose --project-directory . -f ${DEV_COMPOSE_FILE} `,
+      );
+    }
+  });
 
   test("the snmp-simulator quick start builds all three of its containers", () => {
     const builds: Array<ImageBuild> = imageBuilds.filter(

@@ -55,4 +55,4 @@ export $(grep -v '^#' config.env | xargs)
 echo "env vars"
 printenv
 
-docker compose -f docker-compose.dev.yml up -d postgres valkey
+docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml up -d postgres valkey

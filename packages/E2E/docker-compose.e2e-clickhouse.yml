@@ -9,7 +9,7 @@
 # "clickhouse" - and docker-compose.yml, alone or with
 # packages/E2E/docker-compose.billing.yml, publishes no ClickHouse port. This
 # overlay publishes ClickHouse's HTTP interface on the host's loopback only, on
-# the same host port docker-compose.dev.yml uses, so the fixture finds it at
+# the same host port Scripts/Dev/docker-compose.dev.yml uses, so the fixture finds it at
 # 127.0.0.1:8189 whichever stack is running. Like every compose file in
 # packages/E2E, pass it after docker-compose.yml:
 #

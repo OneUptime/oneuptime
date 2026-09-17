@@ -1,6 +1,6 @@
 # ローカル開発
 
-ローカル開発には docker-compose.dev.yml ファイルを使用する必要があります。
+ローカル開発には Scripts/Dev/docker-compose.dev.yml ファイルを使用する必要があります。
 
 以下が必要です。
 

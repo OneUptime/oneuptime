@@ -1,6 +1,6 @@
 # 本機開發
 
-進行本機開發時，你需要使用 docker-compose.dev.yml 檔案。
+進行本機開發時，你需要使用 Scripts/Dev/docker-compose.dev.yml 檔案。
 
 你需要確認你已經具備：
 

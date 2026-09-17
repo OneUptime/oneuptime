@@ -71,7 +71,7 @@ const requireUuid: (value: string, description: string) => string = (
  * config.env uses the Compose-network address clickhouse:8123, which neither a
  * run from the host nor the host-networked e2e container can resolve. When the
  * browser targets a local stack, resolve that known pairing to the loopback HTTP
- * port both docker-compose.dev.yml and the CI overlay
+ * port both Scripts/Dev/docker-compose.dev.yml and the CI overlay
  * packages/E2E/docker-compose.e2e-clickhouse.yml publish. Custom environments
  * can state their endpoint explicitly with E2E_CLICKHOUSE_URL (or the host/port
  * overrides).
@@ -197,7 +197,7 @@ const executeClickHouseRequest: (data: {
   } catch (error) {
     throw new Error(
       `ClickHouse exception fixture could not reach ${location.endpoint.origin} (${describeRequestFailure(error)}). ` +
-        "A local stack must publish ClickHouse HTTP there: docker-compose.dev.yml does, and docker-compose.yml (with or without -f packages/E2E/docker-compose.billing.yml) needs -f packages/E2E/docker-compose.e2e-clickhouse.yml after it. Otherwise set E2E_CLICKHOUSE_URL.",
+        "A local stack must publish ClickHouse HTTP there: Scripts/Dev/docker-compose.dev.yml does, and docker-compose.yml (with or without -f packages/E2E/docker-compose.billing.yml) needs -f packages/E2E/docker-compose.e2e-clickhouse.yml after it. Otherwise set E2E_CLICKHOUSE_URL.",
     );
   }
 

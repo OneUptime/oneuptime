@@ -18,7 +18,7 @@ import yaml from "js-yaml";
  *  - production compose files publish no ClickHouse port at all, and neither
  *    does the SaaS CI stack's billing overlay;
  *  - the test-only overlay publishes ClickHouse HTTP on loopback only, on the
- *    host port docker-compose.dev.yml uses and the fixture maps to;
+ *    host port Scripts/Dev/docker-compose.dev.yml uses and the fixture maps to;
  *  - the host-networked e2e service receives the connection settings;
  *  - every workflow job that runs the e2e service starts its stack with the
  *    overlay (the release workflow is where a partial fix would slip through,
@@ -65,11 +65,12 @@ const CLICKHOUSE_CONNECTION_SETTINGS: Array<string> = [
 const CLICKHOUSE_HTTP_CONTAINER_PORT: string = "8123";
 
 /*
- * The step that runs the suite: `docker compose -f docker-compose.dev.yml up ... e2e`,
+ * The step that runs the suite:
+ * `docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml up ... e2e`,
  * or `... -f packages/E2E/docker-compose.e2e.yml up ... e2e` for the release image.
  */
 const RUNS_E2E_SERVICE: RegExp =
-  /docker compose\s[^\n]*-f (?:docker-compose\.dev|packages\/E2E\/docker-compose\.e2e)\.yml\s+up\b[^\n]*\se2e\b/;
+  /docker compose\s[^\n]*-f (?:Scripts\/Dev\/docker-compose\.dev|packages\/E2E\/docker-compose\.e2e)\.yml\s+up\b[^\n]*\se2e\b/;
 const UP_SUBCOMMAND: RegExp = /\sup(?:\s|$)/;
 const DOWN_SUBCOMMAND: RegExp = /\sdown(?:\s|$)/;
 const ROOT_COMPOSE_FILE_FLAG: RegExp = /-f docker-compose\.yml\s/;
@@ -228,9 +229,9 @@ describe("E2E ClickHouse fixture access", () => {
     expect(clickHouseHttpHostPort(readCompose(OVERLAY_FILE_NAME))).toBe(
       fixturePort,
     );
-    expect(clickHouseHttpHostPort(readCompose("docker-compose.dev.yml"))).toBe(
-      fixturePort,
-    );
+    expect(
+      clickHouseHttpHostPort(readCompose("Scripts/Dev/docker-compose.dev.yml")),
+    ).toBe(fixturePort);
   });
 
   test("the host-networked e2e service receives the fixture's ClickHouse settings", () => {

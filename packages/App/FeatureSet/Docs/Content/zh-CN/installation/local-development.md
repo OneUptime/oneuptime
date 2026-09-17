@@ -1,6 +1,6 @@
 # 本地开发
 
-本地开发需要使用 docker-compose.dev.yml 文件。
+本地开发需要使用 Scripts/Dev/docker-compose.dev.yml 文件。
 
 您需要确保已安装：
 

@@ -221,9 +221,9 @@ jobs:
       # bugs as flakes.
       #
       # Only `app` and `ingress` are named. A bare `npm run dev` brings up every
-      # service in docker-compose.dev.yml, and since each carries a `build:`
-      # section that means building every image from source on a cold runner:
-      # `home` (which clones the ~4 GB blog repo),
+      # service in Scripts/Dev/docker-compose.dev.yml, and since each carries a
+      # `build:` section that means building every image from source on a cold
+      # runner: `home` (which clones the ~4 GB blog repo),
       # `e2e` (which downloads Playwright's browsers), both probes, the runner,
       # test-server, fluentd and fluent-bit. That was ~27 of this job's ~43
       # minutes spent on containers no assertion in this suite ever reaches:
@@ -294,12 +294,13 @@ jobs:
         if: failure()
         run: |
           # Must mirror how `npm run dev` started the stack: the same compose
-          # file and the same exported config.env. A plain `docker compose
-          # logs` resolves docker-compose.yml instead, finds a different
-          # project, and prints nothing but "variable is not set" warnings.
+          # file, the same project directory and the same exported config.env.
+          # A plain `docker compose logs` resolves docker-compose.yml instead,
+          # finds a different project, and prints nothing but "variable is not
+          # set" warnings.
           set +e
           export $(grep -v '^#' config.env | xargs) 2>/dev/null
-          COMPOSE="docker compose -f docker-compose.dev.yml"
+          COMPOSE="docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml"
 
           echo "===== container status (including exited) ====="
           $COMPOSE ps -a
