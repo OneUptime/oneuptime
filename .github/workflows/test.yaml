@@ -31,5 +31,5 @@ jobs:
       # Home tests import Common sources directly (jest maps Common/* to
       # ../Common), so Common's own dependencies must be installed too —
       # otherwise transitive imports like moment-timezone fail to resolve.
-      - run: cd Common && npm install
-      - run: cd Home && npm install && npm run test
+      - run: cd packages/Common && npm install
+      - run: cd packages/Home && npm install && npm run test

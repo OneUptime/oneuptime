@@ -296,7 +296,7 @@ describe("published module source address", () => {
     const docsPage: string = read(
       path.join(
         REPO_ROOT,
-        "App/FeatureSet/Docs/Content/en/terraform/opentofu.md",
+        "packages/App/FeatureSet/Docs/Content/en/terraform/opentofu.md",
       ),
     );
     expect(docsPage).toContain(publishedPath);

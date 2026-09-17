@@ -2,7 +2,7 @@
 
 These images show the production Network Device and Monitor Label Rules pages
 and production import/export components, rendered by the Playwright fixture in
-`E2E/LabelRules/Fixture`. The **Demo workspace · Synthetic data** banner identifies
+`packages/E2E/LabelRules/Fixture`. The **Demo workspace · Synthetic data** banner identifies
 the substituted ModelAPI data and permission snapshot. No customer data appears
 in the images, and they do not demonstrate database persistence.
 
@@ -13,5 +13,5 @@ in the images, and they do not demonstrate database persistence.
 - `validation-error.png`: a missing destination label blocks the batch.
 - `import-complete.png`: successful completion and refreshed table.
 
-Regenerate with `cd E2E && npm run test-label-rule-transfer-ui`. The separate live
-integration suite is documented in `E2E/LabelRules/README.md`.
+Regenerate with `cd packages/E2E && npm run test-label-rule-transfer-ui`. The separate live
+integration suite is documented in `packages/E2E/LabelRules/README.md`.

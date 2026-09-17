@@ -10,7 +10,7 @@ Do not worry about circular dependencies. All the import should be on the top of
 
 If you are doing any postgres migration. Please do not write migraton code manually, run npm run generate-postgres-migration instead.
 
-After generating the migration file, you MUST also register it in `Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts` — add the import at the top and append the class to the default export array. The migration will not run on app startup until it is registered there.
+After generating the migration file, you MUST also register it in `packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts` — add the import at the top and append the class to the default export array. The migration will not run on app startup until it is registered there.
 
 CI enforces this. The "Postgres Schema Drift" workflow migrates an empty database with every registered migration and then generates a migration against the result; anything it can still generate is drift and fails the job. Run the same check locally with `npm run check-postgres-schema-drift` — it prints the exact statements that are missing.
 
@@ -47,11 +47,11 @@ see `HelmChart/README.md` for how to add one.
 
 ### Project docs
 
-Internal roadmaps live in `Internal/Roadmap/` (see its README for the index).
+Internal roadmaps live in `Docs/Internal/Roadmap/` (see its README for the index).
 
 ### Mobile app releases
 
 Before building or publishing the Android or iOS app, read
-[MobileApp/RELEASING.md](MobileApp/RELEASING.md). It contains the existing store and
+[packages/MobileApp/RELEASING.md](packages/MobileApp/RELEASING.md). It contains the existing store and
 Expo identifiers, the verified release procedure, privacy checks, and the steps
 needed after uploading a binary to actually submit and publish the update.

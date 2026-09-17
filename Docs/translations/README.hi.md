@@ -21,7 +21,7 @@
 
 <div align="center">
   <a href="https://oneuptime.com">
-    <img alt="OneUptime लोगो" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/>
+    <img alt="OneUptime लोगो" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
   </a>
 
   <h3>एजेंटिक ऑब्ज़र्वेबिलिटी — अपटाइम, इंसिडेंट, ऑन-कॉल, स्टेटस पेज, लॉग्स, ट्रेस, मेट्रिक्स और APM के लिए एक ओपन-सोर्स प्लेटफ़ॉर्म।</h3>
@@ -52,7 +52,7 @@
 <br/>
 
 <div align="center">
-  <img alt="लाइव इंसिडेंट के दौरान OneUptime कमांड सेंटर" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/readme/hero-command-center.png"/>
+  <img alt="लाइव इंसिडेंट के दौरान OneUptime कमांड सेंटर" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
 </div>
 
 ---
@@ -86,31 +86,31 @@ OneUptime मॉनिटरिंग, अलर्टिंग, इंसिड
 
 कई क्षेत्रों में मौजूद प्रोब चेकआउट लेटेंसी को आपके 5s थ्रेशोल्ड से आगे बढ़ते हुए पकड़ लेते हैं और अपने आप एक इंसिडेंट खोल देते हैं — इससे पहले कि आपके ग्राहक रिफ़्रेश दबाएँ।
 
-![पता लगाएँ — वैश्विक मॉनिटरिंग चेकआउट API के बिगड़ने को पकड़ती है](/Home/Static/img/readme/detect.png?raw=true)
+![पता लगाएँ — वैश्विक मॉनिटरिंग चेकआउट API के बिगड़ने को पकड़ती है](/packages/Home/Static/img/readme/detect.png?raw=true)
 
 ### 2 · प्रतिक्रिया दें — *सही व्यक्ति, पेज किया गया*
 
 Payments नीति के लिए ऑन-कॉल इंजीनियर को कॉल, टेक्स्ट और पुश-नोटिफ़िकेशन भेजा जाता है, और जब तक कोई स्वीकार न कर ले, यह अपने आप बैकअप तक एस्केलेट होता जाता है।
 
-![प्रतिक्रिया दें — इंसिडेंट को ऑन-कॉल तक रूट किया जाता है और स्वीकार किया जाता है](/Home/Static/img/readme/respond.png?raw=true)
+![प्रतिक्रिया दें — इंसिडेंट को ऑन-कॉल तक रूट किया जाता है और स्वीकार किया जाता है](/packages/Home/Static/img/readme/respond.png?raw=true)
 
 ### 3 · संवाद करें — *ग्राहक जानकारी में*
 
 आपका स्टेटस पेज खुद-ब-खुद अपडेट होता है और हर सब्सक्राइबर को ईमेल और SMS से सूचित किया जाता है — किसी को भी हाथ से अपडेट लिखने की ज़रूरत नहीं।
 
-![संवाद करें — सार्वजनिक स्टेटस पेज अपडेट होता है और सब्सक्राइबर्स को सूचित करता है](/Home/Static/img/readme/communicate.png?raw=true)
+![संवाद करें — सार्वजनिक स्टेटस पेज अपडेट होता है और सब्सक्राइबर्स को सूचित करता है](/packages/Home/Static/img/readme/communicate.png?raw=true)
 
 ### 4 · निदान करें — *मूल कारण, मिल गया*
 
 ट्रेस, लॉग्स और मेट्रिक्स को ठीक उसी स्पैन तक सहसंबद्ध किया जाता है: `orders` पर एक धीमा `SELECT … FOR UPDATE`, जो एक गायब इंडेक्स पर अटका हुआ है।
 
-![निदान करें — ट्रेस वॉटरफ़ॉल धीमे डेटाबेस स्पैन को इंगित करता है](/Home/Static/img/readme/diagnose.png?raw=true)
+![निदान करें — ट्रेस वॉटरफ़ॉल धीमे डेटाबेस स्पैन को इंगित करता है](/packages/Home/Static/img/readme/diagnose.png?raw=true)
 
 ### 5 · ऑटो-फ़िक्स — *फ़िक्स, आपके लिए तैयार*
 
 AI एजेंट फ़िक्स के साथ एक पुल रिक्वेस्ट खोलता है, जो इंसिडेंट से जुड़ी होती है, टेस्ट पास होते हैं — आप समीक्षा करते हैं और मर्ज करते हैं। एक ऐसे SRE की तरह जो कभी नहीं सोता।
 
-![ऑटो-फ़िक्स — AI एजेंट फ़िक्स के साथ एक पुल रिक्वेस्ट खोलता है](/Home/Static/img/readme/autofix.png?raw=true)
+![ऑटो-फ़िक्स — AI एजेंट फ़िक्स के साथ एक पुल रिक्वेस्ट खोलता है](/packages/Home/Static/img/readme/autofix.png?raw=true)
 
 </details>
 
@@ -144,7 +144,7 @@ npm start
 
 OneUptime अब **http://localhost** पर चल रहा है — इसे खोलें और अपना पहला खाता बनाएँ।
 
-📖 पूरी गाइड: [Docker Compose इंस्टॉल](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [साइज़िंग और आवश्यकताएँ](/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+📖 पूरी गाइड: [Docker Compose इंस्टॉल](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [साइज़िंग और आवश्यकताएँ](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
 
 ### ☸️ Helm के साथ Kubernetes — प्रोडक्शन के लिए
 
@@ -155,7 +155,7 @@ helm install oneuptime oneuptime/oneuptime
 
 📖 पूरी इंस्टॉल निर्देश और वैल्यूज़ [Artifact Hub पर →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
 
-> **मौजूदा इंस्टॉल को अपग्रेड कर रहे हैं?** [अपग्रेड गाइड](/App/FeatureSet/Docs/Content/en/installation/upgrading.md) देखें।
+> **मौजूदा इंस्टॉल को अपग्रेड कर रहे हैं?** [अपग्रेड गाइड](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md) देखें।
 
 ---
 
@@ -181,7 +181,7 @@ helm install oneuptime oneuptime/oneuptime
 
 एक विज़ुअल, नो-कोड कैनवास पर एस्केलेशन, टिकटिंग और नोटिफ़िकेशन को जोड़ें — या कस्टम कोड डालें। ऊपर बताए गए इंसिडेंट ने ऑन-कॉल को पेज किया, एक Jira टिकट खोला, और Slack पर पोस्ट किया, बिना किसी के उँगली हिलाए।
 
-![वर्कफ़्लो — इंसिडेंट एस्केलेशन के लिए एक नो-कोड ऑटोमेशन कैनवास](/Home/Static/img/readme/workflows.png?raw=true)
+![वर्कफ़्लो — इंसिडेंट एस्केलेशन के लिए एक नो-कोड ऑटोमेशन कैनवास](/packages/Home/Static/img/readme/workflows.png?raw=true)
 
 </details>
 
@@ -189,13 +189,13 @@ helm install oneuptime oneuptime/oneuptime
 
 कॉपी-पेस्ट, **OpenTelemetry-आधारित** एजेंट डालें ताकि आपकी सर्विसेज़ जिस पर चलती हैं उस सब पर नज़र रखी जा सके — तैयार अलर्ट टेम्पलेट्स के साथ:
 
-- **सर्वर और VMs** — Linux, macOS और Windows से CPU, मेमोरी, डिस्क, नेटवर्क, प्रोसेस और लॉग्स। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — एक `helm install` नोड/पॉड/कंटेनर/क्लस्टर मेट्रिक्स, इवेंट्स, लॉग्स, और eBPF ट्रेस और सर्विस मैप्स भेजता है। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — एक ही एजेंट हर कंटेनर को अपने आप खोजता है और मेट्रिक्स और लॉग्स भेजता है। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — Podman के Docker-संगत सॉकेट के माध्यम से वही एक-एजेंट ऑटो-डिस्कवरी। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — नोड्स, VMs, कंटेनर, स्टोरेज, HA स्थिति, बैकअप कवरेज और रेप्लिकेशन हेल्थ। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter, ESXi होस्ट, वर्चुअल मशीनें, डेटास्टोर, क्लस्टर, रिसोर्स पूल और vSAN। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — क्लस्टर हेल्थ, क्षमता पूर्वानुमान, और OSD/पूल/PG/मॉनिटर विज़िबिलिटी। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **सर्वर और VMs** — Linux, macOS और Windows से CPU, मेमोरी, डिस्क, नेटवर्क, प्रोसेस और लॉग्स। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
+- **Kubernetes** — एक `helm install` नोड/पॉड/कंटेनर/क्लस्टर मेट्रिक्स, इवेंट्स, लॉग्स, और eBPF ट्रेस और सर्विस मैप्स भेजता है। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
+- **Docker** — एक ही एजेंट हर कंटेनर को अपने आप खोजता है और मेट्रिक्स और लॉग्स भेजता है। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
+- **Podman** — Podman के Docker-संगत सॉकेट के माध्यम से वही एक-एजेंट ऑटो-डिस्कवरी। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
+- **Proxmox** — नोड्स, VMs, कंटेनर, स्टोरेज, HA स्थिति, बैकअप कवरेज और रेप्लिकेशन हेल्थ। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi होस्ट, वर्चुअल मशीनें, डेटास्टोर, क्लस्टर, रिसोर्स पूल और vSAN। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
+- **Ceph** — क्लस्टर हेल्थ, क्षमता पूर्वानुमान, और OSD/पूल/PG/मॉनिटर विज़िबिलिटी। [दस्तावेज़ →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---
 
@@ -223,7 +223,7 @@ helm install oneuptime oneuptime/oneuptime
 
 - 🐛 **[खुले मुद्दे](https://github.com/OneUptime/oneuptime/issues)** — कोई एक चुनें, या [एक नया दर्ज करें](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[टेस्ट लिखने में मदद करें](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** कोडबेस के लिए
-- 🧑‍💻 **[लोकल डेवलपमेंट गाइड](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** सेट अप करने के लिए
+- 🧑‍💻 **[लोकल डेवलपमेंट गाइड](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** सेट अप करने के लिए
 - 📖 **[योगदान दिशानिर्देश](/.github/CONTRIBUTING.md)** पढ़ें
 - 💬 हमसे **[डेवलपर Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** या **[कम्युनिटी Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** में बात करें
 

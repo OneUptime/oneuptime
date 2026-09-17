@@ -207,7 +207,7 @@ describeRuntime("docker_stats api_version, against a real daemon", () => {
     for (const agent of ["DockerAgent", "PodmanAgent", "DockerSwarmAgent"]) {
       const shipped = yaml.load(
         fs.readFileSync(
-          path.join(REPO_ROOT, agent, "otel-collector-config.yaml"),
+          path.join(REPO_ROOT, "agents", agent, "otel-collector-config.yaml"),
           "utf8",
         ),
       );

@@ -21,7 +21,7 @@
 
 <div align="center">
   <a href="https://oneuptime.com">
-    <img alt="OneUptime-logotyp" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/>
+    <img alt="OneUptime-logotyp" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
   </a>
 
   <h3>Agentbaserad observerbarhet — en öppen källkodsplattform för drifttid, incidenter, jour, statussidor, loggar, spårningar, mätvärden och APM.</h3>
@@ -52,7 +52,7 @@
 <br/>
 
 <div align="center">
-  <img alt="OneUptime-ledningscentral under en pågående incident" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/readme/hero-command-center.png"/>
+  <img alt="OneUptime-ledningscentral under en pågående incident" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
 </div>
 
 ---
@@ -86,31 +86,31 @@ Klockan är 02:47. Kassan börjar få timeouter. Så här gör OneUptime innan d
 
 Prober i flera regioner fångar att kassans latens skjuter förbi din tröskel på 5 s och öppnar en incident automatiskt — innan dina kunder hinner trycka på uppdatera.
 
-![Upptäck — global övervakning fångar att kassans API försämras](/Home/Static/img/readme/detect.png?raw=true)
+![Upptäck — global övervakning fångar att kassans API försämras](/packages/Home/Static/img/readme/detect.png?raw=true)
 
 ### 2 · Reagera — *rätt person, larmad*
 
 Jourhavande ingenjör för Payments-policyn blir uppringd, sms:ad och push-notifierad, och eskalering till backup sker automatiskt tills någon kvitterar.
 
-![Reagera — incidenten dirigeras till jouren och kvitteras](/Home/Static/img/readme/respond.png?raw=true)
+![Reagera — incidenten dirigeras till jouren och kvitteras](/packages/Home/Static/img/readme/respond.png?raw=true)
 
 ### 3 · Kommunicera — *kunderna hålls informerade*
 
 Din statussida uppdaterar sig själv och alla prenumeranter aviseras via e-post och SMS — ingen behöver skriva uppdateringen för hand.
 
-![Kommunicera — den publika statussidan uppdateras och aviserar prenumeranter](/Home/Static/img/readme/communicate.png?raw=true)
+![Kommunicera — den publika statussidan uppdateras och aviserar prenumeranter](/packages/Home/Static/img/readme/communicate.png?raw=true)
 
 ### 4 · Diagnostisera — *grundorsaken, hittad*
 
 Spårningar, loggar och mätvärden korreleras ner till exakt span: en långsam `SELECT … FOR UPDATE` på `orders`, fast på ett saknat index.
 
-![Diagnostisera — spårningsvattenfallet pekar ut det långsamma databas-spanet](/Home/Static/img/readme/diagnose.png?raw=true)
+![Diagnostisera — spårningsvattenfallet pekar ut det långsamma databas-spanet](/packages/Home/Static/img/readme/diagnose.png?raw=true)
 
 ### 5 · Auto-åtgärda — *åtgärden, utkast klart åt dig*
 
 AI-agenten öppnar en pull request med åtgärden, länkad till incidenten och med gröna tester — du granskar och mergar. Som en SRE som aldrig sover.
 
-![Auto-åtgärda — AI-agenten öppnar en pull request med åtgärden](/Home/Static/img/readme/autofix.png?raw=true)
+![Auto-åtgärda — AI-agenten öppnar en pull request med åtgärden](/packages/Home/Static/img/readme/autofix.png?raw=true)
 
 </details>
 
@@ -144,7 +144,7 @@ npm start
 
 OneUptime körs nu på **http://localhost** — öppna det och skapa ditt första konto.
 
-📖 Fullständig guide: [Installation med Docker Compose](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Dimensionering och krav](/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+📖 Fullständig guide: [Installation med Docker Compose](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Dimensionering och krav](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
 
 ### ☸️ Kubernetes med Helm — för produktion
 
@@ -155,7 +155,7 @@ helm install oneuptime oneuptime/oneuptime
 
 📖 Fullständiga installationsinstruktioner och värden på [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
 
-> **Uppgraderar du en befintlig installation?** Se [uppgraderingsguiden](/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
+> **Uppgraderar du en befintlig installation?** Se [uppgraderingsguiden](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
 
 ---
 
@@ -181,7 +181,7 @@ helm install oneuptime oneuptime/oneuptime
 
 Koppla ihop eskaleringar, ärendehantering och aviseringar på en visuell canvas utan kod — eller lägg in egen kod. Incidenten ovan larmade jouren, öppnade ett Jira-ärende och postade till Slack utan att någon lyfte ett finger.
 
-![Arbetsflöden — en automationscanvas utan kod för incidenteskalering](/Home/Static/img/readme/workflows.png?raw=true)
+![Arbetsflöden — en automationscanvas utan kod för incidenteskalering](/packages/Home/Static/img/readme/workflows.png?raw=true)
 
 </details>
 
@@ -189,13 +189,13 @@ Koppla ihop eskaleringar, ärendehantering och aviseringar på en visuell canvas
 
 Lägg in kopiera-och-klistra-agenter **baserade på OpenTelemetry** för att bevaka allt dina tjänster kör på — med färdiga larmmallar inkluderade:
 
-- **Servrar och VM:er** — CPU, minne, disk, nätverk, processer och loggar från Linux, macOS och Windows. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — ett enda `helm install` levererar nod-/pod-/container-/klustermätvärden, händelser, loggar samt eBPF-spårningar och tjänstekartor. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — en enda agent upptäcker automatiskt varje container och levererar mätvärden och loggar. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — samma automatiska upptäckt med en agent via Podmans Docker-kompatibla socket. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — noder, VM:er, containrar, lagring, HA-status, backuptäckning och replikeringshälsa. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter, ESXi-värdar, virtuella maskiner, datastores, kluster, resurspooler och vSAN. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — klusterhälsa, kapacitetsprognoser och insyn i OSD/pool/PG/monitor. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Servrar och VM:er** — CPU, minne, disk, nätverk, processer och loggar från Linux, macOS och Windows. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
+- **Kubernetes** — ett enda `helm install` levererar nod-/pod-/container-/klustermätvärden, händelser, loggar samt eBPF-spårningar och tjänstekartor. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
+- **Docker** — en enda agent upptäcker automatiskt varje container och levererar mätvärden och loggar. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
+- **Podman** — samma automatiska upptäckt med en agent via Podmans Docker-kompatibla socket. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
+- **Proxmox** — noder, VM:er, containrar, lagring, HA-status, backuptäckning och replikeringshälsa. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi-värdar, virtuella maskiner, datastores, kluster, resurspooler och vSAN. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
+- **Ceph** — klusterhälsa, kapacitetsprognoser och insyn i OSD/pool/PG/monitor. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---
 
@@ -223,7 +223,7 @@ Vi välkomnar bidrag av alla storlekar. Börja här:
 
 - 🐛 **[Öppna issues](https://github.com/OneUptime/oneuptime/issues)** — plocka upp en, eller [skapa en ny](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[Hjälp till att skriva tester](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** för kodbasen
-- 🧑‍💻 **[Guide för lokal utveckling](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** för att komma igång
+- 🧑‍💻 **[Guide för lokal utveckling](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** för att komma igång
 - 📖 Läs **[riktlinjerna för bidrag](/.github/CONTRIBUTING.md)**
 - 💬 Chatta med oss i **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** eller **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
 

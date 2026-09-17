@@ -133,7 +133,7 @@ jobs:
       # regression fails in seconds instead of after a stack bring-up. Needs no
       # Node, Go, Docker or network.
       - name: Harness self-test
-        run: ./E2E/Terraform/e2e-tests/scripts/self-test.sh
+        run: ./packages/E2E/Terraform/e2e-tests/scripts/self-test.sh
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -200,9 +200,9 @@ jobs:
       - name: Install dependencies
         run: |
           # Clean node_modules to avoid permission issues with npm cache in CI
-          rm -rf Common/node_modules Scripts/node_modules || true
+          rm -rf packages/Common/node_modules Scripts/node_modules || true
           npm install
-          cd Common && npm install && cd ..
+          cd packages/Common && npm install && cd ../..
           cd Scripts && npm install && cd ..
 
       - name: Generate Terraform provider
@@ -221,9 +221,9 @@ jobs:
       # bugs as flakes.
       #
       # Only `app` and `ingress` are named. A bare `npm run dev` brings up every
-      # service in docker-compose.dev.yml, and since each carries a `build:`
-      # section that means building every image from source on a cold runner:
-      # `home` (which clones the ~4 GB blog repo),
+      # service in Scripts/Dev/docker-compose.dev.yml, and since each carries a
+      # `build:` section that means building every image from source on a cold
+      # runner: `home` (which clones the ~4 GB blog repo),
       # `e2e` (which downloads Playwright's browsers), both probes, the runner,
       # test-server, fluentd and fluent-bit. That was ~27 of this job's ~43
       # minutes spent on containers no assertion in this suite ever reaches:
@@ -249,13 +249,13 @@ jobs:
 
       - name: Set up test account
         run: |
-          chmod +x ./E2E/Terraform/e2e-tests/scripts/*.sh
-          ./E2E/Terraform/e2e-tests/scripts/setup-test-account.sh
+          chmod +x ./packages/E2E/Terraform/e2e-tests/scripts/*.sh
+          ./packages/E2E/Terraform/e2e-tests/scripts/setup-test-account.sh
 
       - name: Run Terraform E2E tests
         env:
           TF_CLI: terraform
-        run: ./E2E/Terraform/e2e-tests/scripts/run-tests.sh
+        run: ./packages/E2E/Terraform/e2e-tests/scripts/run-tests.sh
 
       # The identical fixtures, re-run against OpenTofu. This is the gate behind
       # OneUptime's OpenTofu support claim: the provider is published to the
@@ -273,7 +273,7 @@ jobs:
       - name: Run OpenTofu E2E tests
         env:
           TF_CLI: tofu
-        run: ./E2E/Terraform/e2e-tests/scripts/run-tests.sh
+        run: ./packages/E2E/Terraform/e2e-tests/scripts/run-tests.sh
 
       # Coverage ratchet: the suite must exercise at least as many provider
       # resource types as the checked-in baseline. run-tests.sh already
@@ -283,8 +283,8 @@ jobs:
       # files against the generated docs), so re-running it here is free.
       - name: Terraform resource coverage gate
         run: |
-          ./E2E/Terraform/e2e-tests/scripts/coverage-report.sh \
-            --min-count "$(cat E2E/Terraform/e2e-tests/scripts/coverage-baseline.txt)"
+          ./packages/E2E/Terraform/e2e-tests/scripts/coverage-report.sh \
+            --min-count "$(cat packages/E2E/Terraform/e2e-tests/scripts/coverage-baseline.txt)"
 
       # Without this, a failure here says only "App still not returning HTTP
       # 200" after five minutes of 502s, with no indication of why. Boot
@@ -294,12 +294,13 @@ jobs:
         if: failure()
         run: |
           # Must mirror how `npm run dev` started the stack: the same compose
-          # file and the same exported config.env. A plain `docker compose
-          # logs` resolves docker-compose.yml instead, finds a different
-          # project, and prints nothing but "variable is not set" warnings.
+          # file, the same project directory and the same exported config.env.
+          # A plain `docker compose logs` resolves docker-compose.yml instead,
+          # finds a different project, and prints nothing but "variable is not
+          # set" warnings.
           set +e
           export $(grep -v '^#' config.env | xargs) 2>/dev/null
-          COMPOSE="docker compose -f docker-compose.dev.yml"
+          COMPOSE="docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml"
 
           echo "===== container status (including exited) ====="
           $COMPOSE ps -a

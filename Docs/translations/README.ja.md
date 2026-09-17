@@ -21,7 +21,7 @@
 
 <div align="center">
   <a href="https://oneuptime.com">
-    <img alt="OneUptime ロゴ" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/>
+    <img alt="OneUptime ロゴ" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
   </a>
 
   <h3>エージェント型オブザーバビリティ — 稼働監視、インシデント、オンコール、ステータスページ、ログ、トレース、メトリクス、APM をひとつにまとめたオープンソースプラットフォーム。</h3>
@@ -52,7 +52,7 @@
 <br/>
 
 <div align="center">
-  <img alt="ライブインシデント中の OneUptime コマンドセンター" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/readme/hero-command-center.png"/>
+  <img alt="ライブインシデント中の OneUptime コマンドセンター" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
 </div>
 
 ---
@@ -86,31 +86,31 @@ OneUptime は、監視、アラート、インシデント対応、オブザー�
 
 複数リージョンのプローブが、チェックアウトのレイテンシが 5 秒のしきい値を突破したことを検知し、自動的にインシデントを作成します。お客様が更新ボタンを押すよりも前に。
 
-![検知 — グローバル監視がチェックアウト API の劣化を捉える](/Home/Static/img/readme/detect.png?raw=true)
+![検知 — グローバル監視がチェックアウト API の劣化を捉える](/packages/Home/Static/img/readme/detect.png?raw=true)
 
 ### 2 · 対応 — *適切な担当者を呼び出す*
 
 Payments ポリシーのオンコールエンジニアに、通話、テキスト、プッシュ通知で連絡が入り、誰かが確認するまで自動的にバックアップへエスカレーションします。
 
-![対応 — インシデントがオンコールに振り分けられ確認される](/Home/Static/img/readme/respond.png?raw=true)
+![対応 — インシデントがオンコールに振り分けられ確認される](/packages/Home/Static/img/readme/respond.png?raw=true)
 
 ### 3 · 周知 — *お客様に状況を共有*
 
 ステータスページは自動で更新され、すべてのサブスクライバーにメールと SMS で通知されます。誰も更新内容を手で書く必要はありません。
 
-![周知 — 公開ステータスページが更新されサブスクライバーに通知される](/Home/Static/img/readme/communicate.png?raw=true)
+![周知 — 公開ステータスページが更新されサブスクライバーに通知される](/packages/Home/Static/img/readme/communicate.png?raw=true)
 
 ### 4 · 診断 — *根本原因を突き止める*
 
 トレース、ログ、メトリクスが、正確なスパンまで相関付けられます。原因は `orders` テーブルに対する遅い `SELECT … FOR UPDATE` で、インデックスの欠落によって滞っていました。
 
-![診断 — トレースウォーターフォールが遅いデータベーススパンを特定する](/Home/Static/img/readme/diagnose.png?raw=true)
+![診断 — トレースウォーターフォールが遅いデータベーススパンを特定する](/packages/Home/Static/img/readme/diagnose.png?raw=true)
 
 ### 5 · 自動修正 — *修正案まで下書き済み*
 
 AI エージェントが、インシデントに紐付いた修正内容のプルリクエストを、テストがグリーンの状態で作成します。あなたはレビューしてマージするだけ。まるで決して眠らない SRE のように。
 
-![自動修正 — AI エージェントが修正のプルリクエストを作成する](/Home/Static/img/readme/autofix.png?raw=true)
+![自動修正 — AI エージェントが修正のプルリクエストを作成する](/packages/Home/Static/img/readme/autofix.png?raw=true)
 
 </details>
 
@@ -144,7 +144,7 @@ npm start
 
 OneUptime は **http://localhost** で起動しました。開いて最初のアカウントを作成してください。
 
-📖 詳しいガイド: [Docker Compose インストール](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [サイジングと要件](/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+📖 詳しいガイド: [Docker Compose インストール](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [サイジングと要件](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
 
 ### ☸️ Helm を使った Kubernetes — 本番環境向け
 
@@ -155,7 +155,7 @@ helm install oneuptime oneuptime/oneuptime
 
 📖 詳しいインストール手順と values は [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
 
-> **既存のインストールをアップグレードしますか？** [アップグレードガイド](/App/FeatureSet/Docs/Content/en/installation/upgrading.md) を参照してください。
+> **既存のインストールをアップグレードしますか？** [アップグレードガイド](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md) を参照してください。
 
 ---
 
@@ -181,7 +181,7 @@ helm install oneuptime oneuptime/oneuptime
 
 エスカレーション、チケット管理、通知を、ビジュアルなノーコードのキャンバス上で組み立てられます。カスタムコードを差し込むことも可能です。上記のインシデントでは、誰も手を動かすことなく、オンコールを呼び出し、Jira チケットを作成し、Slack に投稿しました。
 
-![ワークフロー — インシデントエスカレーションのためのノーコード自動化キャンバス](/Home/Static/img/readme/workflows.png?raw=true)
+![ワークフロー — インシデントエスカレーションのためのノーコード自動化キャンバス](/packages/Home/Static/img/readme/workflows.png?raw=true)
 
 </details>
 
@@ -189,13 +189,13 @@ helm install oneuptime oneuptime/oneuptime
 
 コピー＆ペーストで導入できる **OpenTelemetry ベース** のエージェントを差し込むだけで、サービスが動作するあらゆる基盤を監視できます。すぐに使えるアラートテンプレートも同梱されています。
 
-- **サーバーと VM** — Linux、macOS、Windows の CPU、メモリ、ディスク、ネットワーク、プロセス、ログ。[ドキュメント →](/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — 1 回の `helm install` で、ノード / Pod / コンテナ / クラスターのメトリクス、イベント、ログ、eBPF トレース、サービスマップを提供。[ドキュメント →](/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — 単一のエージェントがすべてのコンテナを自動検出し、メトリクスとログを送信。[ドキュメント →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — Podman の Docker 互換ソケットを介した、同じワンエージェントによる自動検出。[ドキュメント →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — ノード、VM、コンテナ、ストレージ、HA 状態、バックアップの網羅状況、レプリケーションの健全性。[ドキュメント →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter、ESXi ホスト、仮想マシン、データストア、クラスタ、リソースプール、vSAN。[ドキュメント →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — クラスターの健全性、容量予測、OSD / プール / PG / モニターの可視化。[ドキュメント →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **サーバーと VM** — Linux、macOS、Windows の CPU、メモリ、ディスク、ネットワーク、プロセス、ログ。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
+- **Kubernetes** — 1 回の `helm install` で、ノード / Pod / コンテナ / クラスターのメトリクス、イベント、ログ、eBPF トレース、サービスマップを提供。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
+- **Docker** — 単一のエージェントがすべてのコンテナを自動検出し、メトリクスとログを送信。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
+- **Podman** — Podman の Docker 互換ソケットを介した、同じワンエージェントによる自動検出。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
+- **Proxmox** — ノード、VM、コンテナ、ストレージ、HA 状態、バックアップの網羅状況、レプリケーションの健全性。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter、ESXi ホスト、仮想マシン、データストア、クラスタ、リソースプール、vSAN。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
+- **Ceph** — クラスターの健全性、容量予測、OSD / プール / PG / モニターの可視化。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---
 
@@ -223,7 +223,7 @@ helm install oneuptime oneuptime/oneuptime
 
 - 🐛 **[未解決の Issue](https://github.com/OneUptime/oneuptime/issues)** — ひとつ選んで取り組むか、[新しく起票](https://github.com/OneUptime/oneuptime/issues/new)してください
 - ✅ コードベースの **[テスト作成を手伝う](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)**
-- 🧑‍💻 環境構築のための **[ローカル開発ガイド](/App/FeatureSet/Docs/Content/en/installation/local-development.md)**
+- 🧑‍💻 環境構築のための **[ローカル開発ガイド](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)**
 - 📖 **[コントリビューションガイドライン](/.github/CONTRIBUTING.md)** を読む
 - 💬 **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** または **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** で私たちとチャット
 

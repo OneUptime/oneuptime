@@ -363,7 +363,7 @@ pgbouncer:
 ```
 
 With `migrate.enabled: true` (the default), the app/worker/nginx pods are gated
-off (`RUN_DATABASE_MIGRATIONS_ON_BOOT=false`) and a Job (`App/Migrate.ts`) runs
+off (`RUN_DATABASE_MIGRATIONS_ON_BOOT=false`) and a Job (`packages/App/Migrate.ts`) runs
 migrations once, connecting **directly** to the backend (bypassing PgBouncer).
 Migrations therefore run exactly once per release, on an unpooled connection.
 

@@ -419,7 +419,7 @@ services:
       # the syscall in the profile, rather than adding the capability back,
       # keeps chroot(2) unusable for the root supervisor itself.
       # Probe/Tests/Build/ProbeContainerBrowserSandbox.test.ts pins this.
-      - seccomp=./Probe/seccomp_profile.json
+      - seccomp=./packages/Probe/seccomp_profile.json
     environment:
       ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
@@ -477,7 +477,7 @@ services:
       - SETUID
     security_opt:
       - no-new-privileges:true
-      - seccomp=./Probe/seccomp_profile.json
+      - seccomp=./packages/Probe/seccomp_profile.json
     environment:
       ONEUPTIME_URL: ${GLOBAL_PROBE_2_ONEUPTIME_URL}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
@@ -558,8 +558,10 @@ services:
       # ExceptionOccurrenceFixture writes to ClickHouse directly, so pass exactly
       # the connection settings it reads. From this host-networked container the
       # "clickhouse" hostname does not resolve; with HOST=localhost the fixture
-      # maps it to the loopback port published by docker-compose.dev.yml or
-      # docker-compose.e2e-clickhouse.yml. E2E_CLICKHOUSE_URL overrides both.
+      # maps it to the loopback port published by
+      # Scripts/Dev/docker-compose.dev.yml or
+      # packages/E2E/docker-compose.e2e-clickhouse.yml. E2E_CLICKHOUSE_URL
+      # overrides both.
       CLICKHOUSE_USER: ${CLICKHOUSE_USER}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE}

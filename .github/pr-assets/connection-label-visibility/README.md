@@ -8,7 +8,7 @@ customer or local project data is present.
 - `after-dark.png` was captured from this branch with the same fixture, theme,
   viewport, clock, and label setting.
 
-Regenerate the after image from `E2E` with:
+Regenerate the after image from `packages/E2E` with:
 
 ```sh
 npm run test-topology-ui -- --grep "service map connection labels stay legible"

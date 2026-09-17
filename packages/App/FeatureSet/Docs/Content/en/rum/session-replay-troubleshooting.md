@@ -1,0 +1,326 @@
+# Session Replay Troubleshooting
+
+By default session replay records **every** session and uploads it as it goes, so a healthy instrumented page posts a chunk roughly every 15 seconds **while the user is doing something** — an idle tab produces no events and posts nothing, so move the mouse or click before you judge an install from the Network tab. If you see no requests to OneUptime at all even then, something below is the reason.
+
+The one configuration where silence is normal is capture trigger `OnErrorOrFrustration`: the recorder then holds a rolling buffer in memory and uploads **only when something goes wrong**, which is indistinguishable from a broken install until a trigger fires. Check which one you are on before hunting anything else — the `config-accepted` line below prints it.
+
+Start from the server's side if you can: the **Health** page, _RUM → your application → Session Replay → Health_, names the cause when nothing is arriving (the recorder never loaded, it loaded but nothing was uploaded and why, uploads are being refused and for what reason, the budget is spent). See [Recording health](/docs/telemetry/session-replay#recording-health). What follows is the browser's side: turn on diagnostics, reload once, and read the console.
+
+## Turn on diagnostics
+
+Pick whichever switch you can reach. They are equivalent.
+
+**In the browser that is failing** — no redeploy, works in production, survives reloads:
+
+```js
+localStorage.setItem("oneuptime.sessionReplay.debug", "true");
+// then reload the page
+```
+
+Turn it off again with:
+
+```js
+localStorage.removeItem("oneuptime.sessionReplay.debug");
+```
+
+**With a link** — for a non-technical reporter, or a page you cannot open a console on. Add `oneuptime_debug=1` to the URL. It also works in the fragment, which survives a server that strips unknown query parameters:
+
+```
+https://your-app.example.com/checkout?oneuptime_debug=1
+https://your-app.example.com/checkout#oneuptime_debug=1
+```
+
+**On the script tag** — for a staging environment where you want it on for everyone:
+
+```html
+<script
+  src="https://oneuptime.com/telemetry/session-replay/v1/recorder.js"
+  data-oneuptime-token="YOUR_TELEMETRY_INGESTION_KEY"
+  data-oneuptime-app-identifier="YOUR_RUM_APP_IDENTIFIER"
+  data-oneuptime-debug="true"
+  crossorigin="anonymous"
+  async
+></script>
+```
+
+**From the init global**, if you configure the recorder that way:
+
+```js
+window.__ONEUPTIME_SESSION_REPLAY__ = {
+  host: "https://oneuptime.com",
+  token: "YOUR_TELEMETRY_INGESTION_KEY",
+  appIdentifier: "YOUR_RUM_APP_IDENTIFIER",
+  debug: true,
+};
+```
+
+**From the OneUptime deployment**, which is the only switch that does not need somebody at the failing browser. Set `SESSION_REPLAY_DEBUG=true` and restart. Every recorder this instance serves then logs, on every page it runs on — so turn it on, collect one reload, and turn it off. It changes no policy: not sampling, not masking, not consent. See [Session Replay](/docs/telemetry/session-replay) for the other deployment settings.
+
+**At runtime**, once the recorder has loaded:
+
+```js
+OneUptimeReplay.setDebug(true);
+```
+
+Output looks like this:
+
+```
+[OneUptime Session Replay] loader-start: Loader running.
+[OneUptime Session Replay] init-options-read: Init options read. {host: "https://oneuptime.com", appIdentifier: "checkout-web", …}
+[OneUptime Session Replay] config-fetch-start: Requesting the policy. {url: "https://oneuptime.com/telemetry/session-replay/v1/config", …}
+[OneUptime Session Replay] config-accepted: Policy accepted. {captureTrigger: "Always", samplePercentage: 100, …}
+[OneUptime Session Replay] recording: Recording and uploading …
+```
+
+## Get the timeline without turning anything on first
+
+The recorder keeps its last 250 decisions **whether or not diagnostics are switched on**. If the problem already happened, you do not need to reproduce it with logging enabled — ask for this instead:
+
+```js
+copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
+```
+
+That returns the recorder version, the session id, its `state` (`recording`, `uploading`, `not-sampled`, `stopped`…), why it stopped if it did, the `bootstrapDecision`, every gate's answer under `decisions` (sampled or not, consent state, whether uploads are allowed and what blocks them, the last server directive), the recorder's `capabilities`, and the full record list — including the records from the **loader stub**, which runs before the recorder artifact exists and is where most stand-downs are decided. It contains no page content by construction; see [What the diagnostics never contain](#what-the-diagnostics-never-contain). The fields are described in [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics).
+
+**If `OneUptimeReplay is not defined`**, the recorder artifact never loaded — which is itself the answer to a good half the codes below, and exactly when you most want the timeline. The records are still there, on a global the loader stub writes to before the artifact exists:
+
+```js
+copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
+```
+
+Paste either one into your support ticket — or into **Ask the browser** on the application's **Health** page, which explains every code in it. It is usually enough on its own.
+
+## When silence is normal: the error-triggered policy
+
+This section applies only if `config-accepted` printed `captureTrigger: "OnErrorOrFrustration"`. Under the default `Always` policy the recorder posts as it records, and silence on a page the user is interacting with means something is genuinely wrong — keep reading past this section.
+
+If the console says this:
+
+```
+[OneUptime Session Replay] recording: Recording into memory. Nothing uploads until a trigger fires - call OneUptimeReplay.captureSession() to force one.
+```
+
+…then the recorder is working. Under an error-triggered policy a healthy page makes exactly **one** request to OneUptime per page load (the config fetch) and posts nothing else until an error, a 5xx, a frustration signal or a performance budget breach happens.
+
+To prove the whole path end to end, force an upload:
+
+```js
+OneUptimeReplay.captureSession("installation test");
+```
+
+You should immediately see a `POST /telemetry/session-replay/v1/chunk` in the Network tab and a `chunk-accepted` line in the console. If you do, the installation is correct and the replay will appear in the dashboard within a minute or so, with your reason marked on its timeline.
+
+A `202` with `chunk-accepted` is the one to look for. A **`204`** logs `chunk-not-recorded` instead: the request was fine and the server chose not to store it — over budget, not sampled, or the application is switched off. That is a policy answer, not an installation fault, and the `server-directive` line beside it says which.
+
+To go back to recording every session, set the capture trigger to **Always** and a sample percentage above 0 on _RUM → your application → Replay Policy_. That is the shipped default.
+
+## Codes
+
+Every line carries a stable `code`. Look yours up here.
+
+### Startup
+
+| code                            | what it means                                                                                                                                                                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `loader-start`                  | The recorder script ran. If you do **not** see this and diagnostics are on, the script itself never executed — check the `<script>` request in the Network tab and your CSP `script-src`.                                                          |
+| `init-options-read`             | Options were found. Check the `host` and `appIdentifier` in the detail: `appIdentifier` must match the RUM application exactly, and `host` must be your OneUptime origin, not your own app's.                                                     |
+| `init-options-incomplete`       | A required option is missing. The detail says which of `hasHost` / `hasToken` / `hasAppIdentifier` is false. If `hasHost` is false, the script tag has no `src` the host can be derived from — add `data-oneuptime-host`.                          |
+| `privacy-signal`                | The browser sends Do Not Track or Global Privacy Control and it is being honoured — by the page (nothing on the script tag says otherwise) or by the server policy. Nothing is recorded; with `stage: "before-config-fetch"` no config request is made either. This is not a fault. Only set `data-oneuptime-respect-do-not-track="false"` if your lawful basis genuinely does not depend on the signal. |
+| `init-options-missing`          | Nothing on the page to read: no `script[data-oneuptime-token]` tag and no `window.__ONEUPTIME_SESSION_REPLAY__`. The marker attribute is misspelled, the snippet went into a different document, or a tag manager dropped it.                       |
+| `loader-threw`                  | A bug in the recorder itself, not in your configuration. Please report it with the diagnostics output.                                                                                                                                             |
+
+### Policy
+
+| code                               | what it means                                                                                                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `config-fetch-start`               | About to request the policy. The `url` in the detail is the exact URL — check it resolves from a browser.                                             |
+| `config-fetch-rejected`            | The endpoint answered non-2xx. See [config fetch statuses](#config-fetch-statuses) below.                                                             |
+| `config-fetch-failed`              | The request never completed at all: CSP `connect-src`, an ad blocker, DNS, TLS, offline, or a 5-second timeout. The browser usually logs its own line next to this one. |
+| `config-body-unparseable`          | The endpoint answered 2xx with a body that is not JSON at all. Distinct from `config-fetch-failed`: the request *did* complete, so something on the path — a proxy, a captive portal, an SSO interstitial — answered instead of OneUptime. |
+| `config-unparseable`               | The body *was* valid JSON but not an object — `null`, a string, an array. A rewriting proxy, or a server answering a different route.                 |
+| `config-disabled`                  | The server says replay is off here. **The `disabledReason` in the detail is the answer** — see [disabledReason](#disabledreason) below.               |
+| `config-recorder-version-invalid`  | The policy did not name exact lowercase `latest`, so no artifact URL could be built. A rewriting proxy or a tampered response — a deployment with no build reports `config-disabled` with `recorder-not-built` instead. |
+| `config-accepted`                  | The policy was accepted. The detail is the whole policy — `captureTrigger`, `samplePercentage`, `consentMode`, `maskingMode`.                         |
+| `config-field-defaulted`           | The server sent no value for one policy field (named in the detail), so this recorder used the product default for it. Informational: usually a server older than the recorder. If the dashboard shows a different value for that field, upgrade OneUptime. |
+| `config-value-unrecognised`        | The server sent a value this recorder build does not know, so it fell back to the **safest** one — which may not be the one your dashboard shows. Usually a page is still running a recorder from an older deployment. |
+| `directive-stop`                   | The server told this recorder to stand down. Check the application's recording health for a budget, a rate limit or a kill switch.                     |
+
+#### config fetch statuses
+
+| status | fix                                                                                                                                                          |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `401`  | The ingestion token is wrong, revoked, expired, or from a different project. Create one in _Project Settings → Telemetry & APM → Ingestion Keys_ and confirm it with `GET /session-replay/v1/validate` — send the key the way the recorder does and add the `x-oneuptime-app-identifier` header, and the answer also carries `isSessionReplayEnabled` for that application, `sessionReplayDisabledDetail` naming the switch that is off when it is not, `isIngestEnabledOnThisInstance` and the `keyType`. |
+| `400`  | `data-oneuptime-app-identifier` is missing.                                                                                                                  |
+| `403`  | The page's origin is not in the ingestion key's **Allowed Origins**. Add it, or use a key whose allowlist covers this page.                                    |
+| `404`  | The path did not resolve on the OneUptime origin. This is nearly always a wrong `data-oneuptime-host` — or a reverse proxy in front of OneUptime that does not forward `/telemetry/*`. |
+| `5xx`  | A server-side fault; check the OneUptime app logs.                                                                                                           |
+
+#### disabledReason
+
+| value                       | what to do                                                                                                                                                                                                                                    |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `not-enabled-for-application` | Session replay is off for this RUM application, the identifier does not match one, or the project is not allowed replay. `disabledDetail` says which: `application-not-enabled` (this application's switch), `project-not-allowed` (the project-wide switch, under _RUM → Settings → Session Replay_), `application-unknown` (no application has this `appIdentifier` — check the spelling against _RUM → your application → Replay Policy_) or `project-killed` (an operator kill switch on this deployment). |
+| `budget-exhausted`          | The project's daily byte budget or the application's monthly budget is already spent, so recorders are told not to record rather than upload chunks that would be refused. `disabledDetail` is `project-daily-budget-exhausted` or `app-monthly-budget-exhausted`, and `budgetResetsAt` is when it clears. Raise the budget on the _Replay Policy_ page, or wait for the reset. |
+| `recorder-not-built`        | **The deployment has no recorder artifact.** Nothing on the customer's page can fix this. The build that produces `packages/App/FeatureSet/BrowserRecorder/public/dist/manifest.json` did not run, or its output did not reach the running image. Rebuild and redeploy the OneUptime app. This is the usual answer on a self-hosted install where replay has never worked at all. |
+| `disabled-by-default`       | `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` on this deployment. Set it to `true` — and set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` first if you are self-hosting, because replay is the fattest table you have.                            |
+| `ingest-disabled`           | `SESSION_REPLAY_INGEST_ENABLED=false` on this deployment.                                                                                                                                                                                     |
+| `policy-unavailable`        | The server could not resolve the policy — usually Redis or Postgres. It fails closed on purpose. Check the OneUptime app logs.                                                                                                                 |
+| `not-reported`              | The server is older than this field. Use the Dashboard's **Test your installation** panel on the _Replay Policy_ page instead.                                                                                                                |
+
+### The artifact
+
+| code                     | what it means                                                                                                                                                                                            |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `artifact-requested`     | The latest recorder bundle is being injected. The `url` is the exact one.                                                                                                                                |
+| `artifact-load-failed`   | It did not load. In order of likelihood: a CSP `script-src` that does not allow your OneUptime origin, an SRI mismatch (a proxy rewriting the bundle), or a 404 because this deployment did not build the recorder. |
+| `artifact-url-invalid`   | The policy did not name exact lowercase `latest`, so no URL was built. A tampered or proxied config response.                                                                                            |
+| `artifact-api-missing`   | The bundle loaded but did not publish `window.OneUptimeReplay` — another script on the page overwrote it.                                                                                                 |
+| `bootstrap`              | The recorder artifact is starting.                                                                                                                                                                       |
+| `bootstrap-already-started` | Two copies of the snippet on one page. Remove one.                                                                                                                                                    |
+| `bootstrap-already-running` | `bootstrap()` was called again while a recorder was already running. Harmless; usually a duplicated integration.                                                                                       |
+| `bootstrap-cancelled`    | A `revokeConsent()` or `stop()` queued on `window.OneUptimeReplayQueue` ran before the recorder started, so this session is not recorded. Correct if your banner had already been declined.                |
+| `start-stopped`          | `start()` got no usable policy on the self-hosted-bundle path. The specific reason is on the `config-*` line just above it.                                                                               |
+| `rrweb-did-not-start`    | The DOM recorder declined to start. Please report it.                                                                                                                                                    |
+| `rrweb-error`            | The DOM recorder hit an internal error on this page (the error's name is in the detail; it is logged once). The recording may skip or freeze around that point, and after three such errors the session carries a fidelity notice saying so. Please report it with the page's framework and the error name. |
+
+### Recording and upload
+
+| code                        | what it means                                                                                                                                                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `not-sampled`               | This session lost the sample draw, so **nothing at all** is recorded. Sampling is deterministic in the session id, so reloading will not help this session. Raise the sample percentage.                              |
+| `recording`                 | Recording. Read the detail: `uploading: true` is the normal state under the default `Always` trigger. `uploading: false` with `captureTrigger: "OnErrorOrFrustration"` is the other healthy, no-requests state.        |
+| `trigger`                   | Something worth keeping happened. The `reason` is one of `error`, `frustration`, `performance`, `sampled` or `manual`.                                                                                                |
+| `upload-started`            | The buffered pre-roll is being flushed. Chunk POSTs start here.                                                                                                                                                      |
+| `upload-blocked-consent`    | A trigger fired and nothing was uploaded because consent was never granted. Under consent mode `RequireExplicit` your page must call `OneUptimeReplay.grantConsent()` once your banner is accepted.                    |
+| `chunk-discarded-consent`   | The same cause, one layer down: a complete chunk was thrown away.                                                                                                                                                     |
+| `chunk-accepted`            | A chunk landed and was stored. The installation works.                                                                                                                                                               |
+| `chunk-not-recorded`        | The server took the request and deliberately did not record it — over budget, not sampled, application disabled, or the per-session chunk cap. The `server-directive` line next to it carries the reason. The installation is correct; the policy or the budget is not what you expect. |
+| `chunk-post-failed`         | The POST never reached the server. CSP `connect-src`, an ad blocker, or CORS on the ingest origin.                                                                                                                    |
+| `chunk-post-server-error`   | The server answered 5xx. The recorder retries; `consecutiveFailures` against `maxFlushFailures` in the detail says how close it is to giving up.                                                                      |
+| `chunk-retry-scheduled`     | A retryable failure (network, 5xx, or a server throttle) put the chunk on the retry queue; `inMs` in the detail is the pause before the next attempt, and `queueDepth` how many chunks are waiting. Nothing is lost yet. |
+| `chunk-retry`               | The pause is over and the queued chunks are being sent again.                                                                                                                                                        |
+| `chunk-abandoned`           | One chunk failed too many times and was dropped; uploading continues with the next. The session will show a gap where it was. Look at the `chunk-post-*` line before it for the cause.                                |
+| `final-chunk-carried-queue` | The page was hidden or closed while chunks were still queued for retry, and they rode out as extra frames of the one page-hide request: `frames` is how many the request carried, `bytes` its total size. Nothing was lost — anything that did not fit is reported by `final-flush-partial` instead. |
+| `final-flush-truncated`     | More was buffered when the page went away than one keepalive request may carry, so the **oldest** events of the closing chunk were dropped to make it fit; `droppedEvents` says how many. The end of the session — the part you are usually looking for — is what survives. |
+| `final-flush-partial`       | The closing request could not carry every chunk it was given: `sent` frames went, `dropped` did not. The sealing chunk is chosen first, so what is lost is older queued chunks, and the session shows a gap where they were. |
+| `chunk-too-large`           | One chunk was still over the per-request cap after compression — an indivisible full-page snapshot of a very large DOM. Only its declared size is sent, the server answers 422, and the session carries a fidelity notice in place of that snapshot instead of failing. |
+| `envelope-trimmed`          | The chunk's header JSON was over the server's 8 KB envelope limit, so optional fields were dropped in this order until it fit: trace ids, routes, traits, tags, fidelity notices (`shed` lists what went). The footage is unaffected; the session may be missing some correlation or tag data. Usually 20 tags and 20 traits at their maximum lengths on one session. |
+| `final-chunk-too-large`     | A chunk sent as the page went away was over the 56 KB the recorder allows itself for a page-hide flush — deliberately under the browser's 64 KB combined keepalive quota. With `sealed: true` it was the final chunk: its events were dropped, so the recording ends a few seconds early, and an empty final chunk goes out in its place, so the session still ends with the tab and the chunk sequence has no hole. With `sealed: false` it was not a final chunk: it was dropped whole, nothing was sealed, and the session stays open with a gap where that chunk was. Either way what is lost is that chunk's events; a queued chunk that could not travel in the same request is reported separately, by `final-flush-partial`. |
+| `upload-blocked-transport`  | A trigger fired after uploading had already been disabled for this page. The `transport-disabled` line above it says why.                                                                                             |
+| `chunk-rejected-terminal`   | Uploading has stopped for good. `status: 401` is a bad token; `status: 403` is an origin not on the application's or the key's allowlist; `status: 404` is a wrong host. Fix and reload — the recorder does not retry on its own. |
+| `chunk-refused`             | One chunk was refused (too large, or unparseable) and the recording continued without it.                                                                                                                            |
+| `chunk-refused-terminal`    | Uploading has stopped because the server will refuse every chunk from this recorder: either the `error` in the detail is one the server answers the same way every time (`unsupported-wire-version` — a recorder the server no longer accepts; `app-identifier-mismatch` or `missing-app-identifier` — the chunk names a different application than the policy was fetched for; `malformed-body` / `malformed-envelope` / `missing-envelope` — a proxy rewriting the request), or every recent chunk was refused as malformed. Upgrade OneUptime so the published recorder matches the server, and report it with the diagnostics if it persists. |
+| `chunk-throttled`           | Rate limited. Uploads pause and resume on their own.                                                                                                                                                                 |
+| `transport-disabled`        | The circuit breaker tripped after repeated failures. The `reason` says which.                                                                                                                                        |
+| `server-directive`          | The server changed what the recorder should do mid-session. The `reason` is a closed vocabulary — see [chunk POST statuses](#chunk-post-statuses) below.                                                              |
+| `recorder-stopped-by-server`| The server told the recorder to stop. Usually the daily byte budget.                                                                                                                                                 |
+| `recorder-throttled-by-server` | The server asked the recorder to slow down. Uploads resume on their own; nothing to do.                                                                                                                           |
+| `recorder-stopped-transport`| Uploading failed permanently, so recording stopped and the buffer was released. The `reason` is the same one `transport-disabled` reported.                                                                           |
+| `recorder-stopped`          | Recording ended, with the session's totals: `droppedEvents`, `droppedChunks`, `flushFailures`. All three should be 0 on a healthy session.                                                                            |
+| `session-rotated`           | The session rolled over (30 minutes idle, 4 hours long, or another tab of the same visitor rotated first — `rotationReason: "adopted"`). The recording continues under a new id, and `onSessionChange` listeners are told. |
+| `command-queue-not-an-array`| `window.OneUptimeReplayQueue` is not an array, so every command queued on it was ignored. It must be an array of `[command, ...arguments]` entries.                                                                    |
+| `command-queue-unknown-command` | A queued command name was not recognised — check the spelling against the [JavaScript API](/docs/telemetry/session-replay#javascript-api).                                                                         |
+| `command-queue-command-failed`  | A queued command threw while being applied — the `command` and the error's `name` are in the detail. The rest of the queue still ran. Usually an argument of the wrong shape (a string where a traits object is expected). |
+
+#### chunk POST statuses
+
+What the ingest endpoint answers a chunk `POST` with, as you would see it in the Network tab. Only 4xx that are not 429 mean the install is wrong.
+
+| status | what it means                                                                                                                                                                                                                                     |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `202`  | Accepted and queued for storage. If it also carries `directive: "stop"` with reason `session-chunk-cap`, the chunks in this request that were under the per-session cap landed and nothing after them ever will — a long-lived tab reaching the end of what one session may hold, not a fault. |
+| `204`  | Taken and deliberately not stored. 204 has no body, so the directive rides in headers: `x-oneuptime-replay-directive` is `stop` when the recorder should stand down (replay disabled, not sampled, over budget, at the cap) or `continue` when only this request was refused, and `x-oneuptime-replay-reason` carries the reason. `consent-required` is the one that comes back `continue`: consent mode is _Require explicit_ and the page has not called `grantConsent()` yet, so the recorder keeps recording and tries again. The reason vocabulary is `ingest-disabled`, `instance-not-offering-replay`, `policy-unavailable`, `not-enabled`, `origin-not-allowed`, `session-chunk-cap`, `not-sampled`, `rate-limited`, `rate-counter-unavailable`, `budget-exhausted`, `budget-counter-unavailable`, `app-monthly-budget-exhausted` and `consent-required`, and the **Health** page counts them by name. |
+| `400`  | The frame could not be served, and the next one from the same build would not be either, so the body carries `directive: "stop"` and a stable `error` code: `empty-body`, `missing-envelope`, `envelope-too-large`, `malformed-envelope`, `malformed-body`, `unsupported-wire-version`, `truncated-payload`, `too-many-frames`, `app-identifier-mismatch`, `missing-app-identifier` or `chunk-index-malformed` (a `chunkIndex` that is missing, negative, fractional or absurd). Six of them — `unsupported-wire-version`, `app-identifier-mismatch`, `missing-app-identifier`, `malformed-body`, `malformed-envelope`, `missing-envelope` — stop uploading immediately (`chunk-refused-terminal`); any other 400 is forgiven once and stops uploading after three in a row. Nearly always a proxy rewriting the request, or a recorder and a server from different versions. |
+| `401`  | The ingestion key is wrong, revoked, expired or from another project.                                                                                                                                                                             |
+| `403`  | The page's origin is not on the ingestion key's or the application's allowlist. Terminal — the recorder does not retry.                                                                                                                            |
+| `413`  | The body was over the request cap. The recorder splits chunks well below it, so this is a proxy that re-inflated a compressed body. That one chunk is dropped; the session continues.                                                              |
+| `422`  | `snapshot-too-large`: one frame declared a payload over the cap — an indivisible full-page snapshot that will not fit. Per-chunk, not terminal: the session survives with a fidelity notice saying that snapshot is missing, and playback resumes at the next one. Trim the DOM, or expect a gap at that page load. |
+| `429`  | Rate limited. `Retry-After` says for how long; uploads pause and resume on their own.                                                                                                                                                              |
+| `503`  | The chunk store was unreachable. The recorder retries.                                                                                                                                                                                            |
+
+### Calls your page made
+
+These record what your own code asked the recorder to do. They are useful for confirming that a consent banner or a manual capture actually reached the recorder, and when.
+
+| code                   | what it means                                                                                                                                                        |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api-capture-session`  | `captureSession()` was called. `hasReason` says whether it carried a reason for the timeline.                                                                          |
+| `api-grant-consent`    | `grantConsent()` was called.                                                                                                                                         |
+| `api-revoke-consent`   | `revokeConsent()` was called. Everything buffered was dropped and uploading stopped; the recorder keeps running into memory only, so a later `grantConsent()` continues on a fresh session. |
+| `api-stop`             | `stop()` was called. The last chunk was uploaded and the session sealed; nothing records for the rest of the page's life.                                             |
+| `api-no-recorder`      | One of the calls above ran while no recorder was active — usually because it ran before the recorder artifact loaded. Push `[command, ...arguments]` entries onto `window.OneUptimeReplayQueue` instead, and they are applied as soon as it arrives. |
+
+## No request at all in the Network tab
+
+Work down this list; it is ordered by how often each one is the answer.
+
+1. **Filter for `session-replay`, not for the app identifier.** The config request is a `GET`, and it is the only request a healthy non-triggered session makes.
+2. **Is there a `GET .../session-replay/v1/config`?**
+   - **No, and no `loader-start` in the console** → the script never executed. Check that the `<script>` element is in the DOM, that its request succeeded, and your CSP `script-src`.
+   - **No, but `privacy-signal` is in the console** → Do Not Track or GPC. Working as designed.
+   - **Yes, non-2xx** → see [config fetch statuses](#config-fetch-statuses).
+3. **Is there no chunk `POST`?** First interact with the page — an idle tab has nothing to send. Then read the `recording` line. Under the default `Always` trigger `uploading` should be `true` and chunks should post about every 15 seconds of activity; `uploading: false` under `OnErrorOrFrustration` is normal — call `OneUptimeReplay.captureSession()` to force one and confirm the path works.
+4. **Still nothing after `captureSession()`?** Look for `upload-blocked-consent` (call `grantConsent()`), `not-sampled`, or `transport-disabled`.
+
+## The session list says "N chunks missing", or the player draws gaps
+
+A recording is uploaded as a numbered sequence of chunks per tab. The finalizer reports any index that never arrived as a missing chunk, the list shows the session as **Partial** with the seconds that are missing, and the player draws a labelled gap wherever the sequence skips and jumps over it — deliberately, because the alternative is playing mutations across a hole and rendering a DOM the user never saw.
+
+So the number is always telling the truth. What it means depends on where the hole is:
+
+- **A hole at the very end** is the usual, benign one: the browser was closed or navigated away mid-flush. Look for `final-flush-partial` or `final-chunk-carried-queue` in the console. A `final-chunk-too-large` with `sealed: true` loses the last seconds without leaving a gap in the chunk sequence.
+- **A hole in the middle** is a chunk the server refused or never received. `chunk-refused`, `chunk-abandoned`, `chunk-post-failed`, `chunk-not-recorded` and `final-chunk-too-large` with `sealed: false` in the console each name a different cause, and the `server-directive` line beside them carries the server's reason.
+- **The same gap in the same place on every session, on a page with a large DOM**, was a defect in older recorders, fixed in the recorder this version of OneUptime publishes. Those builds cut an rrweb full-page snapshot bigger than the 256 KB flush threshold into fragments tagged `snapshotPart`, which nothing on the receiving side ever reassembled, so the snapshot — and every chunk index it occupied — was dropped on every page load, and nothing on the customer's page could work around it. The current recorder never splits a snapshot. The server counts what it refuses, so an old recorder shows up on the **Health** page as drops with the reason `snapshot-fragment-unsupported`. Reload the affected page to fetch `latest` without a browser cache; recordings already taken stay as they are.
+
+Gaps are not the same as **idle** stretches: an idle stretch is footage in which nothing happened, drawn gray on the timeline and skippable; a gap is footage that never arrived, drawn amber.
+
+## The player says Buffering, or a chunk failed to load
+
+The player fetches footage in 15-second chunks as the playhead approaches them. **Buffering** means the next chunk has not arrived yet; after eight seconds it offers **Retry**. A chunk that fails for good shows an error with **Retry** and **Copy diagnostic** — the latter carries the session id, tab, chunk and generation, which is what support needs. A session whose footage has expired shows an explanation in place of the stage while the Logs, Traces and Errors tabs still work from your telemetry.
+
+## The RUM application says "Disconnected"
+
+The status pill and Last Seen on _Real User Monitoring → your application_ report when telemetry last arrived for that application. Session replay counts: both a recorder fetching its policy and an accepted chunk refresh it, so an application instrumented with the replay snippet alone stays Connected. In older versions only OpenTelemetry RUM telemetry did, so a replay-only application read "Disconnected" with a Last Seen days old while its recorders were working perfectly.
+
+"Connected" therefore means *something* is reporting — not that everything is. Page views, error rate, p95 duration and clients come from the OpenTelemetry browser SDK, which is a separate install; when those read zero while recordings are arriving, the application's Overview page says so directly.
+
+## RUM telemetry is separate
+
+Session replay and RUM traces are two independent pipelines with two independent failure modes. A working recorder does not imply RUM telemetry is arriving, and a working RUM application is not a prerequisite for the recorder to load.
+
+If your **OTLP** requests are missing from the Network tab, that is the OpenTelemetry browser SDK on your page, not this recorder — see [RUM Troubleshooting](/docs/rum/troubleshooting), which covers the SDK-side causes in order.
+
+## The player's Logs and Traces tabs are empty
+
+Those tabs show your own backend logs and spans that carried the replay's session id. If they are empty on every session, nothing is stamping the id: add `session.id` to your OpenTelemetry resource with `OneUptimeReplay.onSessionChange(...)` — see [Correlating with your other telemetry](/docs/telemetry/session-replay#correlating-with-your-other-telemetry). If your requests to your API show no trace link on the Network tab either, the API's origin is not in **Trace propagation origins** and your page does not set `traceparent` itself. A locked tab naming a permission means your role cannot read Logs or Traces.
+
+## Every session in the list says Anonymous or Visitor
+
+The recorder does not know who your user is unless your page tells it. Call `OneUptimeReplay.identify(userRef, traits)` as soon as you know, or queue it on `window.OneUptimeReplayQueue` before the script loads — see [Identify your users](/docs/telemetry/session-replay#identify-your-users). Until then the list groups the sessions of one browser under _Visitor a1b2c3_, the recorder's random per-browser [visitor id](/docs/telemetry/session-replay#anonymous-visitors), which follows one browser and never a person across devices; the **Users** view and the player's other-sessions menu work from it, `user:` search does not.
+
+Four things the rows tell you:
+
+- **_Visitor_ on every row** — the recorder is current and your page is not calling `identify()`, or is calling it after the session ended. `hasTraits` in `getDiagnostics()` is `true` once an `identify()` with traits reached the recorder.
+- **_Anonymous_ rather than _Visitor_** — those sessions came from a recorder built before visitor ids existed. Check whether `visitor-id` appears in `getDiagnostics().capabilities`; reload the page to fetch the current `latest` recorder when it does not.
+- **A different _Visitor_ id on every page load from one browser** — the recorder could not write `localStorage` (private browsing, blocked site data), so it minted a fresh id per load. Recording still works; only the grouping across visits is lost.
+- **_Visitor_ even though your page does call `identify()`** — check that **Capture user identity** is on for the application. With it off the reference never leaves the browser, by design, and the session stays a visitor. A row that reads _Hidden_ is different again: the page identified someone and your role may not read who.
+
+## What the diagnostics never contain
+
+The diagnostics carry no page content, and this is enforced rather than promised:
+
+- The detail on every record is restricted **at the type level** to strings, numbers, booleans and null. A DOM node, a Response or any other object handed in from untyped JavaScript is replaced with `<object omitted>` before the record is created, not merely before it is printed.
+- String values are truncated.
+- URLs that appear in records are either OneUptime's own endpoints or already scrubbed of query strings and fragments by the same scrubber the recording itself uses.
+
+So the output of `getDiagnostics()` is safe to paste into a support ticket. It is not safe to leave diagnostics switched **on** for every visitor of a production site — not for privacy reasons, but because it is noise in your end users' consoles.
+
+## Still stuck
+
+Collect these before asking for help:
+
+- The output of `OneUptimeReplay.getDiagnostics()`.
+- The status of the `session-replay/v1/config` request.
+- What the **Health** page (_RUM → your application → Session Replay → Health_) and the **Test your installation** panel (_Replay Policy_) say. They answer from the server's side, which is the half a browser cannot see.
+
+Then contact support@oneuptime.com, or open an issue on [GitHub](https://github.com/OneUptime/oneuptime).

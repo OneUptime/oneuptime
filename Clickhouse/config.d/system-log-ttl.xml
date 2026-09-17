@@ -42,9 +42,10 @@
 
   config.d is merged into the server config regardless of the main config.xml,
   so these blocks are overlaid on top of the packaged (or, in
-  docker-compose.dev.yml, the repo's Clickhouse/config.xml) definitions: only
-  the child elements named here are replaced, everything else — max_size_rows,
-  buffer thresholds, engine selection — is inherited untouched.
+  Scripts/Dev/docker-compose.dev.yml, the repo's Clickhouse/config.xml)
+  definitions: only the child elements named here are replaced, everything
+  else — max_size_rows, buffer thresholds, engine selection — is inherited
+  untouched.
 
   NOTE: <partition_by> + <ttl> is the correct shape ONLY while these tables have
   no explicit <engine>. ClickHouse 25.7+ rejects a system table that declares

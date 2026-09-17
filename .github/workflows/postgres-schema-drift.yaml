@@ -64,7 +64,7 @@ jobs:
       # typeorm + ts-node live in the root package; the entities the check
       # reflects over resolve their imports through Common's.
       - run: npm install
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
 
       - name: Check for Postgres schema drift
         run: npm run check-postgres-schema-drift
@@ -72,7 +72,7 @@ jobs:
       # The suite clones the migrated Alert and Incident table structures into
       # an isolated schema, so it must run after the registered migrations.
       - name: Test AI investigation decision persistence
-        working-directory: Common
+        working-directory: packages/Common
         env:
           RUN_POSTGRES_AI_INVESTIGATION_TESTS: "true"
           AI_INVESTIGATION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}

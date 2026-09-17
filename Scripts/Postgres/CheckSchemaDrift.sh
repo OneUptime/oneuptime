@@ -26,8 +26,8 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${REPO_ROOT}"
 
-DATA_SOURCE="./Common/Server/Infrastructure/Postgres/LocalMigrationGenerationDataSource.ts"
-MIGRATIONS_INDEX="Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts"
+DATA_SOURCE="./packages/Common/Server/Infrastructure/Postgres/LocalMigrationGenerationDataSource.ts"
+MIGRATIONS_INDEX="packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts"
 
 # --- Configuration ---
 
@@ -78,7 +78,7 @@ echo "--- Step 2: Generating a migration against the result ---"
 # --check prints the migration it *would* have written and exits 1, rather than
 # writing a file into SchemaMigrations/. Nothing is left on disk either way.
 CHECK_OUTPUT="$("${TYPEORM[@]}" migration:generate \
-  ./Common/Server/Infrastructure/Postgres/SchemaMigrations/SchemaDrift \
+  ./packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/SchemaDrift \
   -d "${DATA_SOURCE}" --check 2>&1)"
 CHECK_EXIT=$?
 
@@ -102,7 +102,7 @@ echo "==========================================="
 echo " SCHEMA DRIFT DETECTED"
 echo "==========================================="
 echo ""
-echo "The entities in Common/Models/DatabaseModels do not match the schema the"
+echo "The entities in packages/Common/Models/DatabaseModels do not match the schema the"
 echo "registered migrations produce. TypeORM would generate this to close the gap:"
 echo ""
 # Drop TypeORM's own banner line; this script already framed the failure.

@@ -21,7 +21,7 @@
 
 <div align="center">
   <a href="https://oneuptime.com">
-    <img alt="OneUptime-logo" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/>
+    <img alt="OneUptime-logo" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
   </a>
 
   <h3>Agentbaseret observability — én open source-platform til oppetid, hændelser, vagt, statussider, logs, traces, metrics og APM.</h3>
@@ -52,7 +52,7 @@
 <br/>
 
 <div align="center">
-  <img alt="OneUptime-kommandocenter under en igangværende hændelse" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/readme/hero-command-center.png"/>
+  <img alt="OneUptime-kommandocenter under en igangværende hændelse" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
 </div>
 
 ---
@@ -86,31 +86,31 @@ Klokken er 2:47 om natten. Checkout begynder at få timeouts. Her er, hvad OneUp
 
 Prober i flere regioner fanger, at checkout-latensen skyder forbi din grænse på 5s, og åbner automatisk en hændelse — før dine kunder trykker opdater.
 
-![Registrér — global overvågning fanger checkout-API'et i forringelse](/Home/Static/img/readme/detect.png?raw=true)
+![Registrér — global overvågning fanger checkout-API'et i forringelse](/packages/Home/Static/img/readme/detect.png?raw=true)
 
 ### 2 · Reagér — *den rette person, tilkaldt*
 
 Vagt-ingeniøren for Payments-politikken bliver ringet op, sendt sms til og push-notificeret, og der eskaleres automatisk til backup, indtil nogen kvitterer.
 
-![Reagér — hændelsen dirigeres til vagt og kvitteres](/Home/Static/img/readme/respond.png?raw=true)
+![Reagér — hændelsen dirigeres til vagt og kvitteres](/packages/Home/Static/img/readme/respond.png?raw=true)
 
 ### 3 · Kommunikér — *kunderne holdes orienteret*
 
 Din statusside opdaterer sig selv, og hver abonnent får besked via e-mail og SMS — ingen behøver at skrive opdateringen i hånden.
 
-![Kommunikér — den offentlige statusside opdateres og notificerer abonnenter](/Home/Static/img/readme/communicate.png?raw=true)
+![Kommunikér — den offentlige statusside opdateres og notificerer abonnenter](/packages/Home/Static/img/readme/communicate.png?raw=true)
 
 ### 4 · Diagnosticér — *årsagen, fundet*
 
 Traces, logs og metrics korreleres helt ned til det præcise span: en langsom `SELECT … FOR UPDATE` på `orders`, der hænger på et manglende indeks.
 
-![Diagnosticér — trace-vandfaldet udpeger det langsomme databasespan](/Home/Static/img/readme/diagnose.png?raw=true)
+![Diagnosticér — trace-vandfaldet udpeger det langsomme databasespan](/packages/Home/Static/img/readme/diagnose.png?raw=true)
 
 ### 5 · Auto-rettelse — *rettelsen, udkastet til dig*
 
 AI-agenten åbner en pull request med rettelsen, koblet til hændelsen, med grønne tests — du gennemgår og merger. Som en SRE, der aldrig sover.
 
-![Auto-rettelse — AI-agenten åbner en pull request med rettelsen](/Home/Static/img/readme/autofix.png?raw=true)
+![Auto-rettelse — AI-agenten åbner en pull request med rettelsen](/packages/Home/Static/img/readme/autofix.png?raw=true)
 
 </details>
 
@@ -144,7 +144,7 @@ npm start
 
 OneUptime kører nu på **http://localhost** — åbn det og opret din første konto.
 
-📖 Fuld guide: [Docker Compose-installation](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Dimensionering og krav](/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+📖 Fuld guide: [Docker Compose-installation](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Dimensionering og krav](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
 
 ### ☸️ Kubernetes med Helm — til produktion
 
@@ -155,7 +155,7 @@ helm install oneuptime oneuptime/oneuptime
 
 📖 Fulde installationsvejledninger og values på [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
 
-> **Opgraderer du en eksisterende installation?** Se [opgraderingsguiden](/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
+> **Opgraderer du en eksisterende installation?** Se [opgraderingsguiden](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
 
 ---
 
@@ -181,7 +181,7 @@ helm install oneuptime oneuptime/oneuptime
 
 Sæt eskaleringer, ticketing og notifikationer sammen på et visuelt, no-code-lærred — eller indsæt din egen kode. Hændelsen ovenfor tilkaldte vagten, oprettede en Jira-ticket og postede til Slack, uden at nogen løftede en finger.
 
-![Workflows — et no-code-automatiseringslærred til hændelseseskalering](/Home/Static/img/readme/workflows.png?raw=true)
+![Workflows — et no-code-automatiseringslærred til hændelseseskalering](/packages/Home/Static/img/readme/workflows.png?raw=true)
 
 </details>
 
@@ -189,13 +189,13 @@ Sæt eskaleringer, ticketing og notifikationer sammen på et visuelt, no-code-l�
 
 Indsæt copy-paste, **OpenTelemetry-baserede** agenter til at holde øje med alt, dine services kører på — med færdige alarmskabeloner inkluderet:
 
-- **Servere og VM'er** — CPU, hukommelse, disk, netværk, processer og logs fra Linux, macOS og Windows. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — én `helm install` leverer node-/pod-/container-/klyngemetrics, events, logs og eBPF-traces og service-maps. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — en enkelt agent finder automatisk hver container og leverer metrics og logs. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — samme ét-agent-autoregistrering via Podmans Docker-kompatible socket. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — noder, VM'er, containere, lager, HA-tilstand, backup-dækning og replikeringssundhed. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter, ESXi-værter, virtuelle maskiner, datastores, klynger, ressourcepuljer og vSAN. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — klyngesundhed, kapacitetsprognoser og OSD-/pool-/PG-/monitor-indsigt. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Servere og VM'er** — CPU, hukommelse, disk, netværk, processer og logs fra Linux, macOS og Windows. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
+- **Kubernetes** — én `helm install` leverer node-/pod-/container-/klyngemetrics, events, logs og eBPF-traces og service-maps. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
+- **Docker** — en enkelt agent finder automatisk hver container og leverer metrics og logs. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
+- **Podman** — samme ét-agent-autoregistrering via Podmans Docker-kompatible socket. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
+- **Proxmox** — noder, VM'er, containere, lager, HA-tilstand, backup-dækning og replikeringssundhed. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi-værter, virtuelle maskiner, datastores, klynger, ressourcepuljer og vSAN. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
+- **Ceph** — klyngesundhed, kapacitetsprognoser og OSD-/pool-/PG-/monitor-indsigt. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---
 
@@ -223,7 +223,7 @@ Vi byder bidrag af enhver størrelse velkommen. Begynd her:
 
 - 🐛 **[Åbne issues](https://github.com/OneUptime/oneuptime/issues)** — tag et op, eller [opret et nyt](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[Hjælp med at skrive tests](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** til kodebasen
-- 🧑‍💻 **[Guide til lokal udvikling](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** for at komme i gang
+- 🧑‍💻 **[Guide til lokal udvikling](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** for at komme i gang
 - 📖 Læs **[retningslinjerne for bidrag](/.github/CONTRIBUTING.md)**
 - 💬 Chat med os i **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** eller **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
 

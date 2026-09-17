@@ -21,7 +21,7 @@
 
 <div align="center">
   <a href="https://oneuptime.com">
-    <img alt="OneUptime-logo" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/>
+    <img alt="OneUptime-logo" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
   </a>
 
   <h3>Agentic observability — één open-source platform voor uptime, incidenten, oproepdienst, statuspagina's, logs, traces, metrics en APM.</h3>
@@ -52,7 +52,7 @@
 <br/>
 
 <div align="center">
-  <img alt="OneUptime-commandocentrum tijdens een live incident" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/readme/hero-command-center.png"/>
+  <img alt="OneUptime-commandocentrum tijdens een live incident" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
 </div>
 
 ---
@@ -86,31 +86,31 @@ Het is 02:47 uur. De checkout begint time-outs te geven. Dit is wat OneUptime do
 
 Probes in meerdere regio's merken dat de checkout-latency je drempel van 5s ver overschrijdt en openen automatisch een incident — nog voordat je klanten op vernieuwen drukken.
 
-![Detecteren — wereldwijde monitoring merkt dat de checkout-API achteruitgaat](/Home/Static/img/readme/detect.png?raw=true)
+![Detecteren — wereldwijde monitoring merkt dat de checkout-API achteruitgaat](/packages/Home/Static/img/readme/detect.png?raw=true)
 
 ### 2 · Reageren — *de juiste persoon, gewaarschuwd*
 
 De dienstdoende engineer voor het Payments-beleid wordt gebeld, ge-sms't en per push gewaarschuwd, en escaleert automatisch naar de reserve totdat iemand bevestigt.
 
-![Reageren — het incident wordt naar de oproepdienst geleid en bevestigd](/Home/Static/img/readme/respond.png?raw=true)
+![Reageren — het incident wordt naar de oproepdienst geleid en bevestigd](/packages/Home/Static/img/readme/respond.png?raw=true)
 
 ### 3 · Communiceren — *klanten op de hoogte*
 
 Je statuspagina werkt zichzelf bij en elke abonnee wordt per e-mail en sms geïnformeerd — niemand hoeft de update met de hand te schrijven.
 
-![Communiceren — de publieke statuspagina werkt bij en informeert abonnees](/Home/Static/img/readme/communicate.png?raw=true)
+![Communiceren — de publieke statuspagina werkt bij en informeert abonnees](/packages/Home/Static/img/readme/communicate.png?raw=true)
 
 ### 4 · Diagnosticeren — *oorzaak, gevonden*
 
 Traces, logs en metrics worden gecorreleerd tot op de exacte span: een trage `SELECT … FOR UPDATE` op `orders`, vastgelopen op een ontbrekende index.
 
-![Diagnosticeren — de trace-waterval wijst de trage databasespan aan](/Home/Static/img/readme/diagnose.png?raw=true)
+![Diagnosticeren — de trace-waterval wijst de trage databasespan aan](/packages/Home/Static/img/readme/diagnose.png?raw=true)
 
 ### 5 · Automatisch oplossen — *de oplossing, voor je opgesteld*
 
 De AI-agent opent een pull request met de oplossing, gekoppeld aan het incident, met groene tests — jij beoordeelt en merget. Als een SRE die nooit slaapt.
 
-![Automatisch oplossen — de AI-agent opent een pull request met de oplossing](/Home/Static/img/readme/autofix.png?raw=true)
+![Automatisch oplossen — de AI-agent opent een pull request met de oplossing](/packages/Home/Static/img/readme/autofix.png?raw=true)
 
 </details>
 
@@ -144,7 +144,7 @@ npm start
 
 OneUptime draait nu op **http://localhost** — open het en maak je eerste account aan.
 
-📖 Volledige handleiding: [Docker Compose-installatie](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Omvang en vereisten](/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+📖 Volledige handleiding: [Docker Compose-installatie](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Omvang en vereisten](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
 
 ### ☸️ Kubernetes met Helm — voor productie
 
@@ -155,7 +155,7 @@ helm install oneuptime oneuptime/oneuptime
 
 📖 Volledige installatie-instructies en waarden op [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
 
-> **Een bestaande installatie bijwerken?** Zie de [upgradehandleiding](/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
+> **Een bestaande installatie bijwerken?** Zie de [upgradehandleiding](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
 
 ---
 
@@ -181,7 +181,7 @@ helm install oneuptime oneuptime/oneuptime
 
 Koppel escalaties, ticketing en meldingen op een visueel, no-code canvas — of voeg eigen code toe. Het incident hierboven waarschuwde de oproepdienst, opende een Jira-ticket en plaatste een bericht in Slack zonder dat iemand een vinger hoefde uit te steken.
 
-![Workflows — een no-code automatiseringscanvas voor incidentescalatie](/Home/Static/img/readme/workflows.png?raw=true)
+![Workflows — een no-code automatiseringscanvas voor incidentescalatie](/packages/Home/Static/img/readme/workflows.png?raw=true)
 
 </details>
 
@@ -189,13 +189,13 @@ Koppel escalaties, ticketing en meldingen op een visueel, no-code canvas — of 
 
 Plaats kant-en-klare **OpenTelemetry-gebaseerde** agents om alles in de gaten te houden waarop je services draaien — met kant-en-klare alertsjablonen inbegrepen:
 
-- **Servers en VMs** — CPU, geheugen, schijf, netwerk, processen en logs van Linux, macOS en Windows. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — één `helm install` levert node-/pod-/container-/clustermetrics, events, logs en eBPF-traces en servicemaps. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — één agent detecteert automatisch elke container en levert metrics en logs. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — dezelfde automatische detectie met één agent via Podmans Docker-compatibele socket. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — nodes, VMs, containers, opslag, HA-status, back-updekking en replicatiegezondheid. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter, ESXi-hosts, virtuele machines, datastores, clusters, resourcepools en vSAN. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — clustergezondheid, capaciteitsvoorspellingen en OSD-/pool-/PG-/monitorzichtbaarheid. [Documentatie →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Servers en VMs** — CPU, geheugen, schijf, netwerk, processen en logs van Linux, macOS en Windows. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
+- **Kubernetes** — één `helm install` levert node-/pod-/container-/clustermetrics, events, logs en eBPF-traces en servicemaps. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
+- **Docker** — één agent detecteert automatisch elke container en levert metrics en logs. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
+- **Podman** — dezelfde automatische detectie met één agent via Podmans Docker-compatibele socket. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
+- **Proxmox** — nodes, VMs, containers, opslag, HA-status, back-updekking en replicatiegezondheid. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi-hosts, virtuele machines, datastores, clusters, resourcepools en vSAN. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
+- **Ceph** — clustergezondheid, capaciteitsvoorspellingen en OSD-/pool-/PG-/monitorzichtbaarheid. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---
 
@@ -223,7 +223,7 @@ We verwelkomen bijdragen van elke omvang. Begin hier:
 
 - 🐛 **[Open issues](https://github.com/OneUptime/oneuptime/issues)** — pak er een op, of [maak een nieuwe aan](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[Help mee tests schrijven](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** voor de codebase
-- 🧑‍💻 **[Handleiding voor lokale ontwikkeling](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** om aan de slag te gaan
+- 🧑‍💻 **[Handleiding voor lokale ontwikkeling](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** om aan de slag te gaan
 - 📖 Lees de **[bijdragerichtlijnen](/.github/CONTRIBUTING.md)**
 - 💬 Chat met ons in de **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** of **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
 

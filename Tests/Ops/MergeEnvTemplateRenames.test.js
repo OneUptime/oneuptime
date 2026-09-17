@@ -3,11 +3,11 @@
 /**
  * Scripts/Install/MergeEnvTemplate.js and renamed settings.
  *
- * The merge runs on every `npm run update` (configure.sh -> prerun) and appends
- * any key present in config.example.env but missing from the operator's
- * config.env, TAKING THE TEMPLATE'S VALUE. That is fine for a genuinely new
- * setting and catastrophic for a renamed one: when REDIS_PASSWORD became
- * VALKEY_PASSWORD, the naive merge would have appended
+ * The merge runs on every `npm run update` (Scripts/Install/configure.sh ->
+ * prerun) and appends any key present in config.example.env but missing from
+ * the operator's config.env, TAKING THE TEMPLATE'S VALUE. That is fine for a
+ * genuinely new setting and catastrophic for a renamed one: when REDIS_PASSWORD
+ * became VALKEY_PASSWORD, the naive merge would have appended
  * `VALKEY_PASSWORD=please-change-this-to-random-value` next to the operator's
  * real secret. The app prefers the new name, so the whole stack would have come
  * back up on a password published in this repository — with no error anywhere.

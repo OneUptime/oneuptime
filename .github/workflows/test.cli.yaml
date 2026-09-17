@@ -25,5 +25,5 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
-      - run: cd CLI && npm install && npm run test
+      - run: cd packages/Common && npm install
+      - run: cd packages/CLI && npm install && npm run test

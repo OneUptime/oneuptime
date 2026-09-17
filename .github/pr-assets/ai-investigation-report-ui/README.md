@@ -1,12 +1,12 @@
 # AI investigation report and event overview pages
 
 These images show the production dashboard pages
-`App/FeatureSet/Dashboard/src/Pages/Incidents/View/Index.tsx`,
+`packages/App/FeatureSet/Dashboard/src/Pages/Incidents/View/Index.tsx`,
 `Pages/Alerts/View/Index.tsx`, `Pages/ScheduledMaintenanceEvents/View/Index.tsx`,
 `Pages/Incidents/EpisodeView/Index.tsx` and `Pages/Alerts/EpisodeView/Index.tsx` (each inside
 its real `Layout` and side menu), and the AI report rendered by
 `Components/AI/InvestigationPanel.tsx` with `Components/AI/InvestigationReport/*`. They were
-rendered by the offline Playwright fixture in `E2E/EventOverview/Fixture`, with the browser
+rendered by the offline Playwright fixture in `packages/E2E/EventOverview/Fixture`, with the browser
 clock pinned to 2026-09-14 18:20 UTC. The **Preview workspace · Synthetic data** banner
 identifies the substituted ModelAPI / API data: every incident, alert, report, query and
 person in the images is fabricated for an "Acme Commerce" workspace. No customer data
@@ -58,9 +58,9 @@ appears in them, and they do not demonstrate a real AI run or database persisten
 - `incident-overview-mobile.png`: the top of the incident page at 390px (one viewport, not
   the full page): the hero, its facts and the TL;DR stack without horizontal scrolling.
 
-Regenerate with `cd E2E && npm run test-event-overview-ui` (use `CI=1` if another fixture
+Regenerate with `cd packages/E2E && npm run test-event-overview-ui` (use `CI=1` if another fixture
 server may already be listening on port 4222); the images land in
 `output/playwright/event-overview-ui/` under their `-synthetic` names (the `ai-report-*`
 close-ups at device scale factor 2). The "before"
 images were captured from the same fixture on the previous UI. See
-`E2E/EventOverview/README.md` for the scenarios and for running the fixture by hand.
+`packages/E2E/EventOverview/README.md` for the scenarios and for running the fixture by hand.

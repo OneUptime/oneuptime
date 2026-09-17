@@ -115,7 +115,7 @@ function readRepoFile(file) {
 
 /** receivers.docker_stats.api_version, or a hard error if the receiver is gone. */
 function readApiVersion(agent) {
-  const file = `${agent}/otel-collector-config.yaml`;
+  const file = `agents/${agent}/otel-collector-config.yaml`;
   const config = yaml.load(readRepoFile(file));
   const receiver = config.receivers && config.receivers.docker_stats;
 
@@ -128,7 +128,7 @@ function readApiVersion(agent) {
 
 /** The value of the Dockerfile's `ENV DOCKER_API_VERSION=` line, or null. */
 function readImageDefault(agent) {
-  const file = `${agent}/Dockerfile.tpl`;
+  const file = `agents/${agent}/Dockerfile.tpl`;
   const values = readRepoFile(file)
     .split("\n")
     .map((line) => {
@@ -150,7 +150,7 @@ function readImageDefault(agent) {
 
 /** A compose service's `DOCKER_API_VERSION=…` environment entry, or null. */
 function readComposeEntry(agent, serviceName) {
-  const file = `${agent}/docker-compose.yml`;
+  const file = `agents/${agent}/docker-compose.yml`;
   const service = yaml.load(readRepoFile(file)).services[serviceName];
 
   if (!service || !Array.isArray(service.environment)) {
@@ -189,7 +189,7 @@ function readComposeDefault(agent) {
  * thing that actually matters.
  */
 function resolvePollerApiBase(agent, apiVersionEnv) {
-  const file = `${agent}/inventory-snapshot.sh`;
+  const file = `agents/${agent}/inventory-snapshot.sh`;
   const lines = readRepoFile(file).split("\n");
   const start = lines.findIndex((line) => {
     return line.startsWith("API_VERSION=");
@@ -318,7 +318,7 @@ describe.each(AGENTS)("%s inventory poller resolves its API base", (agent) => {
     expect(() => {
       return execFileSync("sh", [
         "-n",
-        path.join(REPO_ROOT, agent, "inventory-snapshot.sh"),
+        path.join(REPO_ROOT, "agents", agent, "inventory-snapshot.sh"),
       ]);
     }).not.toThrow();
   });
@@ -400,7 +400,9 @@ describe("the pin is identical everywhere it ships", () => {
    */
   test("the agents that bake an image are exactly the ones with a Dockerfile.tpl", () => {
     const withDockerfile = AGENTS.filter((agent) => {
-      return fs.existsSync(path.join(REPO_ROOT, agent, "Dockerfile.tpl"));
+      return fs.existsSync(
+        path.join(REPO_ROOT, "agents", agent, "Dockerfile.tpl"),
+      );
     });
 
     expect(withDockerfile).toEqual(IMAGE_AGENTS);
@@ -414,7 +416,7 @@ describe("the pin is identical everywhere it ships", () => {
   test("AGENTS covers every docker_stats receiver in the repo", () => {
     expect(findDockerStatsConfigs()).toEqual(
       AGENTS.map((agent) => {
-        return `${agent}/otel-collector-config.yaml`;
+        return `agents/${agent}/otel-collector-config.yaml`;
       }).sort(),
     );
   });
@@ -423,20 +425,20 @@ describe("the pin is identical everywhere it ships", () => {
 describe("the shipped explanation matches the measured behaviour", () => {
   const SHIPPED_FILES = [
     ...AGENTS.map((agent) => {
-      return `${agent}/otel-collector-config.yaml`;
+      return `agents/${agent}/otel-collector-config.yaml`;
     }),
     ...AGENTS.map((agent) => {
-      return `${agent}/README.md`;
+      return `agents/${agent}/README.md`;
     }),
     ...IMAGE_AGENTS.map((agent) => {
-      return `${agent}/Dockerfile.tpl`;
+      return `agents/${agent}/Dockerfile.tpl`;
     }),
     ...AGENTS.map((agent) => {
-      return `${agent}/inventory-snapshot.sh`;
+      return `agents/${agent}/inventory-snapshot.sh`;
     }),
-    "App/FeatureSet/Docs/Content/en/telemetry/docker-host.md",
-    "App/FeatureSet/Docs/Content/en/telemetry/podman-host.md",
-    "App/FeatureSet/Docs/Content/en/telemetry/docker-swarm.md",
+    "packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md",
+    "packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md",
+    "packages/App/FeatureSet/Docs/Content/en/telemetry/docker-swarm.md",
   ];
 
   /*
@@ -462,12 +464,12 @@ describe("the shipped explanation matches the measured behaviour", () => {
    * anyone who cannot or does not want to read their daemon's maximum.
    */
   test.each([
-    "DockerAgent/README.md",
-    "PodmanAgent/README.md",
-    "DockerSwarmAgent/README.md",
-    "App/FeatureSet/Docs/Content/en/telemetry/docker-host.md",
-    "App/FeatureSet/Docs/Content/en/telemetry/podman-host.md",
-    "App/FeatureSet/Docs/Content/en/telemetry/docker-swarm.md",
+    "agents/DockerAgent/README.md",
+    "agents/PodmanAgent/README.md",
+    "agents/DockerSwarmAgent/README.md",
+    "packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md",
+    "packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md",
+    "packages/App/FeatureSet/Docs/Content/en/telemetry/docker-swarm.md",
   ])("%s documents the empty-value auto-negotiate escape hatch", (file) => {
     const text = readRepoFile(file);
 
@@ -478,7 +480,7 @@ describe("the shipped explanation matches the measured behaviour", () => {
 });
 
 describe("translated docs keep the variable in step", () => {
-  const CONTENT_ROOT = "App/FeatureSet/Docs/Content";
+  const CONTENT_ROOT = "packages/App/FeatureSet/Docs/Content";
   const TRANSLATED_PAGES = ["docker-host.md", "podman-host.md"];
 
   function locales() {

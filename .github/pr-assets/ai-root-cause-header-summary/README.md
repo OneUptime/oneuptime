@@ -3,7 +3,7 @@
 These images show the incident header (`Components/EventView/EventStatusPanel.tsx`) with the
 completed-investigation notice from `Components/AI/AIInvestigationHeaderStatus.tsx`, on the
 production incident page `Pages/Incidents/View/Index.tsx`. They were rendered by the offline
-Playwright fixture in `E2E/EventOverview/Fixture` at device scale factor 2, with the browser
+Playwright fixture in `packages/E2E/EventOverview/Fixture` at device scale factor 2, with the browser
 clock pinned to 2026-09-14 18:20 UTC. Every incident, report and TL;DR in them is fabricated
 for the fixture's "Acme Commerce" workspace; no customer data appears, and they do not
 demonstrate a real AI run.
@@ -33,6 +33,6 @@ fixture and scenario with the previous `AIInvestigationHeaderStatus.tsx` and
   View live progress.
 
 The E2E spec regenerates `incident-header-ai-summary` (`?tldr=long` at 1440px) with
-`cd E2E && npm run test-event-overview-ui`; the other images were captured from the same
+`cd packages/E2E && npm run test-event-overview-ui`; the other images were captured from the same
 fixture by hand (`node EventOverview/Fixture/server.js --watch`, see
-`E2E/EventOverview/README.md`).
+`packages/E2E/EventOverview/README.md`).

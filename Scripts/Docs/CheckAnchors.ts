@@ -22,13 +22,13 @@
  * To run:
  *   npm run docs:check-anchors
  */
-import slugify from "../../Common/Server/Types/MarkdownSlugify";
+import slugify from "../../packages/Common/Server/Types/MarkdownSlugify";
 import * as fs from "fs";
 import * as path from "path";
 
 const CONTENT_DIR: string = path.resolve(
   __dirname,
-  "../../App/FeatureSet/Docs/Content",
+  "../../packages/App/FeatureSet/Docs/Content",
 );
 
 const FENCE_LINE: RegExp = /^\s*```/;
@@ -115,7 +115,7 @@ for (const b of broken) {
 }
 // eslint-disable-next-line no-console
 console.error(
-  "\nAnchor ids come from the heading text via slugify (Common/Server/Types/MarkdownSlugify.ts).\n" +
+  "\nAnchor ids come from the heading text via slugify (packages/Common/Server/Types/MarkdownSlugify.ts).\n" +
     "Translated headings produce translated ids, so a translated page cannot keep the English anchor.\n" +
     "Do not hand-write a slug — read the heading and let slugify compute it.",
 );

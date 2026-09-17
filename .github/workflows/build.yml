@@ -35,7 +35,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./Home/Dockerfile .
+          command: sudo docker build --no-cache -f ./packages/Home/Dockerfile .
 
 
   docker-build-app:
@@ -60,7 +60,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./App/Dockerfile .
+          command: sudo docker build --no-cache -f ./packages/App/Dockerfile .
 
 
   docker-build-e2e:
@@ -85,7 +85,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./E2E/Dockerfile .
+          command: sudo docker build --no-cache -f ./packages/E2E/Dockerfile .
 
   docker-build-probe:
     runs-on: ubuntu-latest
@@ -108,7 +108,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./Probe/Dockerfile .
+          command: sudo docker build --no-cache -f ./packages/Probe/Dockerfile .
 
   docker-build-runner:
     runs-on: ubuntu-latest
@@ -131,7 +131,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./Runner/Dockerfile .
+          command: sudo docker build --no-cache -f ./packages/Runner/Dockerfile .
 
   docker-build-test-server:
     runs-on: ubuntu-latest
@@ -154,4 +154,4 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./TestServer/Dockerfile .
+          command: sudo docker build --no-cache -f ./packages/TestServer/Dockerfile .
