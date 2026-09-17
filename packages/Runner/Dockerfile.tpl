@@ -33,7 +33,10 @@ LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 # Trust the same intermediate certs as the rest of the platform.
+COPY ./packages/Common/SslCertificates /usr/local/share/ca-certificates
+{{- if file.Exists "SslCertificates" }}
 COPY ./SslCertificates /usr/local/share/ca-certificates
+{{- end }}
 RUN update-ca-certificates
 
 

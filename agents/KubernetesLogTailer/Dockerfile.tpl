@@ -27,7 +27,10 @@ LABEL org.opencontainers.image.vendor="OneUptime"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 ## Add intermediate CA certs
+COPY ./packages/Common/SslCertificates /usr/local/share/ca-certificates
+{{- if file.Exists "SslCertificates" }}
 COPY ./SslCertificates /usr/local/share/ca-certificates
+{{- end }}
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends ca-certificates tini \

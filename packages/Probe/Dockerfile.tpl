@@ -46,7 +46,10 @@ LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
 
 ## Add Intermediate Certs
+COPY ./packages/Common/SslCertificates /usr/local/share/ca-certificates
+{{- if file.Exists "SslCertificates" }}
 COPY ./SslCertificates /usr/local/share/ca-certificates
+{{- end }}
 
 
 # IF APP_VERSION is not set, set it to 1.0.0
