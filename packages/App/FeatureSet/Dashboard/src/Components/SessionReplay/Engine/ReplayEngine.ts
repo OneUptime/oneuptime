@@ -513,7 +513,7 @@ class ReplayEngineMachine implements ReplayEngine {
         this.onRetry();
         return true;
       case "TAB_SWITCH":
-        this.onTabSwitch(event.tabId, event.loader);
+        this.onTabSwitch(event.tabId, event.loader, event.resume === true);
         return true;
       case "APPEND_ENTRIES":
         this.onAppendEntries(event.entries);
@@ -2285,7 +2285,11 @@ class ReplayEngineMachine implements ReplayEngine {
     this.startLoad(anchor, this.currentTimeMs);
   }
 
-  private onTabSwitch(tabId: string, loader: ChunkLoader): void {
+  private onTabSwitch(
+    tabId: string,
+    loader: ChunkLoader,
+    shouldResume: boolean,
+  ): void {
     if (loader === this.loader) {
       return;
     }
@@ -2314,6 +2318,16 @@ class ReplayEngineMachine implements ReplayEngine {
     this.recordedSize = null;
     this.buffer = "empty";
     this.updateLoadedChunkIndexes();
+
+    /*
+     * Before the seek, so the build that performSeek starts reads the
+     * intent it is meant to land with. Setting it afterwards published a
+     * paused frame first, which the shell's auto-continue showed as the
+     * player stopping between every page of a visit.
+     */
+    if (shouldResume) {
+      this.intent = "playing";
+    }
 
     const earliest: number | null = loader.getEarliestPlayableOffsetMs();
 

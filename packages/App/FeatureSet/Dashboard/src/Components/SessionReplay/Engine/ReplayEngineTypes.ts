@@ -223,8 +223,22 @@ export type ReplayEngineEvent =
   /* A chunk fetch gave up after its retries. */
   | { type: "CHUNK_FAILED"; chunkIndex: number; message: string }
   | { type: "RETRY" }
-  /* New loader for the target tab; the playhead is preserved when covered. */
-  | { type: "TAB_SWITCH"; tabId: string; loader: ChunkLoader }
+  /*
+   * New loader for the target tab; the playhead is preserved when covered.
+   *
+   * `resume` carries the viewer's intent INTO the switch. A tab that has
+   * played out leaves the engine paused (see onFinish), so a switch made
+   * to keep watching - the shell's auto-continue, or the "Continue in
+   * Tab 2" chip - would land on a still picture and need a Play as well.
+   * Omitted (a tab pill, the picker) the intent in force is kept, so
+   * jumping tabs while paused stays paused.
+   */
+  | {
+      type: "TAB_SWITCH";
+      tabId: string;
+      loader: ChunkLoader;
+      resume?: boolean | undefined;
+    }
   /* Live sessions: manifest entries appended, bands recomputed, no rebuild. */
   | { type: "APPEND_ENTRIES"; entries: Array<SessionReplayChunkManifestEntry> }
   | { type: "DISPOSE" }

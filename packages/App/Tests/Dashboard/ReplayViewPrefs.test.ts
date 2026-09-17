@@ -67,6 +67,17 @@ describe("defaults", () => {
   });
 
   /*
+   * Continuous playback across the browser tabs of a session is ON out of
+   * the box (github.com/OneUptime/oneuptime/issues/3865). The recorder
+   * mints a tab id per page load, so a four-page visit is four tabs, and
+   * the default before this left playback stopped at each of them for a
+   * click on Continue and another on Play.
+   */
+  test("playback carries on across tabs by default", () => {
+    expect(getDefaultReplayViewPrefs().autoContinue).toBe(true);
+  });
+
+  /*
    * The rail's default width is part of how big the recording is drawn:
    * the player now fills the viewport and the rail takes its width out of
    * the stage, so the default came down from 30rem to 26rem (still inside
@@ -168,6 +179,28 @@ describe("parseReplayViewPrefs", () => {
     );
     expect(parseReplayViewPrefs({ timelineLanes: 0 }).timelineLanes).toBe(true);
     expect(parseReplayViewPrefs({}).timelineLanes).toBe(true);
+  });
+
+  test("reads the auto-continue flag, and only a real boolean", () => {
+    expect(parseReplayViewPrefs({ autoContinue: false }).autoContinue).toBe(
+      false,
+    );
+    expect(parseReplayViewPrefs({ autoContinue: true }).autoContinue).toBe(
+      true,
+    );
+    /*
+     * A truthy non-boolean is NOT a preference. Falling back to the
+     * default is the rule the whole parser follows: one hand-edited or
+     * older-Dashboard field costs that field only.
+     */
+    expect(parseReplayViewPrefs({ autoContinue: "no" }).autoContinue).toBe(
+      true,
+    );
+    expect(parseReplayViewPrefs({ autoContinue: 0 }).autoContinue).toBe(true);
+    expect(parseReplayViewPrefs({ autoContinue: null }).autoContinue).toBe(
+      true,
+    );
+    expect(parseReplayViewPrefs({}).autoContinue).toBe(true);
   });
 
   test("non-objects read as the defaults", () => {
@@ -399,13 +432,14 @@ describe("cycleReplayStageFit", () => {
 });
 
 /* The new fields round-trip through the store like every other pref. */
-describe("stage fit and timeline lanes in the store", () => {
+describe("stage fit, timeline lanes and auto-continue in the store", () => {
   test("updates are validated, written and announced", () => {
     const storage: FakeStorage = new FakeStorage();
     const store: ReplayViewPrefsStore = new ReplayViewPrefsStore(storage);
 
     expect(store.update({ stageFit: "width" }).stageFit).toBe("width");
     expect(store.update({ timelineLanes: false }).timelineLanes).toBe(false);
+    expect(store.update({ autoContinue: false }).autoContinue).toBe(false);
 
     const stored: ReplayViewPrefs = JSON.parse(
       storage.values.get(REPLAY_VIEW_PREFS_STORAGE_KEY) as string,
@@ -413,6 +447,7 @@ describe("stage fit and timeline lanes in the store", () => {
 
     expect(stored.stageFit).toBe("width");
     expect(stored.timelineLanes).toBe(false);
+    expect(stored.autoContinue).toBe(false);
 
     /* An invalid write is clamped to the default rather than stored. */
     expect(
@@ -432,6 +467,12 @@ describe("stage fit and timeline lanes in the store", () => {
 
     expect(store.getSnapshot().stageFit).toBe("contain");
     expect(store.getSnapshot().timelineLanes).toBe(true);
+    /*
+     * A viewer upgrading into this build gets continuous playback, which
+     * is the point of shipping it as the default rather than as an
+     * opt-in nobody would find.
+     */
+    expect(store.getSnapshot().autoContinue).toBe(true);
     /* A width stored under the old 30rem default is still inside the range. */
     expect(store.getSnapshot().railWidthRem).toBe(30);
   });

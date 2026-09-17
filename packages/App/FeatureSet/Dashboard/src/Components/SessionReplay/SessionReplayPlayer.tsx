@@ -44,6 +44,7 @@ import {
   ReplayEngineReplayerEvent,
   ReplayEngineSnapshot,
   ReplayIdleBand,
+  ReplayPhase,
   ReplayRecordedSize,
   ReplayerFactory,
   ReplayerLike,
@@ -67,6 +68,13 @@ import ReplayHeader, {
   ReplayHeaderProps,
 } from "./ReplayHeader";
 import { ReplayTabSummary, summarizeReplayTabs } from "./ReplayTabs";
+import {
+  ReplayAutoContinueDecision,
+  ReplayAutoContinueTracker,
+  decideReplayAutoContinue,
+  describeReplayAutoContinue,
+  isReplayPlaybackPhase,
+} from "./ReplayAutoContinue";
 import {
   REPLAY_FILL_HEIGHT_CSS_VAR,
   useReplayFillHeight,
@@ -685,6 +693,32 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   /* Bumped per user-sessions lookup so a superseded response cannot land. */
   const userSessionsGenerationRef: React.MutableRefObject<number> =
     useRef<number>(0);
+  /*
+   * Which tabs continuous playback has walked into on its own, and how
+   * many hops that took. Per mount, and the page keys the player on the
+   * session, so opening another recording starts from nothing.
+   */
+  const autoContinueRef: React.MutableRefObject<ReplayAutoContinueTracker> =
+    useRef<ReplayAutoContinueTracker>(new ReplayAutoContinueTracker());
+  /*
+   * The phase the engine was in before the one being rendered.
+   *
+   * Auto-continue is a decision about a TRANSITION into "ended" - the tab
+   * played out under a viewer who was watching - and the phase alone
+   * cannot say that: the shell re-renders many times while the engine is
+   * parked at the end (a manifest poll appending rows, the rail's
+   * telemetry landing), and it must not also say "ended" about a viewer
+   * who paused at 99% or about a tab they came back to by hand.
+   */
+  const previousPhaseRef: React.MutableRefObject<ReplayPhase | null> =
+    useRef<ReplayPhase | null>(null);
+  /*
+   * Whether the stop the engine is parked at was playback running out
+   * rather than the viewer choosing it. Latched on the transition into
+   * "ended" so the answer survives until the tab that continues the
+   * session is known, which for a live recording is a poll away.
+   */
+  const didPlayOutRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
 
   engineRef.current = engine;
   manifestRef.current = manifest;
@@ -2015,8 +2049,18 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     }
   }, [runAfterTextSelectionExit]);
 
-  const switchTab: (tabId: string) => void = useCallback(
-    (tabId: string): void => {
+  /*
+   * Move to another tab of the same recording.
+   *
+   * `resume` says whether the switch is "keep watching" (auto-continue,
+   * the Continue chips) or "take me there" (a tab pill, the picker). Only
+   * the first carries the playing intent into the engine: a tab that
+   * played out left the engine paused, and a switch that did not say so
+   * landed on a still picture the viewer had to press Play on - the
+   * second half of the click-per-tab this fixes (issue 3865).
+   */
+  const switchTabTo: (tabId: string, resume: boolean) => void = useCallback(
+    (tabId: string, resume: boolean): void => {
       const current: SessionReplayManifest | null = manifestRef.current;
       const target: SessionReplayManifestTab | null = current
         ? findTab(current, tabId)
@@ -2039,6 +2083,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             type: "TAB_SWITCH",
             tabId: tabId,
             loader: loader,
+            resume: resume,
           });
           setActiveTabId(tabId);
         });
@@ -2052,6 +2097,86 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     },
     [createLoader, runAfterTextSelectionExit],
   );
+
+  /*
+   * A tab the viewer picked themselves. That also hands the wheel back:
+   * the auto-continue tracker forgets which tabs it walked into, so
+   * jumping back to Tab 1 by hand arms continuous playback for that
+   * stretch again instead of leaving the viewer parked at every end for
+   * the rest of the session.
+   */
+  const switchTab: (tabId: string) => void = useCallback(
+    (tabId: string): void => {
+      autoContinueRef.current.reset();
+      switchTabTo(tabId, false);
+    },
+    [switchTabTo],
+  );
+
+  /* The "Continue in Tab N" chips: keep watching, so keep playing. */
+  const continueInTabById: (tabId: string) => void = useCallback(
+    (tabId: string): void => {
+      autoContinueRef.current.noteEntered(tabId);
+      switchTabTo(tabId, true);
+    },
+    [switchTabTo],
+  );
+
+  /*
+   * ---- Continuous playback across the tabs of one session. ----
+   *
+   * The recorder mints a new tab id on every page load, so a visit that
+   * touched four pages is four "tabs" and the engine plays exactly one of
+   * them: at the end of each, rrweb Finishes, the engine parks at "ended"
+   * and the shell offered a chip. Watching a session end to end was a
+   * click per page - twice over, because the switch landed paused
+   * (github.com/OneUptime/oneuptime/issues/3865).
+   *
+   * Every rule about when NOT to move the viewer lives in the pure
+   * decideReplayAutoContinue; this effect is only the wiring: read the
+   * transition, act on the answer, remember the hop. It runs off the
+   * STRUCTURAL snapshot, which publishes on a phase change and not on the
+   * playhead, so it is evaluated on transitions rather than per frame.
+   */
+  useEffect(() => {
+    const previousPhase: ReplayPhase | null = previousPhaseRef.current;
+    previousPhaseRef.current = snapshot.phase;
+
+    /*
+     * Did THIS stop at the end come from playback running out, or from the
+     * viewer? Latched on the transition and held for as long as the engine
+     * stays at "ended", because a live recording can only offer the tab
+     * that continues it on a later manifest poll. Anything that moves the
+     * engine off "ended" - Watch again, a seek, a tab the viewer picked -
+     * clears it.
+     */
+    if (snapshot.phase !== "ended") {
+      didPlayOutRef.current = false;
+    } else if (previousPhase !== "ended") {
+      didPlayOutRef.current = isReplayPlaybackPhase(previousPhase);
+    }
+
+    const decision: ReplayAutoContinueDecision = decideReplayAutoContinue({
+      isEnabled: prefs.autoContinue,
+      phase: snapshot.phase,
+      didPlayOut: didPlayOutRef.current,
+      nextTab: continueInTab,
+      enteredTabIds: autoContinueRef.current.getEnteredTabIds(),
+      hopCount: autoContinueRef.current.getHopCount(),
+    });
+
+    if (!decision.shouldContinue || !decision.tabId || !continueInTab) {
+      return;
+    }
+
+    /*
+     * Said before the picture changes, not after: the stage is about to
+     * show another page, and a viewer who was not told why reads that as
+     * the player having lost its place. The notice clears itself.
+     */
+    setShellNotice(describeReplayAutoContinue(continueInTab));
+    continueInTabById(decision.tabId);
+  }, [snapshot.phase, prefs.autoContinue, continueInTab, continueInTabById]);
 
   const toggleTheater: () => void = useCallback((): void => {
     if (document.fullscreenElement) {
@@ -2527,6 +2652,22 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     [],
   );
 
+  /*
+   * Turning continuous playback back ON mid-session also clears what the
+   * tracker remembers, so the viewer does not have to reach the end of a
+   * tab they have not already been walked into before it does anything.
+   */
+  const changeAutoContinue: (isEnabled: boolean) => void = useCallback(
+    (isEnabled: boolean): void => {
+      if (isEnabled) {
+        autoContinueRef.current.reset();
+      }
+
+      replayViewPrefsStore.update({ autoContinue: isEnabled });
+    },
+    [],
+  );
+
   /* ---- Render. ---- */
 
   if (manifestFailure) {
@@ -2778,6 +2919,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             tabs: headerTabs,
             onSwitchTab: switchTab,
             continueInTab: continueInTab,
+            onContinueInTab: continueInTabById,
             sealedReason: sealedReason,
             isWide: prefs.wide,
             onToggleWide: toggleWide,
@@ -2897,6 +3039,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   getDiagnostic: getDiagnostic,
                   continueInTab: continueInTab,
                   onSwitchTab: switchTab,
+                  onContinueInTab: continueInTabById,
                   shellNotice: shellNotice,
                   absence: absence,
                   sealedReason: sealedReason,
@@ -2964,6 +3107,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                     isMouseTrailEnabled={prefs.mouseTrail}
                     showTimelineLanes={prefs.timelineLanes}
                     onTimelineLanesChange={changeTimelineLanes}
+                    isAutoContinueEnabled={prefs.autoContinue}
+                    onAutoContinueChange={changeAutoContinue}
                     onToggleRail={toggleRailCollapsed}
                     onCycleFit={cycleFit}
                     onSeek={seekTo}

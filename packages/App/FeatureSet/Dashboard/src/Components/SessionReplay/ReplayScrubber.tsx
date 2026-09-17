@@ -259,6 +259,12 @@ export interface ReplayScrubberProps {
    * in the transport's overflow menu. Default true.
    */
   showTimelineLanes?: boolean | undefined;
+  /*
+   * Whether playback carries on into the next browser tab of the session
+   * on its own. A persisted view preference the shell owns; offered in
+   * the transport's overflow menu. Default true.
+   */
+  isAutoContinueEnabled?: boolean | undefined;
 
   onSeek: (offsetMs: number) => void;
   onPlayPause: () => void;
@@ -278,6 +284,7 @@ export interface ReplayScrubberProps {
   onFollowChange?: ((isEnabled: boolean) => void) | undefined;
   onMouseTrailChange?: ((isEnabled: boolean) => void) | undefined;
   onTimelineLanesChange?: ((isVisible: boolean) => void) | undefined;
+  onAutoContinueChange?: ((isEnabled: boolean) => void) | undefined;
   /*
    * "r" and "z": the two layout keys. The shell owns both - the rail's
    * collapsed state and the stage's fit are its persisted preferences -
@@ -713,6 +720,7 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           isFollowEnabled={props.isFollowEnabled}
           isMouseTrailEnabled={props.isMouseTrailEnabled}
           isTimelineLanesVisible={showTimelineLanes}
+          isAutoContinueEnabled={props.isAutoContinueEnabled}
           onPlayPause={props.onPlayPause}
           onSeekRelative={handleSeekRelative}
           onSpeedChange={props.onSpeedChange}
@@ -725,6 +733,7 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           onFollowChange={props.onFollowChange}
           onMouseTrailChange={props.onMouseTrailChange}
           onTimelineLanesChange={props.onTimelineLanesChange}
+          onAutoContinueChange={props.onAutoContinueChange}
         />
       </div>
 

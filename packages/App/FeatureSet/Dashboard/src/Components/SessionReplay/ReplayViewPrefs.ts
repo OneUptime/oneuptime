@@ -7,7 +7,8 @@ import { REPLAY_RAIL_TAB_IDS, ReplayRailTabId } from "./Rail/ReplaySignalTypes";
  * speed they watch at (finding player-shell-16: 8x had to be re-selected
  * on every open), whether idle time is skipped, which rail tab was open,
  * how wide the rail is, whether the rail follows the playhead, whether the
- * page goes wide (no side menu), whether the mouse trail is drawn, how the
+ * page goes wide (no side menu), whether the mouse trail is drawn, whether
+ * playback carries on into the next browser tab on its own, how the
  * recording is fitted to the stage and whether the timeline's signal lanes
  * are shown.
  *
@@ -73,6 +74,15 @@ export interface ReplayViewPrefs {
   /* No side menu on the player page. Default ON: the picture needs the room. */
   wide: boolean;
   mouseTrail: boolean;
+  /*
+   * Playback carries on into the next browser tab on its own when the one
+   * being watched plays out. Default ON: a recorder that mints a tab id
+   * per page load turns a single visit into a dozen tabs, and stopping at
+   * each one made watching a session end-to-end a row of Continue clicks
+   * (github.com/OneUptime/oneuptime/issues/3865). Off is the old
+   * behaviour, for a viewer auditing one page load at a time.
+   */
+  autoContinue: boolean;
   /* The last open tab of the details panel. */
   detailsTab: ReplayDetailsTabId;
   /* How the recording is fitted to the stage. */
@@ -102,6 +112,7 @@ export function getDefaultReplayViewPrefs(): ReplayViewPrefs {
     follow: true,
     wide: true,
     mouseTrail: true,
+    autoContinue: true,
     detailsTab: "session",
     stageFit: "contain",
     timelineLanes: true,
@@ -209,6 +220,7 @@ export function parseReplayViewPrefs(raw: unknown): ReplayViewPrefs {
     follow: readBoolean(row["follow"], defaults.follow),
     wide: readBoolean(row["wide"], defaults.wide),
     mouseTrail: readBoolean(row["mouseTrail"], defaults.mouseTrail),
+    autoContinue: readBoolean(row["autoContinue"], defaults.autoContinue),
     detailsTab: readDetailsTab(row["detailsTab"]),
     stageFit: readStageFit(row["stageFit"]),
     timelineLanes: readBoolean(row["timelineLanes"], defaults.timelineLanes),

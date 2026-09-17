@@ -1061,4 +1061,92 @@ describe("ReplayScrubber timeline lanes", () => {
 
     expect(values).toEqual([false, true]);
   });
+
+  /*
+   * Continuous playback across the browser tabs of a session
+   * (github.com/OneUptime/oneuptime/issues/3865). It is on by default, so
+   * the item a viewer first sees is the one that turns it OFF - the
+   * overflow menu labels every item by what pressing it does, not by the
+   * state it reports.
+   */
+  it("offers the auto-continue toggle, labelled by what the press does", () => {
+    const values: Array<boolean> = [];
+    const onAutoContinueChange: (isEnabled: boolean) => void = (
+      isEnabled: boolean,
+    ): void => {
+      values.push(isEnabled);
+    };
+
+    const { rerender } = render(
+      <ReplayScrubber
+        {...makeProps({ onAutoContinueChange: onAutoContinueChange })}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("replay-more-menu"));
+
+    expect(
+      screen.queryByRole("menuitem", { name: "Play continuously across tabs" }),
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Stop at the end of each tab" }),
+    );
+
+    expect(values).toEqual([false]);
+
+    rerender(
+      <ReplayScrubber
+        {...makeProps({
+          isAutoContinueEnabled: false,
+          onAutoContinueChange: onAutoContinueChange,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("replay-more-menu"));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Play continuously across tabs" }),
+    );
+
+    expect(values).toEqual([false, true]);
+  });
+
+  /*
+   * An undefined preference reads as ON, the same rule the lanes follow,
+   * so a caller that predates the preference still describes the
+   * behaviour the player actually has.
+   */
+  it("treats an absent auto-continue preference as on", () => {
+    render(
+      <ReplayScrubber
+        {...makeProps({
+          onAutoContinueChange: (): void => {
+            // presence is what this asserts
+          },
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("replay-more-menu"));
+
+    expect(
+      screen.getByRole("menuitem", { name: "Stop at the end of each tab" }),
+    ).toBeInTheDocument();
+  });
+
+  /* The toggle alone is enough to earn the overflow menu. */
+  it("shows the overflow menu for the auto-continue handler alone", () => {
+    render(
+      <ReplayScrubber
+        {...makeProps({
+          onAutoContinueChange: (): void => {
+            // presence is what this asserts
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId("replay-more-menu")).toBeInTheDocument();
+  });
 });

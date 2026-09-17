@@ -27,7 +27,11 @@ import path from "path";
  *   - the rail sits beside the stage and is fed the playhead and selection;
  *   - the header is handed the identity the manifest served;
  *   - the page keys the player on the session, so browser back/forward
- *     between two recordings never reuses one session's state for the next.
+ *     between two recordings never reuses one session's state for the next;
+ *   - playback carries on into the next browser tab of the session by
+ *     itself, through the pure decision rather than rules inlined here,
+ *     and a switch made to keep watching resumes rather than landing
+ *     paused (github.com/OneUptime/oneuptime/issues/3865).
  *
  * Deliberately structural, not cosmetic: nothing here asserts a colour, a
  * spacing class or a label, so ordinary design work does not break it.
@@ -450,6 +454,159 @@ describe("playback intent", () => {
     expect(SOURCE).toMatch(
       /type: "TAB_SWITCH",\s*tabId: tabId,\s*loader: loader,/,
     );
+  });
+});
+
+/*
+ * Continuous playback across the browser tabs of one recording
+ * (github.com/OneUptime/oneuptime/issues/3865). The recorder mints a tab
+ * id per page load, so a four-page visit is four tabs; playback stopped at
+ * each one for a click on "Continue in Tab N" and another on Play.
+ *
+ * The rules for when to move a viewer on live in ReplayAutoContinue and
+ * are tested there. What only this file can own is the wiring: that the
+ * decision is the single gate, that the shell does not re-derive it, that
+ * the hop is recorded before it is made (the loop guard), and that the
+ * two kinds of tab switch are kept apart.
+ */
+describe("continuous playback across tabs", () => {
+  test("the decision is taken by the pure module, not re-derived in the shell", () => {
+    expect(SOURCE).toContain("decideReplayAutoContinue({");
+    expect(SOURCE).toContain("isEnabled: prefs.autoContinue,");
+    expect(SOURCE).toContain("nextTab: continueInTab,");
+    expect(SOURCE).toContain(
+      "enteredTabIds: autoContinueRef.current.getEnteredTabIds(),",
+    );
+    expect(SOURCE).toContain("hopCount: autoContinueRef.current.getHopCount()");
+  });
+
+  test("nothing happens unless the decision says so", () => {
+    const effect: string = slice(
+      SOURCE,
+      "const decision: ReplayAutoContinueDecision",
+      "continueInTabById(decision.tabId);",
+    );
+
+    expect(effect).toContain(
+      "if (!decision.shouldContinue || !decision.tabId || !continueInTab) {",
+    );
+    expect(effect).toContain("return;");
+    /*
+     * The shell must not second-guess the decision with a rule of its
+     * own: a phase check, a liveness check or a tab-count check here
+     * would be a second copy of the policy, tested nowhere.
+     */
+    expect(effect).not.toMatch(/snapshot\.phase\s*===/);
+    expect(effect).not.toContain("isLive");
+  });
+
+  /*
+   * "Did playback run out, or did the viewer stop here?" - latched on the
+   * transition, held while the engine stays at "ended" so a live
+   * recording can still continue once a later poll reveals the tab the
+   * user navigated to.
+   */
+  test("the played-out latch is set on the transition and cleared off it", () => {
+    const effect: string = slice(
+      SOURCE,
+      "const previousPhase: ReplayPhase | null = previousPhaseRef.current;",
+      "const decision: ReplayAutoContinueDecision",
+    );
+
+    expect(effect).toContain("previousPhaseRef.current = snapshot.phase;");
+    expect(effect).toContain('if (snapshot.phase !== "ended") {');
+    expect(effect).toContain("didPlayOutRef.current = false;");
+    expect(effect).toContain(
+      "didPlayOutRef.current = isReplayPlaybackPhase(previousPhase);",
+    );
+  });
+
+  /*
+   * The loop guard only works if the hop is recorded BEFORE the switch:
+   * the effect runs again on the publishes the switch itself causes, and
+   * a hop recorded afterwards would let the same target through twice.
+   */
+  test("the hop is recorded before the switch is made", () => {
+    const handler: string = slice(
+      SOURCE,
+      "const continueInTabById:",
+      "const toggleTheater:",
+    );
+
+    expect(handler).toContain("autoContinueRef.current.noteEntered(tabId);");
+    expect(handler).toContain("switchTabTo(tabId, true);");
+    expect(handler.indexOf("noteEntered")).toBeLessThan(
+      handler.indexOf("switchTabTo"),
+    );
+  });
+
+  /*
+   * Two kinds of switch, and the difference is the whole second half of
+   * the bug: continuing resumes, picking a tab keeps the intent in force.
+   */
+  test("continuing resumes playback; picking a tab does not", () => {
+    expect(SOURCE).toMatch(/resume:\s*resume,/);
+
+    const manual: string = slice(
+      SOURCE,
+      "const switchTab: (tabId: string) => void",
+      "const continueInTabById:",
+    );
+
+    expect(manual).toContain("switchTabTo(tabId, false);");
+    /* A tab the viewer picked hands the wheel back to them. */
+    expect(manual).toContain("autoContinueRef.current.reset();");
+  });
+
+  test("the switch is told why, and the engine is the only thing that acts", () => {
+    expect(SOURCE).toContain(
+      "const switchTabTo: (tabId: string, resume: boolean) => void",
+    );
+    /* No second PLAY dispatch chasing the switch: the engine lands playing. */
+    const effect: string = slice(
+      SOURCE,
+      "const decision: ReplayAutoContinueDecision",
+      "}, [snapshot.phase, prefs.autoContinue",
+    );
+
+    expect(effect).not.toContain('type: "PLAY"');
+  });
+
+  test("the viewer is told which tab the recording carried on in", () => {
+    expect(SOURCE).toContain(
+      "setShellNotice(describeReplayAutoContinue(continueInTab));",
+    );
+  });
+
+  /* Both Continue chips get the resuming handler, not the plain switch. */
+  test("the header chip and the ended card both continue rather than switch", () => {
+    expect(SOURCE).toContain("onContinueInTab: continueInTabById,");
+    expect(
+      (SOURCE.match(/onContinueInTab: continueInTabById,/g) ?? []).length,
+    ).toBe(2);
+  });
+
+  test("the preference is offered in the transport and persisted", () => {
+    expect(SOURCE).toContain("isAutoContinueEnabled={prefs.autoContinue}");
+    expect(SOURCE).toContain("onAutoContinueChange={changeAutoContinue}");
+    expect(SOURCE).toContain(
+      "replayViewPrefsStore.update({ autoContinue: isEnabled });",
+    );
+  });
+
+  /*
+   * Turning it back on mid-session must do something on the next end of
+   * a tab, not wait for a tab the walk has not already consumed.
+   */
+  test("turning it back on clears what the walk remembered", () => {
+    const handler: string = slice(
+      SOURCE,
+      "const changeAutoContinue:",
+      "if (manifestFailure) {",
+    );
+
+    expect(handler).toContain("if (isEnabled) {");
+    expect(handler).toContain("autoContinueRef.current.reset();");
   });
 });
 

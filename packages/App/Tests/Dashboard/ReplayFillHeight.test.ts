@@ -19,6 +19,14 @@ import {
  * the player), and that the subscription re-measures on a window resize
  * and on a ResizeObserver callback, reports only changed values, works
  * without ResizeObserver, and unsubscribes everything it attached.
+ *
+ * The fixtures use a TALL window (1200px, the player starting 180px down)
+ * wherever the point is the arithmetic, so the measured height is what
+ * comes out. Anything at or below the floor would answer
+ * REPLAY_FILL_MIN_HEIGHT_PX no matter what the arithmetic did, and a test
+ * that cannot tell the two apart is no test - which is exactly what
+ * raising the floor to 720 for issue 3865 turned the old 900px fixtures
+ * into. The floor has its own tests, which say so in their names.
  */
 
 class FakeResizeObserver implements ReplayFillHeightResizeObserverLike {
@@ -112,8 +120,8 @@ class FakeElement implements ReplayFillHeightElementLike {
 describe("computeReplayFillHeight", () => {
   test("fills from the player's document top to the bottom gutter", () => {
     expect(
-      computeReplayFillHeight({ viewportHeight: 900, rootDocumentTop: 180 }),
-    ).toBe(900 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX);
+      computeReplayFillHeight({ viewportHeight: 1100, rootDocumentTop: 180 }),
+    ).toBe(1100 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX);
   });
 
   test("a taller viewport gives a taller player, one pixel for one pixel", () => {
@@ -121,9 +129,9 @@ describe("computeReplayFillHeight", () => {
       computeReplayFillHeight({ viewportHeight: 1200, rootDocumentTop: 180 }),
     ).toBe(1200 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX);
     expect(
-      computeReplayFillHeight({ viewportHeight: 901, rootDocumentTop: 180 }),
+      computeReplayFillHeight({ viewportHeight: 1201, rootDocumentTop: 180 }),
     ).toBe(
-      computeReplayFillHeight({ viewportHeight: 900, rootDocumentTop: 180 }) +
+      computeReplayFillHeight({ viewportHeight: 1200, rootDocumentTop: 180 }) +
         1,
     );
   });
@@ -131,6 +139,15 @@ describe("computeReplayFillHeight", () => {
   test("never goes below the minimum: a short window scrolls instead", () => {
     expect(
       computeReplayFillHeight({ viewportHeight: 600, rootDocumentTop: 300 }),
+    ).toBe(REPLAY_FILL_MIN_HEIGHT_PX);
+    /*
+     * The machine issue 3865 was reported from: a 768px-tall laptop
+     * window with the Dashboard's bar, breadcrumbs and page tabs above
+     * the player. The floor is what decides how much height the stage
+     * gets there, because the arithmetic answers less than it.
+     */
+    expect(
+      computeReplayFillHeight({ viewportHeight: 768, rootDocumentTop: 170 }),
     ).toBe(REPLAY_FILL_MIN_HEIGHT_PX);
     expect(
       computeReplayFillHeight({ viewportHeight: 200, rootDocumentTop: 0 }),
@@ -217,18 +234,28 @@ describe("computeReplayFillHeight", () => {
   test("the CSS variable name is the one the shell writes", () => {
     expect(REPLAY_FILL_HEIGHT_CSS_VAR).toBe("--oneuptime-replay-fill-height");
     expect(REPLAY_FILL_HEIGHT_CSS_VAR.startsWith("--")).toBe(true);
-    expect(REPLAY_FILL_MIN_HEIGHT_PX).toBe(600);
+    /*
+     * 720, raised from 600 for issue 3865 ("the default player size is
+     * very small"). The stage only gets what the card's chrome leaves
+     * it - roughly 250px for the header bar, the timeline with its
+     * signal lanes and the transport - so on a short laptop window a
+     * 600px player drew a 1080p recording at about a third of its size.
+     * The number is pinned here because it is a product decision about
+     * how much page scroll a bigger picture is worth, not an
+     * implementation detail.
+     */
+    expect(REPLAY_FILL_MIN_HEIGHT_PX).toBe(720);
     expect(REPLAY_FILL_BOTTOM_GUTTER_PX).toBe(16);
   });
 });
 
 describe("measureReplayFillHeight", () => {
   test("adds the scroll offset so the document top, not the viewport top, is used", () => {
-    const view: FakeView = new FakeView(900);
+    const view: FakeView = new FakeView(1200);
     const element: FakeElement = new FakeElement(180);
 
     expect(measureReplayFillHeight(element, view)).toBe(
-      900 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
+      1200 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
     );
 
     /* Scrolled 100px down: the element's viewport top moved up by 100. */
@@ -236,22 +263,22 @@ describe("measureReplayFillHeight", () => {
     element.top = 80;
 
     expect(measureReplayFillHeight(element, view)).toBe(
-      900 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
+      1200 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
     );
   });
 
   test("a missing or non-finite scrollY is treated as the top of the document", () => {
-    const view: FakeView = new FakeView(900);
+    const view: FakeView = new FakeView(1200);
 
     view.scrollY = NaN;
 
     expect(measureReplayFillHeight(new FakeElement(180), view)).toBe(
-      900 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
+      1200 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
     );
   });
 
   test("an element whose rect throws falls back to the minimum", () => {
-    const view: FakeView = new FakeView(900);
+    const view: FakeView = new FakeView(1200);
     const broken: ReplayFillHeightElementLike = {
       getBoundingClientRect: (): { top: number } => {
         throw new Error("detached");
@@ -282,7 +309,7 @@ describe("observeReplayFillHeight", () => {
   test("measures once immediately", () => {
     FakeResizeObserver.instances = [];
 
-    const view: FakeView = new FakeView(900);
+    const view: FakeView = new FakeView(1200);
     const sink: {
       heights: Array<number>;
       onChange: (height: number) => void;
@@ -294,14 +321,14 @@ describe("observeReplayFillHeight", () => {
       onChange: sink.onChange,
     });
 
-    expect(sink.heights).toEqual([900 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX]);
+    expect(sink.heights).toEqual([1200 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX]);
     dispose();
   });
 
   test("re-measures on a window resize and reports only new values", () => {
     FakeResizeObserver.instances = [];
 
-    const view: FakeView = new FakeView(900);
+    const view: FakeView = new FakeView(1200);
     const element: FakeElement = new FakeElement(180);
     const sink: {
       heights: Array<number>;
@@ -314,13 +341,13 @@ describe("observeReplayFillHeight", () => {
       onChange: sink.onChange,
     });
 
-    view.resize(1000);
+    view.resize(1300);
     /* The same height again: the subscriber is not told twice. */
-    view.resize(1000);
+    view.resize(1300);
 
     expect(sink.heights).toEqual([
-      900 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
-      1000 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
+      1200 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
+      1300 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
     ]);
 
     dispose();
@@ -329,7 +356,7 @@ describe("observeReplayFillHeight", () => {
   test("observes the document element and the player's parent, and re-measures when they resize", () => {
     FakeResizeObserver.instances = [];
 
-    const view: FakeView = new FakeView(900);
+    const view: FakeView = new FakeView(1200);
     const element: FakeElement = new FakeElement(180);
     const sink: {
       heights: Array<number>;
@@ -355,8 +382,8 @@ describe("observeReplayFillHeight", () => {
     observer.fire();
 
     expect(sink.heights).toEqual([
-      900 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
-      900 - 260 - REPLAY_FILL_BOTTOM_GUTTER_PX,
+      1200 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
+      1200 - 260 - REPLAY_FILL_BOTTOM_GUTTER_PX,
     ]);
 
     /* The player's own growth does not move its top: measured, not reported. */
@@ -369,7 +396,7 @@ describe("observeReplayFillHeight", () => {
   test("works without ResizeObserver: the resize listener still keeps it current", () => {
     FakeResizeObserver.instances = [];
 
-    const view: FakeView = new FakeView(900, false);
+    const view: FakeView = new FakeView(1200, false);
     const sink: {
       heights: Array<number>;
       onChange: (height: number) => void;
@@ -383,10 +410,11 @@ describe("observeReplayFillHeight", () => {
 
     expect(FakeResizeObserver.instances).toHaveLength(0);
 
-    view.resize(700);
+    /* Down to a window the floor decides, so both branches are covered. */
+    view.resize(800);
 
     expect(sink.heights).toEqual([
-      900 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
+      1200 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
       REPLAY_FILL_MIN_HEIGHT_PX,
     ]);
 
@@ -396,7 +424,7 @@ describe("observeReplayFillHeight", () => {
   test("an element without a parent still observes the document element", () => {
     FakeResizeObserver.instances = [];
 
-    const view: FakeView = new FakeView(900);
+    const view: FakeView = new FakeView(1200);
     const dispose: () => void = observeReplayFillHeight({
       element: new FakeElement(180, false),
       view: view,
@@ -411,7 +439,7 @@ describe("observeReplayFillHeight", () => {
   });
 
   test("a ResizeObserver that throws on construction does not break the subscription", () => {
-    const view: FakeView = new FakeView(900);
+    const view: FakeView = new FakeView(1200);
 
     view.ResizeObserver = class ThrowingObserver {
       public constructor() {
@@ -430,11 +458,11 @@ describe("observeReplayFillHeight", () => {
       onChange: sink.onChange,
     });
 
-    view.resize(1000);
+    view.resize(1300);
 
     expect(sink.heights).toEqual([
-      900 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
-      1000 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
+      1200 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
+      1300 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX,
     ]);
 
     dispose();
@@ -443,7 +471,7 @@ describe("observeReplayFillHeight", () => {
   test("dispose removes the listener, disconnects the observer and stops reporting", () => {
     FakeResizeObserver.instances = [];
 
-    const view: FakeView = new FakeView(900);
+    const view: FakeView = new FakeView(1200);
     const element: FakeElement = new FakeElement(180);
     const sink: {
       heights: Array<number>;
@@ -469,6 +497,6 @@ describe("observeReplayFillHeight", () => {
     observer.fire();
     view.resize(500);
 
-    expect(sink.heights).toEqual([900 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX]);
+    expect(sink.heights).toEqual([1200 - 180 - REPLAY_FILL_BOTTOM_GUTTER_PX]);
   });
 });
