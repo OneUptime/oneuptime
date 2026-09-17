@@ -7,7 +7,7 @@ import { DataSource } from "typeorm";
  * localhost:5400 — hence the defaults below.
  *
  * DATABASE_MIGRATIONS_HOST / DATABASE_MIGRATIONS_PORT (already in
- * config.example.env, already honoured by migration-run.sh) override them, so
+ * config.example.env) override them, so
  * the schema-drift job can point this at a CI service container on a different
  * port without editing the file.
  */

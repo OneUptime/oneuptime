@@ -563,8 +563,9 @@ describe("MonitorCriteriaEvaluator - the table and the sentence agree", () => {
         bothRenderings(testCase);
 
       expect(rendered.cell.length).toBeGreaterThan(0);
-      expect(rendered.sentence).toContain(`is ${rendered.cell} which is`);
-      expect(rendered.sentence).toContain(`greater than ${rendered.cell}.`);
+      expect(rendered.sentence).toBe(
+        `${testCase.metricName} was ${rendered.cell}. The condition requires the value to be above the ${rendered.cell} threshold.`,
+      );
     });
   }
 });

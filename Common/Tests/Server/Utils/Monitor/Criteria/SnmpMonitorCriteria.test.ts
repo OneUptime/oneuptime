@@ -108,7 +108,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
       expect(result).toBeTruthy();
       expect(result).toContain(PSU_OID);
-      expect(result).toContain("equal to 3");
+      expect(result).toContain("equal to the 3 threshold");
     });
 
     test("Integer 3 equals 5 → criteria is not met", async () => {
@@ -163,7 +163,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         });
 
       expect(result).toBeTruthy();
-      expect(result).toContain("not equal to 6");
+      expect(result).toContain("different from the 6 threshold");
     });
 
     test("Integer 3 contains '3' → criteria is met (string fallback path)", async () => {

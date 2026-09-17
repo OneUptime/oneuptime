@@ -305,7 +305,7 @@ describe("External Status Page criteria filter conditions", () => {
           activeIncidentCount: 0,
           criteriaFilter: activeIncidentsFilterOf(seededOnlineCriteria()),
         }),
-      ).resolves.toContain("equal to 0");
+      ).resolves.toContain("equal to the 0 threshold");
     });
 
     test("the seeded 'no active incidents' filter is not met once one opens", async () => {
@@ -327,7 +327,7 @@ describe("External Status Page criteria filter conditions", () => {
             value: 3,
           },
         }),
-      ).resolves.toContain("equal to 3");
+      ).resolves.toContain("equal to the 3 threshold");
     });
 
     test("exact match stays quiet on a different count", async () => {
@@ -353,7 +353,7 @@ describe("External Status Page criteria filter conditions", () => {
             value: 0,
           },
         }),
-      ).resolves.toContain("not equal to 0");
+      ).resolves.toContain("different from the 0 threshold");
     });
 
     test("not-equal stays quiet on the matching count", async () => {

@@ -63,7 +63,7 @@ describe("CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet", () =
 
       expect(result).toBeTruthy();
       expect(result).toContain("Execution Time");
-      expect(result).toContain("greater than");
+      expect(result).toContain("above the 1000 threshold");
     });
 
     test("execution below threshold → not met", async () => {
@@ -445,7 +445,7 @@ describe("CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet", () =
 
       expect(result).toBeTruthy();
       expect(result).toContain("Result Value");
-      expect(result).toContain("greater than");
+      expect(result).toContain("above the 40 threshold");
     });
 
     test("numeric result below a numeric threshold → not met", async () => {

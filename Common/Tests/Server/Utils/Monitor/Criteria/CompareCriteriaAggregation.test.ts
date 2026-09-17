@@ -295,7 +295,7 @@ describe("CompareCriteria aggregation semantics", () => {
        */
       expect(message).toContain("91.53");
       expect(message).toContain(
-        "1 of 5 samples in the evaluation window breached this threshold.",
+        "in 1 of 5 readings, above the 90.00% threshold.",
       );
     });
 
@@ -312,7 +312,7 @@ describe("CompareCriteria aggregation semantics", () => {
       });
 
       expect(message).toBe(
-        "Any value of CPU is 95.00%, 96.00%, 97.00% which is greater than 90.00%.",
+        "CPU ranged from 95.00% to 97.00% across all 3 readings, above the 90.00% threshold.",
       );
     });
 
@@ -328,11 +328,13 @@ describe("CompareCriteria aggregation semantics", () => {
         unit: "%",
       });
 
-      expect(message).toContain("80.00%, 70.00%");
+      expect(message).toContain(
+        "ranged from 70.00% to 80.00% across 2 of 3 readings",
+      );
       expect(message).not.toContain("95");
     });
 
-    test("AllValues is unaffected — every sample breached by definition", () => {
+    test("AllValues describes the range and the full reading count", () => {
       const message: string = CompareCriteria.getCompareMessage({
         values: [95, 96],
         threshold: 90,
@@ -345,7 +347,7 @@ describe("CompareCriteria aggregation semantics", () => {
       });
 
       expect(message).toBe(
-        "All values of CPU is 95.00%, 96.00% which is greater than 90.00%.",
+        "CPU ranged from 95.00% to 96.00% across all 2 readings, above the 90.00% threshold.",
       );
     });
 
@@ -361,7 +363,7 @@ describe("CompareCriteria aggregation semantics", () => {
         unit: "%",
       });
 
-      expect(message).toContain("The average of CPU is 20");
+      expect(message).toContain("The average of CPU was 20");
       expect(message).not.toContain("10, 20, 30");
     });
 
@@ -370,8 +372,8 @@ describe("CompareCriteria aggregation semantics", () => {
       [EvaluateOverTimeType.Sum, "The sum of"],
       [EvaluateOverTimeType.MaximumValue, "The maximum of"],
       [EvaluateOverTimeType.MunimumValue, "The minimum of"],
-      [EvaluateOverTimeType.AnyValue, "Any value of"],
-      [EvaluateOverTimeType.AllValues, "All values of"],
+      [EvaluateOverTimeType.AnyValue, "CPU was"],
+      [EvaluateOverTimeType.AllValues, "CPU was"],
     ])(
       "%s is named in the sentence as %s",
       (evaluationType: EvaluateOverTimeType, expectedPrefix: string) => {
@@ -389,8 +391,8 @@ describe("CompareCriteria aggregation semantics", () => {
 
     test("a message rendered for a filter that did not match degrades gracefully", () => {
       /*
-       * Nothing in the window is above 200; the whole window is quoted
-       * rather than an empty list.
+       * Nothing in the window is above 200. Report what was observed,
+       * then describe the unmet requirement without claiming a breach.
        */
       const message: string = CompareCriteria.getCompareMessage({
         values: WINDOW,
@@ -405,6 +407,9 @@ describe("CompareCriteria aggregation semantics", () => {
 
       expect(message).toContain("72.35");
       expect(message).not.toContain("samples in the evaluation window");
+      expect(message).toContain(
+        "The condition requires at least one reading to be above the 200.00% threshold.",
+      );
     });
 
     test("a non-numeric window is left alone", () => {
@@ -470,9 +475,7 @@ describe("CompareCriteria aggregation semantics", () => {
     test("the dimensionless '1' is dropped from the value AND the threshold", () => {
       const message: string = unitMessage("1");
 
-      expect(message).toBe(
-        "Any value of Metric Value is 0.85 which is greater than 0.8.",
-      );
+      expect(message).toBe("Metric Value was 0.85, above the 0.8 threshold.");
       // The two halves of the defect, pinned separately.
       expect(message).not.toContain("0.85 1");
       expect(message).not.toContain("0.8 1");
@@ -492,7 +495,7 @@ describe("CompareCriteria aggregation semantics", () => {
         unit: "1",
       });
 
-      expect(message).toContain("0.31 which is");
+      expect(message).toContain("0.31, at or above the 0.25 threshold");
       expect(message).not.toMatch(/\d\s1\b/);
     });
 
@@ -501,9 +504,7 @@ describe("CompareCriteria aggregation semantics", () => {
 
       expect(message).not.toContain("{cpu}");
       expect(message).not.toContain("{");
-      expect(message).toBe(
-        "Any value of Metric Value is 0.85 which is greater than 0.8.",
-      );
+      expect(message).toBe("Metric Value was 0.85, above the 0.8 threshold.");
 
       expect(unitMessage("{packets}")).not.toContain("{packets}");
       expect(unitMessage("{errors}")).not.toContain("{errors}");
@@ -521,13 +522,13 @@ describe("CompareCriteria aggregation semantics", () => {
        * value and the threshold can never be quoted in different units.
        */
       expect(unitMessage("By")).toBe(
-        "Any value of Metric Value is 0.85 B which is greater than 0.8 B.",
+        "Metric Value was 0.85 B, above the 0.8 B threshold.",
       );
       expect(unitMessage("%")).toBe(
-        "Any value of Metric Value is 0.85% which is greater than 0.80%.",
+        "Metric Value was 0.85%, above the 0.80% threshold.",
       );
       expect(unitMessage("ms")).toBe(
-        "Any value of Metric Value is 850 µs which is greater than 800 µs.",
+        "Metric Value was 850 µs, above the 800 µs threshold.",
       );
       // "1" is suppressed; a unit that merely CONTAINS a 1 is not.
       expect(unitMessage("m/s2")).toContain("0.85 m/s2");
@@ -538,17 +539,17 @@ describe("CompareCriteria aggregation semantics", () => {
       const message: string = unitMessage(" ms ");
 
       expect(message).toBe(
-        "Any value of Metric Value is 850 µs which is greater than 800 µs.",
+        "Metric Value was 850 µs, above the 800 µs threshold.",
       );
       expect(message).not.toContain("  ");
     });
 
     test("a whitespace-only unit is treated as no unit at all", () => {
       expect(unitMessage("   ")).toBe(
-        "Any value of Metric Value is 0.85 which is greater than 0.8.",
+        "Metric Value was 0.85, above the 0.8 threshold.",
       );
       expect(unitMessage(undefined)).toBe(
-        "Any value of Metric Value is 0.85 which is greater than 0.8.",
+        "Metric Value was 0.85, above the 0.8 threshold.",
       );
       // A padded "1" is still the dimensionless marker.
       expect(unitMessage(" 1 ")).not.toMatch(/\d\s1\b/);
@@ -583,7 +584,7 @@ describe("CompareCriteria aggregation semantics", () => {
 
         expect(message).not.toMatch(/\d\s1\b/);
         expect(message).toContain("0.85");
-        expect(message).toContain("0.8.");
+        expect(message).toMatch(/0\.8(?: threshold)?\./);
       }
     });
   });

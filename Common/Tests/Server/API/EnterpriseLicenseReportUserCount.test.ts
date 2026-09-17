@@ -476,6 +476,139 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/report-user-count", () =
   });
 
   describe("usage accounting", () => {
+    it.each([false, true])(
+      "keeps instance, license, and dashboard activity aligned when the instance already exists: %s",
+      async (alreadyExists: boolean) => {
+        const reportedAt: Date = new Date("2026-09-17T08:00:00.000Z");
+        const registeredAt: Date = new Date("2026-09-01T08:00:00.000Z");
+        const previousReportedAt: Date = new Date("2026-09-16T08:00:00.000Z");
+        const instanceId: ObjectID = ObjectID.generate();
+        const license: EnterpriseLicense = makeLicense({
+          userCountUpdatedAt: previousReportedAt,
+        });
+        let storedInstance: EnterpriseLicenseInstance | null = alreadyExists
+          ? makeInstance({
+              id: instanceId,
+              createdAt: registeredAt,
+              lastReportedAt: previousReportedAt,
+            })
+          : null;
+
+        jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(reportedAt);
+        EnterpriseLicenseInstanceService.findOneBy = jest
+          .fn()
+          .mockImplementation(
+            async (): Promise<EnterpriseLicenseInstance | null> => {
+              return storedInstance;
+            },
+          );
+        EnterpriseLicenseInstanceService.create = jest
+          .fn()
+          .mockImplementation(
+            async (args: {
+              data: EnterpriseLicenseInstance;
+            }): Promise<EnterpriseLicenseInstance> => {
+              storedInstance = makeInstance({
+                ...args.data,
+                id: instanceId,
+                createdAt: reportedAt,
+              });
+
+              return storedInstance;
+            },
+          );
+        EnterpriseLicenseInstanceService.updateOneById = jest
+          .fn()
+          .mockImplementation(
+            async (args: {
+              data: Partial<EnterpriseLicenseInstance>;
+            }): Promise<number> => {
+              Object.assign(storedInstance!, args.data);
+
+              return 1;
+            },
+          );
+        EnterpriseLicenseInstanceService.findBy = jest
+          .fn()
+          .mockImplementation(
+            async (): Promise<Array<EnterpriseLicenseInstance>> => {
+              return storedInstance ? [storedInstance] : [];
+            },
+          );
+        EnterpriseLicenseService.updateOneById = jest
+          .fn()
+          .mockImplementation(
+            async (args: {
+              data: Partial<EnterpriseLicense>;
+            }): Promise<number> => {
+              Object.assign(license, args.data);
+
+              return 1;
+            },
+          );
+        EnterpriseLicenseService.findOneById = jest
+          .fn()
+          .mockResolvedValue(license);
+
+        await callRoute();
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(storedInstance).toEqual(
+          expect.objectContaining({
+            lastReportedAt: reportedAt,
+            createdAt: alreadyExists ? registeredAt : reportedAt,
+          }),
+        );
+        expect(license.userCountUpdatedAt).toEqual(reportedAt);
+        expect(getResponseBody()).toEqual(
+          expect.objectContaining({
+            userCountUpdatedAt: reportedAt.toISOString(),
+            instances: [
+              expect.objectContaining({
+                instanceId: "instance-1",
+                lastReportedAt: reportedAt.toISOString(),
+                isCountedTowardsUsage: true,
+              }),
+            ],
+          }),
+        );
+        expect(EnterpriseLicenseInstanceService.findBy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: { enterpriseLicenseId: LICENSE_ID },
+            select: expect.objectContaining({
+              _id: true,
+              createdAt: true,
+              lastReportedAt: true,
+            }),
+          }),
+        );
+        expect(EnterpriseLicenseInstanceService.create).toHaveBeenCalledTimes(
+          alreadyExists ? 0 : 1,
+        );
+        expect(
+          EnterpriseLicenseInstanceService.updateOneById,
+        ).toHaveBeenCalledTimes(alreadyExists ? 1 : 0);
+
+        jest.mocked(Response.sendJsonObjectResponse).mockClear();
+        mockRequest.params = {
+          enterpriseLicenseId: LICENSE_ID.toString(),
+        };
+
+        await mockRouter
+          .match("get", ACTIVE_USAGE_ROUTE)
+          .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(getResponseBody()).toEqual(
+          expect.objectContaining({
+            currentUserCount: 2,
+            activeInstanceIds: [instanceId.toString()],
+            lastUsageReportedAt: reportedAt.toISOString(),
+          }),
+        );
+      },
+    );
+
     it("records this instance's usage against the license", async () => {
       await callRoute();
 

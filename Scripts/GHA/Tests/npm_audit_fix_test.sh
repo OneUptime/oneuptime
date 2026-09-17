@@ -13,7 +13,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-FIX_SCRIPT="${REPO_ROOT}/npm-audit-fix.sh"
+FIX_SCRIPT="${REPO_ROOT}/Scripts/Security/npm-audit-fix.sh"
 VALIDATOR="${REPO_ROOT}/Scripts/Security/ValidateNpmAudit.js"
 
 PASS=0
@@ -161,6 +161,14 @@ make_package() {
 	fi
 }
 
+# The exceptions file lives next to the audit scripts, relative to the audit root.
+EXCEPTIONS_RELATIVE_PATH="Scripts/Security/npm-audit-exceptions.json"
+
+write_exceptions() {
+	mkdir -p "$1/Scripts/Security"
+	cat > "$1/${EXCEPTIONS_RELATIVE_PATH}"
+}
+
 run_fix() {
 	local root="$1"
 	shift
@@ -180,7 +188,7 @@ CASE_ROOT="${WORK_DIR}/stale-after-fix"
 make_package "$CASE_ROOT" "." true
 make_package "$CASE_ROOT" "MobileApp" true
 make_package "$CASE_ROOT" "Dashboard" true
-cat > "${CASE_ROOT}/npm-audit-exceptions.json" <<'JSON'
+write_exceptions "$CASE_ROOT" <<'JSON'
 {
   "MobileApp": [
     {
@@ -202,8 +210,8 @@ CALL_LOG="${WORK_DIR}/stale-after-fix.calls"
 status=0
 output="$(run_fix "$CASE_ROOT" env NPM_FAKE_VULNERABLE_SUFFIX="/Dashboard" NPM_FAKE_FIXED_BY_FIX_SUFFIX="/MobileApp")" || status=$?
 assert_eq 0 "$status" "succeeds when it prunes an exception"
-assert_eq "<no key>" "$(exceptions_for "${CASE_ROOT}/npm-audit-exceptions.json" MobileApp)" "removes the project key once its last exception is stale"
-assert_eq "GHSA-aaaa-bbbb-cccc" "$(exceptions_for "${CASE_ROOT}/npm-audit-exceptions.json" Dashboard)" "keeps an exception whose advisory is still reported"
+assert_eq "<no key>" "$(exceptions_for "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}" MobileApp)" "removes the project key once its last exception is stale"
+assert_eq "GHSA-aaaa-bbbb-cccc" "$(exceptions_for "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}" Dashboard)" "keeps an exception whose advisory is still reported"
 assert_contains "$output" "MobileApp: removed audit exception(s) no longer in the dependency tree: GHSA-AAAA-BBBB-CCCC." "says which exception it removed"
 for project in "." "MobileApp" "Dashboard"; do
 	directory="$CASE_ROOT"
@@ -227,8 +235,8 @@ expected_file="$(cat <<'JSON'
 }
 JSON
 )"
-assert_eq "$expected_file" "$(cat "${CASE_ROOT}/npm-audit-exceptions.json")" "rewrites the file as two-space JSON"
-assert_eq "" "$(tail -c 1 "${CASE_ROOT}/npm-audit-exceptions.json" | tr -d '\n')" "ends the file with a newline"
+assert_eq "$expected_file" "$(cat "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}")" "rewrites the file as two-space JSON"
+assert_eq "" "$(tail -c 1 "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}" | tr -d '\n')" "ends the file with a newline"
 
 # The audit gate accepts what the job leaves behind for the project it pruned.
 CLEAN_REPORT="${WORK_DIR}/clean-report.json"
@@ -236,27 +244,27 @@ echo '{"auditReportVersion": 2, "vulnerabilities": {}}' > "$CLEAN_REPORT"
 status=0
 node "$VALIDATOR" \
 	--audit-result "$CLEAN_REPORT" \
-	--exceptions "${CASE_ROOT}/npm-audit-exceptions.json" \
+	--exceptions "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}" \
 	--project ./MobileApp --audit-level low --npm-status 0 >/dev/null 2>&1 || status=$?
 assert_eq 0 "$status" "leaves nothing for the audit gate to reject in the pruned project"
 
 # Nothing stale: the file is not rewritten at all, not even reformatted.
 CASE_ROOT="${WORK_DIR}/still-needed"
 make_package "$CASE_ROOT" "MobileApp" true
-printf '{"MobileApp":[{"advisory":"ghsa-aaaa-bbbb-cccc","expires":"2999-12-31","reason":"Still needed."}]}' > "${CASE_ROOT}/npm-audit-exceptions.json"
-before="$(cat "${CASE_ROOT}/npm-audit-exceptions.json")"
+printf '{"MobileApp":[{"advisory":"ghsa-aaaa-bbbb-cccc","expires":"2999-12-31","reason":"Still needed."}]}' | write_exceptions "$CASE_ROOT"
+before="$(cat "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}")"
 CALL_LOG="${WORK_DIR}/still-needed.calls"
 status=0
 output="$(run_fix "$CASE_ROOT" env NPM_FAKE_VULNERABLE_SUFFIX="/MobileApp")" || status=$?
 assert_eq 0 "$status" "succeeds when every exception is still needed"
-assert_eq "$before" "$(cat "${CASE_ROOT}/npm-audit-exceptions.json")" "leaves a still-needed exception byte-for-byte alone, whatever its case"
+assert_eq "$before" "$(cat "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}")" "leaves a still-needed exception byte-for-byte alone, whatever its case"
 
 # An audit that failed proves nothing about the tree, so it removes nothing -
 # whether npm printed garbage or exited non-zero on an empty report.
 for variant in NPM_FAKE_INVALID_SUFFIX NPM_FAKE_EMPTY_FAILURE_SUFFIX; do
 	CASE_ROOT="${WORK_DIR}/broken-audit-${variant}"
 	make_package "$CASE_ROOT" "MobileApp" true
-	cat > "${CASE_ROOT}/npm-audit-exceptions.json" <<'JSON'
+	write_exceptions "$CASE_ROOT" <<'JSON'
 {
   "MobileApp": [
     {
@@ -267,12 +275,12 @@ for variant in NPM_FAKE_INVALID_SUFFIX NPM_FAKE_EMPTY_FAILURE_SUFFIX; do
   ]
 }
 JSON
-	before="$(cat "${CASE_ROOT}/npm-audit-exceptions.json")"
+	before="$(cat "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}")"
 	CALL_LOG="${WORK_DIR}/broken-audit-${variant}.calls"
 	status=0
 	output="$(run_fix "$CASE_ROOT" env "${variant}=/MobileApp")" || status=$?
 	assert_eq 0 "$status" "does not fail the job over an unusable audit (${variant})"
-	assert_eq "$before" "$(cat "${CASE_ROOT}/npm-audit-exceptions.json")" "keeps exceptions when the audit is unusable (${variant})"
+	assert_eq "$before" "$(cat "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}")" "keeps exceptions when the audit is unusable (${variant})"
 	assert_contains "$output" "MobileApp: kept audit exceptions unchanged" "explains why nothing was pruned (${variant})"
 done
 
@@ -280,7 +288,7 @@ done
 # prune: the tree may still have changed.
 CASE_ROOT="${WORK_DIR}/root-project"
 make_package "$CASE_ROOT" "." true
-cat > "${CASE_ROOT}/npm-audit-exceptions.json" <<'JSON'
+write_exceptions "$CASE_ROOT" <<'JSON'
 {
   ".": [
     {
@@ -296,7 +304,7 @@ status=0
 output="$(run_fix "$CASE_ROOT" env NPM_FAKE_FIX_STATUS=1)" || status=$?
 assert_eq 0 "$status" "keeps reporting, not failing, a broken fix"
 assert_contains "$output" "npm audit fix failed in ." "still reports the broken fix"
-assert_eq "{}" "$(cat "${CASE_ROOT}/npm-audit-exceptions.json")" "prunes the root project's expired, stale exception"
+assert_eq "{}" "$(cat "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}")" "prunes the root project's expired, stale exception"
 
 # Projects without a lockfile are skipped before any npm call, and a
 # repository with no exceptions file is left without one.
@@ -307,7 +315,7 @@ CALL_LOG="${WORK_DIR}/no-exceptions-file.calls"
 status=0
 output="$(run_fix "$CASE_ROOT" env)" || status=$?
 assert_eq 0 "$status" "succeeds without an exceptions file"
-assert_eq "false" "$([[ -e "${CASE_ROOT}/npm-audit-exceptions.json" ]] && echo true || echo false)" "does not create an exceptions file"
+assert_eq "false" "$([[ -e "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}" ]] && echo true || echo false)" "does not create an exceptions file"
 assert_eq 0 "$(grep -cF "${CASE_ROOT}/unlocked" "$CALL_LOG")" "does not call npm for a project without a lockfile"
 
 # A malformed exceptions file is surfaced as a warning and left for a human;
@@ -315,12 +323,12 @@ assert_eq 0 "$(grep -cF "${CASE_ROOT}/unlocked" "$CALL_LOG")" "does not call npm
 CASE_ROOT="${WORK_DIR}/malformed-file"
 make_package "$CASE_ROOT" "." true
 make_package "$CASE_ROOT" "MobileApp" true
-printf '{ not json' > "${CASE_ROOT}/npm-audit-exceptions.json"
+printf '{ not json' | write_exceptions "$CASE_ROOT"
 CALL_LOG="${WORK_DIR}/malformed-file.calls"
 status=0
 output="$(run_fix "$CASE_ROOT" env)" || status=$?
 assert_eq 0 "$status" "does not fail the job over a malformed exceptions file"
-assert_eq "{ not json" "$(cat "${CASE_ROOT}/npm-audit-exceptions.json")" "leaves a malformed exceptions file untouched"
+assert_eq "{ not json" "$(cat "${CASE_ROOT}/${EXCEPTIONS_RELATIVE_PATH}")" "leaves a malformed exceptions file untouched"
 # find's order is the filesystem's, so check every project rather than
 # whichever one happens to come after the first failure.
 for project in "." "MobileApp"; do

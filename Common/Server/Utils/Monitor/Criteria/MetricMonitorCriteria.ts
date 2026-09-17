@@ -368,7 +368,10 @@ export default class MetricMonitorCriteria {
         value: numbersInDisplayUnit.length > 0 ? numbersInDisplayUnit : 0,
         threshold: threshold,
         criteriaFilter: input.criteriaFilter,
-        metricDisplayName: metricContext.metricName,
+        metricDisplayName:
+          matchedQuery?.metricAliasData?.title?.trim() ||
+          matchedFormula?.metricAliasData?.title?.trim() ||
+          metricContext.metricName,
         unit: displayUnit,
         /*
          * Only a plain metric criteria has a real metric NAME —
