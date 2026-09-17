@@ -152,6 +152,16 @@ describe("the old name is gone from the source tree", () => {
       substring: './TelemetryEntity"',
       onlyUnder: path.join("Server", "Utils", "Telemetry"),
     },
+    /*
+     * The surviving OTel util's own test suite, cited by filename from its
+     * neighbours when they explain which suite covers what. It names the file
+     * that tests Utils/Telemetry/TelemetryEntity, never the renamed model, so
+     * it is scoped to the directory that suite lives in.
+     */
+    {
+      substring: "TelemetryEntity.test.ts",
+      onlyUnder: path.join("Tests", "Server", "Utils", "Telemetry"),
+    },
     { substring: "Jobs/TelemetryEntity/" },
     { substring: '"TelemetryEntity:' },
   ];
@@ -339,6 +349,50 @@ describe("the old name is gone from the source tree", () => {
       hasStaleTelemetryEntityReference(
         uiFile,
         'const route = "/telemetry-entity";',
+      ),
+    ).toBe(true);
+  });
+
+  test("the OTel util's test suite can be named by its neighbours", () => {
+    const telemetryTestFile: string = path.join(
+      REPO_ROOT,
+      "Common",
+      "Tests",
+      "Server",
+      "Utils",
+      "Telemetry",
+      "Example.test.ts",
+    );
+    const uiFile: string = path.join(REPO_ROOT, "Common", "UI", "Example.ts");
+
+    expect(
+      hasStaleTelemetryEntityReference(
+        telemetryTestFile,
+        " * TelemetryEntity.test.ts covers the extractor against a hand-built",
+      ),
+    ).toBe(false);
+
+    /*
+     * Scoped, so the filename cannot become a way to smuggle the old name
+     * back in anywhere else, and so a bare use of it inside that same
+     * directory still fails.
+     */
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        " * TelemetryEntity.test.ts covers the extractor.",
+      ),
+    ).toBe(true);
+    expect(
+      hasStaleTelemetryEntityReference(
+        telemetryTestFile,
+        "const value: TelemetryEntity = legacy;",
+      ),
+    ).toBe(true);
+    expect(
+      hasStaleTelemetryEntityReference(
+        telemetryTestFile,
+        "const value: TelemetryEntityService = legacy;",
       ),
     ).toBe(true);
   });
