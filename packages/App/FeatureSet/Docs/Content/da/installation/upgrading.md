@@ -213,7 +213,7 @@ not a destination.
 ### Docker Compose deployments
 
 The compose service `ai-agent` is now `runner`. If you upgrade with the
-standard `update.sh` flow, the new variables are appended to your
+standard `npm run update` flow, the new variables are appended to your
 `config.env` automatically and the stack boots — but read the key warning
 below. The renames, if you manage `config.env` or overrides by hand:
 

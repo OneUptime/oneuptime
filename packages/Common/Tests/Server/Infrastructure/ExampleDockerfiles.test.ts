@@ -7,9 +7,9 @@ import path from "path";
  * Regression tests for "the quick start does not work on a fresh clone".
  *
  * `.gitignore` carries a repo-wide `**\/Dockerfile` rule. That rule is correct
- * for service images: `configure.sh` renders every `Dockerfile.tpl` through
- * gomplate at install time, so the rendered `Dockerfile` really is build
- * output and really should not be committed.
+ * for service images: `Scripts/Install/configure.sh` renders every
+ * `Dockerfile.tpl` through gomplate at install time, so the rendered
+ * `Dockerfile` really is build output and really should not be committed.
  *
  * It is wrong for `Examples/`, where the Dockerfiles are hand-written source.
  * `Examples/snmp-simulator/Dockerfile` was swallowed by it: `docker compose up
@@ -259,8 +259,9 @@ const imageBuilds: Array<ImageBuild> = composeFiles.flatMap(
 
 /*
  * A Dockerfile is reachable on a fresh clone if it is committed, or if
- * `configure.sh` renders it from a committed `Dockerfile.tpl` before anything
- * builds it. Anything else exists only on the machine that authored it.
+ * `Scripts/Install/configure.sh` renders it from a committed `Dockerfile.tpl`
+ * before anything builds it. Anything else exists only on the machine that
+ * authored it.
  */
 const templateFor: (dockerfile: string) => string = (
   dockerfile: string,
@@ -440,13 +441,15 @@ describe("The .gitignore Dockerfile rules stay pointed at the right files", () =
     expect(templatesUnderExamples).toEqual([]);
   });
 
-  test("configure.sh is what renders the ignored Dockerfiles", () => {
+  test("Scripts/Install/configure.sh is what renders the ignored Dockerfiles", () => {
     /*
      * Ties the reasoning above to the code that makes it true. If the render
      * step moves or stops running over every template, the "ignored because
      * generated" justification stops holding and this file's premise is stale.
      */
-    const configureScript: string = readRepoFile("configure.sh");
+    const configureScript: string = readRepoFile(
+      path.join("Scripts", "Install", "configure.sh"),
+    );
 
     expect(configureScript).toContain('-name "Dockerfile.tpl"');
     expect(configureScript).toContain("gomplate");
