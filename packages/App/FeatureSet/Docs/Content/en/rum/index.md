@@ -19,10 +19,11 @@ This is the part worth understanding, because it is where almost every "my app i
 Classification happens per telemetry batch, from **resource attributes**, at ingest:
 
 1. If the resource carries any of `browser.platform`, `browser.language` or a non-empty `browser.brands`, the batch is **browser** RUM.
-2. Otherwise, if it carries any of `device.id`, `device.model.identifier` or `device.manufacturer`, it is **mobile** RUM.
-3. Otherwise it is not RUM at all — it is treated as a backend Service.
+2. Otherwise, if it carries `device.id` or `device.model.identifier`, it is **mobile** RUM.
+3. Otherwise, if it carries `device.manufacturer` and **no** `host.name` or `host.id`, it is **mobile** RUM.
+4. Otherwise it is not RUM at all — it is treated as a backend Service.
 
-Backend services never set `browser.*` or `device.*`, which is what makes this a clean signal rather than a heuristic.
+Backend services never set `browser.*`, `device.id` or `device.model.identifier`, which is what makes those a clean signal rather than a heuristic. `device.manufacturer` is the one exception: it doubles as the make of a physical machine on a host's inventory item, so it only marks a batch as mobile when the resource carries no host identity. A phone never reports `host.name` or `host.id`; a server always does. See [Inventory attributes](/docs/telemetry/host-otel-collector#inventory-attributes-ip-serial-number-make-model).
 
 Once a batch is classified as RUM, the application's identity is its **`service.name`**. OneUptime looks for a RUM application in the project with that identifier (case-insensitively) and creates one if there is none. Client telemetry is owned entirely by its RUM application — it is never also listed as a backend Service, so nothing is double-counted.
 
@@ -30,7 +31,8 @@ Once a batch is classified as RUM, the application's identity is its **`service.
 | --- | --- | --- |
 | `service.name` | **yes** | The application's identity, e.g. `storefront-web`. No `service.name`, no RUM application. |
 | `browser.platform` / `browser.language` / `browser.brands` | for web | Marks the batch as browser RUM. |
-| `device.id` / `device.model.identifier` / `device.manufacturer` | for mobile | Marks the batch as mobile RUM. |
+| `device.id` / `device.model.identifier` | for mobile | Marks the batch as mobile RUM. |
+| `device.manufacturer` | for mobile | Marks the batch as mobile RUM, unless the resource also carries `host.name` or `host.id`. Set one of the two above as well and this never matters. |
 | `telemetry.sdk.language` | no | Shown on the overview, e.g. `webjs`, `swift`. |
 | `telemetry.sdk.version` | no | Shown as the SDK version. `oneuptime.agent.version` is used if this is absent. |
 | `oneuptime.label.<name>` | no | Promoted to a project label `<name>:<value>` on the application. See [Managing Applications](/docs/rum/applications). |

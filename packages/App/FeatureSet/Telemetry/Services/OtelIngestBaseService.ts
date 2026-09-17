@@ -2372,8 +2372,13 @@ export default abstract class OtelIngestBaseService {
 
   /*
    * Classify a batch as browser- or mobile-RUM from its resource
-   * attributes, or null when it's not client-side telemetry. Backend
-   * services never set browser.* / device.*, so this is a clean signal.
+   * attributes, or null when it's not client-side telemetry.
+   *
+   * `browser.*`, `device.id` and `device.model.identifier` are clean
+   * signals — nothing but a client SDK sets them. `device.manufacturer`
+   * used to be treated the same way, but it is also how a machine's make
+   * is reported for host inventory, so it now needs the host-identity
+   * check below to stay unambiguous.
    */
   protected static getRumClientType(attributes: JSONArray): string | null {
     const hasBrowser: boolean = Boolean(
@@ -2386,12 +2391,45 @@ export default abstract class OtelIngestBaseService {
     }
     const hasDevice: boolean = Boolean(
       this.getStringAttribute(attributes, "device.id") ||
-        this.getStringAttribute(attributes, "device.model.identifier") ||
-        this.getStringAttribute(attributes, "device.manufacturer"),
+        this.getStringAttribute(attributes, "device.model.identifier"),
     );
     if (hasDevice) {
       return "mobile";
     }
+
+    /*
+     * `device.manufacturer` on its own is no longer proof of a phone.
+     * OneUptime now reads a machine's make and model as host inventory
+     * metadata (issue #3866), and an operator stamps those onto the
+     * collector's resource — often machine-wide through
+     * OTEL_RESOURCE_ATTRIBUTES, which every process on the box inherits.
+     *
+     * Classifying those batches as RUM is not a cosmetic mislabel: it
+     * makes `getServiceNameFromAttributes` return null, so the host's
+     * real Service row stops being created, and it makes
+     * `autoDiscoverRum` mint a Mobile RUM Application named after that
+     * service. A genuine mobile resource carries no host identity — the
+     * mobile SDKs set `device.*` and `os.*` and nothing in the `host.*`
+     * namespace — so require its absence before trusting the weaker
+     * signal. `device.id` and `device.model.identifier` above are
+     * unambiguous and stay unconditional.
+     *
+     * Host identity is read through `getHostNameFromAttributes` rather than
+     * a raw `host.name` lookup, so a node whose collector labels it with
+     * `k8s.node.name` instead — the DaemonSet install, the eBPF profiler —
+     * counts as a machine too. `getServiceNameFromAttributes` uses the same
+     * accessor, so both host branches of this file agree on what host
+     * identity means.
+     */
+    const hasDeviceManufacturerOnly: boolean = Boolean(
+      this.getStringAttribute(attributes, "device.manufacturer") &&
+        !this.getHostNameFromAttributes(attributes) &&
+        !this.getStringAttribute(attributes, "host.id"),
+    );
+    if (hasDeviceManufacturerOnly) {
+      return "mobile";
+    }
+
     return null;
   }
 

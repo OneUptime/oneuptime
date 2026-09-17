@@ -7,9 +7,11 @@ Instrument an Android, iOS or React Native app so it reports to OneUptime as a m
 Two things, and only two:
 
 1. **`service.name`** — the application's identity, e.g. `storefront-android`.
-2. **At least one of `device.id`, `device.model.identifier` or `device.manufacturer`** — this is what marks the telemetry as *mobile* rather than as a backend service.
+2. **`device.id` or `device.model.identifier`** — this is what marks the telemetry as *mobile* rather than as a backend service.
 
 Both are **resource** attributes, and both must be on every batch you export. If the device attributes are missing, the telemetry still arrives and is still queryable — it is just filed as a backend Service instead of a RUM application.
+
+`device.manufacturer` also marks a batch as mobile, but only on a resource that carries no `host.name` or `host.id` — it doubles as the make of a physical machine on a host's inventory item. Set `device.id` or `device.model.identifier` as well, as every recipe below does, and the distinction never comes up.
 
 `device.id` should be an install-scoped identifier, not an advertising ID or anything that identifies a person. It is used for grouping, never displayed as an identity.
 

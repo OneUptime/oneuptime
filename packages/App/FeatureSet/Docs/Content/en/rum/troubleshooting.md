@@ -46,18 +46,20 @@ A browser rarely produces batches that large unless spans carry big attributes �
 
 ## 3. The data arrives, but under **Services** instead of **RUM**
 
-This is the most common report, and the cause is always the same: the resource has no client attributes.
+This is the most common report, and the usual cause is that the resource has no client attributes.
 
 OneUptime classifies a batch as RUM only if the resource carries one of:
 
 - **Browser:** `browser.platform`, `browser.language`, or a non-empty `browser.brands`
-- **Mobile:** `device.id`, `device.model.identifier`, or `device.manufacturer`
+- **Mobile:** `device.id` or `device.model.identifier` — or `device.manufacturer` on a resource that carries no `host.name` / `host.id`
 
 Setting `service.name` alone produces a valid backend Service. The OpenTelemetry browser SDKs do **not** add `browser.*` unless you enable the browser resource detector or set the attributes yourself — see [Browser Setup](/docs/rum/browser-setup).
 
 Confirm what you are actually sending by inspecting the request payload in DevTools → Network → the OTLP request → Payload. `resourceSpans[0].resource.attributes` is the list that decides this. If `browser.*` is not in there, the SDK is not adding it, whatever the documentation of that SDK says.
 
 To fix it, add the attributes and let the app be rediscovered. The Service that was already created does not convert into a RUM application — the two are separate records — so delete the stray Service once RUM telemetry starts arriving.
+
+There is one other cause. A resource whose only client attribute is `device.manufacturer`, and which also carries `host.name` or `host.id`, is read as a physical machine rather than a phone — `device.manufacturer` doubles as a host's make on its inventory item. Set `device.id` or `device.model.identifier` as well and it classifies as mobile regardless.
 
 ## 4. Nothing appears under the application
 
