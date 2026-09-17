@@ -168,3 +168,11 @@ eval-corpus.json
 
 # CycloneDX SBOMs written by Scripts/GHA/generate_sboms.sh
 /sbom/
+App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/gc.properties
+App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/checksums/checksums.lock
+App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/fileChanges/last-build.bin
+App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/fileHashes/fileHashes.bin
+App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/fileHashes/fileHashes.lock
+App/FeatureSet/MobileRecorder/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+App/FeatureSet/MobileRecorder/android/.gradle/buildOutputCleanup/cache.properties
+App/FeatureSet/MobileRecorder/android/.gradle/vcs-1/gc.properties
