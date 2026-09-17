@@ -23,6 +23,8 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
+  extractEmailFromSCIM,
+  extractUserUpdateFromSCIM,
   formatUserForSCIM,
   generateServiceProviderConfig,
   generateSchemasResponse,
@@ -376,10 +378,11 @@ router.post(
               );
 
               // Update user information
-              const email: string =
-                (data!["userName"] as string) ||
-                ((data!["emails"] as JSONObject[])?.[0]?.["value"] as string);
-              const active: boolean = data!["active"] as boolean;
+              const userUpdate: JSONObject = extractUserUpdateFromSCIM(data!);
+              const email: string = extractEmailFromSCIM(userUpdate);
+              const active: boolean | undefined = userUpdate["active"] as
+                | boolean
+                | undefined;
 
               executionSteps.push(
                 `  [${method} User] Update data - email: ${email || "not provided"}, active: ${active !== undefined ? active : "not provided"}`,
@@ -406,6 +409,11 @@ router.post(
                   location: `/status-page-scim/v2/${statusPageScimId}/Users/${resourceId}`,
                 };
               } else {
+                if (active === false) {
+                  executionSteps.push(
+                    `  [${method} User] Auto-deprovisioning is disabled, user will not be deleted`,
+                  );
+                }
                 // Update email if provided
                 if (email && email !== statusPageUser.email?.toString()) {
                   executionSteps.push(
@@ -1280,10 +1288,11 @@ const handleStatusPageUserUpdate: (
     executionSteps.push(`User found: ${previousEmail}`);
 
     // Update user information
-    const email: string =
-      (scimUser["userName"] as string) ||
-      ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
-    const active: boolean = scimUser["active"] as boolean;
+    const userUpdate: JSONObject = extractUserUpdateFromSCIM(scimUser);
+    const email: string = extractEmailFromSCIM(userUpdate);
+    const active: boolean | undefined = userUpdate["active"] as
+      | boolean
+      | undefined;
 
     executionSteps.push(
       `Parsed update data - email: ${email || "not provided"}, active: ${active !== undefined ? active : "not provided"}`,

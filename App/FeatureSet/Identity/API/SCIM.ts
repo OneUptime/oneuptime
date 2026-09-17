@@ -31,6 +31,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import User from "Common/Models/DatabaseModels/User";
 import {
+  extractEmailFromSCIM,
+  extractUserUpdateFromSCIM,
   parseNameFromSCIM,
   formatUserForSCIM,
   generateServiceProviderConfig,
@@ -1900,11 +1902,12 @@ const handleUserUpdate: (
     );
 
     // Update user information
-    const email: string =
-      (scimUser["userName"] as string) ||
-      ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
+    const userUpdate: JSONObject = extractUserUpdateFromSCIM(scimUser);
+    const email: string = extractEmailFromSCIM(userUpdate);
     const name: string = parseNameFromSCIM(scimUser);
-    const active: boolean = scimUser["active"] as boolean;
+    const active: boolean | undefined = userUpdate["active"] as
+      | boolean
+      | undefined;
 
     executionSteps.push(
       `Parsed update fields - email: ${email || "unchanged"}, name: ${name || "unchanged"}, active: ${active !== undefined ? active : "unchanged"}`,
@@ -1919,7 +1922,21 @@ const handleUserUpdate: (
     let teamOperationPerformed: string | null = null;
 
     // Handle user deactivation by removing from teams
-    if (active === false && !scimConfig.enablePushGroups) {
+    if (active === false && !scimConfig.autoDeprovisionUsers) {
+      executionSteps.push(
+        "Auto-deprovisioning is disabled, user will not be removed from teams",
+      );
+      logger.debug(
+        "SCIM Update user - auto-deprovisioning is disabled, ignoring deactivation",
+        getLogAttributesFromRequest(req as RequestLike),
+      );
+    }
+
+    if (
+      active === false &&
+      scimConfig.autoDeprovisionUsers &&
+      !scimConfig.enablePushGroups
+    ) {
       logger.debug(
         `SCIM Update user - user marked as inactive, removing from teams`,
         getLogAttributesFromRequest(req as any),
