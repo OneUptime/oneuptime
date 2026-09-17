@@ -105,7 +105,9 @@ describe("event overlay resource scope", () => {
           : { [relation]: { _id: RESOURCE_A } },
       ]);
       expect(result.changeEventQueries).toEqual([
-        relation === "services" ? { primaryEntityId: RESOURCE_A } : { attributes: { [key]: RESOURCE_A } },
+        relation === "services"
+          ? { primaryEntityId: RESOURCE_A }
+          : { attributes: { [key]: RESOURCE_A } },
       ]);
     },
   );
@@ -529,44 +531,90 @@ describe("event overlay resource scope", () => {
   });
 
   test("keeps generic Kubernetes container name and namespace on the same child", () => {
-    expect(scope({ "resource.k8s.cluster.name": "prod", "resource.container.name": "web", "resource.k8s.pod.name": "web-123", "resource.k8s.namespace.name": "team-a" }).incidentQueries).toEqual([{ kubernetesContainers: { name: "web", podName: "web-123", podNamespaceKey: "team-a", kubernetesCluster: { clusterIdentifier: "prod" } } }]);
+    expect(
+      scope({
+        "resource.k8s.cluster.name": "prod",
+        "resource.container.name": "web",
+        "resource.k8s.pod.name": "web-123",
+        "resource.k8s.namespace.name": "team-a",
+      }).incidentQueries,
+    ).toEqual([
+      {
+        kubernetesContainers: {
+          name: "web",
+          podName: "web-123",
+          podNamespaceKey: "team-a",
+          kubernetesCluster: { clusterIdentifier: "prod" },
+        },
+      },
+    ]);
   });
 
   test("does not invent a change-event attribute value for an unresolved entity scope object", () => {
-    const result: EventOverlayScope = scope({ entityScope: { entityKeys: ["opaque-key"] } });
+    const result: EventOverlayScope = scope({
+      entityScope: { entityKeys: ["opaque-key"] },
+    });
     expectSuppressed(result);
     expect(result.changeEventQueries).toEqual([]);
   });
 
-  test.each(["serviceId", "serviceIds", "services", "oneuptime.service.id", "resource.oneuptime.service.id"])("loads service deployments by primary entity for %s", (key: string) => {
-    expect(scope({ [key]: RESOURCE_A }).changeEventQueries).toEqual([{ primaryEntityId: RESOURCE_A }]);
+  test.each([
+    "serviceId",
+    "serviceIds",
+    "services",
+    "oneuptime.service.id",
+    "resource.oneuptime.service.id",
+  ])("loads service deployments by primary entity for %s", (key: string) => {
+    expect(scope({ [key]: RESOURCE_A }).changeEventQueries).toEqual([
+      { primaryEntityId: RESOURCE_A },
+    ]);
   });
 
   test("keeps explicit event scope when row navigation lacks chart attributes", () => {
     const query: MetricQueryConfigData = config();
-    query.eventScope = { primaryEntityId: new Includes([RESOURCE_A]), primaryEntityType: ServiceType.RealUserMonitor };
+    query.eventScope = {
+      primaryEntityId: new Includes([RESOURCE_A]),
+      primaryEntityType: ServiceType.RealUserMonitor,
+    };
     expectSuppressed(getEventOverlayScope([query]));
     query.eventScope = { entityKeys: new Includes(["opaque-key"]) };
     expectSuppressed(getEventOverlayScope([query]));
   });
 
   test("explicit event scope overrides duplicate chart identities while retaining independent filters", () => {
-    const query: MetricQueryConfigData = config({ monitorId: RESOURCE_B, "resource.service.name": "api" });
+    const query: MetricQueryConfigData = config({
+      monitorId: RESOURCE_B,
+      "resource.service.name": "api",
+    });
     query.eventScope = { monitorId: RESOURCE_A };
-    expect(getEventOverlayScope([query]).incidentQueries).toEqual([{ monitors: { _id: RESOURCE_A }, services: { name: "api" } }]);
+    expect(getEventOverlayScope([query]).incidentQueries).toEqual([
+      { monitors: { _id: RESOURCE_A }, services: { name: "api" } },
+    ]);
   });
 
   test("explicit polymorphic identity overrides an analytics filter with the same key", () => {
     const query: MetricQueryConfigData = config();
-    Object.assign(query.metricQueryData.filterData, { primaryEntityId: RESOURCE_B, primaryEntityType: ServiceType.OpenTelemetry });
-    query.eventScope = { primaryEntityId: RESOURCE_A, primaryEntityType: ServiceType.Monitor };
-    expect(getEventOverlayScope([query]).incidentQueries).toEqual([{ monitors: { _id: RESOURCE_A } }]);
+    Object.assign(query.metricQueryData.filterData, {
+      primaryEntityId: RESOURCE_B,
+      primaryEntityType: ServiceType.OpenTelemetry,
+    });
+    query.eventScope = {
+      primaryEntityId: RESOURCE_A,
+      primaryEntityType: ServiceType.Monitor,
+    };
+    expect(getEventOverlayScope([query]).incidentQueries).toEqual([
+      { monitors: { _id: RESOURCE_A } },
+    ]);
   });
 
   test("declared but empty event scope does not become project-wide", () => {
     const query: MetricQueryConfigData = config();
     query.eventScope = {};
-    expect(getEventOverlayScope([query])).toEqual({ incidentQueries: [], alertQueries: [], changeEventQueries: [] });
+    expect(getEventOverlayScope([query])).toEqual({
+      incidentQueries: [],
+      alertQueries: [],
+      changeEventQueries: [],
+    });
   });
 
   test("matches the parent id of an explicitly scoped child resource", () => {
@@ -690,8 +738,12 @@ describe("event overlay resource scope", () => {
     const selected: MetricQueryConfigData = config({ monitorId: RESOURCE_A });
     const draft: MetricQueryConfigData = config();
     draft.metricQueryData.filterData.metricName = "";
-    expect(getEventOverlayScope([selected, draft])).toEqual(getEventOverlayScope([selected]));
-    expect(getEventOverlayScope([draft, selected])).toEqual(getEventOverlayScope([selected]));
+    expect(getEventOverlayScope([selected, draft])).toEqual(
+      getEventOverlayScope([selected]),
+    );
+    expect(getEventOverlayScope([draft, selected])).toEqual(
+      getEventOverlayScope([selected]),
+    );
   });
 
   test("a view containing only unnamed drafts requests no event sources", () => {
@@ -699,30 +751,61 @@ describe("event overlay resource scope", () => {
     blank.metricQueryData.filterData.metricName = "";
     const whitespace: MetricQueryConfigData = config({ "http.method": "GET" });
     whitespace.metricQueryData.filterData.metricName = "   ";
-    const missingName: MetricQueryConfigData = { metricQueryData: { filterData: {} } };
-    expect(getEventOverlayScope([blank, whitespace, missingName])).toEqual({ incidentQueries: [], alertQueries: [], changeEventQueries: [] });
+    const missingName: MetricQueryConfigData = {
+      metricQueryData: { filterData: {} },
+    };
+    expect(getEventOverlayScope([blank, whitespace, missingName])).toEqual({
+      incidentQueries: [],
+      alertQueries: [],
+      changeEventQueries: [],
+    });
   });
 
   test("unrecognized explicit event metadata never becomes project-wide", () => {
     const query: MetricQueryConfigData = config();
     query.eventScope = { "custom.inventory.identity": "specific-resource" };
-    expect(getEventOverlayScope([query])).toEqual({ incidentQueries: [], alertQueries: [], changeEventQueries: [] });
+    expect(getEventOverlayScope([query])).toEqual({
+      incidentQueries: [],
+      alertQueries: [],
+      changeEventQueries: [],
+    });
     query.metricQueryData.filterData.metricName = "";
-    expect(getEventOverlayScope([query])).toEqual({ incidentQueries: [], alertQueries: [], changeEventQueries: [] });
+    expect(getEventOverlayScope([query])).toEqual({
+      incidentQueries: [],
+      alertQueries: [],
+      changeEventQueries: [],
+    });
   });
 
   test("keeps meaningful scope-only contexts without a metric name", () => {
-    const query: MetricQueryConfigData = { metricQueryData: { filterData: { attributes: { monitorId: RESOURCE_A } } } };
-    expect(getEventOverlayScope([query])).toEqual(scope({ monitorId: RESOURCE_A }));
+    const query: MetricQueryConfigData = {
+      metricQueryData: {
+        filterData: { attributes: { monitorId: RESOURCE_A } },
+      },
+    };
+    expect(getEventOverlayScope([query])).toEqual(
+      scope({ monitorId: RESOURCE_A }),
+    );
     query.metricQueryData.filterData.metricName = "";
-    expect(getEventOverlayScope([query])).toEqual(scope({ monitorId: RESOURCE_A }));
+    expect(getEventOverlayScope([query])).toEqual(
+      scope({ monitorId: RESOURCE_A }),
+    );
   });
 
   test("keeps explicitly declared metadata on an unnamed query", () => {
-    const query: MetricQueryConfigData = { metricQueryData: { filterData: {} }, eventScope: { monitorId: RESOURCE_A } };
-    expect(getEventOverlayScope([query])).toEqual(scope({ monitorId: RESOURCE_A }));
+    const query: MetricQueryConfigData = {
+      metricQueryData: { filterData: {} },
+      eventScope: { monitorId: RESOURCE_A },
+    };
+    expect(getEventOverlayScope([query])).toEqual(
+      scope({ monitorId: RESOURCE_A }),
+    );
     query.eventScope = {};
-    expect(getEventOverlayScope([query])).toEqual({ incidentQueries: [], alertQueries: [], changeEventQueries: [] });
+    expect(getEventOverlayScope([query])).toEqual({
+      incidentQueries: [],
+      alertQueries: [],
+      changeEventQueries: [],
+    });
   });
 
   test("does not broaden when query memberships exceed the bounded request budget", () => {

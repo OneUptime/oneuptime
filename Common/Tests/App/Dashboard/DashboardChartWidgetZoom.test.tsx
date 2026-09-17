@@ -453,15 +453,19 @@ describe("dashboard widget event scope", () => {
     expect(overlay.queryConfigs).toHaveLength(2);
     for (const query of overlay.queryConfigs) {
       expect(
-        (query.metricQueryData.filterData.attributes as
-          | Record<string, unknown>
-          | undefined)?.["resource.host.id"],
+        (
+          query.metricQueryData.filterData.attributes as
+            | Record<string, unknown>
+            | undefined
+        )?.["resource.host.id"],
       ).toBe("host-a");
     }
     expect(
-      (overlay.queryConfigs[1]?.metricQueryData.filterData.attributes as
-        | Record<string, unknown>
-        | undefined)?.["monitorId"],
+      (
+        overlay.queryConfigs[1]?.metricQueryData.filterData.attributes as
+          | Record<string, unknown>
+          | undefined
+      )?.["monitorId"],
     ).toBe("monitor-2");
     expect(overlay.refreshTick).toBe(5);
     expect(overlay.window).toEqual(
@@ -481,9 +485,11 @@ describe("dashboard widget event scope", () => {
       overlay =
         eventOverlayMock.mock.calls[eventOverlayMock.mock.calls.length - 1]![0];
       expect(
-        (overlay.queryConfigs[0]?.metricQueryData.filterData.attributes as
-          | Record<string, unknown>
-          | undefined)?.["resource.host.id"],
+        (
+          overlay.queryConfigs[0]?.metricQueryData.filterData.attributes as
+            | Record<string, unknown>
+            | undefined
+        )?.["resource.host.id"],
       ).toBe("host-b");
       expect(overlay.refreshTick).toBe(6);
     });

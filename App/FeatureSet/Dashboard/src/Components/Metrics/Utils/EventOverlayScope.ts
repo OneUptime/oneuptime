@@ -17,8 +17,10 @@ export interface EventOverlayScope {
   changeEventQueries: Array<Query<ChangeEvent>>;
 }
 
-// Memberships expand into separate exact queries because nested relation
-// operators are not serialized by the database API. Bound that expansion.
+/*
+ * Memberships expand into separate exact queries because nested relation
+ * operators are not serialized by the database API. Bound that expansion.
+ */
 export const EVENT_OVERLAY_SCOPE_QUERY_LIMIT: number = 50;
 
 type ScopeQuery = { [key: string]: string | ScopeQuery };
@@ -183,6 +185,8 @@ const UNSUPPORTED_RESOURCE_KEYS: ReadonlyArray<string> = [
     "cloud.account.id",
     "cloud.region",
     "device.id",
+    "process.pid",
+    "process.start_time",
     "rum.application.id",
     "oneuptime.rum.application.id",
   ),
@@ -235,8 +239,10 @@ function exactValues(
     detected.operator === DictionaryFilterOperator.Contains &&
     ObjectID.isValidUUID(detected.rawValue)
   ) {
-    // Operational incident/SLO metrics encode an array of ids as a string.
-    // Their Search(UUID) filter identifies one whole id, never a name search.
+    /*
+     * Operational incident/SLO metrics encode an array of ids as a string.
+     * Their Search(UUID) filter identifies one whole id, never a name search.
+     */
     values = [detected.rawValue];
   } else {
     return null;
@@ -342,8 +348,10 @@ function nestParentScopes(queries: Array<ScopeQuery>): Array<ScopeQuery> {
         }
       }
       if (hasChild) {
-        // Match the child's own parent. A separately attached parent could
-        // belong to another affected resource on a multi-resource incident.
+        /*
+         * Match the child's own parent. A separately attached parent could
+         * belong to another affected resource on a multi-resource incident.
+         */
         delete query[parent];
       }
     }
@@ -352,7 +360,10 @@ function nestParentScopes(queries: Array<ScopeQuery>): Array<ScopeQuery> {
 }
 
 function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
-  if (config.eventScope !== undefined && (!config.eventScope || Object.keys(config.eventScope).length === 0)) {
+  if (
+    config.eventScope !== undefined &&
+    (!config.eventScope || Object.keys(config.eventScope).length === 0)
+  ) {
     return { incidentQueries: [], alertQueries: [], changeEventQueries: [] };
   }
   const filterData: Attributes = (config.metricQueryData?.filterData ||
@@ -361,8 +372,10 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
     ...((filterData["attributes"] || {}) as Attributes),
     ...(config.eventScope || {}),
   };
-  // Support callers that already hold an analytics/entity scope. These fields
-  // are not normally present in MetricView's attribute-only query grammar.
+  /*
+   * Support callers that already hold an analytics/entity scope. These fields
+   * are not normally present in MetricView's attribute-only query grammar.
+   */
   for (const key of [
     "primaryEntityId",
     "primaryEntityType",
@@ -373,8 +386,10 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
     }
   }
 
-  // Explicit event scope survives resource-row navigation and takes priority
-  // over presentation attributes, including polymorphic analytics ids.
+  /*
+   * Explicit event scope survives resource-row navigation and takes priority
+   * over presentation attributes, including polymorphic analytics ids.
+   */
   Object.assign(attributes, config.eventScope || {});
 
   let incidentQueries: Array<ScopeQuery> = [{}];
@@ -420,11 +435,7 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
     alertQueries = alertPath
       ? addPredicate(alertQueries, alertPath, values)
       : [];
-    changeEventQueries = addPredicate(
-      changeEventQueries,
-      changePath,
-      values,
-    );
+    changeEventQueries = addPredicate(changeEventQueries, changePath, values);
   };
 
   const runtimeKey: string | undefined = attributeAliases(
@@ -467,6 +478,14 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
         [relation, mapping.nameColumn!],
       );
     }
+  }
+
+  /*
+   * OTel host.id is the reported machine ID, distinct from the database UUID
+   * and from hostIdentifier (which stores the canonical host.name).
+   */
+  for (const key of attributeAliases("host.id")) {
+    apply(key, ["hosts", "hostId"], ["hosts", "hostId"]);
   }
 
   for (const key of ["incidentId", "incidentIds"]) {
@@ -568,15 +587,21 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
         );
         continue;
       }
-      // A namespace accompanying a workload constrains that workload's
-      // namespace; it must not require a separate Namespace incident link.
+      /*
+       * A namespace accompanying a workload constrains that workload's
+       * namespace; it must not require a separate Namespace incident link.
+       */
       const hasWorkload: boolean =
         Object.keys(KUBERNETES_KINDS).some((other: string): boolean => {
           return (
             other !== "namespace" &&
             hasAny(attributes, attributeAliases(`k8s.${other}.name`))
           );
-        }) || hasAny(attributes, attributeAliases("k8s.container.name", "container.name"));
+        }) ||
+        hasAny(
+          attributes,
+          attributeAliases("k8s.container.name", "container.name"),
+        );
       if (kindKey === "namespace" && hasWorkload) {
         const relation: string = hasAny(
           attributes,
@@ -629,8 +654,10 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
     apply(key, ["kubernetesResources", "uid"], ["kubernetesResources", "uid"]);
   }
 
-  // Container names are reused on unrelated hosts. Keep the parent scope and
-  // require the matching runtime before choosing the Docker/Podman relation.
+  /*
+   * Container names are reused on unrelated hosts. Keep the parent scope and
+   * require the matching runtime before choosing the Docker/Podman relation.
+   */
   for (const key of attributeAliases("container.name", "container.id")) {
     if (!Object.prototype.hasOwnProperty.call(attributes, key)) {
       continue;
@@ -671,8 +698,10 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
     }
   }
 
-  // These children have no Incident/Alert relation of their own. Their parent
-  // link plus the recorded breaching-series identity supplies the exact scope.
+  /*
+   * These children have no Incident/Alert relation of their own. Their parent
+   * link plus the recorded breaching-series identity supplies the exact scope.
+   */
   const childKeys: Array<string> = [
     ...(hasAny(
       attributes,
@@ -688,9 +717,14 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
       "vcenter.cluster.name",
       "vcenter.vm.id",
       "vcenter.vm.name",
+      "vcenter.vm_template.id",
+      "vcenter.vm_template.name",
       "vcenter.datastore.name",
       "vcenter.datacenter.name",
       "vcenter.resource_pool.name",
+      "vcenter.resource_pool.inventory_path",
+      "container.image.name",
+      "service.instance.id",
     ),
   ];
   for (const key of childKeys) {
@@ -715,25 +749,41 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
   }
 
   for (const key of UNSUPPORTED_RESOURCE_KEYS) {
-    if (!consumedKeys.has(key) && Object.prototype.hasOwnProperty.call(attributes, key)) {
+    if (
+      !consumedKeys.has(key) &&
+      Object.prototype.hasOwnProperty.call(attributes, key)
+    ) {
       isScoped = true;
+      consumedKeys.add(key);
       incidentQueries = [];
       alertQueries = [];
-      const values: Array<string> | null = key === "entityScope" ? null : exactValues(attributes[key]);
+      const values: Array<string> | null =
+        key === "entityScope" ? null : exactValues(attributes[key]);
       changeEventQueries = values
         ? addPredicate(changeEventQueries, ["attributes", key], values)
         : [];
     }
   }
 
-  if (config.eventScope !== undefined && !isScoped) {
-    // Metadata declares a resource context even when its natural identity is
-    // not supported here. Do not reinterpret that context as the whole project.
+  if (
+    config.eventScope !== undefined &&
+    (!isScoped ||
+      Object.keys(config.eventScope).some((key: string): boolean => {
+        return !consumedKeys.has(key);
+      }))
+  ) {
+    /*
+     * Metadata declares a resource context even when its natural identity is
+     * not supported here. Do not reinterpret that context as the whole project
+     * or silently drop a child identity while keeping only its parent scope.
+     */
     return { incidentQueries: [], alertQueries: [], changeEventQueries: [] };
   }
 
-  // Empty/malformed resource scope is deliberately not converted back into
-  // project-wide markers. Only charts with no resource filter are unscoped.
+  /*
+   * Empty/malformed resource scope is deliberately not converted back into
+   * project-wide markers. Only charts with no resource filter are unscoped.
+   */
   return {
     incidentQueries: dedupeQueries(nestParentScopes(incidentQueries)) as Array<
       Query<Incident>
@@ -761,18 +811,23 @@ export function getEventOverlayScope(
   for (const config of queryConfigs) {
     const scope: EventOverlayScope = buildQueryScope(config);
     const metricName: unknown = config.metricQueryData?.filterData?.metricName;
-    const hasMetricName: boolean = typeof metricName === "string"
-      ? metricName.trim().length > 0
-      : Boolean(metricName);
-    const isUnscoped: boolean = scope.incidentQueries.length === 1 &&
-      scope.alertQueries.length === 1 && scope.changeEventQueries.length === 1 &&
+    const hasMetricName: boolean =
+      typeof metricName === "string"
+        ? metricName.trim().length > 0
+        : Boolean(metricName);
+    const isUnscoped: boolean =
+      scope.incidentQueries.length === 1 &&
+      scope.alertQueries.length === 1 &&
+      scope.changeEventQueries.length === 1 &&
       Object.keys(scope.incidentQueries[0]!).length === 0 &&
       Object.keys(scope.alertQueries[0]!).length === 0 &&
       Object.keys(scope.changeEventQueries[0]!).length === 0;
 
-    // Adding an unfinished query in Explorer must not widen an existing
-    // resource's events. Scope-only consumers (such as log error details)
-    // still work without a metric name when they supply resource identity.
+    /*
+     * Adding an unfinished query in Explorer must not widen an existing
+     * resource's events. Scope-only consumers (such as log error details)
+     * still work without a metric name when they supply resource identity.
+     */
     if (!hasMetricName && config.eventScope === undefined && isUnscoped) {
       continue;
     }

@@ -1489,8 +1489,10 @@ const MetricsViewer: FunctionComponent<Props> = (
           eventScope["entityKeys"] = new Includes(props.entityKeysFilter);
         }
       } else if (props.entityScope) {
-        // The membership fallback identifies the same host or cluster by its
-        // telemetry attribute, which the event overlay can resolve exactly.
+        /*
+         * The membership fallback identifies the same host or cluster by its
+         * telemetry attribute, which the event overlay can resolve exactly.
+         */
         if (
           props.entityScope.attributeKey &&
           props.entityScope.attributeValue

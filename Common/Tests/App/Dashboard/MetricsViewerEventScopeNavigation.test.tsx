@@ -28,8 +28,10 @@ import ServiceType from "../../../Types/Telemetry/ServiceType";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 
-/* Render the real list's row navigation with the data-loading and table
- * chrome replaced. These boundaries do not participate in URL generation. */
+/*
+ * Render the real list's row navigation with the data-loading and table
+ * chrome replaced. These boundaries do not participate in URL generation.
+ */
 jest.mock("../../../UI/Components/TelemetryViewer/TelemetryViewer", () => {
   return {
     __esModule: true,

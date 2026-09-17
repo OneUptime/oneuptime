@@ -113,7 +113,9 @@ function mergeEventResults<T extends { id?: ObjectID | null | undefined }>(
 ): Array<T> {
   const seen: Set<string> = new Set<string>();
   return results
-    .flatMap((result: { data: Array<T> }): Array<T> => result.data)
+    .flatMap((result: { data: Array<T> }): Array<T> => {
+      return result.data;
+    })
     .filter((event: T): boolean => {
       const id: string | undefined = event.id?.toString();
       if (!id) {
@@ -126,8 +128,10 @@ function mergeEventResults<T extends { id?: ObjectID | null | undefined }>(
       return true;
     })
     .sort((left: T, right: T): number => {
-      return new Date(right[dateField] as string).getTime() -
-        new Date(left[dateField] as string).getTime();
+      return (
+        new Date(right[dateField] as string).getTime() -
+        new Date(left[dateField] as string).getTime()
+      );
     })
     .slice(0, EVENT_OVERLAY_FETCH_LIMIT);
 }
@@ -151,7 +155,9 @@ export default function useEventTimeReferenceLines(input: {
     markers: Array<EventMarker>;
   } | null>(null);
 
-  const scope: EventOverlayScope = getEventOverlayScope(input.queryConfigs || []);
+  const scope: EventOverlayScope = getEventOverlayScope(
+    input.queryConfigs || [],
+  );
   const scopeKey: string = JSON.stringify(scope);
   const projectIdString: string | undefined =
     ProjectUtil.getCurrentProjectId()?.toString();
@@ -212,75 +218,87 @@ export default function useEventTimeReferenceLines(input: {
         Array<ListResult<Alert>>,
         Array<AnalyticsListResult<ChangeEvent>>,
       ] = await Promise.all([
-        Promise.all(scope.incidentQueries.map((query: Query<Incident>) => ModelAPI.getList<Incident>({
-          modelType: Incident,
-          query: {
-            ...query,
-            projectId: projectId,
-            createdAt: eventsWindow,
-          },
-          select: {
-            _id: true,
-            title: true,
-            createdAt: true,
-            incidentSeverity: {
-              name: true,
-              color: true,
-            },
-          },
-          sort: {
-            createdAt: SortOrder.Descending,
-          },
-          limit: EVENT_OVERLAY_FETCH_LIMIT,
-          skip: 0,
-        }).catch((): ListResult<Incident> => {
-          return { data: [], count: 0, skip: 0, limit: 0 };
-        }))),
-        Promise.all(scope.alertQueries.map((query: Query<Alert>) => ModelAPI.getList<Alert>({
-          modelType: Alert,
-          query: {
-            ...query,
-            projectId: projectId,
-            createdAt: eventsWindow,
-          },
-          select: {
-            _id: true,
-            title: true,
-            createdAt: true,
-            alertSeverity: {
-              name: true,
-              color: true,
-            },
-          },
-          sort: {
-            createdAt: SortOrder.Descending,
-          },
-          limit: EVENT_OVERLAY_FETCH_LIMIT,
-          skip: 0,
-        }).catch((): ListResult<Alert> => {
-          return { data: [], count: 0, skip: 0, limit: 0 };
-        }))),
-        Promise.all(scope.changeEventQueries.map((query: Query<ChangeEvent>) => AnalyticsModelAPI.getList<ChangeEvent>({
-          modelType: ChangeEvent,
-          query: {
-            ...query,
-            projectId: projectId,
-            time: eventsWindow,
-          } as Query<ChangeEvent>,
-          select: {
-            _id: true,
-            time: true,
-            title: true,
-            eventType: true,
-          },
-          sort: {
-            time: SortOrder.Descending,
-          },
-          limit: EVENT_OVERLAY_FETCH_LIMIT,
-          skip: 0,
-        }).catch((): AnalyticsListResult<ChangeEvent> => {
-          return { data: [], count: 0, skip: 0, limit: 0 };
-        }))),
+        Promise.all(
+          scope.incidentQueries.map((query: Query<Incident>) => {
+            return ModelAPI.getList<Incident>({
+              modelType: Incident,
+              query: {
+                ...query,
+                projectId: projectId,
+                createdAt: eventsWindow,
+              },
+              select: {
+                _id: true,
+                title: true,
+                createdAt: true,
+                incidentSeverity: {
+                  name: true,
+                  color: true,
+                },
+              },
+              sort: {
+                createdAt: SortOrder.Descending,
+              },
+              limit: EVENT_OVERLAY_FETCH_LIMIT,
+              skip: 0,
+            }).catch((): ListResult<Incident> => {
+              return { data: [], count: 0, skip: 0, limit: 0 };
+            });
+          }),
+        ),
+        Promise.all(
+          scope.alertQueries.map((query: Query<Alert>) => {
+            return ModelAPI.getList<Alert>({
+              modelType: Alert,
+              query: {
+                ...query,
+                projectId: projectId,
+                createdAt: eventsWindow,
+              },
+              select: {
+                _id: true,
+                title: true,
+                createdAt: true,
+                alertSeverity: {
+                  name: true,
+                  color: true,
+                },
+              },
+              sort: {
+                createdAt: SortOrder.Descending,
+              },
+              limit: EVENT_OVERLAY_FETCH_LIMIT,
+              skip: 0,
+            }).catch((): ListResult<Alert> => {
+              return { data: [], count: 0, skip: 0, limit: 0 };
+            });
+          }),
+        ),
+        Promise.all(
+          scope.changeEventQueries.map((query: Query<ChangeEvent>) => {
+            return AnalyticsModelAPI.getList<ChangeEvent>({
+              modelType: ChangeEvent,
+              query: {
+                ...query,
+                projectId: projectId,
+                time: eventsWindow,
+              } as Query<ChangeEvent>,
+              select: {
+                _id: true,
+                time: true,
+                title: true,
+                eventType: true,
+              },
+              sort: {
+                time: SortOrder.Descending,
+              },
+              limit: EVENT_OVERLAY_FETCH_LIMIT,
+              skip: 0,
+            }).catch((): AnalyticsListResult<ChangeEvent> => {
+              return { data: [], count: 0, skip: 0, limit: 0 };
+            });
+          }),
+        ),
       ]);
 
       if (isCancelled) {

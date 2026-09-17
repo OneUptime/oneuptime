@@ -237,9 +237,11 @@ describe("resource-scoped event overlay requests", (): void => {
       return second.createdAt.localeCompare(first.createdAt);
     });
 
-    // Behave like the list endpoint: apply the request's filter, then its
-    // limit. A project-wide fetch followed by client filtering loses the
-    // selected monitor because its record is older than 50 unrelated ones.
+    /*
+     * Behave like the list endpoint: apply the request's filter, then its
+     * limit. A project-wide fetch followed by client filtering loses the
+     * selected monitor because its record is older than 50 unrelated ones.
+     */
     getListMock.mockImplementation((request: EventRequest) => {
       const ids: Array<string> = queryValues(
         request.modelType.name === "Incident"
@@ -278,7 +280,9 @@ describe("resource-scoped event overlay requests", (): void => {
     render(<Probe queryConfigs={[monitorConfig(MONITOR_A)]} />);
 
     await expectMarkerCount(3);
-    expect(screen.getByText("Incident: Selected monitor is down")).toBeVisible();
+    expect(
+      screen.getByText("Incident: Selected monitor is down"),
+    ).toBeVisible();
     expect(screen.getByText("Alert: Selected monitor is down")).toBeVisible();
     expect(screen.getByText("Deploy: Selected monitor is down")).toBeVisible();
     expect(screen.queryByText(/Unrelated/)).not.toBeInTheDocument();
@@ -332,7 +336,9 @@ describe("resource-scoped event overlay requests", (): void => {
     "carries %s into every event source's request",
     async (attribute: string, relation: string): Promise<void> => {
       getListMock.mockResolvedValue({ data: [event("Related resource")] });
-      analyticsGetListMock.mockResolvedValue({ data: [event("Related release")] });
+      analyticsGetListMock.mockResolvedValue({
+        data: [event("Related release")],
+      });
 
       render(
         <Probe
@@ -375,7 +381,9 @@ describe("resource-scoped event overlay requests", (): void => {
   test.each(["networkDeviceId", "cloudResourceId", "rumApplicationId"])(
     "does not fetch project-wide incidents or alerts for unlinked %s resources",
     async (attribute: string): Promise<void> => {
-      analyticsGetListMock.mockResolvedValue({ data: [event("Scoped change")] });
+      analyticsGetListMock.mockResolvedValue({
+        data: [event("Scoped change")],
+      });
       render(
         <Probe
           queryConfigs={[
@@ -415,7 +423,10 @@ describe("resource-scoped event overlay requests", (): void => {
     render(<Probe />);
 
     await expectMarkerCount(3);
-    for (const request of [...requestsFor("Incident"), ...requestsFor("Alert")]) {
+    for (const request of [
+      ...requestsFor("Incident"),
+      ...requestsFor("Alert"),
+    ]) {
       expect(request.query).toEqual({
         projectId: PROJECT_ID,
         createdAt: WINDOW,
@@ -480,52 +491,62 @@ describe("resource-scoped event overlay requests", (): void => {
   test.each(["Incident", "Alert", "ChangeEvent"])(
     "deduplicates overlapping %s results and keeps the newest 50",
     async (source: string): Promise<void> => {
-    const shared: TestEvent = event("Shared event", 1000);
-    const fetch: (request: EventRequest) => Promise<{ data: Array<TestEvent> }> = (request: EventRequest) => {
-      if (request.modelType.name !== source) {
-        return Promise.resolve({ data: [] });
-      }
-      const monitorQuery: unknown = source === "ChangeEvent"
-        ? (request.query["attributes"] as Record<string, unknown>)["monitorId"]
-        : request.query[source === "Incident" ? "monitors" : "monitorId"];
-      const isMonitorA: boolean = queryValues(monitorQuery).includes(
-        MONITOR_A,
+      const shared: TestEvent = event("Shared event", 1000);
+      const fetch: (
+        request: EventRequest,
+      ) => Promise<{ data: Array<TestEvent> }> = (request: EventRequest) => {
+        if (request.modelType.name !== source) {
+          return Promise.resolve({ data: [] });
+        }
+        const monitorQuery: unknown =
+          source === "ChangeEvent"
+            ? (request.query["attributes"] as Record<string, unknown>)[
+                "monitorId"
+              ]
+            : request.query[source === "Incident" ? "monitors" : "monitorId"];
+        const isMonitorA: boolean =
+          queryValues(monitorQuery).includes(MONITOR_A);
+        return Promise.resolve({
+          data: [
+            shared,
+            ...Array.from(
+              { length: EVENT_OVERLAY_FETCH_LIMIT - 1 },
+              (_value: unknown, index: number): TestEvent => {
+                const number: number = index + (isMonitorA ? 1 : 101);
+                return event(`Event ${number}`, number);
+              },
+            ),
+          ],
+        });
+      };
+      getListMock.mockImplementation(fetch);
+      analyticsGetListMock.mockImplementation(fetch);
+
+      render(
+        <Probe
+          queryConfigs={[monitorConfig(MONITOR_A), monitorConfig(MONITOR_B)]}
+        />,
       );
-      return Promise.resolve({
-        data: [
-          shared,
-          ...Array.from(
-            { length: EVENT_OVERLAY_FETCH_LIMIT - 1 },
-            (_value: unknown, index: number): TestEvent => {
-              const number: number = index + (isMonitorA ? 1 : 101);
-              return event(`Event ${number}`, number);
-            },
-          ),
-        ],
-      });
-    };
-    getListMock.mockImplementation(fetch);
-    analyticsGetListMock.mockImplementation(fetch);
 
-    render(
-      <Probe
-        queryConfigs={[monitorConfig(MONITOR_A), monitorConfig(MONITOR_B)]}
-      />,
-    );
-
-    await expectMarkerCount(EVENT_OVERLAY_FETCH_LIMIT);
-    const label: string = source === "ChangeEvent" ? "Deploy" : source;
-    expect(screen.getAllByText(`${label}: Shared event`)).toHaveLength(1);
-    expect(screen.getByText(`${label}: Event 149`)).toBeVisible();
-    expect(screen.queryByText(`${label}: Event 1`)).not.toBeInTheDocument();
-    const requests: Array<EventRequest> = source === "ChangeEvent"
-      ? analyticsGetListMock.mock.calls.map((call: Array<unknown>): EventRequest => { return call[0] as EventRequest; })
-      : requestsFor(source);
-    expect(requests).toHaveLength(2);
-    for (const request of requests) {
-      expect(request.limit).toBe(EVENT_OVERLAY_FETCH_LIMIT);
-    }
-  });
+      await expectMarkerCount(EVENT_OVERLAY_FETCH_LIMIT);
+      const label: string = source === "ChangeEvent" ? "Deploy" : source;
+      expect(screen.getAllByText(`${label}: Shared event`)).toHaveLength(1);
+      expect(screen.getByText(`${label}: Event 149`)).toBeVisible();
+      expect(screen.queryByText(`${label}: Event 1`)).not.toBeInTheDocument();
+      const requests: Array<EventRequest> =
+        source === "ChangeEvent"
+          ? analyticsGetListMock.mock.calls.map(
+              (call: Array<unknown>): EventRequest => {
+                return call[0] as EventRequest;
+              },
+            )
+          : requestsFor(source);
+      expect(requests).toHaveLength(2);
+      for (const request of requests) {
+        expect(request.limit).toBe(EVENT_OVERLAY_FETCH_LIMIT);
+      }
+    },
+  );
 
   test("changing the order of chart scopes does not issue new requests", async (): Promise<void> => {
     getListMock.mockImplementation((request: EventRequest) => {
@@ -628,7 +649,9 @@ describe("resource-scoped event overlay lifecycle", (): void => {
     });
 
     expect(screen.getByText("Incident: Current monitor")).toBeVisible();
-    expect(screen.queryByText("Incident: Stale monitor")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Incident: Stale monitor"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("marker-count").textContent).toBe("1");
   });
 
@@ -699,7 +722,9 @@ describe("resource-scoped event overlay lifecycle", (): void => {
       if (incidentCalls === 1) {
         return Promise.resolve({ data: [event("Initial result")] });
       }
-      return incidentCalls === 2 ? earlierRefresh.promise : latestRefresh.promise;
+      return incidentCalls === 2
+        ? earlierRefresh.promise
+        : latestRefresh.promise;
     });
     const { rerender } = render(
       <Probe queryConfigs={[monitorConfig(MONITOR_A)]} refreshTick={0} />,
@@ -724,7 +749,9 @@ describe("resource-scoped event overlay lifecycle", (): void => {
     });
 
     expect(screen.getByText("Incident: Latest refresh")).toBeVisible();
-    expect(screen.queryByText("Incident: Earlier refresh")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Incident: Earlier refresh"),
+    ).not.toBeInTheDocument();
   });
 
   test("a different time window hides old markers and constrains every new request", async (): Promise<void> => {
@@ -828,7 +855,9 @@ describe("resource-scoped event overlay lifecycle", (): void => {
     const { rerender } = render(
       <Probe queryConfigs={[monitorConfig(MONITOR_A)]} />,
     );
-    rerender(<Probe queryConfigs={[monitorConfig(MONITOR_A)]} enabled={false} />);
+    rerender(
+      <Probe queryConfigs={[monitorConfig(MONITOR_A)]} enabled={false} />,
+    );
     await act(async (): Promise<void> => {
       old.resolve([event("Cancelled result")]);
       await old.promise;
@@ -842,16 +871,22 @@ describe("resource-scoped event overlay lifecycle", (): void => {
     });
     await expectMarkerCount(1);
     expect(screen.getByText("Incident: Fresh result")).toBeVisible();
-    expect(screen.queryByText("Incident: Cancelled result")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Incident: Cancelled result"),
+    ).not.toBeInTheDocument();
   });
 
   test("an individual scope failure preserves another scope's incidents and alerts", async (): Promise<void> => {
     getListMock.mockImplementation((request: EventRequest) => {
       const monitorIds: Array<string> = queryValues(
-        request.query[request.modelType.name === "Incident" ? "monitors" : "monitorId"],
+        request.query[
+          request.modelType.name === "Incident" ? "monitors" : "monitorId"
+        ],
       );
       if (monitorIds.includes(MONITOR_A)) {
-        return Promise.reject(new Error("First monitor is temporarily unavailable"));
+        return Promise.reject(
+          new Error("First monitor is temporarily unavailable"),
+        );
       }
       return Promise.resolve({ data: [event("Other monitor", 2, MONITOR_B)] });
     });
