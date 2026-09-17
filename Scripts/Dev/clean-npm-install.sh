@@ -1,4 +1,7 @@
 
+# Act on the repository root no matter where this is run from.
+CDPATH= cd -- "$(dirname -- "$0")/../.." || exit 1
+
 # Loop through all the directories. 
 for d in */ ; do
     PACKAGE_JSON=./$d/package.json

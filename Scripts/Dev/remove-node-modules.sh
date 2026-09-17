@@ -1,6 +1,9 @@
 
 #!/bin/bash
 
+# Act on the repository root no matter where this is run from.
+CDPATH= cd -- "$(dirname -- "$0")/../.." || exit 1
+
 echo "Removing node_modules directories..."
 
 # Remove node_modules in root directory first
