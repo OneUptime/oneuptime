@@ -1,7 +1,7 @@
 apiVersion: v2
 name: kubernetes-agent
 description: OneUptime Kubernetes Monitoring Agent — collects cluster metrics, events, and logs via OpenTelemetry and sends them to your OneUptime instance.
-icon: https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/1.png
+icon: https://oneuptime.com/img/OneUptimePNG/1.png
 home: https://oneuptime.com
 sources:
   - https://github.com/OneUptime/oneuptime
