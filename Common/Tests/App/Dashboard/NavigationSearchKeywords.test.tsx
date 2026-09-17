@@ -33,9 +33,11 @@ import {
   setViewportWidth,
 } from "./SideMenuHarness";
 
-// Render the dashboard's actual NavBar, catalog, translations and search modal.
-// Fixtures carrying their own aliases would let the shared search component
-// pass while the real products still lacked the words users search for.
+/*
+ * Render the dashboard's actual NavBar, catalog, translations and search modal.
+ * Fixtures carrying their own aliases would let the shared search component
+ * pass while the real products still lacked the words users search for.
+ */
 const translation: i18n = createInstance();
 const ORIGINAL_WIDTH: number = window.innerWidth;
 const OTHER_PROJECT_ID: string = "7d2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";

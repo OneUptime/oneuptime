@@ -38,8 +38,10 @@ jest.mock("../../../UI/Utils/Translation", () => {
 
 const RECENT_STORAGE_KEY: string = "oneuptime-navbar-recent-products";
 
-// Resources are deliberately interleaved with Observability. Keyboard selection
-// must follow the grouped order on screen, including after an alias search.
+/*
+ * Resources are deliberately interleaved with Observability. Keyboard selection
+ * must follow the grouped order on screen, including after an alias search.
+ */
 const ITEMS: Array<MoreMenuItem> = [
   {
     title: "Monitors",
