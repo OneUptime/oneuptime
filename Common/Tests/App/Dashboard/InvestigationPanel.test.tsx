@@ -465,13 +465,15 @@ afterEach(() => {
 });
 
 describe("InvestigationPanel report lifecycle", () => {
-  test("renders nothing and briefly discovers a run when none exists yet", async () => {
+  test("explains a missing run and briefly checks whether one appears", async () => {
     postMock.mockResolvedValue(noInvestigationResponse() as never);
 
-    const { container } = renderPanel();
+    renderPanel();
     await flush();
 
-    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.getByText("No investigation has been recorded"),
+    ).toBeVisible();
     expect(jest.getTimerCount()).toBe(1);
 
     await advanceFastPolls(4);
@@ -706,7 +708,8 @@ describe("InvestigationPanel report lifecycle", () => {
     );
     await flush();
 
-    expect(view.container).toBeEmptyDOMElement();
+    expect(screen.getByText("Checking investigation status…")).toBeVisible();
+    expect(screen.queryByTestId("investigation-markdown")).toBeNull();
     expect(onAnalysisAvailable).not.toHaveBeenCalled();
 
     await resolveDeferred(

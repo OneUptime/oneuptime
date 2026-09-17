@@ -1,3 +1,4 @@
+import InvestigationEligibility from "../Utils/AI/SRE/InvestigationEligibility";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
 import Express, {
@@ -348,6 +349,11 @@ async function sendLatestInvestigation(
   if (!run) {
     Response.sendJsonObjectResponse(req, res, {
       run: null,
+      notInvestigatedReason:
+        (await InvestigationEligibility.getNotStartedReason({
+          projectId: viewer.projectId,
+          ...subject,
+        })) as unknown as JSONObject,
       events: [],
       analysisMarkdown: null,
       analysisTldr: null,
@@ -459,6 +465,7 @@ async function sendLatestInvestigation(
 
   Response.sendJsonObjectResponse(req, res, {
     run: runJson || null,
+    notInvestigatedReason: null,
     events: eventsJson,
     analysisMarkdown,
     analysisTldr,

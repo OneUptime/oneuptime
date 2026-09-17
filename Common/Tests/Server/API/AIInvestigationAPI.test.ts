@@ -10,6 +10,8 @@ import AIRunService from "../../../Server/Services/AIRunService";
 import AlertService from "../../../Server/Services/AlertService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import PostedRootCause from "../../../Server/Utils/AI/SRE/PostedRootCause";
+import InvestigationEligibility from "../../../Server/Utils/AI/SRE/InvestigationEligibility";
+import InvestigationNotStartedReason from "../../../Types/AI/InvestigationNotStartedReason";
 import FixFromIncidentTaskTrigger from "../../../Server/Utils/AI/SRE/FixFromIncidentTaskTrigger";
 import {
   ExpressRequest,
@@ -182,10 +184,21 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
   });
 
   it("returns an explicit empty analysis state when no investigation exists", async () => {
+    const reason: InvestigationNotStartedReason = {
+      ...InvestigationEligibility.reason("no_run_recorded", {
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+      }),
+      source: "unknown",
+    };
+    jest
+      .spyOn(InvestigationEligibility, "getNotStartedReason")
+      .mockResolvedValue(reason);
     await callIncidentRoute();
 
     expect(sentPayload()).toEqual({
       run: null,
+      notInvestigatedReason: reason,
       events: [],
       analysisMarkdown: null,
       analysisTldr: null,
@@ -1143,6 +1156,7 @@ describe("AIInvestigationAPI latest-investigation tenant pinning", () => {
         "events",
         "evidence",
         "isAnalysisPending",
+        "notInvestigatedReason",
         "references",
         "run",
       ].sort(),

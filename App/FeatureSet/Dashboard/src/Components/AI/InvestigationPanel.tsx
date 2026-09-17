@@ -4,6 +4,9 @@ import ChatActivityFeed, {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import InvestigationReportView from "./InvestigationReport/InvestigationReportView";
+import InvestigationNotStartedCard, {
+  parseInvestigationNotStartedReason,
+} from "./InvestigationNotStartedCard";
 import { EvidenceFocusRequest } from "./InvestigationReport/InvestigationEvidenceList";
 import InvestigationRunDetails, {
   InvestigationRunUsage,
@@ -18,6 +21,7 @@ import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunCodeFixRecommendation from "Common/Types/AI/AIRunCodeFixRecommendation";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import InvestigationNotStartedReason from "Common/Types/AI/InvestigationNotStartedReason";
 import {
   InvestigationEventReference,
   InvestigationEvidenceItem,
@@ -135,8 +139,8 @@ function useReportToHost<T>(
  * The AI's live "watch it think" panel, shared by the incident and alert
  * view pages. It shows the autonomous investigation narrating its steps in
  * real time (reusing ChatActivityFeed over the run's AIRunEvents) and its
- * status. Renders nothing until an investigation exists for the subject, so
- * it's invisible for projects that haven't enabled AI. Once complete, the
+ * status. When no run exists, the recorded decision or current eligibility
+ * explains why this subject was not investigated. Once complete, the
  * published report becomes the primary content and the reasoning trail moves
  * into a quiet disclosure.
  */
@@ -149,6 +153,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const [runStatus, setRunStatus] = useState<AIRunStatus | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [notInvestigatedReason, setNotInvestigatedReason] =
+    useState<InvestigationNotStartedReason | null>(null);
+  const [hasFetchError, setHasFetchError] = useState<boolean>(false);
+  const [hasSuccessfulResponse, setHasSuccessfulResponse] =
+    useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
   const [analysisMarkdown, setAnalysisMarkdown] = useState<string | null>(null);
   /*
@@ -303,6 +313,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     setRunStatus(null);
     setRunId(null);
     setErrorMessage(null);
+    setNotInvestigatedReason(null);
+    setHasFetchError(false);
+    setHasSuccessfulResponse(false);
+    setIsRefreshing(false);
     setEvents([]);
     setAnalysisMarkdown(null);
     setAnalysisTldr(null);
@@ -357,13 +371,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         }
 
         if (response instanceof HTTPErrorResponse) {
-          if (loadedSubjectKeyRef.current !== requestedSubjectKey) {
-            setRunStatus(null);
-          }
-          loadedSubjectKeyRef.current = requestedSubjectKey;
-          setLoadedSubjectKey(requestedSubjectKey);
-          setHasLoadedOnce(true);
-          return;
+          throw response;
         }
 
         const data: JSONObject = response.data as JSONObject;
@@ -375,6 +383,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           (runJson?.["status"] as AIRunStatus | undefined) || null;
         const nextRunId: string | null =
           (runJson?.["_id"] as string | undefined) || null;
+        const nextNotInvestigatedReason: InvestigationNotStartedReason | null =
+          !runJson
+            ? parseInvestigationNotStartedReason(data["notInvestigatedReason"])
+            : null;
         const verdictFromServer: string | null =
           (runJson?.["humanVerdict"] as string | undefined) || null;
         const rawRecommendationValue: unknown =
@@ -424,7 +436,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           (runJson?.["errorMessage"] as string | undefined) || null;
         const nextSupportsSettledPolling: boolean =
           Object.prototype.hasOwnProperty.call(data, "analysisMarkdown") ||
-          Object.prototype.hasOwnProperty.call(data, "isAnalysisPending");
+          Object.prototype.hasOwnProperty.call(data, "isAnalysisPending") ||
+          Object.prototype.hasOwnProperty.call(data, "notInvestigatedReason");
 
         if (nextRunId !== activeRunIdRef.current) {
           activeRunIdRef.current = nextRunId;
@@ -540,11 +553,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           codeFixRecommendationFromServer,
           nextEvidence,
           nextReferences,
+          nextNotInvestigatedReason,
         ]);
         if (signature !== signatureRef.current) {
           signatureRef.current = signature;
           setRunStatus(status);
           setRunId(nextRunId);
+          setNotInvestigatedReason(nextNotInvestigatedReason);
           setCodeFixRecommendation(codeFixRecommendationFromServer);
           setErrorMessage(nextErrorMessage);
           setAnalysisMarkdown(nextAnalysisMarkdown);
@@ -575,18 +590,21 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         setLoadedSubjectKey(requestedSubjectKey);
         setSupportsSettledPolling(nextSupportsSettledPolling);
         setHasLoadedOnce(true);
+        setHasFetchError(false);
+        setHasSuccessfulResponse(true);
       } catch {
         if (!isLatestRequest()) {
           return;
         }
 
-        // Best-effort panel — never surface an error here.
+        // Keep a known run or explanation through transient failures.
         if (loadedSubjectKeyRef.current !== requestedSubjectKey) {
           setRunStatus(null);
         }
         loadedSubjectKeyRef.current = requestedSubjectKey;
         setLoadedSubjectKey(requestedSubjectKey);
         setHasLoadedOnce(true);
+        setHasFetchError(true);
       }
     }, [subjectIdString, subjectKey, subjectType]);
 
@@ -981,9 +999,37 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     onVerdictChangeRef,
   );
 
-  // Nothing to show until an investigation exists for this subject.
   if (!hasLoadedOnce || loadedSubjectKey !== subjectKey || !runStatus) {
-    return <></>;
+    const isLoading: boolean =
+      !hasLoadedOnce || loadedSubjectKey !== subjectKey;
+    return (
+      <InvestigationNotStartedCard
+        subjectType={subjectType}
+        reason={isLoading ? null : notInvestigatedReason}
+        isLoading={isLoading}
+        hasError={!isLoading && hasFetchError}
+        hasSuccessfulResponse={!isLoading && hasSuccessfulResponse}
+        isRefreshing={isRefreshing}
+        onRefresh={() => {
+          setIsRefreshing(true);
+          const refresh: Promise<void> = fetchDataSequentially();
+          const requestId: number = latestFetchRequestRef.current;
+          refresh
+            .catch(() => {
+              // handled inside fetchData
+            })
+            .finally(() => {
+              if (
+                isMountedRef.current &&
+                activeSubjectKeyRef.current === subjectKey &&
+                latestFetchRequestRef.current === requestId
+              ) {
+                setIsRefreshing(false);
+              }
+            });
+        }}
+      />
+    );
   }
 
   interface StatusMeta {

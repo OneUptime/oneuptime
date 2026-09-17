@@ -1,3 +1,8 @@
+import {
+  InvestigationNotStartedCode,
+  InvestigationGateDetails,
+} from "../../../../Types/AI/InvestigationNotStartedReason";
+import InvestigationEligibility from "./InvestigationEligibility";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import AIRunType from "../../../../Types/AI/AIRunType";
@@ -17,7 +22,10 @@ import IncidentService from "../../../Services/IncidentService";
 import IncidentAIContextBuilder, {
   IncidentContextData,
 } from "../IncidentAIContextBuilder";
-import { AI_INCIDENT_INVESTIGATION_FEATURE } from "../../../Services/AIService";
+import {
+  AI_INCIDENT_INVESTIGATION_FEATURE,
+  AutonomousBudgetStatus,
+} from "../../../Services/AIService";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
@@ -50,6 +58,8 @@ const MAX_INCIDENT_DEDUPE_WINDOW_MINUTES: number = 24 * 60;
 
 export interface IncidentGateDecision {
   investigate: boolean;
+  notStartedCode?: InvestigationNotStartedCode | undefined;
+  notStartedDetails?: InvestigationGateDetails | undefined;
   reason: string;
   monitorId?: ObjectID | undefined;
 }
@@ -74,12 +84,10 @@ export default class AIIncidentInvestigationRunner {
     const { incidentId, projectId } = data;
 
     try {
-      if (
-        !(await AIInvestigationEngine.isEnabledForProject(
-          projectId,
-          "Incident",
-        ))
-      ) {
+      const disabled: InvestigationNotStartedCode | null =
+        await AIInvestigationEngine.getDisabledReason(projectId, "Incident");
+      if (disabled) {
+        await InvestigationEligibility.recordSkipped(data, disabled);
         return false;
       }
 
@@ -89,6 +97,12 @@ export default class AIIncidentInvestigationRunner {
       });
 
       if (!gate.investigate) {
+        await InvestigationEligibility.recordSkipped(
+          data,
+          gate.notStartedCode || "eligibility_check_failed",
+          undefined,
+          gate.notStartedDetails,
+        );
         logger.debug(
           `AI: skipping investigation for incident ${incidentId.toString()} — ${gate.reason}.`,
         );
@@ -100,11 +114,21 @@ export default class AIIncidentInvestigationRunner {
           projectId,
           subjectIncidentId: incidentId,
           subjectMonitorId: gate.monitorId,
+          onNotEnqueued: async (
+            code: InvestigationNotStartedCode,
+            budget?: AutonomousBudgetStatus,
+          ): Promise<void> => {
+            await InvestigationEligibility.recordSkipped(data, code, budget);
+          },
         },
       );
 
       return enqueuedRunId !== null;
     } catch (error) {
+      await InvestigationEligibility.recordSkipped(
+        data,
+        "eligibility_check_failed",
+      );
       logger.error(
         `AI: unexpected error enqueueing investigation for incident ${incidentId.toString()}: ${error}`,
       );
@@ -140,13 +164,18 @@ export default class AIIncidentInvestigationRunner {
         },
         incidentSeverity: {
           order: true,
+          name: true,
         },
       },
       props: { isRoot: true },
     });
 
     if (!incident) {
-      return { investigate: false, reason: "incident not found" };
+      return {
+        investigate: false,
+        reason: "incident not found",
+        notStartedCode: "eligibility_check_failed",
+      };
     }
 
     const monitorIds: Array<ObjectID> = (incident.monitors || [])
@@ -175,18 +204,24 @@ export default class AIIncidentInvestigationRunner {
      * whose severity order cannot be determined passes, as does every
      * incident when no floor is configured.
      */
-    const floorOrder: number | null = await this.getSeverityFloorOrder(
+    const floorSeverity: IncidentSeverity | null = await this.getSeverityFloor(
       project?.incidentInvestigationMinimumSeverityId,
     );
+    const floorOrder: number | undefined = floorSeverity?.order;
     const incidentOrder: number | undefined = incident.incidentSeverity?.order;
 
     if (
-      floorOrder !== null &&
+      floorOrder !== undefined &&
       incidentOrder !== undefined &&
       incidentOrder > floorOrder
     ) {
       return {
         investigate: false,
+        notStartedCode: "severity_below_threshold",
+        notStartedDetails: {
+          severityName: incident.incidentSeverity?.name,
+          minimumSeverityName: floorSeverity?.name,
+        },
         reason: `severity order ${incidentOrder} is below the investigation floor (order ${floorOrder})`,
         monitorId: primaryMonitorId,
       };
@@ -227,6 +262,8 @@ export default class AIIncidentInvestigationRunner {
       if (recentRunCount > 0) {
         return {
           investigate: false,
+          notStartedCode: "monitor_cooldown",
+          notStartedDetails: { cooldownWindowMinutes: dedupeWindowMinutes },
           reason: `a monitor affected by this incident was already investigated within the last ${dedupeWindowMinutes} minutes`,
           monitorId: primaryMonitorId,
         };
@@ -246,9 +283,9 @@ export default class AIIncidentInvestigationRunner {
    * Returns null when no floor applies — which, unlike the alert lane, is the
    * default: no configured minimum means investigate everything.
    */
-  private static async getSeverityFloorOrder(
+  private static async getSeverityFloor(
     minimumSeverityId: ObjectID | undefined,
-  ): Promise<number | null> {
+  ): Promise<IncidentSeverity | null> {
     if (!minimumSeverityId) {
       return null;
     }
@@ -256,7 +293,7 @@ export default class AIIncidentInvestigationRunner {
     const floorSeverity: IncidentSeverity | null =
       await IncidentSeverityService.findOneById({
         id: minimumSeverityId,
-        select: { order: true },
+        select: { order: true, name: true },
         props: { isRoot: true },
       });
 
@@ -268,7 +305,7 @@ export default class AIIncidentInvestigationRunner {
       return null;
     }
 
-    return floorSeverity.order;
+    return floorSeverity;
   }
 
   /*

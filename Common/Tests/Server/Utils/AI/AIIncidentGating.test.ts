@@ -1,3 +1,4 @@
+import InvestigationEligibility from "../../../../Server/Utils/AI/SRE/InvestigationEligibility";
 import AIIncidentInvestigationRunner, {
   DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES,
   IncidentGateDecision,
@@ -15,7 +16,7 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Cost gates for autonomous INCIDENT investigations.
@@ -401,8 +402,8 @@ describe("AIIncidentInvestigationRunner.investigateNewIncident — gate wiring",
 
   test("a gated-out incident is never enqueued", async () => {
     jest
-      .spyOn(AIInvestigationEngine, "isEnabledForProject")
-      .mockResolvedValue(true);
+      .spyOn(AIInvestigationEngine, "getDisabledReason")
+      .mockResolvedValue(null);
     jest
       .spyOn(AIIncidentInvestigationRunner, "shouldInvestigateIncident")
       .mockResolvedValue({ investigate: false, reason: "below floor" });
@@ -420,8 +421,8 @@ describe("AIIncidentInvestigationRunner.investigateNewIncident — gate wiring",
 
   test("a passing incident is enqueued carrying its monitor as the dedupe key", async () => {
     jest
-      .spyOn(AIInvestigationEngine, "isEnabledForProject")
-      .mockResolvedValue(true);
+      .spyOn(AIInvestigationEngine, "getDisabledReason")
+      .mockResolvedValue(null);
     jest
       .spyOn(AIIncidentInvestigationRunner, "shouldInvestigateIncident")
       .mockResolvedValue({
@@ -449,8 +450,8 @@ describe("AIIncidentInvestigationRunner.investigateNewIncident — gate wiring",
   // The project opt-in is still checked before anything else costs a query.
   test("a project with investigations disabled never reaches the gate", async () => {
     jest
-      .spyOn(AIInvestigationEngine, "isEnabledForProject")
-      .mockResolvedValue(false);
+      .spyOn(AIInvestigationEngine, "getDisabledReason")
+      .mockResolvedValue("automatic_investigation_disabled");
     const gateSpy: jest.SpyInstance = jest.spyOn(
       AIIncidentInvestigationRunner,
       "shouldInvestigateIncident",
@@ -478,8 +479,8 @@ describe("AIIncidentInvestigationRunner.investigateNewIncident — gate wiring",
    */
   test("a throwing gate is swallowed, enqueues nothing, and reports not-enqueued", async () => {
     jest
-      .spyOn(AIInvestigationEngine, "isEnabledForProject")
-      .mockResolvedValue(true);
+      .spyOn(AIInvestigationEngine, "getDisabledReason")
+      .mockResolvedValue(null);
     jest
       .spyOn(AIIncidentInvestigationRunner, "shouldInvestigateIncident")
       .mockRejectedValue(new Error("database unavailable"));
@@ -497,4 +498,10 @@ describe("AIIncidentInvestigationRunner.investigateNewIncident — gate wiring",
 
     expect(enqueue).not.toHaveBeenCalled();
   });
+});
+
+beforeEach(() => {
+  jest
+    .spyOn(InvestigationEligibility, "recordSkipped")
+    .mockResolvedValue(undefined);
 });

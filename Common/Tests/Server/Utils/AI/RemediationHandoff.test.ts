@@ -1,3 +1,4 @@
+import InvestigationEligibility from "../../../../Server/Utils/AI/SRE/InvestigationEligibility";
 import RemediationHandoff from "../../../../Server/Utils/AI/SRE/RemediationHandoff";
 import AIIncidentInvestigationRunner, {
   IncidentGateDecision,
@@ -9,7 +10,7 @@ import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigati
 import AIInvestigationQueue from "../../../../Server/Utils/AI/SRE/InvestigationQueue";
 import AutoRemediationRuleEngineService from "../../../../Server/Services/AutoRemediationRuleEngineService";
 import ObjectID from "../../../../Types/ObjectID";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * RCA-first ordering, the two ends the create hooks depend on:
@@ -122,8 +123,10 @@ describe("AIIncidentInvestigationRunner.investigateNewIncident — the enqueued 
 
   function mockGates(data: { enabled: boolean; investigate: boolean }): void {
     jest
-      .spyOn(AIInvestigationEngine, "isEnabledForProject")
-      .mockResolvedValue(data.enabled);
+      .spyOn(AIInvestigationEngine, "getDisabledReason")
+      .mockResolvedValue(
+        data.enabled ? null : "automatic_investigation_disabled",
+      );
     jest
       .spyOn(AIIncidentInvestigationRunner, "shouldInvestigateIncident")
       .mockResolvedValue({
@@ -225,8 +228,10 @@ describe("AIAlertInvestigationRunner.investigateNewAlert — the enqueued signal
 
   function mockGates(data: { enabled: boolean; investigate: boolean }): void {
     jest
-      .spyOn(AIInvestigationEngine, "isEnabledForProject")
-      .mockResolvedValue(data.enabled);
+      .spyOn(AIInvestigationEngine, "getDisabledReason")
+      .mockResolvedValue(
+        data.enabled ? null : "automatic_investigation_disabled",
+      );
     jest
       .spyOn(AIAlertInvestigationRunner, "shouldInvestigateAlert")
       .mockResolvedValue({
@@ -303,4 +308,10 @@ describe("AIAlertInvestigationRunner.investigateNewAlert — the enqueued signal
       }),
     ).resolves.toBe(false);
   });
+});
+
+beforeEach(() => {
+  jest
+    .spyOn(InvestigationEligibility, "recordSkipped")
+    .mockResolvedValue(undefined);
 });

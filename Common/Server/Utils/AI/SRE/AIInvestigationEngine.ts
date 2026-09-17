@@ -1,3 +1,4 @@
+import { InvestigationNotStartedCode } from "../../../../Types/AI/InvestigationNotStartedReason";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
@@ -186,6 +187,13 @@ export default class AIInvestigationEngine {
     projectId: ObjectID,
     subjectType: AISubjectType,
   ): Promise<boolean> {
+    return (await this.getDisabledReason(projectId, subjectType)) === null;
+  }
+
+  public static async getDisabledReason(
+    projectId: ObjectID,
+    subjectType: AISubjectType,
+  ): Promise<InvestigationNotStartedCode | null> {
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
       select: {
@@ -197,11 +205,11 @@ export default class AIInvestigationEngine {
     });
 
     if (!project) {
-      return false;
+      return "eligibility_check_failed";
     }
 
     if (project.enableAi === false) {
-      return false;
+      return "ai_disabled";
     }
 
     const isOptedIn: boolean =
@@ -210,7 +218,7 @@ export default class AIInvestigationEngine {
         : project.enableAutomaticIncidentInvestigation === true;
 
     if (!isOptedIn) {
-      return false;
+      return "automatic_investigation_disabled";
     }
 
     const llmProvider: LlmProvider | null =
@@ -220,10 +228,10 @@ export default class AIInvestigationEngine {
       logger.debug(
         `AI: skipping investigation for project ${projectId.toString()} — no LLM provider configured.`,
       );
-      return false;
+      return "provider_missing";
     }
 
-    return true;
+    return null;
   }
 
   /*
