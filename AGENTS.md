@@ -47,7 +47,7 @@ see `HelmChart/README.md` for how to add one.
 
 ### Project docs
 
-Internal roadmaps live in `Internal/Roadmap/` (see its README for the index).
+Internal roadmaps live in `Docs/Internal/Roadmap/` (see its README for the index).
 
 ### Mobile app releases
 

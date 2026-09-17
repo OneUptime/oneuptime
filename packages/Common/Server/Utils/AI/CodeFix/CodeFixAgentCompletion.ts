@@ -23,7 +23,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
  * Server-mediated LLM completions for the in-house code-fix agent (B4 Tier
- * 0, Internal/Roadmap/CodeFixSandboxDesign.md). The worker never holds a
+ * 0, Docs/Internal/Roadmap/CodeFixSandboxDesign.md). The worker never holds a
  * provider secret: every completion of its tool loop is executed HERE via
  * AIService.executeWithLogging — logged to LlmLog, linked to the run, billed
  * when the provider is the costed global one, and inside the G4 daily

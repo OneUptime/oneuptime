@@ -73,7 +73,7 @@ jest.mock("../../../Server/Services/OnCallReadinessService", () => {
  *
  * This file began as a CHARACTERIZATION suite: it pinned the behaviour the
  * service had before the readiness work, including four defects the plan
- * (Internal/Roadmap/OnCallNotificationReadiness.md, section 2.6) called out.
+ * (Docs/Internal/Roadmap/OnCallNotificationReadiness.md, section 2.6) called out.
  * PHASE 2 HAS NOW CLOSED ALL FOUR, by rebuilding the two "has on-call rules"
  * checks on top of OnCallReadinessService, and the four DEFECT blocks below
  * have been inverted in place - each still sits under its original heading so

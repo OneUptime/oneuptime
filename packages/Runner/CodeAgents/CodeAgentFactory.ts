@@ -13,7 +13,7 @@ export default class CodeAgentFactory {
    * Default agent type: the in-house server-mediated agent (B4 Tier 0).
    * CODE_AGENT_TYPE can select a different agent when more than one exists;
    * the deprecated OpenCode raw-key fallback was removed after its one
-   * grace release — see Internal/Roadmap/CodeFixSandboxDesign.md.
+   * grace release — see Docs/Internal/Roadmap/CodeFixSandboxDesign.md.
    */
   private static defaultAgentType: CodeAgentType =
     CodeAgentFactory.resolveDefaultAgentTypeFromEnvironment();

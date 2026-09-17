@@ -39,7 +39,7 @@ interface ToolExecution {
 }
 
 /*
- * The in-house code agent (B4 Tier 0, Internal/Roadmap/
+ * The in-house code agent (B4 Tier 0, Docs/Internal/Roadmap/
  * CodeFixSandboxDesign.md): a tool loop whose every LLM completion is
  * server-mediated via POST /ai-agent-data/llm-completion — metered, logged
  * to LlmLog against the run, inside the G4 daily budget, and under per-run

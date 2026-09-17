@@ -19,7 +19,7 @@ import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 
 /*
- * Gap A of Internal/Roadmap/OnCallNotificationReadiness.md.
+ * Gap A of Docs/Internal/Roadmap/OnCallNotificationReadiness.md.
  *
  * A responder's default notification rules are written twice in their life:
  * when they join a project, and when they verify a notification method. Both

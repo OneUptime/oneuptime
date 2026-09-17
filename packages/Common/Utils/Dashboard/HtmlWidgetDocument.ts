@@ -27,7 +27,7 @@ import DashboardVariableInterpolation, {
  * are never emitted together, and getSandboxAttribute() has no input that
  * produces `allow-same-origin`.
  *
- * Internal/Roadmap/SessionReplay.md argues against `allow-scripts` without
+ * Docs/Internal/Roadmap/SessionReplay.md argues against `allow-scripts` without
  * `allow-same-origin`; that conclusion is specific to session replay, where
  * the rrweb Replayer runs in the PARENT and writes into contentDocument, so
  * it needs same-origin access and no script execution. This widget is the

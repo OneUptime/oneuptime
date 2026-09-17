@@ -3,7 +3,7 @@ import path from "path";
 
 /*
  * Pure guards for the in-house code agent's workspace tools (B4 Tier 0,
- * Internal/Roadmap/CodeFixSandboxDesign.md): every file-system tool call is
+ * Docs/Internal/Roadmap/CodeFixSandboxDesign.md): every file-system tool call is
  * path-guarded to the run's ephemeral workspace (the same escape posture as
  * WorkspaceManager.deleteWorkspace's base-directory check), and every tool
  * output is truncated before it re-enters the model context. Kept pure —

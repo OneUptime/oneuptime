@@ -43,7 +43,7 @@ import Permission from "../../../../../Types/Permission";
  * else. The FIRST group below is the standing proof that this still holds for a
  * plain member on all ten models.
  *
- * GAP D in Internal/Roadmap/OnCallNotificationReadiness.md was the consequence
+ * GAP D in Docs/Internal/Roadmap/OnCallNotificationReadiness.md was the consequence
  * for everybody else: a Project ADMIN was treated identically to a plain member
  * on these tables, because ProjectAdmin appeared in none of these lists and so
  * never landed in the intersection. There was no query an admin could issue

@@ -134,7 +134,7 @@ export default class AIAgentDataAPI {
   private initRoutes(): void {
     /*
      * Server-mediated LLM completion for the in-house code-fix agent (B4
-     * Tier 0, Internal/Roadmap/CodeFixSandboxDesign.md). One call = one
+     * Tier 0, Docs/Internal/Roadmap/CodeFixSandboxDesign.md). One call = one
      * completion of the worker's tool loop, executed through
      * AIService.executeWithLogging: metered, LlmLog-linked to the run,
      * inside the G4 daily budget, and under per-run loop budgets (max

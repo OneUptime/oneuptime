@@ -35,7 +35,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * the hook wrote `Error` plus a status message onto the log and onto the on-call
  * timeline, and RETURNED. Nothing was sent. Nobody was emailed. The escalation
  * timer kept running as if the person had simply chosen not to acknowledge. That
- * is Gap C in Internal/Roadmap/OnCallNotificationReadiness.md.
+ * is Gap C in Docs/Internal/Roadmap/OnCallNotificationReadiness.md.
  *
  * GAP C CLOSED IN PHASE 1. The zero-rule branch now asks three questions in
  * order, and section (A) below pins all three:
