@@ -221,6 +221,18 @@ describe("trust.ejs with the claims matrix", () => {
     expect(html).toContain("Governed claims");
   });
 
+  test("describes immediate hard deletion from the active database", () => {
+    const deletionCopy: string =
+      html.match(
+        /Customer-initiated deletion<\/h3>\s*<p[^>]*>([\s\S]*?)<\/p>/,
+      )?.[1] || "";
+
+    expect(deletionCopy).toContain(
+      "Hard deletion from the active database is immediate.",
+    );
+    expect(deletionCopy).not.toMatch(/soft delete|30 days|95th percentile/i);
+  });
+
   test("publishes the definition of every status word", () => {
     for (const status of ClaimStatuses as Array<ClaimStatusDefinition>) {
       expect(html).toContain(status.label);
