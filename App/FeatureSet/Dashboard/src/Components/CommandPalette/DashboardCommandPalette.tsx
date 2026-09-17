@@ -253,6 +253,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
           return {
             title: item.title,
             description: item.description,
+            keywords: item.keywords,
             icon: item.icon,
             iconColor: item.iconColor,
             category: item.category || essentialsCategory,
@@ -280,6 +281,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
             id: descriptor.id,
             title: descriptor.title,
             description: descriptor.description,
+            keywords: descriptor.keywords,
             icon: descriptor.icon,
             iconColor: descriptor.iconColor,
             category: descriptor.category,

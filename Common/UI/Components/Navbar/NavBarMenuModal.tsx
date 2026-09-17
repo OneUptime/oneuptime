@@ -186,14 +186,18 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
 
   const recentLabel: string = tx(props.recentLabel || "Recent");
 
-  // Filter items by the search query (title only).
+  // Keep familiar acronyms searchable even when the displayed title is translated.
   const filteredItems: MoreMenuItem[] = useMemo(() => {
     const normalizedQuery: string = query.trim().toLowerCase();
     if (!normalizedQuery) {
       return props.items;
     }
     return props.items.filter((item: MoreMenuItem) => {
-      return item.title.toLowerCase().includes(normalizedQuery);
+      return [item.title, item.description, ...(item.keywords || [])].some(
+        (value: string) => {
+          return value.toLowerCase().includes(normalizedQuery);
+        },
+      );
     });
   }, [props.items, query]);
 

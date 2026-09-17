@@ -47,6 +47,16 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     // Essentials
     {
       title: t("navbar.items.monitorsTitle"),
+      keywords: [
+        "uptime",
+        "checks",
+        "health checks",
+        "synthetic monitoring",
+        "ping",
+        "http",
+        "ssl",
+        "heartbeat",
+      ],
       description: t("navbar.items.monitorsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route),
       activeRoute: RouteMap[PageMap.MONITORS],
@@ -56,6 +66,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.slosTitle", "SLOs"),
+      keywords: [
+        "service level objectives",
+        "service level indicators",
+        "sli",
+        "error budgets",
+        "burn rate",
+        "reliability",
+      ],
       description: t(
         "navbar.items.slosDescription",
         "Service level objectives and error budgets.",
@@ -68,6 +86,12 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.statusPagesTitle"),
+      keywords: [
+        "statuspage",
+        "service status",
+        "public status",
+        "uptime page",
+      ],
       description: t("navbar.items.statusPagesDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.STATUS_PAGES] as Route,
@@ -79,6 +103,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.incidentsTitle"),
+      keywords: ["outage", "downtime", "incident response", "postmortem"],
       description: t("navbar.items.incidentsDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.INCIDENTS] as Route,
@@ -90,6 +115,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.alertsTitle"),
+      keywords: ["notifications", "alarms", "thresholds", "warnings"],
       description: t("navbar.items.alertsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS] as Route),
       activeRoute: RouteMap[PageMap.ALERTS],
@@ -99,6 +125,15 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.onCallDutyTitle"),
+      keywords: [
+        "oncall",
+        "on call",
+        "pager",
+        "paging",
+        "escalation",
+        "rotation",
+        "schedule",
+      ],
       description: t("navbar.items.onCallDutyDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.ON_CALL_DUTY] as Route,
@@ -110,6 +145,11 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.scheduledMaintenanceTitle"),
+      keywords: [
+        "maintenance window",
+        "planned downtime",
+        "scheduled downtime",
+      ],
       description: t("navbar.items.scheduledMaintenanceDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
@@ -122,6 +162,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     // Observability
     {
       title: t("navbar.items.logsTitle"),
+      keywords: ["logging", "log search", "log explorer", "syslog"],
       description: t("navbar.items.logsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
       activeRoute: RouteMap[PageMap.LOGS],
@@ -131,6 +172,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.metricsTitle"),
+      keywords: [
+        "timeseries",
+        "time series",
+        "prometheus",
+        "measurements",
+        "counters",
+        "gauges",
+      ],
       description: t("navbar.items.metricsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
       activeRoute: RouteMap[PageMap.METRICS],
@@ -140,6 +189,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.tracesTitle"),
+      keywords: [
+        "distributed tracing",
+        "spans",
+        "requests",
+        "otel",
+        "opentelemetry",
+      ],
       description: t("navbar.items.tracesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
       activeRoute: RouteMap[PageMap.TRACES],
@@ -149,6 +205,15 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.performanceProfilesTitle"),
+      keywords: [
+        "profiling",
+        "profiler",
+        "continuous profiling",
+        "flamegraph",
+        "flame graph",
+        "cpu",
+        "memory",
+      ],
       description: t("navbar.items.performanceProfilesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.PROFILES] as Route),
       activeRoute: RouteMap[PageMap.PROFILES],
@@ -158,6 +223,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.exceptionsTitle"),
+      keywords: ["errors", "error tracking", "bugs", "crashes", "stack traces"],
       description: t("navbar.items.exceptionsDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS] as Route,
@@ -169,6 +235,15 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.llmObservabilityTitle", "AI / LLM"),
+      keywords: [
+        "large language models",
+        "generative ai",
+        "genai",
+        "tokens",
+        "prompts",
+        "completions",
+        "llm cost",
+      ],
       description: t(
         "navbar.items.llmObservabilityDescription",
         "Observe LLM and AI-agent calls — tokens, cost, latency, prompts and completions.",
@@ -181,6 +256,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.securityEventsTitle", "Security Events"),
+      keywords: [
+        "siem",
+        "security information and event management",
+        "threats",
+        "detections",
+        "vulnerabilities",
+      ],
       description: t(
         "navbar.items.securityEventsDescription",
         "SIEM signals correlated with your observability data.",
@@ -196,6 +278,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     // AI
     {
       title: t("navbar.items.aiChatTitle", "Chat"),
+      keywords: ["ai chat", "copilot", "assistant", "ask ai"],
       description: t(
         "navbar.items.aiChatDescription",
         "Chat with AI — it answers from your logs, traces, metrics, incidents, alerts and monitors, and cites every query.",
@@ -210,6 +293,12 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.aiAgentsTitle", "Tasks"),
+      keywords: [
+        "ai agents",
+        "agent tasks",
+        "automated fixes",
+        "fix pull requests",
+      ],
       description: t(
         "navbar.items.aiAgentsDescription",
         "Automated AI tasks — fix pull requests and their status.",
@@ -224,6 +313,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.sentinelInsightsTitle", "Insights"),
+      keywords: [
+        "sentinel",
+        "anomalies",
+        "root cause analysis",
+        "rca",
+        "ai investigations",
+      ],
       description: t(
         "navbar.items.sentinelInsightsDescription",
         "Proactive findings from OneUptime AI's telemetry watch — new exceptions, spikes, latency regressions and metric drift.",
@@ -238,6 +334,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.codeRepositoriesTitle"),
+      keywords: ["git", "github", "source code", "repos", "pull requests"],
       description: t(
         "navbar.items.codeRepositoriesDescription",
         "Connect GitHub so AI can open fix PRs.",
@@ -252,6 +349,12 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.topologyTitle"),
+      keywords: [
+        "service map",
+        "dependency map",
+        "dependencies",
+        "architecture",
+      ],
       description: t("navbar.items.topologyDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
       activeRoute: RouteMap[PageMap.TOPOLOGY],
@@ -261,6 +364,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.inventoryTitle", "Inventory"),
+      keywords: ["assets", "entities", "resource catalog", "cmdb"],
       description: t(
         "navbar.items.inventoryDescription",
         "Everything OneUptime knows about your estate, in one list.",
@@ -280,6 +384,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.servicesTitle"),
+      keywords: [
+        "apm",
+        "application performance monitoring",
+        "applications",
+        "microservices",
+        "otel",
+        "opentelemetry",
+      ],
       description: t("navbar.items.servicesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),
       activeRoute: RouteMap[PageMap.SERVICES],
@@ -289,6 +401,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.kubernetesTitle"),
+      keywords: ["k8s", "kube", "kubectl", "pods", "containers", "clusters"],
       description: t("navbar.items.kubernetesDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.KUBERNETES_CLUSTERS] as Route,
@@ -300,6 +413,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.dockerTitle"),
+      keywords: ["containers", "container monitoring", "docker hosts"],
       description: t("navbar.items.dockerDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.DOCKER_HOSTS] as Route,
@@ -311,6 +425,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.networkTitle", "Network"),
+      keywords: [
+        "snmp",
+        "network devices",
+        "network sites",
+        "routers",
+        "switches",
+        "firewalls",
+      ],
       description: t(
         "navbar.items.networkDescription",
         "Monitor network devices via SNMP and group them into sites.",
@@ -327,6 +449,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.podmanTitle"),
+      keywords: ["containers", "container monitoring", "rootless containers"],
       description: t("navbar.items.podmanDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.PODMAN_HOSTS] as Route,
@@ -338,6 +461,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.proxmoxTitle", "Proxmox"),
+      keywords: [
+        "pve",
+        "virtualization",
+        "virtual machines",
+        "lxc",
+        "hypervisor",
+      ],
       description: t(
         "navbar.items.proxmoxDescription",
         "Monitor Proxmox clusters, nodes and guests.",
@@ -352,6 +482,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.vmwareTitle", "VMware"),
+      keywords: [
+        "vcenter",
+        "esxi",
+        "vsphere",
+        "virtual machines",
+        "hypervisor",
+        "datastores",
+      ],
       description: t(
         "navbar.items.vmwareDescription",
         "Monitor vCenter, ESXi hosts, virtual machines and datastores.",
@@ -366,6 +504,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.iotTitle", "IoT"),
+      keywords: ["internet of things", "devices", "sensors", "fleets"],
       description: t(
         "navbar.items.iotDescription",
         "Monitor IoT device fleets — battery, connectivity, temperature and availability.",
@@ -380,6 +519,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.cephTitle", "Ceph"),
+      keywords: ["storage", "osd", "rados", "storage pools"],
       description: t(
         "navbar.items.cephDescription",
         "Monitor Ceph clusters, OSDs and pools.",
@@ -394,6 +534,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.dockerSwarmTitle", "Docker Swarm"),
+      keywords: ["swarm", "container orchestration", "swarm clusters"],
       description: t(
         "navbar.items.dockerSwarmDescription",
         "Monitor Docker Swarm clusters, nodes, services and tasks.",
@@ -408,6 +549,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.hostsTitle"),
+      keywords: ["servers", "machines", "infrastructure", "linux", "windows"],
       description: t("navbar.items.hostsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOSTS] as Route),
       activeRoute: RouteMap[PageMap.HOSTS],
@@ -417,6 +559,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.serverlessTitle"),
+      keywords: [
+        "lambda",
+        "aws lambda",
+        "cloud functions",
+        "azure functions",
+        "faas",
+      ],
       description: t("navbar.items.serverlessDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SERVERLESS_FUNCTIONS] as Route,
@@ -428,6 +577,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.cloudTitle"),
+      keywords: [
+        "aws",
+        "amazon web services",
+        "azure",
+        "gcp",
+        "google cloud",
+        "cloud resources",
+      ],
       description: t("navbar.items.cloudDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.CLOUD_RESOURCES] as Route,
@@ -439,6 +596,15 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.rumTitle"),
+      keywords: [
+        "rum",
+        "browser",
+        "frontend",
+        "front end",
+        "web vitals",
+        "session replay",
+        "user experience",
+      ],
       description: t("navbar.items.rumDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.RUM_APPLICATIONS] as Route,
@@ -451,6 +617,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     // Automation & Analytics
     {
       title: t("navbar.items.dashboardsTitle"),
+      keywords: ["charts", "graphs", "widgets", "visualizations"],
       description: t("navbar.items.dashboardsDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.DASHBOARDS] as Route,
@@ -462,6 +629,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.workflowsTitle"),
+      keywords: ["automation", "automations", "integrations", "triggers"],
       description: t("navbar.items.workflowsDescription"),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.WORKFLOWS] as Route,
@@ -473,6 +641,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.runbooksTitle"),
+      keywords: ["playbooks", "procedures", "remediation", "response guides"],
       description: t("navbar.items.runbooksDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.RUNBOOKS] as Route),
       activeRoute: RouteMap[PageMap.RUNBOOKS],
@@ -483,6 +652,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     // Settings
     {
       title: t("navbar.items.usersTitle"),
+      keywords: ["members", "people", "teammates", "invite"],
       description: t("navbar.items.usersDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
       activeRoute: RouteMap[PageMap.USERS],
@@ -492,6 +662,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.teamsTitle"),
+      keywords: ["groups", "departments", "team members"],
       description: t("navbar.items.teamsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TEAMS] as Route),
       activeRoute: RouteMap[PageMap.TEAMS],
@@ -501,6 +672,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     {
       title: t("navbar.items.projectSettingsTitle"),
+      keywords: [
+        "configuration",
+        "config",
+        "api keys",
+        "billing",
+        "permissions",
+        "sso",
+      ],
       description: t("navbar.items.projectSettingsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
       activeRoute: RouteMap[PageMap.SETTINGS],
