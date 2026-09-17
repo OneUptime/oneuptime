@@ -129,6 +129,12 @@ export interface ReplayControlsProps {
    * preference still shows the lanes.
    */
   isTimelineLanesVisible?: boolean | undefined;
+  /*
+   * Whether playback carries on into the next browser tab of the session
+   * on its own. Undefined means "on", so a caller that does not know
+   * about the preference still describes the default behaviour.
+   */
+  isAutoContinueEnabled?: boolean | undefined;
 
   onPlayPause: () => void;
   onSeekRelative: (deltaMs: number) => void;
@@ -142,6 +148,7 @@ export interface ReplayControlsProps {
   onFollowChange?: ((isEnabled: boolean) => void) | undefined;
   onMouseTrailChange?: ((isEnabled: boolean) => void) | undefined;
   onTimelineLanesChange?: ((isVisible: boolean) => void) | undefined;
+  onAutoContinueChange?: ((isEnabled: boolean) => void) | undefined;
 }
 
 type BufferingStage = "hidden" | "pill" | "retry";
@@ -328,12 +335,16 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
   const hasOverflow: boolean = Boolean(
     props.onFollowChange ||
       props.onMouseTrailChange ||
-      props.onTimelineLanesChange,
+      props.onTimelineLanesChange ||
+      props.onAutoContinueChange,
   );
 
   /* Undefined is "visible": the lanes are the timeline's default. */
   const areTimelineLanesVisible: boolean =
     props.isTimelineLanesVisible !== false;
+
+  /* Undefined is "on": continuous playback is the player's default. */
+  const isAutoContinueEnabled: boolean = props.isAutoContinueEnabled !== false;
 
   const seekBack: () => void = useCallback((): void => {
     onSeekRelative(-REPLAY_KEY_SEEK_JL_MS);
@@ -675,6 +686,29 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
               />
             ) : (
               <React.Fragment key="timeline-lanes-none" />
+            )}
+            {props.onAutoContinueChange ? (
+              /*
+               * The recorder mints a tab id per page load, so a visit that
+               * touched four pages is four tabs and playback used to stop
+               * at each one for a click (issue 3865). On, the player walks
+               * them in order by itself; off is one page load at a time,
+               * which is what someone auditing a single navigation wants.
+               */
+              <MoreMenuItem
+                key="auto-continue"
+                icon={IconProp.Forward}
+                text={
+                  isAutoContinueEnabled
+                    ? "Stop at the end of each tab"
+                    : "Play continuously across tabs"
+                }
+                onClick={(): void => {
+                  props.onAutoContinueChange?.(!isAutoContinueEnabled);
+                }}
+              />
+            ) : (
+              <React.Fragment key="auto-continue-none" />
             )}
           </MoreMenu>
         )}

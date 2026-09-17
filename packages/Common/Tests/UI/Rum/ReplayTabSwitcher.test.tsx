@@ -215,6 +215,39 @@ describe("ReplayTabSwitcher summary", () => {
     expect(props.onSwitchTab).toHaveBeenCalledWith("tab-2");
   });
 
+  /*
+   * Continuing means "keep watching", which the shell turns into a tab
+   * switch that RESUMES playback; picking a tab from the strip keeps the
+   * intent in force. They are two different requests, so the chip takes
+   * its own handler when there is one - otherwise clicking Continue left
+   * the next page of the visit paused and needed a Play as well
+   * (github.com/OneUptime/oneuptime/issues/3865).
+   */
+  it("prefers the continue handler over the plain tab switch", () => {
+    const props: ReplayTabSwitcherProps = renderSwitcher({
+      tabs: [makeTab({ isActive: true })],
+      continueInTab: makeTab({ tabId: "tab-2", label: "Tab 2" }),
+      onContinueInTab: jest.fn(),
+    });
+
+    fireEvent.click(screen.getByTestId("replay-continue-in-tab"));
+
+    expect(props.onContinueInTab).toHaveBeenCalledWith("tab-2");
+    expect(props.onSwitchTab).not.toHaveBeenCalled();
+  });
+
+  /* The pills are a deliberate jump and keep going through onSwitchTab. */
+  it("leaves the tab pills on the plain switch", () => {
+    const props: ReplayTabSwitcherProps = renderSwitcher({
+      onContinueInTab: jest.fn(),
+    });
+
+    fireEvent.click(screen.getAllByTestId("replay-tab-pill")[1] as HTMLElement);
+
+    expect(props.onSwitchTab).toHaveBeenCalledTimes(1);
+    expect(props.onContinueInTab).not.toHaveBeenCalled();
+  });
+
   it("counts open, closed and footage-less tabs", () => {
     renderSwitcher();
 

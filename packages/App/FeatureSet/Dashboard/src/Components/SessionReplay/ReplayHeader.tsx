@@ -120,6 +120,13 @@ export interface ReplayHeaderProps {
   onSwitchTab: (tabId: string) => void;
   /* Set when the active tab has played out and this tab has later footage. */
   continueInTab?: ReplayHeaderTab | null | undefined;
+  /*
+   * The Continue chip's handler, distinct from onSwitchTab: continuing
+   * means "keep watching", so the shell resumes playback with the switch
+   * instead of landing the next tab paused (issue 3865). Passed straight
+   * through to the tab switcher, which falls back to onSwitchTab.
+   */
+  onContinueInTab?: ((tabId: string) => void) | undefined;
   /* How the recording ended, when the finalizer said. */
   sealedReason?: SealedReasonCopy | null | undefined;
   isWide: boolean;
@@ -776,6 +783,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
             tabs={props.tabs}
             onSwitchTab={props.onSwitchTab}
             continueInTab={props.continueInTab}
+            onContinueInTab={props.onContinueInTab}
             sessionDurationMs={props.sessionDurationMs ?? 0}
           />
         </div>

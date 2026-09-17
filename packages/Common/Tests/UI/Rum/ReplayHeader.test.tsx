@@ -873,6 +873,29 @@ describe("ReplayHeader", () => {
     });
 
     /*
+     * The header owns no behaviour here; it passes the chip's handler down
+     * to the switcher. Pinned because the prop being absent is silent -
+     * the chip falls back to the plain switch and the next tab lands
+     * paused, which is exactly the click-per-tab of issue 3865 coming
+     * back rather than an error anyone would see.
+     */
+    it("hands the continue handler down to the tab switcher", () => {
+      const onContinueInTab: MockFunction = getJestMockFunction();
+      const props: ReplayHeaderProps = makeProps({
+        tabs: tabs,
+        continueInTab: tabs[1] as ReplayHeaderTab,
+        onContinueInTab: onContinueInTab,
+      });
+
+      render(<ReplayHeader {...props} />);
+
+      fireEvent.click(screen.getByTestId("replay-continue-in-tab"));
+
+      expect(onContinueInTab).toHaveBeenCalledWith("tab-2");
+      expect(props.onSwitchTab).not.toHaveBeenCalled();
+    });
+
+    /*
      * One tab and a continuation is a real state (the tab played out and
      * the session goes on in a tab the strip would not draw): the row
      * exists for the chip alone, with no tablist in it.

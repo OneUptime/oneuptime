@@ -867,6 +867,89 @@ describe("ReplayStageOverlays", () => {
       expect(props.onSwitchTab).toHaveBeenCalledWith("tab-2");
     });
 
+    /*
+     * Continuing is "keep watching", which is a different request to the
+     * engine from "take me to that tab": the shell resumes playback with
+     * the switch rather than landing the next page of the visit paused
+     * (github.com/OneUptime/oneuptime/issues/3865). So the chip prefers
+     * its own handler when it is given one.
+     */
+    it("prefers the continue handler over the plain tab switch", () => {
+      const props: ReplayStageOverlaysProps = makeProps({
+        snapshot: makeSnapshot({ buffer: "ended", currentTimeMs: DURATION_MS }),
+        continueInTab: {
+          tabId: "tab-2",
+          label: "Tab 2",
+          durationMs: 30000,
+          openedAtMs: 134000,
+          hasFootage: true,
+          isActive: false,
+        },
+        onSwitchTab: jest.fn(),
+        onContinueInTab: jest.fn(),
+      });
+
+      render(<ReplayStageOverlays {...props} />);
+
+      fireEvent.click(screen.getByTestId("replay-ended-continue-in-tab"));
+
+      expect(props.onContinueInTab).toHaveBeenCalledWith("tab-2");
+      expect(props.onSwitchTab).not.toHaveBeenCalled();
+    });
+
+    /* A caller that only knows about the continue handler still gets the chip. */
+    it("shows the chip when only the continue handler is given", () => {
+      const props: ReplayStageOverlaysProps = makeProps({
+        snapshot: makeSnapshot({ buffer: "ended", currentTimeMs: DURATION_MS }),
+        continueInTab: {
+          tabId: "tab-3",
+          label: "Tab 3",
+          durationMs: 30000,
+          openedAtMs: 200000,
+          hasFootage: true,
+          isActive: false,
+        },
+        onContinueInTab: jest.fn(),
+      });
+
+      render(<ReplayStageOverlays {...props} />);
+
+      const chip: HTMLElement = screen.getByTestId(
+        "replay-ended-continue-in-tab",
+      );
+
+      expect(chip).toHaveTextContent("Continue in Tab 3");
+
+      fireEvent.click(chip);
+      expect(props.onContinueInTab).toHaveBeenCalledWith("tab-3");
+    });
+
+    /* No handler at all: no chip, rather than a dead button. */
+    it("draws no chip without a handler for it", () => {
+      render(
+        <ReplayStageOverlays
+          {...makeProps({
+            snapshot: makeSnapshot({
+              buffer: "ended",
+              currentTimeMs: DURATION_MS,
+            }),
+            continueInTab: {
+              tabId: "tab-2",
+              label: "Tab 2",
+              durationMs: 30000,
+              openedAtMs: 134000,
+              hasFootage: true,
+              isActive: false,
+            },
+          })}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId("replay-ended-continue-in-tab"),
+      ).not.toBeInTheDocument();
+    });
+
     it("offers the user's next session from the ended card", () => {
       const props: ReplayStageOverlaysProps = makeProps({
         snapshot: makeSnapshot({ buffer: "ended", currentTimeMs: DURATION_MS }),

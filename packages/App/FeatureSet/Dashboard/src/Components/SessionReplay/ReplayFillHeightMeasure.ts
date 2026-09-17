@@ -21,8 +21,19 @@
 /*
  * The floor: below this a laptop with a tall header would squeeze the
  * stage to a strip. The page scrolls instead, which is the lesser evil.
+ *
+ * 720, not the 600 it was (issue 3865: "the default player size is very
+ * small"). The stage gets what the card's chrome leaves it - the header
+ * bar, the timeline with its signal lanes and the transport row are about
+ * 250px between them - so on a 768px-tall laptop, where the measured
+ * height lands under the floor, a 600px player left the recording about
+ * 350px of height and a 1920x1080 capture was drawn at a third of its
+ * size. At 720 the same machine draws it at nearly a half. The cost is
+ * ~150px of page scroll on a short window, and nothing at all on a
+ * taller one: above the floor the measured height still wins, so a 1080p
+ * screen is unchanged.
  */
-export const REPLAY_FILL_MIN_HEIGHT_PX: number = 600;
+export const REPLAY_FILL_MIN_HEIGHT_PX: number = 720;
 
 /* Breathing room under the player so its card border is not flush with the window edge. */
 export const REPLAY_FILL_BOTTOM_GUTTER_PX: number = 16;

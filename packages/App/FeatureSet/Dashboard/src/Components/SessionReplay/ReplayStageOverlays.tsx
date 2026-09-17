@@ -214,6 +214,13 @@ export interface ReplayStageOverlaysProps {
   /* Set when the active tab has played out and another tab continues. */
   continueInTab?: ReplayHeaderTab | null | undefined;
   onSwitchTab?: ((tabId: string) => void) | undefined;
+  /*
+   * The ended card's Continue action. Distinct from onSwitchTab: it means
+   * "keep watching", so the shell resumes playback with the switch rather
+   * than landing the next tab paused (issue 3865). Falls back to
+   * onSwitchTab when a caller has not moved over.
+   */
+  onContinueInTab?: ((tabId: string) => void) | undefined;
 
   /*
    * The ended card's "Next session by this user". Offered only when both
@@ -736,19 +743,27 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
             Watch again
           </button>
-          {props.continueInTab && props.onSwitchTab && (
-            <button
-              type="button"
-              data-testid="replay-ended-continue-in-tab"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50"
-              onClick={(): void => {
-                props.onSwitchTab?.(props.continueInTab?.tabId ?? "");
-              }}
-            >
-              <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
-              Continue in {props.continueInTab.label}
-            </button>
-          )}
+          {props.continueInTab &&
+            (props.onContinueInTab || props.onSwitchTab) && (
+              <button
+                type="button"
+                data-testid="replay-ended-continue-in-tab"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50"
+                onClick={(): void => {
+                  const tabId: string = props.continueInTab?.tabId ?? "";
+
+                  if (props.onContinueInTab) {
+                    props.onContinueInTab(tabId);
+                    return;
+                  }
+
+                  props.onSwitchTab?.(tabId);
+                }}
+              >
+                <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+                Continue in {props.continueInTab.label}
+              </button>
+            )}
           {props.nextUserSession && props.onOpenNextUserSession && (
             <button
               type="button"

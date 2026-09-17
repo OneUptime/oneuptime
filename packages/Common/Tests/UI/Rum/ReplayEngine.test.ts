@@ -614,6 +614,44 @@ async function loadAndFlush(
   await flush();
 }
 
+/*
+ * A loader for a second tab of the same session, with its own three
+ * chunks. The tab-switch scenarios all want one and differ only in what
+ * they do with it.
+ */
+function makeSecondTabLoader(tabId: string = "tab-2"): ChunkLoader {
+  return new ChunkLoader({
+    sessionId: "sess-1",
+    tabId: tabId,
+    entries: [
+      { ...makeEntry(0, { hasFullSnapshot: true }), tabId: tabId },
+      { ...makeEntry(1), tabId: tabId },
+      { ...makeEntry(2), tabId: tabId },
+    ],
+    fetcher: (
+      request: SessionReplayChunkFetchRequest,
+    ): Promise<ArrayBuffer> => {
+      return Promise.resolve(
+        encodeFrames(
+          request.chunkIndexes.map(
+            (
+              chunkIndex: number,
+            ): {
+              chunkIndex: number;
+              events: Array<SessionReplayRecordedEvent>;
+            } => {
+              return {
+                chunkIndex: chunkIndex,
+                events: eventsFor(chunkIndex, 2),
+              };
+            },
+          ),
+        ),
+      );
+    },
+  });
+}
+
 function dataOf(events: Array<SessionReplayRecordedEvent>): Array<unknown> {
   return events.map((event: SessionReplayRecordedEvent): unknown => {
     return event.data;
@@ -2396,6 +2434,147 @@ describe("ReplayEngine tabs and live sessions", () => {
     expect(harness.replayers[1]!.pauseOffsets).toEqual([20000]);
     expect(harness.snapshot().activeTabId).toBe("tab-2");
     expect(harness.snapshot().currentTimeMs).toBe(20000);
+  });
+
+  /*
+   * The engine half of continuous playback across tabs
+   * (github.com/OneUptime/oneuptime/issues/3865).
+   *
+   * onFinish parks the engine with intent "paused", so a switch made to
+   * KEEP WATCHING - the shell's auto-continue, or the "Continue in Tab 2"
+   * chip - used to land the next tab on a still picture that needed a
+   * Play click of its own. `resume` carries the intent into the switch;
+   * omitting it keeps the behaviour a tab pill wants.
+   */
+  it("resumes playback in the target tab when the switch says to", async () => {
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    /* Play the tab out: a Finish with nothing left to feed is its end. */
+    harness.live().emit("finish");
+    await flush();
+    harness.live().emit("finish");
+    await flush();
+
+    expect(harness.snapshot().phase).toBe("ended");
+    expect(harness.snapshot().intent).toBe("paused");
+
+    harness.engine.dispatch({
+      type: "TAB_SWITCH",
+      tabId: "tab-2",
+      loader: makeSecondTabLoader(),
+      resume: true,
+    });
+    await flush();
+
+    expect(harness.snapshot().activeTabId).toBe("tab-2");
+    expect(harness.snapshot().intent).toBe("playing");
+    expect(harness.snapshot().phase).toBe("playing");
+    /*
+     * The landing PLAYED rather than paused - the whole point. Without
+     * the flag the new Replayer was handed a pause() and the viewer saw
+     * the next page of the visit frozen on its first frame.
+     */
+    expect(harness.replayers[1]!.playOffsets.length).toBeGreaterThan(0);
+    expect(harness.replayers[1]!.pauseOffsets).toEqual([]);
+    expect(harness.replayers[1]!.isPlaying).toBe(true);
+  });
+
+  it("a switch that does not ask to resume stays paused", async () => {
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+    harness.live().emit("finish");
+    await flush();
+    harness.live().emit("finish");
+    await flush();
+
+    expect(harness.snapshot().phase).toBe("ended");
+
+    harness.engine.dispatch({
+      type: "TAB_SWITCH",
+      tabId: "tab-2",
+      loader: makeSecondTabLoader(),
+    });
+    await flush();
+
+    expect(harness.snapshot().activeTabId).toBe("tab-2");
+    expect(harness.snapshot().intent).toBe("paused");
+    expect(harness.replayers[1]!.playOffsets).toEqual([]);
+    expect(harness.replayers[1]!.isPlaying).toBe(false);
+  });
+
+  /*
+   * A viewer watching tab 1 who clicks tab 3 in the strip is mid-playback,
+   * and `resume` is absent there. The intent in force must carry over
+   * anyway, so the flag only ever ADDS play intent and never removes it.
+   */
+  it("keeps playing across a switch made while playing, with no flag", async () => {
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+    await flush();
+
+    expect(harness.snapshot().intent).toBe("playing");
+
+    harness.engine.dispatch({
+      type: "TAB_SWITCH",
+      tabId: "tab-2",
+      loader: makeSecondTabLoader(),
+    });
+    await flush();
+
+    expect(harness.snapshot().intent).toBe("playing");
+    expect(harness.replayers[1]!.isPlaying).toBe(true);
+  });
+
+  /*
+   * A resuming switch into a tab with nothing stored must halt rather
+   * than run a "playing" phase over a stage that will never move. The
+   * shell will not aim at such a tab (the pure decision refuses a tab
+   * without footage), but the engine is the last line.
+   */
+  it("halts rather than plays when the target tab has no footage", async () => {
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+    harness.live().emit("finish");
+    await flush();
+    harness.live().emit("finish");
+    await flush();
+
+    const empty: ChunkLoader = new ChunkLoader({
+      sessionId: "sess-1",
+      tabId: "tab-empty",
+      entries: [{ ...makeEntry(0, { eventCount: 0 }), tabId: "tab-empty" }],
+      fetcher: (): Promise<ArrayBuffer> => {
+        return Promise.resolve(new ArrayBuffer(0));
+      },
+    });
+
+    harness.engine.dispatch({
+      type: "TAB_SWITCH",
+      tabId: "tab-empty",
+      loader: empty,
+      resume: true,
+    });
+    await flush();
+
+    expect(harness.snapshot().phase).toBe("error");
+    expect(harness.snapshot().error?.retryable).toBe(false);
   });
 
   it("turns an ended tab back into a stall when new manifest rows arrive", async () => {

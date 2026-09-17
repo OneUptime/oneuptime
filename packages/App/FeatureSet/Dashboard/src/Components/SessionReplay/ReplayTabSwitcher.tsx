@@ -62,6 +62,15 @@ export interface ReplayTabSwitcherProps {
   onSwitchTab: (tabId: string) => void;
   /* Set when the active tab has played out and this tab has later footage. */
   continueInTab?: ReplayTabSummary | null | undefined;
+  /*
+   * The Continue chip's own handler. Separate from onSwitchTab because the
+   * two mean different things to the engine: picking a tab from the strip
+   * keeps whatever intent is in force, while continuing is "keep
+   * watching" and resumes playback, which is what stopped the chip from
+   * needing a Play click after it (issue 3865). Falls back to onSwitchTab
+   * so a caller that has not moved over still switches.
+   */
+  onContinueInTab?: ((tabId: string) => void) | undefined;
   /* The session clock's length, for the picker's per-tab span bar. */
   sessionDurationMs: number;
 }
@@ -846,7 +855,14 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="This tab has played out; the session continues in another tab"
           onClick={(): void => {
-            onSwitchTab(props.continueInTab?.tabId ?? "");
+            const tabId: string = props.continueInTab?.tabId ?? "";
+
+            if (props.onContinueInTab) {
+              props.onContinueInTab(tabId);
+              return;
+            }
+
+            onSwitchTab(tabId);
           }}
         >
           <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
