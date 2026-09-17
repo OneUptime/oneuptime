@@ -6,9 +6,9 @@ on:
       - "**/package.json"
       - "**/package-lock.json"
       - "**/npm-shrinkwrap.json"
-      - "npm-audit-check.sh"
-      - "npm-audit-fix.sh"
-      - "npm-audit-exceptions.json"
+      - "Scripts/Security/npm-audit-check.sh"
+      - "Scripts/Security/npm-audit-fix.sh"
+      - "Scripts/Security/npm-audit-exceptions.json"
       - "Scripts/Security/ValidateNpmAudit.js"
       - "Scripts/Security/PruneNpmAuditExceptions.js"
       - "Scripts/GHA/Tests/npm_audit_check_test.sh"
@@ -21,9 +21,9 @@ on:
       - "**/package.json"
       - "**/package-lock.json"
       - "**/npm-shrinkwrap.json"
-      - "npm-audit-check.sh"
-      - "npm-audit-fix.sh"
-      - "npm-audit-exceptions.json"
+      - "Scripts/Security/npm-audit-check.sh"
+      - "Scripts/Security/npm-audit-fix.sh"
+      - "Scripts/Security/npm-audit-exceptions.json"
       - "Scripts/Security/ValidateNpmAudit.js"
       - "Scripts/Security/PruneNpmAuditExceptions.js"
       - "Scripts/GHA/Tests/npm_audit_check_test.sh"
@@ -58,4 +58,4 @@ jobs:
         run: bash Scripts/GHA/Tests/npm_audit_fix_test.sh
 
       - name: Audit every npm lockfile
-        run: bash npm-audit-check.sh
+        run: bash Scripts/Security/npm-audit-check.sh

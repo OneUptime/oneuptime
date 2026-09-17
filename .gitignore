@@ -89,6 +89,8 @@ logs.txt
 */Cert.crt
 */Key.key
 
+# Certificates left behind by installs from before the ingress wrote its own.
+# Keep ignoring them so private keys on old checkouts are never committed.
 Certs/StatusPageCerts/*.crt
 Certs/StatusPageCerts/*.key
 
@@ -110,6 +112,7 @@ LLM/__pycache__/*
 LLM/Models/*
 
 Examples/otel-dotnet/obj/*
+Examples/otel-dotnet/bin/*
 
 InfrastructureAgent/sea-prep.blob
 InfrastructureAgent/InfrastructureAgent
@@ -122,7 +125,6 @@ InfrastructureAgent/daemon.pid
 App/greenlock/.greenlockrc
 App/greenlock/greenlock.d/config.json
 App/greenlock/greenlock.d/config.json.bak
-Examples/otel-dotnet/bin/Debug/net6.0/Grpc.Core.Api.dll.txt
 InfrastructureAgent/oneuptime-infrastructure-agent
 
 # ESLint cache

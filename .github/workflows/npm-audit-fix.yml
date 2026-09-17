@@ -44,7 +44,7 @@ jobs:
           body: |
             Automated npm audit fix run.
             Audit exceptions whose advisory is no longer in a project's
-            dependency tree are removed from npm-audit-exceptions.json in the
+            dependency tree are removed from Scripts/Security/npm-audit-exceptions.json in the
             same change, so review those removals with the lockfile updates.
             Workflow: ${{ github.workflow }}
             Run ID: ${{ github.run_id }}

@@ -249,10 +249,10 @@ services:
       file: ./docker-compose.base.yml
       service: fluentd
     volumes:
-      - ./Fluentd/fluent.conf:/fluentd/etc/fluent.conf
+      - ./Examples/log-collectors/fluentd/fluent.conf:/fluentd/etc/fluent.conf
     build:
       network: host
-      context: ./Fluentd
+      context: ./Examples/log-collectors/fluentd
       dockerfile: ./Dockerfile
 
   fluent-bit:
@@ -265,11 +265,11 @@ services:
       file: ./docker-compose.base.yml
       service: fluent-bit
     volumes:
-      - ./FluentBit/etc:/fluent-bit/etc/
+      - ./Examples/log-collectors/fluent-bit/etc:/fluent-bit/etc/
     build:
       network: host
       context: .
-      dockerfile: ./FluentBit/Dockerfile
+      dockerfile: ./Examples/log-collectors/fluent-bit/Dockerfile
 
   ingress:
     build:

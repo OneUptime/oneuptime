@@ -1,11 +1,13 @@
-To create a new migration:
+To create a new migration, run this from the repository root and then register
+the generated class in `Index.ts` (import it and append it to the exported array):
 
 ```
-bash migration-create.sh <name>
+npm run generate-postgres-migration
 ```
 
-To run a migration:
+Registered migrations run when the app starts. To check that the registered
+migrations match the models:
 
 ```
-bash migration-run.sh
+npm run check-postgres-schema-drift
 ```

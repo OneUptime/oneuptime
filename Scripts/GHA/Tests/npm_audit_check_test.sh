@@ -8,7 +8,7 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUDIT_SCRIPT="${SCRIPT_DIR}/../../../npm-audit-check.sh"
+AUDIT_SCRIPT="${SCRIPT_DIR}/../../Security/npm-audit-check.sh"
 
 PASS=0
 FAIL=0
@@ -141,6 +141,14 @@ make_package() {
 	fi
 }
 
+# The exceptions file lives next to the audit scripts, relative to the audit root.
+EXCEPTIONS_RELATIVE_PATH="Scripts/Security/npm-audit-exceptions.json"
+
+write_exceptions() {
+	mkdir -p "$1/Scripts/Security"
+	cat > "$1/${EXCEPTIONS_RELATIVE_PATH}"
+}
+
 run_audit() {
 	local root="$1"
 	shift
@@ -239,7 +247,7 @@ assert_contains "$output" "Invalid NPM_AUDIT_LEVEL 'urgent'" "explains the confi
 # parents may pass, but the same advisory in another project remains a failure.
 CASE_ROOT="${WORK_DIR}/reviewed-exception"
 make_package "$CASE_ROOT" "MobileApp" true
-cat > "${CASE_ROOT}/npm-audit-exceptions.json" <<'JSON'
+write_exceptions "$CASE_ROOT" <<'JSON'
 {
   "MobileApp": [{
     "advisory": "GHSA-aaaa-bbbb-cccc",
@@ -266,7 +274,7 @@ assert_contains "$output" "Dependency audit failed in 1 project(s): ./OtherApp" 
 # forcing the repository to revisit rather than accumulate permanent ignores.
 CASE_ROOT="${WORK_DIR}/expired-exception"
 make_package "$CASE_ROOT" "MobileApp" true
-cat > "${CASE_ROOT}/npm-audit-exceptions.json" <<'JSON'
+write_exceptions "$CASE_ROOT" <<'JSON'
 {
   "MobileApp": [{
     "advisory": "GHSA-aaaa-bbbb-cccc",
@@ -283,7 +291,7 @@ assert_contains "$output" "expired on 2000-01-01" "explains why the exception no
 
 CASE_ROOT="${WORK_DIR}/stale-exception"
 make_package "$CASE_ROOT" "MobileApp" true
-cat > "${CASE_ROOT}/npm-audit-exceptions.json" <<'JSON'
+write_exceptions "$CASE_ROOT" <<'JSON'
 {
   "MobileApp": [{
     "advisory": "GHSA-aaaa-bbbb-cccc",
