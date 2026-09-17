@@ -25,7 +25,11 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 
 jest.mock("../../../Server/Utils/Express", () => {
-  return { getRouter: () => mockRouter };
+  return {
+    getRouter: () => {
+      return mockRouter;
+    },
+  };
 });
 
 jest.mock("../../../Server/Utils/Response", () => {
