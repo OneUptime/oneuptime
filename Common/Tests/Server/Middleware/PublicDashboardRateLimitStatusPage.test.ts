@@ -254,9 +254,9 @@ describe("PublicDashboardRateLimit - status page master password bucket", () => 
     });
 
     it("buckets a missing id rather than throwing", () => {
-      expect(PublicDashboardRateLimit.resolveStatusPageKey(buildRequest())).toBe(
-        "none",
-      );
+      expect(
+        PublicDashboardRateLimit.resolveStatusPageKey(buildRequest()),
+      ).toBe("none");
       expect(
         PublicDashboardRateLimit.resolveStatusPageKey(
           buildRequest({ params: { statusPageId: "   " } }),

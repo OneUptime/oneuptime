@@ -167,8 +167,10 @@ describe("API-created monitor step retries over HTTP", () => {
 
   beforeEach(() => {
     requestCount = 0;
-    // Keep real request preparation, destination pinning, sockets and retries.
-    // Only this test server is permitted through the private-network guard.
+    /*
+     * Keep real request preparation, destination pinning, sockets and retries.
+     * Only this test server is permitted through the private-network guard.
+     */
     jest
       .spyOn(DataSourceEgressGuard, "assertUrlAllowed")
       .mockImplementation(async (rawUrl: string) => {

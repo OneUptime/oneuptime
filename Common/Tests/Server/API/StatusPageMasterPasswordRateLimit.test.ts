@@ -267,10 +267,7 @@ describe("StatusPageAPI master password rate limiting", () => {
   const attemptStatusPage: (
     targetStatusPageId?: string,
     clientIp?: string,
-  ) => Promise<boolean> = (
-    targetStatusPageId?: string,
-    clientIp?: string,
-  ) => {
+  ) => Promise<boolean> = (targetStatusPageId?: string, clientIp?: string) => {
     return runLimiter(
       STATUS_PAGE_MASTER_PASSWORD_URI,
       { statusPageId: targetStatusPageId || statusPageId },

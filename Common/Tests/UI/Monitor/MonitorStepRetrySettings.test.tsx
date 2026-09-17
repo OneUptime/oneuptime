@@ -30,8 +30,10 @@ import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 
-// Keep the real form, inputs and details renderer; unrelated criteria and
-// live previews do not need to fetch or render to exercise retry editing.
+/*
+ * Keep the real form, inputs and details renderer; unrelated criteria and
+ * live previews do not need to fetch or render to exercise retry editing.
+ */
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorCriteria",
   () => {
@@ -77,8 +79,10 @@ jest.mock(
   },
 );
 
-// These type-specific editors are never rendered by the probe monitor types
-// below. Avoid loading their telemetry explorers and code editor in this suite.
+/*
+ * These type-specific editors are never rendered by the probe monitor types
+ * below. Avoid loading their telemetry explorers and code editor in this suite.
+ */
 jest.mock("../../../UI/Components/CodeEditor/CodeEditor", () => {
   return {
     __esModule: true,
@@ -397,8 +401,10 @@ async function retryInput(expectedValue?: number): Promise<HTMLInputElement> {
     fireEvent.click(advanced);
   }
 
-  // Input applies its value through an effect after the form finishes loading.
-  // Read the current control after that update before inspecting or editing it.
+  /*
+   * Input applies its value through an effect after the form finishes loading.
+   * Read the current control after that update before inspecting or editing it.
+   */
   return waitFor(() => {
     const input: HTMLInputElement = screen.getByRole<HTMLInputElement>(
       "spinbutton",
