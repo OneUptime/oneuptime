@@ -369,15 +369,14 @@ export default class MonitorTemplate extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     title: "Monitor Description",
     description:
       "Default description applied to monitors created from this template.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
   })
   public monitorDescription?: string = undefined;
 

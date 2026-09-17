@@ -267,7 +267,7 @@ export default class Monitor extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     title: "Description",
     description: "Friendly description that will help you remember",
     example:
@@ -275,8 +275,7 @@ export default class Monitor extends BaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
   })
   public description?: string = undefined;
 
