@@ -169,6 +169,35 @@ test("the service map draws calls left to right and lists unconnected services b
   await screenshot(page, "service-table-synthetic");
 });
 
+test("service map connection labels stay legible in the dark theme", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openView(page, "Service Map", "theme=dark");
+  await page
+    .getByRole("combobox", { name: "Connection labels" })
+    .selectOption("latency");
+
+  const labels: ReturnType<Page["locator"]> = page.locator(
+    ".react-flow__edge-text",
+  );
+  await expect(labels).toHaveCount(5);
+  await expect(labels.first()).toBeVisible();
+  await expect(labels.first()).toHaveCSS("fill", "rgb(226, 232, 240)");
+
+  const backgrounds: ReturnType<Page["locator"]> = page.locator(
+    ".react-flow__edge-textbg",
+  );
+  await expect(backgrounds).toHaveCount(5);
+  await expect(backgrounds.first()).toHaveCSS("fill", "rgb(23, 32, 51)");
+  await expect(backgrounds.first()).toHaveCSS("fill-opacity", "1");
+  await expect(backgrounds.first()).toHaveCSS("stroke", "rgb(71, 85, 105)");
+  await expect(backgrounds.first()).toHaveCSS("stroke-width", "1px");
+  await screenshot(page, "service-map-connection-labels-dark-synthetic");
+});
+
 test("a self-hosted estate before the fix: no calls explained, pods grouped, old pods hidden", async ({
   page,
 }: {
