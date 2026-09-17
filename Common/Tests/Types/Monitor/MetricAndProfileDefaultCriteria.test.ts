@@ -651,7 +651,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
         });
 
         expect(result).toBeTruthy();
-        expect(result).toContain("greater than");
+        expect(result).toContain("above the 0 threshold");
       },
     );
 
@@ -676,7 +676,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
         });
 
         expect(result).toBeTruthy();
-        expect(result).toContain("equal to 0");
+        expect(result).toContain("equal to the 0 threshold");
       },
     );
 
@@ -744,7 +744,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
 
       expect(result).toBeTruthy();
       expect(result).toContain("Profile Count");
-      expect(result).toContain("greater than");
+      expect(result).toContain("above the 0 threshold");
     });
 
     test("Profiles online criteria does not match when none arrived", async () => {
@@ -764,7 +764,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
 
       expect(result).toBeTruthy();
       expect(result).toContain("Profile Count");
-      expect(result).toContain("equal to 0");
+      expect(result).toContain("equal to the 0 threshold");
     });
 
     test("Profiles offline criteria does not match when profiles arrived", async () => {

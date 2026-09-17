@@ -580,7 +580,7 @@ describe("CompareCriteria", () => {
           threshold: 50,
           criteriaFilter: filter,
         }),
-      ).toBe("Response Time (in ms) is 100 which is greater than 50.");
+      ).toBe("Response Time (in ms) was 100, above the 50 threshold.");
     });
 
     test("does not fire when the threshold is not breached", () => {
@@ -677,7 +677,7 @@ describe("CompareCriteria", () => {
   });
 
   describe("getCompareMessage formatting", () => {
-    test("prefixes 'Any value of' / 'All values of' for over-time evaluation", () => {
+    test("summarizes the readings when AnyValue and AllValues both match the whole window", () => {
       const anyFilter: CriteriaFilter = makeFilter({
         checkOn: CheckOn.ResponseTime,
         filterType: FilterType.GreaterThan,
@@ -693,7 +693,7 @@ describe("CompareCriteria", () => {
           criteriaFilter: anyFilter,
         }),
       ).toBe(
-        "Any value of Response Time (in ms) is 10, 20 which is greater than 5.",
+        "Response Time (in ms) ranged from 10 to 20 across all 2 readings, above the 5 threshold.",
       );
 
       const allFilter: CriteriaFilter = makeFilter({
@@ -711,7 +711,7 @@ describe("CompareCriteria", () => {
           criteriaFilter: allFilter,
         }),
       ).toBe(
-        "All values of Response Time (in ms) is 10, 20 which is greater than 5.",
+        "Response Time (in ms) ranged from 10 to 20 across all 2 readings, above the 5 threshold.",
       );
     });
 
@@ -727,7 +727,7 @@ describe("CompareCriteria", () => {
           criteriaFilter: filter,
         }),
       ).toBe(
-        "Response Time (in ms) is 6 samples between 1 and 6 which is greater than 0.",
+        "Response Time (in ms) ranged from 1 to 6 across all 6 readings, above the 0 threshold.",
       );
     });
 
@@ -756,7 +756,7 @@ describe("CompareCriteria", () => {
           threshold: 1.9999,
           criteriaFilter: filter,
         }),
-      ).toBe("Response Time (in ms) is 12.35 which is greater than 2.");
+      ).toBe("Response Time (in ms) was 12.35, above the 2 threshold.");
     });
 
     test("appends a unit suffix to both the value and the threshold", () => {
@@ -771,7 +771,7 @@ describe("CompareCriteria", () => {
           criteriaFilter: filter,
           unit: "ms",
         }),
-      ).toBe("Metric Value is 100 ms which is greater than 50 ms.");
+      ).toBe("Metric Value was 100 ms, above the 50 ms threshold.");
     });
 
     /*
@@ -798,7 +798,7 @@ describe("CompareCriteria", () => {
           criteriaFilter: filter,
           unit: "By",
         }),
-      ).toBe("Metric Value is 1.07 GB which is greater than 1 GB.");
+      ).toBe("Metric Value was 1.07 GB, above the 1 GB threshold.");
     });
 
     test("rescales a duration", () => {
@@ -813,10 +813,10 @@ describe("CompareCriteria", () => {
           criteriaFilter: filter,
           unit: "ms",
         }),
-      ).toBe("Metric Value is 1.5 sec which is greater than 1 sec.");
+      ).toBe("Metric Value was 1.5 sec, above the 1 sec threshold.");
     });
 
-    test("gives every listed sample its own scale", () => {
+    test("gives each end of a range its own scale", () => {
       const filter: CriteriaFilter = makeFilter({
         checkOn: CheckOn.MetricValue,
         filterType: FilterType.GreaterThan,
@@ -834,11 +834,11 @@ describe("CompareCriteria", () => {
           unit: "By",
         }),
       ).toBe(
-        "All values of Metric Value over the last 5 minutes is 922 KB, 1.26 MB which is greater than 900 KB.",
+        "Metric Value over the last 5 minutes ranged from 922 KB to 1.26 MB across all 2 readings, above the 900 KB threshold.",
       );
     });
 
-    test("units ride both ends of the 'N samples between X and Y' summary", () => {
+    test("units ride both ends of a range summary", () => {
       const filter: CriteriaFilter = makeFilter({
         checkOn: CheckOn.MetricValue,
         filterType: FilterType.GreaterThan,
@@ -854,8 +854,8 @@ describe("CompareCriteria", () => {
         unit: "By",
       });
 
-      expect(message).toContain("6 samples between 1 GB and 6 GB");
-      expect(message).toContain("greater than 500 MB");
+      expect(message).toContain("ranged from 1 GB to 6 GB across all 6 readings");
+      expect(message).toContain("above the 500 MB threshold");
     });
 
     /*
@@ -877,7 +877,7 @@ describe("CompareCriteria", () => {
       });
 
       expect(message).toBe(
-        "browser.cumulative_layout_shift is 0.31 which is greater than or equal to 0.25.",
+        "browser.cumulative_layout_shift was 0.31, at or above the 0.25 threshold.",
       );
       expect(message).not.toContain("0.31 1");
     });
@@ -897,7 +897,7 @@ describe("CompareCriteria", () => {
       });
 
       expect(message).toBe(
-        "system.cpu.utilization is 5.85% which is greater than 5.00%.",
+        "system.cpu.utilization was 5.85%, above the 5.00% threshold.",
       );
     });
 
@@ -913,7 +913,7 @@ describe("CompareCriteria", () => {
         unit: "{thread}",
       });
 
-      expect(message).toBe("Metric Value is 512 which is greater than 500.");
+      expect(message).toBe("Metric Value was 512, above the 500 threshold.");
       expect(message).not.toContain("{thread}");
     });
 
@@ -938,7 +938,7 @@ describe("CompareCriteria", () => {
         unit: "1",
       });
 
-      expect(message).toBe("a / b_ratio is 0.42 which is greater than 0.4.");
+      expect(message).toBe("a / b_ratio was 0.42, above the 0.4 threshold.");
       expect(message).not.toContain("42.00%");
     });
 
@@ -946,16 +946,16 @@ describe("CompareCriteria", () => {
      * BACKWARD COMPATIBILITY. Only MetricMonitorCriteria and
      * DatabaseMonitorCriteria pass a unit; every other monitor type
      * carries its unit inside the CheckOn label ("Response Time (in ms)")
-     * and must keep byte-identical, unabbreviated output.
+     * and must keep its numbers unabbreviated.
      */
-    test("a message with no unit is unchanged, digits and all", () => {
+    test("a message with no unit preserves its original numeric scale", () => {
       const filter: CriteriaFilter = makeFilter({
         checkOn: CheckOn.ResponseTime,
         filterType: FilterType.GreaterThan,
       });
 
       const expected: string =
-        "Response Time (in ms) is 5000 which is greater than 4900.";
+        "Response Time (in ms) was 5000, above the 4900 threshold.";
 
       expect(
         CompareCriteria.getCompareMessage({
@@ -1028,7 +1028,7 @@ describe("CompareCriteria", () => {
           threshold: 80,
           criteriaFilter: withPath,
         }),
-      ).toBe("Disk Usage (in %) on disk /var is 95 which is greater than 80.");
+      ).toBe("Disk Usage (in %) on disk /var was 95, above the 80 threshold.");
 
       const withoutPath: CriteriaFilter = makeFilter({
         checkOn: CheckOn.DiskUsagePercent,
@@ -1074,7 +1074,7 @@ describe("CompareCriteria", () => {
           criteriaFilter: metricFilter,
           metricDisplayName: "http.server.duration",
         }),
-      ).toBe("http.server.duration is 100 which is greater than 50.");
+      ).toBe("http.server.duration was 100, above the 50 threshold.");
 
       // For a non-MetricValue check the display name is ignored.
       const responseFilter: CriteriaFilter = makeFilter({
@@ -1088,7 +1088,7 @@ describe("CompareCriteria", () => {
           criteriaFilter: responseFilter,
           metricDisplayName: "http.server.duration",
         }),
-      ).toBe("Response Time (in ms) is 100 which is greater than 50.");
+      ).toBe("Response Time (in ms) was 100, above the 50 threshold.");
     });
 
     test("True/False messages omit the 'which is' clause", () => {
@@ -1105,35 +1105,37 @@ describe("CompareCriteria", () => {
       ).toBe("Is Online is true.");
     });
 
-    test("renders each comparison verb", () => {
-      const verbs: Array<{ filterType: FilterType; verb: string }> = [
-        { filterType: FilterType.GreaterThan, verb: "greater than" },
-        {
-          filterType: FilterType.GreaterThanOrEqualTo,
-          verb: "greater than or equal to",
-        },
-        { filterType: FilterType.LessThan, verb: "less than" },
-        {
-          filterType: FilterType.LessThanOrEqualTo,
-          verb: "less than or equal to",
-        },
-        { filterType: FilterType.EqualTo, verb: "equal to" },
-        { filterType: FilterType.NotEqualTo, verb: "not equal to" },
-      ];
-
-      for (const { filterType, verb } of verbs) {
-        const filter: CriteriaFilter = makeFilter({
-          checkOn: CheckOn.ResponseTime,
-          filterType,
-        });
-        expect(
-          CompareCriteria.getCompareMessage({
-            values: 100,
-            threshold: 50,
-            criteriaFilter: filter,
-          }),
-        ).toContain(verb);
-      }
+    test.each([
+      { filterType: FilterType.GreaterThan, value: 100, relation: "above" },
+      {
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 50,
+        relation: "at or above",
+      },
+      { filterType: FilterType.LessThan, value: 25, relation: "below" },
+      {
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 50,
+        relation: "at or below",
+      },
+      { filterType: FilterType.EqualTo, value: 50, relation: "equal to" },
+      {
+        filterType: FilterType.NotEqualTo,
+        value: 100,
+        relation: "different from",
+      },
+    ])("renders $filterType as $relation", ({ filterType, value, relation }) => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseTime,
+        filterType,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: value,
+          threshold: 50,
+          criteriaFilter: filter,
+        }),
+      ).toBe(`Response Time (in ms) was ${value}, ${relation} the 50 threshold.`);
     });
   });
 });

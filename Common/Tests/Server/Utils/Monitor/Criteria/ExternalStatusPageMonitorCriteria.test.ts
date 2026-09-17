@@ -242,7 +242,7 @@ describe("ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet",
 
       expect(result).toContain("External Status Page Response Time");
       expect(result).toContain("500");
-      expect(result).toContain("greater than 100");
+      expect(result).toContain("above the 100 threshold");
     });
 
     test("response time below threshold + GreaterThan → not met", async () => {
@@ -294,7 +294,7 @@ describe("ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet",
       );
 
       expect(result).toContain("External Status Page Response Time");
-      expect(result).toContain("greater than or equal to 100");
+      expect(result).toContain("at or above the 100 threshold");
     });
 
     test("response time below threshold + LessThan → met", async () => {
@@ -311,7 +311,7 @@ describe("ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet",
         },
       );
 
-      expect(result).toContain("less than 100");
+      expect(result).toContain("below the 100 threshold");
     });
 
     test("numeric string threshold is accepted", async () => {
@@ -328,7 +328,7 @@ describe("ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet",
         },
       );
 
-      expect(result).toContain("greater than 100");
+      expect(result).toContain("above the 100 threshold");
     });
 
     test("undefined threshold → undecidable", async () => {
@@ -410,7 +410,7 @@ describe("ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet",
       );
 
       expect(result).toContain("250");
-      expect(result).toContain("greater than 100");
+      expect(result).toContain("above the 100 threshold");
     });
 
     /*
@@ -823,7 +823,7 @@ describe("ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet",
 
       expect(result).toContain("External Status Page Active Incidents");
       expect(result).toContain("3");
-      expect(result).toContain("greater than 2");
+      expect(result).toContain("above the 2 threshold");
     });
 
     test("incident count equal to threshold + GreaterThan → not met (boundary)", async () => {
@@ -857,7 +857,7 @@ describe("ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet",
         },
       );
 
-      expect(result).toContain("greater than or equal to 2");
+      expect(result).toContain("at or above the 2 threshold");
     });
 
     /*
@@ -876,7 +876,7 @@ describe("ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet",
       );
 
       expect(result).toContain("0");
-      expect(result).toContain("less than or equal to 5");
+      expect(result).toContain("at or below the 5 threshold");
     });
 
     test("zero incidents + GreaterThan zero → not met", async () => {
@@ -910,7 +910,7 @@ describe("ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet",
         },
       );
 
-      expect(result).toContain("greater than 2");
+      expect(result).toContain("above the 2 threshold");
     });
   });
 });

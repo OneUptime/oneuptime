@@ -279,7 +279,7 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       );
 
       expect(result).toContain(CheckOn.CPUUsagePercent);
-      expect(result).toContain("greater than");
+      expect(result).toContain("above the 50 threshold");
       expect(result).toContain("80");
     });
 
@@ -1114,8 +1114,9 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         },
       );
 
-      expect(result).toContain("All values of");
-      expect(result).toContain("95");
+      expect(result).toBe(
+        "Disk Usage (in %) on disk / over the last 5 minutes ranged from 95 to 97 across all 3 readings, above the 90 threshold.",
+      );
     });
 
     test("disk usage does not fire while its window is unusable", async () => {

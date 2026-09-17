@@ -47,7 +47,7 @@ describe("ProfileMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       });
       expect(result).toBeTruthy();
       expect(result).toContain("Profile Count");
-      expect(result).toContain("greater than");
+      expect(result).toContain("above the 5 threshold");
     });
 
     test("count equal to threshold → not met (strict comparison)", async () => {
@@ -111,7 +111,7 @@ describe("ProfileMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         value: 0,
       });
       expect(result).toBeTruthy();
-      expect(result).toContain("equal to 0");
+      expect(result).toContain("equal to the 0 threshold");
     });
 
     test("some profiles equal to 0 → not met", async () => {
