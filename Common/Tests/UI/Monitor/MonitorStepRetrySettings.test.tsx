@@ -388,7 +388,7 @@ function renderView(monitorType: MonitorType, step: MonitorStep): void {
   );
 }
 
-async function retryInput(): Promise<HTMLInputElement> {
+async function retryInput(expectedValue?: number): Promise<HTMLInputElement> {
   const advanced: HTMLElement = await screen.findByRole("button", {
     name: "Advanced Options",
   });
@@ -397,9 +397,18 @@ async function retryInput(): Promise<HTMLInputElement> {
     fireEvent.click(advanced);
   }
 
-  return screen.findByRole("spinbutton", {
-    name: RETRY_LABEL,
-  }) as Promise<HTMLInputElement>;
+  // Input applies its value through an effect after the form finishes loading.
+  // Read the current control after that update before inspecting or editing it.
+  return waitFor(() => {
+    const input: HTMLInputElement = screen.getByRole<HTMLInputElement>(
+      "spinbutton",
+      {
+        name: RETRY_LABEL,
+      },
+    );
+    expect(input).toHaveValue(expectedValue ?? null);
+    return input;
+  });
 }
 
 function mountEditor(data: {
@@ -498,7 +507,7 @@ describe.each(MONITOR_TYPES)(
         cleanup();
 
         mountEditor({ step, monitorType });
-        expect(await retryInput()).toHaveValue(retryCount);
+        expect(await retryInput(retryCount)).toHaveValue(retryCount);
       },
     );
 
@@ -534,7 +543,7 @@ describe.each(MONITOR_TYPES)(
         step: apiStep(2),
         monitorType,
       });
-      const input: HTMLInputElement = await retryInput();
+      const input: HTMLInputElement = await retryInput(2);
       fireEvent.change(input, { target: { value: "" } });
 
       expect(input).toHaveValue(null);
@@ -563,14 +572,18 @@ describe("retry editor parent updates", () => {
         onChange: jest.fn(),
       };
       const mounted: ReturnType<typeof render> = render(editor(props));
-      const input: HTMLInputElement = await retryInput();
+      const input: HTMLInputElement = await retryInput(retryCount);
       expect(input).toHaveValue(retryCount);
 
       mounted.rerender(editor({ ...props, step: apiStep() }));
       await waitFor(() => {
-        expect(input).toHaveValue(null);
+        expect(
+          screen.getByRole("spinbutton", { name: RETRY_LABEL }),
+        ).toHaveValue(null);
       });
-      expect(input).toHaveAttribute("placeholder", DEFAULT_LABEL);
+      expect(
+        screen.getByRole("spinbutton", { name: RETRY_LABEL }),
+      ).toHaveAttribute("placeholder", DEFAULT_LABEL);
     },
   );
 
