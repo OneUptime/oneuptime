@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   ReplayManifestFailure,
   SessionReplayManifest,
@@ -315,6 +315,14 @@ describe("parseManifest with an older server", () => {
     expect(manifest.details.recorderKind).toBe("");
   });
 
+  test("reports every tab's hasRecordingEnded as null (not reported), never as still recording", () => {
+    expect(
+      manifest.tabs.map((tab: SessionReplayManifestTab): boolean | null => {
+        return tab.hasRecordingEnded;
+      }),
+    ).toEqual([null, null, null]);
+  });
+
   test("derives firstChunkStartOffsetMs from the first chunk row", () => {
     expect(manifest.tabs[0]?.tabId).toBe("tab-a");
     expect(manifest.tabs[0]?.firstChunkStartOffsetMs).toBe(0);
@@ -624,6 +632,105 @@ describe("hasRecordingEnded", () => {
     expect(
       describeFootageAbsence(parseManifest(provisional(true)), START_UNIX_MS),
     ).toBeNull();
+  });
+});
+
+/*
+ * The per-tab flag behind the header's tab switcher: which tabs are still
+ * open (recording) and which have closed. Additive on the tab DTO, so its
+ * absence must read as "not reported" (null), distinct from false.
+ */
+describe("tab hasRecordingEnded", () => {
+  function withTabFlags(
+    flags: Record<string, unknown>,
+    isFinalized: boolean = false,
+  ): SessionReplayManifest {
+    const response: JSONObject = fullResponse();
+
+    (response["header"] as JSONObject)["isFinalized"] = isFinalized ? 1 : 0;
+
+    for (const tab of response["tabs"] as Array<JSONObject>) {
+      const tabId: string = tab["tabId"] as string;
+
+      if (Object.prototype.hasOwnProperty.call(flags, tabId)) {
+        tab["hasRecordingEnded"] = flags[tabId] as JSONValue;
+      }
+    }
+
+    return parseManifest(response);
+  }
+
+  function flagOf(
+    manifest: SessionReplayManifest,
+    tabId: string,
+  ): boolean | null | undefined {
+    return manifest.tabs.find((tab: SessionReplayManifestTab): boolean => {
+      return tab.tabId === tabId;
+    })?.hasRecordingEnded;
+  }
+
+  test("an absent flag is null on every tab, including the chunkless one", () => {
+    const manifest: SessionReplayManifest = parseManifest(fullResponse());
+
+    expect(flagOf(manifest, "tab-a")).toBeNull();
+    expect(flagOf(manifest, "tab-b")).toBeNull();
+    expect(flagOf(manifest, "tab-empty")).toBeNull();
+  });
+
+  test("reads true and false booleans per tab", () => {
+    const manifest: SessionReplayManifest = withTabFlags({
+      "tab-a": true,
+      "tab-b": false,
+    });
+
+    expect(flagOf(manifest, "tab-a")).toBe(true);
+    expect(flagOf(manifest, "tab-b")).toBe(false);
+    expect(flagOf(manifest, "tab-empty")).toBeNull();
+  });
+
+  test("reads the 1/0 and '1'/'0' forms with the loose boolean reader", () => {
+    const manifest: SessionReplayManifest = withTabFlags({
+      "tab-a": 1,
+      "tab-b": "0",
+      "tab-empty": "1",
+    });
+
+    expect(flagOf(manifest, "tab-a")).toBe(true);
+    expect(flagOf(manifest, "tab-b")).toBe(false);
+    expect(flagOf(manifest, "tab-empty")).toBe(true);
+    expect(flagOf(withTabFlags({ "tab-a": 0 }), "tab-a")).toBe(false);
+  });
+
+  test("an explicit null is 'not reported', like an absent field", () => {
+    expect(flagOf(withTabFlags({ "tab-a": null }), "tab-a")).toBeNull();
+  });
+
+  test("an unrecognised present value reads as false, the same as the header's loose flags", () => {
+    expect(flagOf(withTabFlags({ "tab-a": "yes" }), "tab-a")).toBe(false);
+    expect(flagOf(withTabFlags({ "tab-a": 2 }), "tab-a")).toBe(false);
+  });
+
+  test("the flag stays with its tab through the opened-order sort", () => {
+    const manifest: SessionReplayManifest = withTabFlags({
+      "tab-b": true,
+      "tab-a": false,
+    });
+
+    expect(
+      manifest.tabs.map((tab: SessionReplayManifestTab): string => {
+        return `${tab.tabId}:${String(tab.hasRecordingEnded)}`;
+      }),
+    ).toEqual(["tab-a:false", "tab-b:true", "tab-empty:null"]);
+  });
+
+  test("is read as sent on a finalized header too; the session-level facts decide status elsewhere", () => {
+    const manifest: SessionReplayManifest = withTabFlags(
+      { "tab-a": false },
+      true,
+    );
+
+    expect(manifest.isFinalized).toBe(true);
+    expect(flagOf(manifest, "tab-a")).toBe(false);
   });
 });
 

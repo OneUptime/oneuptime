@@ -59,6 +59,41 @@ import PayAsYouGoBillingService, {
   LiveUsageAuthorization,
 } from "./PayAsYouGoBillingService";
 
+/*
+ * Primary entity types whose telemetry rows are never billed as ingested
+ * volume. Monitor telemetry is billed via the Active Monitoring plan, and
+ * Alert / Incident / SLO rows are OneUptime's own operational data written
+ * into the project's metric tables: an SLO evaluation posts its
+ * oneuptime.slo.* readings every few minutes, and billing those as customer
+ * telemetry would charge a project for creating an SLO.
+ */
+export const TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES: ReadonlyArray<ServiceType> =
+  [
+    ServiceType.Monitor,
+    ServiceType.Alert,
+    ServiceType.Incident,
+    ServiceType.ServiceLevelObjective,
+  ];
+
+export type IsTelemetryBillingExcludedEntityTypeFunction = (
+  primaryEntityType: string | null | undefined,
+) => boolean;
+
+/*
+ * Legacy rows with no primaryEntityType are real Services (see the staging
+ * loop below), so a missing type is always billable.
+ */
+export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEntityTypeFunction =
+  (primaryEntityType: string | null | undefined): boolean => {
+    if (!primaryEntityType) {
+      return false;
+    }
+
+    return TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES.includes(
+      primaryEntityType as ServiceType,
+    );
+  };
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -407,14 +442,10 @@ export class Service extends DatabaseService<Model> {
     for (const [serviceIdStr, usage] of usageByServiceId) {
       /*
        * Monitor telemetry is billed via the Active Monitoring plan, and
-       * Alert/Incident telemetry is OneUptime's own operational data —
-       * neither is charged as ingested telemetry volume.
+       * Alert / Incident / SLO telemetry is OneUptime's own operational
+       * data — none of it is charged as ingested telemetry volume.
        */
-      if (
-        usage.primaryEntityType === ServiceType.Monitor ||
-        usage.primaryEntityType === ServiceType.Alert ||
-        usage.primaryEntityType === ServiceType.Incident
-      ) {
+      if (isTelemetryBillingExcludedEntityType(usage.primaryEntityType)) {
         continue;
       }
 

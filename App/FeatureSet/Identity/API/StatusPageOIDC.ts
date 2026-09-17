@@ -378,7 +378,8 @@ router.get(
         await StatusPageService.getStatusPageFirstURL(statusPageId);
 
       logger.info(
-        "Status page user logged in with OIDC: " + result.email.toString(),
+        "Status page user logged in with OIDC: " +
+          alreadySavedUser.id!.toString(),
         getLogAttributesFromRequest(req as RequestLike),
       );
 

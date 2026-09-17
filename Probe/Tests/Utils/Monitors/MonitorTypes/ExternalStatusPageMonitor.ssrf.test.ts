@@ -42,7 +42,9 @@ import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorSt
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import http, { IncomingMessage, Server, ServerResponse } from "http";
 import { AddressInfo } from "net";
-import { Readable } from "stream";
+import { PassThrough, Readable } from "stream";
+import Sleep from "Common/Types/Sleep";
+import TimeoutException from "Common/Types/Exception/TimeoutException";
 
 const PUBLIC_BASE_URL: string = "http://1.1.1.1/status";
 const PRIVATE_BODY_SENTINEL: string = "external-status-private-body-ghsa-9wgr";
@@ -156,6 +158,7 @@ beforeEach(() => {
   axiosGetSpy = jest.spyOn(axios, "get");
   prepareSpy = jest.spyOn(HttpMonitorRequest, "prepare");
   contextSleepSpy = jest.spyOn(HttpMonitorExecutionContext.prototype, "sleep");
+  jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -606,12 +609,9 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
     },
   );
 
-  test("keeps one cumulative body budget and signal through fallback and retry", async () => {
+  test("shares a body budget through fallback and starts a fresh budget for retry", async () => {
     const executionContext: HttpMonitorExecutionContext =
       new HttpMonitorExecutionContext(5000, 5);
-    const retrySleepSpy: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(executionContext, "sleep")
-      .mockResolvedValue(undefined);
 
     axiosGetSpy
       .mockResolvedValueOnce(
@@ -621,7 +621,12 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
         }),
       )
       .mockRejectedValueOnce(new AxiosError("socket reset", "ECONNRESET"))
-      .mockResolvedValueOnce(axiosResponse(200, "xx"));
+      .mockResolvedValueOnce(
+        axiosResponse(
+          200,
+          "<rss><channel><title>Status</title></channel></rss>",
+        ),
+      );
 
     try {
       const response: ExternalStatusPageMonitorResponse | null =
@@ -635,12 +640,11 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
         );
 
       expect(response).not.toBeNull();
-      expect(response!.isOnline).toBe(false);
-      expect(response!.failureCause).toContain("exceeded the allowed size");
-      expect(response!.rawBody).toBeUndefined();
+      expect(response!.isOnline).toBe(true);
+      expect(response!.failureCause).toBe("");
       expect(response!.totalAttempts).toBe(2);
       expect(response!.probeAttempts).toHaveLength(2);
-      expect(retrySleepSpy).toHaveBeenCalledTimes(1);
+      expect(Sleep.sleep).toHaveBeenCalledTimes(1);
       expect(axiosGetSpy).toHaveBeenCalledTimes(3);
       expect(prepareSpy).toHaveBeenCalledTimes(3);
       expect(
@@ -648,12 +652,13 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
           return getAxiosCall(index).options.maxContentLength;
         }),
       ).toEqual([-1, -1, -1]);
-      for (let index: number = 0; index < 3; index++) {
+      for (let index: number = 0; index < 2; index++) {
         expect(getAxiosCall(index).options.signal).toBe(
           executionContext.signal,
         );
       }
-      expect(executionContext.responseBodyBudget.remainingBytes).toBe(0);
+      expect(getAxiosCall(2).options.signal).not.toBe(executionContext.signal);
+      expect(executionContext.responseBodyBudget.remainingBytes).toBe(1);
       expect(executionContext.signal.aborted).toBe(false);
     } finally {
       executionContext.dispose();
@@ -740,7 +745,7 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
     expect(contextSleepSpy).not.toHaveBeenCalled();
   });
 
-  test("actively aborts an in-flight provider request at the shared deadline", async () => {
+  test("actively aborts an in-flight provider request at each attempt deadline", async () => {
     const executionContext: HttpMonitorExecutionContext =
       new HttpMonitorExecutionContext(25);
     let observedAbort: boolean = false;
@@ -773,7 +778,8 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
         await ExternalStatusPageMonitorUtil.fetch(
           buildConfig(ExternalStatusPageProviderType.Auto),
           {
-            retry: 8,
+            retry: 2,
+            timeout: 25,
             isOnlineCheckRequest: true,
             executionContext: executionContext,
           },
@@ -783,12 +789,19 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
       expect(response!.isOnline).toBe(false);
       expect(response!.isTimeout).toBe(true);
       expect(response!.failureCause).toContain("timed out");
-      expect(response!.totalAttempts).toBe(1);
+      expect(response!.totalAttempts).toBe(3);
       expect(observedAbort).toBe(true);
       expect(executionContext.signal.aborted).toBe(true);
-      expect(axiosGetSpy).toHaveBeenCalledTimes(1);
-      expect(prepareSpy).toHaveBeenCalledTimes(1);
-      expect(contextSleepSpy).not.toHaveBeenCalled();
+      expect(axiosGetSpy).toHaveBeenCalledTimes(3);
+      expect(prepareSpy).toHaveBeenCalledTimes(3);
+      expect(Sleep.sleep).toHaveBeenCalledTimes(2);
+      expect(
+        new Set(
+          [0, 1, 2].map((index: number) => {
+            return getAxiosCall(index).options.signal;
+          }),
+        ).size,
+      ).toBe(3);
       expect(getAxiosCall(0).options.signal).toBe(executionContext.signal);
       expect(getAxiosCall(0).options.timeout).toBeGreaterThan(0);
       expect(getAxiosCall(0).options.timeout).toBeLessThanOrEqual(25);
@@ -895,4 +908,238 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
     expect(prepareSpy).toHaveBeenCalledTimes(1);
     expect(contextSleepSpy).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * A retry value counts retries after the first attempt: 0 runs the fetch
+ * once, 2 runs it up to three times.
+ */
+describe("ExternalStatusPageMonitor retries", () => {
+  function attemptNumbers(
+    response: ExternalStatusPageMonitorResponse | null,
+  ): Array<number> {
+    return (response?.probeAttempts || []).map(
+      (attempt: { attemptNumber: number }): number => {
+        return attempt.attemptNumber;
+      },
+    );
+  }
+
+  beforeEach(() => {
+    // A reset socket is retried; guard refusals remain blocked.
+    axiosGetSpy.mockRejectedValue(new AxiosError("socket reset", "ECONNRESET"));
+    contextSleepSpy.mockResolvedValue(undefined as never);
+  });
+
+  test("runs a persistent retryable failure exactly once when retry is 0", async () => {
+    const response: ExternalStatusPageMonitorResponse | null =
+      await ExternalStatusPageMonitorUtil.fetch(
+        buildConfig(ExternalStatusPageProviderType.RSS),
+        { retry: 0, isOnlineCheckRequest: true },
+      );
+
+    expect(response).not.toBeNull();
+    expect(response!.isOnline).toBe(false);
+    expect(response!.failureCause).toContain("socket reset");
+    expect(response!.totalAttempts).toBe(1);
+    expect(attemptNumbers(response)).toEqual([1]);
+    expect(contextSleepSpy).not.toHaveBeenCalled();
+  });
+
+  test("makes three attempts when retry is 2", async () => {
+    const response: ExternalStatusPageMonitorResponse | null =
+      await ExternalStatusPageMonitorUtil.fetch(
+        buildConfig(ExternalStatusPageProviderType.RSS),
+        { retry: 2, isOnlineCheckRequest: true },
+      );
+
+    expect(response).not.toBeNull();
+    expect(response!.isOnline).toBe(false);
+    expect(response!.totalAttempts).toBe(3);
+    expect(attemptNumbers(response)).toEqual([1, 2, 3]);
+    expect(Sleep.sleep).toHaveBeenCalledTimes(2);
+  });
+
+  test("counts the config's retries after the first attempt when no retry option is passed", async () => {
+    const response: ExternalStatusPageMonitorResponse | null =
+      await ExternalStatusPageMonitorUtil.fetch(
+        {
+          ...buildConfig(ExternalStatusPageProviderType.RSS),
+          retries: 0,
+        },
+        { isOnlineCheckRequest: true },
+      );
+
+    expect(response!.totalAttempts).toBe(1);
+  });
+
+  test("keeps three attempts when neither the caller nor the config sets retries", async () => {
+    const config: MonitorStepExternalStatusPageMonitor = {
+      ...buildConfig(ExternalStatusPageProviderType.RSS),
+      retries: undefined,
+    } as unknown as MonitorStepExternalStatusPageMonitor;
+
+    const response: ExternalStatusPageMonitorResponse | null =
+      await ExternalStatusPageMonitorUtil.fetch(config, {
+        isOnlineCheckRequest: true,
+      });
+
+    expect(response!.totalAttempts).toBe(3);
+    expect(attemptNumbers(response)).toEqual([1, 2, 3]);
+  });
+});
+
+describe("External status page failure coverage", () => {
+  test.each([400, 408, 429, 500, 502, 503, 504])(
+    "retries HTTP%s returned by the basic fallback",
+    async (statusCode: number) => {
+      axiosGetSpy.mockImplementation(async () => {
+        return axiosResponse(statusCode, "unavailable");
+      });
+      const response: ExternalStatusPageMonitorResponse | null =
+        await ExternalStatusPageMonitorUtil.fetch(
+          buildConfig(ExternalStatusPageProviderType.RSS),
+          { retry: 2, isOnlineCheckRequest: true },
+        );
+      expect(response?.isOnline).toBe(false);
+      expect(response?.totalAttempts).toBe(3);
+      expect(response?.failureCause).toBe("HTTP status " + statusCode);
+      expect(axiosGetSpy).toHaveBeenCalledTimes(6);
+      expect(Sleep.sleep).toHaveBeenCalledTimes(2);
+      for (let attempt: number = 0; attempt < 3; attempt++) {
+        expect(getAxiosCall(attempt * 2).options.signal).toBe(
+          getAxiosCall(attempt * 2 + 1).options.signal,
+        );
+        if (attempt > 0) {
+          expect(getAxiosCall(attempt * 2).options.signal).not.toBe(
+            getAxiosCall((attempt - 1) * 2).options.signal,
+          );
+        }
+      }
+    },
+  );
+
+  test.each([0, 1, 3])(
+    "honors retry%s after a timeout without provider fallback",
+    async (retry: number) => {
+      axiosGetSpy.mockRejectedValue(
+        new TimeoutException("Monitor target request timeout exceeded."),
+      );
+      const response: ExternalStatusPageMonitorResponse | null =
+        await ExternalStatusPageMonitorUtil.fetch(
+          buildConfig(ExternalStatusPageProviderType.Auto),
+          { retry, isOnlineCheckRequest: true },
+        );
+      expect(response?.isOnline).toBe(false);
+      expect(response?.isTimeout).toBe(true);
+      expect(response?.totalAttempts).toBe(retry + 1);
+      expect(axiosGetSpy).toHaveBeenCalledTimes(retry + 1);
+      expect(prepareSpy).toHaveBeenCalledTimes(retry + 1);
+      expect(Sleep.sleep).toHaveBeenCalledTimes(retry);
+    },
+  );
+
+  test("a retry recovers from a timeout with a new execution context", async () => {
+    axiosGetSpy
+      .mockRejectedValueOnce(
+        new TimeoutException("Monitor target request timeout exceeded."),
+      )
+      .mockResolvedValueOnce(
+        axiosResponse(
+          200,
+          "<rss><channel><title>Status</title></channel></rss>",
+        ),
+      );
+    const response: ExternalStatusPageMonitorResponse | null =
+      await ExternalStatusPageMonitorUtil.fetch(
+        buildConfig(ExternalStatusPageProviderType.RSS),
+        { retry: 3, isOnlineCheckRequest: true },
+      );
+    expect(response?.isOnline).toBe(true);
+    expect(response?.totalAttempts).toBe(2);
+    expect(axiosGetSpy).toHaveBeenCalledTimes(2);
+    expect(getAxiosCall(1).options.signal).not.toBe(
+      getAxiosCall(0).options.signal,
+    );
+    expect(response?.probeAttempts?.[0]?.failureCause).toContain("timeout");
+    expect(Sleep.sleep).toHaveBeenCalledTimes(1);
+  });
+
+  test("an explicit zero does not retry a received HTTP503", async () => {
+    axiosGetSpy.mockImplementation(async () => {
+      return axiosResponse(503, "unavailable");
+    });
+    const response: ExternalStatusPageMonitorResponse | null =
+      await ExternalStatusPageMonitorUtil.fetch(
+        buildConfig(ExternalStatusPageProviderType.RSS),
+        { retry: 0, isOnlineCheckRequest: true },
+      );
+    expect(response?.totalAttempts).toBe(1);
+    expect(axiosGetSpy).toHaveBeenCalledTimes(2);
+    expect(Sleep.sleep).not.toHaveBeenCalled();
+  });
+});
+
+describe("External status page stalled response-body cleanup", () => {
+  test.each([200, 400, 503])(
+    "destroys every stalled HTTP%s body before retrying",
+    async (status: number) => {
+      const streams: Array<PassThrough> = [];
+      axiosGetSpy.mockImplementation(async () => {
+        if (streams.length > 0) {
+          // A new attempt must not leave a prior response stream running.
+          expect(streams[streams.length - 1]!.destroyed).toBe(true);
+        }
+        const body: PassThrough = new PassThrough();
+        streams.push(body);
+        body.write("partial response");
+        const response: AxiosResponse = axiosResponse(status, "");
+        response.data = body;
+        if (status >= 400) {
+          /*
+           * The flag models an Axios error from a different installed copy.
+           * instanceof AxiosError would miss it and never read/close its body.
+           */
+          throw Object.assign(
+            new Error("Request failed with status " + status),
+            {
+              isAxiosError: true,
+              response,
+            },
+          );
+        }
+        return response;
+      });
+
+      try {
+        const response: ExternalStatusPageMonitorResponse | null =
+          await ExternalStatusPageMonitorUtil.fetch(
+            buildConfig(ExternalStatusPageProviderType.RSS),
+            { retry: 2, timeout: 25, isOnlineCheckRequest: true },
+          );
+        expect(response?.isOnline).toBe(false);
+        expect(response?.isTimeout).toBe(true);
+        expect(response?.totalAttempts).toBe(3);
+        expect(axiosGetSpy).toHaveBeenCalledTimes(3);
+        expect(streams).toHaveLength(3);
+        expect(
+          streams.every((body: PassThrough) => {
+            return body.destroyed;
+          }),
+        ).toBe(true);
+        expect(Sleep.sleep).toHaveBeenCalledTimes(2);
+        expect(
+          new Set(
+            [0, 1, 2].map((index: number) => {
+              return getAxiosCall(index).options.signal;
+            }),
+          ).size,
+        ).toBe(3);
+      } finally {
+        for (const body of streams) {
+          body.destroy();
+        }
+      }
+    },
+  );
 });

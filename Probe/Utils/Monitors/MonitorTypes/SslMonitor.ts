@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import ProxyConfig from "../../ProxyConfig";
 import URL from "Common/Types/API/URL";
 import Hostname from "Common/Types/API/Hostname";
@@ -78,6 +79,18 @@ export const DEFAULT_SSL_MONITOR_TIMEOUT_IN_MS: number = 5000;
 
 const LOG_PREFIX: string = "SSL Certificate Monitor";
 
+/*
+ * Retries for ping() when the caller passes no retry option: five attempts,
+ * the same as before retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
+
+/*
+ * Connection retries inside getCertificate when the caller passes none: three
+ * handshake attempts, the same as when its `retry` counted total attempts.
+ */
+const DEFAULT_CERTIFICATE_RETRIES_WHEN_UNSET: number = 2;
+
 export default class SSLMonitor {
   // burn domain names into the code to see if this probe is online.
 
@@ -140,20 +153,26 @@ export default class SSLMonitor {
         responseReceivedAt,
         responseTimeInMs,
         isOnline: res.isOnline,
-        failureCause: res.isOnline ? undefined : res.failureCause,
+        failureCause:
+          res.isOnline && res.isValidCertificate !== false
+            ? undefined
+            : res.failureCause,
       });
 
       /*
-       * A transient connection failure is worth retrying. A certificate
-       * that failed validation is a deterministic verdict, and a timeout
-       * has already consumed a full deadline - retrying either only burns
-       * the monitor's time budget.
+       * Each failed check consumes one attempt, whether the peer could not
+       * be reached, the handshake timed out, or its certificate failed
+       * validation. A reachable peer with a bad certificate is still a
+       * failed certificate check; the next connection may reach a different
+       * backend or observe a certificate that has just been replaced.
        */
       if (
-        !res.isOnline &&
-        !res.certificateValidationErrorCode &&
-        !res.isTimeout &&
-        pingOptions.currentRetryCount < (pingOptions.retry ?? 5)
+        (!res.isOnline || res.isValidCertificate === false || res.isTimeout) &&
+        MonitorRetry.canRetry({
+          attemptNumber: pingOptions.currentRetryCount,
+          retries: pingOptions.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
       ) {
         pingOptions.currentRetryCount++;
         await Sleep.sleep(1000);
@@ -200,7 +219,13 @@ export default class SSLMonitor {
         failureCause: API.getFriendlyErrorMessage(err as Error),
       });
 
-      if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
+      if (
+        MonitorRetry.canRetry({
+          attemptNumber: pingOptions.currentRetryCount,
+          retries: pingOptions.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
         pingOptions.currentRetryCount++;
         await Sleep.sleep(1000);
         return await this.ping(url, pingOptions);
@@ -298,6 +323,8 @@ export default class SSLMonitor {
         port,
         rejectUnauthorized: true,
         timeoutInMs,
+        // ping() owns the monitor's retry budget; do not multiply it here.
+        retry: 0,
       });
     } catch (strictError) {
       validationErrorCode = SSLMonitor.getErrorCode(strictError);
@@ -349,10 +376,12 @@ export default class SSLMonitor {
           port,
           rejectUnauthorized: false,
           timeoutInMs,
+          retry: 0,
         });
       } catch (lenientError) {
         return {
           isOnline: false,
+          isTimeout: SSLMonitor.isTimeoutError(lenientError),
           isValidCertificate: false,
           isSelfSigned: SELF_SIGNED_ERROR_CODES.has(validationErrorCode),
           certificateValidationError: validationErrorMessage,
@@ -511,13 +540,14 @@ export default class SSLMonitor {
     port: number;
     rejectUnauthorized: boolean;
     timeoutInMs?: number;
-    retry?: number;
-    currentRetryCount?: number;
+    // Retries after the first attempt, like every other probe retry value.
+    retry?: number | undefined;
+    // 1-based number of this attempt.
+    currentRetryCount?: number | undefined;
   }): Promise<tls.PeerCertificate> {
-    const { host, rejectUnauthorized } = data;
+    const { host, rejectUnauthorized, retry } = data;
 
     let { port } = data;
-    const retry: number = data.retry || 3;
     const currentRetryCount: number = data.currentRetryCount || 1;
     const timeoutInMs: number =
       data.timeoutInMs || DEFAULT_SSL_MONITOR_TIMEOUT_IN_MS;
@@ -661,7 +691,11 @@ export default class SSLMonitor {
       const code: string = SSLMonitor.getErrorCode(err);
 
       if (
-        currentRetryCount < retry &&
+        MonitorRetry.canRetry({
+          attemptNumber: currentRetryCount,
+          retries: retry,
+          defaultRetries: DEFAULT_CERTIFICATE_RETRIES_WHEN_UNSET,
+        }) &&
         !TLS_VALIDATION_ERROR_CODES.has(code) &&
         !SSLMonitor.isTimeoutError(err)
       ) {

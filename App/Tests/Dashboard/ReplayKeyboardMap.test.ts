@@ -79,6 +79,8 @@ describe("resolveReplayKeyboardAction: the documented vocabulary", () => {
       ["f", {}, { type: "toggle-theater" }],
       ["w", {}, { type: "toggle-wide" }],
       ["m", {}, { type: "toggle-follow" }],
+      ["r", {}, { type: "toggle-rail" }],
+      ["z", {}, { type: "cycle-fit" }],
       ["/", {}, { type: "focus-rail-search" }],
       ["c", {}, { type: "copy-link" }],
       ["i", {}, { type: "toggle-details" }],
@@ -113,6 +115,8 @@ describe("resolveReplayKeyboardAction: the documented vocabulary", () => {
     expect(resolve("K", { shiftKey: true })).toBeNull();
     expect(resolve("J", { shiftKey: true })).toBeNull();
     expect(resolve("F", { shiftKey: true })).toBeNull();
+    expect(resolve("R", { shiftKey: true })).toBeNull();
+    expect(resolve("Z", { shiftKey: true })).toBeNull();
   });
 
   /*
@@ -138,6 +142,52 @@ describe("resolveReplayKeyboardAction: the documented vocabulary", () => {
     expect(resolve("{", { shiftKey: true, metaKey: true })).toBeNull();
     expect(resolve("}", { shiftKey: true, altKey: true })).toBeNull();
     expect(resolve("{", { targetKind: "editable" })).toBeNull();
+  });
+});
+
+/*
+ * The two layout keys: "r" shows or hides the events rail, "z" steps the
+ * stage fit. They are ordinary player-scope one-shots - no rail-scope
+ * special case, because a viewer whose focus is in the rail is exactly
+ * who wants to close it - and they must survive a focused button, since
+ * clicking the rail's collapse button leaves it focused.
+ */
+describe("resolveReplayKeyboardAction: rail and fit keys", () => {
+  test("r toggles the rail and z cycles the stage fit", () => {
+    expect(resolve("r")).toEqual({ type: "toggle-rail" });
+    expect(resolve("z")).toEqual({ type: "cycle-fit" });
+  });
+
+  test("both are one-shot: holding the key does not flicker the layout", () => {
+    expect(resolve("r", { repeat: true })).toBeNull();
+    expect(resolve("z", { repeat: true })).toBeNull();
+    expect(isCoalescingReplayAction({ type: "toggle-rail" })).toBe(false);
+    expect(isCoalescingReplayAction({ type: "cycle-fit" })).toBe(false);
+  });
+
+  test("they fire in the rail scope and from a focused button, tab or slider", () => {
+    expect(resolve("r", { scope: "rail" })).toEqual({ type: "toggle-rail" });
+    expect(resolve("z", { scope: "rail" })).toEqual({ type: "cycle-fit" });
+    expect(resolve("r", { targetKind: "button" })).toEqual({
+      type: "toggle-rail",
+    });
+    expect(resolve("z", { targetKind: "tab" })).toEqual({ type: "cycle-fit" });
+    expect(resolve("r", { targetKind: "slider" })).toEqual({
+      type: "toggle-rail",
+    });
+  });
+
+  test("they stay out of text fields and off modifier chords", () => {
+    expect(resolve("r", { targetKind: "editable" })).toBeNull();
+    expect(resolve("z", { targetKind: "editable" })).toBeNull();
+    expect(resolve("r", { metaKey: true })).toBeNull();
+    expect(resolve("z", { ctrlKey: true })).toBeNull();
+    expect(resolve("r", { altKey: true })).toBeNull();
+  });
+
+  test("Caps Lock (an uppercase letter) is not mistaken for a Shift variant that does something else", () => {
+    expect(resolve("R")).toBeNull();
+    expect(resolve("Z")).toBeNull();
   });
 });
 
@@ -457,6 +507,40 @@ describe("REPLAY_SHORTCUT_GROUPS", () => {
       ["older-user-session", [["{"]]],
       ["newer-user-session", [["}"]]],
     ]);
+  });
+
+  test("the View group documents the rail and fit keys next to the other layout keys", () => {
+    const view: ReplayShortcutGroup | undefined = REPLAY_SHORTCUT_GROUPS.find(
+      (group: ReplayShortcutGroup): boolean => {
+        return group.id === "view";
+      },
+    );
+
+    const shortcuts: Map<string, ReplayShortcutDescription> = new Map<
+      string,
+      ReplayShortcutDescription
+    >(
+      (view?.shortcuts ?? []).map(
+        (
+          shortcut: ReplayShortcutDescription,
+        ): [string, ReplayShortcutDescription] => {
+          return [shortcut.id, shortcut];
+        },
+      ),
+    );
+
+    expect(shortcuts.get("toggle-rail")?.keys).toEqual([["R"]]);
+    expect(shortcuts.get("toggle-rail")?.description).toBe(
+      "Show or hide the events rail",
+    );
+    expect(shortcuts.get("cycle-fit")?.keys).toEqual([["Z"]]);
+    expect(shortcuts.get("cycle-fit")?.description).toBe(
+      "Cycle stage fit (Fit, Width, 1:1)",
+    );
+    /* The keys the same group already documented are untouched. */
+    expect(shortcuts.get("theater")?.keys).toEqual([["F"]]);
+    expect(shortcuts.get("wide")?.keys).toEqual([["W"]]);
+    expect(shortcuts.get("follow")?.keys).toEqual([["M"]]);
   });
 
   test("shortcut ids are unique across the sheet", () => {

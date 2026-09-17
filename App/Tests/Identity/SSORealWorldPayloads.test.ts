@@ -376,29 +376,31 @@ describe("SSOUtil - NameID shapes seen in the wild", () => {
   /*
    * A persistent, opaque NameID carries no address, and the email lives in a
    * `mail` attribute this implementation does not read. The login is refused
-   * outright — Email rejects the opaque handle as malformed — rather than
-   * creating a user whose address is a base64 blob. Worth pinning: the
-   * safe outcome here comes from Email's format check, so anything that
-   * loosened that validation would silently turn this into account creation.
+   * outright after Email's format check, rather than creating a user whose
+   * address is a base64 blob. The error must stay generic so the provider's
+   * NameID cannot leak into callback logs.
    */
-  test("a Shibboleth persistent NameID is refused rather than becoming an address", () => {
-    const xml: string = signElement(
-      shibbolethPersistentNameIdResponse(),
-      "Assertion",
-      idpKeys.privateKey,
-    );
+  test.each(["Assertion", "Response"])(
+    "a Shibboleth persistent NameID in a signed %s is refused with a sanitized error",
+    (signedElement: string) => {
+      const xml: string = signElement(
+        shibbolethPersistentNameIdResponse(),
+        signedElement,
+        idpKeys.privateKey,
+      );
 
-    expect(() => {
-      return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
-    }).toThrow("is not in valid format");
+      expect(() => {
+        return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+      }).toThrow(/^SAML response did not include a valid email address$/);
 
-    /*
-     * isSignatureValid reports false here even though the signature itself is
-     * sound: it runs the whole extraction and answers "is this document
-     * usable", not "does the cryptography check out".
-     */
-    expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(false);
-  });
+      /*
+       * isSignatureValid reports false here even though the signature itself is
+       * sound: it runs the whole extraction and answers "is this document
+       * usable", not "does the cryptography check out".
+       */
+      expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(false);
+    },
+  );
 
   test("an unspecified NameID format carrying an address is accepted", () => {
     const xml: string = signElement(

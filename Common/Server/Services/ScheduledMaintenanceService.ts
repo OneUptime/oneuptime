@@ -23,7 +23,6 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import Typeof from "../../Types/Typeof";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenance";
@@ -75,6 +74,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import ScheduledMaintenanceWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import ProjectService from "./ProjectService";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
@@ -149,6 +149,19 @@ export class Service extends DatabaseService<Model> {
             return i.id!;
           }) || [],
         );
+
+      /*
+       * The description does not vary per status page or per subscriber, so
+       * it is converted once per event: HTML for email bodies, plain text for
+       * SMS and email subjects. Slack gets the Markdown as written.
+       */
+      const eventDescriptionHtml: string = await Markdown.convertToHTML(
+        event.description || "",
+        MarkdownContentType.Email,
+      );
+      const eventDescriptionPlainText: string = Markdown.convertToPlainText(
+        event.description || "",
+      );
 
       for (const statuspage of statusPages) {
         if (!statuspage.id) {
@@ -249,7 +262,7 @@ export class Service extends DatabaseService<Model> {
               subscriber.id!,
             ).toString();
 
-          // Create template variables for custom templates
+          // Template variables for custom templates, as Markdown (Slack)
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
@@ -267,12 +280,10 @@ export class Service extends DatabaseService<Model> {
             unsubscribeUrl: unsubscribeUrl,
           };
 
-          // SMS-specific template variables with plain text (no HTML/Markdown)
-          const smsTemplateVariables: Record<string, string> = {
+          // Template variables for SMS and email subjects, as plain text
+          const plainTextTemplateVariables: Record<string, string> = {
             ...templateVariables,
-            scheduledMaintenanceDescription: Markdown.convertToPlainText(
-              event.description || "",
-            ),
+            scheduledMaintenanceDescription: eventDescriptionPlainText,
           };
 
           if (subscriber.subscriberPhone) {
@@ -287,7 +298,7 @@ export class Service extends DatabaseService<Model> {
               smsMessage =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   smsTemplate.templateBody,
-                  smsTemplateVariables,
+                  plainTextTemplateVariables,
                 );
             } else {
               // Use default template
@@ -411,10 +422,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                   use12HourFormat: true,
                 }),
               eventTitle: event.title || "",
-              eventDescription: await Markdown.convertToHTML(
-                event.description || "",
-                MarkdownContentType.Email,
-              ),
+              eventDescription: eventDescriptionHtml,
               unsubscribeUrl: unsubscribeUrl,
             };
 
@@ -424,16 +432,37 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
               emailTemplate.templateBody &&
               statuspage.smtpConfig
             ) {
-              // Use custom template with BlankTemplate only when custom SMTP is configured
+              /*
+               * Use custom template with BlankTemplate only when custom SMTP
+               * is configured. The body is HTML, so the description is too.
+               * The subject is plain text, including the email-only
+               * variables that are HTML in the body.
+               */
               const customEmailBody: string =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   emailTemplate.templateBody,
-                  { ...templateVariables, ...emailVars },
+                  {
+                    ...templateVariables,
+                    ...emailVars,
+                    scheduledMaintenanceDescription: eventDescriptionHtml,
+                  },
                 );
               const customEmailSubject: string = emailTemplate.emailSubject
                 ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     emailTemplate.emailSubject,
-                    { ...templateVariables, ...emailVars },
+                    {
+                      ...emailVars,
+                      ...plainTextTemplateVariables,
+                      eventDescription: eventDescriptionPlainText,
+                      scheduledAt:
+                        OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones(
+                          {
+                            date: event.startsAt!,
+                            timezones: statuspage.subscriberTimezones || [],
+                            use12HourFormat: true,
+                          },
+                        ).join(", "),
+                    },
                   )
                 : "[Scheduled Maintenance] " + (event.title || statusPageName);
 
@@ -1418,39 +1447,18 @@ ${scheduledMaintenance.description || "No description provided."}
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: ScheduledMaintenanceOwnerTeam =
-        new ScheduledMaintenanceOwnerTeam();
-      teamOwner.scheduledMaintenanceId = scheduledMaintenanceId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-
-      await ScheduledMaintenanceOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-      const teamOwner: ScheduledMaintenanceOwnerUser =
-        new ScheduledMaintenanceOwnerUser();
-      teamOwner.scheduledMaintenanceId = scheduledMaintenanceId;
-      teamOwner.projectId = projectId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-      teamOwner.userId = userId;
-      await ScheduledMaintenanceOwnerUserService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
+    // Owners already on the event are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: ScheduledMaintenanceOwnerUserService,
+      ownerTeamService: ScheduledMaintenanceOwnerTeamService,
+      resourceIdColumn: "scheduledMaintenanceId",
+      resourceId: scheduledMaintenanceId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
   }
 
   @CaptureSpan()

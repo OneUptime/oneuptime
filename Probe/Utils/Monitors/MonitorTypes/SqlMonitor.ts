@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
@@ -27,6 +28,12 @@ import { promisify } from "util";
 
 const loadProbeModule: ReturnType<typeof createRequire> =
   createRequire(__filename);
+
+/*
+ * Retries when the caller passes none: three attempts, the same as before
+ * retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 2;
 
 /*
  * Async (non-blocking) child-process runner. Detection must never run on the
@@ -783,7 +790,13 @@ export default class SqlMonitor {
         failureCause: sanitized,
       });
 
-      if (options.currentRetryCount < (options.retry || 3)) {
+      if (
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await SqlMonitor.execute(config, options);

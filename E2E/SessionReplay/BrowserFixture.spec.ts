@@ -142,6 +142,75 @@ const noHorizontalOverflow: (page: Page) => Promise<void> = async (
     }),
   ).toBeLessThanOrEqual(1);
 };
+/*
+ * The recording every desktop fixture plays, from the manifest header in
+ * Fixture.js. The redesign is measured against it: the stage draws it at
+ * a scale the viewport chip reports, and the point of the new layout is
+ * that the scale is now large (34% before, >= 55% at 1440x900).
+ */
+const recordedWidth: number = 1200;
+const recordedHeight: number = 760;
+interface ElementBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+const boxOf: (locator: Locator) => Promise<ElementBox> = async (
+  locator: Locator,
+): Promise<ElementBox> => {
+  const box: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await locator.boundingBox();
+
+  expect(box).not.toBeNull();
+
+  return box!;
+};
+/* "1200x760 -> 62%" -> 62. Throws when the chip reports no scale (1:1). */
+const stageScalePercent: (page: Page) => Promise<number> = async (
+  page: Page,
+): Promise<number> => {
+  const text: string = await page
+    .getByTestId("replay-viewport-chip")
+    .innerText();
+  const match: RegExpMatchArray | null = text.match(/(\d+)\s*%/);
+
+  if (!match) {
+    throw new Error(`The viewport chip reports no scale: ${text}`);
+  }
+
+  return Number(match[1]);
+};
+/*
+ * The tab ids ?tabs=many mints, in opened order: tab N is the digit N
+ * repeated (see manyTabId in Fixture/Fixture.js).
+ */
+const manyTabId: (position: number) => string = (position: number): string => {
+  return String(position).repeat(32);
+};
+const tabPill: (page: Page, position: number) => Locator = (
+  page: Page,
+  position: number,
+): Locator => {
+  return page.locator(
+    `[data-testid="replay-tab-pill"][data-tab-id="${manyTabId(position)}"]`,
+  );
+};
+const tabOption: (page: Page, position: number) => Locator = (
+  page: Page,
+  position: number,
+): Locator => {
+  return page.locator(
+    `[data-testid="replay-tab-option"][data-tab-id="${manyTabId(position)}"]`,
+  );
+};
+const openTabPicker: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await page.getByTestId("replay-tab-picker-button").click();
+  await expect(page.getByTestId("replay-tab-picker")).toBeVisible();
+  await expect(page.getByTestId("replay-tab-picker-search")).toBeFocused();
+};
 
 test("uses the shared table and groups replay navigation in its own category", async ({
   page,
@@ -613,9 +682,25 @@ test("watch opens real footage and the return link restores list filters", async
   await expect(page.getByTestId("replay-phase")).toHaveText("playing", {
     timeout: 30000,
   });
+  /*
+   * The recording is introduced by a compact bar, not by the shared
+   * detail Card it used to sit in: the "Session recording" title and the
+   * definition list the card drew cost ~240px of the viewport that the
+   * picture now has. The heading stays for screen readers and for this
+   * landmark's name, and every fact it listed stays on one text-xs row.
+   */
+  const header: Locator = page.getByTestId("replay-header");
+  await expect(header).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Session recording", exact: true }),
-  ).toBeVisible();
+    page.getByTestId("replay-player").getByTestId("card"),
+  ).toHaveCount(0);
+  await expect(
+    header.getByRole("heading", { name: "Session recording", exact: true }),
+  ).toHaveClass(/sr-only/);
+  expect((await boxOf(header)).height).toBeLessThanOrEqual(120);
+  await expect(page.getByTestId("replay-header-fact").first()).toBeVisible();
+  await expect(page.getByTestId("replay-header-started-at")).toBeVisible();
+  await expect(page.getByTestId("replay-header-clock")).toBeVisible();
   await expect(page.getByTestId("replay-header-user")).toHaveText(
     "alex@example.com",
   );
@@ -1160,6 +1245,28 @@ test("recording tabs support keyboard selection while skipping tabs without foot
   const tabs: Locator = page.getByTestId("replay-tab-pill");
   await expect(tabs).toHaveCount(3);
   await expect(tabs.nth(2)).toBeDisabled();
+  /*
+   * Three tabs of a finished recording: every tab is closed, so the strip
+   * keeps the opened order and shows them all - the picker only appears
+   * past six (see the ?tabs=many tests).
+   */
+  await expect(page.getByTestId("replay-tab-summary")).toHaveText("3 tabs");
+  await expect(page.getByTestId("replay-tab-picker-button")).toHaveCount(0);
+  expect(
+    await tabs.evaluateAll((pills: Array<HTMLElement>): Array<string> => {
+      return pills.map((pill: HTMLElement): string => {
+        return pill.dataset["tabStatus"] ?? "";
+      });
+    }),
+  ).toEqual(["closed", "closed", "empty"]);
+  /* A pill names its page now, not just its number and length. */
+  await expect(tabs.first()).toContainText("Tab 1");
+  await expect(tabs.first()).toContainText("/checkout");
+  await expect(tabs.nth(2)).toContainText("no footage");
+  await expect(tabs.first()).toHaveAttribute(
+    "title",
+    /switch to this tab; the playhead stays where it is/,
+  );
   await tabs.first().focus();
   await page.keyboard.press("ArrowRight");
   await expect(tabs.nth(1)).toBeFocused();
@@ -1170,6 +1277,9 @@ test("recording tabs support keyboard selection while skipping tabs without foot
   await expect(tabs.nth(1)).toBeFocused();
   await page.keyboard.press("Home");
   await expect(tabs.first()).toBeFocused();
+  /* Arrowing the strip switches tab; the pills say which one is watched. */
+  await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
+  await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "false");
 });
 
 test("the mobile list, filters, recording and event search fit a narrow viewport", async ({
@@ -1320,28 +1430,644 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
   ).toBeFocused();
 });
 
-test("playback controls fit the initial laptop viewport without scrolling", async ({
+test("the recording fills a laptop viewport with the transport above the fold", async ({
   page,
 }: {
   page: Page;
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openPlayer(page);
-  const stage: Awaited<ReturnType<Locator["boundingBox"]>> = await page
-    .getByTestId("replay-stage")
-    .boundingBox();
-  const controls: Awaited<ReturnType<Locator["boundingBox"]>> = await page
-    .getByTestId("replay-play-pause")
-    .boundingBox();
-  expect(stage).not.toBeNull();
-  expect(stage!.height).toBeGreaterThanOrEqual(256);
-  expect(controls).not.toBeNull();
-  expect(controls!.y).toBeGreaterThan(0);
-  expect(controls!.y + controls!.height).toBeLessThanOrEqual(900);
+
+  const stage: ElementBox = await boxOf(page.getByTestId("replay-stage"));
+  const frame: ElementBox = await boxOf(page.getByTestId("replay-stage-frame"));
+  const controls: ElementBox = await boxOf(
+    page.getByTestId("replay-play-pause"),
+  );
+
+  /*
+   * The number this redesign exists for. A 1200x760 recording was drawn
+   * at 34% on a 1440x900 laptop, because a summary card, a URL bar, five
+   * marker lanes and two rows of transport took the height first. The
+   * player is now sized to the viewport and the picture takes what is
+   * left, which has to be at least 55%.
+   */
+  expect(await stageScalePercent(page)).toBeGreaterThanOrEqual(55);
+  expect(frame.width / recordedWidth).toBeGreaterThanOrEqual(0.55);
+  expect(frame.height / recordedHeight).toBeGreaterThanOrEqual(0.55);
+  /* The drawn picture and the reported scale are the same measurement. */
+  expect(frame.width / recordedWidth).toBeCloseTo(
+    (await stageScalePercent(page)) / 100,
+    1,
+  );
+  expect(stage.height).toBeGreaterThanOrEqual(380);
+  /* Nothing of the picture hangs below the window, and it fits the box. */
+  expect(stage.y + stage.height).toBeLessThanOrEqual(901);
+  expect(frame.height).toBeLessThanOrEqual(stage.height + 1);
+
+  expect(controls.y).toBeGreaterThan(0);
+  expect(controls.y + controls.height).toBeLessThanOrEqual(900);
   expect(
     await page.evaluate((): number => {
       return window.scrollY;
     }),
   ).toBe(0);
+  await noHorizontalOverflow(page);
   await screenshot(page, "session-replay-player-laptop");
+});
+
+test("the recording grows with the viewport and refits without a reload", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openPlayer(page);
+
+  const laptopPercent: number = await stageScalePercent(page);
+  const laptopFrame: ElementBox = await boxOf(
+    page.getByTestId("replay-stage-frame"),
+  );
+  const navigations: number = (await state(page)).requests.filter(
+    (request: FixtureRequest): boolean => {
+      return request.route === "manifest";
+    },
+  ).length;
+
+  /* A bigger window is a bigger picture, measured live - no reload. */
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await boxOf(page.getByTestId("replay-stage-frame"))).width;
+    })
+    .toBeGreaterThan(laptopFrame.width + 20);
+  expect(await stageScalePercent(page)).toBeGreaterThan(laptopPercent);
+  expect(
+    (await boxOf(page.getByTestId("replay-stage"))).height,
+  ).toBeGreaterThan(380);
+
+  /* And back down: the stage shrinks to the window instead of scrolling it. */
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await boxOf(page.getByTestId("replay-stage-frame"))).width;
+    })
+    .toBeLessThan(laptopFrame.width);
+  const smallStage: ElementBox = await boxOf(page.getByTestId("replay-stage"));
+  expect(smallStage.y + smallStage.height).toBeLessThanOrEqual(721);
+  expect(
+    await page.evaluate((): number => {
+      return window.scrollY;
+    }),
+  ).toBe(0);
+  await noHorizontalOverflow(page);
+
+  /* The refit is layout, not a fresh manifest fetch. */
+  expect(
+    (await state(page)).requests.filter((request: FixtureRequest): boolean => {
+      return request.route === "manifest";
+    }).length,
+  ).toBe(navigations);
+});
+
+test("the stage fit control switches between fit, width and actual size", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openPlayer(page);
+
+  const stage: Locator = page.getByTestId("replay-stage");
+  const fit: Locator = page.getByTestId("replay-fit-toggle");
+  const chip: Locator = page.getByTestId("replay-viewport-chip");
+
+  await expect(fit.getByRole("button")).toHaveText(["Fit", "Width", "1:1"]);
+  await expect(stage).toHaveAttribute("data-replay-fit", "contain");
+  await expect(chip).toContainText(`${recordedWidth}x${recordedHeight}`);
+
+  const containPercent: number = await stageScalePercent(page);
+
+  /* Width fills the box across and scrolls the rest of the page. */
+  await fit.getByRole("button", { name: "Width", exact: true }).click();
+  await expect(stage).toHaveAttribute("data-replay-fit", "width");
+  expect(await stageScalePercent(page)).toBeGreaterThanOrEqual(containPercent);
+
+  const stageBox: ElementBox = await boxOf(stage);
+  const widthFrame: ElementBox = await boxOf(
+    page.getByTestId("replay-stage-frame"),
+  );
+
+  expect(widthFrame.width).toBeGreaterThan(stageBox.width - 20);
+  expect(
+    await stage.evaluate((element: HTMLElement): number => {
+      return element.scrollHeight - element.clientHeight;
+    }),
+  ).toBeGreaterThan(0);
+
+  /* 1:1 is 100% by definition, so the chip drops the percentage. */
+  await fit.getByRole("button", { name: "1:1", exact: true }).click();
+  await expect(stage).toHaveAttribute("data-replay-fit", "actual");
+  await expect(chip).toContainText(`${recordedWidth}x${recordedHeight}`);
+  await expect(chip).not.toContainText("%");
+
+  const actualFrame: ElementBox = await boxOf(
+    page.getByTestId("replay-stage-frame"),
+  );
+
+  expect(Math.round(actualFrame.width)).toBe(recordedWidth);
+  expect(Math.round(actualFrame.height)).toBe(recordedHeight);
+
+  await fit.getByRole("button", { name: "Fit", exact: true }).click();
+  await expect(stage).toHaveAttribute("data-replay-fit", "contain");
+  expect(await stageScalePercent(page)).toBe(containPercent);
+  await noHorizontalOverflow(page);
+});
+
+test("keyboard shortcuts hide the events rail and cycle the stage fit", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openPlayer(page);
+
+  const rail: Locator = page.getByTestId("replay-rail");
+  const stage: Locator = page.getByTestId("replay-stage");
+
+  await expect(rail).toBeVisible();
+
+  const withRail: ElementBox = await boxOf(stage);
+
+  /* r: the rail's width goes to the picture, and comes back. */
+  await page.keyboard.press("r");
+  await expect(rail).not.toBeVisible();
+  await expect(page.getByTestId("replay-rail-expand")).toBeVisible();
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await boxOf(stage)).width;
+    })
+    .toBeGreaterThan(withRail.width);
+  await page.keyboard.press("r");
+  await expect(rail).toBeVisible();
+
+  /* z: contain -> width -> actual -> contain. */
+  await expect(stage).toHaveAttribute("data-replay-fit", "contain");
+  await page.keyboard.press("z");
+  await expect(stage).toHaveAttribute("data-replay-fit", "width");
+  await page.keyboard.press("z");
+  await expect(stage).toHaveAttribute("data-replay-fit", "actual");
+  await page.keyboard.press("z");
+  await expect(stage).toHaveAttribute("data-replay-fit", "contain");
+});
+
+test("hiding the signal lanes gives their height back to the recording", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openPlayer(page);
+
+  const lanes: Locator = page.locator('[data-testid^="timeline-lane-"]');
+  const stage: Locator = page.getByTestId("replay-stage");
+
+  expect(await lanes.count()).toBeGreaterThan(0);
+  await expect(page.getByTestId("timeline-legend")).toBeVisible();
+
+  const withLanes: ElementBox = await boxOf(stage);
+
+  await page.getByTestId("replay-more-menu").click();
+  await page.getByRole("menuitem", { name: "Hide signal lanes" }).click();
+  await expect(lanes).toHaveCount(0);
+  await expect(page.getByTestId("timeline-legend")).toHaveCount(0);
+  /* The track itself stays, and so do the notices drawn on it. */
+  await expect(page.getByTestId("timeline-track")).toBeVisible();
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await boxOf(stage)).height;
+    })
+    .toBeGreaterThan(withLanes.height);
+
+  await page.getByTestId("replay-more-menu").click();
+  await page.getByRole("menuitem", { name: "Show signal lanes" }).click();
+  await expect(page.getByTestId("timeline-legend")).toBeVisible();
+  expect(await lanes.count()).toBeGreaterThan(0);
+});
+
+test("the overflow menu stays reachable inside theater mode", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openPlayer(page);
+
+  /*
+   * Theater is the case that made this a bug rather than a nicety: the
+   * fullscreen root clips what is drawn past it, the transport is the last
+   * row inside it, and a menu opening downwards from there landed outside
+   * the player with no way to scroll to it - "Hide mouse trail", "Follow
+   * the playhead" and "Hide signal lanes" were simply gone. Clicking the
+   * real button is what makes requestFullscreen a trusted gesture.
+   */
+  await page.getByTestId("replay-toggle-theater").click();
+  await expect
+    .poll(async (): Promise<boolean> => {
+      return page.evaluate((): boolean => {
+        const root: Element | null = document.querySelector(
+          '[data-testid="replay-player"]',
+        );
+
+        return Boolean(root) && document.fullscreenElement === root;
+      });
+    })
+    .toBe(true);
+
+  await page.getByTestId("replay-more-menu").click();
+
+  const menu: Locator = page.getByRole("menu");
+
+  await expect(menu).toBeVisible();
+
+  const menuBox: ElementBox = await boxOf(menu);
+  const rootBox: ElementBox = await boxOf(page.getByTestId("replay-player"));
+
+  /* Drawn upwards, and wholly inside the surface that clips it. */
+  expect(menuBox.y).toBeGreaterThanOrEqual(rootBox.y - 1);
+  expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(
+    rootBox.y + rootBox.height + 1,
+  );
+
+  /* And every item is the topmost element at its own centre. */
+  const items: Locator = page.getByRole("menuitem");
+  const itemCount: number = await items.count();
+
+  expect(itemCount).toBeGreaterThan(0);
+
+  for (let index: number = 0; index < itemCount; index++) {
+    const box: ElementBox = await boxOf(items.nth(index));
+    const isHittable: boolean = await page.evaluate(
+      (point: { x: number; y: number }): boolean => {
+        const hit: Element | null = document.elementFromPoint(point.x, point.y);
+        const menuElement: Element | null =
+          document.querySelector('[role="menu"]');
+
+        return Boolean(hit && menuElement && menuElement.contains(hit));
+      },
+      { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+    );
+
+    expect(isHittable).toBe(true);
+  }
+
+  /* It still works from in there: the lanes toggle is one of those items. */
+  await page.getByRole("menuitem", { name: "Hide signal lanes" }).click();
+  await expect(page.locator('[data-testid^="timeline-lane-"]')).toHaveCount(0);
+
+  await page.keyboard.press("Escape");
+  await page.getByTestId("replay-more-menu").click();
+  await page.getByRole("menuitem", { name: "Show signal lanes" }).click();
+  await expect(page.getByTestId("timeline-legend")).toBeVisible();
+});
+
+test("the ended recording offers the next session by the same user", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  /* Two seconds before the end, so the ended card is reached by playing. */
+  await page.goto(`${playerRoute}?neighbour=newer&t=88`);
+  await expect(page.getByTestId("replay-phase")).toHaveText("ended", {
+    timeout: 30000,
+  });
+
+  const nextSession: Locator = page.getByTestId("replay-ended-next-session");
+
+  await expect(page.getByTestId("replay-watch-again")).toBeVisible();
+  await expect(nextSession).toBeVisible();
+  await expect(nextSession).toHaveText("Next session by this user");
+  /* The button names the session it opens, the way the sessions menu does. */
+  await expect(nextSession).toHaveAttribute("title", /·/);
+  await screenshot(page, "session-replay-player-ended");
+  await nextSession.click();
+  await expect(page).toHaveURL(new RegExp(`session-replay/${"f".repeat(32)}`));
+
+  /*
+   * And the player actually follows, in the same page load. Every route
+   * element under the application layout is created once, so React sees
+   * the same element object when only the :subModelId segment changes and
+   * bails out of the subtree: the view reads its ids from the router's
+   * location precisely so this navigation re-renders it. Before that, the
+   * address bar changed while the mounted player carried on polling the
+   * session it was already playing - which is the one thing this button
+   * must not do.
+   */
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing", {
+    timeout: 30000,
+  });
+  await expect(page.getByTestId("replay-header")).toContainText("ffffffff");
+  await expect(page.getByTestId("replay-header")).not.toContainText("aaaaaaaa");
+
+  /* No reload: proving it was the SPA that switched, not the browser. */
+  const navigations: number = await page.evaluate((): number => {
+    return performance.getEntriesByType("navigation").length;
+  });
+
+  expect(navigations).toBe(1);
+});
+
+test("the header's older and newer buttons switch the mounted player", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page, "?neighbour=newer");
+
+  /*
+   * The same re-render path as the ended card, from the control a viewer
+   * reaches while a recording is still playing.
+   */
+  await page.getByTestId("replay-user-session-newer").click();
+  await expect(page).toHaveURL(new RegExp(`session-replay/${"f".repeat(32)}`));
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing", {
+    timeout: 30000,
+  });
+  await expect(page.getByTestId("replay-header")).toContainText("ffffffff");
+
+  const navigations: number = await page.evaluate((): number => {
+    return performance.getEntriesByType("navigation").length;
+  });
+
+  expect(navigations).toBe(1);
+});
+
+test("the tab strip leads with the tabs that are still open", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page, "?tabs=many");
+
+  await expect(page.getByTestId("replay-tab-switcher")).toBeVisible();
+  await expect(page.getByTestId("replay-tab-summary")).toHaveText(
+    "8 tabs · 2 open · 5 closed · 1 without footage",
+  );
+
+  const pills: Locator = page.getByTestId("replay-tab-pill");
+  const statuses: Array<string> = await pills.evaluateAll(
+    (elements: Array<HTMLElement>): Array<string> => {
+      return elements.map((element: HTMLElement): string => {
+        return element.dataset["tabStatus"] ?? "";
+      });
+    },
+  );
+
+  /*
+   * Eight tabs, at most six pills: the strip shows the tabs still
+   * recording plus the one being watched, and the rest live in the
+   * picker. Open comes before closed - a tab that is still going is the
+   * one a viewer can still catch up with.
+   */
+  expect(statuses.length).toBeLessThanOrEqual(6);
+  expect(statuses).toEqual(["open", "open", "closed"]);
+  await expect(page.getByTestId("replay-tab-strip-divider")).toHaveText(
+    "Closed",
+  );
+
+  /* Each pill says which page its tab was on. */
+  await expect(tabPill(page, 3)).toContainText("/cart");
+  await expect(tabPill(page, 6)).toContainText("/search");
+  await expect(tabPill(page, 1)).toContainText("/collections");
+  await expect(tabPill(page, 1)).toHaveAttribute("aria-selected", "true");
+  await expect(tabPill(page, 3)).toHaveAttribute("aria-selected", "false");
+  await expect(page.getByTestId("replay-tab-picker-button")).toContainText(
+    "All 8 tabs",
+  );
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-player-tabs");
+});
+
+test("the tab picker groups every tab and searches them by page and number", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page, "?tabs=many");
+  await openTabPicker(page);
+
+  await expect(page.getByTestId("replay-tab-group")).toHaveText([
+    "Open · 2",
+    "Closed · 5",
+    "No footage · 1",
+  ]);
+  await expect(page.getByTestId("replay-tab-option")).toHaveCount(8);
+  /* A tab that stored nothing is listed, and cannot be opened. */
+  await expect(tabOption(page, 8)).toBeDisabled();
+  await expect(tabOption(page, 8)).toContainText("no footage");
+  /* What happened in a tab is on its row, with where it sits in the session. */
+  await expect(
+    tabOption(page, 4).getByTestId("replay-tab-option-errors"),
+  ).toHaveText("2");
+  await expect(
+    tabOption(page, 7).getByTestId("replay-tab-option-frustrations"),
+  ).toHaveText("1");
+  await expect(tabOption(page, 1)).toContainText("Watching");
+  await expect(
+    page.getByTestId("replay-tab-option-span").first(),
+  ).toBeVisible();
+  await screenshot(page, "session-replay-player-tab-picker");
+
+  const search: Locator = page.getByTestId("replay-tab-picker-search");
+
+  /* By page. */
+  await search.fill("account");
+  await expect(page.getByTestId("replay-tab-option")).toHaveCount(1);
+  await expect(tabOption(page, 5)).toBeVisible();
+
+  /* By tab number. */
+  await search.fill("7");
+  await expect(page.getByTestId("replay-tab-option")).toHaveCount(1);
+  await expect(tabOption(page, 7)).toBeVisible();
+
+  /* And a miss says so rather than showing an empty box. */
+  await search.fill("nowhere");
+  await expect(page.getByTestId("replay-tab-option")).toHaveCount(0);
+  await expect(page.getByTestId("replay-tab-picker-empty")).toContainText(
+    "No tab matches",
+  );
+  await expect(page.getByTestId("replay-tab-picker-empty")).toContainText(
+    "nowhere",
+  );
+});
+
+/*
+ * The picker's span bars are the only thing that answers "which tab was
+ * open when the error happened" - with a dozen tabs the list is a timeline
+ * read downwards, and a position is what the viewer is looking for.
+ *
+ * They only answer it if they are drawn against the SESSION. The player's
+ * clock follows the engine, so its duration is the footage of the tab
+ * being WATCHED; the header used to hand that down, and every tab was
+ * scaled by one tab's length. In this eight-tab fixture the result was the
+ * first three bars at left 0% / width 100% and every later tab pinned at
+ * left 98% - eight rows that all said the same nothing.
+ *
+ * ?tabs=many is a 90s recording in three 30s windows: tab 1 covers the
+ * first, tab 4 the second, tab 6 the third, and tabs 2, 3 and 5 span more
+ * than one. So the bars have to walk left to right down the list.
+ */
+test("the tab picker draws each tab's span where it sits in the session", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page, "?tabs=many");
+  await openTabPicker(page);
+
+  const spanOf: (
+    position: number,
+  ) => Promise<{ left: number; width: number }> = async (
+    position: number,
+  ): Promise<{ left: number; width: number }> => {
+    return await tabOption(page, position)
+      .getByTestId("replay-tab-option-span")
+      .evaluate((element: HTMLElement): { left: number; width: number } => {
+        return {
+          left: Number.parseFloat(element.style.left),
+          width: Number.parseFloat(element.style.width),
+        };
+      });
+  };
+
+  const third: number = 100 / 3;
+  const spans: Array<{ left: number; width: number }> = [];
+
+  for (let position: number = 1; position <= 7; position++) {
+    spans.push(await spanOf(position));
+  }
+
+  /* Thirds of the session, which is where these tabs actually are. */
+  expect(spans[0]?.left).toBeCloseTo(0, 1);
+  expect(spans[0]?.width).toBeCloseTo(third, 1);
+  expect(spans[1]?.left).toBeCloseTo(0, 1);
+  expect(spans[1]?.width).toBeCloseTo(third * 2, 1);
+  expect(spans[2]?.left).toBeCloseTo(0, 1);
+  expect(spans[2]?.width).toBeCloseTo(100, 1);
+  expect(spans[3]?.left).toBeCloseTo(third, 1);
+  expect(spans[3]?.width).toBeCloseTo(third, 1);
+  expect(spans[4]?.left).toBeCloseTo(third, 1);
+  expect(spans[4]?.width).toBeCloseTo(third * 2, 1);
+  expect(spans[5]?.left).toBeCloseTo(third * 2, 1);
+  expect(spans[6]?.left).toBeCloseTo(third * 2, 1);
+
+  /* Ordered and distinct: a later tab sits further right than an earlier one. */
+  expect(spans[0]!.left).toBeLessThan(spans[3]!.left);
+  expect(spans[3]!.left).toBeLessThan(spans[5]!.left);
+  expect(spans[0]!.width).toBeLessThan(spans[1]!.width);
+  expect(spans[1]!.width).toBeLessThan(spans[2]!.width);
+
+  /* The broken layout, named so a regression says which bug came back. */
+  for (const span of spans) {
+    expect(span.left).toBeLessThan(90);
+    expect(span.left + span.width).toBeLessThanOrEqual(100.5);
+  }
+  expect(spans[0]!.width).toBeLessThan(90);
+
+  /* The tab that stored nothing has no place on the clock, and no bar. */
+  await expect(
+    tabOption(page, 8).getByTestId("replay-tab-option-span"),
+  ).toHaveCount(0);
+});
+
+test("the tab picker switches tab by keyboard without firing player shortcuts", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page, "?tabs=many");
+  await page.getByTestId("replay-play-pause").click();
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+
+  const clockBefore: string = await page.getByTestId("replay-time").innerText();
+  const skipIdleBefore: string | null = await page
+    .getByTestId("replay-skip-idle")
+    .getAttribute("aria-checked");
+
+  await openTabPicker(page);
+
+  /*
+   * Typed, not filled: every letter of "search" is a player shortcut -
+   * s jumps the idle band, e the next error, r hides the rail, c copies
+   * the link - and none of them may fire while a filter box has focus.
+   */
+  await page
+    .getByTestId("replay-tab-picker-search")
+    .pressSequentially("search");
+  await expect(page.getByTestId("replay-tab-option")).toHaveCount(1);
+  await expect(tabOption(page, 6)).toBeVisible();
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+  await expect(page.getByTestId("replay-time")).toHaveText(clockBefore);
+  await expect(page.getByTestId("replay-skip-idle")).toHaveAttribute(
+    "aria-checked",
+    skipIdleBefore ?? "false",
+  );
+  await expect(page.getByTestId("replay-rail")).toBeVisible();
+
+  /* Arrow into the list, step to the second open tab, take it. */
+  await page.getByTestId("replay-tab-picker-search").fill("");
+  await page.keyboard.press("ArrowDown");
+  await expect(tabOption(page, 3)).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(tabOption(page, 6)).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(page.getByTestId("replay-tab-picker")).toHaveCount(0);
+  await expect(page.getByTestId("replay-tab-picker-button")).toBeFocused();
+  /* The player really switched: the pill and the URL both say so. */
+  await expect(tabPill(page, 6)).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(new RegExp(`tab=${manyTabId(6)}`));
+
+  /* Escape closes the picker and hands focus back to its button. */
+  await openTabPicker(page);
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("replay-tab-picker")).toHaveCount(0);
+  await expect(page.getByTestId("replay-tab-picker-button")).toBeFocused();
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+});
+
+test("the tab switcher fits a narrow viewport", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openPlayer(page, "?tabs=many");
+  await expect(page.getByTestId("replay-tab-switcher")).toBeVisible();
+  await noHorizontalOverflow(page);
+
+  /* The strip wraps; it never scrolls sideways and never leaves the page. */
+  const rights: Array<number> = await page
+    .getByTestId("replay-tab-pill")
+    .evaluateAll((pills: Array<HTMLElement>): Array<number> => {
+      return pills.map((pill: HTMLElement): number => {
+        return pill.getBoundingClientRect().right;
+      });
+    });
+
+  expect(rights.length).toBeGreaterThan(0);
+  rights.forEach((right: number): void => {
+    expect(right).toBeLessThanOrEqual(391);
+  });
+
+  await page.setViewportSize({ width: 320, height: 844 });
+  await expect(page.getByTestId("replay-tab-switcher")).toBeVisible();
+  await noHorizontalOverflow(page);
+  await openTabPicker(page);
+
+  const picker: ElementBox = await boxOf(page.getByTestId("replay-tab-picker"));
+
+  expect(picker.x).toBeGreaterThanOrEqual(-1);
+  expect(picker.x + picker.width).toBeLessThanOrEqual(321);
+  await expect(page.getByTestId("replay-tab-option")).toHaveCount(8);
+  await screenshot(page, "session-replay-player-tabs-mobile");
 });

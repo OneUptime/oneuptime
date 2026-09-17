@@ -7,6 +7,10 @@ import AIChatPageContextType, {
   AIChatPageContextHelper,
 } from "../../../../Types/AI/AIChatPageContext";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
+import {
+  AIResourceSubresourceKind,
+  AIResourceType,
+} from "../../../../Types/AI/AIResourceContext";
 /*
  * Toolbox/Index MUST be imported before any individual tool module. The
  * toolbox sits in an import cycle (tool -> service -> ... -> AIToolbox), so
@@ -19,6 +23,10 @@ import {
   QueryIncidentsTool,
   SearchIncidentsTool,
 } from "../../../../Server/Utils/AI/Toolbox/IncidentTools";
+import {
+  QueryTelemetryResourcesTool,
+  QueryResourceTelemetryTool,
+} from "../../../../Server/Utils/AI/Toolbox/ResourceTools";
 import { QueryAlertsTool } from "../../../../Server/Utils/AI/Toolbox/AlertTools";
 import { QueryMonitorsTool } from "../../../../Server/Utils/AI/Toolbox/MonitorTools";
 import { ObservabilityTool } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
@@ -49,6 +57,10 @@ describe("buildPageContextSection", () => {
       `query_monitors using monitorId="${ENTITY_ID}"`,
     ],
     [AIChatPageContextType.TelemetryService, `serviceId="${ENTITY_ID}"`],
+    [
+      AIChatPageContextType.RumApplication,
+      `query_rum_applications using rumApplicationId="${ENTITY_ID}"`,
+    ],
     [
       AIChatPageContextType.Exception,
       `find_code_for_exception with exceptionId="${ENTITY_ID}"`,
@@ -108,6 +120,8 @@ describe("buildPageContextSection", () => {
     [AIChatPageContextType.TracesExplorer, "query_traces"],
     [AIChatPageContextType.MetricsExplorer, "query_metrics"],
     [AIChatPageContextType.ExceptionsList, "top_exceptions"],
+    [AIChatPageContextType.RumApplications, "query_rum_applications"],
+    [AIChatPageContextType.TelemetryServicesList, "lookup_context"],
   ])(
     "area context %s names its primary tool",
     (type: AIChatPageContextType, expectedTool: string) => {
@@ -557,6 +571,18 @@ const TOOLBOX_TOOL_NAMES: Set<string> = new Set(
 );
 
 function buildSectionForType(type: AIChatPageContextType): string {
+  if (
+    type === AIChatPageContextType.Resource ||
+    type === AIChatPageContextType.ResourcesList
+  ) {
+    return buildPageContextSection({
+      type,
+      resourceType: AIResourceType.Host,
+      ...(type === AIChatPageContextType.Resource
+        ? { entityId: ENTITY_ID }
+        : {}),
+    });
+  }
   if (!AIChatPageContextHelper.isEntityType(type)) {
     return buildPageContextSection({ type: type });
   }
@@ -596,4 +622,83 @@ describe("page guidance only names tools that exist in the toolbox", () => {
       expect(notInToolbox).toEqual([]);
     },
   );
+});
+
+describe("infrastructure page guidance", () => {
+  test.each(Object.values(AIResourceType))(
+    "%s detail names the resource selector and actual telemetry capabilities",
+    (resourceType: AIResourceType) => {
+      const section: string = buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType,
+        entityId: ENTITY_ID,
+      });
+
+      expect(section).toContain(QueryTelemetryResourcesTool.name);
+      expect(section).toContain(QueryResourceTelemetryTool.name);
+      expect(section).toContain(
+        JSON.stringify({ resourceType, resourceId: ENTITY_ID }),
+      );
+      expect(section).toContain("omit metricName first");
+      expect(section).toContain('mode="trend"');
+      expect(section).toContain('mode="summary"');
+      expect(section).toContain("severity histogram");
+      expect(section).toContain("operation summaries");
+      expect(section).toContain("explicit time windows");
+      expect(section).toContain("missing telemetry does not mean");
+      expect(
+        getSchemaProperty(QueryTelemetryResourcesTool, "resourceType")?.[
+          "enum"
+        ],
+      ).toContain(resourceType);
+      expect(
+        getSchemaProperty(QueryResourceTelemetryTool, "resourceType")?.["enum"],
+      ).toContain(resourceType);
+      expect(
+        getSchemaProperty(QueryResourceTelemetryTool, "signal")?.["enum"],
+      ).toEqual(["metrics", "logs", "traces"]);
+    },
+  );
+
+  test.each(Object.values(AIResourceType))(
+    "%s list scopes discovery to its kind without inventing a selected resource",
+    (resourceType: AIResourceType) => {
+      const section: string = buildPageContextSection({
+        type: AIChatPageContextType.ResourcesList,
+        resourceType,
+      });
+      expect(section).toContain(JSON.stringify({ resourceType }));
+      expect(section).not.toContain(ENTITY_ID);
+      expect(section).toContain("For each selected resource");
+    },
+  );
+
+  test("a pod name is a hint and cannot turn parent telemetry into pod-only evidence", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.KubernetesCluster,
+      entityId: ENTITY_ID,
+      subresource: { kind: AIResourceSubresourceKind.Pod, key: "checkout" },
+    });
+    expect(section).toContain('"kind":"Pod","key":"checkout"');
+    expect(section).toContain("not verified unique identities");
+    expect(section).toContain("Do not invent a namespace or child ID");
+    expect(section).toContain("returns the parent resource's data");
+    expect(section).toContain("never describe it as child-only measurements");
+    expect(section).not.toContain('"namespace":');
+  });
+
+  test("an explicit namespace is quoted with the child hint", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.KubernetesCluster,
+      entityId: ENTITY_ID,
+      subresource: {
+        kind: AIResourceSubresourceKind.Pod,
+        key: "checkout",
+        namespace: "production",
+      },
+    });
+    expect(section).toContain('"namespace":"production"');
+  });
 });

@@ -372,10 +372,15 @@ RunCron(
             const statusPageIdString: string | null =
               statuspage.id?.toString() || statuspage._id?.toString() || null;
 
+            /*
+             * The status page has no /episodes page: it shows an episode on its
+             * incident detail route (/incidents/:id), which looks the id up as
+             * an incident first and then as an episode.
+             */
             const episodeDetailsUrl: string =
               episode.id && statusPageURL
                 ? URL.fromString(statusPageURL)
-                    .addRoute(`/episodes/${episode.id.toString()}`)
+                    .addRoute(`/incidents/${episode.id.toString()}`)
                     .toString()
                 : statusPageURL;
 
@@ -390,6 +395,10 @@ RunCron(
             // Send email to Email subscribers.
             const resourcesAffectedString: string =
               StatusPageResourceUtil.getResourcesGroupedByGroupName(
+                statusPageToResources[statuspage._id!] || [],
+              );
+            const resourcesAffectedPlainText: string =
+              StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
                 statusPageToResources[statuspage._id!] || [],
               );
 
@@ -446,24 +455,45 @@ RunCron(
               ),
             ]);
 
-            // Prepare template variables for custom templates
+            /*
+             * Every variable SubscriberNotificationTemplateVariables advertises
+             * for SubscriberEpisodeCreated, built once per status page. The
+             * base object holds the values that read the same on every
+             * channel; the three objects below add the format-dependent ones
+             * (episodeDescription, resourcesAffected), and every channel adds
+             * the subscriber's unsubscribeUrl, so no channel can miss a
+             * variable the others have.
+             *
+             * Custom templates get each value in the format their channel
+             * renders: HTML for the email body (it is wrapped only by
+             * BlankTemplate), plain text for SMS and the email subject, and
+             * Markdown for Slack and Teams. The conversions are the memoized
+             * ones computed once per episode above.
+             */
             const templateVariables: Record<string, string> = {
               statusPageName: statusPageName,
               statusPageUrl: statusPageURL,
               detailsUrl: episodeDetailsUrl,
-              resourcesAffected: resourcesAffectedString,
               episodeSeverity: episode.incidentSeverity?.name || " - ",
               episodeTitle: episode.title || "",
-              episodeDescription: episode.description || "",
             };
 
-            /*
-             * Prepare SMS-specific template variables with plain text (no HTML/Markdown).
-             * Uses the memoized plain-text conversion computed once per episode above.
-             */
-            const smsTemplateVariables: Record<string, string> = {
+            const emailBodyTemplateVariables: Record<string, string> = {
               ...templateVariables,
+              resourcesAffected: resourcesAffectedString,
+              episodeDescription: episodeDescriptionHtml,
+            };
+
+            const plainTextTemplateVariables: Record<string, string> = {
+              ...templateVariables,
+              resourcesAffected: resourcesAffectedPlainText,
               episodeDescription: episodeDescriptionPlainText,
+            };
+
+            const markdownTemplateVariables: Record<string, string> = {
+              ...templateVariables,
+              resourcesAffected: resourcesAffectedPlainText,
+              episodeDescription: episode.description || "",
             };
 
             for (const subscriber of subscribers) {
@@ -516,10 +546,21 @@ RunCron(
                 );
 
                 // Add unsubscribeUrl to template variables
-                const subscriberTemplateVariables: Record<string, string> = {
-                  ...templateVariables,
-                  unsubscribeUrl: unsubscribeUrl,
-                };
+                const subscriberEmailBodyTemplateVariables: Dictionary<string> =
+                  {
+                    ...emailBodyTemplateVariables,
+                    unsubscribeUrl: unsubscribeUrl,
+                  };
+                const subscriberPlainTextTemplateVariables: Dictionary<string> =
+                  {
+                    ...plainTextTemplateVariables,
+                    unsubscribeUrl: unsubscribeUrl,
+                  };
+                const subscriberMarkdownTemplateVariables: Dictionary<string> =
+                  {
+                    ...markdownTemplateVariables,
+                    unsubscribeUrl: unsubscribeUrl,
+                  };
 
                 if (subscriber.subscriberEmail) {
                   // send email here.
@@ -536,14 +577,14 @@ RunCron(
                     const compiledBody: string =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         emailTemplate.templateBody,
-                        subscriberTemplateVariables,
+                        subscriberEmailBodyTemplateVariables,
                       );
                     const compiledSubject: string = emailTemplate.emailSubject
                       ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                           emailTemplate.emailSubject,
-                          subscriberTemplateVariables,
+                          subscriberPlainTextTemplateVariables,
                         )
-                      : "[Incident] " + episode.title || "";
+                      : "[Incident] " + (episode.title || "");
 
                     MailService.sendMail(
                       {
@@ -609,7 +650,7 @@ RunCron(
                               statuspage,
                             ),
                         },
-                        subject: "[Incident] " + episode.title || "",
+                        subject: "[Incident] " + (episode.title || ""),
                       },
                       {
                         mailServer: ProjectSMTPConfigService.toEmailServer(
@@ -647,20 +688,13 @@ RunCron(
                     },
                   );
 
-                  // SMS-specific template variables with unsubscribe URL
-                  const subscriberSmsTemplateVariables: Record<string, string> =
-                    {
-                      ...smsTemplateVariables,
-                      unsubscribeUrl: unsubscribeUrl,
-                    };
-
                   let smsMessage: string;
                   if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                     // Use custom template only when custom Twilio is configured
                     smsMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         smsTemplate.templateBody,
-                        subscriberSmsTemplateVariables,
+                        subscriberPlainTextTemplateVariables,
                       );
                   } else {
                     // Use default hard-coded template
@@ -711,7 +745,7 @@ RunCron(
                     markdownMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         slackTemplate.templateBody,
-                        subscriberTemplateVariables,
+                        subscriberMarkdownTemplateVariables,
                       );
                   } else {
                     // Use default hard-coded template
@@ -763,7 +797,7 @@ RunCron(
                     markdownMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         teamsTemplate.templateBody,
-                        subscriberTemplateVariables,
+                        subscriberMarkdownTemplateVariables,
                       );
                   } else {
                     // Use default hard-coded template
@@ -808,7 +842,7 @@ RunCron(
                         episodeTitle: episode.title || "",
                         episodeDescription: episode.description || "",
                         incidentSeverity: episode.incidentSeverity?.name || "",
-                        resourcesAffected: resourcesAffectedString,
+                        resourcesAffected: resourcesAffectedPlainText,
                         detailsUrl: episodeDetailsUrl,
                       },
                     },

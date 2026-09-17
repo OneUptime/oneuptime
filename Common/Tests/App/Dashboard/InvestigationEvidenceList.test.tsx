@@ -24,7 +24,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * what each one asked, and the rows behind it. Loading rows re-runs a query
  * with the viewer's own permissions, so these tests pin the request contract
  * (one POST per citation per run, the exact body, stale responses ignored)
- * as well as what each state tells the reader.
+ * as well as what each state tells the reader. The list is only the queries:
+ * InvestigationRunDetails supplies the heading, the counts and the frame, so
+ * the list itself is a named list rather than a landmark of its own.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -223,6 +225,10 @@ function rowToggle(label: string | RegExp): HTMLElement {
   return screen.getByRole("button", { name: label });
 }
 
+function evidenceList(): HTMLElement {
+  return screen.getByRole("list", { name: "Evidence checked" });
+}
+
 /*
  * The logs label carries ISO timestamps, which the row shows as local times.
  * The expected text is derived with the same formatter so these tests hold in
@@ -288,26 +294,68 @@ describe("InvestigationEvidenceList rows", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  test("frames every query with a header, description and query count", () => {
-    renderList();
+  /*
+   * The surrounding section already has the "Evidence checked" heading and
+   * the query count. A second heading, description or count here would be
+   * read out twice, and a second landmark would nest inside that section.
+   */
+  test("is a named list of the queries with no header, description or count of its own", () => {
+    const { container } = renderList();
 
-    const section: HTMLElement = screen.getByRole("region", {
-      name: "Evidence checked",
-    });
+    const list: HTMLElement = evidenceList();
+    expect(list.tagName).toBe("UL");
+    expect(container.firstElementChild).toBe(list);
+    expect(within(list).getAllByRole("listitem")).toHaveLength(3);
+    expect(list.children).toHaveLength(3);
+
     expect(
-      within(section).getByRole("heading", { name: "Evidence checked" }),
-    ).toBeInTheDocument();
-    expect(section).toHaveTextContent(
-      "Every query OneUptime AI ran while investigating. Expand one to see what it asked and the rows it returned.",
+      screen.queryByRole("region", { name: "Evidence checked" }),
+    ).toBeNull();
+    expect(screen.queryByRole("heading")).toBeNull();
+    expect(list).not.toHaveTextContent("3 queries");
+    expect(list).not.toHaveTextContent(
+      "Every query OneUptime AI ran while investigating.",
     );
-    expect(within(section).getByText("3 queries")).toBeInTheDocument();
-    expect(within(section).getAllByRole("listitem")).toHaveLength(3);
   });
 
-  test("uses the singular for a single query", () => {
+  test("a single query is a one-item list with no count pill", () => {
     renderList({ items: [incidentsItem] });
 
-    expect(screen.getByText("1 query")).toBeInTheDocument();
+    const list: HTMLElement = evidenceList();
+    expect(within(list).getAllByRole("listitem")).toHaveLength(1);
+    expect(list).not.toHaveTextContent("1 query");
+    expect(
+      within(list).getByRole("button", { name: /Active incidents/ }),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * Badges share one minimum width so labels line up down the list, and that
+   * width has to fit a two-digit citation such as C10 without growing.
+   */
+  test("gives every citation badge the same minimum width, wide enough for C10", () => {
+    renderList({
+      items: [
+        incidentsItem,
+        { ...emptyItem, citationId: "C10", label: "Tenth query (0 found)" },
+      ],
+    });
+
+    const shortBadge: HTMLElement = within(
+      rowToggle(/Active incidents/),
+    ).getByText("C1");
+    const longBadge: HTMLElement = within(rowToggle(/Tenth query/)).getByText(
+      "C10",
+    );
+
+    for (const badge of [shortBadge, longBadge]) {
+      expect(badge).toHaveClass(
+        "min-w-[2.25rem]",
+        "flex-shrink-0",
+        "justify-center",
+        "tabular-nums",
+      );
+    }
   });
 
   test("each row says what was checked, how and what it found", () => {
@@ -1037,6 +1085,26 @@ describe("InvestigationEvidenceList focus requests", () => {
     return { citationId, requestId };
   }
 
+  /*
+   * A chip can only be clicked once the list is on screen, so every real
+   * request reaches an already-mounted list. The tests mount without one and
+   * then deliver it, the way InvestigationPanel does.
+   */
+  function renderThenRequest(
+    request: EvidenceFocusRequest,
+    overrides: Partial<EvidenceListProps> = {},
+  ): ReturnType<typeof render> {
+    const view: ReturnType<typeof render> = renderList(overrides);
+
+    view.rerender(
+      <InvestigationEvidenceList
+        {...listProps({ ...overrides, focusRequest: request })}
+      />,
+    );
+
+    return view;
+  }
+
   test("expands, scrolls to and briefly highlights the requested citation", async () => {
     jest.useFakeTimers();
     postMock.mockResolvedValue(
@@ -1075,6 +1143,83 @@ describe("InvestigationEvidenceList focus requests", () => {
     expect(jest.getTimerCount()).toBe(0);
   });
 
+  /*
+   * InvestigationRunDetails can unmount and remount the list (for example
+   * when the evidence briefly disappears) while InvestigationPanel still holds
+   * the last request. Replaying it would expand a row, re-run its query and
+   * pull focus away from wherever the reader is now.
+   */
+  test("ignores a request that is already set when the list mounts", async () => {
+    jest.useFakeTimers();
+    postMock.mockReturnValue(new Promise(() => {}) as never);
+    const staleRequest: EvidenceFocusRequest = focus("C2", 5);
+    const view: ReturnType<typeof render> = renderList({
+      focusRequest: staleRequest,
+    });
+    await flush();
+
+    const toggle: HTMLElement = logsToggle();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(document.querySelector('[data-highlighted="true"]')).toBeNull();
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+    expect(postMock).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(document.body);
+    expect(jest.getTimerCount()).toBe(0);
+
+    // Re-rendering with the same stale request still replays nothing.
+    view.rerender(
+      <InvestigationEvidenceList
+        {...listProps({ focusRequest: { ...staleRequest } })}
+      />,
+    );
+    await flush();
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+    expect(postMock).not.toHaveBeenCalled();
+
+    // The next chip the reader clicks is honoured as usual.
+    view.rerender(
+      <InvestigationEvidenceList
+        {...listProps({ focusRequest: focus("C2", 6) })}
+      />,
+    );
+    await flush();
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle.closest("li")).toHaveAttribute("data-highlighted", "true");
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(toggle);
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(postRequestAt(0).data["citationId"]).toBe("C2");
+    expect(jest.getTimerCount()).toBe(1);
+  });
+
+  test("does not replay a handled request when the list is remounted", async () => {
+    postMock.mockReturnValue(new Promise(() => {}) as never);
+    const request: EvidenceFocusRequest = focus("C1", 1);
+    const view: ReturnType<typeof render> = renderThenRequest(request);
+    await flush();
+
+    expect(rowToggle(/Active incidents/)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    expect(postMock).toHaveBeenCalledTimes(1);
+
+    view.unmount();
+    renderList({ focusRequest: request });
+    await flush();
+
+    const toggle: HTMLElement = rowToggle(/Active incidents/);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle.closest("li")).not.toHaveAttribute("data-highlighted");
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(document.body);
+  });
+
   test("respects reduced motion when scrolling", async () => {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
@@ -1085,7 +1230,7 @@ describe("InvestigationEvidenceList focus requests", () => {
     });
     postMock.mockReturnValue(new Promise(() => {}) as never);
 
-    renderList({ focusRequest: focus("C1", 1) });
+    renderThenRequest(focus("C1", 1));
     await flush();
 
     expect(scrollIntoViewMock).toHaveBeenCalledWith({
@@ -1097,9 +1242,7 @@ describe("InvestigationEvidenceList focus requests", () => {
   test("keeps a single highlight timer across repeated requests and clears it on unmount", async () => {
     jest.useFakeTimers();
     postMock.mockReturnValue(new Promise(() => {}) as never);
-    const view: ReturnType<typeof render> = renderList({
-      focusRequest: focus("C1", 1),
-    });
+    const view: ReturnType<typeof render> = renderThenRequest(focus("C1", 1));
     await flush();
     expect(jest.getTimerCount()).toBe(1);
 
@@ -1118,6 +1261,7 @@ describe("InvestigationEvidenceList focus requests", () => {
     expect(rowToggle(/Active incidents/).closest("li")).not.toHaveAttribute(
       "data-highlighted",
     );
+    expect(document.activeElement).toBe(rowToggle(/Top exceptions/));
 
     view.unmount();
     expect(jest.getTimerCount()).toBe(0);
@@ -1125,9 +1269,7 @@ describe("InvestigationEvidenceList focus requests", () => {
 
   test("repeats a request for the same citation with a new id", async () => {
     postMock.mockReturnValue(new Promise(() => {}) as never);
-    const view: ReturnType<typeof render> = renderList({
-      focusRequest: focus("C1", 1),
-    });
+    const view: ReturnType<typeof render> = renderThenRequest(focus("C1", 1));
     await flush();
 
     // The reader collapses it, then clicks the same chip again.
@@ -1155,21 +1297,23 @@ describe("InvestigationEvidenceList focus requests", () => {
 
   test("does nothing for a citation that is not in the list", async () => {
     jest.useFakeTimers();
-    renderList({ focusRequest: focus("C42", 1) });
+    renderThenRequest(focus("C42", 1));
     await flush();
 
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
     expect(jest.getTimerCount()).toBe(0);
     expect(document.querySelector('[data-highlighted="true"]')).toBeNull();
+    expect(postMock).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(document.body);
   });
 
   test("a re-render with the same request does not scroll again", async () => {
     postMock.mockReturnValue(new Promise(() => {}) as never);
     const request: EvidenceFocusRequest = focus("C1", 1);
-    const view: ReturnType<typeof render> = renderList({
-      focusRequest: request,
-    });
+    const view: ReturnType<typeof render> = renderThenRequest(request);
     await flush();
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
 
     view.rerender(
       <InvestigationEvidenceList
@@ -1180,27 +1324,69 @@ describe("InvestigationEvidenceList focus requests", () => {
 
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
+
+  /*
+   * A new run is a new list. The request that revealed a row of the old run
+   * must not be replayed against the new one, and its highlight must not
+   * linger on a row that now means something else.
+   */
+  test("a new run clears the highlight and expansion without replaying the request", async () => {
+    jest.useFakeTimers();
+    postMock.mockReturnValue(new Promise(() => {}) as never);
+    const request: EvidenceFocusRequest = focus("C1", 1);
+    const view: ReturnType<typeof render> = renderThenRequest(request);
+    await flush();
+
+    const toggle: HTMLElement = rowToggle(/Active incidents/);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle.closest("li")).toHaveAttribute("data-highlighted", "true");
+    expect(jest.getTimerCount()).toBe(1);
+
+    view.rerender(
+      <InvestigationEvidenceList
+        {...listProps({ runId: NEXT_RUN_ID, focusRequest: request })}
+      />,
+    );
+    await flush();
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle.closest("li")).not.toHaveAttribute("data-highlighted");
+    expect(jest.getTimerCount()).toBe(0);
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    expect(postMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("InvestigationEvidenceList legacy reports", () => {
   test("lists the report's own evidence entries without expanding rows", () => {
     renderList({ items: [], legacyEntries });
 
-    const section: HTMLElement = screen.getByRole("region", {
-      name: "Evidence checked",
-    });
-    expect(section).toHaveTextContent(
-      "Every query OneUptime AI ran while investigating.",
-    );
-    expect(section).not.toHaveTextContent("Expand one");
-    expect(within(section).getByText("2 queries")).toBeInTheDocument();
-    expect(within(section).queryAllByRole("button")).toHaveLength(0);
+    const list: HTMLElement = evidenceList();
+    expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+    expect(list).not.toHaveTextContent("2 queries");
+    expect(list).not.toHaveTextContent("Expand one");
+    expect(within(list).queryAllByRole("button")).toHaveLength(0);
     expect(
-      within(section).getByText("Active incidents (7 total)"),
+      within(list).getByText("Active incidents (7 total)"),
     ).toHaveAttribute("title", "Active incidents (7 total)");
-    expect(within(section).getByText("7 rows")).toBeInTheDocument();
-    expect(within(section).getByText("No rows")).toBeInTheDocument();
-    expect(within(section).getByText("C2")).toHaveClass("bg-gray-200");
+    expect(within(list).getByText("7 rows")).toBeInTheDocument();
+    expect(within(list).getByText("No rows")).toBeInTheDocument();
+    expect(within(list).getByText("C2")).toHaveClass(
+      "bg-gray-200",
+      "min-w-[2.25rem]",
+    );
+  });
+
+  /*
+   * A legacy row can take focus from a citation chip, but it has nothing to
+   * operate, so it must not become an extra Tab stop.
+   */
+  test("keeps legacy rows focusable by script but out of the tab order", () => {
+    renderList({ items: [], legacyEntries });
+
+    for (const item of within(evidenceList()).getAllByRole("listitem")) {
+      expect(item).toHaveAttribute("tabindex", "-1");
+    }
   });
 
   test("shows a legacy entry's timestamps in local time with the raw label as its tooltip", () => {
@@ -1212,10 +1398,8 @@ describe("InvestigationEvidenceList legacy reports", () => {
       legacyEntries: [{ citationId: "C5", label: rawLabel, rowCount: 3 }],
     });
 
-    const section: HTMLElement = screen.getByRole("region", {
-      name: "Evidence checked",
-    });
-    const label: HTMLElement = within(section).getByText(
+    const list: HTMLElement = evidenceList();
+    const label: HTMLElement = within(list).getByText(
       formatEvidenceLabel(rawLabel),
     );
 
@@ -1223,29 +1407,66 @@ describe("InvestigationEvidenceList legacy reports", () => {
     expect(label.textContent).toMatch(
       /^Changes Sep 1[34], .+ → Sep 1[45], .+ \(3 events\)$/,
     );
-    expect(section).not.toHaveTextContent("2026-09-13T");
+    expect(list).not.toHaveTextContent("2026-09-13T");
   });
 
   test("prefers structured evidence over the legacy entries", () => {
     renderList({ items: [incidentsItem], legacyEntries });
 
-    expect(screen.getByText("1 query")).toBeInTheDocument();
+    const list: HTMLElement = evidenceList();
+    expect(within(list).getAllByRole("listitem")).toHaveLength(1);
+    expect(
+      within(list).getByRole("button", { name: /Active incidents/ }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Monitors (2 found)")).toBeNull();
   });
 
-  test("highlights a legacy entry for a focus request without requesting rows", async () => {
-    renderList({
+  /*
+   * A legacy row has no toggle to land on, so the row itself takes focus and
+   * a screen reader reads out the query the chip pointed at.
+   */
+  test("highlights and focuses a legacy entry for a focus request without requesting rows", async () => {
+    const view: ReturnType<typeof render> = renderList({
       items: [],
       legacyEntries,
-      focusRequest: { citationId: "C2", requestId: 1 },
     });
+
+    view.rerender(
+      <InvestigationEvidenceList
+        {...listProps({
+          items: [],
+          legacyEntries,
+          focusRequest: { citationId: "C2", requestId: 1 },
+        })}
+      />,
+    );
     await flush();
 
     const row: HTMLElement = screen
       .getByText("Monitors (2 found)")
       .closest("li")!;
     expect(row).toHaveAttribute("data-highlighted", "true");
+    expect(document.activeElement).toBe(row);
+    expect(row).toHaveTextContent("C2");
+    expect(row).toHaveTextContent("No rows");
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  test("ignores a legacy focus request that is already set when the list mounts", async () => {
+    renderList({
+      items: [],
+      legacyEntries,
+      focusRequest: { citationId: "C2", requestId: 3 },
+    });
+    await flush();
+
+    const row: HTMLElement = screen
+      .getByText("Monitors (2 found)")
+      .closest("li")!;
+    expect(row).not.toHaveAttribute("data-highlighted");
+    expect(document.activeElement).toBe(document.body);
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
     expect(postMock).not.toHaveBeenCalled();
   });
 });

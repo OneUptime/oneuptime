@@ -21,6 +21,8 @@ import MarkdownUtil from "Common/UI/Utils/Markdown";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import AttachmentList from "../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../Utils/ModelId";
+import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
+import { getNotifySubscribersOfUpdateFormField } from "../../Components/StatusPageSubscribers/SubscriberUpdateNotificationFormField";
 
 const AnnouncementView: FunctionComponent<
   PageComponentProps
@@ -44,6 +46,28 @@ const AnnouncementView: FunctionComponent<
         });
 
         // Refetch the details card so the status reads Pending.
+        setRefreshToggle((prev: boolean) => {
+          return !prev;
+        });
+      } catch {
+        // Error resending notification: handle appropriately
+      }
+    };
+
+  const handleResendUpdateNotification: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        await ModelAPI.updateById({
+          id: modelId,
+          modelType: StatusPageAnnouncement,
+          data: {
+            subscriberNotificationStatusOnAnnouncementUpdated:
+              StatusPageSubscriberNotificationStatus.Pending,
+            subscriberNotificationStatusMessageOnAnnouncementUpdated:
+              SubscriberUpdateNotification.resendQueuedMessage,
+          },
+        });
+
         setRefreshToggle((prev: boolean) => {
           return !prev;
         });
@@ -182,6 +206,11 @@ const AnnouncementView: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
           },
+          getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>({
+            stepId: "more",
+            description:
+              "Send subscribers the edited announcement, marked as an update. Leave this unticked for small fixes such as typos.",
+          }),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
@@ -189,6 +218,7 @@ const AnnouncementView: FunctionComponent<
           id: "model-detail-status-page-announcement",
           selectMoreFields: {
             subscriberNotificationStatusMessage: true,
+            subscriberNotificationStatusMessageOnAnnouncementUpdated: true,
           },
           fields: [
             {
@@ -248,6 +278,34 @@ const AnnouncementView: FunctionComponent<
                       item.subscriberNotificationStatusMessage
                     }
                     onResendNotification={handleResendNotification}
+                  />
+                );
+              },
+            },
+            {
+              field: {
+                subscriberNotificationStatusOnAnnouncementUpdated: true,
+              },
+              title: "Update Notification Status",
+              fieldType: FieldType.Element,
+              getElement: (item: StatusPageAnnouncement): ReactElement => {
+                if (!item.subscriberNotificationStatusOnAnnouncementUpdated) {
+                  return (
+                    <span className="text-sm text-gray-500">
+                      No update notification requested.
+                    </span>
+                  );
+                }
+
+                return (
+                  <SubscriberNotificationStatus
+                    status={
+                      item.subscriberNotificationStatusOnAnnouncementUpdated
+                    }
+                    subscriberNotificationStatusMessage={
+                      item.subscriberNotificationStatusMessageOnAnnouncementUpdated
+                    }
+                    onResendNotification={handleResendUpdateNotification}
                   />
                 );
               },

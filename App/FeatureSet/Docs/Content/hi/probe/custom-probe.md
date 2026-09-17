@@ -198,7 +198,7 @@ Probe निम्नलिखित environment variables का समर्�
 - `PROBE_DESCRIPTION` - probe के लिए Description
 - `PROBE_MONITORING_WORKERS` - monitoring workers की संख्या (default: 1)
 - `PROBE_MONITOR_FETCH_LIMIT` - एक साथ fetch करने के लिए monitors की संख्या (default: 10)
-- `PROBE_MONITOR_RETRY_LIMIT` - failed monitors के लिए retries की संख्या (default: 3)
+- `PROBE_MONITOR_RETRY_LIMIT` - failed monitor check में पहले attempt के बाद की retries, जब कोई step अपना retry count सेट न करे (default: 3, यानी कुल 4 attempts तक)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - milliseconds में synthetic monitor scripts का Timeout (default: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - milliseconds में custom code monitor scripts का Timeout (default: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - probe द्वारा OneUptime को भेजी जाने वाली प्रत्येक request की deadline (default: 45000)

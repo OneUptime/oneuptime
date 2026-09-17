@@ -151,7 +151,7 @@ const NetworkOverview: FunctionComponent<
           title="Bring your network in"
           description="Add a device by hand, or point a discovery scan at a subnet and import what answers. Your probes ping every device on its schedule, and walk it over SNMP once it has credentials — interfaces, topology, and health come in automatically."
           footer={
-            <div className="flex justify-center gap-3">
+            <div className="flex w-full justify-center gap-3">
               <Button
                 title="Add Device"
                 icon={IconProp.Add}

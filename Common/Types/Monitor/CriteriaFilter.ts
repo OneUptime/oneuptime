@@ -407,6 +407,60 @@ export class CriteriaFilterUtil {
     return true;
   }
 
+  /**
+   * Whether this CheckOn reads a series whose samples are 1 (true) or
+   * 0 (false), such as the online series every probe writes.
+   *
+   * Such a series can only be judged one sample at a time. Its average, sum,
+   * maximum or minimum is a number (0.6, say), and the True / False
+   * comparators never match a number, so EvaluateOverTime turns its samples
+   * and its Treat As Zero substitute into booleans instead.
+   *
+   * Keep this the only list. The dashboard dropdown and the server evaluator
+   * both read it; separate copies drifted before, which left Database Is
+   * Online samples as raw numbers and aggregates on offer for DNS, SNMP and
+   * External Status Page.
+   */
+  public static isBooleanSeries(checkOn: CheckOn | undefined): boolean {
+    return (
+      checkOn === CheckOn.IsOnline ||
+      // No series records this one yet, but it is a true/false value too.
+      checkOn === CheckOn.IsRequestTimeout ||
+      checkOn === CheckOn.DnsIsOnline ||
+      checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.ExternalStatusPageIsOnline ||
+      checkOn === CheckOn.DatabaseIsOnline
+    );
+  }
+
+  /**
+   * The evaluation type a filter is actually judged with.
+   *
+   * This only differs from the saved type on a boolean series that was saved
+   * with Average, Sum, Maximum Value or Minimum Value. The dashboard no
+   * longer offers those there, but older filters, and filters sent through
+   * the API or Terraform, can still carry them. They are judged as All
+   * Values: the stricter of the two choices, so the filter fires only when
+   * the whole window agrees rather than off a single sample.
+   */
+  public static getEffectiveEvaluateOverTimeType(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): EvaluateOverTimeType | undefined {
+    const evaluateOverTimeType: EvaluateOverTimeType | undefined =
+      criteriaFilter?.evaluateOverTimeOptions?.evaluateOverTimeType;
+
+    if (
+      !evaluateOverTimeType ||
+      evaluateOverTimeType === EvaluateOverTimeType.AllValues ||
+      evaluateOverTimeType === EvaluateOverTimeType.AnyValue ||
+      !CriteriaFilterUtil.isBooleanSeries(criteriaFilter?.checkOn)
+    ) {
+      return evaluateOverTimeType;
+    }
+
+    return EvaluateOverTimeType.AllValues;
+  }
+
   public static getEvaluateOverTimeTypeByCriteriaFilter(
     criteriaFilter: CriteriaFilter | undefined,
   ): Array<EvaluateOverTimeType> {
@@ -414,14 +468,7 @@ export class CriteriaFilterUtil {
       return [];
     }
 
-    /*
-     * Boolean series. Averaging or summing an up/down series is meaningless,
-     * so these offer only the two set-shaped choices.
-     */
-    if (
-      criteriaFilter.checkOn === CheckOn.IsOnline ||
-      criteriaFilter.checkOn === CheckOn.DatabaseIsOnline
-    ) {
+    if (CriteriaFilterUtil.isBooleanSeries(criteriaFilter.checkOn)) {
       return [EvaluateOverTimeType.AllValues, EvaluateOverTimeType.AnyValue];
     }
 

@@ -79,7 +79,7 @@ Maximal tid (i millisekunder) att vänta på svar från statussidan. Standard ä
 
 #### Återförsök
 
-Antal gånger att försöka igen om förfrågan misslyckas. Standard är 3 försök.
+Antal gånger förfrågan görs om efter att det första försöket misslyckas; 0 betyder ett enda försök. Standard är 3 återförsök, alltså upp till 4 försök totalt.
 
 ## Övervakningskriterier
 

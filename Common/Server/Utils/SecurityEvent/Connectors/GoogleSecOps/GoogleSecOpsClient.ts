@@ -88,6 +88,17 @@ export interface SearchDetectionsResult {
   truncated: boolean;
 }
 
+/*
+ * One curated rule that produced detections in the counted interval, read
+ * from countAllCuratedRuleSetDetections' curatedRuleCounts[]. ruleId is the
+ * last segment of CuratedRule.name (ur_...), the identifier
+ * legacySearchCuratedDetections takes.
+ */
+export interface CuratedRuleDetectionCount {
+  ruleId: string;
+  count: number;
+}
+
 const CHRONICLE_SCOPE: string =
   "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_LIFETIME_IN_SECONDS: number = 3600;
@@ -135,11 +146,39 @@ const DEFAULT_SEARCH_PAGE_SIZE: number = 1000;
 const MAX_SEARCH_PAGE_SIZE: number = 1000;
 
 /*
- * ruleId is required by legacySearchDetections and legacySearchCuratedDetections;
- * the reference documents the bare wildcard as "retrieves detections for
- * all revisions of all Rules", which is exactly one poll's question.
+ * ruleId is required by legacySearchDetections; its reference documents the
+ * bare wildcard as "retrieves detections for all revisions of all Rules",
+ * which is exactly one poll's question.
+ *
+ * legacySearchCuratedDetections documents no wildcard at all: its ruleId is
+ * "Required. The specific Curated Rule ID to list detections for". Sending
+ * "-" there is not rejected — Google answers HTTP 200 with no detections,
+ * because no curated rule has that id — so every curated detection was
+ * silently never imported. Curated searches therefore always carry a real
+ * ur_... id, found through countAllCuratedRuleSetDetections.
+ * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections
+ * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchCuratedDetections
  */
 const ALL_RULES_WILDCARD: string = "-";
+
+/*
+ * A curated rule id is the last segment of a CuratedRule name (ur_...). The
+ * guard keeps a wildcard, a revision suffix or a path out of the query
+ * string: the curated route has no wildcard, aggregates every revision of
+ * the rule itself, and a separator would reshape the request.
+ */
+const CURATED_RULE_ID_REGEX: RegExp = /^[A-Za-z0-9][A-Za-z0-9_.-]*$/;
+
+/*
+ * Every field a countAllCuratedRuleSetDetections response may carry. A
+ * quiet tenant is a bare `{}`; any other object is not this endpoint's
+ * answer and must not be read as "no curated rule fired".
+ * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances/countAllCuratedRuleSetDetections
+ */
+const RECOGNIZED_CURATED_COUNT_FIELDS: Array<string> = [
+  "curatedRuleSetCounts",
+  "curatedRuleCounts",
+];
 
 /*
  * Every field a legacySearchDetections / legacySearchCuratedDetections
@@ -588,7 +627,8 @@ export default class GoogleSecOpsClient {
    *     [&alertState=ALERTING][&pageToken=...]
    *   → { detections: Collection[], nextPageToken, respTooLargeDetectionsTruncated }
    * The curated variant is legacy:legacySearchCuratedDetections with the
-   * same parameters and `curatedDetections` in place of `detections`.
+   * same parameters, except that ruleId must name ONE curated rule (ur_...),
+   * and `curatedDetections` in place of `detections`.
    * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections
    * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchCuratedDetections
    */
@@ -600,7 +640,14 @@ export default class GoogleSecOpsClient {
     pageSize?: number | undefined;
     pageToken?: string | undefined;
     curated?: boolean | undefined;
+    // Required for a curated search; a rule search reads every rule.
+    ruleId?: string | undefined;
   }): Promise<SearchDetectionsResult> {
+    const ruleId: string = GoogleSecOpsClient.resolveSearchRuleId(
+      data.curated === true,
+      data.ruleId,
+    );
+
     let accessToken: string = await this.getAccessToken();
 
     const pageSize: number = GoogleSecOpsClient.clampSearchPageSize(
@@ -608,7 +655,7 @@ export default class GoogleSecOpsClient {
     );
 
     const params: URLSearchParams = new URLSearchParams({
-      ruleId: ALL_RULES_WILDCARD,
+      ruleId: ruleId,
       startTime: data.startTime.toISOString(),
       endTime: data.endTime.toISOString(),
       listBasis: data.listBasis,
@@ -658,6 +705,65 @@ export default class GoogleSecOpsClient {
   }
 
   /*
+   * Which curated rules produced detections in an interval, so the curated
+   * search can name each one: legacySearchCuratedDetections has no
+   * wildcard. One POST answers for every curated rule set on the instance,
+   * however many rules the tenant has enabled. Same token handling and
+   * one-shot 401 retry as the searches.
+   *
+   * Contract, verified against Google's reference pages:
+   *   POST {base}:countAllCuratedRuleSetDetections
+   *     { interval: { startTime, endTime } }
+   *   → { curatedRuleSetCounts: [{curatedRuleSet, count}],
+   *       curatedRuleCounts: [{curatedRule, precision, count}] }
+   * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances/countAllCuratedRuleSetDetections
+   * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/CuratedRuleCount
+   */
+  public async countCuratedRuleDetections(data: {
+    startTime: Date;
+    endTime: Date;
+  }): Promise<Array<CuratedRuleDetectionCount>> {
+    let accessToken: string = await this.getAccessToken();
+
+    const url: string = `${this.getApiBaseUrl()}:countAllCuratedRuleSetDetections`;
+    const body: string = JSON.stringify({
+      interval: {
+        startTime: data.startTime.toISOString(),
+        endTime: data.endTime.toISOString(),
+      },
+    });
+
+    let response: FetchResponseLike = await this.postJson(
+      url,
+      accessToken,
+      body,
+      "curated rule detection counts",
+    );
+    let responseText: string = await response.text();
+
+    if (response.status === 401) {
+      this.clearCachedAccessToken();
+      accessToken = await this.getAccessToken();
+      response = await this.postJson(
+        url,
+        accessToken,
+        body,
+        "curated rule detection counts",
+      );
+      responseText = await response.text();
+    }
+
+    if (!response.ok) {
+      throw new APIException(
+        `Google SecOps curated rule detection counts failed (HTTP ${response.status}): ${GoogleSecOpsClient.redactErrorBody(responseText)}` +
+          GoogleSecOpsClient.describeHttpFailure(response.status, responseText),
+      );
+    }
+
+    return GoogleSecOpsClient.parseCuratedRuleCountsBody(responseText);
+  }
+
+  /*
    * ---------------------------------------------------------------------
    * Helpers. Everything below is deliberately declared after extractAlerts
    * and searchDetections: SecurityEventsConnectorGuidanceAccuracy reads
@@ -699,6 +805,138 @@ export default class GoogleSecOpsClient {
       },
       stepLabel,
     );
+  }
+
+  private async postJson(
+    url: string,
+    accessToken: string,
+    body: string,
+    stepLabel: string,
+  ): Promise<FetchResponseLike> {
+    return this.fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: body,
+      },
+      stepLabel,
+    );
+  }
+
+  /*
+   * The ruleId a search sends. A rule search reads every rule through the
+   * documented wildcard; a curated search must name one curated rule, and
+   * refusing here is what keeps a wildcard from ever reaching the curated
+   * route again, where Google would answer it with an empty success.
+   */
+  private static resolveSearchRuleId(
+    curated: boolean,
+    ruleId: string | undefined,
+  ): string {
+    if (!curated) {
+      return ruleId || ALL_RULES_WILDCARD;
+    }
+
+    const trimmed: string = (ruleId || "").trim();
+
+    if (!trimmed || !CURATED_RULE_ID_REGEX.test(trimmed)) {
+      throw new BadDataException(
+        "A curated rule detections search needs one curated rule id (ur_...); legacySearchCuratedDetections has no wildcard.",
+      );
+    }
+
+    return trimmed;
+  }
+
+  /*
+   * countAllCuratedRuleSetDetections' body: the curated rules that produced
+   * at least one detection, deduplicated by rule id (a rule can be counted
+   * once per precision) and ordered by id so every poll searches them in
+   * the same order. An unrecognized body throws for the same cursor-safety
+   * reason the other parsers do.
+   */
+  public static parseCuratedRuleCountsBody(
+    bodyText: string,
+  ): Array<CuratedRuleDetectionCount> {
+    const text: string = (bodyText || "").trim();
+
+    if (!text) {
+      throw new APIException(
+        "Google SecOps curated rule detection counts returned an empty body.",
+      );
+    }
+
+    let root: JSONValue;
+
+    try {
+      root = JSON.parse(text) as JSONValue;
+    } catch {
+      throw new APIException(
+        "Google SecOps curated rule detection counts returned a non-JSON body.",
+      );
+    }
+
+    if (!GoogleSecOpsClient.isJsonObject(root)) {
+      throw new APIException(
+        `Google SecOps curated rule detection counts returned an unrecognized response shape: ${GoogleSecOpsClient.redactErrorBody(text)}`,
+      );
+    }
+
+    if (GoogleSecOpsClient.isJsonObject(root["error"])) {
+      throw new APIException(
+        `Google SecOps curated rule detection counts returned an error in the response: ${GoogleSecOpsClient.summarizeErrorObject(root["error"])}`,
+      );
+    }
+
+    const keys: Array<string> = Object.keys(root);
+
+    if (
+      keys.length > 0 &&
+      !keys.some((key: string): boolean => {
+        return RECOGNIZED_CURATED_COUNT_FIELDS.includes(key);
+      })
+    ) {
+      throw new APIException(
+        `Google SecOps curated rule detection counts returned an unrecognized response shape: ${GoogleSecOpsClient.redactErrorBody(text)}`,
+      );
+    }
+
+    const counts: Map<string, number> = new Map<string, number>();
+    const entries: JSONValue | undefined = root["curatedRuleCounts"];
+
+    if (Array.isArray(entries)) {
+      for (const entry of entries as JSONArray) {
+        if (!GoogleSecOpsClient.isJsonObject(entry)) {
+          continue;
+        }
+
+        const name: string =
+          typeof entry["curatedRule"] === "string" ? entry["curatedRule"] : "";
+        const ruleId: string = name.split("/").pop() || "";
+        // int32 in the reference, but tolerate the int64-as-string rendering.
+        const count: number =
+          GoogleSecOpsClient.readNumber(entry["count"]) ?? 0;
+
+        if (!ruleId || !CURATED_RULE_ID_REGEX.test(ruleId) || count <= 0) {
+          continue;
+        }
+
+        counts.set(ruleId, (counts.get(ruleId) || 0) + count);
+      }
+    }
+
+    return Array.from(counts.entries())
+      .sort((a: [string, number], b: [string, number]): number => {
+        return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+      })
+      .map((entry: [string, number]): CuratedRuleDetectionCount => {
+        return { ruleId: entry[0], count: entry[1] };
+      });
   }
 
   private static sleep(delayInMs: number): Promise<void> {
@@ -1472,7 +1710,7 @@ export default class GoogleSecOpsClient {
       const resource: string = String(metadata?.["resource"] || "");
       const permission: string = String(metadata?.["permission"] || "");
 
-      return `The service account lacks ${permission || "the chronicle.legacies read permission for this request"} on ${resource || "the instance"}. Grant roles/chronicle.viewer, which includes legacySearchDetections, legacySearchCuratedDetections and legacyFetchAlertsView (roles/chronicle.admin if Viewer is not enough on this tenant).`;
+      return `The service account lacks ${permission || "the chronicle.legacies read permission for this request"} on ${resource || "the instance"}. Grant roles/chronicle.viewer, which includes legacySearchDetections, legacySearchCuratedDetections, countAllCuratedRuleSetDetections and legacyFetchAlertsView (roles/chronicle.admin if Viewer is not enough on this tenant).`;
     }
 
     if (reason === "SERVICE_DISABLED") {

@@ -526,12 +526,30 @@ describe("Status page invite mints a redeemable, hashed reset token", () => {
     expect(row.password).toBeNull();
   });
 
-  it("still hashes the token for an SSO user, who is never mailed a link", async () => {
+  it("does not mint an unused reset token for an SSO user", async () => {
     const token: string | null = await invite({ isSsoUser: true });
 
     expect(token).toBeNull();
     expect(sendMail).not.toHaveBeenCalled();
-    expect(row.resetPasswordToken).not.toBeNull();
-    expect(row.resetPasswordToken).toHaveLength(64);
+    expect(row.resetPasswordToken).toBeNull();
+    expect(row.resetPasswordExpires).toBeNull();
+    expect(updatedIds).toEqual([]);
+  });
+
+  it("does not mint or mail a password link for a provisioned user when the page requires SSO", async () => {
+    statusPageFindOneById.mockResolvedValue({
+      id: new ObjectID(STATUS_PAGE_ID),
+      _id: STATUS_PAGE_ID,
+      requireSsoForLogin: true,
+      projectId: new ObjectID(PROJECT_ID),
+    });
+
+    const token: string | null = await invite({ isSsoUser: false });
+
+    expect(token).toBeNull();
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(row.resetPasswordToken).toBeNull();
+    expect(row.resetPasswordExpires).toBeNull();
+    expect(updatedIds).toEqual([]);
   });
 });

@@ -62,13 +62,19 @@ export default class OwnedScopePermission {
 
     /*
      * Owned scope only restricts resources that can carry ownership:
-     * operational resources (own *OwnerUser / *OwnerTeam tables) or
+     * operational resources, explicitly registered ownership roots, or
      * nested resources that inherit ownership via @OwnedThrough. For
      * everything else (settings / config tables like IncidentState,
      * Label, Team, etc.) the table-level permission check is the only
      * gate — Owned has no resources to scope to, so it's a no-op.
+     * Registry membership only enables ownership filtering; operational
+     * wildcard grants still require the existing decorator.
      */
-    if (!model.isOperationalResource && !model.ownedThrough) {
+    if (
+      !model.isOperationalResource &&
+      !model.ownedThrough &&
+      !this.getOwnerTableRegistry().has(model.constructor.name)
+    ) {
       return query;
     }
 
@@ -212,6 +218,15 @@ export default class OwnedScopePermission {
     }
   }
 
+  private static getOwnerTableRegistry(): Map<string, OwnerTablePair> {
+    /*
+     * Services in this registry extend DatabaseService, which imports this
+     * permission class. Resolve at request time after both classes exist.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("./OwnerTableRegistry").default;
+  }
+
   /*
    * Computes the set of resource IDs the requesting user can access via
    * ownership: those where they personally sit in *OwnerUser OR where any of
@@ -244,14 +259,8 @@ export default class OwnedScopePermission {
       : // eslint-disable-next-line @typescript-eslint/no-explicit-any
         [(modelType as any).name];
 
-    /*
-     * Lazy require to avoid the circular dep cycle: this file is reachable
-     * from DatabaseService at module-load time, and the registry imports
-     * services that extend DatabaseService.
-     */
     const ownerTableRegistry: Map<string, OwnerTablePair> =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("./OwnerTableRegistry").default;
+      this.getOwnerTableRegistry();
 
     const seen: Set<string> = new Set<string>();
 

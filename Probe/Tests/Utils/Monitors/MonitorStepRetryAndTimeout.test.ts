@@ -149,6 +149,12 @@ interface BranchUnderTest {
   monitorType: MonitorType;
   monitorMock: MonitorMock;
   buildStep: () => MonitorStep;
+  configField:
+    | "snmpMonitor"
+    | "dnsMonitor"
+    | "domainMonitor"
+    | "dnssecMonitor"
+    | "externalStatusPageMonitor";
   configRetries: number;
   configTimeoutInMs: number;
 }
@@ -158,6 +164,7 @@ const BRANCHES: Array<BranchUnderTest> = [
     name: "SNMP / NetworkDevice",
     monitorType: MonitorType.NetworkDevice,
     monitorMock: mockSnmpQuery as unknown as MonitorMock,
+    configField: "snmpMonitor",
     configRetries: 2,
     configTimeoutInMs: 7000,
     buildStep: (): MonitorStep => {
@@ -177,6 +184,7 @@ const BRANCHES: Array<BranchUnderTest> = [
     name: "DNS",
     monitorType: MonitorType.DNS,
     monitorMock: mockDnsQuery as unknown as MonitorMock,
+    configField: "dnsMonitor",
     configRetries: 2,
     configTimeoutInMs: 7000,
     buildStep: (): MonitorStep => {
@@ -194,6 +202,7 @@ const BRANCHES: Array<BranchUnderTest> = [
     name: "Domain",
     monitorType: MonitorType.Domain,
     monitorMock: mockDomainQuery as unknown as MonitorMock,
+    configField: "domainMonitor",
     configRetries: 2,
     configTimeoutInMs: 7000,
     buildStep: (): MonitorStep => {
@@ -209,6 +218,7 @@ const BRANCHES: Array<BranchUnderTest> = [
     name: "DNSSEC",
     monitorType: MonitorType.DNSSEC,
     monitorMock: mockDnssecQuery as unknown as MonitorMock,
+    configField: "dnssecMonitor",
     configRetries: 2,
     configTimeoutInMs: 7000,
     buildStep: (): MonitorStep => {
@@ -226,6 +236,7 @@ const BRANCHES: Array<BranchUnderTest> = [
     name: "External Status Page",
     monitorType: MonitorType.ExternalStatusPage,
     monitorMock: mockExternalStatusPageFetch as unknown as MonitorMock,
+    configField: "externalStatusPageMonitor",
     configRetries: 2,
     configTimeoutInMs: 7000,
     buildStep: (): MonitorStep => {
@@ -331,6 +342,36 @@ describe.each(BRANCHES)(
       expect(options.retry).toBe(branch.configRetries);
       expect(options.retry).not.toBe(PROBE_WIDE_RETRY_DEFAULT);
       expect(options.timeout).toBe(branch.configTimeoutInMs);
+    });
+
+    test("honours zero retries in the type-specific config when the step has no override", async () => {
+      const step: MonitorStep = branch.buildStep();
+      step.data![branch.configField]!.retries = 0;
+
+      await MonitorUtil.probeMonitorStep({
+        monitorStep: step,
+        monitorType: branch.monitorType,
+        monitorId: MONITOR_ID,
+        projectId: PROJECT_ID,
+      });
+
+      expect(optionsOfFirstCall(branch.monitorMock).retry).toBe(0);
+    });
+
+    test("inherits the probe-wide retry count when both overrides are omitted", async () => {
+      const step: MonitorStep = branch.buildStep();
+      delete step.data![branch.configField]!.retries;
+
+      await MonitorUtil.probeMonitorStep({
+        monitorStep: step,
+        monitorType: branch.monitorType,
+        monitorId: MONITOR_ID,
+        projectId: PROJECT_ID,
+      });
+
+      expect(optionsOfFirstCall(branch.monitorMock).retry).toBe(
+        PROBE_WIDE_RETRY_DEFAULT,
+      );
     });
   },
 );

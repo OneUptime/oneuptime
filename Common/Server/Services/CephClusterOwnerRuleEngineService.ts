@@ -248,11 +248,15 @@ class CephClusterOwnerRuleEngineServiceClass
         owner.projectId = cephCluster.projectId;
         owner.userId = new ObjectID(userId);
         owner.isOwnerNotified = !notify;
-        await CephClusterOwnerUserService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: CephClusterOwnerUserService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
 
       for (const teamId of teamIds) {
@@ -261,11 +265,15 @@ class CephClusterOwnerRuleEngineServiceClass
         owner.projectId = cephCluster.projectId;
         owner.teamId = new ObjectID(teamId);
         owner.isOwnerNotified = !notify;
-        await CephClusterOwnerTeamService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: CephClusterOwnerTeamService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
     }
 

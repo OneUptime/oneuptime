@@ -253,11 +253,15 @@ class ProxmoxClusterOwnerRuleEngineServiceClass
         owner.projectId = proxmoxCluster.projectId;
         owner.userId = new ObjectID(userId);
         owner.isOwnerNotified = !notify;
-        await ProxmoxClusterOwnerUserService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: ProxmoxClusterOwnerUserService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
 
       for (const teamId of teamIds) {
@@ -266,11 +270,15 @@ class ProxmoxClusterOwnerRuleEngineServiceClass
         owner.projectId = proxmoxCluster.projectId;
         owner.teamId = new ObjectID(teamId);
         owner.isOwnerNotified = !notify;
-        await ProxmoxClusterOwnerTeamService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: ProxmoxClusterOwnerTeamService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
     }
 

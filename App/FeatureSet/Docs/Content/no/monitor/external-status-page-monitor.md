@@ -79,7 +79,7 @@ Maksimal tid (i millisekunder) det ventes på svar fra statussiden. Standard er 
 
 #### Nye forsøk
 
-Antall ganger forespørselen forsøkes på nytt hvis den mislykkes. Standard er 3 nye forsøk.
+Antall ganger forespørselen forsøkes på nytt etter at det første forsøket mislykkes; 0 betyr ett enkelt forsøk. Standard er 3 nye forsøk, altså opptil 4 forsøk totalt.
 
 ## Overvåkingskriterier
 

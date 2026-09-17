@@ -253,6 +253,12 @@ export interface ReplayScrubberProps {
   keyboardScope?: ReplayKeyboardScope | (() => ReplayKeyboardScope) | undefined;
   isFollowEnabled?: boolean | undefined;
   isMouseTrailEnabled?: boolean | undefined;
+  /*
+   * The timeline's marker lanes and legend. A persisted view preference
+   * the shell owns; passed straight through to the timeline and offered
+   * in the transport's overflow menu. Default true.
+   */
+  showTimelineLanes?: boolean | undefined;
 
   onSeek: (offsetMs: number) => void;
   onPlayPause: () => void;
@@ -271,6 +277,15 @@ export interface ReplayScrubberProps {
   onToggleWide?: (() => void) | undefined;
   onFollowChange?: ((isEnabled: boolean) => void) | undefined;
   onMouseTrailChange?: ((isEnabled: boolean) => void) | undefined;
+  onTimelineLanesChange?: ((isVisible: boolean) => void) | undefined;
+  /*
+   * "r" and "z": the two layout keys. The shell owns both - the rail's
+   * collapsed state and the stage's fit are its persisted preferences -
+   * so they arrive here as bare callbacks like every other shell-level
+   * shortcut, and a missing handler makes the key a no-op.
+   */
+  onToggleRail?: (() => void) | undefined;
+  onCycleFit?: (() => void) | undefined;
   onFocusRailSearch?: (() => void) | undefined;
   onCopyLink?: (() => void) | undefined;
   onToggleDetails?: (() => void) | undefined;
@@ -307,6 +322,8 @@ type ReplayScrubberLatest = Pick<
   | "onToggleTheater"
   | "onToggleWide"
   | "onFollowChange"
+  | "onToggleRail"
+  | "onCycleFit"
   | "onFocusRailSearch"
   | "onCopyLink"
   | "onToggleDetails"
@@ -342,6 +359,15 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
     : snapshot.currentTimeMs;
 
   /*
+   * Undefined is "shown", so a caller that does not persist the
+   * preference still gets the lanes - and the timeline and the overflow
+   * menu's label read the SAME value, which is what stops the menu
+   * offering "Show signal lanes" over a timeline that is already showing
+   * them.
+   */
+  const showTimelineLanes: boolean = props.showTimelineLanes !== false;
+
+  /*
    * The keyboard dispatcher reads props and the snapshot through a ref
    * because the listener behind it is registered once. Each field is
    * copied explicitly rather than storing `props` whole, so the list of
@@ -368,6 +394,8 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
     onToggleTheater: props.onToggleTheater,
     onToggleWide: props.onToggleWide,
     onFollowChange: props.onFollowChange,
+    onToggleRail: props.onToggleRail,
+    onCycleFit: props.onCycleFit,
     onFocusRailSearch: props.onFocusRailSearch,
     onCopyLink: props.onCopyLink,
     onToggleDetails: props.onToggleDetails,
@@ -548,6 +576,12 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
         case "toggle-follow":
           current.onFollowChange?.(!current.isFollowEnabled);
           return;
+        case "toggle-rail":
+          current.onToggleRail?.();
+          return;
+        case "cycle-fit":
+          current.onCycleFit?.();
+          return;
         case "focus-rail-search":
           current.onFocusRailSearch?.();
           return;
@@ -627,7 +661,7 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
      * once it does: no border of its own here, because the shell wraps
      * stage and scrubber in a single card.
      */
-    <div data-testid="replay-scrubber" className="px-3 pb-3 pt-2.5">
+    <div data-testid="replay-scrubber" className="px-3 pb-2 pt-2">
       {props.clock ? (
         <ReplayTimelineClocked
           clock={props.clock}
@@ -640,6 +674,7 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
             ghostMs: props.ghostMs,
             selectedSignalId: props.selectedSignalId,
             startTimeUnixMs: props.startTimeUnixMs,
+            showLanes: showTimelineLanes,
             onSeek: onSeek,
             onSelectSignal: onSelectSignal,
             onHover: props.onHoverTimeline,
@@ -656,13 +691,14 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           ghostMs={props.ghostMs}
           selectedSignalId={props.selectedSignalId}
           startTimeUnixMs={props.startTimeUnixMs}
+          showLanes={showTimelineLanes}
           onSeek={onSeek}
           onSelectSignal={onSelectSignal}
           onHover={props.onHoverTimeline}
         />
       )}
 
-      <div className="mt-3">
+      <div className="mt-2">
         <ReplayControls
           phase={snapshot.phase}
           currentTimeMs={currentTimeMs}
@@ -676,6 +712,7 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           hasNextFrustration={nextFrustration !== null}
           isFollowEnabled={props.isFollowEnabled}
           isMouseTrailEnabled={props.isMouseTrailEnabled}
+          isTimelineLanesVisible={showTimelineLanes}
           onPlayPause={props.onPlayPause}
           onSeekRelative={handleSeekRelative}
           onSpeedChange={props.onSpeedChange}
@@ -687,6 +724,7 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           onRetry={props.onRetry}
           onFollowChange={props.onFollowChange}
           onMouseTrailChange={props.onMouseTrailChange}
+          onTimelineLanesChange={props.onTimelineLanesChange}
         />
       </div>
 

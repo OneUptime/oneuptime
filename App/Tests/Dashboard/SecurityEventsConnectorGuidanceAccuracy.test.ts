@@ -134,13 +134,15 @@ const REJECTION_MENTION_PATTERN: RegExp = /reject/i;
 /* The connector's budgets, as declared. */
 const SEARCH_PAGE_BUDGET_PATTERN: RegExp =
   /GOOGLE_SECOPS_SEARCH_PAGE_BUDGET:\s*number\s*=\s*(\d+);/;
+const CURATED_BUDGET_PATTERN: RegExp =
+  /GOOGLE_SECOPS_CURATED_REQUEST_BUDGET:\s*number\s*=\s*(\d+);/;
 const ALERTS_VIEW_BUDGET_PATTERN: RegExp =
   /GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET:\s*number\s*=\s*(\d+);/;
 const FETCH_DURATION_MINUTES_PATTERN: RegExp =
   /GOOGLE_SECOPS_FETCH_DURATION_MS:\s*number\s*=\s*(\d+)\s*\*\s*60\s*\*\s*1000;/;
-/* The fetchBudget the poller reads: both request budgets and the wall clock. */
+/* The fetchBudget the poller reads: every request budget and the wall clock. */
 const TOTAL_REQUEST_BUDGET_PATTERN: RegExp =
-  /maxRequests:\s*GOOGLE_SECOPS_SEARCH_PAGE_BUDGET\s*\+\s*GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET/;
+  /maxRequests:\s*GOOGLE_SECOPS_SEARCH_PAGE_BUDGET\s*\+\s*GOOGLE_SECOPS_CURATED_REQUEST_BUDGET\s*\+\s*GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET/;
 const FETCH_DURATION_BUDGET_PATTERN: RegExp =
   /maxDurationMs:\s*GOOGLE_SECOPS_FETCH_DURATION_MS/;
 /* The poller's "this failure was a timeout" detector. */
@@ -871,6 +873,25 @@ const MESSAGE_BUCKETS: Array<MessageBucket> = [
     explains: /Chronicle answered .?200/i,
   },
   {
+    /*
+     * The curated pass's count, which names the curated rules to search:
+     * legacySearchCuratedDetections has no wildcard. Reached after the
+     * rule search and before the alerts view.
+     */
+    name: "Chronicle rejecting the curated rule counts",
+    matches: /^Google SecOps curated rule detection counts failed \(HTTP /,
+    side: "google",
+    quoted: "Google SecOps curated rule detection counts failed (HTTP ...)",
+    explains: /Chronicle[^.]*reject/i,
+  },
+  {
+    name: "Chronicle answering the curated rule counts with an unreadable body",
+    matches: /^Google SecOps curated rule detection counts returned /,
+    side: "google",
+    quoted: "Google SecOps curated rule detection counts returned ...",
+    explains: /Chronicle answered .?200/i,
+  },
+  {
     name: "Chronicle rejecting the alerts request",
     matches: /^Google SecOps alerts fetch failed \(HTTP /,
     side: "google",
@@ -1088,15 +1109,16 @@ describe("Every error prefix the guidance names is really produced", () => {
 
     /*
      * The lead's own claim, and the reason the taxonomy can key on the
-     * prefix at all: only three of the client's messages carry a status
-     * (token exchange, detections search, alerts fetch), so "no status" is
+     * prefix at all: only four of the client's messages carry a status
+     * (token exchange, detections search, curated rule counts, alerts
+     * fetch), so "no status" is
      * not a discriminator worth reading anything into.
      */
     test(`${guidance.name} says how many prefixes carry a status, correctly`, () => {
-      expect(clientHttpErrorTemplates.length).toBe(3);
-      expect(new Set(httpErrorPrefixes).size).toBe(3);
+      expect(clientHttpErrorTemplates.length).toBe(4);
+      expect(new Set(httpErrorPrefixes).size).toBe(4);
       expect(guidance.lastError).toMatch(
-        /only three prefixes carry an HTTP status/i,
+        /only four prefixes carry an HTTP status/i,
       );
     });
 
@@ -2044,6 +2066,13 @@ describe("Budget guidance matches what the connector enforces", () => {
       "GOOGLE_SECOPS_SEARCH_PAGE_BUDGET",
     ),
   );
+  const curatedBudget: number = Number(
+    requireGroup(
+      CURATED_BUDGET_PATTERN,
+      connectorSource,
+      "GOOGLE_SECOPS_CURATED_REQUEST_BUDGET",
+    ),
+  );
   const alertsViewBudget: number = Number(
     requireGroup(
       ALERTS_VIEW_BUDGET_PATTERN,
@@ -2061,6 +2090,7 @@ describe("Budget guidance matches what the connector enforces", () => {
 
   test("the connector enforces the budgets it declares, and the poller applies them", () => {
     expect(searchPassBody).toContain("GOOGLE_SECOPS_SEARCH_PAGE_BUDGET");
+    expect(searchPassBody).toContain("GOOGLE_SECOPS_CURATED_REQUEST_BUDGET");
     expect(fetchWindowsBody).toContain(
       "GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET",
     );
@@ -2075,10 +2105,12 @@ describe("Budget guidance matches what the connector enforces", () => {
   test("both texts quote the budget numbers the connector declares", () => {
     expect(docsSource).toContain(`**${searchPageBudget}** search pages`);
     expect(docsSource).toContain(`**${alertsViewBudget}** requests`);
+    expect(docsSource).toContain(`**${curatedBudget}** requests`);
     expect(docsSource).toContain(`**${fetchDurationMinutes} minutes**`);
 
     expect(pageGuidance).toContain(`${searchPageBudget} search pages`);
     expect(pageGuidance).toContain(`${alertsViewBudget} alerts-view requests`);
+    expect(pageGuidance).toContain(`${curatedBudget} curated requests`);
     expect(pageGuidance).toContain(`${fetchDurationMinutes} minutes`);
   });
 

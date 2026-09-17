@@ -1,9 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "Common/UI/Utils/Navigation";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { useLocation } from "react-router-dom";
 import SessionReplayPlayer from "../../../Components/SessionReplay/SessionReplayPlayer";
+import {
+  SessionReplayPlayerRoute,
+  parseSessionReplayPlayerRoute,
+} from "../../../Utils/SessionReplayLayout";
 import {
   ReplayPlayerUrlState,
   parseReplayPlayerUrlState,
@@ -13,13 +17,32 @@ const RumApplicationSessionReplayView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   /*
-   * The route is ":id/session-replay/:subModelId" and the param helpers count
-   * BACKWARDS from the end of the URL. getLastParamAsObjectID(1) would return
-   * the literal string "session-replay" here, not the application id - the
-   * same trap Pages/Host/View/ProcessView.tsx documents.
+   * The router's location, not window.location, and it is what subscribes
+   * this view to navigation.
+   *
+   * Every route element under the application layout is created once, by
+   * the routes component, so React sees the SAME element object when only
+   * a path parameter changes and bails out of re-rendering the subtree.
+   * Reading the ids from window.location was therefore a one-shot read:
+   * opening another session from the header's Older / Newer buttons, the
+   * sessions menu or the ended card's "Next session by this user" changed
+   * the address bar while the mounted player carried on with the session
+   * it was already playing - it kept polling that session's manifest and
+   * never fetched the one the viewer asked for. useLocation subscribes
+   * through context, which reaches a component past a parent's bailout.
    */
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
-  const sessionId: string = Navigation.getLastParamAsString();
+  const location: ReturnType<typeof useLocation> = useLocation();
+
+  /*
+   * The route is ":id/session-replay/:subModelId" and the ids are counted
+   * BACKWARDS from the end of the path - the last-but-one segment is the
+   * literal "session-replay", not the application id, the same trap
+   * Pages/Host/View/ProcessView.tsx documents. parseSessionReplayPlayerRoute
+   * does that counting and refuses anything that is not a player path.
+   */
+  const route: SessionReplayPlayerRoute | null = parseSessionReplayPlayerRoute(
+    location.pathname,
+  );
 
   /*
    * The whole player URL model (?t / ?at / ?tab / ?rail / ?signal / ?q) is
@@ -29,12 +52,14 @@ const RumApplicationSessionReplayView: FunctionComponent<
    * link pointed is the failure mode deep links exist to avoid.
    */
   const initialUrlState: ReplayPlayerUrlState = parseReplayPlayerUrlState(
-    Navigation.getQueryString(),
+    location.search,
   );
 
-  if (!sessionId || sessionId === "session-replay") {
+  if (!route) {
     return <ErrorMessage message="No session was specified." />;
   }
+
+  const modelId: ObjectID = new ObjectID(route.rumApplicationId);
 
   /*
    * Keyed on application + session. The route element is the same React
@@ -46,9 +71,9 @@ const RumApplicationSessionReplayView: FunctionComponent<
   return (
     <Fragment>
       <SessionReplayPlayer
-        key={`${modelId.toString()}:${sessionId}`}
+        key={`${modelId.toString()}:${route.sessionId}`}
         rumApplicationId={modelId}
-        sessionId={sessionId}
+        sessionId={route.sessionId}
         initialUrlState={initialUrlState}
       />
     </Fragment>

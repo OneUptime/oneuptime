@@ -243,11 +243,15 @@ class DashboardOwnerRuleEngineServiceClass
         owner.projectId = dashboard.projectId;
         owner.userId = new ObjectID(userId);
         owner.isOwnerNotified = !notify;
-        await DashboardOwnerUserService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: DashboardOwnerUserService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
 
       for (const teamId of teamIds) {
@@ -256,11 +260,15 @@ class DashboardOwnerRuleEngineServiceClass
         owner.projectId = dashboard.projectId;
         owner.teamId = new ObjectID(teamId);
         owner.isOwnerNotified = !notify;
-        await DashboardOwnerTeamService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: DashboardOwnerTeamService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
     }
 

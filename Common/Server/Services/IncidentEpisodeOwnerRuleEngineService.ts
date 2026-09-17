@@ -316,8 +316,9 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
       owner.projectId = data.projectId;
       owner.userId = new ObjectID(userId);
       owner.isOwnerNotified = true;
-      await IncidentEpisodeOwnerUserService.create({
-        data: owner,
+      await OwnerRuleAssignment.createOwner({
+        ownerService: IncidentEpisodeOwnerUserService,
+        owner: owner,
         props: { isRoot: true },
       });
     }
@@ -328,8 +329,9 @@ class IncidentEpisodeOwnerRuleEngineServiceClass
       owner.projectId = data.projectId;
       owner.teamId = new ObjectID(teamId);
       owner.isOwnerNotified = true;
-      await IncidentEpisodeOwnerTeamService.create({
-        data: owner,
+      await OwnerRuleAssignment.createOwner({
+        ownerService: IncidentEpisodeOwnerTeamService,
+        owner: owner,
         props: { isRoot: true },
       });
     }

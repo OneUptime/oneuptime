@@ -307,6 +307,69 @@ describe("PostgresErrorTranslator", () => {
     });
   });
 
+  describe("createUniqueViolationException (issue #3394)", () => {
+    /*
+     * @UniqueColumnsTogether refuses a duplicate owner row before the insert.
+     * The callers that add owners in bulk must treat that refusal exactly like
+     * the unique index rejecting a racing insert, through one predicate.
+     */
+    it("is a BadDataException carrying the given message", () => {
+      const exception: BadDataException =
+        PostgresErrorTranslator.createUniqueViolationException(
+          "This team is already an owner of this incident.",
+        );
+
+      expect(exception).toBeInstanceOf(BadDataException);
+      expect(exception.message).toBe(
+        "This team is already an owner of this incident.",
+      );
+    });
+
+    it("is recognised by isUniqueViolation", () => {
+      expect(
+        PostgresErrorTranslator.isUniqueViolation(
+          PostgresErrorTranslator.createUniqueViolationException("Duplicate."),
+        ),
+      ).toBe(true);
+    });
+
+    it("is tagged with the unique-violation SQLSTATE, like a translated one", () => {
+      const exception: TranslatedPostgresException =
+        PostgresErrorTranslator.createUniqueViolationException(
+          "Duplicate.",
+        ) as TranslatedPostgresException;
+      const translated: TranslatedPostgresException =
+        PostgresErrorTranslator.translate(
+          twilioAccountSidCollision(),
+        ) as TranslatedPostgresException;
+
+      expect(exception.postgresErrorCode).toBe("23505");
+      expect(exception.postgresErrorCode).toBe(translated.postgresErrorCode);
+    });
+
+    it("keeps the same HTTP-facing code as any other BadDataException", () => {
+      expect(
+        PostgresErrorTranslator.createUniqueViolationException("Duplicate.")
+          .code,
+      ).toBe(new BadDataException("Duplicate.").code);
+    });
+
+    it("passes through translate() unchanged", () => {
+      const exception: BadDataException =
+        PostgresErrorTranslator.createUniqueViolationException("Duplicate.");
+
+      expect(PostgresErrorTranslator.translate(exception)).toBe(exception);
+    });
+
+    it("returns a new exception on every call", () => {
+      expect(
+        PostgresErrorTranslator.createUniqueViolationException("Duplicate."),
+      ).not.toBe(
+        PostgresErrorTranslator.createUniqueViolationException("Duplicate."),
+      );
+    });
+  });
+
   describe("errors it should not touch", () => {
     it("passes through an unrecognised Postgres error unchanged", () => {
       const notNullViolation: FakeQueryFailedError = {

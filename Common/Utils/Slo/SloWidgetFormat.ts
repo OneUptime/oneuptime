@@ -220,21 +220,31 @@ export type GetSloWidgetTitleFunction = (data: {
   widgetTitle?: string | undefined | null;
   sloName?: string | undefined | null;
   sloMetric?: SloWidgetMetric | undefined | null;
+  /*
+   * True for a widget that follows a toolbar variable instead of being
+   * pinned. Its SLO is DATA — it changes with the reader's pick — so the
+   * resolved name leads even an author-set title ("Checkout API · SLI"),
+   * where a pinned widget's own title stands alone.
+   */
+  followsSelection?: boolean | undefined;
 }) => string;
 
 export const getSloWidgetTitle: GetSloWidgetTitleFunction = (data: {
   widgetTitle?: string | undefined | null;
   sloName?: string | undefined | null;
   sloMetric?: SloWidgetMetric | undefined | null;
+  followsSelection?: boolean | undefined;
 }): string => {
   const trimmedTitle: string = (data.widgetTitle || "").trim();
+  const trimmedName: string = (data.sloName || "").trim();
 
   if (trimmedTitle) {
-    return trimmedTitle;
+    return data.followsSelection && trimmedName
+      ? `${trimmedName} · ${trimmedTitle}`
+      : trimmedTitle;
   }
 
   const metricLabel: string = getSloMetricLabel(data.sloMetric);
-  const trimmedName: string = (data.sloName || "").trim();
 
   if (!trimmedName) {
     return metricLabel;

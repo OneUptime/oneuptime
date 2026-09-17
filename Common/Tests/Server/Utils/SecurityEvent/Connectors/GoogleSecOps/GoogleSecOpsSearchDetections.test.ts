@@ -28,7 +28,9 @@ import {
  *   GET {base}/legacy:legacySearchDetections
  *     ?ruleId=-&startTime&endTime&listBasis&pageSize[&alertState][&pageToken]
  *   → { detections: Collection[], nextPageToken, respTooLargeDetectionsTruncated }
- * and legacy:legacySearchCuratedDetections with `curatedDetections`.
+ * and legacy:legacySearchCuratedDetections with `curatedDetections`, whose
+ * ruleId names ONE curated rule (ur_...): that route documents no wildcard,
+ * and answers a "-" with an empty 200 rather than with every curated rule.
  * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections
  * https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchCuratedDetections
  */
@@ -50,6 +52,8 @@ const SERVICE_ACCOUNT_JSON: string = JSON.stringify({
 const INSTANCE: string =
   "projects/my-project/locations/us/instances/3f0a-instance";
 const ACCESS_TOKEN: string = "ya29.test-access-token";
+// The only kind of ruleId legacySearchCuratedDetections accepts.
+const CURATED_RULE_ID: string = "ur_ttp_search_detections_rule";
 const START: Date = new Date("2026-09-13T12:00:00.000Z");
 const END: Date = new Date("2026-09-14T12:00:00.000Z");
 
@@ -221,7 +225,7 @@ describe("GoogleSecOpsClient.searchDetections request contract", () => {
     expect(url!.searchParams.get("listBasis")).toBe("DETECTION_TIME");
   });
 
-  test("the curated variant uses its own route and the same parameters", async () => {
+  test("the curated variant uses its own route and the same parameters, with one curated rule id in ruleId", async () => {
     const { client, requests } = makeClient({
       chronicle: [{ status: 200, body: "{}" }],
     });
@@ -232,6 +236,7 @@ describe("GoogleSecOpsClient.searchDetections request contract", () => {
       listBasis: "CREATED_TIME",
       alertingOnly: true,
       curated: true,
+      ruleId: CURATED_RULE_ID,
     });
 
     const [url] = chronicleRequests(requests);
@@ -246,6 +251,33 @@ describe("GoogleSecOpsClient.searchDetections request contract", () => {
       "ruleId",
       "startTime",
     ]);
+    /*
+     * The wildcard the rule route uses is not a curated rule id. Google
+     * answers "-" here with an empty 200, so sending it imported no curated
+     * detection at all until the caller started naming the rule.
+     */
+    expect(url!.searchParams.get("ruleId")).toBe(CURATED_RULE_ID);
+  });
+
+  test("a curated search with no curated rule id is refused before anything is sent", async () => {
+    const { client, requests } = makeClient({
+      chronicle: [{ status: 200, body: "{}" }],
+    });
+
+    await expect(
+      client.searchDetections({
+        startTime: START,
+        endTime: END,
+        listBasis: "CREATED_TIME",
+        alertingOnly: true,
+        curated: true,
+      }),
+    ).rejects.toThrow(
+      "A curated rule detections search needs one curated rule id (ur_...); legacySearchCuratedDetections has no wildcard.",
+    );
+
+    // Not even the token exchange: nothing was contacted.
+    expect(requests).toEqual([]);
   });
 
   test("a page token is forwarded verbatim and pageSize is clamped to 1000", async () => {
@@ -397,6 +429,7 @@ describe("GoogleSecOpsClient.searchDetections response parsing", () => {
       listBasis: "CREATED_TIME",
       alertingOnly: true,
       curated: true,
+      ruleId: CURATED_RULE_ID,
     });
 
     expect(result.detections).toHaveLength(1);

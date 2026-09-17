@@ -773,9 +773,15 @@ describe("BaseAPI", () => {
         baseApiInstance.service,
         "updateOneById",
       );
+      /*
+       * A body without miscDataProps still hands the service an empty
+       * object, the way createItem always has (BaseAPIUpdateMiscDataProps
+       * covers the non-empty cases).
+       */
       expect(updateOneBySpy).toHaveBeenCalledWith({
         id: new ObjectID(TEST_UPDATE_ID),
         data: { name: "updatedName" },
+        miscDataProps: {},
         props: emptyProps,
       });
     });

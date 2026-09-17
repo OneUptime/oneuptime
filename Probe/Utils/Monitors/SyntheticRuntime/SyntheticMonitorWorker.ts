@@ -1,13 +1,8 @@
+import os from "os";
 import path from "path";
-import {
-  BrowserContext,
-  BrowserType as PlaywrightBrowserType,
-  Page,
-  chromium,
-  firefox,
-} from "playwright";
-import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
+import { Browser } from "playwright";
 import WorkerController from "./WorkerController";
+import SyntheticBrowser, { SyntheticBrowserSession } from "./SyntheticBrowser";
 import {
   SyntheticMonitorWorkerConfig,
   SyntheticMonitorWorkerResult,
@@ -22,7 +17,7 @@ import {
 import { SandboxExecutionResult } from "./RpcProtocol";
 
 let hasHandledMessage: boolean = false;
-let activeBrowserContext: BrowserContext | null = null;
+let activeBrowser: Browser | null = null;
 let isShuttingDown: boolean = false;
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
@@ -75,6 +70,18 @@ async function runAndReply(
       }),
     );
   } finally {
+    /*
+     * Reply first, close second. The result is complete before the browser
+     * closes, and closing used to come first: on storage that is slow to
+     * acknowledge writes, a finished check then spent its last half-minute
+     * waiting for the browser to flush, and could run out its deadline with
+     * the answer already in hand.
+     */
+    const browser: Browser | null = activeBrowser;
+    activeBrowser = null;
+    if (browser) {
+      await SyntheticBrowser.close({ browser });
+    }
     process.disconnect?.();
   }
 }
@@ -82,94 +89,52 @@ async function runAndReply(
 async function executeMonitor(
   config: SyntheticMonitorWorkerConfig,
 ): Promise<SyntheticMonitorWorkerResult> {
-  let browserContext: BrowserContext | null = null;
-  let page: Page | null = null;
-
-  try {
-    const browserLauncher: PlaywrightBrowserType =
-      config.browserType === BrowserType.Chromium ? chromium : firefox;
-    const proxyOptions: {
-      proxy?: {
-        server: string;
-        username?: string;
-        password?: string;
-        bypass?: string;
-      };
-    } = config.proxy
-      ? {
-          proxy: {
-            server: config.proxy.server,
-            ...(config.proxy.username !== undefined
-              ? { username: config.proxy.username }
-              : {}),
-            ...(config.proxy.password !== undefined
-              ? { password: config.proxy.password }
-              : {}),
-            ...(config.proxy.bypass !== undefined
-              ? { bypass: config.proxy.bypass }
-              : {}),
-          },
-        }
-      : {};
-    const runDirectory: string | undefined = process.env["HOME"];
-    if (!runDirectory || !path.isAbsolute(runDirectory)) {
-      throw new Error("Synthetic worker run directory is unavailable.");
-    }
-
-    browserContext = await browserLauncher.launchPersistentContext(
-      path.join(runDirectory, "browser-profile"),
-      {
-        executablePath: config.executablePath,
-        acceptDownloads: false,
-        viewport: config.viewport,
-        ...proxyOptions,
-        ...(config.browserType === BrowserType.Chromium
-          ? { chromiumSandbox: config.chromiumSandboxEnabled }
-          : {}),
-      },
-    );
-    activeBrowserContext = browserContext;
-    page = browserContext.pages()[0] || (await browserContext.newPage());
-
-    const execution: SandboxExecutionResult = await WorkerController.execute({
-      browserContext,
-      page,
-      code: config.code,
-      browserType: config.browserType,
-      screenSizeType: config.screenSizeType,
-      args: config.args,
-      timeoutInMs: config.timeoutInMs,
-    });
-
-    const screenshots: Record<string, string> = {};
-    for (const [name, screenshot] of Object.entries(execution.screenshots)) {
-      screenshots[name] = screenshot.toString("base64");
-    }
-
-    return {
-      returnValue: execution.returnValue,
-      logMessages: execution.logMessages,
-      capturedMetrics: execution.capturedMetrics,
-      screenshots,
-      scriptError: execution.scriptError,
-    };
-  } finally {
-    if (page && !page.isClosed()) {
-      try {
-        await page.close();
-      } catch {
-        // Closing the browser below is the final in-process cleanup step.
-      }
-    }
-    if (browserContext) {
-      try {
-        await browserContext.close();
-      } catch {
-        // The parent process supervisor kills the full process group.
-      }
-    }
-    activeBrowserContext = null;
+  const runDirectory: string | undefined = process.env["HOME"];
+  if (!runDirectory || !path.isAbsolute(runDirectory)) {
+    throw new Error("Synthetic worker run directory is unavailable.");
   }
+  /*
+   * Playwright creates the browser's temporary profile and artifacts under
+   * os.tmpdir(). The disk watchdog and the cleanup only see the run
+   * directory, so everything the browser writes is accounted for only while
+   * the two are the same directory -- which ProcessRunner arranges, and which
+   * is checked here rather than assumed.
+   */
+  if (path.resolve(os.tmpdir()) !== path.resolve(runDirectory)) {
+    throw new Error(
+      "Synthetic worker temporary directory is not its run directory.",
+    );
+  }
+
+  const session: SyntheticBrowserSession = await SyntheticBrowser.start({
+    config,
+    onLaunched: (browser: Browser): void => {
+      activeBrowser = browser;
+    },
+  });
+
+  const execution: SandboxExecutionResult = await WorkerController.execute({
+    browserContext: session.browserContext,
+    page: session.page,
+    code: config.code,
+    browserType: config.browserType,
+    screenSizeType: config.screenSizeType,
+    args: config.args,
+    timeoutInMs: config.timeoutInMs,
+  });
+
+  const screenshots: Record<string, string> = {};
+  for (const [name, screenshot] of Object.entries(execution.screenshots)) {
+    screenshots[name] = screenshot.toString("base64");
+  }
+
+  return {
+    returnValue: execution.returnValue,
+    logMessages: execution.logMessages,
+    capturedMetrics: execution.capturedMetrics,
+    screenshots,
+    scriptError: execution.scriptError,
+  };
 }
 
 async function closeForSignal(signal: "SIGTERM" | "SIGINT"): Promise<void> {
@@ -179,7 +144,7 @@ async function closeForSignal(signal: "SIGTERM" | "SIGINT"): Promise<void> {
   isShuttingDown = true;
 
   try {
-    await activeBrowserContext?.close();
+    await activeBrowser?.close();
   } catch {
     // The parent follows with SIGKILL if graceful browser cleanup stalls.
   } finally {

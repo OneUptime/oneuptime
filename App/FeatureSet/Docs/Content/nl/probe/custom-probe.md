@@ -205,7 +205,7 @@ De probe ondersteunt de volgende omgevingsvariabelen:
 - `PROBE_DESCRIPTION` - Beschrijving voor de probe
 - `PROBE_MONITORING_WORKERS` - Aantal monitoringwerkers (standaard: 1)
 - `PROBE_MONITOR_FETCH_LIMIT` - Aantal monitors om tegelijk op te halen (standaard: 10)
-- `PROBE_MONITOR_RETRY_LIMIT` - Aantal nieuwe pogingen voor mislukte monitors (standaard: 3)
+- `PROBE_MONITOR_RETRY_LIMIT` - Nieuwe pogingen na de eerste poging van een mislukte monitorcontrole, gebruikt wanneer een stap zelf geen aantal instelt (standaard: 3, dus maximaal 4 pogingen)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Time-out voor synthetische monitorscripts in milliseconden (standaard: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Time-out voor aangepaste code-monitorscripts in milliseconden (standaard: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Deadline voor elk verzoek dat de probe naar OneUptime stuurt (standaard: 45000)

@@ -242,6 +242,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
     useEventTimeReferenceLines({
       enabled: true,
       window: pinnedWindow,
+      queryConfigs: pinnedViewData.queryConfigs,
     });
 
   const markers: Array<InvestigationMarker> = useMemo(() => {

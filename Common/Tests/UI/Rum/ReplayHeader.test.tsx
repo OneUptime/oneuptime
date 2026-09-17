@@ -33,12 +33,21 @@ import {
 /*
  * The player's header. Pinned: identity copy that never claims "anonymous"
  * when the viewer merely may not know (player-shell-5, correlation-9),
- * the wall clock next to the offset (REPLAY -> OUT 7), tab pills with real
- * labels and tab semantics (player-shell-8, -19), the Live pill, the
+ * the wall clock next to the offset (REPLAY -> OUT 7), the Live pill, the
  * "Continue in Tab 2" chip, copy-link that is announced instead of
  * relabelled and shows the URL when the clipboard is unavailable
  * (player-shell-12), and the back link that keeps the browser's own
  * behaviour for modified clicks.
+ *
+ * Since the redesign the header is a compact bar rather than the shared
+ * detail Card: ~40px of two text rows instead of ~240px of definition
+ * lists, so the recording gets the space. Every label the card printed is
+ * still in the DOM - "Session recording", "User and device", "Playback
+ * position" - as `sr-only` text, because a value with no name is a string
+ * of unknown kind to anyone who cannot see the layout. The browser tabs
+ * moved into ReplayTabSwitcher (ReplayTabSwitcher.test.tsx covers the
+ * pills, the picker and their keyboard); what is pinned here is that the
+ * header hands it the right props and gives it a row when it earns one.
  */
 
 const SESSION_ID: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
@@ -144,27 +153,75 @@ describe("ReplayHeader", () => {
     jest.useRealTimers();
   });
 
-  it("uses the shared detail card with labeled recording context and explicit actions", () => {
+  it("keeps every labeled part of the old card, in one compact bar", () => {
     render(<ReplayHeader {...makeProps()} />);
 
-    const card: HTMLElement = screen.getByTestId("card");
+    const header: HTMLElement = screen.getByTestId("replay-header");
+
+    /* The Card is gone; the header is the surface now. */
+    expect(screen.queryByTestId("card")).not.toBeInTheDocument();
     expect(
-      within(card).getByRole("heading", { name: "Session recording" }),
+      within(header).getByRole("heading", { name: "Session recording" }),
     ).toBeInTheDocument();
-    expect(within(card).getByText("User and device")).toBeInTheDocument();
-    expect(within(card).getByText("Recorded")).toBeInTheDocument();
-    expect(within(card).getByText("Playback position")).toBeInTheDocument();
+    expect(within(header).getByText("User and device")).toBeInTheDocument();
+    expect(within(header).getByText("Recorded")).toBeInTheDocument();
+    expect(within(header).getByText("Playback position")).toBeInTheDocument();
     expect(
-      within(card).getByRole("button", { name: "Copy link" }),
+      within(header).getByRole("button", { name: "Copy link" }),
     ).toBeInTheDocument();
     expect(
-      within(card).getByRole("button", { name: "Session details" }),
+      within(header).getByRole("button", { name: "Session details" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "All recordings" }),
     ).toHaveAttribute(
       "href",
       "/dashboard/p/rum/a/session-replay?signal=errors",
+    );
+  });
+
+  /*
+   * The whole point of the redesign: the card's 24px of vertical padding,
+   * its text-lg title and its three-column definition list were ~240px
+   * above the picture on a page whose job is to show the picture.
+   */
+  it("draws its own compact surface and keeps the labels for screen readers only", () => {
+    render(<ReplayHeader {...makeProps()} />);
+
+    const header: HTMLElement = screen.getByTestId("replay-header");
+
+    expect(header.className).toContain("rounded-xl");
+    expect(header.className).toContain("border");
+    expect(header.className).toContain("py-2");
+    expect(header.className).not.toContain("py-6");
+    expect(header.className).toContain("mb-3");
+    expect(header.querySelector("dl")).toBeNull();
+    expect(header.querySelector("dt")).toBeNull();
+
+    expect(
+      screen.getByRole("heading", { name: "Session recording" }).className,
+    ).toContain("sr-only");
+    expect(screen.getByText("User and device").className).toContain("sr-only");
+    expect(screen.getByText("Playback position").className).toContain(
+      "sr-only",
+    );
+    /* "Recorded" stays visible: a date with no label is not a date. */
+    expect(screen.getByText("Recorded").className).not.toContain("sr-only");
+  });
+
+  it("sets the context row at the smallest type in the player", () => {
+    render(<ReplayHeader {...makeProps()} />);
+
+    const startedAt: HTMLElement = screen.getByTestId(
+      "replay-header-started-at",
+    );
+    const row: HTMLElement = startedAt.parentElement
+      ?.parentElement as HTMLElement;
+
+    expect(row.className).toContain("text-xs");
+    expect(row.className).toContain("flex-wrap");
+    expect(screen.getByTestId("replay-header-clock").className).toContain(
+      "md:ml-auto",
     );
   });
 
@@ -637,132 +694,167 @@ describe("ReplayHeader", () => {
       }),
     ];
 
-    it("labels tabs with ordinal, duration and when they opened, with tab semantics", () => {
+    /*
+     * The pills, their copy, their keyboard and the picker are
+     * ReplayTabSwitcher's, and ReplayTabSwitcher.test.tsx covers them in
+     * depth. What the header owns is the row: whether it exists, what it
+     * is separated from, and that the switcher is handed the tabs, the
+     * switch callback and the session length its span bars need.
+     */
+    it("gives the tabs their own row, separated from the context line", () => {
       render(<ReplayHeader {...makeProps({ tabs: tabs })} />);
 
-      const tablist: HTMLElement = screen.getByRole("tablist");
-      const pills: Array<HTMLElement> =
-        within(tablist).getAllByTestId("replay-tab-pill");
+      const switcher: HTMLElement = screen.getByTestId("replay-tab-switcher");
+      const row: HTMLElement = switcher.parentElement as HTMLElement;
 
-      expect(pills).toHaveLength(3);
-      expect(pills[0]).toHaveTextContent("Tab 1 · 4m 12s");
+      expect(row.className).toContain("border-t");
+      expect(row.className).toContain("mt-2");
+
+      const pills: Array<HTMLElement> = within(
+        screen.getByRole("tablist"),
+      ).getAllByTestId("replay-tab-pill");
+
+      expect(
+        pills.map((pill: HTMLElement): string | null => {
+          return pill.getAttribute("data-tab-id");
+        }),
+      ).toEqual(["tab-1", "tab-2", "tab-3"]);
       expect(pills[0]).toHaveAttribute("aria-selected", "true");
-      expect(pills[1]).toHaveTextContent("Tab 2 · 30s · (opened 2:14)");
-      expect(pills[1]).toHaveAttribute("aria-selected", "false");
-      expect(pills[2]).toHaveTextContent("Tab 3 · no footage");
       expect(pills[2]).toBeDisabled();
-      expect(pills[2]).toHaveAttribute(
-        "title",
-        "No footage stored for this tab",
-      );
     });
 
-    it("switches only to another tab that has footage", () => {
+    it("hands a chosen tab straight to the shell", () => {
       const props: ReplayHeaderProps = makeProps({ tabs: tabs });
 
       render(<ReplayHeader {...props} />);
 
-      const pills: Array<HTMLElement> =
-        screen.getAllByTestId("replay-tab-pill");
+      fireEvent.click(
+        screen.getAllByTestId("replay-tab-pill")[1] as HTMLElement,
+      );
 
-      fireEvent.click(pills[0] as HTMLElement);
-      expect(props.onSwitchTab).not.toHaveBeenCalled();
-
-      fireEvent.click(pills[2] as HTMLElement);
-      expect(props.onSwitchTab).not.toHaveBeenCalled();
-
-      fireEvent.click(pills[1] as HTMLElement);
       expect(props.onSwitchTab).toHaveBeenCalledWith("tab-2");
     });
 
-    it("gives only the active playable tab a place in the Tab sequence", () => {
-      render(<ReplayHeader {...makeProps({ tabs: tabs })} />);
+    /*
+     * Eight tabs of a 4:12 recording, each a tenth of it, opened one after
+     * another. Only the first eight tenths are covered, so the tabs alone
+     * cannot tell how long the session was: the header's figure is what
+     * decides the scale.
+     */
+    function makeSpanTabs(): Array<ReplayHeaderTab> {
+      return Array.from(
+        { length: 8 },
+        (_unused: unknown, index: number): ReplayHeaderTab => {
+          return {
+            tabId: `tab-${index + 1}`,
+            label: `Tab ${index + 1}`,
+            durationMs: 25200,
+            openedAtMs: index * 25200,
+            closedAtMs: index * 25200 + 25200,
+            hasFootage: true,
+            isActive: index === 0,
+            status: "closed",
+            firstUrl: `https://app.acme.com/page-${index + 1}`,
+            lastUrl: `https://app.acme.com/page-${index + 1}`,
+          };
+        },
+      );
+    }
 
-      const buttons: Array<HTMLElement> =
-        screen.getAllByTestId("replay-tab-pill");
-      expect(buttons[0]).toHaveAttribute("tabindex", "0");
-      expect(buttons[1]).toHaveAttribute("tabindex", "-1");
-      expect(buttons[2]).toHaveAttribute("tabindex", "-1");
+    /*
+     * The span bars in the picker are drawn against the session clock, so
+     * the header has to pass a session length down; a switcher given
+     * nothing would fall back to how far its own tabs happen to reach.
+     */
+    it("gives the picker the session length its span bars are drawn against", () => {
+      render(
+        <ReplayHeader
+          {...makeProps({ tabs: makeSpanTabs(), sessionDurationMs: 252000 })}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId("replay-tab-picker-button"));
+
+      const spans: Array<HTMLElement> = screen.getAllByTestId(
+        "replay-tab-option-span",
+      );
+
+      expect(spans[0]?.style.left).toBe("0%");
+      expect(spans[0]?.style.width).toBe("10%");
+      expect(spans[1]?.style.left).toBe("10%");
+      expect(spans[7]?.style.left).toBe("70%");
     });
 
-    it("switches tabs with arrow keys, skips unavailable footage, and wraps", () => {
-      const props: ReplayHeaderProps = makeProps({ tabs: tabs });
-      render(<ReplayHeader {...props} />);
-
-      const buttons: Array<HTMLElement> =
-        screen.getAllByTestId("replay-tab-pill");
-      fireEvent.keyDown(buttons[0] as HTMLElement, { key: "ArrowLeft" });
-
-      expect(buttons[1]).toHaveFocus();
-      expect(props.onSwitchTab).toHaveBeenLastCalledWith("tab-2");
-      fireEvent.keyDown(buttons[0] as HTMLElement, { key: "ArrowRight" });
-      expect(buttons[1]).toHaveFocus();
-      expect(props.onSwitchTab).toHaveBeenCalledTimes(2);
-      fireEvent.keyDown(buttons[1] as HTMLElement, { key: "ArrowRight" });
-      expect(buttons[0]).toHaveFocus();
-      // The first tab is still the controlled active tab, so it needs no reload.
-      expect(props.onSwitchTab).toHaveBeenCalledTimes(2);
-    });
-
-    it("supports Home and End without sending tab navigation to the playback shortcuts", () => {
-      const props: ReplayHeaderProps = makeProps({ tabs: tabs });
-      const onWindowKey: MockFunction = getJestMockFunction();
-      render(<ReplayHeader {...props} />);
-      window.addEventListener("keydown", onWindowKey);
-
-      try {
-        const buttons: Array<HTMLElement> =
-          screen.getAllByTestId("replay-tab-pill");
-        fireEvent.keyDown(buttons[0] as HTMLElement, { key: "End" });
-        expect(buttons[1]).toHaveFocus();
-        expect(props.onSwitchTab).toHaveBeenCalledWith("tab-2");
-        fireEvent.keyDown(buttons[1] as HTMLElement, { key: "Home" });
-        expect(buttons[0]).toHaveFocus();
-        expect(onWindowKey).not.toHaveBeenCalled();
-      } finally {
-        window.removeEventListener("keydown", onWindowKey);
-      }
-    });
-
-    it("preserves browser shortcuts and does not consume unrelated keys", () => {
-      const props: ReplayHeaderProps = makeProps({ tabs: tabs });
-      render(<ReplayHeader {...props} />);
-      const first: HTMLElement = screen.getAllByTestId(
-        "replay-tab-pill",
-      )[0] as HTMLElement;
-
-      fireEvent.keyDown(first, { key: "ArrowLeft", altKey: true });
-      fireEvent.keyDown(first, { key: "ArrowRight", ctrlKey: true });
-      fireEvent.keyDown(first, { key: "ArrowRight", metaKey: true });
-      fireEvent.keyDown(first, { key: "a" });
-      expect(props.onSwitchTab).not.toHaveBeenCalled();
-    });
-
-    it("keeps a playable tab keyboard reachable when the active tab has no footage", () => {
+    /*
+     * And it is the SESSION's length, not the clock's. `durationMs` follows
+     * the engine, so while Tab 1 is on screen it is Tab 1's footage - the
+     * header prints "0:12 / 0:25" from it. Handing THAT to the switcher
+     * scaled every tab by one tab's length, which is how an eight-tab
+     * recording came out as three full-width bars followed by five slivers
+     * jammed against the right edge.
+     */
+    it("hands the switcher the whole session, not the playhead's duration", () => {
       render(
         <ReplayHeader
           {...makeProps({
-            tabs: tabs.map((tab: ReplayHeaderTab): ReplayHeaderTab => {
-              return { ...tab, isActive: tab.tabId === "tab-3" };
-            }),
+            tabs: makeSpanTabs(),
+            currentTimeMs: 12000,
+            /* What the engine reports while the first tab is being watched. */
+            durationMs: 25200,
+            sessionDurationMs: 252000,
           })}
         />,
       );
 
-      expect(screen.getAllByTestId("replay-tab-pill")[0]).toHaveAttribute(
-        "tabindex",
-        "0",
+      /* The clock still reads the watched tab, which is the whole point. */
+      expect(screen.getByTestId("replay-header-clock")).toHaveTextContent(
+        "0:12 / 0:25",
       );
-      expect(screen.getAllByTestId("replay-tab-pill")[2]).toHaveAttribute(
-        "tabindex",
-        "-1",
+
+      fireEvent.click(screen.getByTestId("replay-tab-picker-button"));
+
+      const spans: Array<HTMLElement> = screen.getAllByTestId(
+        "replay-tab-option-span",
       );
+
+      expect(spans[0]?.style.width).toBe("10%");
+      expect(spans[7]?.style.left).toBe("70%");
+      /* The broken layout, named so a regression says what it is. */
+      expect(spans[0]?.style.width).not.toBe("100%");
+      expect(spans[7]?.style.left).not.toBe("98%");
     });
 
-    it("renders no tablist for a single-tab recording", () => {
+    /*
+     * An older caller that passes no session length at all still gets a
+     * usable picker: the switcher falls back to the furthest offset its own
+     * tabs report, which is never shorter than one tab.
+     */
+    it("leaves the switcher to fall back on its tabs when no session length is given", () => {
+      render(<ReplayHeader {...makeProps({ tabs: makeSpanTabs() })} />);
+
+      fireEvent.click(screen.getByTestId("replay-tab-picker-button"));
+
+      const spans: Array<HTMLElement> = screen.getAllByTestId(
+        "replay-tab-option-span",
+      );
+
+      /* Eight tabs covering 201.6s of clock: each is an eighth of it. */
+      expect(spans[0]?.style.left).toBe("0%");
+      expect(spans[0]?.style.width).toBe("12.5%");
+      expect(spans[7]?.style.left).toBe("87.5%");
+      expect(spans[7]?.style.width).toBe("12.5%");
+    });
+
+    it("renders no tab row at all for a single-tab recording", () => {
       render(<ReplayHeader {...makeProps()} />);
 
       expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-tab-switcher"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-tab-summary"),
+      ).not.toBeInTheDocument();
     });
 
     it("offers 'Continue in Tab 2' when the shell says the session goes on elsewhere", () => {
@@ -778,6 +870,26 @@ describe("ReplayHeader", () => {
       expect(chip).toHaveTextContent("Continue in Tab 2");
       fireEvent.click(chip);
       expect(props.onSwitchTab).toHaveBeenCalledWith("tab-2");
+    });
+
+    /*
+     * One tab and a continuation is a real state (the tab played out and
+     * the session goes on in a tab the strip would not draw): the row
+     * exists for the chip alone, with no tablist in it.
+     */
+    it("keeps the row for a continuation even with a single tab", () => {
+      render(
+        <ReplayHeader
+          {...makeProps({
+            tabs: [tabs[0] as ReplayHeaderTab],
+            continueInTab: tabs[1] as ReplayHeaderTab,
+          })}
+        />,
+      );
+
+      expect(screen.getByTestId("replay-tab-switcher")).toBeInTheDocument();
+      expect(screen.getByTestId("replay-continue-in-tab")).toBeInTheDocument();
+      expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     });
 
     it("formatReplayTabLabel covers the three shapes", () => {
@@ -847,7 +959,14 @@ describe("ReplayHeader", () => {
       expect(tablist.className).not.toContain("overflow-x-auto");
     });
 
-    it("keeps the full label up to six tabs and goes compact above that", () => {
+    /*
+     * A customer's screenshot: eleven tabs overflowing the card sideways.
+     * The strip stops growing at six now - it keeps the tabs that are
+     * still recording plus the one being watched - and the rest are one
+     * press away in the picker, so the header cannot grow a third and
+     * fourth row of pills however many pages the session visited.
+     */
+    it("stops listing every tab past six and offers the picker instead", () => {
       const makeStrip: (count: number) => Array<ReplayHeaderTab> = (
         count: number,
       ): Array<ReplayHeaderTab> => {
@@ -860,6 +979,7 @@ describe("ReplayHeader", () => {
               durationMs: 30000,
               openedAtMs: index === 0 ? 0 : 60000 * index,
               isActive: index === 0,
+              status: index === 0 ? "open" : "closed",
             });
           },
         );
@@ -871,31 +991,22 @@ describe("ReplayHeader", () => {
         <ReplayHeader {...makeProps({ tabs: makeStrip(6) })} />,
       );
 
-      let pills: Array<HTMLElement> = screen.getAllByTestId("replay-tab-pill");
-
-      expect(pills).toHaveLength(6);
-      expect(pills[1]).toHaveTextContent("Tab 2 · 30s · (opened 1:00)");
-      expect(pills[1]).toHaveAttribute(
-        "title",
-        "Switch to Tab 2; the playhead stays where it is",
-      );
+      expect(screen.getAllByTestId("replay-tab-pill")).toHaveLength(6);
+      expect(
+        screen.queryByTestId("replay-tab-picker-button"),
+      ).not.toBeInTheDocument();
 
       rerender(<ReplayHeader {...makeProps({ tabs: makeStrip(11) })} />);
 
-      pills = screen.getAllByTestId("replay-tab-pill");
+      /* The one open tab, which is also the one being watched. */
+      expect(screen.getAllByTestId("replay-tab-pill")).toHaveLength(1);
+      expect(screen.getByTestId("replay-tab-picker-button")).toHaveTextContent(
+        "All 11 tabs",
+      );
 
-      expect(pills).toHaveLength(11);
-      expect(pills[1]).toHaveTextContent("Tab 2 · 30s");
-      expect(pills[1]).not.toHaveTextContent("opened");
-      expect(pills[1]).toHaveAttribute(
-        "title",
-        "Switch to Tab 2 (opened 1:00); the playhead stays where it is",
-      );
-      /* The first tab has no offset to move, so its tooltip is unchanged. */
-      expect(pills[0]).toHaveAttribute(
-        "title",
-        "Switch to Tab 1; the playhead stays where it is",
-      );
+      fireEvent.click(screen.getByTestId("replay-tab-picker-button"));
+
+      expect(screen.getAllByTestId("replay-tab-option")).toHaveLength(11);
     });
   });
 

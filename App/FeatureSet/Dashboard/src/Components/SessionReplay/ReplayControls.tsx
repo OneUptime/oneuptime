@@ -45,8 +45,8 @@ import {
  * LAYOUT. Ten controls of equal visual weight in one `flex-wrap` line is
  * what a transport row must not be: nothing led, the eye had to read
  * every chip to find Play, and on a narrow column the row wrapped into a
- * ragged block whose buttons moved between renders. The row now reads
- * left to right in three clusters separated by hairlines -
+ * ragged block whose buttons moved between renders. The row reads left
+ * to right in clusters separated by hairlines -
  *
  *   transport (play, +-10s, clock) | view (speed, skip idle) |
  *   navigation (errors, frustration)
@@ -56,6 +56,14 @@ import {
  * it is findable without reading. Everything else is a ghost that gains
  * a wash on hover, and buttons that belong together share one recessed
  * track instead of each carrying its own outline.
+ *
+ * ONE row, not two. The clusters used to be stacked, the second one
+ * fenced off with a `border-t`, which cost about 50px of the card - and
+ * every pixel this strip takes is a pixel the recording does not get,
+ * because the stage is what is left over. The clusters still read in the
+ * same order; a hairline separates them instead of a line break, and
+ * below `md` the row simply wraps (the hairline goes away there rather
+ * than floating at the end of a line).
  */
 
 /*
@@ -112,6 +120,15 @@ export interface ReplayControlsProps {
   hasNextFrustration: boolean;
   isFollowEnabled?: boolean | undefined;
   isMouseTrailEnabled?: boolean | undefined;
+  /*
+   * The timeline's three marker lanes and its legend. A view preference
+   * the shell persists, offered here because the overflow menu is where
+   * the player keeps the choices that change what the chrome costs in
+   * height - hiding the lanes gives about 90px back to the recording.
+   * Undefined means "visible", so a caller that does not know about the
+   * preference still shows the lanes.
+   */
+  isTimelineLanesVisible?: boolean | undefined;
 
   onPlayPause: () => void;
   onSeekRelative: (deltaMs: number) => void;
@@ -124,6 +141,7 @@ export interface ReplayControlsProps {
   onRetry?: (() => void) | undefined;
   onFollowChange?: ((isEnabled: boolean) => void) | undefined;
   onMouseTrailChange?: ((isEnabled: boolean) => void) | undefined;
+  onTimelineLanesChange?: ((isVisible: boolean) => void) | undefined;
 }
 
 type BufferingStage = "hidden" | "pill" | "retry";
@@ -308,8 +326,14 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
   const isPaused: boolean = phase !== "playing" && phase !== "buffering";
 
   const hasOverflow: boolean = Boolean(
-    props.onFollowChange || props.onMouseTrailChange,
+    props.onFollowChange ||
+      props.onMouseTrailChange ||
+      props.onTimelineLanesChange,
   );
+
+  /* Undefined is "visible": the lanes are the timeline's default. */
+  const areTimelineLanesVisible: boolean =
+    props.isTimelineLanesVisible !== false;
 
   const seekBack: () => void = useCallback((): void => {
     onSeekRelative(-REPLAY_KEY_SEEK_JL_MS);
@@ -340,7 +364,7 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
   return (
     <div
       data-testid="replay-controls"
-      className="space-y-3"
+      className="flex flex-wrap items-center gap-x-2 gap-y-2"
       role="group"
       aria-label="Session playback"
     >
@@ -478,139 +502,182 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-2.5">
-        <ReplayButtonGroup ariaLabel="Jump between signals">
-          <ReplayToolButton
-            dataTestId="replay-prev-error"
-            icon={IconProp.ChevronLeft}
-            trailingIcon={IconProp.Alert}
-            variant="segment"
+      {/*
+       * The hairline exists to say "a different kind of control starts
+       * here". On a narrow column the row wraps and the two clusters are
+       * already on separate lines, where a dangling rule at the end of
+       * the first line means nothing - so it is hidden there.
+       */}
+      <span className="hidden md:inline-flex">
+        <ReplayToolbarDivider />
+      </span>
+
+      <ReplayButtonGroup ariaLabel="Jump between signals">
+        <ReplayToolButton
+          dataTestId="replay-prev-error"
+          icon={IconProp.ChevronLeft}
+          trailingIcon={IconProp.Alert}
+          variant="segment"
+          tone="danger"
+          isDisabled={!props.hasPrevError}
+          ariaLabel="Previous error (Shift+E)"
+          title={
+            props.hasPrevError
+              ? "Previous error (Shift+E)"
+              : "No error before the playhead"
+          }
+          onClick={props.onPrevError}
+        />
+        <ReplayToolButton
+          dataTestId="replay-next-error"
+          icon={IconProp.Alert}
+          label="Next error"
+          variant="segment"
+          tone="danger"
+          isDisabled={!props.hasNextError}
+          ariaLabel="Next error (E)"
+          title={
+            props.hasNextError
+              ? "Next error (E)"
+              : "No error after the playhead"
+          }
+          onClick={props.onNextError}
+        />
+        <ReplayToolButton
+          dataTestId="replay-next-frustration"
+          icon={IconProp.CursorArrowRays}
+          label="Frustration"
+          variant="segment"
+          tone="warning"
+          isDisabled={!props.hasNextFrustration}
+          ariaLabel="Next frustration (N)"
+          title={
+            props.hasNextFrustration
+              ? "Next frustration (N)"
+              : "No rage, dead or error click after the playhead"
+          }
+          onClick={props.onNextFrustration}
+        />
+      </ReplayButtonGroup>
+
+      <div className="ml-auto flex items-center gap-1.5">
+        {/*
+         * Visual only, deliberately NOT a live region and with no Retry of
+         * its own: the stage says the same thing at the same moment
+         * (ReplayStageOverlays' role=status pill plus the sr-only phase
+         * word), so two regions meant a screen reader announced "Buffering"
+         * or "Seeking to 1:12" twice per event and the viewer saw two Retry
+         * buttons after eight seconds. The stage overlay is the announced
+         * surface and owns the retry action; this pill just keeps the state
+         * visible next to the transport controls.
+         */}
+        {bufferingStage !== "hidden" && isWaiting && (
+          <ReplayPill
+            dataTestId="replay-buffering-pill"
+            tone="accent"
+            hasPulse={true}
+            isHiddenFromScreenReaders={true}
+          >
+            {bufferingStage === "retry" ? "Still loading" : waitingCopy}
+          </ReplayPill>
+        )}
+
+        {phase === "error" && props.errorMessage && (
+          <ReplayPill
+            dataTestId="replay-error-pill"
             tone="danger"
-            isDisabled={!props.hasPrevError}
-            ariaLabel="Previous error (Shift+E)"
-            title={
-              props.hasPrevError
-                ? "Previous error (Shift+E)"
-                : "No error before the playhead"
-            }
-            onClick={props.onPrevError}
-          />
-          <ReplayToolButton
-            dataTestId="replay-next-error"
+            role="alert"
             icon={IconProp.Alert}
-            label="Next error"
-            variant="segment"
-            tone="danger"
-            isDisabled={!props.hasNextError}
-            ariaLabel="Next error (E)"
-            title={
-              props.hasNextError
-                ? "Next error (E)"
-                : "No error after the playhead"
-            }
-            onClick={props.onNextError}
-          />
-          <ReplayToolButton
-            dataTestId="replay-next-frustration"
-            icon={IconProp.CursorArrowRays}
-            label="Frustration"
-            variant="segment"
-            tone="warning"
-            isDisabled={!props.hasNextFrustration}
-            ariaLabel="Next frustration (N)"
-            title={
-              props.hasNextFrustration
-                ? "Next frustration (N)"
-                : "No rage, dead or error click after the playhead"
-            }
-            onClick={props.onNextFrustration}
-          />
-        </ReplayButtonGroup>
+            className="max-w-[24rem]"
+          >
+            {props.errorMessage}
+          </ReplayPill>
+        )}
 
-        <div className="ml-auto flex items-center gap-1.5">
-          {/*
-           * Visual only, deliberately NOT a live region and with no Retry of
-           * its own: the stage says the same thing at the same moment
-           * (ReplayStageOverlays' role=status pill plus the sr-only phase
-           * word), so two regions meant a screen reader announced "Buffering"
-           * or "Seeking to 1:12" twice per event and the viewer saw two Retry
-           * buttons after eight seconds. The stage overlay is the announced
-           * surface and owns the retry action; this pill just keeps the state
-           * visible next to the transport controls.
-           */}
-          {bufferingStage !== "hidden" && isWaiting && (
-            <ReplayPill
-              dataTestId="replay-buffering-pill"
-              tone="accent"
-              hasPulse={true}
-              isHiddenFromScreenReaders={true}
-            >
-              {bufferingStage === "retry" ? "Still loading" : waitingCopy}
-            </ReplayPill>
-          )}
+        <ReplayToolButton
+          dataTestId="replay-shortcuts-button"
+          icon={IconProp.Keyboard}
+          title="Keyboard shortcuts (?)"
+          ariaLabel="Keyboard shortcuts (?)"
+          onClick={props.onShowShortcuts}
+        />
 
-          {phase === "error" && props.errorMessage && (
-            <ReplayPill
-              dataTestId="replay-error-pill"
-              tone="danger"
-              role="alert"
-              icon={IconProp.Alert}
-              className="max-w-[24rem]"
-            >
-              {props.errorMessage}
-            </ReplayPill>
-          )}
-
-          <ReplayToolButton
-            dataTestId="replay-shortcuts-button"
-            icon={IconProp.Keyboard}
-            title="Keyboard shortcuts (?)"
-            ariaLabel="Keyboard shortcuts (?)"
-            onClick={props.onShowShortcuts}
-          />
-
-          {hasOverflow && (
-            <MoreMenu
-              text=""
-              ariaLabel="More player options"
-              dataTestId="replay-more-menu"
-              menuIcon={IconProp.EllipsisHorizontal}
-            >
-              {props.onMouseTrailChange ? (
-                <MoreMenuItem
-                  key="mouse-trail"
-                  icon={IconProp.CursorArrowRays}
-                  text={
-                    props.isMouseTrailEnabled
-                      ? "Hide mouse trail"
-                      : "Show mouse trail"
-                  }
-                  onClick={(): void => {
-                    props.onMouseTrailChange?.(!props.isMouseTrailEnabled);
-                  }}
-                />
-              ) : (
-                <React.Fragment key="mouse-trail-none" />
-              )}
-              {props.onFollowChange ? (
-                <MoreMenuItem
-                  key="follow"
-                  icon={IconProp.Bolt}
-                  text={
-                    props.isFollowEnabled
-                      ? "Stop following the playhead in the rail (M)"
-                      : "Follow the playhead in the rail (M)"
-                  }
-                  onClick={(): void => {
-                    props.onFollowChange?.(!props.isFollowEnabled);
-                  }}
-                />
-              ) : (
-                <React.Fragment key="follow-none" />
-              )}
-            </MoreMenu>
-          )}
-        </div>
+        {/*
+         * Upwards, like the speed menu beside it. The transport is the
+         * last row of the player card, and in theater that card fills a
+         * fullscreen element that clips what is drawn past it - a menu
+         * opening downwards from here lands outside the player and
+         * cannot be scrolled to.
+         */}
+        {hasOverflow && (
+          <MoreMenu
+            text=""
+            ariaLabel="More player options"
+            dataTestId="replay-more-menu"
+            menuIcon={IconProp.EllipsisHorizontal}
+            isOpeningUpwards={true}
+          >
+            {props.onMouseTrailChange ? (
+              <MoreMenuItem
+                key="mouse-trail"
+                icon={IconProp.CursorArrowRays}
+                text={
+                  props.isMouseTrailEnabled
+                    ? "Hide mouse trail"
+                    : "Show mouse trail"
+                }
+                onClick={(): void => {
+                  props.onMouseTrailChange?.(!props.isMouseTrailEnabled);
+                }}
+              />
+            ) : (
+              <React.Fragment key="mouse-trail-none" />
+            )}
+            {props.onFollowChange ? (
+              <MoreMenuItem
+                key="follow"
+                icon={IconProp.Bolt}
+                text={
+                  props.isFollowEnabled
+                    ? "Stop following the playhead in the rail (M)"
+                    : "Follow the playhead in the rail (M)"
+                }
+                onClick={(): void => {
+                  props.onFollowChange?.(!props.isFollowEnabled);
+                }}
+              />
+            ) : (
+              <React.Fragment key="follow-none" />
+            )}
+            {props.onTimelineLanesChange ? (
+              /*
+               * The lanes and their legend are about 90px of the card. A
+               * viewer who only wants the picture and the track can put
+               * that height back into the recording; the track keeps its
+               * notice markers either way, so nothing that says "this
+               * stretch is unplayable" is ever hidden by this. The comment
+               * sits inside the expression on purpose: a JSX comment
+               * between these children is an expression container that
+               * evaluates to undefined, and MoreMenu's children are typed
+               * as elements.
+               */
+              <MoreMenuItem
+                key="timeline-lanes"
+                icon={IconProp.Layers}
+                text={
+                  areTimelineLanesVisible
+                    ? "Hide signal lanes"
+                    : "Show signal lanes"
+                }
+                onClick={(): void => {
+                  props.onTimelineLanesChange?.(!areTimelineLanesVisible);
+                }}
+              />
+            ) : (
+              <React.Fragment key="timeline-lanes-none" />
+            )}
+          </MoreMenu>
+        )}
       </div>
     </div>
   );

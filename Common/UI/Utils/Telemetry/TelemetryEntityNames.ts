@@ -16,6 +16,7 @@ import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
 import Service from "../../../Models/DatabaseModels/Service";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -161,6 +162,12 @@ export const TELEMETRY_ENTITY_TYPES: Record<
     modelType: ScheduledMaintenance,
     nameFields: ["title"],
   },
+  // The oneuptime.slo.* series carry the SLO id (SloMetricUtil).
+  [ServiceType.ServiceLevelObjective]: {
+    label: "SLO",
+    modelType: ServiceLevelObjective,
+    nameFields: ["name"],
+  },
   // Unattributed telemetry: the id is the projectId and there is no row.
   [ServiceType.Unknown]: {
     label: "Service",
@@ -193,6 +200,7 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.Incident,
   ServiceType.Alert,
   ServiceType.ScheduledMaintenance,
+  ServiceType.ServiceLevelObjective,
 ];
 
 // Chip key used for a primaryEntityId chip whose entity is not resolved yet.

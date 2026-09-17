@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -37,6 +38,9 @@ export interface PingOptions {
   isOnlineCheckRequest?: boolean | undefined;
   attempts?: Array<ProbeAttempt> | undefined;
 }
+
+// Five attempts, the same as before retries were counted after the first attempt.
+const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
 
 interface PortConnectionResult {
   responseTimeInMS: PositiveNumber;
@@ -443,7 +447,11 @@ export default class PortMonitor {
       // if response time is greater than 10 seconds then give it one more try
       if (
         connectionResult.responseTimeInMS.toNumber() > 10000 &&
-        pingOptions.currentRetryCount < (pingOptions.retry || 5)
+        MonitorRetry.canRetry({
+          attemptNumber: pingOptions.currentRetryCount,
+          retries: pingOptions.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
       ) {
         pingOptions.currentRetryCount++;
         await Sleep.sleep(1000);
@@ -481,7 +489,13 @@ export default class PortMonitor {
         failureCause,
       });
 
-      if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
+      if (
+        MonitorRetry.canRetry({
+          attemptNumber: pingOptions.currentRetryCount,
+          retries: pingOptions.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
         pingOptions.currentRetryCount++;
         await Sleep.sleep(1000);
         return await this.ping(host, port, pingOptions);

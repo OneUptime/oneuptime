@@ -239,6 +239,7 @@ describe("SessionReplayApi DTOs - today's wire shapes satisfy them", () => {
     expect(
       legacyManifestResponse.tabs[0]?.firstChunkStartOffsetMs,
     ).toBeUndefined();
+    expect(legacyManifestResponse.tabs[0]?.hasRecordingEnded).toBeUndefined();
     expect(
       legacyManifestResponse.tabs[0]?.chunks[0]?.clickCount,
     ).toBeUndefined();
@@ -306,12 +307,14 @@ describe("SessionReplayApi DTOs - today's wire shapes satisfy them", () => {
     const richTab: SessionReplayManifestTabDto = {
       ...legacyTab,
       firstChunkStartOffsetMs: 134000,
+      hasRecordingEnded: true,
       chunks: [{ ...legacyChunk, clickCount: 4, url: "https://acme.com/cart" }],
     };
 
     expect(richItem.tags?.["build"]).toBe("1.4.2");
     expect(richHeader.recorderCapabilities).toHaveLength(2);
     expect(richTab.chunks[0]?.url).toBe("https://acme.com/cart");
+    expect(richTab.hasRecordingEnded).toBe(true);
   });
 
   it("request bodies: the list request matches what SessionReplayTable posts, the manifest request accepts the refresh fields", () => {
@@ -502,6 +505,63 @@ describe("SessionReplayApi - the additive contracts the surfaces already ship", 
     expect(readDtoBoolean(endedWire, "hasRecordingEnded")).toBe(true);
     expect(readDtoBoolean(endedHeaderWire, "hasRecordingEnded")).toBe(true);
     expect(liveItem.hasRecordingEnded).toBe(false);
+  });
+
+  /*
+   * The recorder mints a new tab id on every page load, so one recording's
+   * "tabs" are the pages the person walked through, and the header's single
+   * hasRecordingEnded ("every tab has ended") cannot say which of them is
+   * still open. Each manifest tab therefore carries its own flag, additive
+   * exactly like the header's: an older server answers tabs without it, and
+   * the player then cannot tell an open tab from a closed one - which is
+   * what it did before the field existed.
+   */
+  it("/manifest: each tab carries its own additive hasRecordingEnded, and a payload without it still parses", () => {
+    expect(legacyTab.hasRecordingEnded).toBeUndefined();
+
+    const olderTabWire: JSONObject = JSON.parse(
+      JSON.stringify(legacyTab),
+    ) as JSONObject;
+
+    expect("hasRecordingEnded" in olderTabWire).toBe(false);
+    /* Absent reads as "not known to have ended", never as "open". */
+    expect(readDtoBoolean(olderTabWire, "hasRecordingEnded")).toBe(false);
+
+    /* A live session mid-navigation: page 1 closed, page 2 still open. */
+    const closedTab: SessionReplayManifestTabDto = {
+      ...legacyTab,
+      tabId: "tab-1",
+      hasRecordingEnded: true,
+    };
+    const openTab: SessionReplayManifestTabDto = {
+      ...legacyTab,
+      tabId: "tab-2",
+      hasRecordingEnded: false,
+    };
+
+    const liveManifest: SessionReplayManifestResponseDto = {
+      ...legacyManifestResponse,
+      header: { ...legacyHeader, isFinalized: false, hasRecordingEnded: false },
+      tabs: [closedTab, openTab],
+    };
+
+    const wire: JSONObject = JSON.parse(
+      JSON.stringify(liveManifest),
+    ) as JSONObject;
+    const wireTabs: Array<JSONObject> = wire[
+      "tabs"
+    ] as unknown as Array<JSONObject>;
+
+    expect(readDtoBoolean(wireTabs[0]!, "hasRecordingEnded")).toBe(true);
+    expect(readDtoBoolean(wireTabs[1]!, "hasRecordingEnded")).toBe(false);
+
+    /* The per-tab flags are independent of the session-level one. */
+    expect(liveManifest.header.hasRecordingEnded).toBe(false);
+    expect(
+      liveManifest.tabs.filter((tab: SessionReplayManifestTabDto): boolean => {
+        return tab.hasRecordingEnded === true;
+      }),
+    ).toHaveLength(1);
   });
 
   /*

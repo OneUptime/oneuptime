@@ -381,12 +381,28 @@ describe("SecurityEventConnectionsTable", () => {
 
     expect(screen.getByText(/read-only credential/)).toBeVisible();
     expect(screen.getByText(/running OneUptime worker/)).toBeVisible();
-    const links: Array<HTMLElement> = screen.getAllByRole("link");
+    const links: Array<HTMLElement> = within(
+      screen.getByRole("list", { name: "Setup guides" }),
+    ).getAllByRole("link");
+    expect(screen.getAllByRole("link")).toEqual(links);
     expect(
       links.map((link: HTMLElement): string => {
-        return link.textContent || "";
+        return link.id.replace(
+          "security-event-connections-empty-state-guides-",
+          "",
+        );
       }),
     ).toEqual([
+      SecurityEventConnectorProvider.MicrosoftSentinel,
+      SecurityEventConnectorProvider.MicrosoftDefenderXdr,
+      SecurityEventConnectorProvider.CrowdStrikeFalcon,
+      SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+      SecurityEventConnectorProvider.ElasticSecurity,
+      SecurityEventConnectorProvider.AwsSecurityHub,
+      SecurityEventConnectorProvider.OktaSystemLog,
+      SecurityEventConnectorProvider.GoogleSecOps,
+    ]);
+    for (const [index, title] of [
       "Microsoft Sentinel",
       "Microsoft Defender XDR",
       "CrowdStrike Falcon",
@@ -395,7 +411,9 @@ describe("SecurityEventConnectionsTable", () => {
       "AWS Security Hub",
       "Okta System Log",
       "Google SecOps",
-    ]);
+    ].entries()) {
+      expect(within(links[index]!).getByText(title)).toBeVisible();
+    }
     for (const link of links) {
       expect(link).toHaveAttribute("target", "_blank");
       expect(link.getAttribute("href")).toMatch(
@@ -405,6 +423,75 @@ describe("SecurityEventConnectionsTable", () => {
     expect(links[links.length - 1]?.getAttribute("href")).toMatch(
       /\/docs\/integrations\/google-secops$/,
     );
+  });
+
+  test("the empty state's Add connection opens the same create form as the card button", async (): Promise<void> => {
+    renderTable([]);
+
+    render(
+      <MemoryRouter>
+        {tableProps().noItemsMessage as ReactElement}
+      </MemoryRouter>,
+    );
+
+    const button: HTMLElement = screen.getByTestId(
+      "security-event-connections-empty-state-add-connection",
+    );
+    expect(button).toBeEnabled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(button);
+
+    expect(
+      await screen.findByRole("dialog", { name: "Add connection" }),
+    ).toBeInTheDocument();
+  });
+
+  test("the card button and the empty state's button share one create handler", (): void => {
+    renderTable([]);
+
+    const cardButton: CardButtonSchema = tableProps().cardProps
+      ?.buttons?.[0] as CardButtonSchema;
+    const emptyState: ReactElement<{ onAddConnection: () => void }> =
+      tableProps().noItemsMessage as ReactElement<{
+        onAddConnection: () => void;
+      }>;
+    expect(emptyState.props.onAddConnection).toBe(cardButton.onClick);
+  });
+
+  test("members who cannot create connections get a disabled empty-state button with the reason", (): void => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({
+      isAllowed: false,
+      disabledReason: "You do not have permission to create connections.",
+    });
+    renderTable([]);
+
+    const emptyState: ReactElement<{
+      canCreate: boolean;
+      createDisabledReason?: string;
+    }> = tableProps().noItemsMessage as ReactElement<{
+      canCreate: boolean;
+      createDisabledReason?: string;
+    }>;
+    expect(emptyState.props.canCreate).toBe(false);
+    expect(emptyState.props.createDisabledReason).toBe(
+      "You do not have permission to create connections.",
+    );
+
+    render(<MemoryRouter>{emptyState}</MemoryRouter>);
+
+    const button: HTMLElement = screen.getByTestId(
+      "security-event-connections-empty-state-add-connection",
+    );
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The guides stay useful to someone who cannot add a connection.
+    expect(
+      within(screen.getByRole("list", { name: "Setup guides" })).getAllByRole(
+        "link",
+      ),
+    ).toHaveLength(8);
   });
 
   /*

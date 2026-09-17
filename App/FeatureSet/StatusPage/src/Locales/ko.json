@@ -135,6 +135,8 @@
     "sendManagementLink": "관리 링크 보내기",
     "subscribedSuccessfully": "구독이 완료되었습니다.",
     "emailSentCheckSpam": "링크가 포함된 이메일이 이메일 주소로 전송되었습니다. 이메일이 보이지 않으면 스팸 폴더를 확인해주세요.",
+    "manageLinkSent": "입력하신 정보와 일치하는 구독이 있으면 해당 구독을 관리할 수 있는 링크를 보내드렸습니다.",
+    "manageLinkSentEmail": "이 이메일 주소로 등록된 구독이 있으면 구독을 관리할 수 있는 링크를 이 주소로 보내드렸습니다. 이메일이 보이지 않으면 스팸 폴더를 확인해주세요.",
     "menu": {
       "email": "이메일",
       "sms": "SMS",

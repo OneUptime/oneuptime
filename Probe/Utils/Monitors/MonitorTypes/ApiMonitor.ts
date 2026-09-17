@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -7,6 +8,7 @@ import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Sleep from "Common/Types/Sleep";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
@@ -22,6 +24,9 @@ import HttpMonitorRequest, {
   PreparedHttpMonitorRequest,
   RedirectRequest,
 } from "../HttpMonitorRequest";
+
+// Five attempts, the same as before retries were counted after the first attempt.
+const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
 
 export interface APIResponse {
   url: URL;
@@ -109,24 +114,27 @@ export default class ApiMonitor {
         const prepareRequest: (
           requestUrl: string,
           requestHeaders: Headers,
-          includeTlsIdentity: boolean,
+          includeTlsClientIdentity: boolean,
         ) => Promise<PreparedHttpMonitorRequest> = async (
           requestUrl: string,
           requestHeaders: Headers,
-          includeTlsIdentity: boolean,
+          includeTlsClientIdentity: boolean,
         ): Promise<PreparedHttpMonitorRequest> => {
           return await executionContext.run(async () => {
             return await HttpMonitorRequest.prepare(requestUrl, {
               headers: requestHeaders,
-              tls: includeTlsIdentity
-                ? {
-                    allowSelfSignedCertificates:
-                      options.allowSelfSignedCertificates,
-                    tlsClientCertificate: options.tlsClientCertificate,
-                    tlsClientKey: options.tlsClientKey,
-                    tlsClientKeyPassphrase: options.tlsClientKeyPassphrase,
-                  }
-                : undefined,
+              tls: HttpMonitorRequest.getTlsOptionsForHop({
+                tls: {
+                  allowSelfSignedCertificates:
+                    options.allowSelfSignedCertificates,
+                  tlsClientCertificate: options.tlsClientCertificate,
+                  tlsClientKey: options.tlsClientKey,
+                  tlsClientKeyPassphrase: options.tlsClientKeyPassphrase,
+                },
+                monitorUrl: initialUrl,
+                hopUrl: requestUrl,
+                includeClientIdentity: includeTlsClientIdentity,
+              }),
               timingCollector: timingCollector,
             });
           });
@@ -137,13 +145,13 @@ export default class ApiMonitor {
         let currentHeaders: Headers = { ...initialHeaders };
         let currentBody: JSONObject | undefined = initialBody;
         let redirectsFollowed: number = 0;
-        let includeTlsIdentity: boolean = true;
+        let includeTlsClientIdentity: boolean = true;
 
         while (true) {
           const prepared: PreparedHttpMonitorRequest = await prepareRequest(
             currentUrl,
             currentHeaders,
-            includeTlsIdentity,
+            includeTlsClientIdentity,
           );
 
           const fetchOptions: any = {
@@ -201,7 +209,12 @@ export default class ApiMonitor {
           currentHeaders = redirect.headers;
           currentBody = redirect.body;
           if (redirect.crossesOrigin) {
-            includeTlsIdentity = false;
+            /*
+             * Only the client certificate stops here; the self-signed
+             * allowance follows the monitor's hostname. See
+             * HttpMonitorRequest.getTlsOptionsForHop.
+             */
+            includeTlsClientIdentity = false;
           }
           redirectsFollowed++;
         }
@@ -223,7 +236,7 @@ export default class ApiMonitor {
         requestType === HTTPMethod.HEAD
       ) {
         /*
-         * Preserve the whole-check execution context/deadline, but report
+         * Preserve this attempt's execution context/deadline, but report
          * response time and phase timings for the GET that produced the
          * caller-visible result (the established HEAD fallback behavior).
          */
@@ -251,13 +264,12 @@ export default class ApiMonitor {
         responseCode: result.statusCode,
         isOnline: true,
         failureCause:
-          result.statusCode >= 500 && result.statusCode < 600
+          result.statusCode >= 400 && result.statusCode < 600
             ? `Server returned ${result.statusCode}`
             : undefined,
       });
 
-      if (result.statusCode >= 500 && result.statusCode < 600) {
-        // implement retry, just to be sure server is down.
+      if (result.statusCode >= 400 && result.statusCode < 600) {
         if (!options) {
           options = {};
         }
@@ -267,11 +279,16 @@ export default class ApiMonitor {
         }
 
         if (
-          options.currentRetryCount < (options.retry ?? 5) &&
-          executionContext.canWait(1000)
+          MonitorRetry.canRetry({
+            attemptNumber: options.currentRetryCount,
+            retries: options.retry,
+            defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+          })
         ) {
           options.currentRetryCount++;
-          await executionContext.sleep(1000);
+          executionContext.dispose();
+          delete options.executionContext;
+          await Sleep.sleep(1000);
           return await this.ping(url, options);
         }
       }
@@ -280,11 +297,16 @@ export default class ApiMonitor {
 
       if (
         responseTimeInMS.toNumber() > 10000 &&
-        options.currentRetryCount < (options.retry ?? 5) &&
-        executionContext.canWait(1000)
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
       ) {
         options.currentRetryCount++;
-        await executionContext.sleep(1000);
+        executionContext.dispose();
+        delete options.executionContext;
+        await Sleep.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -361,12 +383,16 @@ export default class ApiMonitor {
 
       if (
         !(err instanceof BadDataException) &&
-        !(err instanceof TimeoutException) &&
-        options.currentRetryCount < (options.retry ?? 5) &&
-        executionContext.canWait(1000)
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
       ) {
         options.currentRetryCount++;
-        await executionContext.sleep(1000);
+        executionContext.dispose();
+        delete options.executionContext;
+        await Sleep.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -420,9 +446,11 @@ export default class ApiMonitor {
         totalAttempts: options.attempts.length,
       };
 
-      // check if timeout exceeded and if yes, return null
+      // Preserve timeout metadata after the configured attempts are exhausted.
       if (
         err instanceof TimeoutException ||
+        requestFailedDetails.errorCode === "ETIMEDOUT" ||
+        requestFailedDetails.errorCode === "ESOCKETTIMEDOUT" ||
         ((err as any).toString().includes("timeout") &&
           (err as any).toString().includes("exceeded"))
       ) {

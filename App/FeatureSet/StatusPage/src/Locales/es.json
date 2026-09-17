@@ -135,6 +135,8 @@
     "sendManagementLink": "Enviar enlace de gestión",
     "subscribedSuccessfully": "Se ha suscrito correctamente.",
     "emailSentCheckSpam": "Se ha enviado un correo electrónico con el enlace a su dirección. Si no ve el correo, revise su carpeta de spam.",
+    "manageLinkSent": "Si alguna suscripción coincide con los datos que ha introducido, hemos enviado un enlace para gestionarla.",
+    "manageLinkSentEmail": "Si esta dirección de correo electrónico tiene una suscripción, hemos enviado a esa dirección un enlace para gestionarla. Si no ve el correo, revise su carpeta de spam.",
     "menu": {
       "email": "Correo electrónico",
       "sms": "SMS",

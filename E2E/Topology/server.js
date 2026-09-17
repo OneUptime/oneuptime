@@ -27,7 +27,8 @@ const tailwind = path.join(
   repository,
   "Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Topology preview</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;window.process.env.NODE_ENV="development";</script><script src="/tailwind.js"></script><style>body{margin:0;background:#f8fafc;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const theme = path.join(repository, "Common/UI/Styles/Theme.css");
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Topology preview</title><script>if(new URLSearchParams(window.location.search).get("theme")==="dark"){document.documentElement.classList.add("dark");}window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;window.process.env.NODE_ENV="development";</script><link rel="stylesheet" href="/theme.css"><script src="/tailwind.js"></script><style>body{margin:0;background:var(--ou-background-primary,#f8fafc);font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 async function main() {
   fs.mkdirSync(output, { recursive: true });
   await esbuild.build(config);
@@ -41,6 +42,11 @@ async function main() {
     if (url.pathname === "/tailwind.js") {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(tailwind).pipe(response);
+      return;
+    }
+    if (url.pathname === "/theme.css") {
+      response.setHeader("Content-Type", "text/css");
+      fs.createReadStream(theme).pipe(response);
       return;
     }
     if (url.pathname.startsWith("/dist/")) {

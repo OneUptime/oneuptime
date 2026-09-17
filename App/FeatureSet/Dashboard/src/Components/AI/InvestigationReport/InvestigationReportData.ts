@@ -10,6 +10,7 @@ import {
   InvestigationEvidenceRowsResponse,
   InvestigationReferenceKind,
 } from "Common/Types/AI/InvestigationEvidence";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import { JSONObject } from "Common/Types/JSON";
 import {
   ParsedInvestigationReport,
@@ -31,7 +32,15 @@ export type InvestigationReportSubjectType = InvestigationReferenceKind;
 
 export const MAX_EVIDENCE_ITEMS: number = 100;
 export const MAX_EVENT_REFERENCES: number = 50;
-export const MAX_REPORT_SUMMARY_LENGTH: number = 280;
+/*
+ * The header clamps the summary on screen and offers Show more, so this is
+ * only a bound on what it can expand to. It is the width of the
+ * AIRun.analysisTldr column, so a stored TL;DR (which the server caps at 320
+ * characters) always arrives whole; a clip below that cap cut complete
+ * sentences short with an ellipsis. Only the fallback, a report Summary
+ * flattened to text, can run past it.
+ */
+export const MAX_REPORT_SUMMARY_LENGTH: number = ColumnLength.LongText;
 
 const CITATION_ID_REGEX: RegExp = /^C\d{1,3}$/;
 const UUID_REGEX: RegExp =

@@ -4,7 +4,6 @@ import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenance
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
-import Typeof from "../../Types/Typeof";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import MonitorStatusService from "./MonitorStatusService";
 import Dictionary from "../../Types/Dictionary";
@@ -12,8 +11,6 @@ import ProjectScopedReferenceValidator, {
   ProjectScopedReference,
   resolveReferenceId,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import ScheduledMaintenanceTemplateOwnerTeam from "../../Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
-import ScheduledMaintenanceTemplateOwnerUser from "../../Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
 import CreateBy from "../Types/Database/CreateBy";
 import OneUptimeDate from "../../Types/Date";
 import Recurring from "../../Types/Events/Recurring";
@@ -22,6 +19,7 @@ import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -385,37 +383,17 @@ export class Service extends DatabaseService<Model> {
     teamIds: Array<ObjectID>,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: ScheduledMaintenanceTemplateOwnerTeam =
-        new ScheduledMaintenanceTemplateOwnerTeam();
-      teamOwner.scheduledMaintenanceTemplateId = scheduledMaintenanceTemplateId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-
-      await ScheduledMaintenanceTemplateOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-      const teamOwner: ScheduledMaintenanceTemplateOwnerUser =
-        new ScheduledMaintenanceTemplateOwnerUser();
-      teamOwner.scheduledMaintenanceTemplateId = scheduledMaintenanceTemplateId;
-      teamOwner.projectId = projectId;
-      teamOwner.userId = userId;
-      await ScheduledMaintenanceTemplateOwnerUserService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
+    // Owners already on the template are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: ScheduledMaintenanceTemplateOwnerUserService,
+      ownerTeamService: ScheduledMaintenanceTemplateOwnerTeamService,
+      resourceIdColumn: "scheduledMaintenanceTemplateId",
+      resourceId: scheduledMaintenanceTemplateId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      props: props,
+    });
   }
 }
 export default new Service();

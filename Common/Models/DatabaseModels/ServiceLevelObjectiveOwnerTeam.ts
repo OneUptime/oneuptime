@@ -8,17 +8,34 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnsTogether from "../../Types/Database/UniqueColumnsTogether";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+/*
+ * Who owns an SLO decides who hears about it, so adding or removing an owning
+ * team is part of the SLO's history: entries roll up to the SLO
+ * (rootResource). The row has no name of its own, so it is named after its
+ * team. The owner notification job flips isOwnerNotified once it has told the
+ * team's members - delivery bookkeeping, not an edit.
+ */
+@EnableAuditLog({
+  rootResource: {
+    resourceType: "Service Level Objective",
+    column: "serviceLevelObjectiveId",
+  },
+  resourceNameRelation: "team",
+  ignoreColumns: ["isOwnerNotified"],
+})
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({
@@ -65,7 +82,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "ServiceLevelObjectiveOwnerTeam",
 })
-@Index(["serviceLevelObjectiveId", "teamId", "projectId"])
+@Index(["serviceLevelObjectiveId", "teamId", "projectId"], { unique: true })
+@UniqueColumnsTogether(
+  ["serviceLevelObjectiveId", "teamId", "projectId"],
+  "This team is already an owner of this service level objective.",
+)
 export default class ServiceLevelObjectiveOwnerTeam extends BaseModel {
   @ColumnAccessControl({
     create: [

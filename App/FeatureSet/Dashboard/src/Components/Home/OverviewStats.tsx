@@ -146,12 +146,18 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
          * deliberately excluded: they are a setup problem, not a burning
          * budget, and mixing them in would make the tile impossible to
          * act on.
+         *
+         * Archived SLOs are excluded for the same reason disabled ones are:
+         * the worker no longer evaluates them, so their status is frozen at
+         * the moment they were archived, and the SLOs list this tile opens
+         * does not show them either.
          */
         ModelAPI.count<ServiceLevelObjective>({
           modelType: ServiceLevelObjective,
           query: {
             projectId: props.projectId,
             isEnabled: true,
+            isArchived: false,
             sloStatus: new Includes([
               SloStatus.AtRisk,
               SloStatus.BudgetExhausted,

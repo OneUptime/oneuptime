@@ -23,6 +23,8 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
+  extractEmailFromSCIM,
+  extractUserUpdateFromSCIM,
   formatUserForSCIM,
   generateServiceProviderConfig,
   generateSchemasResponse,
@@ -265,12 +267,15 @@ router.post(
                 ((data!["emails"] as JSONObject[])?.[0]?.["value"] as string);
 
               executionSteps.push(
-                `  [POST User] Extracted email: ${email || "not found"}`,
+                `  [POST User] Email provided: ${Boolean(email)}`,
               );
               if (!email) {
                 throw new BadRequestException(
                   "Email is required for user creation",
                 );
+              }
+              if (!Email.isValid(email)) {
+                throw new BadRequestException("Email is not in valid format");
               }
 
               // Check if user already exists for this status page
@@ -372,17 +377,18 @@ router.post(
                 );
               }
               executionSteps.push(
-                `  [${method} User] User found: ${statusPageUser.email?.toString()}`,
+                `  [${method} User] User found with ID: ${userId}`,
               );
 
               // Update user information
-              const email: string =
-                (data!["userName"] as string) ||
-                ((data!["emails"] as JSONObject[])?.[0]?.["value"] as string);
-              const active: boolean = data!["active"] as boolean;
+              const userUpdate: JSONObject = extractUserUpdateFromSCIM(data!);
+              const email: string = extractEmailFromSCIM(userUpdate);
+              const active: boolean | undefined = userUpdate["active"] as
+                | boolean
+                | undefined;
 
               executionSteps.push(
-                `  [${method} User] Update data - email: ${email || "not provided"}, active: ${active !== undefined ? active : "not provided"}`,
+                `  [${method} User] Email provided: ${Boolean(email)}, active: ${typeof active === "boolean" ? active : "not provided"}`,
               );
 
               // Handle user deactivation by deleting from status page
@@ -406,10 +412,20 @@ router.post(
                   location: `/status-page-scim/v2/${statusPageScimId}/Users/${resourceId}`,
                 };
               } else {
+                if (active === false) {
+                  executionSteps.push(
+                    `  [${method} User] Auto-deprovisioning is disabled, user will not be deleted`,
+                  );
+                }
                 // Update email if provided
                 if (email && email !== statusPageUser.email?.toString()) {
+                  if (!Email.isValid(email)) {
+                    throw new BadRequestException(
+                      "Email is not in valid format",
+                    );
+                  }
                   executionSteps.push(
-                    `  [${method} User] Updating email from ${statusPageUser.email?.toString()} to ${email}`,
+                    `  [${method} User] Updating email for user ID: ${userId}`,
                   );
                   await StatusPagePrivateUserService.updateOneById({
                     id: userId,
@@ -492,7 +508,7 @@ router.post(
                 throw new NotFoundException("User not found");
               }
               executionSteps.push(
-                `  [DELETE User] User found: ${statusPageUser.email?.toString()}`,
+                `  [DELETE User] User found with ID: ${userId}`,
               );
 
               // Delete the user from status page
@@ -683,11 +699,11 @@ router.get(
       );
       const filter: string = req.query["filter"] as string;
       executionSteps.push(
-        `Parsed query params: startIndex=${startIndex}, count=${count}, filter=${filter || "none"}`,
+        `Parsed query params: startIndex=${startIndex}, count=${count}, filter provided=${Boolean(filter)}`,
       );
 
       logger.debug(
-        `Status Page SCIM Users - statusPageId: ${statusPageId}, startIndex: ${startIndex}, count: ${count}, filter: ${filter || "none"}`,
+        `Status Page SCIM Users - statusPageId: ${statusPageId}, startIndex: ${startIndex}, count: ${count}, filter provided: ${Boolean(filter)}`,
         getLogAttributesFromRequest(req as any),
       );
 
@@ -707,30 +723,30 @@ router.get(
           const email: string = emailMatch[1]!;
           filterEmail = email;
           logger.debug(
-            `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filter by email: ${email}`,
+            `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, userName filter provided`,
             getLogAttributesFromRequest(req as any),
           );
-          executionSteps.push(`Filter parsed: userName eq "${email}"`);
+          executionSteps.push("Parsed userName equality filter");
 
           if (email) {
             if (Email.isValid(email)) {
               query.email = new Email(email);
               logger.debug(
-                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filtering by email: ${email}`,
+                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filtering by email`,
                 getLogAttributesFromRequest(req as any),
               );
-              executionSteps.push(`Valid email, filtering by: ${email}`);
+              executionSteps.push("Filtering by a valid email");
             } else {
               /*
                * Non-email userName (e.g., GUID from Microsoft Entra ID) - return empty list
                * This is expected behavior; the IdP will proceed to create the user with proper email
                */
               logger.debug(
-                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, userName filter is not an email format: ${email}, returning empty list`,
+                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, userName filter is not an email format, returning empty list`,
                 getLogAttributesFromRequest(req as any),
               );
               executionSteps.push(
-                `userName filter value "${email}" is not an email format, returning empty list (no matching users)`,
+                "userName filter is not an email format, returning empty list (no matching users)",
               );
               const emptyResponse: JSONObject = {
                 schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
@@ -761,9 +777,7 @@ router.get(
             }
           }
         } else {
-          executionSteps.push(
-            `Filter present but not a userName filter: ${filter}`,
-          );
+          executionSteps.push("Filter present but not a userName filter");
         }
       } else {
         executionSteps.push("No filter provided, listing all users");
@@ -945,7 +959,7 @@ router.get(
         );
       }
 
-      executionSteps.push(`User found: ${statusPageUser.email?.toString()}`);
+      executionSteps.push(`User found with ID: ${statusPageUser.id}`);
 
       const user: JSONObject = formatUserForSCIM(
         statusPageUser,
@@ -1058,19 +1072,12 @@ router.post(
         getLogAttributesFromRequest(req as any),
       );
 
-      logger.debug(
-        `Request body for Status Page SCIM Create user: ${JSON.stringify(scimUser, null, 2)}`,
-        getLogAttributesFromRequest(req as any),
-      );
-
       // Extract user data from SCIM payload
       const email: string =
         (scimUser["userName"] as string) ||
         ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
 
-      executionSteps.push(
-        `Extracted email from SCIM payload: ${email || "not found"}`,
-      );
+      executionSteps.push(`Email provided in SCIM payload: ${Boolean(email)}`);
 
       if (!email) {
         executionSteps.push(
@@ -1078,11 +1085,9 @@ router.post(
         );
         throw new BadRequestException("Email is required for user creation");
       }
-
-      logger.debug(
-        `Status Page SCIM Create user - email: ${email}`,
-        getLogAttributesFromRequest(req as any),
-      );
+      if (!Email.isValid(email)) {
+        throw new BadRequestException("Email is not in valid format");
+      }
 
       // Check if user already exists for this status page
       executionSteps.push(
@@ -1110,7 +1115,7 @@ router.post(
           "User does not exist, creating new status page private user",
         );
         logger.debug(
-          `Status Page SCIM Create user - creating new user with email: ${email}`,
+          "Status Page SCIM Create user - creating new private user",
           getLogAttributesFromRequest(req as any),
         );
 
@@ -1238,11 +1243,6 @@ const handleStatusPageUserUpdate: (
       getLogAttributesFromRequest(req as any),
     );
 
-    logger.debug(
-      `Request body for Status Page SCIM Update user: ${JSON.stringify(scimUser, null, 2)}`,
-      getLogAttributesFromRequest(req as any),
-    );
-
     if (!userId) {
       executionSteps.push("Error: User ID is missing from request");
       throw new BadRequestException("User ID is required");
@@ -1277,20 +1277,21 @@ const handleStatusPageUserUpdate: (
     }
 
     const previousEmail: string | undefined = statusPageUser.email?.toString();
-    executionSteps.push(`User found: ${previousEmail}`);
+    executionSteps.push(`User found with ID: ${userId}`);
 
     // Update user information
-    const email: string =
-      (scimUser["userName"] as string) ||
-      ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
-    const active: boolean = scimUser["active"] as boolean;
+    const userUpdate: JSONObject = extractUserUpdateFromSCIM(scimUser);
+    const email: string = extractEmailFromSCIM(userUpdate);
+    const active: boolean | undefined = userUpdate["active"] as
+      | boolean
+      | undefined;
 
     executionSteps.push(
-      `Parsed update data - email: ${email || "not provided"}, active: ${active !== undefined ? active : "not provided"}`,
+      `Email provided: ${Boolean(email)}, active: ${typeof active === "boolean" ? active : "not provided"}`,
     );
 
     logger.debug(
-      `Status Page SCIM Update user - email: ${email}, active: ${active}`,
+      `Status Page SCIM Update user - userId: ${userId}, active: ${typeof active === "boolean" ? active : "not provided"}`,
       getLogAttributesFromRequest(req as any),
     );
 
@@ -1360,11 +1361,12 @@ const handleStatusPageUserUpdate: (
 
     let emailUpdated: boolean = false;
     if (email && email !== statusPageUser.email?.toString()) {
+      if (!Email.isValid(email)) {
+        throw new BadRequestException("Email is not in valid format");
+      }
       updateData.email = new Email(email);
       emailUpdated = true;
-      executionSteps.push(
-        `Email will be updated: ${previousEmail} -> ${email}`,
-      );
+      executionSteps.push(`Email will be updated for user ID: ${userId}`);
     } else {
       executionSteps.push("No email change detected");
     }
@@ -1373,7 +1375,7 @@ const handleStatusPageUserUpdate: (
     if (Object.keys(updateData).length > 0) {
       executionSteps.push("Updating user in database");
       logger.debug(
-        `Status Page SCIM Update user - updating user with data: ${JSON.stringify(updateData)}`,
+        `Status Page SCIM Update user - updating email for userId: ${userId}`,
         getLogAttributesFromRequest(req as any),
       );
 
@@ -1603,7 +1605,7 @@ router.delete(
       }
 
       const userEmail: string | undefined = statusPageUser.email?.toString();
-      executionSteps.push(`User found: ${userEmail}`);
+      executionSteps.push(`User found with ID: ${userId}`);
 
       // Delete the user from status page
       executionSteps.push("Deleting user from status page");

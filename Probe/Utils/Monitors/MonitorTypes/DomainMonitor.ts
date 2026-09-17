@@ -15,6 +15,13 @@ import {
 import { DomainLookupResult, DomainRecord } from "../../Domain/DomainRecord";
 import RdapLookup, { RdapLookupResult } from "../../Domain/RdapLookup";
 import WhoisLookup from "../../Domain/WhoisLookup";
+import MonitorRetry from "../MonitorRetry";
+
+/*
+ * Retries when neither the caller nor the step config sets one: three
+ * attempts, the same as before retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 2;
 
 export interface DomainQueryOptions {
   timeout?: number | undefined;
@@ -148,17 +155,17 @@ export default class DomainMonitorUtil {
       });
 
       /*
-       * ?? not ||: a caller asking for zero retries means zero, not "fall
-       * through to the config default".
+       * The configured retry budget also applies to registry responses such
+       * as "not registered" or "no registration service". Recheck the same
+       * lookup without changing how it chooses RDAP or WHOIS.
        */
-      const maxRetries: number = options.retry ?? config.retries ?? 3;
-
-      /*
-       * "This domain is not registered" and "this TLD has no usable
-       * registration service" are settled answers. Retrying them just adds
-       * one second of sleep per attempt before reporting the same thing.
-       */
-      if (isRetryable && options.currentRetryCount < maxRetries) {
+      if (
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry ?? config.retries,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await DomainMonitorUtil.query(config, options);

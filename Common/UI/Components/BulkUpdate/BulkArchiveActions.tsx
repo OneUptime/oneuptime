@@ -23,6 +23,15 @@ export interface BulkArchiveActionsConfig<T extends BaseModel> {
    */
   singularName?: string | undefined;
   pluralName?: string | undefined;
+  /*
+   * Confirmation bodies that replace the defaults outright. The defaults
+   * describe a telemetry resource, which keeps ingesting while archived; a
+   * model whose archive does more (an archived SLO stops being evaluated)
+   * must be able to say so. Written to read correctly for one item or many -
+   * the title above them already carries the count.
+   */
+  archiveConfirmMessage?: string | undefined;
+  unarchiveConfirmMessage?: string | undefined;
 }
 
 export interface BulkArchiveActionsResult<T extends BaseModel> {
@@ -34,8 +43,10 @@ type ArchiveMode = "archive" | "unarchive";
 
 /**
  * Reusable hook that provides "Archive" and "Unarchive" bulk actions for any
- * ModelTable whose model has an `isArchived` boolean column. Archiving is a
- * pure visibility flag — telemetry keeps being ingested for archived resources.
+ * ModelTable whose model has an `isArchived` boolean column. For telemetry
+ * resources archiving is a pure visibility flag — telemetry keeps being
+ * ingested — and the default confirmation copy says so; models whose archive
+ * does more pass `archiveConfirmMessage` / `unarchiveConfirmMessage`.
  *
  * The client only ever sends `{ isArchived: true | false }`; the server stamps
  * `archivedAt` / `archivedByUserId` (see DatabaseService.sanitizeCreateOrUpdate).
@@ -146,6 +157,10 @@ function useBulkArchiveActions<T extends BaseModel>(
       }?`;
     },
     confirmMessage: (items: Array<T>): string => {
+      if (config.archiveConfirmMessage) {
+        return config.archiveConfirmMessage;
+      }
+
       return `Are you sure you want to archive the selected ${
         items.length === 1 ? singularName : pluralName
       }? They will be hidden from the list but will keep collecting telemetry. You can unarchive them anytime from the Archived tab.`;
@@ -165,6 +180,10 @@ function useBulkArchiveActions<T extends BaseModel>(
       }?`;
     },
     confirmMessage: (items: Array<T>): string => {
+      if (config.unarchiveConfirmMessage) {
+        return config.unarchiveConfirmMessage;
+      }
+
       return `Are you sure you want to unarchive the selected ${
         items.length === 1 ? singularName : pluralName
       }? They will reappear in the main list.`;

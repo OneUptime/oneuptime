@@ -135,6 +135,8 @@
     "sendManagementLink": "Verwaltungslink senden",
     "subscribedSuccessfully": "Sie wurden erfolgreich abonniert.",
     "emailSentCheckSpam": "Eine E-Mail mit dem Link wurde an Ihre E-Mail-Adresse gesendet. Wenn Sie die E-Mail nicht sehen, überprüfen Sie bitte Ihren Spam-Ordner.",
+    "manageLinkSent": "Wenn ein Abonnement mit Ihren Angaben übereinstimmt, haben wir einen Link zur Verwaltung des Abonnements gesendet.",
+    "manageLinkSentEmail": "Wenn für diese E-Mail-Adresse ein Abonnement besteht, haben wir einen Link zur Verwaltung des Abonnements an diese Adresse gesendet. Wenn Sie die E-Mail nicht sehen, überprüfen Sie bitte Ihren Spam-Ordner.",
     "menu": {
       "email": "E-Mail",
       "sms": "SMS",

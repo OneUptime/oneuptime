@@ -11,6 +11,9 @@ import APIException from "../../Types/Exception/ApiException";
 import BadDataException from "../../Types/Exception/BadDataException";
 import GenericObject from "../../Types/GenericObject";
 import { JSONObject } from "../../Types/JSON";
+import RequestFailedDetails, {
+  RequestFailedPhase,
+} from "../../Types/Probe/RequestFailedDetails";
 import API from "../../Utils/API";
 import { HTTPResponseBodyBudget } from "../../Utils/HTTPResponseBodyReader";
 import { expect, jest } from "@jest/globals";
@@ -494,6 +497,46 @@ describe("API.getFriendlyErrorMessage", () => {
   });
 });
 
+describe("API.getRequestFailedDetails", () => {
+  test.each([
+    { code: "ETIMEDOUT", failedPhase: RequestFailedPhase.RequestTimeout },
+    { code: "ESOCKETTIMEDOUT", failedPhase: RequestFailedPhase.RequestTimeout },
+    { code: "ECONNABORTED", failedPhase: RequestFailedPhase.RequestAborted },
+  ])(
+    "classifies native $code errors without relying on message text",
+    (scenario: { code: string; failedPhase: RequestFailedPhase }) => {
+      const error: NodeJS.ErrnoException = new Error("The operation failed.");
+      error.code = scenario.code;
+
+      const details: RequestFailedDetails = API.getRequestFailedDetails(error);
+
+      expect(details.errorCode).toBe(scenario.code);
+      expect(details.failedPhase).toBe(scenario.failedPhase);
+      expect(details.rawErrorMessage).toBe(error.message);
+    },
+  );
+
+  test.each([
+    { code: 408 },
+    { code: null },
+    { code: {} },
+    { code: ["ETIMEDOUT"] },
+  ])(
+    "ignores a non-string native error code: $code",
+    (scenario: { code: unknown }) => {
+      const error: Error & { code: unknown } = Object.assign(
+        new Error("The operation failed."),
+        { code: scenario.code },
+      );
+
+      const details: RequestFailedDetails = API.getRequestFailedDetails(error);
+
+      expect(details.errorCode).toBeUndefined();
+      expect(details.failedPhase).toBe(RequestFailedPhase.Unknown);
+    },
+  );
+});
+
 describe("API instance properties", () => {
   test("should return protocol with trailing slashes", () => {
     const api: API = new API(Protocol.HTTPS, new Hostname("example.com"));
@@ -636,6 +679,59 @@ describe("API.fetch with options", () => {
     expect(response.data).toEqual(responseData);
     expect(budget.remainingBytes).toBe(1024 - Buffer.byteLength(json));
   });
+
+  test.each([200, 400, 503])(
+    "should cancel a stalled status %s body even after Axios has settled",
+    async (status: number) => {
+      mockedAxios.mockClear();
+      HTTPErrorResponseMock.mockClear();
+      const controller: AbortController = new AbortController();
+      let resolveReading: () => void = (): void => {};
+      const reading: Promise<void> = new Promise((resolve: () => void) => {
+        resolveReading = resolve;
+      });
+      const body: Readable = new Readable({
+        read: (): void => {
+          resolveReading();
+        },
+      });
+      const response: AxiosResponse = createAxiosResponse({
+        data: body,
+        status: status,
+      });
+      if (status >= 400) {
+        mockedAxios.mockRejectedValueOnce(
+          createAxiosError({ response: response }),
+        );
+      } else {
+        mockedAxios.mockResolvedValueOnce(response);
+      }
+
+      const pending: Promise<HTTPResponse<JSONObject>> = API.fetch({
+        method: HTTPMethod.GET,
+        url: new URL(
+          Protocol.HTTPS,
+          "api.example.com",
+          new Route("stalled-body"),
+        ),
+        options: {
+          signal: controller.signal,
+          responseBodyBudget: new HTTPResponseBodyBudget(100),
+        },
+      });
+      const rejected: Promise<void> = expect(pending).rejects.toThrow(
+        "Response body read was aborted",
+      );
+
+      await reading;
+      controller.abort();
+      await rejected;
+
+      expect(body.destroyed).toBe(true);
+      expect(mockedAxios).toHaveBeenCalledTimes(1);
+      expect(HTTPErrorResponseMock).not.toHaveBeenCalled();
+    },
+  );
 
   test("should strip a leading UTF-8 BOM before parsing a budgeted JSON stream", async () => {
     mockedAxios.mockClear();

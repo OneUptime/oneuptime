@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  RenderResult,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -208,6 +215,10 @@ import ScanTargetUtil from "../../../Utils/NetworkDiscovery/ScanTargetUtil";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import SnmpSecurityLevel from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import ScanNameUtil from "../../../Utils/NetworkDiscovery/ScanNameUtil";
+import {
+  installTextClampLayout,
+  TextClampLayout,
+} from "./TextClampLayoutHarness";
 import SnmpScanConfigUtil, {
   DiscoveryScanSnmpConfig,
   MAX_SNMP_CONFIGS_PER_SCAN,
@@ -3215,19 +3226,21 @@ describe("long status messages wrap inside their own column (issue #3585)", () =
     }
   });
 
-  test("the entire retired-run explanation remains available in expandable scan details", async () => {
+  /*
+   * The whole sentence is in the scan cell, once — clamped to a two-line
+   * preview on screen, with "Show details" to open it when the preview cuts
+   * it short (issue #3842, covered in its own describe block below).
+   */
+  test("the entire retired-run explanation remains available in the scan cell", async () => {
     await renderPage();
     const container: HTMLElement = renderCellContainer("name", RETIRED_SCAN);
-    const details: HTMLDetailsElement | null =
-      container.querySelector("details");
-    expect(details).not.toBeNull();
-    expect(details?.querySelector("summary")?.textContent).toContain(
-      RETIRE_MESSAGE,
-    );
-    expect(details?.querySelector("summary")?.textContent).toContain(
-      "Show details",
-    );
-    expect(details?.querySelector("p")?.textContent).toBe(RETIRE_MESSAGE);
+    const message: HTMLParagraphElement | null =
+      container.querySelector("p[id]");
+
+    expect(message).not.toBeNull();
+    expect(message?.textContent).toBe(RETIRE_MESSAGE);
+    expect(message).toHaveClass("line-clamp-2", "break-words");
+    expect(container.textContent?.split(RETIRE_MESSAGE)).toHaveLength(2);
   });
 
   test("counts and ping-only hosts stay visible with their explanation in the scan column", async () => {
@@ -3327,5 +3340,386 @@ describe("long status messages wrap inside their own column (issue #3585)", () =
         `[title="${OneUptimeDate.getDateAsLocalFormattedString(nextScanAt)}"]`,
       ),
     ).toBeTruthy();
+  });
+});
+
+/*
+ * OneUptime issue #3842: in the Scan cell, "Show details" and "Hide details"
+ * displayed the same information. The cell always rendered the toggle, its
+ * collapsed state was the status message clamped to two lines and its
+ * expanded state was the same message again — so a message that fits in two
+ * lines, like the probe's summary of a healthy sweep, looked identical either
+ * way.
+ *
+ * The component's own behaviour is covered in
+ * DiscoveryScanStatusMessage.test.tsx. These tests hold the page's use of it:
+ * the Scan cell renders the message once, names the scan in the toggle, and
+ * offers the toggle only when the preview cuts the message short.
+ */
+describe("the Scan cell's status message (issue #3842)", () => {
+  // The messages in the report's recording, verbatim.
+  const REPORTED_SWITCH_MESSAGE: string =
+    "Swept 15360 hosts: 2906 answered ICMP ping, 2888 answered SNMP.";
+  const REPORTED_ROUTER_MESSAGE: string =
+    "Swept 2560 hosts: 917 answered ICMP ping, 460 answered SNMP.";
+
+  const RETIRE_MESSAGE: string =
+    "Settings changed, so this scan is queued to run again. The hosts the previous run found have been cleared - they described settings this scan no longer has.";
+
+  // The width of the Scan column in the report's recording.
+  const DESKTOP_CHARACTERS_PER_LINE: number = 48;
+
+  const REPORTED_SWITCH_SCAN: Partial<NetworkDeviceDiscoveryScan> = {
+    name: "Switch Discovery - WBHQ Unit/Core Switches",
+    cidr: "10.240-249.0-255.220-225",
+    status: "Completed",
+    isRecurring: true,
+    rescanIntervalInMinutes: 20,
+    scannedHostCount: 15360,
+    respondedHostCount: 2888,
+    statusMessage: REPORTED_SWITCH_MESSAGE,
+  } as unknown as Partial<NetworkDeviceDiscoveryScan>;
+
+  const REPORTED_ROUTER_SCAN: Partial<NetworkDeviceDiscoveryScan> = {
+    name: "Router Discovery - WBHQ Unit/Core Routers",
+    cidr: "10.240-249.0-255.1",
+    status: "Completed",
+    isRecurring: true,
+    rescanIntervalInMinutes: 20,
+    scannedHostCount: 2560,
+    respondedHostCount: 460,
+    statusMessage: REPORTED_ROUTER_MESSAGE,
+  } as unknown as Partial<NetworkDeviceDiscoveryScan>;
+
+  const RETIRED_SCAN: Partial<NetworkDeviceDiscoveryScan> = {
+    name: "Core switches",
+    cidr: "10.0.0.0/24",
+    status: "Pending",
+    respondedHostCount: null,
+    statusMessage: RETIRE_MESSAGE,
+  } as unknown as Partial<NetworkDeviceDiscoveryScan>;
+
+  let layout: TextClampLayout | null = null;
+
+  function installLayout(
+    charactersPerLine: number = DESKTOP_CHARACTERS_PER_LINE,
+  ): TextClampLayout {
+    layout = installTextClampLayout({ charactersPerLine: charactersPerLine });
+    return layout;
+  }
+
+  function scanCell(
+    scan: Partial<NetworkDeviceDiscoveryScan>,
+  ): React.ReactElement {
+    const column: CapturedColumn = columnNamed("name");
+
+    if (!column.getElement) {
+      throw new Error("The Scan column renders no element");
+    }
+
+    return (
+      <MemoryRouter>
+        {column.getElement(scan as NetworkDeviceDiscoveryScan)}
+      </MemoryRouter>
+    );
+  }
+
+  function renderScanCell(
+    scan: Partial<NetworkDeviceDiscoveryScan>,
+  ): RenderResult {
+    return render(scanCell(scan));
+  }
+
+  function labelOf(scan: Partial<NetworkDeviceDiscoveryScan>): string {
+    return ScanNameUtil.getScanLabel(scan as NetworkDeviceDiscoveryScan);
+  }
+
+  function queryDetailsToggles(): Array<HTMLElement> {
+    return screen.queryAllByRole("button", { name: /details/i });
+  }
+
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+
+    const probe: Probe = new Probe();
+    probe.id = new ObjectID("22222222-2222-4222-8222-222222222222");
+    probe.name = "Datacenter Probe";
+
+    jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([probe] as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+    layout?.restore();
+    layout = null;
+    jest.restoreAllMocks();
+    capturedTableProps = null;
+  });
+
+  test.each([
+    ["switch", REPORTED_SWITCH_SCAN, REPORTED_SWITCH_MESSAGE],
+    ["router", REPORTED_ROUTER_SCAN, REPORTED_ROUTER_MESSAGE],
+  ])(
+    "the reported %s scan shows its summary once, with no Show details or Hide details",
+    async (
+      _label: string,
+      scan: Partial<NetworkDeviceDiscoveryScan>,
+      message: string,
+    ) => {
+      await renderPage();
+      installLayout();
+      const { container } = renderScanCell(scan);
+
+      expect(screen.getAllByText(message)).toHaveLength(1);
+      expect(container.textContent).not.toContain("Show details");
+      expect(container.textContent).not.toContain("Hide details");
+      expect(queryDetailsToggles()).toHaveLength(0);
+      expect(container.querySelector("details")).toBeNull();
+    },
+  );
+
+  test("with no layout to measure, the cell still shows the message once and offers no toggle", async () => {
+    await renderPage();
+    const { container } = renderScanCell(RETIRED_SCAN);
+
+    expect(screen.getAllByText(RETIRE_MESSAGE)).toHaveLength(1);
+    expect(container.textContent).not.toContain("Show details");
+    expect(queryDetailsToggles()).toHaveLength(0);
+  });
+
+  test("a message the preview cuts short gets a toggle naming its scan", async () => {
+    await renderPage();
+    installLayout();
+    renderScanCell(RETIRED_SCAN);
+
+    const toggle: HTMLElement = screen.getByRole("button", {
+      name: `Show details for ${labelOf(RETIRED_SCAN)}`,
+    });
+
+    expect(labelOf(RETIRED_SCAN)).toBe("Core switches (10.0.0.0/24)");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(queryDetailsToggles()).toHaveLength(1);
+  });
+
+  test("Show details and Hide details display different amounts of the message", async () => {
+    await renderPage();
+    const harness: TextClampLayout = installLayout();
+    const { container } = renderScanCell(RETIRED_SCAN);
+    const message: HTMLParagraphElement = container.querySelector(
+      "p[id]",
+    ) as HTMLParagraphElement;
+
+    const collapsedHeight: number = message.clientHeight;
+    expect(message).toHaveClass("line-clamp-2");
+    expect(message.scrollHeight).toBeGreaterThan(collapsedHeight);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Show details for / }));
+
+    const expandedHeight: number = message.clientHeight;
+    expect(message).not.toHaveClass("line-clamp-2");
+    expect(expandedHeight).toBe(message.scrollHeight);
+    expect(expandedHeight).toBeGreaterThan(collapsedHeight);
+    expect(
+      screen.getByRole("button", {
+        name: `Hide details for ${labelOf(RETIRED_SCAN)}`,
+      }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByText(RETIRE_MESSAGE)).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Hide details for / }));
+
+    expect(message).toHaveClass("line-clamp-2");
+    expect(message.clientHeight).toBe(collapsedHeight);
+    expect(harness.connectedObserverCount()).toBe(1);
+  });
+
+  test("the toggle controls the message it sits under", async () => {
+    await renderPage();
+    installLayout();
+    const { container } = renderScanCell(RETIRED_SCAN);
+    const message: HTMLParagraphElement = container.querySelector(
+      "p[id]",
+    ) as HTMLParagraphElement;
+    const toggle: HTMLElement = screen.getByRole("button", {
+      name: /^Show details for /,
+    });
+
+    expect(toggle).toHaveAttribute("aria-controls", message.id);
+    expect(
+      message.compareDocumentPosition(toggle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("the reported summary gains a toggle on a column too narrow to fit it", async () => {
+    await renderPage();
+    const harness: TextClampLayout = installLayout();
+    renderScanCell(REPORTED_SWITCH_SCAN);
+
+    expect(queryDetailsToggles()).toHaveLength(0);
+
+    harness.setCharactersPerLine(20);
+    harness.resize();
+
+    expect(
+      screen.getByRole("button", {
+        name: `Show details for ${labelOf(REPORTED_SWITCH_SCAN)}`,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("an unnamed scan's toggle is labelled with its target", async () => {
+    await renderPage();
+    installLayout();
+    const unnamed: Partial<NetworkDeviceDiscoveryScan> = {
+      ...RETIRED_SCAN,
+      name: undefined,
+    } as unknown as Partial<NetworkDeviceDiscoveryScan>;
+
+    renderScanCell(unnamed);
+
+    expect(
+      screen.getByRole("button", { name: "Show details for 10.0.0.0/24" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a scan with neither name nor target still gets a readable toggle", async () => {
+    await renderPage();
+    installLayout();
+    const anonymous: Partial<NetworkDeviceDiscoveryScan> = {
+      ...RETIRED_SCAN,
+      name: undefined,
+      cidr: undefined,
+    } as unknown as Partial<NetworkDeviceDiscoveryScan>;
+
+    renderScanCell(anonymous);
+
+    expect(
+      screen.getByRole("button", { name: "Show details for this scan" }),
+    ).toBeInTheDocument();
+  });
+
+  test.each([
+    ["undefined", undefined],
+    ["null", null],
+    ["empty", ""],
+  ])(
+    "a scan whose status message is %s renders no message and no toggle",
+    async (_label: string, statusMessage: string | null | undefined) => {
+      await renderPage();
+      installLayout();
+      const { container } = renderScanCell({
+        ...RETIRED_SCAN,
+        statusMessage: statusMessage,
+      } as unknown as Partial<NetworkDeviceDiscoveryScan>);
+
+      expect(container.querySelector("p[id]")).toBeNull();
+      expect(queryDetailsToggles()).toHaveLength(0);
+      // The identity lines are still there.
+      expect(container.textContent).toContain("Core switches");
+      expect(container.textContent).toContain("10.0.0.0/24");
+    },
+  );
+
+  test("the message sits beneath the scan's identity lines", async () => {
+    await renderPage();
+    installLayout();
+    const { container } = renderScanCell(REPORTED_SWITCH_SCAN);
+    const text: string = container.textContent || "";
+
+    expect(text.indexOf("Switch Discovery - WBHQ Unit/Core Switches")).toBe(0);
+    expect(text.indexOf("10.240-249.0-255.220-225")).toBeLessThan(
+      text.indexOf("Repeats every 20 min"),
+    );
+    expect(text.indexOf("Repeats every 20 min")).toBeLessThan(
+      text.indexOf(REPORTED_SWITCH_MESSAGE),
+    );
+    expect(text.endsWith(REPORTED_SWITCH_MESSAGE)).toBe(true);
+  });
+
+  test("a live update that shortens an open message removes its toggle", async () => {
+    await renderPage();
+    installLayout();
+    const { rerender } = renderScanCell(RETIRED_SCAN);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Show details for / }));
+    expect(
+      screen.getByRole("button", { name: /^Hide details for / }),
+    ).toBeInTheDocument();
+
+    rerender(
+      scanCell({
+        ...RETIRED_SCAN,
+        status: "Completed",
+        statusMessage: REPORTED_SWITCH_MESSAGE,
+      } as unknown as Partial<NetworkDeviceDiscoveryScan>),
+    );
+
+    expect(screen.getByText(REPORTED_SWITCH_MESSAGE)).toBeInTheDocument();
+    expect(queryDetailsToggles()).toHaveLength(0);
+  });
+
+  test("a live update that keeps the message long leaves it open", async () => {
+    await renderPage();
+    installLayout();
+    const { rerender } = renderScanCell(RETIRED_SCAN);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Show details for / }));
+
+    const progress: string =
+      "Scan in progress: 12,288 of 15,360 addresses swept so far. Checking SNMP credentials (200 of 256). 3 answered ICMP ping, 2 answered SNMP. These results update as the sweep continues.";
+
+    rerender(
+      scanCell({
+        ...RETIRED_SCAN,
+        status: "In Progress",
+        statusMessage: progress,
+      } as unknown as Partial<NetworkDeviceDiscoveryScan>),
+    );
+
+    expect(screen.getByText(progress)).not.toHaveClass("line-clamp-2");
+    expect(
+      screen.getByRole("button", { name: /^Hide details for / }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("each row's toggle opens only its own message", async () => {
+    await renderPage();
+    installLayout();
+    const other: Partial<NetworkDeviceDiscoveryScan> = {
+      ...RETIRED_SCAN,
+      name: "Edge routers",
+      cidr: "10.1.0.0/24",
+    } as unknown as Partial<NetworkDeviceDiscoveryScan>;
+
+    render(
+      <>
+        {scanCell(RETIRED_SCAN)}
+        {scanCell(other)}
+      </>,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Show details for ${labelOf(other)}`,
+      }),
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: `Hide details for ${labelOf(other)}`,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: `Show details for ${labelOf(RETIRED_SCAN)}`,
+      }),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    const messages: Array<HTMLElement> = screen.getAllByText(RETIRE_MESSAGE);
+    expect(messages).toHaveLength(2);
+    expect(messages[0]).toHaveClass("line-clamp-2");
+    expect(messages[1]).not.toHaveClass("line-clamp-2");
   });
 });

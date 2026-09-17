@@ -1,5 +1,6 @@
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import ObjectID from "Common/Types/ObjectID";
 import Text from "Common/Types/Text";
@@ -62,6 +63,12 @@ export const buildQueryConfigsFromSerializedQueries: BuildQueryConfigsFunction =
               ? { topN: metricQuery.topN }
               : {}),
           },
+          ...(metricQuery.eventScope !== undefined
+            ? {
+                eventScope:
+                  metricQuery.eventScope as MetricsQuery["attributes"],
+              }
+            : {}),
           ...(metricQuery.chartType
             ? { chartType: metricQuery.chartType }
             : {}),

@@ -2014,7 +2014,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "object",
         required: false,
         description:
-          "Configuration for time-based evaluation. Contains 'timeValueInMinutes' (number of minutes to evaluate), 'evaluateOverTimeType' (aggregation: 'Average', 'Sum', 'Maximum Value', 'Minimum Value', 'All Values', 'Any Value'), and 'onNoDataPolicy' ('Ignore' (default), 'Treat As Zero' or 'Trigger') which decides what happens while the window does not hold enough data to judge the filter. Note that 'All Values' only matches once the window is actually covered by data, so a monitor that has just been created waits for the window to fill instead of matching on its first check.",
+          "Configuration for time-based evaluation. Contains 'timeValueInMinutes' (number of minutes to evaluate), 'evaluateOverTimeType' (aggregation: 'Average', 'Sum', 'Maximum Value', 'Minimum Value', 'All Values', 'Any Value'), and 'onNoDataPolicy' ('Ignore' (default), 'Treat As Zero' or 'Trigger') which decides what happens while the window does not hold enough data to judge the filter. Note that 'All Values' only matches once the window is actually covered by data, so a monitor that has just been created waits for the window to fill instead of matching on its first check. The true/false checks ('Is Online', 'DNS Is Online', 'SNMP Device Is Online', 'External Status Page Is Online', 'Database Is Online') only support 'All Values' and 'Any Value'; any other aggregation on them is evaluated as 'All Values'.",
       },
       {
         name: "serverMonitorOptions",

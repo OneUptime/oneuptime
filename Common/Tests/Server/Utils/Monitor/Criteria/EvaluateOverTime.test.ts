@@ -75,6 +75,28 @@ function criteria(overrides: Partial<CriteriaFilter> = {}): CriteriaFilter {
 }
 
 /*
+ * Probe CheckOns that write into the shared 1 / 0 online series instead of a
+ * series of their own.
+ */
+const SHARED_ONLINE_SERIES_CHECK_ONS: Array<CheckOn> = [
+  CheckOn.DnsIsOnline,
+  CheckOn.SnmpIsOnline,
+  CheckOn.ExternalStatusPageIsOnline,
+  CheckOn.DatabaseIsOnline,
+];
+
+/*
+ * Every CheckOn that evaluates over time against a 1 / 0 series.
+ * CompareCriteria.isTrue / isFalse match only real booleans, so the window
+ * and the Treat As Zero substitute must both come back as booleans for
+ * each of these.
+ */
+const BOOLEAN_SERIES_CHECK_ONS: Array<CheckOn> = [
+  CheckOn.IsOnline,
+  ...SHARED_ONLINE_SERIES_CHECK_ONS,
+];
+
+/*
  * The metric read is stubbed in memory rather than through a typed spy so
  * every query it receives can be asserted on directly.
  */
@@ -243,14 +265,12 @@ describe("EvaluateOverTime", () => {
      * DNS / SNMP / External Status Page probes write into the shared online
      * and response-time series. Their CheckOns had no entry in the metric
      * map at all, so "evaluate over time" was a no-op for every one of them.
+     *
+     * Database Is Online reads the same online series. It was mapped to it,
+     * but its samples came back as raw 0 / 1, which no True / False filter
+     * ever matches.
      */
-    const onlineCheckOns: Array<CheckOn> = [
-      CheckOn.DnsIsOnline,
-      CheckOn.SnmpIsOnline,
-      CheckOn.ExternalStatusPageIsOnline,
-    ];
-
-    for (const checkOn of onlineCheckOns) {
+    for (const checkOn of SHARED_ONLINE_SERIES_CHECK_ONS) {
       test(`${checkOn} reads the online series`, async () => {
         mockSamples(everyMinute([0, 0, 0, 0, 0]));
 
@@ -808,19 +828,113 @@ describe("EvaluateOverTime", () => {
   });
 
   describe("boolean series", () => {
-    test("1 becomes true and everything else becomes false", async () => {
-      mockSamples(everyMinute([1, 0, 1, 1, 0]));
+    for (const checkOn of BOOLEAN_SERIES_CHECK_ONS) {
+      test(`${checkOn}: 1 becomes true and everything else becomes false`, async () => {
+        mockSamples(everyMinute([1, 0, 1, 1, 0]));
+
+        const result: OverTimeEvaluation = await evaluate({
+          criteriaFilter: criteria({
+            checkOn: checkOn,
+            filterType: FilterType.False,
+            value: undefined,
+          }),
+          monitoringInterval: "* * * * *",
+        });
+
+        expect(result.status).toBe(OverTimeEvaluationStatus.Evaluated);
+        expect(result.value).toEqual([true, false, true, true, false]);
+      });
+    }
+
+    const aggregateTypes: Array<EvaluateOverTimeType> = [
+      EvaluateOverTimeType.Average,
+      EvaluateOverTimeType.Sum,
+      EvaluateOverTimeType.MaximumValue,
+      EvaluateOverTimeType.MunimumValue,
+    ];
+
+    function booleanCriteria(input: {
+      checkOn: CheckOn;
+      evaluateOverTimeType: EvaluateOverTimeType;
+    }): CriteriaFilter {
+      return criteria({
+        checkOn: input.checkOn,
+        filterType: FilterType.False,
+        value: undefined,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: input.evaluateOverTimeType,
+        },
+      });
+    }
+
+    /*
+     * An aggregate of a 1/0 window is a number such as 0.6, which neither
+     * True nor False matches. Such a filter is judged as All Values instead,
+     * so the window comes back as the samples themselves.
+     */
+    describe.each(BOOLEAN_SERIES_CHECK_ONS)(
+      "%s saved with an aggregate",
+      (checkOn: CheckOn) => {
+        test.each(aggregateTypes)(
+          "%s returns the samples rather than a number",
+          async (evaluateOverTimeType: EvaluateOverTimeType) => {
+            mockSamples(everyMinute([1, 0, 1, 1, 0]));
+
+            const result: OverTimeEvaluation = await evaluate({
+              criteriaFilter: booleanCriteria({
+                checkOn: checkOn,
+                evaluateOverTimeType: evaluateOverTimeType,
+              }),
+              monitoringInterval: "* * * * *",
+            });
+
+            expect(result.status).toBe(OverTimeEvaluationStatus.Evaluated);
+            expect(result.value).toEqual([true, false, true, true, false]);
+            expect(result.sampleCount).toBe(5);
+          },
+        );
+
+        test.each(aggregateTypes)(
+          "%s waits for the window to be covered, like All Values",
+          async (evaluateOverTimeType: EvaluateOverTimeType) => {
+            mockSamples([sample({ value: 0, minutesAgo: 0 })]);
+
+            const result: OverTimeEvaluation = await evaluate({
+              criteriaFilter: booleanCriteria({
+                checkOn: checkOn,
+                evaluateOverTimeType: evaluateOverTimeType,
+              }),
+              monitoringInterval: "* * * * *",
+            });
+
+            expect(result.status).toBe(
+              OverTimeEvaluationStatus.InsufficientData,
+            );
+            expect(result.value).toBeUndefined();
+            expect(result.sampleCount).toBe(1);
+          },
+        );
+      },
+    );
+
+    test("an aggregate on a numeric series on the same monitor still reduces", async () => {
+      mockSamples(everyMinute([10, 20, 30]));
 
       const result: OverTimeEvaluation = await evaluate({
         criteriaFilter: criteria({
-          checkOn: CheckOn.IsOnline,
-          filterType: FilterType.False,
-          value: undefined,
+          checkOn: CheckOn.DnsResponseTime,
+          filterType: FilterType.GreaterThan,
+          value: 15,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.Average,
+          },
         }),
-        monitoringInterval: "* * * * *",
       });
 
-      expect(result.value).toEqual([true, false, true, true, false]);
+      expect(result.status).toBe(OverTimeEvaluationStatus.Evaluated);
+      expect(result.value).toBe(20);
     });
   });
 
@@ -926,24 +1040,27 @@ describe("EvaluateOverTime", () => {
       expect(result.value).toEqual([0]);
     });
 
-    test("Treat As Zero substitutes false for an online series", async () => {
-      mockSamples([]);
+    for (const checkOn of BOOLEAN_SERIES_CHECK_ONS) {
+      test(`Treat As Zero substitutes false for ${checkOn}`, async () => {
+        mockSamples([]);
 
-      const result: OverTimeCriteriaValue = await resolve({
-        criteriaFilter: criteria({
-          checkOn: CheckOn.IsOnline,
-          filterType: FilterType.False,
-          value: undefined,
-          evaluateOverTimeOptions: {
-            timeValueInMinutes: 5,
-            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-            onNoDataPolicy: NoDataPolicy.TreatAsZero,
-          },
-        }),
+        const result: OverTimeCriteriaValue = await resolve({
+          criteriaFilter: criteria({
+            checkOn: checkOn,
+            filterType: FilterType.False,
+            value: undefined,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: 5,
+              evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+              onNoDataPolicy: NoDataPolicy.TreatAsZero,
+            },
+          }),
+        });
+
+        expect(result.earlyReturn).toBeNull();
+        expect(result.value).toEqual([false]);
       });
-
-      expect(result.value).toEqual([false]);
-    });
+    }
 
     /*
      * A metric store we could not read tells us nothing about the monitor.

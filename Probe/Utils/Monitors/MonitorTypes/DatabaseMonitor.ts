@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import SqlMonitor, {
   buildMicrosoftSqlServerPoolConfig,
   loadMicrosoftSqlServerDriver,
@@ -45,6 +46,12 @@ export interface DatabaseMonitorExecuteOptions {
   isOnlineCheckRequest?: boolean | undefined;
   timeout?: number | undefined;
 }
+
+/*
+ * Retries when the caller passes none: three attempts, the same as before
+ * retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 2;
 
 /*
  * One connection, opened for the whole check, that can run a statement and
@@ -130,6 +137,7 @@ export default class DatabaseMonitor {
       );
 
       const responseTimeInMs: number = this.elapsedMs(startTime);
+      const responseReceivedAt: Date = new Date();
 
       const probeRow: Record<string, unknown> = probeRows[0] || {};
       const engineVersion: string | undefined = this.readString(
@@ -248,6 +256,19 @@ export default class DatabaseMonitor {
       metrics[MonitorMetricType.DatabaseMetricGroupsFailed] =
         unavailableGroups.length;
 
+      /*
+       * Recorded last, once nothing below can throw into the catch and log a
+       * second entry for this attempt. Timed at the probe query, which is
+       * what decided the database is online.
+       */
+      options.attempts.push({
+        attemptNumber: options.currentRetryCount,
+        attemptedAt,
+        responseReceivedAt,
+        responseTimeInMs,
+        isOnline: true,
+      });
+
       return {
         isOnline: true,
         responseTimeInMs,
@@ -258,7 +279,7 @@ export default class DatabaseMonitor {
         engineVersion,
         connectionError: null,
         probeAttempts: options.attempts,
-        totalAttempts: options.attempts.length + 1,
+        totalAttempts: options.attempts.length,
       };
     } catch (err: unknown) {
       const sanitized: string = SqlMonitor.sanitizeError(err, config.password, [
@@ -282,7 +303,13 @@ export default class DatabaseMonitor {
         failureCause: sanitized,
       });
 
-      if (options.currentRetryCount < (options.retry || 3)) {
+      if (
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await DatabaseMonitor.execute(config, options);

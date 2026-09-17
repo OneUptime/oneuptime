@@ -557,6 +557,18 @@ describe("IdentityRateLimit", () => {
       });
     });
 
+    it("ships the documented status page login budget", () => {
+      expect(
+        IdentityRateLimit.getBucketConfig(
+          IdentityRateLimitBucket.StatusPageLogin,
+        ),
+      ).toEqual({
+        windowSeconds: WINDOW_SECONDS,
+        perAccountLimit: PER_ACCOUNT_LIMIT,
+        perIpLimit: PER_IP_LIMIT,
+      });
+    });
+
     it("falls back to the login budget for an unknown bucket", () => {
       expect(
         IdentityRateLimit.getBucketConfig(
@@ -734,10 +746,70 @@ describe("IdentityRateLimit", () => {
       await consume({ bucket: IdentityRateLimitBucket.Login });
       await consume({ bucket: IdentityRateLimitBucket.TwoFactor });
       await consume({ bucket: IdentityRateLimitBucket.BackupCode });
+      await consume({ bucket: IdentityRateLimitBucket.StatusPageLogin });
 
       expect(client.keysMatching(":login:")).toHaveLength(2);
       expect(client.keysMatching(":two-factor:")).toHaveLength(2);
       expect(client.keysMatching(":backup-code:")).toHaveLength(2);
+      expect(client.keysMatching(":status-page-login:")).toHaveLength(2);
+    });
+
+    /*
+     * Status page private users and dashboard users are different accounts
+     * that can share an email address and an office. Guessing at one login
+     * must not refuse the other, in either direction.
+     */
+    it("does not let dashboard /login attempts refuse a status page login", async () => {
+      for (let i: number = 0; i < PER_IP_LIMIT + 1; i++) {
+        await consume({ bucket: IdentityRateLimitBucket.Login });
+      }
+
+      expect(
+        (await consume({ bucket: IdentityRateLimitBucket.StatusPageLogin }))
+          .outcome,
+      ).toBe(IdentityRateLimitOutcome.Allowed);
+    });
+
+    it("does not let status page login attempts refuse a dashboard /login", async () => {
+      for (let i: number = 0; i < PER_IP_LIMIT + 1; i++) {
+        await consume({ bucket: IdentityRateLimitBucket.StatusPageLogin });
+      }
+
+      expect(
+        (await consume({ bucket: IdentityRateLimitBucket.Login })).outcome,
+      ).toBe(IdentityRateLimitOutcome.Allowed);
+    });
+
+    it("bounds status page password guessing on its own counters", async () => {
+      for (let i: number = 0; i < PER_ACCOUNT_LIMIT; i++) {
+        expect(
+          (await consume({ bucket: IdentityRateLimitBucket.StatusPageLogin }))
+            .outcome,
+        ).toBe(IdentityRateLimitOutcome.Allowed);
+      }
+
+      const refused: IdentityRateLimitDecision = await consume({
+        bucket: IdentityRateLimitBucket.StatusPageLogin,
+      });
+
+      expect(refused.outcome).toBe(IdentityRateLimitOutcome.RateLimited);
+      expect(refused.scope).toBe(IdentityRateLimitScope.Account);
+
+      let ipRefused: IdentityRateLimitDecision | null = null;
+
+      for (let i: number = 0; i < PER_IP_LIMIT + 1; i++) {
+        const decision: IdentityRateLimitDecision = await consume({
+          accountKey: `rotating-${i}@example.com`,
+          clientIp: "198.51.100.4",
+          bucket: IdentityRateLimitBucket.StatusPageLogin,
+        });
+
+        if (decision.outcome === IdentityRateLimitOutcome.RateLimited) {
+          ipRefused = decision;
+        }
+      }
+
+      expect(ipRefused?.scope).toBe(IdentityRateLimitScope.Ip);
     });
   });
 

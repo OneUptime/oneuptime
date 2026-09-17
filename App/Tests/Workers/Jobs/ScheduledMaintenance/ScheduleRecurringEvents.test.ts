@@ -97,6 +97,12 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
 import ScheduledMaintenanceTemplateService from "Common/Server/Services/ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerUserService from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerTeamService";
+import ScheduledMaintenanceOwnerUserService from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
+import ScheduledMaintenanceOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceOwnerTeamService";
+import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
+import logger from "Common/Server/Utils/Logger";
+import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
+import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -264,5 +270,94 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
     expect(idsOn(created[0]!.hosts)).toEqual([]);
     expect(idsOn(created[0]!.services)).toEqual([]);
     expect(idsOn(created[0]!.monitors)).toEqual(["monitor-1"]);
+  });
+
+  describe("owners (issue #3394)", () => {
+    const USER_A: ObjectID = new ObjectID(
+      "0000000e-0000-4000-8000-00000000000a",
+    );
+    const USER_B: ObjectID = new ObjectID(
+      "0000000e-0000-4000-8000-00000000000b",
+    );
+    const TEAM_A: ObjectID = new ObjectID(
+      "0000000b-0000-4000-8000-00000000000a",
+    );
+
+    beforeEach(() => {
+      (
+        ScheduledMaintenanceTemplateOwnerUserService.findAllBy as jest.Mock
+      ).mockResolvedValue([{ userId: USER_A }, { userId: USER_B }] as never);
+      (
+        ScheduledMaintenanceTemplateOwnerTeamService.findAllBy as jest.Mock
+      ).mockResolvedValue([{ teamId: TEAM_A }] as never);
+      (
+        ScheduledMaintenanceOwnerTeamService.create as jest.Mock
+      ).mockResolvedValue({} as never);
+    });
+
+    function userIdsWritten(): Array<string> {
+      return (
+        ScheduledMaintenanceOwnerUserService.create as jest.Mock
+      ).mock.calls.map((call: Array<unknown>): string => {
+        return String(
+          (call[0] as { data: ScheduledMaintenanceOwnerUser }).data.userId,
+        );
+      });
+    }
+
+    test("copies the template's owners onto the new event", async () => {
+      (
+        ScheduledMaintenanceOwnerUserService.create as jest.Mock
+      ).mockResolvedValue({} as never);
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(userIdsWritten()).toEqual([USER_A.toString(), USER_B.toString()]);
+
+      const teamRow: ScheduledMaintenanceOwnerTeam = (
+        (ScheduledMaintenanceOwnerTeamService.create as jest.Mock).mock
+          .calls[0]![0] as { data: ScheduledMaintenanceOwnerTeam }
+      ).data;
+      expect(String(teamRow.teamId)).toBe(TEAM_A.toString());
+      expect(String(teamRow.scheduledMaintenanceId)).toBe("sm-1");
+    });
+
+    test("an owner the event already has does not cost it the remaining owners", async () => {
+      /*
+       * Creating the event runs its owner rules, which can add one of the
+       * template's owners first. Owner rows are unique now, so copying that
+       * owner is refused - and must not abort the copy of everyone after.
+       */
+      (
+        ScheduledMaintenanceOwnerUserService.create as jest.Mock
+      ).mockImplementation((async (args: {
+        data: ScheduledMaintenanceOwnerUser;
+      }) => {
+        if (String(args.data.userId) === USER_A.toString()) {
+          throw PostgresErrorTranslator.createUniqueViolationException(
+            "This user is already an owner of this scheduled maintenance event.",
+          );
+        }
+        return args.data;
+      }) as never);
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(userIdsWritten()).toEqual([USER_A.toString(), USER_B.toString()]);
+      expect(ScheduledMaintenanceOwnerTeamService.create).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    test("any other owner failure is still reported", async () => {
+      (
+        ScheduledMaintenanceOwnerUserService.create as jest.Mock
+      ).mockRejectedValue(new Error("connection reset") as never);
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(logger.error).toHaveBeenCalled();
+    });
   });
 });

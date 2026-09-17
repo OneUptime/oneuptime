@@ -277,7 +277,14 @@
       "title": "Proyecto",
       "cardTitle": "Proyecto",
       "cardDescription": "Detalles del proyecto",
-      "editButton": "Editar proyecto"
+      "editButton": "Editar proyecto",
+      "dataResidencyCardTitle": "Residencia de datos",
+      "dataResidencyCardDescription": "Dónde se alojan los datos de este proyecto. Una vez establecida, se muestra a los usuarios del proyecto en la Configuración del proyecto.",
+      "dataResidencyEditButton": "Editar residencia de datos",
+      "dataResidencyFieldTitle": "Residencia de datos",
+      "dataResidencyFieldDescription": "Una etiqueta que indica dónde se alojan los datos de este proyecto, por ejemplo \"UE (Fráncfort)\". Déjela en blanco para ocultarla a los usuarios del proyecto.",
+      "dataResidencyFieldPlaceholder": "UE (Fráncfort)",
+      "dataResidencyNotSet": "No establecida"
     },
     "projectSubscription": {
       "title": "Suscripción del proyecto",

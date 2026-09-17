@@ -11,6 +11,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import { formatDictionaryValueForDisplay } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import { PROBE_DEFAULT_RETRY_COUNT_LABEL } from "./MonitorRetryHelpText";
 
 /*
  * WHY THIS FILE EXISTS
@@ -462,8 +463,8 @@ export default class MonitorStepViewModel {
   }
 
   /*
-   * Per-step overrides on probe monitors. Both are optional and fall back to
-   * platform defaults, so they only earn a row when the user set them.
+   * Missing retries inherit the probe configuration. Keep that visible so
+   * viewing and editing an API-created monitor describe the same setting.
    */
   private static getTimeoutAndRetryRows(
     data: MonitorStepType,
@@ -477,14 +478,14 @@ export default class MonitorStepViewModel {
         value: toMilliseconds(data.requestTimeoutInMs),
         placeholder: "Default",
       }),
-      optional({
+      {
         key: "retryCount",
         title: "Retry Count",
-        description: "How many times we retry a failed check.",
+        description: "How many times we retry after the first attempt fails.",
         valueType: MonitorStepViewValueType.Number,
         value: data.retryCount,
-        placeholder: "Default",
-      }),
+        placeholder: PROBE_DEFAULT_RETRY_COUNT_LABEL,
+      },
     ];
   }
 

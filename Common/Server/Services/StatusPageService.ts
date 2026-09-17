@@ -17,6 +17,7 @@ import StatusPageLabelRuleEngineService from "./StatusPageLabelRuleEngineService
 import StatusPageOwnerRuleEngineService from "./StatusPageOwnerRuleEngineService";
 import StatusPageOwnerTeamService from "./StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "./StatusPageOwnerUserService";
+import StatusPagePrivateUserSessionService from "./StatusPagePrivateUserSessionService";
 import TeamMemberService from "./TeamMemberService";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
@@ -28,12 +29,12 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Typeof from "../../Types/Typeof";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageOwnerTeam from "../../Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "../../Models/DatabaseModels/StatusPageOwnerUser";
+import StatusPagePrivateUserSession from "../../Models/DatabaseModels/StatusPagePrivateUserSession";
 import User from "../../Models/DatabaseModels/User";
 import {
   AllowedStatusPageCountInFreePlan,
@@ -69,6 +70,7 @@ import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import IP from "../../Types/IP/IP";
 import { resolveClientIp } from "../Utils/ClientIp";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
@@ -509,37 +511,18 @@ export class Service extends DatabaseService<StatusPage> {
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: StatusPageOwnerTeam = new StatusPageOwnerTeam();
-      teamOwner.statusPageId = statusPageId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-
-      await StatusPageOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-      const teamOwner: StatusPageOwnerUser = new StatusPageOwnerUser();
-      teamOwner.statusPageId = statusPageId;
-      teamOwner.projectId = projectId;
-      teamOwner.userId = userId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-      await StatusPageOwnerUserService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
+    // Owners already on the status page are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: StatusPageOwnerUserService,
+      ownerTeamService: StatusPageOwnerTeamService,
+      resourceIdColumn: "statusPageId",
+      resourceId: statusPageId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
   }
 
   @CaptureSpan()
@@ -658,10 +641,50 @@ export class Service extends DatabaseService<StatusPage> {
             token as string,
           );
 
-          if (decoded.statusPageId?.toString() === statusPageId.toString()) {
-            return {
-              hasReadAccess: true,
-            };
+          if (
+            statusPage &&
+            decoded.statusPageId?.toString() === statusPageId.toString() &&
+            decoded.sessionId &&
+            ObjectID.isValidUUID(decoded.sessionId.toString()) &&
+            decoded.userId &&
+            ObjectID.isValidUUID(decoded.userId.toString())
+          ) {
+            /*
+             * One primary-key lookup joined to the private user. Do not cache
+             * authorization: revocation and soft deletion must take effect on
+             * the next request, even while the access JWT remains unexpired.
+             */
+            const session: StatusPagePrivateUserSession | null =
+              await StatusPagePrivateUserSessionService.getQueryBuilder(
+                "session",
+              )
+                .select(["session._id", "session.additionalInfo"])
+                .innerJoin("session.statusPagePrivateUser", "privateUser")
+                .where("session._id = :sessionId", {
+                  sessionId: decoded.sessionId.toString(),
+                })
+                .andWhere("session.statusPageId = :statusPageId", {
+                  statusPageId: statusPageId.toString(),
+                })
+                .andWhere("session.statusPagePrivateUserId = :userId", {
+                  userId: decoded.userId.toString(),
+                })
+                .andWhere("privateUser.statusPageId = :statusPageId")
+                .andWhere("privateUser.deletedAt IS NULL")
+                .andWhere("session.isRevoked = false")
+                .andWhere("session.refreshTokenExpiresAt > :now", {
+                  now: OneUptimeDate.getCurrentDate(),
+                })
+                .getOne();
+
+            if (
+              session &&
+              !StatusPagePrivateUserSessionService.isLoginCodeSession(session)
+            ) {
+              return {
+                hasReadAccess: true,
+              };
+            }
           }
         } catch (err) {
           logger.error(err, {

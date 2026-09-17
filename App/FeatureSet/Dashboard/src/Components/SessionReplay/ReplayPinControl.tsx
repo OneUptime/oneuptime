@@ -87,8 +87,24 @@ export const PIN_UNPINNED_COPY: string =
 
 const CONTROL_ROW_CLASS: string =
   "inline-flex min-w-0 max-w-full flex-wrap items-center gap-2";
+/*
+ * Errors wrap. A failure has to be readable in full where it happened -
+ * the viewer is being told why their evidence is not protected - and one
+ * extra line of the header is a fair price for that.
+ */
 const CONTROL_MESSAGE_CLASS: string =
   "min-w-0 max-w-full whitespace-normal break-words text-xs leading-4 sm:max-w-64";
+/*
+ * Statuses do not. The header is one compact bar above the picture now,
+ * and a sentence of sixty words inline in the actions group wrapped the
+ * whole toolbar onto a second and third row. The short word is what is
+ * drawn; the full sentence - which is the honest one, and the one the
+ * tests read - is carried in the tooltip AND in an sr-only span, so a
+ * screen reader still hears "protection starts when the recording ends"
+ * rather than the two words that stand in for it.
+ */
+const CONTROL_STATUS_CLASS: string =
+  "min-w-0 max-w-full truncate text-xs leading-4";
 
 function isPermissionDenial(error: unknown): boolean {
   return (
@@ -350,20 +366,22 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
       <div className={CONTROL_ROW_CLASS} data-testid="replay-pin-control">
         {state.kind === "unpinned" && (
           <span
-            className={`${CONTROL_MESSAGE_CLASS} text-gray-600`}
+            className={`${CONTROL_STATUS_CLASS} text-gray-600`}
             data-testid="replay-pin-status"
             title={PIN_UNPINNED_COPY}
           >
-            {PIN_UNPINNED_COPY}
+            <span aria-hidden="true">Unpinned</span>
+            <span className="sr-only">{PIN_UNPINNED_COPY}</span>
           </span>
         )}
         {state.kind === "removed-by-worker" && (
           <span
-            className={`${CONTROL_MESSAGE_CLASS} text-amber-700`}
+            className={`${CONTROL_STATUS_CLASS} text-amber-700`}
             data-testid="replay-pin-status"
             title={PIN_REMOVED_COPY}
           >
-            {PIN_REMOVED_COPY}
+            <span aria-hidden="true">Pin removed</span>
+            <span className="sr-only">{PIN_REMOVED_COPY}</span>
           </span>
         )}
         {pinError}
@@ -414,8 +432,8 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
             "Pinned"
           ) : (
             <>
-              <span className="sm:hidden">Pin pending</span>
-              <span className="hidden sm:inline">{PIN_PENDING_COPY}</span>
+              <span aria-hidden="true">Pin pending</span>
+              <span className="sr-only">{PIN_PENDING_COPY}</span>
             </>
           )}
         </span>

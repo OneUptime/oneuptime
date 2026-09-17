@@ -164,10 +164,12 @@ router.post(
        * (an incident, a monitor, the logs explorer, …). It is a hint for the
        * system prompt, so an invalid payload is dropped, never an error.
        */
-      const pageContext: AIChatPageContext | undefined =
-        AIChatPageContextHelper.sanitize(
-          req.body["pageContext"] as JSONObject | undefined,
-        );
+      const pageContext: AIChatPageContext | null | undefined =
+        req.body["pageContext"] === null
+          ? null // Explicitly detaching also clears the conversation's subject.
+          : AIChatPageContextHelper.sanitize(
+              req.body["pageContext"] as JSONObject | undefined,
+            );
 
       // Plan gate: custom endpoints get no automatic billing check.
       if (

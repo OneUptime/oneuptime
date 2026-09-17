@@ -198,6 +198,225 @@ describe("engine ownership", () => {
   });
 });
 
+/*
+ * The redesign's central claim: the recording fills the space the page has
+ * instead of being squeezed into whatever is left after a measured
+ * reserve. That is a layout fact, and jsdom computes no layout, so the
+ * wiring that produces it is pinned here - the shape of the flex chain,
+ * the measured fill height, and the absence of the old JavaScript
+ * arithmetic that used to size the stage.
+ */
+describe("the fill layout", () => {
+  test("the root gets a measured fill height at xl and the class that consumes it", () => {
+    expect(SOURCE).toContain("useReplayFillHeight(rootRef, !isTheater)");
+    expect(SOURCE).toContain("REPLAY_FILL_HEIGHT_CSS_VAR");
+
+    /* The variable is only set once a measurement exists; otherwise the rule falls back to auto. */
+    expect(SOURCE).toMatch(
+      /fillHeightPx === null\s*\?\s*\{\}\s*:\s*\{ \[REPLAY_FILL_HEIGHT_CSS_VAR\]: `\$\{fillHeightPx\}px` \}/,
+    );
+    expect(SOURCE).toMatch(
+      /const REPLAY_ROOT_FLOW_CLASS: string =\s*"[^"]*xl:h-\[var\(--oneuptime-replay-fill-height\)\][^"]*"/,
+    );
+
+    const root: string = slice(
+      SOURCE,
+      'data-testid="replay-player"',
+      "<ReplayHeaderClocked",
+    );
+
+    expect(root).toContain("style={fillHeightStyle}");
+    expect(root).toContain("data-replay-sizing={stageSizing}");
+    expect(root).toMatch(
+      /className=\{\s*isTheater \? REPLAY_ROOT_FILL_CLASS : REPLAY_ROOT_FLOW_CLASS\s*\}/,
+    );
+  });
+
+  test("theater sizes the same chain at every width, inline only from xl up", () => {
+    expect(SOURCE).toContain(
+      'const stageSizing: ReplayStageSizing = isTheater ? "fill" : "responsive";',
+    );
+
+    /* Flow rules unprefixed, fill rules behind xl: - one string, no breakpoint check in JS. */
+    for (const [name, required] of [
+      [
+        "REPLAY_MAIN_ROW_FLOW_CLASS",
+        ["xl:min-h-0", "xl:flex-1", "xl:flex-row"],
+      ],
+      ["REPLAY_PLAYER_COLUMN_FLOW_CLASS", ["flex-1", "xl:min-h-0"]],
+      ["REPLAY_CARD_FLOW_CLASS", ["flex flex-col", "xl:min-h-0", "xl:flex-1"]],
+      ["REPLAY_MAIN_ROW_FILL_CLASS", ["min-h-0", "flex-1"]],
+      ["REPLAY_PLAYER_COLUMN_FILL_CLASS", ["min-h-0", "flex-1"]],
+      ["REPLAY_CARD_FILL_CLASS", ["min-h-0", "flex-1"]],
+    ] as Array<[string, Array<string>]>) {
+      const declaration: string = slice(SOURCE, `const ${name}: string =`, ";");
+
+      for (const fragment of required) {
+        expect(declaration).toContain(fragment);
+      }
+    }
+
+    /* The card is never clipped: the speed menu and the More menu leave it. */
+    expect(SOURCE).not.toMatch(
+      /const REPLAY_CARD_(FLOW|FILL)_CLASS: string =\s*"[^"]*overflow-hidden/,
+    );
+  });
+
+  test("the stage is told how it is sized and how it is fitted, and measures nothing itself", () => {
+    const stageProps: string = slice(SOURCE, "<ReplayStage\n", "/>");
+
+    expect(stageProps).toContain("sizing={stageSizing}");
+    expect(stageProps).toContain("fit={prefs.stageFit}");
+    /* The stage owns its own box now; the shell no longer reserves height for the transport. */
+    expect(stageProps).not.toContain("reservedBottomHeightPx");
+    expect(stageProps).not.toContain("isTheater=");
+    expect(SOURCE).not.toContain("reservedBottomHeightPx");
+    expect(SOURCE).not.toContain("scrubberHeightPx");
+    expect(SOURCE).not.toContain("scrubberContainerRef");
+
+    const overlayProps: string = slice(
+      SOURCE,
+      "<ReplayStageOverlaysClocked",
+      "children: (",
+    );
+
+    expect(overlayProps).toContain("sizing: stageSizing");
+  });
+
+  test("the transport keeps its height and the stage takes the rest", () => {
+    expect(SOURCE).toContain(
+      '<div className="shrink-0 border-t border-gray-200">',
+    );
+  });
+
+  test("the engine placeholder reserves exactly the stage's box", () => {
+    const placeholder: string = slice(
+      SOURCE,
+      "{isPlayable && !engine && (",
+      'data-testid="replay-stage-placeholder"',
+    );
+
+    expect(placeholder).toContain("getReplayStageBoxClassName(");
+    expect(placeholder).toContain("stageSizing");
+    expect(placeholder).toContain("prefs.stageFit");
+    expect(placeholder).toContain("REPLAY_STAGE_ASPECT_CSS_VAR");
+    expect(placeholder).toContain("formatReplayStageAspect(recordedSize)");
+    /* The hard-coded box the placeholder used to draw, which the real stage never matched. */
+    expect(placeholder).not.toContain("aspectRatio:");
+    expect(placeholder).not.toContain('minHeight: "24rem"');
+    expect(placeholder).not.toContain('maxHeight: "70vh"');
+  });
+
+  test("the loading skeleton lays out like the player it becomes", () => {
+    const loading: string = slice(
+      SOURCE,
+      'data-testid="replay-loading"',
+      "<ReplayRail\n",
+    );
+
+    /* The same ref, so the fill height is measured before the manifest lands. */
+    expect(SOURCE).toMatch(/ref=\{rootRef\}\s*data-testid="replay-loading"/);
+    expect(loading).toContain("style={fillHeightStyle}");
+    expect(loading).toContain("className={REPLAY_ROOT_FLOW_CLASS}");
+    expect(loading).toContain("className={REPLAY_MAIN_ROW_FLOW_CLASS}");
+    expect(loading).toContain("className={REPLAY_PLAYER_COLUMN_FLOW_CLASS}");
+    expect(loading).toContain("className={REPLAY_CARD_FLOW_CLASS}");
+    expect(loading).toContain("getReplayStageBoxClassName(");
+    /* No detail card above the picture any more, in either state. */
+    expect(SOURCE).not.toContain('<Card title="Session recording">');
+  });
+
+  /*
+   * ...including at the width the viewer actually dragged the rail to.
+   * The rail width is a stored preference applied as a CSS variable on the
+   * main row. The skeleton used to leave it to the class default, so a
+   * viewer who had widened their rail watched the stage jump sideways the
+   * instant the manifest landed - the one layout shift the skeleton exists
+   * to prevent.
+   */
+  test("the skeleton's main row carries the viewer's stored rail width", () => {
+    const declaration: number = SOURCE.indexOf("const railWidthStyle:");
+    const skeleton: number = SOURCE.indexOf('data-testid="replay-loading"');
+
+    expect(declaration).toBeGreaterThan(-1);
+    expect(skeleton).toBeGreaterThan(-1);
+    /* Read BEFORE the loading branch, or the skeleton cannot apply it. */
+    expect(declaration).toBeLessThan(skeleton);
+
+    /* And the manifest guard is what sits between the two. */
+    expect(SOURCE.slice(declaration, skeleton)).toContain("if (!manifest) {");
+
+    expect(SOURCE).toContain(
+      '"--oneuptime-replay-rail-width": `${prefs.railWidthRem}rem`',
+    );
+    expect(SOURCE).toMatch(
+      /prefs\.railCollapsed\s*\?\s*\{\}\s*:\s*\{\s*"--oneuptime-replay-rail-width"/,
+    );
+
+    const loading: string = slice(
+      SOURCE,
+      'data-testid="replay-loading"',
+      "<ReplayRail\n",
+    );
+
+    expect(loading).toContain(
+      "className={REPLAY_MAIN_ROW_FLOW_CLASS} style={railWidthStyle}",
+    );
+
+    /*
+     * One constant, applied to the skeleton's row and the real player's -
+     * two copies of the expression is how the two drift apart again.
+     */
+    expect(SOURCE.match(/style=\{railWidthStyle\}/g)).toHaveLength(2);
+  });
+
+  /*
+   * The other half of the same rule: a stored width only avoids the jump
+   * for a viewer who HAS a rail. One who keeps it collapsed had a 26rem
+   * column reserved in the skeleton and watched the stage grow into it
+   * when the manifest landed.
+   */
+  test("the skeleton drops the rail column when the viewer keeps it collapsed", () => {
+    const loading: string = slice(
+      SOURCE,
+      'data-testid="replay-loading"',
+      "<ReplayRail\n",
+    );
+
+    expect(loading).toContain("REPLAY_RAIL_COLUMN_CLASS");
+    expect(loading).toMatch(/prefs\.railCollapsed\s*\?\s*"hidden"\s*:\s*""/);
+  });
+
+  test("how the picture is fitted is a preference, cycled by the keyboard", () => {
+    expect(SOURCE).toContain("fit: prefs.stageFit");
+    expect(SOURCE).toContain("onFitChange: changeFit");
+    expect(SOURCE).toContain("replayViewPrefsStore.update({ stageFit: fit })");
+    expect(SOURCE).toContain("cycleReplayStageFit(");
+    /* It used to reset to "contain" on every navigation between sessions. */
+    expect(SOURCE).not.toContain("useState<ReplayStageFit>");
+  });
+
+  /*
+   * The scrubber owns the keyboard listener (it is the only component
+   * mounted whenever there is footage), so every new player-level action
+   * reaches the shell as one of its props. Without these four the "r" and
+   * "z" keys and the More menu's lanes item resolve to no-ops.
+   */
+  test("the scrubber carries the rail toggle, the fit cycle and the lanes preference", () => {
+    const scrubberProps: string = slice(SOURCE, "<ReplayScrubber\n", "/>");
+
+    expect(scrubberProps).toContain("showTimelineLanes={prefs.timelineLanes}");
+    expect(scrubberProps).toContain(
+      "onTimelineLanesChange={changeTimelineLanes}",
+    );
+    expect(scrubberProps).toContain("onToggleRail={toggleRailCollapsed}");
+    expect(scrubberProps).toContain("onCycleFit={cycleFit}");
+    expect(SOURCE).toContain(
+      "replayViewPrefsStore.update({ timelineLanes: isVisible })",
+    );
+  });
+});
+
 describe("playback intent", () => {
   test("auto-plays exactly once, right after the initial LOAD", () => {
     const autoPlays: number = (
@@ -426,6 +645,26 @@ describe("live sessions", () => {
     expect(panel).toContain("hasRecordingEnded={manifest.hasRecordingEnded}");
   });
 
+  /*
+   * A fullscreen element puts itself in the browser's top layer and
+   * nothing outside it is painted, so the details panel - a fixed overlay
+   * rendered as the root's SIBLING - was invisible in theater mode: "i"
+   * and the "Session details" button appeared to do nothing. Nesting is
+   * only visible in the source as indentation, so that is what is pinned.
+   */
+  test("the details panel is rendered inside the player root, so theater mode shows it", () => {
+    const rootIndex: number = SOURCE.indexOf('data-testid="replay-player"');
+    const panelIndex: number = SOURCE.indexOf("<ReplayCorrelationPanel\n");
+    const offsetTextIndex: number = SOURCE.indexOf("<ReplayOffsetText clock=");
+
+    expect(panelIndex).toBeGreaterThan(rootIndex);
+    expect(offsetTextIndex).toBeGreaterThan(panelIndex);
+
+    /* One level in from the root element, which the Fragment indents by six. */
+    expect(SOURCE).toContain("\n        <ReplayCorrelationPanel\n");
+    expect(SOURCE).not.toContain("\n      <ReplayCorrelationPanel\n");
+  });
+
   test("the sealed reason is quoted once the recording has ended, not while it is live", () => {
     expect(SOURCE).toContain(
       "manifest && (manifest.isFinalized || manifest.hasRecordingEnded)",
@@ -465,15 +704,18 @@ describe("watch-time heartbeat", () => {
 
 describe("the events rail", () => {
   test("is rendered beside the stage column inside the same flex row", () => {
-    const rowStart: number = SOURCE.lastIndexOf("xl:flex-row");
-    const stageIndex: number = SOURCE.indexOf("<ReplayStageOverlays", rowStart);
-    const railColumnIndex: number = SOURCE.indexOf(
+    /*
+     * The row is the element that carries the rail's width variable and
+     * the main-row classes; both columns are inside it, player first.
+     */
+    const row: string = slice(
+      SOURCE,
+      "isTheater ? REPLAY_MAIN_ROW_FILL_CLASS : REPLAY_MAIN_ROW_FLOW_CLASS",
       'data-testid="replay-rail-column"',
-      rowStart,
     );
 
-    expect(stageIndex).toBeGreaterThan(-1);
-    expect(railColumnIndex).toBeGreaterThan(stageIndex);
+    expect(row).toContain("style={railWidthStyle}");
+    expect(row).toContain("<ReplayStageOverlaysClocked");
     expect(SOURCE.indexOf("<ReplayRail\n")).toBeGreaterThan(-1);
   });
 
@@ -535,15 +777,68 @@ describe("the events rail", () => {
    * real viewport is the only other way to see it.
    */
   test("the rail column has a bounded height so the rail's list can scroll", () => {
+    const columnClass: string = slice(
+      SOURCE,
+      "const REPLAY_RAIL_COLUMN_CLASS: string =",
+      ";",
+    );
+
+    /* Stacked below xl the cap IS the bound... */
+    expect(columnClass).toMatch(/max-h-\[\d+rem\]/);
+    expect(columnClass).toContain("min-h-0");
+    /*
+     * ...and beside the player the row has a definite height of its own
+     * (the fill height), so the cap comes off and the column stretches to
+     * the picture instead of to a guess at the viewport.
+     */
+    expect(columnClass).toContain("xl:max-h-none");
+    expect(columnClass).not.toMatch(/xl:max-h-\[calc\(100vh-[^\]]+\)\]/);
+
     const column: string = slice(
       SOURCE,
       'data-testid="replay-rail-column"',
       "replay-rail-resize-handle",
     );
 
-    /* Stacked below xl (the design's sheet) and beside the stage above it. */
-    expect(column).toMatch(/max-h-\[\d+rem\]/);
-    expect(column).toMatch(/xl:max-h-\[calc\(100vh-[^\]]+\)\]/);
+    expect(column).toContain("REPLAY_RAIL_COLUMN_CLASS");
+  });
+
+  test("the rail's own width preference drives the column, at the pref's default", () => {
+    expect(SOURCE).toMatch(
+      /const REPLAY_RAIL_COLUMN_WIDTH_CLASS: string =\s*"xl:w-\[var\(--oneuptime-replay-rail-width,26rem\)\]"/,
+    );
+    expect(SOURCE).toContain(
+      '"--oneuptime-replay-rail-width": `${prefs.railWidthRem}rem`',
+    );
+    /* The 30rem default the rail used to claim is gone from the fallback. */
+    expect(SOURCE).not.toContain("--oneuptime-replay-rail-width,30rem");
+  });
+
+  /*
+   * The "r" shortcut collapses the rail at every width, so the collapsed
+   * state and the way back out of it have to exist at every width too -
+   * the affordance used to be xl-only, which left a narrow viewer with a
+   * key that hid nothing and a button they could not reach.
+   */
+  test("collapsing the rail applies at every width, and so does the way back", () => {
+    const column: string = slice(
+      SOURCE,
+      'data-testid="replay-rail-column"',
+      "{railElement}",
+    );
+
+    expect(column).toMatch(/prefs\.railCollapsed \? "hidden" : ""/);
+    expect(column).not.toContain('"xl:hidden"');
+
+    const expandButton: string = slice(
+      SOURCE,
+      'data-testid="replay-rail-expand"',
+      "</button>",
+    );
+
+    expect(expandButton).toContain("onClick={toggleRailCollapsed}");
+    expect(expandButton).not.toContain("hidden");
+    expect(expandButton).not.toContain("xl:flex");
   });
 
   test("nothing between the rail column and the rail re-introduces content height", () => {
@@ -601,6 +896,55 @@ describe("the header", () => {
     expect(headerProps).not.toContain("currentTimeMs:");
     expect(headerProps).toContain("quantumMs={REPLAY_HEADER_CLOCK_MS}");
     expect(headerProps).toContain("onSwitchTab: switchTab");
+  });
+
+  /*
+   * The recorder mints a new tab id on every page load, so a multi-page
+   * visit arrives as a wall of "tabs" in opened order. The switcher can
+   * only order them open-first, label them with their page and group them
+   * in its picker if the shell hands it the summarised model rather than
+   * the bare id/label/duration triple it used to build inline.
+   */
+  test("the header is handed summarised tabs, including which are still open", () => {
+    const summary: string = slice(
+      SOURCE,
+      "const headerTabs:",
+      "const continueInTab:",
+    );
+
+    expect(summary).toContain("summarizeReplayTabs({");
+    expect(summary).toContain("tabs: manifest.tabs,");
+    expect(summary).toContain("activeTabId: activeTabId,");
+    expect(summary).toContain("isSessionFinalized: manifest.isFinalized,");
+    expect(summary).toContain(
+      "hasSessionRecordingEnded: manifest.hasRecordingEnded,",
+    );
+    /* The inline literal that read every tab as status-unknown. */
+    expect(summary).not.toContain("label: `Tab ${index + 1}`");
+
+    const headerProps: string = slice(SOURCE, "<ReplayHeaderClocked\n", "/>");
+
+    expect(headerProps).toContain("tabs: headerTabs");
+  });
+
+  /*
+   * The tab picker draws each tab's span against the SESSION clock, and
+   * the two durations here are not the same number: the engine's is the
+   * footage of the tab being watched (the header's clock reads "0:41 /
+   * 4:12" within one tab), the manifest's is the whole recording. Handing
+   * the engine's down scaled every tab by one tab's length, which piled
+   * every later tab's bar against the right edge of the track.
+   */
+  test("the header is given the whole recording's length beside the playhead's", () => {
+    const headerProps: string = slice(SOURCE, "<ReplayHeaderClocked\n", "/>");
+
+    expect(headerProps).toContain(
+      "durationMs: snapshot.durationMs || manifest.durationMs,",
+    );
+    expect(headerProps).toContain("sessionDurationMs: manifest.durationMs,");
+    /* Not the engine's, which is exactly the bug. */
+    expect(headerProps).not.toContain("sessionDurationMs: snapshot.durationMs");
+    expect(headerProps).not.toContain("sessionDurationMs: durationMs");
   });
 
   test("drops blank facts rather than rendering an empty row for each", () => {
@@ -763,6 +1107,33 @@ describe("this user's other sessions", () => {
   });
 
   /*
+   * A recording that runs out leaves the viewer with "what happened
+   * next?" and, until now, no answer on the screen. The ended card offers
+   * the same newer session the header's arrow opens, so discovery does
+   * not depend on knowing the menu is there.
+   */
+  test("the ended card offers this user's next session, opened the same way as the arrows", () => {
+    const next: string = slice(
+      SOURCE,
+      "const nextUserSession:",
+      "const openOlderUserSession:",
+    );
+
+    expect(next).toContain("adjacentUserSessions.newer");
+    expect(next).toContain("describeReplayUserSession(newer, Date.now())");
+    expect(next).toContain("sessionId: newer.sessionId,");
+
+    const overlayProps: string = slice(
+      SOURCE,
+      "<ReplayStageOverlaysClocked",
+      "children: (",
+    );
+
+    expect(overlayProps).toContain("nextUserSession: nextUserSession");
+    expect(overlayProps).toContain("onOpenNextUserSession: openUserSession");
+  });
+
+  /*
    * github.com/OneUptime/oneuptime/issues/3642: the lookup runs once, so
    * its row for the watched session kept pulsing "Recording now" after the
    * poll turned the Live pill off. The header and the older/newer steps get
@@ -858,9 +1229,30 @@ describe("URL state", () => {
     expect(VIEW_SOURCE).toContain("parseReplayPlayerUrlState(");
     expect(VIEW_SOURCE).toContain("initialUrlState={initialUrlState}");
     expect(VIEW_SOURCE).toMatch(
-      /key=\{`\$\{modelId\.toString\(\)\}:\$\{sessionId\}`\}/,
+      /key=\{`\$\{modelId\.toString\(\)\}:\$\{route\.sessionId\}`\}/,
     );
     expect(VIEW_SOURCE).not.toContain("initialOffsetSeconds=");
+  });
+
+  /*
+   * Switching to another recording is a path-parameter change on a route
+   * element the routes component created once, so React reuses the element
+   * object and bails out of the subtree: a view that read the ids from
+   * window.location never re-rendered, and the mounted player carried on
+   * polling the session it was already playing while the address bar said
+   * otherwise. The subscription is the fix, so it is pinned here.
+   */
+  test("the page reads the session from the router's location, not from window.location", () => {
+    expect(VIEW_SOURCE).toContain('from "react-router-dom"');
+    expect(VIEW_SOURCE).toContain("useLocation()");
+    expect(VIEW_SOURCE).toContain(
+      "parseSessionReplayPlayerRoute(\n    location.pathname,\n  )",
+    );
+    expect(VIEW_SOURCE).toContain(
+      "parseReplayPlayerUrlState(\n    location.search,\n  )",
+    );
+    expect(VIEW_SOURCE).not.toContain("Navigation.getLastParam");
+    expect(VIEW_SOURCE).not.toContain("Navigation.getQueryString()");
   });
 
   test("rail, q, tab and signal are mirrored with replaceState (never pushState)", () => {

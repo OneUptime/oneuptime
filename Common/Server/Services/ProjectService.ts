@@ -26,6 +26,7 @@ import {
 } from "../../Types/Marketing/Attribution";
 import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import AccessTokenService from "./AccessTokenService";
+import type AuditLogServiceType from "./AuditLogService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
 import DeletedProjectService from "./DeletedProjectService";
@@ -48,7 +49,9 @@ import UserService from "./UserService";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
-import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
+import SubscriptionStatus, {
+  SubscriptionStatusUtil,
+} from "../../Types/Billing/SubscriptionStatus";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import {
@@ -75,6 +78,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import DataResidencyUtil from "../../Utils/Project/DataResidency";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
@@ -183,6 +187,32 @@ export class ProjectService extends DatabaseService<Model> {
     return SubscriptionPlan.getPlanType(planId);
   }
 
+  /*
+   * Runs on every create and update that carries dataResidency, before the
+   * write. Who may write it is the column's access control (master admins
+   * only); this is what they may write: trimmed text, a blank stored as null,
+   * and nothing at all on a server without billing, where the label would
+   * describe nothing. Clearing is always allowed, so a project that picked up
+   * a value before billing was turned off can still be tidied.
+   */
+  public applyDataResidencyRules(data: { dataResidency?: unknown }): void {
+    if (data.dataResidency === undefined) {
+      return;
+    }
+
+    const dataResidency: string | null = DataResidencyUtil.normalize(
+      data.dataResidency,
+    );
+
+    if (dataResidency !== null && !IsBillingEnabled) {
+      throw new BadDataException(
+        "Data residency can only be set when billing is enabled.",
+      );
+    }
+
+    data.dataResidency = dataResidency;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -190,6 +220,8 @@ export class ProjectService extends DatabaseService<Model> {
     if (!data.data.name) {
       throw new BadDataException("Project name is required");
     }
+
+    this.applyDataResidencyRules(data.data);
 
     if (data.props.userId) {
       data.data.createdByUserId = data.props.userId;
@@ -426,6 +458,8 @@ export class ProjectService extends DatabaseService<Model> {
     const updateData: Record<string, unknown> = onUpdate.updateBy
       .data as unknown as Record<string, unknown>;
 
+    this.invalidateAuditLogSettingsCache(updateData, updatedItemIds);
+
     if (!("isSessionReplayAllowed" in updateData)) {
       return onUpdate;
     }
@@ -456,6 +490,58 @@ export class ProjectService extends DatabaseService<Model> {
     return onUpdate;
   }
 
+  /*
+   * AuditLogService caches each project's audit settings for a minute, and
+   * nothing invalidated that cache - so for up to a minute after someone
+   * turned audit logging on, the process that saved it kept recording nothing
+   * (and kept recording after it was turned off). Drop the entry as soon as a
+   * column that decides what gets recorded changes: the three audit settings,
+   * and the plan, which decides eligibility when billing is on. Only this
+   * process's cache is reachable from here; other processes still wait out the
+   * TTL. Compared against undefined rather than with `in`, because a Project
+   * model instance carries every column as an own property.
+   */
+  private invalidateAuditLogSettingsCache(
+    updateData: Record<string, unknown>,
+    updatedItemIds: Array<ObjectID>,
+  ): void {
+    const auditLogSettingColumns: Array<string> = [
+      "enableAuditLogs",
+      "storeSystemEventsInAuditLogs",
+      "auditLogsRetentionInDays",
+      "planName",
+    ];
+
+    const hasAuditLogSettingChanged: boolean = auditLogSettingColumns.some(
+      (column: string): boolean => {
+        return updateData[column] !== undefined;
+      },
+    );
+
+    if (!hasAuditLogSettingChanged) {
+      return;
+    }
+
+    try {
+      /*
+       * Lazy require: AuditLogService imports ProjectService, so a top-level
+       * import here would be circular.
+       */
+      const auditLogService: typeof AuditLogServiceType =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("./AuditLogService").default;
+
+      for (const projectId of updatedItemIds) {
+        auditLogService.invalidateProjectSettings(projectId);
+      }
+    } catch (err) {
+      logger.warn(
+        "ProjectService: could not invalidate the audit log settings cache",
+      );
+      logger.warn(err);
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -471,6 +557,8 @@ export class ProjectService extends DatabaseService<Model> {
     if (updateBy.data.requireSsoWithSsoProviderId !== undefined) {
       this.requireSsoWithSsoProviderIdCache.clear();
     }
+
+    this.applyDataResidencyRules(updateBy.data);
 
     if (IsBillingEnabled) {
       if (
@@ -2899,17 +2987,30 @@ These are no longer recorded against the project and have to be cancelled by han
     await this.sendSubscriptionChangeWebhookSlackNotification(projectId);
   }
 
+  /*
+   * Projects that are still served: monitors fetched and evaluated, heartbeat
+   * and online sweeps run, SLOs evaluated, server-monitor reports accepted.
+   *
+   * The statuses come from SubscriptionStatusUtil.getActiveSubscriptionStatuses
+   * rather than being listed here, so this query cannot disagree with
+   * isSubscriptionActive again. It used to list only active and trialing,
+   * which dropped a past_due project out of every monitoring path the moment
+   * one autopay attempt failed - while Stripe was still retrying the invoice
+   * and the dashboard still called the project active. past_due projects keep
+   * being monitored; only a subscription Stripe has given up on (unpaid,
+   * canceled, incomplete, incomplete_expired, expired, paused) stops it.
+   *
+   * NULL stays admitted: that is a project with no subscription at all
+   * (self-hosted, or created before billing was enabled).
+   */
   public getActiveProjectStatusQuery(): Query<Model> {
     return {
-      // get only active projects
-      paymentProviderSubscriptionStatus: QueryHelper.equalToOrNull([
-        SubscriptionStatus.Active,
-        SubscriptionStatus.Trialing,
-      ]),
-      paymentProviderMeteredSubscriptionStatus: QueryHelper.equalToOrNull([
-        SubscriptionStatus.Active,
-        SubscriptionStatus.Trialing,
-      ]),
+      paymentProviderSubscriptionStatus: QueryHelper.equalToOrNull(
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+      ),
+      paymentProviderMeteredSubscriptionStatus: QueryHelper.equalToOrNull(
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+      ),
     };
   }
 

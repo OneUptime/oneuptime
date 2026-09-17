@@ -502,6 +502,10 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.Traces]: "Traces",
   [AIChatCitationTargetType.TraceView]: "Trace",
   [AIChatCitationTargetType.Metrics]: "Metrics",
+  [AIChatCitationTargetType.RumApplications]: "RUM applications",
+  [AIChatCitationTargetType.RumApplicationView]: "RUM application",
+  [AIChatCitationTargetType.TelemetryResources]: "Infrastructure resources",
+  [AIChatCitationTargetType.TelemetryResourceView]: "Infrastructure resource",
   [AIChatCitationTargetType.Exceptions]: "Exceptions",
   [AIChatCitationTargetType.Incidents]: "Incidents",
   [AIChatCitationTargetType.IncidentView]: "Incident",
@@ -592,13 +596,6 @@ export function getEvidenceEmptyRowsMessage(
   }
 
   return trimmed;
-}
-
-export function formatQueryCount(count: number): string {
-  const safeCount: number =
-    Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
-
-  return `${formatInteger(safeCount)} ${safeCount === 1 ? "query" : "queries"}`;
 }
 
 function formatInteger(value: number): string {

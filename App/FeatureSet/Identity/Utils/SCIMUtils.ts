@@ -153,6 +153,207 @@ export const extractEmailFromSCIM: (scimUser: JSONObject) => string = (
   );
 };
 
+const isSCIMObject: (value: unknown) => value is JSONObject = (
+  value: unknown,
+): value is JSONObject => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+};
+
+/**
+ * Extract supported user updates from a resource (PUT) or PatchOp (PATCH).
+ * Omitted active values stay undefined: an email-only update must not activate
+ * or deactivate a user. Operations are applied in order without mutating the
+ * original request, which is also used for the SCIM audit log.
+ */
+export const extractUserUpdateFromSCIM: (scimUser: JSONObject) => JSONObject = (
+  scimUser: JSONObject,
+): JSONObject => {
+  const updates: JSONObject = {};
+
+  const applyAttributes: (attributes: JSONObject, op?: string) => void = (
+    attributes: JSONObject,
+    op: string = "replace",
+  ): void => {
+    for (const attribute of Object.keys(attributes)) {
+      const value: unknown = attributes[attribute];
+
+      switch (attribute.toLowerCase()) {
+        case "active": {
+          const active: unknown =
+            typeof value === "string" ? value.trim().toLowerCase() : value;
+          if (active === true || active === "true") {
+            updates["active"] = true;
+          } else if (active === false || active === "false") {
+            updates["active"] = false;
+          }
+          break;
+        }
+        case "username":
+          if (typeof value === "string") {
+            updates["userName"] = value;
+          }
+          break;
+        case "emails":
+          if (Array.isArray(value)) {
+            const emails: JSONObject[] = value
+              .filter((email: unknown): email is JSONObject => {
+                return (
+                  isSCIMObject(email) && typeof email["value"] === "string"
+                );
+              })
+              .map((email: JSONObject): JSONObject => {
+                return { ...email };
+              });
+            updates["emails"] = [
+              ...(op === "add"
+                ? (updates["emails"] as JSONObject[]) || []
+                : []),
+              ...emails,
+            ];
+          }
+          break;
+      }
+    }
+  };
+
+  if (!Array.isArray(scimUser["Operations"])) {
+    applyAttributes(scimUser);
+    return updates;
+  }
+
+  for (const operation of scimUser["Operations"]) {
+    if (!isSCIMObject(operation) || typeof operation["op"] !== "string") {
+      continue;
+    }
+
+    const op: string = operation["op"].toLowerCase();
+    if (op !== "add" && op !== "replace" && op !== "remove") {
+      continue;
+    }
+
+    const path: unknown = operation["path"];
+    const value: unknown = operation["value"];
+    if (path === undefined) {
+      if (op !== "remove" && isSCIMObject(value)) {
+        applyAttributes(value, op);
+      }
+      continue;
+    }
+
+    if (typeof path !== "string") {
+      continue;
+    }
+
+    const normalizedPath: string = path.trim().toLowerCase();
+    if (normalizedPath === "active" || normalizedPath === "username") {
+      const attribute: string =
+        normalizedPath === "username" ? "userName" : "active";
+      if (op === "remove") {
+        /*
+         * Removing active is not an explicit request to deactivate. Required
+         * login identifiers are not erased by the existing update handlers.
+         */
+        delete updates[attribute];
+      } else {
+        applyAttributes({ [attribute]: operation["value"] });
+      }
+      continue;
+    }
+
+    const emailPath: RegExpMatchArray | null = path
+      .trim()
+      .match(/^emails(?:\[\s*type\s+eq\s+"([^"]+)"\s*\])?(\.value)?$/i);
+    if (!emailPath) {
+      continue;
+    }
+
+    const emailType: string | undefined = emailPath[1]?.toLowerCase();
+    const existingEmails: JSONObject[] =
+      (updates["emails"] as JSONObject[] | undefined) || [];
+    const matchesType: (email: JSONObject) => boolean = (
+      email: JSONObject,
+    ): boolean => {
+      return (
+        emailType === undefined ||
+        (typeof email["type"] === "string" &&
+          email["type"].toLowerCase() === emailType)
+      );
+    };
+
+    if (op === "remove") {
+      const remainingEmails: JSONObject[] = existingEmails.filter(
+        (email: JSONObject): boolean => {
+          return !matchesType(email);
+        },
+      );
+      if (remainingEmails.length > 0) {
+        updates["emails"] = remainingEmails;
+      } else {
+        delete updates["emails"];
+      }
+      continue;
+    }
+
+    if (emailPath[2] && typeof value === "string") {
+      const emails: JSONObject[] = existingEmails.map(
+        (email: JSONObject): JSONObject => {
+          return matchesType(email) ? { ...email, value: value } : email;
+        },
+      );
+      if (!existingEmails.some(matchesType)) {
+        emails.push({
+          value: value,
+          ...(emailType ? { type: emailType } : {}),
+        });
+      }
+      updates["emails"] = emails;
+    } else if (!emailPath[2]) {
+      const emails: unknown[] = Array.isArray(value) ? value : [value];
+      const validEmails: JSONObject[] = emails
+        .filter((email: unknown): email is JSONObject => {
+          return isSCIMObject(email) && typeof email["value"] === "string";
+        })
+        .map((email: JSONObject): JSONObject => {
+          return { ...email, ...(emailType ? { type: emailType } : {}) };
+        });
+      if (
+        validEmails.length > 0 ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        if (emailType && op === "replace") {
+          /*
+           * Preserve the position of the replaced email: handlers use the
+           * first email when userName is absent.
+           */
+          const emails: JSONObject[] = [];
+          let replaced: boolean = false;
+          for (const email of existingEmails) {
+            if (matchesType(email)) {
+              if (!replaced) {
+                emails.push(...validEmails);
+                replaced = true;
+              }
+            } else {
+              emails.push(email);
+            }
+          }
+          if (!replaced) {
+            emails.push(...validEmails);
+          }
+          updates["emails"] = emails;
+        } else {
+          updates["emails"] = [
+            ...(op === "add" ? existingEmails : []),
+            ...validEmails,
+          ];
+        }
+      }
+    }
+  }
+
+  return updates;
+};
+
 /**
  * Extract active status from SCIM user payload
  */

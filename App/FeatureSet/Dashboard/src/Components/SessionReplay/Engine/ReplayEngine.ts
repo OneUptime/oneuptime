@@ -162,10 +162,10 @@ interface FeedGoal {
   targetMs: number;
 }
 
-interface TickHandle {
-  kind: "frame" | "timer";
-  handle: ReplayScheduleHandle;
-}
+/* How often the engine ticks in its current state. */
+type TickCadence = { kind: "frame" } | { kind: "timer"; delayMs: number };
+
+type TickHandle = TickCadence & { handle: ReplayScheduleHandle };
 
 /*
  * The one member of the Scheduling API the engine looks for. Declared
@@ -340,6 +340,8 @@ class ReplayEngineMachine implements ReplayEngine {
   private replayersDestroyed: number;
 
   private isDisposed: boolean;
+  /* True while dispatch() runs; it reschedules the tick on its way out. */
+  private isDispatching: boolean;
 
   public constructor(deps: ReplayEngineDeps, options: ReplayEngineOptions) {
     this.deps = deps;
@@ -406,6 +408,7 @@ class ReplayEngineMachine implements ReplayEngine {
     this.replayersDestroyed = 0;
 
     this.isDisposed = false;
+    this.isDispatching = false;
 
     this.snapshot = this.buildSnapshot();
     this.structuralSnapshot = this.snapshot;
@@ -458,60 +461,74 @@ class ReplayEngineMachine implements ReplayEngine {
       return;
     }
 
+    let shouldRescheduleTick: boolean;
+    this.isDispatching = true;
+
+    try {
+      shouldRescheduleTick = this.applyEvent(event);
+    } finally {
+      this.isDispatching = false;
+    }
+
+    if (shouldRescheduleTick) {
+      this.rescheduleTick();
+    }
+  }
+
+  /* Whether dispatch should put the tick on the resulting cadence. */
+  private applyEvent(event: ReplayEngineEvent): boolean {
     switch (event.type) {
       case "LOAD":
         this.startLoad(event.anchorChunkIndex, event.targetMs);
-        break;
+        return true;
       case "PLAY":
         this.onPlay();
-        break;
+        return true;
       case "PAUSE":
         this.onPause();
-        break;
+        return true;
       case "SEEK":
         this.onSeek(event.offsetMs, event.token);
-        break;
+        return true;
       case "SET_SPEED":
         this.onSetSpeed(event.speed);
-        break;
+        return true;
       case "SET_SKIP_INACTIVE":
         this.skipInactive = event.enabled;
         this.publish();
-        break;
+        return true;
       case "TICK":
         this.onTick(event.nowMs);
-        return;
+        return false;
       case "EXTEND":
         void this.runExtend(this.generation);
-        break;
+        return true;
       case "RRWEB_FINISH":
         this.onFinish();
-        break;
+        return true;
       case "CHUNK_FAILED":
         this.halt({ message: event.message, retryable: true });
-        break;
+        return true;
       case "RETRY":
         this.onRetry();
-        break;
+        return true;
       case "TAB_SWITCH":
         this.onTabSwitch(event.tabId, event.loader);
-        break;
+        return true;
       case "APPEND_ENTRIES":
         this.onAppendEntries(event.entries);
-        break;
+        return true;
       case "IDLE_SKIP":
         this.onIdleSkip(event.band);
-        break;
+        return true;
       case "DISPOSE":
         this.dispose();
-        return;
+        return false;
       default: {
         const unreachable: never = event;
         return unreachable;
       }
     }
-
-    this.rescheduleTick();
   }
 
   public subscribe(listener: ReplayEngineListener): () => void {
@@ -1752,6 +1769,16 @@ class ReplayEngineMachine implements ReplayEngine {
         segment.replayer.pause();
         segment.appliedIntent = "paused";
       }
+
+      /*
+       * Publish where playback actually stopped: rrweb's clock, which the
+       * pause has just frozen. The engine only reads it on a TICK, so its
+       * last reading can trail rrweb by up to a tick. Without this the
+       * "paused" publish carried that older time and the next paused TICK
+       * moved the clock forward afterwards - the readout changing under a
+       * viewer who had already stopped.
+       */
+      this.readPlayheadFromReplayer(segment);
     }
 
     this.publish();
@@ -1997,15 +2024,7 @@ class ReplayEngineMachine implements ReplayEngine {
        * without asking whether anyone is watching.
        */
       this.syncVisibilitySuspension(segment);
-
-      const reported: number =
-        segment.baseOffsetMs + segment.replayer.getCurrentTime();
-
-      /* (b) Monotonic between seeks. */
-      if (reported > this.currentTimeMs) {
-        this.currentTimeMs = reported;
-      }
-
+      this.readPlayheadFromReplayer(segment);
       this.runWatchdog(nowMs, segment);
 
       if (
@@ -2061,6 +2080,29 @@ class ReplayEngineMachine implements ReplayEngine {
     if (nowMs - this.lastPublishAtMs >= REPLAY_SNAPSHOT_PUBLISH_INTERVAL_MS) {
       this.lastPublishAtMs = nowMs;
       this.publish();
+    }
+  }
+
+  /*
+   * The playhead, taken from rrweb while a segment is live and the buffer
+   * is one TICK reads it in (during a rebuild the clock is the seek target,
+   * (c), and rrweb's has nothing to say).
+   */
+  private readPlayheadFromReplayer(segment: Segment): void {
+    if (
+      this.buffer !== "ok" &&
+      this.buffer !== "gap-pending" &&
+      this.buffer !== "stalled"
+    ) {
+      return;
+    }
+
+    const reported: number =
+      segment.baseOffsetMs + segment.replayer.getCurrentTime();
+
+    /* (b) Monotonic between seeks. */
+    if (reported > this.currentTimeMs) {
+      this.currentTimeMs = reported;
     }
   }
 
@@ -2585,6 +2627,26 @@ class ReplayEngineMachine implements ReplayEngine {
    * document is hidden (rAF does not fire there, and 10Hz keeps the
    * feed-ahead honest for a viewer who tabbed away mid-playback).
    */
+  private wantedTickCadence(): TickCadence {
+    const hidden: boolean = this.deps.isDocumentHidden?.() ?? false;
+    const playing: boolean =
+      this.intent === "playing" &&
+      (this.buffer === "ok" || this.buffer === "gap-pending");
+
+    if (playing && !hidden && this.deps.frame) {
+      return { kind: "frame" };
+    }
+
+    return {
+      kind: "timer",
+      delayMs: hidden
+        ? REPLAY_HIDDEN_TICK_MS
+        : playing
+          ? PLAYING_TICK_FALLBACK_MS
+          : REPLAY_PAUSED_TICK_MS,
+    };
+  }
+
   private rescheduleTick(): void {
     this.cancelTick();
 
@@ -2603,26 +2665,50 @@ class ReplayEngineMachine implements ReplayEngine {
       this.rescheduleTick();
     };
 
-    const hidden: boolean = this.deps.isDocumentHidden?.() ?? false;
-    const playing: boolean =
-      this.intent === "playing" &&
-      (this.buffer === "ok" || this.buffer === "gap-pending");
+    const cadence: TickCadence = this.wantedTickCadence();
 
-    if (playing && !hidden && this.deps.frame) {
+    if (cadence.kind === "frame" && this.deps.frame) {
       this.tickHandle = { kind: "frame", handle: this.deps.frame(run) };
       return;
     }
 
-    const delayMs: number = hidden
-      ? REPLAY_HIDDEN_TICK_MS
-      : playing
-        ? PLAYING_TICK_FALLBACK_MS
-        : REPLAY_PAUSED_TICK_MS;
+    const delayMs: number =
+      cadence.kind === "timer" ? cadence.delayMs : PLAYING_TICK_FALLBACK_MS;
 
     this.tickHandle = {
       kind: "timer",
+      delayMs: delayMs,
       handle: this.deps.schedule(run, delayMs),
     };
+  }
+
+  /*
+   * Put the pending tick on the cadence the state now wants, for a change
+   * that neither dispatch nor a tick will reschedule after: a build or a
+   * feed that lands asynchronously. Autoplay is the case that matters. PLAY
+   * arrives while the first chunk is still loading, so the tick goes onto
+   * the 250ms paused timer, and when the build landed playback started
+   * with nothing to move it: rrweb ran for up to a quarter of a second
+   * while the clock sat at 0:00.0, and a Pause in that window published
+   * the stale time. dispatch reschedules on its way out, and a running
+   * tick has no handle and reschedules itself, so both are left alone.
+   */
+  private syncTickCadence(): void {
+    const handle: TickHandle | null = this.tickHandle;
+
+    if (this.isDispatching || !handle) {
+      return;
+    }
+
+    const wanted: TickCadence = this.wantedTickCadence();
+    const isOnCadence: boolean =
+      wanted.kind === "frame"
+        ? handle.kind === "frame"
+        : handle.kind === "timer" && handle.delayMs === wanted.delayMs;
+
+    if (!isOnCadence) {
+      this.rescheduleTick();
+    }
   }
 
   /* ---- Snapshot ---- */
@@ -2684,6 +2770,9 @@ class ReplayEngineMachine implements ReplayEngine {
     for (const listener of [...this.clockListeners]) {
       listener(next.currentTimeMs);
     }
+
+    /* Every state change publishes, so this is where the tick follows it. */
+    this.syncTickCadence();
   }
 }
 

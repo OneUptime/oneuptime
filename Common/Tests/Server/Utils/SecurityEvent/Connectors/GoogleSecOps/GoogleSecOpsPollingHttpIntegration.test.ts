@@ -75,6 +75,13 @@ const SEARCH_PATHS: Array<string> = [
   `/v1alpha/${INSTANCE}/legacy:legacySearchDetections`,
   `/v1alpha/${INSTANCE}/legacy:legacySearchCuratedDetections`,
 ];
+/*
+ * legacySearchCuratedDetections has no wildcard, so the curated pass asks
+ * countAllCuratedRuleSetDetections which curated rules to name before it
+ * searches any.
+ */
+const CURATED_COUNTS_PATH: string = `/v1alpha/${INSTANCE}:countAllCuratedRuleSetDetections`;
+const WEEK_MS: number = 7 * 24 * 60 * 60 * 1000;
 const NOW: Date = new Date("2026-09-09T12:00:00.000Z");
 const CURSOR: string = "2026-09-09T11:55:00.000Z";
 const OPEN_ALERT: JSONObject = {
@@ -144,6 +151,7 @@ describe("Google SecOps polls over HTTP through the shared poller", () => {
   let server: Server;
   let port: number;
   let alertsRequests: Array<URL>;
+  let countIntervals: Array<JSONObject>;
   let assertions: Array<JSONObject>;
   let alertsErrorBody: string | null;
   let persistence: PollPersistence;
@@ -208,6 +216,32 @@ describe("Google SecOps polls over HTTP through the shared poller", () => {
           response.writeHead(401, { "Content-Type": "application/json" });
           response.end(JSON.stringify({ error: "invalid_grant" }));
         }
+        return;
+      }
+
+      /*
+       * The curated rule counts: a POST carrying the interval, answered the
+       * way a tenant whose curated rules have not fired answers it, with a
+       * bare {}. The curated pass then has no rule to search.
+       */
+      if (url.pathname === CURATED_COUNTS_PATH && request.method === "POST") {
+        if (
+          request.headers["authorization"] !== "Bearer local-verified-token"
+        ) {
+          response.writeHead(401);
+          response.end("Bearer token required");
+          return;
+        }
+        if (request.headers["content-type"] !== "application/json") {
+          rejectRequest(response, "Expected a JSON request body.");
+          return;
+        }
+        countIntervals.push(
+          ((JSON.parse(body || "{}") as JSONObject)["interval"] ||
+            {}) as JSONObject,
+        );
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end("{}");
         return;
       }
 
@@ -312,6 +346,7 @@ describe("Google SecOps polls over HTTP through the shared poller", () => {
       !(
         destination.origin === "https://us-chronicle.googleapis.com" &&
         (destination.pathname === ALERTS_PATH ||
+          destination.pathname === CURATED_COUNTS_PATH ||
           SEARCH_PATHS.includes(destination.pathname))
       )
     ) {
@@ -368,6 +403,7 @@ describe("Google SecOps polls over HTTP through the shared poller", () => {
     getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
     persistence = stubPollPersistence();
     alertsRequests = [];
+    countIntervals = [];
     assertions = [];
     alertsErrorBody = null;
   });
@@ -422,6 +458,18 @@ describe("Google SecOps polls over HTTP through the shared poller", () => {
     expect(
       alertsRequests[0]!.searchParams.get("alertListOptions.maxReturnedAlerts"),
     ).toBe("1");
+    /*
+     * The curated read probe proves the curated permission through the
+     * counts route, over the last 7 days: with no curated rule reported it
+     * has no rule id to probe a search with, and the curated route has no
+     * wildcard to fall back on.
+     */
+    expect(countIntervals).toEqual([
+      {
+        startTime: new Date(NOW.getTime() - WEEK_MS).toISOString(),
+        endTime: NOW.toISOString(),
+      },
+    ]);
     expect(assertions).toHaveLength(1);
     expect(SecurityEventService.insertJsonRows).not.toHaveBeenCalled();
     expect(persistence.updates).toHaveLength(0);
@@ -546,8 +594,15 @@ describe("Google SecOps polls over HTTP through the shared poller", () => {
        * and signed once.
        */
       expect(assertions).toHaveLength(2);
-      expect(alertsRequests).toHaveLength(2);
-      for (const request of alertsRequests) {
+      /*
+       * Three alerts-view reads: each poll reads its own window from the
+       * cursor, and the second poll, whose window read succeeded, then
+       * sweeps the day before that window for alerts Google made readable
+       * after their detection time. The first poll failed at its window
+       * read, so it never reached its sweep.
+       */
+      expect(alertsRequests).toHaveLength(3);
+      for (const request of alertsRequests.slice(0, 2)) {
         expect(request.searchParams.get("timeRange.startTime")).toBe(
           "2026-09-09T11:54:00.000Z",
         );
@@ -558,6 +613,34 @@ describe("Google SecOps polls over HTTP through the shared poller", () => {
       expect(alertsRequests[1]!.searchParams.get("timeRange.endTime")).toBe(
         currentTime.toISOString(),
       );
+      // The sweep ends where the window starts and reads alerts only.
+      expect(alertsRequests[2]!.searchParams.get("timeRange.startTime")).toBe(
+        new Date(currentTime.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      );
+      expect(alertsRequests[2]!.searchParams.get("timeRange.endTime")).toBe(
+        "2026-09-09T11:54:00.000Z",
+      );
+      expect(
+        alertsRequests[2]!.searchParams.get("includeNonAlertingDetections"),
+      ).toBe("ALERTS_FEATURE_PREFERENCE_DISABLED");
+      /*
+       * Each poll's curated pass asked which curated rules to search first,
+       * over the week before its own window.
+       */
+      expect(countIntervals).toEqual([
+        {
+          startTime: new Date(
+            Date.parse("2026-09-09T11:54:00.000Z") - WEEK_MS,
+          ).toISOString(),
+          endTime: NOW.toISOString(),
+        },
+        {
+          startTime: new Date(
+            Date.parse("2026-09-09T11:54:00.000Z") - WEEK_MS,
+          ).toISOString(),
+          endTime: currentTime.toISOString(),
+        },
+      ]);
       const rows: Array<JSONObject> = persistence.insertedBatches.flat();
       expect(
         rows.map((row: JSONObject): unknown => {

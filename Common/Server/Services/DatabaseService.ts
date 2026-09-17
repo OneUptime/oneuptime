@@ -94,6 +94,8 @@ import Realtime from "../Utils/Realtime";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import type AuditLogServiceType from "./AuditLogService";
+import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
+import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -1418,6 +1420,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // check uniqueColumns by:
     createBy = await this.checkUniqueColumnBy(createBy);
 
+    await this.checkUniqueColumnsTogether(createBy.data);
+
     // serialize.
     createBy.data = (await this.sanitizeCreateOrUpdate(
       createBy.data,
@@ -1581,8 +1585,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     try {
+      /*
+       * A new row every time. getModel() is the owner service's own shared
+       * instance, and a save writes the generated _id back onto whatever it
+       * was handed - so reusing it would turn the next auto-owner insert into
+       * an update of this row.
+       */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ownerModel: any = entry.ownerUserService.getModel();
+      const ownerModel: any = new entry.ownerUserService.modelType();
       ownerModel[entry.fkColumn] = resourceId;
       ownerModel.userId = props.userId;
       ownerModel.projectId = projectId;
@@ -1592,6 +1602,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         props: { isRoot: true },
       });
     } catch (err) {
+      /*
+       * The create form can name the creator as an owner too, and that path
+       * may have added them first. They are an owner either way.
+       */
+      if (PostgresErrorTranslator.isUniqueViolation(err)) {
+        return;
+      }
+
       logger.error(
         `auto-owner-on-create failed for ${modelName} ${resourceId.toString()}`,
       );
@@ -1774,6 +1792,90 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return Promise.resolve(createBy);
+  }
+
+  /*
+   * Enforces @UniqueColumnsTogether before the row is written, so a duplicate
+   * is rejected with the model's own message and never reaches
+   * onCreateSuccess (and whatever feed items or notifications it sends).
+   *
+   * A key column can arrive as its id column (`teamId`) or only as the
+   * relation that fills it (`team`), so both are read. When a value is
+   * missing altogether there is nothing to compare; the unique index decides.
+   */
+  private async checkUniqueColumnsTogether(data: TBaseModel): Promise<void> {
+    for (const constraint of this.model.getUniqueColumnsTogether()) {
+      const query: Dictionary<ObjectID | JSONValue> = {};
+      let isKeyComplete: boolean = true;
+
+      for (const columnName of constraint.columnNames) {
+        const value: ObjectID | JSONValue | null = this.getUniqueKeyValue(
+          data,
+          columnName,
+        );
+
+        if (value === null) {
+          isKeyComplete = false;
+          break;
+        }
+
+        query[columnName] = value;
+      }
+
+      if (!isKeyComplete) {
+        continue;
+      }
+
+      const count: PositiveNumber = await this.countBy({
+        query: query as Query<TBaseModel>,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (count.toNumber() > 0) {
+        throw PostgresErrorTranslator.createUniqueViolationException(
+          constraint.errorMessage,
+        );
+      }
+    }
+  }
+
+  private getUniqueKeyValue(
+    data: TBaseModel,
+    columnName: string,
+  ): ObjectID | JSONValue | null {
+    const metadata: TableColumnMetadata | undefined =
+      this.model.getTableColumnMetadata(columnName);
+
+    if (metadata?.type !== TableColumnType.ObjectID) {
+      const value: JSONValue = (data as any)[columnName];
+      return value === undefined || value === null ? null : value;
+    }
+
+    let id: string | null = RelationValueUtil.getRelationId(
+      (data as any)[columnName],
+    );
+
+    if (!id) {
+      const relationColumnName: string | undefined = this.model
+        .getTableColumns()
+        .columns.find((column: string): boolean => {
+          const relationMetadata: TableColumnMetadata =
+            this.model.getTableColumnMetadata(column);
+
+          return (
+            relationMetadata.type === TableColumnType.Entity &&
+            relationMetadata.manyToOneRelationColumn === columnName
+          );
+        });
+
+      if (relationColumnName) {
+        id = RelationValueUtil.getRelationId((data as any)[relationColumnName]);
+      }
+    }
+
+    return id ? new ObjectID(id) : null;
   }
 
   @CaptureSpan()
@@ -2943,24 +3045,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           true;
       }
 
-      /*
-       * When audit logging on update is enabled, ensure the resource's display
-       * name is loaded on the `before` snapshot so the audit entry records the
-       * human-readable resource name even when the update doesn't touch it.
-       */
       if (this.getModel().enableAuditLogOn?.update) {
-        const nameCandidates: ReadonlyArray<string> = [
-          "name",
-          "title",
-          "displayName",
-        ];
-        const modelColumns: Array<string> =
-          this.getModel().getTableColumns().columns;
-        for (const candidate of nameCandidates) {
-          if (modelColumns.includes(candidate)) {
-            (selectColumns as any)[candidate] = true;
-          }
-        }
+        this.addAuditLogColumnsToUpdateSelect(selectColumns, dataKeys);
       }
 
       const items: Array<TBaseModel> = hasColumnsToUpdate
@@ -3217,14 +3303,107 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  /*
+   * The `before` row an update loads is sparse on purpose - the columns the
+   * write touches, plus `_id` and the tenant column - so everything
+   * AuditLogService reads off it has to be requested here:
+   *   - the resource's display name, even when the update does not touch it;
+   *   - the parent id a child's entries roll up to (rootResource);
+   *   - the id of the row that names a nameless row (resourceNameRelation);
+   *   - the related rows' names for relation columns the write touches, so
+   *     the diff reads "Production -> Staging" rather than as two ids. A
+   *     relation selected as `true` loads only `_id`.
+   */
+  private addAuditLogColumnsToUpdateSelect(
+    select: Select<TBaseModel>,
+    dataKeys: Array<string>,
+  ): void {
+    const model: TBaseModel = this.getModel();
+    const auditLogOn: EnableAuditLogOn | undefined = model.enableAuditLogOn;
+    const selectRecord: Record<string, unknown> = select as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const candidate of ["name", "title", "displayName"]) {
+      if (model.isTableColumn(candidate)) {
+        selectRecord[candidate] = true;
+      }
+    }
+
+    const rootColumn: string | undefined = auditLogOn?.rootResource?.column;
+
+    if (rootColumn && model.isTableColumn(rootColumn)) {
+      selectRecord[rootColumn] = true;
+    }
+
+    const nameRelation: string | undefined = auditLogOn?.resourceNameRelation;
+
+    if (nameRelation && model.isTableColumn(nameRelation)) {
+      const nameRelationIdColumn: string | undefined =
+        model.getTableColumnMetadata(nameRelation)?.manyToOneRelationColumn;
+
+      if (nameRelationIdColumn && model.isTableColumn(nameRelationIdColumn)) {
+        selectRecord[nameRelationIdColumn] = true;
+      }
+    }
+
+    for (const key of dataKeys) {
+      if (!model.isTableColumn(key)) {
+        continue;
+      }
+
+      const metadata: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(key);
+
+      if (
+        !metadata?.modelType ||
+        (metadata.type !== TableColumnType.EntityArray &&
+          metadata.type !== TableColumnType.Entity)
+      ) {
+        continue;
+      }
+
+      selectRecord[key] = new metadata.modelType().isTableColumn("name")
+        ? { _id: true, name: true }
+        : { _id: true };
+    }
+  }
+
   private hasSameValues(data: { item: TBaseModel; updatedItem: any }): boolean {
     const { item, updatedItem } = data;
     const columns: string[] = Object.keys(updatedItem);
     for (const column of columns) {
       const currentValue: unknown = item.getColumnValue(column);
       const updatedValue: unknown = updatedItem[column];
-      const isJSONColumn: boolean =
-        item.getTableColumnMetadata(column)?.type === TableColumnType.JSON;
+      const columnType: TableColumnType | undefined =
+        item.getTableColumnMetadata(column)?.type;
+      const isJSONColumn: boolean = columnType === TableColumnType.JSON;
+
+      /*
+       * A relation value is a model instance (or an array of them), and those
+       * stringify as "[object Object]" too - so swapping a resource's labels
+       * A,B for C,D compared as unchanged, and the update fired neither its
+       * workflow nor its audit entry. Compare the referenced ids, as sets:
+       * the order a relation comes back in means nothing. When either side
+       * has no ids to compare (the relation was not loaded, or holds something
+       * that is not a reference), fall through to the comparison below.
+       */
+      if (
+        columnType === TableColumnType.EntityArray ||
+        columnType === TableColumnType.Entity
+      ) {
+        const sameRelationIds: boolean | null =
+          RelationValueUtil.haveSameRelationIds(currentValue, updatedValue);
+
+        if (sameRelationIds === false) {
+          return false;
+        }
+
+        if (sameRelationIds === true) {
+          continue;
+        }
+      }
 
       /*
        * Plain JSON objects all stringify through Object.toString as
@@ -3309,6 +3488,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         _id: updateById.id.toString() as any,
       },
       data: updateById.data as any,
+      miscDataProps: updateById.miscDataProps,
       props: updateById.props,
     });
   }

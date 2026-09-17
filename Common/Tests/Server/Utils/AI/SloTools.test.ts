@@ -5,10 +5,22 @@ import {
 } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import ServiceLevelObjectiveService from "../../../../Server/Services/ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveMonitorRuleService from "../../../../Server/Services/ServiceLevelObjectiveMonitorRuleService";
+import LabelService from "../../../../Server/Services/LabelService";
+import ServiceLevelObjectiveMonitorRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
+import Label from "../../../../Models/DatabaseModels/Label";
+import FilterCondition from "../../../../Types/Filter/FilterCondition";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../../Types/Rules/RuleCriteria";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Team from "../../../../Models/DatabaseModels/Team";
+import User from "../../../../Models/DatabaseModels/User";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../../Types/JSON";
@@ -17,7 +29,7 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
 import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 import SloStatus from "../../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../../Types/ServiceLevelObjective/SloWindowType";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * query_slos surfaces SLO definitions plus the worker-persisted compliance
@@ -129,6 +141,17 @@ function buildRule(data?: {
 
   return rule;
 }
+
+/*
+ * Detail mode also reads the SLO's monitor rules. Most cases here are about
+ * something else, so they get "no monitor rules" by default; the monitor rule
+ * cases below override it.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy")
+    .mockResolvedValue([] as never);
+});
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -351,6 +374,214 @@ describe("query_slos — burn-rate rule outputs", () => {
   });
 });
 
+/*
+ * Burn-rate rules now take the monitor step form's alert and incident
+ * options, so "what happens when this rule fires?" also means: under which
+ * title, with which labels and owners, visible to whom, and whether it closes
+ * on its own. These pin the select (an unselected column reads back as its
+ * default) and that each output's options are reported with the worker's
+ * defaults, only for the outputs the rule actually produces.
+ */
+describe("query_slos — burn-rate rule alert and incident options", () => {
+  function idStubs<TModel extends BaseModel>(
+    modelType: { new (): TModel },
+    count: number,
+  ): Array<TModel> {
+    const stubs: Array<TModel> = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const stub: TModel = new modelType();
+      stub._id = ObjectID.generate().toString();
+      stubs.push(stub);
+    }
+
+    return stubs;
+  }
+
+  async function describeRules(
+    rules: Array<ServiceLevelObjectiveBurnRateRule>,
+  ): Promise<string> {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue(rules as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    return result.dataForLlm;
+  }
+
+  test("selects every option, the lists as ids only, and leaves remediation notes out", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    const rulesSpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await QuerySlosTool.execute({ sloId: SLO_ID.toString() }, ctx);
+
+    const select: JSONObject = (rulesSpy.mock.calls[0]?.[0] as JSONObject)[
+      "select"
+    ] as JSONObject;
+
+    for (const output of ["alert", "incident"]) {
+      const capitalized: string =
+        output.charAt(0).toUpperCase() + output.slice(1);
+
+      expect(select[`${output}TitleTemplate`]).toBe(true);
+      expect(select[`${output}DescriptionTemplate`]).toBe(true);
+      expect(select[`is${capitalized}Private`]).toBe(true);
+      expect(select[`autoResolve${capitalized}`]).toBe(true);
+      expect(select[`${output}Labels`]).toEqual({ _id: true });
+      expect(select[`${output}OwnerTeams`]).toEqual({ _id: true });
+      expect(select[`${output}OwnerUsers`]).toEqual({ _id: true });
+      expect(select[`${output}RemediationNotes`]).toBeUndefined();
+    }
+
+    expect(select["addSloOwnersAsOwners"]).toBe(true);
+  });
+
+  test("an alerting rule reports its alert options, with templates as set rather than inlined", async () => {
+    const rule: ServiceLevelObjectiveBurnRateRule = buildRule({
+      name: "Fast burn",
+      shouldCreateAlert: true,
+    });
+    rule.alertTitleTemplate = "{{sloName}} is burning its error budget";
+    rule.alertLabels = idStubs(Label, 2);
+    rule.alertOwnerTeams = idStubs(Team, 1);
+    rule.alertOwnerUsers = idStubs(User, 3);
+    rule.isAlertPrivate = true;
+    rule.autoResolveAlert = false;
+    rule.addSloOwnersAsOwners = true;
+
+    const data: string = await describeRules([rule]);
+
+    expect(data).toContain("hasAlertTitleTemplate=true");
+    expect(data).toContain("hasAlertDescriptionTemplate=false");
+    expect(data).toContain("alertLabelCount=2");
+    expect(data).toContain("alertOwnerTeamCount=1");
+    expect(data).toContain("alertOwnerUserCount=3");
+    expect(data).toContain("isAlertPrivate=true");
+    expect(data).toContain("autoResolveAlert=false");
+    expect(data).toContain("addSloOwnersAsOwners=true");
+    expect(data).not.toContain("is burning its error budget");
+  });
+
+  test("an incident rule reports its incident options", async () => {
+    const rule: ServiceLevelObjectiveBurnRateRule = buildRule({
+      name: "Incident burn",
+      shouldCreateIncident: true,
+      incidentSeverity: "Sev1",
+    });
+    rule.incidentTitleTemplate = "{{sloName}} error budget incident";
+    rule.incidentDescriptionTemplate = "Burning at {{burnRate}}x.";
+    rule.incidentLabels = idStubs(Label, 1);
+    rule.incidentOwnerTeams = idStubs(Team, 2);
+    rule.incidentOwnerUsers = [];
+    rule.isIncidentPrivate = true;
+    rule.autoResolveIncident = false;
+
+    const data: string = await describeRules([rule]);
+
+    expect(data).toContain("hasIncidentTitleTemplate=true");
+    expect(data).toContain("hasIncidentDescriptionTemplate=true");
+    expect(data).toContain("incidentLabelCount=1");
+    expect(data).toContain("incidentOwnerTeamCount=2");
+    expect(data).toContain("incidentOwnerUserCount=0");
+    expect(data).toContain("isIncidentPrivate=true");
+    expect(data).toContain("autoResolveIncident=false");
+    expect(data).toContain("addSloOwnersAsOwners=false");
+    expect(data).not.toContain("Burning at");
+  });
+
+  test("options left unset read as the worker applies them: public, auto-resolving, no extra owners", async () => {
+    // Neither option column set, i.e. a rule row that predates them.
+    const data: string = await describeRules([
+      buildRule({ name: "Legacy burn" }),
+    ]);
+
+    expect(data).toContain("hasAlertTitleTemplate=false");
+    expect(data).toContain("hasAlertDescriptionTemplate=false");
+    expect(data).toContain("alertLabelCount=0");
+    expect(data).toContain("alertOwnerTeamCount=0");
+    expect(data).toContain("alertOwnerUserCount=0");
+    expect(data).toContain("isAlertPrivate=false");
+    expect(data).toContain("autoResolveAlert=true");
+    expect(data).toContain("addSloOwnersAsOwners=false");
+  });
+
+  test("an alert-only rule says nothing about incident options, and an incident-only rule nothing about alert ones", async () => {
+    const alertOnly: string = await describeRules([
+      buildRule({ name: "Alert only" }),
+    ]);
+
+    expect(alertOnly).toContain("autoResolveAlert=true");
+    expect(alertOnly).not.toContain("autoResolveIncident=");
+    expect(alertOnly).not.toContain("isIncidentPrivate=");
+    expect(alertOnly).not.toContain("incidentLabelCount=");
+    expect(alertOnly).not.toContain("hasIncidentTitleTemplate=");
+
+    // Re-spying hands back the same spies, now serving the second rule.
+    const incidentOnly: string = await describeRules([
+      buildRule({
+        name: "Incident only",
+        shouldCreateAlert: false,
+        shouldCreateIncident: true,
+      }),
+    ]);
+
+    expect(incidentOnly).toContain("autoResolveIncident=true");
+    expect(incidentOnly).not.toContain("autoResolveAlert=");
+    expect(incidentOnly).not.toContain("isAlertPrivate=");
+    expect(incidentOnly).not.toContain("alertLabelCount=");
+    expect(incidentOnly).not.toContain("hasAlertTitleTemplate=");
+  });
+
+  test("a rule with neither output reports no output options at all", async () => {
+    const data: string = await describeRules([
+      buildRule({
+        name: "Silent",
+        shouldCreateAlert: false,
+        shouldCreateIncident: false,
+      }),
+    ]);
+
+    expect(data).toContain("createsAlert=false");
+    expect(data).toContain("createsIncident=false");
+    expect(data).not.toContain("autoResolveAlert=");
+    expect(data).not.toContain("autoResolveIncident=");
+    expect(data).not.toContain("addSloOwnersAsOwners=");
+  });
+
+  test("a whitespace-only template reads as no template, since the default text is used", async () => {
+    const rule: ServiceLevelObjectiveBurnRateRule = buildRule({
+      name: "Blank templates",
+    });
+    rule.alertTitleTemplate = "   ";
+    rule.alertDescriptionTemplate = "\n\t";
+
+    const data: string = await describeRules([rule]);
+
+    expect(data).toContain("hasAlertTitleTemplate=false");
+    expect(data).toContain("hasAlertDescriptionTemplate=false");
+  });
+
+  test("the tool description tells the model it can say how each output is created", () => {
+    const description: string = QuerySlosTool.description.toLowerCase();
+
+    expect(description).toContain("template");
+    expect(description).toContain("owner");
+    expect(description).toContain("private");
+    expect(description).toContain("auto-resolve");
+  });
+});
+
 describe("query_slos — list mode", () => {
   test("lists SLOs with target, window and persisted compliance", async () => {
     const findBySpy: jest.SpyInstance = jest
@@ -491,5 +722,196 @@ describe("query_slos — list mode", () => {
 describe("query_slos — permissions", () => {
   test("required permissions derive from the model read ACL", () => {
     expect(QuerySlosTool.requiredPermissions.length).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * SLO Monitor Rules replaced the single "auto-add monitors with labels" list
+ * on the SLO. The model answers "why is this monitor on the SLO?" from these
+ * rows, so each rule reports whether it is enabled and what it matches in
+ * words - the same words the SLO feed uses - read under the user's own props.
+ */
+describe("query_slos — monitor rules", () => {
+  const PRODUCTION_LABEL_ID: ObjectID = ObjectID.generate();
+  const TIER1_LABEL_ID: ObjectID = ObjectID.generate();
+
+  function buildLabel(id: ObjectID, name: string): Label {
+    const label: Label = new Label();
+    label._id = id.toString();
+    label.name = name;
+    return label;
+  }
+
+  function buildMonitorRules(): Array<ServiceLevelObjectiveMonitorRule> {
+    const legacy: ServiceLevelObjectiveMonitorRule =
+      new ServiceLevelObjectiveMonitorRule();
+    legacy._id = ObjectID.generate().toString();
+    legacy.name = "Production APIs";
+    legacy.isEnabled = true;
+    legacy.monitorLabels = [buildLabel(PRODUCTION_LABEL_ID, "Production")];
+    legacy.monitorNamePattern = "^api-";
+
+    const configured: ServiceLevelObjectiveMonitorRule =
+      new ServiceLevelObjectiveMonitorRule();
+    configured._id = ObjectID.generate().toString();
+    configured.name = "Tier one";
+    configured.isEnabled = false;
+    configured.criteria = {
+      schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          field: "monitorLabels",
+          operator: RuleCriteriaOperator.HasAnyOf,
+          value: [TIER1_LABEL_ID.toString()],
+        },
+      ],
+    };
+
+    return [legacy, configured];
+  }
+
+  test("reads this SLO's monitor rules under the user's props and says what each one matches", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    const monitorRulesSpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy")
+      .mockResolvedValue(buildMonitorRules() as never);
+    const labelsSpy: jest.SpyInstance = jest
+      .spyOn(LabelService, "findBy")
+      .mockResolvedValue([buildLabel(TIER1_LABEL_ID, "Tier 1")] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    // SLO row + 2 monitor rule rows.
+    expect(result.rowCount).toBe(3);
+    expect(result.dataForLlm).toContain("Production APIs");
+    expect(result.dataForLlm).toContain("Labels has any of");
+    expect(result.dataForLlm).toContain("Name matches pattern");
+    expect(result.dataForLlm).toContain("Tier one");
+    // A criteria rule stores label ids; the name is looked up for the model.
+    expect(result.dataForLlm).toContain("Tier 1");
+
+    const call: JSONObject = monitorRulesSpy.mock.calls[0]?.[0] as JSONObject;
+    expect(
+      (call["query"] as JSONObject)["serviceLevelObjectiveId"]?.toString(),
+    ).toBe(SLO_ID.toString());
+    expect(call["props"]).toBe(ctx.props);
+    expect((call["select"] as JSONObject)["criteria"]).toBe(true);
+    expect((call["select"] as JSONObject)["monitorLabels"]).toEqual({
+      _id: true,
+      name: true,
+    });
+
+    // Only the unnamed criteria label is looked up, and as the user.
+    expect(labelsSpy).toHaveBeenCalledTimes(1);
+    expect((labelsSpy.mock.calls[0]?.[0] as JSONObject)["props"]).toBe(
+      ctx.props,
+    );
+  });
+
+  test("counts the enabled monitor rules on the widget", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy")
+      .mockResolvedValue(buildMonitorRules() as never);
+    jest.spyOn(LabelService, "findBy").mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(JSON.stringify(result.widget)).toContain("1 of 2 enabled");
+  });
+
+  test("a label the user cannot read degrades to an unknown label instead of failing the tool", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy")
+      .mockResolvedValue(buildMonitorRules() as never);
+    jest
+      .spyOn(LabelService, "findBy")
+      .mockRejectedValue(new Error("not allowed") as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(result.rowCount).toBe(3);
+    expect(result.dataForLlm).toContain("unknown label");
+  });
+
+  test("does not look monitor rules up for an SLO the user cannot see", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(null as never);
+    const monitorRulesSpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await QuerySlosTool.execute({ sloId: SLO_ID.toString() }, ctx);
+
+    expect(monitorRulesSpy).not.toHaveBeenCalled();
+  });
+
+  test("no longer reports the deprecated auto-attach label list off the SLO", async () => {
+    const findOneByIdSpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).not.toContain("autoAttachMonitorLabels");
+    expect(
+      (
+        (findOneByIdSpy.mock.calls[0]?.[0] as JSONObject)[
+          "select"
+        ] as JSONObject
+      )["monitorLabels"],
+    ).toBeUndefined();
+
+    const sloIdDescription: string = String(
+      (
+        (QuerySlosTool.inputSchema as unknown as JSONObject)[
+          "properties"
+        ] as JSONObject
+      )["sloId"]
+        ? (
+            (
+              (QuerySlosTool.inputSchema as unknown as JSONObject)[
+                "properties"
+              ] as JSONObject
+            )["sloId"] as JSONObject
+          )["description"]
+        : "",
+    );
+
+    expect(sloIdDescription).toContain("monitor rules");
+    expect(sloIdDescription).not.toContain("monitor labels");
   });
 });

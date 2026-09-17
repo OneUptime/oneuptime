@@ -2,6 +2,10 @@ import AIChatPageContextType, {
   AIChatPageContext,
 } from "../../../../Types/AI/AIChatPageContext";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
+import {
+  getAIResourceDefinition,
+  isAIResourceType,
+} from "../../../../Types/AI/AIResourceContext";
 
 /*
  * System prompt for the observability chat agent. The binding rules here
@@ -42,6 +46,8 @@ function buildEntityContextGuidance(context: AIChatPageContext): string {
     : "";
 
   switch (context.type) {
+    case AIChatPageContextType.Resource:
+      return buildResourceContextGuidance(context);
     case AIChatPageContextType.Incident:
       return `an incident${titlePart}. Fetch its full details with query_incidents using incidentId="${id}" before answering questions about it. An autonomous AI investigation may already exist for this incident — call get_ai_investigation first and build on (and cite) its findings rather than re-deriving them from raw telemetry. get_incident_timeline is how to answer "what's the latest": it returns the incident's state changes, notes and notifications in order. Incident actions (acknowledge_incident, resolve_incident, post_incident_status_update, change_incident_severity, page_on_call_policy, run_runbook) take this same incidentId. Use the incident's start time and affected monitors to scope log, trace and metric queries when investigating it.`;
     case AIChatPageContextType.Alert:
@@ -52,6 +58,8 @@ function buildEntityContextGuidance(context: AIChatPageContext): string {
       return `a scheduled maintenance event${titlePart}. Fetch its full details with query_scheduled_maintenance using scheduledMaintenanceId="${id}" — including its window (startsAt/endsAt) and affected monitors. Use that window to scope log, trace and metric queries, and to judge whether telemetry changes during it were expected maintenance rather than a real problem.`;
     case AIChatPageContextType.TelemetryService:
       return `a telemetry service${titlePart}. Scope queries to it: query_traces, search_logs and log_histogram accept serviceId="${id}", while query_metrics and baseline_anomaly accept the same id as entityId. Use lookup_context to discover this service's metric names.`;
+    case AIChatPageContextType.RumApplication:
+      return `a Real User Monitoring application${titlePart}. Fetch its name and connection health with query_rum_applications using rumApplicationId="${id}". Use query_rum_web_vitals with the same rumApplicationId to compare LCP, INP, CLS, FCP and TTFB in an explicit time window against the preceding equal-length window. It returns measured averages, units, ratings and changes; missing measurements are not zero. For a trend chart, use the returned metric name with query_metrics and entityId="${id}". For slow browser operations or error spans, use query_traces with serviceId="${id}" and metric="p95Duration" or metric="errorCount", grouped by name. Span counts are not page views or unique users. These tools do not read session recordings. Report observed regressions and distinguish them from statistically established anomalies; do not infer a root cause from a change alone.`;
     case AIChatPageContextType.Trace:
       return `a distributed trace. Fetch its span tree with get_trace using traceId="${id}", and its logs with search_logs using the same traceId.`;
     case AIChatPageContextType.Exception:
@@ -72,8 +80,10 @@ function buildEntityContextGuidance(context: AIChatPageContext): string {
  * "which incidents are currently active or unresolved?". Every affordance an
  * area page's suggested prompts depend on has to be named here.
  */
-function buildAreaContextGuidance(type: AIChatPageContextType): string {
-  switch (type) {
+function buildAreaContextGuidance(context: AIChatPageContext): string {
+  switch (context.type) {
+    case AIChatPageContextType.ResourcesList:
+      return buildResourceContextGuidance(context);
     case AIChatPageContextType.IncidentsList:
       return `the incidents list. Questions about "these incidents" or incident activity are answered with query_incidents: pass state="active" to list every incident that is unresolved RIGHT NOW (this drops the time window, so incidents opened weeks ago are still returned), leave state unset for recent activity in a window, or pass incidentId for one incident's full details. search_incidents does free-text search over past incidents.`;
     case AIChatPageContextType.AlertsList:
@@ -90,9 +100,34 @@ function buildAreaContextGuidance(type: AIChatPageContextType): string {
       return `the metrics explorer. Discover metric names with lookup_context, then chart them with query_metrics; baseline_anomaly checks a metric against its learned baseline.`;
     case AIChatPageContextType.ExceptionsList:
       return `the exceptions list. Questions about exceptions are answered with top_exceptions; find_code_for_exception maps one to source code.`;
+    case AIChatPageContextType.RumApplications:
+      return `the Real User Monitoring applications list. Discover application ids, names and connection health with query_rum_applications before querying their data. Use query_rum_web_vitals with a rumApplicationId to compare web-vital averages and ratings against the preceding equal-length window. It returns the exact metric names to chart with query_metrics using entityId. query_traces accepts an application's id as serviceId for slow browser operations and error spans. Scope every query to the selected application and state the time window and any missing measurements. Span counts are not page views or unique users, and these tools do not read session recordings.`;
+    case AIChatPageContextType.TelemetryServicesList:
+      return `the telemetry services list. Discover services with lookup_context using type="services", then scope query_traces, search_logs and log_histogram with serviceId. Compare latency and error counts with query_traces grouped by primaryEntityId; discover metrics with lookup_context before calling query_metrics or baseline_anomaly with entityId.`;
     default:
       return "";
   }
+}
+
+function buildResourceContextGuidance(context: AIChatPageContext): string {
+  if (!isAIResourceType(context.resourceType)) {
+    return "";
+  }
+  const label: string = getAIResourceDefinition(context.resourceType).label;
+  const pluralLabel: string = getAIResourceDefinition(
+    context.resourceType,
+  ).pluralLabel;
+  const resourceArgs: string = JSON.stringify({
+    resourceType: context.resourceType,
+    ...(context.entityId ? { resourceId: context.entityId } : {}),
+  });
+  const subject: string = context.entityId
+    ? `a ${label}${context.entityTitle ? ` titled ${JSON.stringify(context.entityTitle)}` : ""}`
+    : `the ${pluralLabel} list`;
+  const childGuidance: string = context.subresource
+    ? ` The selected child or collection is ${JSON.stringify(context.subresource)}. Child names are UI hints, not verified unique identities: Kubernetes names may exist in multiple namespaces, container names may be reused and process IDs may be recycled. Do not invent a namespace or child ID. The resource telemetry tool returns the parent resource's data; explicitly state that scope and never describe it as child-only measurements. If the question needs child-specific evidence that the tools cannot retrieve, explain that limitation.`
+    : "";
+  return `${subject}. Discover accessible resources and their reported connection state with query_telemetry_resources using ${resourceArgs}. For each selected resource, query_resource_telemetry takes resourceType and resourceId plus signal="metrics", "logs" or "traces". For metrics, omit metricName first to discover metric names within that resource, then pass an observed name and mode="trend" for a chart or mode="summary" for a range aggregate. Logs return a severity histogram; traces return operation summaries. Use explicit time windows and cite measured results. These tools resolve resource membership and attribute filters from accessible records; passing a cluster or host UUID to legacy entityId/serviceId filters alone can miss telemetry whose primary entity is a service. Connection state is not workload health, and missing telemetry does not mean the resource is healthy. State coverage and missing data, and distinguish observed changes from established anomalies or root causes.${childGuidance}`;
 }
 
 export function buildPageContextSection(
@@ -106,7 +141,7 @@ export function buildPageContextSection(
 
   const guidance: string = isEntity
     ? buildEntityContextGuidance(context)
-    : buildAreaContextGuidance(context.type);
+    : buildAreaContextGuidance(context);
 
   if (!guidance) {
     return "";
@@ -132,7 +167,7 @@ export function buildObservabilityChatSystemPrompt(data: {
   permissionMode: AIChatPermissionMode;
   pageContext?: AIChatPageContext | undefined;
 }): string {
-  return `You are OneUptime's observability copilot: a careful SRE analyst that answers questions about — and can take action on — this project's traces, metrics, logs, exceptions, incidents, monitors, alerts and scheduled maintenance, the on-call, status page, SLO and runbook platform around them, and the source code in its connected code repositories.
+  return `You are OneUptime's observability copilot: a careful SRE analyst that answers questions about — and can take action on — this project's traces, metrics, logs, exceptions, incidents, monitors, alerts and scheduled maintenance, Real User Monitoring applications and web vitals, the on-call, status page, SLO and runbook platform around them, and the source code in its connected code repositories.
 
 The current time is ${data.currentTime.toISOString()}.${buildPageContextSection(
     data.pageContext,
@@ -149,6 +184,8 @@ ${buildActionGuidance(data.permissionMode)}
 ## How to investigate
 
 - Resolve names first: use lookup_context to turn a service name into its ID before filtering other tools by service, and to discover metric names.
+- For infrastructure (hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware, Ceph, serverless, cloud, IoT and network devices), discover resources with query_telemetry_resources and use query_resource_telemetry for their scoped metric trends, log severity and trace operations. Follow the tool's stated scope rather than assuming an infrastructure UUID is always the primary entity of its telemetry.
+- For Real User Monitoring, resolve applications with query_rum_applications and compare measured web vitals with query_rum_web_vitals. Use returned metric names with query_metrics to chart trends. Explain observed changes, missing data and the time windows used; do not call a change an anomaly without supporting evidence.
 - Prefer aggregations (query_traces, log_histogram, query_metrics, top_exceptions, security_event_summary) to establish the shape of a problem, then drill into raw data (search_logs, get_trace, search_security_events) for evidence.
 - Always pass explicit ISO 8601 time ranges. If the user did not specify one, use the last hour for logs and the last 24 hours for metrics/traces, and say which window you used.
 - When durations are involved they are in milliseconds unless stated otherwise.

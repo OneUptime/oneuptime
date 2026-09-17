@@ -463,3 +463,125 @@ describe("ReplayPinControl pending poll", () => {
     }
   });
 });
+
+/*
+ * The header is one compact bar above the picture now, and this control
+ * sits inside its actions group. The three long, honest sentences it has
+ * to say - a pending pin protects nothing yet, an unpin takes an hour, a
+ * worker-removed pin had nothing left to protect - wrapped that group
+ * onto a second and third row when they were rendered inline, which cost
+ * the recording two rows of height for a message about retention.
+ *
+ * The fix is NOT to shorten the copy: every sentence is still in the DOM
+ * and still read out. What changed is that the badge draws two words and
+ * carries the sentence in an sr-only span and in its tooltip.
+ */
+describe("ReplayPinControl compact status copy", () => {
+  const protectedRow: PinRow = pinRow({
+    materializedAt: new Date("2026-09-01T10:00:00Z"),
+  });
+
+  function visiblePart(status: HTMLElement): HTMLElement {
+    return status.querySelector("[aria-hidden='true']") as HTMLElement;
+  }
+
+  function announcedPart(status: HTMLElement): HTMLElement {
+    return status.querySelector(".sr-only") as HTMLElement;
+  }
+
+  it("draws a pending pin as two words and keeps the whole sentence readable", async () => {
+    getListMock.mockResolvedValue(listResult([pinRow()]));
+
+    renderControl();
+
+    const status: HTMLElement = await screen.findByTestId("replay-pin-status");
+
+    expect(visiblePart(status)).toHaveTextContent("Pin pending");
+    expect(announcedPart(status)).toHaveTextContent(PIN_PENDING_COPY);
+    /* The full copy is still what the status CONTAINS, for tests and AT. */
+    expect(status).toHaveTextContent(PIN_PENDING_COPY);
+    expect(status.getAttribute("title")).toContain("NOT yet protected");
+    /* Nothing in the badge may wrap the header's action row. */
+    expect(status.className).not.toContain("whitespace-normal");
+    expect(status.querySelector(".truncate")).not.toBeNull();
+  });
+
+  it("draws an unpin as one word with the sentence attached", async () => {
+    getListMock
+      .mockResolvedValueOnce(listResult([protectedRow]))
+      .mockResolvedValueOnce(listResult([]));
+    deleteItemMock.mockResolvedValue(undefined);
+
+    renderControl();
+
+    fireEvent.click(await screen.findByTestId("replay-unpin-button"));
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("replay-pin-status")).toHaveTextContent(
+        PIN_UNPINNED_COPY,
+      );
+    });
+
+    const status: HTMLElement = screen.getByTestId("replay-pin-status");
+
+    expect(visiblePart(status)).toHaveTextContent("Unpinned");
+    expect(announcedPart(status)).toHaveTextContent(PIN_UNPINNED_COPY);
+    expect(status).toHaveAttribute("title", PIN_UNPINNED_COPY);
+    expect(status.className).toContain("truncate");
+    expect(status.className).not.toContain("whitespace-normal");
+  });
+
+  it("draws a worker-removed pin the same way", async () => {
+    jest.useFakeTimers();
+
+    try {
+      getListMock
+        .mockResolvedValueOnce(listResult([pinRow()]))
+        .mockResolvedValueOnce(listResult([]));
+
+      renderControl();
+
+      await screen.findByTestId("replay-pin-status");
+
+      await act(async () => {
+        jest.advanceTimersByTime(PENDING_POLL_INTERVAL_MS + 10);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("replay-pin-status")).toHaveTextContent(
+          PIN_REMOVED_COPY,
+        );
+      });
+
+      const status: HTMLElement = screen.getByTestId("replay-pin-status");
+
+      expect(visiblePart(status)).toHaveTextContent("Pin removed");
+      expect(announcedPart(status)).toHaveTextContent(PIN_REMOVED_COPY);
+      expect(status).toHaveAttribute("title", PIN_REMOVED_COPY);
+      expect(status.className).not.toContain("whitespace-normal");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  /* Failures are the exception: they wrap, in full, where they happened. */
+  it("still lets a failure take the room it needs", async () => {
+    getListMock.mockResolvedValue(listResult([]));
+    createMock.mockRejectedValueOnce(
+      httpError(402, "Pinned recordings are not included in your plan"),
+    );
+
+    renderControl();
+
+    fireEvent.click(await screen.findByTestId("replay-pin-button"));
+
+    const error: HTMLElement = await screen.findByTestId("replay-pin-error");
+
+    expect(error).toHaveTextContent(
+      "Pinned recordings are not included in your plan",
+    );
+    expect(error.className).toContain("whitespace-normal");
+    expect(error.className).not.toContain("truncate");
+  });
+});

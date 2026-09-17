@@ -70,7 +70,15 @@ type Responder = (
   request: RecordedRequest,
 ) => StubbedResponse | Promise<FetchResponseLike>;
 
-type Route = "token" | "search" | "curated" | "alerts";
+type Route = "token" | "search" | "count" | "curated" | "alerts";
+
+/*
+ * The curated rule the default count answer reports detections for, so every
+ * fetch exercises one real per-rule curated search:
+ * legacySearchCuratedDetections has no wildcard.
+ */
+const CURATED_RULE_ID: string = "ur_contract_rule";
+const COUNT_URL: string = `${API_BASE}:countAllCuratedRuleSetDetections`;
 
 interface Transport {
   fetchImplementation: FetchLike;
@@ -99,6 +107,10 @@ function routeOf(url: string): Route | null {
     return "curated";
   }
 
+  if (url === COUNT_URL) {
+    return "count";
+  }
+
   if (url.includes("legacy:legacyFetchAlertsView")) {
     return "alerts";
   }
@@ -108,7 +120,8 @@ function routeOf(url: string): Route | null {
 
 /*
  * Each route answers from its own queue, repeating the last entry. Unset
- * routes answer the way a quiet, healthy tenant does.
+ * routes answer the way a quiet, healthy tenant does: nothing in the window,
+ * and one curated rule (CURATED_RULE_ID) with detections earlier that week.
  */
 function makeTransport(
   routes: Partial<Record<Route, Array<Responder>>> = {},
@@ -124,6 +137,25 @@ function makeTransport(
     search: [
       (): StubbedResponse => {
         return ok({});
+      },
+    ],
+    count: [
+      (): StubbedResponse => {
+        return ok({
+          curatedRuleSetCounts: [
+            {
+              curatedRuleSet: `${INSTANCE}/curatedRuleSetCategories/c1/curatedRuleSets/s1`,
+              count: 3,
+            },
+          ],
+          curatedRuleCounts: [
+            {
+              curatedRule: `${INSTANCE}/curatedRules/${CURATED_RULE_ID}`,
+              precision: "PRECISE",
+              count: 3,
+            },
+          ],
+        });
       },
     ],
     curated: [
@@ -323,7 +355,15 @@ describe("GoogleSecOpsConnector request contract over the real client", () => {
       transport.requests.map((request: RecordedRequest): string => {
         return routeOf(request.raw)!;
       }),
-    ).toEqual(["token", "search", "search", "curated", "alerts"]);
+    ).toEqual([
+      "token",
+      "search",
+      "search",
+      "count",
+      "curated",
+      "alerts",
+      "alerts",
+    ]);
 
     const [firstPage, secondPage] = transport.of("search");
     expect(
@@ -341,39 +381,83 @@ describe("GoogleSecOpsConnector request contract over the real client", () => {
       ...paramsOf(firstPage!),
       pageToken: "t1",
     });
+    /*
+     * The curated rules are discovered first, over the week before the
+     * window through its end, and each one is then searched by its own id:
+     * the curated route has no wildcard.
+     */
+    const count: RecordedRequest = transport.of("count")[0]!;
+    expect(count.raw).toBe(COUNT_URL);
+    expect(count.method).toBe("POST");
+    expect(count.headers).toEqual({
+      Authorization: "Bearer test-token",
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    });
+    expect(JSON.parse(count.body!)).toEqual({
+      interval: {
+        startTime: "2026-09-07T11:54:00.000Z",
+        endTime: "2026-09-14T12:00:00.000Z",
+      },
+    });
     expect(
       transport
         .of("curated")[0]!
         .raw.startsWith(`${API_BASE}/legacy:legacySearchCuratedDetections?`),
     ).toBe(true);
-    expect(paramsOf(transport.of("curated")[0]!)).toEqual(paramsOf(firstPage!));
+    expect(paramsOf(transport.of("curated")[0]!)).toEqual({
+      ...paramsOf(firstPage!),
+      ruleId: CURATED_RULE_ID,
+    });
 
-    const alerts: RecordedRequest = transport.of("alerts")[0]!;
-    expect([...alerts.url.searchParams.entries()].sort()).toEqual([
+    const [alerts, lateAlerts] = transport.of("alerts");
+    expect([...alerts!.url.searchParams.entries()].sort()).toEqual([
       ["alertListOptions.maxReturnedAlerts", "1000"],
       ["includeNonAlertingDetections", "ALERTS_FEATURE_PREFERENCE_DISABLED"],
       ["snapshotQuery", ""],
       ["timeRange.endTime", "2026-09-14T12:00:00.000Z"],
       ["timeRange.startTime", "2026-09-14T11:54:00.000Z"],
     ]);
+    // The late-alert sweep: the day before the window, alerts only.
+    expect([...lateAlerts!.url.searchParams.entries()].sort()).toEqual([
+      ["alertListOptions.maxReturnedAlerts", "1000"],
+      ["includeNonAlertingDetections", "ALERTS_FEATURE_PREFERENCE_DISABLED"],
+      ["snapshotQuery", ""],
+      ["timeRange.endTime", "2026-09-14T11:54:00.000Z"],
+      ["timeRange.startTime", "2026-09-13T12:00:00.000Z"],
+    ]);
 
     for (const request of transport.requests.slice(1)) {
+      if (routeOf(request.raw) === "count") {
+        continue;
+      }
+
       expect(request.method).toBe("GET");
       expect(request.headers).toEqual({
         Authorization: "Bearer test-token",
         Accept: "application/json",
       });
+      expect(request.body).toBeUndefined();
     }
 
     // The token exchange is neither repeated within a fetch nor counted.
     expect(transport.of("token")).toHaveLength(1);
-    expect(result.requestCount).toBe(4);
+    expect(result.requestCount).toBe(6);
     expect(uidsOf(result).sort()).toEqual([
       "closed-alert",
       "d1",
       "d2",
       "open-alert",
     ]);
+    expect(result.details).toMatchObject({
+      sourceCounts: {
+        ruleDetections: 2,
+        curatedDetections: 0,
+        alertsView: 2,
+        lateAlertsView: 2,
+      },
+      curatedRulesWithDetections: 1,
+    });
     expect(result.complete).toBe(true);
   });
 
@@ -389,6 +473,7 @@ describe("GoogleSecOpsConnector request contract over the real client", () => {
       fetchOptions(),
     );
 
+    expect(transport.of("curated")).toHaveLength(1);
     for (const request of [
       ...transport.of("search"),
       ...transport.of("curated"),
@@ -396,10 +481,14 @@ describe("GoogleSecOpsConnector request contract over the real client", () => {
       expect(request.url.searchParams.has("alertState")).toBe(false);
     }
     expect(
-      transport
-        .of("alerts")[0]!
-        .url.searchParams.get("includeNonAlertingDetections"),
-    ).toBe("ALERTS_FEATURE_PREFERENCE_ENABLED");
+      transport.of("alerts").map((request: RecordedRequest): string => {
+        return `${request.url.searchParams.get("timeRange.startTime")}:${request.url.searchParams.get("includeNonAlertingDetections")}`;
+      }),
+    ).toEqual([
+      "2026-09-14T11:54:00.000Z:ALERTS_FEATURE_PREFERENCE_ENABLED",
+      // The late-alert sweep stays alerts only whatever is imported.
+      "2026-09-13T12:00:00.000Z:ALERTS_FEATURE_PREFERENCE_DISABLED",
+    ]);
   });
 
   test.each(["preview", "backfill"] as Array<ConnectorFetchPurpose>)(
@@ -430,6 +519,12 @@ describe("GoogleSecOpsConnector request contract over the real client", () => {
         "curated:CREATED_TIME",
         "curated:DETECTION_TIME",
       ]);
+      for (const request of transport.of("curated")) {
+        expect(request.url.searchParams.get("ruleId")).toBe(CURATED_RULE_ID);
+      }
+      expect(transport.of("count")).toHaveLength(1);
+      // A preview or backfill never sweeps for late alerts.
+      expect(transport.of("alerts")).toHaveLength(1);
     },
   );
 
@@ -544,7 +639,8 @@ describe("GoogleSecOpsConnector request contract over the real client", () => {
 
     expect(transport.of("token")).toHaveLength(2);
     expect(transport.of("search")).toHaveLength(2);
-    expect(result.requestCount).toBe(3);
+    // One rule search, the curated count and search, the window and sweep.
+    expect(result.requestCount).toBe(5);
     expect(result.complete).toBe(true);
   });
 
@@ -564,9 +660,19 @@ describe("GoogleSecOpsConnector request contract over the real client", () => {
       fetchOptions(),
     );
 
-    expect(transport.of("alerts")).toHaveLength(3);
-    expect(result.requestCount).toBe(3);
+    /*
+     * Both alerts-view reads (the window and the late-alert sweep) are
+     * issued three times each by the client and counted once each.
+     */
+    expect(transport.of("alerts")).toHaveLength(6);
+    expect(result.requestCount).toBe(5);
     expect(result.complete).toBe(false);
+    expect(statusesOf(result.checks)).toEqual([
+      "read-rule-detections:pass",
+      "read-curated-detections:pass",
+      "read-alerts-view:warn",
+      "read-late-alerts-view:warn",
+    ]);
     expect(result.warnings).toEqual([
       "Google ended an alerts view response without confirming it was complete.",
     ]);
@@ -685,8 +791,9 @@ describe("GoogleSecOpsConnector failure taxonomy over the real client", () => {
   });
 
   test("the curated route answering 403 is a warning over HTTP, and 500 fails with its prefix", async () => {
+    // A tenant without curated rule access is refused at the count.
     const warned: Transport = makeTransport({
-      curated: answer({ status: 403, body: '{"error":{"code":403}}' }),
+      count: answer({ status: 403, body: '{"error":{"code":403}}' }),
     });
     const result: ConnectorFetchResult = await new GoogleSecOpsConnector(
       warned.fetchImplementation,
@@ -698,7 +805,30 @@ describe("GoogleSecOpsConnector failure taxonomy over the real client", () => {
     expect(result.warnings).toContain(
       "Curated rule detections could not be read (HTTP 403); this tenant may not have curated rule access. Rule detections and the alerts view were still read.",
     );
-    expect(warned.of("alerts")).toHaveLength(1);
+    expect(warned.of("curated")).toHaveLength(0);
+    // The window's alerts-view read and the late-alert sweep.
+    expect(warned.of("alerts")).toHaveLength(2);
+    expect(result.complete).toBe(true);
+
+    // One curated rule the search refuses is a warning for that rule alone.
+    const ruleWarned: Transport = makeTransport({
+      curated: answer({ status: 403, body: '{"error":{"code":403}}' }),
+    });
+    const ruleResult: ConnectorFetchResult = await new GoogleSecOpsConnector(
+      ruleWarned.fetchImplementation,
+    ).fetchEvents(secOpsSettings(), WINDOW, fetchOptions());
+    expect(
+      checkByKey(ruleResult.checks, "read-curated-detections"),
+    ).toMatchObject({
+      status: "warn",
+      message:
+        "0 curated rule detections returned for the window by created time (1 of 1 curated rule with recent detections searched, 1 could not be read). Google did not return part of the window.",
+    });
+    expect(ruleResult.warnings).toContain(
+      `Detections of curated rule ${CURATED_RULE_ID} could not be read (HTTP 403); the other curated rules were still read.`,
+    );
+    expect(ruleWarned.of("alerts")).toHaveLength(2);
+    expect(ruleResult.complete).toBe(true);
 
     const { error } = await failWith({
       curated: answer({ status: 500, body: '{"error":{"code":500}}' }),
@@ -709,6 +839,19 @@ describe("GoogleSecOpsConnector failure taxonomy over the real client", () => {
       ),
     ).toBe(true);
     expect(statusesOf(readConnectorChecks(error))).toEqual([
+      "read-rule-detections:pass",
+      "read-curated-detections:fail",
+    ]);
+
+    const { error: countError } = await failWith({
+      count: answer({ status: 500, body: '{"error":{"code":500}}' }),
+    });
+    expect(
+      countError.message.startsWith(
+        "Google SecOps curated rule detection counts failed (HTTP 500): ",
+      ),
+    ).toBe(true);
+    expect(statusesOf(readConnectorChecks(countError))).toEqual([
       "read-rule-detections:pass",
       "read-curated-detections:fail",
     ]);
@@ -739,7 +882,7 @@ describe("GoogleSecOpsConnector failure taxonomy over the real client", () => {
       transport.requests.map((request: RecordedRequest): string => {
         return routeOf(request.raw)!;
       }),
-    ).toEqual(["token", "search", "curated", "alerts"]);
+    ).toEqual(["token", "search", "count", "curated", "alerts"]);
     expect(statusesOf(readConnectorChecks(error))).toEqual([
       "read-rule-detections:pass",
       "read-curated-detections:pass",
@@ -806,6 +949,8 @@ describe("GoogleSecOpsConnector failure taxonomy over the real client", () => {
         .message,
       (await failWith({ search: answer({ status: 403, body: "{}" }) })).error
         .message,
+      (await failWith({ count: answer({ status: 500, body: "{}" }) })).error
+        .message,
       (await failWith({ alerts: answer({ status: 403, body: "{}" }) })).error
         .message,
     ];
@@ -816,9 +961,10 @@ describe("GoogleSecOpsConnector failure taxonomy over the real client", () => {
     expect(families).toEqual([
       "Google token exchange failed",
       "Google SecOps detections search failed",
+      "Google SecOps curated rule detection counts failed",
       "Google SecOps alerts fetch failed",
     ]);
-    expect(new Set(messages).size).toBe(3);
+    expect(new Set(messages).size).toBe(4);
   });
 
   test("a full Google diagnostic survives whole in the error and redacted, untruncated, in the failed check", async () => {
@@ -962,7 +1108,7 @@ describe("GoogleSecOpsConnector.testConnection over the real client", () => {
     expect(result.samples).toHaveLength(2);
 
     expect(transport.of("token")).toHaveLength(1);
-    expect(transport.requests).toHaveLength(12);
+    expect(transport.requests).toHaveLength(13);
 
     const searches: Array<RecordedRequest> = transport.of("search");
     expect(
@@ -977,11 +1123,34 @@ describe("GoogleSecOpsConnector.testConnection over the real client", () => {
       "1000:any:2026-09-13T12:00:00.000Z:CREATED_TIME",
       "1000:any:2026-09-07T12:00:00.000Z:CREATED_TIME",
     ]);
-    expect(paramsOf(transport.of("curated")[0]!)).toMatchObject({
+    /*
+     * The curated probe counts the curated rules over the last week, then
+     * reads one record of the rule with the most detections by its id.
+     */
+    expect(
+      transport.of("count").map((request: RecordedRequest): JSONObject => {
+        return JSON.parse(request.body!) as JSONObject;
+      }),
+    ).toEqual([
+      {
+        interval: {
+          startTime: "2026-09-07T12:00:00.000Z",
+          endTime: "2026-09-14T12:00:00.000Z",
+        },
+      },
+    ]);
+    expect(transport.of("curated")).toHaveLength(1);
+    expect(paramsOf(transport.of("curated")[0]!)).toEqual({
+      ruleId: CURATED_RULE_ID,
+      startTime: "2026-09-07T12:00:00.000Z",
+      endTime: "2026-09-14T12:00:00.000Z",
       pageSize: "1",
       listBasis: "CREATED_TIME",
       alertState: "ALERTING",
     });
+    expect(checkByKey(result.checks, "curated-detections-read").message).toBe(
+      `Curated rule detections can be read by created time: 1 curated rule produced detections in the last 7 days (0 returned for a one-record probe of ${CURATED_RULE_ID}).`,
+    );
     expect(
       transport.of("alerts").map((request: RecordedRequest): string => {
         return `${request.url.searchParams.get("alertListOptions.maxReturnedAlerts")}:${request.url.searchParams.get("includeNonAlertingDetections")}:${request.url.searchParams.get("timeRange.startTime")}`;

@@ -49,6 +49,7 @@ import {
   streamReply,
   stubPollPersistence,
   googleError,
+  TENANT_CURATED_RULE_ID,
 } from "./GoogleSecOpsPollingFixtures";
 
 /*
@@ -148,15 +149,28 @@ function durationOf(window: { startTime: string; endTime: string }): number {
   return Date.parse(window.endTime) - Date.parse(window.startTime);
 }
 
-function onlyAlertsRequest(
+/*
+ * Every alerts-view request one poll made: the read of its own window and,
+ * for a scheduled poll whose window is shorter than the 24 hour late-alert
+ * lookback, the best-effort sweep of the day before that window.
+ */
+function alertsRequestsFrom(
   tenant: GoogleSecOpsTenant,
   fromIndex: number = 0,
-): TenantRequest {
-  const alerts: Array<TenantRequest> = tenant.requests
+): Array<TenantRequest> {
+  return tenant.requests
     .slice(fromIndex)
     .filter((request: TenantRequest): boolean => {
       return request.route === "alerts";
     });
+}
+
+// The alerts-view request of a poll that reads a whole day, so never sweeps.
+function onlyAlertsRequest(
+  tenant: GoogleSecOpsTenant,
+  fromIndex: number = 0,
+): TenantRequest {
+  const alerts: Array<TenantRequest> = alertsRequestsFrom(tenant, fromIndex);
   expect(alerts).toHaveLength(1);
   return alerts[0]!;
 }
@@ -265,6 +279,22 @@ describe("Google SecOps through the shared poller: ingest and bookkeeping", () =
     ]) {
       expect(requestWindow(request)).toEqual(sent);
     }
+
+    /*
+     * The curated pass opens with countAllCuratedRuleSetDetections, which
+     * carries its interval in a JSON body rather than the query string: it
+     * ends at the same instant, and reaches a week further back to find the
+     * curated rules the searches must name.
+     */
+    const interval: JSONObject = (
+      JSON.parse(
+        tenant.requestsTo("curatedCounts")[0]!.body || "{}",
+      ) as JSONObject
+    )["interval"] as JSONObject;
+    expect(interval).toEqual({
+      startTime: iso(Date.parse(sent.startTime) - 7 * DAY_MS),
+      endTime: sent.endTime,
+    });
 
     const written: JSONObject = lastUpdate(persistence);
     expect(written["cursor"]).toBe(sent.endTime);
@@ -464,10 +494,21 @@ describe("Google SecOps through the shared poller: windows and the cursor", () =
     const before: number = tenant.requests.length;
     await poll(secOpsConnection({ cursor: cursor.toISOString() }));
 
+    const alerts: Array<TenantRequest> = alertsRequestsFrom(tenant, before);
+    /*
+     * The six minute window, then the late-alert sweep of the rest of the
+     * day before it: a first poll already reads a whole day, so only the
+     * short cursor window is followed by one.
+     */
+    expect(alerts).toHaveLength(2);
     const second: { startTime: string; endTime: string } = requestWindow(
-      onlyAlertsRequest(tenant, before),
+      alerts[0]!,
     );
     expect(cursor.getTime() - Date.parse(second.startTime)).toBe(MINUTE_MS);
+    expect(requestWindow(alerts[1]!)).toEqual({
+      startTime: iso(Date.parse(second.endTime) - DAY_MS),
+      endTime: second.startTime,
+    });
   });
 
   test("a week-old cursor reads one day past the cursor plus the one minute overlap", async () => {
@@ -735,8 +776,12 @@ describe("Google SecOps through the shared poller: records that cannot be import
 
     expect(result.status).toBe("partial");
     expect(result.ingestedCount).toBe(1);
-    // The client re-issued the unfinished GET before handing back what it had.
-    expect(tenant.requestsTo("alerts")).toHaveLength(3);
+    /*
+     * The client re-issued the unfinished GET before handing back what it
+     * had: three attempts for the window read, and three more for the
+     * late-alert sweep that follows it, which the same script answers.
+     */
+    expect(tenant.requestsTo("alerts")).toHaveLength(6);
     expect(lastUpdate(persistence)).not.toHaveProperty("cursor");
     expect(lastUpdate(persistence)).not.toHaveProperty("lastSuccessfulPollAt");
     expect(lastUpdate(persistence)["lastError"]).toMatch(/complete/);
@@ -817,13 +862,18 @@ describe("Google SecOps through the shared poller: the three passes on the store
       complete: true,
       fetchedCount: 4,
       ingestedCount: 4,
-      requestCount: 3,
+      /*
+       * One rule search, the curated rule counts, one curated search for the
+       * single rule those counts named, the alerts view over the window, and
+       * the late-alert sweep of the day before it.
+       */
+      requestCount: 5,
     });
     /*
      * The retired poller stored these as "Validate configuration:success",
      * the three pass names, "Normalize detections" and "Import detections".
-     * The pass names are unchanged; the statuses and the last two steps are
-     * the shared loop's.
+     * The pass names are unchanged; the statuses, the late-alert sweep and
+     * the last two steps are the shared loop's.
      */
     expect(
       result.checks.map(
@@ -836,12 +886,21 @@ describe("Google SecOps through the shared poller: the three passes on the store
       "read-rule-detections|Read rule detections by created time|pass",
       "read-curated-detections|Read curated rule detections by created time|pass",
       "read-alerts-view|Read alerts view by detection time|pass",
+      "read-late-alerts-view|Read late alerts by detection time|pass",
       "read|Read detections from Google SecOps|pass",
       "import|Import records|pass",
     ]);
     expect(result.providerDetails).toEqual({
       basis: "created-time",
-      sourceCounts: { ruleDetections: 2, curatedDetections: 1, alertsView: 4 },
+      sourceCounts: {
+        ruleDetections: 2,
+        curatedDetections: 1,
+        alertsView: 4,
+        // Nothing was detected in the day before the window.
+        lateAlertsView: 0,
+      },
+      // The one curated rule the counts reported detections for.
+      curatedRulesWithDetections: 1,
       creationLag: { measured: 4, lateCount: 0, maxLagMinutes: 1 },
       includeNonAlertingDetections: false,
     });
@@ -862,11 +921,17 @@ describe("Google SecOps through the shared poller: the three passes on the store
   });
 
   test("a curated route answering HTTP 403 is a warning check in the run and the poll still completes", async () => {
-    tenant.scripts.curated = (): ReturnType<typeof googleError> => {
+    /*
+     * A tenant without curated rule access is refused at the curated pass's
+     * first request, countAllCuratedRuleSetDetections: that is what names
+     * the rules legacySearchCuratedDetections must be given, so no curated
+     * search is even attempted.
+     */
+    tenant.scripts.curatedCounts = (): ReturnType<typeof googleError> => {
       return googleError(
         403,
         "PERMISSION_DENIED",
-        "Caller does not have permission 'chronicle.legacies.legacySearchCuratedDetections'.",
+        "Caller does not have permission 'chronicle.curatedRuleSetCategories.countAllCuratedRuleSetDetections'.",
       );
     };
     tenant.add(recentDetection("rule-detection"));
@@ -889,11 +954,18 @@ describe("Google SecOps through the shared poller: the three passes on the store
     });
     expect(curated.remediation).toContain("Curated (Google-authored)");
     expect(curated.message).toContain(
-      "Google SecOps detections search failed (HTTP 403)",
+      "Google SecOps curated rule detection counts failed (HTTP 403)",
     );
-    expect(result.warnings.join(" ")).toContain("(HTTP 403)");
-    // The alerts view still ran after the curated pass degraded.
-    expect(tenant.requestsTo("alerts")).toHaveLength(1);
+    expect(result.warnings).toContain(
+      "Curated rule detections could not be read (HTTP 403); this tenant may not have curated rule access. Rule detections and the alerts view were still read.",
+    );
+    // No curated rule could be named, so no curated search was sent.
+    expect(tenant.requestsTo("curated")).toHaveLength(0);
+    /*
+     * The alerts view still ran after the curated pass degraded: the
+     * window read, then the late-alert sweep of the day before it.
+     */
+    expect(tenant.requestsTo("alerts")).toHaveLength(2);
     const written: JSONObject = lastUpdate(persistence);
     expect(written["cursor"]).toBe(NOW.toISOString());
     expect(written["lastError"]).toBeNull();
@@ -985,6 +1057,17 @@ describe("Google SecOps through the shared poller: preview and backfill", () => 
       createdMs: Date.parse("2026-09-10T04:16:00.000Z"),
       detectionMs: Date.parse("2026-09-09T01:30:00.000Z"),
     });
+    /*
+     * A curated rule that fired earlier in the week, before the previewed
+     * range: the counts still report it, so the curated pass searches it by
+     * both bases and reads nothing for this range.
+     */
+    tenant.add({
+      id: "curated-last-week",
+      curated: true,
+      createdMs: Date.parse("2026-09-05T00:00:00.000Z"),
+      detectionMs: Date.parse("2026-09-05T00:00:00.000Z"),
+    });
 
     const result: SecurityEventConnectionRunResult =
       await SecurityEventConnectionPoller.executeConnection(
@@ -997,20 +1080,36 @@ describe("Google SecOps through the shared poller: preview and backfill", () => 
         tenant.overrides(secOpsSettings({ alertingOnly: false })),
       );
 
+    /*
+     * The curated searches carry the one rule id the counts named:
+     * legacySearchCuratedDetections has no wildcard, so the "-" the rule
+     * search reads every rule with would answer 200 and no detections.
+     */
     expect(
       tenant.requests
         .filter((request: TenantRequest): boolean => {
           return request.route === "search" || request.route === "curated";
         })
         .map((request: TenantRequest): string => {
-          return `${request.route}:${request.url.searchParams.get("listBasis")}:${request.url.searchParams.get("alertState")}`;
+          return `${request.route}:${request.url.searchParams.get("listBasis")}:${request.url.searchParams.get("alertState")}:${request.url.searchParams.get("ruleId")}`;
         }),
     ).toEqual([
-      "search:CREATED_TIME:null",
-      "search:DETECTION_TIME:null",
-      "curated:CREATED_TIME:null",
-      "curated:DETECTION_TIME:null",
+      "search:CREATED_TIME:null:-",
+      "search:DETECTION_TIME:null:-",
+      `curated:CREATED_TIME:null:${TENANT_CURATED_RULE_ID}`,
+      `curated:DETECTION_TIME:null:${TENANT_CURATED_RULE_ID}`,
     ]);
+    // The counts that named it reach a week before the previewed range.
+    expect(
+      JSON.parse(
+        tenant.requestsTo("curatedCounts")[0]!.body || "{}",
+      ) as JSONObject,
+    ).toEqual({
+      interval: {
+        startTime: "2026-09-02T00:00:00.000Z",
+        endTime: NOW.toISOString(),
+      },
+    });
     expect(
       tenant
         .requestsTo("alerts")[0]!

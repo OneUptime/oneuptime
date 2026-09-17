@@ -16,6 +16,11 @@ import {
 import { QueryIncidentsTool, SearchIncidentsTool } from "./IncidentTools";
 import { QueryAlertsTool } from "./AlertTools";
 import { QueryMonitorsTool } from "./MonitorTools";
+import { QueryRumApplicationsTool, QueryRumWebVitalsTool } from "./RumTools";
+import {
+  QueryTelemetryResourcesTool,
+  QueryResourceTelemetryTool,
+} from "./ResourceTools";
 import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
 import {
   GetOnCallStatusTool,
@@ -100,6 +105,10 @@ export default class AIToolbox {
     GetAlertTimelineTool,
     QueryAlertsTool,
     QueryMonitorsTool,
+    QueryRumApplicationsTool,
+    QueryRumWebVitalsTool,
+    QueryTelemetryResourcesTool,
+    QueryResourceTelemetryTool,
     QueryScheduledMaintenanceTool,
     /*
      * Platform reads: the operational surface an on-call product exists to
@@ -246,6 +255,7 @@ export default class AIToolbox {
   public static hasPermissionForTool(
     tool: ObservabilityTool,
     ctx: ToolContext,
+    args?: JSONObject,
   ): boolean {
     if (ctx.props.isRoot || ctx.props.isMasterAdmin) {
       return true;
@@ -270,15 +280,6 @@ export default class AIToolbox {
         return userPermission.permission;
       });
 
-    if (
-      PermissionHelper.doesPermissionsIntersect(
-        blockedPermissions,
-        tool.requiredPermissions,
-      )
-    ) {
-      return false;
-    }
-
     const userPermissions: Array<Permission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
         ctx.props,
@@ -287,9 +288,22 @@ export default class AIToolbox {
         return userPermission.permission;
       });
 
-    return PermissionHelper.doesPermissionsIntersect(
-      userPermissions,
-      tool.requiredPermissions,
+    const groups: Array<Array<Permission>> =
+      args !== undefined && tool.getRequiredPermissionGroups
+        ? tool.getRequiredPermissionGroups(args)
+        : [tool.requiredPermissions];
+    return (
+      groups.length > 0 &&
+      groups.every((group: Array<Permission>): boolean => {
+        return (
+          group.length > 0 &&
+          !PermissionHelper.doesPermissionsIntersect(
+            blockedPermissions,
+            group,
+          ) &&
+          PermissionHelper.doesPermissionsIntersect(userPermissions, group)
+        );
+      })
     );
   }
 
@@ -321,7 +335,23 @@ export default class AIToolbox {
       };
     }
 
-    if (!this.hasPermissionForTool(tool, data.ctx)) {
+    /*
+     * Tool JSON is untrusted at runtime even though callers are typed. Check
+     * the envelope before argument-dependent permission functions read it.
+     */
+    if (
+      !data.args ||
+      typeof data.args !== "object" ||
+      Array.isArray(data.args)
+    ) {
+      return {
+        success: false,
+        textForLlm: `Error: arguments for ${data.name} must be a JSON object. Adjust the arguments and try again.`,
+        errorMessage: `Invalid arguments for tool: ${data.name}; expected a JSON object`,
+      };
+    }
+
+    if (!this.hasPermissionForTool(tool, data.ctx, data.args)) {
       return {
         success: false,
         textForLlm: `Error: the current user does not have permission to use ${data.name}. Answer with the data you already have, and tell the user which permission is missing.`,

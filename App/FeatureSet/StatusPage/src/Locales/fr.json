@@ -135,6 +135,8 @@
     "sendManagementLink": "Envoyer le lien de gestion",
     "subscribedSuccessfully": "Vous avez été abonné avec succès.",
     "emailSentCheckSpam": "Un e-mail contenant le lien a été envoyé à votre adresse. Si vous ne voyez pas l'e-mail, veuillez vérifier votre dossier spam.",
+    "manageLinkSent": "Si un abonnement correspond aux informations que vous avez saisies, nous avons envoyé un lien pour le gérer.",
+    "manageLinkSentEmail": "Si cette adresse e-mail est associée à un abonnement, nous avons envoyé à cette adresse un lien pour le gérer. Si vous ne voyez pas l'e-mail, veuillez vérifier votre dossier spam.",
     "menu": {
       "email": "E-mail",
       "sms": "SMS",

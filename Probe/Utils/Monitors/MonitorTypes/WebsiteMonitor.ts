@@ -1,10 +1,12 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorRetry from "../MonitorRetry";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import Headers from "Common/Types/API/Headers";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import HTML from "Common/Types/Html";
 import ObjectID from "Common/Types/ObjectID";
+import Sleep from "Common/Types/Sleep";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
@@ -12,7 +14,7 @@ import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import API from "Common/Utils/API";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
-import { AxiosError } from "axios";
+import axios from "axios";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import EgressGuardException from "Common/Types/Exception/EgressGuardException";
 import TimeoutException from "Common/Types/Exception/TimeoutException";
@@ -22,6 +24,9 @@ import HttpMonitorRequest, {
   PreparedHttpMonitorRequest,
   RedirectRequest,
 } from "../HttpMonitorRequest";
+
+// Five attempts, the same as before retries were counted after the first attempt.
+const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
 
 export interface ProbeWebsiteResponse {
   url: URL;
@@ -106,24 +111,27 @@ export default class WebsiteMonitor {
         const prepareRequest: (
           requestUrl: string,
           requestHeaders: Headers,
-          includeTlsIdentity: boolean,
+          includeTlsClientIdentity: boolean,
         ) => Promise<PreparedHttpMonitorRequest> = async (
           requestUrl: string,
           requestHeaders: Headers,
-          includeTlsIdentity: boolean,
+          includeTlsClientIdentity: boolean,
         ): Promise<PreparedHttpMonitorRequest> => {
           return await executionContext.run(async () => {
             return await HttpMonitorRequest.prepare(requestUrl, {
               headers: requestHeaders,
-              tls: includeTlsIdentity
-                ? {
-                    allowSelfSignedCertificates:
-                      options.allowSelfSignedCertificates,
-                    tlsClientCertificate: options.tlsClientCertificate,
-                    tlsClientKey: options.tlsClientKey,
-                    tlsClientKeyPassphrase: options.tlsClientKeyPassphrase,
-                  }
-                : undefined,
+              tls: HttpMonitorRequest.getTlsOptionsForHop({
+                tls: {
+                  allowSelfSignedCertificates:
+                    options.allowSelfSignedCertificates,
+                  tlsClientCertificate: options.tlsClientCertificate,
+                  tlsClientKey: options.tlsClientKey,
+                  tlsClientKeyPassphrase: options.tlsClientKeyPassphrase,
+                },
+                monitorUrl: initialUrl,
+                hopUrl: requestUrl,
+                includeClientIdentity: includeTlsClientIdentity,
+              }),
               timingCollector: timingCollector,
             });
           });
@@ -164,13 +172,13 @@ export default class WebsiteMonitor {
         let currentMethod: HTTPMethod = initialMethod;
         let currentHeaders: Headers = {};
         let redirectsFollowed: number = 0;
-        let includeTlsIdentity: boolean = true;
+        let includeTlsClientIdentity: boolean = true;
 
         while (true) {
           const prepared: PreparedHttpMonitorRequest = await prepareRequest(
             currentUrl,
             currentHeaders,
-            includeTlsIdentity,
+            includeTlsClientIdentity,
           );
 
           let result: WebsiteResponse;
@@ -211,7 +219,12 @@ export default class WebsiteMonitor {
           currentMethod = redirect.method;
           currentHeaders = redirect.headers;
           if (redirect.crossesOrigin) {
-            includeTlsIdentity = false;
+            /*
+             * Only the client certificate stops here; the self-signed
+             * allowance follows the monitor's hostname. See
+             * HttpMonitorRequest.getTlsOptionsForHop.
+             */
+            includeTlsClientIdentity = false;
           }
           redirectsFollowed++;
         }
@@ -237,17 +250,28 @@ export default class WebsiteMonitor {
         responseTimeInMs: responseTimeInMS.toNumber(),
         responseCode: result.responseStatusCode,
         isOnline: true,
+        failureCause:
+          result.responseStatusCode >= 400 && result.responseStatusCode < 600
+            ? `Server returned ${result.responseStatusCode}`
+            : undefined,
       });
 
-      // if response time is greater than 10 seconds then give it one more try
+      // Recheck error responses and responses slower than ten seconds.
 
       if (
-        responseTimeInMS.toNumber() > 10000 &&
-        options.currentRetryCount < (options.retry ?? 5) &&
-        executionContext.canWait(1000)
+        ((result.responseStatusCode >= 400 &&
+          result.responseStatusCode < 600) ||
+          responseTimeInMS.toNumber() > 10000) &&
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
       ) {
         options.currentRetryCount++;
-        await executionContext.sleep(1000);
+        executionContext.dispose();
+        delete options.executionContext;
+        await Sleep.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -294,8 +318,9 @@ export default class WebsiteMonitor {
       const failureCauseForAttempt: string = API.getFriendlyErrorMessage(
         err as Error,
       );
-      const statusCodeForAttempt: number | undefined =
-        err instanceof AxiosError ? err.response?.status : undefined;
+      const statusCodeForAttempt: number | undefined = axios.isAxiosError(err)
+        ? err.response?.status
+        : undefined;
 
       /*
        * A sanitized guard refusal must not report how long it took. The two
@@ -328,12 +353,16 @@ export default class WebsiteMonitor {
 
       if (
         !(err instanceof BadDataException) &&
-        !(err instanceof TimeoutException) &&
-        options.currentRetryCount < (options.retry ?? 5) &&
-        executionContext.canWait(1000)
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
       ) {
         options.currentRetryCount++;
-        await executionContext.sleep(1000);
+        executionContext.dispose();
+        delete options.executionContext;
+        await Sleep.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -352,7 +381,7 @@ export default class WebsiteMonitor {
       const requestFailedDetails: RequestFailedDetails =
         API.getRequestFailedDetails(err);
 
-      if (err instanceof AxiosError) {
+      if (axios.isAxiosError(err)) {
         probeWebsiteResponse = {
           url: url,
           isOnline: Boolean(err.response),
@@ -416,9 +445,11 @@ export default class WebsiteMonitor {
         }
       }
 
-      // check if timeout exceeded and if yes, return null
+      // Preserve timeout metadata after the configured attempts are exhausted.
       if (
         err instanceof TimeoutException ||
+        requestFailedDetails.errorCode === "ETIMEDOUT" ||
+        requestFailedDetails.errorCode === "ESOCKETTIMEDOUT" ||
         ((err as any).toString().includes("timeout") &&
           (err as any).toString().includes("exceeded"))
       ) {

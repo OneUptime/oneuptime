@@ -6,7 +6,10 @@ import {
   AIChatCitationTargetType,
 } from "Common/Types/AI/AIChatTypes";
 import IconProp from "Common/Types/Icon/IconProp";
+import { isAIResourceType } from "Common/Types/AI/AIResourceContext";
+import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
+import ResourcePageContextUtil from "./ResourcePageContext";
 
 /*
  * Maps an AI citation/widget target onto its dashboard route. Shared by the
@@ -14,7 +17,7 @@ import Navigation from "Common/UI/Utils/Navigation";
  * same place its underlying data lives.
  */
 export const targetTypeToPageMap: {
-  [key in AIChatCitationTargetType]: PageMap;
+  [key in AIChatCitationTargetType]: PageMap | undefined;
 } = {
   [AIChatCitationTargetType.Logs]: PageMap.LOGS,
   [AIChatCitationTargetType.Traces]: PageMap.TRACES,
@@ -44,6 +47,10 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.Probes]: PageMap.MONITORS_SETTINGS_PROBES,
   [AIChatCitationTargetType.Teams]: PageMap.TEAMS,
   [AIChatCitationTargetType.SecurityEvents]: PageMap.SECURITY_EVENTS,
+  [AIChatCitationTargetType.RumApplications]: PageMap.RUM_APPLICATIONS,
+  [AIChatCitationTargetType.RumApplicationView]: PageMap.RUM_APPLICATION_VIEW,
+  [AIChatCitationTargetType.TelemetryResources]: undefined,
+  [AIChatCitationTargetType.TelemetryResourceView]: undefined,
 };
 
 export const targetTypeToIcon: {
@@ -75,6 +82,10 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.Probes]: IconProp.Signal,
   [AIChatCitationTargetType.Teams]: IconProp.Team,
   [AIChatCitationTargetType.SecurityEvents]: IconProp.ShieldExclamation,
+  [AIChatCitationTargetType.RumApplications]: IconProp.AltGlobe,
+  [AIChatCitationTargetType.RumApplicationView]: IconProp.AltGlobe,
+  [AIChatCitationTargetType.TelemetryResources]: IconProp.Server,
+  [AIChatCitationTargetType.TelemetryResourceView]: IconProp.Server,
 };
 
 export function getRouteForCitationTarget(
@@ -82,6 +93,24 @@ export function getRouteForCitationTarget(
 ): Route | undefined {
   if (!target) {
     return undefined;
+  }
+
+  if (
+    target.type === AIChatCitationTargetType.TelemetryResources ||
+    target.type === AIChatCitationTargetType.TelemetryResourceView
+  ) {
+    const resourceType: string | undefined = target.params?.["resourceType"];
+    if (!isAIResourceType(resourceType)) {
+      return undefined;
+    }
+    const resourceId: string | undefined = target.params?.["resourceId"];
+    if (target.type === AIChatCitationTargetType.TelemetryResourceView) {
+      if (!resourceId || !ObjectID.isValidUUID(resourceId)) {
+        return undefined;
+      }
+      return ResourcePageContextUtil.getRoute(resourceType, resourceId);
+    }
+    return ResourcePageContextUtil.getRoute(resourceType);
   }
 
   const pageMapKey: PageMap | undefined = targetTypeToPageMap[target.type];

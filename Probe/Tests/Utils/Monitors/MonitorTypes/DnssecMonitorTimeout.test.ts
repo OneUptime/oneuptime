@@ -1,7 +1,14 @@
 process.env["ONEUPTIME_URL"] = "https://oneuptime.com";
 process.env["PROBE_KEY"] = "test-probe-key";
 
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
@@ -61,6 +68,7 @@ jest.mock("child_process", () => {
 import DnssecMonitorUtil from "../../../../Utils/Monitors/MonitorTypes/DnssecMonitor";
 import DnssecMonitorResponse from "Common/Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
 import MonitorStepDnssecMonitor from "Common/Types/Monitor/MonitorStepDnssecMonitor";
+import Sleep from "Common/Types/Sleep";
 
 /*
  * Follow-up to https://github.com/OneUptime/oneuptime/issues/3225.
@@ -88,6 +96,7 @@ function buildConfig(input?: {
 }
 
 beforeEach(() => {
+  jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
   digCalls.length = 0;
   digDurationMs = 0;
   now = 1_700_000_000_000;
@@ -210,4 +219,34 @@ describe("DnssecMonitorUtil shared time budget across legs", () => {
     expect(response?.isTimeout).toBeUndefined();
     expect(response?.resolverChecks).toHaveLength(3);
   });
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+describe("DNSSEC timeout retries", () => {
+  test.each([0, 1, 2, 3])(
+    "restarts a bounded sweep for retry%s",
+    async (retry: number) => {
+      digDurationMs = 10000;
+      const startedAt: number = now;
+      const response: DnssecMonitorResponse | null =
+        await DnssecMonitorUtil.query(
+          buildConfig({
+            timeout: 10000,
+            resolvers: ["1.1.1.1", "8.8.8.8", "9.9.9.9"],
+          }),
+          { retry, isOnlineCheckRequest: true },
+        );
+
+      expect(response?.isOnline).toBe(false);
+      expect(response?.isTimeout).toBe(true);
+      expect(response?.totalAttempts).toBe(retry + 1);
+      expect(response?.probeAttempts).toHaveLength(retry + 1);
+      expect(digCalls).toHaveLength(3 * (retry + 1));
+      expect(now - startedAt).toBe(30000 * (retry + 1));
+      expect(Sleep.sleep).toHaveBeenCalledTimes(retry);
+    },
+  );
 });

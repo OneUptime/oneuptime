@@ -3,7 +3,9 @@ import fs from "fs";
 import path from "path";
 import {
   SESSION_REPLAY_PLAYER_WIDE_CLASS_NAME,
+  SessionReplayPlayerRoute,
   isSessionReplayPlayerPath,
+  parseSessionReplayPlayerRoute,
   resolveSessionReplayPlayerLayout,
 } from "../../FeatureSet/Dashboard/src/Utils/SessionReplayLayout";
 
@@ -114,6 +116,95 @@ describe("resolveSessionReplayPlayerLayout", () => {
     expect(SESSION_REPLAY_PLAYER_WIDE_CLASS_NAME).toBe(
       "mb-auto max-w-full px-3 sm:px-4 mt-3 h-max",
     );
+  });
+});
+
+/*
+ * The ids the view mounts the player with. They come from the router's
+ * pathname rather than from window.location because the route element is
+ * the same object for every session: React bails out of the subtree when
+ * only a path parameter changes, so a window.location read happened once
+ * and a viewer who opened another session from the header, the sessions
+ * menu or the ended card kept watching the session they were already on.
+ */
+describe("parseSessionReplayPlayerRoute", () => {
+  test("reads the application and the session out of a player path", () => {
+    expect(parseSessionReplayPlayerRoute(PLAYER_PATH)).toEqual({
+      rumApplicationId: APP_ID,
+      sessionId: SESSION_ID,
+    });
+  });
+
+  test("ignores a trailing slash, a query string and a hash", () => {
+    const expected: SessionReplayPlayerRoute = {
+      rumApplicationId: APP_ID,
+      sessionId: SESSION_ID,
+    };
+
+    expect(parseSessionReplayPlayerRoute(`${PLAYER_PATH}/`)).toEqual(expected);
+    expect(
+      parseSessionReplayPlayerRoute(`${PLAYER_PATH}?t=41&rail=errors`),
+    ).toEqual(expected);
+    expect(parseSessionReplayPlayerRoute(`${PLAYER_PATH}#top`)).toEqual(
+      expected,
+    );
+  });
+
+  test("reads a different session from the same route", () => {
+    const other: string = "00000000000000000000000000000005";
+
+    expect(
+      parseSessionReplayPlayerRoute(
+        `/dashboard/${PROJECT_ID}/rum/${APP_ID}/session-replay/${other}`,
+      ),
+    ).toEqual({ rumApplicationId: APP_ID, sessionId: other });
+  });
+
+  test("refuses every path that is not the player", () => {
+    const base: string = `/dashboard/${PROJECT_ID}/rum/${APP_ID}`;
+
+    expect(parseSessionReplayPlayerRoute(`${base}/session-replay`)).toBeNull();
+    expect(
+      parseSessionReplayPlayerRoute(`${base}/session-replay-audit`),
+    ).toBeNull();
+    expect(
+      parseSessionReplayPlayerRoute(`${base}/session-replay/${APP_ID}`),
+    ).toBeNull();
+    expect(
+      parseSessionReplayPlayerRoute(
+        `${base}/session-replay/${SESSION_ID.toUpperCase()}`,
+      ),
+    ).toBeNull();
+    expect(parseSessionReplayPlayerRoute("")).toBeNull();
+    expect(parseSessionReplayPlayerRoute(null)).toBeNull();
+    expect(parseSessionReplayPlayerRoute(undefined)).toBeNull();
+  });
+
+  /* A player path with nothing before "session-replay" names no application. */
+  test("refuses a player path with no application segment", () => {
+    expect(
+      parseSessionReplayPlayerRoute(`/session-replay/${SESSION_ID}`),
+    ).toBeNull();
+  });
+});
+
+describe("Pages/Rum/View/SessionReplayView.tsx wiring", () => {
+  const source: string = fs.readFileSync(
+    path.join(
+      __dirname,
+      "../../FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayView.tsx",
+    ),
+    "utf8",
+  );
+
+  test("subscribes to the router so another session actually replaces the player", () => {
+    expect(source).toContain("useLocation()");
+    expect(source).toContain("parseSessionReplayPlayerRoute(");
+    expect(source).toContain("location.pathname");
+    expect(source).toContain("location.search");
+    /* A window.location read cannot re-render this view; see the comment above. */
+    expect(source).not.toContain("Navigation.getLastParam");
+    expect(source).not.toContain("Navigation.getQueryString()");
   });
 });
 

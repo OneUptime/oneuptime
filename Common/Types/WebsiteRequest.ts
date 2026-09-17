@@ -122,6 +122,7 @@ export default class WebsiteRequest {
               options.limitRedirectResponseBody || false,
             isHeadResponse: responseIsForHeadRequest,
             maximumResponseBytes: options.maximumResponseBytes,
+            signal: options.signal,
           }),
         );
       }
@@ -147,6 +148,7 @@ export default class WebsiteRequest {
           limitRedirectResponseBody: options.limitRedirectResponseBody || false,
           isHeadResponse: responseIsForHeadRequest,
           maximumResponseBytes: options.maximumResponseBytes,
+          signal: options.signal,
         }),
       );
     }

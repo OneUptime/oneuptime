@@ -9,7 +9,10 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import AIChatMessageRole from "../../../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../../../Types/AI/AIChatMessageStatus";
-import { AIChatPageContext } from "../../../../Types/AI/AIChatPageContext";
+import {
+  AIChatPageContext,
+  AIChatPageContextHelper,
+} from "../../../../Types/AI/AIChatPageContext";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
@@ -54,9 +57,10 @@ export interface ChatTurnRequest {
    * subject; later turns that arrive without a page context (the user
    * navigated away mid-conversation) fall back to that persisted subject so
    * "this incident" keeps resolving. Not needed on resume (the paused state
-   * already contains the built prompt).
+   * already contains the built prompt). Explicit null detaches the page and
+   * clears that persisted subject.
    */
-  pageContext?: AIChatPageContext | undefined;
+  pageContext?: AIChatPageContext | null | undefined;
   // The requesting user's real permission props, captured at request time.
   props: DatabaseCommonInteractionProps;
 }
@@ -1377,6 +1381,15 @@ export default class ChatAgentRunner {
     request: ChatTurnRequest,
   ): Promise<AIChatPageContext | undefined> {
     try {
+      if (request.pageContext === null) {
+        await AIConversationService.updateOneById({
+          id: request.conversationId,
+          data: { pageContext: null } as never,
+          props: { isRoot: true },
+        });
+        return undefined;
+      }
+
       const conversation: AIConversation | null =
         await AIConversationService.findOneById({
           id: request.conversationId,
@@ -1400,11 +1413,11 @@ export default class ChatAgentRunner {
        * stale first subject would silently flip the conversation back.
        */
       const persistedSignature: string = persisted
-        ? `${persisted.type}:${persisted.entityId || ""}`
+        ? AIChatPageContextHelper.getIdentity(persisted)
         : "";
-      const incomingSignature: string = `${request.pageContext.type}:${
-        request.pageContext.entityId || ""
-      }`;
+      const incomingSignature: string = AIChatPageContextHelper.getIdentity(
+        request.pageContext,
+      );
 
       if (persistedSignature !== incomingSignature) {
         await AIConversationService.updateOneById({
@@ -1423,7 +1436,7 @@ export default class ChatAgentRunner {
           error instanceof Error ? error.message : String(error)
         }`,
       );
-      return request.pageContext;
+      return request.pageContext || undefined;
     }
   }
 

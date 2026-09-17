@@ -20,6 +20,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import TeamMemberService from "./TeamMemberService";
 import UserService from "./UserService";
 import URL from "../../Types/API/URL";
+import { getSloAffectedResourceMarkdownLines } from "../../Utils/Slo/SloAffectedResourceMarkdown";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -27,7 +28,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Typeof from "../../Types/Typeof";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import Model from "../../Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
@@ -37,6 +37,7 @@ import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
   resolveReferenceId,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import User from "../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
@@ -66,6 +67,7 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import AlertWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Alert";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import MonitorService from "./MonitorService";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -79,6 +81,7 @@ import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
 import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
 
@@ -312,7 +315,22 @@ export class Service extends DatabaseService<Model> {
       ) ||
       resolveReferenceId(updateBy.data.monitorStatusWhenThisAlertWasCreated);
 
-    if (!alertStateId && !alertSeverityId && !monitorStatusId) {
+    /*
+     * The SLOs this alert affects: a relation list the API accepts on update.
+     * Checked for the same reason as on create; see
+     * SloRecordReferenceValidator.
+     */
+    const hasServiceLevelObjectiveIds: boolean =
+      SloRecordReferenceValidator.getReferencedIds(
+        updateBy.data.serviceLevelObjectives,
+      ).length > 0;
+
+    if (
+      !alertStateId &&
+      !alertSeverityId &&
+      !monitorStatusId &&
+      !hasServiceLevelObjectiveIds
+    ) {
       return;
     }
 
@@ -325,6 +343,20 @@ export class Service extends DatabaseService<Model> {
       : await this.getProjectIdsForUpdateQuery(updateBy);
 
     for (const projectId of projectIds) {
+      if (hasServiceLevelObjectiveIds) {
+        await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+          {
+            projectId: projectId,
+            subject: "alert",
+            serviceLevelObjectives: updateBy.data.serviceLevelObjectives,
+          },
+        );
+      }
+
+      if (!alertStateId && !alertSeverityId && !monitorStatusId) {
+        continue;
+      }
+
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "alert",
@@ -438,6 +470,21 @@ export class Service extends DatabaseService<Model> {
         },
       ],
     });
+
+    /*
+     * The SLOs this alert affects. The burn-rate worker links its own
+     * same-project SLO as root, but the column is writable by API callers too.
+     * Another project's SLO would put that SLO's name into this project's
+     * feed, lists and metrics. Before the counter increment, like the check
+     * above.
+     */
+    await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+      {
+        projectId: projectId,
+        subject: "alert",
+        serviceLevelObjectives: createBy.data.serviceLevelObjectives,
+      },
+    );
 
     /*
      * Custom fields configured to inherit from the alert's monitor are stamped
@@ -882,6 +929,15 @@ export class Service extends DatabaseService<Model> {
             name: true,
             _id: true,
           },
+          /*
+           * This read runs as root, so projectId comes along and the feed
+           * names only this project's SLOs (getSloAffectedResourceMarkdownLines).
+           */
+          serviceLevelObjectives: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
         },
         props: {
           isRoot: true,
@@ -911,11 +967,33 @@ ${alert.description || "No description provided."}
         feedInfoInMarkdown += `⚠️ **Severity**: ${alert.alertSeverity.name} \n\n`;
       }
 
-      if (alert.monitor) {
+      /*
+       * The monitor, then the SLOs this alert is linked to. A burn-rate alert
+       * has no monitor, so its SLO is the only resource there is to name -
+       * and the feed's only way back to the objective that raised it. The SLO
+       * link is built inline: ServiceLevelObjectiveService cannot be imported
+       * here (it reaches this service through the burn-rate rule service).
+       */
+      const sloLines: Array<string> =
+        alert.serviceLevelObjectives && alert.serviceLevelObjectives.length > 0
+          ? getSloAffectedResourceMarkdownLines({
+              dashboardUrl: await DatabaseConfig.getDashboardUrl(),
+              projectId: alert.projectId!,
+              serviceLevelObjectives: alert.serviceLevelObjectives,
+            })
+          : [];
+
+      if (alert.monitor || sloLines.length > 0) {
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
-        const monitor: Monitor = alert.monitor;
-        feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(alert.projectId!, monitor.id!)).toString()})\n`;
+        if (alert.monitor) {
+          const monitor: Monitor = alert.monitor;
+          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(alert.projectId!, monitor.id!)).toString()})\n`;
+        }
+
+        for (const sloLine of sloLines) {
+          feedInfoInMarkdown += `${sloLine}\n`;
+        }
 
         feedInfoInMarkdown += `\n\n`;
       }
@@ -1186,37 +1264,18 @@ ${alert.remediationNotes || "No remediation notes provided."}
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: AlertOwnerTeam = new AlertOwnerTeam();
-      teamOwner.alertId = alertId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-
-      await AlertOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-      const teamOwner: AlertOwnerUser = new AlertOwnerUser();
-      teamOwner.alertId = alertId;
-      teamOwner.projectId = projectId;
-      teamOwner.userId = userId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-      await AlertOwnerUserService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
+    // Owners already on the alert are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: AlertOwnerUserService,
+      ownerTeamService: AlertOwnerTeamService,
+      resourceIdColumn: "alertId",
+      resourceId: alertId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
   }
 
   @CaptureSpan()
@@ -1700,6 +1759,15 @@ ${alertSeverity.name}
           _id: true,
           name: true,
         },
+        /*
+         * The SLOs this alert affects, stamped below so an SLO's Metrics page
+         * can chart the alerts raised against it. Only _id and name, which
+         * the SLO model allows on relation reads.
+         */
+        serviceLevelObjectives: {
+          _id: true,
+          name: true,
+        },
         alertSeverity: {
           _id: true,
           name: true,
@@ -1801,6 +1869,26 @@ ${alertSeverity.name}
         projectId: alert.projectId.toString(),
         monitorId: alert.monitor?._id?.toString(),
         monitorName: alert.monitor?.name?.toString(),
+        /*
+         * Plural and comma-joined, unlike monitorId: an alert can affect
+         * several SLOs. The SLO Metrics page filters its Alert tab on
+         * serviceLevelObjectiveIds (SERVICE_LEVEL_OBJECTIVE_IDS_METRIC_ATTRIBUTE
+         * in Common/Utils/Slo/SloMetricType), so the key must not be renamed.
+         */
+        serviceLevelObjectiveIds: (
+          alert.serviceLevelObjectives
+            ?.map((serviceLevelObjective: ServiceLevelObjective) => {
+              return serviceLevelObjective._id?.toString();
+            })
+            .filter(Boolean) || []
+        ).join(", "),
+        serviceLevelObjectiveNames: (
+          alert.serviceLevelObjectives
+            ?.map((serviceLevelObjective: ServiceLevelObjective) => {
+              return serviceLevelObjective.name?.toString();
+            })
+            .filter(Boolean) || []
+        ).join(", "),
         alertSeverityId: alert.alertSeverity?._id?.toString(),
         alertSeverityName: alert.alertSeverity?.name?.toString(),
         /*

@@ -3,6 +3,8 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import Query from "Common/Types/BaseDatabase/Query";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import { getEventOverlayScope, EventOverlayScope } from "./EventOverlayScope";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -104,6 +106,36 @@ export interface EventTimeReferenceLines {
   markerCount: number;
 }
 
+/** Merge overlapping resource queries without duplicating an event on the chart. */
+function mergeEventResults<T extends { id?: ObjectID | null | undefined }>(
+  results: Array<{ data: Array<T> }>,
+  dateField: keyof T,
+): Array<T> {
+  const seen: Set<string> = new Set<string>();
+  return results
+    .flatMap((result: { data: Array<T> }): Array<T> => {
+      return result.data;
+    })
+    .filter((event: T): boolean => {
+      const id: string | undefined = event.id?.toString();
+      if (!id) {
+        return true;
+      }
+      if (seen.has(id)) {
+        return false;
+      }
+      seen.add(id);
+      return true;
+    })
+    .sort((left: T, right: T): number => {
+      return (
+        new Date(right[dateField] as string).getTime() -
+        new Date(left[dateField] as string).getTime()
+      );
+    })
+    .slice(0, EVENT_OVERLAY_FETCH_LIMIT);
+}
+
 /**
  * Fetch the events inside `window` and shape them into chart markers.
  * Best-effort throughout: each of the three fetches degrades to no
@@ -113,10 +145,22 @@ export interface EventTimeReferenceLines {
 export default function useEventTimeReferenceLines(input: {
   enabled: boolean;
   window: InBetween<Date> | null | undefined;
+  /** Resource filters from the chart, applied before the event fetch limit. */
+  queryConfigs?: Array<MetricQueryConfigData> | undefined;
   /** Bump to re-fetch (dashboards pass their auto-refresh tick). */
   refreshTick?: number | undefined;
 }): EventTimeReferenceLines {
-  const [eventMarkers, setEventMarkers] = useState<Array<EventMarker>>([]);
+  const [result, setResult] = useState<{
+    requestKey: string;
+    markers: Array<EventMarker>;
+  } | null>(null);
+
+  const scope: EventOverlayScope = getEventOverlayScope(
+    input.queryConfigs || [],
+  );
+  const scopeKey: string = JSON.stringify(scope);
+  const projectIdString: string | undefined =
+    ProjectUtil.getCurrentProjectId()?.toString();
 
   /*
    * Depend on primitive ms values, not the InBetween object — hosts hand
@@ -134,22 +178,31 @@ export default function useEventTimeReferenceLines(input: {
 
   const enabled: boolean =
     input.enabled &&
+    Boolean(projectIdString) &&
     windowStartMs !== undefined &&
     windowEndMs !== undefined &&
     !isPublicDashboard();
 
+  const requestKey: string = JSON.stringify([
+    enabled,
+    projectIdString,
+    scopeKey,
+    windowStartMs,
+    windowEndMs,
+    input.refreshTick,
+  ]);
+
   useEffect(() => {
-    if (!enabled) {
+    // Clear even when disabled so re-enabling cannot revive an old result.
+    setResult(null);
+    if (!enabled || !projectIdString) {
       return;
     }
 
     let isCancelled: boolean = false;
 
     const fetchEventMarkers: () => Promise<void> = async (): Promise<void> => {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      if (!projectId) {
-        return;
-      }
+      const projectId: ObjectID = new ObjectID(projectIdString);
 
       const eventsWindow: InBetween<Date> = new InBetween<Date>(
         new Date(windowStartMs!),
@@ -161,76 +214,91 @@ export default function useEventTimeReferenceLines(input: {
        * not take the incident markers down with it, and vice versa.
        */
       const [incidents, alerts, changeEvents]: [
-        ListResult<Incident>,
-        ListResult<Alert>,
-        AnalyticsListResult<ChangeEvent>,
+        Array<ListResult<Incident>>,
+        Array<ListResult<Alert>>,
+        Array<AnalyticsListResult<ChangeEvent>>,
       ] = await Promise.all([
-        ModelAPI.getList<Incident>({
-          modelType: Incident,
-          query: {
-            projectId: projectId,
-            createdAt: eventsWindow,
-          },
-          select: {
-            _id: true,
-            title: true,
-            createdAt: true,
-            incidentSeverity: {
-              name: true,
-              color: true,
-            },
-          },
-          sort: {
-            createdAt: SortOrder.Descending,
-          },
-          limit: EVENT_OVERLAY_FETCH_LIMIT,
-          skip: 0,
-        }).catch((): ListResult<Incident> => {
-          return { data: [], count: 0, skip: 0, limit: 0 };
-        }),
-        ModelAPI.getList<Alert>({
-          modelType: Alert,
-          query: {
-            projectId: projectId,
-            createdAt: eventsWindow,
-          },
-          select: {
-            _id: true,
-            title: true,
-            createdAt: true,
-            alertSeverity: {
-              name: true,
-              color: true,
-            },
-          },
-          sort: {
-            createdAt: SortOrder.Descending,
-          },
-          limit: EVENT_OVERLAY_FETCH_LIMIT,
-          skip: 0,
-        }).catch((): ListResult<Alert> => {
-          return { data: [], count: 0, skip: 0, limit: 0 };
-        }),
-        AnalyticsModelAPI.getList<ChangeEvent>({
-          modelType: ChangeEvent,
-          query: {
-            projectId: projectId,
-            time: eventsWindow,
-          } as Query<ChangeEvent>,
-          select: {
-            _id: true,
-            time: true,
-            title: true,
-            eventType: true,
-          },
-          sort: {
-            time: SortOrder.Descending,
-          },
-          limit: EVENT_OVERLAY_FETCH_LIMIT,
-          skip: 0,
-        }).catch((): AnalyticsListResult<ChangeEvent> => {
-          return { data: [], count: 0, skip: 0, limit: 0 };
-        }),
+        Promise.all(
+          scope.incidentQueries.map((query: Query<Incident>) => {
+            return ModelAPI.getList<Incident>({
+              modelType: Incident,
+              query: {
+                ...query,
+                projectId: projectId,
+                createdAt: eventsWindow,
+              },
+              select: {
+                _id: true,
+                title: true,
+                createdAt: true,
+                incidentSeverity: {
+                  name: true,
+                  color: true,
+                },
+              },
+              sort: {
+                createdAt: SortOrder.Descending,
+              },
+              limit: EVENT_OVERLAY_FETCH_LIMIT,
+              skip: 0,
+            }).catch((): ListResult<Incident> => {
+              return { data: [], count: 0, skip: 0, limit: 0 };
+            });
+          }),
+        ),
+        Promise.all(
+          scope.alertQueries.map((query: Query<Alert>) => {
+            return ModelAPI.getList<Alert>({
+              modelType: Alert,
+              query: {
+                ...query,
+                projectId: projectId,
+                createdAt: eventsWindow,
+              },
+              select: {
+                _id: true,
+                title: true,
+                createdAt: true,
+                alertSeverity: {
+                  name: true,
+                  color: true,
+                },
+              },
+              sort: {
+                createdAt: SortOrder.Descending,
+              },
+              limit: EVENT_OVERLAY_FETCH_LIMIT,
+              skip: 0,
+            }).catch((): ListResult<Alert> => {
+              return { data: [], count: 0, skip: 0, limit: 0 };
+            });
+          }),
+        ),
+        Promise.all(
+          scope.changeEventQueries.map((query: Query<ChangeEvent>) => {
+            return AnalyticsModelAPI.getList<ChangeEvent>({
+              modelType: ChangeEvent,
+              query: {
+                ...query,
+                projectId: projectId,
+                time: eventsWindow,
+              } as Query<ChangeEvent>,
+              select: {
+                _id: true,
+                time: true,
+                title: true,
+                eventType: true,
+              },
+              sort: {
+                time: SortOrder.Descending,
+              },
+              limit: EVENT_OVERLAY_FETCH_LIMIT,
+              skip: 0,
+            }).catch((): AnalyticsListResult<ChangeEvent> => {
+              return { data: [], count: 0, skip: 0, limit: 0 };
+            });
+          }),
+        ),
       ]);
 
       if (isCancelled) {
@@ -239,7 +307,7 @@ export default function useEventTimeReferenceLines(input: {
 
       const markers: Array<EventMarker> = [];
 
-      for (const incident of incidents.data) {
+      for (const incident of mergeEventResults(incidents, "createdAt")) {
         if (!incident.createdAt || !incident.id) {
           continue;
         }
@@ -262,7 +330,7 @@ export default function useEventTimeReferenceLines(input: {
         });
       }
 
-      for (const alert of alerts.data) {
+      for (const alert of mergeEventResults(alerts, "createdAt")) {
         if (!alert.createdAt || !alert.id) {
           continue;
         }
@@ -280,7 +348,7 @@ export default function useEventTimeReferenceLines(input: {
         });
       }
 
-      for (const changeEvent of changeEvents.data) {
+      for (const changeEvent of mergeEventResults(changeEvents, "time")) {
         if (!changeEvent.time) {
           continue;
         }
@@ -297,7 +365,7 @@ export default function useEventTimeReferenceLines(input: {
         });
       }
 
-      setEventMarkers(markers);
+      setResult({ requestKey, markers });
     };
 
     void fetchEventMarkers();
@@ -305,14 +373,14 @@ export default function useEventTimeReferenceLines(input: {
     return () => {
       isCancelled = true;
     };
-  }, [enabled, windowStartMs, windowEndMs, input.refreshTick]);
+  }, [requestKey]);
 
   const lines: Array<ChartTimeReferenceLineProps> =
     useMemo((): Array<ChartTimeReferenceLineProps> => {
-      if (!enabled) {
+      if (!enabled || result?.requestKey !== requestKey) {
         return [];
       }
-      return eventMarkers.map(
+      return result.markers.map(
         (marker: EventMarker): ChartTimeReferenceLineProps => {
           return {
             date: marker.date,
@@ -329,7 +397,7 @@ export default function useEventTimeReferenceLines(input: {
           };
         },
       );
-    }, [enabled, eventMarkers]);
+    }, [enabled, requestKey, result]);
 
   return { lines, markerCount: lines.length };
 }

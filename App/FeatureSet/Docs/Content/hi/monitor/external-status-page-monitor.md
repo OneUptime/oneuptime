@@ -79,7 +79,7 @@ status page से response के लिए प्रतीक्षा कर�
 
 #### Retries
 
-यदि request fail हो जाए तो retry करने की संख्या। Default 3 retries है।
+पहला attempt fail होने के बाद request को कितनी बार retry करना है; 0 का मतलब सिर्फ़ एक attempt। Default 3 retries है, यानी कुल मिलाकर 4 attempts तक।
 
 ## Monitoring Criteria
 

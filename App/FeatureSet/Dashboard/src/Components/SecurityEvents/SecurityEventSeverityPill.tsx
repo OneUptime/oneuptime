@@ -1,11 +1,12 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import Pill from "Common/UI/Components/Pill/Pill";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import Color from "Common/Types/Color";
 import { Blue, Gray500, Orange, Red, Yellow } from "Common/Types/BrandColors";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 
 export interface ComponentProps {
   severityName?: string | undefined;
+  size?: PillSize | undefined;
 }
 
 export function getSeverityColor(severityName: string | undefined): Color {
@@ -33,6 +34,7 @@ const SecurityEventSeverityPill: FunctionComponent<ComponentProps> = (
     <Pill
       color={getSeverityColor(props.severityName)}
       text={props.severityName || OcsfSeverity.Unknown}
+      size={props.size}
     />
   );
 };

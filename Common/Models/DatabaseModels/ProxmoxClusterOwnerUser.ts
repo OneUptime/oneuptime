@@ -13,6 +13,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnsTogether from "../../Types/Database/UniqueColumnsTogether";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -73,6 +74,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "ProxmoxClusterOwnerUser",
 })
+@Index(["proxmoxClusterId", "userId", "projectId"], { unique: true })
+@UniqueColumnsTogether(
+  ["proxmoxClusterId", "userId", "projectId"],
+  "This user is already an owner of this Proxmox cluster.",
+)
 export default class ProxmoxClusterOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [

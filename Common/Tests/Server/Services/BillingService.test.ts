@@ -697,6 +697,18 @@ describe("BillingService", () => {
           newMockMeteredSubscription.id,
         );
 
+        /*
+         * The replacements follow the customer's default card rather than
+         * being pinned to pm_123. A pin outranks the customer default at
+         * Stripe, so a customer who later replaced pm_123 would keep being
+         * charged on it.
+         */
+        expect(mockStripe.subscriptions.create).toHaveBeenCalledTimes(2);
+        for (const call of (mockStripe.subscriptions.create as jest.Mock).mock
+          .calls) {
+          expect(call[0]).not.toHaveProperty("default_payment_method");
+        }
+
         expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
         expect(mockStripe.subscriptions.del).toHaveBeenCalledWith(
           newPlan.subscriptionId,
@@ -1211,17 +1223,75 @@ describe("BillingService", () => {
         billingService.getPaymentMethods =
           getJestMockFunction().mockResolvedValue(mockPaymentMethods);
 
+        // deletePaymentMethod checks the card belongs to this customer first.
+        mockStripe.paymentMethods.retrieve =
+          getJestMockFunction().mockResolvedValue({
+            id: paymentMethodId,
+            customer: customerId,
+          });
+
         mockStripe.paymentMethods.detach =
           getJestMockFunction().mockResolvedValue({});
+
+        // After the detach, the subscriptions are re-synced to the new default.
+        const customerWithDefault: Stripe.Customer =
+          getStripeCustomer(customerId);
+        customerWithDefault.invoice_settings.default_payment_method = "pm_456";
+        mockStripe.customers.retrieve =
+          getJestMockFunction().mockResolvedValue(customerWithDefault);
+        mockStripe.customers.update = getJestMockFunction().mockResolvedValue(
+          {},
+        );
+        mockStripe.subscriptions.list = getJestMockFunction().mockResolvedValue(
+          { data: [] },
+        );
 
         await billingService.deletePaymentMethod(customerId, paymentMethodId);
 
         expect(mockStripe.paymentMethods.detach).toHaveBeenCalledWith(
           paymentMethodId,
         );
+
+        // pm_123 was the default, so the remaining card is promoted.
+        expect(mockStripe.customers.update).toHaveBeenCalledWith(customerId, {
+          invoice_settings: {
+            default_payment_method: "pm_456",
+          },
+        });
+        expect(mockStripe.subscriptions.list).toHaveBeenCalledWith({
+          customer: customerId,
+          status: "all",
+          limit: 100,
+        });
+      });
+
+      it("should not delete a payment method that belongs to another customer", async () => {
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
+
+        mockStripe.paymentMethods.retrieve =
+          getJestMockFunction().mockResolvedValue({
+            id: paymentMethodId,
+            customer: "cus_another_project",
+          });
+
+        mockStripe.paymentMethods.detach =
+          getJestMockFunction().mockResolvedValue({});
+
+        await expect(
+          billingService.deletePaymentMethod(customerId, paymentMethodId),
+        ).rejects.toThrow("Payment method does not belong to this project");
+
+        expect(mockStripe.paymentMethods.detach).not.toHaveBeenCalled();
       });
 
       it("should throw an exception if it's the only payment method", async () => {
+        mockStripe.paymentMethods.retrieve =
+          getJestMockFunction().mockResolvedValue({
+            id: paymentMethodId,
+            customer: customerId,
+          });
+
         // mock a single payment method to simulate a scenario where deletion is not allowed
         const mockSinglePaymentMethod: Array<PaymentMethod> = [
           {

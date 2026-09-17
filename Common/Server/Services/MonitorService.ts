@@ -47,7 +47,6 @@ import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Typeof from "../../Types/Typeof";
 import Model from "../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
@@ -97,6 +96,7 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
@@ -1265,14 +1265,16 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Labels decide SLO membership, so a label added or removed here can pull
-     * this monitor into an SLO's error budget or push it out of one. Keyed on
-     * `!== undefined` rather than on a non-empty array: clearing every label
-     * arrives as `[]`, and that is precisely the edit that should detach the
-     * monitor from every rule-driven SLO.
+     * SLO monitor rules match on labels, name and description, so an edit to
+     * any of the three can pull this monitor into an SLO's error budget or
+     * push it out of one. Keyed on `!== undefined` rather than on a non-empty
+     * value: clearing every label arrives as `[]`, and that is precisely the
+     * edit that should detach the monitor from every rule-driven SLO.
      */
     if (
-      onUpdate.updateBy.data.labels !== undefined &&
+      (onUpdate.updateBy.data.labels !== undefined ||
+        onUpdate.updateBy.data.name !== undefined ||
+        onUpdate.updateBy.data.description !== undefined) &&
       updatedItemIds.length > 0
     ) {
       for (const monitorId of updatedItemIds) {
@@ -1285,7 +1287,7 @@ export class Service extends DatabaseService<Model> {
           );
         } catch (error) {
           logger.error(
-            "Syncing SLO label rules failed in MonitorService.onUpdateSuccess",
+            "Syncing SLO monitor rules failed in MonitorService.onUpdateSuccess",
             {
               monitorId: monitorId?.toString(),
             } as LogAttributes,
@@ -1765,7 +1767,7 @@ ${createdItem.description?.trim() || "No description provided."}
         /*
          * Runs after the label rules above so a monitor created with no labels
          * of its own, but given some by a MonitorLabelRule, still lands in the
-         * SLOs those labels imply.
+         * SLOs whose monitor rules those labels satisfy.
          */
         try {
           await ServiceLevelObjectiveMonitorRuleEngineService.syncSlosForMonitor(
@@ -1776,7 +1778,7 @@ ${createdItem.description?.trim() || "No description provided."}
           );
         } catch (error) {
           logger.error(
-            "Syncing SLO label rules failed in MonitorService.onCreateSuccess",
+            "Syncing SLO monitor rules failed in MonitorService.onCreateSuccess",
             {
               projectId: createdItem.projectId?.toString(),
               monitorId: createdItem.id?.toString(),
@@ -1983,37 +1985,18 @@ ${createdItem.description?.trim() || "No description provided."}
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: MonitorOwnerTeam = new MonitorOwnerTeam();
-      teamOwner.monitorId = monitorId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-
-      await MonitorOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-      const teamOwner: MonitorOwnerUser = new MonitorOwnerUser();
-      teamOwner.monitorId = monitorId;
-      teamOwner.projectId = projectId;
-      teamOwner.userId = userId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-      await MonitorOwnerUserService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
+    // Owners already on the monitor are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: MonitorOwnerUserService,
+      ownerTeamService: MonitorOwnerTeamService,
+      resourceIdColumn: "monitorId",
+      resourceId: monitorId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
   }
 
   /*

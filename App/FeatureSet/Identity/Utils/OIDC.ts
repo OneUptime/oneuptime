@@ -226,6 +226,16 @@ export default class OIDCUtil {
       );
     }
 
+    /*
+     * The Email constructor includes invalid values in its error message,
+     * which callers log. Keep provider-supplied personal data out of errors.
+     */
+    if (!Email.isValid(emailValue)) {
+      throw new BadRequestException(
+        "OIDC response did not include a valid email address",
+      );
+    }
+
     const email: Email = new Email(emailValue);
 
     let name: Name | null = null;

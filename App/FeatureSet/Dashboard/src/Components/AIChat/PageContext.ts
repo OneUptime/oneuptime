@@ -1,9 +1,11 @@
 import PageMap from "../../Utils/PageMap";
+import ResourcePageContextUtil from "./ResourcePageContext";
 import RouteMap from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
@@ -112,6 +114,14 @@ const entityPageRules: Array<EntityPageRule> = [
     isValidId: isUuid,
   },
   {
+    pageMapKey: PageMap.RUM_APPLICATION_VIEW,
+    type: AIChatPageContextType.RumApplication,
+    noun: "RUM application",
+    chipLabel: "This RUM application",
+    icon: IconProp.AltGlobe,
+    isValidId: isUuid,
+  },
+  {
     pageMapKey: PageMap.TRACE_VIEW,
     type: AIChatPageContextType.Trace,
     noun: "trace",
@@ -132,6 +142,20 @@ const entityPageRules: Array<EntityPageRule> = [
 ];
 
 const areaPageRules: Array<AreaPageRule> = [
+  {
+    baseRoute: RouteMap[PageMap.RUM_APPLICATIONS],
+    type: AIChatPageContextType.RumApplications,
+    noun: "RUM applications",
+    chipLabel: "RUM applications",
+    icon: IconProp.AltGlobe,
+  },
+  {
+    baseRoute: RouteMap[PageMap.SERVICES],
+    type: AIChatPageContextType.TelemetryServicesList,
+    noun: "services",
+    chipLabel: "Services",
+    icon: IconProp.SquareStack,
+  },
   {
     baseRoute: RouteMap[PageMap.INCIDENTS],
     type: AIChatPageContextType.IncidentsList,
@@ -202,6 +226,12 @@ export default class PageContextUtil {
    */
   public static detectPageContext(): DashboardPageContext | null {
     try {
+      const resourceContext: DashboardPageContext | null =
+        ResourcePageContextUtil.detect();
+      if (resourceContext) {
+        return resourceContext;
+      }
+
       for (const rule of entityPageRules) {
         const route: Route | undefined = RouteMap[rule.pageMapKey];
 
@@ -264,6 +294,8 @@ export default class PageContextUtil {
 
     try {
       switch (context.type) {
+        case AIChatPageContextType.Resource:
+          return await ResourcePageContextUtil.resolveTitle(context);
         case AIChatPageContextType.Incident: {
           const item: Incident | null = await ModelAPI.getItem<Incident>({
             modelType: Incident,
@@ -317,6 +349,15 @@ export default class PageContextUtil {
           });
           return item?.name || null;
         }
+        case AIChatPageContextType.RumApplication: {
+          const item: RumApplication | null =
+            await ModelAPI.getItem<RumApplication>({
+              modelType: RumApplication,
+              id: id,
+              select: { name: true },
+            });
+          return item?.name || null;
+        }
         case AIChatPageContextType.Exception: {
           const item: TelemetryException | null =
             await ModelAPI.getItem<TelemetryException>({
@@ -341,6 +382,10 @@ export default class PageContextUtil {
       type: context.type,
       ...(context.entityId ? { entityId: context.entityId } : {}),
       ...(context.entityTitle ? { entityTitle: context.entityTitle } : {}),
+      ...(context.resourceType ? { resourceType: context.resourceType } : {}),
+      ...(context.subresource
+        ? { subresource: { ...context.subresource } }
+        : {}),
     };
   }
 
@@ -349,6 +394,90 @@ export default class PageContextUtil {
     context: DashboardPageContext,
   ): Array<SuggestedQuestion> {
     switch (context.type) {
+      case AIChatPageContextType.Resource:
+      case AIChatPageContextType.ResourcesList:
+        return ResourcePageContextUtil.getSuggestions(context);
+      case AIChatPageContextType.RumApplication:
+        return [
+          {
+            icon: IconProp.ChartBar,
+            title: "Web vitals trends",
+            question:
+              "Chart this RUM application's LCP, INP and CLS over the last 24 hours. Which web vitals need attention?",
+          },
+          {
+            icon: IconProp.Activity,
+            title: "Performance regressions",
+            question:
+              "Compare this RUM application's web vitals over the last 24 hours with the previous 24 hours. Which metrics regressed?",
+          },
+          {
+            icon: IconProp.Waterfall,
+            title: "Slow or failing requests",
+            question:
+              "Investigate this RUM application's slow browser requests and error spans over the last 6 hours. What operations need attention?",
+          },
+          {
+            icon: IconProp.Heartbeat,
+            title: "Connection health",
+            question:
+              "Check this RUM application's connection status and when it last sent telemetry. Is data arriving?",
+          },
+        ];
+      case AIChatPageContextType.RumApplications:
+        return [
+          {
+            icon: IconProp.Heartbeat,
+            title: "Connection health",
+            question:
+              "List my RUM applications, their connection status and when each last sent telemetry. Which need attention?",
+          },
+          {
+            icon: IconProp.ChartBar,
+            title: "Compare web vitals",
+            question:
+              "Compare LCP, INP and CLS across my RUM applications over the last 24 hours. Which applications have the poorest web vitals?",
+          },
+          {
+            icon: IconProp.Activity,
+            title: "Performance regressions",
+            question:
+              "Which RUM applications had web vitals regressions in the last 24 hours compared with the previous 24 hours?",
+          },
+          {
+            icon: IconProp.Waterfall,
+            title: "Slow or failing requests",
+            question:
+              "Find slow browser requests and error spans across my RUM applications over the last 6 hours. Identify the affected applications and operations.",
+          },
+        ];
+      case AIChatPageContextType.TelemetryServicesList:
+        return [
+          {
+            icon: IconProp.Activity,
+            title: "Service health",
+            question:
+              "Give me a health overview of my services using errors, latency and logs over the last 24 hours.",
+          },
+          {
+            icon: IconProp.ChartBar,
+            title: "Slowest services",
+            question:
+              "Which services have the highest p95 request latency over the last 24 hours? Chart their latency trends.",
+          },
+          {
+            icon: IconProp.Error,
+            title: "Error hotspots",
+            question:
+              "Which services have the most error spans and error logs over the last 6 hours?",
+          },
+          {
+            icon: IconProp.Search,
+            title: "Available telemetry",
+            question:
+              "List my services so I can choose one to investigate, then show the metrics available in this project.",
+          },
+        ];
       case AIChatPageContextType.Incident:
         return [
           {

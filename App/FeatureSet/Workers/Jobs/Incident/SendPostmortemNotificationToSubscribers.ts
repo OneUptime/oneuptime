@@ -294,14 +294,17 @@ RunCron(
         );
 
         /*
-         * Pre-compute markdown→HTML conversion for the postmortem note once
-         * per incident. This value does not vary per status page or per
+         * Pre-compute markdown conversions for the postmortem note once per
+         * incident. These values do not vary per status page or per
          * subscriber, so memoizing here avoids N redundant markdown parses
          * during fan-out.
          */
         const postmortemNoteHtml: string = await Markdown.convertToHTML(
           incident.postmortemNote || "",
           MarkdownContentType.Email,
+        );
+        const postmortemNotePlainText: string = Markdown.convertToPlainText(
+          incident.postmortemNote || "",
         );
 
         for (const statuspage of statusPages) {
@@ -409,6 +412,10 @@ RunCron(
               StatusPageResourceUtil.getResourcesGroupedByGroupName(
                 statusPageToResources[statuspage._id!] || [],
               );
+            const resourcesAffectedPlainText: string =
+              StatusPageResourceUtil.getResourcesGroupedByGroupNameAsPlainText(
+                statusPageToResources[statuspage._id!] || [],
+              );
 
             logger.debug(
               `Resources affected for incident ${incident.id} on status page ${statuspage.id}: ${resourcesAffectedString}`,
@@ -475,7 +482,10 @@ RunCron(
                     },
                   );
 
-                  // Template variables for compilation
+                  /*
+                   * The custom email body is HTML (it is wrapped only by
+                   * BlankTemplate); the subject is plain text.
+                   */
                   const templateVars: Dictionary<string> = {
                     statusPageName: statusPageName,
                     statusPageUrl: statusPageURL,
@@ -483,8 +493,13 @@ RunCron(
                     resourcesAffected: resourcesAffectedString,
                     incidentSeverity: incident.incidentSeverity?.name || " - ",
                     incidentTitle: incident.title || "",
-                    postmortemNote: incident.postmortemNote || "",
+                    postmortemNote: postmortemNoteHtml,
                     unsubscribeUrl: unsubscribeUrl,
+                  };
+                  const subjectTemplateVars: Dictionary<string> = {
+                    ...templateVars,
+                    resourcesAffected: resourcesAffectedPlainText,
+                    postmortemNote: postmortemNotePlainText,
                   };
 
                   // Use custom template if available and custom SMTP is configured, otherwise use default
@@ -497,7 +512,7 @@ RunCron(
                     const compiledSubject: string = emailTemplate.emailSubject
                       ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                           emailTemplate.emailSubject,
-                          templateVars,
+                          subjectTemplateVars,
                         )
                       : "[Postmortem] " + incident.title || "";
 
@@ -604,15 +619,15 @@ RunCron(
                     },
                   );
 
-                  // Template variables for compilation
+                  // Template variables for compilation, as plain text
                   const smsTemplateVars: Dictionary<string> = {
                     statusPageName: statusPageName,
                     statusPageUrl: statusPageURL,
                     detailsUrl: incidentDetailsUrl,
-                    resourcesAffected: resourcesAffectedString,
+                    resourcesAffected: resourcesAffectedPlainText,
                     incidentSeverity: incident.incidentSeverity?.name || "-",
                     incidentTitle: incident.title || "",
-                    postmortemNote: incident.postmortemNote || "",
+                    postmortemNote: postmortemNotePlainText,
                     unsubscribeUrl: unsubscribeUrl,
                   };
 
@@ -667,12 +682,12 @@ RunCron(
                     },
                   );
 
-                  // Template variables for compilation
+                  // Template variables for compilation, as Markdown
                   const slackTemplateVars: Dictionary<string> = {
                     statusPageName: statusPageName,
                     statusPageUrl: statusPageURL,
                     detailsUrl: incidentDetailsUrl,
-                    resourcesAffected: resourcesAffectedString,
+                    resourcesAffected: resourcesAffectedPlainText,
                     incidentSeverity: incident.incidentSeverity?.name || " - ",
                     incidentTitle: incident.title || "",
                     postmortemNote: incident.postmortemNote || "",
@@ -730,12 +745,12 @@ RunCron(
                     },
                   );
 
-                  // Template variables for compilation
+                  // Template variables for compilation, as Markdown
                   const teamsTemplateVars: Dictionary<string> = {
                     statusPageName: statusPageName,
                     statusPageUrl: statusPageURL,
                     detailsUrl: incidentDetailsUrl,
-                    resourcesAffected: resourcesAffectedString,
+                    resourcesAffected: resourcesAffectedPlainText,
                     incidentSeverity: incident.incidentSeverity?.name || " - ",
                     incidentTitle: incident.title || "",
                     postmortemNote: incident.postmortemNote || "",
@@ -793,7 +808,7 @@ RunCron(
                           incident.incidentNumber?.toString() || "",
                         incidentTitle: incident.title || "",
                         incidentSeverity: incident.incidentSeverity?.name || "",
-                        resourcesAffected: resourcesAffectedString,
+                        resourcesAffected: resourcesAffectedPlainText,
                         postmortemNote: incident.postmortemNote || "",
                         detailsUrl: incidentDetailsUrl,
                       },

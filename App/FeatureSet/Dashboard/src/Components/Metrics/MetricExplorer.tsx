@@ -374,6 +374,8 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   }: EventTimeReferenceLines = useEventTimeReferenceLines({
     enabled: showEvents,
     window: metricViewData.startAndEndDate,
+    queryConfigs: metricViewData.queryConfigs,
+    refreshTick: refreshNonce,
   });
 
   /*

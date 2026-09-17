@@ -182,7 +182,16 @@ jest.mock("reactflow", () => {
         position: { x: number; y: number };
         data: { label: string; dimmed: boolean; footer?: string };
       }>;
-      edges: Array<{ id: string; label?: string; animated?: boolean }>;
+      edges: Array<{
+        id: string;
+        label?: string;
+        animated?: boolean;
+        labelShowBg?: boolean;
+        labelStyle?: React.CSSProperties;
+        labelBgStyle?: React.CSSProperties;
+        labelBgPadding?: [number, number];
+        labelBgBorderRadius?: number;
+      }>;
       onInit: (value: unknown) => void;
       onNodeClick: (event: React.MouseEvent, node: unknown) => void;
       onEdgeClick: (event: React.MouseEvent, edge: unknown) => void;
@@ -217,12 +226,35 @@ jest.mock("reactflow", () => {
             },
           )}
           {props.edges.map(
-            (edge: { id: string; label?: string; animated?: boolean }) => {
+            (edge: {
+              id: string;
+              label?: string;
+              animated?: boolean;
+              labelShowBg?: boolean;
+              labelStyle?: React.CSSProperties;
+              labelBgStyle?: React.CSSProperties;
+              labelBgPadding?: [number, number];
+              labelBgBorderRadius?: number;
+            }) => {
               return (
                 <button
                   key={edge.id}
                   data-testid={`map-edge-${edge.id}`}
                   data-animated={String(edge.animated)}
+                  data-label-show-background={String(edge.labelShowBg)}
+                  data-label-color={String(edge.labelStyle?.fill || "")}
+                  data-label-background={String(edge.labelBgStyle?.fill || "")}
+                  data-label-background-opacity={String(
+                    edge.labelBgStyle?.fillOpacity || "",
+                  )}
+                  data-label-border={String(edge.labelBgStyle?.stroke || "")}
+                  data-label-border-width={String(
+                    edge.labelBgStyle?.strokeWidth || "",
+                  )}
+                  data-label-padding={edge.labelBgPadding?.join(",") || ""}
+                  data-label-border-radius={String(
+                    edge.labelBgBorderRadius || "",
+                  )}
                   onClick={(event: React.MouseEvent) => {
                     props.onEdgeClick(event, edge);
                   }}
@@ -586,6 +618,46 @@ describe("connections", () => {
     expect(screen.getByTestId("map-edge-api->postgres")).toHaveTextContent(
       "25ms",
     );
+  });
+
+  test("connection metric chips use theme-aware readable styling", async () => {
+    await renderGraph();
+
+    const expectReadableMetricChip: (connection: HTMLElement) => void = (
+      connection: HTMLElement,
+    ): void => {
+      expect(connection).toHaveAttribute("data-label-show-background", "true");
+      expect(connection).toHaveAttribute(
+        "data-label-color",
+        "var(--ou-text-secondary, #4b5563)",
+      );
+      expect(connection).toHaveAttribute(
+        "data-label-background",
+        "var(--ou-surface-primary, #ffffff)",
+      );
+      expect(connection).toHaveAttribute("data-label-background-opacity", "1");
+      expect(connection).toHaveAttribute(
+        "data-label-border",
+        "var(--ou-border-default, #e5e7eb)",
+      );
+      expect(connection).toHaveAttribute("data-label-border-width", "1");
+      expect(connection).toHaveAttribute("data-label-padding", "6,3");
+      expect(connection).toHaveAttribute("data-label-border-radius", "6");
+    };
+
+    const hoveredConnection: HTMLElement =
+      screen.getByTestId("map-edge-web->api");
+    fireEvent.mouseEnter(hoveredConnection);
+    expect(hoveredConnection).toHaveTextContent("600/min");
+    expectReadableMetricChip(hoveredConnection);
+
+    for (const metric of ["calls", "errors", "latency"]) {
+      fireEvent.change(
+        screen.getByRole("combobox", { name: "Connection labels" }),
+        { target: { value: metric } },
+      );
+      expectReadableMetricChip(screen.getByTestId("map-edge-api->postgres"));
+    }
   });
 
   test("service and connection drawers are exclusive", async () => {

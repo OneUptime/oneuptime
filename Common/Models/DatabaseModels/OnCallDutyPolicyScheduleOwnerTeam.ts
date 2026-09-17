@@ -16,6 +16,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnsTogether from "../../Types/Database/UniqueColumnsTogether";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -82,7 +83,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "OnCallDutyPolicyScheduleOwnerTeam",
 })
-@Index(["onCallDutyPolicyScheduleId", "teamId", "projectId"])
+@Index(["onCallDutyPolicyScheduleId", "teamId", "projectId"], { unique: true })
+@UniqueColumnsTogether(
+  ["onCallDutyPolicyScheduleId", "teamId", "projectId"],
+  "This team is already an owner of this on-call schedule.",
+)
 export default class OnCallDutyPolicyScheduleOwnerTeam extends BaseModel {
   @ColumnAccessControl({
     create: [

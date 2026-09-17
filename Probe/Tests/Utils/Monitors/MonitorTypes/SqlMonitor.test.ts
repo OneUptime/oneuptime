@@ -18,8 +18,18 @@ import SqlMonitor, {
 import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
 import MonitorStepSqlMonitor from "Common/Types/Monitor/MonitorStepSqlMonitor";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
+import Sleep from "Common/Types/Sleep";
+import logger from "Common/Server/Utils/Logger";
 import * as mssql from "mssql";
-import { describe, expect, it } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
@@ -409,6 +419,131 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
     expect(response).not.toBeNull();
     expect(response!.isOnline).toBe(false);
     expect(response!.failureCause).toContain("only supported");
+  });
+});
+
+/*
+ * A retry value counts retries AFTER the first attempt: 0 runs the query once,
+ * 2 runs it up to three times. The query itself is stubbed at runQuery, the
+ * one seam between the retry loop and the database drivers.
+ */
+describe("SqlMonitor.execute retries", () => {
+  type SqlMonitorPrivate = {
+    runQuery: (input: unknown) => Promise<Array<Record<string, unknown>>>;
+  };
+
+  const buildPostgresConfig: () => MonitorStepSqlMonitor =
+    (): MonitorStepSqlMonitor => {
+      return {
+        databaseType: SqlDatabaseType.PostgreSQL,
+        host: "db.internal",
+        port: 5432,
+        databaseName: "orders",
+        username: "readonly",
+        password: "sql-password",
+        useWindowsIntegratedAuthentication: false,
+        useSsl: false,
+        rejectUnauthorizedSsl: true,
+        query: "SELECT 1",
+        connectionTimeoutInMs: 10000,
+        statementTimeoutInMs: 15000,
+        maxRows: 100,
+      };
+    };
+
+  const stubRunQuery: () => jest.Mock = (): jest.Mock => {
+    return jest.spyOn(
+      SqlMonitor as unknown as SqlMonitorPrivate,
+      "runQuery",
+    ) as unknown as jest.Mock;
+  };
+
+  const attemptNumbers: (
+    response: SqlMonitorResponse | null,
+  ) => Array<number> = (response: SqlMonitorResponse | null): Array<number> => {
+    return (response?.probeAttempts || []).map((attempt: ProbeAttempt) => {
+      return attempt.attemptNumber;
+    });
+  };
+
+  let sleepSpy: jest.Mock;
+
+  beforeEach(() => {
+    // The retry backoff is a real second otherwise.
+    sleepSpy = jest
+      .spyOn(Sleep, "sleep")
+      .mockResolvedValue(undefined as never) as unknown as jest.Mock;
+    jest.spyOn(logger, "debug").mockImplementation((): void => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("runs exactly one attempt when retry is 0 (an explicit 0 no longer means three)", async () => {
+    const runQuery: jest.Mock = stubRunQuery().mockRejectedValue(
+      new Error("connect ECONNREFUSED") as never,
+    );
+
+    const response: SqlMonitorResponse | null = await SqlMonitor.execute(
+      buildPostgresConfig(),
+      { retry: 0, isOnlineCheckRequest: true },
+    );
+
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    expect(sleepSpy).not.toHaveBeenCalled();
+    expect(response?.isOnline).toBe(false);
+    expect(response?.totalAttempts).toBe(1);
+    expect(attemptNumbers(response)).toEqual([1]);
+  });
+
+  it("runs three attempts when retry is 2", async () => {
+    const runQuery: jest.Mock = stubRunQuery().mockRejectedValue(
+      new Error("connect ECONNREFUSED") as never,
+    );
+
+    const response: SqlMonitorResponse | null = await SqlMonitor.execute(
+      buildPostgresConfig(),
+      { retry: 2, isOnlineCheckRequest: true },
+    );
+
+    expect(runQuery).toHaveBeenCalledTimes(3);
+    expect(sleepSpy).toHaveBeenCalledTimes(2);
+    expect(response?.isOnline).toBe(false);
+    expect(response?.totalAttempts).toBe(3);
+    expect(attemptNumbers(response)).toEqual([1, 2, 3]);
+  });
+
+  it("keeps three attempts when no retry value is passed", async () => {
+    const runQuery: jest.Mock = stubRunQuery().mockRejectedValue(
+      new Error("connect ECONNREFUSED") as never,
+    );
+
+    const response: SqlMonitorResponse | null = await SqlMonitor.execute(
+      buildPostgresConfig(),
+      { isOnlineCheckRequest: true },
+    );
+
+    expect(runQuery).toHaveBeenCalledTimes(3);
+    expect(response?.totalAttempts).toBe(3);
+    expect(attemptNumbers(response)).toEqual([1, 2, 3]);
+  });
+
+  it("retries once and recovers when retry is 1", async () => {
+    const runQuery: jest.Mock = stubRunQuery()
+      .mockRejectedValueOnce(new Error("connect ECONNREFUSED") as never)
+      .mockResolvedValueOnce([{ value: 1 }] as never);
+
+    const response: SqlMonitorResponse | null = await SqlMonitor.execute(
+      buildPostgresConfig(),
+      { retry: 1, isOnlineCheckRequest: true },
+    );
+
+    expect(runQuery).toHaveBeenCalledTimes(2);
+    expect(response?.isOnline).toBe(true);
+    expect(response?.scalarValue).toBe(1);
+    expect(response?.totalAttempts).toBe(2);
+    expect(attemptNumbers(response)).toEqual([1, 2]);
   });
 });
 

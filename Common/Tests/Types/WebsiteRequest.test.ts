@@ -272,6 +272,50 @@ describe("WebsiteRequest.fetch", () => {
     expect(budget.remainingBytes).toBe(100 - Buffer.byteLength(bodyText));
   });
 
+  test.each([200, 400, 503])(
+    "should cancel a stalled status %s body even after Axios has settled",
+    async (status: number) => {
+      const controller: AbortController = new AbortController();
+      let resolveReading: () => void = (): void => {};
+      const reading: Promise<void> = new Promise((resolve: () => void) => {
+        resolveReading = resolve;
+      });
+      const body: Readable = new Readable({
+        read: (): void => {
+          resolveReading();
+        },
+      });
+      const response: {
+        status: number;
+        data: Readable;
+        headers: Record<string, string>;
+      } = { status: status, data: body, headers: {} };
+      if (status >= 400) {
+        axiosMock.mockRejectedValueOnce({
+          isAxiosError: true,
+          response: response,
+        });
+      } else {
+        axiosMock.mockResolvedValueOnce(response);
+      }
+
+      const pending: Promise<WebsiteResponse> = WebsiteRequest.fetch(url, {
+        signal: controller.signal,
+        responseBodyBudget: new HTTPResponseBodyBudget(100),
+      });
+      const rejected: Promise<void> = expect(pending).rejects.toMatchObject({
+        name: "AbortError",
+      });
+
+      await reading;
+      controller.abort();
+      await rejected;
+
+      expect(body.destroyed).toBe(true);
+      expect(axiosMock).toHaveBeenCalledTimes(1);
+    },
+  );
+
   test("should strip a leading UTF-8 BOM from a budgeted HTML stream", async () => {
     const html: string = "<html><body>bounded</body></html>";
     const bodyText: string = `\uFEFF${html}`;

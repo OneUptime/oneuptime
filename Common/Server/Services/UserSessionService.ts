@@ -58,6 +58,12 @@ export class Service extends DatabaseService<Model> {
 
   public constructor() {
     super(Model);
+
+    /*
+     * Bound retention of expired and revoked sessions, including device data,
+     * without deleting sessions that have renewed their refresh credentials.
+     */
+    this.hardDeleteItemsOlderThanInDays("refreshTokenExpiresAt", 30);
   }
 
   public async createSession(

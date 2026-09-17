@@ -135,6 +135,8 @@
     "sendManagementLink": "Send Management Link",
     "subscribedSuccessfully": "You have been subscribed successfully.",
     "emailSentCheckSpam": "An email with the link has been sent to your email. If you don't see the email, please check your spam folder.",
+    "manageLinkSent": "If a subscription matches the details you entered, we have sent a link to manage it.",
+    "manageLinkSentEmail": "If this email address has a subscription, we have sent it a link to manage it. If you don't see the email, please check your spam folder.",
     "menu": {
       "email": "Email",
       "sms": "SMS",

@@ -1,14 +1,6 @@
 import "@testing-library/jest-dom";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
-import {
-  act,
   cleanup,
   fireEvent,
   render,
@@ -19,47 +11,23 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The completed investigation, laid out for a responder: a Summary section,
- * the report split into its own sections, and "Evidence checked". The report
- * is untrusted model output, so beyond layout these tests pin that every
- * fragment still goes through the safe markdown renderer and that the only
- * interactive things inside the prose are chips for recorded citations and
- * links to incidents/alerts the server resolved.
+ * The completed investigation, laid out for a responder: a Summary section
+ * and the report split into its own sections. The queries behind the report
+ * ("Evidence checked") are the host's to show (InvestigationRunDetails), so a
+ * citation chip here only hands its id to the host through
+ * onCitationActivate. The report is untrusted model output, so beyond layout
+ * these tests pin that every fragment still goes through the safe markdown
+ * renderer and that the only interactive things inside the prose are chips
+ * for recorded citations and links to incidents/alerts the server resolved.
  *
  * react-markdown is mocked in Common jest, so the viewer mock below stands in
  * for the real inline-reference pipeline: it splits "[C#]" and "#123" tokens
  * out of the text and asks the panel's renderers for each one.
  */
 
-const postMock: MockFunction = getJestMockFunction();
-const getCommonHeadersMock: MockFunction = getJestMockFunction();
 const markdownViewerMock: MockFunction = getJestMockFunction();
 const copyToClipboardMock: MockFunction = getJestMockFunction();
-
-jest.mock("../../../UI/Utils/API/API", () => {
-  return {
-    __esModule: true,
-    default: {
-      post: (...args: Array<unknown>) => {
-        return postMock(...args);
-      },
-      getFriendlyMessage: () => {
-        return "Request failed";
-      },
-    },
-  };
-});
-
-jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
-  return {
-    __esModule: true,
-    default: {
-      getCommonHeaders: (...args: Array<unknown>) => {
-        return getCommonHeadersMock(...args);
-      },
-    },
-  };
-});
+const citationActivateMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/Clipboard", () => {
   return {
@@ -72,18 +40,6 @@ jest.mock("../../../UI/Utils/Clipboard", () => {
     },
   };
 });
-
-jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/WidgetRenderer",
-  () => {
-    return {
-      __esModule: true,
-      default: (): React.ReactElement => {
-        return React.createElement("div", { "data-testid": "evidence-widget" });
-      },
-    };
-  },
-);
 
 jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   return {
@@ -146,10 +102,14 @@ import {
   parseInvestigationEvidenceRows,
   parseInvestigationReferences,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationReportData";
+import AIRun from "../../../Models/DatabaseModels/AIRun";
 import {
   AIChatCitationTargetType,
   AIChatWidgetType,
 } from "../../../Types/AI/AIChatTypes";
+import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnLength";
+import { getTableColumn } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import {
   InvestigationEventReference,
   InvestigationEvidenceItem,
@@ -167,8 +127,6 @@ interface MarkdownViewerProps {
   inlineReferences?: MarkdownInlineReferenceRenderers | undefined;
 }
 
-const RUN_ID: string = "11111111-1111-4111-8111-111111111111";
-const INCIDENT_ID: string = "33333333-3333-4333-8333-333333333333";
 const PRIOR_INCIDENT_ID: string = "66666666-6666-4666-8666-666666666666";
 const ALERT_ID: string = "44444444-4444-4444-8444-444444444444";
 const TLDR: string =
@@ -239,8 +197,9 @@ function viewProps(overrides: Partial<ReportViewProps> = {}): ReportViewProps {
     evidence,
     references: [priorIncident],
     subjectType: "incident",
-    subjectId: INCIDENT_ID,
-    runId: RUN_ID,
+    onCitationActivate: (citationId: string): void => {
+      citationActivateMock(citationId);
+    },
     ...overrides,
   };
 }
@@ -279,24 +238,27 @@ function reportSectionHeadings(): Array<string> {
     });
 }
 
-beforeEach(() => {
-  getCommonHeadersMock.mockReturnValue({});
-  Object.defineProperty(Element.prototype, "scrollIntoView", {
-    configurable: true,
-    writable: true,
-    value: getJestMockFunction(),
+function citationChips(citationId: string): Array<HTMLElement> {
+  return screen.queryAllByRole("button", {
+    name: (accessibleName: string): boolean => {
+      return accessibleName.startsWith(`Citation ${citationId}:`);
+    },
   });
-});
+}
+
+function activatedCitations(): Array<string> {
+  return (citationActivateMock.mock.calls as Array<Array<string>>).map(
+    (call: Array<string>): string => {
+      return call[0]!;
+    },
+  );
+}
 
 afterEach(() => {
   cleanup();
-  jest.useRealTimers();
-  postMock.mockReset();
-  getCommonHeadersMock.mockReset();
   markdownViewerMock.mockReset();
   copyToClipboardMock.mockReset();
-  delete (Element.prototype as unknown as { scrollIntoView?: unknown })
-    .scrollIntoView;
+  citationActivateMock.mockReset();
 });
 
 describe("InvestigationReportView summary section", () => {
@@ -371,22 +333,27 @@ describe("InvestigationReportView summary section", () => {
     expect(screen.queryByText("TL;DR")).toBeNull();
   });
 
-  test("sits above the report, which sits above the evidence", () => {
-    renderView({ analysisTldr: TLDR });
+  /*
+   * The host draws the run's evidence and activity directly under whatever
+   * this view renders, so the report has to be the view's last element: a
+   * section appended after it would land between the report and the queries
+   * its citations point at.
+   */
+  test("sits above the report, which is the last thing the view draws", () => {
+    const { container } = renderView({ analysisTldr: TLDR });
 
-    const summary: HTMLElement = screen.getByLabelText("Investigation summary");
-    const report: HTMLElement = screen.getByLabelText("Investigation report");
-    const evidenceSection: HTMLElement =
-      screen.getByLabelText("Evidence checked");
+    const summary: HTMLElement = screen.getByRole("region", {
+      name: "Investigation summary",
+    });
+    const report: HTMLElement = screen.getByRole("region", {
+      name: "Investigation report",
+    });
 
     expect(
       summary.compareDocumentPosition(report) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(
-      report.compareDocumentPosition(evidenceSection) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(Array.from(container.children)).toEqual([summary, report]);
   });
 
   test("renders a hostile TL;DR inertly", () => {
@@ -659,25 +626,43 @@ describe("InvestigationReportView report section", () => {
     );
   });
 
-  test("offers AI generated and Copy report that copies the original markdown", async () => {
+  /*
+   * The header's one line under the title is the caveat a responder needs
+   * before acting on model output; the separate "AI generated" pill said the
+   * same thing twice and is gone. Copy report still copies the report as
+   * published, not the sections rendered below it.
+   */
+  test("flags the report as an AI first pass and Copy report copies the original markdown", async () => {
     renderView();
 
-    const report: HTMLElement = screen.getByLabelText("Investigation report");
-    expect(report).toHaveTextContent("AI generated");
+    const report: HTMLElement = screen.getByRole("region", {
+      name: "Investigation report",
+    });
+    const heading: HTMLElement = within(report).getByRole("heading", {
+      name: "Investigation report",
+    });
+    const caveat: HTMLElement = within(report).getByText(
+      "AI-generated first pass — verify before acting.",
+    );
+    expect(heading.parentElement).toContainElement(caveat);
     expect(
-      within(report).getByRole("heading", { name: "Investigation report" }),
-    ).toBeInTheDocument();
+      heading.compareDocumentPosition(caveat) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(report).not.toHaveTextContent("AI generated");
 
     const copyButton: HTMLElement = within(report).getByRole("button", {
       name: "Copy report",
     });
-    await act(async (): Promise<void> => {
-      fireEvent.click(copyButton);
-      await Promise.resolve();
-    });
+    expect(copyButton).toHaveAttribute("type", "button");
+    fireEvent.click(copyButton);
 
     expect(copyToClipboardMock).toHaveBeenCalledTimes(1);
     expect(copyToClipboardMock).toHaveBeenCalledWith(SERVER_REPORT);
+    // The label only flips once the clipboard has taken the text.
+    expect(
+      await within(copyButton).findByText("Report copied"),
+    ).toBeInTheDocument();
   });
 });
 
@@ -697,7 +682,8 @@ describe("InvestigationReportView inline references", () => {
 
   /*
    * The formatted label depends on the viewer's timezone and clock, so the
-   * expected name is derived with the same formatter the evidence row uses.
+   * expected name is derived with the same formatter the evidence row uses
+   * (InvestigationEvidenceList's suite pins the row side of that contract).
    */
   test("reads a timestamped citation the way its evidence row shows it", () => {
     const rawLabel: string =
@@ -724,16 +710,9 @@ describe("InvestigationReportView inline references", () => {
       expect(chip).toHaveTextContent("C2");
     }
 
-    // Chip and evidence row announce the same label.
-    const evidenceSection: HTMLElement =
-      screen.getByLabelText("Evidence checked");
-    expect(
-      within(evidenceSection).getByRole("button", {
-        name: (accessibleName: string): boolean => {
-          return accessibleName.includes(displayLabel);
-        },
-      }),
-    ).toBeInTheDocument();
+    // Activating it hands the host the id, not the formatted label.
+    fireEvent.click(chips[1]!);
+    expect(activatedCitations()).toEqual(["C2"]);
   });
 
   test("reads a timestamped legacy citation in local time too", () => {
@@ -764,72 +743,153 @@ describe("InvestigationReportView inline references", () => {
     expect(chip).toHaveAttribute("title", rawLabel);
   });
 
+  /*
+   * A chip promises "there is a query behind this"; a marker the run never
+   * recorded has nowhere to go, so it must stay the text the model wrote.
+   */
   test("leaves a citation that is not in the evidence list as plain text", () => {
-    renderView();
+    renderView({
+      analysisMarkdown:
+        "**Summary** — Pool exhausted [C9].\n\n**Most likely root cause** — A deploy [C1].",
+    });
+
+    const summary: HTMLElement = screen.getByRole("region", {
+      name: "Investigation summary",
+    });
+    expect(summary).toHaveTextContent("Pool exhausted [C9].");
+    expect(within(summary).queryByRole("button")).toBeNull();
+    expect(citationChips("C9")).toHaveLength(0);
+    expect(citationChips("C1")).toHaveLength(1);
 
     const renderers: MarkdownInlineReferenceRenderers = lastRenderers();
     expect(renderers.renderCitation!("C9")).toBeNull();
     expect(renderers.renderCitation!("C1")).not.toBeNull();
   });
 
-  test("clicking a chip expands, scrolls to and highlights its evidence row", async () => {
-    postMock.mockReturnValue(new Promise(() => {}) as never);
-    renderView();
-
-    const evidenceSection: HTMLElement =
-      screen.getByLabelText("Evidence checked");
-    const toggle: HTMLElement = within(evidenceSection).getByRole("button", {
-      name: /Logs 17:20/,
-    });
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-
-    await act(async (): Promise<void> => {
-      fireEvent.click(
-        screen.getAllByRole("button", {
-          name: "Citation C2: Logs 17:20 – 18:20 (1 shown)",
-        })[0]!,
-      );
-      await Promise.resolve();
+  test("leaves every citation as plain text when the run recorded no evidence", () => {
+    renderView({
+      analysisMarkdown:
+        "**Summary** — Pool exhausted [C1].\n\n**Most likely root cause** — A deploy [C2].",
+      evidence: [],
     });
 
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(toggle.closest("li")).toHaveAttribute("data-highlighted", "true");
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
-      block: "nearest",
-      behavior: "smooth",
-    });
-    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText("Investigation summary")).toHaveTextContent(
+      "Pool exhausted [C1].",
+    );
     expect(
-      (postMock.mock.calls[0]![0] as { data: Record<string, unknown> }).data,
-    ).toEqual({
-      subjectType: "incident",
-      subjectId: INCIDENT_ID,
-      investigationRunId: RUN_ID,
-      citationId: "C2",
-    });
+      screen.getByRole("region", { name: "Most likely root cause" }),
+    ).toHaveTextContent("A deploy [C2].");
+    expect(screen.getAllByRole("button")).toEqual([
+      screen.getByRole("button", { name: "Copy report" }),
+    ]);
   });
 
-  test("a chip click starts one highlight timer that clears itself", async () => {
-    jest.useFakeTimers();
-    postMock.mockReturnValue(new Promise(() => {}) as never);
-    renderView();
-    expect(jest.getTimerCount()).toBe(0);
+  /*
+   * Once the API returns structured evidence it is the source of truth: the
+   * report's own "Evidence checked" lines are only a fallback for runs that
+   * predate it, so a chip must not borrow a label (or a citation) from them.
+   */
+  test("labels chips from the structured evidence rather than the report's own list", () => {
+    renderView({
+      evidence: [{ ...evidence[0]!, label: "Active incidents (8 total)" }],
+    });
 
-    await act(async (): Promise<void> => {
-      fireEvent.click(
-        screen.getAllByRole("button", {
-          name: "Citation C1: Active incidents (7 total)",
-        })[0]!,
+    const chips: Array<HTMLElement> = citationChips("C1");
+    expect(chips.length).toBeGreaterThan(0);
+
+    for (const chip of chips) {
+      expect(chip).toHaveAccessibleName(
+        "Citation C1: Active incidents (8 total)",
       );
-      await Promise.resolve();
-    });
-    expect(jest.getTimerCount()).toBe(1);
+      expect(chip).toHaveAttribute("title", "Active incidents (8 total)");
+    }
 
-    await act(async (): Promise<void> => {
-      jest.advanceTimersByTime(2000);
+    // C2 is only in the report's own list, so it stays plain text.
+    expect(citationChips("C2")).toHaveLength(0);
+    expect(
+      screen.getByRole("region", { name: "Most likely root cause" }),
+    ).toHaveTextContent("[C2]");
+  });
+
+  /*
+   * The view no longer owns the evidence list: revealing, expanding and
+   * highlighting the query is the host's job (InvestigationRunDetails and
+   * InvestigationEvidenceList). What the view owns is handing over the right
+   * id, from every chip, every time; the host numbers each request, so a
+   * second click on the same chip must reach it again.
+   */
+  test("a chip click hands its citation to the host, every time", () => {
+    renderView();
+
+    // One chip in the summary and one under Evidence, sharing a renderer.
+    const summaryChip: HTMLElement = within(
+      screen.getByRole("region", { name: "Investigation summary" }),
+    ).getByRole("button", { name: "Citation C1: Active incidents (7 total)" });
+    const evidenceChip: HTMLElement = within(
+      screen.getByRole("region", { name: "Evidence" }),
+    ).getByRole("button", { name: "Citation C1: Active incidents (7 total)" });
+    const rootCauseChip: HTMLElement = within(
+      screen.getByRole("region", { name: "Most likely root cause" }),
+    ).getByRole("button", {
+      name: "Citation C2: Logs 17:20 – 18:20 (1 shown)",
     });
-    expect(jest.getTimerCount()).toBe(0);
-    expect(document.querySelector('[data-highlighted="true"]')).toBeNull();
+    expect(citationActivateMock).not.toHaveBeenCalled();
+
+    fireEvent.click(rootCauseChip);
+    expect(activatedCitations()).toEqual(["C2"]);
+
+    fireEvent.click(summaryChip);
+    fireEvent.click(evidenceChip);
+    fireEvent.click(evidenceChip);
+    expect(activatedCitations()).toEqual(["C2", "C1", "C1", "C1"]);
+
+    // The chips stay put; nothing is expanded or listed in the view itself.
+    expect(citationChips("C1")).toEqual([summaryChip, evidenceChip]);
+    expect(screen.queryByRole("list", { name: "Evidence checked" })).toBeNull();
+  });
+
+  test("a legacy citation hands its id to the host too", () => {
+    renderView({ evidence: [] });
+
+    const chips: Array<HTMLElement> = citationChips("C2");
+    expect(chips.length).toBeGreaterThan(0);
+    expect(chips[0]).toHaveAccessibleName(
+      "Citation C2: Logs 17:20 – 18:20 (1 shown)",
+    );
+
+    fireEvent.click(chips[0]!);
+    expect(activatedCitations()).toEqual(["C2"]);
+  });
+
+  /*
+   * Nothing stops a host from passing a new handler on a later render (an
+   * inline arrow, or a callback whose dependencies changed). Chips come from
+   * a memoised renderer, so they must pick up the current handler rather
+   * than keep reporting to the one from the first render.
+   */
+  test("a chip reports to the host's current handler after a re-render", () => {
+    const firstHandler: MockFunction = getJestMockFunction();
+    const secondHandler: MockFunction = getJestMockFunction();
+    const { rerender } = renderView({
+      onCitationActivate: (citationId: string): void => {
+        firstHandler(citationId);
+      },
+    });
+
+    rerender(
+      <InvestigationReportView
+        {...viewProps({
+          onCitationActivate: (citationId: string): void => {
+            secondHandler(citationId);
+          },
+        })}
+      />,
+    );
+
+    fireEvent.click(citationChips("C1")[0]!);
+    expect(firstHandler).not.toHaveBeenCalled();
+    expect(secondHandler).toHaveBeenCalledTimes(1);
+    expect(secondHandler).toHaveBeenCalledWith("C1");
   });
 
   test("links a resolved incident number to its page", () => {
@@ -925,41 +985,34 @@ describe("InvestigationReportView inline references", () => {
   });
 });
 
-describe("InvestigationReportView evidence section", () => {
-  test("lists the structured evidence", () => {
-    renderView();
-
-    const section: HTMLElement = screen.getByLabelText("Evidence checked");
-    expect(within(section).getByText("2 queries")).toBeInTheDocument();
-    expect(
-      within(section).getByRole("button", { name: /Active incidents/ }),
-    ).toHaveAttribute("aria-expanded", "false");
-  });
-
-  test("falls back to the report's own evidence list for older runs", () => {
-    renderView({ evidence: [] });
-
-    const section: HTMLElement = screen.getByLabelText("Evidence checked");
-    expect(within(section).queryAllByRole("button")).toHaveLength(0);
-    expect(section).toHaveTextContent("Active incidents (7 total)");
-    expect(section).toHaveTextContent("Logs 17:20 – 18:20 (1 shown)");
-
-    // Legacy citations still become chips that jump to their entry.
-    expect(
-      screen.getAllByRole("button", {
-        name: "Citation C1: Active incidents (7 total)",
-      }).length,
-    ).toBeGreaterThan(0);
-  });
-
-  test("has no evidence section when nothing was checked", () => {
-    renderView({
-      analysisMarkdown:
-        "**Summary** — Pool exhausted.\n\n**Root cause** — A deploy.",
-      evidence: [],
-    });
+/*
+ * "Evidence checked" moved into the run details the host renders below the
+ * report (collapsed, next to the activity). Drawing it here as well would
+ * list every query twice, so the view must leave it out whichever source the
+ * list would come from.
+ */
+describe("InvestigationReportView evidence", () => {
+  test("never lists the structured evidence itself", () => {
+    const { container } = renderView();
 
     expect(screen.queryByLabelText("Evidence checked")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Evidence checked" })).toBeNull();
+    expect(container).not.toHaveTextContent("Active incidents (7 total)");
+    expect(container).not.toHaveTextContent("2 queries");
+    // The citations still resolve against it.
+    expect(citationChips("C1").length).toBeGreaterThan(0);
+    expect(citationChips("C2").length).toBeGreaterThan(0);
+  });
+
+  test("never lists the report's own evidence entries for older runs", () => {
+    const { container } = renderView({ evidence: [] });
+
+    expect(screen.queryByLabelText("Evidence checked")).toBeNull();
+    expect(container).not.toHaveTextContent("Active incidents (7 total)");
+    expect(container).not.toHaveTextContent("Logs 17:20 – 18:20 (1 shown)");
+    // Legacy citations still become chips.
+    expect(citationChips("C1").length).toBeGreaterThan(0);
+    expect(citationChips("C2").length).toBeGreaterThan(0);
   });
 });
 
@@ -1291,5 +1344,55 @@ describe("InvestigationReportData summary text", () => {
 
     expect(summary!.length).toBeLessThanOrEqual(MAX_REPORT_SUMMARY_LENGTH);
     expect(summary!.endsWith("…")).toBe(true);
+  });
+
+  /*
+   * The server stores a TL;DR of up to 320 characters in a 500-character
+   * column. The header used to clip at 280, so a complete TL;DR ended
+   * mid-sentence ("... self-recovered within ~1 minute and the…"). The
+   * lengths are literals on purpose, like the server's width chain: a
+   * constant lowered on its own must not keep this green.
+   */
+  test("never clips a TL;DR the server can store", () => {
+    const serverCappedTldr: string =
+      "checkout-api release 2026.09.14-2 restarted at 17:52:04 with DB_POOL_MAX=10 instead of 40, so requests waited up to 2s in pg.pool.connect for an orders-db connection and p95 latency rose from ~310 ms to 2.35 s (db.client.connections.usage pinned at 10/10). Rolling back to 2026.09.14-1 cleared it, as in #1017 and #1029.";
+
+    expect(serverCappedTldr).toHaveLength(320);
+    expect(
+      getInvestigationReportSummaryText({
+        analysisTldr: serverCappedTldr,
+        report: null,
+      }),
+    ).toBe(serverCappedTldr);
+
+    const columnWideTldr: string = "a".repeat(500);
+
+    expect(
+      getInvestigationReportSummaryText({
+        analysisTldr: columnWideTldr,
+        report: null,
+      }),
+    ).toBe(columnWideTldr);
+  });
+
+  test("clips a TL;DR only past what the column holds", () => {
+    const summary: string | null = getInvestigationReportSummaryText({
+      analysisTldr: "a".repeat(501),
+      report: null,
+    });
+
+    expect(summary).toBe(`${"a".repeat(499)}…`);
+  });
+
+  test("bounds the summary by the analysisTldr column's width", () => {
+    const column: { type?: TableColumnType | undefined } = getTableColumn(
+      new AIRun(),
+      "analysisTldr",
+    );
+
+    expect(column.type).toBeDefined();
+    expect(MAX_REPORT_SUMMARY_LENGTH).toBe(
+      getMaxLengthFromTableColumnType(column.type as TableColumnType),
+    );
   });
 });

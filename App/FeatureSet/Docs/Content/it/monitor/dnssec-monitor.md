@@ -32,11 +32,11 @@ I monitor DNSSEC validano l'intera catena di fiducia dalla zona radice fino al t
 
 ### Impostazioni Avanzate
 
-| Campo                          | Descrizione                                        | Predefinito |
-| ------------------------------ | -------------------------------------------------- | ----------- |
-| Avviso Scadenza Firma (giorni) | Soglia predefinita per il filtro di scadenza RRSIG | 7           |
-| Timeout (ms)                   | Tempo di attesa per ogni query DNS                 | 10000       |
-| Tentativi                      | Numero di tentativi in caso di fallimento          | 3           |
+| Campo                          | Descrizione                                                           | Predefinito |
+| ------------------------------ | --------------------------------------------------------------------- | ----------- |
+| Avviso Scadenza Firma (giorni) | Soglia predefinita per il filtro di scadenza RRSIG                    | 7           |
+| Timeout (ms)                   | Tempo di attesa per ogni query DNS                                    | 10000       |
+| Tentativi                      | Tentativi dopo il fallimento del primo; 0 significa un solo tentativo | 3           |
 
 ## Criteri di Monitoraggio
 

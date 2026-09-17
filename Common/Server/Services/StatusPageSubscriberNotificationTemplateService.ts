@@ -5,7 +5,9 @@ import ObjectID from "../../Types/ObjectID";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusPageSubscriberNotificationTemplateStatusPageService";
-import BadDataException from "../../Types/Exception/BadDataException";
+import SubscriberNotificationTemplateVariables, {
+  SubscriberNotificationTemplateVariable,
+} from "../../Types/StatusPage/SubscriberNotificationTemplateVariables";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -94,250 +96,44 @@ export class Service extends DatabaseService<Model> {
   /**
    * Get available variables for a specific event type.
    * These variables can be used in templates with {{variableName}} syntax.
+   * The list lives in SubscriberNotificationTemplateVariables, which has no
+   * database dependencies, so workers' tests and the dashboard can read it.
    */
   public static getAvailableVariablesForEventType(
     eventType: StatusPageSubscriberNotificationEventType,
-  ): Array<{ name: string; description: string }> {
-    const commonVariables: Array<{ name: string; description: string }> = [
-      { name: "statusPageName", description: "Name of the status page" },
-      { name: "statusPageUrl", description: "URL of the status page" },
-      {
-        name: "unsubscribeUrl",
-        description: "URL to unsubscribe from notifications",
-      },
-      { name: "resourcesAffected", description: "List of affected resources" },
-    ];
-
-    switch (eventType) {
-      case StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated:
-        return [
-          ...commonVariables,
-          { name: "incidentTitle", description: "Title of the incident" },
-          {
-            name: "incidentDescription",
-            description: "Description of the incident",
-          },
-          { name: "incidentSeverity", description: "Severity of the incident" },
-          { name: "detailsUrl", description: "URL to view incident details" },
-        ];
-
-      case StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged:
-        return [
-          ...commonVariables,
-          { name: "incidentTitle", description: "Title of the incident" },
-          {
-            name: "incidentDescription",
-            description: "Description of the incident",
-          },
-          { name: "incidentSeverity", description: "Severity of the incident" },
-          {
-            name: "incidentState",
-            description: "Current state of the incident",
-          },
-          { name: "detailsUrl", description: "URL to view incident details" },
-        ];
-
-      case StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated:
-        return [
-          ...commonVariables,
-          { name: "incidentTitle", description: "Title of the incident" },
-          { name: "incidentSeverity", description: "Severity of the incident" },
-          {
-            name: "incidentState",
-            description: "Current state of the incident",
-          },
-          { name: "postedAt", description: "When the note was posted" },
-          { name: "note", description: "Content of the note" },
-          { name: "detailsUrl", description: "URL to view incident details" },
-        ];
-
-      case StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished:
-        return [
-          ...commonVariables,
-          { name: "incidentTitle", description: "Title of the incident" },
-          { name: "incidentSeverity", description: "Severity of the incident" },
-          {
-            name: "postmortemNote",
-            description: "Content of the postmortem note",
-          },
-          { name: "detailsUrl", description: "URL to view incident details" },
-        ];
-
-      case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated:
-        return [
-          ...commonVariables,
-          {
-            name: "announcementTitle",
-            description: "Title of the announcement",
-          },
-          {
-            name: "announcementDescription",
-            description: "Description of the announcement",
-          },
-          {
-            name: "detailsUrl",
-            description: "URL to view announcement details",
-          },
-        ];
-
-      case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated:
-        return [
-          ...commonVariables,
-          {
-            name: "scheduledMaintenanceTitle",
-            description: "Title of the scheduled maintenance",
-          },
-          {
-            name: "scheduledMaintenanceDescription",
-            description: "Description of the scheduled maintenance",
-          },
-          {
-            name: "scheduledStartTime",
-            description: "When the maintenance is scheduled to start",
-          },
-          {
-            name: "scheduledEndTime",
-            description: "When the maintenance is scheduled to end",
-          },
-          {
-            name: "detailsUrl",
-            description: "URL to view scheduled maintenance details",
-          },
-        ];
-
-      case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged:
-        return [
-          ...commonVariables,
-          {
-            name: "scheduledMaintenanceTitle",
-            description: "Title of the scheduled maintenance",
-          },
-          {
-            name: "scheduledMaintenanceDescription",
-            description: "Description of the scheduled maintenance",
-          },
-          {
-            name: "scheduledMaintenanceState",
-            description: "Current state of the scheduled maintenance",
-          },
-          {
-            name: "detailsUrl",
-            description: "URL to view scheduled maintenance details",
-          },
-        ];
-
-      case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated:
-        return [
-          ...commonVariables,
-          {
-            name: "scheduledMaintenanceTitle",
-            description: "Title of the scheduled maintenance",
-          },
-          {
-            name: "scheduledMaintenanceState",
-            description: "Current state of the scheduled maintenance",
-          },
-          { name: "postedAt", description: "When the note was posted" },
-          { name: "note", description: "Content of the note" },
-          {
-            name: "detailsUrl",
-            description: "URL to view scheduled maintenance details",
-          },
-        ];
-
-      case StatusPageSubscriberNotificationEventType.SubscriberReport:
-        /*
-         * The report template is rendered through the full Handlebars engine
-         * with the structured `report` object, so the per-resource fields are
-         * accessed inside {{#each report.resources}} rather than as flat
-         * scalars. The entries below document the top-level paths.
-         */
-        return [
-          ...commonVariables,
-          {
-            name: "report.reportDates",
-            description: "The reporting period as a range",
-          },
-          {
-            name: "report.reportPeriodName",
-            description:
-              'How a sentence refers to the period - "the last 30 days", "July 2026"',
-          },
-          {
-            name: "report.reportStartDate",
-            description: "First day of the reporting period",
-          },
-          {
-            name: "report.reportEndDate",
-            description: "Last day of the reporting period",
-          },
-          {
-            name: "report.reportTimezone",
-            description: "The timezone the reporting period was resolved in",
-          },
-          {
-            name: "report.averageUptimePercent",
-            description: "Average uptime across all resources",
-          },
-          {
-            name: "report.totalDowntimeInHoursAndMinutes",
-            description: "Total downtime in the period",
-          },
-          {
-            name: "report.totalIncidents",
-            description: "Total number of incidents in the period",
-          },
-          {
-            name: "report.totalResources",
-            description: "Number of resources on the status page",
-          },
-          {
-            name: "report.resources",
-            description:
-              "Array of per-resource rows (resourceName, uptimePercentAsString, downtimeInHoursAndMinutes, totalIncidentCount, groupName, groupPath) to loop over with {{#each}}",
-          },
-          {
-            name: "report.hasGroups",
-            description:
-              "true when the status page organises its resources into groups",
-          },
-          {
-            name: "report.rows",
-            description:
-              "The status page's group hierarchy flattened into render order (isGroup, name, depth, indentInPixels, uptimePercentAsString, downtimeInHoursAndMinutes, totalIncidentCount, totalResources) to loop over with {{#each}}",
-          },
-          {
-            name: "report.groups",
-            description:
-              "The group hierarchy as a nested tree (groupName, groupPath, depth, uptimePercentAsString, downtimeInHoursAndMinutes, totalIncidentCount, totalResources, resources, subGroups)",
-          },
-          {
-            name: "report.ungroupedResources",
-            description: "Per-resource rows for resources that are in no group",
-          },
-        ];
-
-      default:
-        throw new BadDataException(`Unknown event type: ${eventType}`);
-    }
+  ): Array<SubscriberNotificationTemplateVariable> {
+    return SubscriberNotificationTemplateVariables.getAvailableVariablesForEventType(
+      eventType,
+    );
   }
 
   /**
    * Compile a template with the given variables.
    * Replaces {{variableName}} with the actual values.
+   *
+   * One pass over the template, with a replacer function:
+   * - A replacement string would give "$&", "$$", "$`" and "$'" special
+   *   meaning, so a note mentioning "$$5" or a resource named "Store $&" was
+   *   rewritten on its way to subscribers.
+   * - Replacing one variable at a time also expanded placeholders that
+   *   appeared inside an earlier value, so a note containing
+   *   "{{unsubscribeUrl}}" came out as a link.
+   * A placeholder with no variable is left as written.
    */
   public static compileTemplate(
     template: string,
     variables: Record<string, string>,
   ): string {
-    let compiledTemplate: string = template;
+    return template.replace(
+      /{{\s*([\w.]+)\s*}}/g,
+      (placeholder: string, name: string): string => {
+        if (!Object.prototype.hasOwnProperty.call(variables, name)) {
+          return placeholder;
+        }
 
-    for (const [key, value] of Object.entries(variables)) {
-      const regex: RegExp = new RegExp(`{{\\s*${key}\\s*}}`, "g");
-      compiledTemplate = compiledTemplate.replace(regex, value || "");
-    }
-
-    return compiledTemplate;
+        return variables[name] || "";
+      },
+    );
   }
 }
 

@@ -11,6 +11,7 @@ import {
   describe,
   expect,
   it,
+  jest as jestTimers,
 } from "@jest/globals";
 import ApiMonitor, {
   APIResponse,
@@ -43,6 +44,20 @@ function successResponse(
   headers: Record<string, string> = {},
 ): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(statusCode, data, headers);
+}
+
+async function waitForRequestCount(
+  spy: jest.SpyInstance,
+  count: number,
+): Promise<void> {
+  for (
+    let turn: number = 0;
+    turn < 1000 && spy.mock.calls.length < count;
+    turn++
+  ) {
+    await Promise.resolve();
+  }
+  expect(spy).toHaveBeenCalledTimes(count);
 }
 
 describe("ApiMonitor SSRF protection", () => {
@@ -105,6 +120,7 @@ describe("ApiMonitor SSRF protection", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    jestTimers.useRealTimers();
   });
 
   afterAll(async () => {
@@ -421,30 +437,134 @@ describe("ApiMonitor SSRF protection", () => {
     );
   });
 
-  it("aborts an active request at one whole-check deadline without retrying", async () => {
-    let requestSignal: AbortSignal | undefined;
+  it.each([0, 1, 3])(
+    "aborts every timed-out attempt and retries %i times with fresh deadlines",
+    async (retries: number) => {
+      jestTimers.useFakeTimers({ doNotFake: ["performance"] });
+      jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
+      const requestOptions: Array<NonNullable<APIFetchOptions["options"]>> = [];
+      const fetchSpy: jest.SpyInstance = jest
+        .spyOn(API, "fetch")
+        .mockImplementation((request: APIFetchOptions) => {
+          requestOptions.push(request.options!);
+          return new Promise(() => {}) as never;
+        });
+      const options: Parameters<typeof ApiMonitor.ping>[1] = {
+        timeout: new PositiveNumber(100),
+        retry: retries,
+        isOnlineCheckRequest: true,
+      };
+      const pending: Promise<APIResponse | null> = ApiMonitor.ping(
+        URL.fromString("http://1.1.1.1/hangs"),
+        options,
+      );
+
+      for (let attempt: number = 1; attempt <= retries + 1; attempt++) {
+        await waitForRequestCount(fetchSpy, attempt);
+        jest.advanceTimersByTime(100);
+      }
+      const response: APIResponse | null = await pending;
+
+      expect(response).not.toBeNull();
+      expect(response!.isOnline).toBe(false);
+      expect(response!.isTimeout).toBe(true);
+      expect(response!.totalAttempts).toBe(retries + 1);
+      expect(fetchSpy).toHaveBeenCalledTimes(retries + 1);
+      expect(
+        new Set(
+          requestOptions.map(
+            (request: NonNullable<APIFetchOptions["options"]>) => {
+              expect(request.signal?.aborted).toBe(true);
+              expect(request.timeout).toBe(100);
+              return request.signal;
+            },
+          ),
+        ).size,
+      ).toBe(retries + 1);
+      expect(options.executionContext).toBeUndefined();
+      expect(jest.getTimerCount()).toBe(0);
+    },
+  );
+
+  it("shares a deadline with HEAD fallback but renews it for the next attempt", async () => {
+    jestTimers.useFakeTimers({ doNotFake: ["performance"] });
+    jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
     const fetchSpy: jest.SpyInstance = jest
       .spyOn(API, "fetch")
       .mockImplementation((request: APIFetchOptions) => {
-        requestSignal = request.options?.signal;
+        if (request.method === HTTPMethod.HEAD) {
+          jest.advanceTimersByTime(60);
+          return Promise.resolve(
+            new HTTPErrorResponse(405, { message: "Use GET" }, {}),
+          ) as never;
+        }
         return new Promise(() => {}) as never;
       });
-
-    const response: APIResponse | null = await ApiMonitor.ping(
-      URL.fromString("http://1.1.1.1/hangs"),
+    const pending: Promise<APIResponse | null> = ApiMonitor.ping(
+      URL.fromString("http://1.1.1.1/head-timeout"),
       {
-        timeout: new PositiveNumber(30),
-        retry: 9,
+        requestType: HTTPMethod.HEAD,
+        retry: 1,
+        timeout: new PositiveNumber(100),
         isOnlineCheckRequest: true,
       },
     );
 
-    expect(response).not.toBeNull();
-    expect(response!.isOnline).toBe(false);
+    for (let attempt: number = 1; attempt <= 2; attempt++) {
+      await waitForRequestCount(fetchSpy, attempt * 2);
+      const head: APIFetchOptions = fetchSpy.mock.calls[
+        (attempt - 1) * 2
+      ]![0] as APIFetchOptions;
+      const get: APIFetchOptions = fetchSpy.mock.calls[
+        (attempt - 1) * 2 + 1
+      ]![0] as APIFetchOptions;
+      expect(head.options!.timeout).toBe(100);
+      expect(get.options!.timeout).toBe(40);
+      expect(get.options!.signal).toBe(head.options!.signal);
+      expect(get.options!.responseBodyBudget).toBe(
+        head.options!.responseBodyBudget,
+      );
+      jest.advanceTimersByTime(40);
+    }
+
+    const response: APIResponse | null = await pending;
+    expect(response!.totalAttempts).toBe(2);
     expect(response!.isTimeout).toBe(true);
-    expect(response!.totalAttempts).toBe(1);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(requestSignal?.aborted).toBe(true);
+    expect(
+      (fetchSpy.mock.calls[0]![0] as APIFetchOptions).options!.signal,
+    ).not.toBe((fetchSpy.mock.calls[2]![0] as APIFetchOptions).options!.signal);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("gives the next attempt a fresh bounded response budget", async () => {
+    jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
+    const requests: Array<APIFetchOptions> = [];
+    jest.spyOn(API, "fetch").mockImplementation((request: APIFetchOptions) => {
+      requests.push(request);
+      expect(request.options!.responseBodyBudget!.remainingBytes).toBe(
+        HTTP_MONITOR_MAX_RESPONSE_BYTES,
+      );
+      request.options!.responseBodyBudget!.consume(
+        HTTP_MONITOR_MAX_RESPONSE_BYTES,
+      );
+      return Promise.resolve(
+        requests.length === 1
+          ? new HTTPErrorResponse(503, { unavailable: true }, {})
+          : successResponse(200, { recovered: true }),
+      ) as never;
+    });
+
+    const response: APIResponse | null = await ApiMonitor.ping(
+      URL.fromString("http://1.1.1.1/budget"),
+      { retry: 1, isOnlineCheckRequest: true },
+    );
+
+    expect(response!.statusCode).toBe(200);
+    expect(response!.totalAttempts).toBe(2);
+    expect(requests[0]!.options!.responseBodyBudget).not.toBe(
+      requests[1]!.options!.responseBodyBudget,
+    );
+    expect(requests[0]!.options!.signal).not.toBe(requests[1]!.options!.signal);
   });
 
   it("uses one cumulative response budget across redirect hops", async () => {

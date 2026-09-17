@@ -2,6 +2,7 @@ import OnlineCheck from "../../OnlineCheck";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
+import Sleep from "Common/Types/Sleep";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
@@ -18,8 +19,15 @@ import HttpMonitorRequest, {
   PreparedHttpMonitorRequest,
   RedirectRequest,
 } from "../HttpMonitorRequest";
+import MonitorRetry from "../MonitorRetry";
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { XMLParser } from "fast-xml-parser";
+
+/*
+ * Retries when neither the caller nor the step config sets one: three
+ * attempts, the same as before retries were counted after the first attempt.
+ */
+const DEFAULT_RETRIES_WHEN_UNSET: number = 2;
 
 /*
  * XML object graphs can be tens of times larger than the wire representation.
@@ -200,6 +208,7 @@ export default class ExternalStatusPageMonitorUtil {
       headers: response.headers,
       limitRedirectResponseBody: true,
       maximumResponseBytes: maximumResponseBytes,
+      signal: executionContext.signal,
     });
     const text: string = HTTPResponseBodyReader.decodeUtf8(body);
 
@@ -463,6 +472,25 @@ export default class ExternalStatusPageMonitorUtil {
 
         response.probeAttempts = options.attempts;
         response.totalAttempts = options.attempts.length;
+
+        /*
+         * A basic HTTP fallback returns an offline result for 4xx/5xx
+         * instead of throwing. It still consumes the same retry budget.
+         */
+        if (
+          !response.isOnline &&
+          MonitorRetry.canRetry({
+            attemptNumber: options.currentRetryCount,
+            retries: options.retry ?? config.retries,
+            defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+          })
+        ) {
+          options.currentRetryCount++;
+          executionContext.dispose();
+          delete options.executionContext;
+          await Sleep.sleep(1000);
+          return await ExternalStatusPageMonitorUtil.fetch(config, options);
+        }
       }
 
       logger.debug(
@@ -503,17 +531,22 @@ export default class ExternalStatusPageMonitorUtil {
         failureCause: (err as Error).message || (err as Error).toString(),
       });
 
-      /*
-       * ?? not ||: a caller asking for zero retries means zero, not "fall
-       * through to the config default".
-       */
       if (
-        !ExternalStatusPageMonitorUtil.isFailClosedError(err) &&
-        options.currentRetryCount < (options.retry ?? config.retries ?? 3) &&
-        executionContext.canWait(1000)
+        !(err instanceof BadDataException) &&
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry ?? config.retries,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
       ) {
         options.currentRetryCount++;
-        await executionContext.sleep(1000);
+        /*
+         * Provider subrequests share an attempt's deadline and body budget.
+         * A retry starts a new attempt after the previous request is finished.
+         */
+        executionContext.dispose();
+        delete options.executionContext;
+        await Sleep.sleep(1000);
         return await ExternalStatusPageMonitorUtil.fetch(config, options);
       }
 

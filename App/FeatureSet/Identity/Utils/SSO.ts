@@ -1097,6 +1097,16 @@ export default class SSOUtil {
       throw new BadRequestException("SAML Email not found");
     }
 
+    /*
+     * Errors are logged when the callback sends its response. Do not let
+     * the Email constructor echo a provider-supplied NameID into those logs.
+     */
+    if (!Email.isValid(emailString)) {
+      throw new BadRequestException(
+        "SAML response did not include a valid email address",
+      );
+    }
+
     return new Email(emailString);
   }
 

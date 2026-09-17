@@ -28,6 +28,12 @@ export interface DashboardResourceListBaseProps {
   viewMode?: ResourceListViewMode | undefined;
   honeycombTiles?: Array<HoneycombTile> | undefined;
   honeycombLegend?: Array<HoneycombLegendItem> | undefined;
+  /*
+   * Optional strip between the header and the rows, in both view modes —
+   * e.g. the SLO List's per-status counts. Never shown over the loading
+   * skeleton or the error state, which have nothing to summarise.
+   */
+  summary?: ReactNode | undefined;
 }
 
 const DashboardResourceListBase: FunctionComponent<
@@ -108,6 +114,7 @@ const DashboardResourceListBase: FunctionComponent<
           </span>
         </div>
       )}
+      {props.summary && <div className="mb-2 px-1">{props.summary}</div>}
       {viewMode === "honeycomb" ? (
         <div className="flex-1 overflow-hidden rounded-md border border-gray-100">
           {props.isEmpty ? (

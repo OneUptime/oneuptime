@@ -109,6 +109,7 @@ import IPv4 from "Common/Types/IP/IPv4";
 import IPv6 from "Common/Types/IP/IPv6";
 import Port from "Common/Types/Port";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import { RequestFailedPhase } from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import net from "net";
@@ -364,7 +365,7 @@ describe("PortMonitor phase timings", () => {
       new Hostname("slow-dns.example"),
       new Port(443),
       {
-        retry: 1,
+        retry: 0,
         timeout: new PositiveNumber(100),
         isOnlineCheckRequest: true,
       },
@@ -400,7 +401,7 @@ describe("PortMonitor phase timings", () => {
       new Hostname("socket-timeout.example"),
       new Port(443),
       {
-        retry: 1,
+        retry: 0,
         timeout: new PositiveNumber(100),
         isOnlineCheckRequest: true,
       },
@@ -439,7 +440,7 @@ describe("PortMonitor phase timings", () => {
       new Hostname("aggregate-timeout.example"),
       new Port(443),
       {
-        retry: 1,
+        retry: 0,
         timeout: new PositiveNumber(100),
         isOnlineCheckRequest: true,
       },
@@ -472,7 +473,7 @@ describe("PortMonitor phase timings", () => {
       new Hostname("late.example"),
       new Port(80),
       {
-        retry: 1,
+        retry: 0,
         timeout: new PositiveNumber(100),
         isOnlineCheckRequest: true,
       },
@@ -526,7 +527,7 @@ describe("PortMonitor phase timings", () => {
       new Hostname("does-not-exist.example"),
       new Port(443),
       {
-        retry: 1,
+        retry: 0,
         timeout: new PositiveNumber(100),
         isOnlineCheckRequest: true,
       },
@@ -566,7 +567,7 @@ describe("PortMonitor phase timings", () => {
       new Hostname("unreachable.example"),
       new Port(443),
       {
-        retry: 1,
+        retry: 0,
         timeout: new PositiveNumber(100),
         isOnlineCheckRequest: true,
       },
@@ -599,7 +600,7 @@ describe("PortMonitor phase timings", () => {
       new Hostname("invalid.example"),
       new Port(443),
       {
-        retry: 1,
+        retry: 0,
         timeout: new PositiveNumber(100),
         isOnlineCheckRequest: true,
       },
@@ -702,7 +703,7 @@ describe("PortMonitor phase timings", () => {
       new Hostname("smtp.example"),
       new Port(25),
       {
-        retry: 1,
+        retry: 0,
         timeout: new PositiveNumber(50),
         isOnlineCheckRequest: true,
       },
@@ -746,4 +747,152 @@ describe("PortMonitor phase timings", () => {
       { port: 8443, host: "override.example" },
     ]);
   });
+});
+
+/*
+ * The retry option counts retries AFTER the first attempt: 0 connects once,
+ * 2 connects up to three times. It used to be read with `||` and compared
+ * with `<`, so 0 connected five times and 2 connected twice.
+ */
+describe("PortMonitor retries", () => {
+  const queueRefusedConnections: (count: number) => void = (
+    count: number,
+  ): void => {
+    for (let index: number = 0; index < count; index++) {
+      controllableNet.queueSocketScenario((socket: MockSocket): void => {
+        socket.emit(
+          "error",
+          nodeError("ECONNREFUSED", "connect ECONNREFUSED 192.0.2.80:443"),
+        );
+      });
+    }
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers({ doNotFake: ["performance"] });
+    controllableNet.resetMockSockets();
+    jest.spyOn(Register, "isPingMonitoringEnabled").mockResolvedValue(true);
+    jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
+  test("retry 0 connects exactly once on a persistent refusal", async () => {
+    queueRefusedConnections(10);
+
+    const result: PortMonitorResponse | null = await PortMonitor.ping(
+      new Hostname("refused.example"),
+      new Port(443),
+      {
+        retry: 0,
+        timeout: new PositiveNumber(100),
+        isOnlineCheckRequest: true,
+      },
+    );
+
+    expect(result?.isOnline).toBe(false);
+    expect(result?.totalAttempts).toBe(1);
+    expect(result?.probeAttempts?.length).toBe(1);
+    expect(controllableNet.getMockSockets().length).toBe(1);
+    expect(Sleep.sleep).not.toHaveBeenCalled();
+  });
+
+  test("retry 2 connects exactly three times on a persistent refusal", async () => {
+    queueRefusedConnections(10);
+
+    const result: PortMonitorResponse | null = await PortMonitor.ping(
+      new Hostname("refused.example"),
+      new Port(443),
+      {
+        retry: 2,
+        timeout: new PositiveNumber(100),
+        isOnlineCheckRequest: true,
+      },
+    );
+
+    expect(result?.isOnline).toBe(false);
+    expect(result?.totalAttempts).toBe(3);
+    expect(
+      result?.probeAttempts?.map((attempt: ProbeAttempt): number => {
+        return attempt.attemptNumber;
+      }),
+    ).toEqual([1, 2, 3]);
+    expect(controllableNet.getMockSockets().length).toBe(3);
+    expect(Sleep.sleep).toHaveBeenCalledTimes(2);
+  });
+
+  test("no retry option keeps the five-attempt default", async () => {
+    queueRefusedConnections(10);
+
+    const result: PortMonitorResponse | null = await PortMonitor.ping(
+      new Hostname("refused.example"),
+      new Port(443),
+      {
+        timeout: new PositiveNumber(100),
+        isOnlineCheckRequest: true,
+      },
+    );
+
+    expect(result?.isOnline).toBe(false);
+    expect(result?.totalAttempts).toBe(5);
+    expect(controllableNet.getMockSockets().length).toBe(5);
+  });
+
+  test.each([
+    [0, 1],
+    [1, 2],
+  ])(
+    "a slow connect with retry %i is tried %i time(s)",
+    async (retry: number, expectedAttempts: number) => {
+      for (let index: number = 0; index < expectedAttempts; index++) {
+        controllableNet.queueSocketScenario((socket: MockSocket): void => {
+          setTimeout(() => {
+            socket.emit("connect");
+          }, 10001);
+        });
+      }
+
+      const resultPromise: Promise<PortMonitorResponse | null> =
+        PortMonitor.ping(new Hostname("slow.example"), new Port(443), {
+          retry,
+          timeout: new PositiveNumber(20000),
+          isOnlineCheckRequest: true,
+        });
+
+      for (let index: number = 0; index < expectedAttempts; index++) {
+        await advanceTime(10001);
+      }
+
+      const result: PortMonitorResponse | null = await resultPromise;
+
+      expect(result?.isOnline).toBe(true);
+      expect(result?.totalAttempts).toBe(expectedAttempts);
+      expect(controllableNet.getMockSockets().length).toBe(expectedAttempts);
+    },
+  );
+  test.each([0, 1, 3])(
+    "retries native socket timeouts exactly %s times and destroys each socket",
+    async (retry: number) => {
+      for (let attempt: number = 0; attempt <= retry; attempt++) {
+        controllableNet.queueSocketScenario((socket: MockSocket): void => {
+          socket.emit("error", nodeError("ETIMEDOUT", "connect ETIMEDOUT"));
+        });
+      }
+      const result: PortMonitorResponse | null = await PortMonitor.ping(
+        new Hostname("timeout.example"),
+        new Port(443),
+        { retry, timeout: new PositiveNumber(100), isOnlineCheckRequest: true },
+      );
+      expect(result?.isTimeout).toBe(true);
+      expect(result?.totalAttempts).toBe(retry + 1);
+      expect(controllableNet.getMockSockets()).toHaveLength(retry + 1);
+      for (const socket of controllableNet.getMockSockets()) {
+        expect(socket.destroyCallCount).toBeGreaterThan(0);
+      }
+      expect(Sleep.sleep).toHaveBeenCalledTimes(retry);
+    },
+  );
 });

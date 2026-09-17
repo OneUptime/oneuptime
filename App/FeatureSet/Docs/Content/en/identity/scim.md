@@ -62,7 +62,7 @@ Project SCIM allows identity providers to manage team members within OneUptime p
 
 ## SCIM for Status Pages
 
-Status Page SCIM allows identity providers to manage subscribers to private status pages.
+Status Page SCIM allows identity providers to provision and deprovision Status Page Private Users who can access private status pages.
 
 ### Setting Up Status Page SCIM
 
@@ -73,8 +73,8 @@ Status Page SCIM allows identity providers to manage subscribers to private stat
 
 2. **Configure SCIM Settings**
 
-   - Enable **Auto Provision Users** to automatically add subscribers when they're assigned in your IdP
-   - Enable **Auto Deprovision Users** to automatically remove subscribers when they're unassigned in your IdP
+   - Enable **Auto Provision Users** to automatically add private users when they're assigned in your IdP
+   - Enable **Auto Deprovision Users** to automatically delete private users when they're unassigned in your IdP
    - Copy the **SCIM Base URL** and **Bearer Token** for your IdP configuration
 
 3. **Configure Your Identity Provider**
@@ -93,14 +93,18 @@ Status Page SCIM allows identity providers to manage subscribers to private stat
 - **Update User**: `PUT /status-page-scim/v2/{scimId}/Users/{userId}` or `PATCH /status-page-scim/v2/{scimId}/Users/{userId}`
 - **Delete User**: `DELETE /status-page-scim/v2/{scimId}/Users/{userId}`
 
+Status Page SCIM supports Users only. It does not support Groups or group provisioning.
+
 ### Status Page SCIM User Lifecycle
 
 1. **User Assignment in IdP**: When a user is assigned to OneUptime Status Page in your IdP
-2. **SCIM Provisioning**: IdP calls OneUptime SCIM API to create the subscriber
+2. **SCIM Provisioning**: IdP calls OneUptime SCIM API to create the private user
 3. **Access Granted**: User can now access the private status page
 4. **User Unassignment**: When user is unassigned in IdP
-5. **SCIM Deprovisioning**: IdP calls OneUptime SCIM API to remove the subscriber
-6. **Access Revoked**: User loses access to the status page
+5. **SCIM Deprovisioning**: IdP sends a DELETE request or a PUT/PATCH update setting `active` to `false`
+6. **Access Revoked**: With **Auto Deprovision Users** enabled, the private user and their sessions are permanently deleted
+
+Deprovisioning permanently deletes the Status Page Private User and all of their sessions for that status page. If the user is assigned again later, they must be provisioned as a new private user. When **Auto Deprovision Users** is disabled, updates setting `active` to `false` are ignored and DELETE requests are rejected.
 
 ## Identity Provider Configuration
 
@@ -343,7 +347,7 @@ OneUptime's SCIM implementation follows the SCIM v2.0 specification and should w
 1. **SCIM Base URL**: `https://oneuptime.com/api/identity/scim/v2/{scim-id}` (for projects) or `https://oneuptime.com/api/identity/status-page-scim/v2/{scim-id}` (for status pages)
 2. **Authentication**: HTTP Bearer Token
 3. **Required User Attribute**: `userName` (must be a valid email address)
-4. **Supported Operations**: GET, POST, PUT, PATCH, DELETE for Users and Groups
+4. **Supported Operations**: GET, POST, PUT, PATCH, DELETE for Users in both Project SCIM and Status Page SCIM. Groups are supported only in Project SCIM.
 
 #### Supported SCIM Endpoints
 
@@ -399,7 +403,10 @@ OneUptime's SCIM implementation follows the SCIM v2.0 specification and should w
 
 ### What happens when a user is deprovisioned?
 
-When a user is deprovisioned (either by DELETE request or by setting `active: false`), they are removed from the teams configured in the SCIM settings. The user account itself remains in OneUptime but loses access to the project.
+Deprovisioning can be requested by a DELETE request or by setting `active` to `false` in a PUT/PATCH update:
+
+- **Project SCIM**: With **Auto Deprovision Users** enabled, the user is removed from the default teams configured in the SCIM settings, while their OneUptime account remains. Access granted through other teams is unaffected. When Push Groups is enabled, team membership is managed through group provisioning.
+- **Status Page SCIM**: With **Auto Deprovision Users** enabled, the Status Page Private User and all of their sessions for that status page are permanently deleted. This does not delete a separate OneUptime project user account.
 
 ### Can I use SCIM without SSO?
 

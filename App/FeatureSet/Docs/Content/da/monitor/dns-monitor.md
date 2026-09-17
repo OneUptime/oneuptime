@@ -47,11 +47,11 @@ DNS-monitorer forespørger DNS-servere efter specifikke posttyper og evaluerer r
 
 ### Avancerede indstillinger
 
-| Felt         | Beskrivelse              | Standard |
-| ------------ | ------------------------ | -------- |
-| Port         | DNS-portnummer           | 53       |
-| Timeout (ms) | Tid at vente på et svar  | 5000     |
-| Genforsøg    | Antal genforsøg ved fejl | 3        |
+| Felt         | Beskrivelse                                                                | Standard |
+| ------------ | -------------------------------------------------------------------------- | -------- |
+| Port         | DNS-portnummer                                                             | 53       |
+| Timeout (ms) | Tid at vente på et svar                                                    | 5000     |
+| Genforsøg    | Genforsøg efter at det første forsøg mislykkes; 0 betyder ét enkelt forsøg | 3        |
 
 ## Overvågningskriterier
 

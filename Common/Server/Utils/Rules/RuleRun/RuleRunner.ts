@@ -1,4 +1,5 @@
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ServiceLevelObjectiveMonitorRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageMonitorRule";
 import Select from "../../../Types/Database/Select";
 import Sort from "../../../../Types/BaseDatabase/Sort";
@@ -13,6 +14,10 @@ import {
   RuleRunType,
   RuleRunTypeUtil,
 } from "../../../../Types/Rules/RuleRun";
+import ServiceLevelObjectiveMonitorRuleEngineService, {
+  SloMonitorSyncResult,
+} from "../../../Services/ServiceLevelObjectiveMonitorRuleEngineService";
+import ServiceLevelObjectiveMonitorRuleService from "../../../Services/ServiceLevelObjectiveMonitorRuleService";
 import StatusPageMonitorRuleEngineService, {
   StatusPageMonitorRuleSyncResult,
 } from "../../../Services/StatusPageMonitorRuleEngineService";
@@ -77,6 +82,10 @@ export default class RuleRunner {
 
     if (action === RuleRunAction.SyncStatusPageMonitors) {
       return await RuleRunner.syncStatusPageMonitorRule(data);
+    }
+
+    if (action === RuleRunAction.SyncSloMonitors) {
+      return await RuleRunner.syncSloMonitorRule(data);
     }
 
     const definition: RuleRunDefinition | null = RuleRunRegistry.getDefinition(
@@ -270,6 +279,61 @@ export default class RuleRunner {
       resourcesUpdated: sync.statusPageResourceIdsUpdated.length,
       itemsAdded: sync.monitorIdsAdded.length,
       itemsRemoved: sync.statusPageResourceIdsRemoved.length,
+      nextCursor: null,
+      ownersNotified: false,
+    };
+  }
+
+  /*
+   * An SLO monitor rule already re-syncs its SLO whenever it is saved; running
+   * it repeats that sync on demand. The SLO's monitors are the union of what
+   * every enabled rule of that SLO matches, so the sync is the whole SLO's, not
+   * this one rule's. It is one SLO, not a walk over resources, so it always
+   * finishes in a single pass.
+   */
+  private static async syncSloMonitorRule(
+    data: RuleRunPassData,
+  ): Promise<RuleRunPassResult> {
+    const rule: ServiceLevelObjectiveMonitorRule | null =
+      await ServiceLevelObjectiveMonitorRuleService.findOneBy({
+        query: {
+          _id: data.ruleId,
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          isEnabled: true,
+          serviceLevelObjectiveId: true,
+        },
+        props: { isRoot: true },
+      });
+
+    RuleRunner.assertRuleCanRun({
+      rule: rule,
+      action: RuleRunAction.SyncSloMonitors,
+    });
+
+    /*
+     * The SLO comes off the rule read above, which is pinned to the caller's
+     * project, never off the request - so a run can only re-sync an SLO of the
+     * project it was authorised in.
+     */
+    const serviceLevelObjectiveId: ObjectID | undefined =
+      rule?.serviceLevelObjectiveId;
+
+    if (!serviceLevelObjectiveId) {
+      throw new BadDataException("Rule not found.");
+    }
+
+    const sync: SloMonitorSyncResult =
+      await ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo({
+        serviceLevelObjectiveId: serviceLevelObjectiveId,
+      });
+
+    return {
+      ...RuleRunResultUtil.emptyCounts(),
+      itemsAdded: sync.monitorIdsAdded.length,
+      itemsRemoved: sync.monitorIdsRemoved.length,
       nextCursor: null,
       ownersNotified: false,
     };

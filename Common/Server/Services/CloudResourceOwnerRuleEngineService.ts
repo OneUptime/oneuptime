@@ -251,11 +251,15 @@ class CloudResourceOwnerRuleEngineServiceClass
         owner.projectId = cloudResource.projectId;
         owner.userId = new ObjectID(userId);
         owner.isOwnerNotified = !notify;
-        await CloudResourceOwnerUserService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: CloudResourceOwnerUserService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
 
       for (const teamId of teamIds) {
@@ -264,11 +268,15 @@ class CloudResourceOwnerRuleEngineServiceClass
         owner.projectId = cloudResource.projectId;
         owner.teamId = new ObjectID(teamId);
         owner.isOwnerNotified = !notify;
-        await CloudResourceOwnerTeamService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: CloudResourceOwnerTeamService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
     }
 

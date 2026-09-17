@@ -78,13 +78,20 @@ import SpanService from "../Services/SpanService";
 import LogService from "../Services/LogService";
 import SloHistoryService from "../Services/SloHistoryService";
 import DashboardComponentType from "../../Types/Dashboard/DashboardComponentType";
-import { DashboardVariableType } from "../../Types/Dashboard/DashboardVariable";
+import DashboardVariable, {
+  DashboardVariableType,
+} from "../../Types/Dashboard/DashboardVariable";
 import PublicDashboardResourceListPolicy, {
   PublicDashboardResourceListPolicyResult,
 } from "../Utils/Dashboard/PublicDashboardResourceListPolicy";
 import PublicDashboardSloHistoryPolicy, {
   PublicDashboardSloHistoryPolicyResult,
 } from "../Utils/Dashboard/PublicDashboardSloHistoryPolicy";
+import {
+  PublicDashboardSloWidgetTarget,
+  PublicDashboardSloWidgetTargetKind,
+} from "../Utils/Dashboard/PublicDashboardSloWidget";
+import { SLO_WIDGET_NAME_MATCH_LIMIT } from "../../Utils/Dashboard/SloWidgetSource";
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../Types/BaseDatabase/InBetween";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
@@ -294,6 +301,20 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     },
   },
   slo: PUBLIC_DASHBOARD_SLO_RESOURCE,
+  /*
+   * The SLO List widget reads the same model but is its own resource type,
+   * deliberately NOT a widget of PUBLIC_DASHBOARD_SLO_RESOURCE: the SLO
+   * history route selects its widget through that entry, and a list widget
+   * there would make "the only SLO widget on this dashboard" ambiguous for a
+   * route that can never serve a list.
+   */
+  "slo-list": {
+    modelType: ServiceLevelObjective,
+    service: ServiceLevelObjectiveService,
+    widgets: {
+      [DashboardComponentType.SloList]: null,
+    },
+  },
 };
 
 type ResolveDashboardIdOrThrowFunction = (
@@ -1396,12 +1417,33 @@ export default class DashboardAPI extends BaseAPI<
             requestedComponentId: req.body["componentId"],
           });
 
+          /*
+           * The viewer's toolbar selections, validated against the
+           * dashboard's STORED variables exactly as the resource-list route
+           * validates them. A pinned SLO chart never reads them; a chart that
+           * follows an SLO variable reads only the variable it is bound to.
+           */
+          const variables: Array<DashboardVariable> =
+            PublicDashboardResourceListPolicy.resolveDashboardVariableSelections(
+              {
+                dashboardViewConfig: dashboard.dashboardViewConfig,
+                requestedVariables: req.body["variables"],
+              },
+            );
+
           const policy: PublicDashboardSloHistoryPolicyResult =
             PublicDashboardSloHistoryPolicy.build({
               widget,
               requestedAggregateBy: JSONFunctions.deserialize(
                 req.body["aggregateBy"] as JSONObject,
               ),
+              variables,
+            });
+
+          const serviceLevelObjectiveId: ObjectID =
+            await DashboardAPI.resolvePublicSloWidgetTarget({
+              projectId: dashboard.projectId,
+              target: policy.target,
             });
 
           const aggregateResult: AggregatedResult =
@@ -1415,7 +1457,7 @@ export default class DashboardAPI extends BaseAPI<
                */
               query: {
                 projectId: dashboard.projectId,
-                sloId: policy.serviceLevelObjectiveId,
+                sloId: serviceLevelObjectiveId,
                 metricName: policy.metricName,
                 bucketStart: new InBetween<Date>(
                   policy.startDate,
@@ -2000,6 +2042,58 @@ export default class DashboardAPI extends BaseAPI<
     }
 
     return selectedWidget;
+  }
+
+  /*
+   * The one SLO id a public SLO chart may aggregate.
+   *
+   * A pinned widget already names it. A widget that follows an SLO variable
+   * names an SLO by NAME, so the name is resolved to an id here — inside the
+   * dashboard's own project, among ACTIVE objectives only, by exact match —
+   * with the same two-row read the resource-list route uses: no match and a
+   * shared name both refuse, rather than aggregating some other objective's
+   * history under the one the viewer picked.
+   */
+  private static async resolvePublicSloWidgetTarget(data: {
+    projectId: ObjectID;
+    target: PublicDashboardSloWidgetTarget;
+  }): Promise<ObjectID> {
+    if (data.target.kind === PublicDashboardSloWidgetTargetKind.Pinned) {
+      return data.target.serviceLevelObjectiveId;
+    }
+
+    const matches: Array<ServiceLevelObjective> =
+      await ServiceLevelObjectiveService.findBy({
+        query: {
+          projectId: data.projectId,
+          name: data.target.serviceLevelObjectiveName,
+          isArchived: false,
+        },
+        select: {
+          _id: true,
+        },
+        limit: SLO_WIDGET_NAME_MATCH_LIMIT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (matches.length > 1) {
+      throw new BadDataException(
+        "More than one Service Level Objective has this name.",
+      );
+    }
+
+    const matchedId: ObjectID | null = matches[0]?.id || null;
+
+    if (!matchedId) {
+      throw new NotFoundException(
+        "No active Service Level Objective has this name.",
+      );
+    }
+
+    return matchedId;
   }
 
   /*

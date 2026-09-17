@@ -2,9 +2,12 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import CheckoutForm from "./BillingPaymentMethodForm";
+import CheckoutForm, {
+  getSetupIntentPaymentMethodId,
+  SETUP_NOT_COMPLETED_ERROR_MESSAGE,
+} from "./BillingPaymentMethodForm";
 import { Elements } from "@stripe/react-stripe-js";
-import { Stripe } from "@stripe/stripe-js";
+import { SetupIntent, SetupIntentResult, Stripe } from "@stripe/stripe-js";
 /*
  * The default entrypoint injects a <script src="https://js.stripe.com/v3">
  * the moment the module is imported - not when loadStripe is called. This page
@@ -18,7 +21,8 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { Green } from "Common/Types/BrandColors";
+import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Email from "Common/Types/Email";
@@ -35,6 +39,7 @@ import Modal from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
 import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -100,6 +105,9 @@ const Settings: FunctionComponent<ComponentProps> = (
     null,
   );
   const [paymentMethodsRefresh, setPaymentMethodsRefresh] = useState<number>(0);
+  const [paymentMethodError, setPaymentMethodError] = useState<string | null>(
+    null,
+  );
   const [showNoPaymentMethodModal, setShowNoPaymentMethodModal] =
     useState<boolean>(false);
 
@@ -155,18 +163,188 @@ const Settings: FunctionComponent<ComponentProps> = (
       }
     };
 
+  const refreshPaymentMethodsTable: VoidFunction = (): void => {
+    /*
+     * Let the table re-list itself: listing from here would replace the row
+     * IDs the table already holds (see countSyncedPaymentMethods).
+     */
+    setPaymentMethodsRefresh((value: number) => {
+      return value + 1;
+    });
+  };
+
+  type SetDefaultPaymentMethodFunction = (
+    paymentProviderPaymentMethodId: string,
+  ) => Promise<void>;
+
+  /*
+   * Autopay charges the customer's default payment method. Before this
+   * existed a customer had no way to choose it: adding a card never made it
+   * the default, so a replacement for a declining card was never charged.
+   * The server also clears any card pinned on the subscriptions themselves,
+   * which Stripe would otherwise charge ahead of the customer default.
+   */
+  const setDefaultPaymentMethod: SetDefaultPaymentMethodFunction = async (
+    paymentProviderPaymentMethodId: string,
+  ): Promise<void> => {
+    const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>({
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        `/billing-payment-methods/set-default`,
+      ),
+      data: {
+        data: {
+          paymentProviderPaymentMethodId: paymentProviderPaymentMethodId,
+        },
+      },
+      headers: ModelAPI.getCommonHeaders(),
+    });
+
+    if (response.isFailure()) {
+      throw response;
+    }
+  };
+
+  type PaymentMethodRowActionFunction = (
+    item: BillingPaymentMethod,
+    onCompleteAction: VoidFunction,
+  ) => Promise<void>;
+
+  /*
+   * Shared by "Set as Default" and "Re-sync Autopay": both ask the server for
+   * the same thing, and the server does the same two things for both - write
+   * the customer default, then clear any card pinned on the subscriptions.
+   *
+   * Failures go to this page's own error modal rather than the table's, so a
+   * card added through the form and a card picked here report the same way.
+   */
+  const makeRowTheDefaultPaymentMethod: PaymentMethodRowActionFunction = async (
+    item: BillingPaymentMethod,
+    onCompleteAction: VoidFunction,
+  ): Promise<void> => {
+    try {
+      await setDefaultPaymentMethod(
+        item.paymentProviderPaymentMethodId as string,
+      );
+      onCompleteAction();
+      refreshPaymentMethodsTable();
+    } catch (err) {
+      onCompleteAction();
+      setPaymentMethodError(BaseAPI.getFriendlyMessage(err));
+    }
+  };
+
+  type GetNotDefaultMessageFunction = (err: unknown) => string;
+
+  /*
+   * Deliberately says "automatic payments could not be switched to it" rather
+   * than "it could not be made the default": the server writes the default
+   * first and then moves the subscriptions off any card pinned on them, so a
+   * failure at the second step leaves the card as the default with autopay
+   * still on the old one. Telling the customer nothing happened would send
+   * them to do again the thing they just did.
+   */
+  const getSavedButNotDefaultMessage: GetNotDefaultMessageFunction = (
+    err: unknown,
+  ): string => {
+    return `Your payment method was saved, but automatic payments could not be switched to it. You can try again with "Set as Default" in the payment methods table. Reason: ${BaseAPI.getFriendlyMessage(
+      err,
+    )}`;
+  };
+
+  type CompleteRedirectedSetupFunction = (
+    loadedStripe: Stripe | null,
+  ) => Promise<void>;
+
+  /*
+   * Card setups finish on this page (BillingPaymentMethodForm confirms with
+   * redirect: "if_required"), but redirect-based payment methods and some
+   * bank authentications leave the page and come back to it with the
+   * SetupIntent in the query string. Make that payment method the default
+   * too, so every way of adding one behaves the same.
+   */
+  const completeRedirectedPaymentMethodSetup: CompleteRedirectedSetupFunction =
+    async (loadedStripe: Stripe | null): Promise<void> => {
+      const setupIntentClientSecret: string | null =
+        Navigation.getQueryStringByName("setup_intent_client_secret");
+
+      if (!setupIntentClientSecret) {
+        return;
+      }
+
+      const redirectStatus: string | null =
+        Navigation.getQueryStringByName("redirect_status");
+
+      /*
+       * Strip the parameters before doing anything else, so a reload - or a
+       * failure below - never replays this and overrides a default the
+       * customer picked afterwards.
+       */
+      Navigation.setQueryString({
+        setup_intent: null,
+        setup_intent_client_secret: null,
+        redirect_status: null,
+      });
+
+      if (redirectStatus === "failed") {
+        setPaymentMethodError(SETUP_NOT_COMPLETED_ERROR_MESSAGE);
+        return;
+      }
+
+      if (redirectStatus !== "succeeded" || !loadedStripe) {
+        return;
+      }
+
+      try {
+        const result: SetupIntentResult =
+          await loadedStripe.retrieveSetupIntent(setupIntentClientSecret);
+
+        if (result.error) {
+          throw new Error(
+            result.error.message ||
+              "The payment provider could not load your payment method.",
+          );
+        }
+
+        const setupIntent: SetupIntent | undefined = result.setupIntent;
+
+        // A processing method is not attached to the customer yet.
+        if (!setupIntent || setupIntent.status !== "succeeded") {
+          return;
+        }
+
+        const paymentMethodId: string | null =
+          getSetupIntentPaymentMethodId(setupIntent);
+
+        if (!paymentMethodId) {
+          return;
+        }
+
+        await setDefaultPaymentMethod(paymentMethodId);
+      } catch (err) {
+        setPaymentMethodError(getSavedButNotDefaultMessage(err));
+      }
+    };
+
   useAsyncEffect(async () => {
+    let loadedStripe: Stripe | null = null;
+
     /*
      * Nothing on this page can talk to Stripe when billing is off, so there is
      * no reason to reach for js.stripe.com and hang until it times out.
      */
     if (BILLING_ENABLED) {
       setIsModalLoading(true);
-      setStripe(await loadStripe(BILLING_PUBLIC_KEY));
+      loadedStripe = await loadStripe(BILLING_PUBLIC_KEY);
+      setStripe(loadedStripe);
       setIsModalLoading(false);
     }
 
     setIsLoading(true);
+
+    if (BILLING_ENABLED) {
+      // Before the table first lists, so it already shows the new default.
+      await completeRedirectedPaymentMethodSetup(loadedStripe);
+    }
 
     try {
       await fetchPaymentMethodsCount();
@@ -677,6 +855,50 @@ const Settings: FunctionComponent<ComponentProps> = (
             // Table filters can hide saved methods; plan controls need the unfiltered count.
             onFetchSuccess={countSyncedPaymentMethods}
             name="Settings > Billing > Add Payment Method"
+            selectMoreFields={{
+              isDefault: true,
+              paymentProviderPaymentMethodId: true,
+            }}
+            actionButtons={[
+              {
+                title: "Set as Default",
+                buttonStyleType: ButtonStyleType.NORMAL,
+                icon: IconProp.Check,
+                isVisible: (item: BillingPaymentMethod): boolean => {
+                  return (
+                    !item.isDefault &&
+                    Boolean(item.paymentProviderPaymentMethodId)
+                  );
+                },
+                onClick: makeRowTheDefaultPaymentMethod,
+              },
+              {
+                /*
+                 * The card that already is the default needs this too, and it
+                 * is the row where it is easiest to leave out.
+                 *
+                 * isDefault says only that the card is the customer's default
+                 * at Stripe. A subscription carrying its own pinned card is
+                 * charged ahead of that default, and that is the incident
+                 * state: the right card is the customer default, every
+                 * renewal still goes to the card it replaced. This route
+                 * clears those pins, and it is idempotent - writing the same
+                 * default again changes nothing. Without a button here the
+                 * only way to reach the repair would be to make some other
+                 * card the default, or to delete one.
+                 */
+                title: "Re-sync Autopay",
+                buttonStyleType: ButtonStyleType.NORMAL,
+                icon: IconProp.Refresh,
+                isVisible: (item: BillingPaymentMethod): boolean => {
+                  return (
+                    Boolean(item.isDefault) &&
+                    Boolean(item.paymentProviderPaymentMethodId)
+                  );
+                },
+                onClick: makeRowTheDefaultPaymentMethod,
+              },
+            ]}
             cardProps={{
               buttons: [
                 {
@@ -691,7 +913,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               ],
               title: "Payment Methods",
               description:
-                "Adding a payment method enables paid usage. It does not upgrade your subscription plan.",
+                "Invoices are charged automatically to the default payment method. A payment method you add becomes the default. Adding a payment method enables paid usage. It does not upgrade your subscription plan.",
             }}
             noItemsMessage={"No payment methods found."}
             query={{
@@ -738,7 +960,26 @@ const Settings: FunctionComponent<ComponentProps> = (
                 type: FieldType.Text,
 
                 getElement: (item: BillingPaymentMethod) => {
-                  return <span>{`*****${item["last4Digits"]}`}</span>;
+                  return (
+                    <span className="inline-flex items-center gap-2">
+                      <span>{`*****${item["last4Digits"]}`}</span>
+                      {item.isDefault ? (
+                        <Pill
+                          text="Default"
+                          color={Green}
+                          /*
+                           * Deliberately not a promise that autopay charges
+                           * this card: a subscription can still carry a card
+                           * of its own, which the payment provider charges
+                           * first. "Re-sync Autopay" on this row clears that.
+                           */
+                          tooltip="New invoices are charged to this payment method. If a renewal still charges an older card, use Re-sync Autopay."
+                        />
+                      ) : (
+                        <></>
+                      )}
+                    </span>
+                  );
                 },
               },
             ]}
@@ -759,6 +1000,20 @@ const Settings: FunctionComponent<ComponentProps> = (
               onClose={() => {
                 setShowNoPaymentMethodModal(false);
               }}
+            />
+          ) : (
+            <></>
+          )}
+
+          {paymentMethodError ? (
+            <ConfirmModal
+              title={`Something is not quite right...`}
+              description={paymentMethodError}
+              submitButtonText={"Close"}
+              onSubmit={() => {
+                setPaymentMethodError(null);
+              }}
+              submitButtonType={ButtonStyleType.NORMAL}
             />
           ) : (
             <></>
@@ -811,12 +1066,26 @@ const Settings: FunctionComponent<ComponentProps> = (
                   }}
                 >
                   <CheckoutForm
-                    onSuccess={async () => {
+                    onSuccess={async (paymentMethodId: string | null) => {
+                      if (paymentMethodId) {
+                        /*
+                         * A customer adds a card because they want it charged
+                         * - typically replacing one that is declining. Make
+                         * it the default before re-listing so the table shows
+                         * it as such.
+                         */
+                        try {
+                          await setDefaultPaymentMethod(paymentMethodId);
+                        } catch (err) {
+                          // The card is saved either way; say what did not happen.
+                          setPaymentMethodError(
+                            getSavedButNotDefaultMessage(err),
+                          );
+                        }
+                      }
                       setIsModalSubmitButtonLoading(false);
                       await fetchPaymentMethodsCount();
-                      setPaymentMethodsRefresh((value: number) => {
-                        return value + 1;
-                      });
+                      refreshPaymentMethodsTable();
                       setShowPaymentMethodModal(false);
                     }}
                     onError={(errorMessage: string) => {

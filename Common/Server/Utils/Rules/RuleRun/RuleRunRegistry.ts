@@ -331,13 +331,14 @@ function defineRuleRun<TResource extends BaseModel, TRule extends BaseModel>(
 }
 
 /*
- * Status page monitor rules re-sync one page instead of walking resources, so
- * they have no entry here - see RuleRunner.
+ * Status page and SLO monitor rules re-sync one status page or SLO instead of
+ * walking resources, so they have no entry here - see RuleRunner.
  */
-export type ResourceRuleRunType = Exclude<
-  RuleRunType,
-  RuleRunType.StatusPageMonitorRule
->;
+export type SyncRuleRunType =
+  | RuleRunType.StatusPageMonitorRule
+  | RuleRunType.ServiceLevelObjectiveMonitorRule;
+
+export type ResourceRuleRunType = Exclude<RuleRunType, SyncRuleRunType>;
 
 const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
   [RuleRunType.AlertEpisodeLabelRule]: defineRuleRun({
@@ -783,10 +784,20 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
 
 export default class RuleRunRegistry {
   public static getDefinition(ruleType: RuleRunType): RuleRunDefinition | null {
-    if (ruleType === RuleRunType.StatusPageMonitorRule) {
+    if (RuleRunRegistry.isSyncRuleRunType(ruleType)) {
       return null;
     }
 
     return RULE_RUN_DEFINITIONS[ruleType] || null;
+  }
+
+  // A monitor rule that re-syncs one status page or SLO when it runs.
+  public static isSyncRuleRunType(
+    ruleType: RuleRunType,
+  ): ruleType is SyncRuleRunType {
+    return (
+      ruleType === RuleRunType.StatusPageMonitorRule ||
+      ruleType === RuleRunType.ServiceLevelObjectiveMonitorRule
+    );
   }
 }

@@ -66,6 +66,7 @@ import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallD
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import logger from "../../../../Server/Utils/Logger";
+import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
 import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
@@ -861,6 +862,48 @@ describe.each(
         RuleApplicationResultUtil.failed(),
       );
       expect(logger.error).toHaveBeenCalled();
+    });
+
+    it("carries on, counting only what it added, when another writer added the owner first", async () => {
+      /*
+       * Issue #3394: owner rows are unique, so an owner added between the
+       * "who is already assigned" read and this insert is refused. That is the
+       * outcome the run wanted, not a failure - and it must not stop the
+       * team being added after it.
+       */
+      const mocks: EngineMocks = mockEngine(c, {
+        ownerWriteError: PostgresErrorTranslator.translate({
+          code: "23505",
+          table: "OwnerUser",
+          detail:
+            'Key ("resourceId", "userId", "projectId")=(c, u, p) already exists.',
+        }) as Error,
+      });
+
+      await expect(runRules(c, [fakeRule(c)], true)).resolves.toEqual(
+        RuleApplicationResultUtil.updated(1),
+      );
+      expect(mocks.createOwnerUser).toHaveBeenCalledTimes(1);
+      expect(mocks.createOwnerTeam).toHaveBeenCalledTimes(1);
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    it("reports already applied when the only owner to add was added concurrently", async () => {
+      const mocks: EngineMocks = mockEngine(c, {
+        ownerWriteError: PostgresErrorTranslator.createUniqueViolationException(
+          "This user is already an owner.",
+        ),
+        assignedTeamIds: [TEAM_ID],
+      });
+
+      await expect(runRules(c, [fakeRule(c)], true)).resolves.toEqual(
+        RuleApplicationResultUtil.alreadyApplied(),
+      );
+      expect(mocks.createOwnerTeam).not.toHaveBeenCalled();
+      if (mocks.createFeedItem) {
+        // Nothing was added, so no "owners were added by rule" item either.
+        expect(mocks.createFeedItem).not.toHaveBeenCalled();
+      }
     });
   });
 });

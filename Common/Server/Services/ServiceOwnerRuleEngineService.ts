@@ -249,11 +249,15 @@ class ServiceOwnerRuleEngineServiceClass
         owner.serviceId = service.id;
         owner.projectId = service.projectId;
         owner.userId = new ObjectID(userId);
-        await ServiceOwnerUserService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: ServiceOwnerUserService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
 
       for (const teamId of teamIds) {
@@ -261,11 +265,15 @@ class ServiceOwnerRuleEngineServiceClass
         owner.serviceId = service.id;
         owner.projectId = service.projectId;
         owner.teamId = new ObjectID(teamId);
-        await ServiceOwnerTeamService.create({
-          data: owner,
-          props: { isRoot: true },
-        });
-        ownersAdded++;
+        if (
+          await OwnerRuleAssignment.createOwner({
+            ownerService: ServiceOwnerTeamService,
+            owner: owner,
+            props: { isRoot: true },
+          })
+        ) {
+          ownersAdded++;
+        }
       }
     }
 

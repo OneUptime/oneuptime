@@ -79,7 +79,7 @@ Le temps maximum (en millisecondes) à attendre pour une réponse de la page de 
 
 #### Tentatives
 
-Le nombre de fois à réessayer la requête en cas d'échec. La valeur par défaut est 3 tentatives.
+Le nombre de fois où la requête est réessayée après l'échec de la première tentative ; 0 signifie une seule tentative. La valeur par défaut est de 3 nouvelles tentatives, soit jusqu'à 4 essais au total.
 
 ## Critères de surveillance
 

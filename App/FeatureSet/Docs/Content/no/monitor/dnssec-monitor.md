@@ -32,11 +32,11 @@ DNSSEC-monitorer validerer hele tillitskjeden fra rotsonen og ned til ditt domen
 
 ### Avanserte innstillinger
 
-| Felt                            | Beskrivelse                                | Standard |
-| ------------------------------- | ------------------------------------------ | -------- |
-| Varsel om signaturutløp (dager) | Standardterskel for RRSIG-utløpsfilteret   | 7        |
-| Tidsavbrudd (ms)                | Hvor lenge det ventes på hver DNS-spørring | 10000    |
-| Nye forsøk                      | Antall nye forsøk ved feil                 | 3        |
+| Felt                            | Beskrivelse                                                                  | Standard |
+| ------------------------------- | ---------------------------------------------------------------------------- | -------- |
+| Varsel om signaturutløp (dager) | Standardterskel for RRSIG-utløpsfilteret                                     | 7        |
+| Tidsavbrudd (ms)                | Hvor lenge det ventes på hver DNS-spørring                                   | 10000    |
+| Nye forsøk                      | Nye forsøk etter at det første forsøket mislykkes; 0 betyr ett enkelt forsøk | 3        |
 
 ## Overvåkingskriterier
 

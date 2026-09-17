@@ -42,6 +42,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import IncidentEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/IncidentEpisode";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import IncidentService from "./IncidentService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
@@ -1147,81 +1148,20 @@ export class Service extends DatabaseService<Model> {
   }): Promise<void> {
     const { episodeId, projectId, userIds, teamIds, createdByUserId } = data;
 
-    // Add user owners
-    if (userIds && userIds.length > 0) {
-      for (const userId of userIds) {
-        // Check if already exists
-        const existing: IncidentEpisodeOwnerUser | null =
-          await IncidentEpisodeOwnerUserService.findOneBy({
-            query: {
-              incidentEpisodeId: episodeId,
-              userId: userId,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              _id: true,
-            },
-          });
-
-        if (!existing) {
-          const ownerUser: IncidentEpisodeOwnerUser =
-            new IncidentEpisodeOwnerUser();
-          ownerUser.incidentEpisodeId = episodeId;
-          ownerUser.userId = userId;
-          ownerUser.projectId = projectId;
-          if (createdByUserId) {
-            ownerUser.createdByUserId = createdByUserId;
-          }
-
-          await IncidentEpisodeOwnerUserService.create({
-            data: ownerUser,
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
-    }
-
-    // Add team owners
-    if (teamIds && teamIds.length > 0) {
-      for (const teamId of teamIds) {
-        // Check if already exists
-        const existing: IncidentEpisodeOwnerTeam | null =
-          await IncidentEpisodeOwnerTeamService.findOneBy({
-            query: {
-              incidentEpisodeId: episodeId,
-              teamId: teamId,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              _id: true,
-            },
-          });
-
-        if (!existing) {
-          const ownerTeam: IncidentEpisodeOwnerTeam =
-            new IncidentEpisodeOwnerTeam();
-          ownerTeam.incidentEpisodeId = episodeId;
-          ownerTeam.teamId = teamId;
-          ownerTeam.projectId = projectId;
-          if (createdByUserId) {
-            ownerTeam.createdByUserId = createdByUserId;
-          }
-
-          await IncidentEpisodeOwnerTeamService.create({
-            data: ownerTeam,
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
-    }
+    // Owners already on the episode are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: IncidentEpisodeOwnerUserService,
+      ownerTeamService: IncidentEpisodeOwnerTeamService,
+      resourceIdColumn: "incidentEpisodeId",
+      resourceId: episodeId,
+      projectId: projectId,
+      userIds: userIds || [],
+      teamIds: teamIds || [],
+      createdByUserId: createdByUserId,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   @CaptureSpan()

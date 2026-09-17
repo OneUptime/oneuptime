@@ -5,6 +5,7 @@ import GoogleSecOpsClient, {
 } from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsConnector, {
   GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET,
+  GOOGLE_SECOPS_CURATED_REQUEST_BUDGET,
   GOOGLE_SECOPS_FETCH_DURATION_MS,
   GOOGLE_SECOPS_SEARCH_PAGE_BUDGET,
 } from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsConnector";
@@ -81,13 +82,14 @@ describe("GoogleSecOpsConnector registration", () => {
    * collapse the two budgets into one and let the alerts view starve the
    * searches, which is why the retired poller split them.
    */
-  test("declares both pass budgets together, a record bound that never binds, and a four minute wall clock", () => {
+  test("declares every pass budget together, a record bound that never binds, and a four minute wall clock", () => {
     expect(GOOGLE_SECOPS_SEARCH_PAGE_BUDGET).toBe(20);
+    expect(GOOGLE_SECOPS_CURATED_REQUEST_BUDGET).toBe(200);
     expect(GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET).toBe(16);
     expect(GOOGLE_SECOPS_FETCH_DURATION_MS).toBe(4 * 60 * 1000);
     expect(new GoogleSecOpsConnector().fetchBudget).toEqual({
-      maxRequests: 36,
-      maxEvents: 20 * 1000 + 16 * 1000,
+      maxRequests: 236,
+      maxEvents: 20 * 1000 + 200 * 1000 + 16 * 1000,
       maxDurationMs: 4 * 60 * 1000,
     });
   });

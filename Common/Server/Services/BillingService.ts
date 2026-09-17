@@ -129,6 +129,57 @@ export interface Invoice {
   paymentIntentId?: string | undefined;
 }
 
+export interface PaymentIntentState {
+  id: string;
+  status: Stripe.PaymentIntent.Status;
+  clientSecret: string | undefined;
+  paymentMethodId: string | undefined;
+  lastPaymentErrorMessage: string | undefined;
+}
+
+/*
+ * Stripe's refusal to charge an invoice while its PaymentIntent is waiting on
+ * the cardholder. Another card cannot help anywhere: the invoice already has a
+ * payment in flight, and a second charge would be a second debit.
+ */
+const INVOICE_REQUIRES_ACTION_ERROR_CODE: string =
+  "invoice_payment_intent_requires_action";
+
+/*
+ * Stripe declines that mean "the card is fine, the cardholder has to
+ * authenticate". They arrive as a StripeCardError. Whether a backup card
+ * should be charged instead depends on who is watching - see
+ * canRetryWithDifferentPaymentMethod.
+ */
+const AUTHENTICATION_REQUIRED_ERROR_CODES: Array<string> = [
+  "authentication_required",
+];
+
+/*
+ * Subscriptions that will never raise another invoice. Their payment method
+ * is irrelevant, and Stripe refuses updates to a canceled subscription.
+ */
+const FINISHED_SUBSCRIPTION_STATUSES: Array<Stripe.Subscription.Status> = [
+  "canceled",
+  "incomplete_expired",
+];
+
+/*
+ * Statuses where Stripe refuses a default_payment_method update outright.
+ *
+ * An `incomplete` subscription is one whose very first invoice has not been
+ * paid; the API reference is explicit that such a subscription "can only have
+ * metadata and default_source updated", and answers anything else with a 400.
+ * Attempting it would fail the whole repair for the customer whose pin we are
+ * trying to clear, so the pin is left where it is: within 23 hours the
+ * subscription either becomes active - and the next card change syncs it - or
+ * turns into incomplete_expired, with its open invoice voided and no further
+ * invoice ever raised. default_source is still cleared, because Stripe allows
+ * that one even here.
+ */
+const STATUSES_REFUSING_PAYMENT_METHOD_UPDATE: Array<Stripe.Subscription.Status> =
+  ["incomplete"];
+
 export class BillingService extends BaseService {
   public constructor() {
     super();
@@ -329,6 +380,12 @@ export class BillingService extends BaseService {
     customerId: string;
     serverMeteredPlans: Array<ServerMeteredPlan>;
     trialDate: Date | null;
+
+    /*
+     * Pins the subscription to one card, ahead of the customer's default, for
+     * as long as the subscription lives. Leave it out unless that is really
+     * wanted - see changePlan for the autopay failure a pin caused.
+     */
     defaultPaymentMethodId?: string | undefined;
     promoCode?: string | undefined;
     metadata?: Dictionary<string> | undefined;
@@ -426,6 +483,8 @@ export class BillingService extends BaseService {
     quantity: number;
     isYearly: boolean;
     trial: boolean | Date | undefined;
+
+    // Pins both subscriptions to one card - see subscribeToMeteredPlan.
     defaultPaymentMethodId?: string | undefined;
     promoCode?: string | undefined;
   }): Promise<{
@@ -525,6 +584,8 @@ export class BillingService extends BaseService {
     quantity: number;
     isYearly: boolean;
     trialDate: Date | null;
+
+    // Pins the subscription to one card - see subscribeToMeteredPlan.
     defaultPaymentMethodId?: string | undefined;
     promoCode?: string | undefined;
     metadata?: Dictionary<string> | undefined;
@@ -1068,6 +1129,23 @@ export class BillingService extends BaseService {
       });
     }
 
+    /*
+     * The replacements are created WITHOUT a subscription-level
+     * default_payment_method, on purpose.
+     *
+     * Stripe charges subscription.default_payment_method ahead of the
+     * customer's default. Passing the card that happened to be default on the
+     * day of the plan change pinned the new subscriptions to it for good: when
+     * that card later started declining and the customer added a new one and
+     * made it their default, autopay kept charging the old card, and the
+     * project went past_due on a card the customer had already replaced.
+     *
+     * Left unpinned, every invoice is charged to whatever the customer's
+     * default is when the invoice is raised. The paymentMethods.length guard
+     * above still applies - getPaymentMethods promotes a default whenever the
+     * customer has a payment method but no default, so an unpinned
+     * subscription has a card to fall back to.
+     */
     if (!canSwapPriceOnSubscription) {
       logger.debug("Replacing the flat-fee subscription");
 
@@ -1077,7 +1155,6 @@ export class BillingService extends BaseService {
         quantity: data.quantity,
         isYearly: data.isYearly,
         trialDate: endTrialAt || null,
-        defaultPaymentMethodId: paymentMethods[0]?.id,
         metadata: this.getReplacementSubscriptionMetadata({
           projectId: data.projectId,
           replacedSubscriptionId: data.subscriptionId,
@@ -1100,7 +1177,7 @@ export class BillingService extends BaseService {
         customerId: customerId,
         serverMeteredPlans: data.serverMeteredPlans,
         trialDate: endTrialAt || null,
-        defaultPaymentMethodId: paymentMethods[0]?.id,
+        // Unpinned for the same reason as the flat-fee replacement above.
         metadata: this.getReplacementSubscriptionMetadata({
           projectId: data.projectId,
           replacedSubscriptionId: data.meteredSubscriptionId,
@@ -1332,6 +1409,16 @@ export class BillingService extends BaseService {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
     }
 
+    /*
+     * Detaching is by payment method id alone - Stripe does not ask which
+     * customer it belongs to - so the caller's customer is checked here rather
+     * than trusted to have been checked upstream.
+     */
+    await this.assertPaymentMethodBelongsToCustomer({
+      customerId: customerId,
+      paymentMethodId: paymentMethodId,
+    });
+
     const paymentMethods: Array<PaymentMethod> =
       await this.getPaymentMethods(customerId);
 
@@ -1342,6 +1429,129 @@ export class BillingService extends BaseService {
     }
 
     await this.stripe.paymentMethods.detach(paymentMethodId);
+
+    const remainingPaymentMethods: Array<PaymentMethod> = paymentMethods.filter(
+      (paymentMethod: PaymentMethod) => {
+        return paymentMethod.id !== paymentMethodId;
+      },
+    );
+
+    /*
+     * Everything below repairs state after a detach that has already
+     * happened, so none of it is allowed to fail the delete: the card is gone
+     * whether or not these land, and reporting the delete as failed would only
+     * make the customer try again against a card that no longer exists. A
+     * repair that does not land is picked up by the next read of the payment
+     * methods, which promotes a default (and re-syncs the subscriptions) when
+     * the customer has none.
+     */
+    try {
+      /*
+       * Detaching the customer's default leaves the customer with no default
+       * at all, and an unpinned subscription with no customer default cannot
+       * be charged. Promote the card that getPaymentMethods would have charged
+       * next, so autopay has somewhere to go before the next invoice.
+       */
+      const hasDefaultLeft: boolean = remainingPaymentMethods.some(
+        (paymentMethod: PaymentMethod) => {
+          return paymentMethod.isDefault;
+        },
+      );
+
+      if (!hasDefaultLeft && remainingPaymentMethods[0]) {
+        await this.setDefaultPaymentMethod(
+          customerId,
+          remainingPaymentMethods[0].id,
+        );
+      }
+
+      /*
+       * A subscription pinned to the detached card - or to any card other than
+       * the default - would otherwise keep trying to charge it. Clear the pin so
+       * the (possibly new) customer default decides.
+       */
+      await this.syncSubscriptionPaymentMethodsWithCustomerDefault(customerId);
+    } catch (err) {
+      logger.error(
+        `Detached payment method ${paymentMethodId} for customer ${customerId}, but could not repair the default payment method or the subscriptions' payment method: ${err}`,
+        { customerId } as LogAttributes,
+      );
+    }
+  }
+
+  /*
+   * Makes a payment method the customer's default, and makes autopay use it.
+   *
+   * Setting the customer default alone is not enough: a subscription with its
+   * own default_payment_method ignores the customer default entirely, which is
+   * how a customer who replaced a declining card kept being charged on the old
+   * one. The subscriptions are re-synced here, and a failure to do that is
+   * reported rather than swallowed - the customer asked for autopay to move to
+   * this card, and a success response would tell them it had.
+   */
+  @CaptureSpan()
+  public async makePaymentMethodDefault(
+    customerId: string,
+    paymentMethodId: string,
+  ): Promise<void> {
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    await this.assertPaymentMethodBelongsToCustomer({
+      customerId: customerId,
+      paymentMethodId: paymentMethodId,
+    });
+
+    await this.setDefaultPaymentMethod(customerId, paymentMethodId);
+
+    await this.syncSubscriptionPaymentMethodsWithCustomerDefault(customerId);
+  }
+
+  /*
+   * Refuses a payment method that is not attached to this customer.
+   *
+   * The payment method id arrives from the browser. Without this, a project
+   * could make - or detach - a card attached to another project's customer.
+   * A payment method Stripe does not know gets the same answer as one that
+   * belongs to someone else, so the response says nothing about which ids
+   * exist.
+   */
+  private async assertPaymentMethodBelongsToCustomer(data: {
+    customerId: string;
+    paymentMethodId: string;
+  }): Promise<void> {
+    const notOwnedError: BadDataException = new BadDataException(
+      "Payment method does not belong to this project",
+    );
+
+    if (!data.paymentMethodId || !data.customerId) {
+      throw notOwnedError;
+    }
+
+    let paymentMethod: Stripe.PaymentMethod;
+
+    try {
+      paymentMethod = await this.readPaymentProvider(() => {
+        return this.stripe.paymentMethods.retrieve(data.paymentMethodId);
+      });
+    } catch (err) {
+      if (this.isResourceMissingError(err)) {
+        throw notOwnedError;
+      }
+
+      throw err;
+    }
+
+    const owner: string | Stripe.Customer | null | undefined =
+      paymentMethod?.customer;
+
+    const ownerId: string | undefined =
+      typeof owner === "string" ? owner : owner?.id || undefined;
+
+    if (!ownerId || ownerId !== data.customerId) {
+      throw notOwnedError;
+    }
   }
 
   @CaptureSpan()
@@ -1553,11 +1763,230 @@ export class BillingService extends BaseService {
     customerId: string,
     paymentMethodId: string,
   ): Promise<void> {
-    await this.stripe.customers.update(customerId, {
-      invoice_settings: {
-        default_payment_method: paymentMethodId,
+    await this.writePaymentProvider({
+      write: () => {
+        return this.stripe.customers.update(customerId, {
+          invoice_settings: {
+            default_payment_method: paymentMethodId,
+          },
+        });
       },
+      actionDescription: "update your default payment method",
     });
+  }
+
+  /**
+   * A write to the payment provider, reported the way a read is.
+   *
+   * It is NOT retried: a read that is repeated costs a second lookup, while a
+   * write that is repeated can apply the change twice. What this adds is the
+   * translation - a raw StripeError is not an OneUptime Exception, so it
+   * reaches the express handler's fallback branch and becomes an opaque
+   * 500 {"error":"Server Error"}. On the flow that repairs autopay that is the
+   * worst possible answer: the customer is told "Server Error" and cannot tell
+   * a rate limit they should retry from a card the provider refused.
+   */
+  private async writePaymentProvider<T>(data: {
+    write: () => Promise<T>;
+    actionDescription: string;
+  }): Promise<T> {
+    try {
+      return await data.write();
+    } catch (err) {
+      throw BillingService.toPaymentProviderWriteFailure(
+        err,
+        data.actionDescription,
+      );
+    }
+  }
+
+  /**
+   * Names the real condition behind a failed provider write.
+   *
+   * Anything that is not the provider talking is left exactly as it is: a bug
+   * of ours dressed up as a payment error would send the reader looking at
+   * Stripe's status page instead of at the stack trace.
+   */
+  private static toPaymentProviderWriteFailure(
+    err: unknown,
+    actionDescription: string,
+  ): unknown {
+    if (err instanceof Exception) {
+      return err;
+    }
+
+    const providerError: { statusCode?: number; code?: string; type?: string } =
+      (err ?? {}) as { statusCode?: number; code?: string; type?: string };
+
+    const isProviderError: boolean =
+      typeof providerError.statusCode === "number" ||
+      (typeof providerError.type === "string" &&
+        providerError.type.startsWith("Stripe"));
+
+    if (!isProviderError) {
+      return err;
+    }
+
+    logger.error(err);
+
+    /*
+     * The same classification the read path uses: a rate limit, a provider
+     * 5xx or a dropped connection is the provider being unavailable, and the
+     * customer should be told to try again rather than that their card is
+     * wrong.
+     */
+    if (BillingService.isRetryablePaymentProviderRead(err)) {
+      return new ServiceUnavailableException(
+        `Could not reach the payment provider to ${actionDescription}${
+          providerError.code ? ` (${providerError.code})` : ""
+        }. Please try again.`,
+      );
+    }
+
+    const providerMessage: string = (
+      (err as { message?: string } | null)?.message || ""
+    ).trim();
+
+    return new BadDataException(
+      providerMessage || `Could not ${actionDescription}. Please try again.`,
+    );
+  }
+
+  /*
+   * Makes every live subscription of the customer charge the customer's
+   * default payment method.
+   *
+   * Stripe picks the card for a subscription invoice in this order:
+   * subscription.default_payment_method, subscription.default_source, then
+   * customer.invoice_settings.default_payment_method. A subscription created
+   * with its own default_payment_method therefore keeps charging that card
+   * forever - changing the customer's default, adding a new card, or paying
+   * one invoice by hand with another card does not move it. That is how a
+   * customer who replaced a declining card kept seeing autopay fail against
+   * the old one.
+   *
+   * The fix is to clear the subscription-level pin so the customer default
+   * decides, rather than to copy the default onto the subscription: a copy is
+   * a second place that has to be kept in step, and it is that second place
+   * going stale that broke autopay.
+   *
+   * Nothing is cleared while the customer has no default payment method -
+   * there is nothing for the subscription to fall back to, and an unpinned
+   * subscription with no customer default cannot be charged at all. An
+   * `incomplete` subscription keeps its pin too, because Stripe refuses that
+   * update outright - see STATUSES_REFUSING_PAYMENT_METHOD_UPDATE.
+   *
+   * Returns the ids of the subscriptions that were changed.
+   */
+  @CaptureSpan()
+  public async syncSubscriptionPaymentMethodsWithCustomerDefault(
+    customerId: string,
+  ): Promise<Array<string>> {
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    const customer: Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer> =
+      await this.readPaymentProvider(() => {
+        return this.stripe.customers.retrieve(customerId);
+      });
+
+    if ((customer as Stripe.DeletedCustomer).deleted) {
+      return [];
+    }
+
+    const customerDefault: string | Stripe.PaymentMethod | null | undefined = (
+      customer as Stripe.Customer
+    ).invoice_settings?.default_payment_method;
+
+    const customerDefaultId: string | undefined =
+      typeof customerDefault === "string"
+        ? customerDefault
+        : customerDefault?.id || undefined;
+
+    if (!customerDefaultId) {
+      return [];
+    }
+
+    const subscriptions: Stripe.ApiList<Stripe.Subscription> =
+      await this.readPaymentProvider(() => {
+        return this.stripe.subscriptions.list({
+          customer: customerId,
+          status: "all",
+          limit: 100,
+        });
+      });
+
+    const updatedSubscriptionIds: Array<string> = [];
+
+    for (const subscription of subscriptions.data) {
+      if (FINISHED_SUBSCRIPTION_STATUSES.includes(subscription.status)) {
+        continue;
+      }
+
+      const pinnedPaymentMethod: string | Stripe.PaymentMethod | null =
+        subscription.default_payment_method;
+
+      const pinnedPaymentMethodId: string | undefined =
+        typeof pinnedPaymentMethod === "string"
+          ? pinnedPaymentMethod
+          : pinnedPaymentMethod?.id || undefined;
+
+      const updateParams: Stripe.SubscriptionUpdateParams = {};
+
+      const isStalePin: boolean = Boolean(
+        pinnedPaymentMethodId && pinnedPaymentMethodId !== customerDefaultId,
+      );
+
+      const canUpdatePaymentMethod: boolean =
+        !STATUSES_REFUSING_PAYMENT_METHOD_UPDATE.includes(subscription.status);
+
+      if (isStalePin && canUpdatePaymentMethod) {
+        // An empty string unsets the field, so the customer default applies.
+        updateParams.default_payment_method = "";
+      }
+
+      if (isStalePin && !canUpdatePaymentMethod) {
+        logger.debug(
+          `Leaving the payment method of ${subscription.status} subscription ${subscription.id} pinned: the payment provider refuses that update in this state`,
+        );
+      }
+
+      /*
+       * A legacy source outranks the customer default too. It is only
+       * consulted when the subscription has no default_payment_method - the
+       * state the line above leaves it in - so it is cleared in the same
+       * request. Stripe allows this field even on an `incomplete`
+       * subscription, so it is cleared there as well.
+       */
+      if (subscription.default_source) {
+        updateParams.default_source = "";
+      }
+
+      if (Object.keys(updateParams).length === 0) {
+        continue;
+      }
+
+      await this.writePaymentProvider({
+        write: () => {
+          return this.stripe.subscriptions.update(
+            subscription.id,
+            updateParams,
+          );
+        },
+        actionDescription: "move automatic payments to your default card",
+      });
+
+      updatedSubscriptionIds.push(subscription.id);
+    }
+
+    if (updatedSubscriptionIds.length > 0) {
+      logger.info(
+        `Cleared stale subscription-level payment methods for customer ${customerId} on subscriptions ${updatedSubscriptionIds.join(", ")}`,
+      );
+    }
+
+    return updatedSubscriptionIds;
   }
 
   @CaptureSpan()
@@ -1654,6 +2083,33 @@ export class BillingService extends BaseService {
       // set the first payment method as default.
       await this.setDefaultPaymentMethod(customerId, paymentMethods[0].id);
       paymentMethods[0].isDefault = true;
+
+      /*
+       * The customer had no default until now, so any subscription pinned to
+       * some other card has been charging that card with nothing to fall back
+       * on. Now that there is a default, point the subscriptions at it.
+       *
+       * Only on this branch. It runs when a customer has no default - their
+       * first card, or right after their default was detached - which is rare.
+       * The common path of this read stays free of subscription reads: every
+       * billing page render goes through here, and extra provider reads per
+       * render are what tipped the account into rate limiting before.
+       *
+       * Best effort: this is a read of the payment methods, and it must still
+       * answer if the subscriptions cannot be updated right now. The next time
+       * the customer adds a card, changes the default or deletes one, the
+       * subscriptions are synced again.
+       */
+      try {
+        await this.syncSubscriptionPaymentMethodsWithCustomerDefault(
+          customerId,
+        );
+      } catch (err) {
+        logger.error(
+          `Set ${paymentMethods[0].id} as the default payment method for customer ${customerId}, but could not sync the subscriptions' payment method: ${err}`,
+          { customerId } as LogAttributes,
+        );
+      }
     }
 
     return paymentMethods;
@@ -1876,6 +2332,39 @@ export class BillingService extends BaseService {
     }
 
     return paymentIntent.client_secret;
+  }
+
+  /*
+   * What a PaymentIntent is doing right now. An open invoice's PaymentIntent
+   * can be waiting on the cardholder (requires_action), already failed
+   * (requires_payment_method), or still with the bank (processing - an India
+   * e-mandate card debit sits there for about a day). Only the first can be
+   * finished in the browser, so callers have to look before handing a client
+   * secret out.
+   */
+  @CaptureSpan()
+  public async getPaymentIntent(
+    paymentIntentId: string,
+  ): Promise<PaymentIntentState> {
+    const paymentIntent: Stripe.Response<Stripe.PaymentIntent> =
+      await this.readPaymentProvider(() => {
+        return this.stripe.paymentIntents.retrieve(paymentIntentId);
+      });
+
+    const paymentMethod: string | Stripe.PaymentMethod | null =
+      paymentIntent.payment_method;
+
+    return {
+      id: paymentIntent.id,
+      status: paymentIntent.status,
+      clientSecret: paymentIntent.client_secret || undefined,
+      paymentMethodId:
+        typeof paymentMethod === "string"
+          ? paymentMethod
+          : paymentMethod?.id || undefined,
+      lastPaymentErrorMessage:
+        paymentIntent.last_payment_error?.message || undefined,
+    };
   }
 
   @CaptureSpan()
@@ -2199,10 +2688,19 @@ export class BillingService extends BaseService {
    * method may succeed.
    *
    * Not retryable:
-   * - invoice_payment_intent_requires_action (3DS/SCA): the payment method
-   *   works but needs customer authentication — throw so the interactive
-   *   flow (BillingInvoiceAPI) surfaces the authentication prompt for the
-   *   default method instead of silently charging a backup method.
+   * - invoice_payment_intent_requires_action (3DS/SCA): the invoice already
+   *   has a payment in flight that is waiting on the cardholder. A second
+   *   card would be a second debit, wherever the call came from.
+   * - authentication_required, but only when the caller can put the
+   *   authentication prompt in front of the cardholder. That is the
+   *   interactive route, which hands the browser the client secret; charging
+   *   a backup card there would move the invoice off the card the customer
+   *   chose and leave the prompt unanswered. Unattended callers
+   *   (generateInvoiceAndChargeCustomer, behind the SMS/call and AI balance
+   *   recharge) have no browser to prompt and no second chance: their invoice
+   *   is voided on failure, so the authentication could never be completed
+   *   anywhere. There, another card is the only way the balance gets topped
+   *   up and paging keeps working.
    * - Invoice-state or connectivity errors: another payment method would
    *   not help, and if the outcome of the attempt is unknown a retry could
    *   double-charge the customer.
@@ -2212,11 +2710,25 @@ export class BillingService extends BaseService {
    * failover only catches the synchronous ones (unverified/unusable
    * accounts).
    */
-  private canRetryWithDifferentPaymentMethod(err: unknown): boolean {
+  private canRetryWithDifferentPaymentMethod(
+    err: unknown,
+    options: { canSurfaceAuthenticationPrompt: boolean },
+  ): boolean {
     const stripeError: { type?: string; code?: string } = err as {
       type?: string;
       code?: string;
     };
+
+    if (stripeError?.code === INVOICE_REQUIRES_ACTION_ERROR_CODE) {
+      return false;
+    }
+
+    if (
+      options.canSurfaceAuthenticationPrompt &&
+      AUTHENTICATION_REQUIRED_ERROR_CODES.includes(stripeError?.code || "")
+    ) {
+      return false;
+    }
 
     if (stripeError?.type === "StripeCardError") {
       return true;
@@ -2228,10 +2740,20 @@ export class BillingService extends BaseService {
     );
   }
 
+  /*
+   * Pays an invoice, falling back to the customer's other cards when one is
+   * declined.
+   *
+   * canSurfaceAuthenticationPrompt says whether the caller is able to show the
+   * cardholder an authentication prompt - true for the interactive
+   * /billing-invoices/pay route, false (the default) for the unattended
+   * recharge paths, which have nobody to prompt.
+   */
   @CaptureSpan()
   public async payInvoice(
     customerId: string,
     invoiceId: string,
+    options?: { canSurfaceAuthenticationPrompt?: boolean | undefined },
   ): Promise<Invoice> {
     // after the invoice is paid, // please fetch subscription and check the status.
     const paymentMethods: Array<PaymentMethod> =
@@ -2281,7 +2803,13 @@ export class BillingService extends BaseService {
           `Failed to pay invoice ${invoiceId} with payment method ${paymentMethod.type} ending in ${paymentMethod.last4Digits}: ${err}`,
         );
 
-        if (!this.canRetryWithDifferentPaymentMethod(err)) {
+        if (
+          !this.canRetryWithDifferentPaymentMethod(err, {
+            canSurfaceAuthenticationPrompt: Boolean(
+              options?.canSurfaceAuthenticationPrompt,
+            ),
+          })
+        ) {
           throw err;
         }
 

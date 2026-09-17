@@ -341,23 +341,70 @@ describe("Discovery page columns opt into wrapping", () => {
     expect(block).toMatch(/wrapMaxWidthClassName:\s*"max-w-xs"/);
   });
 
-  test("Scan keeps the full explanation in labeled native details beneath its preview", () => {
+  /*
+   * The explanation is handed to DiscoveryScanStatusMessage, which renders it
+   * once as a wrapping two-line preview and offers "Show details" only when
+   * that preview cuts it short. The <details> this replaced showed the same
+   * text in both of its states whenever the message fit in two lines
+   * (issue #3842). Its behaviour is rendered and measured in
+   * Common/Tests/App/Dashboard/DiscoveryScanStatusMessage.test.tsx.
+   */
+  test("Scan hands its full explanation to the measured status-message preview", () => {
     const block: string = columnBlockByTitle(DISCOVERY_PAGE, "Scan");
-    const details: RegExpMatchArray | null = block.match(
-      /<details\b[^>]*>(.*?)<\/details>/,
-    );
 
     expect(block).toMatch(/wrapContent:\s*true/);
     expect(block).toMatch(/wrapMaxWidthClassName:\s*"max-w-sm"/);
-    expect(details).not.toBeNull();
-    const content: string = details![1]!;
-
-    // Native details supplies keyboard access to the unabridged message.
-    expect(content).toMatch(/<summary\b[^>]*aria-label=\{/);
-    expect(content).toMatch(/line-clamp-2[^>]*>\s*\{item\.statusMessage\}/);
-    expect(content).toContain("Show details");
-    expect(content).toMatch(
-      /<\/summary>\s*<p\b[^>]*>\s*\{item\.statusMessage\}\s*<\/p>/,
+    expect(block).toMatch(
+      /<DiscoveryScanStatusMessage\b[^>]*message=\{item\.statusMessage\}/,
     );
+    expect(block).toMatch(
+      /<DiscoveryScanStatusMessage\b[^>]*scanLabel=\{\s*ScanNameUtil\.getScanLabel\(item\)/,
+    );
+
+    // The message is rendered once, by the component, not beside it.
+    const code: string = block.replace(/\/\*.*?\*\//g, "");
+    expect(code).not.toMatch(/>\s*\{item\.statusMessage\}/);
+    expect(code).not.toMatch(/<details\b|<summary\b/);
+    expect(code).not.toContain("Show details");
+    expect(code).not.toContain("Hide details");
+  });
+});
+
+/*
+ * The preview itself (issue #3842). Its toggle has to appear only when the
+ * clamp is cutting text off, and the clamp is the thing that has to wrap: a
+ * `line-clamp` over an unwrapped line would clip it sideways rather than
+ * after two lines, which is #3585 again.
+ */
+describe("Discovery status-message preview", () => {
+  const STATUS_MESSAGE: string = readSource(
+    DASHBOARD_SRC,
+    "Components",
+    "NetworkDevice",
+    "DiscoveryScanStatusMessage.tsx",
+  );
+
+  test("the message is one paragraph that wraps and is clamped only while collapsed", () => {
+    const paragraphs: RegExpMatchArray | null =
+      STATUS_MESSAGE.match(/<p\b[^>]*>/g);
+
+    expect(paragraphs).toHaveLength(1);
+    const paragraph: string = paragraphs![0]!;
+
+    expect(paragraph).toMatch(/\bbreak-words\b/);
+    expect(paragraph).not.toMatch(/\bwhitespace-nowrap\b|\btruncate\b/);
+    expect(paragraph).toMatch(/isExpanded\s*\?\s*""\s*:\s*"line-clamp-2"/);
+    expect(STATUS_MESSAGE.match(/\{props\.message\}/g)).toHaveLength(1);
+  });
+
+  test("the toggle is rendered only when the preview cuts the message short", () => {
+    expect(STATUS_MESSAGE).toMatch(/\{isTruncatable\s*&&\s*\(\s*<button\b/);
+    expect(STATUS_MESSAGE).toMatch(/type="button"/);
+    expect(STATUS_MESSAGE).toMatch(/aria-expanded=\{isExpanded\}/);
+    expect(STATUS_MESSAGE).toMatch(/aria-controls=\{messageId\}/);
+  });
+
+  test("the preview length the measurement uses is the one the clamp class paints", () => {
+    expect(STATUS_MESSAGE).toMatch(/COLLAPSED_LINE_COUNT:\s*number\s*=\s*2;/);
   });
 });
