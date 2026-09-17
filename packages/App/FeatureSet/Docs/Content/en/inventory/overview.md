@@ -20,6 +20,8 @@ Every item carries a **source**, and the source decides who owns that row's life
 
 A discovered or mirrored row cannot be renamed or re-typed, because the reconciler would overwrite the edit on its next pass. What you *can* always add to any item, whatever its source, is **custom field values** — see [Custom Fields](/docs/inventory/custom-fields).
 
+For a discovered **host**, the *Details* section of its Attributes card is filled from the resource attributes on its telemetry: IP addresses, architecture, machine id and operating system out of the box, plus serial number, make and model once you stamp them on. [Exporting Inventory to a CMDB](/docs/inventory/cmdb-sync) lists the keys.
+
 ### Manually Creatable Types
 
 Hand-created items are restricted to three types:

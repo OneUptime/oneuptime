@@ -395,6 +395,18 @@ processors:
     detectors: [system, env]
     system:
       hostname_sources: [os]
+      # Only host.name and os.type are on by default. The four below
+      # are opt-in; OneUptime shows them on the host's Network card and
+      # on its Inventory item, which is what a CMDB export reads.
+      resource_attributes:
+        host.arch:
+          enabled: true
+        host.id:
+          enabled: true
+        host.ip:
+          enabled: true
+        os.description:
+          enabled: true
   resource:
     attributes:
       - key: service.name
@@ -453,6 +465,18 @@ processors:
     detectors: [system, env]
     system:
       hostname_sources: [os]
+      # Only host.name and os.type are on by default. The four below
+      # are opt-in; OneUptime shows them on the host's Network card and
+      # on its Inventory item, which is what a CMDB export reads.
+      resource_attributes:
+        host.arch:
+          enabled: true
+        host.id:
+          enabled: true
+        host.ip:
+          enabled: true
+        os.description:
+          enabled: true
   resource:
     attributes:
       - key: service.name
@@ -522,6 +546,18 @@ processors:
     detectors: [system, env]
     system:
       hostname_sources: [os]
+      # Only host.name and os.type are on by default. The four below
+      # are opt-in; OneUptime shows them on the host's Network card and
+      # on its Inventory item, which is what a CMDB export reads.
+      resource_attributes:
+        host.arch:
+          enabled: true
+        host.id:
+          enabled: true
+        host.ip:
+          enabled: true
+        os.description:
+          enabled: true
   resource:
     attributes:
       - key: service.name
@@ -845,6 +881,18 @@ processors:
     detectors: [system, env]
     system:
       hostname_sources: [os]
+      # Only host.name and os.type are on by default. The four below
+      # are opt-in; OneUptime shows them on the host's Network card and
+      # on its Inventory item, which is what a CMDB export reads.
+      resource_attributes:
+        host.arch:
+          enabled: true
+        host.id:
+          enabled: true
+        host.ip:
+          enabled: true
+        os.description:
+          enabled: true
   resource:
     attributes:
       - key: service.name

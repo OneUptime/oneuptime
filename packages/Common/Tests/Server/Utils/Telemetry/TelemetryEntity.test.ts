@@ -1,10 +1,17 @@
 import InventoryItem, {
+  EntityAttributeValue,
   EntityAttributes,
   EntityExtractionResult,
   ExtractedEntity,
+  MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH,
   ResourceEntityRef,
   RetiredEntityIdentity,
 } from "../../../../Server/Utils/Telemetry/TelemetryEntity";
+import {
+  MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+  MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+  normalizeHostIpAddresses,
+} from "../../../../Utils/Telemetry/HostIpAddresses";
 import EntityType from "../../../../Types/Telemetry/EntityType";
 import {
   keyForHost,
@@ -1155,12 +1162,19 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
       {
         "host.name": "web-1",
         "os.type": "linux",
+        "os.description": "Ubuntu 24.04.1 LTS (Noble Numbat)",
         "host.arch": "arm64",
+        "host.id": "ec2-9f3c",
+        // an array attribute — joined, not truncated to its first element.
+        "host.ip": ["10.0.0.1", "10.0.0.2"],
+        "host.serial_number": "7XYZ123",
+        "device.manufacturer": "Dell Inc.",
+        "device.model.name": "OptiPlex 7090",
         "cloud.provider": "aws",
         "cloud.region": "us-east-1",
         "cloud.availability_zone": "us-east-1a",
-        // not in the allowlist — must not leak into descriptive.
-        "host.ip": ["10.0.0.1"],
+        // still not in the allowlist — must not leak into descriptive.
+        "host.mac": ["02:42:ac:11:00:02"],
       },
       EntityType.Host,
     );
@@ -1171,7 +1185,13 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
     );
     expect(decorated!.descriptiveAttributes).toEqual({
       "os.type": "linux",
+      "os.description": "Ubuntu 24.04.1 LTS (Noble Numbat)",
       "host.arch": "arm64",
+      "host.id": "ec2-9f3c",
+      "host.ip": "10.0.0.1, 10.0.0.2",
+      "host.serial_number": "7XYZ123",
+      "device.manufacturer": "Dell Inc.",
+      "device.model.name": "OptiPlex 7090",
       "cloud.provider": "aws",
       "cloud.region": "us-east-1",
       "cloud.availability_zone": "us-east-1a",
@@ -1533,7 +1553,13 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
     const decorated: EntityAttributes = {
       ...identityOnly,
       "os.type": "linux",
+      "os.description": "Ubuntu 24.04.1 LTS",
       "host.arch": "amd64",
+      "host.id": "gce-77aa",
+      "host.ip": ["10.0.0.1", "10.0.0.2", "fe80::1"],
+      "host.serial_number": "7XYZ123",
+      "device.manufacturer": "Dell Inc.",
+      "device.model.name": "OptiPlex 7090",
       "cloud.provider": "gcp",
       "cloud.region": "europe-west1",
       "cloud.availability_zone": "europe-west1-b",
@@ -1570,6 +1596,363 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
       EntityType.Service,
     );
     expect(e!.labels).toBeUndefined();
+  });
+});
+
+/*
+ * Issue #3866 — a discovered host's Attributes card showed only host.name,
+ * host.arch and os.type, so a CMDB sync had to collect the machine's IP,
+ * serial number, make and model somewhere else. These assert the shape of
+ * what the extractor now emits, and — more importantly — that none of it
+ * is allowed to touch identity.
+ */
+describe("host asset attributes (issue #3866)", () => {
+  const IDENTITY: EntityAttributes = { "host.name": "wbprjdeais002" };
+
+  function hostDescriptive(
+    extra: EntityAttributes,
+  ): Record<string, string> | undefined {
+    return entityOfType({ ...IDENTITY, ...extra }, EntityType.Host)
+      ?.descriptiveAttributes;
+  }
+
+  describe("host.ip", () => {
+    test("every address is kept, comma-joined in source order", () => {
+      expect(
+        hostDescriptive({ "host.ip": ["10.1.2.3", "10.1.2.4", "fe80::1"] }),
+      ).toEqual({ "host.ip": "10.1.2.3, 10.1.2.4, fe80::1" });
+    });
+
+    /*
+     * The bug this replaces: strOrFirst kept element 0 and dropped the
+     * rest, so a Docker host reported whichever veth the detector
+     * enumerated first as "the host's IP".
+     */
+    test("is not truncated to its first element", () => {
+      const value: string = hostDescriptive({
+        "host.ip": ["172.17.0.1", "192.168.1.42"],
+      })!["host.ip"]!;
+      expect(value).toContain("192.168.1.42");
+    });
+
+    test("dedupes case-insensitively, because IPv6 hex casing is not stable", () => {
+      expect(
+        hostDescriptive({ "host.ip": ["FE80::1", "fe80::1", "10.0.0.1"] }),
+      ).toEqual({ "host.ip": "FE80::1, 10.0.0.1" });
+    });
+
+    test("a scalar string passes through unchanged", () => {
+      expect(hostDescriptive({ "host.ip": "10.1.2.3" })).toEqual({
+        "host.ip": "10.1.2.3",
+      });
+    });
+
+    /*
+     * The `env` resource detector can only express scalars, so a list set
+     * through OTEL_RESOURCE_ATTRIBUTES arrives as one comma-joined string.
+     * Both routes must produce the same stored value.
+     */
+    test("an env-detector comma-separated scalar matches the array form", () => {
+      const fromEnv: Record<string, string> | undefined = hostDescriptive({
+        "host.ip": "10.1.2.3,10.1.2.4",
+      });
+      const fromArray: Record<string, string> | undefined = hostDescriptive({
+        "host.ip": ["10.1.2.3", "10.1.2.4"],
+      });
+      expect(fromEnv).toEqual(fromArray);
+      expect(fromEnv).toEqual({ "host.ip": "10.1.2.3, 10.1.2.4" });
+    });
+
+    test.each([
+      ["an empty array", []],
+      ["whitespace-only entries", ["  ", "\t"]],
+      ["an empty string", ""],
+    ])("%s emits no attribute at all", (_label: string, value: unknown) => {
+      expect(
+        hostDescriptive({
+          "host.ip": value as
+            | EntityAttributeValue
+            | Array<EntityAttributeValue>,
+        }),
+      ).toBeUndefined();
+    });
+
+    test("caps at MAX_INVENTORY_HOST_IP_ADDRESS_COUNT addresses", () => {
+      const addresses: Array<string> = [];
+      for (let i: number = 0; i < 40; i++) {
+        addresses.push(`10.0.${i}.1`);
+      }
+      const value: string = hostDescriptive({ "host.ip": addresses })![
+        "host.ip"
+      ]!;
+      expect(value.split(", ")).toHaveLength(
+        MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+      );
+      expect(value).toContain("10.0.0.1");
+      expect(value).not.toContain("10.0.39.1");
+    });
+
+    test("caps by length, and never on a half-written address", () => {
+      const addresses: Array<string> = [];
+      for (let i: number = 0; i < 30; i++) {
+        addresses.push(`fd00:dead:beef:${i.toString(16)}::abcd:1234`);
+      }
+      const value: string = hostDescriptive({ "host.ip": addresses })![
+        "host.ip"
+      ]!;
+      expect(value.length).toBeLessThanOrEqual(
+        MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+      );
+      for (const address of value.split(", ")) {
+        expect(addresses).toContain(address);
+      }
+    });
+
+    /*
+     * The Host row keeps the lossless list. Below the inventory caps the
+     * two surfaces must agree byte for byte, or the same host reads
+     * differently on its Network card and in a CMDB export.
+     */
+    test("is byte-identical to Host.hostIpAddresses below the caps", () => {
+      const addresses: Array<string> = [
+        "192.168.1.42",
+        "10.0.0.7",
+        "fe80::42:acff:fe11:1",
+      ];
+      expect(hostDescriptive({ "host.ip": addresses })!["host.ip"]).toBe(
+        normalizeHostIpAddresses(addresses),
+      );
+    });
+
+    test("never becomes identifying, and never moves the entity key", () => {
+      const withIp: ExtractedEntity | undefined = entityOfType(
+        { ...IDENTITY, "host.ip": ["10.1.2.3", "10.1.2.4"] },
+        EntityType.Host,
+      );
+      const without: ExtractedEntity | undefined = entityOfType(
+        IDENTITY,
+        EntityType.Host,
+      );
+      expect(withIp!.identifyingAttributes).toEqual({
+        "host.name": "wbprjdeais002",
+      });
+      expect(withIp!.entityKey).toBe(without!.entityKey);
+    });
+  });
+
+  describe("serial number, make and model", () => {
+    test("land verbatim from the keys issue #3866 names", () => {
+      expect(
+        hostDescriptive({
+          "host.serial_number": "7XYZ123",
+          "device.manufacturer": "Dell Inc.",
+          "device.model.name": "OptiPlex 7090",
+        }),
+      ).toEqual({
+        "host.serial_number": "7XYZ123",
+        "device.manufacturer": "Dell Inc.",
+        "device.model.name": "OptiPlex 7090",
+      });
+    });
+
+    /*
+     * host.* is the namespace an operator reaches for when describing a
+     * machine. Accept it, but store under the canonical key so a CMDB
+     * export has one column per fact.
+     */
+    test.each([
+      ["host.manufacturer", "device.manufacturer", "Lenovo"],
+      ["host.model.name", "device.model.name", "ThinkSystem SR650"],
+      ["host.model", "device.model.name", "PowerEdge R760"],
+    ])(
+      "%s is accepted and stored as %s",
+      (alias: string, canonical: string, value: string) => {
+        expect(hostDescriptive({ [alias]: value })).toEqual({
+          [canonical]: value,
+        });
+      },
+    );
+
+    test("the canonical key wins when both spellings are present", () => {
+      expect(
+        hostDescriptive({
+          "device.manufacturer": "Dell Inc.",
+          "host.manufacturer": "ignored",
+        }),
+      ).toEqual({ "device.manufacturer": "Dell Inc." });
+    });
+
+    /*
+     * These arrive from a customer-controlled environment variable into a
+     * jsonb bag that never drops a key, and nothing downstream bounds them.
+     */
+    test("an over-long value is truncated, not dropped", () => {
+      const long: string = "D".repeat(400);
+      const value: string = hostDescriptive({ "device.manufacturer": long })![
+        "device.manufacturer"
+      ]!;
+      expect(value).toHaveLength(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH);
+      expect(long.startsWith(value)).toBe(true);
+    });
+
+    /*
+     * A cut that lands inside a surrogate pair leaves an unpaired half.
+     * JSON.stringify emits that as a bare \uD83D escape, which Postgres
+     * rejects on the jsonb write — and reconcile swallows its errors, so
+     * the row would just silently stop updating.
+     */
+    test("truncation never leaves a lone surrogate", () => {
+      // Put a non-BMP character exactly astride the cut.
+      const long: string =
+        "x".repeat(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH - 1) +
+        "\u{1F5A5}".repeat(20);
+      const value: string = hostDescriptive({ "device.manufacturer": long })![
+        "device.manufacturer"
+      ]!;
+
+      // One code unit short: the cut stepped back off the high surrogate.
+      expect(value).toHaveLength(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH - 1);
+
+      // No unpaired half in either direction.
+      const loneHighSurrogate: RegExp = new RegExp(
+        "[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])",
+      );
+      const loneLowSurrogate: RegExp = new RegExp(
+        "(?<![\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]",
+      );
+      expect(loneHighSurrogate.test(value)).toBe(false);
+      expect(loneLowSurrogate.test(value)).toBe(false);
+
+      /*
+       * The property that actually matters downstream: JSON.stringify must
+       * not emit a bare surrogate escape, because that is what the jsonb
+       * write rejects.
+       */
+      expect(JSON.stringify(value)).not.toMatch(
+        /\\u[dD][89abAB][0-9a-fA-F]{2}/,
+      );
+    });
+
+    test("a whole non-BMP character still survives when it fits", () => {
+      const long: string =
+        "x".repeat(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH - 2) +
+        "\u{1F5A5}".repeat(20);
+      const value: string = hostDescriptive({ "device.manufacturer": long })![
+        "device.manufacturer"
+      ]!;
+
+      expect(value).toHaveLength(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH);
+      expect(value.endsWith("\u{1F5A5}")).toBe(true);
+    });
+  });
+
+  test("os.description and host.id are collected too", () => {
+    expect(
+      hostDescriptive({
+        "host.id": "4C4C4544-0037-5A10-8054-B4C04F335931",
+        "os.description": "Microsoft Windows 11 Enterprise",
+      }),
+    ).toEqual({
+      "host.id": "4C4C4544-0037-5A10-8054-B4C04F335931",
+      "os.description": "Microsoft Windows 11 Enterprise",
+    });
+  });
+
+  /*
+   * The join is scoped to host.ip by key. Any tag names the same image, so
+   * container.image.tags must still collapse to its first element.
+   */
+  test("the list join did not leak into other array attributes", () => {
+    const container: ExtractedEntity | undefined = entityOfType(
+      {
+        "container.id": "c-1",
+        "container.image.name": "ghcr.io/acme/checkout",
+        "container.image.tags": ["7.2", "latest"],
+      },
+      EntityType.Container,
+    );
+    expect(container!.descriptiveAttributes!["container.image.tags"]).toBe(
+      "7.2",
+    );
+  });
+
+  describe("producer-declared entity_refs get the same treatment", () => {
+    function hostFromRef(attrs: EntityAttributes): ExtractedEntity | undefined {
+      return InventoryItem.extractEntities({
+        projectId: PROJECT,
+        attributes: attrs,
+        entityRefs: [
+          {
+            type: "host",
+            idKeys: ["host.name"],
+            descriptionKeys: ["host.ip", "device.manufacturer"],
+          },
+        ],
+      }).find((e: ExtractedEntity) => {
+        return e.entityType === EntityType.Host;
+      });
+    }
+
+    test("a description_keys host.ip is joined, not truncated", () => {
+      expect(
+        hostFromRef({ ...IDENTITY, "host.ip": ["10.1.2.3", "10.1.2.4"] })!
+          .descriptiveAttributes,
+      ).toEqual({ "host.ip": "10.1.2.3, 10.1.2.4" });
+    });
+
+    test("an over-long description value is capped", () => {
+      expect(
+        hostFromRef({
+          ...IDENTITY,
+          "device.manufacturer": "D".repeat(400),
+        })!.descriptiveAttributes!["device.manufacturer"],
+      ).toHaveLength(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH);
+    });
+
+    /*
+     * description_keys is producer-controlled, so the alias lookup takes a
+     * key we did not choose. An object-literal alias table would resolve
+     * "constructor" to Object.prototype.constructor — truthy, not iterable
+     * — and spreading it threw a TypeError out of extractEntities. Nothing
+     * up the ingest path catches that, so one malformed ref would have
+     * rejected the entire OTLP batch.
+     */
+    test.each(["constructor", "toString", "__proto__", "valueOf"])(
+      "a description_keys entry named %s does not throw",
+      (inheritedKey: string) => {
+        expect(() => {
+          return InventoryItem.extractEntities({
+            projectId: PROJECT,
+            attributes: { ...IDENTITY, "host.arch": "amd64" },
+            entityRefs: [
+              {
+                type: "host",
+                idKeys: ["host.name"],
+                descriptionKeys: [inheritedKey, "host.arch"],
+              },
+            ],
+          });
+        }).not.toThrow();
+      },
+    );
+
+    test("the batch still produces its entity alongside a poisoned key", () => {
+      const host: ExtractedEntity | undefined = InventoryItem.extractEntities({
+        projectId: PROJECT,
+        attributes: { ...IDENTITY, "host.arch": "amd64" },
+        entityRefs: [
+          {
+            type: "host",
+            idKeys: ["host.name"],
+            descriptionKeys: ["constructor", "host.arch"],
+          },
+        ],
+      }).find((e: ExtractedEntity) => {
+        return e.entityType === EntityType.Host;
+      });
+
+      expect(host!.descriptiveAttributes).toEqual({ "host.arch": "amd64" });
+    });
   });
 });
 

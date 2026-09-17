@@ -352,6 +352,132 @@ The receiver emits one `windows.service.status` gauge per service — the intege
 
 > **`include_services` has no effect?** The filter can only ever *narrow* the set, so if you list services and still see every one, the edited config almost certainly hasn't reached the running collector. Restart the service after editing (Step 3); make sure `include_services` is a populated list at the same indent as `collection_interval` (not left commented out or empty); and give the **Services** tab a few minutes so services reported before the change age out of its rolling window. The names are exact, case-sensitive Windows service _key_ names (e.g. `Spooler`, `W3SVC`), which you can list with `Get-Service | Select-Object Name`.
 
+### Inventory attributes (IP, serial number, make, model)
+
+Every host you monitor also gets an **Inventory** item — the record a CMDB export reads. Its *Details* section is filled straight from the resource attributes on the telemetry you send, so what arrives on the wire is what a CMDB sync can pull.
+
+| What you want | Attribute | Where it comes from |
+| ------------- | --------- | ------------------- |
+| IP addresses | `host.ip` | `resourcedetection`, comma-joined when the machine has several |
+| Architecture | `host.arch` | `resourcedetection` |
+| Machine id | `host.id` | `resourcedetection` — the machine GUID on Windows, `/etc/machine-id` on Linux |
+| OS | `os.type`, `os.description` | `resourcedetection` |
+| Serial number | `host.serial_number` | Stamped by you — WMI / DMI |
+| Make | `device.manufacturer` | Stamped by you — WMI / DMI |
+| Model | `device.model.name` | Stamped by you — WMI / DMI |
+
+Everything marked `resourcedetection` is handled by that processor, which every complete example below configures. `host.ip`, `host.arch`, `host.id` and `os.description` are opt-in in the system detector — only `host.name` and `os.type` are on by default — which is why those blocks list them explicitly under `resource_attributes`. If you assembled your own config from [Common pieces](#common-pieces-used-by-every-os) and the receiver blocks, copy the `resourcedetection` processor across too: without it there is no `host.name`, so no host and no inventory item at all.
+
+#### Serial number, make and model have no detector
+
+They live in the machine's firmware, which the collector does not read. On Linux that is not an oversight you can configure away: the packaged unit runs the collector as the unprivileged `otelcol-contrib` user and `/sys/class/dmi/id/product_serial` is root-only. So read them once, when the machine is provisioned, and stamp them onto the resource with a `resource` processor:
+
+```yaml
+processors:
+  resource/oneuptime-hardware:
+    attributes:
+      - key: host.serial_number
+        value: "7XYZ123"
+        action: upsert
+      - key: device.manufacturer
+        value: "Dell Inc."
+        action: upsert
+      - key: device.model.name
+        value: "OptiPlex 7090"
+        action: upsert
+
+service:
+  pipelines:
+    metrics:
+      processors: [resourcedetection, resource, resource/oneuptime-hardware, batch]
+```
+
+**Append `resource/oneuptime-hardware` to the processor list you already have — do not paste this line over it.** The complete examples on this page run `[resourcedetection, resource, batch]`, and `resource` is what upserts `service.name`; drop it and the batch arrives without one, so the telemetry re-lands under a `host/<hostname>` pseudo-service instead of the service you had. Keep `resourcedetection` first either way — it is what attaches the batch to the host in the first place.
+
+`host.manufacturer` and `host.model.name` are accepted as alternative spellings and are stored under the `device.*` keys above, so a config written either way lands in one place. If both are present the `device.*` value wins.
+
+> **On a resource with no host identity, `device.manufacturer` still means "mobile app".** It is one of the attributes that marks a batch as mobile Real User Monitoring. A host resource always carries `host.name` or `host.id`, so a collector config like the one above is never mistaken for a phone — but don't reuse the same block in a mobile app's SDK configuration.
+
+#### Reading the values
+
+**Windows** — from an elevated PowerShell prompt. This prints the YAML block for the machine you run it on:
+
+```powershell
+$bios = Get-CimInstance -ClassName Win32_BIOS
+$cs   = Get-CimInstance -ClassName Win32_ComputerSystem
+
+# Quote for YAML: trim, escape any embedded quote, wrap in single quotes.
+# The cast to string first is what keeps this working on machines whose
+# firmware leaves a field empty — .Trim() on $null throws.
+function Format-YamlValue($value) {
+  "'" + ("$value".Trim() -replace "'", "''") + "'"
+}
+
+@"
+  resource/oneuptime-hardware:
+    attributes:
+      - key: host.serial_number
+        value: $(Format-YamlValue $bios.SerialNumber)
+        action: upsert
+      - key: device.manufacturer
+        value: $(Format-YamlValue $cs.Manufacturer)
+        action: upsert
+      - key: device.model.name
+        value: $(Format-YamlValue $cs.Model)
+        action: upsert
+"@
+```
+
+It prints one processor entry, already indented — add it inside the `processors:` block you already have, not as a second `processors:` key.
+
+Use `Get-CimInstance`, not the deprecated `Get-WmiObject` — the latter is absent from PowerShell 7 and later. A field the firmware leaves empty prints as `''`; drop that attribute rather than shipping a blank one. Virtual machines often have no serial number at all.
+
+**Linux** — as root:
+
+```bash
+cat /sys/class/dmi/id/product_serial   # host.serial_number
+cat /sys/class/dmi/id/sys_vendor       # device.manufacturer
+cat /sys/class/dmi/id/product_name     # device.model.name
+```
+
+`dmidecode -s system-serial-number`, `-s system-manufacturer` and `-s system-product-name` return the same values on machines without `/sys/class/dmi`. Virtual machines report their hypervisor here (`QEMU`, `VMware, Inc.`, `Amazon EC2`), which is usually what you want in a CMDB.
+
+**macOS**:
+
+```bash
+ioreg -l | awk -F'"' '/IOPlatformSerialNumber/{print $4}'   # host.serial_number
+sysctl -n hw.model                                          # device.model.name
+```
+
+The manufacturer is `Apple Inc.`
+
+`hw.model` returns the model *identifier* — `Mac14,7`, `MacBookPro18,3` — not the marketing name, so Macs read differently from the Windows and Linux rows in the same CMDB column. There is no marketing name available locally; map the identifier in your CMDB if you need one.
+
+> **Put it in `device.model.name` anyway.** The obvious-looking `device.model.identifier` is an *unconditional* mobile Real User Monitoring marker — unlike `device.manufacturer` it is not covered by the host-identity check — so a Mac stamped with it is filed as a phone and detached from its host record.
+
+#### Using environment variables instead
+
+The `env` detector is already enabled, so `OTEL_RESOURCE_ATTRIBUTES` works as an alternative to the `resource` processor:
+
+```
+OTEL_RESOURCE_ATTRIBUTES=host.serial_number=7XYZ123,device.manufacturer=Dell%20Inc.,device.model.name=OptiPlex%207090
+```
+
+**Percent-encode every value.** The variable is parsed as a `key=value` list in W3C Baggage format, where `,` and `=` are delimiters and unencoded spaces are not portable across collector versions — quoting does not reliably help, and `device.manufacturer="Dell Inc."` can arrive with the quotes as part of the value. On Windows, `[System.Uri]::EscapeDataString($value)` does the encoding.
+
+Where the variable goes depends on how the collector runs. **Scope it to the collector's own service, not the whole machine:**
+
+- **Linux:** `sudo systemctl edit otelcol-contrib`, then a `[Service]` section with `Environment="OTEL_RESOURCE_ATTRIBUTES=…"`.
+- **Windows:** the `Environment` value (type `REG_MULTI_SZ`) under `HKLM\SYSTEM\CurrentControlSet\Services\otelcol-contrib`. `sc.exe create` cannot set service environment variables, and `setx` sets a user or machine variable that the already-running service never re-reads.
+
+> **Do not set this machine-wide** (`setx /M`, `/etc/environment`). Every OpenTelemetry SDK process on the box inherits `OTEL_RESOURCE_ATTRIBUTES`, so your applications would start reporting the machine's `device.manufacturer` as their own. An application resource that carries no `host.name` or `host.id` and does carry `device.manufacturer` is read as a mobile app, which detaches it from its Service.
+
+The `resource` processor is easier to get right, is scoped to the collector by construction, and the values never change for a given machine — prefer it unless you already template environment files.
+
+#### Checking it worked
+
+Open the host in OneUptime, follow **Open inventory item** from the host page, and look at the *Details* section of the **Attributes** card. Values appear within a few minutes of the next batch. Because they are stamped rather than detected, they do not update themselves — re-run the steps above after a motherboard swap or a re-image.
+
 ### Complete example — Linux host
 
 `/etc/otelcol-contrib/config.yaml`:
@@ -396,6 +522,18 @@ processors:
     detectors: [system, env]
     system:
       hostname_sources: [os]
+      # Only host.name and os.type are on by default. The four below
+      # are opt-in; OneUptime shows them on the host's Network card and
+      # on its Inventory item, which is what a CMDB export reads.
+      resource_attributes:
+        host.arch:
+          enabled: true
+        host.id:
+          enabled: true
+        host.ip:
+          enabled: true
+        os.description:
+          enabled: true
   resource:
     attributes:
       - key: service.name
@@ -454,6 +592,18 @@ processors:
     detectors: [system, env]
     system:
       hostname_sources: [os]
+      # Only host.name and os.type are on by default. The four below
+      # are opt-in; OneUptime shows them on the host's Network card and
+      # on its Inventory item, which is what a CMDB export reads.
+      resource_attributes:
+        host.arch:
+          enabled: true
+        host.id:
+          enabled: true
+        host.ip:
+          enabled: true
+        os.description:
+          enabled: true
   resource:
     attributes:
       - key: service.name
@@ -523,6 +673,18 @@ processors:
     detectors: [system, env]
     system:
       hostname_sources: [os]
+      # Only host.name and os.type are on by default. The four below
+      # are opt-in; OneUptime shows them on the host's Network card and
+      # on its Inventory item, which is what a CMDB export reads.
+      resource_attributes:
+        host.arch:
+          enabled: true
+        host.id:
+          enabled: true
+        host.ip:
+          enabled: true
+        os.description:
+          enabled: true
   resource:
     attributes:
       - key: service.name
@@ -847,6 +1009,18 @@ processors:
     detectors: [system, env]
     system:
       hostname_sources: [os]
+      # Only host.name and os.type are on by default. The four below
+      # are opt-in; OneUptime shows them on the host's Network card and
+      # on its Inventory item, which is what a CMDB export reads.
+      resource_attributes:
+        host.arch:
+          enabled: true
+        host.id:
+          enabled: true
+        host.ip:
+          enabled: true
+        os.description:
+          enabled: true
   resource:
     attributes:
       - key: service.name

@@ -3,6 +3,11 @@ import {
   canonicalizeEntityValue,
   setSha256Provider,
 } from "../../../Utils/Telemetry/EntityKey";
+import {
+  MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+  MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+  normalizeHostIpAddresses,
+} from "../../../Utils/Telemetry/HostIpAddresses";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import Dictionary from "../../../Types/Dictionary";
 import logger from "../Logger";
@@ -45,6 +50,26 @@ setSha256Provider((input: string): string => {
 
 /** Scalar attribute value as seen after `TelemetryUtil.getAttributes`. */
 export type EntityAttributeValue = string | number | boolean | null | undefined;
+
+/**
+ * Longest descriptive attribute value we persist.
+ *
+ * Descriptive attributes are display metadata for one row of a definition
+ * list, but several of them now come from the collector's `env` resource
+ * detector — i.e. straight from a customer-controlled environment variable
+ * of unbounded length — into a `jsonb` bag that is merged additively and
+ * never prunes a key (`InventoryItemService.buildDescriptiveUpdate`).
+ * Nothing below this point bounds them: `getMaxLengthFromTableColumnType`
+ * returns undefined for a JSON column, so `DatabaseService`'s length check
+ * and truncation both skip it. So bound them here, at the one place both
+ * producers pass through.
+ *
+ * One value is bounded elsewhere instead: a joined `host.ip` list carries
+ * its own cap (`MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH`, 512) because it
+ * has to truncate on whole addresses rather than mid-string. So 512, not
+ * this, is the true ceiling for that one key.
+ */
+export const MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH: number = 256;
 
 /**
  * A flat resource-attribute map keyed by the *raw* semconv attribute name
@@ -395,7 +420,10 @@ export default class InventoryItem {
         if (typeof key !== "string" || key.trim().length === 0) {
           continue;
         }
-        const value: string | null = this.strOrFirst(data.attributes, key);
+        const value: string | null = this.descriptiveValueFor(
+          data.attributes,
+          key,
+        );
         if (value) {
           descriptiveAttributes[key] = value;
         }
@@ -1010,17 +1038,40 @@ export default class InventoryItem {
     ]);
 
   /*
-   * Per-type descriptive allowlists (heuristic path). Deliberately tiny
-   * (<= ~6 keys each): the registry merges these last-writer-wins, so
-   * only stable, dashboard-worthy metadata belongs here. Types not
-   * listed emit no descriptive attributes.
+   * Per-type descriptive allowlists (heuristic path). The registry merges
+   * these last-writer-wins and never prunes a key, so only stable
+   * metadata that is worth a row on the item's Attributes card belongs
+   * here. Types not listed emit no descriptive attributes.
+   *
+   * Keep every list tiny — roughly six keys — with ONE deliberate
+   * exception. `host` is the type people export into a CMDB (issue
+   * #3866), and a CMDB row wants the machine's asset facts, not a
+   * sample of them. Its list is therefore the catalogue of what a
+   * host's Attributes card can show, and it is allowed to be longer.
+   * That is a reason for this one type, not a licence to grow the rest.
    */
   private static readonly descriptiveAttributeKeysByType: Partial<
     Record<EntityType, Array<string>>
   > = {
+    /*
+     * `os.type` / `os.description` / `host.arch` / `host.id` / `host.ip`
+     * all come free from the collector's `system` resource detector, and
+     * the config OneUptime generates on the host's Documentation tab
+     * already enables every one of them.
+     *
+     * No detector can produce a serial number, make or model — those are
+     * read from WMI (Windows) or DMI (Linux) at provisioning time and
+     * stamped onto the resource, which is what the docs now describe.
+     */
     [EntityType.Host]: [
       "os.type",
+      "os.description",
       "host.arch",
+      "host.id",
+      "host.ip",
+      "host.serial_number",
+      "device.manufacturer",
+      "device.model.name",
       "cloud.provider",
       "cloud.region",
       "cloud.availability_zone",
@@ -1067,6 +1118,46 @@ export default class InventoryItem {
     ],
   };
 
+  /*
+   * Extra source spellings accepted for a canonical descriptive key, in
+   * fallback order. The canonical key always wins when both are present,
+   * and the canonical key is what gets stored — so a CMDB export has one
+   * column per fact no matter which spelling the collector sent.
+   *
+   * Make and model are the case this exists for. `device.manufacturer` /
+   * `device.model.name` are the OpenTelemetry attributes and what issue
+   * #3866 asks for, so they are canonical here. But `host.*` is the
+   * namespace an operator reaches for when describing a machine, and a
+   * config written that way should not silently produce nothing.
+   *
+   * A Map rather than an object literal, deliberately. The lookup key can
+   * come from a producer's `entity_refs` `description_keys`, so an object
+   * would resolve `"constructor"` or `"toString"` to something inherited
+   * from Object.prototype — truthy but not iterable, and spreading it threw
+   * a TypeError out of extraction for the whole batch.
+   */
+  private static readonly descriptiveAttributeAliases: ReadonlyMap<
+    string,
+    ReadonlyArray<string>
+  > = new Map<string, ReadonlyArray<string>>([
+    ["device.manufacturer", ["host.manufacturer"]],
+    ["device.model.name", ["host.model.name", "host.model"]],
+  ]);
+
+  /*
+   * Descriptive keys whose OpenTelemetry value is a LIST, where the list
+   * itself is the fact.
+   *
+   * `strOrFirst` keeps the first element, which is right for
+   * `container.image.tags` (any tag names the same image) and wrong for
+   * `host.ip` (one arbitrary NIC address is not "the host's IP" — on a
+   * Docker host it is as likely to be a veth as the LAN address). These
+   * keys are deduped and comma-joined through the same helper that fills
+   * `Host.hostIpAddresses`, so the two surfaces read identically.
+   */
+  private static readonly joinedListDescriptiveKeys: ReadonlySet<string> =
+    new Set<string>(["host.ip"]);
+
   private static descriptiveAttributesFor(
     entityType: EntityType,
     attrs: EntityAttributes,
@@ -1080,13 +1171,121 @@ export default class InventoryItem {
     }
 
     for (const key of keys) {
-      const value: string | null = this.strOrFirst(attrs, key);
+      const value: string | null = this.descriptiveValueFor(attrs, key);
       if (value) {
         out[key] = value;
       }
     }
 
     return out;
+  }
+
+  /**
+   * Resolve one descriptive value under its canonical key.
+   *
+   * Both descriptive producers — the heuristic allowlist and the
+   * producer-declared `entity_refs` `description_keys` — go through here,
+   * so the aliases, the list policy and the length cap cannot fork
+   * between them.
+   */
+  private static descriptiveValueFor(
+    attrs: EntityAttributes,
+    key: string,
+  ): string | null {
+    const sources: Array<string> = [
+      key,
+      ...(this.descriptiveAttributeAliases.get(key) || []),
+    ];
+
+    // The policy belongs to the canonical key, so it is fixed for every source.
+    const isJoinedList: boolean = this.joinedListDescriptiveKeys.has(key);
+
+    for (const source of sources) {
+      if (isJoinedList) {
+        const joined: string | null = normalizeHostIpAddresses(
+          this.descriptiveList(attrs, source),
+          {
+            maxCount: MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+            maxLength: MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+          },
+        );
+        if (joined) {
+          return joined;
+        }
+        continue;
+      }
+
+      const value: string | null = this.strOrFirst(attrs, source);
+      if (value) {
+        return this.truncateDescriptiveValue(value);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Read an attribute as a list of strings.
+   *
+   * Two shapes arrive for the same fact. A collector that detects
+   * `host.ip` sends an OTLP array, which reaches us as a real JS array.
+   * The `env` detector can only express scalars, so the same list set
+   * through `OTEL_RESOURCE_ATTRIBUTES` arrives as one comma-separated
+   * string. Splitting on the comma makes both routes produce the same
+   * attribute, and is safe because no IPv4 or IPv6 literal contains one.
+   */
+  private static descriptiveList(
+    attrs: EntityAttributes,
+    key: string,
+  ): Array<string> {
+    const value: EntityAttributeValue | Array<EntityAttributeValue> = attrs
+      ? attrs[key]
+      : undefined;
+
+    if (Array.isArray(value)) {
+      const out: Array<string> = [];
+      for (const item of value) {
+        if (typeof item === "string") {
+          out.push(...item.split(","));
+        } else if (typeof item === "number" || typeof item === "boolean") {
+          out.push(String(item));
+        }
+      }
+      return out;
+    }
+
+    if (typeof value === "string") {
+      return value.split(",");
+    }
+
+    return [];
+  }
+
+  /**
+   * Bound one descriptive value. Truncation is silent by design: the
+   * alternative is dropping the attribute entirely, and a truncated
+   * manufacturer string still identifies the manufacturer.
+   *
+   * The cut steps back off a lone surrogate. `substring` counts UTF-16
+   * code units, so a cut that lands inside a surrogate pair leaves an
+   * unpaired half; `JSON.stringify` emits that as a bare `\uD83D`, which
+   * Postgres rejects when the value reaches the `jsonb` column. Reconcile
+   * swallows its errors, so the symptom would be an inventory row that
+   * silently stops updating rather than anything that surfaces.
+   */
+  private static truncateDescriptiveValue(value: string): string {
+    if (value.length <= MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH) {
+      return value;
+    }
+
+    let end: number = MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH;
+    const lastUnit: number = value.charCodeAt(end - 1);
+    const isHighSurrogate: boolean = lastUnit >= 0xd800 && lastUnit <= 0xdbff;
+    if (isHighSurrogate) {
+      end -= 1;
+    }
+
+    return value.substring(0, end);
   }
 
   /**

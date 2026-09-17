@@ -71,6 +71,8 @@ Hosts are auto-discovered from the OTel \`host.name\` resource attribute. Once y
 
 …OneUptime will register the host automatically and start populating the Overview, Metrics, Processes, and Logs tabs.
 
+The same resource attributes become the machine's **Inventory** item, which is what a CMDB export reads. \`host.ip\`, \`host.arch\`, \`host.id\`, \`os.type\` and \`os.description\` all come from the \`resourcedetection\` processor in Step 1; serial number, make and model have no detector and are stamped on separately (see below).
+
 ## Step 1 — Save the collector config
 
 Drop this into \`config.yaml\` next to wherever you'll run the collector. The same file is used for every install method below — only the way the collector is started differs.
@@ -125,7 +127,8 @@ processors:
         host.arch:
           enabled: true
         # host.ip is opt-in in the system detector. OneUptime
-        # surfaces it on the Host Network card, so enable it here.
+        # surfaces it on the Host Network card and on the host's
+        # Inventory item, so enable it here.
         host.ip:
           enabled: true
         os.type:
@@ -175,6 +178,38 @@ service:
 \`\`\`
 
 The host above shows up tagged \`team:payments\`, \`env:production\`, and \`region:us-east-1\`. Labels are matched case-insensitively, so an existing manually-created \`Production\` label is reused rather than duplicated. Labels added manually in the OneUptime UI are never removed by the collector.
+
+## Optional — Record the machine's serial number, make and model
+
+The config above already fills the machine's IP addresses, architecture, machine id and OS description onto its **Inventory** item, which is what a CMDB export reads.
+
+Serial number, make and model are different: **no resource detector can produce them.** They come from the machine's firmware — WMI on Windows, DMI on Linux — and the collector runs unprivileged on Linux, so it cannot read them itself. Read them once at provisioning time and stamp them onto the resource:
+
+\`\`\`yaml
+processors:
+  resource/oneuptime-hardware:
+    attributes:
+      - key: host.serial_number
+        value: "7XYZ123"
+        action: upsert
+      - key: device.manufacturer
+        value: "Dell Inc."
+        action: upsert
+      - key: device.model.name
+        value: "OptiPlex 7090"
+        action: upsert
+
+service:
+  pipelines:
+    metrics:
+      processors: [resourcedetection, resource/oneuptime-hardware, batch]
+\`\`\`
+
+The values are the machine's own, so they are written once by whatever provisions it. The Windows install method below prints the exact block for the machine you run it on; on Linux read \`/sys/class/dmi/id/product_serial\`, \`sys_vendor\` and \`product_name\` as root, and on macOS use \`ioreg\` and \`sysctl -n hw.model\`.
+
+\`host.manufacturer\` and \`host.model.name\` are accepted as alternative spellings and stored under the \`device.*\` keys above, so a config written either way ends up in one place.
+
+> **Don't set \`device.manufacturer\` on a mobile app's resource and a host's from the same config.** On a resource that carries no \`host.name\` or \`host.id\`, \`device.manufacturer\` still marks the batch as mobile Real User Monitoring.
 `;
 }
 
@@ -436,6 +471,53 @@ Restart-Service otelcol-contrib
 \`\`\`
 
 The receiver is **Windows-only** and **alpha**. Once metrics arrive, the host **Services** tab populates automatically with each service's running state and startup type. If you set \`include_services\` but still see every service, the collector hasn't picked up the edit — restart the service and give the Services tab a few minutes to refresh its rolling window.
+
+## Step 4 — Record the serial number, make and model
+
+These three come from WMI, which no resource detector reads. Run this from an elevated PowerShell prompt on the machine — it queries WMI and prints the exact YAML for *this* machine:
+
+\`\`\`powershell
+$bios = Get-CimInstance -ClassName Win32_BIOS
+$cs   = Get-CimInstance -ClassName Win32_ComputerSystem
+
+# Quote for YAML: trim, escape any embedded quote, wrap in single quotes.
+# The cast to string first is what keeps this working on machines whose
+# firmware leaves a field empty — .Trim() on a null value throws.
+function Format-YamlValue($value) {
+  "'" + ("$value".Trim() -replace "'", "''") + "'"
+}
+
+@"
+  resource/oneuptime-hardware:
+    attributes:
+      - key: host.serial_number
+        value: $(Format-YamlValue $bios.SerialNumber)
+        action: upsert
+      - key: device.manufacturer
+        value: $(Format-YamlValue $cs.Manufacturer)
+        action: upsert
+      - key: device.model.name
+        value: $(Format-YamlValue $cs.Model)
+        action: upsert
+"@
+\`\`\`
+
+It prints one processor entry, already indented. Add it inside the \`processors:\` block your \`config.yaml\` already has — alongside \`resourcedetection:\` and \`batch:\`, not as a second \`processors:\` key — then name it in the metrics pipeline and restart:
+
+\`\`\`yaml
+service:
+  pipelines:
+    metrics:
+      processors: [resourcedetection, resource/oneuptime-hardware, batch]
+\`\`\`
+
+\`\`\`powershell
+Restart-Service otelcol-contrib
+\`\`\`
+
+Use \`Get-CimInstance\`, not the deprecated \`Get-WmiObject\` — it is absent from PowerShell 7 and later. Values are emitted in single quotes with any embedded quote doubled, so a serial or model containing punctuation stays valid YAML. A field the firmware leaves empty prints as \`''\`; drop that attribute rather than shipping a blank one.
+
+Within a few minutes the machine's **Inventory** item shows \`host.serial_number\`, \`device.manufacturer\` and \`device.model.name\` under **Details**, alongside the IP addresses and machine id the detector already supplies. Run this again after a motherboard swap — the values are stamped, not detected, so they do not update themselves.
 `;
 
     case "kubernetes":

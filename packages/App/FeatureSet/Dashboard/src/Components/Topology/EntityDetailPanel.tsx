@@ -77,7 +77,15 @@ interface ConnectionRow {
   sentence: string;
 }
 
-/* Descriptive attributes worth a line in the drawer, in display order. */
+/*
+ * Descriptive attributes worth a line in the drawer, in display order.
+ *
+ * This is a summary, so it is deliberately narrower than the item's own
+ * Attributes card, which shows every descriptive attribute we hold. But
+ * it must not tell a different story about the same machine, so the host
+ * asset facts belong here too. `os.description` and `host.id` stay out:
+ * both are long, and neither reads at a glance.
+ */
 const DETAIL_ATTRIBUTES: Array<{ key: string; label: string }> = [
   { key: "telemetry.sdk.language", label: "Language" },
   { key: "db.system.name", label: "Database engine" },
@@ -86,6 +94,10 @@ const DETAIL_ATTRIBUTES: Array<{ key: string; label: string }> = [
   { key: "k8s.node.name", label: "Node" },
   { key: "os.type", label: "Operating system" },
   { key: "host.arch", label: "Architecture" },
+  { key: "host.ip", label: "IP Address" },
+  { key: "device.manufacturer", label: "Manufacturer" },
+  { key: "device.model.name", label: "Model Name" },
+  { key: "host.serial_number", label: "Serial Number" },
   { key: "cloud.provider", label: "Cloud provider" },
   { key: "cloud.region", label: "Region" },
 ];
