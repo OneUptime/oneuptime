@@ -5,6 +5,8 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
   HTTP_RETRIES_ON_FAILURE_DESCRIPTION,
   NETWORK_RETRIES_ON_FAILURE_DESCRIPTION,
+  PROBE_DEFAULT_RETRY_COUNT_LABEL,
+  REQUEST_TIMEOUT_DESCRIPTION,
   SSL_RETRIES_ON_FAILURE_DESCRIPTION,
   getRetriesOnFailureDescription,
 } from "../../FeatureSet/Dashboard/src/Utils/MonitorRetryHelpText";
@@ -16,11 +18,10 @@ import {
  * tests below are for.
  *
  * The probe counts the value as retries AFTER the first attempt, and it does
- * not behave the same way for every monitor type: HTTP checks skip timeouts
- * and unusable targets, network checks retry everything, and SSL checks refuse
- * to retry the certificate verdict that is the whole point of the monitor. A
- * type pointed at the wrong variant reads as a promise the probe does not
- * keep.
+ * names the failures retried by each monitor type. HTTP checks include error
+ * responses and timeouts, while SSL checks include failed certificate
+ * validation. A type pointed at the wrong variant makes a promise the probe
+ * does not keep.
  *
  * The text is translated by exact-key lookup, so each string must also be a
  * key in every Dashboard locale file, or it silently renders in English for
@@ -97,19 +98,24 @@ const DESCRIPTIONS: Array<string> = [
   SSL_RETRIES_ON_FAILURE_DESCRIPTION,
 ];
 
+const TRANSLATED_TEXT: Array<string> = [
+  ...DESCRIPTIONS,
+  PROBE_DEFAULT_RETRY_COUNT_LABEL,
+  REQUEST_TIMEOUT_DESCRIPTION,
+];
+
 /*
- * Wordings this field has carried before. They must not survive anywhere: the
- * first counted retries ambiguously, the next two promised a flat default of 3
- * and one set of retry exclusions for every monitor type, and the last one
- * claimed a certificate verdict or a timeout arrives after a single attempt.
- * SslMonitor only stops FURTHER retries on those two conditions, so a
- * connection failure retried into a timeout is reported after two.
+ * Retired descriptions must disappear from every locale as the contract
+ * changes, including the old timeout and certificate-validation exclusions.
  */
 const SUPERSEDED_DESCRIPTIONS: Array<string> = [
   "How many times to retry if the check fails. Set to 0 for no retries. Defaults to 3. Maximum is 3.",
   "How many times to retry after the first attempt fails. For example, 2 means up to 3 attempts in total. Set to 0 for no retries. Defaults to 3. Maximum is 3.",
   "How many times to retry after the first attempt fails. For example, 2 means up to 3 attempts in total. Set to 0 for no retries. Defaults to 3. Maximum is 3. Timeouts are not retried. Neither are failures to look up or validate the target, such as a hostname that does not resolve: the probe retries DNS lookups itself, within its DNS lookup time limit.",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. Only connection failures are retried: a certificate that fails validation, or a check that times out, is reported after one attempt.",
+  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. It also limits re-checks of a successful response slower than 10 seconds. Timeouts are not retried, and neither are targets that do not resolve or are blocked.",
+  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. Only connection failures are retried: a certificate that fails validation, and a check that times out, are not retried.",
+  "How long to wait for a response before timing out. Defaults to 60 seconds. Maximum is 60 seconds.",
 ];
 
 /*
@@ -175,14 +181,25 @@ describe("Retries on Failure descriptions", () => {
     }
   });
 
-  test("Website and API say what is not retried, and that a slow success is re-checked", () => {
+  test("Website and API include HTTP errors, timeouts and slow successful responses", () => {
     expect(HTTP_RETRIES_ON_FAILURE_DESCRIPTION).toContain(
       "a successful response slower than 10 seconds",
     );
     expect(HTTP_RETRIES_ON_FAILURE_DESCRIPTION).toContain(
+      "Connection failures, timeouts, and HTTP 4xx and 5xx responses are retried",
+    );
+    expect(HTTP_RETRIES_ON_FAILURE_DESCRIPTION).toContain(
+      "Each request attempt gets a new timeout",
+    );
+    expect(HTTP_RETRIES_ON_FAILURE_DESCRIPTION).not.toContain(
       "Timeouts are not retried",
     );
-    expect(HTTP_RETRIES_ON_FAILURE_DESCRIPTION).toContain("do not resolve");
+  });
+
+  test("Website and API retain target, response-size and redirect protections", () => {
+    expect(HTTP_RETRIES_ON_FAILURE_DESCRIPTION).toContain(
+      "Invalid or blocked targets, oversized responses, and too many redirects are not retried",
+    );
   });
 
   test("Ping, IP and Port say every failure is retried, including a slow success", () => {
@@ -194,20 +211,11 @@ describe("Retries on Failure descriptions", () => {
     );
   });
 
-  test("SSL Certificate says the certificate verdict and a timeout are not retried", () => {
+  test("SSL Certificate includes certificate validation failures and timeouts", () => {
     expect(SSL_RETRIES_ON_FAILURE_DESCRIPTION).toContain(
-      "Only connection failures are retried",
+      "Connection failures, certificate validation failures, and timeouts are retried",
     );
-    expect(SSL_RETRIES_ON_FAILURE_DESCRIPTION).toContain(
-      "a certificate that fails validation",
-    );
-    expect(SSL_RETRIES_ON_FAILURE_DESCRIPTION).toContain("times out");
-    expect(SSL_RETRIES_ON_FAILURE_DESCRIPTION).toContain("are not retried");
-    /*
-     * Both retry sites in SslMonitor only stop FURTHER retries on those two
-     * conditions, so the text must not promise a single attempt: a connection
-     * failure retried into a timeout is reported after two.
-     */
+    expect(SSL_RETRIES_ON_FAILURE_DESCRIPTION).not.toContain("are not retried");
     expect(SSL_RETRIES_ON_FAILURE_DESCRIPTION).not.toContain(
       "after one attempt",
     );
@@ -226,6 +234,19 @@ describe("Retries on Failure descriptions", () => {
   });
 });
 
+describe("Request timeout description", () => {
+  test("each request or connection attempt gets its own timeout", () => {
+    expect(REQUEST_TIMEOUT_DESCRIPTION).toContain(
+      "each request or connection attempt",
+    );
+    expect(REQUEST_TIMEOUT_DESCRIPTION).toContain(
+      "Each retry gets a new timeout",
+    );
+    expect(REQUEST_TIMEOUT_DESCRIPTION).toContain("Defaults to 60 seconds");
+    expect(REQUEST_TIMEOUT_DESCRIPTION).toContain("Maximum is 60 seconds");
+  });
+});
+
 describe("Monitor step form", () => {
   /*
    * Asserted against the source as tokens, never as a quoted span of JSX: the
@@ -241,6 +262,11 @@ describe("Monitor step form", () => {
     );
   });
 
+  test("the timeout field uses the translated per-attempt description", () => {
+    expect(source).toContain("description={REQUEST_TIMEOUT_DESCRIPTION}");
+    expect(source).not.toContain(REQUEST_TIMEOUT_DESCRIPTION);
+  });
+
   test("no description is inlined in the form", () => {
     for (const description of [...DESCRIPTIONS, ...SUPERSEDED_DESCRIPTIONS]) {
       expect(source).not.toContain(description);
@@ -252,7 +278,7 @@ describe("Locales", () => {
   test("en.json carries every variant as an identity pair", () => {
     const en: Record<string, unknown> = readLocale("en");
 
-    for (const description of DESCRIPTIONS) {
+    for (const description of TRANSLATED_TEXT) {
       expect(en[description]).toBe(description);
     }
   });
@@ -262,12 +288,23 @@ describe("Locales", () => {
     (locale: string) => {
       const json: Record<string, unknown> = readLocale(locale);
 
-      for (const description of DESCRIPTIONS) {
+      for (const description of TRANSLATED_TEXT) {
         const translated: unknown = json[description];
         expect(typeof translated).toBe("string");
         expect((translated as string).trim().length).toBeGreaterThan(0);
         expect(ANY_DECIMAL_DIGIT.test(translated as string)).toBe(true);
       }
+    },
+  );
+
+  test.each(LOCALES)(
+    "%s.json names both HTTP error response classes",
+    (locale: string) => {
+      const description: string = readLocale(locale)[
+        HTTP_RETRIES_ON_FAILURE_DESCRIPTION
+      ] as string;
+      expect(description).toContain("4xx");
+      expect(description).toContain("5xx");
     },
   );
 
@@ -279,7 +316,7 @@ describe("Locales", () => {
 
       const json: Record<string, unknown> = readLocale(locale);
 
-      for (const description of DESCRIPTIONS) {
+      for (const description of TRANSLATED_TEXT) {
         expect(json[description]).not.toBe(description);
       }
     }

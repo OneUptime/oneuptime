@@ -152,7 +152,11 @@ import ExternalStatusPageMonitorStepForm from "./ExternalStatusPageMonitor/Exter
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
-import { getRetriesOnFailureDescription } from "../../../Utils/MonitorRetryHelpText";
+import {
+  getRetriesOnFailureDescription,
+  PROBE_DEFAULT_RETRY_COUNT_LABEL,
+  REQUEST_TIMEOUT_DESCRIPTION,
+} from "../../../Utils/MonitorRetryHelpText";
 
 /*
  * The interface picker on an SNMP criteria is a picker, not an inventory. A
@@ -708,9 +712,7 @@ return {
         <div>
           <FieldLabelElement
             title={"Request Timeout (seconds)"}
-            description={
-              "How long to wait for a response before timing out. Defaults to 60 seconds. Maximum is 60 seconds."
-            }
+            description={REQUEST_TIMEOUT_DESCRIPTION}
             required={false}
           />
           <Input
@@ -745,11 +747,11 @@ return {
             required={false}
           />
           <Input
-            initialValue={
+            value={
               monitorStep.data?.retryCount !== undefined &&
               monitorStep.data?.retryCount !== null
                 ? monitorStep.data.retryCount.toString()
-                : "3"
+                : ""
             }
             onChange={(value: string) => {
               const num: number = parseInt(value);
@@ -763,7 +765,8 @@ return {
                 props.onChange(MonitorStep.clone(monitorStep));
               }
             }}
-            placeholder="3"
+            placeholder={PROBE_DEFAULT_RETRY_COUNT_LABEL}
+            ariaLabel="Retries on Failure"
             type={InputType.NUMBER}
           />
         </div>

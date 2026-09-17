@@ -331,7 +331,9 @@ const attempt: AttemptFunction = async (
   const errorResponsesBefore: number = sendErrorResponse.mock.calls.length;
 
   let reachedHandler: boolean = false;
-  let handlerError: Exception | undefined = undefined;
+  const handlerResult: { error: Exception | undefined } = {
+    error: undefined,
+  };
 
   for (let index: number = 0; index < handlers.length; index++) {
     const handler: RouteHandler = handlers[index] as RouteHandler;
@@ -341,7 +343,7 @@ const attempt: AttemptFunction = async (
 
     const next: NextFunction = ((err?: Exception): void => {
       if (isHandler) {
-        handlerError = err;
+        handlerResult.error = err;
       }
 
       continued = true;
@@ -369,7 +371,7 @@ const attempt: AttemptFunction = async (
 
   return {
     reachedHandler,
-    handlerError,
+    handlerError: handlerResult.error,
     errorCode: error?.code,
     errorMessage: error?.message,
     retryAfter: headers["Retry-After"],
@@ -414,10 +416,7 @@ describe("Status page /login - attempt limiting", () => {
   });
 
   it("registers a limiter ahead of the handler", () => {
-    const handlers: Array<RouteHandler> = mockRouter.matchAll(
-      "post",
-      "/login",
-    );
+    const handlers: Array<RouteHandler> = mockRouter.matchAll("post", "/login");
 
     expect(handlers).toHaveLength(2);
     expect(handlers[0]).not.toBe(mockRouter.match("post", "/login"));
@@ -513,7 +512,9 @@ describe("Status page /login - attempt limiting", () => {
     let reached: number = 0;
 
     for (let i: number = 0; i < PER_IP_LIMIT + 10; i++) {
-      if ((await attempt({ email: `rotating-${i}@example.com` })).reachedHandler) {
+      if (
+        (await attempt({ email: `rotating-${i}@example.com` })).reachedHandler
+      ) {
         reached++;
       }
     }

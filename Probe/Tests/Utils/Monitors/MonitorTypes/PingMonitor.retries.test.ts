@@ -184,3 +184,19 @@ describe("PingMonitor.ping retries on a slow reply", () => {
     },
   );
 });
+
+test("recovers after a timed-out ping and keeps the failed attempt", async () => {
+  probeSpy
+    .mockRejectedValueOnce(new Error("timeout exceeded"))
+    .mockResolvedValue(makePingResult());
+  const response: PingResponse | null = await PingMonitor.ping(
+    new IPv4("10.0.0.5"),
+    { retry: 3, isOnlineCheckRequest: true },
+  );
+  expect(response?.isOnline).toBe(true);
+  expect(response?.totalAttempts).toBe(2);
+  expect(response?.probeAttempts?.[0]?.failureCause).toContain("timeout");
+  expect(response?.probeAttempts?.[1]?.isOnline).toBe(true);
+  expect(probeSpy).toHaveBeenCalledTimes(2);
+  expect(sleepSpy).toHaveBeenCalledTimes(1);
+});

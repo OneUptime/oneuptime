@@ -153,19 +153,21 @@ export default class SSLMonitor {
         responseReceivedAt,
         responseTimeInMs,
         isOnline: res.isOnline,
-        failureCause: res.isOnline ? undefined : res.failureCause,
+        failureCause:
+          res.isOnline && res.isValidCertificate !== false
+            ? undefined
+            : res.failureCause,
       });
 
       /*
-       * A transient connection failure is worth retrying. A certificate
-       * that failed validation is a deterministic verdict, and a timeout
-       * has already consumed a full deadline - retrying either only burns
-       * the monitor's time budget.
+       * Each failed check consumes one attempt, whether the peer could not
+       * be reached, the handshake timed out, or its certificate failed
+       * validation. A reachable peer with a bad certificate is still a
+       * failed certificate check; the next connection may reach a different
+       * backend or observe a certificate that has just been replaced.
        */
       if (
-        !res.isOnline &&
-        !res.certificateValidationErrorCode &&
-        !res.isTimeout &&
+        (!res.isOnline || res.isValidCertificate === false || res.isTimeout) &&
         MonitorRetry.canRetry({
           attemptNumber: pingOptions.currentRetryCount,
           retries: pingOptions.retry,
@@ -321,6 +323,8 @@ export default class SSLMonitor {
         port,
         rejectUnauthorized: true,
         timeoutInMs,
+        // ping() owns the monitor's retry budget; do not multiply it here.
+        retry: 0,
       });
     } catch (strictError) {
       validationErrorCode = SSLMonitor.getErrorCode(strictError);
@@ -372,10 +376,12 @@ export default class SSLMonitor {
           port,
           rejectUnauthorized: false,
           timeoutInMs,
+          retry: 0,
         });
       } catch (lenientError) {
         return {
           isOnline: false,
+          isTimeout: SSLMonitor.isTimeoutError(lenientError),
           isValidCertificate: false,
           isSelfSigned: SELF_SIGNED_ERROR_CODES.has(validationErrorCode),
           certificateValidationError: validationErrorMessage,

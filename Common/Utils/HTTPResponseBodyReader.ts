@@ -4,6 +4,16 @@ interface StreamedResponseBody extends AsyncIterable<unknown> {
   destroy?: (() => unknown) | undefined;
 }
 
+interface ResponseBodyReadOptions {
+  budget: HTTPResponseBodyBudget;
+  statusCode: number;
+  headers?: unknown;
+  limitRedirectResponseBody: boolean;
+  isHeadResponse?: boolean | undefined;
+  maximumResponseBytes?: number | undefined;
+  signal?: AbortSignal | undefined;
+}
+
 const DEFAULT_MAX_REDIRECT_RESPONSE_BYTES: number = 64 * 1024;
 
 export class HTTPResponseBodyBudget {
@@ -81,19 +91,55 @@ export default class HTTPResponseBodyReader {
 
   public static async read(
     responseBody: unknown,
-    options: {
-      budget: HTTPResponseBodyBudget;
-      statusCode: number;
-      headers?: unknown;
-      limitRedirectResponseBody: boolean;
-      isHeadResponse?: boolean | undefined;
-      maximumResponseBytes?: number | undefined;
-    },
+    options: ResponseBodyReadOptions,
   ): Promise<Buffer> {
     if (!this.isStreamedResponseBody(responseBody)) {
       throw new BadDataException("Remote response body could not be read.");
     }
 
+    const signal: AbortSignal | undefined = options.signal;
+    if (!signal) {
+      return await this.readStream(responseBody, options);
+    }
+
+    let onAbort: (() => void) | undefined;
+    const aborted: Promise<never> = new Promise(
+      (_resolve: (value: never) => void, reject: (error: Error) => void) => {
+        onAbort = (): void => {
+          reject(this.abortError());
+          responseBody.destroy?.();
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
+      },
+    );
+
+    try {
+      if (signal.aborted) {
+        onAbort!();
+        return await aborted;
+      }
+
+      /*
+       * Axios detaches its signal listener when an HTTP error rejects at
+       * headers, before the error body is read. Own cancellation here too,
+       * so a timed-out attempt closes that stream before retrying. Racing
+       * also settles readers whose async iterator does not expose destroy.
+       */
+      return await Promise.race([
+        this.readStream(responseBody, options),
+        aborted,
+      ]);
+    } finally {
+      if (onAbort) {
+        signal.removeEventListener("abort", onAbort);
+      }
+    }
+  }
+
+  private static async readStream(
+    responseBody: StreamedResponseBody,
+    options: ResponseBodyReadOptions,
+  ): Promise<Buffer> {
     let limit: number;
     try {
       limit = options.budget.getResponseLimit(
@@ -137,6 +183,10 @@ export default class HTTPResponseBodyReader {
     let byteCount: number = 0;
 
     for await (const rawChunk of responseBody) {
+      if (options.signal?.aborted) {
+        throw this.abortError();
+      }
+
       const chunk: Buffer = Buffer.isBuffer(rawChunk)
         ? rawChunk
         : Buffer.from(rawChunk as Uint8Array);
@@ -163,6 +213,12 @@ export default class HTTPResponseBodyReader {
     }
 
     return Buffer.concat(chunks, byteCount);
+  }
+
+  private static abortError(): Error {
+    const error: Error = new Error("Response body read was aborted.");
+    error.name = "AbortError";
+    return error;
   }
 
   private static normalizeMaximumBytes(value: number): number {

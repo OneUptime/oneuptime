@@ -873,4 +873,26 @@ describe("PortMonitor retries", () => {
       expect(controllableNet.getMockSockets().length).toBe(expectedAttempts);
     },
   );
+  test.each([0, 1, 3])(
+    "retries native socket timeouts exactly %s times and destroys each socket",
+    async (retry: number) => {
+      for (let attempt: number = 0; attempt <= retry; attempt++) {
+        controllableNet.queueSocketScenario((socket: MockSocket): void => {
+          socket.emit("error", nodeError("ETIMEDOUT", "connect ETIMEDOUT"));
+        });
+      }
+      const result: PortMonitorResponse | null = await PortMonitor.ping(
+        new Hostname("timeout.example"),
+        new Port(443),
+        { retry, timeout: new PositiveNumber(100), isOnlineCheckRequest: true },
+      );
+      expect(result?.isTimeout).toBe(true);
+      expect(result?.totalAttempts).toBe(retry + 1);
+      expect(controllableNet.getMockSockets()).toHaveLength(retry + 1);
+      for (const socket of controllableNet.getMockSockets()) {
+        expect(socket.destroyCallCount).toBeGreaterThan(0);
+      }
+      expect(Sleep.sleep).toHaveBeenCalledTimes(retry);
+    },
+  );
 });

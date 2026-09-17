@@ -178,8 +178,8 @@ export default class DnssecMonitorUtil {
        * At least one leg never ran, so the record set is incomplete. Saying
        * "zone not signed" or "resolvers disagree" off a partial sweep would
        * be a fabricated DNSSEC verdict - report the timeout that actually
-       * happened instead. Not retried: the attempt already consumed a full
-       * budget, so another one would only spend the same time again.
+       * happened instead. Retrying starts a new bounded sweep; every leg
+       * within that sweep still shares its overall deadline.
        */
       if (budget.ranOutOfTime) {
         const responseReceivedAt: Date = new Date();
@@ -195,6 +195,18 @@ export default class DnssecMonitorUtil {
           isOnline: false,
           failureCause: failureCause,
         });
+
+        if (
+          MonitorRetry.canRetry({
+            attemptNumber: options.currentRetryCount,
+            retries: options.retry ?? config.retries,
+            defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+          })
+        ) {
+          options.currentRetryCount++;
+          await Sleep.sleep(1000);
+          return await DnssecMonitorUtil.query(config, options);
+        }
 
         return DnssecMonitorUtil.buildFailureResponse({
           domainName: domainName,
@@ -231,6 +243,15 @@ export default class DnssecMonitorUtil {
         (daysUntilSignatureExpiry === undefined ||
           daysUntilSignatureExpiry > 0);
 
+      const failureReasons: Array<string> = [];
+      if (!isChainValid) {
+        failureReasons.push("DNSSEC chain validation failed.");
+      }
+      if (config.checkNameserverConsistency && !isNameserverConsistent) {
+        failureReasons.push("DNSSEC nameserver consistency validation failed.");
+      }
+      const failureCause: string = failureReasons.join(" ");
+
       logger.debug(
         `DNSSEC Query success: ${options.monitorId?.toString()} ${domainName} - Response Time: ${responseTimeInMs}ms`,
       );
@@ -242,12 +263,26 @@ export default class DnssecMonitorUtil {
         responseReceivedAt,
         responseTimeInMs,
         isOnline: true,
+        failureCause: failureCause || undefined,
       });
+
+      if (
+        failureCause &&
+        MonitorRetry.canRetry({
+          attemptNumber: options.currentRetryCount,
+          retries: options.retry ?? config.retries,
+          defaultRetries: DEFAULT_RETRIES_WHEN_UNSET,
+        })
+      ) {
+        options.currentRetryCount++;
+        await Sleep.sleep(1000);
+        return await DnssecMonitorUtil.query(config, options);
+      }
 
       return {
         isOnline: true,
         responseTimeInMs: responseTimeInMs,
-        failureCause: "",
+        failureCause: failureCause,
         domainName: domainName,
         isZoneSigned: isZoneSigned,
         dnskeys: dnskeys,

@@ -222,14 +222,14 @@ describe("DomainMonitorUtil.query", () => {
       expect(__getWhoisCalls()).toHaveLength(0);
     });
 
-    it("does not retry", async () => {
+    it("retries a registry not-found response within the configured budget", async () => {
       const response: DomainMonitorResponse | null =
         await DomainMonitorUtil.query(buildConfig({ retries: 3 }), {
           isOnlineCheckRequest: true,
         });
 
-      expect(response!.totalAttempts).toBe(1);
-      expect(getJsonSpy).toHaveBeenCalledTimes(1);
+      expect(response!.totalAttempts).toBe(4);
+      expect(getJsonSpy).toHaveBeenCalledTimes(4);
     });
   });
 
@@ -280,7 +280,7 @@ describe("DomainMonitorUtil.query", () => {
       expect(response!.isOnline).toBe(false);
     });
 
-    it("does not retry when both answers are genuinely settled", async () => {
+    it("retries when both protocols return a negative registration result", async () => {
       __setWhoisResponse({ domain: "gone.digital", status: "free" });
 
       const response: DomainMonitorResponse | null =
@@ -288,8 +288,64 @@ describe("DomainMonitorUtil.query", () => {
           isOnlineCheckRequest: true,
         });
 
-      expect(response!.totalAttempts).toBe(1);
-      expect(__getWhoisCalls()).toHaveLength(1);
+      expect(response!.totalAttempts).toBe(4);
+      expect(__getWhoisCalls()).toHaveLength(4);
+    });
+  });
+
+  describe("configured retries on registration lookup failures", () => {
+    it.each([0, 1, 3])(
+      "honors retry %s for a registry HTTP404",
+      async (retry: number) => {
+        getJsonSpy.mockResolvedValue({ statusCode: 404, body: null } as never);
+        const response: DomainMonitorResponse | null =
+          await DomainMonitorUtil.query(
+            buildConfig({ lookupMethod: DomainLookupMethod.RDAP }),
+            { retry, isOnlineCheckRequest: true },
+          );
+        expect(response!.totalAttempts).toBe(retry + 1);
+        expect(getJsonSpy).toHaveBeenCalledTimes(retry + 1);
+        expect(response!.failureCause).toContain("not registered");
+        expect(Sleep.sleep).toHaveBeenCalledTimes(retry);
+      },
+    );
+
+    it.each([0, 1, 3])(
+      "honors retry %s when a TLD publishes no RDAP service",
+      async (retry: number) => {
+        bootstrapSpy.mockResolvedValue({
+          isRegistryAvailable: true,
+          serviceUrls: [],
+        } as never);
+        const response: DomainMonitorResponse | null =
+          await DomainMonitorUtil.query(
+            buildConfig({ lookupMethod: DomainLookupMethod.RDAP }),
+            { retry, isOnlineCheckRequest: true },
+          );
+        expect(response!.isOnline).toBe(false);
+        expect(response!.totalAttempts).toBe(retry + 1);
+        expect(bootstrapSpy).toHaveBeenCalledTimes(retry + 1);
+        expect(getJsonSpy).not.toHaveBeenCalled();
+        expect(Sleep.sleep).toHaveBeenCalledTimes(retry);
+      },
+    );
+
+    it("recovers when a registry returns a record on the next attempt", async () => {
+      getJsonSpy
+        .mockResolvedValueOnce({ statusCode: 404, body: null } as never)
+        .mockResolvedValue({ statusCode: 200, body: RDAP_RESPONSE } as never);
+      const response: DomainMonitorResponse | null =
+        await DomainMonitorUtil.query(
+          buildConfig({ lookupMethod: DomainLookupMethod.RDAP }),
+          { retry: 3, isOnlineCheckRequest: true },
+        );
+      expect(response!.isOnline).toBe(true);
+      expect(response!.totalAttempts).toBe(2);
+      expect(response!.probeAttempts?.[0]?.failureCause).toContain(
+        "not registered",
+      );
+      expect(response!.probeAttempts?.[1]?.isOnline).toBe(true);
+      expect(getJsonSpy).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -645,7 +701,7 @@ describe("DomainMonitorUtil.query", () => {
   });
 
   describe("when WHOIS says the domain is not registered", () => {
-    it("reports it plainly and does not retry", async () => {
+    it("reports it plainly after the configured retries", async () => {
       bootstrapSpy.mockResolvedValue({
         isRegistryAvailable: true,
         serviceUrls: [],
@@ -660,7 +716,7 @@ describe("DomainMonitorUtil.query", () => {
 
       expect(response!.isOnline).toBe(false);
       expect(response!.failureCause).toContain("not registered");
-      expect(response!.totalAttempts).toBe(1);
+      expect(response!.totalAttempts).toBe(4);
     });
   });
 

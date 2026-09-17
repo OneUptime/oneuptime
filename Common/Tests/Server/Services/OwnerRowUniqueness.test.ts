@@ -64,7 +64,8 @@ const NON_RESOURCE_ID_COLUMNS: Array<string> = [
 
 const OWNER_MODELS: Array<OwnerModel> = (AllModelTypes as Array<ModelType>)
   .filter((modelType: ModelType): boolean => {
-    return (/Owner(Team|User)$/).test(modelType.name);
+    const ownerModelPattern: RegExp = /Owner(Team|User)$/;
+    return ownerModelPattern.test(modelType.name);
   })
   .map((modelType: ModelType): OwnerModel => {
     const model: BaseModel = new modelType();
@@ -495,7 +496,8 @@ describe("MakeOwnerRowsUnique1793500000000", () => {
 
     expect(
       statements.some((s: string) => {
-        return (/\b(DELETE|UPDATE|INSERT)\b/).test(s);
+        const mutationPattern: RegExp = /\b(DELETE|UPDATE|INSERT)\b/;
+        return mutationPattern.test(s);
       }),
     ).toBe(false);
   });

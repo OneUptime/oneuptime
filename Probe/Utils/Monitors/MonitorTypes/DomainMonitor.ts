@@ -155,12 +155,11 @@ export default class DomainMonitorUtil {
       });
 
       /*
-       * "This domain is not registered" and "this TLD has no usable
-       * registration service" are settled answers. Retrying them just adds
-       * one second of sleep per attempt before reporting the same thing.
+       * The configured retry budget also applies to registry responses such
+       * as "not registered" or "no registration service". Recheck the same
+       * lookup without changing how it chooses RDAP or WHOIS.
        */
       if (
-        isRetryable &&
         MonitorRetry.canRetry({
           attemptNumber: options.currentRetryCount,
           retries: options.retry ?? config.retries,
