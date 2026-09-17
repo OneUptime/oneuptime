@@ -504,6 +504,8 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.Metrics]: "Metrics",
   [AIChatCitationTargetType.RumApplications]: "RUM applications",
   [AIChatCitationTargetType.RumApplicationView]: "RUM application",
+  [AIChatCitationTargetType.TelemetryResources]: "Infrastructure resources",
+  [AIChatCitationTargetType.TelemetryResourceView]: "Infrastructure resource",
   [AIChatCitationTargetType.Exceptions]: "Exceptions",
   [AIChatCitationTargetType.Incidents]: "Incidents",
   [AIChatCitationTargetType.IncidentView]: "Incident",

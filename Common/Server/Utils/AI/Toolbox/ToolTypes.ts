@@ -49,6 +49,16 @@ export interface ObservabilityTool {
    */
   requiredPermissions: Array<Permission>;
   /*
+   * Argument-dependent reads (for example, one infrastructure kind and one
+   * telemetry signal) require EVERY group, with alternatives inside a group.
+   * Only permissions for the selected arguments participate in block checks.
+   * Returning an empty group/list fails closed. The static permissions above
+   * remain the default for existing tools and callers without arguments.
+   */
+  getRequiredPermissionGroups?:
+    | ((args: JSONObject) => Array<Array<Permission>>)
+    | undefined;
+  /*
    * True for tools that MUTATE project data (create/acknowledge/resolve, etc).
    * These are gated by the conversation's permission mode: paused for approval
    * in AskForApproval mode, run immediately in AutoRun, and not offered to the

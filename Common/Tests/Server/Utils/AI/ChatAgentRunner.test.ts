@@ -25,6 +25,10 @@ import AIChatPageContextType, {
   AIChatPageContext,
 } from "../../../../Types/AI/AIChatPageContext";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
+import {
+  AIResourceSubresourceKind,
+  AIResourceType,
+} from "../../../../Types/AI/AIResourceContext";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import {
   AIChatCitation,
@@ -510,6 +514,82 @@ describe("ChatAgentRunner.runTurn — cooperative cancellation", () => {
 });
 
 describe("ChatAgentRunner.runTurn — page context persistence", () => {
+  test("persists a newly selected pod and reuses its full identity on the next turn", async () => {
+    const conversation: AIConversation = new AIConversation();
+    conversation.pageContext = {
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.KubernetesCluster,
+      entityId: INCIDENT_ID,
+      subresource: {
+        kind: AIResourceSubresourceKind.Pod,
+        key: "checkout-old",
+        namespace: "payments",
+      },
+    };
+    const pageContext: AIChatPageContext = {
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.KubernetesCluster,
+      entityId: INCIDENT_ID,
+      entityTitle: "Production / pod: checkout-current",
+      subresource: {
+        kind: AIResourceSubresourceKind.Pod,
+        key: "checkout-current",
+        namespace: "payments",
+      },
+    };
+    const spies: RunnerSpies = installRunnerSpies({
+      conversation,
+      titleCount: 5,
+    });
+    /*
+     * Keep the mocked database read consistent with writes the real runner
+     * actually makes. Without a persistence write the next turn sees the old pod.
+     */
+    spies.conversationUpdateOneById.mockImplementation(
+      async (update: { data?: JSONObject }): Promise<number> => {
+        if (update.data?.["pageContext"] !== undefined) {
+          conversation.pageContext = update.data[
+            "pageContext"
+          ] as unknown as AIChatPageContext;
+        }
+        return 1;
+      },
+    );
+
+    const request: ChatTurnRequest = buildRequest({ pageContext });
+    await ChatAgentRunner.runTurn(request);
+    await flushAsync();
+
+    expect(
+      findCallWithDataKey(spies.conversationUpdateOneById, "pageContext"),
+    ).toEqual({ pageContext });
+    const firstPrompt: string = (
+      spies.executeWithLogging.mock.calls[0]?.[0] as AILogRequest
+    ).messages[0]!.content;
+    expect(firstPrompt).toContain(JSON.stringify(pageContext.subresource));
+
+    spies.executeWithLogging.mockClear();
+    spies.conversationUpdateOneById.mockClear();
+    await ChatAgentRunner.runTurn({
+      ...request,
+      assistantMessageId: ObjectID.generate(),
+      aiRunId: ObjectID.generate(),
+      pageContext: undefined,
+    });
+    await flushAsync();
+
+    const nextPrompt: string = (
+      spies.executeWithLogging.mock.calls[0]?.[0] as AILogRequest
+    ).messages[0]!.content;
+    expect(nextPrompt).toContain('"resourceType":"KubernetesCluster"');
+    expect(nextPrompt).toContain(`"resourceId":"${INCIDENT_ID}"`);
+    expect(nextPrompt).toContain(JSON.stringify(pageContext.subresource));
+    expect(nextPrompt).not.toContain("checkout-old");
+    expect(
+      findCallWithDataKey(spies.conversationUpdateOneById, "pageContext"),
+    ).toBeUndefined();
+  });
+
   test("explicitly detaching clears the saved subject and omits it from the prompt", async () => {
     const conversation: AIConversation = new AIConversation();
     conversation.pageContext = {

@@ -24,8 +24,13 @@ import {
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import Service from "../../../Models/DatabaseModels/Service";
+import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import AIChatPageContextType from "../../../Types/AI/AIChatPageContext";
+import {
+  AIResourceSubresourceKind,
+  AIResourceType,
+} from "../../../Types/AI/AIResourceContext";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
@@ -685,6 +690,192 @@ describe("asynchronous module context changes", () => {
       type: AIChatPageContextType.RumApplication,
       entityId: ENTITY_ID,
       entityTitle: "Renamed application",
+    });
+  });
+});
+
+describe("infrastructure context in Ask AI", () => {
+  test.each([
+    ["kubernetes", AIResourceType.KubernetesCluster, "Kubernetes cluster"],
+    ["iot", AIResourceType.IoTFleet, "IoT fleet"],
+    ["network-devices", AIResourceType.NetworkDevice, "network device"],
+  ] as Array<[string, AIResourceType, string]>)(
+    "%s questions carry the resource type, canonical ID, and resolved name",
+    async (modulePath: string, resourceType: AIResourceType, noun: string) => {
+      await openAskAi(`${modulePath}/${ENTITY_ID}`);
+
+      expect(screen.getByText(`This ${noun} · Storefront`)).toBeInTheDocument();
+      expect(screen.getByRole("textbox")).toHaveAttribute(
+        "placeholder",
+        `Ask about this ${noun}…`,
+      );
+      const request: PostRequest = await sendQuestion();
+      expect(request.data["pageContext"]).toEqual({
+        type: AIChatPageContextType.Resource,
+        resourceType,
+        entityId: ENTITY_ID,
+        entityTitle: "Storefront",
+      });
+    },
+  );
+
+  test("an infrastructure list sends only its resource category", async () => {
+    await openAskAi("docker");
+    expect(getItemMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: /Resource overview/ }),
+    ).toBeEnabled();
+
+    const request: PostRequest = await sendQuestion();
+    expect(request.data["pageContext"]).toEqual({
+      type: AIChatPageContextType.ResourcesList,
+      resourceType: AIResourceType.DockerHost,
+    });
+  });
+
+  test("a pod suggestion sends its external identity separately from the parent UUID without inventing a namespace", async () => {
+    await openAskAi(`kubernetes/${ENTITY_ID}/pods/checkout-123`);
+    expect(
+      screen.getByText("This pod · Storefront / pod: checkout-123"),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /Understand this view/ }),
+      );
+    });
+
+    expect(sentRequests()).toHaveLength(1);
+    expect(sentRequests()[0]!.data["pageContext"]).toEqual({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.KubernetesCluster,
+      entityId: ENTITY_ID,
+      entityTitle: "Storefront / pod: checkout-123",
+      subresource: { kind: AIResourceSubresourceKind.Pod, key: "checkout-123" },
+    });
+    expect(sentRequests()[0]!.data["content"]).toContain("missing namespace");
+  });
+
+  test("a collection view keeps the parent identity and a child kind without a selected key", async () => {
+    await openAskAi(`kubernetes/${ENTITY_ID}/pods`);
+    expect(
+      screen.getByText("This Kubernetes cluster · Storefront"),
+    ).toBeInTheDocument();
+
+    const request: PostRequest = await sendQuestion();
+    expect(request.data["pageContext"]).toEqual({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.KubernetesCluster,
+      entityId: ENTITY_ID,
+      entityTitle: "Storefront",
+      subresource: { kind: AIResourceSubresourceKind.Pod },
+    });
+  });
+
+  test("navigating to another child of the same parent attaches the new child context", async () => {
+    await openAskAi(`docker/${ENTITY_ID}/containers/old-container`);
+    fireEvent.click(screen.getByTitle("Remove page context"));
+
+    await goTo(`docker/${ENTITY_ID}/containers/new-container`);
+
+    expect(
+      screen.getByText(
+        "This container · Storefront / container: new-container",
+      ),
+    ).toBeInTheDocument();
+    const request: PostRequest = await sendQuestion();
+    expect(request.data["pageContext"]).toEqual({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.DockerHost,
+      entityId: ENTITY_ID,
+      entityTitle: "Storefront / container: new-container",
+      subresource: {
+        kind: AIResourceSubresourceKind.Container,
+        key: "new-container",
+      },
+    });
+  });
+
+  test("detaching a child context clears its saved subject and reattaching restores the full child identity", async () => {
+    await openAskAi(`kubernetes/${ENTITY_ID}/pods/checkout`);
+    await sendQuestion("Investigate this pod.");
+    fireEvent.click(screen.getByTitle("Remove page context"));
+
+    const detached: PostRequest = await sendQuestion(
+      "Now summarize all services.",
+    );
+    expect(detached.data).toEqual(
+      expect.objectContaining({
+        conversationId: CONVERSATION_ID,
+        pageContext: null,
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByTitle("Attach this page as context for your questions"),
+    );
+    const reattached: PostRequest = await sendQuestion("Return to this pod.");
+    expect(reattached.data).toEqual(
+      expect.objectContaining({
+        conversationId: CONVERSATION_ID,
+        pageContext: {
+          type: AIChatPageContextType.Resource,
+          resourceType: AIResourceType.KubernetesCluster,
+          entityId: ENTITY_ID,
+          entityTitle: "Storefront / pod: checkout",
+          subresource: { kind: AIResourceSubresourceKind.Pod, key: "checkout" },
+        },
+      }),
+    );
+  });
+
+  test("changing child kind with the same parent and external name selects a new subject", async () => {
+    await openAskAi(`kubernetes/${ENTITY_ID}/pods/checkout`);
+    fireEvent.click(screen.getByTitle("Remove page context"));
+
+    await goTo(`kubernetes/${ENTITY_ID}/deployments/checkout`);
+
+    expect(
+      screen.getByText("This deployment · Storefront / deployment: checkout"),
+    ).toBeInTheDocument();
+    const request: PostRequest = await sendQuestion();
+    expect(request.data["pageContext"]).toEqual({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.KubernetesCluster,
+      entityId: ENTITY_ID,
+      entityTitle: "Storefront / deployment: checkout",
+      subresource: {
+        kind: AIResourceSubresourceKind.Deployment,
+        key: "checkout",
+      },
+    });
+  });
+
+  test("resource type changes with the same UUID reattach context and reject a delayed title from the previous module", async () => {
+    const oldTitle: PendingTitle = pendingTitle();
+    getItemMock.mockImplementation((request: { modelType: unknown }) => {
+      return request.modelType === PodmanHost
+        ? Promise.resolve({ name: "Podman production" })
+        : oldTitle.promise;
+    });
+    await openAskAi(`docker/${ENTITY_ID}`);
+    fireEvent.click(screen.getByTitle("Remove page context"));
+
+    await goTo(`podman/${ENTITY_ID}`);
+    await act(async () => {
+      oldTitle.resolve({ name: "Stale Docker title" });
+    });
+
+    expect(
+      screen.getByText("This Podman host · Podman production"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Stale Docker title/)).not.toBeInTheDocument();
+    const request: PostRequest = await sendQuestion();
+    expect(request.data["pageContext"]).toEqual({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.PodmanHost,
+      entityId: ENTITY_ID,
+      entityTitle: "Podman production",
     });
   });
 });
