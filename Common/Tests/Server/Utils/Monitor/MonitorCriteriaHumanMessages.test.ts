@@ -80,7 +80,7 @@ function filter(
   return {
     checkOn: CheckOn.MetricValue,
     filterType: input.filterType || FilterType.GreaterThanOrEqualTo,
-    value: String(input.threshold ?? 90),
+    value: input.threshold ?? 90,
     metricMonitorOptions: {
       metricAlias: input.alias || "a",
       metricAggregationType:
@@ -287,7 +287,7 @@ describe("human-readable metric messages across monitor evaluation", () => {
       expect(JSON.stringify(inputs.dataToProcess.metricResult)).toBe(
         originalResults,
       );
-      expect(inputs.criteriaFilter.value).toBe(String(testCase.threshold));
+      expect(inputs.criteriaFilter.value).toBe(testCase.threshold);
       expect(inputs.criteriaFilter.metricCriteriaContext).toMatchObject({
         metricName: "(current_replicas / max_replicas) * 100",
         formulaExpression: "(current_replicas / max_replicas) * 100",
