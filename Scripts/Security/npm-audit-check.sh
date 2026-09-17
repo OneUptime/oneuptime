@@ -3,11 +3,12 @@
 set -o nounset
 set -o pipefail
 
-SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUDIT_ROOT="${NPM_AUDIT_ROOT:-$SCRIPT_ROOT}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+AUDIT_ROOT="${NPM_AUDIT_ROOT:-$REPO_ROOT}"
 AUDIT_LEVEL="${NPM_AUDIT_LEVEL:-low}"
-AUDIT_EXCEPTIONS_FILE="${NPM_AUDIT_EXCEPTIONS_FILE:-$AUDIT_ROOT/npm-audit-exceptions.json}"
-AUDIT_VALIDATOR="${SCRIPT_ROOT}/Scripts/Security/ValidateNpmAudit.js"
+AUDIT_EXCEPTIONS_FILE="${NPM_AUDIT_EXCEPTIONS_FILE:-$AUDIT_ROOT/Scripts/Security/npm-audit-exceptions.json}"
+AUDIT_VALIDATOR="${SCRIPT_DIR}/ValidateNpmAudit.js"
 
 case "$AUDIT_LEVEL" in
 	info|low|moderate|high|critical) ;;

@@ -4,9 +4,9 @@ set -o nounset
 set -o pipefail
 
 ROOT_DIR="$(pwd)"
-SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUDIT_EXCEPTIONS_FILE="${NPM_AUDIT_EXCEPTIONS_FILE:-$ROOT_DIR/npm-audit-exceptions.json}"
-PRUNE_EXCEPTIONS="${SCRIPT_ROOT}/Scripts/Security/PruneNpmAuditExceptions.js"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AUDIT_EXCEPTIONS_FILE="${NPM_AUDIT_EXCEPTIONS_FILE:-$ROOT_DIR/Scripts/Security/npm-audit-exceptions.json}"
+PRUNE_EXCEPTIONS="${SCRIPT_DIR}/PruneNpmAuditExceptions.js"
 EXIT_CODE=0
 RESULTS_DIRECTORY="$(mktemp -d)"
 trap 'rm -rf "$RESULTS_DIRECTORY"' EXIT
