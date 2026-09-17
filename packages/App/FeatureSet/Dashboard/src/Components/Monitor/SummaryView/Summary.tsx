@@ -19,6 +19,10 @@ import MonitorSummaryProbeUtil, {
   AttachedProbe,
   MonitorSummaryProbeState,
 } from "Common/Utils/Monitor/MonitorSummaryProbeUtil";
+import MonitorTestAvailabilityUtil from "Common/Utils/Monitor/MonitorTestAvailabilityUtil";
+import MonitorTestForm from "../../Form/Monitor/MonitorTest";
+import { ButtonSize } from "Common/UI/Components/Button/Button";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
@@ -37,6 +41,13 @@ export interface ComponentProps {
   disabledProbeIds?: Array<string> | undefined;
   monitorType: MonitorType;
   monitorSteps?: MonitorSteps | undefined;
+  /*
+   * The monitor this card is describing. Only needed to run a test from here:
+   * it is what lets the server resolve {{monitorSecrets.*}} for the test run,
+   * so a test without it silently probes a literal placeholder. Optional so
+   * that a caller which does not want the action does not have to supply it.
+   */
+  monitorId?: ObjectID | undefined;
   telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
 }
@@ -142,10 +153,52 @@ const Summary: FunctionComponent<ComponentProps> = (
       probeResponseCount: probeResponses.length,
     });
 
+  /*
+   * "Test Monitor" used to live only under Monitors > View Monitor > Criteria,
+   * which meant leaving the page you were reading to run the thing you were
+   * reading about (issue #3867). It belongs on the summary because this card is
+   * already the answer to "is it working right now" - a test is the same
+   * question asked on demand.
+   *
+   * The action is offered from the probes this card is already showing, NOT
+   * from every probe in the project: those are the probes that actually watch
+   * this resource, and the overview page deliberately does not fetch the wider
+   * list (see the comment on the probe query in Pages/Monitor/View/Index.tsx).
+   */
+  const canTestMonitor: boolean = MonitorTestAvailabilityUtil.isAvailable({
+    monitorType: props.monitorType,
+    monitorSteps: props.monitorSteps,
+    attachedProbeCount: attachedProbes.length,
+  });
+
   return (
     <Card
       title="Monitor Summary"
       description="Here is how your monitor is performing at this moment."
+      buttons={
+        /*
+         * `props.monitorSteps` is re-tested only to narrow the type - the
+         * availability rule above has already established that it is there and
+         * has at least one step.
+         */
+        canTestMonitor && props.monitorSteps
+          ? [
+              <MonitorTestForm
+                key="monitor-test"
+                monitorId={props.monitorId}
+                monitorSteps={props.monitorSteps}
+                monitorType={props.monitorType}
+                probes={props.probes || []}
+                buttonSize={ButtonSize.Normal}
+                /*
+                 * Card already spaces the header's actions, so the default
+                 * wrapper's negative margin would pull this into the picker.
+                 */
+                className=""
+              />,
+            ]
+          : undefined
+      }
       rightElement={
         isProbableMonitor && attachedProbes.length > 0 && selectedProbe ? (
           <ProbePicker
