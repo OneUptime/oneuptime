@@ -13,6 +13,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnsTogether from "../../Types/Database/UniqueColumnsTogether";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -73,6 +74,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "RumApplicationOwnerUser",
 })
+@Index(["rumApplicationId", "userId", "projectId"], { unique: true })
+@UniqueColumnsTogether(
+  ["rumApplicationId", "userId", "projectId"],
+  "This user is already an owner of this RUM application.",
+)
 export default class RumApplicationOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [

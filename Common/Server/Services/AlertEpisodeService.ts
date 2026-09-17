@@ -47,8 +47,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import AlertEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/AlertEpisode";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
-import Typeof from "../../Types/Typeof";
 import AlertService from "./AlertService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import AlertEpisodeLabelRuleEngineService from "./AlertEpisodeLabelRuleEngineService";
@@ -1277,39 +1277,18 @@ export class Service extends DatabaseService<Model> {
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: AlertEpisodeOwnerTeam = new AlertEpisodeOwnerTeam();
-      teamOwner.alertEpisodeId = episodeId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-
-      await AlertEpisodeOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-
-      const userOwner: AlertEpisodeOwnerUser = new AlertEpisodeOwnerUser();
-      userOwner.alertEpisodeId = episodeId;
-      userOwner.projectId = projectId;
-      userOwner.userId = userId;
-      userOwner.isOwnerNotified = !notifyOwners;
-
-      await AlertEpisodeOwnerUserService.create({
-        data: userOwner,
-        props: props,
-      });
-    }
+    // Owners already on the episode are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: AlertEpisodeOwnerUserService,
+      ownerTeamService: AlertEpisodeOwnerTeamService,
+      resourceIdColumn: "alertEpisodeId",
+      resourceId: episodeId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
   }
 }
 

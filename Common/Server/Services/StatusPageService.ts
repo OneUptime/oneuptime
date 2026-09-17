@@ -28,7 +28,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Typeof from "../../Types/Typeof";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
@@ -69,6 +68,7 @@ import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import IP from "../../Types/IP/IP";
 import { resolveClientIp } from "../Utils/ClientIp";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
@@ -509,37 +509,18 @@ export class Service extends DatabaseService<StatusPage> {
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: StatusPageOwnerTeam = new StatusPageOwnerTeam();
-      teamOwner.statusPageId = statusPageId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-
-      await StatusPageOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-      const teamOwner: StatusPageOwnerUser = new StatusPageOwnerUser();
-      teamOwner.statusPageId = statusPageId;
-      teamOwner.projectId = projectId;
-      teamOwner.userId = userId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-      await StatusPageOwnerUserService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
+    // Owners already on the status page are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: StatusPageOwnerUserService,
+      ownerTeamService: StatusPageOwnerTeamService,
+      resourceIdColumn: "statusPageId",
+      resourceId: statusPageId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
   }
 
   @CaptureSpan()

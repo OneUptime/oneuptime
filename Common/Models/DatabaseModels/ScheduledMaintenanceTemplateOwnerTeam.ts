@@ -13,6 +13,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnsTogether from "../../Types/Database/UniqueColumnsTogether";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -75,6 +76,13 @@ import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 @Entity({
   name: "ScheduledMaintenanceTemplateOwnerTeam",
 })
+@Index(["scheduledMaintenanceTemplateId", "teamId", "projectId"], {
+  unique: true,
+})
+@UniqueColumnsTogether(
+  ["scheduledMaintenanceTemplateId", "teamId", "projectId"],
+  "This team is already an owner of this scheduled maintenance template.",
+)
 export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
   @ColumnAccessControl({
     create: [

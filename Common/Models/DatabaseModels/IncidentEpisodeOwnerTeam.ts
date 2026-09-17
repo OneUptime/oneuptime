@@ -14,6 +14,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnsTogether from "../../Types/Database/UniqueColumnsTogether";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -74,7 +75,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "IncidentEpisodeOwnerTeam",
 })
-@Index(["incidentEpisodeId", "teamId", "projectId"])
+@Index(["incidentEpisodeId", "teamId", "projectId"], { unique: true })
+@UniqueColumnsTogether(
+  ["incidentEpisodeId", "teamId", "projectId"],
+  "This team is already an owner of this incident episode.",
+)
 export default class IncidentEpisodeOwnerTeam extends BaseModel {
   @ColumnAccessControl({
     create: [

@@ -13,6 +13,7 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -948,8 +949,9 @@ class IncidentGroupingEngineServiceClass {
             ownerUser.projectId = incident.projectId!;
             ownerUser.incidentEpisodeId = createdEpisode.id;
             ownerUser.userId = user.id;
-            await IncidentEpisodeOwnerUserService.create({
-              data: ownerUser,
+            await OwnerRuleAssignment.createOwner({
+              ownerService: IncidentEpisodeOwnerUserService,
+              owner: ownerUser,
               props: {
                 isRoot: true,
               },
@@ -979,8 +981,9 @@ class IncidentGroupingEngineServiceClass {
             ownerTeam.projectId = incident.projectId!;
             ownerTeam.incidentEpisodeId = createdEpisode.id;
             ownerTeam.teamId = team.id;
-            await IncidentEpisodeOwnerTeamService.create({
-              data: ownerTeam,
+            await OwnerRuleAssignment.createOwner({
+              ownerService: IncidentEpisodeOwnerTeamService,
+              owner: ownerTeam,
               props: {
                 isRoot: true,
               },

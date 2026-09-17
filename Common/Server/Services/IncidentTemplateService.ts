@@ -11,15 +11,13 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import ObjectID from "../../Types/ObjectID";
-import Typeof from "../../Types/Typeof";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
-import IncidentTemplateOwnerTeam from "../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
-import IncidentTemplateOwnerUser from "../../Models/DatabaseModels/IncidentTemplateOwnerUser";
 import ProjectScopedReferenceValidator, {
   ProjectScopedReference,
   resolveReferenceId,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 
 export class Service extends DatabaseService<Model> {
@@ -175,39 +173,18 @@ export class Service extends DatabaseService<Model> {
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: IncidentTemplateOwnerTeam =
-        new IncidentTemplateOwnerTeam();
-      teamOwner.incidentTemplateId = incidentTemplateId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-
-      await IncidentTemplateOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-      const teamOwner: IncidentTemplateOwnerUser =
-        new IncidentTemplateOwnerUser();
-      teamOwner.incidentTemplateId = incidentTemplateId;
-      teamOwner.projectId = projectId;
-      teamOwner.userId = userId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-      await IncidentTemplateOwnerUserService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
+    // Owners already on the template are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: IncidentTemplateOwnerUserService,
+      ownerTeamService: IncidentTemplateOwnerTeamService,
+      resourceIdColumn: "incidentTemplateId",
+      resourceId: incidentTemplateId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
   }
 }
 export default new Service();

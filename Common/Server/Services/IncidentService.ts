@@ -32,7 +32,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Typeof from "../../Types/Typeof";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import ProjectScopedReferenceValidator, {
   resolveReferenceId,
@@ -100,6 +99,7 @@ import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 import AIService, { AILogResponse } from "./AIService";
 import AIIncidentInvestigationRunner from "../Utils/AI/SRE/IncidentInvestigationRunner";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
@@ -1975,37 +1975,18 @@ ${incident.remediationNotes || "No remediation notes provided."}
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
-    for (let teamId of teamIds) {
-      if (typeof teamId === Typeof.String) {
-        teamId = new ObjectID(teamId.toString());
-      }
-
-      const teamOwner: IncidentOwnerTeam = new IncidentOwnerTeam();
-      teamOwner.incidentId = incidentId;
-      teamOwner.projectId = projectId;
-      teamOwner.teamId = teamId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-
-      await IncidentOwnerTeamService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
-
-    for (let userId of userIds) {
-      if (typeof userId === Typeof.String) {
-        userId = new ObjectID(userId.toString());
-      }
-      const teamOwner: IncidentOwnerUser = new IncidentOwnerUser();
-      teamOwner.incidentId = incidentId;
-      teamOwner.projectId = projectId;
-      teamOwner.userId = userId;
-      teamOwner.isOwnerNotified = !notifyOwners;
-      await IncidentOwnerUserService.create({
-        data: teamOwner,
-        props: props,
-      });
-    }
+    // Owners already on the incident are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: IncidentOwnerUserService,
+      ownerTeamService: IncidentOwnerTeamService,
+      resourceIdColumn: "incidentId",
+      resourceId: incidentId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
   }
 
   @CaptureSpan()

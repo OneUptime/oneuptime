@@ -15,6 +15,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnsTogether from "../../Types/Database/UniqueColumnsTogether";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -81,7 +82,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "OnCallDutyPolicyOwnerUser",
 })
-@Index(["onCallDutyPolicyId", "userId", "projectId"])
+@Index(["onCallDutyPolicyId", "userId", "projectId"], { unique: true })
+@UniqueColumnsTogether(
+  ["onCallDutyPolicyId", "userId", "projectId"],
+  "This user is already an owner of this on-call policy.",
+)
 export default class OnCallDutyPolicyOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [
