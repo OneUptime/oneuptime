@@ -26,7 +26,7 @@ const ROUTE: string =
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
-  "../../output/playwright/incoming-call-policies",
+  "../../../output/playwright/incoming-call-policies",
 );
 
 const POLICY_IDS: Record<string, string> = {

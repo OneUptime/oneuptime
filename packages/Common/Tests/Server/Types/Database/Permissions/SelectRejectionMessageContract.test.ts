@@ -51,6 +51,7 @@ const PROVIDER_GENERATOR: string = path.join(
   "..",
   "..",
   "..",
+  "..",
   "Scripts",
   "TerraformProvider",
   "Core",

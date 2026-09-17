@@ -254,7 +254,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image nginx \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./Nginx/Dockerfile \
+            --dockerfile ./packages/Nginx/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}"
@@ -331,7 +331,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image e2e \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./E2E/Dockerfile \
+            --dockerfile ./packages/E2E/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}"
@@ -419,7 +419,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image home \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./Home/Dockerfile \
+            --dockerfile ./packages/Home/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}"
@@ -496,7 +496,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image test-server \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./TestServer/Dockerfile \
+            --dockerfile ./packages/TestServer/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}"
@@ -650,7 +650,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image probe \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./Probe/Dockerfile \
+            --dockerfile ./packages/Probe/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}"
@@ -727,7 +727,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image runner \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./Runner/Dockerfile \
+            --dockerfile ./packages/Runner/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}"
@@ -804,7 +804,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image docker-agent \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./DockerAgent/Dockerfile \
+            --dockerfile ./agents/DockerAgent/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -883,7 +883,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image podman-agent \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./PodmanAgent/Dockerfile \
+            --dockerfile ./agents/PodmanAgent/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -962,7 +962,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image kubernetes-log-tailer \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./KubernetesLogTailer/Dockerfile \
+            --dockerfile ./agents/KubernetesLogTailer/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -1041,7 +1041,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image kubernetes-cost-agent \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./KubernetesCostAgent/Dockerfile \
+            --dockerfile ./agents/KubernetesCostAgent/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -1120,7 +1120,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image app \
             --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./App/Dockerfile \
+            --dockerfile ./packages/App/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}"
@@ -1243,7 +1243,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install
-          if [ -d "Common" ]; then cd Common && npm install && cd ..; fi
+          if [ -d "packages/Common" ]; then cd packages/Common && npm install && cd ../..; fi
           if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
 
       # Defense in depth: generate and check the provider here too, so a broken
@@ -1588,7 +1588,7 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
-            ./E2E
+            ./packages/E2E
 
 
           # Duration after which artifact will expire in days. 0 means using default retention.
@@ -1733,7 +1733,7 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
-            ./E2E
+            ./packages/E2E
 
 
           # Duration after which artifact will expire in days. 0 means using default retention.
@@ -1994,17 +1994,17 @@ jobs:
         run: goreleaser -v
 
       - name: Run GoReleaser
-        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}} && goreleaser release --clean --snapshot
+        run: cd agents/InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}} && goreleaser release --clean --snapshot
 
       - name: Release MSI Images
-        run: cd InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}
+        run: cd agents/InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}
 
       # Upload binaries to github release
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            InfrastructureAgent/dist/*
+            agents/InfrastructureAgent/dist/*
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           prerelease: false
@@ -2012,7 +2012,7 @@ jobs:
 
 
   # Build Android release APK and attach to GitHub Release.
-  # Required secrets setup guide: MobileApp/docs/RELEASE_SIGNING.md
+  # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
   mobile-app-android-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
     runs-on: ubuntu-latest
@@ -2034,10 +2034,10 @@ jobs:
           node-version: 26
 
       - name: Install dependencies
-        run: cd MobileApp && npm install
+        run: cd packages/MobileApp && npm install
 
       - name: Generate native Android project
-        run: cd MobileApp && npx expo prebuild --platform android --no-install
+        run: cd packages/MobileApp && npx expo prebuild --platform android --no-install
 
       - name: Decode Android keystore
         run: |
@@ -2050,25 +2050,25 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          cd MobileApp/android
+          cd packages/MobileApp/android
           ./gradlew assembleRelease \
             -PversionName=${{ needs.read-version.outputs.major_minor }} \
             -PversionCode=${{ needs.generate-build-number.outputs.build_number }}
 
       - name: Rename APK
-        run: mv MobileApp/android/app/build/outputs/apk/release/*.apk MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
+        run: mv packages/MobileApp/android/app/build/outputs/apk/release/*.apk packages/MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
 
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
+          files: packages/MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           prerelease: false
           tag_name: ${{ needs.read-version.outputs.major_minor }}
 
   # Build iOS release IPA and attach to GitHub Release.
-  # Required secrets setup guide: MobileApp/docs/RELEASE_SIGNING.md
+  # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
   mobile-app-ios-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
     runs-on: macos-latest
@@ -2084,13 +2084,13 @@ jobs:
           node-version: 26
 
       - name: Install dependencies
-        run: cd MobileApp && npm install
+        run: cd packages/MobileApp && npm install
 
       - name: Generate native iOS project
-        run: cd MobileApp && npx expo prebuild --platform ios --no-install
+        run: cd packages/MobileApp && npx expo prebuild --platform ios --no-install
 
       - name: Install CocoaPods dependencies
-        run: cd MobileApp/ios && pod install
+        run: cd packages/MobileApp/ios && pod install
 
       - name: Import signing certificate
         env:
@@ -2135,7 +2135,7 @@ jobs:
             echo "::error::IOS_TEAM_ID secret is not set"
             exit 1
           fi
-          cd MobileApp
+          cd packages/MobileApp
           xcodebuild -workspace ios/OneUptimeOnCall.xcworkspace \
             -scheme OneUptimeOnCall \
             -configuration Release \
@@ -2157,7 +2157,7 @@ jobs:
           # method=development and requires an iOS Development cert we don't import) with
           # an explicit app-store + manual-signing configuration matching the imported
           # Distribution cert and provisioning profile.
-          cat > MobileApp/ios/ExportOptions.plist << EOF
+          cat > packages/MobileApp/ios/ExportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -2183,7 +2183,7 @@ jobs:
 
       - name: Export IPA
         run: |
-          cd MobileApp
+          cd packages/MobileApp
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/OneUptimeOnCall.xcarchive \
             -exportOptionsPlist ios/ExportOptions.plist \
@@ -2307,10 +2307,10 @@ jobs:
           node-version: 26
 
       - name: Install dependencies
-        run: cd MobileApp && npm install
+        run: cd packages/MobileApp && npm install
 
       - name: Generate native Android project
-        run: cd MobileApp && npx expo prebuild --platform android --no-install
+        run: cd packages/MobileApp && npx expo prebuild --platform android --no-install
 
       - name: Decode Android keystore
         run: |
@@ -2323,7 +2323,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          cd MobileApp/android
+          cd packages/MobileApp/android
           ./gradlew bundleRelease \
             -PversionName=${{ needs.read-version.outputs.major_minor }} \
             -PversionCode=${{ needs.generate-build-number.outputs.build_number }}
@@ -2333,7 +2333,7 @@ jobs:
         if: always()
         with:
           name: android-aab-${{ needs.read-version.outputs.major_minor }}
-          path: MobileApp/android/app/build/outputs/bundle/release/*.aab
+          path: packages/MobileApp/android/app/build/outputs/bundle/release/*.aab
           retention-days: 90
 
       - name: Upload AAB to Google Play Store
@@ -2341,7 +2341,7 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.oneuptime.oncall
-          releaseFiles: MobileApp/android/app/build/outputs/bundle/release/*.aab
+          releaseFiles: packages/MobileApp/android/app/build/outputs/bundle/release/*.aab
           track: production
           status: completed
 
@@ -2369,13 +2369,13 @@ jobs:
           node-version: 26
 
       - name: Install dependencies
-        run: cd MobileApp && npm install
+        run: cd packages/MobileApp && npm install
 
       - name: Generate native iOS project
-        run: cd MobileApp && npx expo prebuild --platform ios --no-install
+        run: cd packages/MobileApp && npx expo prebuild --platform ios --no-install
 
       - name: Install CocoaPods dependencies
-        run: cd MobileApp/ios && pod install
+        run: cd packages/MobileApp/ios && pod install
 
       - name: Setup Apple signing certificate and provisioning profile
         env:
@@ -2411,7 +2411,7 @@ jobs:
 
       - name: Build iOS archive
         run: |
-          cd MobileApp/ios
+          cd packages/MobileApp/ios
           xcodebuild archive \
             -workspace OneUptimeOnCall.xcworkspace \
             -scheme OneUptimeOnCall \

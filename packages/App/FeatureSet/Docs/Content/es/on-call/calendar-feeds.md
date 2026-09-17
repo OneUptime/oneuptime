@@ -212,7 +212,7 @@ También relevante:
 - **`TRUSTED_PROXY_HOPS`** decide qué dirección cuenta el límite por dirección. El valor por defecto `1` es correcto para las disposiciones estándar de Docker Compose y Helm; suma uno por cada proxy propio — CDN, WAF o balanceador — que añada a `X-Forwarded-For`; de lo contrario todos los clientes de calendario parecen la misma dirección y comparten un solo presupuesto. Ver [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) en la documentación del chart.
 - **Redis** sostiene las cachés y el limitador. Ambos se degradan con elegancia: sin Redis los feeds se siguen generando, solo más despacio, y el limitador deja pasar las peticiones.
 - En el modo dividido del chart de Helm (`worker.enabled: true`) los feeds se generan en el nivel de API; dimensiona ese nivel para una ráfaga de clientes de calendario consultando a la hora en punto.
-- La exención del registro de acceso de Nginx mostrada arriba forma parte del `Nginx/default.conf.template` distribuido; consérvala si personalizas la plantilla.
+- La exención del registro de acceso de Nginx mostrada arriba forma parte del `packages/Nginx/default.conf.template` distribuido; consérvala si personalizas la plantilla.
 
 ## Solución de problemas
 

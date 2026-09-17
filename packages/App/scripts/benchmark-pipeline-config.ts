@@ -1,5 +1,5 @@
 /*
- * Run from App:
+ * Run from packages/App:
  * node --require ts-node/register/transpile-only scripts/benchmark-pipeline-config.ts
  *
  * Measures configuration normalization + category filter evaluation only.

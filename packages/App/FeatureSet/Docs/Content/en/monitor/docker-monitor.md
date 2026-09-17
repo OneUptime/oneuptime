@@ -233,7 +233,7 @@ To use Docker monitoring, you need to:
 2. Pass `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, and `DOCKER_HOST_NAME` as environment variables
 3. Ensure the containers you want to observe use the `json-file` log driver (see above)
 
-The agent is published as `oneuptime/docker-agent:release` on Docker Hub. See the [Docker Agent installation guide](https://github.com/OneUptime/oneuptime/tree/master/DockerAgent) for the full `docker run` and `docker compose` examples.
+The agent is published as `oneuptime/docker-agent:release` on Docker Hub. See the [Docker Agent installation guide](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) for the full `docker run` and `docker compose` examples.
 
 ## Troubleshooting
 

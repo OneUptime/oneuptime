@@ -37,7 +37,7 @@ import { JSONish, listItems } from "./Helpers/MonitorAlerting";
  *
  * To run locally against a full stack:
  *
- *   cd E2E && HOST=localhost npx playwright test \
+ *   cd packages/E2E && HOST=localhost npx playwright test \
  *     Tests/Dashboard/Slo.spec.ts --project=chromium
  */
 test.describe.configure({ mode: "serial" });

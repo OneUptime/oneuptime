@@ -30,7 +30,7 @@ const ESBUILD_CONFIG: string = path.resolve(
   "esbuild-config.js",
 );
 
-const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..");
+const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
 const temporaryRoots: Array<string> = [];
 

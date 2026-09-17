@@ -233,7 +233,7 @@ docker run ... <image>
 2. مقادیر `ONEUPTIME_URL`، `ONEUPTIME_SERVICE_TOKEN` و `DOCKER_HOST_NAME` را به‌عنوان متغیر محیطی بدهید
 3. مطمئن شوید کانتینرهایی که می‌خواهید مشاهده کنید راه‌انداز گزارش `json-file` را به کار می‌برند (بالا را ببینید)
 
-عامل روی Docker Hub با نام `oneuptime/docker-agent:release` منتشر می‌شود. برای نمونه‌های کامل `docker run` و `docker compose`، [راهنمای نصب عامل Docker](https://github.com/OneUptime/oneuptime/tree/master/DockerAgent) را ببینید.
+عامل روی Docker Hub با نام `oneuptime/docker-agent:release` منتشر می‌شود. برای نمونه‌های کامل `docker run` و `docker compose`، [راهنمای نصب عامل Docker](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) را ببینید.
 
 ## رفع اشکال
 

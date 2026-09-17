@@ -1,6 +1,6 @@
 # Public status page resource search
 
-Run `npm run test-status-page-search-ui` from `E2E` after installing its and
+Run `npm run test-status-page-search-ui` from `packages/E2E` after installing its and
 `Common`'s dependencies and Playwright Chromium.
 
 This suite builds the actual public Overview and its search, nested resource

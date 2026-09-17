@@ -13,5 +13,5 @@ in the images, and they do not demonstrate database persistence.
 - `validation-error.png`: a missing destination label blocks the batch.
 - `import-complete.png`: successful completion and refreshed table.
 
-Regenerate with `cd E2E && npm run test-label-rule-transfer-ui`. The separate live
+Regenerate with `cd packages/E2E && npm run test-label-rule-transfer-ui`. The separate live
 integration suite is documented in `E2E/LabelRules/README.md`.

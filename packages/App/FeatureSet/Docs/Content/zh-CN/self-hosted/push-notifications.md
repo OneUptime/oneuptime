@@ -21,7 +21,7 @@ Web 推送通知继续使用 VAPID 密钥和 Web Push 协议。
 | OneUptime → 浏览器推送服务 | 浏览器推送订阅中保存的 HTTPS 端点 | HTTPS / 通常为 TCP 443 | Web 推送。 |
 | 移动应用或浏览器 → OneUptime | 您的 OneUptime 主机名 | HTTPS / TCP 443 | 登录、注册设备和打开通知链接。 |
 
-若修改 `PUSH_NOTIFICATION_RELAY_URL`，请允许其目标主机名和配置的端口。自定义中继必须实现 OneUptime 中继 API。默认值和投递模式切换逻辑见 [OneUptime 配置](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)和[推送服务](https://github.com/OneUptime/oneuptime/blob/master/Common/Server/Services/PushNotificationService.ts)；直接投递端点见 [Expo 发送指南](https://docs.expo.dev/push-notifications/sending-notifications/)。
+若修改 `PUSH_NOTIFICATION_RELAY_URL`，请允许其目标主机名和配置的端口。自定义中继必须实现 OneUptime 中继 API。默认值和投递模式切换逻辑见 [OneUptime 配置](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)和[推送服务](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts)；直接投递端点见 [Expo 发送指南](https://docs.expo.dev/push-notifications/sending-notifications/)。
 
 对于 Web 推送，请允许团队所用浏览器订阅端点的实际主机。OneUptime 接受 `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com` 和 `push.apple.com` 及其子域，例如 `updates.push.services.mozilla.com` 和 `web.push.apple.com`。[浏览器推送订阅](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription)提供目标地址；仅允许 Expo 或 OneUptime 中继不能启用 Web 推送。
 

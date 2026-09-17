@@ -10,7 +10,7 @@ export default defineConfig({
   expect: { timeout: 30000 },
   retries: 0,
   reporter: [["list"]],
-  outputDir: "../output/playwright/discovery/test-results",
+  outputDir: "../../output/playwright/discovery/test-results",
   use: {
     baseURL: "http://127.0.0.1:4198",
     browserName: "chromium",

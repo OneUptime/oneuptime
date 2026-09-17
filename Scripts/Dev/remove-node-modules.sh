@@ -3,6 +3,7 @@
 
 # Act on the repository root no matter where this is run from.
 CDPATH= cd -- "$(dirname -- "$0")/../.." || exit 1
+REPO_ROOT=$(pwd)
 
 echo "Removing node_modules directories..."
 
@@ -14,7 +15,12 @@ else
     echo "No node_modules found in root directory"
 fi
 
-for d in */ ; do
+# Loop through all the directories, including the packages under packages/ and agents/.
+for d in */ packages/*/ agents/*/ ; do
+    # packages/ and agents/ only group the packages below them.
+    case "$d" in
+        packages/ | agents/) continue ;;
+    esac
     if [ -d "$d" ]; then
         cd "$d" || { echo "Cannot cd into $d"; continue; }
         
@@ -25,7 +31,7 @@ for d in */ ; do
             echo "No node_modules found in $d"
         fi
         
-        cd .. || echo "Cannot cd out of $d"
+        cd "$REPO_ROOT" || echo "Cannot cd out of $d"
     fi
 done
 

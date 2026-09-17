@@ -43,7 +43,7 @@ For a **standalone ESXi host** (no vCenter), create the user under *Host → Man
 ## Quick Start — Install Script
 
 \`\`\`bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/VMwareAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
 bash install.sh
 \`\`\`
 
@@ -53,7 +53,7 @@ The script prompts for your OneUptime URL, telemetry ingestion key, a stable vCe
 
 The agent is config-only: a stock \`otel/opentelemetry-collector-contrib\` container whose native \`vcenter\` receiver polls the vSphere SDK with your read-only user, stamps the data with your vCenter identity, and ships it to OneUptime over OTLP. No exporter sidecar, no plugin on vCenter, no agent inside the VMs.
 
-Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [VMwareAgent directory](https://github.com/OneUptime/oneuptime/tree/master/VMwareAgent) into a folder, then create a \`.env\` file next to them (\`chmod 600 .env\` — it holds a password):
+Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [VMwareAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent) into a folder, then create a \`.env\` file next to them (\`chmod 600 .env\` — it holds a password):
 
 \`\`\`bash
 ONEUPTIME_URL=${data.oneuptimeUrl}
@@ -366,7 +366,7 @@ Then remove the \`oneuptime\` user's permission in vCenter if you no longer need
 \`troubleshoot.sh\` checks the whole chain — container runtime, vCenter reachability and credentials, vCenter-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation** (OneUptime's OTLP endpoints return a silent \`200\` on a bad ingestion key, so log inspection alone cannot tell you the key is wrong; the script asks \`GET /otlp/v1/validate\` for a real 200/401 verdict):
 
 \`\`\`bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/VMwareAgent/troubleshoot.sh -o troubleshoot.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-vmware-agent
 \`\`\`
 

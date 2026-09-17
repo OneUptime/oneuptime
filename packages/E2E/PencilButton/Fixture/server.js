@@ -5,7 +5,7 @@ const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
 
-const repository = path.resolve(__dirname, "../../..");
+const repository = path.resolve(__dirname, "../../../..");
 const output = path.join(repository, "output/playwright/pencil-button/fixture");
 const port = 4208;
 const config = createConfig({
@@ -14,9 +14,12 @@ const config = createConfig({
   entryPoint: path.join(__dirname, "Fixture.js"),
   outdir: output,
   additionalAlias: {
-    Common: path.join(repository, "Common"),
-    react: path.join(repository, "Common/node_modules/react"),
-    "react-dom": path.join(repository, "Common/node_modules/react-dom"),
+    Common: path.join(repository, "packages/Common"),
+    react: path.join(repository, "packages/Common/node_modules/react"),
+    "react-dom": path.join(
+      repository,
+      "packages/Common/node_modules/react-dom",
+    ),
   },
 });
 config.target = "es2022";
@@ -27,7 +30,7 @@ config.logLevel = "warning";
 
 const tailwind = path.join(
   repository,
-  "Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
+  "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pencil button regression fixture</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;</script><script src="/tailwind.js"></script></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 

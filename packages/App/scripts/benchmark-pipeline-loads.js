@@ -2,8 +2,8 @@
  * Run from the repository root, using separate processes for before and after:
  *
  * git show 0b23baed11:App/FeatureSet/Telemetry/Services/LogPipelineService.ts > /tmp/oneuptime-log-pipeline-before.ts
- * node --expose-gc App/scripts/benchmark-pipeline-loads.js /tmp/oneuptime-log-pipeline-before.ts
- * node --expose-gc App/scripts/benchmark-pipeline-loads.js
+ * node --expose-gc packages/App/scripts/benchmark-pipeline-loads.js /tmp/oneuptime-log-pipeline-before.ts
+ * node --expose-gc packages/App/scripts/benchmark-pipeline-loads.js
  *
  * Executes the selected service unchanged with asynchronous database stubs.
  * The cache and filter compiler are real source. This measures redundant query

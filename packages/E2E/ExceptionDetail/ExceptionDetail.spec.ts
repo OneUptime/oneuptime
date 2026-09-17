@@ -22,7 +22,7 @@ const BASE: string = `/dashboard/${PROJECT_ID}/exceptions/${EXCEPTION_ID}`;
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
-  "../../output/playwright/exception-detail-ui",
+  "../../../output/playwright/exception-detail-ui",
 );
 
 interface RecordedApiRequest {

@@ -23,7 +23,7 @@ import {
  *
  * To run locally against a full stack:
  *
- *   cd E2E && HOST=localhost npx playwright test \
+ *   cd packages/E2E && HOST=localhost npx playwright test \
  *     Tests/Dashboard/Telemetry.spec.ts --project=chromium
  *
  * Registers a user + creates a project, so it needs a working billing backend

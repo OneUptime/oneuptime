@@ -49,7 +49,7 @@ The agent talks to vCenter over HTTPS, so it does not have to live anywhere near
 ## Quick Start (Install Script)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/VMwareAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
 bash install.sh
 ```
 
@@ -57,7 +57,7 @@ The script prompts for your OneUptime URL, telemetry ingestion token, a stable v
 
 ## Alternative — Docker Compose
 
-Download the two files from the [VMwareAgent directory](https://github.com/OneUptime/oneuptime/tree/master/VMwareAgent) — `docker-compose.yml` and `otel-collector-config.yaml` — into a folder, then create a `.env` file next to them (`chmod 600 .env` — it holds a password):
+Download the two files from the [VMwareAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent) — `docker-compose.yml` and `otel-collector-config.yaml` — into a folder, then create a `.env` file next to them (`chmod 600 .env` — it holds a password):
 
 ```bash
 ONEUPTIME_URL=YOUR_ONEUPTIME_URL
@@ -246,10 +246,10 @@ If your instance is HTTP-only, use `http://` and the appropriate port.
 
 ### Run the diagnostic script first
 
-The agent ships with a doctor script, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/VMwareAgent/troubleshoot.sh), that checks the whole chain: container runtime, vCenter reachability and credentials, vCenter-name stamping, ingestion-token shape, collector self-metrics, and a **definitive server-side token validation**. The token check is the important one — OneUptime's OTLP endpoints deliberately return a silent `200` on a bad ingestion token (so a misconfigured collector cannot retry-flood the server), which means the collector logs look clean even when every datapoint is being dropped. The script calls `GET <url>/otlp/v1/validate` from inside the agent's network namespace to get a real `200` (valid) / `401` (invalid) verdict, falling back to `POST /fluentd/v1/logs` on older servers, and probes `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml` the same way so DNS, firewall, and TLS failures show up exactly as the collector hits them.
+The agent ships with a doctor script, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/troubleshoot.sh), that checks the whole chain: container runtime, vCenter reachability and credentials, vCenter-name stamping, ingestion-token shape, collector self-metrics, and a **definitive server-side token validation**. The token check is the important one — OneUptime's OTLP endpoints deliberately return a silent `200` on a bad ingestion token (so a misconfigured collector cannot retry-flood the server), which means the collector logs look clean even when every datapoint is being dropped. The script calls `GET <url>/otlp/v1/validate` from inside the agent's network namespace to get a real `200` (valid) / `401` (invalid) verdict, falling back to `POST /fluentd/v1/logs` on older servers, and probes `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml` the same way so DNS, firewall, and TLS failures show up exactly as the collector hits them.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/VMwareAgent/troubleshoot.sh -o troubleshoot.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-vmware-agent
 ```
 

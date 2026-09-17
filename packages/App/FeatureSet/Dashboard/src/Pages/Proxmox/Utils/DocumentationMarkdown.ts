@@ -31,7 +31,7 @@ The first command prints the token secret — copy it now, it is shown only once
 ## Quick Start — Install Script
 
 \`\`\`bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/ProxmoxAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
 bash install.sh
 \`\`\`
 
@@ -41,7 +41,7 @@ The script prompts for your OneUptime URL, telemetry ingestion key, cluster name
 
 The agent is config-only: a stock \`otel/opentelemetry-collector-contrib\` container with a tuned config that scrapes prometheus-pve-exporter, stamps the data with your cluster identity, and ships it to OneUptime over OTLP. The compose file optionally runs the exporter for you.
 
-Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [ProxmoxAgent directory](https://github.com/OneUptime/oneuptime/tree/master/ProxmoxAgent) into a folder, then create a \`.env\` file next to them:
+Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [ProxmoxAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) into a folder, then create a \`.env\` file next to them:
 
 \`\`\`bash
 ONEUPTIME_URL=${data.oneuptimeUrl}
@@ -262,7 +262,7 @@ docker compose down
 \`troubleshoot.sh\` checks the whole chain — container runtime, the exporter scrape, cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation** (OneUptime's OTLP endpoints return a silent \`200\` on a bad ingestion key, so log inspection alone cannot tell you the key is wrong; the script asks \`GET /otlp/v1/validate\` for a real 200/401 verdict):
 
 \`\`\`bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 \`\`\`
 

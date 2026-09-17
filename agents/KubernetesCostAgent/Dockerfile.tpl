@@ -37,7 +37,7 @@ RUN apt-get update \
 ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
-COPY ./KubernetesCostAgent/package*.json /usr/src/app/
+COPY ./agents/KubernetesCostAgent/package*.json /usr/src/app/
 # Uses node:*-slim default cache path (~/.npm) rather than the /tmp/npm
 # convention the other images set — npm config was never customized here.
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --prefer-offline
@@ -54,7 +54,7 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 USER node
 CMD [ "npm", "run", "dev" ]
 {{ else }}
-COPY --chown=node:node ./KubernetesCostAgent /usr/src/app
+COPY --chown=node:node ./agents/KubernetesCostAgent /usr/src/app
 RUN npm run compile
 USER node
 # Per-build metadata last so the npm ci / compile layers above stay cacheable

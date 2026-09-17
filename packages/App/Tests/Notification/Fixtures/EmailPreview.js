@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
  * Reproducible local visual-review harness for the email template catalog.
- * From the repository root: node App/Tests/Notification/Fixtures/EmailPreview.js
+ * From the repository root: node packages/App/Tests/Notification/Fixtures/EmailPreview.js
  *
  * Only reads templates/git and writes static HTML. Does not import MailService,
  * send email, load config.env, contact services, or access the database.
@@ -13,8 +13,8 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const Handlebars = require("handlebars");
 
-const root = path.resolve(__dirname, "../../../..");
-const templatePath = "App/FeatureSet/Notification/Templates";
+const root = path.resolve(__dirname, "../../../../..");
+const templatePath = "packages/App/FeatureSet/Notification/Templates";
 const templates = path.join(root, templatePath);
 const output = path.join(root, "output/playwright/email-design");
 const beforeRef = process.env.EMAIL_PREVIEW_BASE || "origin/master";
@@ -476,7 +476,7 @@ fs.writeFileSync(
 );
 fs.writeFileSync(
   path.join(output, "README.md"),
-  `# Local email previews\n\nRegenerate from the repository root:\n\n\`node App/Tests/Notification/Fixtures/EmailPreview.js\`\n\nServe this directory on localhost using a static server. Open \`index.html\` for the before/after gallery, or \`overflow-check.html\` for the 320/375px check across all templates and curated cases. The browser exposes \`window.emailOverflowResults\` and \`window.emailOverflowComplete\` for automation. \`window.emailReportNameMetrics\` also records each report name's usable width, height, line height and computed indentation, so checks can detect squeezed names even when the page has no horizontal overflow. Filter by \`name === "Router"\` to inspect the deepest resource.\n\nIndividual curated cases are under \`before/\` and \`after/\`. All-template renders are under each version's \`all/\`. \`manifest.json\` lists both catalogs. Default baseline is \`${beforeRef}\`; override with \`EMAIL_PREVIEW_BASE\`.\n\nData is synthetic. No mail is sent, no credentials are read, and no database is used. This is browser layout verification, not a claim of certification across email clients.\n`,
+  `# Local email previews\n\nRegenerate from the repository root:\n\n\`node packages/App/Tests/Notification/Fixtures/EmailPreview.js\`\n\nServe this directory on localhost using a static server. Open \`index.html\` for the before/after gallery, or \`overflow-check.html\` for the 320/375px check across all templates and curated cases. The browser exposes \`window.emailOverflowResults\` and \`window.emailOverflowComplete\` for automation. \`window.emailReportNameMetrics\` also records each report name's usable width, height, line height and computed indentation, so checks can detect squeezed names even when the page has no horizontal overflow. Filter by \`name === "Router"\` to inspect the deepest resource.\n\nIndividual curated cases are under \`before/\` and \`after/\`. All-template renders are under each version's \`all/\`. \`manifest.json\` lists both catalogs. Default baseline is \`${beforeRef}\`; override with \`EMAIL_PREVIEW_BASE\`.\n\nData is synthetic. No mail is sent, no credentials are read, and no database is used. This is browser layout verification, not a claim of certification across email clients.\n`,
 );
 console.log(
   `Rendered ${cases.length} curated cases and ${manifest.versions.after.length} templates per version into ${output}`,

@@ -3,7 +3,7 @@
 The production-page browser suite runs without a OneUptime server:
 
 ```bash
-cd E2E
+cd packages/E2E
 npm run test-label-rule-transfer-ui
 ```
 
@@ -24,7 +24,7 @@ Run the separate live suite against a running OneUptime development server with
 billing disabled:
 
 ```bash
-cd E2E
+cd packages/E2E
 HOST=localhost:18081 HTTP_PROTOCOL=http BILLING_ENABLED=false npm run test-label-rule-transfer
 ```
 

@@ -21,7 +21,7 @@
 
 <div align="center">
   <a href="https://oneuptime.com">
-    <img alt="OneUptime Logo" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/>
+    <img alt="OneUptime Logo" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
   </a>
 
   <h3>Agentische Observability — eine Open-Source-Plattform für Uptime, Vorfälle, Bereitschaftsdienst, Statusseiten, Logs, Traces, Metriken und APM.</h3>
@@ -52,7 +52,7 @@
 <br/>
 
 <div align="center">
-  <img alt="OneUptime-Kommandozentrale während eines Live-Vorfalls" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/readme/hero-command-center.png"/>
+  <img alt="OneUptime-Kommandozentrale während eines Live-Vorfalls" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
 </div>
 
 ---
@@ -86,31 +86,31 @@ Es ist 2:47 Uhr. Der Checkout beginnt, in Timeouts zu laufen. Hier sehen Sie, wa
 
 Probes in mehreren Regionen bemerken, wie die Checkout-Latenz Ihren 5-Sekunden-Schwellenwert überschreitet, und öffnen automatisch einen Vorfall — bevor Ihre Kunden auf Aktualisieren drücken.
 
-![Erkennen — globales Monitoring bemerkt die sich verschlechternde Checkout-API](/Home/Static/img/readme/detect.png?raw=true)
+![Erkennen — globales Monitoring bemerkt die sich verschlechternde Checkout-API](/packages/Home/Static/img/readme/detect.png?raw=true)
 
 ### 2 · Reagieren — *die richtige Person, alarmiert*
 
 Der diensthabende Ingenieur der Payments-Richtlinie wird angerufen, per SMS und Push-Benachrichtigung kontaktiert und automatisch an die Vertretung eskaliert, bis jemand bestätigt.
 
-![Reagieren — der Vorfall wird an den Bereitschaftsdienst geleitet und bestätigt](/Home/Static/img/readme/respond.png?raw=true)
+![Reagieren — der Vorfall wird an den Bereitschaftsdienst geleitet und bestätigt](/packages/Home/Static/img/readme/respond.png?raw=true)
 
 ### 3 · Kommunizieren — *Kunden auf dem Laufenden*
 
 Ihre Statusseite aktualisiert sich selbst und jeder Abonnent wird per E-Mail und SMS benachrichtigt — niemand muss die Aktualisierung von Hand schreiben.
 
-![Kommunizieren — die öffentliche Statusseite aktualisiert sich und benachrichtigt Abonnenten](/Home/Static/img/readme/communicate.png?raw=true)
+![Kommunizieren — die öffentliche Statusseite aktualisiert sich und benachrichtigt Abonnenten](/packages/Home/Static/img/readme/communicate.png?raw=true)
 
 ### 4 · Diagnostizieren — *Grundursache, gefunden*
 
 Traces, Logs und Metriken werden bis auf den exakten Span korreliert: ein langsames `SELECT … FOR UPDATE` auf `orders`, das an einem fehlenden Index hängt.
 
-![Diagnostizieren — der Trace-Wasserfall lokalisiert den langsamen Datenbank-Span](/Home/Static/img/readme/diagnose.png?raw=true)
+![Diagnostizieren — der Trace-Wasserfall lokalisiert den langsamen Datenbank-Span](/packages/Home/Static/img/readme/diagnose.png?raw=true)
 
 ### 5 · Automatisch beheben — *die Lösung, für Sie vorbereitet*
 
 Der KI-Agent öffnet einen Pull Request mit der Lösung, verknüpft mit dem Vorfall und mit grünen Tests — Sie prüfen und mergen. Wie ein SRE, der niemals schläft.
 
-![Automatisch beheben — der KI-Agent öffnet einen Pull Request mit der Lösung](/Home/Static/img/readme/autofix.png?raw=true)
+![Automatisch beheben — der KI-Agent öffnet einen Pull Request mit der Lösung](/packages/Home/Static/img/readme/autofix.png?raw=true)
 
 </details>
 
@@ -144,7 +144,7 @@ npm start
 
 OneUptime läuft jetzt unter **http://localhost** — öffnen Sie es und erstellen Sie Ihr erstes Konto.
 
-📖 Vollständige Anleitung: [Docker-Compose-Installation](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Dimensionierung und Anforderungen](/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+📖 Vollständige Anleitung: [Docker-Compose-Installation](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Dimensionierung und Anforderungen](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
 
 ### ☸️ Kubernetes mit Helm — für die Produktion
 
@@ -155,7 +155,7 @@ helm install oneuptime oneuptime/oneuptime
 
 📖 Vollständige Installationsanweisungen und Werte auf [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
 
-> **Sie aktualisieren eine bestehende Installation?** Siehe den [Upgrade-Leitfaden](/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
+> **Sie aktualisieren eine bestehende Installation?** Siehe den [Upgrade-Leitfaden](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
 
 ---
 
@@ -181,7 +181,7 @@ helm install oneuptime oneuptime/oneuptime
 
 Verketten Sie Eskalationen, Ticketing und Benachrichtigungen auf einer visuellen No-Code-Oberfläche — oder fügen Sie eigenen Code ein. Der obige Vorfall hat den Bereitschaftsdienst alarmiert, ein Jira-Ticket geöffnet und in Slack gepostet, ohne dass jemand einen Finger rühren musste.
 
-![Workflows — eine No-Code-Automatisierungsoberfläche für die Vorfalleskalation](/Home/Static/img/readme/workflows.png?raw=true)
+![Workflows — eine No-Code-Automatisierungsoberfläche für die Vorfalleskalation](/packages/Home/Static/img/readme/workflows.png?raw=true)
 
 </details>
 
@@ -189,13 +189,13 @@ Verketten Sie Eskalationen, Ticketing und Benachrichtigungen auf einer visuellen
 
 Fügen Sie kopierfertige, **OpenTelemetry-basierte** Agenten ein, um alles zu überwachen, worauf Ihre Services laufen — mit fertigen Alarmvorlagen inklusive:
 
-- **Server und VMs** — CPU, Arbeitsspeicher, Festplatte, Netzwerk, Prozesse und Logs von Linux, macOS und Windows. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — ein `helm install` liefert Node-/Pod-/Container-/Cluster-Metriken, Events, Logs sowie eBPF-Traces und Service-Maps. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — ein einzelner Agent entdeckt automatisch jeden Container und liefert Metriken und Logs. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — dieselbe Ein-Agent-Autoerkennung über Podmans Docker-kompatiblen Socket. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — Nodes, VMs, Container, Speicher, HA-Status, Backup-Abdeckung und Replikationszustand. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter, ESXi-Hosts, virtuelle Maschinen, Datastores, Cluster, Ressourcenpools und vSAN. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — Cluster-Zustand, Kapazitätsprognosen und Einblick in OSD/Pool/PG/Monitor. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Server und VMs** — CPU, Arbeitsspeicher, Festplatte, Netzwerk, Prozesse und Logs von Linux, macOS und Windows. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
+- **Kubernetes** — ein `helm install` liefert Node-/Pod-/Container-/Cluster-Metriken, Events, Logs sowie eBPF-Traces und Service-Maps. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
+- **Docker** — ein einzelner Agent entdeckt automatisch jeden Container und liefert Metriken und Logs. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
+- **Podman** — dieselbe Ein-Agent-Autoerkennung über Podmans Docker-kompatiblen Socket. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
+- **Proxmox** — Nodes, VMs, Container, Speicher, HA-Status, Backup-Abdeckung und Replikationszustand. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi-Hosts, virtuelle Maschinen, Datastores, Cluster, Ressourcenpools und vSAN. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
+- **Ceph** — Cluster-Zustand, Kapazitätsprognosen und Einblick in OSD/Pool/PG/Monitor. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---
 
@@ -223,7 +223,7 @@ Wir begrüßen Beiträge jeder Größe. Beginnen Sie hier:
 
 - 🐛 **[Offene Issues](https://github.com/OneUptime/oneuptime/issues)** — schnappen Sie sich eines oder [eröffnen Sie ein neues](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[Helfen Sie beim Schreiben von Tests](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** für die Codebasis
-- 🧑‍💻 **[Leitfaden für die lokale Entwicklung](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** für die Einrichtung
+- 🧑‍💻 **[Leitfaden für die lokale Entwicklung](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** für die Einrichtung
 - 📖 Lesen Sie die **[Richtlinien für Beiträge](/.github/CONTRIBUTING.md)**
 - 💬 Chatten Sie mit uns im **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** oder **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
 

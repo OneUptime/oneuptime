@@ -197,7 +197,7 @@ log_driver = "k8s-file"
 2. مقادیر `ONEUPTIME_URL`، `ONEUPTIME_SERVICE_TOKEN` و `PODMAN_HOST_NAME` را به‌عنوان متغیر محیطی بدهید
 3. مطمئن شوید کانتینرهایی که می‌خواهید مشاهده کنید راه‌انداز گزارش `k8s-file` را به کار می‌برند (بالا را ببینید)
 
-عامل روی Docker Hub با نام `oneuptime/podman-agent:release` منتشر می‌شود. برای نمونه‌های کامل `podman run` و Compose، [راهنمای نصب میزبان Podman](https://github.com/OneUptime/oneuptime/tree/master/PodmanAgent) را ببینید.
+عامل روی Docker Hub با نام `oneuptime/podman-agent:release` منتشر می‌شود. برای نمونه‌های کامل `podman run` و Compose، [راهنمای نصب میزبان Podman](https://github.com/OneUptime/oneuptime/tree/master/agents/PodmanAgent) را ببینید.
 
 ## رفع اشکال
 

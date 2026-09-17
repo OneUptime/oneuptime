@@ -212,7 +212,7 @@ OneUptime 本身提供的是最新資料：對層級、輪替、覆寫或政策�
 - **`TRUSTED_PROXY_HOPS`** 決定依位址限速時計數的是哪個位址。預設值 `1` 適用於標準的 Docker Compose 與 Helm 配置；對於你自己加入的、會在 `X-Forwarded-For` 中附加內容的每個代理——CDN、WAF 或負載平衡器——都加一，否則每個行事曆用戶端看起來都是同一個位址並共用同一份配額。參見 chart 文件中的 [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies)。
 - **Redis** 支撐快取與限速器。兩者都會優雅降級：沒有 Redis 時，訂閱源仍然會轉譯，只是更慢，限速器則放行請求。
 - 在 Helm chart 的拆分模式（`worker.enabled: true`）下，訂閱源在 API 層轉譯，所以請為整點時大量行事曆用戶端同時輪詢的突發流量調整該層的規模。
-- 上面展示的 Nginx 存取記錄豁免是隨附的 `Nginx/default.conf.template` 的一部分；如果你自訂範本，請保留它。
+- 上面展示的 Nginx 存取記錄豁免是隨附的 `packages/Nginx/default.conf.template` 的一部分；如果你自訂範本，請保留它。
 
 ## 疑難排解
 

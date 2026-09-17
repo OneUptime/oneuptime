@@ -27,7 +27,7 @@ ceph orch ps --daemon-type mgr   # all mgrs (cephadm clusters)
 ## Quick Start (Install Script)
 
 \`\`\`bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/CephAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/install.sh -o install.sh
 bash install.sh
 \`\`\`
 
@@ -35,7 +35,7 @@ The script prompts for your OneUptime URL, telemetry ingestion key, cluster name
 
 ## Alternative: Docker Compose
 
-Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [CephAgent directory](https://github.com/OneUptime/oneuptime/tree/master/CephAgent) into a folder, then create a \`.env\` file next to them:
+Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [CephAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) into a folder, then create a \`.env\` file next to them:
 
 \`\`\`bash
 ONEUPTIME_URL=${data.oneuptimeUrl}
@@ -231,7 +231,7 @@ The agent can tail \`/var/log/ceph/ceph.log\` and ship it to OneUptime, which po
 \`troubleshoot.sh\` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation** (OneUptime's OTLP endpoints return a silent \`200\` on a bad ingestion key, so log inspection alone cannot tell you the key is wrong; the script asks \`GET /otlp/v1/validate\` for a real 200/401 verdict):
 
 \`\`\`bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/CephAgent/troubleshoot.sh -o troubleshoot.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-ceph-agent
 \`\`\`
 

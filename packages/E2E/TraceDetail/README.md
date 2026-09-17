@@ -35,7 +35,7 @@ check what the page asked for as well as what it drew.
 ## Run it
 
 ```
-cd E2E
+cd packages/E2E
 npm install
 npm run test-trace-detail-ui
 ```
@@ -46,7 +46,7 @@ because every record in them is fabricated.
 ## Poke at it by hand
 
 ```
-cd E2E
+cd packages/E2E
 node TraceDetail/Fixture/server.js --watch
 ```
 

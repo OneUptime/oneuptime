@@ -49,7 +49,7 @@ highlighting offline.
 
 ```bash
 BASE="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1"
-DEST="Common/Server/Static/Vendor/highlight"
+DEST="packages/Common/Server/Static/Vendor/highlight"
 
 curl -sSfL "$BASE/highlight.min.js" -o "$DEST/highlight.min.js"
 

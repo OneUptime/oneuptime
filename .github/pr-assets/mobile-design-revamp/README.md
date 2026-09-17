@@ -30,5 +30,5 @@ response buttons, the project switcher), which web never showed.
 | <img src="dark-on-call.png" width="240" alt="On-Call in dark mode"> | <img src="dark-monitors.png" width="240" alt="Monitors in dark mode"> | <img src="dark-settings.png" width="240" alt="Settings in dark mode"> |
 
 The complete set for all four test viewports is regenerated in
-[`MobileApp/docs/screenshots`](../../../MobileApp/docs/screenshots) by
+[`packages/MobileApp/docs/screenshots`](../../../packages/MobileApp/docs/screenshots) by
 `UPDATE_SCREENSHOTS=1 npm run test-ui`.

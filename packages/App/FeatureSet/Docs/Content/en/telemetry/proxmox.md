@@ -39,7 +39,7 @@ The agent queries the PVE API over the network, so it does not have to live on a
 ## Quick Start (Install Script)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/ProxmoxAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
 bash install.sh
 ```
 
@@ -47,7 +47,7 @@ The script prompts for your OneUptime URL, telemetry ingestion token, cluster na
 
 ## Alternative — Docker Compose
 
-Download the two files from the [ProxmoxAgent directory](https://github.com/OneUptime/oneuptime/tree/master/ProxmoxAgent) — `docker-compose.yml` and `otel-collector-config.yaml` — into a folder, then create a `.env` file next to them:
+Download the two files from the [ProxmoxAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) — `docker-compose.yml` and `otel-collector-config.yaml` — into a folder, then create a `.env` file next to them:
 
 ```bash
 ONEUPTIME_URL=YOUR_ONEUPTIME_URL
@@ -233,10 +233,10 @@ If your instance is HTTP-only, use `http://` and the appropriate port.
 
 ### Run the diagnostic script first
 
-The agent ships with a doctor script, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/ProxmoxAgent/troubleshoot.sh), that checks the whole chain: container runtime, the exporter scrape, cluster-name stamping, ingestion-token shape, collector self-metrics, and a **definitive server-side token validation**. The token check is the important one — OneUptime's OTLP endpoints deliberately return a silent `200` on a bad ingestion token (so a misconfigured collector cannot retry-flood the server), which means the collector logs look clean even when every datapoint is being dropped. The script calls `GET <url>/otlp/v1/validate` from inside the agent's network namespace to get a real `200` (valid) / `401` (invalid) verdict, falling back to `POST /fluentd/v1/logs` on older servers.
+The agent ships with a doctor script, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/ProxmoxAgent/troubleshoot.sh), that checks the whole chain: container runtime, the exporter scrape, cluster-name stamping, ingestion-token shape, collector self-metrics, and a **definitive server-side token validation**. The token check is the important one — OneUptime's OTLP endpoints deliberately return a silent `200` on a bad ingestion token (so a misconfigured collector cannot retry-flood the server), which means the collector logs look clean even when every datapoint is being dropped. The script calls `GET <url>/otlp/v1/validate` from inside the agent's network namespace to get a real `200` (valid) / `401` (invalid) verdict, falling back to `POST /fluentd/v1/logs` on older servers.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 

@@ -49,7 +49,7 @@ New-VIPermission -Entity (Get-Folder -NoRecursion) -Principal 'VSPHERE.LOCAL\one
 ## شروع سریع (اسکریپت نصب)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/VMwareAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
 bash install.sh
 ```
 
@@ -57,7 +57,7 @@ bash install.sh
 
 ## جایگزین — Docker Compose
 
-دو فایل را از [پوشه VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/VMwareAgent) — ‏`docker-compose.yml` و `otel-collector-config.yaml` — در پوشه‌ای دانلود کنید، سپس کنارشان فایلی `.env` بسازید (`chmod 600 .env` — گذرواژه‌ای در آن است):
+دو فایل را از [پوشه VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent) — ‏`docker-compose.yml` و `otel-collector-config.yaml` — در پوشه‌ای دانلود کنید، سپس کنارشان فایلی `.env` بسازید (`chmod 600 .env` — گذرواژه‌ای در آن است):
 
 ```bash
 ONEUPTIME_URL=YOUR_ONEUPTIME_URL
@@ -246,10 +246,10 @@ ONEUPTIME_URL=https://your-oneuptime-host.example.com
 
 ### نخست اسکریپت تشخیص را اجرا کنید
 
-عامل با اسکریپت دکتری، [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/VMwareAgent/troubleshoot.sh)، عرضه می‌شود که کل زنجیره را بررسی می‌کند: زمان اجرای کانتینر، دسترس‌پذیری و اعتبارنامه vCenter، مهر خوردن نام vCenter، شکل توکن دریافت، سنجه‌های خودی جمع‌کننده، و **اعتبارسنجی قطعی توکن در سمت کارساز**. بررسی توکن مهم‌ترین است — نقطه‌های پایانی OTLP در OneUptime عمداً روی توکن دریافت بد `200` خاموشی برمی‌گردانند (تا جمع‌کننده‌ای بد پیکربندی‌شده نتواند کارساز را با تلاش دوباره غرق کند)، که یعنی گزارش‌های جمع‌کننده حتی وقتی هر نقطه داده‌ای انداخته می‌شود تمیز به نظر می‌رسند. اسکریپت `GET <url>/otlp/v1/validate` را از درون فضای‌نام شبکه عامل فرا می‌خواند تا رأی واقعی `200` (معتبر) / `401` (نامعتبر) بگیرد، روی کارسازهای قدیمی‌تر به `POST /fluentd/v1/logs` بازمی‌گردد، و `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml` را هم به همان شیوه می‌آزماید تا شکست‌های DNS، دیوار آتش و TLS دقیقاً همان‌طور که جمع‌کننده با آن‌ها روبه‌رو می‌شود پدیدار شوند.
+عامل با اسکریپت دکتری، [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/troubleshoot.sh)، عرضه می‌شود که کل زنجیره را بررسی می‌کند: زمان اجرای کانتینر، دسترس‌پذیری و اعتبارنامه vCenter، مهر خوردن نام vCenter، شکل توکن دریافت، سنجه‌های خودی جمع‌کننده، و **اعتبارسنجی قطعی توکن در سمت کارساز**. بررسی توکن مهم‌ترین است — نقطه‌های پایانی OTLP در OneUptime عمداً روی توکن دریافت بد `200` خاموشی برمی‌گردانند (تا جمع‌کننده‌ای بد پیکربندی‌شده نتواند کارساز را با تلاش دوباره غرق کند)، که یعنی گزارش‌های جمع‌کننده حتی وقتی هر نقطه داده‌ای انداخته می‌شود تمیز به نظر می‌رسند. اسکریپت `GET <url>/otlp/v1/validate` را از درون فضای‌نام شبکه عامل فرا می‌خواند تا رأی واقعی `200` (معتبر) / `401` (نامعتبر) بگیرد، روی کارسازهای قدیمی‌تر به `POST /fluentd/v1/logs` بازمی‌گردد، و `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml` را هم به همان شیوه می‌آزماید تا شکست‌های DNS، دیوار آتش و TLS دقیقاً همان‌طور که جمع‌کننده با آن‌ها روبه‌رو می‌شود پدیدار شوند.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/VMwareAgent/troubleshoot.sh -o troubleshoot.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-vmware-agent
 ```
 

@@ -378,7 +378,7 @@ const HomeFeatureSet: FeatureSet = {
       (_req: ExpressRequest, res: ExpressResponse) => {
         // fetch the file from https://raw.githubusercontent.com/oneuptime/infrastructure-agent/release/Scripts/Install/Linux.sh  and send it as response
         res.redirect(
-          "https://raw.githubusercontent.com/OneUptime/oneuptime/release/InfrastructureAgent/Scripts/Install/Linux.sh",
+          "https://raw.githubusercontent.com/OneUptime/oneuptime/release/agents/InfrastructureAgent/Scripts/Install/Linux.sh",
         );
       },
     );

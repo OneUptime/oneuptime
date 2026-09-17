@@ -8,7 +8,7 @@ const ROUTE: string =
   "/dashboard/10000000-0000-4000-8000-000000000001/topology/overview";
 const SCREENSHOTS: string = path.resolve(
   __dirname,
-  "../../output/playwright/topology",
+  "../../../output/playwright/topology",
 );
 
 async function screenshot(page: Page, name: string): Promise<void> {

@@ -16,7 +16,7 @@ export default defineConfig({
   expect: { timeout: 15000 },
   retries: 0,
   reporter: [["list"]],
-  outputDir: "../output/playwright/incoming-call-policies/test-results",
+  outputDir: "../../output/playwright/incoming-call-policies/test-results",
   // A project's `use` wins over the top-level one, so the viewport goes here.
   projects: [
     {

@@ -28,7 +28,7 @@ it drew.
 ## Run it
 
 ```
-cd E2E
+cd packages/E2E
 npm install
 npm run test-incoming-call-policies-ui
 ```
@@ -39,7 +39,7 @@ Screenshots land in `output/playwright/incoming-call-policies/`, named
 ## Poke at it by hand
 
 ```
-cd E2E
+cd packages/E2E
 node IncomingCallPolicies/Fixture/server.js
 ```
 

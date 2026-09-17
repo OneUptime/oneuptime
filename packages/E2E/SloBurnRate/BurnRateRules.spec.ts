@@ -18,7 +18,7 @@ const ROUTE: string =
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
-  "../../output/playwright/slo-burn-rate",
+  "../../../output/playwright/slo-burn-rate",
 );
 
 const pageErrors: Map<Page, Array<string>> = new Map();

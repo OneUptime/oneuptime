@@ -1,6 +1,6 @@
 # Session replay UI regression tests
 
-Run the targeted browser suite from `E2E`:
+Run the targeted browser suite from `packages/E2E`:
 
 ```sh
 npm run test-session-replay-ui

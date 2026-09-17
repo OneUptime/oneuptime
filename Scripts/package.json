@@ -12,7 +12,7 @@
   "dependencies": {
     "@readme/openapi-parser": "^4.1.2",
     "@types/js-yaml": "^4.0.9",
-    "Common": "file:../Common",
+    "Common": "file:../packages/Common",
     "ejs": "^3.1.10",
     "js-yaml": "^4.3.2",
     "ts-node": "^10.9.2"

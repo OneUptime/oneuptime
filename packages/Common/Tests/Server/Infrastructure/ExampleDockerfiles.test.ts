@@ -23,7 +23,7 @@ import path from "path";
  * it names is neither committed nor generated from something that is.
  */
 
-const REPO_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
+const REPO_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..", "..");
 
 // Where hand-written (as opposed to gomplate-rendered) Dockerfiles live.
 const EXAMPLES_DIR: string = "Examples";
@@ -46,6 +46,11 @@ const git: (args: Array<string>) => string = (args: Array<string>): string => {
       cwd: REPO_ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
+      /*
+       * `git ls-files` for the whole repository is over a megabyte, and
+       * execFileSync's default 1 MiB buffer fails it with ENOBUFS.
+       */
+      maxBuffer: 64 * 1024 * 1024,
     });
   } catch (err: unknown) {
     throw new Error(
@@ -398,8 +403,8 @@ describe("The .gitignore Dockerfile rules stay pointed at the right files", () =
       });
 
     expect(renderedDockerfiles.length).toBeGreaterThanOrEqual(10);
-    expect(renderedDockerfiles).toContain("App/Dockerfile");
-    expect(renderedDockerfiles).toContain("Probe/Dockerfile");
+    expect(renderedDockerfiles).toContain("packages/App/Dockerfile");
+    expect(renderedDockerfiles).toContain("packages/Probe/Dockerfile");
 
     for (const dockerfile of renderedDockerfiles) {
       expect({

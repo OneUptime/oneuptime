@@ -129,7 +129,7 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
 ## Run it
 
 ```
-cd E2E
+cd packages/E2E
 npm install
 npm run test-event-overview-ui
 ```
@@ -143,7 +143,7 @@ every record in them is fabricated.
 ## Poke at it by hand
 
 ```
-cd E2E
+cd packages/E2E
 node EventOverview/Fixture/server.js --watch
 ```
 

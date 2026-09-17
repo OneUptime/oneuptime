@@ -22,7 +22,7 @@ interface EnvironmentConfigShape {
 }
 
 /* <repo>/Common/Tests/Server -> <repo> */
-const REPO_ROOT: string = path.resolve(__dirname, "../../..");
+const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
 
 /*
  * The value config.example.env ships for a variable. README's Docker Compose

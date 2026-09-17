@@ -72,7 +72,7 @@ import {
  * To run locally against a full stack (and this spec MUST be run against
  * one before it is trusted - it drives services no unit test can stand up):
  *
- *   cd E2E && HOST=localhost npx playwright test \
+ *   cd packages/E2E && HOST=localhost npx playwright test \
  *     Tests/Dashboard/SessionReplay.spec.ts --project=chromium
  */
 

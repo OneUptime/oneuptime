@@ -269,7 +269,7 @@ describe("compliance evidence requests", () => {
 });
 
 describe("the compliance CTA reaches GA4", () => {
-  const REPOSITORY_ROOT: string = path.join(__dirname, "..", "..");
+  const REPOSITORY_ROOT: string = path.join(__dirname, "..", "..", "..");
 
   test("cta_request_compliance_docs is in the GTM trigger allow-list", () => {
     /*

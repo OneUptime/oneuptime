@@ -170,7 +170,7 @@ describe("route table wiring", () => {
 
     expect(remaining).toHaveLength(1);
     expect(routesSource).not.toContain(
-      "https://raw.githubusercontent.com/OneUptime/oneuptime/release/Home/Scripts/Install.sh",
+      "https://raw.githubusercontent.com/OneUptime/oneuptime/release/packages/Home/Scripts/Install.sh",
     );
   });
 

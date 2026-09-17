@@ -496,7 +496,7 @@ describe("Calendar Feeds docs page", () => {
 
     it("documents the Helm values the chart exposes for the feature", () => {
       const values: string = readRepoFile(
-        "HelmChart/Public/oneuptime/values.yaml",
+        "../HelmChart/Public/oneuptime/values.yaml",
       );
 
       expect(values).toContain("onCallCalendarFeed:");
@@ -516,7 +516,7 @@ describe("Calendar Feeds docs page", () => {
 
     it("links to Helm configuration headings that exist", () => {
       const configuration: string = readRepoFile(
-        "HelmChart/Public/oneuptime/docs/configuration.md",
+        "../HelmChart/Public/oneuptime/docs/configuration.md",
       );
       const headingSlugs: Set<string> = new Set(
         Array.from(configuration.matchAll(/^#{1,6}\s+(.*)$/gm)).map(
@@ -604,7 +604,7 @@ describe("Calendar Feeds docs page", () => {
 
       expect(placeholders.length).toBeGreaterThan(1);
       expect(placeholders).toContain(
-        readRepoFile("config.example.env")
+        readRepoFile("../config.example.env")
           .match(/^ENCRYPTION_SECRET=(.*)$/m)?.[1]
           ?.trim(),
       );

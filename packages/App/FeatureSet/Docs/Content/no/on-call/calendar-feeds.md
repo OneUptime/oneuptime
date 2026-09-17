@@ -212,7 +212,7 @@ Også relevant:
 - **`TRUSTED_PROXY_HOPS`** avgjør hvilken adresse grensen per adresse teller. Standardverdien `1` er riktig for standardoppsettene for Docker Compose og Helm; legg til én for hver egen proxy — en CDN, WAF eller lastbalanserer — som legger til i `X-Forwarded-For`, ellers ser hver kalenderklient ut som samme adresse og deler ett budsjett. Se [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) i diagrammets dokumentasjon.
 - **Redis** støtter bufrene og hastighetsbegrenseren. Begge degraderer pent: uten Redis gjengis feeder likevel, bare tregere, og begrenseren slipper forespørsler gjennom.
 - I Helm-diagrammets delte modus (`worker.enabled: true`) gjengis feeder på API-nivået, så dimensjoner det nivået for en bølge av kalenderklienter som poller ved hel time.
-- Unntaket fra Nginx-tilgangsloggen vist over er en del av den medfølgende `Nginx/default.conf.template`; behold det hvis du tilpasser malen.
+- Unntaket fra Nginx-tilgangsloggen vist over er en del av den medfølgende `packages/Nginx/default.conf.template`; behold det hvis du tilpasser malen.
 
 ## Feilsøking
 

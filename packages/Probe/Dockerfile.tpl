@@ -92,11 +92,11 @@ SHELL ["/bin/bash", "-c"]
 RUN mkdir -p /usr/src
 
 WORKDIR /usr/src/Common
-COPY ./Common/package*.json /usr/src/Common/
+COPY ./packages/Common/package*.json /usr/src/Common/
 # Set version in ./Common/package.json to the APP_VERSION
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
-COPY ./Common /usr/src/Common
+COPY ./packages/Common /usr/src/Common
 
 
 
@@ -112,7 +112,7 @@ ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 # Install app dependencies first so local Playwright CLI is available
-COPY ./Probe/package*.json /usr/src/app/
+COPY ./packages/Probe/package*.json /usr/src/app/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 # The native dependency is optional for non-ODBC development environments,
 # but it is required in the official image. Fail the image build if either the
@@ -155,7 +155,7 @@ RUN apt-get update \
 # able to replace a preloaded library. gcc is already installed above (g++).
 # Probe/Tests/Build/ProbeFirefoxNoSyncLibrary.test.ts pins this step to the path
 # SyntheticBrowser preloads.
-COPY ./Probe/Utils/Monitors/SyntheticRuntime/Native/synthetic-no-sync.c /tmp/synthetic-no-sync.c
+COPY ./packages/Probe/Utils/Monitors/SyntheticRuntime/Native/synthetic-no-sync.c /tmp/synthetic-no-sync.c
 RUN mkdir -p /usr/lib/oneuptime-probe \
     && gcc -shared -fPIC -O2 -Wall -Wextra -Werror \
         -o /usr/lib/oneuptime-probe/libsynthetic-no-sync.so /tmp/synthetic-no-sync.c \
@@ -172,7 +172,7 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD [ "bash", "/usr/src/app/Start.dev.sh" ]
 {{ else }}
 # Copy app source
-COPY ./Probe /usr/src/app
+COPY ./packages/Probe /usr/src/app
 # Bundle app source
 RUN npm run compile
 # Production source is copied after the shared permission setup above. Keep it

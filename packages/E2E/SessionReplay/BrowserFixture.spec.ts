@@ -11,7 +11,7 @@ import path from "path";
 
 const artifacts: string = path.resolve(
   __dirname,
-  "../../output/playwright/session-replay-ui",
+  "../../../output/playwright/session-replay-ui",
 );
 const applicationRoute: string =
   "/dashboard/10000000-0000-4000-8000-000000000001/rum/20000000-0000-4000-8000-000000000001";

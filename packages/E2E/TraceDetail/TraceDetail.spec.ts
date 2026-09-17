@@ -21,7 +21,7 @@ const TRACES: Record<string, string> = {
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
-  "../../output/playwright/trace-detail-ui",
+  "../../../output/playwright/trace-detail-ui",
 );
 
 interface RecordedApiRequest {

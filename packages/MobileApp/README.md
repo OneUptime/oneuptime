@@ -24,7 +24,7 @@ For native builds:
 ## Setup
 
 ```bash
-cd MobileApp
+cd packages/MobileApp
 npm install
 ```
 

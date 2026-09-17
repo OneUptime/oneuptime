@@ -7,7 +7,7 @@ const http = require("http");
 const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
-const repository = path.resolve(__dirname, "../../..");
+const repository = path.resolve(__dirname, "../../../..");
 const output = path.join(
   repository,
   "output/playwright/event-overview-ui/fixture",
@@ -19,9 +19,12 @@ const config = createConfig({
   entryPoint: path.join(__dirname, "Fixture.js"),
   outdir: output,
   additionalAlias: {
-    Common: path.join(repository, "Common"),
-    react: path.join(repository, "Common/node_modules/react"),
-    "react-dom": path.join(repository, "Common/node_modules/react-dom"),
+    Common: path.join(repository, "packages/Common"),
+    react: path.join(repository, "packages/Common/node_modules/react"),
+    "react-dom": path.join(
+      repository,
+      "packages/Common/node_modules/react-dom",
+    ),
   },
 });
 config.target = "es2022";
@@ -31,10 +34,10 @@ config.minify = false;
 config.logLevel = "warning";
 const tailwind = path.join(
   repository,
-  "Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
+  "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
 // Production imports Theme.css from src/Index.tsx; serve the same file.
-const theme = path.join(repository, "Common/UI/Styles/Theme.css");
+const theme = path.join(repository, "packages/Common/UI/Styles/Theme.css");
 /*
  * The same tailwind.config production sets in
  * App/FeatureSet/Dashboard/views/index.ejs, so class-based dark mode and the

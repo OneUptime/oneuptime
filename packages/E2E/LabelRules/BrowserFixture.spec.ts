@@ -4,7 +4,7 @@ import path from "path";
 
 const artifacts: string = path.resolve(
   __dirname,
-  "../../output/playwright/label-rule-import-export",
+  "../../../output/playwright/label-rule-import-export",
 );
 const source: string = "10000000-0000-4000-8000-000000000001";
 const destination: string = "10000000-0000-4000-8000-000000000002";

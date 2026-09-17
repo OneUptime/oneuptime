@@ -21,7 +21,7 @@
 ## شروع سریع — اسکریپت نصب
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/DockerSwarmAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
 sh install.sh
 ```
 
@@ -29,7 +29,7 @@ sh install.sh
 
 ## شروع سریع — Docker Compose
 
-فایل‌های `docker-compose.yml`، `otel-collector-config.yaml` و `inventory-snapshot.sh` را از پوشه [`DockerSwarmAgent`](https://github.com/OneUptime/oneuptime/tree/master/DockerSwarmAgent) روی گره مدیری دانلود کنید، سپس کنارشان فایلی `.env` بسازید:
+فایل‌های `docker-compose.yml`، `otel-collector-config.yaml` و `inventory-snapshot.sh` را از پوشه [`DockerSwarmAgent`](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) روی گره مدیری دانلود کنید، سپس کنارشان فایلی `.env` بسازید:
 
 ```bash
 ONEUPTIME_URL=https://oneuptime.com

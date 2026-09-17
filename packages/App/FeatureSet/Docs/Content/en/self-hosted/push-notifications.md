@@ -21,7 +21,7 @@ No Expo credentials are required on the server when using the official mobile ap
 | OneUptime → browser push service | The HTTPS endpoint stored in the browser's push subscription | HTTPS / normally TCP 443 | Web push. |
 | Mobile app or browser → OneUptime | Your OneUptime hostname | HTTPS / TCP 443 | Sign in, register the device and open notification links. |
 
-If you change `PUSH_NOTIFICATION_RELAY_URL`, allow its destination hostname and configured port. A custom relay must implement OneUptime's relay API. These defaults and the switch between relay and direct delivery are defined in [OneUptime's configuration](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) and [push service](https://github.com/OneUptime/oneuptime/blob/master/Common/Server/Services/PushNotificationService.ts). Direct Expo requests use the endpoint documented in [Expo's sending guide](https://docs.expo.dev/push-notifications/sending-notifications/).
+If you change `PUSH_NOTIFICATION_RELAY_URL`, allow its destination hostname and configured port. A custom relay must implement OneUptime's relay API. These defaults and the switch between relay and direct delivery are defined in [OneUptime's configuration](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) and [push service](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts). Direct Expo requests use the endpoint documented in [Expo's sending guide](https://docs.expo.dev/push-notifications/sending-notifications/).
 
 For web push, allow the actual subscription endpoint hosts for the browsers your team uses. OneUptime accepts `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` and `push.apple.com`, including their subdomains. Typical examples include `updates.push.services.mozilla.com` and `web.push.apple.com`. The [browser's push subscription](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) supplies the destination; allowing only Expo or OneUptime's relay does not enable web push.
 
@@ -73,7 +73,7 @@ EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npx expo prebuild
 ```
 
 or add `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"` to the build profile's
-`env` block in `MobileApp/eas.json`.
+`env` block in `packages/MobileApp/eas.json`.
 
 Without the entitlement the app still behaves correctly: iOS declines to grant
 the permission, and the settings screen tells the responder so rather than

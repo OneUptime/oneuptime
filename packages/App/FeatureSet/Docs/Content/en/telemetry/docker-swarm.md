@@ -21,7 +21,7 @@ Run it on a **manager node**. For full per-node container metrics, run the colle
 ## Quick Start — install script
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/DockerSwarmAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
 sh install.sh
 ```
 
@@ -29,7 +29,7 @@ The script prompts for your OneUptime URL, telemetry ingestion key, and cluster 
 
 ## Quick Start — Docker Compose
 
-Download `docker-compose.yml`, `otel-collector-config.yaml`, and `inventory-snapshot.sh` from the [`DockerSwarmAgent`](https://github.com/OneUptime/oneuptime/tree/master/DockerSwarmAgent) directory onto a manager node, then create a `.env` file next to them:
+Download `docker-compose.yml`, `otel-collector-config.yaml`, and `inventory-snapshot.sh` from the [`DockerSwarmAgent`](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) directory onto a manager node, then create a `.env` file next to them:
 
 ```bash
 ONEUPTIME_URL=https://oneuptime.com

@@ -419,7 +419,7 @@ services:
       # the syscall in the profile, rather than adding the capability back,
       # keeps chroot(2) unusable for the root supervisor itself.
       # Probe/Tests/Build/ProbeContainerBrowserSandbox.test.ts pins this.
-      - seccomp=./Probe/seccomp_profile.json
+      - seccomp=./packages/Probe/seccomp_profile.json
     environment:
       ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
@@ -477,7 +477,7 @@ services:
       - SETUID
     security_opt:
       - no-new-privileges:true
-      - seccomp=./Probe/seccomp_profile.json
+      - seccomp=./packages/Probe/seccomp_profile.json
     environment:
       ONEUPTIME_URL: ${GLOBAL_PROBE_2_ONEUPTIME_URL}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}

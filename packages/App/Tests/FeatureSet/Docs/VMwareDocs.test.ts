@@ -26,11 +26,17 @@ import path from "path";
  * the shipped pages still tell the same story.
  */
 
-const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
-const CONTENT_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs/Content");
-const AGENT_DIR: string = path.join(REPO_ROOT, "VMwareAgent");
+const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
+const CONTENT_DIR: string = path.join(
+  REPO_ROOT,
+  "packages/App/FeatureSet/Docs/Content",
+);
+const AGENT_DIR: string = path.join(REPO_ROOT, "agents/VMwareAgent");
 // Screenshots the pages embed live here, not under Content/<language>.
-const STATIC_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs/Static");
+const STATIC_DIR: string = path.join(
+  REPO_ROOT,
+  "packages/App/FeatureSet/Docs/Static",
+);
 const STATIC_PREFIX: string = "/docs/static/";
 
 const TELEMETRY_PAGE: string = "telemetry/vmware";
@@ -592,10 +598,10 @@ describe("VMware docs", (): void => {
       expect(markdown).toContain("`/opt/oneuptime-vmware-agent`");
       expect(markdown).toContain("oneuptime-vmware-agent");
       expect(markdown).toContain(
-        "https://raw.githubusercontent.com/OneUptime/oneuptime/master/VMwareAgent/install.sh",
+        "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh",
       );
       expect(markdown).toContain(
-        "https://raw.githubusercontent.com/OneUptime/oneuptime/master/VMwareAgent/troubleshoot.sh",
+        "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/troubleshoot.sh",
       );
       expect(markdown).toContain("**Read-Only**");
       expect(markdown).toContain("Propagate to children");

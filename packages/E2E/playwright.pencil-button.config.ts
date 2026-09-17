@@ -9,7 +9,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: "list",
-  outputDir: "../output/playwright/pencil-button/test-results",
+  outputDir: "../../output/playwright/pencil-button/test-results",
   use: {
     baseURL: "http://127.0.0.1:4208",
     trace: "retain-on-failure",

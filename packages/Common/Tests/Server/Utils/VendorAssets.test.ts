@@ -45,7 +45,14 @@ interface AssetResponse {
 
 const INDEX_PAGE: string = "<html>index</html>";
 
-const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
+const REPOSITORY_ROOT: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+);
 
 describe("vendored browser assets", () => {
   let server: Server;
@@ -167,7 +174,7 @@ describe("vendored browser assets", () => {
         .trim();
 
       expect(tracked.split("\n").filter(Boolean)).toEqual([
-        "Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
+        "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
       ]);
     });
   });
@@ -201,7 +208,12 @@ describe("vendored browser assets", () => {
     test("writes it to the path each index.ejs asks for", () => {
       expect(esbuildConfig).toContain('"assets/js"');
 
-      const appRoot: string = path.join(REPOSITORY_ROOT, "App", "FeatureSet");
+      const appRoot: string = path.join(
+        REPOSITORY_ROOT,
+        "packages",
+        "App",
+        "FeatureSet",
+      );
 
       for (const [service, routePrefix] of [
         ["Dashboard", "dashboard"],
@@ -372,6 +384,7 @@ describe("vendored browser assets", () => {
       const copies: Array<string> = [
         path.join(
           REPOSITORY_ROOT,
+          "packages",
           "Common",
           "UI",
           "Images",
@@ -381,6 +394,7 @@ describe("vendored browser assets", () => {
         ),
         path.join(
           REPOSITORY_ROOT,
+          "packages",
           "Home",
           "Static",
           "img",

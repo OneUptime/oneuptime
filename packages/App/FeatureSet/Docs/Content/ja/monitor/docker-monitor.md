@@ -226,7 +226,7 @@ Dockerモニタリングを使用するには、以下が必要です。
 2. `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN`、`DOCKER_HOST_NAME` を環境変数として渡す
 3. 観察したいコンテナが `json-file` ログドライバーを使用していることを確認（上記参照）
 
-エージェントは Docker Hub の `oneuptime/docker-agent:release` として公開されています。完全な `docker run` および `docker compose` の例については、[Dockerエージェントのインストールガイド](https://github.com/OneUptime/oneuptime/tree/master/DockerAgent)を参照してください。
+エージェントは Docker Hub の `oneuptime/docker-agent:release` として公開されています。完全な `docker run` および `docker compose` の例については、[Dockerエージェントのインストールガイド](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent)を参照してください。
 
 ## トラブルシューティング
 

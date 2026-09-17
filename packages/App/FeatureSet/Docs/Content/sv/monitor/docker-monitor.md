@@ -226,7 +226,7 @@ För att använda Docker-övervakning behöver du:
 2. Skicka `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` och `DOCKER_HOST_NAME` som miljövariabler
 3. Se till att de containers du vill observera använder `json-file`-loggdrivrutinen (se ovan)
 
-Agenten publiceras som `oneuptime/docker-agent:release` på Docker Hub. Se [installationsguiden för Docker Agent](https://github.com/OneUptime/oneuptime/tree/master/DockerAgent) för fullständiga `docker run`- och `docker compose`-exempel.
+Agenten publiceras som `oneuptime/docker-agent:release` på Docker Hub. Se [installationsguiden för Docker Agent](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) för fullständiga `docker run`- och `docker compose`-exempel.
 
 ## Felsökning
 

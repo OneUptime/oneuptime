@@ -54,7 +54,7 @@ function alertPath(number: number): string {
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
-  "../../output/playwright/event-overview-ui",
+  "../../../output/playwright/event-overview-ui",
 );
 
 const INCIDENT_TLDR: string =

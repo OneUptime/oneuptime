@@ -10,7 +10,7 @@ export default defineConfig({
   expect: { timeout: 10000 },
   retries: 0,
   reporter: [["list"]],
-  outputDir: "../output/playwright/navigation-search/test-results",
+  outputDir: "../../output/playwright/navigation-search/test-results",
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile-chromium", use: { ...devices["Pixel 5"] } },

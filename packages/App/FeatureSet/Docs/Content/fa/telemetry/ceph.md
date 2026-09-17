@@ -30,7 +30,7 @@ ceph orch ps --daemon-type mgr   # all mgrs (cephadm clusters)
 ## شروع سریع (اسکریپت نصب)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/CephAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/install.sh -o install.sh
 bash install.sh
 ```
 
@@ -38,7 +38,7 @@ bash install.sh
 
 ## جایگزین — Docker Compose
 
-دو فایل را از [پوشه CephAgent](https://github.com/OneUptime/oneuptime/tree/master/CephAgent) — ‏`docker-compose.yml` و `otel-collector-config.yaml` — در پوشه‌ای دانلود کنید، سپس کنارشان فایلی `.env` بسازید:
+دو فایل را از [پوشه CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) — ‏`docker-compose.yml` و `otel-collector-config.yaml` — در پوشه‌ای دانلود کنید، سپس کنارشان فایلی `.env` بسازید:
 
 ```bash
 ONEUPTIME_URL=YOUR_ONEUPTIME_URL
@@ -158,10 +158,10 @@ ONEUPTIME_URL=https://your-oneuptime-host.example.com
 
 ### نخست اسکریپت تشخیص را اجرا کنید
 
-عامل با اسکریپت دکتری، [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/CephAgent/troubleshoot.sh)، عرضه می‌شود که کل زنجیره را بررسی می‌کند: زمان اجرای کانتینر، هر نقطه پایانی پیکربندی‌شده mgr (از جمله تله فعال-در-برابر-آماده‌به‌کار — فقط mgr فعال سنجه سرو می‌کند، پس وقتی هیچ نقطه پایانی‌ای `ceph_health_status` برنگرداند یا فقط یک نقطه پایانی پیکربندی شده باشد بلند هشدار می‌دهد)، مهر خوردن نام خوشه، شکل توکن دریافت، سنجه‌های خودی جمع‌کننده، و **اعتبارسنجی قطعی توکن در سمت کارساز**. بررسی توکن مهم‌ترین است — نقطه‌های پایانی OTLP در OneUptime عمداً روی توکن دریافت بد `200` خاموشی برمی‌گردانند (تا جمع‌کننده‌ای بد پیکربندی‌شده نتواند کارساز را با تلاش دوباره غرق کند)، که یعنی گزارش‌های جمع‌کننده حتی وقتی هر نقطه داده‌ای انداخته می‌شود تمیز به نظر می‌رسند. اسکریپت `GET <url>/otlp/v1/validate` را از درون فضای‌نام شبکه عامل فرا می‌خواند تا رأی واقعی `200` (معتبر) / `401` (نامعتبر) بگیرد، و روی کارسازهای قدیمی‌تر به `POST /fluentd/v1/logs` بازمی‌گردد.
+عامل با اسکریپت دکتری، [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/CephAgent/troubleshoot.sh)، عرضه می‌شود که کل زنجیره را بررسی می‌کند: زمان اجرای کانتینر، هر نقطه پایانی پیکربندی‌شده mgr (از جمله تله فعال-در-برابر-آماده‌به‌کار — فقط mgr فعال سنجه سرو می‌کند، پس وقتی هیچ نقطه پایانی‌ای `ceph_health_status` برنگرداند یا فقط یک نقطه پایانی پیکربندی شده باشد بلند هشدار می‌دهد)، مهر خوردن نام خوشه، شکل توکن دریافت، سنجه‌های خودی جمع‌کننده، و **اعتبارسنجی قطعی توکن در سمت کارساز**. بررسی توکن مهم‌ترین است — نقطه‌های پایانی OTLP در OneUptime عمداً روی توکن دریافت بد `200` خاموشی برمی‌گردانند (تا جمع‌کننده‌ای بد پیکربندی‌شده نتواند کارساز را با تلاش دوباره غرق کند)، که یعنی گزارش‌های جمع‌کننده حتی وقتی هر نقطه داده‌ای انداخته می‌شود تمیز به نظر می‌رسند. اسکریپت `GET <url>/otlp/v1/validate` را از درون فضای‌نام شبکه عامل فرا می‌خواند تا رأی واقعی `200` (معتبر) / `401` (نامعتبر) بگیرد، و روی کارسازهای قدیمی‌تر به `POST /fluentd/v1/logs` بازمی‌گردد.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/CephAgent/troubleshoot.sh -o troubleshoot.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-ceph-agent
 ```
 

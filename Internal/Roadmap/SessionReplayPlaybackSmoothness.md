@@ -327,15 +327,15 @@ not re-investigated.
 Run only these suites; CI runs the rest.
 
 ```bash
-cd Common && npx jest --config jest.config.json Tests/UI/Rum Tests/Server/API/SessionReplayAPI.test.ts
+cd packages/Common && npx jest --config jest.config.json Tests/UI/Rum Tests/Server/API/SessionReplayAPI.test.ts
 ```
 
 ```bash
-cd App && npx jest Tests/Dashboard
+cd packages/App && npx jest Tests/Dashboard
 ```
 
 ```bash
-cd App/FeatureSet/BrowserRecorder && npx jest --runInBand --config jest.config.json Tests
+cd packages/App/FeatureSet/BrowserRecorder && npx jest --runInBand --config jest.config.json Tests
 ```
 
 `Common/Tests/UI/Rum/ReplayRenderBudget.test.tsx` is the one that guards the

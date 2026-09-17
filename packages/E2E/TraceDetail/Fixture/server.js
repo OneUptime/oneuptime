@@ -4,7 +4,7 @@ const http = require("http");
 const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
-const repository = path.resolve(__dirname, "../../..");
+const repository = path.resolve(__dirname, "../../../..");
 const output = path.join(
   repository,
   "output/playwright/trace-detail-ui/fixture",
@@ -16,9 +16,12 @@ const config = createConfig({
   entryPoint: path.join(__dirname, "Fixture.js"),
   outdir: output,
   additionalAlias: {
-    Common: path.join(repository, "Common"),
-    react: path.join(repository, "Common/node_modules/react"),
-    "react-dom": path.join(repository, "Common/node_modules/react-dom"),
+    Common: path.join(repository, "packages/Common"),
+    react: path.join(repository, "packages/Common/node_modules/react"),
+    "react-dom": path.join(
+      repository,
+      "packages/Common/node_modules/react-dom",
+    ),
   },
 });
 config.target = "es2022";
@@ -28,7 +31,7 @@ config.minify = false;
 config.logLevel = "warning";
 const tailwind = path.join(
   repository,
-  "Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
+  "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Trace detail preview</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;window.process.env.NODE_ENV="development";</script><script src="/tailwind.js"></script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 

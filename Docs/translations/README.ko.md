@@ -21,7 +21,7 @@
 
 <div align="center">
   <a href="https://oneuptime.com">
-    <img alt="OneUptime 로고" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/>
+    <img alt="OneUptime 로고" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
   </a>
 
   <h3>에이전틱 옵저버빌리티 — 가동 시간, 인시던트, 온콜, 상태 페이지, 로그, 트레이스, 메트릭 및 APM을 위한 하나의 오픈소스 플랫폼.</h3>
@@ -52,7 +52,7 @@
 <br/>
 
 <div align="center">
-  <img alt="실시간 인시던트가 진행 중인 OneUptime 관제 센터" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/readme/hero-command-center.png"/>
+  <img alt="실시간 인시던트가 진행 중인 OneUptime 관제 센터" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
 </div>
 
 ---
@@ -86,31 +86,31 @@ OneUptime은 모니터링, 알림, 인시던트 대응, 옵저버빌리티를 �
 
 여러 지역의 프로브가 결제 지연 시간이 5초 임계값을 넘어서는 것을 포착하고 자동으로 인시던트를 엽니다 — 고객이 새로고침을 누르기도 전에.
 
-![감지 — 글로벌 모니터링이 결제 API의 성능 저하를 포착](/Home/Static/img/readme/detect.png?raw=true)
+![감지 — 글로벌 모니터링이 결제 API의 성능 저하를 포착](/packages/Home/Static/img/readme/detect.png?raw=true)
 
 ### 2 · 대응 — *적임자에게 호출*
 
 Payments 정책의 온콜 엔지니어에게 전화, 문자, 푸시 알림이 전송되며, 누군가 확인할 때까지 자동으로 백업으로 에스컬레이션됩니다.
 
-![대응 — 인시던트가 온콜로 라우팅되어 확인됨](/Home/Static/img/readme/respond.png?raw=true)
+![대응 — 인시던트가 온콜로 라우팅되어 확인됨](/packages/Home/Static/img/readme/respond.png?raw=true)
 
 ### 3 · 커뮤니케이션 — *고객에게 상황 공유*
 
 상태 페이지가 스스로 갱신되고 모든 구독자에게 이메일과 SMS로 알림이 전송됩니다 — 누구도 직접 업데이트를 작성할 필요가 없습니다.
 
-![커뮤니케이션 — 공개 상태 페이지가 갱신되고 구독자에게 알림](/Home/Static/img/readme/communicate.png?raw=true)
+![커뮤니케이션 — 공개 상태 페이지가 갱신되고 구독자에게 알림](/packages/Home/Static/img/readme/communicate.png?raw=true)
 
 ### 4 · 진단 — *근본 원인 발견*
 
 트레이스, 로그, 메트릭이 정확한 스팬 단위까지 상관 분석됩니다: 누락된 인덱스에 막혀 `orders`에서 느리게 실행되는 `SELECT … FOR UPDATE`.
 
-![진단 — 트레이스 워터폴이 느린 데이터베이스 스팬을 정확히 짚어냄](/Home/Static/img/readme/diagnose.png?raw=true)
+![진단 — 트레이스 워터폴이 느린 데이터베이스 스팬을 정확히 짚어냄](/packages/Home/Static/img/readme/diagnose.png?raw=true)
 
 ### 5 · 자동 수정 — *수정안을 대신 작성*
 
 AI 에이전트가 인시던트에 연결된 수정 사항을 담은 풀 리퀘스트를 테스트를 통과한 상태로 엽니다 — 여러분은 검토하고 병합만 하면 됩니다. 결코 잠들지 않는 SRE처럼.
 
-![자동 수정 — AI 에이전트가 수정 사항을 담은 풀 리퀘스트를 엶](/Home/Static/img/readme/autofix.png?raw=true)
+![자동 수정 — AI 에이전트가 수정 사항을 담은 풀 리퀘스트를 엶](/packages/Home/Static/img/readme/autofix.png?raw=true)
 
 </details>
 
@@ -144,7 +144,7 @@ npm start
 
 이제 OneUptime이 **http://localhost**에서 실행됩니다 — 열어서 첫 계정을 만드세요.
 
-📖 전체 가이드: [Docker Compose 설치](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [사이징 및 요구 사항](/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+📖 전체 가이드: [Docker Compose 설치](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [사이징 및 요구 사항](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
 
 ### ☸️ Helm을 사용한 Kubernetes — 프로덕션용
 
@@ -155,7 +155,7 @@ helm install oneuptime oneuptime/oneuptime
 
 📖 전체 설치 방법 및 값은 [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)에서 확인하세요
 
-> **기존 설치를 업그레이드하시나요?** [업그레이드 가이드](/App/FeatureSet/Docs/Content/en/installation/upgrading.md)를 참고하세요.
+> **기존 설치를 업그레이드하시나요?** [업그레이드 가이드](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md)를 참고하세요.
 
 ---
 
@@ -181,7 +181,7 @@ helm install oneuptime oneuptime/oneuptime
 
 에스컬레이션, 티켓 발행, 알림을 시각적인 노코드 캔버스에서 연결하거나 — 맞춤형 코드를 넣으세요. 위의 인시던트는 아무도 손대지 않고도 온콜을 호출하고, Jira 티켓을 열고, Slack에 게시했습니다.
 
-![워크플로 — 인시던트 에스컬레이션을 위한 노코드 자동화 캔버스](/Home/Static/img/readme/workflows.png?raw=true)
+![워크플로 — 인시던트 에스컬레이션을 위한 노코드 자동화 캔버스](/packages/Home/Static/img/readme/workflows.png?raw=true)
 
 </details>
 
@@ -189,13 +189,13 @@ helm install oneuptime oneuptime/oneuptime
 
 복사하여 붙여넣는 **OpenTelemetry 기반** 에이전트를 넣어 서비스가 구동되는 모든 것을 감시하세요 — 바로 사용할 수 있는 알림 템플릿도 포함되어 있습니다:
 
-- **서버 및 VM** — Linux, macOS, Windows에서 CPU, 메모리, 디스크, 네트워크, 프로세스, 로그. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — 한 번의 `helm install`로 노드/파드/컨테이너/클러스터 메트릭, 이벤트, 로그, eBPF 트레이스 및 서비스 맵이 제공됩니다. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — 단일 에이전트가 모든 컨테이너를 자동으로 발견하고 메트릭과 로그를 전송합니다. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — Podman의 Docker 호환 소켓을 통한 동일한 단일 에이전트 자동 발견. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — 노드, VM, 컨테이너, 스토리지, HA 상태, 백업 커버리지 및 복제 상태. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter, ESXi 호스트, 가상 머신, 데이터스토어, 클러스터, 리소스 풀 및 vSAN. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — 클러스터 상태, 용량 예측, OSD/풀/PG/모니터 가시성. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **서버 및 VM** — Linux, macOS, Windows에서 CPU, 메모리, 디스크, 네트워크, 프로세스, 로그. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
+- **Kubernetes** — 한 번의 `helm install`로 노드/파드/컨테이너/클러스터 메트릭, 이벤트, 로그, eBPF 트레이스 및 서비스 맵이 제공됩니다. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
+- **Docker** — 단일 에이전트가 모든 컨테이너를 자동으로 발견하고 메트릭과 로그를 전송합니다. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
+- **Podman** — Podman의 Docker 호환 소켓을 통한 동일한 단일 에이전트 자동 발견. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
+- **Proxmox** — 노드, VM, 컨테이너, 스토리지, HA 상태, 백업 커버리지 및 복제 상태. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi 호스트, 가상 머신, 데이터스토어, 클러스터, 리소스 풀 및 vSAN. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
+- **Ceph** — 클러스터 상태, 용량 예측, OSD/풀/PG/모니터 가시성. [문서 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---
 
@@ -223,7 +223,7 @@ helm install oneuptime oneuptime/oneuptime
 
 - 🐛 **[열린 이슈](https://github.com/OneUptime/oneuptime/issues)** — 하나 골라 맡거나, [새로 등록](https://github.com/OneUptime/oneuptime/issues/new)하세요
 - ✅ 코드베이스를 위한 **[테스트 작성 돕기](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)**
-- 🧑‍💻 환경을 설정하려면 **[로컬 개발 가이드](/App/FeatureSet/Docs/Content/en/installation/local-development.md)**
+- 🧑‍💻 환경을 설정하려면 **[로컬 개발 가이드](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)**
 - 📖 **[기여 가이드라인](/.github/CONTRIBUTING.md)**을 읽어보세요
 - 💬 **[개발자 Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** 또는 **[커뮤니티 Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**에서 대화하세요
 

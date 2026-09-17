@@ -11,7 +11,7 @@
     "types": ["jest", "node"],
     "baseUrl": ".",
     "paths": {
-      "Common/*": ["../../Common/*"]
+      "Common/*": ["../../packages/Common/*"]
     }
   },
   "include": ["Core/**/*.ts", "Tests/**/*.ts", "GenerateProvider.ts"]

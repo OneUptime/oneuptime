@@ -18,7 +18,7 @@ shipping components.
 | `session-replay-list-mobile-standard-ui.png`       | Responsive recording cards and navigation.                                  |
 | `session-replay-player-mobile-standard-ui.png`     | Playback and events on a narrow screen.                                     |
 
-Regenerate them with `cd E2E && npm run test-session-replay-ui`, then copy the
+Regenerate them with `cd packages/E2E && npm run test-session-replay-ui`, then copy the
 selected PNGs from `output/playwright/session-replay-ui/` to this directory
 (`session-replay-player-tabs.png` and `session-replay-player-tab-picker.png`
 come from the `?tabs=many` fixture). The suite also asserts filter request

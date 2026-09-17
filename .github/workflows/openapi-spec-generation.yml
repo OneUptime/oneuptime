@@ -28,7 +28,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Common dependencies
-        run: cd Common && npm install
+        run: cd packages/Common && npm install
 
       - name: Install root dependencies
         run: npm install

@@ -24,6 +24,6 @@ demonstrate database persistence.
 - `form-no-output-rejected.png`: switching both outputs off is refused in the browser
   rather than after a round-trip. The server enforces the same rule.
 
-Regenerate with `cd E2E && npm run test-slo-burn-rate-ui`; the images land in
+Regenerate with `cd packages/E2E && npm run test-slo-burn-rate-ui`; the images land in
 `output/playwright/slo-burn-rate/` under their `-synthetic` names. See
 `E2E/SloBurnRate/README.md` for running the fixture by hand.

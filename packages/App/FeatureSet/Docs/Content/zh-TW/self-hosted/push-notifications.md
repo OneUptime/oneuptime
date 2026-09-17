@@ -21,7 +21,7 @@ OneUptime 行動應用程式向後端註冊 Expo Push Token。後端透過 OneUp
 | OneUptime → 瀏覽器推播服務 | 瀏覽器推播訂閱保存的 HTTPS 端點 | HTTPS / 通常為 TCP 443 | 網頁推播。 |
 | 行動應用程式或瀏覽器 → OneUptime | 您的 OneUptime 主機名稱 | HTTPS / TCP 443 | 登入、註冊裝置和開啟通知連結。 |
 
-若修改 `PUSH_NOTIFICATION_RELAY_URL`，請允許其目標主機名稱和設定的連接埠。自訂中繼必須實作 OneUptime 中繼 API。預設值及傳送模式選擇見 [OneUptime 設定](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)與[推播服務](https://github.com/OneUptime/oneuptime/blob/master/Common/Server/Services/PushNotificationService.ts)；直接端點見 [Expo 傳送指南](https://docs.expo.dev/push-notifications/sending-notifications/)。
+若修改 `PUSH_NOTIFICATION_RELAY_URL`，請允許其目標主機名稱和設定的連接埠。自訂中繼必須實作 OneUptime 中繼 API。預設值及傳送模式選擇見 [OneUptime 設定](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)與[推播服務](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts)；直接端點見 [Expo 傳送指南](https://docs.expo.dev/push-notifications/sending-notifications/)。
 
 網頁推播應允許團隊所用瀏覽器訂閱端點的實際主機。OneUptime 接受 `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com` 和 `push.apple.com` 及其子網域，例如 `updates.push.services.mozilla.com` 和 `web.push.apple.com`。[瀏覽器訂閱](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription)提供目的地；只允許 Expo 或 OneUptime 中繼無法啟用網頁推播。
 

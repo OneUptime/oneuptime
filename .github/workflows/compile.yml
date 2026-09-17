@@ -30,13 +30,13 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       - name: Compile Accounts
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd App/FeatureSet/Accounts && npm install && npm run compile && npm run dep-check
+          command: cd packages/App/FeatureSet/Accounts && npm install && npm run compile && npm run dep-check
 
   compile-common:
     runs-on: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd Common && npm install && npm run compile && npm run dep-check
+          command: cd packages/Common && npm install && npm run compile && npm run dep-check
 
   compile-app:
     runs-on: ubuntu-latest
@@ -67,13 +67,13 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       - name: Compile App
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd App && npm install && npm run compile && npm run dep-check
+          command: cd packages/App && npm install && npm run compile && npm run dep-check
 
   compile-home:
     runs-on: ubuntu-latest
@@ -86,13 +86,13 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       - name: Compile Home
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd Home && npm install && npm run compile && npm run dep-check
+          command: cd packages/Home && npm install && npm run compile && npm run dep-check
 
 
   compile-nginx:
@@ -106,14 +106,14 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       
       - name: Compile Nginx
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd Nginx && npm install && npm run compile && npm run dep-check
+          command: cd packages/Nginx && npm install && npm run compile && npm run dep-check
 
   compile-infrastructure-agent:
     runs-on: ubuntu-latest
@@ -128,7 +128,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd InfrastructureAgent && go build .
+          command: cd agents/InfrastructureAgent && go build .
   
 
   compile-admin-dashboard:
@@ -142,14 +142,14 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       
       - name: Compile Admin Dashboard
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd App/FeatureSet/AdminDashboard && npm install && npm run compile && npm run dep-check
+          command: cd packages/App/FeatureSet/AdminDashboard && npm install && npm run compile && npm run dep-check
 
   compile-dashboard:
     runs-on: ubuntu-latest
@@ -162,14 +162,14 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       
       - name: Compile Dashboard
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd App/FeatureSet/Dashboard && npm install && npm run compile && npm run dep-check
+          command: cd packages/App/FeatureSet/Dashboard && npm install && npm run compile && npm run dep-check
 
 
   compile-browser-recorder:
@@ -186,7 +186,7 @@ jobs:
 
       # The session-replay recorder deliberately does NOT depend on Common:
       # it is bundled and served to third-party origins, so it must not carry
-      # any server dependency. No `cd Common && npm install` here.
+      # any server dependency. No `cd packages/Common && npm install` here.
       #
       # The esbuild step is not redundant with tsc. tsc alone cannot see an
       # import that fails to resolve at bundle time, and the build additionally
@@ -198,7 +198,7 @@ jobs:
         with:
           timeout_minutes: 15
           max_attempts: 3
-          command: cd App/FeatureSet/BrowserRecorder && npm install && npm run compile && npm run build
+          command: cd packages/App/FeatureSet/BrowserRecorder && npm install && npm run compile && npm run build
 
   compile-mobile-recorder:
     runs-on: ubuntu-latest
@@ -220,7 +220,7 @@ jobs:
         with:
           timeout_minutes: 15
           max_attempts: 3
-          command: cd App/FeatureSet/MobileRecorder && npm install && npm run compile && npm run build
+          command: cd packages/App/FeatureSet/MobileRecorder && npm install && npm run compile && npm run build
 
 
   compile-e2e:
@@ -235,7 +235,7 @@ jobs:
           cache: npm
           cache-dependency-path: '**/package-lock.json'
       - run: sudo apt-get update
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       - name: Compile E2E
         uses: nick-fields/retry@v3
         with:
@@ -245,7 +245,7 @@ jobs:
           # install), which downloads browsers that compiling doesn't need
           # and hangs on CI runners. Browsers for real E2E runs are installed
           # in E2E/Dockerfile.
-          command: cd E2E && npm install --ignore-scripts && npm run compile && npm run dep-check
+          command: cd packages/E2E && npm install --ignore-scripts && npm run compile && npm run dep-check
 
   compile-probe:
     runs-on: ubuntu-latest
@@ -258,13 +258,13 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       - name: Compile Probe
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd Probe && npm install && npm run compile && npm run dep-check
+          command: cd packages/Probe && npm install && npm run compile && npm run dep-check
 
   compile-status-page:
     runs-on: ubuntu-latest
@@ -277,14 +277,14 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
 
       - name: Compile Status Page
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd App/FeatureSet/StatusPage && npm install && npm run compile && npm run dep-check
+          command: cd packages/App/FeatureSet/StatusPage && npm install && npm run compile && npm run dep-check
 
   # The only feature set this workflow used to skip, which is how it sat with a
   # broken compile unnoticed.
@@ -299,19 +299,19 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       # PublicDashboard imports Dashboard sources directly (e.g.
       # src/Components/DashboardCanvas.tsx -> ../../../Dashboard/src/...), and
       # those files resolve "Common/..." through Dashboard's own node_modules,
       # so Dashboard has to be installed for this compile to resolve at all.
-      - run: cd App/FeatureSet/Dashboard && npm install
+      - run: cd packages/App/FeatureSet/Dashboard && npm install
 
       - name: Compile Public Dashboard
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd App/FeatureSet/PublicDashboard && npm install && npm run compile && npm run dep-check
+          command: cd packages/App/FeatureSet/PublicDashboard && npm install && npm run compile && npm run dep-check
 
   compile-test-server:
     runs-on: ubuntu-latest
@@ -324,13 +324,13 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       - name: Compile Test Server
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd TestServer && npm install && npm run compile && npm run dep-check
+          command: cd packages/TestServer && npm install && npm run compile && npm run dep-check
 
   compile-mobile-app:
     runs-on: ubuntu-latest
@@ -343,13 +343,13 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install && npm run compile
+      - run: cd packages/Common && npm install && npm run compile
       - name: Compile MobileApp
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd MobileApp && npm install && npm run compile
+          command: cd packages/MobileApp && npm install && npm run compile
 
   compile-runner:
     runs-on: ubuntu-latest
@@ -362,13 +362,13 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       - name: Compile Runner
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd Runner && npm install && npm run compile && npm run dep-check
+          command: cd packages/Runner && npm install && npm run compile && npm run dep-check
 
   compile-cli:
     runs-on: ubuntu-latest
@@ -381,10 +381,10 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
+      - run: cd packages/Common && npm install
       - name: Compile CLI
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd CLI && npm install && npm run compile && npm run dep-check
+          command: cd packages/CLI && npm install && npm run compile && npm run dep-check

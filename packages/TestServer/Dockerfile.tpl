@@ -54,9 +54,9 @@ SHELL ["/bin/bash", "-c"]
 RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
-COPY ./Common/package*.json /usr/src/Common/
+COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
-COPY ./Common /usr/src/Common
+COPY ./packages/Common /usr/src/Common
 
 
 
@@ -73,7 +73,7 @@ ENV PRODUCTION=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./TestServer/package*.json /usr/src/app/
+COPY ./packages/TestServer/package*.json /usr/src/app/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 # Remove the build toolchain (python3/make/g++) now that all native npm modules
@@ -91,7 +91,7 @@ CMD [ "npm", "run", "dev" ]
 # Copy app source. --chown sets node (UID 1000) ownership at copy time so we
 # avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
 # world-readable.
-COPY --chown=1000:1000 ./TestServer /usr/src/app
+COPY --chown=1000:1000 ./packages/TestServer /usr/src/app
 # Bundle app source
 RUN npm run compile
 USER node

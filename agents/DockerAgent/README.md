@@ -143,7 +143,7 @@ If you want to build the image yourself (for development or air-gapped environme
 
 ```bash
 npm run prerun  # generates Dockerfile from Dockerfile.tpl
-docker build -f ./DockerAgent/Dockerfile -t oneuptime/docker-agent:local .
+docker build -f ./agents/DockerAgent/Dockerfile -t oneuptime/docker-agent:local .
 ```
 
 ## Troubleshooting

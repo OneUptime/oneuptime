@@ -10,7 +10,7 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   reporter: "list",
-  outputDir: "../output/playwright/session-replay-ui/test-results",
+  outputDir: "../../output/playwright/session-replay-ui/test-results",
   use: {
     ...devices["Desktop Chrome"],
     viewport: { width: 1600, height: 1100 },

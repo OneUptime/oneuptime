@@ -37,7 +37,7 @@ The agent queries the PVE API over the network, so it does not have to live on a
 ## Quick Start — Install Script
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/ProxmoxAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
 bash install.sh
 ```
 
@@ -227,7 +227,7 @@ docker compose down
 `troubleshoot.sh` checks the whole chain — container runtime, exporter scrape, cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation**. The last one matters most: OneUptime's OTLP endpoints deliberately return a silent `200` on a bad ingestion key (so a misconfigured collector cannot retry-flood the server), which means log inspection alone can never tell you the key is wrong. The script asks `GET <url>/otlp/v1/validate` from inside the agent's network namespace for a real 200/401 verdict:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh                 # add -d <dir> if you installed outside /opt/oneuptime-proxmox-agent
 ```
 

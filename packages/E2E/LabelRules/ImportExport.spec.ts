@@ -35,7 +35,7 @@ interface ProjectFixture {
 
 const artifacts: string = path.resolve(
   __dirname,
-  "../../output/playwright/label-rule-import-export",
+  "../../../output/playwright/label-rule-import-export",
 );
 const networkRulePath: string = "/api/network-device-label-rule";
 const monitorRulePath: string = "/api/monitor-label-rule";

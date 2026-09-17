@@ -197,7 +197,7 @@ To use Podman monitoring, you need to:
 2. Pass `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, and `PODMAN_HOST_NAME` as environment variables
 3. Ensure the containers you want to observe use the `k8s-file` log driver (see above)
 
-The agent is published as `oneuptime/podman-agent:release` on Docker Hub. See the [Podman Host installation guide](https://github.com/OneUptime/oneuptime/tree/master/PodmanAgent) for the full `podman run` and Compose examples.
+The agent is published as `oneuptime/podman-agent:release` on Docker Hub. See the [Podman Host installation guide](https://github.com/OneUptime/oneuptime/tree/master/agents/PodmanAgent) for the full `podman run` and Compose examples.
 
 ## Troubleshooting
 

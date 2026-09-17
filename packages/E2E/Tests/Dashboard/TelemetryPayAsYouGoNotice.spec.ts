@@ -40,7 +40,7 @@ interface NoticeLayout {
  * has no payment method; these tests never submit an ingestion key or send
  * telemetry. Pricing stays visible without an acknowledgement control.
  *
- * cd E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https BILLING_ENABLED=true \
+ * cd packages/E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https BILLING_ENABLED=true \
  *   npx playwright test Tests/Dashboard/TelemetryPayAsYouGoNotice.spec.ts \
  *   --project=chromium --retries=0
  */

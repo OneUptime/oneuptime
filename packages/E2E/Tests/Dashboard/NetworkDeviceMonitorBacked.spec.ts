@@ -51,7 +51,7 @@ import Faker from "Common/Utils/Faker";
  * CephProduct.spec.ts) so CI behaviour stays identical. To run locally
  * against a full stack, change `test.describe.skip` to `test.describe` and:
  *
- *   cd E2E && HOST=localhost npx playwright test \
+ *   cd packages/E2E && HOST=localhost npx playwright test \
  *     Tests/Dashboard/NetworkDeviceMonitorBacked.spec.ts --project=chromium
  */
 

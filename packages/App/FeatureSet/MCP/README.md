@@ -237,7 +237,7 @@ The MCP server ships as part of the App container and is served at `/mcp` behind
 The MCP server lives in `App/FeatureSet/MCP` and is mounted into the App service at startup (`App/Index.ts`). Tests live in `App/FeatureSet/MCP/Tests` and run as part of the App test suite:
 
 ```bash
-cd App
+cd packages/App
 npm install
 npx jest ./FeatureSet/MCP/Tests --runInBand
 ```

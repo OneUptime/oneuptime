@@ -28,7 +28,7 @@ describe("Probe Firefox no-sync library image step", () => {
   test("compiles the shim source into exactly the path SyntheticBrowser preloads", () => {
     expect(existsSync(shimSourcePath)).toBe(true);
     expect(dockerfile).toContain(
-      "COPY ./Probe/Utils/Monitors/SyntheticRuntime/Native/synthetic-no-sync.c /tmp/synthetic-no-sync.c",
+      "COPY ./packages/Probe/Utils/Monitors/SyntheticRuntime/Native/synthetic-no-sync.c /tmp/synthetic-no-sync.c",
     );
     expect(dockerfile).toContain(
       `-o ${FIREFOX_NO_SYNC_LIBRARY_PATH} /tmp/synthetic-no-sync.c`,

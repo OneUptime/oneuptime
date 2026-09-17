@@ -34,7 +34,7 @@ stay CommonJS inside the ESM repo root.
 > root dependencies or run the suite with another consistent jest in the repo:
 >
 > ```sh
-> node Common/node_modules/jest/bin/jest.js \
+> node packages/Common/node_modules/jest/bin/jest.js \
 >   --config Tests/Ops/jest.config.json --runInBand
 > ```
 

@@ -66,9 +66,9 @@ RUN apt-get update && apt-get upgrade -y \
 SHELL ["/bin/bash", "-c"]
 
 WORKDIR /usr/src/Common
-COPY ./Common/package*.json /usr/src/Common/
+COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
-COPY ./Common /usr/src/Common
+COPY ./packages/Common /usr/src/Common
 
 ENV PRODUCTION=true
 
@@ -78,7 +78,7 @@ ENV PW_TEST_HTML_REPORT_OPEN='never'
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./E2E/package*.json /usr/src/app/
+COPY ./packages/E2E/package*.json /usr/src/app/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 # Install the Playwright browser binaries for the LOCKED playwright version
@@ -95,7 +95,7 @@ RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 RUN npx playwright install chromium firefox
 
 # Copy app source
-COPY ./E2E /usr/src/app
+COPY ./packages/E2E /usr/src/app
 
 RUN npm run compile
 

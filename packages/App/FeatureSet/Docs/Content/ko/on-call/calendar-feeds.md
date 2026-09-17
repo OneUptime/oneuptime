@@ -212,7 +212,7 @@ OneUptime 자체는 최신 데이터를 제공합니다. 레이어, 순환, 재�
 - **`TRUSTED_PROXY_HOPS`**는 주소별 제한이 어느 주소를 세는지 결정합니다. 기본값 `1`은 표준 Docker Compose와 Helm 구성에 맞습니다. `X-Forwarded-For`에 값을 덧붙이는 자체 프록시(CDN, WAF, 로드 밸런서)마다 1씩 더하십시오. 그러지 않으면 모든 캘린더 클라이언트가 같은 주소로 보여 하나의 예산을 나눠 쓰게 됩니다. 차트 문서의 [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies)를 참조하십시오.
 - **Redis**가 캐시와 속도 제한기를 뒷받침합니다. 둘 다 점진적으로 저하됩니다. Redis가 없어도 피드는 렌더링되며(느려질 뿐), 제한기는 요청을 통과시킵니다.
 - Helm 차트의 분리 모드(`worker.enabled: true`)에서는 피드가 API 계층에서 렌더링되므로, 정시에 캘린더 클라이언트가 한꺼번에 폴링하는 버스트에 맞춰 그 계층의 크기를 정하십시오.
-- 위에 보인 Nginx 접근 로그 예외는 함께 제공되는 `Nginx/default.conf.template`의 일부입니다. 템플릿을 사용자 지정하더라도 유지하십시오.
+- 위에 보인 Nginx 접근 로그 예외는 함께 제공되는 `packages/Nginx/default.conf.template`의 일부입니다. 템플릿을 사용자 지정하더라도 유지하십시오.
 
 ## 문제 해결
 

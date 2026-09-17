@@ -17,7 +17,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEST_DIR="$(dirname "$SCRIPT_DIR")"
-REPO_ROOT="$(cd "$TEST_DIR/../../.." && pwd)"
+REPO_ROOT="$(cd "$TEST_DIR/../../../.." && pwd)"
 LIB="$SCRIPT_DIR/lib.sh"
 RUNNER="$SCRIPT_DIR/run-tests.sh"
 CLEANUP="$SCRIPT_DIR/cleanup.sh"
@@ -310,7 +310,7 @@ else
     assert_file_matches "$WORKFLOW" 'TF_CLI: tofu' \
         "the workflow runs the suite against OpenTofu"
 
-    RUN_COUNT="$(grep -cE '^ +run: \./E2E/Terraform/e2e-tests/scripts/run-tests\.sh' "$WORKFLOW")"
+    RUN_COUNT="$(grep -cE '^ +run: \./packages/E2E/Terraform/e2e-tests/scripts/run-tests\.sh' "$WORKFLOW")"
     assert_eq "2" "$RUN_COUNT" \
         "the suite is invoked exactly twice — once per engine"
 fi

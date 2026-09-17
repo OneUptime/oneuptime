@@ -58,7 +58,7 @@ appears in them, and they do not demonstrate a real AI run or database persisten
 - `incident-overview-mobile.png`: the top of the incident page at 390px (one viewport, not
   the full page): the hero, its facts and the TL;DR stack without horizontal scrolling.
 
-Regenerate with `cd E2E && npm run test-event-overview-ui` (use `CI=1` if another fixture
+Regenerate with `cd packages/E2E && npm run test-event-overview-ui` (use `CI=1` if another fixture
 server may already be listening on port 4222); the images land in
 `output/playwright/event-overview-ui/` under their `-synthetic` names (the `ai-report-*`
 close-ups at device scale factor 2). The "before"

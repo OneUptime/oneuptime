@@ -76,11 +76,11 @@ echo "Installing to: $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 
 # Download configuration files
-REPO_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/ProxmoxAgent"
+REPO_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent"
 
 echo "Downloading configuration files..."
-curl -sSL "$REPO_BASE/docker-compose.yml" -o "$INSTALL_DIR/docker-compose.yml"
-curl -sSL "$REPO_BASE/otel-collector-config.yaml" -o "$INSTALL_DIR/otel-collector-config.yaml"
+curl -fsSL "$REPO_BASE/docker-compose.yml" -o "$INSTALL_DIR/docker-compose.yml"
+curl -fsSL "$REPO_BASE/otel-collector-config.yaml" -o "$INSTALL_DIR/otel-collector-config.yaml"
 
 # Create .env file
 cat > "$INSTALL_DIR/.env" <<EOF

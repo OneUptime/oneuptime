@@ -88,6 +88,10 @@ logs.txt
 
 */Cert.crt
 */Key.key
+packages/*/Cert.crt
+packages/*/Key.key
+agents/*/Cert.crt
+agents/*/Key.key
 
 # Certificates left behind by installs from before the ingress wrote its own.
 # Keep ignoring them so private keys on old checkouts are never committed.
@@ -114,18 +118,18 @@ LLM/Models/*
 Examples/otel-dotnet/obj/*
 Examples/otel-dotnet/bin/*
 
-InfrastructureAgent/sea-prep.blob
-InfrastructureAgent/InfrastructureAgent
-InfrastructureAgent/build/*
+agents/InfrastructureAgent/sea-prep.blob
+agents/InfrastructureAgent/InfrastructureAgent
+agents/InfrastructureAgent/build/*
 
 
-InfrastructureAgent/err.log
-InfrastructureAgent/out.log
-InfrastructureAgent/daemon.pid
-App/greenlock/.greenlockrc
-App/greenlock/greenlock.d/config.json
-App/greenlock/greenlock.d/config.json.bak
-InfrastructureAgent/oneuptime-infrastructure-agent
+agents/InfrastructureAgent/err.log
+agents/InfrastructureAgent/out.log
+agents/InfrastructureAgent/daemon.pid
+packages/App/greenlock/.greenlockrc
+packages/App/greenlock/greenlock.d/config.json
+packages/App/greenlock/greenlock.d/config.json.bak
+agents/InfrastructureAgent/oneuptime-infrastructure-agent
 
 # ESLint cache
 .eslintcache*
@@ -144,8 +148,8 @@ MCP/build/
 MCP/.env
 MCP/node_modules 
 Dashboard/public/sw.js
-App/Dashboard/public/sw.js
-E2E/Terraform/e2e-tests/test-env.sh
+packages/App/Dashboard/public/sw.js
+packages/E2E/Terraform/e2e-tests/test-env.sh
 
 # Claude Code local config
 .claude/
@@ -157,7 +161,7 @@ terraform.tfstate
 terraform.tfstate.backup
 .terraform/
 .terraform.lock.hcl
-App/FeatureSet/Dashboard/public/sw.js
+packages/App/FeatureSet/Dashboard/public/sw.js
 
 RFP/
 .gstack/
@@ -170,11 +174,11 @@ eval-corpus.json
 
 # CycloneDX SBOMs written by Scripts/GHA/generate_sboms.sh
 /sbom/
-App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/gc.properties
-App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/checksums/checksums.lock
-App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/fileChanges/last-build.bin
-App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/fileHashes/fileHashes.bin
-App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/fileHashes/fileHashes.lock
-App/FeatureSet/MobileRecorder/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
-App/FeatureSet/MobileRecorder/android/.gradle/buildOutputCleanup/cache.properties
-App/FeatureSet/MobileRecorder/android/.gradle/vcs-1/gc.properties
+packages/App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/gc.properties
+packages/App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/checksums/checksums.lock
+packages/App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/fileChanges/last-build.bin
+packages/App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/fileHashes/fileHashes.bin
+packages/App/FeatureSet/MobileRecorder/android/.gradle/9.2.0/fileHashes/fileHashes.lock
+packages/App/FeatureSet/MobileRecorder/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+packages/App/FeatureSet/MobileRecorder/android/.gradle/buildOutputCleanup/cache.properties
+packages/App/FeatureSet/MobileRecorder/android/.gradle/vcs-1/gc.properties

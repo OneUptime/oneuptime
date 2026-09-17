@@ -60,7 +60,7 @@ describe("native autolinking contract", () => {
     const nativeWorkflow: string = fs.readFileSync(
       path.resolve(
         packageRoot,
-        "../../../.github/workflows/test.mobile-recorder-native.yaml",
+        "../../../../.github/workflows/test.mobile-recorder-native.yaml",
       ),
       "utf8",
     );

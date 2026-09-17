@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEST_DIR="$(dirname "$SCRIPT_DIR")"
-ROOT_DIR="$(cd "$TEST_DIR/../../.." && pwd)"
+ROOT_DIR="$(cd "$TEST_DIR/../../../.." && pwd)"
 
 echo "=========================================="
 echo "Terraform Provider E2E Tests"
@@ -25,10 +25,10 @@ echo "=== Step 1: Installing dependencies ==="
 cd "$ROOT_DIR"
 
 # Clean node_modules to avoid permission issues with npm cache in CI
-rm -rf Common/node_modules Scripts/node_modules || true
+rm -rf packages/Common/node_modules Scripts/node_modules || true
 
 npm install
-cd Common && npm install && cd ..
+cd packages/Common && npm install && cd ../..
 cd Scripts && npm install && cd ..
 
 # Step 2: Generate Terraform Provider (before services start, see note above)

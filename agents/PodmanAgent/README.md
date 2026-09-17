@@ -150,7 +150,7 @@ If you want to build the image yourself (for development or air-gapped environme
 
 ```bash
 npm run prerun  # generates Dockerfile from Dockerfile.tpl
-podman build -f ./PodmanAgent/Dockerfile -t oneuptime/podman-agent:local .
+podman build -f ./agents/PodmanAgent/Dockerfile -t oneuptime/podman-agent:local .
 ```
 
 ## Troubleshooting

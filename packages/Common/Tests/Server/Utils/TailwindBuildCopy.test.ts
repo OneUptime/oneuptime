@@ -39,7 +39,14 @@ const CANONICAL: string = path.join(
   "tailwind-3.4.5.js",
 );
 
-const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
+const REPOSITORY_ROOT: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+);
 
 const temporaryRoots: Array<string> = [];
 
@@ -181,7 +188,12 @@ describe("the frontend build's Tailwind copy", () => {
      * The version lives in the filename, so bumping Tailwind means editing five
      * views. This is the tripwire for doing one without the other.
      */
-    const featureSets: string = path.join(REPOSITORY_ROOT, "App", "FeatureSet");
+    const featureSets: string = path.join(
+      REPOSITORY_ROOT,
+      "packages",
+      "App",
+      "FeatureSet",
+    );
 
     const services: Array<[string, string]> = [
       ["Dashboard", "dashboard"],

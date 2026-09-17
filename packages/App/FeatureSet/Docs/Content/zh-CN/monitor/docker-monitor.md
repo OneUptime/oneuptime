@@ -226,7 +226,7 @@ docker run ... <image>
 2. 将 `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN` 和 `DOCKER_HOST_NAME` 作为环境变量传入
 3. 确保要观察的容器使用 `json-file` 日志驱动程序（见上文）
 
-该 Agent 以 `oneuptime/docker-agent:release` 的形式发布在 Docker Hub 上。完整的 `docker run` 和 `docker compose` 示例请参见 [Docker Agent 安装指南](https://github.com/OneUptime/oneuptime/tree/master/DockerAgent)。
+该 Agent 以 `oneuptime/docker-agent:release` 的形式发布在 Docker Hub 上。完整的 `docker run` 和 `docker compose` 示例请参见 [Docker Agent 安装指南](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent)。
 
 ## 故障排查
 

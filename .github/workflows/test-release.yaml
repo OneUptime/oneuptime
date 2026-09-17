@@ -134,7 +134,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image nginx \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./Nginx/Dockerfile \
+            --dockerfile ./packages/Nginx/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -214,7 +214,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image e2e \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./E2E/Dockerfile \
+            --dockerfile ./packages/E2E/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -293,7 +293,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image test-server \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./TestServer/Dockerfile \
+            --dockerfile ./packages/TestServer/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -383,7 +383,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image home \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./Home/Dockerfile \
+            --dockerfile ./packages/Home/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -541,7 +541,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image probe \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./Probe/Dockerfile \
+            --dockerfile ./packages/Probe/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -620,7 +620,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image runner \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./Runner/Dockerfile \
+            --dockerfile ./packages/Runner/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -699,7 +699,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image app \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./App/Dockerfile \
+            --dockerfile ./packages/App/Dockerfile \
             --context . \
             --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
@@ -780,7 +780,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install
-          if [ -d "Common" ]; then cd Common && npm install && cd ..; fi
+          if [ -d "packages/Common" ]; then cd packages/Common && npm install && cd ../..; fi
           if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
 
       - name: Import GPG signing key
@@ -984,7 +984,7 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
-            ./E2E
+            ./packages/E2E
 
 
           # Duration after which artifact will expire in days. 0 means using default retention.
@@ -1065,7 +1065,7 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
-            ./E2E
+            ./packages/E2E
 
 
           # Duration after which artifact will expire in days. 0 means using default retention.
@@ -1118,10 +1118,10 @@ jobs:
         run: goreleaser -v
 
       - name: Run GoReleaser
-        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean --snapshot
+        run: cd agents/InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean --snapshot
 
       - name: Release MSI Images
-        run: cd InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
+        run: cd agents/InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
 
 
       - name: Upload Release Binaries
@@ -1135,7 +1135,7 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
-            ./InfrastructureAgent/dist
+            ./agents/InfrastructureAgent/dist
 
 
           # Duration after which artifact will expire in days. 0 means using default retention.

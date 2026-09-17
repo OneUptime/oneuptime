@@ -2,7 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
-const REPO_ROOT: string = path.resolve(__dirname, "../../..");
+const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
 const SOURCE: string = fs.readFileSync(
   path.join(REPO_ROOT, "Scripts/NPM/PublishAllPackages.sh"),
   "utf8",
@@ -14,7 +14,7 @@ describe("PublishAllPackages", () => {
       'echo "@oneuptime/common@$package_version is now available on npm"',
     );
     const mobilePublish: number = SOURCE.indexOf(
-      'publish_to_npm "App/FeatureSet/MobileRecorder"',
+      'publish_to_npm "packages/App/FeatureSet/MobileRecorder"',
     );
 
     expect(waitEnd).toBeGreaterThan(-1);
@@ -43,11 +43,11 @@ describe("PublishAllPackages", () => {
 
     expect(compileWorkflow).toContain("compile-mobile-recorder:");
     expect(compileWorkflow).toContain(
-      "cd App/FeatureSet/MobileRecorder && npm install && npm run compile && npm run build",
+      "cd packages/App/FeatureSet/MobileRecorder && npm install && npm run compile && npm run build",
     );
     expect(testWorkflow).toContain("name: Mobile Recorder Test");
     expect(testWorkflow).toContain(
-      "cd App/FeatureSet/MobileRecorder && npm install && npm run test",
+      "cd packages/App/FeatureSet/MobileRecorder && npm install && npm run test",
     );
   });
 
@@ -57,7 +57,10 @@ describe("PublishAllPackages", () => {
       scripts: Record<string, string>;
     } = JSON.parse(
       fs.readFileSync(
-        path.join(REPO_ROOT, "App/FeatureSet/MobileRecorder/package.json"),
+        path.join(
+          REPO_ROOT,
+          "packages/App/FeatureSet/MobileRecorder/package.json",
+        ),
         "utf8",
       ),
     ) as {

@@ -10,7 +10,7 @@ export default defineConfig({
   expect: { timeout: 15000 },
   retries: 0,
   reporter: [["list"]],
-  outputDir: "../output/playwright/event-overview-ui/test-results",
+  outputDir: "../../output/playwright/event-overview-ui/test-results",
   projects: [
     {
       name: "chromium",

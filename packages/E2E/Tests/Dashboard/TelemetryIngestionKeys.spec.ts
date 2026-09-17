@@ -32,7 +32,7 @@ interface SharedContext {
  * isolates the keys and is deleted even when a test fails. No telemetry is
  * ingested. Billing-enabled runs use the shared Stripe test-mode fixture.
  *
- * cd E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https BILLING_ENABLED=true \
+ * cd packages/E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https BILLING_ENABLED=true \
  *   npx playwright test Tests/Dashboard/TelemetryIngestionKeys.spec.ts \
  *   --project=chromium --retries=0
  */

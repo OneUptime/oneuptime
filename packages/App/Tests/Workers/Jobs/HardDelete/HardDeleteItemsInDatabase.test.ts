@@ -180,7 +180,8 @@ function firstQuery(service: FakeService): Record<string, unknown> {
  *
  * The shape is described structurally rather than imported from typeorm --
  * typeorm is a Common dependency, not an App one, so importing it here
- * compiles locally through the hoisted tree but breaks `cd App && tsc` in CI.
+ * compiles locally through the hoisted tree but breaks `cd packages/App && tsc`
+ * in CI.
  */
 type RawFindOperator = {
   objectLiteralParameters?: Record<string, Date>;

@@ -1,7 +1,7 @@
 # Replay Health page visual QA
 
 Production UI rendered by the offline session replay fixture
-(`npm run test-session-replay-ui` in `E2E`) with synthetic ingest-status data.
+(`npm run test-session-replay-ui` in `packages/E2E`) with synthetic ingest-status data.
 
 ## Healthy
 

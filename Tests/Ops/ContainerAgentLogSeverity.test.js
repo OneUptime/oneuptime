@@ -114,7 +114,12 @@ const SEVERITY_CHAIN_IDS = [
 const SCRATCH_ATTRIBUTE = "attributes.severity_text";
 
 function readAgentOperators(agent) {
-  const configPath = path.join(REPO_ROOT, agent, "otel-collector-config.yaml");
+  const configPath = path.join(
+    REPO_ROOT,
+    "agents",
+    agent,
+    "otel-collector-config.yaml",
+  );
   const config = yaml.load(fs.readFileSync(configPath, "utf8"));
   const operators = config.receivers.filelog.operators;
 

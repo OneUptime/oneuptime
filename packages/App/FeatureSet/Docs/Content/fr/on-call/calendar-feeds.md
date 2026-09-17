@@ -212,7 +212,7 @@ Rien n'est à activer : les flux fonctionnent sur toute installation. Quatre var
 - **`TRUSTED_PROXY_HOPS`** décide quelle adresse la limite par adresse compte. La valeur par défaut `1` convient aux dispositions Docker Compose et Helm standard ; ajoutez un pour chaque proxy à vous — CDN, WAF ou répartiteur de charge — qui ajoute à `X-Forwarded-For`, sinon chaque client de calendrier ressemble à la même adresse et tous partagent un seul budget. Voir [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) dans la documentation du chart.
 - **Redis** porte les caches et le limiteur de débit. Les deux se dégradent proprement : sans Redis, les flux sont toujours rendus, seulement plus lentement, et le limiteur laisse passer les requêtes.
 - En mode séparé du chart Helm (`worker.enabled: true`), les flux sont rendus sur l'étage API ; dimensionnez cet étage pour une rafale de clients de calendrier interrogeant à l'heure pile.
-- L'exemption du journal d'accès Nginx montrée plus haut fait partie du `Nginx/default.conf.template` livré ; conservez-la si vous personnalisez le modèle.
+- L'exemption du journal d'accès Nginx montrée plus haut fait partie du `packages/Nginx/default.conf.template` livré ; conservez-la si vous personnalisez le modèle.
 
 ## Dépannage
 

@@ -2,12 +2,12 @@
  * Benchmark simultaneous failed monitors asking whether their probe is online.
  * Run from the repository root:
  *
- *   node --expose-gc Probe/scripts/benchmark-online-check.js
+ *   node --expose-gc packages/Probe/scripts/benchmark-online-check.js
  *
  * Compare against an earlier revision in a separate process:
  *
  *   git show 0b23baed11:Probe/Utils/OnlineCheck.ts > /tmp/oneuptime-online-check-before.ts
- *   node --expose-gc Probe/scripts/benchmark-online-check.js /tmp/oneuptime-online-check-before.ts
+ *   node --expose-gc packages/Probe/scripts/benchmark-online-check.js /tmp/oneuptime-online-check-before.ts
  *
  * The selected OnlineCheck.ts is transpiled and executed unchanged. Reference
  * probes are deferred stubs that all return offline; no network traffic or

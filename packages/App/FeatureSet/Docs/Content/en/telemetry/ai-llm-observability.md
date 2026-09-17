@@ -109,7 +109,7 @@ The `traceloop.association.properties.*` sub-keys are **caller-supplied** associ
 
 If your instrumentation reports a cost (`gen_ai.usage.cost`), OneUptime uses it as-is — the reported value always wins. When no cost is reported, OneUptime computes an **estimated cost at ingest** from the span's token counts and a built-in list-price catalog of common models from OpenAI, Anthropic, Google Gemini, Mistral, DeepSeek, xAI, Cohere, Amazon Nova and Meta Llama. Models are matched by name prefix, so dated snapshots like `gpt-4o-2024-08-06` and vendor-decorated ids like `us.anthropic.claude-3-5-sonnet-20241022-v2:0` resolve correctly. Unknown or custom models are never guessed — their cost stays `0`. Estimates use list prices and do not account for cache or batch discounts.
 
-Self-hosting OneUptime? The catalog lives in `Common/Types/Telemetry/LlmCostCatalog.ts` if you want to extend it.
+Self-hosting OneUptime? The catalog lives in `packages/Common/Types/Telemetry/LlmCostCatalog.ts` if you want to extend it.
 
 ## Employee and team attribution
 

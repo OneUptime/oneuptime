@@ -19,7 +19,7 @@ const test = require("node:test");
 
 const { NGINX_DIRECTORY, readTemplate } = require("./NginxConfigParser");
 
-const REPOSITORY_ROOT = path.resolve(NGINX_DIRECTORY, "..");
+const REPOSITORY_ROOT = path.resolve(NGINX_DIRECTORY, "..", "..");
 
 const ENVIRONMENT_VARIABLE = "NGINX_INGEST_ACCESS_LOG";
 const HELM_VALUE_PATH = "nginx.ingestAccessLog";

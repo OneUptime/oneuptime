@@ -25,12 +25,12 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && npm install
-      - run: cd Probe && npm install
-      - run: cd Probe && npx playwright install --with-deps chromium firefox
+      - run: cd packages/Common && npm install
+      - run: cd packages/Probe && npm install
+      - run: cd packages/Probe && npx playwright install --with-deps chromium firefox
       # SyntheticBrowserSlowStorage.test.ts runs Chromium under strace to make
       # its storage slow, and FirefoxNoSyncLibrary.test.ts compiles the no-sync
       # shim with gcc and runs Firefox under strace; on CI both fail rather
       # than skip without these tools.
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends strace gcc
-      - run: cd Probe && npm run test
+      - run: cd packages/Probe && npm run test

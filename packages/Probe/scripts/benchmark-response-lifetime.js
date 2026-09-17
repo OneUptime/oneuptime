@@ -2,14 +2,14 @@
  * Isolated heap benchmark for the periodic monitor response lifecycle.
  * Run from the repository root with the supported Node runtime:
  *
- *   node --expose-gc Probe/scripts/benchmark-response-lifetime.js
+ *   node --expose-gc packages/Probe/scripts/benchmark-response-lifetime.js
  *
  * The optional argument selects another Monitor.ts source. To compare with
  * master before this change is merged, extract the baseline without changing
  * the checkout, then run it in a separate process:
  *
  *   git show master:Probe/Utils/Monitors/Monitor.ts > /tmp/oneuptime-monitor-before.ts
- *   node --expose-gc Probe/scripts/benchmark-response-lifetime.js /tmp/oneuptime-monitor-before.ts
+ *   node --expose-gc packages/Probe/scripts/benchmark-response-lifetime.js /tmp/oneuptime-monitor-before.ts
  *
  * After merging, replace master in the extraction command with the commit
  * preceding the response-lifetime change (for example, the merge's first

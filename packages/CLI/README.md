@@ -11,7 +11,7 @@ npm install -g @oneuptime/cli
 Or run directly within the monorepo:
 
 ```bash
-cd CLI
+cd packages/CLI
 npm install
 npm start -- --help
 ```
@@ -208,7 +208,7 @@ As more models are MCP-enabled in OneUptime, they automatically become available
 ## Development
 
 ```bash
-cd CLI
+cd packages/CLI
 npm install
 npm start -- --help     # Run via ts-node
 npm test                # Run tests

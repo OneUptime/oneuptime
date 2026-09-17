@@ -2,13 +2,13 @@
  * Isolated fan-in admission benchmark against the actual writer source.
  * Run with the supported Node runtime from the repository root:
  *
- *   node --expose-gc Common/Scripts/benchmark-fanin-capacity.js
+ *   node --expose-gc packages/Common/Scripts/benchmark-fanin-capacity.js
  *
  * Compare in separate processes, extracting the previous source without
  * modifying the checkout (the revision is the pre-change master):
  *
  *   git show 0b23baed11:Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts > /tmp/oneuptime-fanin-before.ts
- *   node --expose-gc Common/Scripts/benchmark-fanin-capacity.js /tmp/oneuptime-fanin-before.ts
+ *   node --expose-gc packages/Common/Scripts/benchmark-fanin-capacity.js /tmp/oneuptime-fanin-before.ts
  *
  * 200 producers submit chunks sequentially and await all their acceptance
  * acknowledgements at the end, as ingest jobs do. ClickHouse remains blocked

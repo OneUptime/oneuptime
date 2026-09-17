@@ -1,5 +1,5 @@
 /*
- * Run from App:
+ * Run from packages/App:
  * node --require ts-node/register/transpile-only scripts/benchmark-metric-catalog.ts
  *
  * Isolates metric catalog construction; does not measure database work or

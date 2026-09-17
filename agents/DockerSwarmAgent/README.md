@@ -19,7 +19,7 @@ Run it on a **manager node**. For full per-node container metrics, run the colle
 ## Quick Start — install script
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/DockerSwarmAgent/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
 sh install.sh
 ```
 
@@ -74,7 +74,7 @@ The Docker Host agent models a single host and stamps `host.name` + `container.r
 `troubleshoot.sh` checks the whole chain — both containers, that the inventory poller is on a manager (`docker node ls`), the snapshot file, cluster-name stamping, token shape, collector self-metrics, and a **definitive server-side token validation** (OneUptime's OTLP endpoints return a silent `200` on a bad ingestion key, so log inspection alone cannot tell you the key is wrong; the script asks `GET /otlp/v1/validate` for a real 200/401 verdict):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 

@@ -314,7 +314,7 @@ describe("ClickHouse client keep-alive options", () => {
        */
       const serverConfigPath: string = path.join(
         __dirname,
-        "../../../../Clickhouse/config.xml",
+        "../../../../../Clickhouse/config.xml",
       );
       const serverConfigXml: string = fs.readFileSync(
         serverConfigPath,

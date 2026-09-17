@@ -11,7 +11,7 @@ const dotenv = require("dotenv");
 function createRefractorCompatibilityPlugin() {
   const candidateRoots = [
     path.resolve(__dirname, "../node_modules/refractor"),
-    path.resolve(__dirname, "../../node_modules/refractor"),
+    path.resolve(__dirname, "../../../node_modules/refractor"),
   ];
 
   const refractorRoot = candidateRoots.find((packagePath) =>
@@ -53,7 +53,7 @@ function createRefractorCompatibilityPlugin() {
 function createMermaidPlugin() {
   const candidateRoots = [
     path.resolve(__dirname, "../node_modules/mermaid"),
-    path.resolve(__dirname, "../../node_modules/mermaid"),
+    path.resolve(__dirname, "../../../node_modules/mermaid"),
   ];
   const mermaidRoot = candidateRoots.find((p) => fs.existsSync(p));
 
@@ -259,7 +259,7 @@ function resolvePackageRoot(packageName) {
     process.cwd(),
     __dirname,
     path.resolve(__dirname, ".."),
-    path.resolve(__dirname, "../.."),
+    path.resolve(__dirname, "../../.."),
   ];
 
   for (const resolutionPath of resolutionPaths) {
@@ -300,7 +300,7 @@ function resolvePackageSubpath(packageName, subpath) {
     process.cwd(),
     __dirname,
     path.resolve(__dirname, ".."),
-    path.resolve(__dirname, "../.."),
+    path.resolve(__dirname, "../../.."),
   ];
 
   for (const resolutionPath of resolutionPaths) {

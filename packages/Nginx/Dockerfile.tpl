@@ -46,12 +46,12 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 # image's npm still carries.
 RUN npm install -g npm@latest
 
-COPY ./Nginx/envsubst-on-templates.sh /etc/nginx/envsubst-on-templates.sh
+COPY ./packages/Nginx/envsubst-on-templates.sh /etc/nginx/envsubst-on-templates.sh
 
 RUN chmod +x /etc/nginx/envsubst-on-templates.sh
 
-COPY ./Nginx/default.conf.template /etc/nginx/templates/default.conf.template
-COPY ./Nginx/nginx.conf /etc/nginx/nginx.conf
+COPY ./packages/Nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY ./packages/Nginx/nginx.conf /etc/nginx/nginx.conf
 
 # Serialize npm lifecycle scripts so esbuild's postinstall doesn't race against
 # concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
@@ -61,9 +61,9 @@ RUN npm config set foreground-scripts true
 RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
-COPY ./Common/package*.json /usr/src/Common/
+COPY ./packages/Common/package*.json /usr/src/Common/
 RUN npm install
-COPY ./Common /usr/src/Common
+COPY ./packages/Common /usr/src/Common
 
 
 
@@ -77,10 +77,10 @@ ENV PRODUCTION=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Nginx/package*.json /usr/src/app/
+COPY ./packages/Nginx/package*.json /usr/src/app/
 RUN npm install
 
-COPY ./Nginx /usr/src/app
+COPY ./packages/Nginx /usr/src/app
 # Bundle app source
 RUN npm run compile
 

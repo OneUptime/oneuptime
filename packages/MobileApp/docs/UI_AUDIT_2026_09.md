@@ -52,9 +52,9 @@ describe this fetched set, not an unlimited server search.
 
 ## Reproduce validation
 
-Install dependencies with `npm ci` in `MobileApp`. When Common declarations are
+Install dependencies with `npm ci` in `packages/MobileApp`. When Common declarations are
 not present, run `npm run compile -- --declaration --emitDeclarationOnly` in
-`Common` first (after installing its dependencies). Then run in `MobileApp`:
+`packages/Common` first (after installing its dependencies). Then run in `packages/MobileApp`:
 
 ```bash
 npm run compile
@@ -114,7 +114,7 @@ state, touch targets, bottom clearance and horizontal overflow. It runs at
 
 ## Screenshots and environment limits
 
-See the [review gallery](../../.github/pr-assets/mobile-experience-polish/README.md)
+See the [review gallery](../../../.github/pr-assets/mobile-experience-polish/README.md)
 for current captures. `npm run test-ui` attaches screenshots to its Playwright
 report; the gallery selects representative screens and recovery states.
 

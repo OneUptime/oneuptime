@@ -33,7 +33,7 @@ const DASHBOARD_SRC: string = path.join(
   "src",
 );
 
-const REPO_ROOT: string = path.join(__dirname, "..", "..", "..");
+const REPO_ROOT: string = path.join(__dirname, "..", "..", "..", "..");
 
 type ReadSourceFunction = (...segments: Array<string>) => string;
 
@@ -555,11 +555,16 @@ describe("the install guide embeds the real agent configuration", () => {
 
   test("it embeds the shipped collector config, not a paraphrase", () => {
     const collectorConfig: string = fs.readFileSync(
-      path.join(REPO_ROOT, "VMwareAgent", "otel-collector-config.yaml"),
+      path.join(
+        REPO_ROOT,
+        "agents",
+        "VMwareAgent",
+        "otel-collector-config.yaml",
+      ),
       "utf8",
     );
     const compose: string = fs.readFileSync(
-      path.join(REPO_ROOT, "VMwareAgent", "docker-compose.yml"),
+      path.join(REPO_ROOT, "agents", "VMwareAgent", "docker-compose.yml"),
       "utf8",
     );
 

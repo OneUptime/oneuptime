@@ -207,6 +207,7 @@ const CONFIGMAP_PATH = path.join(
   __dirname,
   "..",
   "..",
+  "..",
   "HelmChart",
   "Public",
   "kubernetes-agent",

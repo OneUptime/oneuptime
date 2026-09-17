@@ -212,7 +212,7 @@ OneUptime 自身は常に新しいデータを返します。レイヤー、ロ�
 - **`TRUSTED_PROXY_HOPS`** は、アドレスごとの制限がどのアドレスを数えるかを決めます。既定の `1` は標準の Docker Compose と Helm の構成に適しています。`X-Forwarded-For` に追記する独自のプロキシ（CDN、WAF、ロードバランサー）ごとに 1 ずつ足してください。そうしないと、すべてのカレンダークライアントが同じアドレスに見え、1 つの予算を共有してしまいます。チャートのドキュメントの [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) を参照してください。
 - **Redis** がキャッシュとレートリミッターを支えます。どちらも段階的に劣化します。Redis がなくてもフィードはレンダリングされ（遅くなるだけ）、リミッターはリクエストを通します。
 - Helm チャートの分割モード（`worker.enabled: true`）では、フィードは API 層でレンダリングされます。毎正時に一斉にポーリングするカレンダークライアントのバーストに備えて、その層のサイズを決めてください。
-- 上記の Nginx アクセスログ除外は、同梱の `Nginx/default.conf.template` の一部です。テンプレートをカスタマイズする場合も残してください。
+- 上記の Nginx アクセスログ除外は、同梱の `packages/Nginx/default.conf.template` の一部です。テンプレートをカスタマイズする場合も残してください。
 
 ## トラブルシューティング
 

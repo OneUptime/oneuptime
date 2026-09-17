@@ -21,7 +21,7 @@ OneUptime 모바일 앱은 백엔드에 Expo Push Token을 등록합니다. 백�
 | OneUptime → 브라우저 푸시 서비스 | 푸시 구독에 저장된 HTTPS 엔드포인트 | HTTPS / 일반적으로 TCP 443 | 웹 푸시. |
 | 모바일 앱 또는 브라우저 → OneUptime | OneUptime 호스트 이름 | HTTPS / TCP 443 | 로그인, 기기 등록, 알림 링크 열기. |
 
-`PUSH_NOTIFICATION_RELAY_URL`을 변경하면 해당 호스트 이름과 설정한 포트를 허용하세요. 사용자 지정 릴레이는 OneUptime 릴레이 API를 구현해야 합니다. 기본값과 전달 방식 선택은 [OneUptime 설정](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) 및 [푸시 서비스](https://github.com/OneUptime/oneuptime/blob/master/Common/Server/Services/PushNotificationService.ts), 직접 엔드포인트는 [Expo 전송 안내](https://docs.expo.dev/push-notifications/sending-notifications/)를 참고하세요.
+`PUSH_NOTIFICATION_RELAY_URL`을 변경하면 해당 호스트 이름과 설정한 포트를 허용하세요. 사용자 지정 릴레이는 OneUptime 릴레이 API를 구현해야 합니다. 기본값과 전달 방식 선택은 [OneUptime 설정](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) 및 [푸시 서비스](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts), 직접 엔드포인트는 [Expo 전송 안내](https://docs.expo.dev/push-notifications/sending-notifications/)를 참고하세요.
 
 웹 푸시는 팀이 사용하는 브라우저 구독의 실제 엔드포인트 호스트를 허용해야 합니다. OneUptime은 `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com`, `push.apple.com`과 하위 도메인을 허용합니다. 예로 `updates.push.services.mozilla.com`, `web.push.apple.com`이 있습니다. [브라우저 구독](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription)이 대상을 제공하므로 Expo나 릴레이만 허용해서는 웹 푸시를 사용할 수 없습니다.
 

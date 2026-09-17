@@ -74,7 +74,7 @@ test.describe("Home: install script shortcuts", () => {
     expect(response.status).toBeLessThan(400);
 
     expect(response.headers.get("location")).toBe(
-      "https://raw.githubusercontent.com/OneUptime/oneuptime/release/InfrastructureAgent/Scripts/Install/Linux.sh",
+      "https://raw.githubusercontent.com/OneUptime/oneuptime/release/agents/InfrastructureAgent/Scripts/Install/Linux.sh",
     );
   });
 });

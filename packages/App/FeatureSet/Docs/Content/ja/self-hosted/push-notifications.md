@@ -21,7 +21,7 @@ OneUptime モバイルアプリは Expo Push Token をバックエンドに登�
 | OneUptime → ブラウザーのプッシュサービス | プッシュ購読内の HTTPS エンドポイント | HTTPS / 通常 TCP 443 | Web Push。 |
 | モバイルアプリまたはブラウザー → OneUptime | OneUptime のホスト名 | HTTPS / TCP 443 | ログイン、デバイス登録、通知リンクを開く操作。 |
 
-`PUSH_NOTIFICATION_RELAY_URL` を変更した場合は、その宛先ホストと設定ポートを許可します。独自リレーは OneUptime のリレー API を実装する必要があります。既定値と配信方式の切り替えは [OneUptime の設定](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)と[プッシュサービス](https://github.com/OneUptime/oneuptime/blob/master/Common/Server/Services/PushNotificationService.ts)、直接接続先は [Expo の送信手順](https://docs.expo.dev/push-notifications/sending-notifications/)を参照してください。
+`PUSH_NOTIFICATION_RELAY_URL` を変更した場合は、その宛先ホストと設定ポートを許可します。独自リレーは OneUptime のリレー API を実装する必要があります。既定値と配信方式の切り替えは [OneUptime の設定](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)と[プッシュサービス](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts)、直接接続先は [Expo の送信手順](https://docs.expo.dev/push-notifications/sending-notifications/)を参照してください。
 
 Web Push では使用するブラウザーの実際の購読先ホストを許可します。OneUptime は `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com`、`push.apple.com` とそのサブドメインを受け付けます。例は `updates.push.services.mozilla.com` と `web.push.apple.com` です。[ブラウザーの購読](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription)が宛先を指定するため、Expo やリレーだけの許可では Web Push は動作しません。
 

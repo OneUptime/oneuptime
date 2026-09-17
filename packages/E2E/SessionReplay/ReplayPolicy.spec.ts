@@ -25,7 +25,7 @@ const readsOnMount: number = 1;
 
 const artifacts: string = path.resolve(
   __dirname,
-  "../../output/playwright/session-replay-ui",
+  "../../../output/playwright/session-replay-ui",
 );
 const monacoRuntime: string = path.resolve(
   __dirname,

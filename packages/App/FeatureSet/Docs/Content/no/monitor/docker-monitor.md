@@ -226,7 +226,7 @@ For å bruke Docker-overvåking må du:
 2. Angi `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` og `DOCKER_HOST_NAME` som miljøvariabler
 3. Sørge for at containerne du ønsker å observere bruker `json-file`-loggdriveren (se ovenfor)
 
-Agenten publiseres som `oneuptime/docker-agent:release` på Docker Hub. Se [installasjonsguiden for Docker-agenten](https://github.com/OneUptime/oneuptime/tree/master/DockerAgent) for fullstendige eksempler med `docker run` og `docker compose`.
+Agenten publiseres som `oneuptime/docker-agent:release` på Docker Hub. Se [installasjonsguiden for Docker-agenten](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) for fullstendige eksempler med `docker run` og `docker compose`.
 
 ## Feilsøking
 

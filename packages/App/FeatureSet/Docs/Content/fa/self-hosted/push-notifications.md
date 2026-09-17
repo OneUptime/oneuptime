@@ -21,7 +21,7 @@
 | OneUptime → سرویس پوش مرورگر | نقطه پایانی HTTPS ذخیره‌شده در اشتراک پوش | HTTPS / معمولاً TCP 443 | پوش وب. |
 | اپلیکیشن موبایل یا مرورگر → OneUptime | نام میزبان OneUptime شما | HTTPS / TCP 443 | ورود، ثبت دستگاه و باز کردن پیوندهای اعلان. |
 
-اگر `PUSH_NOTIFICATION_RELAY_URL` را تغییر می‌دهید، نام میزبان مقصد و درگاه پیکربندی‌شده آن را مجاز کنید. واسط سفارشی باید API واسط OneUptime را پیاده‌سازی کند. پیش‌فرض‌ها و انتخاب روش تحویل در [پیکربندی OneUptime](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) و [سرویس پوش](https://github.com/OneUptime/oneuptime/blob/master/Common/Server/Services/PushNotificationService.ts) تعریف شده‌اند؛ نقطه پایانی مستقیم در [راهنمای ارسال Expo](https://docs.expo.dev/push-notifications/sending-notifications/) آمده است.
+اگر `PUSH_NOTIFICATION_RELAY_URL` را تغییر می‌دهید، نام میزبان مقصد و درگاه پیکربندی‌شده آن را مجاز کنید. واسط سفارشی باید API واسط OneUptime را پیاده‌سازی کند. پیش‌فرض‌ها و انتخاب روش تحویل در [پیکربندی OneUptime](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) و [سرویس پوش](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) تعریف شده‌اند؛ نقطه پایانی مستقیم در [راهنمای ارسال Expo](https://docs.expo.dev/push-notifications/sending-notifications/) آمده است.
 
 برای پوش وب، میزبان‌های واقعی نقاط پایانی اشتراک مرورگرهای تیم را مجاز کنید. OneUptime نام‌های `fcm.googleapis.com`، `android.googleapis.com`، `push.services.mozilla.com`، `notify.windows.com` و `push.apple.com` و زیردامنه‌هایشان، مانند `updates.push.services.mozilla.com` و `web.push.apple.com` را می‌پذیرد. [اشتراک مرورگر](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) مقصد را مشخص می‌کند؛ مجاز کردن فقط Expo یا واسط OneUptime پوش وب را فعال نمی‌کند.
 
@@ -53,7 +53,7 @@ DNS و HTTPS را از کانتینر یا Pod ارسال‌کننده تا مق
 EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npx expo prebuild
 ```
 
-یا `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"` را به بلوک `env` پروفایل بیلد در `MobileApp/eas.json` اضافه کنید.
+یا `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"` را به بلوک `env` پروفایل بیلد در `packages/MobileApp/eas.json` اضافه کنید.
 
 بدون این مجوز، اپلیکیشن همچنان درست رفتار می‌کند: iOS اعطای دسترسی را رد می‌کند و صفحه تنظیمات به پاسخ‌دهنده همین را می‌گوید، به‌جای آنکه کلیدی نشان دهد که کاری نمی‌کند.
 

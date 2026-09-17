@@ -21,7 +21,7 @@
 
 <div align="center">
   <a href="https://oneuptime.com">
-    <img alt="لوگوی OneUptime" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/>
+    <img alt="لوگوی OneUptime" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
   </a>
 
   <h3>مشاهده‌پذیری عامل‌محور — یک پلتفرم متن‌باز برای زمان کارکرد، حوادث، آنکال، صفحات وضعیت، لاگ‌ها، ترِیس‌ها، متریک‌ها و APM.</h3>
@@ -52,7 +52,7 @@
 <br/>
 
 <div align="center">
-  <img alt="مرکز فرماندهی OneUptime در جریان یک حادثه زنده" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/readme/hero-command-center.png"/>
+  <img alt="مرکز فرماندهی OneUptime در جریان یک حادثه زنده" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
 </div>
 
 ---
@@ -86,31 +86,31 @@ OneUptime پایش، هشداردهی، پاسخ به حادثه و مشاهده
 
 پراب‌هایی در چند منطقه می‌بینند که تأخیر پرداخت نهایی از آستانه ۵ ثانیه شما فراتر رفته است و به‌صورت خودکار یک حادثه باز می‌کنند — پیش از آنکه مشتریانتان صفحه را دوباره بارگذاری کنند.
 
-![تشخیص — پایش سراسری، افت API پرداخت نهایی را می‌گیرد](/Home/Static/img/readme/detect.png?raw=true)
+![تشخیص — پایش سراسری، افت API پرداخت نهایی را می‌گیرد](/packages/Home/Static/img/readme/detect.png?raw=true)
 
 ### ۲ · پاسخ — *فراخوان به فرد درست*
 
 با مهندس آنکال سیاست پرداخت تماس گرفته می‌شود، پیامک و اعلان پوش می‌گیرد و تا وقتی کسی حادثه را تأیید نکند به‌صورت خودکار به نفر پشتیبان تشدید می‌شود.
 
-![پاسخ — حادثه به آنکال مسیریابی و تأیید می‌شود](/Home/Static/img/readme/respond.png?raw=true)
+![پاسخ — حادثه به آنکال مسیریابی و تأیید می‌شود](/packages/Home/Static/img/readme/respond.png?raw=true)
 
 ### ۳ · اطلاع‌رسانی — *مشتریان در جریان*
 
 صفحه وضعیت شما خودش را به‌روز می‌کند و به همه مشترکان از طریق ایمیل و پیامک اطلاع داده می‌شود — کسی لازم نیست به‌روزرسانی را دستی بنویسد.
 
-![اطلاع‌رسانی — صفحه وضعیت عمومی به‌روز می‌شود و به مشترکان اطلاع می‌دهد](/Home/Static/img/readme/communicate.png?raw=true)
+![اطلاع‌رسانی — صفحه وضعیت عمومی به‌روز می‌شود و به مشترکان اطلاع می‌دهد](/packages/Home/Static/img/readme/communicate.png?raw=true)
 
 ### ۴ · عیب‌یابی — *علت ریشه‌ای، پیدا شد*
 
 ترِیس‌ها، لاگ‌ها و متریک‌ها تا دقیقاً همان اسپن با هم هم‌بسته می‌شوند: یک `SELECT … FOR UPDATE` کند روی `orders` که به‌خاطر یک ایندکس گم‌شده گیر کرده است.
 
-![عیب‌یابی — آبشار ترِیس، اسپن کند پایگاه داده را دقیق نشان می‌دهد](/Home/Static/img/readme/diagnose.png?raw=true)
+![عیب‌یابی — آبشار ترِیس، اسپن کند پایگاه داده را دقیق نشان می‌دهد](/packages/Home/Static/img/readme/diagnose.png?raw=true)
 
 ### ۵ · اصلاح خودکار — *اصلاح، برای شما آماده شد*
 
 عامل هوش مصنوعی یک pull request با اصلاح باز می‌کند که به حادثه پیوند خورده و پیش از باز شدن با دستورهای build و test پیکربندی‌شده مخزن شما راستی‌آزمایی شده است — شما بازبینی و ادغام می‌کنید. مثل یک SRE که هرگز نمی‌خوابد.
 
-![اصلاح خودکار — عامل هوش مصنوعی یک pull request با اصلاح باز می‌کند](/Home/Static/img/readme/autofix.png?raw=true)
+![اصلاح خودکار — عامل هوش مصنوعی یک pull request با اصلاح باز می‌کند](/packages/Home/Static/img/readme/autofix.png?raw=true)
 
 </details>
 
@@ -144,7 +144,7 @@ npm start
 
 OneUptime اکنون روی **http://localhost** اجرا می‌شود — آن را باز کنید و اولین حساب خود را بسازید.
 
-📖 راهنمای کامل: [نصب با Docker Compose](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [تعیین اندازه و پیش‌نیازها](/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+📖 راهنمای کامل: [نصب با Docker Compose](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [تعیین اندازه و پیش‌نیازها](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
 
 ### ☸️ Kubernetes با Helm — برای محیط عملیاتی
 
@@ -155,7 +155,7 @@ helm install oneuptime oneuptime/oneuptime
 
 📖 دستورالعمل کامل نصب و مقادیر در [Artifact Hub ←](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
 
-> **نصب موجودی را ارتقا می‌دهید؟** [راهنمای ارتقا](/App/FeatureSet/Docs/Content/en/installation/upgrading.md) را ببینید.
+> **نصب موجودی را ارتقا می‌دهید؟** [راهنمای ارتقا](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md) را ببینید.
 
 ---
 
@@ -181,7 +181,7 @@ helm install oneuptime oneuptime/oneuptime
 
 تشدیدها، تیکت‌ها و اعلان‌ها را روی یک بوم بصری و بدون کدنویسی به هم وصل کنید — یا کد سفارشی خودتان را بگذارید. حادثه بالا بدون آنکه کسی دست بجنباند به آنکال فراخوان داد، یک تیکت Jira باز کرد و در Slack پیام گذاشت.
 
-![گردش‌های کاری — بوم خودکارسازی بدون کد برای تشدید حادثه](/Home/Static/img/readme/workflows.png?raw=true)
+![گردش‌های کاری — بوم خودکارسازی بدون کد برای تشدید حادثه](/packages/Home/Static/img/readme/workflows.png?raw=true)
 
 </details>
 
@@ -189,13 +189,13 @@ helm install oneuptime oneuptime/oneuptime
 
 عامل‌های **مبتنی بر OpenTelemetry** را با کپی و جای‌گذاری اضافه کنید تا هر چیزی که سرویس‌هایتان روی آن اجرا می‌شود زیر نظر باشد — به‌همراه قالب‌های آماده هشدار:
 
-- **سرورها و ماشین‌های مجازی** — پردازنده، حافظه، دیسک، شبکه، فرایندها و لاگ‌ها از Linux، macOS و Windows. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — یک `helm install` متریک‌های گره/پاد/کانتینر/خوشه، رویدادها، لاگ‌ها و ترِیس‌ها و نقشه‌های سرویس مبتنی بر eBPF را می‌آورد. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — یک عامل واحد هر کانتینر را به‌صورت خودکار کشف می‌کند و متریک‌ها و لاگ‌ها را می‌فرستد. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — همان کشف خودکار با یک عامل، از طریق سوکت سازگار با Docker در Podman. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — گره‌ها، ماشین‌های مجازی، کانتینرها، ذخیره‌سازی، وضعیت HA، پوشش پشتیبان‌گیری و سلامت همانندسازی. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها، خوشه‌ها، استخرهای منابع و vSAN. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — سلامت خوشه، پیش‌بینی ظرفیت و دید بر OSD/استخر/PG/مانیتور. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **سرورها و ماشین‌های مجازی** — پردازنده، حافظه، دیسک، شبکه، فرایندها و لاگ‌ها از Linux، macOS و Windows. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
+- **Kubernetes** — یک `helm install` متریک‌های گره/پاد/کانتینر/خوشه، رویدادها، لاگ‌ها و ترِیس‌ها و نقشه‌های سرویس مبتنی بر eBPF را می‌آورد. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
+- **Docker** — یک عامل واحد هر کانتینر را به‌صورت خودکار کشف می‌کند و متریک‌ها و لاگ‌ها را می‌فرستد. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
+- **Podman** — همان کشف خودکار با یک عامل، از طریق سوکت سازگار با Docker در Podman. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
+- **Proxmox** — گره‌ها، ماشین‌های مجازی، کانتینرها، ذخیره‌سازی، وضعیت HA، پوشش پشتیبان‌گیری و سلامت همانندسازی. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها، خوشه‌ها، استخرهای منابع و vSAN. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
+- **Ceph** — سلامت خوشه، پیش‌بینی ظرفیت و دید بر OSD/استخر/PG/مانیتور. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---
 
@@ -223,7 +223,7 @@ helm install oneuptime oneuptime/oneuptime
 
 - 🐛 **[مسائل باز](https://github.com/OneUptime/oneuptime/issues)** — یکی را بردارید، یا [مسئله جدیدی ثبت کنید](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[در نوشتن تست کمک کنید](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** برای این کدبیس
-- 🧑‍💻 **[راهنمای توسعه محلی](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** برای راه‌اندازی
+- 🧑‍💻 **[راهنمای توسعه محلی](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** برای راه‌اندازی
 - 📖 **[راهنمای مشارکت](/.github/CONTRIBUTING.md)** را بخوانید
 - 💬 در **[Slack توسعه‌دهندگان](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** یا **[Slack انجمن](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** با ما گفتگو کنید
 

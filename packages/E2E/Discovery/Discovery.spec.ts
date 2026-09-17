@@ -15,7 +15,7 @@ const route: string =
   "/dashboard/10000000-0000-4000-8000-000000000001/network-devices/discovery";
 const screenshots: string = path.resolve(
   __dirname,
-  "../../output/playwright/discovery",
+  "../../../output/playwright/discovery",
 );
 
 async function openPage(page: Page): Promise<void> {

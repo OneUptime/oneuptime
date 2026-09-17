@@ -2,7 +2,7 @@
 
 # Run database in docker-compose
 
-cd ..
+cd ../..
 # Run Preinstall. 
 
 cp config.env.example config.env

@@ -1,6 +1,6 @@
 # Discovery scan experience regression tests
 
-Run `npm run test-discovery-ui` from `E2E` after installing its dependencies.
+Run `npm run test-discovery-ui` from `packages/E2E` after installing its dependencies.
 The test runner builds the actual Discovery page and shared UI, then serves it
 locally on port 4198. Only session and API responses use synthetic fixtures; no
 network addresses are scanned and no backend account is required.

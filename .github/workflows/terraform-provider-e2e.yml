@@ -133,7 +133,7 @@ jobs:
       # regression fails in seconds instead of after a stack bring-up. Needs no
       # Node, Go, Docker or network.
       - name: Harness self-test
-        run: ./E2E/Terraform/e2e-tests/scripts/self-test.sh
+        run: ./packages/E2E/Terraform/e2e-tests/scripts/self-test.sh
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -200,9 +200,9 @@ jobs:
       - name: Install dependencies
         run: |
           # Clean node_modules to avoid permission issues with npm cache in CI
-          rm -rf Common/node_modules Scripts/node_modules || true
+          rm -rf packages/Common/node_modules Scripts/node_modules || true
           npm install
-          cd Common && npm install && cd ..
+          cd packages/Common && npm install && cd ../..
           cd Scripts && npm install && cd ..
 
       - name: Generate Terraform provider
@@ -249,13 +249,13 @@ jobs:
 
       - name: Set up test account
         run: |
-          chmod +x ./E2E/Terraform/e2e-tests/scripts/*.sh
-          ./E2E/Terraform/e2e-tests/scripts/setup-test-account.sh
+          chmod +x ./packages/E2E/Terraform/e2e-tests/scripts/*.sh
+          ./packages/E2E/Terraform/e2e-tests/scripts/setup-test-account.sh
 
       - name: Run Terraform E2E tests
         env:
           TF_CLI: terraform
-        run: ./E2E/Terraform/e2e-tests/scripts/run-tests.sh
+        run: ./packages/E2E/Terraform/e2e-tests/scripts/run-tests.sh
 
       # The identical fixtures, re-run against OpenTofu. This is the gate behind
       # OneUptime's OpenTofu support claim: the provider is published to the
@@ -273,7 +273,7 @@ jobs:
       - name: Run OpenTofu E2E tests
         env:
           TF_CLI: tofu
-        run: ./E2E/Terraform/e2e-tests/scripts/run-tests.sh
+        run: ./packages/E2E/Terraform/e2e-tests/scripts/run-tests.sh
 
       # Coverage ratchet: the suite must exercise at least as many provider
       # resource types as the checked-in baseline. run-tests.sh already
@@ -283,8 +283,8 @@ jobs:
       # files against the generated docs), so re-running it here is free.
       - name: Terraform resource coverage gate
         run: |
-          ./E2E/Terraform/e2e-tests/scripts/coverage-report.sh \
-            --min-count "$(cat E2E/Terraform/e2e-tests/scripts/coverage-baseline.txt)"
+          ./packages/E2E/Terraform/e2e-tests/scripts/coverage-report.sh \
+            --min-count "$(cat packages/E2E/Terraform/e2e-tests/scripts/coverage-baseline.txt)"
 
       # Without this, a failure here says only "App still not returning HTTP
       # 200" after five minutes of 502s, with no indication of why. Boot

@@ -1,6 +1,6 @@
 # Topology UI regression tests
 
-Run from `E2E`:
+Run from `packages/E2E`:
 
 ```sh
 npm run test-topology-ui

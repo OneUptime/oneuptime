@@ -30,7 +30,7 @@ import path from "path";
  * so it runs in CI with no Docker.
  */
 
-const REPO_ROOT: string = path.resolve(__dirname, "..", "..", "..");
+const REPO_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 const COMPOSE_PATH: string = path.join(REPO_ROOT, "docker-compose.base.yml");
 const HELM_VALUES_PATH: string = path.join(
   REPO_ROOT,
@@ -51,7 +51,9 @@ interface YamlModule {
  */
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 const yaml: YamlModule = require(
-  require.resolve("js-yaml", { paths: [path.join(REPO_ROOT, "Common")] }),
+  require.resolve("js-yaml", {
+    paths: [path.join(REPO_ROOT, "packages", "Common")],
+  }),
 ) as YamlModule;
 /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 

@@ -28,7 +28,7 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 # Bake the pre-tuned collector config into the image. The config uses
 # env-var substitution (${ONEUPTIME_URL}, ${ONEUPTIME_SERVICE_TOKEN},
 # ${ONEUPTIME_PROJECT_ID}) which the collector resolves at startup.
-COPY ./PodmanAgent/otel-collector-config.yaml /etc/otelcol-contrib/config.yaml
+COPY ./agents/PodmanAgent/otel-collector-config.yaml /etc/otelcol-contrib/config.yaml
 
 # Default friendly host name — users can override at runtime with
 # `-e PODMAN_HOST_NAME=my-host`. The collector resolves this via the

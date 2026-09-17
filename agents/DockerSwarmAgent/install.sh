@@ -9,7 +9,7 @@
 set -eu
 
 INSTALL_DIR="/opt/oneuptime-docker-swarm-agent"
-RAW_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/DockerSwarmAgent"
+RAW_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent"
 
 echo "OneUptime Docker Swarm Agent installer"
 echo "--------------------------------------"

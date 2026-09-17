@@ -4,7 +4,7 @@
  * onboarding empty state, the Network tab is reachable even with no
  * telemetry, and tab selection is reflected in the URL (shareable views).
  *
- * Run locally: cd E2E && HOST=localhost npx playwright test \
+ * Run locally: cd packages/E2E && HOST=localhost npx playwright test \
  *   Tests/Dashboard/Topology.spec.ts --project=chromium
  */
 import { BASE_URL } from "../../Config";

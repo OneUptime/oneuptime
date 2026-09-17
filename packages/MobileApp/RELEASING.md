@@ -2,7 +2,7 @@
 
 This is the release runbook for maintainers and AI agents updating the existing
 **OneUptime On-Call** apps on Google Play and the Apple App Store. Follow the
-repository's [AGENTS.md](../AGENTS.md) as well. Use Chrome for the store consoles.
+repository's [AGENTS.md](../../AGENTS.md) as well. Use Chrome for the store consoles.
 
 The workflow below was used to submit version **1.1.0** on **8 September 2026**.
 The user reported it live on 9 September. Recheck the actual store state for every
@@ -62,12 +62,12 @@ changing anything. Other tasks may have uncommitted work in the same repository;
 preserve it and choose the release revision deliberately. Include any authorized,
 uncommitted mobile changes explicitly and record them.
 
-Run EAS commands from **MobileApp**, where its `package.json` and `eas.json` live.
+Run EAS commands from **packages/MobileApp**, where its `package.json` and `eas.json` live.
 Running them at the repository root can initialize the wrong Expo project. This
 matches [Expo's monorepo instructions](https://docs.expo.dev/build-reference/build-with-monorepos/).
 
 ```bash
-cd MobileApp
+cd packages/MobileApp
 eas --version
 eas whoami
 eas project:info
@@ -139,8 +139,8 @@ repository root after selecting the desired commit:
 release_repo=$(git rev-parse --show-toplevel)
 release_commit=$(git rev-parse HEAD) # Replace HEAD if shipping another revision.
 release_stage=$(mktemp -d "${TMPDIR:-/tmp}/oneuptime-mobile-release.XXXXXX")
-git archive --format=tar "$release_commit" MobileApp | tar -xf - -C "$release_stage"
-cd "$release_stage/MobileApp"
+git archive --format=tar "$release_commit" packages/MobileApp | tar -xf - -C "$release_stage"
+cd "$release_stage/packages/MobileApp"
 release_app_root=$(pwd -P)
 ```
 
@@ -172,7 +172,7 @@ For this temporary snapshot, a sibling link can expose the existing matching
 outputs without putting Common inside the EAS upload:
 
 ```bash
-ln -s "$release_repo/Common" "$release_stage/Common"
+ln -s "$release_repo/packages/Common" "$release_stage/packages/Common"
 ```
 
 Reassess this layout if mobile adds runtime Common imports, workspace packages,
@@ -232,8 +232,8 @@ The broad `npm run fix` once spent over an hour and stalled parsing an unrelated
 generated `output/playwright/.../seed.cjs`. Git ignore rules do not control ESLint
 ignore rules. If this recurs, diagnose it, stop only this task's stalled process,
 and record the broad check as incomplete. Run scoped checks separately from the
-repository root (`npx eslint MobileApp --cache` and
-`npx prettier --check MobileApp/app.json`); do not label an interrupted broad run
+repository root (`npx eslint packages/MobileApp --cache` and
+`npx prettier --check packages/MobileApp/app.json`); do not label an interrupted broad run
 as passed. Preserve other tasks' edits. Likewise, if Jest retains open handles
 after passing assertions, distinguish that process issue from the assertion result.
 
@@ -434,7 +434,7 @@ Use `eas build --platform ios` or `--platform android` with the same production
 profile for a platform-specific rebuild. Do not rebuild or resubmit an already
 accepted counterpart without a reason.
 
-The general [.github/workflows/release.yml](../.github/workflows/release.yml)
+The general [.github/workflows/release.yml](../../.github/workflows/release.yml)
 contains mobile publishing jobs, but it is a broad OneUptime release pipeline with
 other jobs and version guards. Do not dispatch it as a shortcut for a mobile-only
 update without reviewing its full effects. Its iOS upload step also does not

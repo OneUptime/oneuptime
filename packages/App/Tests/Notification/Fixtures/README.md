@@ -3,7 +3,7 @@
 Generate the actual Handlebars email templates with synthetic data:
 
 ```sh
-node App/Tests/Notification/Fixtures/EmailPreview.js
+node packages/App/Tests/Notification/Fixtures/EmailPreview.js
 python3 -m http.server 8768 --bind 127.0.0.1 --directory output/playwright/email-design
 ```
 
@@ -28,7 +28,7 @@ severity indicators retain their semantic or customer-defined colors.
 
 ## Regression checks
 
-From `App`, run the focused template suites:
+From `packages/App`, run the focused template suites:
 
 ```sh
 node node_modules/.bin/jest --runInBand --runTestsByPath \

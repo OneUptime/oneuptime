@@ -26,7 +26,7 @@ const serviceTokenEnvLineRegex: RegExp =
  * CreateMonitor.spec.ts) so CI behavior stays identical. To run locally
  * against a full stack, change `test.describe.skip` to `test.describe` and:
  *
- *   cd E2E && HOST=localhost npx playwright test \
+ *   cd packages/E2E && HOST=localhost npx playwright test \
  *     Tests/Dashboard/DockerSwarmProduct.spec.ts --project=chromium
  *
  * No live Docker Swarm agent is required: the "Connected" test posts a

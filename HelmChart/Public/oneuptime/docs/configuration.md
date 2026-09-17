@@ -212,7 +212,7 @@ content process (`Sandbox: chroot: EPERM`) and the Chromium zygote
 (`Check failed: sys_chroot`), so every synthetic check fails. No capability is
 needed for either call, and adding `SYS_CHROOT` does not help when the
 profile omits `chroot`.
-Do not use `Probe/seccomp_profile.json` verbatim here: it contains
+Do not use `packages/Probe/seccomp_profile.json` verbatim here: it contains
 Moby-specific conditional fields for Docker Compose rather than Kubernetes CRI.
 
 ```yaml

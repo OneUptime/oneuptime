@@ -212,7 +212,7 @@ Ebenfalls relevant:
 - **`TRUSTED_PROXY_HOPS`** bestimmt, welche Adresse die Begrenzung pro Adresse zählt. Der Standard `1` ist für die Standard-Layouts von Docker Compose und Helm richtig; zählen Sie für jeden eigenen Proxy — CDN, WAF oder Load Balancer —, der an `X-Forwarded-For` anhängt, eins hinzu, sonst sieht jeder Kalender-Client wie dieselbe Adresse aus und alle teilen sich ein Budget. Siehe [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) in der Chart-Dokumentation.
 - **Redis** trägt die Caches und die Ratenbegrenzung. Beide degradieren sanft: Ohne Redis werden Feeds weiterhin gerendert, nur langsamer, und die Begrenzung lässt Anfragen durch.
 - Im geteilten Modus des Helm-Charts (`worker.enabled: true`) werden Feeds auf der API-Ebene gerendert; dimensionieren Sie diese Ebene für einen Schwung Kalender-Clients, die zur vollen Stunde abrufen.
-- Die oben gezeigte Ausnahme vom Nginx-Zugriffsprotokoll ist Teil des mitgelieferten `Nginx/default.conf.template`; behalten Sie sie bei, wenn Sie die Vorlage anpassen.
+- Die oben gezeigte Ausnahme vom Nginx-Zugriffsprotokoll ist Teil des mitgelieferten `packages/Nginx/default.conf.template`; behalten Sie sie bei, wenn Sie die Vorlage anpassen.
 
 ## Fehlerbehebung
 

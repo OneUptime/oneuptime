@@ -226,7 +226,7 @@ docker run ... <image>
 2. Передать `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` и `DOCKER_HOST_NAME` в качестве переменных среды
 3. Убедиться, что отслеживаемые контейнеры используют драйвер журналирования `json-file` (см. выше)
 
-Агент публикуется как `oneuptime/docker-agent:release` на Docker Hub. Полные примеры команд `docker run` и `docker compose` см. в [руководстве по установке агента Docker](https://github.com/OneUptime/oneuptime/tree/master/DockerAgent).
+Агент публикуется как `oneuptime/docker-agent:release` на Docker Hub. Полные примеры команд `docker run` и `docker compose` см. в [руководстве по установке агента Docker](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent).
 
 ## Устранение неполадок
 

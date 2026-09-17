@@ -23,7 +23,7 @@ import { createItem, getItem, JSONish, toId } from "./Helpers/MonitorAlerting";
  *
  * To run locally against a full stack:
  *
- *   cd E2E && HOST=localhost npx playwright test \
+ *   cd packages/E2E && HOST=localhost npx playwright test \
  *     Tests/Dashboard/CreateMonitors.spec.ts --project=chromium
  */
 test.describe.configure({ mode: "serial" });

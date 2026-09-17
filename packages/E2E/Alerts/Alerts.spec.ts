@@ -362,7 +362,7 @@ test("captures representative desktop and mobile component previews", async ({
 }: { page: Page }, testInfo: TestInfo) => {
   const directory: string = path.resolve(
     __dirname,
-    "../../output/playwright/alerts",
+    "../../../output/playwright/alerts",
   );
   await fs.mkdir(directory, { recursive: true });
   for (const width of [1440, 390]) {
@@ -458,7 +458,7 @@ test("captures desktop and mobile galleries with the production dark theme", asy
 }: { page: Page }, testInfo: TestInfo) => {
   const directory: string = path.resolve(
     __dirname,
-    "../../output/playwright/alerts",
+    "../../../output/playwright/alerts",
   );
   await fs.mkdir(directory, { recursive: true });
   for (const width of [1440, 390]) {

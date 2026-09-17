@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
 
-const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
+const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
 const COMPOSE_PATH: string = path.join(REPO_ROOT, "docker-compose.base.yml");
 const EXAMPLE_ENV_PATH: string = path.join(REPO_ROOT, "config.example.env");
 const HELM_VALUES_PATH: string = path.join(

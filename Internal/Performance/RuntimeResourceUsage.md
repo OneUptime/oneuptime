@@ -24,7 +24,7 @@ fan-out. Measure detection delay as well as memory when evaluating this tradeoff
 
 ### Configuration parsing and category filters
 
-From `App`, run:
+From `packages/App`, run:
 
 ```sh
 node --require ts-node/register/transpile-only scripts/benchmark-pipeline-config.ts
@@ -52,8 +52,8 @@ From the repository root, run:
 
 ```sh
 git show f74d205650:Probe/Utils/Monitors/Monitor.ts > /tmp/oneuptime-monitor-before.ts
-node --expose-gc Probe/scripts/benchmark-response-lifetime.js /tmp/oneuptime-monitor-before.ts
-node --expose-gc Probe/scripts/benchmark-response-lifetime.js
+node --expose-gc packages/Probe/scripts/benchmark-response-lifetime.js /tmp/oneuptime-monitor-before.ts
+node --expose-gc packages/Probe/scripts/benchmark-response-lifetime.js
 ```
 
 This harness loads the actual monitor implementation with I/O and telemetry

@@ -1,6 +1,6 @@
 # Shared alert browser regressions
 
-From `E2E`, run `npm run test-alerts-ui`. Install the repository dependencies and
+From `packages/E2E`, run `npm run test-alerts-ui`. Install the repository dependencies and
 Playwright Chromium/Firefox browsers first. Use `-- --project=chromium` to run a
 single browser. The fixture builds on startup and listens on `127.0.0.1:4211`;
 Docker, authentication and a database are not required.

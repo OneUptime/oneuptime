@@ -212,7 +212,7 @@ OneUptime 本身提供的是最新数据：对层、轮换、覆盖或策略关�
 - **`TRUSTED_PROXY_HOPS`** 决定按地址限速时计数的是哪个地址。默认值 `1` 适用于标准的 Docker Compose 和 Helm 布局；对于你自己添加的、会在 `X-Forwarded-For` 中追加内容的每个代理——CDN、WAF 或负载均衡器——都加一，否则每个日历客户端看起来都是同一个地址并共享同一份配额。参见 chart 文档中的 [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies)。
 - **Redis** 支撑缓存和限速器。两者都会优雅降级：没有 Redis 时，订阅源仍然会渲染，只是更慢，限速器则放行请求。
 - 在 Helm chart 的拆分模式（`worker.enabled: true`）下，订阅源在 API 层渲染，所以请为整点时大量日历客户端同时轮询的突发流量调整该层的规模。
-- 上面展示的 Nginx 访问日志豁免是随附的 `Nginx/default.conf.template` 的一部分；如果你自定义模板，请保留它。
+- 上面展示的 Nginx 访问日志豁免是随附的 `packages/Nginx/default.conf.template` 的一部分；如果你自定义模板，请保留它。
 
 ## 故障排除
 

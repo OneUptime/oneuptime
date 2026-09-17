@@ -24,7 +24,7 @@ import yaml from "js-yaml";
  *    since it only runs when a release is cut).
  */
 
-const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
+const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
 const WORKFLOWS_DIRECTORY: string = path.join(
   REPO_ROOT,
   ".github",
@@ -33,6 +33,7 @@ const WORKFLOWS_DIRECTORY: string = path.join(
 const OVERLAY_FILE_NAME: string = "docker-compose.e2e-clickhouse.yml";
 const FIXTURE_PATH: string = path.join(
   REPO_ROOT,
+  "packages",
   "E2E",
   "Tests",
   "Dashboard",

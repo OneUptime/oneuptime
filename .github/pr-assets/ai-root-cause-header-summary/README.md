@@ -33,6 +33,6 @@ fixture and scenario with the previous `AIInvestigationHeaderStatus.tsx` and
   View live progress.
 
 The E2E spec regenerates `incident-header-ai-summary` (`?tldr=long` at 1440px) with
-`cd E2E && npm run test-event-overview-ui`; the other images were captured from the same
+`cd packages/E2E && npm run test-event-overview-ui`; the other images were captured from the same
 fixture by hand (`node EventOverview/Fixture/server.js --watch`, see
 `E2E/EventOverview/README.md`).

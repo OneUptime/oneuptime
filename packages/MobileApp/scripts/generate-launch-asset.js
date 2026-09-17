@@ -1,7 +1,7 @@
 /*
  * Rebuild the transparent native launch wordmark from the existing brand SVG.
  * Uses the browser already installed for MobileApp's UI tests; no image package
- * or new font is needed. Run: node MobileApp/scripts/generate-launch-asset.js
+ * or new font is needed. Run: node packages/MobileApp/scripts/generate-launch-asset.js
  */
 const { readFile } = require("node:fs/promises");
 const path = require("node:path");
@@ -40,7 +40,7 @@ async function generateLaunchAsset() {
       animations: "disabled",
     });
     process.stdout.write(
-      "Generated MobileApp/assets/splash-light.png from the existing brand SVG.\n",
+      "Generated packages/MobileApp/assets/splash-light.png from the existing brand SVG.\n",
     );
   } finally {
     await browser.close();

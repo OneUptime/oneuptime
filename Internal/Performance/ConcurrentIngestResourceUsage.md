@@ -109,19 +109,19 @@ Use the supported Node runtime. From the repository root:
 
 ```sh
 git show 0b23baed11:App/FeatureSet/Telemetry/Services/LogPipelineService.ts > /tmp/oneuptime-log-pipeline-before.ts
-node --expose-gc App/scripts/benchmark-pipeline-loads.js /tmp/oneuptime-log-pipeline-before.ts
-node --expose-gc App/scripts/benchmark-pipeline-loads.js
+node --expose-gc packages/App/scripts/benchmark-pipeline-loads.js /tmp/oneuptime-log-pipeline-before.ts
+node --expose-gc packages/App/scripts/benchmark-pipeline-loads.js
 
 git show 0b23baed11:Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts > /tmp/oneuptime-fanin-before.ts
-node --expose-gc Common/Scripts/benchmark-fanin-capacity.js /tmp/oneuptime-fanin-before.ts
-node --expose-gc Common/Scripts/benchmark-fanin-capacity.js
+node --expose-gc packages/Common/Scripts/benchmark-fanin-capacity.js /tmp/oneuptime-fanin-before.ts
+node --expose-gc packages/Common/Scripts/benchmark-fanin-capacity.js
 
 git show 0b23baed11:Probe/Utils/OnlineCheck.ts > /tmp/oneuptime-online-check-before.ts
-node --expose-gc Probe/scripts/benchmark-online-check.js /tmp/oneuptime-online-check-before.ts
-node --expose-gc Probe/scripts/benchmark-online-check.js
+node --expose-gc packages/Probe/scripts/benchmark-online-check.js /tmp/oneuptime-online-check-before.ts
+node --expose-gc packages/Probe/scripts/benchmark-online-check.js
 ```
 
-From `App`:
+From `packages/App`:
 
 ```sh
 node --require ts-node/register/transpile-only scripts/benchmark-metric-catalog.ts

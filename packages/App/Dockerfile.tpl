@@ -58,43 +58,43 @@ SHELL ["/bin/bash", "-c"]
 RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
-COPY ./Common/package*.json /usr/src/Common/
+COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
-COPY ./Common /usr/src/Common
+COPY ./packages/Common /usr/src/Common
 
 ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./App/package*.json /usr/src/app/
+COPY ./packages/App/package*.json /usr/src/app/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 WORKDIR /usr/src/app/FeatureSet/Accounts
-COPY ./App/FeatureSet/Accounts/package*.json /usr/src/app/FeatureSet/Accounts/
+COPY ./packages/App/FeatureSet/Accounts/package*.json /usr/src/app/FeatureSet/Accounts/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 WORKDIR /usr/src/app/FeatureSet/Dashboard
-COPY ./App/FeatureSet/Dashboard/package*.json /usr/src/app/FeatureSet/Dashboard/
+COPY ./packages/App/FeatureSet/Dashboard/package*.json /usr/src/app/FeatureSet/Dashboard/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 WORKDIR /usr/src/app/FeatureSet/AdminDashboard
-COPY ./App/FeatureSet/AdminDashboard/package*.json /usr/src/app/FeatureSet/AdminDashboard/
+COPY ./packages/App/FeatureSet/AdminDashboard/package*.json /usr/src/app/FeatureSet/AdminDashboard/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 WORKDIR /usr/src/app/FeatureSet/StatusPage
-COPY ./App/FeatureSet/StatusPage/package*.json /usr/src/app/FeatureSet/StatusPage/
+COPY ./packages/App/FeatureSet/StatusPage/package*.json /usr/src/app/FeatureSet/StatusPage/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 WORKDIR /usr/src/app/FeatureSet/PublicDashboard
-COPY ./App/FeatureSet/PublicDashboard/package*.json /usr/src/app/FeatureSet/PublicDashboard/
+COPY ./packages/App/FeatureSet/PublicDashboard/package*.json /usr/src/app/FeatureSet/PublicDashboard/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 # The session-replay browser recorder. Its own tiny dependency set (rrweb,
 # pinned exactly) rather than Common's, because this bundle is served to
 # third-party origins and must not carry any server dependency.
 WORKDIR /usr/src/app/FeatureSet/BrowserRecorder
-COPY ./App/FeatureSet/BrowserRecorder/package*.json /usr/src/app/FeatureSet/BrowserRecorder/
+COPY ./packages/App/FeatureSet/BrowserRecorder/package*.json /usr/src/app/FeatureSet/BrowserRecorder/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
 # Remove the build toolchain (python3/make/g++) now that all native npm modules
@@ -124,14 +124,14 @@ LABEL org.opencontainers.image.version="${APP_VERSION}"
 # Copy app source. --chown sets node (UID 1000) ownership at copy time so we
 # avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
 # world-readable, which the node user can still read.
-COPY --chown=1000:1000 ./App /usr/src/app
+COPY --chown=1000:1000 ./packages/App /usr/src/app
 # Copy frontend sources
-COPY --chown=1000:1000 ./App/FeatureSet/Accounts /usr/src/app/FeatureSet/Accounts
-COPY --chown=1000:1000 ./App/FeatureSet/Dashboard /usr/src/app/FeatureSet/Dashboard
-COPY --chown=1000:1000 ./App/FeatureSet/AdminDashboard /usr/src/app/FeatureSet/AdminDashboard
-COPY --chown=1000:1000 ./App/FeatureSet/StatusPage /usr/src/app/FeatureSet/StatusPage
-COPY --chown=1000:1000 ./App/FeatureSet/PublicDashboard /usr/src/app/FeatureSet/PublicDashboard
-COPY --chown=1000:1000 ./App/FeatureSet/BrowserRecorder /usr/src/app/FeatureSet/BrowserRecorder
+COPY --chown=1000:1000 ./packages/App/FeatureSet/Accounts /usr/src/app/FeatureSet/Accounts
+COPY --chown=1000:1000 ./packages/App/FeatureSet/Dashboard /usr/src/app/FeatureSet/Dashboard
+COPY --chown=1000:1000 ./packages/App/FeatureSet/AdminDashboard /usr/src/app/FeatureSet/AdminDashboard
+COPY --chown=1000:1000 ./packages/App/FeatureSet/StatusPage /usr/src/app/FeatureSet/StatusPage
+COPY --chown=1000:1000 ./packages/App/FeatureSet/PublicDashboard /usr/src/app/FeatureSet/PublicDashboard
+COPY --chown=1000:1000 ./packages/App/FeatureSet/BrowserRecorder /usr/src/app/FeatureSet/BrowserRecorder
 # Bundle frontend source
 RUN npm run build-frontends:prod
 # Bundle app source

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Render synthetic notifications through the production builder and template.
-// From the repository root: node App/Tests/Notification/Fixtures/NotificationRollupPreview.js
+// From the repository root: node packages/App/Tests/Notification/Fixtures/NotificationRollupPreview.js
 const fs = require("node:fs");
 const path = require("node:path");
 const Handlebars = require("handlebars");
@@ -12,8 +12,11 @@ const {
   buildRollupEmail,
 } = require("../../../../Common/Server/Utils/EmailRollup/EmailRollupRenderer");
 
-const root = path.resolve(__dirname, "../../../..");
-const templates = path.join(root, "App/FeatureSet/Notification/Templates");
+const root = path.resolve(__dirname, "../../../../..");
+const templates = path.join(
+  root,
+  "packages/App/FeatureSet/Notification/Templates",
+);
 const output = path.join(root, "output/playwright/notification-rollup");
 const dashboard = "https://oneuptime.example.com/dashboard/harbor";
 const items = [];

@@ -36,7 +36,7 @@ interface PricingLayout {
  * project is reused without a payment method; the suite never enables paid
  * usage or creates an active monitor.
  *
- * cd E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https BILLING_ENABLED=true \
+ * cd packages/E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https BILLING_ENABLED=true \
  *   npx playwright test Tests/Dashboard/MonitorPayAsYouGo.spec.ts \
  *   --project=chromium --retries=0
  */

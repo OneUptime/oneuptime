@@ -184,11 +184,11 @@ echo "Installing to: $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 
 # Download configuration files
-REPO_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/VMwareAgent"
+REPO_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent"
 
 echo "Downloading configuration files..."
-curl -sSL "$REPO_BASE/docker-compose.yml" -o "$INSTALL_DIR/docker-compose.yml"
-curl -sSL "$REPO_BASE/otel-collector-config.yaml" -o "$INSTALL_DIR/otel-collector-config.yaml"
+curl -fsSL "$REPO_BASE/docker-compose.yml" -o "$INSTALL_DIR/docker-compose.yml"
+curl -fsSL "$REPO_BASE/otel-collector-config.yaml" -o "$INSTALL_DIR/otel-collector-config.yaml"
 
 # Create .env file. It holds the vSphere password, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
@@ -226,4 +226,4 @@ echo "To check status:  cd $INSTALL_DIR && docker compose ps"
 echo "To view logs:     cd $INSTALL_DIR && docker compose logs -f"
 echo "To stop:          cd $INSTALL_DIR && docker compose down"
 echo "To restart:       cd $INSTALL_DIR && docker compose restart"
-echo "If nothing shows up: curl -sSL $REPO_BASE/troubleshoot.sh | bash"
+echo "If nothing shows up: curl -fsSL $REPO_BASE/troubleshoot.sh | bash"

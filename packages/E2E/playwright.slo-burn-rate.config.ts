@@ -16,7 +16,7 @@ export default defineConfig({
   expect: { timeout: 15000 },
   retries: 0,
   reporter: [["list"]],
-  outputDir: "../output/playwright/slo-burn-rate/test-results",
+  outputDir: "../../output/playwright/slo-burn-rate/test-results",
   /*
    * The viewport is set INSIDE the project, after the device spread: a
    * project's `use` wins over the top-level one, so a viewport declared only

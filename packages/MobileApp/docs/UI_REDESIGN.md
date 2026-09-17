@@ -5,7 +5,7 @@ OneUptime indigo reserved for actions and status always spelled out in words.
 It follows the device's light or dark appearance, and people can override it
 under **Settings → Appearance**. The rules, tokens and shared components are in
 [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), and the
-[revamp gallery](../../.github/pr-assets/mobile-design-revamp/README.md) shows
+[revamp gallery](../../../.github/pr-assets/mobile-design-revamp/README.md) shows
 the light and dark screens.
 
 The five destinations are **Home, Monitors, Inbox, On-Call and Settings**. Inbox
@@ -29,7 +29,7 @@ config for both platforms so the interop runtime cannot return unnoticed.
 The [September 2026 polish and audit](UI_AUDIT_2026_09.md) adds prominent Home
 response tiles, shared list filters with matching totals and reset actions,
 and recovery for failed reads throughout authentication, response and on-call
-flows. Its [screenshot gallery](../../.github/pr-assets/mobile-experience-polish/README.md)
+flows. Its [screenshot gallery](../../../.github/pr-assets/mobile-experience-polish/README.md)
 contains the current review captures and before/after comparisons.
 
 Sign-in leads with email and password; passkeys and team SSO are secondary
@@ -77,7 +77,7 @@ server totals, so they can exceed the matching rows in these recent lists.
 
 ## Focused checks
 
-Run the relevant Jest suites from `MobileApp`, for example:
+Run the relevant Jest suites from `packages/MobileApp`, for example:
 
 ```bash
 npm run test-file -- --runTestsByPath \

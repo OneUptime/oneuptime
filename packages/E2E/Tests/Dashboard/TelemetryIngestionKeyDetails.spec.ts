@@ -32,7 +32,7 @@ import URL from "Common/Types/API/URL";
  * assertion is about what was PERSISTED rather than about what the page
  * happens to be rendering.
  *
- * cd E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https \
+ * cd packages/E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https \
  *   npx playwright test Tests/Dashboard/TelemetryIngestionKeyDetails.spec.ts \
  *   --project=chromium --retries=0
  */

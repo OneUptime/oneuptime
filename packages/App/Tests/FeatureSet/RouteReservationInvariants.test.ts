@@ -193,6 +193,7 @@ describe("the KEDA autoscaling contract", () => {
    */
   const KEDA: string = readSource(
     REPO_ROOT,
+    "..",
     "HelmChart",
     "Public",
     "oneuptime",
@@ -201,6 +202,7 @@ describe("the KEDA autoscaling contract", () => {
   );
   const HELPERS: string = readSource(
     REPO_ROOT,
+    "..",
     "HelmChart",
     "Public",
     "oneuptime",
@@ -301,6 +303,7 @@ describe("the KEDA autoscaling contract", () => {
      */
     const deployment: string = readSource(
       REPO_ROOT,
+      "..",
       "HelmChart",
       "Public",
       "oneuptime",

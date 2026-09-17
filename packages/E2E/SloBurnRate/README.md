@@ -17,7 +17,7 @@ pair per declared output) and checks that the step rail follows the output toggl
 ## Run it
 
 ```
-cd E2E
+cd packages/E2E
 npm install
 npm run test-slo-burn-rate-ui
 ```
@@ -28,7 +28,7 @@ because every record in them is fabricated by `Fixture/Fixture.js`.
 ## Poke at it by hand
 
 ```
-cd E2E
+cd packages/E2E
 node SloBurnRate/Fixture/server.js
 ```
 

@@ -4,21 +4,23 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
-const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..");
+const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 const COMMON_MODULES: string = path.join(
   REPOSITORY_ROOT,
+  "packages",
   "Common",
   "node_modules",
 );
 const ESBUILD_CONFIG: string = path.join(
   REPOSITORY_ROOT,
+  "packages",
   "Common",
   "UI",
   "esbuild-config.js",
 );
 const APP_LINK: string = path.join(
   REPOSITORY_ROOT,
-  "App/FeatureSet/Dashboard/src/Components/AppLink/AppLink.tsx",
+  "packages/App/FeatureSet/Dashboard/src/Components/AppLink/AppLink.tsx",
 );
 const temporaryRoots: Array<string> = [];
 

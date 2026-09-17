@@ -9,7 +9,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: "list",
-  outputDir: "../output/playwright/label-rule-import-export/test-results",
+  outputDir: "../../output/playwright/label-rule-import-export/test-results",
   use: {
     ...devices["Desktop Chrome"],
     viewport: { width: 1600, height: 1100 },

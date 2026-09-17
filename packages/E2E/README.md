@@ -10,7 +10,7 @@ End-to-end tests for OneUptime using [Playwright](https://playwright.dev/).
 ## Installation
 
 ```bash
-cd E2E
+cd packages/E2E
 npm install
 ```
 
@@ -189,7 +189,7 @@ npm run clear-modules
 Run the shared pencil icon and button checks without starting the app or database:
 
 ```bash
-cd E2E
+cd packages/E2E
 npm run test-pencil-button-ui
 ```
 

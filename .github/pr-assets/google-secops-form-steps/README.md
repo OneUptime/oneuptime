@@ -8,6 +8,6 @@ These images document the Google SecOps connection form before and after the for
 The fixture renders the production form components with synthetic values, blocks outbound traffic, and does not create a connection. Regenerate the after images with:
 
 ```sh
-cd E2E
+cd packages/E2E
 npm run test-google-secops-form-steps-ui
 ```

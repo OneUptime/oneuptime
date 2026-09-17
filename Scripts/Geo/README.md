@@ -53,7 +53,7 @@ node ./Scripts/Geo/GenerateMapGeometry.js /tmp/countries-110m.json /tmp/countrie
 Then re-run the asset tests:
 
 ```sh
-cd App && npx jest Tests/Dashboard/GeometryAssets Tests/Dashboard/GeoProjection
+cd packages/App && npx jest Tests/Dashboard/GeometryAssets Tests/Dashboard/GeoProjection
 ```
 
 ## How it works

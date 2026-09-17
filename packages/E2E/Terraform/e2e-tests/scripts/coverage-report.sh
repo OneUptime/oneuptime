@@ -22,7 +22,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEST_DIR="$(dirname "$SCRIPT_DIR")"
 
-PROVIDER_DIR="$TEST_DIR/../../../Terraform/terraform-provider-oneuptime"
+PROVIDER_DIR="$TEST_DIR/../../../../Terraform/terraform-provider-oneuptime"
 MIN_COUNT=""
 
 while [ $# -gt 0 ]; do

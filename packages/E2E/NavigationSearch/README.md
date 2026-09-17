@@ -1,6 +1,6 @@
 # Navigation search browser regressions
 
-From `E2E`, run `npm run test-navigation-search-ui`. Use
+From `packages/E2E`, run `npm run test-navigation-search-ui`. Use
 `-- --project=chromium` for desktop Chromium only. Dependencies and the
 Playwright Chromium browser must be installed first.
 

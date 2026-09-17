@@ -24,7 +24,32 @@ import path from "path";
  * ts-node, you must not re-type-check at boot.
  */
 
-const REPO_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
+const REPO_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..", "..");
+
+/*
+ * Service directories sit one level below the repository root, below
+ * packages/, or below agents/. Every discovery pass below scans all three.
+ */
+const SERVICE_PARENT_DIRECTORIES: Array<string> = [".", "packages", "agents"];
+
+// Repo-relative paths of every candidate service directory.
+const listServiceDirectories: () => Array<string> = (): Array<string> => {
+  const directories: Array<string> = [];
+
+  for (const parent of SERVICE_PARENT_DIRECTORIES) {
+    for (const entry of fs.readdirSync(path.join(REPO_ROOT, parent), {
+      withFileTypes: true,
+    })) {
+      if (!entry.isDirectory() || entry.name === "node_modules") {
+        continue;
+      }
+
+      directories.push(path.join(parent, entry.name));
+    }
+  }
+
+  return directories;
+};
 
 interface ServiceImage {
   service: string;
@@ -59,14 +84,10 @@ const listServiceImages: () => Array<ServiceImage> =
   (): Array<ServiceImage> => {
     const images: Array<ServiceImage> = [];
 
-    for (const entry of fs.readdirSync(REPO_ROOT, { withFileTypes: true })) {
-      if (!entry.isDirectory() || entry.name === "node_modules") {
-        continue;
-      }
-
+    for (const directory of listServiceDirectories()) {
       const dockerfilePath: string = path.join(
         REPO_ROOT,
-        entry.name,
+        directory,
         "Dockerfile.tpl",
       );
       if (!fs.existsSync(dockerfilePath)) {
@@ -86,7 +107,7 @@ const listServiceImages: () => Array<ServiceImage> =
       let startScript: string | null = null;
       const packageJsonPath: string = path.join(
         REPO_ROOT,
-        entry.name,
+        directory,
         "package.json",
       );
       if (fs.existsSync(packageJsonPath)) {
@@ -96,7 +117,11 @@ const listServiceImages: () => Array<ServiceImage> =
         startScript = parsed.scripts?.["start"] ?? null;
       }
 
-      images.push({ service: entry.name, productionStanza, startScript });
+      images.push({
+        service: path.basename(directory),
+        productionStanza,
+        startScript,
+      });
     }
 
     return images;
@@ -275,6 +300,7 @@ describe("Container boot configuration", () => {
       (service: string) => {
         const nodemonPath: string = path.join(
           REPO_ROOT,
+          "packages",
           service,
           "nodemon.json",
         );
@@ -302,13 +328,9 @@ describe("Container boot configuration", () => {
      * green. Since TS_NODE_TRANSPILE_ONLY hands ALL type verification to that
      * build step, a broken `include` silently means no type checking anywhere.
      */
-    const tsConfigPaths: Array<string> = fs
-      .readdirSync(REPO_ROOT, { withFileTypes: true })
-      .filter((entry: fs.Dirent) => {
-        return entry.isDirectory() && entry.name !== "node_modules";
-      })
-      .map((entry: fs.Dirent) => {
-        return path.join(entry.name, "tsconfig.json");
+    const tsConfigPaths: Array<string> = listServiceDirectories()
+      .map((directory: string) => {
+        return path.join(directory, "tsconfig.json");
       })
       .filter((candidate: string) => {
         return fs.existsSync(path.join(REPO_ROOT, candidate));

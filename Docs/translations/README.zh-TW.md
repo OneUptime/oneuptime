@@ -21,7 +21,7 @@
 
 <div align="center">
   <a href="https://oneuptime.com">
-    <img alt="OneUptime 標誌" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/>
+    <img alt="OneUptime 標誌" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
   </a>
 
   <h3>代理式可觀測性 — 一個開源平台，涵蓋正常運行時間、事件、待命、狀態頁、日誌、追蹤、指標與 APM。</h3>
@@ -52,7 +52,7 @@
 <br/>
 
 <div align="center">
-  <img alt="OneUptime 在真實事件期間的指揮中心" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/readme/hero-command-center.png"/>
+  <img alt="OneUptime 在真實事件期間的指揮中心" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
 </div>
 
 ---
@@ -86,31 +86,31 @@ OneUptime 將監控、警示、事件回應與可觀測性整合到一個開源�
 
 多個區域的探針捕捉到結帳延遲飆破你設定的 5 秒門檻，並自動開立事件 — 趕在你的客戶按下重新整理之前。
 
-![偵測 — 全球監控捕捉到結帳 API 效能劣化](/Home/Static/img/readme/detect.png?raw=true)
+![偵測 — 全球監控捕捉到結帳 API 效能劣化](/packages/Home/Static/img/readme/detect.png?raw=true)
 
 ### 2 · 回應 — *呼叫對的人*
 
 Payments 策略的待命工程師會接到來電、簡訊與推播通知，並在有人確認之前自動升級至後備人員。
 
-![回應 — 事件被路由給待命人員並獲得確認](/Home/Static/img/readme/respond.png?raw=true)
+![回應 — 事件被路由給待命人員並獲得確認](/packages/Home/Static/img/readme/respond.png?raw=true)
 
 ### 3 · 溝通 — *讓客戶隨時了解*
 
 你的狀態頁會自動更新，每位訂閱者都會收到電子郵件與 SMS 通知 — 無須任何人手動撰寫更新內容。
 
-![溝通 — 公開狀態頁更新並通知訂閱者](/Home/Static/img/readme/communicate.png?raw=true)
+![溝通 — 公開狀態頁更新並通知訂閱者](/packages/Home/Static/img/readme/communicate.png?raw=true)
 
 ### 4 · 診斷 — *找出根本原因*
 
 追蹤、日誌與指標會被關聯到精確的 span：`orders` 上一個緩慢的 `SELECT … FOR UPDATE`，卡在一個缺失的索引上。
 
-![診斷 — 追蹤瀑布圖精準定位緩慢的資料庫 span](/Home/Static/img/readme/diagnose.png?raw=true)
+![診斷 — 追蹤瀑布圖精準定位緩慢的資料庫 span](/packages/Home/Static/img/readme/diagnose.png?raw=true)
 
 ### 5 · 自動修復 — *為你草擬好修復方案*
 
 AI 代理開出一個包含修復內容的拉取請求，連結到該事件，測試全數通過 — 你只需審查並合併。就像一位永不睡覺的 SRE。
 
-![自動修復 — AI 代理開出包含修復內容的拉取請求](/Home/Static/img/readme/autofix.png?raw=true)
+![自動修復 — AI 代理開出包含修復內容的拉取請求](/packages/Home/Static/img/readme/autofix.png?raw=true)
 
 </details>
 
@@ -144,7 +144,7 @@ npm start
 
 OneUptime 現在已運行於 **http://localhost** — 打開它並建立你的第一個帳號。
 
-📖 完整指南：[Docker Compose 安裝](/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [規格與需求](/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+📖 完整指南：[Docker Compose 安裝](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [規格與需求](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
 
 ### ☸️ 使用 Helm 部署 Kubernetes — 適用於生產環境
 
@@ -155,7 +155,7 @@ helm install oneuptime oneuptime/oneuptime
 
 📖 完整安裝說明與參數值請見 [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
 
-> **要升級既有的安裝？** 請參閱[升級指南](/App/FeatureSet/Docs/Content/en/installation/upgrading.md)。
+> **要升級既有的安裝？** 請參閱[升級指南](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md)。
 
 ---
 
@@ -181,7 +181,7 @@ helm install oneuptime oneuptime/oneuptime
 
 在視覺化、無需編碼的畫布上串接升級、工單與通知 — 或直接嵌入自訂程式碼。上述那場事件呼叫了待命人員、開立了 Jira 工單並發佈到 Slack，全程無須任何人動手。
 
-![工作流程 — 用於事件升級的無代碼自動化畫布](/Home/Static/img/readme/workflows.png?raw=true)
+![工作流程 — 用於事件升級的無代碼自動化畫布](/packages/Home/Static/img/readme/workflows.png?raw=true)
 
 </details>
 
@@ -189,13 +189,13 @@ helm install oneuptime oneuptime/oneuptime
 
 嵌入可複製貼上、**以 OpenTelemetry 為基礎**的代理，監看你的服務所依賴的一切 — 並內附現成的警示範本：
 
-- **伺服器與 VM** — 來自 Linux、macOS 與 Windows 的 CPU、記憶體、磁碟、網路、程序與日誌。[文件 →](/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — 一道 `helm install` 即可交付節點／pod／容器／叢集指標、事件、日誌，以及 eBPF 追蹤與服務地圖。[文件 →](/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — 單一代理自動探索每個容器並交付指標與日誌。[文件 →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — 透過 Podman 的 Docker 相容通訊端，享有同樣的單一代理自動探索。[文件 →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — 節點、VM、容器、儲存、HA 狀態、備份覆蓋率與複寫健康狀態。[文件 →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter、ESXi 主機、虛擬機器、資料存放區、叢集、資源集區與 vSAN。[文件 →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — 叢集健康狀態、容量預測，以及 OSD／pool／PG／monitor 的可視性。[文件 →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **伺服器與 VM** — 來自 Linux、macOS 與 Windows 的 CPU、記憶體、磁碟、網路、程序與日誌。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
+- **Kubernetes** — 一道 `helm install` 即可交付節點／pod／容器／叢集指標、事件、日誌，以及 eBPF 追蹤與服務地圖。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
+- **Docker** — 單一代理自動探索每個容器並交付指標與日誌。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
+- **Podman** — 透過 Podman 的 Docker 相容通訊端，享有同樣的單一代理自動探索。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
+- **Proxmox** — 節點、VM、容器、儲存、HA 狀態、備份覆蓋率與複寫健康狀態。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter、ESXi 主機、虛擬機器、資料存放區、叢集、資源集區與 vSAN。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
+- **Ceph** — 叢集健康狀態、容量預測，以及 OSD／pool／PG／monitor 的可視性。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---
 
@@ -223,7 +223,7 @@ helm install oneuptime oneuptime/oneuptime
 
 - 🐛 **[待處理的 issue](https://github.com/OneUptime/oneuptime/issues)** — 挑一個來處理，或[建立一個新的](https://github.com/OneUptime/oneuptime/issues/new)
 - ✅ **[協助撰寫測試](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** 為程式碼庫
-- 🧑‍💻 **[本機開發指南](/App/FeatureSet/Docs/Content/en/installation/local-development.md)** 協助你完成環境設定
+- 🧑‍💻 **[本機開發指南](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** 協助你完成環境設定
 - 📖 閱讀**[貢獻準則](/.github/CONTRIBUTING.md)**
 - 💬 在 **[開發者 Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** 或 **[社群 Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** 與我們交流
 
