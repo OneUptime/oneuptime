@@ -1,6 +1,10 @@
+import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPagePrivateUserSession from "../../../Models/DatabaseModels/StatusPagePrivateUserSession";
+import StatusPagePrivateUserService from "../../../Server/Services/StatusPagePrivateUserService";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import FindOneBy from "../../../Server/Types/Database/FindOneBy";
+import CreateBy from "../../../Server/Types/Database/CreateBy";
+import logger from "../../../Server/Utils/Logger";
 import {
   CreateSessionOptions,
   Service,
@@ -264,16 +268,148 @@ const installInMemoryBoundary: (
   return { casCalls, replacementWasPreHashed };
 };
 
-describe("StatusPagePrivateUserSessionService login-code exchange", () => {
+describe("StatusPagePrivateUserSessionService sign-in and login-code exchange", () => {
+  let privateUserUpdate: ReturnType<
+    typeof jest.fn<() => Promise<UpdateResult>>
+  >;
+
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.useFakeTimers();
     jest.setSystemTime(FROZEN_NOW);
+    privateUserUpdate = jest.fn(async (): Promise<UpdateResult> => {
+      return makeUpdateResult(1);
+    });
+    getJestSpyOn(StatusPagePrivateUserService, "getRepository").mockReturnValue(
+      {
+        update: privateUserUpdate,
+      } as unknown as Repository<StatusPagePrivateUser>,
+    );
   });
 
   afterEach(() => {
     jest.useRealTimers();
     jest.restoreAllMocks();
+  });
+
+  test.each(["password", "SSO"])(
+    "records private-user lastActive after successful %s sign-in",
+    async (provider: string) => {
+      const service: Service = new Service();
+      const ids: SessionIds = buildIds();
+      const create: jest.SpyInstance = getJestSpyOn(
+        service,
+        "create",
+      ).mockImplementation(
+        async (
+          request: CreateBy<StatusPagePrivateUserSession>,
+        ): Promise<StatusPagePrivateUserSession> => {
+          expect(privateUserUpdate).not.toHaveBeenCalled();
+          request.data.id = ids.sessionId;
+          return request.data;
+        },
+      );
+      const options: CreateSessionOptions = {
+        projectId: ids.projectId,
+        statusPageId: ids.statusPageId,
+        statusPagePrivateUserId: ids.privateUserId,
+      };
+
+      if (provider === "password") {
+        await service.createSession(options);
+      } else {
+        await service.createLoginCodeSession(options);
+      }
+
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(privateUserUpdate).toHaveBeenCalledTimes(1);
+      expect(privateUserUpdate).toHaveBeenCalledWith(
+        {
+          _id: ids.privateUserId.toString(),
+          projectId: ids.projectId,
+          statusPageId: ids.statusPageId,
+          deletedAt: expect.objectContaining({ _type: "isNull" }),
+        },
+        { lastActive: FROZEN_NOW },
+      );
+    },
+  );
+
+  test("does not record a sign-in when session creation fails", async () => {
+    const service: Service = new Service();
+    const ids: SessionIds = buildIds();
+    getJestSpyOn(service, "create").mockRejectedValue(
+      new Error("Session creation failed"),
+    );
+
+    await expect(
+      service.createSession({
+        projectId: ids.projectId,
+        statusPageId: ids.statusPageId,
+        statusPagePrivateUserId: ids.privateUserId,
+      }),
+    ).rejects.toThrow("Session creation failed");
+    expect(privateUserUpdate).not.toHaveBeenCalled();
+  });
+
+  test.each(["session creation", "login-code exchange"])(
+    "%s remains successful when activity bookkeeping fails",
+    async (flow: string) => {
+      const service: Service = new Service();
+      const ids: SessionIds = buildIds();
+      const loginCode: string = ObjectID.generate().toString();
+      const session: StatusPagePrivateUserSession = await buildLoginSession({
+        ids,
+        loginCode,
+      });
+      const warn: jest.SpyInstance = getJestSpyOn(
+        logger,
+        "warn",
+      ).mockImplementation((): void => {});
+      privateUserUpdate.mockRejectedValue(
+        new Error("Failed write containing private-user@example.com"),
+      );
+
+      if (flow === "session creation") {
+        getJestSpyOn(service, "create").mockResolvedValue(session);
+        await expect(
+          service.createSession({
+            projectId: ids.projectId,
+            statusPageId: ids.statusPageId,
+            statusPagePrivateUserId: ids.privateUserId,
+          }),
+        ).resolves.toEqual(expect.objectContaining({ session }));
+      } else {
+        installInMemoryBoundary(service, session);
+        await expect(
+          service.exchangeLoginCode(loginCode, {
+            statusPageId: ids.statusPageId,
+          }),
+        ).resolves.not.toBeNull();
+      }
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(
+        `Failed to record sign-in activity for status page private user ${ids.privateUserId.toString()}`,
+      );
+    },
+  );
+
+  test("refresh and session activity do not count as a new sign-in", async () => {
+    const service: Service = new Service();
+    const ids: SessionIds = buildIds();
+    const session: StatusPagePrivateUserSession = await buildLoginSession({
+      ids,
+      loginCode: ObjectID.generate().toString(),
+      purpose: "",
+    });
+    getJestSpyOn(service, "updateOneByIdAndFetch").mockResolvedValue(session);
+    getJestSpyOn(service, "updateOneById").mockResolvedValue(1);
+
+    await service.renewSessionWithNewRefreshToken({ session });
+    await service.touchSession(ids.sessionId, {});
+
+    expect(privateUserUpdate).not.toHaveBeenCalled();
   });
 
   test("creates a purpose-marked login code that expires after five minutes", async () => {
@@ -334,6 +470,7 @@ describe("StatusPagePrivateUserSessionService login-code exchange", () => {
       }),
     ).resolves.toBeNull();
     expect(findActiveSessionSpy).not.toHaveBeenCalled();
+    expect(privateUserUpdate).not.toHaveBeenCalled();
   });
 
   test("rejects an ordinary refresh session with no login-code purpose", async () => {
@@ -360,6 +497,7 @@ describe("StatusPagePrivateUserSessionService login-code exchange", () => {
       }),
     ).resolves.toBeNull();
     expect(update).not.toHaveBeenCalled();
+    expect(privateUserUpdate).not.toHaveBeenCalled();
   });
 
   test("rejects a valid login code presented for another status page", async () => {
@@ -385,7 +523,72 @@ describe("StatusPagePrivateUserSessionService login-code exchange", () => {
       }),
     ).resolves.toBeNull();
     expect(update).not.toHaveBeenCalled();
+    expect(privateUserUpdate).not.toHaveBeenCalled();
   });
+
+  test.each(["statusPagePrivateUserId", "projectId"] as const)(
+    "rejects a login code missing %s without changing any user's activity",
+    async (missingField: "statusPagePrivateUserId" | "projectId") => {
+      const service: Service = new Service();
+      const ids: SessionIds = buildIds();
+      const loginCode: string = ObjectID.generate().toString();
+      const session: StatusPagePrivateUserSession = await buildLoginSession({
+        ids,
+        loginCode,
+      });
+      Object.assign(session, { [missingField]: undefined });
+      getJestSpyOn(
+        service,
+        "findActiveSessionByRefreshToken",
+      ).mockResolvedValue(session);
+      const repository: jest.SpyInstance = getJestSpyOn(
+        service,
+        "getRepository",
+      );
+
+      await expect(
+        service.exchangeLoginCode(loginCode, {
+          statusPageId: ids.statusPageId,
+        }),
+      ).resolves.toBeNull();
+
+      expect(repository).not.toHaveBeenCalled();
+      expect(privateUserUpdate).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(["expired", "revoked"])(
+    "a %s login code cannot update private-user lastActive",
+    async (state: string) => {
+      const service: Service = new Service();
+      const ids: SessionIds = buildIds();
+      const loginCode: string = ObjectID.generate().toString();
+      const session: StatusPagePrivateUserSession = await buildLoginSession({
+        ids,
+        loginCode,
+      });
+
+      if (state === "expired") {
+        session.refreshTokenExpiresAt = new Date(FROZEN_NOW.getTime() - 1);
+      } else {
+        session.isRevoked = true;
+      }
+
+      const boundary: InMemoryBoundary = installInMemoryBoundary(
+        service,
+        session,
+      );
+
+      await expect(
+        service.exchangeLoginCode(loginCode, {
+          statusPageId: ids.statusPageId,
+        }),
+      ).resolves.toBeNull();
+
+      expect(boundary.casCalls).toHaveLength(0);
+      expect(privateUserUpdate).not.toHaveBeenCalled();
+    },
+  );
 
   test("binds the atomic exchange to the old hash, expiry, purpose, and revocation state", async () => {
     const service: Service = new Service();
@@ -470,6 +673,15 @@ describe("StatusPagePrivateUserSessionService login-code exchange", () => {
     });
     expect(data.additionalInfo?.[PURPOSE_KEY]).toBeUndefined();
     expect(result!.session.additionalInfo?.[PURPOSE_KEY]).toBeUndefined();
+    expect(privateUserUpdate).toHaveBeenCalledWith(
+      {
+        _id: ids.privateUserId.toString(),
+        projectId: ids.projectId,
+        statusPageId: ids.statusPageId,
+        deletedAt: expect.objectContaining({ _type: "isNull" }),
+      },
+      { lastActive: FROZEN_NOW },
+    );
   });
 
   test("returns null when the compare-and-swap affects no row", async () => {
@@ -499,6 +711,7 @@ describe("StatusPagePrivateUserSessionService login-code exchange", () => {
       }),
     ).resolves.toBeNull();
     expect(update).toHaveBeenCalledTimes(1);
+    expect(privateUserUpdate).not.toHaveBeenCalled();
   });
 
   test("allows exactly one of two concurrent redemptions", async () => {
@@ -543,6 +756,7 @@ describe("StatusPagePrivateUserSessionService login-code exchange", () => {
     expect(boundary.replacementWasPreHashed).toEqual([true, true]);
     expect(row.additionalInfo).toEqual({ identityProvider: "saml" });
     expect(row.additionalInfo?.[PURPOSE_KEY]).toBeUndefined();
+    expect(privateUserUpdate).toHaveBeenCalledTimes(1);
   });
 
   test("resolves the rotated plaintext credential but never the consumed code", async () => {
@@ -583,5 +797,6 @@ describe("StatusPagePrivateUserSessionService login-code exchange", () => {
       }),
     ).resolves.toBeNull();
     expect(boundary.casCalls).toHaveLength(1);
+    expect(privateUserUpdate).toHaveBeenCalledTimes(1);
   });
 });
