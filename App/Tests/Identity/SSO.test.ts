@@ -1977,6 +1977,22 @@ describe("SSOUtil - malformed and abusive input is rejected", () => {
     }).toThrow("SAML Email not found");
   });
 
+  test.each(["Assertion", "Response"])(
+    "does not echo an invalid NameID into errors for a signed %s",
+    (signedElement: string) => {
+      const xml: string = sign(
+        buildResponse(
+          buildAssertion({ nameId: "personal-invalid-email-sentinel" }),
+        ),
+        signedElement,
+      );
+
+      expect(() => {
+        return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+      }).toThrow(/^SAML response did not include a valid email address$/);
+    },
+  );
+
   test("rejects an assertion with no Issuer", () => {
     const xml: string = sign(
       buildResponse(

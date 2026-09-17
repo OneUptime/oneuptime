@@ -831,6 +831,28 @@ describe("OIDCUtil - claim extraction", () => {
 });
 
 describe("OIDCUtil - userinfo fallback", () => {
+  test.each([false, true])(
+    "does not echo an invalid email into errors (userinfo: %s)",
+    async (useUserInfo: boolean) => {
+      const invalidEmail: string = "personal-invalid-email-sentinel";
+      const idp: TestIdp = await startIdp({
+        idTokenClaims: {
+          nonce: NONCE,
+          name: "Alice Anderson",
+          ...(useUserInfo ? {} : { email: invalidEmail }),
+        },
+        userInfo: {
+          sub: "00u1a2b3c4D5E6F7g8h9",
+          email: invalidEmail,
+        },
+      });
+
+      await expect(runCallback(idp)).rejects.toMatchObject({
+        message: "OIDC response did not include a valid email address",
+      });
+    },
+  );
+
   test("falls back to userinfo when the ID token carries no email", async () => {
     const idp: TestIdp = await startIdp({
       idTokenClaims: { nonce: NONCE, name: "Alice Anderson" },

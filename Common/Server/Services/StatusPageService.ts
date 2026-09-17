@@ -17,6 +17,7 @@ import StatusPageLabelRuleEngineService from "./StatusPageLabelRuleEngineService
 import StatusPageOwnerRuleEngineService from "./StatusPageOwnerRuleEngineService";
 import StatusPageOwnerTeamService from "./StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "./StatusPageOwnerUserService";
+import StatusPagePrivateUserSessionService from "./StatusPagePrivateUserSessionService";
 import TeamMemberService from "./TeamMemberService";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
@@ -33,6 +34,7 @@ import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageOwnerTeam from "../../Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "../../Models/DatabaseModels/StatusPageOwnerUser";
+import StatusPagePrivateUserSession from "../../Models/DatabaseModels/StatusPagePrivateUserSession";
 import User from "../../Models/DatabaseModels/User";
 import {
   AllowedStatusPageCountInFreePlan,
@@ -639,10 +641,50 @@ export class Service extends DatabaseService<StatusPage> {
             token as string,
           );
 
-          if (decoded.statusPageId?.toString() === statusPageId.toString()) {
-            return {
-              hasReadAccess: true,
-            };
+          if (
+            statusPage &&
+            decoded.statusPageId?.toString() === statusPageId.toString() &&
+            decoded.sessionId &&
+            ObjectID.isValidUUID(decoded.sessionId.toString()) &&
+            decoded.userId &&
+            ObjectID.isValidUUID(decoded.userId.toString())
+          ) {
+            /*
+             * One primary-key lookup joined to the private user. Do not cache
+             * authorization: revocation and soft deletion must take effect on
+             * the next request, even while the access JWT remains unexpired.
+             */
+            const session: StatusPagePrivateUserSession | null =
+              await StatusPagePrivateUserSessionService.getQueryBuilder(
+                "session",
+              )
+                .select(["session._id", "session.additionalInfo"])
+                .innerJoin("session.statusPagePrivateUser", "privateUser")
+                .where("session._id = :sessionId", {
+                  sessionId: decoded.sessionId.toString(),
+                })
+                .andWhere("session.statusPageId = :statusPageId", {
+                  statusPageId: statusPageId.toString(),
+                })
+                .andWhere("session.statusPagePrivateUserId = :userId", {
+                  userId: decoded.userId.toString(),
+                })
+                .andWhere("privateUser.statusPageId = :statusPageId")
+                .andWhere("privateUser.deletedAt IS NULL")
+                .andWhere("session.isRevoked = false")
+                .andWhere("session.refreshTokenExpiresAt > :now", {
+                  now: OneUptimeDate.getCurrentDate(),
+                })
+                .getOne();
+
+            if (
+              session &&
+              !StatusPagePrivateUserSessionService.isLoginCodeSession(session)
+            ) {
+              return {
+                hasReadAccess: true,
+              };
+            }
           }
         } catch (err) {
           logger.error(err, {

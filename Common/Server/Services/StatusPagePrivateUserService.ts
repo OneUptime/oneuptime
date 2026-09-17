@@ -145,6 +145,55 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    if (createdItem.isSsoUser) {
+      return createdItem;
+    }
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneById({
+      id: createdItem.statusPageId!,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        pageTitle: true,
+        logoFileId: true,
+        projectId: true,
+        requireSsoForLogin: true,
+        smtpConfig: {
+          _id: true,
+          transportType: true,
+          hostname: true,
+          port: true,
+          username: true,
+          password: true,
+          fromEmail: true,
+          fromName: true,
+          secure: true,
+          authType: true,
+          clientId: true,
+          clientSecret: true,
+          tokenUrl: true,
+          scope: true,
+          oauthProviderType: true,
+        },
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status Page not found");
+    }
+
+    /*
+     * SCIM and admin-created users must follow the page's login policy too.
+     * Do not create a password-reset credential when only SSO can be used.
+     */
+    if (statusPage.requireSsoForLogin) {
+      return createdItem;
+    }
+
     /*
      * The invite link doubles as this user's first password-reset link, so the
      * column has to hold what `/status-page-api/reset-password` looks rows up
@@ -173,46 +222,6 @@ export class Service extends DatabaseService<Model> {
         ignoreHooks: true,
       },
     });
-
-    if (createdItem.isSsoUser) {
-      return createdItem;
-    }
-
-    const statusPage: StatusPage | null = await StatusPageService.findOneById({
-      id: createdItem.statusPageId!,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-      select: {
-        _id: true,
-        name: true,
-        pageTitle: true,
-        logoFileId: true,
-        projectId: true,
-        smtpConfig: {
-          _id: true,
-          transportType: true,
-          hostname: true,
-          port: true,
-          username: true,
-          password: true,
-          fromEmail: true,
-          fromName: true,
-          secure: true,
-          authType: true,
-          clientId: true,
-          clientSecret: true,
-          tokenUrl: true,
-          scope: true,
-          oauthProviderType: true,
-        },
-      },
-    });
-
-    if (!statusPage) {
-      throw new BadDataException("Status Page not found");
-    }
 
     const statusPageName: string | undefined =
       statusPage.pageTitle || statusPage.name;

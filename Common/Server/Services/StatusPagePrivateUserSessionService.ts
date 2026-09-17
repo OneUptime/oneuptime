@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import StatusPagePrivateUserService from "./StatusPagePrivateUserService";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUserSession";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
@@ -9,7 +10,7 @@ import Text from "../../Types/Text";
 import logger from "../Utils/Logger";
 import Exception from "../../Types/Exception/Exception";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { JsonContains, MoreThan, UpdateResult } from "typeorm";
+import { IsNull, JsonContains, MoreThan, UpdateResult } from "typeorm";
 
 export interface SessionMetadata {
   session: Model;
@@ -75,6 +76,12 @@ export class Service extends DatabaseService<Model> {
 
   public constructor() {
     super(Model);
+
+    /*
+     * Login codes use this same column for their five-minute expiry. Purge
+     * expired credentials and their device metadata after 30 more days.
+     */
+    this.hardDeleteItemsOlderThanInDays("refreshTokenExpiresAt", 30);
   }
 
   public async createSession(
@@ -97,6 +104,9 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+      // Password sign-in and both SSO callbacks issue their session here.
+      await this.recordSuccessfulSignIn(options);
 
       return {
         session: createdSession,
@@ -233,6 +243,8 @@ export class Service extends DatabaseService<Model> {
     if (
       !session?.id ||
       !session.statusPageId ||
+      !session.statusPagePrivateUserId ||
+      !session.projectId ||
       !this.isLoginCodeSession(session) ||
       session.statusPageId.toString() !== options.statusPageId.toString()
     ) {
@@ -290,6 +302,12 @@ export class Service extends DatabaseService<Model> {
     }
 
     Object.assign(session, updatePayload);
+
+    await this.recordSuccessfulSignIn({
+      projectId: session.projectId,
+      statusPageId: session.statusPageId,
+      statusPagePrivateUserId: session.statusPagePrivateUserId,
+    });
 
     return {
       session,
@@ -363,6 +381,36 @@ export class Service extends DatabaseService<Model> {
     }
 
     await this.revokeSessionById(session.id, options);
+  }
+
+  private async recordSuccessfulSignIn(
+    options: Pick<
+      CreateSessionOptions,
+      "projectId" | "statusPageId" | "statusPagePrivateUserId"
+    >,
+  ): Promise<void> {
+    /*
+     * Scope the write to the complete identity carried by the session. A
+     * deleted or moved user must not gain activity from an old login code.
+     */
+    try {
+      await StatusPagePrivateUserService.getRepository().update(
+        {
+          _id: options.statusPagePrivateUserId.toString(),
+          projectId: options.projectId,
+          statusPageId: options.statusPageId,
+          deletedAt: IsNull(),
+        },
+        {
+          lastActive: OneUptimeDate.getCurrentDate(),
+        },
+      );
+    } catch {
+      // Activity bookkeeping must not burn an already-consumed login code.
+      logger.warn(
+        `Failed to record sign-in activity for status page private user ${options.statusPagePrivateUserId.toString()}`,
+      );
+    }
   }
 
   private buildSessionModel(
