@@ -328,7 +328,9 @@ describe("CompareCriteria aggregation semantics", () => {
         unit: "%",
       });
 
-      expect(message).toContain("ranged from 70.00% to 80.00% across 2 of 3 readings");
+      expect(message).toContain(
+        "ranged from 70.00% to 80.00% across 2 of 3 readings",
+      );
       expect(message).not.toContain("95");
     });
 
@@ -388,8 +390,10 @@ describe("CompareCriteria aggregation semantics", () => {
     );
 
     test("a message rendered for a filter that did not match degrades gracefully", () => {
-      // Nothing in the window is above 200. Report what was observed,
-      // then describe the unmet requirement without claiming a breach.
+      /*
+       * Nothing in the window is above 200. Report what was observed,
+       * then describe the unmet requirement without claiming a breach.
+       */
       const message: string = CompareCriteria.getCompareMessage({
         values: WINDOW,
         threshold: 200,
@@ -471,9 +475,7 @@ describe("CompareCriteria aggregation semantics", () => {
     test("the dimensionless '1' is dropped from the value AND the threshold", () => {
       const message: string = unitMessage("1");
 
-      expect(message).toBe(
-        "Metric Value was 0.85, above the 0.8 threshold.",
-      );
+      expect(message).toBe("Metric Value was 0.85, above the 0.8 threshold.");
       // The two halves of the defect, pinned separately.
       expect(message).not.toContain("0.85 1");
       expect(message).not.toContain("0.8 1");
@@ -502,9 +504,7 @@ describe("CompareCriteria aggregation semantics", () => {
 
       expect(message).not.toContain("{cpu}");
       expect(message).not.toContain("{");
-      expect(message).toBe(
-        "Metric Value was 0.85, above the 0.8 threshold.",
-      );
+      expect(message).toBe("Metric Value was 0.85, above the 0.8 threshold.");
 
       expect(unitMessage("{packets}")).not.toContain("{packets}");
       expect(unitMessage("{errors}")).not.toContain("{errors}");

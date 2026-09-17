@@ -20,12 +20,14 @@ function metricFilter(
   };
 }
 
-const COMPARISONS: Array<{
+interface ComparisonCase {
   filterType: FilterType;
   relation: string;
   matching: number;
   nonmatching: number;
-}> = [
+}
+
+const COMPARISONS: Array<ComparisonCase> = [
   {
     filterType: FilterType.GreaterThan,
     relation: "above",
@@ -65,113 +67,123 @@ const COMPARISONS: Array<{
 ];
 
 describe("human-readable numeric criteria messages", () => {
-  describe.each(COMPARISONS)("$filterType", ({
-    filterType,
-    relation,
-    matching,
-    nonmatching,
-  }) => {
-    test("describes a matching scalar without implying multiple readings", () => {
-      expect(
-        CompareCriteria.compareCriteriaNumbers({
-          value: matching,
-          threshold: 90,
-          criteriaFilter: metricFilter(filterType),
-          metricDisplayName: "CPU",
-          unit: "%",
-        }),
-      ).toBe(
-        `CPU was ${matching.toFixed(2)}%, ${relation} the 90.00% threshold.`,
-      );
-    });
+  describe.each(COMPARISONS)(
+    "$filterType",
+    ({ filterType, relation, matching, nonmatching }: ComparisonCase) => {
+      test("describes a matching scalar without implying multiple readings", () => {
+        expect(
+          CompareCriteria.compareCriteriaNumbers({
+            value: matching,
+            threshold: 90,
+            criteriaFilter: metricFilter(filterType),
+            metricDisplayName: "CPU",
+            unit: "%",
+          }),
+        ).toBe(
+          `CPU was ${matching.toFixed(2)}%, ${relation} the 90.00% threshold.`,
+        );
+      });
 
-    test("does not produce a root cause for a scalar that did not match", () => {
-      expect(
-        CompareCriteria.compareCriteriaNumbers({
-          value: nonmatching,
-          threshold: 90,
-          criteriaFilter: metricFilter(filterType),
-          metricDisplayName: "CPU",
-          unit: "%",
-        }),
-      ).toBeNull();
-    });
+      test("does not produce a root cause for a scalar that did not match", () => {
+        expect(
+          CompareCriteria.compareCriteriaNumbers({
+            value: nonmatching,
+            threshold: 90,
+            criteriaFilter: metricFilter(filterType),
+            metricDisplayName: "CPU",
+            unit: "%",
+          }),
+        ).toBeNull();
+      });
 
-    test("AnyValue counts only matching readings, including duplicates", () => {
-      expect(
-        CompareCriteria.compareCriteriaNumbers({
-          value: [nonmatching, matching, nonmatching, matching, nonmatching],
-          threshold: 90,
-          criteriaFilter: metricFilter(filterType, EvaluateOverTimeType.AnyValue),
-          metricDisplayName: "CPU",
-          unit: "%",
-        }),
-      ).toBe(
-        `CPU was ${matching.toFixed(2)}% in 2 of 5 readings, ${relation} the 90.00% threshold.`,
-      );
-    });
+      test("AnyValue counts only matching readings, including duplicates", () => {
+        expect(
+          CompareCriteria.compareCriteriaNumbers({
+            value: [nonmatching, matching, nonmatching, matching, nonmatching],
+            threshold: 90,
+            criteriaFilter: metricFilter(
+              filterType,
+              EvaluateOverTimeType.AnyValue,
+            ),
+            metricDisplayName: "CPU",
+            unit: "%",
+          }),
+        ).toBe(
+          `CPU was ${matching.toFixed(2)}% in 2 of 5 readings, ${relation} the 90.00% threshold.`,
+        );
+      });
 
-    test("AllValues reports the full count without repeating identical values", () => {
-      expect(
-        CompareCriteria.compareCriteriaNumbers({
-          value: [matching, matching, matching],
-          threshold: 90,
-          criteriaFilter: metricFilter(filterType, EvaluateOverTimeType.AllValues),
-          metricDisplayName: "CPU",
-          unit: "%",
-        }),
-      ).toBe(
-        `CPU was ${matching.toFixed(2)}% in all 3 readings, ${relation} the 90.00% threshold.`,
-      );
-    });
+      test("AllValues reports the full count without repeating identical values", () => {
+        expect(
+          CompareCriteria.compareCriteriaNumbers({
+            value: [matching, matching, matching],
+            threshold: 90,
+            criteriaFilter: metricFilter(
+              filterType,
+              EvaluateOverTimeType.AllValues,
+            ),
+            metricDisplayName: "CPU",
+            unit: "%",
+          }),
+        ).toBe(
+          `CPU was ${matching.toFixed(2)}% in all 3 readings, ${relation} the 90.00% threshold.`,
+        );
+      });
 
-    test("AllValues still rejects a window containing a nonmatching reading", () => {
-      expect(
-        CompareCriteria.compareCriteriaNumbers({
-          value: [matching, nonmatching, matching],
-          threshold: 90,
-          criteriaFilter: metricFilter(filterType, EvaluateOverTimeType.AllValues),
-          metricDisplayName: "CPU",
-          unit: "%",
-        }),
-      ).toBeNull();
-    });
+      test("AllValues still rejects a window containing a nonmatching reading", () => {
+        expect(
+          CompareCriteria.compareCriteriaNumbers({
+            value: [matching, nonmatching, matching],
+            threshold: 90,
+            criteriaFilter: metricFilter(
+              filterType,
+              EvaluateOverTimeType.AllValues,
+            ),
+            metricDisplayName: "CPU",
+            unit: "%",
+          }),
+        ).toBeNull();
+      });
 
-    test("a direct description distinguishes an unmet requirement from the observation", () => {
-      expect(
-        CompareCriteria.getCompareMessage({
-          values: nonmatching,
-          threshold: 90,
-          criteriaFilter: metricFilter(filterType),
-          metricDisplayName: "CPU",
-          unit: "%",
-        }),
-      ).toBe(
-        `CPU was ${nonmatching.toFixed(2)}%. The condition requires the value to be ${relation} the 90.00% threshold.`,
-      );
-    });
-  });
+      test("a direct description distinguishes an unmet requirement from the observation", () => {
+        expect(
+          CompareCriteria.getCompareMessage({
+            values: nonmatching,
+            threshold: 90,
+            criteriaFilter: metricFilter(filterType),
+            metricDisplayName: "CPU",
+            unit: "%",
+          }),
+        ).toBe(
+          `CPU was ${nonmatching.toFixed(2)}%. The condition requires the value to be ${relation} the 90.00% threshold.`,
+        );
+      });
+    },
+  );
 
   test.each([
     EvaluateOverTimeType.AnyValue,
     EvaluateOverTimeType.AllValues,
     undefined,
-  ])("summarizes the repeated HPA saturation readings with %s", (evaluationType) => {
-    expect(
-      CompareCriteria.compareCriteriaNumbers({
-        value: [100, 100, 100, 100, 100],
-        threshold: 90,
-        criteriaFilter: metricFilter(
-          FilterType.GreaterThanOrEqualTo,
-          evaluationType,
-        ),
-        metricDisplayName: "(current_replicas / max_replicas) * 100",
-        unit: "%",
-      }),
-    ).toBe(
-      "(current_replicas / max_replicas) * 100 was 100.00% in all 5 readings, at or above the 90.00% threshold.",
-    );
-  });
+  ])(
+    "summarizes the repeated HPA saturation readings with %s",
+    (evaluationType: EvaluateOverTimeType | undefined) => {
+      expect(
+        CompareCriteria.compareCriteriaNumbers({
+          value: [100, 100, 100, 100, 100],
+          threshold: 90,
+          criteriaFilter: metricFilter(
+            FilterType.GreaterThanOrEqualTo,
+            evaluationType,
+          ),
+          metricDisplayName: "(current_replicas / max_replicas) * 100",
+          unit: "%",
+        }),
+      ).toBe(
+        "(current_replicas / max_replicas) * 100 was 100.00% in all 5 readings, at or above the 90.00% threshold.",
+      );
+    },
+  );
 
   test("summarizes the repeated healthy readings from the evaluation screenshot", () => {
     expect(
@@ -257,9 +269,12 @@ describe("human-readable numeric criteria messages", () => {
   });
 
   test("keeps a large evaluation window concise", () => {
-    const values: Array<number> = Array.from({ length: 10000 }, (_, index) => {
-      return index + 1;
-    });
+    const values: Array<number> = Array.from(
+      { length: 10000 },
+      (_: unknown, index: number) => {
+        return index + 1;
+      },
+    );
 
     expect(
       CompareCriteria.getCompareMessage({
@@ -274,7 +289,11 @@ describe("human-readable numeric criteria messages", () => {
   });
 
   test.each([
-    { evaluationType: EvaluateOverTimeType.Average, name: "average", value: 20 },
+    {
+      evaluationType: EvaluateOverTimeType.Average,
+      name: "average",
+      value: 20,
+    },
     { evaluationType: EvaluateOverTimeType.Sum, name: "sum", value: 60 },
     {
       evaluationType: EvaluateOverTimeType.MaximumValue,
@@ -286,23 +305,30 @@ describe("human-readable numeric criteria messages", () => {
       name: "minimum",
       value: 10,
     },
-  ])("reports the $name without treating it as one matching sample", ({
-    evaluationType,
-    name,
-    value,
-  }) => {
-    expect(
-      CompareCriteria.compareCriteriaNumbers({
-        value: [10, 20, 30],
-        threshold: 5,
-        criteriaFilter: metricFilter(FilterType.GreaterThan, evaluationType),
-        metricDisplayName: "CPU",
-        unit: "%",
-      }),
-    ).toBe(
-      `The ${name} of CPU was ${value.toFixed(2)}%, above the 5.00% threshold.`,
-    );
-  });
+  ])(
+    "reports the $name without treating it as one matching sample",
+    ({
+      evaluationType,
+      name,
+      value,
+    }: {
+      evaluationType: EvaluateOverTimeType;
+      name: string;
+      value: number;
+    }) => {
+      expect(
+        CompareCriteria.compareCriteriaNumbers({
+          value: [10, 20, 30],
+          threshold: 5,
+          criteriaFilter: metricFilter(FilterType.GreaterThan, evaluationType),
+          metricDisplayName: "CPU",
+          unit: "%",
+        }),
+      ).toBe(
+        `The ${name} of CPU was ${value.toFixed(2)}%, above the 5.00% threshold.`,
+      );
+    },
+  );
 
   test("uses the same evaluation mode as the comparator when both options are saved", () => {
     const filter: CriteriaFilter = metricFilter(
@@ -328,29 +354,32 @@ describe("human-readable numeric criteria messages", () => {
   test.each([
     { minutes: 1, duration: "1 minute" },
     { minutes: 5, duration: "5 minutes" },
-  ])("uses natural duration grammar for $duration", ({ minutes, duration }) => {
-    const filter: CriteriaFilter = metricFilter(
-      FilterType.GreaterThan,
-      EvaluateOverTimeType.Average,
-    );
-    filter.evaluateOverTime = true;
-    filter.evaluateOverTimeOptions = {
-      evaluateOverTimeType: EvaluateOverTimeType.Average,
-      timeValueInMinutes: minutes,
-    };
+  ])(
+    "uses natural duration grammar for $duration",
+    ({ minutes, duration }: { minutes: number; duration: string }) => {
+      const filter: CriteriaFilter = metricFilter(
+        FilterType.GreaterThan,
+        EvaluateOverTimeType.Average,
+      );
+      filter.evaluateOverTime = true;
+      filter.evaluateOverTimeOptions = {
+        evaluateOverTimeType: EvaluateOverTimeType.Average,
+        timeValueInMinutes: minutes,
+      };
 
-    expect(
-      CompareCriteria.compareCriteriaNumbers({
-        value: [10, 20, 30],
-        threshold: 15,
-        criteriaFilter: filter,
-        metricDisplayName: "CPU",
-        unit: "%",
-      }),
-    ).toBe(
-      `The average of CPU over the last ${duration} was 20.00%, above the 15.00% threshold.`,
-    );
-  });
+      expect(
+        CompareCriteria.compareCriteriaNumbers({
+          value: [10, 20, 30],
+          threshold: 15,
+          criteriaFilter: filter,
+          metricDisplayName: "CPU",
+          unit: "%",
+        }),
+      ).toBe(
+        `The average of CPU over the last ${duration} was 20.00%, above the 15.00% threshold.`,
+      );
+    },
+  );
 
   test.each([
     {
@@ -362,22 +391,28 @@ describe("human-readable numeric criteria messages", () => {
       requirement: "every reading",
     },
     { evaluationType: undefined, requirement: "every reading" },
-  ])("does not claim an unmet $evaluationType condition was satisfied", ({
-    evaluationType,
-    requirement,
-  }) => {
-    expect(
-      CompareCriteria.getCompareMessage({
-        values: [70, 80],
-        threshold: 90,
-        criteriaFilter: metricFilter(FilterType.GreaterThan, evaluationType),
-        metricDisplayName: "CPU",
-        unit: "%",
-      }),
-    ).toBe(
-      `CPU ranged from 70.00% to 80.00% across all 2 readings. The condition requires ${requirement} to be above the 90.00% threshold.`,
-    );
-  });
+  ])(
+    "does not claim an unmet $evaluationType condition was satisfied",
+    ({
+      evaluationType,
+      requirement,
+    }: {
+      evaluationType: EvaluateOverTimeType | undefined;
+      requirement: string;
+    }) => {
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: [70, 80],
+          threshold: 90,
+          criteriaFilter: metricFilter(FilterType.GreaterThan, evaluationType),
+          metricDisplayName: "CPU",
+          unit: "%",
+        }),
+      ).toBe(
+        `CPU ranged from 70.00% to 80.00% across all 2 readings. The condition requires ${requirement} to be above the 90.00% threshold.`,
+      );
+    },
+  );
 
   test("an unmet average condition still reports the actual average", () => {
     expect(
@@ -437,19 +472,22 @@ describe("human-readable numeric criteria messages", () => {
     );
   });
 
-  test.each([NaN, Infinity, -Infinity])("a non-finite reading (%s) is not summarized as a numeric range", (value) => {
-    const message: string = CompareCriteria.getCompareMessage({
-      values: [95, value],
-      threshold: 90,
-      criteriaFilter: metricFilter(FilterType.GreaterThan),
-      metricDisplayName: "CPU",
-      unit: "%",
-    });
+  test.each([NaN, Infinity, -Infinity])(
+    "a non-finite reading (%s) is not summarized as a numeric range",
+    (value: number) => {
+      const message: string = CompareCriteria.getCompareMessage({
+        values: [95, value],
+        threshold: 90,
+        criteriaFilter: metricFilter(FilterType.GreaterThan),
+        metricDisplayName: "CPU",
+        unit: "%",
+      });
 
-    expect(message).toContain(String(value));
-    expect(message).not.toContain("ranged from");
-    expect(message).not.toContain("readings");
-  });
+      expect(message).toContain(String(value));
+      expect(message).not.toContain("ranged from");
+      expect(message).not.toContain("readings");
+    },
+  );
 
   test.each([
     EvaluateOverTimeType.AnyValue,
@@ -458,15 +496,18 @@ describe("human-readable numeric criteria messages", () => {
     EvaluateOverTimeType.Sum,
     EvaluateOverTimeType.MaximumValue,
     EvaluateOverTimeType.MunimumValue,
-  ])("an empty %s window still produces no root cause", (evaluationType) => {
-    expect(
-      CompareCriteria.compareCriteriaNumbers({
-        value: [],
-        threshold: 90,
-        criteriaFilter: metricFilter(FilterType.GreaterThan, evaluationType),
-        metricDisplayName: "CPU",
-        unit: "%",
-      }),
-    ).toBeNull();
-  });
+  ])(
+    "an empty %s window still produces no root cause",
+    (evaluationType: EvaluateOverTimeType) => {
+      expect(
+        CompareCriteria.compareCriteriaNumbers({
+          value: [],
+          threshold: 90,
+          criteriaFilter: metricFilter(FilterType.GreaterThan, evaluationType),
+          metricDisplayName: "CPU",
+          unit: "%",
+        }),
+      ).toBeNull();
+    },
+  );
 });

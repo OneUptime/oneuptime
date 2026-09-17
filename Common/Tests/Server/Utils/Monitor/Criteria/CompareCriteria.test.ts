@@ -854,7 +854,9 @@ describe("CompareCriteria", () => {
         unit: "By",
       });
 
-      expect(message).toContain("ranged from 1 GB to 6 GB across all 6 readings");
+      expect(message).toContain(
+        "ranged from 1 GB to 6 GB across all 6 readings",
+      );
       expect(message).toContain("above the 500 MB threshold");
     });
 
@@ -1124,18 +1126,31 @@ describe("CompareCriteria", () => {
         value: 100,
         relation: "different from",
       },
-    ])("renders $filterType as $relation", ({ filterType, value, relation }) => {
-      const filter: CriteriaFilter = makeFilter({
-        checkOn: CheckOn.ResponseTime,
+    ])(
+      "renders $filterType as $relation",
+      ({
         filterType,
-      });
-      expect(
-        CompareCriteria.getCompareMessage({
-          values: value,
-          threshold: 50,
-          criteriaFilter: filter,
-        }),
-      ).toBe(`Response Time (in ms) was ${value}, ${relation} the 50 threshold.`);
-    });
+        value,
+        relation,
+      }: {
+        filterType: FilterType;
+        value: number;
+        relation: string;
+      }) => {
+        const filter: CriteriaFilter = makeFilter({
+          checkOn: CheckOn.ResponseTime,
+          filterType,
+        });
+        expect(
+          CompareCriteria.getCompareMessage({
+            values: value,
+            threshold: 50,
+            criteriaFilter: filter,
+          }),
+        ).toBe(
+          `Response Time (in ms) was ${value}, ${relation} the 50 threshold.`,
+        );
+      },
+    );
   });
 });

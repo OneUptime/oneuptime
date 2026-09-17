@@ -16,6 +16,7 @@ import {
   FilterType,
 } from "../../../../Types/Monitor/CriteriaFilter";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import { MetricBreachingSample } from "../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorCriteria from "../../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorEvaluationSummary from "../../../../Types/Monitor/MonitorEvaluationSummary";
@@ -238,7 +239,13 @@ describe("human-readable metric messages across monitor evaluation", () => {
     },
   ])(
     "summarizes the repeated HPA $name readings on both surfaces",
-    async (testCase) => {
+    async (testCase: {
+      name: string;
+      currentReplicas: number;
+      threshold: number;
+      filterType: FilterType;
+      expected: string;
+    }) => {
       const inputs: MonitorInputs = formulaInputs({
         currentReplicas: Array(5).fill(testCase.currentReplicas),
         maxReplicas: Array(5).fill(6),
@@ -433,15 +440,17 @@ describe("human-readable metric messages across monitor evaluation", () => {
     ).toBe("CPU was 91.53% in 1 of 5 readings, above the 90.00% threshold.");
     expect(
       inputs.criteriaFilter.metricCriteriaContext?.breachingSamples?.map(
-        (sample) => {
+        (sample: MetricBreachingSample) => {
           return sample.value;
         },
       ),
     ).toEqual([91.53]);
     expect(
-      inputs.dataToProcess.metricResult[0]?.data.map((sample) => {
-        return sample.value;
-      }),
+      inputs.dataToProcess.metricResult[0]?.data.map(
+        (sample: AggregateModel) => {
+          return sample.value;
+        },
+      ),
     ).toEqual(values);
   });
 

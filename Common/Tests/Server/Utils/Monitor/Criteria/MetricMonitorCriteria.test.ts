@@ -519,7 +519,9 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
      * land on a different scale than the other once values spread far
      * enough apart.
      */
-    expect(message).toContain("ranged from 110 ms to 200 ms across all 10 readings");
+    expect(message).toContain(
+      "ranged from 110 ms to 200 ms across all 10 readings",
+    );
     expect(message).toContain("above the 100 ms threshold");
     // The raw comma-joined dump is no longer in the message
     expect(message).not.toContain("110, 120, 130, 140, 150, 160");
