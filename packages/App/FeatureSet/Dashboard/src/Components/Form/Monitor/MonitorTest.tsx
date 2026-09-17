@@ -1,4 +1,10 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -16,6 +22,7 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import API from "Common/UI/Utils/API/API";
@@ -25,27 +32,38 @@ import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import SummaryInfo from "../../Monitor/SummaryView/SummaryInfo";
 
+/*
+ * How often the dashboard asks whether the probe has reported back, and how
+ * many times it is willing to ask. Exported so a test can advance timers by a
+ * named value instead of re-stating the magic numbers - the same reason
+ * DeviceDiagnostics exports its own poll constants.
+ *
+ * The floor on the answer is not this interval: a probe pulls its queue every
+ * ten seconds (Probe/Jobs/Monitor/FetchMonitorTest.ts) and then has to run the
+ * steps, so the budget below - two and a half minutes - is what makes "slow
+ * probe" and "no probe is listening" look different to a waiting user.
+ */
+export const MONITOR_TEST_POLL_INTERVAL_IN_MS: number = 15000;
+export const MONITOR_TEST_MAX_POLL_ATTEMPTS: number = 10;
+
 export interface ComponentProps {
   monitorId?: ObjectID | undefined;
   monitorSteps: MonitorSteps;
   monitorType: MonitorType;
   probes: Array<Probe>;
   buttonSize: ButtonSize;
+  /*
+   * Classes for the wrapper around the trigger button. The default cancels the
+   * `md:ml-3` that ButtonStyleType.NORMAL carries for a modal footer, which is
+   * what a card's right-hand slot wants. A caller that places the button in a
+   * row which already spaces its children passes its own.
+   */
+  className?: string | undefined;
 }
 
 const MonitorTestForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  // only show this monitor if this monitor is probeable.
-
-  const isProbeable: boolean = MonitorTypeHelper.isProbableMonitor(
-    props.monitorType,
-  );
-
-  if (!isProbeable) {
-    return <></>;
-  }
-
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
   const [showResultModal, setShowResultModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -53,11 +71,70 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
   const [monitorStepProbeResponse, setMonitorStepProbeResponse] =
     useState<MonitorStepProbeResponse | null>(null);
 
+  /*
+   * The poll that is currently in flight, so it can be stopped. Without this,
+   * closing the result modal, starting a second test, or navigating away left
+   * the interval running for its full budget - still fetching every fifteen
+   * seconds and still calling setState, on a component that may no longer be
+   * mounted. Two overlapping runs also raced: whichever finished second
+   * overwrote the other's result, so a good result could be replaced by the
+   * loser's "took too long" message.
+   */
+  const pollIntervalRef: React.MutableRefObject<NodeJS.Timeout | null> =
+    useRef<NodeJS.Timeout | null>(null);
+
+  /*
+   * The create round trip happens before there is an interval to cancel, so
+   * unmounting during it would otherwise start a poll that nothing owns.
+   */
+  const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
+
+  type StopPollingFunction = () => void;
+  const stopPolling: StopPollingFunction = (): void => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      stopPolling();
+    };
+  }, []);
+
+  // only show this monitor if this monitor is probeable.
+
+  const isProbeable: boolean = MonitorTypeHelper.isProbableMonitor(
+    props.monitorType,
+  );
+
+  /*
+   * Running a test creates a MonitorTest row, and that is a create permission
+   * the read audience of a monitor does not necessarily hold - a Viewer can
+   * open every page this button appears on. Hidden rather than disabled, which
+   * is the rule the rest of the dashboard follows for an on-demand run (see
+   * the diagnostics buttons on the network device page): the permission
+   * snapshot arrives on a response header, so a gate that has not loaded yet
+   * answers "not allowed" with nothing honest to say, and a disabled button
+   * would accuse a permitted user of lacking a permission they hold.
+   */
+  const canRunTest: boolean = PermissionGate.check(
+    new MonitorTest(),
+    ModelAction.Create,
+  ).isAllowed;
+
   type ProcessResultFunction = (probeId: ObjectID) => Promise<void>;
   const processResult: ProcessResultFunction = async (
     probeId: ObjectID,
   ): Promise<void> => {
     try {
+      // A previous run must not keep writing over this one's state.
+      stopPolling();
+
       setError(null);
       setIsLoading(true);
       setShowTestModal(false);
@@ -86,22 +163,47 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
 
       const monitorTestId: ObjectID = monitorTest.data.id!;
 
+      if (!isMountedRef.current) {
+        // The user left while the row was being created. Nothing to poll for.
+        return;
+      }
+
       let attempts: number = 0;
 
       const interval: NodeJS.Timeout = setInterval(async () => {
-        const result: MonitorTest | null = (await ModelAPI.getItem({
-          modelType: MonitorTest,
-          id: monitorTestId,
-          select: {
-            monitorStepProbeResponse: true,
-          },
-        })) as MonitorTest | null;
+        /*
+         * A poll that throws - a network blip, or a row this user may not read
+         * back - used to become an unhandled rejection every fifteen seconds,
+         * because the try/catch below has long since returned by the time the
+         * first tick fires. Count the failure as an attempt and let the budget
+         * decide, so one bad response does not end a test that is still coming.
+         */
+        let result: MonitorTest | null = null;
+
+        try {
+          result = (await ModelAPI.getItem({
+            modelType: MonitorTest,
+            id: monitorTestId,
+            select: {
+              monitorStepProbeResponse: true,
+            },
+          })) as MonitorTest | null;
+        } catch (err) {
+          result = null;
+
+          if (attempts + 1 > MONITOR_TEST_MAX_POLL_ATTEMPTS) {
+            stopPolling();
+            setIsLoading(false);
+            setError(API.getFriendlyErrorMessage(err as Error));
+            return;
+          }
+        }
 
         if (result?.monitorStepProbeResponse) {
           //set the response and clear the interval.
 
           setMonitorStepProbeResponse(result.monitorStepProbeResponse);
-          clearInterval(interval);
+          stopPolling();
           setIsLoading(false);
           setError(null);
         }
@@ -110,30 +212,42 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
 
         attempts++;
 
-        if (attempts > 10 && !result?.monitorStepProbeResponse) {
-          clearInterval(interval);
+        if (
+          attempts > MONITOR_TEST_MAX_POLL_ATTEMPTS &&
+          !result?.monitorStepProbeResponse
+        ) {
+          stopPolling();
           setIsLoading(false);
           setError(
             "Monitor Test took too long to complete. Please try again later.",
           );
         }
-      }, 15000); // 15 seconds.
+      }, MONITOR_TEST_POLL_INTERVAL_IN_MS); // 15 seconds.
+
+      pollIntervalRef.current = interval;
     } catch (err) {
+      stopPolling();
       setError(API.getFriendlyErrorMessage(err as Error));
       setIsLoading(false);
     }
   };
 
+  if (!isProbeable || !canRunTest) {
+    return <></>;
+  }
+
   return (
     <div>
-      <div className="-ml-3 mr-2">
+      <div className={props.className ?? "-ml-3 mr-2"}>
         <Button
           buttonStyle={ButtonStyleType.NORMAL}
           buttonSize={props.buttonSize}
           title="Test Monitor"
+          dataTestId="test-monitor-button"
           icon={IconProp.Play}
           onClick={() => {
             // flush all the previous results.
+            stopPolling();
             setMonitorStepProbeResponse(null);
             setError(null);
             setIsLoading(false);
@@ -187,6 +301,12 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
           submitButtonType={ButtonType.Button}
           submitButtonStyleType={ButtonStyleType.NORMAL}
           onSubmit={() => {
+            /*
+             * Closing the result is the user saying they are done waiting, so
+             * the poll goes with it rather than running on in the background.
+             */
+            stopPolling();
+            setIsLoading(false);
             setShowResultModal(false);
           }}
           modalWidth={ModalWidth.Large}

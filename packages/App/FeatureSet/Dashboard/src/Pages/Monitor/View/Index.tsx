@@ -819,6 +819,12 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         probes={probes}
         disabledProbeIds={disabledProbeIds}
         monitorSteps={monitor?.monitorSteps}
+        /*
+         * Lets the card offer "Test Monitor" from here (issue #3867). The id is
+         * what the server needs to resolve this monitor's secrets for the test
+         * run, so the test exercises the same request the monitor really makes.
+         */
+        monitorId={modelId}
         incomingMonitorRequest={incomingMonitorRequest}
         incomingRequestMonitorHeartbeatCheckedAt={
           monitor?.incomingRequestMonitorHeartbeatCheckedAt
