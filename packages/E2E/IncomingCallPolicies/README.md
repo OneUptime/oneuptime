@@ -1,7 +1,7 @@
 # Incoming Call Policies fixture
 
 An offline harness for the real
-`App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicies.tsx` page. It
+`packages/App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicies.tsx` page. It
 bundles the production page with esbuild, replaces only the `ModelAPI` / `API` data
 boundary and the synthetic user's permissions, and serves it on `127.0.0.1:4214`. No
 Docker, no database, no sign-in.

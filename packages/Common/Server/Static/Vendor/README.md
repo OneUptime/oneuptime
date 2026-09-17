@@ -7,11 +7,11 @@ CDN `<script>` does not degrade, it hangs. See
 https://github.com/OneUptime/oneuptime/issues/2570.
 
 Every service mounts this directory read-only at `/oneuptime-assets` (see
-`Common/Server/Utils/VendorAssets.ts`). Reference the files from a view by that
+`packages/Common/Server/Utils/VendorAssets.ts`). Reference the files from a view by that
 absolute path, never by a CDN URL -
-`Common/Tests/Server/Utils/OfflineAssetHygiene.test.ts` fails the build on a CDN
-URL in any `.ejs` under `Common/Server/Views`, `App/FeatureSet/*/{Views,views}`
-or `Home/Views`.
+`packages/Common/Tests/Server/Utils/OfflineAssetHygiene.test.ts` fails the build on a CDN
+URL in any `.ejs` under `packages/Common/Server/Views`, `packages/App/FeatureSet/*/{Views,views}`
+or `packages/Home/Views`.
 
 ## Contents
 
@@ -19,10 +19,10 @@ or `Home/Views`.
 | -------------------------- | ----------------------------------------------------------- |
 | `tailwind/tailwind-3.4.5.js` | Tailwind Play CDN build 3.4.5                              |
 | `highlight/`               | highlight.js 11.11.1, from cdnjs                             |
-| `fonts/InterVariable.woff2` | Inter variable font, byte-identical to the copies under `App/FeatureSet/{Docs,APIReference}/Static/fonts/` |
+| `fonts/InterVariable.woff2` | Inter variable font, byte-identical to the copies under `packages/App/FeatureSet/{Docs,APIReference}/Static/fonts/` |
 
 The Tailwind file is the **only** copy in the tree. The five frontends used to
-commit one each; `Common/UI/esbuild-config.js` now copies this one into each
+commit one each; `packages/Common/UI/esbuild-config.js` now copies this one into each
 `public/assets/js/` at build time, next to where it already copies Monaco, and
 the built copies are gitignored. Their `index.ejs` still loads it from their own
 prefix (`/dashboard/assets/js/...`) rather than through `/oneuptime-assets` - the

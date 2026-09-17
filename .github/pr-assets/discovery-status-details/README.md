@@ -1,6 +1,6 @@
 # Discovery scan "Show details" / "Hide details" (issue #3842)
 
-These screenshots come from the Discovery page fixture (`E2E/Discovery`). It
+These screenshots come from the Discovery page fixture (`packages/E2E/Discovery`). It
 renders the real page with synthetic scans.
 
 ## Before

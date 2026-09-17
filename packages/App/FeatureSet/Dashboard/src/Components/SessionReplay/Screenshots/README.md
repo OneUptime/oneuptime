@@ -1,7 +1,7 @@
 # Session replay screenshots
 
 The `*-standard-ui.png` screenshots show the current production components with
-synthetic data from `E2E/SessionReplay`. The recording is reconstructed and played
+synthetic data from `packages/E2E/SessionReplay`. The recording is reconstructed and played
 by the real rrweb engine. The fixture replaces API responses and the outer
 workspace header; the RUM page layout, navigation, table, facets and player are
 shipping components.

@@ -3,7 +3,7 @@
 The dashboard's global keyboard layer — the shortcuts dialog
 (`../KeyboardShortcutsModal.tsx`) and the two places it is reachable by mouse.
 Rendered from the real components against the dashboard's own Tailwind build
-and `Common/UI/Styles/Theme.css`.
+and `packages/Common/UI/Styles/Theme.css`.
 
 | File                                     | Shows                                                                                                                    |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |

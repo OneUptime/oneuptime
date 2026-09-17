@@ -18,7 +18,7 @@ What exists after the "cloud observability improvements" change set.
 ### Discovery and identity
 
 - Ingest gate, environment key and display name come from one registry,
-  `Common/Types/Cloud/CloudPlatform.ts` (`MANAGED_CLOUD_PLATFORMS`). The
+  `packages/Common/Types/Cloud/CloudPlatform.ts` (`MANAGED_CLOUD_PLATFORMS`). The
   dashboard create form, the in-app Connect guide, the docs and the tests all
   read the same list, so adding a platform is a one-line change and the
   tests fail by name when a doc page or picker falls behind.
@@ -27,7 +27,7 @@ What exists after the "cloud observability improvements" change set.
   where semconv (and the collector) say `azure_container_apps` /
   `azure_app_service`. Both spellings land on the same environment.
 - Instance identity falls back through
-  `Common/Utils/Telemetry/CloudInstanceIdentity.ts`:
+  `packages/Common/Utils/Telemetry/CloudInstanceIdentity.ts`:
   `aws.ecs.task.id` → `aws.ecs.task.arn` (shortened to the task id) →
   `faas.instance` → `azure.container_app.instance.id` →
   `service.instance.id` → `container.id` → `host.id` → `host.name`. The
@@ -75,7 +75,7 @@ What exists after the "cloud observability improvements" change set.
   Azure CLI flow, IAM and networking) live at `cloud-aws-ecs`,
   `cloud-gcp-cloud-run`, `cloud-azure-container-apps`,
   `cloud-other-platforms`, with `cloud-troubleshooting` for the symptoms
-  support sees most. `App/Tests/FeatureSet/Docs/CloudEnvironmentDocs.test.ts`
+  support sees most. `packages/App/Tests/FeatureSet/Docs/CloudEnvironmentDocs.test.ts`
   pins the pages to the registry and the identity chain.
 
 ## Remaining epics

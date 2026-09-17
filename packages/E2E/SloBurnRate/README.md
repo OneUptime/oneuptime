@@ -1,7 +1,7 @@
 # SLO Burn Rate Rules fixture
 
 An offline harness for the real
-`App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules.tsx` page. It bundles the
+`packages/App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules.tsx` page. It bundles the
 production component with esbuild, replaces only the `ModelAPI` / `API` data boundary
 with synthetic records, and serves it on `127.0.0.1:4213`. No Docker, no database, no
 sign-in — so it runs against a branch without touching a shared dev stack.

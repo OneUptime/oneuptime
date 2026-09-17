@@ -5,12 +5,12 @@ The map is a single zoomable world map — there is no per-country mode — so
 the geometry ships in three files that share one viewBox and are swapped or
 stacked at runtime as the viewport zooms:
 
-- `App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/WorldCountriesGeometry.json`
+- `packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/WorldCountriesGeometry.json`
   — **overview** country outlines, drawn at continent-and-wider zoom.
-- `App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/WorldCountriesDetailGeometry.json`
+- `packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/WorldCountriesDetailGeometry.json`
   — **detail** country outlines, loaded on demand once the viewport passes
   `DETAIL_GEOMETRY_MIN_ZOOM` (see `Geo/GeoViewport.ts`).
-- `App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/WorldSubdivisionsGeometry.json`
+- `packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/WorldSubdivisionsGeometry.json`
   — **subdivisions**: the state, province and territory lines _interior_ to a
   country, drawn over the detail outlines once the viewport passes
   `SUBDIVISION_GEOMETRY_MIN_ZOOM`.
@@ -118,7 +118,7 @@ which make two different promises (`Geo/GeoViewport.ts`):
 
 Raising `MAX_ZOOM` further means regenerating with a finer tolerance rather
 than letting the outlines polygonize;
-`App/Tests/Dashboard/GeometryAssets.test.ts` pins both ends of that trade.
+`packages/App/Tests/Dashboard/GeometryAssets.test.ts` pins both ends of that trade.
 
 The subdivisions share the detail tier's tolerance and precision because they
 are drawn at the same zooms and on top of it — a coarser line would miss the
@@ -129,10 +129,10 @@ outline underneath does not have.
 
 - **Projection parity**: the Robinson constants in `GenerateMapGeometry.js`
   MUST stay in sync with
-  `App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoProjection.ts`.
+  `packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoProjection.ts`.
   The runtime projects site pins with the same math, which is what makes a
   pin land exactly on its projected outline.
-  `App/Tests/Dashboard/GeometryAssets.test.ts` cross-checks this.
+  `packages/App/Tests/Dashboard/GeometryAssets.test.ts` cross-checks this.
 - **Path encoding**: each ring is one absolute `M` followed by a single
   relative `l` polyline (`M245.67,123.45l.03,-.05 .02,.01Z`). Relative steps
   are what make the detail tier affordable — about 40% smaller than absolute

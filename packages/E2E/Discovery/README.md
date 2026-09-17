@@ -14,7 +14,7 @@ status message offers "Show details" only when the two-line preview cuts it shor
 at several widths and across live updates (issue #3842).
 
 Screenshots are written to `output/playwright/discovery/`. The screenshots in
-`E2E/Discovery/screenshots/` document the reviewed UI for issue #3672 and use the
+`packages/E2E/Discovery/screenshots/` document the reviewed UI for issue #3672 and use the
 same visibly labelled synthetic data.
 
 Probe execution is covered separately by the Discovery/SNMP suites in `Probe`,

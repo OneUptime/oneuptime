@@ -92,7 +92,7 @@ admission, and shared probe connectivity checks.
 ## Next recommendations
 
 1. **Measure each production role under the same workload.** The existing
-   `Common/Server/Utils/Telemetry/RuntimeMetrics.ts` exports CPU utilization, heap,
+   `packages/Common/Server/Utils/Telemetry/RuntimeMetrics.ts` exports CPU utilization, heap,
    RSS, external memory, and event-loop delay. Pair those with worker/probe
    durations, queue depth, ingest rate, and heartbeat detection delay. Compare
    equal traffic, fleet size, and deployment settings, including bursts and a

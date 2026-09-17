@@ -246,7 +246,7 @@ pattern-matching their source, the suite **runs** each script's `API_VERSION`
 resolution block under `sh` and asserts the URL it produces: unset →
 `http://localhost/v1.44`, explicitly empty → `http://localhost` (unversioned, the
 curl analogue of negotiating), explicit → that version. It also asserts
-`DockerSwarmAgent/docker-compose.yml` passes the variable to the
+`agents/DockerSwarmAgent/docker-compose.yml` passes the variable to the
 `oneuptime-docker-swarm-inventory` sidecar, the container that actually runs the
 script, which the collector service's entry does not reach. `DockerAgent`'s and
 `PodmanAgent`'s scripts are not wired into their images today (`Dockerfile.tpl`

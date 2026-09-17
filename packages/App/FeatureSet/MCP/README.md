@@ -103,7 +103,7 @@ Log, Metric, Span, Exception Instance, and Monitor Log get `list_` and `count_` 
 
 ### Workflow tools
 
-Purpose-built shortcuts for incident/alert response (`App/FeatureSet/MCP/Tools/WorkflowTools.ts`):
+Purpose-built shortcuts for incident/alert response (`packages/App/FeatureSet/MCP/Tools/WorkflowTools.ts`):
 
 - `acknowledge_incident`, `resolve_incident`
 - `acknowledge_alert`, `resolve_alert`
@@ -230,11 +230,11 @@ log through them. The API key is never logged.
 
 ## Self-hosting
 
-The MCP server ships as part of the App container and is served at `/mcp` behind Nginx — no separate deployment is needed. The OneUptime API URL it talks to is derived from the `HOST` and `HTTP_PROTOCOL` environment variables via `Common/Server/EnvironmentConfig` (inherited from the App service's environment). API keys are never configured on the server; clients supply them per request.
+The MCP server ships as part of the App container and is served at `/mcp` behind Nginx — no separate deployment is needed. The OneUptime API URL it talks to is derived from the `HOST` and `HTTP_PROTOCOL` environment variables via `packages/Common/Server/EnvironmentConfig` (inherited from the App service's environment). API keys are never configured on the server; clients supply them per request.
 
 ## Development
 
-The MCP server lives in `App/FeatureSet/MCP` and is mounted into the App service at startup (`App/Index.ts`). Tests live in `App/FeatureSet/MCP/Tests` and run as part of the App test suite:
+The MCP server lives in `packages/App/FeatureSet/MCP` and is mounted into the App service at startup (`packages/App/Index.ts`). Tests live in `packages/App/FeatureSet/MCP/Tests` and run as part of the App test suite:
 
 ```bash
 cd packages/App

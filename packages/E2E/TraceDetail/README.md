@@ -1,7 +1,7 @@
 # Trace detail fixture
 
 An offline harness for the real trace detail page under
-`App/FeatureSet/Dashboard/src/Pages/Traces/View`. It bundles the production layout and
+`packages/App/FeatureSet/Dashboard/src/Pages/Traces/View`. It bundles the production layout and
 the Trace Explorer (header, waterfall, span panel, operations view, flame graph,
 service map and related signals) with esbuild, replaces only the `ModelAPI` /
 `AnalyticsModelAPI` / `API` data boundary and the synthetic user, and serves them on

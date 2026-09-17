@@ -406,10 +406,10 @@ page it is discarding), hard-capped at 56 KB because the keepalive quota is
 fallback — never `fflate`.** The server's entire decode vocabulary is gzip or
 none; raw DEFLATE would be stored and later parsed as garbage.
 
-**Nothing is imported from `Common` at runtime.** `Common/UI/Config.ts` reads
-`window.process.env` and `Common/package.json` pulls express, typeorm, stripe
-and monaco. The dependency-free pure modules under `Common/Utils/Rum/*` and
-`Common/Types/Rum/*` are **inlined at build time** by an esbuild plugin that
+**Nothing is imported from `Common` at runtime.** `packages/Common/UI/Config.ts` reads
+`window.process.env` and `packages/Common/package.json` pulls express, typeorm, stripe
+and monaco. The dependency-free pure modules under `packages/Common/Utils/Rum/*` and
+`packages/Common/Types/Rum/*` are **inlined at build time** by an esbuild plugin that
 hard-fails the build on any other `Common` import. A test greps the emitted
 bundle for `process.env`, `express`, `typeorm` and `stripe`.
 

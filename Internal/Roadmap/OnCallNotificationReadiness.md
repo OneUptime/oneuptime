@@ -75,7 +75,7 @@ summary above them.
 Defaults *are* created, in two places:
 
 - `UserNotificationRuleService.addDefaultNotificationRuleForUser()`
-  (`Common/Server/Services/UserNotificationRuleService.ts:3083`) — creates a verified `UserEmail`
+  (`packages/Common/Server/Services/UserNotificationRuleService.ts:3083`) — creates a verified `UserEmail`
   and then default rules. Called from `TeamMemberService.ts:367`, `ProjectService.ts:1951`,
   `UserService.ts:444`, and the `MigrateDefaultUserNotificationRule` data migration.
 - `addDefaultNotificationRulesForVerifiedMethod()` (`:2845`) — called from `UserEmailAPI.ts:103`,
@@ -132,7 +132,7 @@ delay before reaching someone reachable.
 ```
 
 `TenantPermission.isAccessGrantedOnlyByCurrentUser()`
-(`Common/Server/Types/Database/Permissions/TenantPermission.ts:256`) returns true whenever
+(`packages/Common/Server/Types/Database/Permissions/TenantPermission.ts:256`) returns true whenever
 `CurrentUser` is the *only* permission the caller holds that appears in the model's list, and
 `addCurrentUserScopeToQuery()` (`:220`) then force-scopes the query to `userId = me` — and
 *throws* `NotAuthorizedException` if the caller explicitly targeted anyone else. Same shape on
@@ -210,7 +210,7 @@ Keep the feature and the page; rebuild it on the shared readiness service below.
 
 ```mermaid
 flowchart TB
-  subgraph compute["Common/Server/Services/OnCallReadinessService.ts (new)"]
+  subgraph compute["packages/Common/Server/Services/OnCallReadinessService.ts (new)"]
     RS["resolveResponders(policyId | scheduleId | teamId | projectId)"]
     RS --> DIR["OnCallDutyPolicyEscalationRuleUser"]
     RS --> TEAMS["EscalationRuleTeam -> TeamMember"]
@@ -256,7 +256,7 @@ releasable.
 
 ### 4.1 Verified-method fallback
 
-`Common/Server/Services/UserOnCallLogService.ts` — replace the `ruleCount === 0` dead-end at
+`packages/Common/Server/Services/UserOnCallLogService.ts` — replace the `ruleCount === 0` dead-end at
 `:329`:
 
 ```
@@ -280,7 +280,7 @@ The opt-out row makes muting explicit, so the fallback can safely assume the com
 New nullable column on `UserNotificationRule`: `isOptOut: boolean` (default false). An opt-out row
 carries `ruleType` + severity + `isOptOut: true` and no method FK. Requires a Postgres migration
 (`npm run generate-postgres-migration`, then register in
-`Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts` — CI's schema-drift job enforces
+`packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts` — CI's schema-drift job enforces
 this).
 
 New nullable boolean on `Project`: `disableOnCallNotificationFallback` (default false → fallback on).
@@ -349,9 +349,9 @@ immediately rather than burning the full `escalateAfterInMinutes`. Flag this beh
 setting and ship it after 4.1 lands — it changes escalation timing semantics and deserves its own
 release note.
 
-**Tests:** extend `App/Tests/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions.test.ts` (it
+**Tests:** extend `packages/App/Tests/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions.test.ts` (it
 already covers the empty-rule loop at `:157`); add
-`Common/Tests/Server/Services/OnCallNotificationFallback.test.ts` and
+`packages/Common/Tests/Server/Services/OnCallNotificationFallback.test.ts` and
 `SeverityRuleBackfill.test.ts`.
 
 ---
@@ -360,8 +360,8 @@ already covers the empty-rule loop at `:157`); add
 
 ### 5.1 The service
 
-`Common/Server/Services/OnCallReadinessService.ts` (new), `Common/Server/API/OnCallReadinessAPI.ts`
-(new, modelled on `Common/Server/API/TeamComplianceAPI.ts`).
+`packages/Common/Server/Services/OnCallReadinessService.ts` (new), `packages/Common/Server/API/OnCallReadinessAPI.ts`
+(new, modelled on `packages/Common/Server/API/TeamComplianceAPI.ts`).
 
 ```ts
 type ReadinessStatus = "Ready" | "PartiallyReady" | "NotReachable";
@@ -422,7 +422,7 @@ during the transition.
 
 ### 6.1 Permissions
 
-Add to `Common/Types/Permission.ts` (naming follows the existing `*ProjectTeam` family at `:246-251`):
+Add to `packages/Common/Types/Permission.ts` (naming follows the existing `*ProjectTeam` family at `:246-251`):
 
 ```ts
 ReadProjectUserNotificationRule = "ReadProjectUserNotificationRule",
@@ -432,7 +432,7 @@ EditProjectUserNotificationRule = "EditProjectUserNotificationRule",
 Register both in the permission-description array (`~:4900`) with
 `group: PermissionGroup.Team`, `isAssignableToTenant: true`, `isRolePermission: false`.
 
-Then on `Common/Models/DatabaseModels/UserNotificationRule.ts`:
+Then on `packages/Common/Models/DatabaseModels/UserNotificationRule.ts`:
 
 ```ts
 @TableAccessControl({
@@ -494,7 +494,7 @@ The superseded original read: on the seven method models (`UserEmail`, `UserSMS`
 
 ### 6.3 New admin page: Users → View → Notification Rules
 
-`App/FeatureSet/Dashboard/src/Pages/Users/View/NotificationRules.tsx`, registered as
+`packages/App/FeatureSet/Dashboard/src/Pages/Users/View/NotificationRules.tsx`, registered as
 `PageMap.USER_VIEW_NOTIFICATION_RULES` (`Utils/PageMap.ts:804-807` is where the `USER_VIEW_*`
 family lives) and added to `Pages/Users/View/SideMenu.tsx` under a new "On-Call" section.
 
@@ -556,12 +556,12 @@ Match it rather than inventing:
 - Cards: `rounded-xl border border-gray-200 bg-white shadow-sm`, header block with
   `text-lg font-semibold text-gray-900` + `mt-1.5 text-sm text-gray-500` description.
 - Stat tiles: `EscalationSummary.tsx:103-125` (`getStatTile`) — lift it into
-  `Common/UI/Components/StatTile/StatTile.tsx` and reuse; four tiles read well at
+  `packages/Common/UI/Components/StatTile/StatTile.tsx` and reuse; four tiles read well at
   `grid-cols-2 lg:grid-cols-4`.
 - Chips: `inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset`,
   colour-swapped per state. The amber "No responders" chip at `:130` is the exact template for the
   warning states.
-- `Common/UI/Components/Pill/Pill.tsx` with `Green`/`Red` from `Common/Types/BrandColors` is what
+- `packages/Common/UI/Components/Pill/Pill.tsx` with `Green`/`Red` from `packages/Common/Types/BrandColors` is what
   `TeamComplianceStatusTable.tsx:138` already uses for binary status.
 
 Specific choices for this feature:
@@ -626,11 +626,11 @@ they still use?".
 | Two new `Permission` enum values | — | no (enum is a TS type, stored as string) |
 
 Generate with `npm run generate-postgres-migration`, **register in
-`Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts`** (import + append to the default
+`packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts`** (import + append to the default
 export array), and verify with `npm run check-postgres-schema-drift` — the "Postgres Schema Drift"
 CI job fails otherwise.
 
-A one-off data migration in `App/FeatureSet/Workers/DataMigrations/` (alongside the existing
+A one-off data migration in `packages/App/FeatureSet/Workers/DataMigrations/` (alongside the existing
 `MigrateDefaultUserNotificationRule.ts`) should backfill rules for severity/user pairs that Gap A
 already stranded.
 
@@ -640,14 +640,14 @@ already stranded.
 
 | Area | File |
 |---|---|
-| Fallback selection, opt-out, project-disabled channels | `Common/Tests/Server/Services/OnCallNotificationFallback.test.ts` (new) |
-| Gap F — every channel × every event type has a branch, and the fell-through guard fires | `Common/Tests/Server/Services/NotificationChannelEventCoverage.test.ts` (new) |
-| Gap G — episode defaults carry a severity, and the repair migration fans out NULL rows | `Common/Tests/Server/Services/EpisodeRuleSeverityRepair.test.ts` (new) |
-| Severity-create backfill mirrors existing intent | `Common/Tests/Server/Services/SeverityRuleBackfill.test.ts` (new) |
-| Readiness status calculation, all seven channels, ruleType matching | `Common/Tests/Server/Services/OnCallReadinessService.test.ts` (new) |
+| Fallback selection, opt-out, project-disabled channels | `packages/Common/Tests/Server/Services/OnCallNotificationFallback.test.ts` (new) |
+| Gap F — every channel × every event type has a branch, and the fell-through guard fires | `packages/Common/Tests/Server/Services/NotificationChannelEventCoverage.test.ts` (new) |
+| Gap G — episode defaults carry a severity, and the repair migration fans out NULL rows | `packages/Common/Tests/Server/Services/EpisodeRuleSeverityRepair.test.ts` (new) |
+| Severity-create backfill mirrors existing intent | `packages/Common/Tests/Server/Services/SeverityRuleBackfill.test.ts` (new) |
+| Readiness status calculation, all seven channels, ruleType matching | `packages/Common/Tests/Server/Services/OnCallReadinessService.test.ts` (new) |
 | Responder resolution across direct / team / schedule / override | same file |
-| Admin can read+write another user's rules; member cannot; admin cannot write another user's methods | `Common/Tests/Server/Services/UserNotificationRulePermissions.test.ts` (new) — this is the security-critical one |
-| Worker path with zero rules | extend `App/Tests/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions.test.ts` |
+| Admin can read+write another user's rules; member cannot; admin cannot write another user's methods | `packages/Common/Tests/Server/Services/UserNotificationRulePermissions.test.ts` (new) — this is the security-critical one |
+| Worker path with zero rules | extend `packages/App/Tests/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions.test.ts` |
 
 ---
 

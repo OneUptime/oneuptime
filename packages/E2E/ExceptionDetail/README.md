@@ -1,7 +1,7 @@
 # Exception detail fixture
 
 An offline harness for the real exception detail pages under
-`App/FeatureSet/Dashboard/src/Pages/Exceptions/View`. It bundles the production layout,
+`packages/App/FeatureSet/Dashboard/src/Pages/Exceptions/View`. It bundles the production layout,
 side menu, header and all seven pages (Overview, Stack Trace, Occurrences, Context,
 Logs, AI Assistance, Settings) with esbuild, replaces only the `ModelAPI` /
 `AnalyticsModelAPI` / `API` data boundary and the synthetic user, and serves them on

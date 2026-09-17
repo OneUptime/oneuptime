@@ -101,7 +101,7 @@ the specific action needed while continuing independent work.
 ## 2. Select versions and prepare the source
 
 The store version comes from **`expo.version` in `app.json`**. The version in
-`MobileApp/package.json` follows the wider repository and is not the store version.
+`packages/MobileApp/package.json` follows the wider repository and is not the store version.
 
 | Field in `app.json`        | Meaning                                              | Value used for 1.1.0 |
 | -------------------------- | ---------------------------------------------------- | -------------------- |

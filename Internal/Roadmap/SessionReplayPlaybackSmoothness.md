@@ -183,7 +183,7 @@ still-hidden newcomer keeps the frame the viewer was actually looking at.
 snap on blur. The stage's cursor transition was 80 ms divided by speed:
 shorter than the 100 ms gap, so the pointer moved for 80 ms and parked for 20.
 
-**Now.** The cadences are shared constants in `Common/Types/Rum/SessionReplay.ts`
+**Now.** The cadences are shared constants in `packages/Common/Types/Rum/SessionReplay.ts`
 (`SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS` 50, `SESSION_REPLAY_SCROLL_SAMPLE_MS`
 100, `SESSION_REPLAY_INPUT_SAMPLING` "all"). The recorder advertises a
 `mousemove-50ms` capability on chunk 0, and the stage derives its cursor
@@ -338,7 +338,7 @@ cd packages/App && npx jest Tests/Dashboard
 cd packages/App/FeatureSet/BrowserRecorder && npx jest --runInBand --config jest.config.json Tests
 ```
 
-`Common/Tests/UI/Rum/ReplayRenderBudget.test.tsx` is the one that guards the
+`packages/Common/Tests/UI/Rum/ReplayRenderBudget.test.tsx` is the one that guards the
 headline change: it counts renders, because the regression it protects against
 is invisible in a screenshot and shows up only as a dropped frame. A component
 on the 250 ms quantum must render about fourteen times across 100 publishes,

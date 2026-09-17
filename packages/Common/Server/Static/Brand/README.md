@@ -15,26 +15,26 @@ browser drew a broken image. See
 https://github.com/OneUptime/oneuptime/issues/3457.
 
 Every service mounts this directory read-only at `/oneuptime-assets/brand` (see
-`Common/Server/Utils/VendorAssets.ts`). Reference the files from a view by that
+`packages/Common/Server/Utils/VendorAssets.ts`). Reference the files from a view by that
 absolute path, or from server code via the `OneUptimeLogoUrl` constant -
-`Common/Tests/Server/Utils/OfflineAssetHygiene.test.ts` fails the build on a
+`packages/Common/Tests/Server/Utils/OfflineAssetHygiene.test.ts` fails the build on a
 `/oneuptime-assets/...` URL that does not resolve to a file on disk.
 
 ## Contents
 
 | Path                      | Source                                                  |
 | ------------------------- | ------------------------------------------------------- |
-| `oneuptime-logo.svg`      | `Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg` |
-| `ou-wb.svg`, `hou-wb.svg` | `Home/Static/img/`                                      |
-| `favicons/`               | `Home/Static/img/favicons/`                             |
+| `oneuptime-logo.svg`      | `packages/Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg` |
+| `ou-wb.svg`, `hou-wb.svg` | `packages/Home/Static/img/`                                      |
+| `favicons/`               | `packages/Home/Static/img/favicons/`                             |
 
 `favicons/oneuptime-up-v1.svg` is the cache-versioned browser-tab icon shared
 by the Dashboard, Admin Dashboard, and Home page. It keeps the white `Up.` mark
 on its own dark background so the lettering remains visible in both light and
 dark browser chrome.
 
-`Common/Tests/Server/Utils/VendorAssets.test.ts` asserts `oneuptime-logo.svg` is
-byte-identical to the copies under `Common/UI` and `Home/Static`, so a rebrand
+`packages/Common/Tests/Server/Utils/VendorAssets.test.ts` asserts `oneuptime-logo.svg` is
+byte-identical to the copies under `packages/Common/UI` and `packages/Home/Static`, so a rebrand
 that updates one of them and not this one fails the build rather than leaving
 the acknowledge page on the old mark.
 

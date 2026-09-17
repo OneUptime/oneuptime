@@ -12,9 +12,9 @@ PollCodeFixWork  →  TaskHandler  →  RepositoryManager (clone, branch)
 ```
 
 Scope: `Runner/` (the worker), plus the pure guards it shares in
-`Common/Server/Utils/AI/CodeFix/`. The server-side control plane
-(`Common/Server/API/AIAgentDataAPI.ts`, the GitHub token minting in
-`Common/Server/Utils/CodeRepository/GitHub/GitHub.ts`) was audited but is
+`packages/Common/Server/Utils/AI/CodeFix/`. The server-side control plane
+(`packages/Common/Server/API/AIAgentDataAPI.ts`, the GitHub token minting in
+`packages/Common/Server/Utils/CodeRepository/GitHub/GitHub.ts`) was audited but is
 **not** changed here — see [Not fixed here](#not-fixed-here).
 
 Every finding below was reproduced against the real thing (real git
@@ -49,12 +49,12 @@ Three consequences, all reachable in an ordinary run:
   to the transcript that is shipped to the server.
 - **Into `ps`.** Anything on the Runner host could read it out of argv.
 
-**Fix.** `Runner/Utils/GitCredentials.ts`: authentication moves to a
+**Fix.** `packages/Runner/Utils/GitCredentials.ts`: authentication moves to a
 `GIT_ASKPASS` helper. The remote URL carries the username only, the token
 travels in the environment of the individual git child process (never
 `process.env`, which the agent's `run_command` inherits), and the helper
 script itself contains no secret — it echoes an environment variable and
-lives 0700 outside the workspace. `Runner/Utils/SecretRedactor.ts` is the
+lives 0700 outside the workspace. `packages/Runner/Utils/SecretRedactor.ts` is the
 defence in depth: it redacts run-registered secrets, environment secrets,
 URL credentials and well-known token shapes out of every string leaving the
 process — git errors, command output, and the log/transcript stream.
@@ -79,7 +79,7 @@ split the `-z` stream on NUL and sliced three characters off **every** record,
 including a rename's bare source-path record — turning `src/old.ts` into
 `/old.ts`, which git rejects as "outside repository".
 
-**Fix.** `Runner/Utils/GitPorcelain.ts` — one parser, always
+**Fix.** `packages/Runner/Utils/GitPorcelain.ts` — one parser, always
 `--porcelain -uall -z`, renames consume their source record, both sides of a
 rename are staged.
 
@@ -253,20 +253,20 @@ Also worth a follow-up, non-security:
 
 | File | What it pins |
 |---|---|
-| `Runner/Tests/Utils/GitPorcelain.test.ts` | rename/copy record pairing, verbatim paths, dedup, no mangled paths |
-| `Runner/Tests/Utils/SecretRedactor.test.ts` | registered + env + pattern redaction, ordering, label preservation, idempotence, ordinary output untouched |
-| `Runner/Tests/Utils/RepositoryManagerGit.test.ts` | real clones: no credential anywhere under `.git`, base-branch resolution and stale-branch fallback, same-name repos, hostile pre-commit hook, rename/space/new-dir staging, discard |
-| `Runner/Tests/Utils/VerificationDirtyPaths.test.ts` | the repair loop's path diff against real repository states — renames, quoted paths, deletions, gitignored output, and that every path it emits is one `git add` accepts |
-| `Runner/Tests/Utils/TaskLoggerRedaction.test.ts` | redaction of messages, tool arguments and tool results on the way to the server; buffering, batching, and never failing the run |
-| `Runner/Tests/Utils/PullRequestCreatorApi.test.ts` | GitHub error reporting (the `errors` array, not "Validation Failed"), lookup/update, decoration never failing the run, and the title/body privacy boundary |
-| `Runner/Tests/Utils/PullRequestBodyLimit.test.ts` | GitHub's body limit |
-| `Runner/Tests/CodeAgents/InHouseCodeAgentTools.test.ts` | scripted tool loop against a real repo: write_file refusals, git guard, build-artifact exclusion, secret redaction, env stripping, grandchild lifetime |
-| `Runner/Tests/CodeAgents/InHouseCodeAgentLoop.test.ts` | the loop as a control system: budget wind-down (calls and output tokens), the provider's tool-call/result pairing contract, truncation, timeout, abort, hard-failure reporting |
-| `Runner/Tests/TaskHandlers/CodeAgentOutcomeTaxonomy.test.ts` | failure vs no-fix vs PR, on **both** pipeline bases; PR base from the clone |
-| `Runner/Tests/TaskHandlers/MultiRepositoryOutcomes.test.ts` | how N repositories collapse into one run status, including partial success carrying its failures |
-| `Runner/Tests/Jobs/CodeFixTaskLifecycle.test.ts` | logger disposal, secret clearing, outcome mapping |
-| `Common/Tests/Server/Utils/AI/CodeAgentCommandGuard.test.ts` | the git rail, including what it deliberately does not claim |
-| `Common/Tests/Server/Utils/AI/CodeAgentWriteLimits.test.ts` | the write and tool-output caps, and workspace escape against the paths a model actually emits |
+| `packages/Runner/Tests/Utils/GitPorcelain.test.ts` | rename/copy record pairing, verbatim paths, dedup, no mangled paths |
+| `packages/Runner/Tests/Utils/SecretRedactor.test.ts` | registered + env + pattern redaction, ordering, label preservation, idempotence, ordinary output untouched |
+| `packages/Runner/Tests/Utils/RepositoryManagerGit.test.ts` | real clones: no credential anywhere under `.git`, base-branch resolution and stale-branch fallback, same-name repos, hostile pre-commit hook, rename/space/new-dir staging, discard |
+| `packages/Runner/Tests/Utils/VerificationDirtyPaths.test.ts` | the repair loop's path diff against real repository states — renames, quoted paths, deletions, gitignored output, and that every path it emits is one `git add` accepts |
+| `packages/Runner/Tests/Utils/TaskLoggerRedaction.test.ts` | redaction of messages, tool arguments and tool results on the way to the server; buffering, batching, and never failing the run |
+| `packages/Runner/Tests/Utils/PullRequestCreatorApi.test.ts` | GitHub error reporting (the `errors` array, not "Validation Failed"), lookup/update, decoration never failing the run, and the title/body privacy boundary |
+| `packages/Runner/Tests/Utils/PullRequestBodyLimit.test.ts` | GitHub's body limit |
+| `packages/Runner/Tests/CodeAgents/InHouseCodeAgentTools.test.ts` | scripted tool loop against a real repo: write_file refusals, git guard, build-artifact exclusion, secret redaction, env stripping, grandchild lifetime |
+| `packages/Runner/Tests/CodeAgents/InHouseCodeAgentLoop.test.ts` | the loop as a control system: budget wind-down (calls and output tokens), the provider's tool-call/result pairing contract, truncation, timeout, abort, hard-failure reporting |
+| `packages/Runner/Tests/TaskHandlers/CodeAgentOutcomeTaxonomy.test.ts` | failure vs no-fix vs PR, on **both** pipeline bases; PR base from the clone |
+| `packages/Runner/Tests/TaskHandlers/MultiRepositoryOutcomes.test.ts` | how N repositories collapse into one run status, including partial success carrying its failures |
+| `packages/Runner/Tests/Jobs/CodeFixTaskLifecycle.test.ts` | logger disposal, secret clearing, outcome mapping |
+| `packages/Common/Tests/Server/Utils/AI/CodeAgentCommandGuard.test.ts` | the git rail, including what it deliberately does not claim |
+| `packages/Common/Tests/Server/Utils/AI/CodeAgentWriteLimits.test.ts` | the write and tool-output caps, and workspace escape against the paths a model actually emits |
 
 Runner: **280 → 508** tests. Common: **+79**.
 
