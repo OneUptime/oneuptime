@@ -27,7 +27,7 @@ Useful columns on an inventory item:
 | `source` | `discovered`, `inventory`, or `manual` |
 | `description` | Free text |
 | `identifyingAttributes` | The immutable attribute set that defines this thing's identity |
-| `descriptiveAttributes` | Mutable observed metadata — image tag, version, IP |
+| `descriptiveAttributes` | Mutable observed metadata — see [Host asset attributes](#host-asset-attributes) below |
 | `customFields` | Your own fields, keyed by field name |
 | `resourceType` / `resourceId` | Pointer to the richer OneUptime record, when one exists |
 | `firstSeenAt` / `lastSeenAt` | Observation window |
@@ -106,6 +106,31 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 ```
 
 The inventory list in the dashboard exports the same way, including whichever custom field columns you have turned on.
+
+## Host Asset Attributes
+
+`descriptiveAttributes` on a **host** carries the asset facts a CMDB row usually wants, keyed by their OpenTelemetry attribute name:
+
+| Field | Key | Collected by default? |
+| ----- | --- | --------------------- |
+| IP addresses | `host.ip` | Yes — comma-separated when the machine has several |
+| Architecture | `host.arch` | Yes |
+| Machine id | `host.id` | Yes — the machine GUID on Windows, `/etc/machine-id` on Linux |
+| Operating system | `os.type`, `os.description` | Yes |
+| Cloud placement | `cloud.provider`, `cloud.region`, `cloud.availability_zone` | Only with a cloud detector |
+| Serial number | `host.serial_number` | Needs one config step |
+| Make | `device.manufacturer` | Needs one config step |
+| Model | `device.model.name` | Needs one config step |
+
+Everything marked *Yes* comes from the collector's `resourcedetection` processor and is already in the config OneUptime generates for you.
+
+The `cloud.*` keys need a cloud detector in that processor — `detectors: [system, env, ec2]`, or `gcp` / `azure` for the others. The shipped config runs `[system, env]` only, so those three stay empty until you add one.
+
+The last three have no resource detector — they live in the machine's firmware, read through WMI on Windows and DMI on Linux — so they are stamped onto the resource once, when the machine is provisioned. [Inventory attributes](/docs/telemetry/host-otel-collector#inventory-attributes-ip-serial-number-make-model) has the exact snippet for each OS. `host.manufacturer` and `host.model.name` are accepted as alternative spellings and stored under the `device.*` keys, so a sync only ever has to read one key per fact.
+
+`host.id` is worth a look as a correlation key if your CMDB already keys on a hardware identifier — unlike `entityKey` it is the machine's own id, so it matches what an endpoint management tool reports for the same box.
+
+Attributes are additive: one that stops being reported stays on the row rather than being blanked, so a value your sync has already read never silently disappears.
 
 ## Correlating With Your CMDB
 

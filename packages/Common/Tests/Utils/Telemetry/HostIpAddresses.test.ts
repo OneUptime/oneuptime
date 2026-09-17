@@ -1,6 +1,8 @@
 import {
   MAX_HOST_IP_ADDRESSES_LENGTH,
   MAX_HOST_IP_ADDRESS_COUNT,
+  MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+  MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
   normalizeHostIpAddresses,
 } from "../../../Utils/Telemetry/HostIpAddresses";
 import { describe, expect, test } from "@jest/globals";
@@ -287,5 +289,108 @@ describe("normalizeHostIpAddresses", () => {
       ) as string;
       expect(twice).toBe(once);
     });
+  });
+
+  /*
+   * Issue #3866 gave the Inventory item's `host.ip` attribute its own, much
+   * smaller caps. The Host column stays the lossless record; the inventory
+   * value is a CMDB summary that has to fit one row of a definition list.
+   */
+  describe("inventory caps (issue #3866)", () => {
+    const INVENTORY: { maxCount: number; maxLength: number } = {
+      maxCount: MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+      maxLength: MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+    };
+
+    test("omitting options reproduces the Host column behaviour exactly", () => {
+      const addresses: Array<string> = issueReporterAddresses();
+      expect(normalizeHostIpAddresses(addresses, {})).toBe(
+        normalizeHostIpAddresses(addresses),
+      );
+      expect(
+        normalizeHostIpAddresses(addresses, {
+          maxCount: undefined,
+          maxLength: undefined,
+        }),
+      ).toBe(normalizeHostIpAddresses(addresses));
+    });
+
+    test("the inventory caps are far below the Host column's", () => {
+      expect(MAX_INVENTORY_HOST_IP_ADDRESS_COUNT).toBeLessThan(
+        MAX_HOST_IP_ADDRESS_COUNT,
+      );
+      expect(MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH).toBeLessThan(
+        MAX_HOST_IP_ADDRESSES_LENGTH,
+      );
+    });
+
+    /*
+     * The property that matters: for every host small enough to fit, the
+     * Network card and a CMDB export read the same string. Truncation is
+     * the only thing the two surfaces are allowed to disagree about.
+     */
+    test("a host below both cap sets serializes identically either way", () => {
+      const addresses: Array<string> = [
+        "192.168.1.42",
+        "10.0.0.7",
+        "fe80::42:acff:fe11:1",
+      ];
+      expect(normalizeHostIpAddresses(addresses, INVENTORY)).toBe(
+        normalizeHostIpAddresses(addresses),
+      );
+    });
+
+    test("the issue-#3006 payload truncates to a prefix of the full result", () => {
+      const addresses: Array<string> = issueReporterAddresses();
+      const full: string = normalizeHostIpAddresses(addresses) as string;
+      const capped: string = normalizeHostIpAddresses(
+        addresses,
+        INVENTORY,
+      ) as string;
+
+      expect(capped.length).toBeLessThan(full.length);
+      expect(full.startsWith(capped)).toBe(true);
+    });
+
+    test("truncation drops whole addresses, never a fragment", () => {
+      const addresses: Array<string> = issueReporterAddresses();
+      const capped: string = normalizeHostIpAddresses(
+        addresses,
+        INVENTORY,
+      ) as string;
+
+      expect(capped.length).toBeLessThanOrEqual(
+        MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+      );
+      for (const address of capped.split(", ")) {
+        expect(addresses).toContain(address);
+      }
+    });
+
+    test("the count cap bites before the length cap on short addresses", () => {
+      const addresses: Array<string> = [];
+      for (let i: number = 0; i < 100; i++) {
+        addresses.push(`10.0.${i}.1`);
+      }
+      const capped: string = normalizeHostIpAddresses(
+        addresses,
+        INVENTORY,
+      ) as string;
+      expect(capped.split(", ")).toHaveLength(
+        MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+      );
+    });
+
+    test.each([
+      ["an empty list", []],
+      ["whitespace only", ["  ", "\t"]],
+    ])(
+      "%s is null under the inventory caps too",
+      (_l: string, input: unknown) => {
+        expect(
+          normalizeHostIpAddresses(input as Array<string>, INVENTORY),
+        ).toBeNull();
+      },
+    );
   });
 });

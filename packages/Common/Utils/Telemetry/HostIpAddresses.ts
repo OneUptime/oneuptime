@@ -21,6 +21,36 @@ export const MAX_HOST_IP_ADDRESS_COUNT: number = 256;
 /** Maximum length of the serialized, comma-separated list. */
 export const MAX_HOST_IP_ADDRESSES_LENGTH: number = 10000;
 
+/*
+ * A second, much smaller pair of caps for the Inventory item's `host.ip`
+ * descriptive attribute (issue #3866).
+ *
+ * The caps above are sized for `Host.hostIpAddresses`, a dedicated `text`
+ * column that is the lossless record of every address. The Inventory
+ * attribute is a different thing: a CMDB summary rendered as one row in a
+ * definition list next to a copy button, inside a `jsonb` bag that is
+ * merged additively on every reconcile. Ten thousand characters is not an
+ * attribute there, it is a wall — and it would push the whole bag out of
+ * line in Postgres for no gain.
+ *
+ * 512 characters holds roughly twenty IPv4 or fourteen IPv6 addresses,
+ * which is every real machine's set of interfaces. Truncation still drops
+ * whole addresses from the tail, and the full list remains one click away
+ * on the host's Network card. For a host that sends `host.ip` as an OTLP
+ * array and stays below these caps the two surfaces are byte-identical,
+ * which is the property worth keeping.
+ *
+ * They can diverge for a producer that sends `host.ip` as one
+ * comma-separated SCALAR — the `env` detector's only option. The Host
+ * column reader (`OtelIngestBaseService.getStringArrayAttribute`) treats
+ * that whole string as a single address, while the inventory attribute
+ * splits it. Splitting is the more useful reading of the two, and the
+ * Host column's behaviour predates this, so the divergence is left alone
+ * rather than changing what an existing column stores.
+ */
+export const MAX_INVENTORY_HOST_IP_ADDRESS_COUNT: number = 32;
+export const MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH: number = 512;
+
 const SEPARATOR: string = ", ";
 
 /**
@@ -42,13 +72,27 @@ const SEPARATOR: string = ", ";
  *
  * Returns `null` when nothing survives, so callers can leave the column
  * untouched rather than writing an empty string.
+ *
+ * `options` overrides the caps for callers that store the list somewhere
+ * narrower than the Host column — pass
+ * `MAX_INVENTORY_HOST_IP_ADDRESS_COUNT` /
+ * `MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH` for the Inventory attribute.
+ * Everything else about the result is identical, so a host below both
+ * cap sets serializes to the same string either way.
  */
 export function normalizeHostIpAddresses(
   ipAddresses: Array<string> | null | undefined,
+  options?: {
+    maxCount?: number | undefined;
+    maxLength?: number | undefined;
+  },
 ): string | null {
   if (!ipAddresses || ipAddresses.length === 0) {
     return null;
   }
+
+  const maxCount: number = options?.maxCount ?? MAX_HOST_IP_ADDRESS_COUNT;
+  const maxLength: number = options?.maxLength ?? MAX_HOST_IP_ADDRESSES_LENGTH;
 
   const seen: Set<string> = new Set<string>();
   const kept: Array<string> = [];
@@ -72,7 +116,7 @@ export function normalizeHostIpAddresses(
     const lengthWithSeparator: number =
       trimmed.length + (kept.length > 0 ? SEPARATOR.length : 0);
 
-    if (serializedLength + lengthWithSeparator > MAX_HOST_IP_ADDRESSES_LENGTH) {
+    if (serializedLength + lengthWithSeparator > maxLength) {
       /*
        * Stop rather than continue: entries are already ordered by the
        * collector, so skipping this one to squeeze in a shorter later one
@@ -85,7 +129,7 @@ export function normalizeHostIpAddresses(
     kept.push(trimmed);
     serializedLength += lengthWithSeparator;
 
-    if (kept.length >= MAX_HOST_IP_ADDRESS_COUNT) {
+    if (kept.length >= maxCount) {
       break;
     }
   }
