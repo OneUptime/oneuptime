@@ -520,6 +520,9 @@ const IncidentCreate: FunctionComponent<
                     const dockerCount: number = Array.isArray(item.dockerHosts)
                       ? item.dockerHosts.length
                       : 0;
+                    const podmanCount: number = Array.isArray(item.podmanHosts)
+                      ? item.podmanHosts.length
+                      : 0;
                     const servicesCount: number = Array.isArray(item.services)
                       ? item.services.length
                       : 0;
@@ -528,6 +531,7 @@ const IncidentCreate: FunctionComponent<
                       hostsCount +
                       clustersCount +
                       dockerCount +
+                      podmanCount +
                       servicesCount;
                     if (totalCount === 0) {
                       return <p>No resources affected by this incident.</p>;
@@ -546,6 +550,11 @@ const IncidentCreate: FunctionComponent<
                     if (dockerCount > 0) {
                       otherCounts.push(
                         `${dockerCount} Docker host${dockerCount === 1 ? "" : "s"}`,
+                      );
+                    }
+                    if (podmanCount > 0) {
+                      otherCounts.push(
+                        `${podmanCount} Podman host${podmanCount === 1 ? "" : "s"}`,
                       );
                     }
                     if (servicesCount > 0) {
