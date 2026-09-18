@@ -283,7 +283,70 @@ daemon whose floor is low enough to accept it) is skipped with a reason rather
 than failed. A guard test that always runs reports why the suite is idle, so it
 cannot rot into permanent silence.
 
+### `EnterpriseEditionBuild.test.js`
+
+How the Community and Enterprise editions are built, tested and shipped. The
+enterprise code lives in `ee/` under its own license, and the split only holds
+if the build and CI machinery keeps the two apart. Almost none of that
+machinery runs on a pull request (images are published, and the e2e suites
+run, only after a merge), so the suite pins the machinery itself:
+
+- **The App image** (`packages/App/Dockerfile.tpl`, rendered for production
+  and development with `Utils/DockerfileTemplate.js`). The stage graph is
+  `base -> community-build -> enterprise-build -> enterprise`, with `community`
+  built from `community-build` and kept last so a plain `docker build` is the
+  Community Edition. Nothing the community stage is built from copies or
+  mentions `ee/`, and it refuses bundles that contain the ee sentinel strings.
+  The enterprise build recreates the `/usr/src/packages` links that
+  `ee/package.json`'s `file:` dependencies resolve through, installs ee from
+  its lockfile with `--ignore-scripts` before copying the sources, type-checks
+  the ee server, rebuilds only the Dashboard and Admin Dashboard with
+  `ONEUPTIME_EDITION=enterprise`, refuses bundles without the sentinels, and
+  prunes ee's dev dependencies afterwards. Only the enterprise stage sets
+  `ONEUPTIME_EDITION`. The development image never copies `ee/`.
+- **`.dockerignore` / `.gitignore`**: ee key material, build output and tests
+  stay out of `COPY ./ee` and out of git. With
+  `RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1` a real `docker build` proves what
+  `COPY ./ee` ships through the real `.dockerignore`.
+- **CI**: every core compile/test job deletes `ee/` before it installs
+  anything (core is the Community Edition by construction); `compile-ee` and
+  `test.ee.yaml` install what ee needs and compile/test it; the Build workflow
+  builds both App targets and checks each with
+  `Scripts/GHA/check_app_image_edition.sh`; the release jobs that enable
+  billing (the SaaS e2e jobs) run the `enterprise-` tags, the self-hosted e2e
+  jobs the Community ones, and every image merge publishes an `enterprise-`
+  tag.
+- **Deployment**: no compose file and no Helm template sets `ONEUPTIME_EDITION`,
+  which would override the Enterprise image's own marker.
+- **The dev loop**: the dev `app` service mounts `ee/` with an anonymous
+  `node_modules` volume, nodemon watches `ee/Server`, and `dev.sh`'s
+  `install_enterprise_deps` (run for real with a fake `npm`) installs ee's
+  dependencies once per lockfile and does nothing without `ee/`.
+  `Scripts/Dev/install-node-modules.sh` (also run for real) installs `ee/` last.
+- **Helm**: both charts are annotated Apache-2.0, and the fictitious "hardened
+  images" claim is gone.
+
+The renderer is cross-checked against gomplate itself wherever `gomplate` is on
+PATH.
+
+### `lint-app-dockerfile.sh`
+
+Not part of `npm test`, because it needs docker. It renders the App
+Dockerfile for production and development and runs
+`docker buildx build --check` over the production render for the default,
+`community` and `enterprise` targets and over the development render. That
+resolves each target's stage graph with BuildKit itself, which the jest suite
+cannot. It runs on every PR from the "Ops Config Test" workflow.
+
+```sh
+cd Tests/Ops && npm run lint-app-dockerfile
+```
+
 ## Utils
+
+`Utils/DockerfileTemplate.js` renders a `Dockerfile.tpl` for production or
+development (it understands only the one `if`/`else`/`end` block the templates
+use, and throws on anything else) and splits a Dockerfile into its stages.
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
 installed and these tests intentionally add no dependency; it exists so both

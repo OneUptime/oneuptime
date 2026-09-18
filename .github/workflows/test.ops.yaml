@@ -45,3 +45,9 @@ jobs:
       # Runs the pinned collector image over the four agent configs and over
       # both collector ConfigMaps rendered out of the kubernetes-agent chart.
       - run: bash Tests/Ops/validate-collector-configs.sh
+      # The App Dockerfile builds the Community and Enterprise editions as
+      # targets. BuildKit resolves each target's stage graph and runs its build
+      # checks over the production render (default, community, enterprise) and
+      # the development render, without building anything; the jest suite
+      # above pins what the stages contain.
+      - run: bash Tests/Ops/lint-app-dockerfile.sh
