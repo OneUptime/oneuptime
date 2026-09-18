@@ -53,6 +53,11 @@ export interface AffectedResourceItem {
   _id: string;
   name: string;
   type: AffectedResourceType;
+  /*
+   * True while the picker is still looking up the name of a resource that
+   * reached it as a bare ID. `name` is a placeholder until the lookup lands.
+   */
+  isNameLoading?: boolean | undefined;
 }
 
 /*
@@ -93,6 +98,12 @@ export interface ComponentProps {
   onChange: (payload: AffectedResourcesPayload) => void;
   placeholder?: string | undefined;
   disabled?: boolean | undefined;
+  /*
+   * Chips only: no search input and no remove buttons. For a summary that
+   * should name the selection (the picker looks names up for bare IDs)
+   * without offering to change it.
+   */
+  readOnly?: boolean | undefined;
 }
 
 interface ResourceConfig {
@@ -214,44 +225,101 @@ const SEARCH_LIMIT_PER_TYPE: number = 15;
  * DOM render is capped.
  */
 const MAX_VISIBLE_CHIPS: number = 50;
+/*
+ * Chunk size for looking up the names of resources that reached the picker
+ * as bare IDs. A bulk label add can attach thousands of resources to one
+ * event, so the `_id IN (...)` list is split rather than sent in one go.
+ */
+export const NAME_LOOKUP_BATCH_SIZE: number = 100;
+
+export const NAME_LOADING_PLACEHOLDER: string = "Loading...";
+
+export const getUnnamedResourceLabel: (type: AffectedResourceType) => string = (
+  type: AffectedResourceType,
+): string => {
+  return `Unnamed ${RESOURCE_CONFIG[type].label}`;
+};
+
+/*
+ * Shown when the name lookup could not find the resource (deleted, not
+ * readable, or the request failed). Distinct from "Unnamed" on purpose: we
+ * do not know that the resource has no name, only that we could not read it.
+ */
+export const getUnknownResourceLabel: (type: AffectedResourceType) => string = (
+  type: AffectedResourceType,
+): string => {
+  return `Unknown ${RESOURCE_CONFIG[type].label}`;
+};
+
+const getNameCacheKey: (type: AffectedResourceType, id: string) => string = (
+  type: AffectedResourceType,
+  id: string,
+): string => {
+  return `${type}:${id}`;
+};
 
 /*
  * Translate the resource arrays already attached to the parent entity into a
  * flat, typed list the picker can render. Server payloads sometimes hand us
- * BaseModel instances, sometimes plain objects, sometimes bare ID strings
- * (the form-level onChange that splits our payload writes Array<string>),
- * so we accept all three shapes. Names that arrive in objects are mirrored
- * into nameCache so later renders against bare IDs can still show them.
+ * BaseModel instances, sometimes plain objects, sometimes bare ID strings,
+ * so we accept all three shapes. Bare IDs are the common case in an edit
+ * form: ModelForm flattens every relation it loads into Array<string>, and
+ * the form-level onChange that splits our payload writes Array<string> too.
+ *
+ * Names that arrive in objects are mirrored into nameCache so later renders
+ * against bare IDs can still show them. A resource whose name is neither in
+ * the object nor in the cache is marked isNameLoading, and the picker looks
+ * it up; once that lookup has failed (failedLookups) it is shown as unknown.
+ * Only real names are cached — never a placeholder — so a later lookup or
+ * search result can still fill the name in.
  */
-const toItems: (
+export const toItems: (
   models: Array<unknown> | undefined,
   type: AffectedResourceType,
   nameCache: Map<string, string>,
+  failedLookups: Set<string>,
 ) => Array<AffectedResourceItem> = (
   models: Array<unknown> | undefined,
   type: AffectedResourceType,
   nameCache: Map<string, string>,
+  failedLookups: Set<string>,
 ): Array<AffectedResourceItem> => {
-  if (!models || models.length === 0) {
+  /*
+   * Not only an empty list: between our onChange and the page's splitter the
+   * form briefly stores this picker's whole payload object under `monitors`.
+   * The browser never renders that state (the splitter's microtask runs
+   * first), but a synchronous flush would, and iterating it would throw.
+   */
+  if (!Array.isArray(models) || models.length === 0) {
     return [];
   }
+
+  const toItemWithoutName: (id: string) => AffectedResourceItem = (
+    id: string,
+  ): AffectedResourceItem => {
+    const cacheKey: string = getNameCacheKey(type, id);
+    const cachedName: string | undefined = nameCache.get(cacheKey);
+    if (cachedName !== undefined) {
+      return { _id: id, name: cachedName, type };
+    }
+    if (failedLookups.has(cacheKey)) {
+      return { _id: id, name: getUnknownResourceLabel(type), type };
+    }
+    return {
+      _id: id,
+      name: NAME_LOADING_PLACEHOLDER,
+      type,
+      isNameLoading: true,
+    };
+  };
+
   const items: Array<AffectedResourceItem> = [];
   for (const model of models) {
     if (!model) {
       continue;
     }
-    /*
-     * Bare string ID — the form's serializer leaves M2M fields like this
-     * after our splitter writes Array<string> into them.
-     */
     if (typeof model === "string") {
-      const cacheKey: string = `${type}:${model}`;
-      const cachedName: string | undefined = nameCache.get(cacheKey);
-      items.push({
-        _id: model,
-        name: cachedName || `Unnamed ${RESOURCE_CONFIG[type].label}`,
-        type,
-      });
+      items.push(toItemWithoutName(model));
       continue;
     }
     const anyModel: { _id?: unknown; id?: unknown; name?: unknown } = model as {
@@ -267,13 +335,18 @@ const toItems: (
     if (!id) {
       continue;
     }
-    const name: string =
-      typeof anyModel.name === "string" && anyModel.name.length > 0
-        ? anyModel.name
-        : nameCache.get(`${type}:${id}`) ||
-          `Unnamed ${RESOURCE_CONFIG[type].label}`;
-    nameCache.set(`${type}:${id}`, name);
-    items.push({ _id: id, name, type });
+    /*
+     * A missing `name` usually means it was never selected (a relation
+     * select of `true` comes back as `{ _id }` only), not that the resource
+     * is nameless — so it goes through the cache and the lookup like a bare
+     * ID. The lookup is what decides a resource really is unnamed.
+     */
+    if (typeof anyModel.name === "string" && anyModel.name.length > 0) {
+      nameCache.set(getNameCacheKey(type, id), anyModel.name);
+      items.push({ _id: id, name: anyModel.name, type });
+      continue;
+    }
+    items.push(toItemWithoutName(id));
   }
   return items;
 };
@@ -365,6 +438,21 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   const nameCacheRef: React.MutableRefObject<Map<string, string>> = useRef<
     Map<string, string>
   >(new Map());
+  /*
+   * Bookkeeping for the name lookup of resources that arrive as bare IDs.
+   * pendingLookupsRef stops a re-render from asking for the same ID twice
+   * while a request is in flight; failedLookupsRef stops an ID the server
+   * did not return from being asked for again on every render. Both are
+   * keyed like nameCache. nameCacheVersion re-derives `selected` when a
+   * lookup lands, since writing to a ref does not re-render on its own.
+   */
+  const pendingLookupsRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set());
+  const failedLookupsRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set());
+  const [nameCacheVersion, setNameCacheVersion] = useState<number>(0);
 
   /*
    * Selected items derived from props each render. The parent owns the truth;
@@ -374,46 +462,61 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
    */
   const selected: Array<AffectedResourceItem> = useMemo(() => {
     const cache: Map<string, string> = nameCacheRef.current;
+    const failed: Set<string> = failedLookupsRef.current;
     const items: Array<AffectedResourceItem> = [];
     if (resourceTypes.includes("Monitor")) {
-      items.push(...toItems(props.monitors, "Monitor", cache));
+      items.push(...toItems(props.monitors, "Monitor", cache, failed));
     }
     if (resourceTypes.includes("Host")) {
-      items.push(...toItems(props.hosts, "Host", cache));
+      items.push(...toItems(props.hosts, "Host", cache, failed));
     }
     if (resourceTypes.includes("KubernetesCluster")) {
       items.push(
-        ...toItems(props.kubernetesClusters, "KubernetesCluster", cache),
+        ...toItems(
+          props.kubernetesClusters,
+          "KubernetesCluster",
+          cache,
+          failed,
+        ),
       );
     }
     if (resourceTypes.includes("DockerHost")) {
-      items.push(...toItems(props.dockerHosts, "DockerHost", cache));
+      items.push(...toItems(props.dockerHosts, "DockerHost", cache, failed));
     }
     if (resourceTypes.includes("PodmanHost")) {
-      items.push(...toItems(props.podmanHosts, "PodmanHost", cache));
+      items.push(...toItems(props.podmanHosts, "PodmanHost", cache, failed));
     }
     if (resourceTypes.includes("ProxmoxCluster")) {
-      items.push(...toItems(props.proxmoxClusters, "ProxmoxCluster", cache));
+      items.push(
+        ...toItems(props.proxmoxClusters, "ProxmoxCluster", cache, failed),
+      );
     }
     if (resourceTypes.includes("VMwareVCenter")) {
-      items.push(...toItems(props.vmwareVCenters, "VMwareVCenter", cache));
+      items.push(
+        ...toItems(props.vmwareVCenters, "VMwareVCenter", cache, failed),
+      );
     }
     if (resourceTypes.includes("CephCluster")) {
-      items.push(...toItems(props.cephClusters, "CephCluster", cache));
+      items.push(...toItems(props.cephClusters, "CephCluster", cache, failed));
     }
     if (resourceTypes.includes("DockerSwarmCluster")) {
       items.push(
-        ...toItems(props.dockerSwarmClusters, "DockerSwarmCluster", cache),
+        ...toItems(
+          props.dockerSwarmClusters,
+          "DockerSwarmCluster",
+          cache,
+          failed,
+        ),
       );
     }
     if (resourceTypes.includes("IoTFleet")) {
-      items.push(...toItems(props.iotFleets, "IoTFleet", cache));
+      items.push(...toItems(props.iotFleets, "IoTFleet", cache, failed));
     }
     if (resourceTypes.includes("NetworkSite")) {
-      items.push(...toItems(props.networkSites, "NetworkSite", cache));
+      items.push(...toItems(props.networkSites, "NetworkSite", cache, failed));
     }
     if (resourceTypes.includes("Service")) {
-      items.push(...toItems(props.services, "Service", cache));
+      items.push(...toItems(props.services, "Service", cache, failed));
     }
     return items;
   }, [
@@ -430,6 +533,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.networkSites,
     props.services,
     resourceTypes,
+    nameCacheVersion,
   ]);
 
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -567,7 +671,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           }
           return {
             _id: id,
-            name: name.length > 0 ? name : `Unnamed ${cfg.label}`,
+            name: name.length > 0 ? name : getUnnamedResourceLabel(type),
             type,
           };
         })
@@ -578,6 +682,79 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       return [];
     }
   };
+
+  /*
+   * Look up the names of selected resources that arrived without one. An
+   * edit form hands the picker bare IDs (ModelForm flattens the relations it
+   * loads), and on a fresh mount nothing has filled nameCache yet — without
+   * this every chip read "Unnamed Monitor". Keyed on the IDs still waiting,
+   * so it runs once per new batch rather than on every render.
+   *
+   * Results are never discarded on re-render or unmount: a name that lands
+   * late is still the right name, and dropping the request (as a cancelled
+   * flag would under StrictMode's double effect) would leave the chip on
+   * "Loading..." for good.
+   */
+  const idsAwaitingName: string = selected
+    .filter((item: AffectedResourceItem): boolean => {
+      return Boolean(item.isNameLoading);
+    })
+    .map((item: AffectedResourceItem): string => {
+      return getNameCacheKey(item.type, item._id);
+    })
+    .join("|");
+
+  useEffect(() => {
+    const idsByType: Map<AffectedResourceType, Array<string>> = new Map();
+    for (const item of selected) {
+      const cacheKey: string = getNameCacheKey(item.type, item._id);
+      if (!item.isNameLoading || pendingLookupsRef.current.has(cacheKey)) {
+        continue;
+      }
+      pendingLookupsRef.current.add(cacheKey);
+      const ids: Array<string> = idsByType.get(item.type) || [];
+      ids.push(item._id);
+      idsByType.set(item.type, ids);
+    }
+
+    const lookUpBatch: (
+      type: AffectedResourceType,
+      ids: Array<string>,
+    ) => Promise<void> = async (
+      type: AffectedResourceType,
+      ids: Array<string>,
+    ): Promise<void> => {
+      // fetchByQuery swallows errors, so a failed request reads as "not found".
+      const found: Array<AffectedResourceItem> = await fetchByQuery(
+        type,
+        { _id: new Includes(ids) },
+        ids.length,
+      );
+      const foundIds: Set<string> = new Set();
+      for (const item of found) {
+        foundIds.add(item._id);
+        nameCacheRef.current.set(getNameCacheKey(type, item._id), item.name);
+      }
+      for (const id of ids) {
+        const cacheKey: string = getNameCacheKey(type, id);
+        pendingLookupsRef.current.delete(cacheKey);
+        if (!foundIds.has(id)) {
+          failedLookupsRef.current.add(cacheKey);
+        }
+      }
+      setNameCacheVersion((version: number): number => {
+        return version + 1;
+      });
+    };
+
+    idsByType.forEach(
+      (ids: Array<string>, type: AffectedResourceType): void => {
+        for (let i: number = 0; i < ids.length; i += NAME_LOOKUP_BATCH_SIZE) {
+          void lookUpBatch(type, ids.slice(i, i + NAME_LOOKUP_BATCH_SIZE));
+        }
+      },
+    );
+  }, [idsAwaitingName]);
 
   useEffect(() => {
     if (debounceRef.current !== null) {
@@ -1095,6 +1272,8 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   const placeholder: string =
     activeTab === "labels" ? "Search labels..." : resourcesPlaceholder;
 
+  const isEditable: boolean = !props.disabled && !props.readOnly;
+
   const chipOverflow: number = Math.max(0, selected.length - MAX_VISIBLE_CHIPS);
   const visibleChips: Array<AffectedResourceItem> =
     showAllChips || chipOverflow === 0
@@ -1104,9 +1283,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   return (
     <div ref={containerRef} className="relative mt-1 w-full">
       {selected.length > 0 && (
-        <div className="mb-2 space-y-2">
+        <div className={props.readOnly ? "space-y-2" : "mb-2 space-y-2"}>
           {(chipOverflow > 0 || selected.length >= MAX_VISIBLE_CHIPS) &&
-            !props.disabled && (
+            isEditable && (
               <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs">
                 <span className="text-gray-600">
                   <span className="font-semibold text-gray-800">
@@ -1135,11 +1314,22 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   <span className="text-xs uppercase tracking-wide text-gray-500">
                     {cfg.label}
                   </span>
-                  <span className="text-gray-800">{item.name}</span>
-                  {!props.disabled && (
+                  <span
+                    className={
+                      item.isNameLoading
+                        ? "italic text-gray-400"
+                        : "text-gray-800"
+                    }
+                    aria-busy={item.isNameLoading ? true : undefined}
+                  >
+                    {item.name}
+                  </span>
+                  {isEditable && (
                     <button
                       type="button"
-                      aria-label={`Remove ${item.name}`}
+                      aria-label={`Remove ${
+                        item.isNameLoading ? cfg.label.toLowerCase() : item.name
+                      }`}
                       onClick={() => {
                         removeItem(item);
                       }}
@@ -1179,106 +1369,109 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      <input
-        ref={inputRef}
-        type="text"
-        value={searchQuery}
-        disabled={props.disabled}
-        aria-autocomplete="list"
-        aria-expanded={isOpen}
-        role="combobox"
-        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-          setSearchQuery(event.target.value);
-          setIsOpen(true);
-          setHighlightedIndex(-1);
-        }}
-        onFocus={() => {
-          setIsOpen(true);
-        }}
-        onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-          /*
-           * The cursor walks whichever list the active tab is showing —
-           * resources or labels. Length is checked against the active list
-           * so ArrowUp/Down become no-ops when there's nothing to move to.
-           */
-          const activeLen: number =
-            activeTab === "labels"
-              ? filteredLabels.length
-              : flatAvailable.length;
-
-          if (event.key === "ArrowDown") {
-            if (activeLen === 0) {
-              return;
-            }
-            event.preventDefault();
+      {!props.readOnly && (
+        <input
+          ref={inputRef}
+          type="text"
+          value={searchQuery}
+          disabled={props.disabled}
+          aria-autocomplete="list"
+          aria-expanded={isOpen}
+          role="combobox"
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            setSearchQuery(event.target.value);
             setIsOpen(true);
-            setHighlightedIndex((prev: number): number => {
-              const next: number = prev + 1;
-              return next >= activeLen ? 0 : next;
-            });
-            return;
-          }
-          if (event.key === "ArrowUp") {
-            if (activeLen === 0) {
-              return;
-            }
-            event.preventDefault();
-            setIsOpen(true);
-            setHighlightedIndex((prev: number): number => {
-              if (prev <= 0) {
-                return activeLen - 1;
-              }
-              return prev - 1;
-            });
-            return;
-          }
-          if (event.key === "Enter") {
-            if (highlightedIndex < 0 || highlightedIndex >= activeLen) {
-              return;
-            }
-            event.preventDefault();
-            if (activeTab === "labels") {
-              const label: Label | undefined = filteredLabels[highlightedIndex];
-              const labelId: string = label?._id ? String(label._id) : "";
-              if (labelId) {
-                toggleLabelId(labelId);
-              }
-              return;
-            }
-            const target: AffectedResourceItem | undefined =
-              flatAvailable[highlightedIndex];
-            if (target) {
-              addItem(target);
-              setHighlightedIndex(-1);
-            }
-            return;
-          }
-          if (event.key === "Escape") {
-            setIsOpen(false);
             setHighlightedIndex(-1);
-            return;
-          }
-          if (
-            event.key === "Backspace" &&
-            searchQuery === "" &&
-            selected.length > 0 &&
-            activeTab === "resources"
-          ) {
+          }}
+          onFocus={() => {
+            setIsOpen(true);
+          }}
+          onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
             /*
-             * Backspace on empty input removes the last selected chip — same
-             * convention as react-select and most tag inputs. Gated to the
-             * resources tab so labels-tab backspace doesn't accidentally
-             * delete a resource chip the user is no longer looking at.
+             * The cursor walks whichever list the active tab is showing —
+             * resources or labels. Length is checked against the active list
+             * so ArrowUp/Down become no-ops when there's nothing to move to.
              */
-            event.preventDefault();
-            removeItem(selected[selected.length - 1] as AffectedResourceItem);
-          }
-        }}
-        placeholder={placeholder}
-        className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
-      />
+            const activeLen: number =
+              activeTab === "labels"
+                ? filteredLabels.length
+                : flatAvailable.length;
 
-      {isOpen && !props.disabled && (
+            if (event.key === "ArrowDown") {
+              if (activeLen === 0) {
+                return;
+              }
+              event.preventDefault();
+              setIsOpen(true);
+              setHighlightedIndex((prev: number): number => {
+                const next: number = prev + 1;
+                return next >= activeLen ? 0 : next;
+              });
+              return;
+            }
+            if (event.key === "ArrowUp") {
+              if (activeLen === 0) {
+                return;
+              }
+              event.preventDefault();
+              setIsOpen(true);
+              setHighlightedIndex((prev: number): number => {
+                if (prev <= 0) {
+                  return activeLen - 1;
+                }
+                return prev - 1;
+              });
+              return;
+            }
+            if (event.key === "Enter") {
+              if (highlightedIndex < 0 || highlightedIndex >= activeLen) {
+                return;
+              }
+              event.preventDefault();
+              if (activeTab === "labels") {
+                const label: Label | undefined =
+                  filteredLabels[highlightedIndex];
+                const labelId: string = label?._id ? String(label._id) : "";
+                if (labelId) {
+                  toggleLabelId(labelId);
+                }
+                return;
+              }
+              const target: AffectedResourceItem | undefined =
+                flatAvailable[highlightedIndex];
+              if (target) {
+                addItem(target);
+                setHighlightedIndex(-1);
+              }
+              return;
+            }
+            if (event.key === "Escape") {
+              setIsOpen(false);
+              setHighlightedIndex(-1);
+              return;
+            }
+            if (
+              event.key === "Backspace" &&
+              searchQuery === "" &&
+              selected.length > 0 &&
+              activeTab === "resources"
+            ) {
+              /*
+               * Backspace on empty input removes the last selected chip — same
+               * convention as react-select and most tag inputs. Gated to the
+               * resources tab so labels-tab backspace doesn't accidentally
+               * delete a resource chip the user is no longer looking at.
+               */
+              event.preventDefault();
+              removeItem(selected[selected.length - 1] as AffectedResourceItem);
+            }
+          }}
+          placeholder={placeholder}
+          className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
+        />
+      )}
+
+      {isOpen && isEditable && (
         <div
           className="absolute z-10 mt-1 flex max-h-96 w-full flex-col overflow-hidden rounded-md border border-gray-200 bg-white text-sm shadow-lg"
           role="listbox"
