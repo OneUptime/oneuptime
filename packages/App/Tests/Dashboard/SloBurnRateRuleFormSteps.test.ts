@@ -21,6 +21,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import {
+  DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
   SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
   SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
@@ -49,8 +50,8 @@ import {
 type FieldOf = ModelField<ServiceLevelObjectiveBurnRateRule>;
 type StepOf = FormStep<ServiceLevelObjectiveBurnRateRule>;
 
-const ALERT_STEPS: Array<string> = ["alert-details", "alert-routing"];
-const INCIDENT_STEPS: Array<string> = ["incident-details", "incident-routing"];
+const ALERT_STEPS: Array<string> = ["alert-details"];
+const INCIDENT_STEPS: Array<string> = ["incident-details"];
 
 function stepIds(): Array<string> {
   return BURN_RATE_RULE_FORM_STEPS.map((step: StepOf): string => {
@@ -132,24 +133,14 @@ describe("the burn rate rule form steps", () => {
       "burn-window",
       "declares",
       "alert-details",
-      "alert-routing",
       "incident-details",
-      "incident-routing",
     ]);
 
     expect(
       BURN_RATE_RULE_FORM_STEPS.map((step: StepOf): string => {
         return step.title;
       }),
-    ).toEqual([
-      "Rule",
-      "Burn Window",
-      "What It Declares",
-      "Alert Details",
-      "Alert Routing",
-      "Incident Details",
-      "Incident Routing",
-    ]);
+    ).toEqual(["Rule", "Burn Window", "What It Declares", "Alert", "Incident"]);
   });
 
   test("every step id is unique", () => {
@@ -200,15 +191,12 @@ describe("the burn rate rule form steps", () => {
 
     expect(columnsOnStep("alert-details")).toEqual([
       "alertTitleTemplate",
-      "alertDescriptionTemplate",
       "alertSeverity",
-    ]);
-
-    expect(columnsOnStep("alert-routing")).toEqual([
-      "onCallDutyPolicies",
+      "alertDescriptionTemplate",
       "alertOwnerTeams",
       "alertOwnerUsers",
       "alertLabels",
+      "onCallDutyPolicies",
       "autoResolveAlert",
       "isAlertPrivate",
       "alertRemediationNotes",
@@ -216,15 +204,12 @@ describe("the burn rate rule form steps", () => {
 
     expect(columnsOnStep("incident-details")).toEqual([
       "incidentTitleTemplate",
-      "incidentDescriptionTemplate",
       "incidentSeverity",
-    ]);
-
-    expect(columnsOnStep("incident-routing")).toEqual([
-      "incidentOnCallDutyPolicies",
+      "incidentDescriptionTemplate",
       "incidentOwnerTeams",
       "incidentOwnerUsers",
       "incidentLabels",
+      "incidentOnCallDutyPolicies",
       "autoResolveIncident",
       "isIncidentPrivate",
       "incidentRemediationNotes",
@@ -441,7 +426,7 @@ describe("the template fields", () => {
     "incidentRemediationNotes",
   ];
 
-  test("titles are single-line text, limited like the server and showing the default", () => {
+  test("titles prefill the worker's default as editable text and remain optional", () => {
     for (const column of TITLE_COLUMNS) {
       const field: FieldOf = fieldFor(column);
 
@@ -452,14 +437,35 @@ describe("the template fields", () => {
       );
 
       /*
-       * The placeholder IS the default template, so an empty field shows what
-       * the record will be titled rather than implying it will be untitled.
+       * A default must be a value, not only a placeholder. Keep the placeholder
+       * too, so clearing the field still explains the worker's fallback.
        */
       expect(field.placeholder).toBe(DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE);
+      expect(field.defaultValue).toBe(DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE);
       expect(descriptionOf(field)).toContain(
         DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
       );
     }
+  });
+
+  test.each(["alertDescriptionTemplate", "incidentDescriptionTemplate"])(
+    "%s prefills the worker's description and permits clearing to the fallback",
+    (column: string) => {
+      const field: FieldOf = fieldFor(column);
+      expect(field.fieldType).toBe(FormFieldSchemaType.Markdown);
+      expect(field.defaultValue).toBe(
+        DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+      );
+      expect(field.required).toBe(false);
+      expect(
+        DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE.length,
+      ).toBeLessThanOrEqual(field.validation!.maxLength!);
+    },
+  );
+
+  test("prefilling descriptions leaves both remediation notes empty", () => {
+    expect(fieldFor("alertRemediationNotes").defaultValue).toBeUndefined();
+    expect(fieldFor("incidentRemediationNotes").defaultValue).toBeUndefined();
   });
 
   test("the title limit is the column's own length, so a saved template always fits", () => {
@@ -672,7 +678,7 @@ describe("the per-output steps appear only for the output they configure", () =>
     }
   });
 
-  test("turning an output on reveals both of its steps, turning it off hides both", () => {
+  test("turning an output on reveals its step, turning it off hides it", () => {
     for (const id of INCIDENT_STEPS) {
       expect(isVisible(id, { shouldCreateIncident: true })).toBe(true);
       expect(isVisible(id, { shouldCreateIncident: false })).toBe(false);
@@ -774,5 +780,133 @@ describe("willCreateAlert / willDeclareIncident", () => {
   test("each reads only its own flag", () => {
     expect(willCreateAlert({ shouldCreateIncident: true })).toBe(true);
     expect(willDeclareIncident({ shouldCreateAlert: true })).toBe(false);
+  });
+});
+
+describe("the output sections", () => {
+  test.each(["alert", "incident"] as const)(
+    "%s keeps title and severity visible and groups optional fields",
+    (output: "alert" | "incident") => {
+      const type: string = output === "alert" ? "Alert" : "Incident";
+      const columns: Array<string> = columnsOnStep(output + "-details");
+      expect(columns).toEqual([
+        output + "TitleTemplate",
+        output + "Severity",
+        output + "DescriptionTemplate",
+        output + "OwnerTeams",
+        output + "OwnerUsers",
+        output + "Labels",
+        output === "alert"
+          ? "onCallDutyPolicies"
+          : "incidentOnCallDutyPolicies",
+        "autoResolve" + type,
+        "is" + type + "Private",
+        output + "RemediationNotes",
+      ]);
+      expect(
+        fieldFor(output + "TitleTemplate").collapsibleSection,
+      ).toBeUndefined();
+      expect(fieldFor(output + "Severity").collapsibleSection).toBeUndefined();
+      expect(
+        columns.slice(2).map((column: string): string | undefined => {
+          return fieldFor(column).collapsibleSection?.title;
+        }),
+      ).toEqual([
+        "Description",
+        "Ownership & Labels",
+        "Ownership & Labels",
+        "Ownership & Labels",
+        "On-Call",
+        "Advanced Options",
+        "Advanced Options",
+        "Advanced Options",
+      ]);
+    },
+  );
+
+  test("values without templates keep optional sections collapsed, including auto-resolve defaults", () => {
+    for (const field of BURN_RATE_RULE_FORM_FIELDS) {
+      if (field.collapsibleSection) {
+        expect(field.collapsibleSection.isConfigured({})).toBe(false);
+        expect(
+          field.collapsibleSection.isConfigured({
+            autoResolveAlert: true,
+            autoResolveIncident: true,
+          }),
+        ).toBe(false);
+      }
+    }
+  });
+
+  test("prefilled descriptions open their sections while routing and advanced defaults stay collapsed", () => {
+    const defaults: FormValues<ServiceLevelObjectiveBurnRateRule> =
+      Object.fromEntries(
+        BURN_RATE_RULE_FORM_FIELDS.filter((field: FieldOf): boolean => {
+          return field.defaultValue !== undefined;
+        }).map((field: FieldOf): [string, unknown] => {
+          return [columnOf(field), field.defaultValue];
+        }),
+      );
+
+    for (const field of BURN_RATE_RULE_FORM_FIELDS) {
+      if (field.collapsibleSection) {
+        expect(field.collapsibleSection.isConfigured(defaults)).toBe(
+          field.collapsibleSection.title === "Description",
+        );
+      }
+    }
+  });
+
+  test.each([
+    ["alertDescriptionTemplate", "Alert description"],
+    ["incidentDescriptionTemplate", "Incident description"],
+    ["alertOwnerTeams", ["team-id"]],
+    ["alertOwnerUsers", ["user-id"]],
+    ["alertLabels", ["label-id"]],
+    ["incidentOwnerTeams", ["team-id"]],
+    ["incidentOwnerUsers", ["user-id"]],
+    ["incidentLabels", ["label-id"]],
+    ["onCallDutyPolicies", ["policy-id"]],
+    ["incidentOnCallDutyPolicies", ["policy-id"]],
+    ["autoResolveAlert", false],
+    ["autoResolveIncident", false],
+    ["isAlertPrivate", true],
+    ["isIncidentPrivate", true],
+    ["alertRemediationNotes", "Restart the service"],
+    ["incidentRemediationNotes", "Check the runbook"],
+  ])(
+    "saved %s opens only its configured section",
+    (column: string, value: unknown) => {
+      const configuredValues: FormValues<ServiceLevelObjectiveBurnRateRule> = {
+        [column]: value,
+      };
+      const section: NonNullable<FieldOf["collapsibleSection"]> =
+        fieldFor(column).collapsibleSection!;
+      expect(section.isConfigured(configuredValues)).toBe(true);
+      for (const field of BURN_RATE_RULE_FORM_FIELDS) {
+        if (field.collapsibleSection) {
+          expect(field.collapsibleSection.isConfigured(configuredValues)).toBe(
+            field.collapsibleSection.id === section.id,
+          );
+        }
+      }
+    },
+  );
+
+  test("empty selections do not mark routing or ownership as configured", () => {
+    for (const column of [
+      "alertOwnerTeams",
+      "alertOwnerUsers",
+      "alertLabels",
+      "incidentOwnerTeams",
+      "incidentOwnerUsers",
+      "incidentLabels",
+      "onCallDutyPolicies",
+      "incidentOnCallDutyPolicies",
+    ]) {
+      expect(
+        fieldFor(column).collapsibleSection!.isConfigured({ [column]: [] }),
+      ).toBe(false);
+    }
   });
 });

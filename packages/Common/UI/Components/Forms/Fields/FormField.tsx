@@ -354,6 +354,13 @@ const FormField: <T extends GenericObject>(
           : (props.field.defaultValue as boolean)) || false;
     }
 
+    const storedInputValue: unknown =
+      props.currentValues?.[props.fieldName as keyof FormValues<T>];
+    const inputInitialValue: unknown =
+      storedInputValue === undefined
+        ? props.field.defaultValue
+        : storedInputValue;
+
     return (
       <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
         {/*** Do not display label on checkbox because checkbox can display its own label */}
@@ -964,10 +971,9 @@ const FormField: <T extends GenericObject>(
                 props.setFieldTouched(props.fieldName, true);
               }}
               initialValue={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : props.field.defaultValue || ""
+                inputInitialValue instanceof Date
+                  ? inputInitialValue
+                  : String(inputInitialValue ?? "")
               }
               placeholder={translatedPlaceholder || ""}
             />
