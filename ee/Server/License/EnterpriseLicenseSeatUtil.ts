@@ -1,12 +1,12 @@
-import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
-import EnterpriseLicenseInstanceSummary from "../../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
-import BadDataException from "../../../Types/Exception/BadDataException";
-import ObjectID from "../../../Types/ObjectID";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
 import EnterpriseLicenseSeatsUtil, {
   SeatUsage,
-} from "../../../Utils/EnterpriseLicense/EnterpriseLicenseSeats";
-import { IsBillingEnabled, IsEnterpriseEdition } from "../../EnvironmentConfig";
-import GlobalConfigService from "../../Services/GlobalConfigService";
+} from "Common/Utils/EnterpriseLicense/EnterpriseLicenseSeats";
+import { IsBillingEnabled, IsEnterpriseEdition } from "Common/Server/EnvironmentConfig";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 
 /*
  * Counts the users on THIS installation. Passed in rather than called

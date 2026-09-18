@@ -43,7 +43,7 @@ const mockCapturedJobs: Record<string, CapturedJob> = {};
 let mockBillingEnabled: boolean = false;
 let mockEnterpriseEdition: boolean = true;
 
-jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
+jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(
@@ -127,7 +127,7 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
  * TypeScript emits requires where the import sits, so an import hoisted above
  * those `let`s would touch them in their temporal dead zone.
  */
-import "../../../../FeatureSet/Workers/Jobs/EnterpriseLicense/ReportUserCount";
+import "../../../Server/License/Jobs/ReportUserCount";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import UserService from "Common/Server/Services/UserService";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";

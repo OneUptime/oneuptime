@@ -1,9 +1,9 @@
-import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
-import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
-import EnterpriseLicenseSeatUtil from "../../../../Server/Utils/EnterpriseLicense/EnterpriseLicenseSeatUtil";
-import BadDataException from "../../../../Types/Exception/BadDataException";
-import ObjectID from "../../../../Types/ObjectID";
-import { SeatUsage } from "../../../../Utils/EnterpriseLicense/EnterpriseLicenseSeats";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import EnterpriseLicenseSeatUtil from "../../../Server/License/EnterpriseLicenseSeatUtil";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
+import { SeatUsage } from "Common/Utils/EnterpriseLicense/EnterpriseLicenseSeats";
 import {
   beforeEach,
   afterEach,
@@ -39,9 +39,9 @@ let mockEnterpriseEdition: boolean = true;
  * Live accessors rather than plain values: the util reads these when it runs,
  * and object spread would flatten them to whatever they were at import time.
  */
-jest.mock("../../../../Server/EnvironmentConfig", () => {
+jest.mock("Common/Server/EnvironmentConfig", () => {
   const actual: Record<string, unknown> = jest.requireActual(
-    "../../../../Server/EnvironmentConfig",
+    "Common/Server/EnvironmentConfig",
   ) as Record<string, unknown>;
 
   const mocked: Record<string, unknown> = {
@@ -64,7 +64,7 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
   return mocked;
 });
 
-jest.mock("../../../../Server/Services/GlobalConfigService", () => {
+jest.mock("Common/Server/Services/GlobalConfigService", () => {
   return {
     __esModule: true,
     default: {

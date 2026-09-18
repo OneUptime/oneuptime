@@ -1,22 +1,22 @@
-import GlobalConfigAPI from "../../../Server/API/GlobalConfigAPI";
-import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
-import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
-import UserService from "../../../Server/Services/UserService";
-import Response from "../../../Server/Utils/Response";
-import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
-import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
-import HTTPResponse from "../../../Types/API/HTTPResponse";
-import BadDataException from "../../../Types/Exception/BadDataException";
-import { JSONObject } from "../../../Types/JSON";
-import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
-import API from "../../../Utils/API";
+import GlobalConfigAPI from "Common/Server/API/GlobalConfigAPI";
+import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import UserService from "Common/Server/Services/UserService";
+import Response from "Common/Server/Utils/Response";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import PositiveNumber from "Common/Types/PositiveNumber";
+import API from "Common/Utils/API";
 import {
   NextFunction,
   OneUptimeRequest,
   OneUptimeResponse,
-} from "../../../Server/Utils/Express";
-import { mockRouter } from "./Helpers";
+} from "Common/Server/Utils/Express";
+import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -47,7 +47,7 @@ import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
  * a factory rather than automocked, because an automock still type-checks the
  * real file.
  */
-jest.mock("../../../Server/Utils/PasswordHash", () => {
+jest.mock("Common/Server/Utils/PasswordHash", () => {
   return {
     __esModule: true,
     default: {
@@ -61,7 +61,7 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 });
 
 // Same story as PasswordHash: a local-only diagnostic in a module dragged in.
-jest.mock("../../../Server/Utils/VerificationCode", () => {
+jest.mock("Common/Server/Utils/VerificationCode", () => {
   return {
     __esModule: true,
     default: {
@@ -73,7 +73,7 @@ jest.mock("../../../Server/Utils/VerificationCode", () => {
   };
 });
 
-jest.mock("../../../Server/Utils/Express", () => {
+jest.mock("Common/Server/Utils/Express", () => {
   return {
     getRouter: () => {
       return mockRouter;
@@ -81,7 +81,7 @@ jest.mock("../../../Server/Utils/Express", () => {
   };
 });
 
-jest.mock("../../../Server/Utils/Response", () => {
+jest.mock("Common/Server/Utils/Response", () => {
   return {
     sendEntityArrayResponse: jest.fn().mockImplementation((...args: []) => {
       return args;
@@ -126,9 +126,9 @@ const setDeploymentFlag: SetDeploymentFlagFunction = (
   (globalThis as unknown as Record<string, unknown>)[key] = value;
 };
 
-jest.mock("../../../Server/EnvironmentConfig", () => {
+jest.mock("Common/Server/EnvironmentConfig", () => {
   const actual: Record<string, unknown> = jest.requireActual(
-    "../../../Server/EnvironmentConfig",
+    "Common/Server/EnvironmentConfig",
   ) as Record<string, unknown>;
 
   const mocked: Record<string, unknown> = {
@@ -165,7 +165,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * some of which reads IsBillingEnabled at module scope, before the flags above
  * have initialised. Nothing here needs the real implementations.
  */
-jest.mock("../../../Utils/API", () => {
+jest.mock("Common/Utils/API", () => {
   return {
     __esModule: true,
     default: {
@@ -174,7 +174,7 @@ jest.mock("../../../Utils/API", () => {
   };
 });
 
-jest.mock("../../../Server/Services/GlobalConfigService", () => {
+jest.mock("Common/Server/Services/GlobalConfigService", () => {
   return {
     __esModule: true,
     default: {
@@ -185,7 +185,7 @@ jest.mock("../../../Server/Services/GlobalConfigService", () => {
   };
 });
 
-jest.mock("../../../Server/Services/UserService", () => {
+jest.mock("Common/Server/Services/UserService", () => {
   return {
     __esModule: true,
     default: {
