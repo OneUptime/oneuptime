@@ -5,6 +5,7 @@ import TeamMemberService, {
   TeamMemberService as TeamMemberServiceType,
 } from "../Services/TeamMemberService";
 import UserService from "../Services/UserService";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -218,7 +219,15 @@ export default class TeamMemberAPI extends BaseAPI<
             );
           }
 
-          if (teamMember.projectId) {
+          /*
+           * While SCIM Push Groups owns the project's teams only the identity
+           * provider may remove members. Not on the Community Edition, which
+           * has no SCIM endpoint: a leftover setting would trap the member.
+           */
+          if (
+            teamMember.projectId &&
+            EditionEnforcement.areScimTeamLocksEnforced()
+          ) {
             const scimCount: number = (
               await ProjectSCIMService.countBy({
                 query: {

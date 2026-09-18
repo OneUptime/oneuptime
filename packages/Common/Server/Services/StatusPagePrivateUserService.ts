@@ -3,6 +3,7 @@ import { EncryptionSecret } from "../EnvironmentConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
@@ -189,8 +190,10 @@ export class Service extends DatabaseService<Model> {
     /*
      * SCIM and admin-created users must follow the page's login policy too.
      * Do not create a password-reset credential when only SSO can be used.
+     * On the Community Edition there is no SSO login for status pages, so a
+     * leftover requirement is not enforced and the user gets a password link.
      */
-    if (statusPage.requireSsoForLogin) {
+    if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
       return createdItem;
     }
 

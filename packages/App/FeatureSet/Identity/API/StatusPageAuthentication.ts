@@ -25,6 +25,7 @@ import StatusPagePrivateUserSessionService, {
   SessionMetadata as StatusPageSessionMetadata,
 } from "Common/Server/Services/StatusPagePrivateUserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import EditionEnforcement from "Common/Server/Utils/EditionEnforcement";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
@@ -604,7 +605,13 @@ router.post(
         throw new BadDataException("Status Page not found");
       }
 
-      if (statusPage.requireSsoForLogin) {
+      /*
+       * Enforced whenever the Enterprise Edition is loaded, whatever its
+       * license says. Only the Community Edition, which serves no status
+       * page SSO login routes, lets a leftover requirement fall back to
+       * email and password.
+       */
+      if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
         throw new BadDataException(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );
@@ -810,7 +817,13 @@ router.post(
         throw new BadDataException("Status Page not found");
       }
 
-      if (statusPage.requireSsoForLogin) {
+      /*
+       * Enforced whenever the Enterprise Edition is loaded, whatever its
+       * license says. Only the Community Edition, which serves no status
+       * page SSO login routes, lets a leftover requirement fall back to
+       * email and password.
+       */
+      if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
         throw new BadDataException(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );
@@ -929,7 +942,13 @@ router.post(
         throw new BadDataException("Status Page not found");
       }
 
-      if (statusPage.requireSsoForLogin) {
+      /*
+       * Enforced whenever the Enterprise Edition is loaded, whatever its
+       * license says. Only the Community Edition, which serves no status
+       * page SSO login routes, lets a leftover requirement fall back to
+       * email and password.
+       */
+      if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
         throw new BadDataException(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );
