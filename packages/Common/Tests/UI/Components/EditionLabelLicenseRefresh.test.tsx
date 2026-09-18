@@ -127,7 +127,14 @@ const licensePayload: LicensePayloadFunction = (
     expiresAt: EXPIRES_AT,
     licenseKey: "acme-license-key",
     token: "signed.jwt.token",
+    edition: "enterprise",
+    status: "valid",
+    verification: "verified",
+    graceReason: null,
+    graceEndsAt: null,
+    activationMode: "online",
     licenseValid: true,
+    isEvaluation: false,
     isEvaluationLicense: false,
     userLimit: 50,
     currentUserCount: 50,
@@ -188,7 +195,7 @@ describe("EditionLabel - refreshing the license", () => {
     await openDialog();
 
     await waitFor(() => {
-      expect(screen.getByText("Licensed seats")).toBeInTheDocument();
+      expect(screen.getByText("Licensed to")).toBeInTheDocument();
     });
 
     expect(
@@ -197,12 +204,68 @@ describe("EditionLabel - refreshing the license", () => {
     expect(screen.queryByText("Change license key")).not.toBeInTheDocument();
   });
 
+  /*
+   * The server gives seat figures to a master admin only; anybody else would
+   * be shown an empty "unlimited" card.
+   */
+  it("does not show the seat card to a user who is not a master admin", async () => {
+    isMasterAdmin = false;
+    respond = (): HTTPResponse<JSONObject> => {
+      return new HTTPResponse<JSONObject>(
+        200,
+        {
+          edition: "enterprise",
+          status: "valid",
+          verification: "verified",
+          licenseValid: true,
+          companyName: "Acme Inc",
+          expiresAt: EXPIRES_AT,
+          isEvaluation: false,
+          isEvaluationLicense: false,
+          graceEndsAt: null,
+          graceReason: null,
+        },
+        {},
+      );
+    };
+
+    await openDialog();
+
+    expect(await screen.findByText("Licensed to")).toBeInTheDocument();
+    expect(screen.queryByText("Licensed seats")).not.toBeInTheDocument();
+    expect(screen.queryByText(/unlimited/)).not.toBeInTheDocument();
+  });
+
+  /*
+   * An installation activated offline holds no license key, so there is
+   * nothing to refresh from oneuptime.com: a new token replaces the license.
+   */
+  it("offers no refresh to an installation activated offline", async () => {
+    respond = (): HTTPResponse<JSONObject> => {
+      return new HTTPResponse<JSONObject>(
+        200,
+        licensePayload({ activationMode: "offline", licenseKey: null }),
+        {},
+      );
+    };
+
+    await openDialog();
+
+    expect(await screen.findByText("Replace license")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("refresh-enterprise-license"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/activated offline, so it does not report/),
+    ).toBeInTheDocument();
+  });
+
   it("asks a non-admin to find one when the license needs activating", async () => {
     isMasterAdmin = false;
     respond = (): HTTPResponse<JSONObject> => {
       return new HTTPResponse<JSONObject>(
         200,
-        licensePayload({ licenseValid: false, token: null }),
+        licensePayload({ licenseValid: false, token: null, status: "missing" }),
         {},
       );
     };

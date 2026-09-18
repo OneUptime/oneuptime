@@ -2,6 +2,7 @@ import Modal, { ModalWidth } from "../Modal/Modal";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Input from "../Input/Input";
+import TextArea from "../TextArea/TextArea";
 import Button, { ButtonStyleType } from "../Button/Button";
 import React, {
   FunctionComponent,
@@ -25,6 +26,7 @@ import {
   APP_API_URL,
   BILLING_ENABLED,
   IS_ENTERPRISE_EDITION,
+  env,
 } from "../../Config";
 import Alert, { AlertType } from "../Alerts/Alert";
 import EnterpriseLicenseInstanceSummary from "../../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
@@ -49,6 +51,38 @@ const UPGRADE_GUIDE_URL: string =
   "https://oneuptime.com/docs/installation/upgrading";
 const SALES_EMAIL: string = "sales@oneuptime.com";
 const SALES_MAILTO_URL: string = "mailto:sales@oneuptime.com";
+
+const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
+
+/*
+ * What happens without a license, in one sentence set, so every notice in the
+ * dialog describes soft enforcement the same way (and truthfully: nothing that
+ * is already configured stops, and core monitoring is never touched).
+ */
+const SOFT_ENFORCEMENT_SUMMARY: string =
+  "Without a valid license (after the 14-day grace period), enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything you already configured keeps working — SSO, SCIM and audit logging never stop — and core monitoring is never affected.";
+
+type LicenseStatus = "valid" | "grace" | "expired" | "missing" | "invalid";
+
+type ParseLicenseStatusFunction = (value: unknown) => LicenseStatus | null;
+
+const parseLicenseStatus: ParseLicenseStatusFunction = (
+  value: unknown,
+): LicenseStatus | null => {
+  if (
+    value === "valid" ||
+    value === "grace" ||
+    value === "expired" ||
+    value === "missing" ||
+    value === "invalid"
+  ) {
+    return value;
+  }
+
+  return null;
+};
+
+type ActivationInputMode = "key" | "token";
 
 /*
  * Seat usage at or above this percent asks the admin to talk to OneUptime about
@@ -195,12 +229,55 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [serverLicenseValid, setServerLicenseValid] = useState<boolean | null>(
     null,
   );
+  /*
+   * Where the license stands, as the Enterprise license client classified it:
+   * valid, grace (an expired license's grace period, or an unlicensed
+   * installation's trial counted from its first run), expired, missing or
+   * invalid - and whether it could be verified offline.
+   */
+  const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(
+    null,
+  );
+  const [licenseVerification, setLicenseVerification] = useState<string>("");
+  const [graceReason, setGraceReason] = useState<string>("");
+  const [graceEndsAt, setGraceEndsAt] = useState<string>("");
+  // Why the license is not valid, when the server says (master admins only).
+  const [licenseMessage, setLicenseMessage] = useState<string>("");
+  // "online" (a license key) or "offline" (a pasted signed token).
+  const [activationMode, setActivationMode] = useState<string>("");
+  // Which activation the input section offers: a license key, or a token.
+  const [activationInputMode, setActivationInputMode] =
+    useState<ActivationInputMode>("key");
+  const [licenseTokenInput, setLicenseTokenInput] = useState<string>("");
   const licenseInputEditedRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
-  if (BILLING_ENABLED) {
-    return <></>;
-  }
+  /*
+   * Activating, replacing and refreshing the license are master-admin actions:
+   * the license is instance-wide, and its seat limit is what UserService
+   * enforces against, so being able to rewrite it is being able to raise the
+   * ceiling on the whole installation. The server enforces this
+   * (MasterAdminAuthorization on both POSTs, and it answers everybody else
+   * with the edition pill's fields only); hiding the controls here just stops
+   * everyone else being offered a button that can only fail.
+   *
+   * False for a signed-out visitor, which is what keeps the license key input
+   * off the login page where this same component renders the edition pill.
+   */
+  const canManageLicense: boolean = useMemo(() => {
+    return Boolean(UserUtil.isMasterAdmin());
+  }, []);
+
+  /*
+   * The server says it was asked for the Enterprise Edition
+   * (IS_ENTERPRISE_EDITION=true) but runs the Community Edition image, which
+   * has no enterprise code. Only a master admin can fix that, so only a
+   * master admin is told.
+   */
+  const showEditionMismatchNotice: boolean =
+    !IS_ENTERPRISE_EDITION &&
+    canManageLicense &&
+    env("ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED") === "true";
 
   /*
    * Both the license GET and the two license POSTs answer with the same seat
@@ -301,7 +378,34 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             ? payload["licenseValid"]
             : null,
         );
-        setIsEvaluationLicense(payload["isEvaluationLicense"] === true);
+        setIsEvaluationLicense(
+          payload["isEvaluation"] === true ||
+            payload["isEvaluationLicense"] === true,
+        );
+        setLicenseStatus(parseLicenseStatus(payload["status"]));
+        setLicenseVerification(
+          typeof payload["verification"] === "string"
+            ? payload["verification"]
+            : "",
+        );
+        setGraceReason(
+          typeof payload["graceReason"] === "string"
+            ? payload["graceReason"]
+            : "",
+        );
+        setGraceEndsAt(
+          typeof payload["graceEndsAt"] === "string"
+            ? payload["graceEndsAt"]
+            : "",
+        );
+        setLicenseMessage(
+          typeof payload["message"] === "string" ? payload["message"] : "",
+        );
+        setActivationMode(
+          typeof payload["activationMode"] === "string"
+            ? payload["activationMode"]
+            : "",
+        );
 
         setCurrentVersion(
           typeof payload["currentVersion"] === "string"
@@ -335,6 +439,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         setLicenseInstances([]);
         setServerLicenseValid(null);
         setIsEvaluationLicense(false);
+        setLicenseStatus(null);
+        setLicenseVerification("");
+        setGraceReason("");
+        setGraceEndsAt("");
+        setLicenseMessage("");
+        setActivationMode("");
         setCurrentVersion("");
         setLatestVersion("");
         setLatestVersionPublishedAt("");
@@ -357,7 +467,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
    * opened rather than adding a request to every page load.
    */
   useEffect(() => {
-    if (!IS_ENTERPRISE_EDITION) {
+    if (BILLING_ENABLED || !IS_ENTERPRISE_EDITION) {
       return;
     }
 
@@ -391,6 +501,65 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     globalConfig?.enterpriseLicenseToken,
     serverLicenseValid,
   ]);
+
+  /*
+   * The two faces of "grace". An unlicensed installation's trial (counted from
+   * the first run of the Enterprise Edition) is not an expired license, and
+   * the dialog must not tell somebody who never had a license to renew one.
+   */
+  const isUnlicensedTrial: boolean =
+    IS_ENTERPRISE_EDITION &&
+    licenseStatus === "grace" &&
+    graceReason === "unlicensed";
+
+  const isExpiredGrace: boolean =
+    IS_ENTERPRISE_EDITION &&
+    licenseStatus === "grace" &&
+    graceReason !== "unlicensed";
+
+  /*
+   * A license issued before OneUptime signed its licenses: accepted, but it
+   * cannot be verified offline.
+   */
+  const isUnverifiedLegacyLicense: boolean =
+    IS_ENTERPRISE_EDITION &&
+    licenseValid &&
+    !isUnlicensedTrial &&
+    licenseVerification === "unverified";
+
+  const graceEndsAtText: string | null = useMemo(() => {
+    if (!graceEndsAt) {
+      return null;
+    }
+
+    const endsAt: Date = OneUptimeDate.fromString(graceEndsAt);
+
+    if (Number.isNaN(endsAt.getTime())) {
+      return null;
+    }
+
+    return endsAt.toLocaleDateString();
+  }, [graceEndsAt]);
+
+  // Whole days left in the grace period, rounded up; never negative.
+  const graceDaysLeft: number | null = useMemo(() => {
+    if (!graceEndsAt) {
+      return null;
+    }
+
+    const endsAt: Date = OneUptimeDate.fromString(graceEndsAt);
+
+    if (Number.isNaN(endsAt.getTime())) {
+      return null;
+    }
+
+    return Math.max(0, Math.ceil((endsAt.getTime() - Date.now()) / DAY_IN_MS));
+  }, [graceEndsAt]);
+
+  const graceDaysLeftText: string =
+    graceDaysLeft === null
+      ? ""
+      : `${graceDaysLeft} ${graceDaysLeft === 1 ? "day" : "days"} left`;
 
   const licenseExpiresAtText: string | null = useMemo(() => {
     if (!globalConfig?.enterpriseLicenseExpiresAt) {
@@ -792,10 +961,37 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return "Enterprise Edition (Checking...)";
     }
 
-    return licenseValid
-      ? "Enterprise Edition"
-      : "Enterprise Edition (License Required)";
-  }, [isConfigLoading, licenseValid]);
+    if (isUnlicensedTrial) {
+      return graceDaysLeftText
+        ? `Enterprise Edition (Trial, ${graceDaysLeftText})`
+        : "Enterprise Edition (Trial)";
+    }
+
+    if (isExpiredGrace) {
+      return "Enterprise Edition (License Expired, Grace Period)";
+    }
+
+    if (licenseValid) {
+      return "Enterprise Edition";
+    }
+
+    if (licenseStatus === "expired") {
+      return "Enterprise Edition (License Expired)";
+    }
+
+    if (licenseStatus === "invalid") {
+      return "Enterprise Edition (License Invalid)";
+    }
+
+    return "Enterprise Edition (License Required)";
+  }, [
+    isConfigLoading,
+    licenseValid,
+    licenseStatus,
+    isUnlicensedTrial,
+    isExpiredGrace,
+    graceDaysLeftText,
+  ]);
 
   const indicatorColor: string = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
@@ -814,23 +1010,39 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return "bg-red-500";
     }
 
-    if (seatTone === "approaching") {
+    if (seatTone === "approaching" || licenseStatus === "grace") {
       return "bg-amber-500";
     }
 
     return "bg-emerald-500";
-  }, [isConfigLoading, licenseValid, seatTone]);
+  }, [isConfigLoading, licenseValid, seatTone, licenseStatus]);
 
   const ctaLabel: string = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
-      return "Learn more";
+      return showEditionMismatchNotice ? "Action needed" : "Learn more";
     }
 
     if (isConfigLoading) {
       return "Checking";
     }
 
+    if (isUnlicensedTrial) {
+      return "Add license";
+    }
+
+    if (isExpiredGrace) {
+      return "Renew license";
+    }
+
     if (!licenseValid) {
+      if (licenseStatus === "expired") {
+        return "Renew license";
+      }
+
+      if (licenseStatus === "invalid") {
+        return "Fix license";
+      }
+
       return "Validate license";
     }
 
@@ -843,21 +1055,36 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
 
     return "View details";
-  }, [isConfigLoading, licenseValid, seatTone]);
+  }, [
+    isConfigLoading,
+    licenseValid,
+    licenseStatus,
+    seatTone,
+    isUnlicensedTrial,
+    isExpiredGrace,
+    showEditionMismatchNotice,
+  ]);
 
   const pillTone: PillTone = useMemo(() => {
-    if (!IS_ENTERPRISE_EDITION || isConfigLoading) {
+    if (!IS_ENTERPRISE_EDITION) {
+      return showEditionMismatchNotice ? "warning" : "normal";
+    }
+
+    if (isConfigLoading) {
       return "normal";
     }
 
     if (
       seatTone === "breached" ||
-      (!licenseValid && Boolean(globalConfig?.enterpriseLicenseKey))
+      (!licenseValid &&
+        (Boolean(globalConfig?.enterpriseLicenseKey) ||
+          licenseStatus === "expired" ||
+          licenseStatus === "invalid"))
     ) {
       return "alerted";
     }
 
-    if (seatTone === "approaching") {
+    if (seatTone === "approaching" || licenseStatus === "grace") {
       return "warning";
     }
 
@@ -865,8 +1092,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   }, [
     isConfigLoading,
     licenseValid,
+    licenseStatus,
     seatTone,
     globalConfig?.enterpriseLicenseKey,
+    showEditionMismatchNotice,
   ]);
 
   const modalDescription: string = useMemo(() => {
@@ -878,12 +1107,20 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return "Checking your license with OneUptime...";
     }
 
+    if (isUnlicensedTrial) {
+      return "No license is installed yet. Enterprise features are available during the trial.";
+    }
+
+    if (isExpiredGrace) {
+      return "Your license has expired. Renew it before the grace period ends.";
+    }
+
     if (!licenseValid) {
-      return "Validate your license key to activate Enterprise Edition.";
+      return "Add a valid license to keep enterprise configuration editable.";
     }
 
     return "License, version, seat usage, and the instances covered by this key.";
-  }, [isConfigLoading, licenseValid]);
+  }, [isConfigLoading, licenseValid, isUnlicensedTrial, isExpiredGrace]);
 
   /*
    * The per-instance counts only exceed the unique total when someone actually
@@ -911,7 +1148,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return "Enter the new enterprise license key and validate it to replace the current one. Your existing license stays active until the new key is validated.";
     }
 
-    return "You have installed Enterprise Edition of OneUptime. You need to validate your license key. Need a license key? Contact our sales team at";
+    return "You have installed Enterprise Edition of OneUptime. Validate your license key with OneUptime to activate it. Need a license key? Contact our sales team at";
   }, [isChangingLicense]);
 
   const communityFeatures: Array<string> = useMemo(() => {
@@ -955,14 +1192,24 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     setValidationError("");
     setSuccessMessage("");
     setLicenseKeyInput("");
+    setLicenseTokenInput("");
+    setActivationInputMode(activationMode === "offline" ? "token" : "key");
     licenseInputEditedRef.current = true;
   };
 
   const handleCancelChangingLicense: () => void = () => {
     setIsChangingLicense(false);
     setValidationError("");
+    setLicenseTokenInput("");
+    setActivationInputMode("key");
     licenseInputEditedRef.current = false;
     setLicenseKeyInput(globalConfig?.enterpriseLicenseKey || "");
+  };
+
+  const handleSwitchActivationInputMode: () => void = () => {
+    setActivationInputMode(activationInputMode === "key" ? "token" : "key");
+    setValidationError("");
+    setSuccessMessage("");
   };
 
   const handlePrimaryAction: () => void = () => {
@@ -1060,8 +1307,65 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     [fetchGlobalConfig],
   );
 
+  /*
+   * Offline activation: a signed license token, for an installation that
+   * cannot reach oneuptime.com. The server accepts only a token signed by a
+   * key this OneUptime release trusts, and says so when it does not.
+   */
+  const runOfflineActivation: (token: string) => Promise<void> = useCallback(
+    async (token: string): Promise<void> => {
+      const trimmedToken: string = token.trim();
+
+      if (!trimmedToken) {
+        setValidationError("Please paste a license token before activating.");
+        setSuccessMessage("");
+        return;
+      }
+
+      setValidationError("");
+      setSuccessMessage("");
+      setIsValidating(true);
+
+      try {
+        const activationUrl: URL = URL.fromURL(APP_API_URL).addRoute(
+          new Route("/global-config/license"),
+        );
+
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.fetch<JSONObject>({
+            method: HTTPMethod.POST,
+            url: activationUrl,
+            data: {
+              licenseToken: trimmedToken,
+            },
+          });
+
+        if (!response.isSuccess()) {
+          throw response;
+        }
+
+        setLicenseTokenInput("");
+        setSuccessMessage("License activated offline.");
+        setIsChangingLicense(false);
+        setActivationInputMode("key");
+
+        await fetchGlobalConfig();
+      } catch (err) {
+        setValidationError(API.getFriendlyMessage(err));
+      } finally {
+        setIsValidating(false);
+      }
+    },
+    [fetchGlobalConfig],
+  );
+
   const handleValidateClick: () => void = () => {
     if (isValidating) {
+      return;
+    }
+
+    if (activationInputMode === "token") {
+      void runOfflineActivation(licenseTokenInput);
       return;
     }
 
@@ -1129,24 +1433,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Activating, replacing and refreshing the license are master-admin actions:
-   * the license is instance-wide, and its seat limit is what UserService
-   * enforces against, so being able to rewrite it is being able to raise the
-   * ceiling on the whole installation. The server enforces this
-   * (MasterAdminAuthorization on both POSTs); hiding the controls here just
-   * stops everyone else being offered a button that can only fail.
-   *
-   * False for a signed-out visitor, which is what keeps the license key input
-   * off the login page where this same component renders the edition pill.
+   * The trial counts as "no license yet" here: an administrator trying the
+   * Enterprise Edition should be able to add the license from the same place
+   * as one whose license lapsed.
    */
-  const canManageLicense: boolean = useMemo(() => {
-    return Boolean(UserUtil.isMasterAdmin());
-  }, []);
-
   const showLicenseKeyInput: boolean =
     IS_ENTERPRISE_EDITION &&
     canManageLicense &&
-    (!licenseValid || isChangingLicense);
+    (!licenseValid || isUnlicensedTrial || isChangingLicense);
 
   /*
    * Someone who cannot fix the license still needs to be told why the
@@ -1166,7 +1460,21 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
    * gates the stat strip, the seat card and the instances card.
    */
   const showLicenseDetails: boolean =
-    IS_ENTERPRISE_EDITION && !configError && !isConfigLoading && licenseValid;
+    IS_ENTERPRISE_EDITION &&
+    !configError &&
+    !isConfigLoading &&
+    licenseValid &&
+    !isUnlicensedTrial;
+
+  /*
+   * The seat and instance cards are built from figures the server gives a
+   * master admin only; anybody else would see an empty "unlimited" card.
+   */
+  const showSeatDetails: boolean = showLicenseDetails && canManageLicense;
+
+  // Status notices describe the license, so they wait for it to load.
+  const showLicenseStatusNotices: boolean =
+    IS_ENTERPRISE_EDITION && !configError && !isConfigLoading;
 
   /*
    * The evaluation notice rides along with the license details: it is only
@@ -1184,7 +1492,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     IS_ENTERPRISE_EDITION && licenseValid && isEvaluationLicense;
 
   const showEnterpriseFeatureList: boolean =
-    IS_ENTERPRISE_EDITION && !configError && !isConfigLoading && !licenseValid;
+    IS_ENTERPRISE_EDITION &&
+    !configError &&
+    !isConfigLoading &&
+    (!licenseValid || isUnlicensedTrial);
 
   /*
    * Gated on neither edition nor licenseValid: which build you run, and
@@ -1209,7 +1520,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   const modalSubmitButtonText: string | undefined = IS_ENTERPRISE_EDITION
     ? shouldShowEnterpriseValidationButton
-      ? "Validate License"
+      ? activationInputMode === "token"
+        ? "Activate License"
+        : "Validate License"
       : undefined
     : "Talk to Sales";
 
@@ -1226,7 +1539,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   const modalDisableSubmitButton: boolean | undefined = IS_ENTERPRISE_EDITION
     ? shouldShowEnterpriseValidationButton
-      ? !licenseKeyInput.trim() || isValidating || isConfigLoading
+      ? !(activationInputMode === "token"
+          ? licenseTokenInput
+          : licenseKeyInput
+        ).trim() ||
+        isValidating ||
+        isConfigLoading
       : undefined
     : false;
 
@@ -1253,7 +1571,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         ? "Seat limit exceeded"
         : seatTone === "approaching"
           ? "Seats nearly full"
-          : "License active"}
+          : isExpiredGrace
+            ? "Grace period"
+            : "License active"}
     </span>
   ) : undefined;
 
@@ -1266,19 +1586,29 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
          * for the administrator who has just bought seats and would rather not
          * wait a day for the installation to stop refusing invitations.
          */}
+        {/*
+         * An installation activated offline has no key to refresh with; a new
+         * token replaces the license instead.
+         */}
+        {activationMode !== "offline" && (
+          <Button
+            title="Refresh license"
+            icon={IconProp.Refresh}
+            buttonStyle={ButtonStyleType.NORMAL}
+            onClick={handleRefreshLicense}
+            isLoading={isRefreshingLicense}
+            disabled={isRefreshingLicense || isConfigLoading}
+            tooltip="Fetch the latest seat limit and expiry for this license from OneUptime."
+            dataTestId="refresh-enterprise-license"
+            className="!mt-0 md:!ml-0"
+          />
+        )}
         <Button
-          title="Refresh license"
-          icon={IconProp.Refresh}
-          buttonStyle={ButtonStyleType.NORMAL}
-          onClick={handleRefreshLicense}
-          isLoading={isRefreshingLicense}
-          disabled={isRefreshingLicense || isConfigLoading}
-          tooltip="Fetch the latest seat limit and expiry for this license from OneUptime."
-          dataTestId="refresh-enterprise-license"
-          className="!mt-0 md:!ml-0"
-        />
-        <Button
-          title="Change license key"
+          title={
+            activationMode === "offline"
+              ? "Replace license"
+              : "Change license key"
+          }
           icon={IconProp.Edit}
           buttonStyle={ButtonStyleType.NORMAL}
           onClick={handleStartChangingLicense}
@@ -1472,6 +1802,135 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     </section>
   ) : null;
 
+  /*
+   * What the license status means for this installation, in plain words.
+   * Every branch states soft enforcement the same way (SOFT_ENFORCEMENT_SUMMARY):
+   * configuration becomes read-only, nothing already configured stops.
+   */
+  const licenseStatusNoticeElement: ReactElement | null = (() => {
+    if (!showLicenseStatusNotices) {
+      return null;
+    }
+
+    if (isUnlicensedTrial) {
+      return (
+        <section
+          role="status"
+          data-testid="enterprise-license-trial-notice"
+          className="rounded-xl border border-amber-200 bg-amber-50 p-5"
+        >
+          <h4 className="text-sm font-semibold text-amber-900">
+            {graceDaysLeftText
+              ? `Enterprise Edition trial: ${graceDaysLeftText}`
+              : "Enterprise Edition trial"}
+          </h4>
+          <p className="mt-1 text-xs leading-relaxed text-amber-800">
+            {`No Enterprise license is installed. Enterprise features stay fully available${
+              graceEndsAtText ? ` until ${graceEndsAtText}` : ""
+            }, counted from the first time this installation ran the Enterprise Edition. ${SOFT_ENFORCEMENT_SUMMARY}`}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-amber-800">
+            {canManageLicense
+              ? "Add a license below to keep enterprise configuration editable after the trial."
+              : "Ask a master admin of this installation to add a license."}
+          </p>
+        </section>
+      );
+    }
+
+    if (isExpiredGrace) {
+      return (
+        <section
+          role="status"
+          data-testid="enterprise-license-grace-notice"
+          className="rounded-xl border border-amber-200 bg-amber-50 p-5"
+        >
+          <h4 className="text-sm font-semibold text-amber-900">
+            {graceEndsAtText
+              ? `License expired, grace period until ${graceEndsAtText}`
+              : "License expired, grace period"}
+          </h4>
+          <p className="mt-1 text-xs leading-relaxed text-amber-800">
+            {`The Enterprise license expired${
+              licenseExpiresAtText ? ` on ${licenseExpiresAtText}` : ""
+            }. Enterprise configuration stays editable until the grace period ends${
+              graceDaysLeftText ? ` (${graceDaysLeftText})` : ""
+            }. ${SOFT_ENFORCEMENT_SUMMARY}`}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-amber-800">
+            {canManageLicense
+              ? "Renew the license with OneUptime, then refresh it here."
+              : "Ask a master admin of this installation to renew the license."}
+          </p>
+        </section>
+      );
+    }
+
+    if (!licenseValid) {
+      const title: string =
+        licenseStatus === "expired"
+          ? "License expired"
+          : licenseStatus === "invalid"
+            ? "License not valid"
+            : "No valid license";
+
+      const reason: string =
+        licenseStatus === "expired"
+          ? `The Enterprise license expired${
+              licenseExpiresAtText ? ` on ${licenseExpiresAtText}` : ""
+            } and its grace period is over.`
+          : licenseStatus === "invalid"
+            ? licenseMessage ||
+              "The stored license could not be verified. Validate the license again."
+            : "This installation has no valid Enterprise license.";
+
+      return (
+        <section
+          role="alert"
+          data-testid="enterprise-license-required-notice"
+          className="rounded-xl border border-red-200 bg-red-50 p-5"
+        >
+          <h4 className="text-sm font-semibold text-red-900">{title}</h4>
+          <p className="mt-1 text-xs leading-relaxed text-red-800">
+            {reason} Enterprise configuration is read-only and the enterprise
+            admin dashboards are locked until a valid license is added.
+            Everything you already configured keeps working — SSO, SCIM and
+            audit logging never stop — and core monitoring is never affected.
+          </p>
+        </section>
+      );
+    }
+
+    if (isUnverifiedLegacyLicense && canManageLicense) {
+      return (
+        <section
+          data-testid="enterprise-license-unverified-notice"
+          className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+        >
+          <h4 className="text-sm font-semibold text-gray-900">
+            Legacy license
+          </h4>
+          <p className="mt-1 text-xs leading-relaxed text-gray-600">
+            This license was issued before OneUptime signed its licenses, so
+            this installation cannot verify it offline. It keeps working;
+            refreshing the license replaces it with a signed one once OneUptime
+            issues them.
+          </p>
+        </section>
+      );
+    }
+
+    return null;
+  })();
+
+  /*
+   * Kept after every hook: oneuptime.com (billing enabled) bounds seats and
+   * plans through subscriptions and shows no edition pill at all.
+   */
+  if (BILLING_ENABLED) {
+    return <></>;
+  }
+
   return (
     <>
       <button
@@ -1573,6 +2032,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
                 {evaluationNoticeElement}
 
+                {licenseStatusNoticeElement}
+
                 {showLicenseDetails && (
                   <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-2">
                     <div className="min-w-0 bg-white px-4 py-3">
@@ -1599,7 +2060,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
                 {versionCardElement}
 
-                {showLicenseDetails && (
+                {showSeatDetails && (
                   <section
                     aria-labelledby="edition-seats-heading"
                     className="rounded-xl border border-gray-200 bg-white p-5"
@@ -1788,9 +2249,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
                     <div className="mt-4 border-t border-gray-100 pt-3">
                       <p className="text-xs text-gray-500">
-                        {userCountUpdatedAtText
-                          ? `Last reported to OneUptime on ${userCountUpdatedAtText}.`
-                          : "User count has not been reported to OneUptime yet. The first report will be sent within 24 hours."}
+                        {activationMode === "offline"
+                          ? "This installation was activated offline, so it does not report its user count to OneUptime."
+                          : userCountUpdatedAtText
+                            ? `Last reported to OneUptime on ${userCountUpdatedAtText}.`
+                            : "User count has not been reported to OneUptime yet. The first report will be sent within 24 hours."}
                         {isSeatLimitEnforced && (
                           <>
                             {" "}
@@ -1818,7 +2281,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </section>
                 )}
 
-                {showLicenseDetails && licenseInstances.length > 0 && (
+                {showSeatDetails && licenseInstances.length > 0 && (
                   <section
                     aria-labelledby="edition-instances-heading"
                     className="rounded-xl border border-gray-200 bg-white p-5"
@@ -1959,21 +2422,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </section>
                 )}
 
-                {!configError &&
-                  !isConfigLoading &&
-                  !licenseValid &&
-                  globalConfig?.enterpriseLicenseKey && (
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                      <p className="text-sm font-semibold text-red-900">
-                        License validation required
-                      </p>
-                      <p className="mt-1 text-xs leading-relaxed text-red-800">
-                        The stored license information could not be verified.
-                        Please validate the license key again.
-                      </p>
-                    </div>
-                  )}
-
                 {showLicenseAdminRequiredNotice && (
                   <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
                     <h4 className="text-sm font-semibold text-amber-900">
@@ -1992,16 +2440,25 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <label
-                          htmlFor="enterprise-license-key"
+                          htmlFor={
+                            activationInputMode === "token"
+                              ? "enterprise-license-token"
+                              : "enterprise-license-key"
+                          }
                           className="text-sm font-semibold text-gray-900"
                         >
-                          {isChangingLicense
-                            ? "New license key"
-                            : "License key"}
+                          {activationInputMode === "token"
+                            ? "License token (offline activation)"
+                            : isChangingLicense
+                              ? "New license key"
+                              : "License key"}
                         </label>
                         <p className="mt-0.5 text-xs leading-relaxed text-gray-500">
-                          {licenseKeyHelperText}
-                          {!isChangingLicense && (
+                          {activationInputMode === "token"
+                            ? "For an installation that cannot reach oneuptime.com. Paste the signed license token OneUptime issued for this installation. Only tokens signed by a key this OneUptime release trusts are accepted."
+                            : licenseKeyHelperText}
+                          {!isChangingLicense &&
+                            activationInputMode === "key" && (
                             <>
                               {" "}
                               <a
@@ -2025,16 +2482,41 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       )}
                     </div>
                     <div className="mt-3">
-                      <Input
-                        id="enterprise-license-key"
-                        value={licenseKeyInput}
-                        onChange={(value: string) => {
-                          setLicenseKeyInput(value);
-                          licenseInputEditedRef.current = true;
-                        }}
-                        placeholder="Enter your enterprise license key"
-                        disableSpellCheck={true}
-                      />
+                      {activationInputMode === "token" ? (
+                        <TextArea
+                          id="enterprise-license-token"
+                          value={licenseTokenInput}
+                          onChange={(value: string) => {
+                            setLicenseTokenInput(value);
+                          }}
+                          placeholder="Paste the signed license token"
+                          disableSpellCheck={true}
+                          dataTestId="enterprise-license-token-input"
+                        />
+                      ) : (
+                        <Input
+                          id="enterprise-license-key"
+                          value={licenseKeyInput}
+                          onChange={(value: string) => {
+                            setLicenseKeyInput(value);
+                            licenseInputEditedRef.current = true;
+                          }}
+                          placeholder="Enter your enterprise license key"
+                          disableSpellCheck={true}
+                        />
+                      )}
+                    </div>
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={handleSwitchActivationInputMode}
+                        data-testid="switch-license-activation-mode"
+                        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
+                      >
+                        {activationInputMode === "token"
+                          ? "Use a license key instead"
+                          : "No internet access? Activate offline with a license token"}
+                      </button>
                     </div>
                     {validationError && (
                       <div className="mt-3">
@@ -2060,8 +2542,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     </h4>
                     <p className="mt-0.5 text-xs text-indigo-700">
                       {canManageLicense
-                        ? "Validate your key above to turn these on immediately."
-                        : "A master admin can activate the license to turn these on."}
+                        ? "A valid license keeps enterprise configuration (SSO, SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
+                        : "A master admin can add the license to keep enterprise configuration editable."}{" "}
+                      Nothing you already configured stops working without
+                      one.
                     </p>
                     <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {enterpriseFeatures.map(
@@ -2090,6 +2574,24 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
               </>
             ) : (
               <>
+                {showEditionMismatchNotice && (
+                  <section
+                    role="alert"
+                    data-testid="enterprise-edition-image-mismatch"
+                    className="rounded-xl border border-amber-200 bg-amber-50 p-5"
+                  >
+                    <h4 className="text-sm font-semibold text-amber-900">
+                      This is the Community Edition image
+                    </h4>
+                    <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                      IS_ENTERPRISE_EDITION is set but this is the Community
+                      Edition image — switch to the enterprise image (the
+                      enterprise-* image tags) to use Enterprise Edition
+                      features. Until then they are off; everything else keeps
+                      working.
+                    </p>
+                  </section>
+                )}
                 {versionCardElement}
                 <p>
                   You are running the Community Edition of OneUptime. Here is a
