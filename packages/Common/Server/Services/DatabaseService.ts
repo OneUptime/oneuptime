@@ -98,6 +98,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import type AuditLogServiceType from "./AuditLogService";
 import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -1011,6 +1012,107 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN;
   }
 
+  /*
+   * A tenant model declares its tenant TWICE: a scalar column (e.g.
+   * `projectId`) AND a ManyToOne relation (`project`) whose @JoinColumn names
+   * that same scalar. Both are separately writable through the public API, and
+   * both land on the entity that reaches getRepository().save()/update().
+   * TypeORM (metadata/ColumnMetadata.js getEntityValue) resolves the relation
+   * object to the join-column value with PRECEDENCE over the scalar, so a
+   * request carrying `project: { _id: <another project> }` is persisted under
+   * THAT project even though create() has just stamped the scalar to
+   * props.tenantId. That is a cross-tenant write of the whole row (reproduced
+   * end to end: the generated INSERT binds `projectId` to the relation's id,
+   * not the stamped scalar).
+   *
+   * The stamped scalar is the authoritative tenant for every non-root write,
+   * and no `project` relation in the schema legitimately points at a project
+   * other than the tenant (every one joins on `projectId`; there is no second,
+   * foreign-project reference to preserve). So neutralize the relation
+   * spelling: reject a tenant relation that points anywhere other than the
+   * request tenant, then delete it so the scalar is the single source of truth
+   * and no TypeORM precedence rule between the two can move the row. This is
+   * the framework-level generalisation of the per-service fixes already
+   * shipped in ApiKeyPermissionService and UserTelegramService.
+   *
+   * Root / master-admin / internal callers are left untouched — they have no
+   * request tenant (props.tenantId is unset) and legitimately set the tenant
+   * relation for another project during seeding, migrations and
+   * invitation-acceptance. This mirrors the create() scalar stamp, which is
+   * likewise gated on props.tenantId.
+   */
+  private enforceTenantRelationMatchesScalar(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const tenantColumn: string | null = this.model.getTenantColumn();
+
+    if (!tenantColumn || !props.tenantId) {
+      return;
+    }
+
+    const tenantRelationProperty: string | null =
+      this.getTenantRelationProperty(tenantColumn);
+
+    if (!tenantRelationProperty) {
+      /*
+       * e.g. Project itself, whose tenant column is its own `_id`, has no such
+       * relation; global (non-tenant) models return null from getTenantColumn.
+       */
+      return;
+    }
+
+    const suppliedRelation: unknown = (data as Record<string, unknown>)[
+      tenantRelationProperty
+    ];
+
+    if (suppliedRelation === undefined) {
+      return;
+    }
+
+    const relationTenantId: ObjectID | null = RelationIdUtil.read(
+      data as Record<string, unknown>,
+      [tenantRelationProperty],
+    );
+
+    if (
+      relationTenantId &&
+      relationTenantId.toString() !== props.tenantId.toString()
+    ) {
+      throw new BadDataException(
+        `The ${tenantRelationProperty} relation does not belong to this project.`,
+      );
+    }
+
+    delete (data as Record<string, unknown>)[tenantRelationProperty];
+  }
+
+  /*
+   * Property name of the ManyToOne relation that shares the tenant scalar
+   * column as its join column (`project` for the `projectId` tenant column),
+   * or null when the model has no such relation.
+   */
+  private getTenantRelationProperty(tenantColumn: string): string | null {
+    for (const columnName of this.model.getTableColumns().columns) {
+      const metadata: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(columnName);
+
+      if (
+        metadata &&
+        metadata.type === TableColumnType.Entity &&
+        metadata.manyToOneRelationColumn === tenantColumn
+      ) {
+        return columnName;
+      }
+    }
+
+    return null;
+  }
+
   private async sanitizeCreateOrUpdate(
     data: TBaseModel | PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
@@ -1420,6 +1522,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     if (tenantColumnName && _createdBy.props.tenantId) {
       data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
     }
+
+    /*
+     * The tenant scalar has just been stamped to the request tenant, but the
+     * matching tenant RELATION object (e.g. `project`) is still whatever the
+     * caller sent, and TypeORM lets that relation override the scalar on the
+     * INSERT. Force the relation to agree with — or be dropped in favour of —
+     * the stamped scalar so a caller cannot write the row into another tenant.
+     */
+    this.enforceTenantRelationMatchesScalar(data, _createdBy.props);
 
     data = this.generateDefaultValues(data);
 
@@ -3020,6 +3131,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
+
+      /*
+       * Defense in depth for the tenant confused-deputy on the update path.
+       * Unlike create(), _updateBy() never re-stamps the tenant scalar, and a
+       * tenant relation object would likewise override the scalar join column
+       * on the UPDATE. Today the tenant columns carry `update: []` so the
+       * column-permission check rejects them first, but that is incidental —
+       * this keeps the row's tenant immutable even if a model ever grants
+       * update on the tenant relation. Runs before the permission check so the
+       * ACL stays a redundant second line rather than the only one.
+       */
+      this.enforceTenantRelationMatchesScalar(updateBy.data, updateBy.props);
 
       this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
 
