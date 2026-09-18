@@ -410,7 +410,7 @@ test.describe("SLOs", () => {
       /Waiting for monitors|Cannot be evaluated/,
     );
     await expect(page.getByTestId("slo-overview-chip-target")).toContainText(
-      "Target 99.9%",
+      "99.9%",
     );
     await expect(page.getByTestId("slo-overview-chip-window")).toContainText(
       "Rolling 30 days",
@@ -427,6 +427,12 @@ test.describe("SLOs", () => {
       timeout: 60000,
     });
     await expect(page.getByTestId("slo-kpi-strip")).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Configuration", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Monitors", exact: true }),
+    ).toHaveCount(0);
   });
 
   test("should list the new SLO with its target and window, and open it from the row", async () => {
@@ -593,6 +599,42 @@ test.describe("SLOs", () => {
     await expect(
       page.getByText("1 monitor, all attached by hand").first(),
     ).toBeVisible({ timeout: 60000 });
+  });
+
+  test("should keep configured SLO overviews focused on health and activity", async () => {
+    test.setTimeout(120000);
+    const page: Page = ctx.page;
+
+    await gotoProjectPage({
+      page,
+      projectId: ctx.projectId,
+      url: sloUrl(),
+      ready: page.getByTestId("slo-kpi-strip"),
+    });
+
+    await expect(page.getByTestId("slo-overview-chip-monitors")).toContainText(
+      "1 monitor",
+    );
+    await expect(page.getByTestId("slo-overview-getting-started")).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("heading", { name: "Configuration", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Monitors", exact: true }),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("slo-configuration-summary")).toHaveCount(0);
+    await expect(
+      page.getByRole("list", { name: "Monitors measured by this SLO" }),
+    ).toHaveCount(0);
+
+    const sideMenu: Locator = page.getByRole("navigation", {
+      name: "Main navigation",
+    });
+    for (const tabName of ["Monitors", "Settings"]) {
+      await expect(sideMenu.getByRole("link", { name: tabName })).toBeVisible();
+    }
   });
 
   test("should list the two burn rate rules seeded on create", async () => {
@@ -878,7 +920,7 @@ test.describe("SLOs", () => {
       ready: page.getByTestId("slo-overview-hero"),
     });
     await expect(page.getByTestId("slo-overview-chip-target")).toContainText(
-      "Target 99.95%",
+      "99.95%",
       { timeout: 60000 },
     );
   });
