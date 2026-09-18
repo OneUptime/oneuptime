@@ -494,7 +494,7 @@ describePostgres(
           developmentPolicyId,
           developmentRuleId,
         );
-        replacement._id = hidden._id;
+        replacement._id = hidden._id!;
 
         await expectDenied(kind, replacement);
         expect(
