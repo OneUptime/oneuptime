@@ -2,7 +2,7 @@
 
 Global SSO 讓 OneUptime 的**執行個體管理員**（master admin）能夠**在執行個體層級設定一次**單一的 SAML 2.0 或 OpenID Connect（OIDC）身分提供者，並將其連接至伺服器上的任何專案。它是各專案 SSO 的執行個體層級對應方案：與其讓每位專案擁有者各自設定自己的身分提供者，master admin 只需設定一個即可服務整個執行個體。
 
-Global SSO 是 **OneUptime Enterprise Edition** 功能，僅在執行 Enterprise Edition 組建的執行個體上可用。
+Global SSO 是 **OneUptime Enterprise Edition** 功能，僅在執行 Enterprise Edition 組建的執行個體上可用。 關於如何執行企業版、授權如何運作，以及社群版中 SSO 要求會怎樣，請參閱 [Enterprise Edition](/docs/self-hosted/enterprise)。
 
 ## Global SSO 與 Project SSO 的差異
 

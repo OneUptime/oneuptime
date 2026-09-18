@@ -2,6 +2,8 @@
 
 OneUptime stöder SCIM v2.0-protokollet för automatiserad användarprovisionering och avetablering. SCIM gör det möjligt för identitetsleverantörer (IdP:er) som Azure AD, Okta och andra enterprise-identitetssystem att automatiskt hantera användaråtkomst till OneUptime-projekt och statussidor.
 
+> **Utgåva:** SCIM ingår i OneUptime Enterprise Edition. På OneUptime Cloud är det tillgängligt från **Scale**-planen och uppåt. Självhostade installationer behöver Enterprise Edition-imagen och en licens. Se [Enterprise Edition](/docs/self-hosted/enterprise).
+
 ## Översikt
 
 SCIM-integration ger följande fördelar:
