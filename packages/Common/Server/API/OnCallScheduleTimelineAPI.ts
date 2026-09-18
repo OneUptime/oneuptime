@@ -5,6 +5,8 @@ import OnCallDutyPolicyScheduleOwnerTeamService from "../Services/OnCallDutyPoli
 import OnCallDutyPolicyScheduleService from "../Services/OnCallDutyPolicyScheduleService";
 import TeamMemberService from "../Services/TeamMemberService";
 import TeamService from "../Services/TeamService";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import TablePermission from "../Types/Database/Permissions/TablePermission";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Express, {
   ExpressRequest,
@@ -24,6 +26,7 @@ import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCal
 import OnCallDutyPolicyScheduleOwnerTeam from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerTeam";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import Team from "../../Models/DatabaseModels/Team";
+import { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -54,10 +57,10 @@ import ScheduleTimelineUtil, {
  * in one week / month view" page and the per-team schedule view.
  *
  * WHO MAY SEE WHAT. The shifts are the schedules' rosters -- who is on which
- * layer, and when -- so the route first requires the permission the CRUD
- * read of layer users requires (assertPermittedInProject with that model's
- * read list); a role that can list schedules but not open their layers gets
- * a 403 here too, not a back door. Override provenance (whose shift is being
+ * layer, and when -- so the route first requires what the CRUD read of layer
+ * users requires (an Allow from that model's read list and no team Block on
+ * it; see assertCanReadTable); a role that can list schedules but not open
+ * their layers gets a 403 here too, not a back door. Override provenance (whose shift is being
  * covered, the override's window) is likewise only sent to callers who could
  * read user overrides; anyone else still sees who is paged, which the
  * schedule row itself already exposes as currentUserOnRoster.
@@ -466,16 +469,40 @@ async function loadRosterScheduleIds(data: {
   );
 }
 
+/*
+ * Throws unless the caller could read `modelType` through its CRUD endpoint.
+ * That read has two halves and both are applied here: an Allow grant from the
+ * model's read list (assertPermittedInProject), and no unlabelled team BLOCK
+ * row on any permission in that list (checkTableLevelBlockPermissions) - a
+ * block overrides every Allow the team holds. Master admins bypass both, as
+ * they do in ReadPermission.
+ */
+export function assertCanReadTable(data: {
+  modelType: DatabaseBaseModelType;
+  props: DatabaseCommonInteractionProps;
+  errorMessage?: string | undefined;
+}): void {
+  CommonAPI.assertPermittedInProject({
+    databaseProps: data.props,
+    allowedPermissions: new data.modelType().getReadPermissions(),
+    errorMessage: data.errorMessage,
+  });
+
+  if (!data.props.isMasterAdmin) {
+    TablePermission.checkTableLevelBlockPermissions(
+      data.modelType,
+      data.props,
+      DatabaseRequestType.Read,
+    );
+  }
+}
+
 // Whether the caller could read user overrides through their CRUD endpoint.
 export function canReadUserOverrides(
   props: DatabaseCommonInteractionProps,
 ): boolean {
   try {
-    CommonAPI.assertPermittedInProject({
-      databaseProps: props,
-      allowedPermissions:
-        new OnCallDutyPolicyUserOverride().getReadPermissions(),
-    });
+    assertCanReadTable({ modelType: OnCallDutyPolicyUserOverride, props });
     return true;
   } catch {
     return false;
@@ -518,10 +545,9 @@ router.get(
       const userId: ObjectID = props.userId as ObjectID;
 
       // The rosters are layer-user data: require what reading them requires.
-      CommonAPI.assertPermittedInProject({
-        databaseProps: props,
-        allowedPermissions:
-          new OnCallDutyPolicyScheduleLayerUser().getReadPermissions(),
+      assertCanReadTable({
+        modelType: OnCallDutyPolicyScheduleLayerUser,
+        props,
         errorMessage:
           "You do not have permission to read this project's on-call schedule layers.",
       });

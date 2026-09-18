@@ -301,19 +301,39 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
     });
   }, [data, filters, now, computedWindow]);
 
+  const summary: TimelineSummary = useMemo(() => {
+    return TimelineModel.summarize({
+      schedules: scopedSchedules,
+      window: computedWindow,
+      now,
+    });
+  }, [scopedSchedules, computedWindow, now]);
+
+  /*
+   * The attention filter actually applied. "Uncovered now" means nothing for
+   * a range that does not contain now, so it is never applied there - not
+   * even for the one render before the effect below clears it, which would
+   * otherwise flash "No schedules match" and remount the grid.
+   */
+  const attention: AttentionFilter =
+    filters.attention === AttentionFilter.UncoveredNow &&
+    summary.uncoveredNow === null
+      ? AttentionFilter.None
+      : filters.attention;
+
   const visibleSchedules: Array<TimelineSchedule> = useMemo(() => {
-    if (!data || filters.attention === AttentionFilter.None) {
+    if (!data || attention === AttentionFilter.None) {
       return scopedSchedules;
     }
 
     return TimelineModel.filterSchedules({
       schedules: scopedSchedules,
       teams: data.teams,
-      filters: { ...DEFAULT_FILTERS, attention: filters.attention },
+      filters: { ...DEFAULT_FILTERS, attention },
       now,
       window: computedWindow,
     });
-  }, [data, scopedSchedules, filters.attention, now, computedWindow]);
+  }, [data, scopedSchedules, attention, now, computedWindow]);
 
   const groups: Array<TimelineGroup> = useMemo(() => {
     return TimelineModel.groupSchedules({
@@ -332,24 +352,13 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
     });
   }, [visibleSchedules, computedWindow, now]);
 
-  const summary: TimelineSummary = useMemo(() => {
-    return TimelineModel.summarize({
-      schedules: scopedSchedules,
-      window: computedWindow,
-      now,
-    });
-  }, [scopedSchedules, computedWindow, now]);
-
   const hasActiveFilters: boolean =
     filters.search.trim().length > 0 ||
     filters.team !== ALL_TEAMS ||
     filters.onlyMine ||
-    filters.attention !== AttentionFilter.None;
+    attention !== AttentionFilter.None;
 
-  /*
-   * "Uncovered now" means nothing for a range that does not contain now; once
-   * the reader pages away, the filter would silently hide every schedule.
-   */
+  // Let the stored filter catch up with the one applied above.
   useEffect(() => {
     if (
       filters.attention === AttentionFilter.UncoveredNow &&
@@ -661,7 +670,7 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
               <SummaryBar
                 summary={summary}
                 mode={shownRange.mode}
-                attention={filters.attention}
+                attention={attention}
                 onAttentionChange={(attention: AttentionFilter) => {
                   setFilters({ ...filters, attention });
                 }}

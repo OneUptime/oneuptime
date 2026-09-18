@@ -137,12 +137,14 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
   /*
    * The "now" rows see. Past / active / future and "on call now" only change
    * while now is inside the range, so on any other week the minute tick does
-   * not reach the rows at all.
+   * not reach the rows at all. It is still re-read whenever the range
+   * changes, so a value frozen on an earlier visit can never fall inside a
+   * week the reader comes back to after the clock has moved on.
    */
   const nowTick: number = nowIsVisible ? props.now.getTime() : -1;
   const rowNow: Date = useMemo(() => {
     return props.now;
-  }, [nowTick]);
+  }, [nowTick, props.range]);
 
   /*
    * The parts of the range the server would not compute (beyond the

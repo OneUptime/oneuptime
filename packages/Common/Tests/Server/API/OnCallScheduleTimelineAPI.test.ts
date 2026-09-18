@@ -221,17 +221,29 @@ function buildMemberProps(data: {
   userId: ObjectID | undefined;
   // Defaults to ProjectMember, which can read every on-call table.
   permissions?: Array<Permission> | undefined;
+  // Team BLOCK rows (unlabelled), which override any Allow.
+  blocks?: Array<Permission> | undefined;
 }): DatabaseCommonInteractionProps {
-  const grants: Array<UserPermission> = (
-    data.permissions || [Permission.ProjectMember]
-  ).map((permission: Permission): UserPermission => {
-    return {
-      _type: "UserPermission",
-      permission,
-      labelIds: [],
-      isBlockPermission: false,
-    };
-  });
+  const grants: Array<UserPermission> = [
+    ...(data.permissions || [Permission.ProjectMember]).map(
+      (permission: Permission): UserPermission => {
+        return {
+          _type: "UserPermission",
+          permission,
+          labelIds: [],
+          isBlockPermission: false,
+        };
+      },
+    ),
+    ...(data.blocks || []).map((permission: Permission): UserPermission => {
+      return {
+        _type: "UserPermission",
+        permission,
+        labelIds: [],
+        isBlockPermission: true,
+      };
+    }),
+  ];
 
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
 
@@ -925,6 +937,84 @@ describe("GET /on-call-schedule-timeline: who may call it", () => {
       override: null,
     });
     expect(JSON.stringify(restricted)).not.toContain("Alice Andersson");
+  });
+
+  test("a team BLOCK on reading layers overrides the Allow, as on the CRUD read", async () => {
+    propsSpy.mockResolvedValue(
+      buildMemberProps({
+        projectId,
+        userId,
+        blocks: [Permission.ReadOnCallDutyPolicyScheduleLayer],
+      }),
+    );
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
+    expect(JSON.parse(result.body).message).toContain(
+      "is in your team's permission block list",
+    );
+    expect(scheduleFindBy).not.toHaveBeenCalled();
+    expect(loadSegments).not.toHaveBeenCalled();
+  });
+
+  test("a team BLOCK on reading overrides strips override provenance", async () => {
+    loadSegments.mockResolvedValue([
+      segment({
+        scheduleId: scheduleA.toString(),
+        shifts: [
+          shift({
+            scheduleId: scheduleA.toString(),
+            start: at("2026-09-15T12:00:00.000Z"),
+            end: at("2026-09-15T18:00:00.000Z"),
+            userId: "user-b",
+            userName: "Bob Berg",
+            override: {
+              originalUserId: "user-a",
+              originalUserName: "Alice Andersson",
+              overrideStartsAt: at("2026-09-15T12:00:00.000Z"),
+              overrideEndsAt: at("2026-09-15T18:00:00.000Z"),
+            },
+          }),
+        ],
+      }),
+    ]);
+
+    propsSpy.mockResolvedValue(
+      buildMemberProps({
+        projectId,
+        userId,
+        blocks: [Permission.ReadOnCallDutyPolicyUserOverride],
+      }),
+    );
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(200);
+    expect(json(result).schedules[0]?.shifts[0]).toMatchObject({
+      userName: "Bob Berg",
+      override: null,
+    });
+    expect(result.body).not.toContain("Alice Andersson");
+  });
+
+  test("a master admin is served whatever their team blocks", async () => {
+    propsSpy.mockResolvedValue({
+      ...buildMemberProps({
+        projectId,
+        userId,
+        blocks: [
+          Permission.ReadOnCallDutyPolicyScheduleLayer,
+          Permission.ReadOnCallDutyPolicyUserOverride,
+        ],
+      }),
+      isMasterAdmin: true,
+    });
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(200);
+    expect(json(result).schedules).toHaveLength(2);
   });
 
   test("a permission error from the gate read is passed through", async () => {

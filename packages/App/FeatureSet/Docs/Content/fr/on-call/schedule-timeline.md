@@ -30,4 +30,4 @@ Passez de **Week** à **Month**, naviguez avec les flèches et revenez avec **To
 
 ## Qui voit quoi
 
-La chronologie respecte les mêmes permissions et restrictions par étiquette que **Plannings d'astreinte** et nécessite en plus le droit de lire les couches des plannings. Le créneau couvert par un remplacement n'est indiqué qu'aux personnes autorisées à lire les remplacements. Elle affiche jusqu'à 250 plannings à la fois, triés par nom ; la page **Plannings d'astreinte** d'une équipe la limite aux plannings dont cette équipe est propriétaire.
+La chronologie respecte les mêmes permissions et restrictions par étiquette que **Plannings d'astreinte** et nécessite en plus le droit de lire les couches des plannings. Seules les personnes autorisées à lire les remplacements des utilisateurs voient à qui appartenait le créneau couvert par un remplacement. Elle affiche jusqu'à 250 plannings à la fois, triés par nom ; la page **Plannings d'astreinte** d'une équipe la limite aux plannings dont cette équipe est propriétaire.

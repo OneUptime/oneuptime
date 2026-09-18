@@ -16,7 +16,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import React from "react";
+import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -124,6 +124,14 @@ import ScheduleTimeline, {
   VIEW_MODE_STORAGE_KEY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/ScheduleTimeline";
 import TimelineRow from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineRow";
+import TimelineGrid from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineGrid";
+import TimelineModel, {
+  TimelineData,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineModel";
+import ScheduleTimelineLayout, {
+  TimelineRange,
+  TimelineViewMode,
+} from "../../../Types/OnCallDutyPolicy/ScheduleTimelineLayout";
 
 // Thursday. The week on screen is Mon 14 - Sun 20 September 2026 (UTC).
 const NOW: Date = new Date("2026-09-17T12:00:00.000Z");
@@ -1449,5 +1457,124 @@ describe("layout details", () => {
     expect((TimelineRow as unknown as { $$typeof: symbol }).$$typeof).toBe(
       Symbol.for("react.memo"),
     );
+  });
+});
+
+describe("review round two", () => {
+  test("paging away with 'no one on call now' on never flashes 'No schedules match'", async () => {
+    const pending: Array<(value: HTTPResponse<JSONObject>) => void> =
+      pendingAnswers();
+
+    renderTimeline();
+
+    await waitFor(() => {
+      expect(pending).toHaveLength(1);
+    });
+    await act(async () => {
+      pending[0]!(ok(timeline()));
+    });
+    await loaded();
+
+    fireEvent.click(screen.getByTestId("timeline-summary-uncovered-now"));
+    fireEvent.click(screen.getByTestId("timeline-next-button"));
+
+    await waitFor(() => {
+      expect(pending).toHaveLength(2);
+    });
+
+    await act(async () => {
+      pending[1]!(
+        ok(
+          timeline({
+            from: "2026-09-21T00:00:00.000Z",
+            to: "2026-09-28T00:00:00.000Z",
+          }),
+        ),
+      );
+    });
+
+    // The very first render of next week already shows every schedule.
+    expect(screen.queryByTestId("timeline-no-matches")).not.toBeInTheDocument();
+    expect(dayKeys()[0]).toBe("2026-09-21");
+    expect(rowIds()).toHaveLength(4);
+  });
+
+  test("a 'now' frozen on an earlier visit never marks a week the clock has left", () => {
+    const data: TimelineData = TimelineModel.fromResponse(timeline());
+    const groups: ReturnType<typeof TimelineModel.groupSchedules> =
+      TimelineModel.groupSchedules({
+        schedules: data.schedules,
+        teams: data.teams,
+        groupByTeam: false,
+      });
+
+    const weekOf: (anchor: string) => TimelineRange = (
+      anchor: string,
+    ): TimelineRange => {
+      return ScheduleTimelineLayout.getRange({
+        mode: TimelineViewMode.Week,
+        anchor: new Date(anchor),
+        timezone: "UTC",
+      });
+    };
+
+    const thisWeek: TimelineRange = weekOf("2026-09-17T12:00:00.000Z");
+    const lastWeek: TimelineRange = weekOf("2026-09-10T12:00:00.000Z");
+
+    const renderGrid: (range: TimelineRange, now: Date) => ReactElement = (
+      range: TimelineRange,
+      now: Date,
+    ): ReactElement => {
+      return (
+        <MemoryRouter>
+          <TimelineGrid
+            range={range}
+            groups={groups}
+            now={now}
+            computedWindow={{ start: range.start, end: range.end }}
+            servedWindow={{ start: range.start, end: range.end }}
+            showGroupHeaders={false}
+            collapsedGroupKeys={new Set<string>()}
+            onToggleGroup={() => {}}
+            highlightedUserId={null}
+            onToggleHighlight={() => {}}
+          />
+        </MemoryRouter>
+      );
+    };
+
+    // Thursday of this week: someone is on call now.
+    const { rerender } = render(
+      renderGrid(thisWeek, new Date("2026-09-17T12:00:00.000Z")),
+    );
+
+    expect(
+      screen.getAllByTestId("timeline-on-call-now").length,
+    ).toBeGreaterThan(0);
+
+    // Page back; the clock is still Thursday.
+    rerender(renderGrid(lastWeek, new Date("2026-09-17T12:00:00.000Z")));
+
+    // Come back to "this" week after the clock has moved on to the next one.
+    rerender(renderGrid(thisWeek, new Date("2026-09-22T09:00:00.000Z")));
+
+    // The rows now describe the week, not a "now" inside it...
+    expect(screen.queryAllByTestId("timeline-on-call-now")).toHaveLength(0);
+    expect(screen.queryAllByTestId("timeline-uncovered-now")).toHaveLength(0);
+
+    /*
+     * ...and the only active bar is the one that really contains the new
+     * now: Bob's shift runs from Thursday into next week.
+     */
+    expect(
+      screen
+        .getAllByTestId("timeline-shift-bar")
+        .filter((bar: HTMLElement) => {
+          return bar.getAttribute("data-active") === "true";
+        })
+        .map((bar: HTMLElement) => {
+          return bar.getAttribute("data-user-id");
+        }),
+    ).toEqual(["u-bob"]);
   });
 });
