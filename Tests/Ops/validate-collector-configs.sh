@@ -129,7 +129,7 @@ validate() {
 for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent; do
   # Copied into the work dir so every config is mounted from one place and the
   # bind mount cannot pick up anything else from the agent directory.
-  cp "${REPO_ROOT}/${agent}/otel-collector-config.yaml" "${WORK_DIR}/${agent}.yaml"
+  cp "${REPO_ROOT}/agents/${agent}/otel-collector-config.yaml" "${WORK_DIR}/${agent}.yaml"
   validate "${agent}" "${WORK_DIR}/${agent}.yaml"
 done
 

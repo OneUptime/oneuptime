@@ -4,7 +4,7 @@ What the status page looks like after this change, and what it looked like
 before where the difference is visible in a still.
 
 Rendered from the real components against the status page's own Tailwind build
-(`Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js`) on mock data, and
+(`packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js`) on mock data, and
 shot with Playwright at a 2x device pixel ratio. The "before" frames were
 rendered from the pre-change components taken straight out of git, not
 re-implemented, so they are the real thing.

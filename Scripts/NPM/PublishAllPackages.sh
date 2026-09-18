@@ -66,7 +66,7 @@ publish_to_npm() {
 
 
 # Publish Common first - other packages depend on it
-publish_to_npm "Common"
+publish_to_npm "packages/Common"
 
 # Wait for @oneuptime/common to be available on the npm registry.
 # There is a propagation delay after publishing, so we poll until
@@ -86,5 +86,5 @@ done
 echo "@oneuptime/common@$package_version is now available on npm"
 
 # Publish packages that depend on Common (after Common is available on npm)
-publish_to_npm "App/FeatureSet/MobileRecorder"
-publish_to_npm "CLI"
+publish_to_npm "packages/App/FeatureSet/MobileRecorder"
+publish_to_npm "packages/CLI"

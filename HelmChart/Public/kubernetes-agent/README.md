@@ -1,5 +1,5 @@
 <!-- markdownlint-disable MD033 -->
-<h1 align="center"><img alt="oneuptime logo" width=50% src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/7.png"/></h1>
+<h1 align="center"><img alt="oneuptime logo" width=50% src="https://oneuptime.com/img/OneUptimePNG/7.png"/></h1>
 <!-- markdownlint-enable MD033 -->
 
 # OneUptime Kubernetes Agent
@@ -766,4 +766,4 @@ keys in [`values.yaml`](values.yaml) for all options.
 ## Source
 
 - Chart: [`HelmChart/Public/kubernetes-agent/`](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/kubernetes-agent)
-- Log-tailer image: [`KubernetesLogTailer/`](https://github.com/OneUptime/oneuptime/tree/master/KubernetesLogTailer)
+- Log-tailer image: [`agents/KubernetesLogTailer/`](https://github.com/OneUptime/oneuptime/tree/master/agents/KubernetesLogTailer)

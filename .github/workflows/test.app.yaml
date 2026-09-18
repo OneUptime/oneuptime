@@ -62,11 +62,11 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-      - run: cd Common && bash test-setup.sh
+      - run: cd packages/Common && bash test-setup.sh
       # App tests import Common sources directly (jest maps Common/* to
       # ../Common), so Common's own dependencies must be installed too.
-      - run: cd Common && npm install
-      - run: cd App && npm install && npm run test
+      - run: cd packages/Common && npm install
+      - run: cd packages/App && npm install && npm run test
 
   session-replay-ui:
     name: Session Replay UI
@@ -84,20 +84,20 @@ jobs:
       # These browser tests render Dashboard sources with fixture API data.
       # They need the frontend dependencies, but no test database or Docker stack.
       - name: Install shared dependencies
-        working-directory: Common
+        working-directory: packages/Common
         run: npm install
       - name: Install Dashboard dependencies
-        working-directory: App/FeatureSet/Dashboard
+        working-directory: packages/App/FeatureSet/Dashboard
         run: npm install
       - name: Install browser test dependencies
-        working-directory: E2E
+        working-directory: packages/E2E
         # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
         run: npm install --ignore-scripts
       - name: Install Chromium
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npx playwright install --with-deps chromium
       - name: Run Session Replay UI regressions
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-session-replay-ui
       - name: Upload browser screenshots and failure traces
         if: always()
@@ -125,66 +125,66 @@ jobs:
       # Each suite bundles real Dashboard / Status Page sources with esbuild and
       # serves them against fixture data on 127.0.0.1: no database or Docker stack.
       - name: Install shared dependencies
-        working-directory: Common
+        working-directory: packages/Common
         run: npm install
       - name: Install Dashboard dependencies
-        working-directory: App/FeatureSet/Dashboard
+        working-directory: packages/App/FeatureSet/Dashboard
         run: npm install
       - name: Install Status Page dependencies
-        working-directory: App/FeatureSet/StatusPage
+        working-directory: packages/App/FeatureSet/StatusPage
         run: npm install
       - name: Install browser test dependencies
-        working-directory: E2E
+        working-directory: packages/E2E
         # Skip the preinstall hook that downloads every browser.
         run: npm install --ignore-scripts
       - name: Install browsers
-        working-directory: E2E
+        working-directory: packages/E2E
         # The Alerts suite also runs in Firefox; every other suite is Chromium only.
         run: npx playwright install --with-deps chromium firefox
       # Every suite runs even if an earlier one failed, so one run reports them all.
       - name: Run Incoming Call Policies UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-incoming-call-policies-ui
       - name: Run SLO Burn Rate UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-slo-burn-rate-ui
       - name: Run Exception Detail UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-exception-detail-ui
       - name: Run Trace Detail UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-trace-detail-ui
       - name: Run Event Overview UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-event-overview-ui
       - name: Run Status Page Search UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-status-page-search-ui
       - name: Run Pencil Button UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-pencil-button-ui
       - name: Run Alerts UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-alerts-ui
       - name: Run Label Rules UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-label-rule-transfer-ui
       - name: Run Discovery UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-discovery-ui
       - name: Run Topology UI regressions
         if: ${{ !cancelled() }}
-        working-directory: E2E
+        working-directory: packages/E2E
         run: npm run test-topology-ui
       - name: Upload browser screenshots and failure traces
         if: always()

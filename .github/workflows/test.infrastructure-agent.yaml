@@ -22,16 +22,16 @@ jobs:
         with:
           # Pin to the module's own Go version instead of drifting with whatever
           # the runner image happens to ship.
-          go-version-file: InfrastructureAgent/go.mod
+          go-version-file: agents/InfrastructureAgent/go.mod
       # The suite includes the secret-key redaction guards, which are what keep
       # the agent's secret out of its world-readable log file. -race is cheap
       # here and the agent runs a scheduler, so it is worth the coverage.
-      - run: cd InfrastructureAgent && go test ./... -race
+      - run: cd agents/InfrastructureAgent && go test ./... -race
       # The agent ships for Windows and macOS too, but the tests above only
       # compile the Linux build. Vet the other release targets so code behind
       # a //go:build tag (utils/disk_drives_windows.go) is at least type-checked.
-      - run: cd InfrastructureAgent && GOOS=windows GOARCH=amd64 go vet ./...
-      - run: cd InfrastructureAgent && GOOS=darwin GOARCH=arm64 go vet ./...
+      - run: cd agents/InfrastructureAgent && GOOS=windows GOARCH=amd64 go vet ./...
+      - run: cd agents/InfrastructureAgent && GOOS=darwin GOARCH=arm64 go vet ./...
 
   # Disk collection handles what gopsutil returns on Windows - partial partition
   # lists, drive-letter devices - and the Linux job can only reproduce that with
@@ -43,6 +43,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: InfrastructureAgent/go.mod
-      - working-directory: InfrastructureAgent
+          go-version-file: agents/InfrastructureAgent/go.mod
+      - working-directory: agents/InfrastructureAgent
         run: go test ./utils/ -count=1 -v -run "^Test(ListDiskMetrics|Disk|WindowsDisk|LookupIOCounters|IOCountersKeyCandidates|DescribeDiskError|MissingDrives)"

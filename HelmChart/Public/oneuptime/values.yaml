@@ -1215,7 +1215,7 @@ dashboard:
 # the namespace they create; without `chroot` every Firefox and Chromium
 # launch crashes), then override a probe with:
 #
-# Do not install `Probe/seccomp_profile.json` verbatim in Kubernetes: that file
+# Do not install `packages/Probe/seccomp_profile.json` verbatim in Kubernetes: that file
 # uses Moby-specific `includes`/`excludes` fields for Docker Compose.
 #
 #   containerSecurityContext:

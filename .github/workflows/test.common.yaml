@@ -60,19 +60,21 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
       BILLING_PRIVATE_KEY: ${{ secrets.TEST_BILLING_PRIVATE_KEY }}
+      RUN_POSTGRES_EVENT_OVERLAY_TESTS: "true"
+      RUN_POSTGRES_MONITOR_DESCRIPTION_MIGRATION_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 26
           cache: npm
-          cache-dependency-path: Common/package-lock.json
+          cache-dependency-path: packages/Common/package-lock.json
       - name: Set up test services
-        working-directory: Common
+        working-directory: packages/Common
         run: bash test-setup.sh
       - name: Install dependencies
-        working-directory: Common
+        working-directory: packages/Common
         run: npm install
       - name: Run test shard
-        working-directory: Common
+        working-directory: packages/Common
         run: rm -rf build && npm run test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}

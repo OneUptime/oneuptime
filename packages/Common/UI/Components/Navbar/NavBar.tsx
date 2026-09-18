@@ -1,0 +1,553 @@
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useEffect,
+} from "react";
+import { createPortal } from "react-dom";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import IconProp from "../../../Types/Icon/IconProp";
+import NavBarItem from "./NavBarItem";
+import NavBarMenuModal from "./NavBarMenuModal";
+import Button, { ButtonStyleType } from "../Button/Button";
+import Navigation from "../../Utils/Navigation";
+import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
+import useTranslateValue from "../../Utils/Translation";
+import Icon, { ThickProp } from "../Icon/Icon";
+
+export interface NavItem {
+  id: string;
+  title: string;
+  icon: IconProp;
+  route: Route;
+  activeRoute?: Route | undefined;
+  exact?: boolean | undefined;
+  description?: string | undefined;
+}
+
+export interface MoreMenuItem {
+  title: string;
+  description: string;
+  /** Acronyms and alternate names users can search for in navigation. */
+  keywords?: Array<string> | undefined;
+  route: Route;
+  icon: IconProp;
+  iconColor?: string; // Tailwind color name like "blue", "purple", "amber"
+  category?: string; // Category for grouping items (e.g., "Essentials", "Observability")
+  activeRoute?: Route | undefined; // Route to check for active state
+  additionalActiveRoutes?: Array<Route> | undefined; // Extra routes that also mark this item active
+}
+
+/*
+ * One menu item can own several route prefixes (e.g. a merged "Network" item
+ * spanning /network-devices and /network-sites) — check them all.
+ */
+export function isMoreMenuItemActive(item: MoreMenuItem): boolean {
+  const routesToCheck: Array<Route> = [
+    item.activeRoute || item.route,
+    ...(item.additionalActiveRoutes || []),
+  ];
+  return routesToCheck.some((route: Route) => {
+    return Navigation.isStartWith(route);
+  });
+}
+
+export interface ComponentProps {
+  items?: NavItem[];
+  rightElement?: NavItem;
+  moreMenuItems?: MoreMenuItem[];
+  moreMenuTitle?: string; // Title for the more menu (default: "Products")
+  moreMenuSearchPlaceholder?: string; // Placeholder for the menu search box
+  moreMenuNoResultsText?: string; // Empty-state text when search matches nothing
+  moreMenuKeyboardHint?: string; // Keyboard hint shown in the menu footer
+  moreMenuRecentLabel?: string; // Heading for the recently-visited products row
+  moreMenuFooter?: {
+    title: string;
+    description: string;
+    link: URL;
+  };
+  /*
+   * When true, Cmd/Ctrl+K never opens or toggles the products menu — for apps
+   * where another surface (e.g. a command palette) owns that shortcut. The
+   * menu itself stays usable via its trigger button; if it is already open,
+   * the owner's chord dismisses it without consuming the event. Defaults to
+   * false so existing consumers keep the products shortcut.
+   */
+  disableCommandKShortcut?: boolean | undefined;
+  className?: string;
+  // Legacy support for children-based usage
+  children?: ReactElement | Array<ReactElement>;
+}
+
+/*
+ * Breathing room kept between the bottom of the open mobile menu and the bottom
+ * of the viewport, and the smallest height we will ever shrink the menu to.
+ */
+const MOBILE_MENU_BOTTOM_GAP_IN_PX: number = 16;
+const MOBILE_MENU_MIN_HEIGHT_IN_PX: number = 160;
+
+/*
+ * Keep the products-menu shortcut and the dashboard command palette on the
+ * same definition of Cmd/Ctrl+K. In particular, modified chords such as
+ * Cmd+Shift+K must be left alone for the browser or another feature.
+ */
+const isCommandKShortcut: (event: KeyboardEvent) => boolean = (
+  event: KeyboardEvent,
+): boolean => {
+  return (
+    (event.metaKey || event.ctrlKey) &&
+    !event.shiftKey &&
+    !event.altKey &&
+    event.key.toLowerCase() === "k"
+  );
+};
+
+const Navbar: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [isMobileMenuVisible, setIsMobileMenuVisible] =
+    useState<boolean>(false);
+  const [isMoreMenuVisible, setIsMoreMenuVisible] = useState<boolean>(false);
+  const [mobileMenuMaxHeight, setMobileMenuMaxHeight] = useState<
+    number | undefined
+  >(undefined);
+  const hasMoreMenu: boolean = Boolean(
+    !props.children && props.moreMenuItems && props.moreMenuItems.length > 0,
+  );
+
+  // Use the existing outside click hook for mobile menu
+  const {
+    ref: mobileMenuRef,
+    isComponentVisible: isMobileMenuOpen,
+    setIsComponentVisible: setIsMobileMenuOpen,
+  } = useComponentOutsideClick(false);
+
+  // Sync local state with hook state
+  useEffect(() => {
+    setIsMobileMenuVisible(isMobileMenuOpen);
+  }, [isMobileMenuOpen]);
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile: () => void = (): void => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      return window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
+
+  /*
+   * The mobile menu is absolutely positioned inside a `sticky top-0` header, so
+   * anything that overflows past the bottom of the viewport is unreachable —
+   * scrolling the page just drags the sticky header (and the menu pinned to it)
+   * along. Cap the menu to the space left below it so it scrolls on its own.
+   */
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    const updateMobileMenuMaxHeight: () => void = (): void => {
+      const menuTop: number =
+        mobileMenuRef.current?.getBoundingClientRect().top ?? 0;
+      const viewportHeight: number =
+        window.visualViewport?.height ?? window.innerHeight;
+
+      setMobileMenuMaxHeight(
+        Math.max(
+          viewportHeight - menuTop - MOBILE_MENU_BOTTOM_GAP_IN_PX,
+          MOBILE_MENU_MIN_HEIGHT_IN_PX,
+        ),
+      );
+    };
+
+    updateMobileMenuMaxHeight();
+
+    window.addEventListener("resize", updateMobileMenuMaxHeight);
+    window.addEventListener("orientationchange", updateMobileMenuMaxHeight);
+    // The address bar collapsing on mobile only shows up on the visual viewport.
+    window.visualViewport?.addEventListener(
+      "resize",
+      updateMobileMenuMaxHeight,
+    );
+
+    return () => {
+      window.removeEventListener("resize", updateMobileMenuMaxHeight);
+      window.removeEventListener(
+        "orientationchange",
+        updateMobileMenuMaxHeight,
+      );
+      window.visualViewport?.removeEventListener(
+        "resize",
+        updateMobileMenuMaxHeight,
+      );
+    };
+  }, [isMobileMenuOpen]);
+
+  // Open/close the products menu with Cmd/Ctrl + K from anywhere.
+  useEffect(() => {
+    if (props.disableCommandKShortcut || !hasMoreMenu) {
+      // Another surface owns Cmd/Ctrl+K, or there is no products menu to open.
+      return;
+    }
+
+    const handleGlobalKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (!isCommandKShortcut(event) || event.defaultPrevented) {
+        return;
+      }
+
+      event.preventDefault();
+      setIsMoreMenuVisible((visible: boolean) => {
+        return !visible;
+      });
+    };
+
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleGlobalKeyDown);
+    };
+  }, [hasMoreMenu, props.disableCommandKShortcut]);
+
+  /*
+   * When the dashboard has surrendered Cmd/Ctrl+K to its command palette, an
+   * already-open products modal must get out of the way before the palette
+   * opens. This close-only listener deliberately does not prevent or stop the
+   * event: the real shortcut owner still needs to receive the same keydown.
+   * It also ignores defaultPrevented so the result is deterministic regardless
+   * of which document listener React registered first.
+   */
+  useEffect(() => {
+    if (!props.disableCommandKShortcut || !hasMoreMenu || !isMoreMenuVisible) {
+      return;
+    }
+
+    const closeProductsOnCommandK: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (isCommandKShortcut(event)) {
+        setIsMoreMenuVisible(false);
+      }
+    };
+
+    document.addEventListener("keydown", closeProductsOnCommandK);
+    return () => {
+      document.removeEventListener("keydown", closeProductsOnCommandK);
+    };
+  }, [hasMoreMenu, isMoreMenuVisible, props.disableCommandKShortcut]);
+
+  // More menu open/close.
+  const openMoreMenu: () => void = (): void => {
+    setIsMoreMenuVisible(true);
+  };
+
+  const closeMoreMenu: () => void = (): void => {
+    setIsMoreMenuVisible(false);
+  };
+
+  // Legacy support: if children are provided, render the old way
+  if (props.children) {
+    const className: string =
+      props.className || "flex text-center lg:space-x-8 lg:py-2 bg-white ";
+
+    return (
+      <nav className={props.rightElement ? `flex justify-between` : ""}>
+        <div data-testid="nav-children" className={className}>
+          {props.children}
+        </div>
+        {props.rightElement && (
+          <div className={className}>
+            <NavBarItem
+              title={props.rightElement.title}
+              icon={props.rightElement.icon}
+              route={props.rightElement.route}
+              activeRoute={props.rightElement.activeRoute}
+              exact={props.rightElement.exact ?? false}
+            />
+          </div>
+        )}
+      </nav>
+    );
+  }
+
+  // New props-based implementation
+  if (!props.items || props.items.length === 0) {
+    return <></>;
+  }
+
+  // Build all nav items including more menu items for mobile
+  const allNavItems: Array<any> = [...props.items];
+  if (props.moreMenuItems) {
+    allNavItems.push(
+      ...props.moreMenuItems.map((item: any) => {
+        return {
+          id: `more-${item.title.toLowerCase().replace(/\s+/g, "-")}`,
+          title: item.title,
+          icon: item.icon,
+          route: item.route,
+          activeRoute: item.activeRoute,
+          description: item.description,
+        };
+      }),
+    );
+  }
+
+  // Add right element to mobile menu
+  if (props.rightElement) {
+    allNavItems.push({
+      id: `right-${props.rightElement.title.toLowerCase().replace(/\s+/g, "-")}`,
+      title: props.rightElement.title,
+      icon: props.rightElement.icon,
+      route: props.rightElement.route,
+      activeRoute: props.rightElement.activeRoute,
+      exact: props.rightElement.exact,
+    });
+  }
+
+  // Find the currently active item
+  const activeItem: any =
+    allNavItems.find((item: any) => {
+      const routeToCheck: any = item.activeRoute || item.route;
+      return item.exact
+        ? Navigation.isOnThisPage(routeToCheck)
+        : Navigation.isStartWith(routeToCheck);
+    }) || allNavItems[0];
+
+  // Mobile view
+  if (isMobile && activeItem) {
+    return (
+      <div className="relative md:hidden">
+        <nav className="bg-white text-center justify-between py-2 mt-5">
+          {/* Mobile: Show only active item and hamburger menu */}
+          <div className="flex items-center justify-between w-full">
+            <NavBarItem
+              id={activeItem.id}
+              title={activeItem.title}
+              icon={activeItem.icon}
+              exact={true}
+              route={undefined}
+              onClick={() => {
+                return setIsMobileMenuOpen(!isMobileMenuVisible);
+              }}
+              isRenderedOnMobile={true}
+            />
+
+            <Button
+              buttonStyle={ButtonStyleType.OUTLINE}
+              onClick={() => {
+                return setIsMobileMenuOpen(!isMobileMenuVisible);
+              }}
+              className="ml-2 p-2"
+              icon={isMobileMenuOpen ? IconProp.Close : IconProp.Bars3}
+              dataTestId="mobile-nav-toggle"
+            />
+          </div>
+        </nav>
+
+        {/* Mobile dropdown menu */}
+        {isMobileMenuOpen && (
+          <div
+            ref={mobileMenuRef}
+            className="absolute top-full left-0 right-0 z-50 mt-1 transition-all duration-200 ease-in-out"
+          >
+            <nav
+              className="bg-white rounded-lg shadow-lg px-3 py-3 space-y-1 border border-gray-200 overflow-y-auto overscroll-contain"
+              style={
+                mobileMenuMaxHeight
+                  ? { maxHeight: `${mobileMenuMaxHeight}px` }
+                  : undefined
+              }
+            >
+              {allNavItems.map((item: any) => {
+                return (
+                  <div key={item.id} className="block w-full">
+                    <NavBarItem
+                      id={item.id}
+                      title={item.title}
+                      icon={item.icon}
+                      exact={item.exact ?? false}
+                      route={item.route}
+                      activeRoute={item.activeRoute}
+                      onClick={() => {
+                        return setIsMobileMenuOpen(false);
+                      }}
+                      isRenderedOnMobile={true}
+                    />
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop view
+  const className: string =
+    props.className ||
+    "bg-white flex text-center items-center lg:py-2 hidden md:flex";
+
+  // Find active item in more menu items (needed for breadcrumb)
+  const activeMoreItem: MoreMenuItem | undefined = props.moreMenuItems?.find(
+    (item: MoreMenuItem) => {
+      return isMoreMenuItemActive(item);
+    },
+  );
+
+  /*
+   * Find Home item from navItems. Match by id so this keeps working when the
+   * title is translated to a non-English language.
+   */
+  const homeItem: NavItem | undefined = props.items.find((item: NavItem) => {
+    return item.id === "home-nav-bar-item";
+  });
+  const otherNavItems: NavItem[] = props.items.filter((item: NavItem) => {
+    return item.id !== "home-nav-bar-item";
+  });
+
+  return (
+    <nav
+      className={props.rightElement ? `flex justify-between items-center` : ""}
+    >
+      <div data-testid="nav-children" className={className}>
+        {/* Combined Home > Product breadcrumb */}
+        <div className="flex items-center">
+          {/* Home link */}
+          {homeItem && (
+            <NavBarItem
+              key={homeItem.id}
+              id={homeItem.id}
+              title={homeItem.title}
+              icon={homeItem.icon}
+              activeRoute={homeItem.activeRoute}
+              route={homeItem.route}
+              exact={true}
+            />
+          )}
+
+          {/* Separator and active product */}
+          {activeMoreItem && (
+            <>
+              <span className="text-gray-400 mx-1">/</span>
+              <button
+                onClick={openMoreMenu}
+                className="group bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
+              >
+                <Icon
+                  icon={activeMoreItem.icon}
+                  className="mr-1.5 h-4 w-4 transition-transform duration-150 group-hover:scale-110"
+                  thick={ThickProp.Thick}
+                />
+                <span>{activeMoreItem.title}</span>
+                <Icon
+                  icon={IconProp.ChevronDown}
+                  className={`ml-1.5 h-3 w-3 text-gray-500 transition-transform duration-200 ${
+                    isMoreMenuVisible ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+            </>
+          )}
+
+          {/* Show Products button when no product is selected */}
+          {!activeMoreItem &&
+            props.moreMenuItems &&
+            props.moreMenuItems.length > 0 && (
+              <>
+                <span className="text-gray-400 mx-1">/</span>
+                <button
+                  onClick={openMoreMenu}
+                  className="group text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
+                >
+                  <Icon
+                    icon={IconProp.Squares}
+                    className="mr-1.5 h-4 w-4 transition-transform duration-150 group-hover:scale-110 group-hover:text-indigo-600"
+                    thick={ThickProp.Thick}
+                  />
+                  {/*
+                   * Callers pass a plain English literal here (or nothing, and
+                   * take the default) — run it through the same flat-key lookup
+                   * the side menu uses so the button is localised like every
+                   * other label in the nav.
+                   */}
+                  <span>
+                    {translateString(props.moreMenuTitle || "Products")}
+                  </span>
+                  <Icon
+                    icon={IconProp.ChevronDown}
+                    className={`ml-1.5 h-3 w-3 text-gray-400 transition-transform duration-200 ${
+                      isMoreMenuVisible ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </>
+            )}
+        </div>
+
+        {/* Other nav items */}
+        {otherNavItems.map((item: NavItem) => {
+          return (
+            <NavBarItem
+              key={item.id}
+              id={item.id}
+              title={item.title}
+              icon={item.icon}
+              activeRoute={item.activeRoute}
+              route={item.route}
+              exact={item.exact ?? false}
+            />
+          );
+        })}
+      </div>
+
+      {props.rightElement && (
+        <div className={className}>
+          <NavBarItem
+            title={props.rightElement.title}
+            icon={props.rightElement.icon}
+            route={props.rightElement.route}
+            activeRoute={props.rightElement.activeRoute}
+            exact={props.rightElement.exact ?? false}
+          />
+        </div>
+      )}
+
+      {/*
+       * Render the full-screen products modal in a portal on document.body so it
+       * is not a flex child of this `justify-between` nav. Otherwise it counts as
+       * a third flex item and shifts the right-side user/settings menu toward the
+       * middle whenever the modal opens. The modal is `fixed inset-0`, so its
+       * visual position is identical when portaled.
+       */}
+      {isMoreMenuVisible &&
+        props.moreMenuItems &&
+        props.moreMenuItems.length > 0 &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <NavBarMenuModal
+            items={props.moreMenuItems}
+            footer={props.moreMenuFooter}
+            searchPlaceholder={props.moreMenuSearchPlaceholder}
+            noResultsText={props.moreMenuNoResultsText}
+            showCommandKShortcutHint={!props.disableCommandKShortcut}
+            keyboardHint={props.moreMenuKeyboardHint}
+            recentLabel={props.moreMenuRecentLabel}
+            onClose={closeMoreMenu}
+          />,
+          document.body,
+        )}
+    </nav>
+  );
+};
+
+export default Navbar;

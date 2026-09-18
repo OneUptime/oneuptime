@@ -1,0 +1,4049 @@
+import DatabaseConfig from "../DatabaseConfig";
+import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
+import IncidentMeasurementService from "./IncidentMeasurementService";
+import CountBy from "../Types/Database/CountBy";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import FindBy from "../Types/Database/FindBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
+import DatabaseService from "./DatabaseService";
+import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
+import CustomFieldMappingService from "./CustomFieldMappingService";
+import AIRunService from "./AIRunService";
+import AIRunType from "../../Types/AI/AIRunType";
+import AIRunStatus from "../../Types/AI/AIRunStatus";
+import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
+import IncidentOwnerUserService from "./IncidentOwnerUserService";
+import IncidentStateService from "./IncidentStateService";
+import IncidentStateTimelineService from "./IncidentStateTimelineService";
+import IncidentMeasurementValueService from "./IncidentMeasurementValueService";
+import MonitorService from "./MonitorService";
+import MonitorStatusService from "./MonitorStatusService";
+import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import TeamMemberService from "./TeamMemberService";
+import UserService from "./UserService";
+import URL from "../../Types/API/URL";
+import { getSloAffectedResourceMarkdownLines } from "../../Utils/Slo/SloAffectedResourceMarkdown";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
+import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
+import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
+import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import DockerHost from "../../Models/DatabaseModels/DockerHost";
+import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
+import Host from "../../Models/DatabaseModels/Host";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import ServiceModel from "../../Models/DatabaseModels/Service";
+import Model from "../../Models/DatabaseModels/Incident";
+import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "../../Models/DatabaseModels/IncidentOwnerUser";
+import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
+import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
+import User from "../../Models/DatabaseModels/User";
+import { IsBillingEnabled } from "../EnvironmentConfig";
+import MutableMetricService from "./MutableMetricService";
+import GlobalConfigService from "./GlobalConfigService";
+import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import IncidentMetricType from "../../Types/Incident/IncidentMetricType";
+import MutableMetric from "../../Models/AnalyticsModels/MutableMetric";
+import { MetricPointType } from "../../Models/AnalyticsModels/Metric";
+import ServiceType from "../../Types/Telemetry/ServiceType";
+import OneUptimeDate from "../../Types/Date";
+import TelemetryUtil from "../Utils/Telemetry/Telemetry";
+import MetricResourceAttributeUtil from "../../Utils/Metrics/MetricResourceAttributeUtil";
+import logger, { LogAttributes } from "../Utils/Logger";
+import ProductAnalytics from "../Utils/ProductAnalytics";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import IncidentFeedService from "./IncidentFeedService";
+import IncidentSlaService from "./IncidentSlaService";
+import IncidentReminderRuleService from "./IncidentReminderRuleService";
+import IncidentReminderRule from "../../Models/DatabaseModels/IncidentReminderRule";
+import { setIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
+import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
+import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
+import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
+import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
+import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
+import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
+import RunbookRuleEngineService from "./RunbookRuleEngineService";
+import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
+import { Blue500, Gray500, Red500 } from "../../Types/BrandColors";
+import Label from "../../Models/DatabaseModels/Label";
+import LabelService from "./LabelService";
+import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import IncidentSeverityService from "./IncidentSeverityService";
+import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Incident";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import MetricType from "../../Models/DatabaseModels/MetricType";
+import UpdateBy from "../Types/Database/UpdateBy";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import Dictionary from "../../Types/Dictionary";
+import ProjectService from "./ProjectService";
+import IncidentTemplateService from "./IncidentTemplateService";
+import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
+import AIService, { AILogResponse } from "./AIService";
+import AIIncidentInvestigationRunner from "../Utils/AI/SRE/IncidentInvestigationRunner";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import IncidentAIContextBuilder, {
+  AIGenerationContext,
+  IncidentContextData,
+} from "../Utils/AI/IncidentAIContextBuilder";
+
+// key is incidentId for this dictionary.
+type UpdateCarryForward = Dictionary<{
+  monitorsRemoved: Array<Monitor>;
+  monitorsAdded: Array<Monitor>;
+  oldChangeMonitorStatusIdTo: ObjectID | undefined;
+  newMonitorChangeStatusIdTo: ObjectID | undefined;
+}>;
+
+type IncidentUpdatePayload = {
+  postmortemNote?: string | null;
+  title?: string | null;
+  rootCause?: string | null;
+  description?: string | null;
+  remediationNotes?: string | null;
+  labels?: unknown;
+  incidentSeverity?: unknown;
+  [key: string]: unknown;
+};
+
+export class Service extends DatabaseService<Model> {
+  public constructor() {
+    super(Model);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
+    }
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = applyIncidentSelfPrivacyFilter(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyIncidentSelfPrivacyFilter(
+      countBy.query,
+      countBy.props,
+    );
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  public async isIncidentResolved(data: {
+    incidentId: ObjectID;
+  }): Promise<boolean> {
+    const incident: Model | null = await this.findOneBy({
+      query: {
+        _id: data.incidentId,
+      },
+      select: {
+        projectId: true,
+        currentIncidentState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
+    if (!incident.projectId) {
+      throw new BadDataException("Incident Project ID not found");
+    }
+
+    const resolvedIncidentState: IncidentState =
+      await IncidentStateService.getResolvedIncidentState({
+        projectId: incident.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentIncidentStateOrder: number =
+      incident.currentIncidentState!.order!;
+    const resolvedIncidentStateOrder: number = resolvedIncidentState.order!;
+
+    if (currentIncidentStateOrder >= resolvedIncidentStateOrder) {
+      return true;
+    }
+
+    return false;
+  }
+
+  @CaptureSpan()
+  public async isIncidentAcknowledged(data: {
+    incidentId: ObjectID;
+  }): Promise<boolean> {
+    const incident: Model | null = await this.findOneBy({
+      query: {
+        _id: data.incidentId,
+      },
+      select: {
+        projectId: true,
+        currentIncidentState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
+    if (!incident.projectId) {
+      throw new BadDataException("Incident Project ID not found");
+    }
+
+    const ackIncidentState: IncidentState =
+      await IncidentStateService.getAcknowledgedIncidentState({
+        projectId: incident.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentIncidentStateOrder: number =
+      incident.currentIncidentState!.order!;
+    const ackIncidentStateOrder: number = ackIncidentState.order!;
+
+    if (currentIncidentStateOrder >= ackIncidentStateOrder) {
+      return true;
+    }
+
+    return false;
+  }
+
+  @CaptureSpan()
+  public async refreshReminderSchedule(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        enableReminders: true,
+        incidentSeverityId: true,
+        labels: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      return;
+    }
+
+    let nextReminderNotificationAt: Date | null = null;
+
+    if (incident.enableReminders !== false) {
+      const matchingRule: IncidentReminderRule | null =
+        await IncidentReminderRuleService.findMatchingRule({
+          projectId: data.projectId,
+          incidentSeverityId: incident.incidentSeverityId,
+          labelIds: incident.labels?.map((label: Label) => {
+            return label.id!;
+          }),
+        });
+
+      if (
+        matchingRule &&
+        matchingRule.reminderIntervalInMinutes &&
+        !(await this.isIncidentResolved({ incidentId: data.incidentId }))
+      ) {
+        nextReminderNotificationAt = OneUptimeDate.addRemoveMinutes(
+          OneUptimeDate.getCurrentDate(),
+          matchingRule.reminderIntervalInMinutes,
+        );
+      }
+    }
+
+    await this.updateOneById({
+      id: data.incidentId,
+      data: {
+        nextReminderNotificationAt: nextReminderNotificationAt,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public async resolveIncident(
+    incidentId: ObjectID,
+    resolvedByUserId: ObjectID,
+  ): Promise<Model> {
+    // check if the incident is already resolved.
+    const isIncidentResolved: boolean = await this.isIncidentResolved({
+      incidentId: incidentId,
+    });
+
+    if (isIncidentResolved) {
+      throw new BadDataException("Incident is already resolved.");
+    }
+
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        projectId: true,
+        incidentNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident || !incident.projectId) {
+      throw new BadDataException("Incident not found.");
+    }
+
+    const incidentState: IncidentState | null =
+      await IncidentStateService.findOneBy({
+        query: {
+          projectId: incident.projectId,
+          isResolvedState: true,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incidentState || !incidentState.id) {
+      throw new BadDataException(
+        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+      );
+    }
+
+    const incidentStateTimeline: IncidentStateTimeline =
+      new IncidentStateTimeline();
+    incidentStateTimeline.projectId = incident.projectId;
+    incidentStateTimeline.incidentId = incidentId;
+    incidentStateTimeline.incidentStateId = incidentState.id;
+    incidentStateTimeline.createdByUserId = resolvedByUserId;
+
+    await IncidentStateTimelineService.create({
+      data: incidentStateTimeline,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // store incident metric
+
+    return incident;
+  }
+
+  @CaptureSpan()
+  public async acknowledgeIncident(
+    incidentId: ObjectID,
+    acknowledgedByUserId: ObjectID,
+  ): Promise<Model> {
+    // check if the incident is already acknowledged.
+    const isIncidentAcknowledged: boolean = await this.isIncidentAcknowledged({
+      incidentId: incidentId,
+    });
+
+    if (isIncidentAcknowledged) {
+      throw new BadDataException("Incident is already acknowledged.");
+    }
+
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        projectId: true,
+        incidentNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident || !incident.projectId) {
+      throw new BadDataException("Incident not found.");
+    }
+
+    const incidentState: IncidentState | null =
+      await IncidentStateService.findOneBy({
+        query: {
+          projectId: incident.projectId,
+          isAcknowledgedState: true,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incidentState || !incidentState.id) {
+      throw new BadDataException(
+        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+      );
+    }
+
+    const incidentStateTimeline: IncidentStateTimeline =
+      new IncidentStateTimeline();
+    incidentStateTimeline.projectId = incident.projectId;
+    incidentStateTimeline.incidentId = incidentId;
+    incidentStateTimeline.incidentStateId = incidentState.id;
+    incidentStateTimeline.createdByUserId = acknowledgedByUserId;
+
+    await IncidentStateTimelineService.create({
+      data: incidentStateTimeline,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // store incident metric
+
+    return incident;
+  }
+
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    /*
+     * get monitors for this incident.
+     * if the monitors are removed then change them to operational state.
+     * then change all of the monitors in this incident to the changeMonitorStatusToId.
+     */
+
+    updateBy.query = applyIncidentSelfPrivacyFilter(
+      updateBy.query,
+      updateBy.props,
+    );
+
+    if (updateBy.data.isPrivate === true) {
+      updateBy.data.isVisibleOnStatusPage = false;
+    }
+
+    await this.validateProjectScopedReferences(updateBy);
+
+    const carryForward: UpdateCarryForward = {};
+
+    if (
+      updateBy.data.monitors ||
+      updateBy.data.changeMonitorStatusTo ||
+      updateBy.data.changeMonitorStatusToId
+    ) {
+      const incidentsToUpdate: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          monitors: {
+            _id: true,
+          },
+          projectId: true,
+          changeMonitorStatusToId: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: updateBy.props,
+      });
+
+      for (const incident of incidentsToUpdate) {
+        carryForward[incident.id!.toString()] = {
+          monitorsRemoved: [],
+          monitorsAdded: [],
+          oldChangeMonitorStatusIdTo: incident.changeMonitorStatusToId,
+          newMonitorChangeStatusIdTo:
+            (updateBy.data.changeMonitorStatusToId as ObjectID) ||
+            (updateBy.data.changeMonitorStatusTo as unknown as MonitorStatus)
+              ?._id ||
+            undefined,
+        };
+
+        for (const monitor of incident.monitors || []) {
+          // check if this monitor is actually removed.
+          let isRemoved: boolean = true;
+
+          for (const updatedMonitor of updateBy.data
+            ?.monitors as unknown as Array<Monitor>) {
+            if (
+              updatedMonitor._id &&
+              updatedMonitor._id.toString() === monitor._id?.toString()
+            ) {
+              isRemoved = false;
+              break;
+            }
+          }
+
+          if (isRemoved) {
+            carryForward[incident.id!.toString()]?.monitorsRemoved?.push(
+              monitor,
+            );
+          }
+        }
+
+        if (updateBy.data.monitors && updateBy.data.monitors.length > 0) {
+          for (const monitor of updateBy.data
+            ?.monitors as unknown as Array<Monitor>) {
+            // check if this monitor is actually added.
+            let isAdded: boolean = true;
+
+            for (const existingMonitor of incident.monitors || []) {
+              if (
+                existingMonitor._id &&
+                existingMonitor._id.toString() === monitor._id?.toString()
+              ) {
+                isAdded = false;
+                break;
+              }
+            }
+
+            if (isAdded) {
+              // this monitor is added.
+              carryForward[incident.id!.toString()]?.monitorsAdded?.push(
+                monitor,
+              );
+            }
+          }
+        }
+      }
+    }
+
+    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated if it's being updated
+    if (
+      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated !==
+      undefined
+    ) {
+      if (
+        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
+        false
+      ) {
+        updateBy.data.subscriberNotificationStatusOnIncidentCreated =
+          StatusPageSubscriberNotificationStatus.Skipped;
+        updateBy.data.subscriberNotificationStatusMessage =
+          "Notifications skipped as subscribers are not to be notified for this incident.";
+      } else if (
+        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
+        true
+      ) {
+        updateBy.data.subscriberNotificationStatusOnIncidentCreated =
+          StatusPageSubscriberNotificationStatus.Pending;
+      }
+    }
+
+    /*
+     * Re-apply mapped custom field values. Covers the Custom Fields modal
+     * saving the whole bag back over a mapped value, and the incident's
+     * monitors being added or removed — both change what a mapped field should
+     * hold, and folding the answer into this payload keeps it one write with a
+     * truthful audit entry.
+     */
+    await CustomFieldMappingService.applyMappingsToUpdate({
+      definitionModelType: IncidentCustomField,
+      updateBy: updateBy,
+    });
+
+    return {
+      updateBy: updateBy,
+      carryForward: carryForward,
+    };
+  }
+
+  /*
+   * An update can repoint an incident at another project's state, severity or
+   * monitor status just as easily as a create can, and the result is the same:
+   * the referenced project can no longer be deleted. Only the columns actually
+   * being written are checked, so ordinary updates cost no extra queries.
+   */
+  private async validateProjectScopedReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const incidentStateId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.currentIncidentStateId) ||
+      resolveReferenceId(updateBy.data.currentIncidentState);
+
+    const incidentSeverityId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.incidentSeverityId) ||
+      resolveReferenceId(updateBy.data.incidentSeverity);
+
+    const changeMonitorStatusToId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
+      resolveReferenceId(updateBy.data.changeMonitorStatusTo);
+
+    /*
+     * The SLOs this incident affects: a relation list the API accepts on
+     * update. Checked for the same reason as on create; see
+     * SloRecordReferenceValidator.
+     */
+    const hasServiceLevelObjectiveIds: boolean =
+      SloRecordReferenceValidator.getReferencedIds(
+        updateBy.data.serviceLevelObjectives,
+      ).length > 0;
+
+    if (
+      !incidentStateId &&
+      !incidentSeverityId &&
+      !changeMonitorStatusToId &&
+      !hasServiceLevelObjectiveIds
+    ) {
+      return;
+    }
+
+    /*
+     * Root/API updates do not always carry a tenantId, so fall back to the
+     * project of each incident the query actually matches.
+     */
+    const projectIds: Array<ObjectID> = updateBy.props.tenantId
+      ? [updateBy.props.tenantId]
+      : await this.getProjectIdsForUpdateQuery(updateBy);
+
+    for (const projectId of projectIds) {
+      if (hasServiceLevelObjectiveIds) {
+        await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+          {
+            projectId: projectId,
+            subject: "incident",
+            serviceLevelObjectives: updateBy.data.serviceLevelObjectives,
+          },
+        );
+      }
+
+      if (!incidentStateId && !incidentSeverityId && !changeMonitorStatusToId) {
+        continue;
+      }
+
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        subject: "incident",
+        references: [
+          {
+            modelName: "Incident State",
+            id: incidentStateId,
+            service: IncidentStateService,
+          },
+          {
+            modelName: "Incident Severity",
+            id: incidentSeverityId,
+            service: IncidentSeverityService,
+          },
+          {
+            modelName: "Monitor Status",
+            id: changeMonitorStatusToId,
+            service: MonitorStatusService,
+          },
+        ],
+      });
+    }
+  }
+
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const incidents: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    for (const incident of incidents) {
+      if (incident.projectId) {
+        projectIds[incident.projectId.toString()] = incident.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    if (!createBy.props.tenantId && !createBy.props.isRoot) {
+      throw new BadDataException("ProjectId required to create incident.");
+    }
+
+    if (createBy.data.isPrivate === true) {
+      createBy.data.isVisibleOnStatusPage = false;
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
+        false;
+    }
+
+    const projectId: ObjectID =
+      createBy.props.tenantId || createBy.data.projectId!;
+
+    if (!createBy.data.declaredAt) {
+      createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
+    } else {
+      createBy.data.declaredAt = OneUptimeDate.fromString(
+        createBy.data.declaredAt as Date,
+      );
+    }
+
+    /*
+     * Normalize a blank incident severity to "not provided". A stored empty
+     * ObjectID (`{"_type":"ObjectID","value":""}`) deserializes to a truthy
+     * `new ObjectID("")`, which is NOT `=== undefined` and is a truthy object —
+     * so it slips past the template fallback below AND
+     * DatabaseService.checkRequiredFields, then serializes to "" → NULL on the
+     * not-null `incidentSeverityId` column (Postgres 23502). Treating it as
+     * undefined lets the template fallback fill it in when available, otherwise
+     * the required-field check rejects with a clean "incidentSeverityId is
+     * required" error instead of an opaque database failure.
+     */
+    if (
+      createBy.data.incidentSeverityId &&
+      !createBy.data.incidentSeverityId.toString()
+    ) {
+      delete createBy.data.incidentSeverityId;
+    }
+
+    // Determine the initial incident state
+    let initialIncidentStateId: ObjectID | undefined = undefined;
+
+    // If currentIncidentStateId is already provided (manual selection), use it
+    if (createBy.data.currentIncidentStateId) {
+      initialIncidentStateId = createBy.data.currentIncidentStateId;
+
+      // Validate that the provided state exists and belongs to the project
+      const providedState: IncidentState | null =
+        await IncidentStateService.findOneBy({
+          query: {
+            _id: initialIncidentStateId.toString(),
+            projectId: projectId,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!providedState) {
+        throw new BadDataException(
+          "Invalid incident state provided. The state does not exist or does not belong to this project.",
+        );
+      }
+    } else if (createBy.data.createdIncidentTemplateId) {
+      /*
+       * Created from a template — pull every field we may want to
+       * inherit and apply each one only if the caller didn't already
+       * provide it. The dashboard pre-fills these on the client, so in
+       * the UI flow this is a no-op; the gain is for API consumers
+       * that just send `createdIncidentTemplateId` and expect the
+       * server to materialize the rest. `undefined` means "not set by
+       * the caller" — an explicit empty array or empty string is
+       * treated as an intentional override and we leave it alone.
+       */
+      const incidentTemplate: IncidentTemplate | null =
+        await IncidentTemplateService.findOneBy({
+          query: {
+            _id: createBy.data.createdIncidentTemplateId.toString(),
+            projectId: projectId,
+          },
+          select: {
+            initialIncidentStateId: true,
+            incidentSeverityId: true,
+            changeMonitorStatusToId: true,
+            title: true,
+            description: true,
+            monitors: { _id: true },
+            hosts: { _id: true },
+            kubernetesClusters: { _id: true },
+            dockerHosts: { _id: true },
+            podmanHosts: { _id: true },
+            services: { _id: true },
+            onCallDutyPolicies: { _id: true },
+            labels: { _id: true },
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (incidentTemplate?.initialIncidentStateId) {
+        initialIncidentStateId = incidentTemplate.initialIncidentStateId;
+
+        // Validate that the template's state exists and belongs to the project
+        const templateState: IncidentState | null =
+          await IncidentStateService.findOneBy({
+            query: {
+              _id: initialIncidentStateId.toString(),
+              projectId: projectId,
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!templateState) {
+          // Fall back to default if template state is invalid
+          initialIncidentStateId = undefined;
+        }
+      }
+
+      if (incidentTemplate) {
+        if (
+          !createBy.data.incidentSeverityId?.toString() &&
+          incidentTemplate.incidentSeverityId
+        ) {
+          createBy.data.incidentSeverityId =
+            incidentTemplate.incidentSeverityId;
+        }
+        if (
+          createBy.data.changeMonitorStatusToId === undefined &&
+          incidentTemplate.changeMonitorStatusToId
+        ) {
+          createBy.data.changeMonitorStatusToId =
+            incidentTemplate.changeMonitorStatusToId;
+        }
+        if (
+          createBy.data.title === undefined &&
+          typeof incidentTemplate.title === "string"
+        ) {
+          createBy.data.title = incidentTemplate.title;
+        }
+        if (
+          createBy.data.description === undefined &&
+          typeof incidentTemplate.description === "string"
+        ) {
+          createBy.data.description = incidentTemplate.description;
+        }
+
+        const stubBy: <T extends { _id?: string | undefined }>(
+          ctor: new () => T,
+          rows: Array<{ _id?: string | undefined }> | undefined,
+        ) => Array<T> | undefined = <T extends { _id?: string | undefined }>(
+          ctor: new () => T,
+          rows: Array<{ _id?: string | undefined }> | undefined,
+        ): Array<T> | undefined => {
+          if (!rows) {
+            return undefined;
+          }
+          return rows
+            .filter((row: { _id?: string | undefined }): boolean => {
+              return Boolean(row._id);
+            })
+            .map((row: { _id?: string | undefined }): T => {
+              const stub: T = new ctor();
+              stub._id = String(row._id);
+              return stub;
+            });
+        };
+
+        if (createBy.data.monitors === undefined) {
+          const stubs: Array<Monitor> | undefined = stubBy(
+            Monitor,
+            incidentTemplate.monitors,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.monitors = stubs;
+          }
+        }
+        if (createBy.data.hosts === undefined) {
+          const stubs: Array<Host> | undefined = stubBy(
+            Host,
+            incidentTemplate.hosts,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.hosts = stubs;
+          }
+        }
+        if (createBy.data.kubernetesClusters === undefined) {
+          const stubs: Array<KubernetesCluster> | undefined = stubBy(
+            KubernetesCluster,
+            incidentTemplate.kubernetesClusters,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.kubernetesClusters = stubs;
+          }
+        }
+        if (createBy.data.dockerHosts === undefined) {
+          const stubs: Array<DockerHost> | undefined = stubBy(
+            DockerHost,
+            incidentTemplate.dockerHosts,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.dockerHosts = stubs;
+          }
+        }
+        if (createBy.data.podmanHosts === undefined) {
+          const stubs: Array<PodmanHost> | undefined = stubBy(
+            PodmanHost,
+            incidentTemplate.podmanHosts,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.podmanHosts = stubs;
+          }
+        }
+        if (createBy.data.services === undefined) {
+          const stubs: Array<ServiceModel> | undefined = stubBy(
+            ServiceModel,
+            incidentTemplate.services,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.services = stubs;
+          }
+        }
+        if (createBy.data.onCallDutyPolicies === undefined) {
+          const stubs: Array<OnCallDutyPolicy> | undefined = stubBy(
+            OnCallDutyPolicy,
+            incidentTemplate.onCallDutyPolicies,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.onCallDutyPolicies = stubs;
+          }
+        }
+        if (createBy.data.labels === undefined) {
+          const stubs: Array<Label> | undefined = stubBy(
+            Label,
+            incidentTemplate.labels,
+          );
+          if (stubs && stubs.length > 0) {
+            createBy.data.labels = stubs;
+          }
+        }
+      }
+    }
+
+    // If no custom state is provided or found, fall back to default created state
+    if (!initialIncidentStateId) {
+      const incidentState: IncidentState | null =
+        await IncidentStateService.findOneBy({
+          query: {
+            projectId: projectId,
+            isCreatedState: true,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!incidentState || !incidentState.id) {
+        throw new BadDataException(
+          "Created incident state not found for this project. Please add created incident state from settings.",
+        );
+      }
+
+      initialIncidentStateId = incidentState.id;
+    }
+
+    /*
+     * The severity and the monitor status to switch to can arrive from an API
+     * caller, an incident template or a monitor criteria, and none of those
+     * paths checked that the record belongs to this project. Persisting
+     * another project's id leaves that project undeletable, so reject it here.
+     * Runs before the counter increment so a rejected create does not burn an
+     * incident number.
+     */
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: projectId,
+      subject: "incident",
+      references: [
+        {
+          modelName: "Incident State",
+          id: initialIncidentStateId,
+          service: IncidentStateService,
+        },
+        {
+          modelName: "Incident Severity",
+          id:
+            resolveReferenceId(createBy.data.incidentSeverityId) ||
+            resolveReferenceId(createBy.data.incidentSeverity),
+          service: IncidentSeverityService,
+        },
+        {
+          modelName: "Monitor Status",
+          id:
+            resolveReferenceId(createBy.data.changeMonitorStatusToId) ||
+            resolveReferenceId(createBy.data.changeMonitorStatusTo),
+          service: MonitorStatusService,
+        },
+      ],
+    });
+
+    /*
+     * The SLOs this incident affects. The burn-rate worker links its own
+     * same-project SLO as root, but the column is writable by API callers too.
+     * Another project's SLO would put that SLO's name into this project's
+     * feed, lists and metrics. Before the counter increment, like the check
+     * above.
+     */
+    await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+      {
+        projectId: projectId,
+        subject: "incident",
+        serviceLevelObjectives: createBy.data.serviceLevelObjectives,
+      },
+    );
+
+    const incidentCounterResult: {
+      counter: number;
+      prefix: string | undefined;
+    } = await ProjectService.incrementAndGetIncidentCounter(projectId);
+
+    createBy.data.currentIncidentStateId = initialIncidentStateId;
+    createBy.data.incidentNumber = incidentCounterResult.counter;
+    createBy.data.incidentNumberWithPrefix = incidentCounterResult.prefix
+      ? `${incidentCounterResult.prefix}${incidentCounterResult.counter}`
+      : `#${incidentCounterResult.counter}`;
+
+    if (
+      (createBy.data.createdByUserId ||
+        createBy.data.createdByUser ||
+        createBy.props.userId) &&
+      !createBy.data.rootCause
+    ) {
+      let userId: ObjectID | undefined = createBy.data.createdByUserId;
+
+      if (createBy.props.userId) {
+        userId = createBy.props.userId;
+      }
+
+      if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
+        userId = createBy.data.createdByUser.id;
+      }
+
+      if (userId) {
+        createBy.data.rootCause = `Incident created by ${await UserService.getUserMarkdownString(
+          {
+            userId: userId!,
+            projectId: projectId,
+          },
+        )}`;
+      }
+    }
+
+    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
+    if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
+      false
+    ) {
+      createBy.data.subscriberNotificationStatusOnIncidentCreated =
+        StatusPageSubscriberNotificationStatus.Skipped;
+      createBy.data.subscriberNotificationStatusMessage =
+        "Notifications skipped as subscribers are not to be notified for this incident.";
+    } else if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
+      true
+    ) {
+      createBy.data.subscriberNotificationStatusOnIncidentCreated =
+        StatusPageSubscriberNotificationStatus.Pending;
+    }
+
+    /*
+     * Last, because the incident template copy above can still be adding
+     * monitors and mapped custom fields are resolved from the final set.
+     *
+     * In onBeforeCreate rather than onCreateSuccess because `customFields` is
+     * a column on this row and the onCreateSuccess chain is un-awaited — a
+     * value written there would be missing from the incident the caller gets
+     * back. Written not to throw: a custom field failing to inherit must not
+     * stop an incident from being declared.
+     */
+    await CustomFieldMappingService.applyMappingsToCreate({
+      definitionModelType: IncidentCustomField,
+      createBy: createBy,
+    });
+
+    return {
+      createBy,
+      carryForward: null,
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    // these should never be null.
+    if (!createdItem.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!createdItem.id) {
+      throw new BadDataException("id is required");
+    }
+
+    /*
+     * Activation event for marketing funnels. Only fires for human-declared
+     * incidents (captureForUser skips when there is no user).
+     */
+    ProductAnalytics.captureForUser({
+      userId: onCreate.createBy.props.userId || createdItem.createdByUserId,
+      event: "server/incident_created",
+      properties: {
+        project_id: createdItem.projectId.toString(),
+      },
+    });
+
+    // Get incident data for feed creation
+    const incident: Model | null = await this.findOneById({
+      id: createdItem.id,
+      select: {
+        projectId: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        title: true,
+        description: true,
+        incidentSeverity: {
+          name: true,
+        },
+        rootCause: true,
+        createdByUserId: true,
+        createdByUser: {
+          _id: true,
+          name: true,
+          email: true,
+        },
+        remediationNotes: true,
+        currentIncidentState: {
+          name: true,
+        },
+        labels: {
+          name: true,
+        },
+        monitors: {
+          name: true,
+          _id: true,
+        },
+        /*
+         * Named under "Resources Affected" in the created feed item. This read
+         * runs as root, so projectId comes along and the feed names only this
+         * project's SLOs (getSloAffectedResourceMarkdownLines).
+         */
+        serviceLevelObjectives: {
+          name: true,
+          _id: true,
+          projectId: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
+    /*
+     * Whether an AI investigation run was enqueued for this incident — set
+     * by the investigation step below and read by the auto-remediation step
+     * after it: an enqueued investigation DEFERS remediation until the run
+     * settles (RCA-first ordering, see RemediationHandoff).
+     */
+    let aiInvestigationEnqueued: boolean = false;
+
+    // Execute operations sequentially with error handling
+    Promise.resolve()
+      .then(async () => {
+        /*
+         * Apply privacy rules BEFORE workspace operations so the workspace
+         * channel is created with the correct privacy setting. This may set
+         * createdItem.isPrivate=true in memory.
+         */
+        try {
+          await IncidentPrivacyRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident privacy rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            return await this.handleIncidentWorkspaceOperationsAsync(
+              createdItem,
+            );
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.createIncidentFeedAsync(incident);
+        } catch (error) {
+          logger.error(
+            `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.handleIncidentStateChangeAsync(createdItem);
+        } catch (error) {
+          logger.error(
+            `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          if (
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps["ownerTeams"] ||
+              onCreate.createBy.miscDataProps["ownerUsers"])
+          ) {
+            return await this.addOwners(
+              createdItem.projectId!,
+              createdItem.id!,
+              (onCreate.createBy.miscDataProps[
+                "ownerUsers"
+              ] as Array<ObjectID>) || [],
+              (onCreate.createBy.miscDataProps[
+                "ownerTeams"
+              ] as Array<ObjectID>) || [],
+              false,
+              onCreate.createBy.props,
+            );
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Add owners failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+            return await this.handleMonitorStatusChangeAsync(
+              createdItem,
+              onCreate,
+            );
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Monitor status change failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.disableActiveMonitoringIfManualIncident(
+            createdItem.id!,
+          );
+        } catch (error) {
+          logger.error(
+            `Disable active monitoring failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the incident.
+        try {
+          await IncidentOwnerRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident owner rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Apply label rules: attach matched labels (and optionally inherited
+         * monitor / host labels) to the incident. Runs before the on-call
+         * fan-out so notifications can include the inherited labels.
+         */
+        try {
+          await IncidentLabelRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident label rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Apply on-call rules: match incident against IncidentOnCallRule rows
+         * and merge their on-call policies into createdItem.onCallDutyPolicies
+         * before the fan-out below picks up the merged list.
+         */
+        try {
+          await IncidentOnCallRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident on-call rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        try {
+          await RunbookRuleEngineService.applyRulesToIncident(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply runbook rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        try {
+          if (
+            createdItem.onCallDutyPolicies?.length &&
+            createdItem.onCallDutyPolicies?.length > 0
+          ) {
+            return await this.executeOnCallDutyPoliciesAsync(createdItem);
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Process incident for grouping into episodes
+        try {
+          await IncidentGroupingEngineService.processIncident(createdItem);
+        } catch (error) {
+          logger.error(
+            `Incident grouping failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Create SLA record for incident if a matching rule exists
+        try {
+          if (
+            createdItem.projectId &&
+            createdItem.id &&
+            createdItem.declaredAt
+          ) {
+            await IncidentSlaService.createSlaForIncident({
+              incidentId: createdItem.id,
+              projectId: createdItem.projectId,
+              declaredAt: createdItem.declaredAt,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `SLA creation failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Schedule reminder notifications for incident if a matching reminder rule exists
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            await this.refreshReminderSchedule({
+              incidentId: createdItem.id,
+              projectId: createdItem.projectId,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Reminder scheduling failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * AI (AI SRE): automatically investigate the new incident and post
+         * a cited root cause analysis to the incident timeline + Slack/Teams.
+         * Runs last so the workspace channels already exist, and is gated per
+         * project (opt-in) + requires a configured LLM provider. Read-only.
+         */
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            aiInvestigationEnqueued =
+              await AIIncidentInvestigationRunner.investigateNewIncident({
+                incidentId: createdItem.id,
+                projectId: createdItem.projectId,
+              });
+          }
+        } catch (error) {
+          logger.error(
+            `AI incident investigation failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Auto-remediation runs LAST — and only when NO AI investigation
+         * was enqueued above. RCA-first ordering: when an investigation is
+         * in flight, remediation is deferred until that run settles
+         * (RemediationHandoff releases it on any terminal outcome), so the
+         * remediation planner always has the posted root cause analysis as
+         * input instead of racing it. Without an investigation (opt-out,
+         * gates, budget) remediation fires here immediately — it must
+         * never silently depend on the AI lane being enabled.
+         */
+        try {
+          if (!aiInvestigationEnqueued) {
+            await AutoRemediationRuleEngineService.applyRulesToIncident(
+              createdItem,
+            );
+          }
+        } catch (error) {
+          logger.error(
+            `Apply auto-remediation rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .catch((error: Error) => {
+        logger.error(
+          `Critical error in IncidentService sequential operations: ${error}`,
+          {
+            projectId: createdItem.projectId?.toString(),
+            incidentId: createdItem.id?.toString(),
+            userId: createdItem.createdByUserId?.toString(),
+          } as LogAttributes,
+        );
+      });
+
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  private async handleIncidentWorkspaceOperationsAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      if (!createdItem.projectId || !createdItem.id) {
+        throw new BadDataException(
+          "projectId and id are required for workspace operations",
+        );
+      }
+
+      // send message to workspaces - slack, teams, etc.
+      const workspaceResult: {
+        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+      } | null =
+        await IncidentWorkspaceMessages.createChannelsAndInviteUsersToChannels({
+          projectId: createdItem.projectId,
+          incidentId: createdItem.id,
+          incidentNumber: createdItem.incidentNumber!,
+          ...(createdItem.incidentNumberWithPrefix
+            ? {
+                incidentNumberWithPrefix: createdItem.incidentNumberWithPrefix,
+              }
+            : {}),
+          isPrivate: createdItem.isPrivate === true,
+        });
+
+      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
+        // update incident with these channels.
+        await this.updateOneById({
+          id: createdItem.id,
+          data: {
+            postUpdatesToWorkspaceChannels:
+              workspaceResult.channelsCreated || [],
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `Error in handleIncidentWorkspaceOperationsAsync: ${error}`,
+        {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.id?.toString(),
+        } as LogAttributes,
+      );
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async createIncidentFeedAsync(incident: Model): Promise<void> {
+    try {
+      const createdByUserId: ObjectID | undefined | null =
+        incident.createdByUserId || incident.createdByUser?.id;
+
+      const incidentNumberDisplay: string =
+        incident.incidentNumberWithPrefix ||
+        "#" + incident.incidentNumber?.toString();
+
+      let feedInfoInMarkdown: string = `#### 🚨 Incident ${incidentNumberDisplay} Created:
+        
+**${incident.title || "No title provided."}**:
+
+${incident.description || "No description provided."}
+
+`;
+
+      if (incident.currentIncidentState?.name) {
+        feedInfoInMarkdown += `🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
+      }
+
+      if (incident.incidentSeverity?.name) {
+        feedInfoInMarkdown += `⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
+      }
+
+      /*
+       * Monitors, then the SLOs this incident is linked to. A burn-rate
+       * incident carries no monitors on purpose, so its SLO is the only
+       * resource there is to name - and the feed's only way back to the
+       * objective that declared it. The SLO link is built inline:
+       * ServiceLevelObjectiveService cannot be imported here (it reaches
+       * this service through the burn-rate rule service).
+       */
+      const sloLines: Array<string> =
+        incident.serviceLevelObjectives &&
+        incident.serviceLevelObjectives.length > 0
+          ? getSloAffectedResourceMarkdownLines({
+              dashboardUrl: await DatabaseConfig.getDashboardUrl(),
+              projectId: incident.projectId!,
+              serviceLevelObjectives: incident.serviceLevelObjectives,
+            })
+          : [];
+
+      if (
+        (incident.monitors && incident.monitors.length > 0) ||
+        sloLines.length > 0
+      ) {
+        feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
+
+        for (const monitor of incident.monitors || []) {
+          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(incident.projectId!, monitor.id!)).toString()})\n`;
+        }
+
+        for (const sloLine of sloLines) {
+          feedInfoInMarkdown += `${sloLine}\n`;
+        }
+
+        feedInfoInMarkdown += `\n\n`;
+      }
+
+      if (incident.rootCause) {
+        feedInfoInMarkdown += `\n
+📄 **Root Cause**:
+
+${incident.rootCause || "No root cause provided."}
+
+`;
+      }
+
+      if (incident.remediationNotes) {
+        feedInfoInMarkdown += `\n 
+🎯 **Remediation Notes**:
+
+${incident.remediationNotes || "No remediation notes provided."}
+
+
+`;
+      }
+
+      const incidentCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+        await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks({
+          incidentId: incident.id!,
+          projectId: incident.projectId!,
+        });
+
+      await IncidentFeedService.createIncidentFeedItem({
+        incidentId: incident.id!,
+        projectId: incident.projectId!,
+        incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
+        displayColor: Red500,
+        feedInfoInMarkdown: feedInfoInMarkdown,
+        userId: createdByUserId || undefined,
+        workspaceNotification: {
+          appendMessageBlocks: incidentCreateMessageBlocks,
+          sendWorkspaceNotification: true,
+        },
+      });
+    } catch (error) {
+      logger.error(`Error in createIncidentFeedAsync: ${error}`, {
+        projectId: incident.projectId?.toString(),
+        incidentId: incident.id?.toString(),
+        userId: incident.createdByUserId?.toString(),
+      } as LogAttributes);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async handleIncidentStateChangeAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      if (!createdItem.currentIncidentStateId) {
+        throw new BadDataException("currentIncidentStateId is required");
+      }
+
+      if (!createdItem.projectId || !createdItem.id) {
+        throw new BadDataException(
+          "projectId and id are required for state change",
+        );
+      }
+
+      await this.changeIncidentState({
+        projectId: createdItem.projectId,
+        incidentId: createdItem.id,
+        incidentStateId: createdItem.currentIncidentStateId,
+        shouldNotifyStatusPageSubscribers: Boolean(
+          createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+        ),
+        isSubscribersNotified: Boolean(
+          createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+        ), // we dont want to notify subscribers when incident state changes because they are already notified when the incident is created.
+        notifyOwners: false,
+        rootCause: createdItem.rootCause,
+        stateChangeLog: createdItem.createdStateLog,
+        timelineStartsAt: createdItem.declaredAt,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(`Error in handleIncidentStateChangeAsync: ${error}`, {
+        projectId: createdItem.projectId?.toString(),
+        incidentId: createdItem.id?.toString(),
+      } as LogAttributes);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async executeOnCallDutyPoliciesAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      if (
+        createdItem.onCallDutyPolicies?.length &&
+        createdItem.onCallDutyPolicies?.length > 0
+      ) {
+        // Execute all on-call policies in parallel
+        const policyPromises: Promise<void>[] =
+          createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
+            return OnCallDutyPolicyService.executePolicy(
+              new ObjectID(policy["_id"] as string),
+              {
+                triggeredByIncidentId: createdItem.id!,
+                userNotificationEventType:
+                  UserNotificationEventType.IncidentCreated,
+              },
+            );
+          });
+
+        await Promise.allSettled(policyPromises);
+      }
+    } catch (error) {
+      logger.error(`Error in executeOnCallDutyPoliciesAsync: ${error}`, {
+        projectId: createdItem.projectId?.toString(),
+        incidentId: createdItem.id?.toString(),
+      } as LogAttributes);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async handleMonitorStatusChangeAsync(
+    createdItem: Model,
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    try {
+      if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+        // change status of all the monitors.
+        await MonitorService.changeMonitorStatus(
+          createdItem.projectId,
+          createdItem.monitors?.map((monitor: Monitor) => {
+            return new ObjectID(monitor._id || "");
+          }) || [],
+          createdItem.changeMonitorStatusToId,
+          true, // notifyMonitorOwners
+          createdItem.rootCause ||
+            "Status was changed because Incident " +
+              (createdItem.incidentNumberWithPrefix ||
+                "#" + createdItem.incidentNumber?.toString()) +
+              " was created.",
+          createdItem.createdStateLog,
+          onCreate.createBy.props,
+          createdItem.declaredAt || undefined,
+        );
+      }
+    } catch (error) {
+      logger.error(`Error in handleMonitorStatusChangeAsync: ${error}`, {
+        projectId: createdItem.projectId?.toString(),
+        incidentId: createdItem.id?.toString(),
+      } as LogAttributes);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  public async disableActiveMonitoringIfManualIncident(
+    incidentId: ObjectID,
+  ): Promise<void> {
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        monitors: {
+          _id: true,
+        },
+        isCreatedAutomatically: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
+    if (!incident.isCreatedAutomatically) {
+      const monitors: Array<Monitor> = incident.monitors || [];
+
+      for (const monitor of monitors) {
+        await MonitorService.updateOneById({
+          id: monitor.id!,
+          data: {
+            disableActiveMonitoringBecauseOfManualIncident: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
+  }
+
+  @CaptureSpan()
+  public async getIncidentIdentifiedDate(incidentId: ObjectID): Promise<Date> {
+    const timeline: IncidentStateTimeline | null =
+      await IncidentStateTimelineService.findOneBy({
+        query: {
+          incidentId: incidentId,
+        },
+        select: {
+          startsAt: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (timeline && timeline.startsAt) {
+      return timeline.startsAt;
+    }
+
+    /*
+     * The identified-state timeline is created asynchronously after the
+     * incident is committed (see onCreateSuccess), so it may not exist yet, or
+     * may be missing entirely if that step failed. Fall back to the incident's
+     * creation date instead of throwing, otherwise the owner-notification cron
+     * fails permanently for this incident and retries every minute forever.
+     */
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        createdAt: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (incident && incident.createdAt) {
+      return incident.createdAt;
+    }
+
+    throw new BadDataException("Incident identified date not found.");
+  }
+
+  @CaptureSpan()
+  public async findOwners(incidentId: ObjectID): Promise<Array<User>> {
+    if (!incidentId) {
+      throw new BadDataException("incidentId is required");
+    }
+
+    const ownerUsers: Array<IncidentOwnerUser> =
+      await IncidentOwnerUserService.findBy({
+        query: {
+          incidentId: incidentId,
+        },
+        select: {
+          _id: true,
+          user: {
+            _id: true,
+            email: true,
+            name: true,
+            timezone: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const ownerTeams: Array<IncidentOwnerTeam> =
+      await IncidentOwnerTeamService.findBy({
+        query: {
+          incidentId: incidentId,
+        },
+        select: {
+          _id: true,
+          teamId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const users: Array<User> =
+      ownerUsers.map((ownerUser: IncidentOwnerUser) => {
+        return ownerUser.user!;
+      }) || [];
+
+    if (ownerTeams.length > 0) {
+      const teamIds: Array<ObjectID> =
+        ownerTeams.map((ownerTeam: IncidentOwnerTeam) => {
+          return ownerTeam.teamId!;
+        }) || [];
+
+      const teamUsers: Array<User> =
+        await TeamMemberService.getUsersInTeams(teamIds);
+
+      for (const teamUser of teamUsers) {
+        //check if the user is already added.
+        const isUserAlreadyAdded: User | undefined = users.find(
+          (user: User) => {
+            return user.id!.toString() === teamUser.id!.toString();
+          },
+        );
+
+        if (!isUserAlreadyAdded) {
+          users.push(teamUser);
+        }
+      }
+    }
+
+    return users;
+  }
+
+  @CaptureSpan()
+  public async addOwners(
+    projectId: ObjectID,
+    incidentId: ObjectID,
+    userIds: Array<ObjectID>,
+    teamIds: Array<ObjectID>,
+    notifyOwners: boolean,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    // Owners already on the incident are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: IncidentOwnerUserService,
+      ownerTeamService: IncidentOwnerTeamService,
+      resourceIdColumn: "incidentId",
+      resourceId: incidentId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
+  }
+
+  @CaptureSpan()
+  public async getIncidentLinkInDashboard(
+    projectId: ObjectID,
+    incidentId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/incidents/${incidentId.toString()}`,
+    );
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: ObjectID[],
+  ): Promise<OnUpdate<Model>> {
+    CustomFieldMappingService.restampAfterMultiRowUpdate({
+      definitionModelType: IncidentCustomField,
+      updateBy: onUpdate.updateBy,
+      updatedItemIds: updatedItemIds,
+    });
+
+    /*
+     * Correcting a timestamp is the whole point of making these fields
+     * editable, so the numbers derived from them have to move. Without this
+     * the metric refresh fires only from the three state-timeline hooks, and
+     * a corrected declaredAt leaves every derived value stale for good.
+     */
+    const anchorTimestampChanged: boolean = [
+      "impactStartedAt",
+      "declaredAt",
+      "postmortemPostedAt",
+    ].some((key: string) => {
+      return Object.prototype.hasOwnProperty.call(onUpdate.updateBy.data, key);
+    });
+
+    if (anchorTimestampChanged) {
+      for (const itemId of updatedItemIds) {
+        this.refreshIncidentMetrics({ incidentId: itemId }).catch(
+          (err: Error) => {
+            logger.error(err);
+          },
+        );
+
+        IncidentMeasurementValueService.recomputeForIncident({
+          incidentId: itemId,
+        }).catch((err: Error) => {
+          logger.error(err);
+        });
+      }
+    }
+
+    if (
+      onUpdate.updateBy.data.currentIncidentStateId &&
+      onUpdate.updateBy.props.tenantId
+    ) {
+      for (const itemId of updatedItemIds) {
+        await this.changeIncidentState({
+          projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+          incidentId: itemId,
+          incidentStateId: onUpdate.updateBy.data
+            .currentIncidentStateId as ObjectID,
+          notifyOwners: true,
+          shouldNotifyStatusPageSubscribers: true,
+          isSubscribersNotified: false,
+          rootCause: "This status was changed when the incident was updated.",
+          stateChangeLog: undefined,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
+
+    if (updatedItemIds.length > 0) {
+      for (const incidentId of updatedItemIds) {
+        const incident: Model | null = await this.findOneById({
+          id: incidentId,
+          select: {
+            projectId: true,
+            incidentNumber: true,
+            incidentNumberWithPrefix: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const projectId: ObjectID = incident!.projectId!;
+        const incidentNumber: number = incident!.incidentNumber!;
+        const incidentNumberDisplay: string =
+          incident!.incidentNumberWithPrefix || "#" + incidentNumber;
+        const incidentLabel: string = `Incident ${incidentNumberDisplay}`;
+        const incidentLink: URL = await this.getIncidentLinkInDashboard(
+          projectId,
+          incidentId,
+        );
+
+        const updatedIncidentData: IncidentUpdatePayload = (onUpdate.updateBy
+          .data ?? {}) as IncidentUpdatePayload;
+
+        const createdByUserId: ObjectID | undefined | null =
+          onUpdate.updateBy.props.userId;
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "postmortemNote",
+          )
+        ) {
+          const noteValue: string =
+            (updatedIncidentData.postmortemNote as string) || "";
+          const hasNoteContent: boolean = noteValue.trim().length > 0;
+
+          const postmortemFeedMarkdown: string = hasNoteContent
+            ? `**📘 Postmortem Note updated for [${incidentLabel}](${incidentLink.toString()})**\n\n${noteValue}`
+            : `**📘 Postmortem Note cleared for [${incidentLabel}](${incidentLink.toString()})**\n\n_No postmortem note provided._`;
+
+          await IncidentFeedService.createIncidentFeedItem({
+            incidentId,
+            projectId,
+            incidentFeedEventType: IncidentFeedEventType.PostmortemNote,
+            displayColor: Blue500,
+            feedInfoInMarkdown: postmortemFeedMarkdown,
+            userId: createdByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            },
+          });
+
+          // Set subscriber notification status to Pending so the cron job will send notifications
+          await this.updateOneById({
+            id: incidentId,
+            data: {
+              subscriberNotificationStatusOnPostmortemPublished:
+                StatusPageSubscriberNotificationStatus.Pending,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+        }
+
+        // Re-evaluate reminder schedule when reminders are enabled or disabled for this incident
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "enableReminders",
+          )
+        ) {
+          try {
+            await this.refreshReminderSchedule({
+              incidentId: incidentId,
+              projectId: projectId,
+            });
+          } catch (reminderError) {
+            logger.error(
+              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+
+        // emit postmortem completion time metric when postmortemPostedAt is set
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "postmortemPostedAt",
+          ) &&
+          updatedIncidentData["postmortemPostedAt"]
+        ) {
+          try {
+            const postmortemPostedAt: Date = updatedIncidentData[
+              "postmortemPostedAt"
+            ] as Date;
+
+            // find the resolved state timeline to calculate time from resolution to postmortem
+            const resolvedStateId: ObjectID =
+              await IncidentStateTimelineService.getResolvedStateIdForProject(
+                projectId,
+              );
+
+            const resolvedTimeline: IncidentStateTimeline | null =
+              await IncidentStateTimelineService.findOneBy({
+                query: {
+                  incidentId: incidentId,
+                  incidentStateId: resolvedStateId,
+                },
+                select: {
+                  startsAt: true,
+                },
+                sort: {
+                  startsAt: SortOrder.Descending,
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            // only emit if the incident has been resolved
+            if (resolvedTimeline && resolvedTimeline.startsAt) {
+              /*
+               * Same dimension set as every other incident metric — including
+               * oneuptime.label.* / oneuptime.customField.* — so a dashboard
+               * grouped by a label does not silently lose this series.
+               */
+              const {
+                baseMetricAttributes,
+              }: { baseMetricAttributes: JSONObject } =
+                await this.getIncidentMetricContext({
+                  incidentId: incidentId,
+                });
+
+              const postmortemMetric: MutableMetric = new MutableMetric();
+              postmortemMetric.projectId = projectId;
+              postmortemMetric.primaryEntityId = incidentId;
+              postmortemMetric.primaryEntityType = ServiceType.Incident;
+              postmortemMetric.name =
+                IncidentMetricType.PostmortemCompletionTime;
+              postmortemMetric.metricPointId =
+                IncidentMetricType.PostmortemCompletionTime;
+              postmortemMetric.value = OneUptimeDate.getDifferenceInSeconds(
+                postmortemPostedAt,
+                resolvedTimeline.startsAt,
+              );
+              postmortemMetric.attributes = {
+                ...baseMetricAttributes,
+                incidentId: incidentId.toString(),
+                projectId: projectId.toString(),
+              };
+              postmortemMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+                postmortemMetric.attributes,
+              );
+              postmortemMetric.time = postmortemPostedAt;
+              postmortemMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+                postmortemMetric.time,
+              );
+              postmortemMetric.metricPointType = MetricPointType.Sum;
+              const postmortemRetentionDays: number =
+                await this.getMetricRetentionDays();
+              postmortemMetric.retentionDate = OneUptimeDate.addRemoveDays(
+                OneUptimeDate.getCurrentDate(),
+                postmortemRetentionDays,
+              );
+
+              await MutableMetricService.createMutableMetrics({
+                metrics: [postmortemMetric],
+              });
+
+              const postmortemMetricType: MetricType = new MetricType();
+              postmortemMetricType.name =
+                IncidentMetricType.PostmortemCompletionTime;
+              postmortemMetricType.description =
+                "Time from incident resolution to postmortem publication";
+              postmortemMetricType.unit = "seconds";
+
+              TelemetryUtil.indexMetricNameServiceNameMap({
+                metricNameServiceNameMap: {
+                  [postmortemMetricType.name]: postmortemMetricType,
+                },
+                projectId: projectId,
+              }).catch((err: Error) => {
+                logger.error(err, {
+                  projectId: projectId?.toString(),
+                  incidentId: incidentId?.toString(),
+                } as LogAttributes);
+              });
+            }
+          } catch (metricError) {
+            logger.error(
+              `Failed to emit postmortem completion time metric: ${metricError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+
+        /*
+         * Sync isPublic on inline post-mortem images. The markdown
+         * editor uploads them as private; they must flip to public
+         * exactly when the post-mortem is shown on the status page so
+         * that anonymous status-page viewers can render the
+         * screenshots without exposing private artefacts.
+         */
+        const postmortemNoteChanged: boolean =
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "postmortemNote",
+          );
+        const postmortemVisibilityChanged: boolean =
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "showPostmortemOnStatusPage",
+          );
+
+        if (postmortemNoteChanged || postmortemVisibilityChanged) {
+          try {
+            const incidentForSync: Model | null = await this.findOneById({
+              id: incidentId,
+              select: {
+                postmortemNote: true,
+                showPostmortemOnStatusPage: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (incidentForSync) {
+              await setIsPublicForMarkdownImages(
+                incidentForSync.postmortemNote || "",
+                Boolean(incidentForSync.showPostmortemOnStatusPage),
+              );
+            }
+          } catch (syncError) {
+            logger.error(
+              `Failed to sync inline post-mortem image visibility: ${syncError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+
+        let shouldAddIncidentFeed: boolean = false;
+        let feedInfoInMarkdown: string = `**[${incidentLabel}](${incidentLink.toString()}) was updated.**`;
+
+        if (
+          Object.prototype.hasOwnProperty.call(updatedIncidentData, "title")
+        ) {
+          const title: string =
+            (updatedIncidentData.title as string) || "No title provided.";
+          feedInfoInMarkdown += `\n\n**Title**: \n${title}\n`;
+          shouldAddIncidentFeed = true;
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(updatedIncidentData, "rootCause")
+        ) {
+          const rootCause: string =
+            (updatedIncidentData.rootCause as string) || "";
+          const rootCauseText: string = rootCause.trim().length
+            ? rootCause
+            : "Root cause removed.";
+          feedInfoInMarkdown += `\n\n**📄 Root Cause**: \n${rootCauseText}\n`;
+          shouldAddIncidentFeed = true;
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "description",
+          )
+        ) {
+          const description: string =
+            (updatedIncidentData.description as string) ||
+            "No description provided.";
+          feedInfoInMarkdown += `\n\n**Incident Description**: \n${description}\n`;
+          shouldAddIncidentFeed = true;
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "remediationNotes",
+          )
+        ) {
+          const remediationNotes: string =
+            (updatedIncidentData.remediationNotes as string) || "";
+          const remediationText: string = remediationNotes.trim().length
+            ? remediationNotes
+            : "Remediation notes removed.";
+          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: \n${remediationText}\n`;
+          shouldAddIncidentFeed = true;
+        }
+
+        if (
+          updatedIncidentData.labels &&
+          (updatedIncidentData.labels as Array<Label>).length > 0 &&
+          Array.isArray(updatedIncidentData.labels)
+        ) {
+          const labelIds: Array<ObjectID> = (updatedIncidentData.labels as any)
+            .map((label: Label) => {
+              if (label._id) {
+                return new ObjectID(label._id?.toString());
+              }
+
+              return null;
+            })
+            .filter((labelId: ObjectID | null) => {
+              return labelId !== null;
+            });
+
+          const labels: Array<Label> = await LabelService.findBy({
+            query: {
+              _id: QueryHelper.any(labelIds),
+            },
+            select: {
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (labels.length > 0) {
+            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
+
+${labels
+  .map((label: Label) => {
+    return `- ${label.name}`;
+  })
+  .join("\n")}
+`;
+
+            shouldAddIncidentFeed = true;
+          }
+        }
+
+        /*
+         * Re-match reminder rule on any labels change (including clearing all
+         * labels), since labels can change which reminder rule matches.
+         */
+        if (
+          updatedIncidentData.labels &&
+          Array.isArray(updatedIncidentData.labels)
+        ) {
+          try {
+            await this.refreshReminderSchedule({
+              incidentId: incidentId,
+              projectId: projectId,
+            });
+          } catch (reminderError) {
+            logger.error(
+              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+
+        if (
+          updatedIncidentData.incidentSeverity &&
+          (updatedIncidentData.incidentSeverity as any)._id
+        ) {
+          const incidentSeverity: IncidentSeverity | null =
+            await IncidentSeverityService.findOneBy({
+              query: {
+                _id: new ObjectID(
+                  (updatedIncidentData.incidentSeverity as any)?._id.toString(),
+                ),
+              },
+              select: {
+                name: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (incidentSeverity) {
+            feedInfoInMarkdown += `\n\n**⚠️ Incident Severity**:
+${incidentSeverity.name}
+`;
+
+            shouldAddIncidentFeed = true;
+
+            // Recalculate SLA deadlines when severity changes
+            try {
+              await IncidentSlaService.recalculateDeadlines({
+                incidentId: incidentId,
+              });
+            } catch (slaError) {
+              logger.error(
+                `SLA recalculation failed in IncidentService.onUpdateSuccess: ${slaError}`,
+                {
+                  projectId: projectId?.toString(),
+                  incidentId: incidentId?.toString(),
+                } as LogAttributes,
+              );
+            }
+
+            // Re-match reminder rule when severity changes
+            try {
+              await this.refreshReminderSchedule({
+                incidentId: incidentId,
+                projectId: projectId,
+              });
+            } catch (reminderError) {
+              logger.error(
+                `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
+                {
+                  projectId: projectId?.toString(),
+                  incidentId: incidentId?.toString(),
+                } as LogAttributes,
+              );
+            }
+
+            // emit severity change metric
+            try {
+              /*
+               * Same dimension set as every other incident metric — including
+               * oneuptime.label.* / oneuptime.customField.* — so "severity
+               * churn by product" is answerable from the metric store.
+               */
+              const {
+                baseMetricAttributes,
+              }: { baseMetricAttributes: JSONObject } =
+                await this.getIncidentMetricContext({
+                  incidentId: incidentId,
+                });
+
+              const severityChangeMetric: MutableMetric = new MutableMetric();
+              severityChangeMetric.projectId = projectId;
+              severityChangeMetric.primaryEntityId = incidentId;
+              severityChangeMetric.primaryEntityType = ServiceType.Incident;
+              severityChangeMetric.name = IncidentMetricType.SeverityChange;
+              severityChangeMetric.metricPointId = `severity-change:${ObjectID.generate().toString()}`;
+              severityChangeMetric.value = 1;
+              severityChangeMetric.attributes = {
+                ...baseMetricAttributes,
+                incidentId: incidentId.toString(),
+                projectId: projectId.toString(),
+                newIncidentSeverityId: incidentSeverity._id?.toString() || "",
+                newIncidentSeverityName:
+                  incidentSeverity.name?.toString() || "",
+              };
+              severityChangeMetric.attributeKeys =
+                TelemetryUtil.getAttributeKeys(severityChangeMetric.attributes);
+              severityChangeMetric.time = OneUptimeDate.getCurrentDate();
+              severityChangeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+                severityChangeMetric.time,
+              );
+              severityChangeMetric.metricPointType = MetricPointType.Sum;
+              const severityRetentionDays: number =
+                await this.getMetricRetentionDays();
+              severityChangeMetric.retentionDate = OneUptimeDate.addRemoveDays(
+                OneUptimeDate.getCurrentDate(),
+                severityRetentionDays,
+              );
+
+              await MutableMetricService.createMutableMetrics({
+                metrics: [severityChangeMetric],
+              });
+
+              const severityChangeMetricType: MetricType = new MetricType();
+              severityChangeMetricType.name = IncidentMetricType.SeverityChange;
+              severityChangeMetricType.description =
+                "Count of incident severity changes";
+              severityChangeMetricType.unit = "";
+
+              TelemetryUtil.indexMetricNameServiceNameMap({
+                metricNameServiceNameMap: {
+                  [severityChangeMetricType.name]: severityChangeMetricType,
+                },
+                projectId: projectId,
+              }).catch((err: Error) => {
+                logger.error(err, {
+                  projectId: projectId?.toString(),
+                  incidentId: incidentId?.toString(),
+                } as LogAttributes);
+              });
+            } catch (metricError) {
+              logger.error(
+                `Failed to emit severity change metric: ${metricError}`,
+                {
+                  projectId: projectId?.toString(),
+                  incidentId: incidentId?.toString(),
+                } as LogAttributes,
+              );
+            }
+          }
+        }
+
+        const carryForward: UpdateCarryForward | undefined =
+          onUpdate.carryForward;
+
+        if (carryForward) {
+          const incidentCarryForward:
+            | {
+                monitorsRemoved: Array<Monitor>;
+                monitorsAdded: Array<Monitor>;
+                oldChangeMonitorStatusIdTo: ObjectID | undefined;
+                newMonitorChangeStatusIdTo: ObjectID | undefined;
+              }
+            | undefined = carryForward[incidentId.toString()];
+
+          if (incidentCarryForward) {
+            if (incidentCarryForward.monitorsRemoved.length > 0) {
+              const monitorsRemoved: Array<Monitor> =
+                await MonitorService.findBy({
+                  query: {
+                    _id: QueryHelper.any(
+                      incidentCarryForward.monitorsRemoved.map(
+                        (monitor: Monitor) => {
+                          return new ObjectID(monitor._id?.toString() || "");
+                        },
+                      ),
+                    ),
+                  },
+                  select: {
+                    name: true,
+                    _id: true,
+                  },
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+
+              // change these monitors back to operational state.
+              await this.markMonitorsActiveForMonitoring(
+                projectId!,
+                incidentCarryForward.monitorsRemoved,
+              );
+
+              feedInfoInMarkdown += `\n\n**🗑️ Monitors Removed**:\n`;
+
+              for (const monitor of monitorsRemoved) {
+                feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+              }
+
+              shouldAddIncidentFeed = true;
+            }
+
+            if (incidentCarryForward.monitorsAdded.length > 0) {
+              const monitorsAdded: Array<Monitor> = await MonitorService.findBy(
+                {
+                  query: {
+                    _id: QueryHelper.any(
+                      incidentCarryForward.monitorsAdded.map(
+                        (monitor: Monitor) => {
+                          return new ObjectID(monitor._id?.toString() || "");
+                        },
+                      ),
+                    ),
+                  },
+                  select: {
+                    name: true,
+                    _id: true,
+                  },
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                },
+              );
+
+              feedInfoInMarkdown += `\n\n**🌎 Monitors Added**:\n`;
+
+              for (const monitor of monitorsAdded) {
+                feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+              }
+
+              shouldAddIncidentFeed = true;
+            }
+
+            if (
+              incidentCarryForward.oldChangeMonitorStatusIdTo &&
+              incidentCarryForward.newMonitorChangeStatusIdTo
+            ) {
+              const oldMonitorStatus: MonitorStatus | null =
+                await MonitorStatusService.findOneBy({
+                  query: {
+                    _id: incidentCarryForward.oldChangeMonitorStatusIdTo,
+                  },
+                  select: {
+                    name: true,
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                });
+
+              const newMonitorStatus: MonitorStatus | null =
+                await MonitorStatusService.findOneBy({
+                  query: {
+                    _id: incidentCarryForward.newMonitorChangeStatusIdTo,
+                  },
+                  select: {
+                    name: true,
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                });
+
+              if (oldMonitorStatus && newMonitorStatus) {
+                feedInfoInMarkdown += `\n\n**🔄 Monitor Status Changed**:\n- **From** ${oldMonitorStatus.name} to ${newMonitorStatus.name}`;
+                shouldAddIncidentFeed = true;
+              }
+            }
+
+            const changeNewMonitorStatusTo: ObjectID | undefined =
+              incidentCarryForward.newMonitorChangeStatusIdTo ||
+              incidentCarryForward.oldChangeMonitorStatusIdTo;
+
+            if (incidentCarryForward.monitorsAdded?.length > 0) {
+              await this.disableActiveMonitoringIfManualIncident(incidentId);
+            }
+
+            if (changeNewMonitorStatusTo) {
+              const incident: Model | null = await this.findOneById({
+                id: incidentId,
+                select: {
+                  projectId: true,
+                  monitors: {
+                    _id: true,
+                  },
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+
+              const monitorsForThisIncident: Array<Monitor> =
+                incident?.monitors || [];
+
+              await MonitorService.changeMonitorStatus(
+                projectId!,
+                monitorsForThisIncident.map((monitor: Monitor) => {
+                  return new ObjectID(monitor._id?.toString() || "");
+                }),
+                changeNewMonitorStatusTo,
+                true, // notifyMonitorOwners
+                "Status was changed because Incident " +
+                  incidentNumberDisplay +
+                  " was updated.",
+                undefined,
+                onUpdate.updateBy.props,
+              );
+            }
+          }
+        }
+
+        if (shouldAddIncidentFeed) {
+          await IncidentFeedService.createIncidentFeedItem({
+            incidentId: incidentId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: feedInfoInMarkdown,
+            userId: createdByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            },
+          });
+        }
+      }
+    }
+
+    return onUpdate;
+  }
+
+  @CaptureSpan()
+  public async doesMonitorHasMoreActiveManualIncidents(
+    monitorId: ObjectID,
+    proojectId: ObjectID,
+  ): Promise<boolean> {
+    const resolvedState: IncidentState | null =
+      await IncidentStateService.findOneBy({
+        query: {
+          projectId: proojectId,
+          isResolvedState: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          order: true,
+        },
+      });
+
+    const incidentCount: PositiveNumber = await this.countBy({
+      query: {
+        monitors: QueryHelper.inRelationArray([monitorId]),
+        currentIncidentState: {
+          order: QueryHelper.lessThan(resolvedState?.order as number),
+        },
+        isCreatedAutomatically: false,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return incidentCount.toNumber() > 0;
+  }
+
+  @CaptureSpan()
+  public async doesMonitorHaveActiveIncidents(
+    monitorId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    const resolvedState: IncidentState | null =
+      await IncidentStateService.findOneBy({
+        query: {
+          projectId: projectId,
+          isResolvedState: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          order: true,
+        },
+      });
+
+    const incidentCount: PositiveNumber = await this.countBy({
+      query: {
+        monitors: QueryHelper.inRelationArray([monitorId]),
+        currentIncidentState: {
+          order: QueryHelper.lessThan(resolvedState?.order as number),
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return incidentCount.toNumber() > 0;
+  }
+
+  @CaptureSpan()
+  public async markMonitorsActiveForMonitoring(
+    projectId: ObjectID,
+    monitors: Array<Monitor>,
+    startsAt?: Date | undefined,
+  ): Promise<void> {
+    // resolve all the monitors.
+
+    if (monitors.length > 0) {
+      // get resolved monitor state.
+      /*
+       * Resolve monitors back to the project's operational status. A project
+       * can hold more than one operational state, so this lookup MUST be
+       * deterministic: without an explicit sort findOneBy falls back to
+       * `createdAt DESC` and would resolve monitors into whichever operational
+       * status was created most recently (e.g. a user- or fixture-added one)
+       * rather than the seeded default. Order by priority ascending (the
+       * seeded default operational status is priority 0), tie-broken by the
+       * oldest row, matching MonitorService.onBeforeCreate so a monitor's
+       * operational status is the same canonical one throughout its lifecycle.
+       */
+      const resolvedMonitorState: MonitorStatus | null =
+        await MonitorStatusService.findOneBy({
+          query: {
+            projectId: projectId!,
+            isOperationalState: true,
+          },
+          sort: {
+            priority: SortOrder.Ascending,
+            createdAt: SortOrder.Ascending,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            _id: true,
+          },
+        });
+
+      if (resolvedMonitorState) {
+        for (const monitor of monitors) {
+          /*
+           * Per-monitor isolation: one monitor failing here (for example the
+           * fail-closed status timeline lock, or a transient DB error) must not
+           * abort the loop and strand the REMAINING monitors with
+           * disableActiveMonitoringBecauseOfManualIncident still true - a
+           * monitor left in that state is skipped by probes and sits in its
+           * down status indefinitely, silently accruing downtime.
+           */
+          try {
+            //check state of the monitor.
+
+            const doesMonitorHasMoreActiveManualIncidents: boolean =
+              await this.doesMonitorHasMoreActiveManualIncidents(
+                monitor.id!,
+                projectId!,
+              );
+
+            if (doesMonitorHasMoreActiveManualIncidents) {
+              continue;
+            }
+
+            await MonitorService.updateOneById({
+              id: monitor.id!,
+              data: {
+                disableActiveMonitoringBecauseOfManualIncident: false,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            /*
+             * Don't flip the monitor to operational while other incidents
+             * are still open on it — e.g. a metric monitor with group-by
+             * may have one incident per series, and resolving one series
+             * shouldn't claim the whole monitor is healthy.
+             */
+            const hasOtherActiveIncidents: boolean =
+              await this.doesMonitorHaveActiveIncidents(
+                monitor.id!,
+                projectId!,
+              );
+
+            if (hasOtherActiveIncidents) {
+              continue;
+            }
+
+            /*
+             * changeMonitorStatus performs the same latest-status dedupe check
+             * this loop used to do inline, and additionally absorbs the two
+             * recoverable error classes (status already set by a concurrent
+             * writer, lock not acquired after retries) by skipping the write,
+             * so the common failure modes never even reach the catch below.
+             * notifyOwners is true to preserve the previous behavior here: the
+             * created row had isOwnerNotified unset, so owners were notified.
+             */
+            await MonitorService.changeMonitorStatus(
+              projectId!,
+              [monitor.id!],
+              resolvedMonitorState.id!,
+              true, // notifyOwners - matches the pre-existing behavior of this loop.
+              undefined,
+              undefined,
+              {
+                isRoot: true,
+              },
+              startsAt,
+            );
+          } catch (err) {
+            logger.error(
+              `IncidentService.markMonitorsActiveForMonitoring: failed for monitor ${monitor.id?.toString()}; continuing with the remaining monitors.`,
+            );
+            logger.error(err);
+            continue;
+          }
+        }
+      }
+    }
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    deleteBy.query = applyIncidentSelfPrivacyFilter(
+      deleteBy.query,
+      deleteBy.props,
+    );
+
+    const incidents: Array<Model> = await this.findBy({
+      query: deleteBy.query,
+      limit: LIMIT_MAX,
+      skip: 0,
+      select: {
+        _id: true,
+        projectId: true,
+        monitors: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      deleteBy,
+      carryForward: {
+        incidents: incidents,
+      },
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    _itemIdsBeforeDelete: ObjectID[],
+  ): Promise<OnDelete<Model>> {
+    if (onDelete.carryForward && onDelete.carryForward.incidents) {
+      for (const incident of onDelete.carryForward.incidents) {
+        if (incident.monitors && incident.monitors.length > 0) {
+          await this.markMonitorsActiveForMonitoring(
+            incident.projectId!,
+            incident.monitors,
+          );
+        }
+
+        if (incident.projectId && incident.id) {
+          const metricRetentionDays: number =
+            await this.getMetricRetentionDays();
+
+          await MutableMetricService.tombstoneEntityMetrics({
+            projectId: incident.projectId,
+            primaryEntityId: incident.id,
+            primaryEntityType: ServiceType.Incident,
+            metricNames: Object.values(IncidentMetricType),
+            retentionDate: OneUptimeDate.addRemoveDays(
+              OneUptimeDate.getCurrentDate(),
+              metricRetentionDays,
+            ),
+          });
+
+          /*
+           * Measurement points carry project-defined names, so they are not
+           * in the enum above and would otherwise linger in every chart
+           * until their retention date -- for an entity that no longer
+           * exists.
+           */
+          const measurementMetricNames: Array<string> =
+            await IncidentMeasurementService.getMetricNamesForProject(
+              incident.projectId,
+            );
+
+          await MeasurementMetricWriter.tombstoneAll({
+            projectId: incident.projectId,
+            primaryEntityId: incident.id,
+            primaryEntityType: ServiceType.Incident,
+            allMeasurementMetricNames: measurementMetricNames,
+          });
+        }
+      }
+    }
+
+    return onDelete;
+  }
+
+  @CaptureSpan()
+  public async changeIncidentState(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    incidentStateId: ObjectID;
+    shouldNotifyStatusPageSubscribers: boolean;
+    isSubscribersNotified: boolean;
+    notifyOwners: boolean;
+    rootCause: string | undefined;
+    stateChangeLog: JSONObject | undefined;
+    props: DatabaseCommonInteractionProps | undefined;
+    timelineStartsAt?: Date | string | undefined;
+  }): Promise<void> {
+    const {
+      projectId,
+      incidentId,
+      incidentStateId,
+      shouldNotifyStatusPageSubscribers,
+      isSubscribersNotified,
+      notifyOwners,
+      rootCause,
+      stateChangeLog,
+      props,
+      timelineStartsAt,
+    } = data;
+
+    const declaredTimelineStart: Date | undefined = timelineStartsAt
+      ? OneUptimeDate.fromString(timelineStartsAt as Date)
+      : undefined;
+
+    // get last monitor status timeline.
+    const lastIncidentStatusTimeline: IncidentStateTimeline | null =
+      await IncidentStateTimelineService.findOneBy({
+        query: {
+          incidentId: incidentId,
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          incidentStateId: true,
+        },
+        sort: {
+          createdAt: SortOrder.Descending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (
+      lastIncidentStatusTimeline &&
+      lastIncidentStatusTimeline.incidentStateId &&
+      lastIncidentStatusTimeline.incidentStateId.toString() ===
+        incidentStateId.toString()
+    ) {
+      return;
+    }
+
+    const statusTimeline: IncidentStateTimeline = new IncidentStateTimeline();
+
+    statusTimeline.incidentId = incidentId;
+    statusTimeline.incidentStateId = incidentStateId;
+    statusTimeline.projectId = projectId;
+    statusTimeline.isOwnerNotified = !notifyOwners;
+    statusTimeline.shouldStatusPageSubscribersBeNotified =
+      shouldNotifyStatusPageSubscribers;
+
+    if (!lastIncidentStatusTimeline && declaredTimelineStart) {
+      statusTimeline.startsAt = declaredTimelineStart;
+    }
+
+    // Map boolean to enum value
+    statusTimeline.subscriberNotificationStatus = isSubscribersNotified
+      ? StatusPageSubscriberNotificationStatus.Success
+      : StatusPageSubscriberNotificationStatus.Pending;
+
+    if (stateChangeLog) {
+      statusTimeline.stateChangeLog = stateChangeLog;
+    }
+    if (rootCause) {
+      statusTimeline.rootCause = rootCause;
+    }
+
+    await IncidentStateTimelineService.create({
+      data: statusTimeline,
+      props: props || {},
+    });
+  }
+
+  private static readonly DEFAULT_METRIC_RETENTION_DAYS: number = 180;
+
+  private async getMetricRetentionDays(): Promise<number> {
+    try {
+      const globalConfig: GlobalConfig | null =
+        await GlobalConfigService.findOneBy({
+          query: {
+            _id: ObjectID.getZeroObjectID().toString(),
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            monitorMetricRetentionInDays: true,
+          },
+        });
+
+      if (
+        globalConfig &&
+        globalConfig.monitorMetricRetentionInDays !== undefined &&
+        globalConfig.monitorMetricRetentionInDays !== null &&
+        globalConfig.monitorMetricRetentionInDays > 0
+      ) {
+        return globalConfig.monitorMetricRetentionInDays;
+      }
+    } catch (error) {
+      logger.error("Error fetching metric retention config, using default:");
+      logger.error(error);
+    }
+
+    return Service.DEFAULT_METRIC_RETENTION_DAYS;
+  }
+
+  /*
+   * Load the incident + its owners and build the attribute set shared by
+   * every incident metric (all values strings for ClickHouse
+   * Map(String, String) storage; arrays joined comma-separated). Factored
+   * out of refreshIncidentMetrics so one-off metric writers — e.g. the
+   * AI time-to-rca metric recorded when an investigation posts its
+   * analysis — record the exact same attribute shape.
+   */
+  @CaptureSpan()
+  public async getIncidentMetricContext(data: {
+    incidentId: ObjectID;
+  }): Promise<{ incident: Model; baseMetricAttributes: JSONObject }> {
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        projectId: true,
+        createdAt: true,
+        declaredAt: true,
+        postmortemPostedAt: true,
+        monitors: {
+          _id: true,
+          name: true,
+        },
+        /*
+         * The SLOs this incident affects, stamped below so an SLO's Metrics
+         * page can chart the incidents that hit it. Only _id and name, which
+         * the SLO model allows on relation reads.
+         */
+        serviceLevelObjectives: {
+          _id: true,
+          name: true,
+        },
+        incidentSeverity: {
+          _id: true,
+          name: true,
+        },
+        /*
+         * A project's own taxonomy. Both become metric attributes below so
+         * dashboards can group MTTA/MTTR by the dimensions the project
+         * actually thinks in.
+         */
+        labels: {
+          _id: true,
+          name: true,
+        },
+        customFields: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found");
+    }
+
+    if (!incident.projectId) {
+      throw new BadDataException("Incident Project ID not found");
+    }
+
+    // fetch owner users and teams for metric attributes
+    const ownerUsers: Array<IncidentOwnerUser> =
+      await IncidentOwnerUserService.findBy({
+        query: {
+          incidentId: data.incidentId,
+        },
+        select: {
+          _id: true,
+          user: {
+            _id: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const ownerTeams: Array<IncidentOwnerTeam> =
+      await IncidentOwnerTeamService.findBy({
+        query: {
+          incidentId: data.incidentId,
+        },
+        select: {
+          _id: true,
+          team: {
+            _id: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const ownerUserIds: Array<string> = ownerUsers
+      .map((ownerUser: IncidentOwnerUser) => {
+        return ownerUser.user?._id?.toString();
+      })
+      .filter((id: string | undefined) => {
+        return Boolean(id);
+      }) as Array<string>;
+
+    const ownerUserNames: Array<string> = ownerUsers
+      .map((ownerUser: IncidentOwnerUser) => {
+        return ownerUser.user?.name?.toString();
+      })
+      .filter((name: string | undefined) => {
+        return Boolean(name);
+      }) as Array<string>;
+
+    const ownerTeamIds: Array<string> = ownerTeams
+      .map((ownerTeam: IncidentOwnerTeam) => {
+        return ownerTeam.team?._id?.toString();
+      })
+      .filter((id: string | undefined) => {
+        return Boolean(id);
+      }) as Array<string>;
+
+    const ownerTeamNames: Array<string> = ownerTeams
+      .map((ownerTeam: IncidentOwnerTeam) => {
+        return ownerTeam.team?.name?.toString();
+      })
+      .filter((name: string | undefined) => {
+        return Boolean(name);
+      }) as Array<string>;
+
+    /*
+     * common attributes shared by all incident metrics
+     * All values must be strings for ClickHouse Map(String, String) storage.
+     * Arrays are joined as comma-separated strings.
+     */
+    const baseMetricAttributes: JSONObject = {
+      incidentId: data.incidentId.toString(),
+      projectId: incident.projectId.toString(),
+      monitorIds: (
+        incident.monitors
+          ?.map((monitor: Monitor) => {
+            return monitor._id?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      monitorNames: (
+        incident.monitors
+          ?.map((monitor: Monitor) => {
+            return monitor.name?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      /*
+       * Comma-joined like monitorIds: one incident can affect several SLOs.
+       * The SLO Metrics page filters its Incident tab on
+       * serviceLevelObjectiveIds (SERVICE_LEVEL_OBJECTIVE_IDS_METRIC_ATTRIBUTE
+       * in Common/Utils/Slo/SloMetricType), so the key must not be renamed.
+       */
+      serviceLevelObjectiveIds: (
+        incident.serviceLevelObjectives
+          ?.map((serviceLevelObjective: ServiceLevelObjective) => {
+            return serviceLevelObjective._id?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      serviceLevelObjectiveNames: (
+        incident.serviceLevelObjectives
+          ?.map((serviceLevelObjective: ServiceLevelObjective) => {
+            return serviceLevelObjective.name?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      incidentSeverityId: incident.incidentSeverity?._id?.toString(),
+      incidentSeverityName: incident.incidentSeverity?.name?.toString(),
+      ownerUserIds: ownerUserIds.join(", "),
+      ownerUserNames: ownerUserNames.join(", "),
+      ownerTeamIds: ownerTeamIds.join(", "),
+      ownerTeamNames: ownerTeamNames.join(", "),
+      /*
+       * oneuptime.label.* / oneuptime.customField.* — namespaced, so they can
+       * never collide with the unprefixed dimensions above.
+       */
+      ...MetricResourceAttributeUtil.getResourceAttributes({
+        labels: incident.labels,
+        customFields: incident.customFields,
+      }),
+    };
+
+    return { incident, baseMetricAttributes };
+  }
+
+  /*
+   * AI measurement layer: record how long the incident waited for its
+   * AI root-cause analysis — seconds from incident creation to now, written
+   * once from IncidentInvestigationRunner.postAnalysis. Deliberately NOT
+   * part of refreshIncidentMetrics: the refresh's replace-list excludes
+   * this metric name, so refreshes never tombstone it.
+   */
+  @CaptureSpan()
+  public async recordTimeToRootCausePostedMetric(data: {
+    incidentId: ObjectID;
+  }): Promise<void> {
+    const {
+      incident,
+      baseMetricAttributes,
+    }: { incident: Model; baseMetricAttributes: JSONObject } =
+      await this.getIncidentMetricContext({ incidentId: data.incidentId });
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const incidentCreatedAt: Date =
+      incident.createdAt || incident.declaredAt || now;
+
+    const metricRetentionDays: number = await this.getMetricRetentionDays();
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      metricRetentionDays,
+    );
+
+    const timeToRcaMetric: MutableMetric = new MutableMetric();
+
+    timeToRcaMetric.projectId = incident.projectId!;
+    timeToRcaMetric.primaryEntityId = incident.id!;
+    timeToRcaMetric.primaryEntityType = ServiceType.Incident;
+    timeToRcaMetric.name = IncidentMetricType.TimeToRootCausePosted;
+    timeToRcaMetric.metricPointId = IncidentMetricType.TimeToRootCausePosted;
+    timeToRcaMetric.value = OneUptimeDate.getDifferenceInSeconds(
+      now,
+      incidentCreatedAt,
+    );
+    timeToRcaMetric.attributes = {
+      ...baseMetricAttributes,
+      // Every time-to-rca point is AI-posted by construction.
+      aiInvestigated: "true",
+    };
+    timeToRcaMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+      timeToRcaMetric.attributes,
+    );
+    timeToRcaMetric.time = now;
+    timeToRcaMetric.timeUnixNano = OneUptimeDate.toUnixNano(now);
+    timeToRcaMetric.metricPointType = MetricPointType.Sum;
+    timeToRcaMetric.retentionDate = retentionDate;
+
+    await MutableMetricService.createMutableMetrics({
+      metrics: [timeToRcaMetric],
+    });
+
+    // Register the metric type so it shows up in the type catalog.
+    const metricType: MetricType = new MetricType();
+    metricType.name = IncidentMetricType.TimeToRootCausePosted;
+    metricType.description =
+      "Time from incident creation to the AI investigation's posted root-cause analysis";
+    metricType.unit = "seconds";
+
+    TelemetryUtil.indexMetricNameServiceNameMap({
+      metricNameServiceNameMap: {
+        [IncidentMetricType.TimeToRootCausePosted]: metricType,
+      },
+      projectId: incident.projectId!,
+    }).catch((err: Error) => {
+      logger.error(err, {
+        projectId: incident.projectId?.toString(),
+        incidentId: incident.id?.toString(),
+      } as LogAttributes);
+    });
+  }
+
+  @CaptureSpan()
+  public async refreshIncidentMetrics(data: {
+    incidentId: ObjectID;
+  }): Promise<void> {
+    const {
+      incident,
+      baseMetricAttributes,
+    }: { incident: Model; baseMetricAttributes: JSONObject } =
+      await this.getIncidentMetricContext({ incidentId: data.incidentId });
+
+    // getIncidentMetricContext guarantees this; re-checked for TS narrowing.
+    if (!incident.projectId) {
+      throw new BadDataException("Incident Project ID not found");
+    }
+
+    /*
+     * aiInvestigated dimension for MTTA/MTTR (AI measurement layer):
+     * did a completed AI investigation run for this incident? One
+     * indexed countBy per metric refresh (triggeredByIncidentId is indexed)
+     * — acceptable at refresh frequency. Failure must never break metric
+     * recording, so this is best-effort false.
+     */
+    let aiInvestigated: boolean = false;
+    try {
+      const completedInvestigationCount: PositiveNumber =
+        await AIRunService.countBy({
+          query: {
+            runType: AIRunType.Investigation,
+            status: AIRunStatus.Completed,
+            triggeredByIncidentId: data.incidentId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      aiInvestigated = completedInvestigationCount.toNumber() > 0;
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    // get incident state timeline
+
+    const incidentStateTimelines: Array<IncidentStateTimeline> =
+      await IncidentStateTimelineService.findBy({
+        query: {
+          incidentId: data.incidentId,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          incidentStateId: true,
+          incidentState: {
+            name: true,
+            isAcknowledgedState: true,
+            isResolvedState: true,
+            isCreatedState: true,
+          },
+          startsAt: true,
+          endsAt: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const firstIncidentStateTimeline: IncidentStateTimeline | undefined =
+      incidentStateTimelines[0];
+
+    /*
+     * Serialize concurrent refreshes for this incident across pods. Mutable
+     * metrics are versioned inserts, but the replace operation also tombstones
+     * stale metric-point identities. The lock keeps that read+insert cycle
+     * ordered for each incident.
+     */
+    let metricRefreshMutex: SemaphoreMutex | null = null;
+    try {
+      metricRefreshMutex = await Semaphore.lock({
+        key: data.incidentId.toString(),
+        namespace: "IncidentService.refreshIncidentMetrics",
+        lockTimeout: 30000,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    try {
+      const itemsToSave: Array<MutableMetric> = [];
+
+      const metricRetentionDays: number = await this.getMetricRetentionDays();
+      const incidentMetricRetentionDate: Date = OneUptimeDate.addRemoveDays(
+        OneUptimeDate.getCurrentDate(),
+        metricRetentionDays,
+      );
+
+      // now we need to create new metrics for this incident - TimeToAcknowledge, TimeToResolve, IncidentCount, IncidentDuration
+
+      const incidentStartsAt: Date =
+        firstIncidentStateTimeline?.startsAt ||
+        incident.declaredAt ||
+        incident.createdAt ||
+        OneUptimeDate.getCurrentDate();
+
+      const metricTypesMap: Dictionary<MetricType> = {};
+
+      const incidentCountMetric: MutableMetric = new MutableMetric();
+
+      incidentCountMetric.projectId = incident.projectId;
+      incidentCountMetric.primaryEntityId = incident.id!;
+      incidentCountMetric.primaryEntityType = ServiceType.Incident;
+      incidentCountMetric.name = IncidentMetricType.IncidentCount;
+      incidentCountMetric.metricPointId = IncidentMetricType.IncidentCount;
+      incidentCountMetric.value = 1;
+      incidentCountMetric.attributes = { ...baseMetricAttributes };
+      incidentCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+        incidentCountMetric.attributes,
+      );
+
+      incidentCountMetric.time = incidentStartsAt;
+      incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+        incidentCountMetric.time,
+      );
+      incidentCountMetric.metricPointType = MetricPointType.Sum;
+      incidentCountMetric.retentionDate = incidentMetricRetentionDate;
+
+      itemsToSave.push(incidentCountMetric);
+
+      // Always register the metric type so it shows up in the type catalog.
+      const metricType: MetricType = new MetricType();
+      metricType.name = IncidentMetricType.IncidentCount;
+      metricType.description = "Number of incidents created";
+      metricType.unit = "";
+      metricType.services = [];
+
+      metricTypesMap[IncidentMetricType.IncidentCount] = metricType;
+
+      // is the incident acknowledged?
+      const isIncidentAcknowledged: boolean = incidentStateTimelines.some(
+        (timeline: IncidentStateTimeline) => {
+          return timeline.incidentState?.isAcknowledgedState;
+        },
+      );
+
+      if (isIncidentAcknowledged) {
+        const ackIncidentStateTimeline: IncidentStateTimeline | undefined =
+          incidentStateTimelines.find((timeline: IncidentStateTimeline) => {
+            return timeline.incidentState?.isAcknowledgedState;
+          });
+
+        if (ackIncidentStateTimeline) {
+          // register the metric type so the catalog stays complete across refreshes.
+          const metricType: MetricType = new MetricType();
+          metricType.name = IncidentMetricType.TimeToAcknowledge;
+          metricType.description = "Time taken to acknowledge the incident";
+          metricType.unit = "seconds";
+          metricTypesMap[IncidentMetricType.TimeToAcknowledge] = metricType;
+
+          const timeToAcknowledgeMetric: MutableMetric = new MutableMetric();
+
+          timeToAcknowledgeMetric.projectId = incident.projectId;
+          timeToAcknowledgeMetric.primaryEntityId = incident.id!;
+          timeToAcknowledgeMetric.primaryEntityType = ServiceType.Incident;
+          timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
+          timeToAcknowledgeMetric.metricPointId =
+            IncidentMetricType.TimeToAcknowledge;
+          timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
+            ackIncidentStateTimeline?.startsAt ||
+              OneUptimeDate.getCurrentDate(),
+            incidentStartsAt,
+          );
+          // aiInvestigated: the MTTA with/without-AI dimension.
+          timeToAcknowledgeMetric.attributes = {
+            ...baseMetricAttributes,
+            aiInvestigated: aiInvestigated.toString(),
+          };
+          timeToAcknowledgeMetric.attributeKeys =
+            TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
+
+          timeToAcknowledgeMetric.time =
+            ackIncidentStateTimeline?.startsAt ||
+            incident.declaredAt ||
+            incident.createdAt ||
+            OneUptimeDate.getCurrentDate();
+          timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+            timeToAcknowledgeMetric.time,
+          );
+          timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+          timeToAcknowledgeMetric.retentionDate = incidentMetricRetentionDate;
+
+          itemsToSave.push(timeToAcknowledgeMetric);
+        }
+      }
+
+      // time to resolve
+      const isIncidentResolved: boolean = incidentStateTimelines.some(
+        (timeline: IncidentStateTimeline) => {
+          return timeline.incidentState?.isResolvedState;
+        },
+      );
+
+      const resolvedIncidentStateTimeline: IncidentStateTimeline | undefined =
+        incidentStateTimelines.find((timeline: IncidentStateTimeline) => {
+          return timeline.incidentState?.isResolvedState;
+        });
+
+      if (isIncidentResolved && resolvedIncidentStateTimeline) {
+        // register the metric type so the catalog stays complete across refreshes.
+        const metricType: MetricType = new MetricType();
+        metricType.name = IncidentMetricType.TimeToResolve;
+        metricType.description = "Time taken to resolve the incident";
+        metricType.unit = "seconds";
+        metricTypesMap[IncidentMetricType.TimeToResolve] = metricType;
+
+        const timeToResolveMetric: MutableMetric = new MutableMetric();
+
+        timeToResolveMetric.projectId = incident.projectId;
+        timeToResolveMetric.primaryEntityId = incident.id!;
+        timeToResolveMetric.primaryEntityType = ServiceType.Incident;
+        timeToResolveMetric.name = IncidentMetricType.TimeToResolve;
+        timeToResolveMetric.metricPointId = IncidentMetricType.TimeToResolve;
+        timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          resolvedIncidentStateTimeline?.startsAt ||
+            OneUptimeDate.getCurrentDate(),
+          incidentStartsAt,
+        );
+        // aiInvestigated: the MTTR with/without-AI dimension.
+        timeToResolveMetric.attributes = {
+          ...baseMetricAttributes,
+          aiInvestigated: aiInvestigated.toString(),
+        };
+        timeToResolveMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToResolveMetric.attributes,
+        );
+
+        timeToResolveMetric.time =
+          resolvedIncidentStateTimeline?.startsAt ||
+          incident.declaredAt ||
+          incident.createdAt ||
+          OneUptimeDate.getCurrentDate();
+        timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeToResolveMetric.time,
+        );
+        timeToResolveMetric.metricPointType = MetricPointType.Sum;
+        timeToResolveMetric.retentionDate = incidentMetricRetentionDate;
+
+        itemsToSave.push(timeToResolveMetric);
+      }
+
+      if (isIncidentResolved && resolvedIncidentStateTimeline) {
+        // register the metric type so the catalog stays complete across refreshes.
+        const metricType: MetricType = new MetricType();
+        metricType.name = IncidentMetricType.IncidentDuration;
+        metricType.description = "Duration of the incident";
+        metricType.unit = "seconds";
+        metricTypesMap[IncidentMetricType.IncidentDuration] = metricType;
+
+        const incidentEndsAt: Date =
+          resolvedIncidentStateTimeline.startsAt ||
+          OneUptimeDate.getCurrentDate();
+
+        const incidentDurationMetric: MutableMetric = new MutableMetric();
+
+        incidentDurationMetric.projectId = incident.projectId;
+        incidentDurationMetric.primaryEntityId = incident.id!;
+        incidentDurationMetric.primaryEntityType = ServiceType.Incident;
+        incidentDurationMetric.name = IncidentMetricType.IncidentDuration;
+        incidentDurationMetric.metricPointId =
+          IncidentMetricType.IncidentDuration;
+        incidentDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          incidentEndsAt,
+          incidentStartsAt,
+        );
+        incidentDurationMetric.attributes = { ...baseMetricAttributes };
+        incidentDurationMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          incidentDurationMetric.attributes,
+        );
+
+        incidentDurationMetric.time = incidentEndsAt;
+        incidentDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          incidentDurationMetric.time,
+        );
+        incidentDurationMetric.metricPointType = MetricPointType.Sum;
+        incidentDurationMetric.retentionDate = incidentMetricRetentionDate;
+
+        itemsToSave.push(incidentDurationMetric);
+
+        if (incident.postmortemPostedAt) {
+          const postmortemMetricType: MetricType = new MetricType();
+          postmortemMetricType.name =
+            IncidentMetricType.PostmortemCompletionTime;
+          postmortemMetricType.description =
+            "Time from incident resolution to postmortem publication";
+          postmortemMetricType.unit = "seconds";
+          metricTypesMap[IncidentMetricType.PostmortemCompletionTime] =
+            postmortemMetricType;
+
+          const postmortemMetric: MutableMetric = new MutableMetric();
+
+          postmortemMetric.projectId = incident.projectId;
+          postmortemMetric.primaryEntityId = incident.id!;
+          postmortemMetric.primaryEntityType = ServiceType.Incident;
+          postmortemMetric.name = IncidentMetricType.PostmortemCompletionTime;
+          postmortemMetric.metricPointId =
+            IncidentMetricType.PostmortemCompletionTime;
+          postmortemMetric.value = OneUptimeDate.getDifferenceInSeconds(
+            incident.postmortemPostedAt,
+            incidentEndsAt,
+          );
+          postmortemMetric.attributes = { ...baseMetricAttributes };
+          postmortemMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+            postmortemMetric.attributes,
+          );
+          postmortemMetric.time = incident.postmortemPostedAt;
+          postmortemMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+            postmortemMetric.time,
+          );
+          postmortemMetric.metricPointType = MetricPointType.Sum;
+          postmortemMetric.retentionDate = incidentMetricRetentionDate;
+
+          itemsToSave.push(postmortemMetric);
+        }
+      }
+
+      // time-in-state metrics — emit one metric per state transition that has a completed duration
+      for (const timeline of incidentStateTimelines) {
+        if (!timeline.startsAt || !timeline.endsAt) {
+          continue;
+        }
+
+        const stateName: string =
+          timeline.incidentState?.name?.toString() || "Unknown";
+
+        const timeInStateMetric: MutableMetric = new MutableMetric();
+
+        timeInStateMetric.projectId = incident.projectId;
+        timeInStateMetric.primaryEntityId = incident.id!;
+        timeInStateMetric.primaryEntityType = ServiceType.Incident;
+        timeInStateMetric.name = IncidentMetricType.TimeInState;
+        timeInStateMetric.metricPointId = `time-in-state:${timeline.id!.toString()}`;
+        timeInStateMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          timeline.endsAt,
+          timeline.startsAt,
+        );
+        timeInStateMetric.attributes = {
+          ...baseMetricAttributes,
+          incidentStateName: stateName,
+          incidentStateId: timeline.incidentStateId?.toString(),
+          isCreatedState:
+            timeline.incidentState?.isCreatedState?.toString() || "false",
+          isAcknowledgedState:
+            timeline.incidentState?.isAcknowledgedState?.toString() || "false",
+          isResolvedState:
+            timeline.incidentState?.isResolvedState?.toString() || "false",
+        };
+        timeInStateMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeInStateMetric.attributes,
+        );
+
+        timeInStateMetric.time = timeline.startsAt;
+        timeInStateMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeInStateMetric.time,
+        );
+        timeInStateMetric.metricPointType = MetricPointType.Sum;
+        timeInStateMetric.retentionDate = incidentMetricRetentionDate;
+
+        itemsToSave.push(timeInStateMetric);
+      }
+
+      // add metric type for time-in-state to map (only once)
+      if (
+        incidentStateTimelines.some((t: IncidentStateTimeline) => {
+          return t.startsAt && t.endsAt;
+        })
+      ) {
+        const timeInStateMetricType: MetricType = new MetricType();
+        timeInStateMetricType.name = IncidentMetricType.TimeInState;
+        timeInStateMetricType.description =
+          "Time spent in each incident state (e.g. Created, Investigating, Acknowledged)";
+        timeInStateMetricType.unit = "seconds";
+        metricTypesMap[timeInStateMetricType.name] = timeInStateMetricType;
+      }
+
+      await MutableMetricService.replaceEntityMetrics({
+        projectId: incident.projectId,
+        primaryEntityId: incident.id!,
+        primaryEntityType: ServiceType.Incident,
+        metricNames: [
+          IncidentMetricType.IncidentCount,
+          IncidentMetricType.TimeToAcknowledge,
+          IncidentMetricType.TimeToResolve,
+          IncidentMetricType.IncidentDuration,
+          IncidentMetricType.TimeInState,
+          IncidentMetricType.PostmortemCompletionTime,
+        ],
+        metrics: itemsToSave,
+        retentionDate: incidentMetricRetentionDate,
+      });
+
+      TelemetryUtil.indexMetricNameServiceNameMap({
+        metricNameServiceNameMap: metricTypesMap,
+        projectId: incident.projectId,
+      }).catch((err: Error) => {
+        logger.error(err, {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes);
+      });
+    } finally {
+      if (metricRefreshMutex) {
+        try {
+          await Semaphore.release(metricRefreshMutex);
+        } catch (err) {
+          logger.error(
+            err as Error,
+            {
+              projectId: incident.projectId?.toString(),
+              incidentId: incident.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+    }
+  }
+
+  @CaptureSpan()
+  public async getWorkspaceChannelForIncident(data: {
+    incidentId: ObjectID;
+    workspaceType?: WorkspaceType | null;
+  }): Promise<Array<NotificationRuleWorkspaceChannel>> {
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        postUpdatesToWorkspaceChannels: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found.");
+    }
+
+    return (incident.postUpdatesToWorkspaceChannels || []).filter(
+      (channel: NotificationRuleWorkspaceChannel) => {
+        if (!data.workspaceType) {
+          return true;
+        }
+
+        return channel.workspaceType === data.workspaceType;
+      },
+    );
+  }
+
+  @CaptureSpan()
+  public async getIncidentNumber(data: { incidentId: ObjectID }): Promise<{
+    number: number | null;
+    numberWithPrefix: string | null;
+  }> {
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new BadDataException("Incident not found.");
+    }
+
+    return {
+      number: incident.incidentNumber ? Number(incident.incidentNumber) : null,
+      numberWithPrefix: incident.incidentNumberWithPrefix || null,
+    };
+  }
+
+  /**
+   * Ensures the currentIncidentStateId of the incident matches the latest timeline entry.
+   */
+  public async refreshIncidentCurrentStatus(
+    incidentId: ObjectID,
+  ): Promise<void> {
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        _id: true,
+        projectId: true,
+        currentIncidentStateId: true,
+      },
+      props: { isRoot: true },
+    });
+    if (!incident || !incident.projectId) {
+      return;
+    }
+    const latestTimeline: IncidentStateTimeline | null =
+      await IncidentStateTimelineService.findOneBy({
+        query: {
+          incidentId: incident.id!,
+          projectId: incident.projectId,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        select: {
+          incidentStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    if (
+      latestTimeline &&
+      latestTimeline.incidentStateId &&
+      incident.currentIncidentStateId?.toString() !==
+        latestTimeline.incidentStateId.toString()
+    ) {
+      await this.updateOneBy({
+        query: { _id: incident.id!.toString() },
+        data: {
+          currentIncidentStateId: latestTimeline.incidentStateId,
+        },
+        props: { isRoot: true },
+      });
+      logger.info(
+        `Updated Incident ${incident.id} current state to ${latestTimeline.incidentStateId}`,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  @CaptureSpan()
+  public async generatePostmortemFromAI(data: {
+    incidentId: ObjectID;
+    template?: string;
+  }): Promise<string> {
+    // Get the incident to verify it exists and get the project ID
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident || !incident.projectId) {
+      throw new BadDataException("Incident not found");
+    }
+
+    /*
+     * The project's AI kill switch, at the service layer rather than only on
+     * the HTTP handler above it. This method is public and has a second
+     * caller (IncidentPostmortemRunner), so gating the route alone would
+     * leave the switch true for one entry point and false for the other.
+     * Checking here also refuses BEFORE the context builder below, which
+     * reads the whole incident dossier — private notes, workspace messages —
+     * to assemble a prompt this project has said it does not want sent.
+     */
+    await AIService.assertProjectAIEnabled(incident.projectId);
+
+    // Build incident context - always include workspace messages
+    const contextData: IncidentContextData =
+      await IncidentAIContextBuilder.buildIncidentContext({
+        incidentId: data.incidentId,
+        includeWorkspaceMessages: true,
+        workspaceMessageLimit: 500,
+      });
+
+    // Format context for postmortem generation
+    const aiContext: AIGenerationContext =
+      IncidentAIContextBuilder.formatIncidentContextForPostmortem(
+        contextData,
+        data.template,
+      );
+
+    /*
+     * Route through AIService so the call is metered, billed and budget-
+     * checked like every other AI feature — the previous direct
+     * LLMService.getCompletion bypassed LlmLog and cloud billing entirely.
+     * Previews stay off: the prompt embeds incident context (including
+     * private notes and workspace messages) whose read ACLs are narrower
+     * than LlmLog's (G8).
+     */
+    const response: AILogResponse = await AIService.executeWithLogging({
+      projectId: incident.projectId,
+      feature: "Incident Postmortem",
+      incidentId: data.incidentId,
+      messages: aiContext.messages,
+      temperature: 0.2,
+      storeContentPreviews: false,
+    });
+
+    return response.content;
+  }
+}
+
+export default new Service();

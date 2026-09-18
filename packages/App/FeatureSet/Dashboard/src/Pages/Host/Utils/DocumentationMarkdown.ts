@@ -1,0 +1,589 @@
+export type HostInstallMethod =
+  | "docker"
+  | "linux-deb"
+  | "linux-rpm"
+  | "linux-tarball"
+  | "macos"
+  | "windows"
+  | "kubernetes";
+
+export interface HostInstallMethodOption {
+  key: HostInstallMethod;
+  label: string;
+  description: string;
+}
+
+export const HOST_INSTALL_METHODS: Array<HostInstallMethodOption> = [
+  {
+    key: "docker",
+    label: "Docker",
+    description: "Single command. Works on any OS with Docker installed.",
+  },
+  {
+    key: "linux-deb",
+    label: "Debian / Ubuntu",
+    description: ".deb package installed as a systemd service.",
+  },
+  {
+    key: "linux-rpm",
+    label: "RHEL / Fedora",
+    description: ".rpm for RHEL, CentOS, Fedora, Amazon Linux.",
+  },
+  {
+    key: "linux-tarball",
+    label: "Linux Tarball",
+    description: "Static binary + systemd unit. No package manager needed.",
+  },
+  {
+    key: "macos",
+    label: "macOS",
+    description: "Homebrew formula, managed by brew services.",
+  },
+  {
+    key: "windows",
+    label: "Windows",
+    description: "Upstream otelcol-contrib, registered as a Windows service.",
+  },
+  {
+    key: "kubernetes",
+    label: "Kubernetes",
+    description: "Helm DaemonSet — one collector pod per node.",
+  },
+];
+
+export function getHostIntroMarkdown(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+}): string {
+  return `
+## Prerequisites
+
+- A Linux, macOS, Windows, or Kubernetes host you want to monitor
+- An ingestion key (selected above) — used to authenticate the collector with OneUptime
+
+## What gets reported
+
+Hosts are auto-discovered from the OTel \`host.name\` resource attribute. Once your collector forwards any of:
+
+- \`hostmetrics\` receiver metrics (CPU, memory, disk, filesystem, network, load, processes), OR
+- \`process\` scraper metrics (per-process CPU/memory/threads), OR
+- Logs / traces tagged with \`host.id\`, \`host.arch\`, \`os.type\`, \`container.runtime\`, or \`k8s.cluster.name\`
+
+…OneUptime will register the host automatically and start populating the Overview, Metrics, Processes, and Logs tabs.
+
+The same resource attributes become the machine's **Inventory** item, which is what a CMDB export reads. \`host.ip\`, \`host.arch\`, \`host.id\`, \`os.type\` and \`os.description\` all come from the \`resourcedetection\` processor in Step 1; serial number, make and model have no detector and are stamped on separately (see below).
+
+## Step 1 — Save the collector config
+
+Drop this into \`config.yaml\` next to wherever you'll run the collector. The same file is used for every install method below — only the way the collector is started differs.
+
+\`\`\`yaml
+receivers:
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+          # Lets OneUptime cache CPU core count on the host record
+          # so the Hosts list and host detail page can show it
+          # without re-aggregating metrics on every page load.
+          system.cpu.logical.count:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      disk:
+      filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+      load:
+      network:
+      processes:
+      paging:
+      process:
+        mute_process_name_error: true
+        mute_process_exe_error: true
+        mute_process_io_error: true
+        metrics:
+          process.cpu.utilization:
+            enabled: true
+          process.memory.utilization:
+            enabled: true
+
+processors:
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
+      resource_attributes:
+        host.name:
+          enabled: true
+        host.id:
+          enabled: true
+        host.arch:
+          enabled: true
+        # host.ip is opt-in in the system detector. OneUptime
+        # surfaces it on the Host Network card and on the host's
+        # Inventory item, so enable it here.
+        host.ip:
+          enabled: true
+        os.type:
+          enabled: true
+        os.description:
+          enabled: true
+  batch:
+
+exporters:
+  otlphttp/oneuptime:
+    endpoint: ${data.oneuptimeUrl}/otlp
+    headers:
+      x-oneuptime-token: ${data.apiKey}
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resourcedetection, batch]
+      exporters: [otlphttp/oneuptime]
+\`\`\`
+
+## Optional — Auto-tag this host with project labels
+
+Any resource attribute prefixed with \`oneuptime.label.\` is promoted to a project Label and attached to the host (and to the telemetry service emitted from this collector). Pattern: \`oneuptime.label.<dimension>=<value>\` becomes a label named \`<dimension>:<value>\`.
+
+Add a \`resource\` processor and reference it from the metrics pipeline:
+
+\`\`\`yaml
+processors:
+  resource/oneuptime-labels:
+    attributes:
+      - key: oneuptime.label.team
+        value: payments
+        action: upsert
+      - key: oneuptime.label.env
+        value: production
+        action: upsert
+      - key: oneuptime.label.region
+        value: us-east-1
+        action: upsert
+
+service:
+  pipelines:
+    metrics:
+      processors: [resourcedetection, resource/oneuptime-labels, batch]
+\`\`\`
+
+The host above shows up tagged \`team:payments\`, \`env:production\`, and \`region:us-east-1\`. Labels are matched case-insensitively, so an existing manually-created \`Production\` label is reused rather than duplicated. Labels added manually in the OneUptime UI are never removed by the collector.
+
+## Optional — Record the machine's serial number, make and model
+
+The config above already fills the machine's IP addresses, architecture, machine id and OS description onto its **Inventory** item, which is what a CMDB export reads.
+
+Serial number, make and model are different: **no resource detector can produce them.** They come from the machine's firmware — WMI on Windows, DMI on Linux — and the collector runs unprivileged on Linux, so it cannot read them itself. Read them once at provisioning time and stamp them onto the resource:
+
+\`\`\`yaml
+processors:
+  resource/oneuptime-hardware:
+    attributes:
+      - key: host.serial_number
+        value: "7XYZ123"
+        action: upsert
+      - key: device.manufacturer
+        value: "Dell Inc."
+        action: upsert
+      - key: device.model.name
+        value: "OptiPlex 7090"
+        action: upsert
+
+service:
+  pipelines:
+    metrics:
+      processors: [resourcedetection, resource/oneuptime-hardware, batch]
+\`\`\`
+
+The values are the machine's own, so they are written once by whatever provisions it. The Windows install method below prints the exact block for the machine you run it on; on Linux read \`/sys/class/dmi/id/product_serial\`, \`sys_vendor\` and \`product_name\` as root, and on macOS use \`ioreg\` and \`sysctl -n hw.model\`.
+
+\`host.manufacturer\` and \`host.model.name\` are accepted as alternative spellings and stored under the \`device.*\` keys above, so a config written either way ends up in one place.
+
+> **Don't set \`device.manufacturer\` on a mobile app's resource and a host's from the same config.** On a resource that carries no \`host.name\` or \`host.id\`, \`device.manufacturer\` still marks the batch as mobile Real User Monitoring.
+`;
+}
+
+/*
+ * Shared Step 3 for the three native Linux installs. Deliberately not
+ * offered for the Docker or Kubernetes methods: the `systemd` receiver
+ * talks to the host's D-Bus socket, which a containerised collector cannot
+ * reach.
+ */
+export function getLinuxSystemdStepMarkdown(): string {
+  return `
+## Step 3 — Enable the Systemd Units tab
+
+\`otelcol-contrib\` has bundled the \`systemd\` receiver since **v0.142.0**; run **v0.143.0 or newer**, which is where its CPU metric settled on its current name and stopped probing non-service units. Turn it on by adding it to your \`config.yaml\` and the metrics pipeline, then restart the service:
+
+\`\`\`yaml
+receivers:
+  systemd:
+    collection_interval: 30s
+    # Which units to scrape, as systemctl unit patterns. The default is
+    # every service; narrow it to cut volume on hosts with many units:
+    units: ["*.service"]
+    # units: [nginx.service, postgresql.service, "*.timer"]
+    metrics:
+      # Per-service CPU time is on by default and doubles this receiver's
+      # datapoint count; the Systemd Units tab does not use it. On
+      # v0.142.0 this key is systemd.unit.cpu.time instead — naming a
+      # metric your build does not have stops the collector at startup.
+      systemd.service.cpu.time:
+        enabled: false
+
+service:
+  pipelines:
+    metrics:
+      # Add systemd alongside the hostmetrics receiver from Step 1. Keep
+      # resourcedetection — it is what stamps host.name onto each unit.
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, batch]
+\`\`\`
+
+\`\`\`bash
+sudo systemctl restart otelcol-contrib
+\`\`\`
+
+The receiver is **Linux-only** and **alpha**. It reads unit state over the system D-Bus using the same read-only calls as \`systemctl list-units\`, which systemd allows unprivileged — the packaged service runs as the \`otelcol-contrib\` user and needs no extra rights. A containerised collector cannot reach the host's bus, so use a native install. Once metrics arrive, the host **Systemd Units** tab populates with every scraped unit and its current state (\`active\`, \`failed\`, \`inactive\`, ...).
+
+Each unit costs eight datapoints per scrape for the state set, plus two more if you leave the CPU metric on, so on a host with hundreds of units narrow \`units:\` or raise \`collection_interval\` rather than scraping everything.
+`;
+}
+
+export function getHostMethodMarkdown(
+  data: {
+    oneuptimeUrl: string;
+    apiKey: string;
+  },
+  method: HostInstallMethod,
+): string {
+  switch (method) {
+    case "docker":
+      return `
+## Step 2 — Run the collector with Docker
+
+Works on Linux, macOS, Windows, and WSL — anywhere Docker is installed.
+
+\`\`\`bash
+docker run -d \\
+  --name otel-collector \\
+  --restart unless-stopped \\
+  --network host \\
+  --pid host \\
+  -v $(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro \\
+  --volume /:/hostfs:ro,rslave \\
+  -e HOST_PROC=/hostfs/proc \\
+  -e HOST_SYS=/hostfs/sys \\
+  -e HOST_ETC=/hostfs/etc \\
+  -e HOST_VAR=/hostfs/var \\
+  -e HOST_RUN=/hostfs/run \\
+  -e HOST_DEV=/hostfs/dev \\
+  otel/opentelemetry-collector-contrib:latest \\
+  --config /etc/otelcol-contrib/config.yaml
+\`\`\`
+
+\`--network host\`, \`--pid host\`, and the \`/hostfs\` bind mount let the \`hostmetrics\` and \`process\` scrapers read CPU, memory, disk, and per-process information from the host kernel rather than the container. Without these, you'd only see metrics for the collector container itself.
+
+Logs: \`docker logs -f otel-collector\`.
+`;
+
+    case "linux-deb":
+      return `
+## Step 2 — Install the .deb package (Debian / Ubuntu)
+
+\`\`\`bash
+# Resolve the latest released version from GitHub (or pin a specific one, e.g. VERSION=0.151.0)
+VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest)
+VERSION=\${VERSION##*/v}
+ARCH=$(dpkg --print-architecture)   # amd64 or arm64
+
+curl -fL -o /tmp/otelcol-contrib.deb \\
+  https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.deb
+sudo dpkg -i /tmp/otelcol-contrib.deb
+
+# Install the config and (re)start the service
+sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml
+sudo systemctl enable --now otelcol-contrib
+sudo systemctl status otelcol-contrib
+\`\`\`
+
+Logs: \`sudo journalctl -u otelcol-contrib -f\`.
+
+All releases are listed at <https://github.com/open-telemetry/opentelemetry-collector-releases/releases> if you need to pin a specific version.
+
+> **Note for native installs:** Unlike Docker, the package install reads \`/proc\` and \`/sys\` directly — no \`HOST_PROC\` env vars or \`/hostfs\` mount required. The systemd unit shipped with the package runs as the unprivileged \`otelcol-contrib\` user; if you want the \`process\` scraper to see processes owned by other users, grant it \`CAP_SYS_PTRACE\` or run it as root.
+${getLinuxSystemdStepMarkdown()}`;
+
+    case "linux-rpm":
+      return `
+## Step 2 — Install the .rpm package (RHEL / Fedora / CentOS / Amazon Linux)
+
+\`\`\`bash
+# Resolve the latest released version from GitHub (or pin a specific one, e.g. VERSION=0.151.0)
+VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest)
+VERSION=\${VERSION##*/v}
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+
+curl -fL -o /tmp/otelcol-contrib.rpm \\
+  https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.rpm
+sudo rpm -Uvh /tmp/otelcol-contrib.rpm
+
+# Install the config and (re)start the service
+sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml
+sudo systemctl enable --now otelcol-contrib
+sudo systemctl status otelcol-contrib
+\`\`\`
+
+Logs: \`sudo journalctl -u otelcol-contrib -f\`.
+
+> **Note for native installs:** No \`HOST_PROC\` env vars or \`/hostfs\` bind mount needed — the collector reads \`/proc\` and \`/sys\` directly. The packaged systemd unit runs as the unprivileged \`otelcol-contrib\` user; grant it \`CAP_SYS_PTRACE\` (or run it as root) if you need the \`process\` scraper to see every user's processes.
+${getLinuxSystemdStepMarkdown()}`;
+
+    case "linux-tarball":
+      return `
+## Step 2 — Install from a tarball (any Linux distro)
+
+Use this when packages aren't available — Alpine, NixOS, locked-down servers, or container base images you want to instrument from outside.
+
+\`\`\`bash
+# Resolve the latest released version from GitHub (or pin a specific one, e.g. VERSION=0.151.0)
+VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/open-telemetry/opentelemetry-collector-releases/releases/latest)
+VERSION=\${VERSION##*/v}
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+
+curl -fL -o /tmp/otelcol.tar.gz \\
+  https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.tar.gz
+
+sudo mkdir -p /opt/otelcol-contrib
+sudo tar -xzf /tmp/otelcol.tar.gz -C /opt/otelcol-contrib
+sudo install -m 0644 config.yaml /opt/otelcol-contrib/config.yaml
+\`\`\`
+
+Drop a systemd unit at \`/etc/systemd/system/otelcol-contrib.service\`:
+
+\`\`\`ini
+[Unit]
+Description=OpenTelemetry Collector
+After=network.target
+
+[Service]
+ExecStart=/opt/otelcol-contrib/otelcol-contrib --config /opt/otelcol-contrib/config.yaml
+Restart=on-failure
+RestartSec=5s
+User=root
+
+[Install]
+WantedBy=multi-user.target
+\`\`\`
+
+Then enable and start it:
+
+\`\`\`bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now otelcol-contrib
+sudo systemctl status otelcol-contrib
+\`\`\`
+
+> **Note for native installs:** No \`HOST_PROC\` env vars or \`/hostfs\` mount — the collector reads kernel state directly. Run as root (or grant \`CAP_SYS_PTRACE\`) so the \`process\` scraper can see processes owned by other users.
+${getLinuxSystemdStepMarkdown()}`;
+
+    case "macos":
+      return `
+## Step 2 — Install on macOS (Homebrew)
+
+\`\`\`bash
+brew install opentelemetry-collector
+
+# Homebrew installs the config under the formula's etc directory.
+# Apple Silicon: /opt/homebrew/etc/otelcol  ·  Intel: /usr/local/etc/otelcol
+PREFIX=$(brew --prefix)
+sudo install -m 0644 config.yaml \${PREFIX}/etc/otelcol/config.yaml
+
+brew services restart opentelemetry-collector
+brew services info opentelemetry-collector
+\`\`\`
+
+Logs: \`tail -F $(brew --prefix)/var/log/opentelemetry-collector.log\` (path varies by formula version).
+
+> **Heads up:** The Homebrew formula ships the **core** distribution. If you need scrapers that only exist in the **contrib** distribution, install the binary directly from <https://github.com/open-telemetry/opentelemetry-collector-releases/releases> (use the \`darwin\` archive matching your CPU) or run via Docker.
+`;
+
+    case "windows":
+      return `
+## Step 2 — Install on Windows (otelcol-contrib)
+
+On Windows, install the upstream **\`otelcol-contrib\`** collector — from **v0.155.0** it bundles the \`windows_service\` receiver that powers the host **Services** tab. It runs the same \`config.yaml\` from Step 1.
+
+Run from an elevated PowerShell prompt:
+
+\`\`\`powershell
+# Download otelcol-contrib for Windows (amd64; use _windows_arm64.tar.gz on ARM)
+$version = "0.156.0"   # use v0.155.0 or later for the Services tab
+$dest = "C:\\Program Files\\otelcol-contrib"
+$tar  = "$env:TEMP\\otelcol-contrib.tar.gz"
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$version/otelcol-contrib_\${version}_windows_amd64.tar.gz" -OutFile $tar
+tar -xf $tar -C $dest   # tar.exe ships with Windows 10 1803+ / Server 2019+
+
+# Use the config.yaml you saved in Step 1
+Copy-Item config.yaml "$dest\\config.yaml" -Force
+
+# Register and start it as a Windows service (runs as LocalSystem)
+sc.exe create "otelcol-contrib" binPath= "\\"$dest\\otelcol-contrib.exe\\" --config=\\"$dest\\config.yaml\\"" start= auto DisplayName= "OpenTelemetry Collector (OneUptime)"
+sc.exe start "otelcol-contrib"
+\`\`\`
+
+Logs are written to the Windows Application event log; view them in **Event Viewer → Windows Logs → Application**.
+
+> **Note:** The service runs as \`LocalSystem\` so it can read every Windows service. On Windows the \`load\` scraper only emulates a load average from the *Processor Queue Length* counter (it starts at 0); if it can't read the counter it is logged and skipped, so the rest of the \`hostmetrics\` config runs unchanged. See the [Host OpenTelemetry Collector docs](https://oneuptime.com/docs/telemetry/host-otel-collector) for the tarball, MSI, and self-build options.
+
+## Step 3 — Enable the Windows Services tab
+
+From **v0.155.0** \`otelcol-contrib\` includes the \`windows_service\` receiver — turn it on by adding it to your \`config.yaml\` and the metrics pipeline, then restart the service:
+
+\`\`\`yaml
+receivers:
+  windows_service:
+    collection_interval: 30s
+    # Collect every service by default. To cut volume / avoid access-denied
+    # noise, list only the ones you care about:
+    # include_services: [Spooler, W3SVC, MSSQLSERVER]
+
+service:
+  pipelines:
+    metrics:
+      # Add windows_service alongside the hostmetrics receiver from Step 1.
+      receivers: [hostmetrics, windows_service]
+\`\`\`
+
+\`\`\`powershell
+Restart-Service otelcol-contrib
+\`\`\`
+
+The receiver is **Windows-only** and **alpha**. Once metrics arrive, the host **Services** tab populates automatically with each service's running state and startup type. If you set \`include_services\` but still see every service, the collector hasn't picked up the edit — restart the service and give the Services tab a few minutes to refresh its rolling window.
+
+## Step 4 — Record the serial number, make and model
+
+These three come from WMI, which no resource detector reads. Run this from an elevated PowerShell prompt on the machine — it queries WMI and prints the exact YAML for *this* machine:
+
+\`\`\`powershell
+$bios = Get-CimInstance -ClassName Win32_BIOS
+$cs   = Get-CimInstance -ClassName Win32_ComputerSystem
+
+# Quote for YAML: trim, escape any embedded quote, wrap in single quotes.
+# The cast to string first is what keeps this working on machines whose
+# firmware leaves a field empty — .Trim() on a null value throws.
+function Format-YamlValue($value) {
+  "'" + ("$value".Trim() -replace "'", "''") + "'"
+}
+
+@"
+  resource/oneuptime-hardware:
+    attributes:
+      - key: host.serial_number
+        value: $(Format-YamlValue $bios.SerialNumber)
+        action: upsert
+      - key: device.manufacturer
+        value: $(Format-YamlValue $cs.Manufacturer)
+        action: upsert
+      - key: device.model.name
+        value: $(Format-YamlValue $cs.Model)
+        action: upsert
+"@
+\`\`\`
+
+It prints one processor entry, already indented. Add it inside the \`processors:\` block your \`config.yaml\` already has — alongside \`resourcedetection:\` and \`batch:\`, not as a second \`processors:\` key — then name it in the metrics pipeline and restart:
+
+\`\`\`yaml
+service:
+  pipelines:
+    metrics:
+      processors: [resourcedetection, resource/oneuptime-hardware, batch]
+\`\`\`
+
+\`\`\`powershell
+Restart-Service otelcol-contrib
+\`\`\`
+
+Use \`Get-CimInstance\`, not the deprecated \`Get-WmiObject\` — it is absent from PowerShell 7 and later. Values are emitted in single quotes with any embedded quote doubled, so a serial or model containing punctuation stays valid YAML. A field the firmware leaves empty prints as \`''\`; drop that attribute rather than shipping a blank one.
+
+Within a few minutes the machine's **Inventory** item shows \`host.serial_number\`, \`device.manufacturer\` and \`device.model.name\` under **Details**, alongside the IP addresses and machine id the detector already supplies. Run this again after a motherboard swap — the values are stamped, not detected, so they do not update themselves.
+`;
+
+    case "kubernetes":
+      return `
+## Step 2 — Deploy to Kubernetes (Helm DaemonSet)
+
+This deploys one collector pod per node — the standard production setup for monitoring every node in a cluster.
+
+\`\`\`bash
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
+
+cat > values.yaml <<'EOF'
+mode: daemonset
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+# hostmetrics + process scrapers need access to the host kernel namespaces
+hostNetwork: true
+hostPID: true
+
+presets:
+  hostMetrics:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+
+config:
+  exporters:
+    otlphttp/oneuptime:
+      endpoint: ${data.oneuptimeUrl}/otlp
+      headers:
+        x-oneuptime-token: ${data.apiKey}
+  service:
+    pipelines:
+      metrics:
+        exporters: [otlphttp/oneuptime]
+      logs:
+        exporters: [otlphttp/oneuptime]
+      traces:
+        exporters: [otlphttp/oneuptime]
+EOF
+
+helm upgrade --install otel-collector \\
+  open-telemetry/opentelemetry-collector \\
+  --namespace otel --create-namespace \\
+  -f values.yaml
+\`\`\`
+
+Each node will appear as a separate host in OneUptime, linked to its Kubernetes cluster.
+
+Logs: \`kubectl -n otel logs -l app.kubernetes.io/name=opentelemetry-collector -f\`.
+
+> **Note:** When using the Helm chart, the \`config.yaml\` from Step 1 is merged into the chart's \`values.yaml\` under the \`config:\` key. The chart's \`hostMetrics\` preset enables the receiver and mounts \`/proc\` and \`/sys\` from the host into each pod for you, so you don't need to repeat the receiver config above — only the exporter that points to OneUptime.
+`;
+  }
+}
+
+export function getHostFooterMarkdown(): string {
+  return `
+## What you can do next
+
+- Open the **Hosts** list in OneUptime — your host appears automatically once the first metric batch lands (usually within 30 seconds).
+- The **Metrics** tab visualizes \`system.*\` time-series.
+- The **Processes** tab lists processes ordered by CPU once the \`process\` scraper is enabled.
+- The **Systemd Units** tab lists unit state on Linux hosts once the \`systemd\` receiver is enabled, and the **Services** tab does the same on Windows with \`windows_service\`.
+- The **Logs** tab streams any logs whose resource attributes include \`host.name\`.
+`;
+}

@@ -1,0 +1,311 @@
+# Development stack. Every path below is relative to the repository root, so
+# run it from the root with --project-directory . (npm run dev, npm run build
+# and npm run force-build already do):
+#
+#   docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml up -d
+#
+# Without the flag, Compose resolves the paths against Scripts/Dev/ and fails.
+x-common-depends-on: &common-depends-on
+  postgres:
+    condition: service_healthy
+  valkey:
+    condition: service_healthy
+  clickhouse:
+    condition: service_healthy
+
+services:
+  valkey:
+    ports:
+      - "6310:6379"
+    extends:
+      file: ./docker-compose.base.yml
+      service: valkey
+
+  clickhouse:
+    ports:
+      - "9034:9000"
+      - "8189:8123"
+    extends:
+      file: ./docker-compose.base.yml
+      service: clickhouse
+    volumes:
+      - ./Clickhouse/config.xml:/etc/clickhouse-server/config.xml
+
+  postgres:
+    ports:
+      - "5400:5432"
+    extends:
+      file: ./docker-compose.base.yml
+      service: postgres
+
+  test-server:
+    volumes:
+      - ./packages/TestServer:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      # Bind mount Common subdirectories explicitly (not the parent) so
+      # /usr/src/Common/node_modules is never shadowed by host node_modules.
+      # Mounting ./Common as a whole + an anonymous volume on node_modules is
+      # unreliable on Docker Desktop for Mac — the volume can get unmasked,
+      # exposing host platform binaries (e.g. darwin-arm64) to the Linux container.
+      - ./packages/Common/Models:/usr/src/Common/Models:cached
+      - ./packages/Common/UI:/usr/src/Common/UI:cached
+      - ./packages/Common/Types:/usr/src/Common/Types:cached
+      - ./packages/Common/Utils:/usr/src/Common/Utils:cached
+      - ./packages/Common/Server:/usr/src/Common/Server:cached
+      - ./packages/Common/Scripts:/usr/src/Common/Scripts:cached
+      - ./packages/Common/Tests:/usr/src/Common/Tests:cached
+      - ./packages/Common/Typings:/usr/src/Common/Typings:cached
+      - ./packages/Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+      - ./packages/Common/package.json:/usr/src/Common/package.json:cached
+      - ./packages/Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+      - ./packages/Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+      - ./packages/Common/jest.config.json:/usr/src/Common/jest.config.json:cached
+
+    extends:
+      file: ./docker-compose.base.yml
+      service: test-server
+    depends_on:
+      <<: *common-depends-on
+    ports:
+      - "9141:9229" # Debugging port.
+      - "3800:3800"
+    build:
+      network: host
+      context: .
+      dockerfile: ./packages/TestServer/Dockerfile
+
+  home:
+    volumes:
+      - ./packages/Home:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      # See test-server above for why Common is mounted by subdirectory.
+      - ./packages/Common/Models:/usr/src/Common/Models:cached
+      - ./packages/Common/UI:/usr/src/Common/UI:cached
+      - ./packages/Common/Types:/usr/src/Common/Types:cached
+      - ./packages/Common/Utils:/usr/src/Common/Utils:cached
+      - ./packages/Common/Server:/usr/src/Common/Server:cached
+      - ./packages/Common/Scripts:/usr/src/Common/Scripts:cached
+      - ./packages/Common/Tests:/usr/src/Common/Tests:cached
+      - ./packages/Common/Typings:/usr/src/Common/Typings:cached
+      - ./packages/Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+      - ./packages/Common/package.json:/usr/src/Common/package.json:cached
+      - ./packages/Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+      - ./packages/Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+      - ./packages/Common/jest.config.json:/usr/src/Common/jest.config.json:cached
+    extends:
+      file: ./docker-compose.base.yml
+      service: home
+    depends_on:
+      <<: *common-depends-on
+    ports:
+      - "9212:9229" # Debugging port.
+    build:
+      network: host
+      context: .
+      dockerfile: ./packages/Home/Dockerfile
+
+  app:
+    volumes:
+      - ./packages/App:/usr/src/app:cached
+      - ./packages/App/FeatureSet/Accounts:/usr/src/app/FeatureSet/Accounts:cached
+      - ./packages/App/FeatureSet/Dashboard:/usr/src/app/FeatureSet/Dashboard:cached
+      - ./packages/App/FeatureSet/AdminDashboard:/usr/src/app/FeatureSet/AdminDashboard:cached
+      - ./packages/App/FeatureSet/StatusPage:/usr/src/app/FeatureSet/StatusPage:cached
+      - ./packages/App/FeatureSet/PublicDashboard:/usr/src/app/FeatureSet/PublicDashboard:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      - /usr/src/app/FeatureSet/Accounts/node_modules/
+      - /usr/src/app/FeatureSet/Dashboard/node_modules/
+      - /usr/src/app/FeatureSet/AdminDashboard/node_modules/
+      - /usr/src/app/FeatureSet/StatusPage/node_modules/
+      - /usr/src/app/FeatureSet/PublicDashboard/node_modules/
+      # See test-server above for why Common is mounted by subdirectory.
+      - ./packages/Common/Models:/usr/src/Common/Models:cached
+      - ./packages/Common/UI:/usr/src/Common/UI:cached
+      - ./packages/Common/Types:/usr/src/Common/Types:cached
+      - ./packages/Common/Utils:/usr/src/Common/Utils:cached
+      - ./packages/Common/Server:/usr/src/Common/Server:cached
+      - ./packages/Common/Scripts:/usr/src/Common/Scripts:cached
+      - ./packages/Common/Tests:/usr/src/Common/Tests:cached
+      - ./packages/Common/Typings:/usr/src/Common/Typings:cached
+      - ./packages/Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+      - ./packages/Common/package.json:/usr/src/Common/package.json:cached
+      - ./packages/Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+      - ./packages/Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+      - ./packages/Common/jest.config.json:/usr/src/Common/jest.config.json:cached
+    extends:
+      file: ./docker-compose.base.yml
+      service: app
+    depends_on:
+      <<: *common-depends-on
+    ports:
+      - "9232:9229" # Debugging port.
+    build:
+      network: host
+      context: .
+      dockerfile: ./packages/App/Dockerfile
+
+  probe-1:
+    volumes:
+      - ./packages/Probe:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      # See test-server above for why Common is mounted by subdirectory.
+      - ./packages/Common/Models:/usr/src/Common/Models:cached
+      - ./packages/Common/UI:/usr/src/Common/UI:cached
+      - ./packages/Common/Types:/usr/src/Common/Types:cached
+      - ./packages/Common/Utils:/usr/src/Common/Utils:cached
+      - ./packages/Common/Server:/usr/src/Common/Server:cached
+      - ./packages/Common/Scripts:/usr/src/Common/Scripts:cached
+      - ./packages/Common/Tests:/usr/src/Common/Tests:cached
+      - ./packages/Common/Typings:/usr/src/Common/Typings:cached
+      - ./packages/Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+      - ./packages/Common/package.json:/usr/src/Common/package.json:cached
+      - ./packages/Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+      - ./packages/Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+      - ./packages/Common/jest.config.json:/usr/src/Common/jest.config.json:cached
+
+    extends:
+      file: ./docker-compose.base.yml
+      service: probe-1
+    depends_on:
+      <<: *common-depends-on
+    build:
+      network: host
+      context: .
+      dockerfile: ./packages/Probe/Dockerfile
+
+  probe-2:
+    volumes:
+      - ./packages/Probe:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      # See test-server above for why Common is mounted by subdirectory.
+      - ./packages/Common/Models:/usr/src/Common/Models:cached
+      - ./packages/Common/UI:/usr/src/Common/UI:cached
+      - ./packages/Common/Types:/usr/src/Common/Types:cached
+      - ./packages/Common/Utils:/usr/src/Common/Utils:cached
+      - ./packages/Common/Server:/usr/src/Common/Server:cached
+      - ./packages/Common/Scripts:/usr/src/Common/Scripts:cached
+      - ./packages/Common/Tests:/usr/src/Common/Tests:cached
+      - ./packages/Common/Typings:/usr/src/Common/Typings:cached
+      - ./packages/Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+      - ./packages/Common/package.json:/usr/src/Common/package.json:cached
+      - ./packages/Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+      - ./packages/Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+      - ./packages/Common/jest.config.json:/usr/src/Common/jest.config.json:cached
+
+    extends:
+      file: ./docker-compose.base.yml
+      service: probe-2
+    depends_on:
+      <<: *common-depends-on
+    build:
+      network: host
+      context: .
+      dockerfile: ./packages/Probe/Dockerfile
+
+  runner:
+    volumes:
+      - ./packages/Runner:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      # See test-server above for why Common is mounted by subdirectory.
+      - ./packages/Common/Models:/usr/src/Common/Models:cached
+      - ./packages/Common/UI:/usr/src/Common/UI:cached
+      - ./packages/Common/Types:/usr/src/Common/Types:cached
+      - ./packages/Common/Utils:/usr/src/Common/Utils:cached
+      - ./packages/Common/Server:/usr/src/Common/Server:cached
+      - ./packages/Common/Scripts:/usr/src/Common/Scripts:cached
+      - ./packages/Common/Tests:/usr/src/Common/Tests:cached
+      - ./packages/Common/Typings:/usr/src/Common/Typings:cached
+      - ./packages/Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+      - ./packages/Common/package.json:/usr/src/Common/package.json:cached
+      - ./packages/Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+      - ./packages/Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+      - ./packages/Common/jest.config.json:/usr/src/Common/jest.config.json:cached
+
+    extends:
+      file: ./docker-compose.base.yml
+      service: runner
+    depends_on:
+      <<: *common-depends-on
+    build:
+      network: host
+      context: .
+      dockerfile: ./packages/Runner/Dockerfile
+
+  # Fluentd. Required only for development. In  production its the responsibility of the customer to run fluentd and pipe logs to OneUptime.
+  # We run this container just for development, to see if logs are piped.
+
+  fluentd:
+    ports:
+      - 24224:24224
+      - 24224:24224/udp
+      - 8888:8888
+    user: fluent
+    extends:
+      file: ./docker-compose.base.yml
+      service: fluentd
+    volumes:
+      - ./Examples/log-collectors/fluentd/fluent.conf:/fluentd/etc/fluent.conf
+    build:
+      network: host
+      context: ./Examples/log-collectors/fluentd
+      dockerfile: ./Dockerfile
+
+  fluent-bit:
+    ports:
+      - 24225:24224
+      - 24285:24284
+      - 2020:2020
+      - 8889:8889
+    extends:
+      file: ./docker-compose.base.yml
+      service: fluent-bit
+    volumes:
+      - ./Examples/log-collectors/fluent-bit/etc:/fluent-bit/etc/
+    build:
+      network: host
+      context: .
+      dockerfile: ./Examples/log-collectors/fluent-bit/Dockerfile
+
+  ingress:
+    build:
+      network: host
+      context: .
+      dockerfile: ./packages/Nginx/Dockerfile
+    extends:
+      file: ./docker-compose.base.yml
+      service: ingress
+    depends_on:
+      <<: *common-depends-on
+
+  # e2e tests
+  e2e:
+    extends:
+      file: ./docker-compose.base.yml
+      service: e2e
+    volumes:
+      - ./packages/E2E/playwright-report:/usr/src/app/playwright-report
+      - ./packages/E2E/test-results:/usr/src/app/test-results
+    build:
+      network: host
+      context: .
+      dockerfile: ./packages/E2E/Dockerfile
+
+volumes:
+  postgres:
+  clickhouse:
+
+networks:
+  oneuptime:
+    driver: bridge

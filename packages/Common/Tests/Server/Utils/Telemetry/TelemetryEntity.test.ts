@@ -1,0 +1,2340 @@
+import InventoryItem, {
+  EntityAttributeValue,
+  EntityAttributes,
+  EntityExtractionResult,
+  ExtractedEntity,
+  MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH,
+  ResourceEntityRef,
+  RetiredEntityIdentity,
+} from "../../../../Server/Utils/Telemetry/TelemetryEntity";
+import {
+  MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+  MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+  normalizeHostIpAddresses,
+} from "../../../../Utils/Telemetry/HostIpAddresses";
+import EntityType from "../../../../Types/Telemetry/EntityType";
+import {
+  keyForHost,
+  keyForService,
+  keyForKubernetesCluster,
+  keyForProxmoxCluster,
+  keyForCephCluster,
+  keyForVMwareVCenter,
+} from "../../../../Utils/Telemetry/EntityKey";
+import logger from "../../../../Server/Utils/Logger";
+import { describe, expect, test } from "@jest/globals";
+import { createHash } from "crypto";
+
+const PROJECT: string = "proj1";
+
+function keysFor(
+  attrs: EntityAttributes,
+  projectId: string = PROJECT,
+): Array<string> {
+  return InventoryItem.extractEntityKeys({ projectId, attributes: attrs });
+}
+
+function typesFor(attrs: EntityAttributes): Array<EntityType> {
+  return InventoryItem.extractEntities({
+    projectId: PROJECT,
+    attributes: attrs,
+  }).map((e: ExtractedEntity) => {
+    return e.entityType;
+  });
+}
+
+function entityOfType(
+  attrs: EntityAttributes,
+  type: EntityType,
+): ExtractedEntity | undefined {
+  return InventoryItem.extractEntities({
+    projectId: PROJECT,
+    attributes: attrs,
+  }).find((e: ExtractedEntity) => {
+    return e.entityType === type;
+  });
+}
+
+/*
+ * Independent reimplementation of the documented preimage so the test
+ * breaks if the key construction ever silently changes.
+ */
+function expectedKey(
+  projectId: string,
+  type: EntityType,
+  id: Record<string, string>,
+): string {
+  const escape: (token: string) => string = (token: string) => {
+    return token.replace(/([\\|=])/g, "\\$1");
+  };
+  const parts: Array<string> = Object.keys(id)
+    .sort()
+    .map((k: string) => {
+      return `${escape(k)}=${escape(id[k]!.trim().toLowerCase())}`;
+    });
+  return createHash("sha256")
+    .update(`${projectId}|${type}|${parts.join("|")}`)
+    .digest("hex")
+    .slice(0, 16);
+}
+
+describe("InventoryItem.computeEntityKey", () => {
+  test("matches the documented preimage format", () => {
+    const key: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.Service,
+      identifyingAttributes: { "service.name": "checkout" },
+    });
+    expect(key).toBe(
+      expectedKey(PROJECT, EntityType.Service, { "service.name": "checkout" }),
+    );
+    expect(key).toMatch(/^[0-9a-f]{16}$/);
+  });
+
+  test("is deterministic and order-independent", () => {
+    const a: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.Service,
+      identifyingAttributes: {
+        "service.name": "checkout",
+        "service.namespace": "shop",
+      },
+    });
+    const b: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.Service,
+      identifyingAttributes: {
+        "service.namespace": "shop",
+        "service.name": "checkout",
+      },
+    });
+    expect(a).toBe(b);
+  });
+
+  test("canonicalizes casing and whitespace (no identity fork)", () => {
+    const a: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.Host,
+      identifyingAttributes: { "host.name": "Web-1" },
+    });
+    const b: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.Host,
+      identifyingAttributes: { "host.name": "  web-1 " },
+    });
+    expect(a).toBe(b);
+  });
+
+  test("is tenant-scoped (projectId folds into the key)", () => {
+    const a: string = InventoryItem.computeEntityKey({
+      projectId: "projA",
+      entityType: EntityType.Service,
+      identifyingAttributes: { "service.name": "checkout" },
+    });
+    const b: string = InventoryItem.computeEntityKey({
+      projectId: "projB",
+      entityType: EntityType.Service,
+      identifyingAttributes: { "service.name": "checkout" },
+    });
+    expect(a).not.toBe(b);
+  });
+
+  test("type discriminates the key (same value, different type)", () => {
+    const asService: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.Service,
+      identifyingAttributes: { name: "x" },
+    });
+    const asHost: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.Host,
+      identifyingAttributes: { name: "x" },
+    });
+    expect(asService).not.toBe(asHost);
+  });
+});
+
+describe("InventoryItem.extractEntities — per type", () => {
+  test("service: from service.name, folds in namespace", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "service.name": "checkout", "service.namespace": "shop" },
+      EntityType.Service,
+    );
+    expect(e).toBeDefined();
+    expect(e!.identifyingAttributes).toEqual({
+      "service.name": "checkout",
+      "service.namespace": "shop",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.Service, {
+        "service.name": "checkout",
+        "service.namespace": "shop",
+      }),
+    );
+  });
+
+  test("service.instance: requires both name and instance.id", () => {
+    expect(typesFor({ "service.name": "checkout" })).not.toContain(
+      EntityType.ServiceInstance,
+    );
+    expect(
+      typesFor({
+        "service.name": "checkout",
+        "service.instance.id": "i-1",
+      }),
+    ).toContain(EntityType.ServiceInstance);
+  });
+
+  test("host: keyed on host.name (matches hostIdentifier), ignoring host.id", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "host.id": "h-123", "host.name": "Web-1" },
+      EntityType.Host,
+    );
+    /*
+     * host.id is not part of host identity; value canonicalized (lowercased)
+     * so it matches the Host row's hostIdentifier.
+     */
+    expect(e!.identifyingAttributes).toEqual({ "host.name": "web-1" });
+  });
+
+  test("host: no host entity without host.name (host.id alone is not a host)", () => {
+    expect(typesFor({ "host.id": "h-123" })).not.toContain(EntityType.Host);
+  });
+
+  test("host: a standalone host identity still produces a host", () => {
+    expect(
+      typesFor({
+        "host.name": "web-1",
+        "os.type": "linux",
+      }),
+    ).toEqual([EntityType.Host]);
+  });
+
+  test.each([
+    ["pod name", "k8s.pod.name", "checkout-7d9f", EntityType.KubernetesPod],
+    ["pod uid", "k8s.pod.uid", "pod-uid-1", EntityType.KubernetesPod],
+    ["node name", "k8s.node.name", "worker-1", EntityType.KubernetesNode],
+    ["node uid", "k8s.node.uid", "node-uid-1", EntityType.KubernetesNode],
+    ["cluster", "k8s.cluster.name", "prod-us", EntityType.KubernetesCluster],
+    ["namespace", "k8s.namespace.name", "shop", EntityType.KubernetesNamespace],
+    [
+      "deployment",
+      "k8s.deployment.name",
+      "checkout",
+      EntityType.KubernetesDeployment,
+    ],
+  ] as Array<[string, string, string, EntityType]>)(
+    "host.name beside a k8s %s identity does not create a phantom host",
+    (
+      _label: string,
+      identityKey: string,
+      identityValue: string,
+      expectedType: EntityType,
+    ) => {
+      const types: Array<EntityType> = typesFor({
+        "host.name": "checkout-7d9f",
+        "os.type": "linux",
+        [identityKey]: identityValue,
+      });
+
+      expect(types).toContain(expectedType);
+      expect(types).not.toContain(EntityType.Host);
+    },
+  );
+
+  test("a cluster UID alone does not hide a real host", () => {
+    const types: Array<EntityType> = typesFor({
+      "host.name": "web-1",
+      "os.type": "linux",
+      "k8s.cluster.uid": "cluster-uid-1",
+    });
+
+    /*
+     * Cluster rows are intentionally name-keyed, so a UID-only resource
+     * cannot produce a KubernetesCluster entity. Without an attachable
+     * Kubernetes entity, the UID must not suppress an otherwise valid Host.
+     */
+    expect(types).not.toContain(EntityType.KubernetesCluster);
+    expect(types).toEqual([EntityType.Host]);
+  });
+
+  test.each([
+    "k8s.cluster.name",
+    "k8s.cluster.uid",
+    "k8s.namespace.name",
+    "k8s.node.name",
+    "k8s.node.uid",
+    "k8s.pod.name",
+    "k8s.pod.uid",
+    "k8s.deployment.name",
+  ])("a blank %s value does not hide a real host", (identityKey: string) => {
+    expect(
+      typesFor({
+        "host.name": "web-1",
+        "os.type": "linux",
+        [identityKey]: "   ",
+      }),
+    ).toEqual([EntityType.Host]);
+  });
+
+  test.each([
+    ["k8s.pod.phase", "Running"],
+    ["k8s.pod.label.app", "checkout"],
+    ["k8s.wombat", "future-metadata"],
+  ])(
+    "an unrelated Kubernetes attribute %s does not hide a real host",
+    (attributeKey: string, attributeValue: string) => {
+      expect(
+        typesFor({
+          "host.name": "web-1",
+          "os.type": "linux",
+          [attributeKey]: attributeValue,
+        }),
+      ).toEqual([EntityType.Host]);
+    },
+  );
+
+  test("k8s.cluster: keyed on name only, ignoring uid (read side is name-based)", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "k8s.cluster.uid": "u-1", "k8s.cluster.name": "prod-us" },
+      EntityType.KubernetesCluster,
+    );
+    expect(e!.identifyingAttributes).toEqual({ "k8s.cluster.name": "prod-us" });
+  });
+
+  test("k8s.cluster: no cluster entity from uid alone", () => {
+    expect(typesFor({ "k8s.cluster.uid": "u-1" })).not.toContain(
+      EntityType.KubernetesCluster,
+    );
+  });
+
+  test("k8s composite children fold in the name-based cluster identity even when uid is present", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "k8s.cluster.uid": "u-1",
+        "k8s.cluster.name": "prod-us",
+        "k8s.namespace.name": "shop",
+      },
+      EntityType.KubernetesNamespace,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "k8s.cluster.name": "prod-us",
+      "k8s.namespace.name": "shop",
+    });
+  });
+
+  test("k8s.pod: composes cluster + namespace + pod identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "k8s.cluster.name": "prod-us",
+        "k8s.namespace.name": "shop",
+        "k8s.pod.name": "checkout-7d9f",
+      },
+      EntityType.KubernetesPod,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "k8s.cluster.name": "prod-us",
+      "k8s.namespace.name": "shop",
+      "k8s.pod.name": "checkout-7d9f",
+    });
+  });
+
+  test("proxmox.cluster: keyed on proxmox.cluster.name", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "pve-prod" },
+      EntityType.ProxmoxCluster,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "proxmox.cluster.name": "pve-prod",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.ProxmoxCluster, {
+        "proxmox.cluster.name": "pve-prod",
+      }),
+    );
+  });
+
+  test("proxmox: no entities without identifying proxmox attributes", () => {
+    expect(typesFor({ "proxmox.guest.name": "web-vm" })).not.toContain(
+      EntityType.ProxmoxGuest,
+    );
+    expect(typesFor({ "proxmox.guest.type": "qemu" })).toEqual([]);
+  });
+
+  test("proxmox.node: composes cluster + node identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "pve-prod", "proxmox.node.name": "pve-1" },
+      EntityType.ProxmoxNode,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "proxmox.cluster.name": "pve-prod",
+      "proxmox.node.name": "pve-1",
+    });
+  });
+
+  test("proxmox.guest: composes cluster + vmid; numeric vmid coerces to string identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "pve-prod", "proxmox.guest.vmid": 100 },
+      EntityType.ProxmoxGuest,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "proxmox.cluster.name": "pve-prod",
+      "proxmox.guest.vmid": "100",
+    });
+  });
+
+  test("proxmox.guest: node name is not identity (live migration keeps the key)", () => {
+    const beforeMigration: ExtractedEntity | undefined = entityOfType(
+      {
+        "proxmox.cluster.name": "pve-prod",
+        "proxmox.node.name": "pve-1",
+        "proxmox.guest.vmid": "100",
+      },
+      EntityType.ProxmoxGuest,
+    );
+    const afterMigration: ExtractedEntity | undefined = entityOfType(
+      {
+        "proxmox.cluster.name": "pve-prod",
+        "proxmox.node.name": "pve-2",
+        "proxmox.guest.vmid": "100",
+      },
+      EntityType.ProxmoxGuest,
+    );
+    expect(afterMigration!.entityKey).toBe(beforeMigration!.entityKey);
+  });
+
+  test("vmware.vcenter: keyed on vmware.vcenter.name", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "vmware.vcenter.name": "vcsa-prod" },
+      EntityType.VMwareVCenter,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.VMwareVCenter, {
+        "vmware.vcenter.name": "vcsa-prod",
+      }),
+    );
+  });
+
+  test("vmware: nothing resolves without the agent-stamped vmware.vcenter.name", () => {
+    /*
+     * The vcenter receiver's own attributes never say which vCenter they
+     * came from, so a resource missing the agent-stamped root attribute
+     * must resolve to NO VMware entity — a vCenter-less key would collide
+     * across every vCenter in the project that has a cluster called "Prod".
+     */
+    expect(
+      typesFor({
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+        "vcenter.datastore.name": "vsanDatastore",
+      }),
+    ).toEqual([]);
+  });
+
+  test("vmware: descriptive-only attributes yield no vmware entities", () => {
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.name": "web-01",
+        "vcenter.resource_pool.name": "Resources",
+      }),
+    ).toEqual([EntityType.VMwareVCenter]);
+    expect(typesFor({ "vcenter.vm.name": "web-01" })).toEqual([]);
+  });
+
+  test("vmware.cluster: composes vcenter + datacenter + cluster identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+      },
+      EntityType.VMwareCluster,
+    );
+    // Identity values are canonicalized (trimmed + lowercased) like every type.
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "dc1",
+      "vcenter.cluster.name": "prod",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.VMwareCluster, {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+      }),
+    );
+  });
+
+  test("vmware.cluster / host / datastore require the datacenter (part of identity)", () => {
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.cluster.name": "Prod",
+      }),
+    ).toEqual([EntityType.VMwareVCenter]);
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.host.name": "esxi-01.example.com",
+      }),
+    ).toEqual([EntityType.VMwareVCenter]);
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datastore.name": "vsanDatastore",
+      }),
+    ).toEqual([EntityType.VMwareVCenter]);
+  });
+
+  test("vmware.host: composes vcenter + datacenter + host identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "dc1",
+      "vcenter.host.name": "esxi-01.example.com",
+    });
+  });
+
+  test("vmware.host: cluster is not identity (moving a host between clusters keeps the key)", () => {
+    const inClusterA: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    const inClusterB: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Staging",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    const standalone: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    expect(inClusterB!.entityKey).toBe(inClusterA!.entityKey);
+    expect(standalone!.entityKey).toBe(inClusterA!.entityKey);
+    expect(inClusterA!.identifyingAttributes).not.toHaveProperty(
+      "vcenter.cluster.name",
+    );
+  });
+
+  test("vmware.vm: keyed on vcenter + vcenter.vm.id (instance UUID), never the name", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.VMwareVirtualMachine, {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      }),
+    );
+  });
+
+  test("vmware.vm: host name is not identity (vMotion keeps the key)", () => {
+    const beforeVMotion: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    const afterVMotion: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-02.example.com",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(afterVMotion!.entityKey).toBe(beforeVMotion!.entityKey);
+  });
+
+  test("vmware.vm: renaming the VM keeps the key", () => {
+    const before: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    const after: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.name": "web-01-renamed",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(after!.entityKey).toBe(before!.entityKey);
+  });
+
+  test("vmware.vm: a template is a VM keyed on vcenter.vm_template.id; converting keeps the key", () => {
+    const template: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm_template.name": "ubuntu-22.04-golden",
+        "vcenter.vm_template.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(template).toBeDefined();
+    expect(template!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+    });
+
+    // Convert-to-template keeps the instance UUID, so the key survives.
+    const asVm: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.name": "ubuntu-22.04-golden",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(asVm!.entityKey).toBe(template!.entityKey);
+
+    // A template resource yields exactly one VM entity, not two.
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm_template.id": "5029abcd-1234-5678-9abc-def012345678",
+      }).filter((t: EntityType) => {
+        return t === EntityType.VMwareVirtualMachine;
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("vmware.vm: vcenter.vm.id wins when both id attributes are present", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.id": "id-vm",
+        "vcenter.vm_template.id": "id-template",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.vm.id": "id-vm",
+    });
+  });
+
+  test("vmware.vm: falls back to nothing when only a name is present (no id → no entity)", () => {
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.name": "web-01",
+      }),
+    ).not.toContain(EntityType.VMwareVirtualMachine);
+  });
+
+  test("vmware.datastore: composes vcenter + datacenter + datastore identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.datastore.name": "vsanDatastore",
+      },
+      EntityType.VMwareDatastore,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "dc1",
+      "vcenter.datastore.name": "vsandatastore",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.VMwareDatastore, {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.datastore.name": "vsanDatastore",
+      }),
+    );
+  });
+
+  test("vmware: every child identity spreads the vcenter identity", () => {
+    const attrs: EntityAttributes = {
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.cluster.name": "Prod",
+      "vcenter.host.name": "esxi-01.example.com",
+      "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      "vcenter.datastore.name": "vsanDatastore",
+    };
+    for (const type of [
+      EntityType.VMwareCluster,
+      EntityType.VMwareHost,
+      EntityType.VMwareVirtualMachine,
+      EntityType.VMwareDatastore,
+    ]) {
+      const e: ExtractedEntity | undefined = entityOfType(attrs, type);
+      expect(e).toBeDefined();
+      expect(e!.identifyingAttributes["vmware.vcenter.name"]).toBe("vcsa-prod");
+    }
+  });
+
+  test("ceph.cluster: keyed on name only, ignoring fsid (read side is name-based)", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "ceph.cluster.fsid": "f-1", "ceph.cluster.name": "ceph-prod" },
+      EntityType.CephCluster,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "ceph.cluster.name": "ceph-prod",
+    });
+  });
+
+  test("ceph.cluster: no cluster entity from fsid alone", () => {
+    expect(typesFor({ "ceph.cluster.fsid": "f-1" })).not.toContain(
+      EntityType.CephCluster,
+    );
+  });
+
+  test("container & process flow as membership keys", () => {
+    const types: Array<EntityType> = typesFor({
+      "container.id": "c-1",
+      "process.pid": 1234,
+      "host.id": "h-1",
+    });
+    expect(types).toContain(EntityType.Container);
+    expect(types).toContain(EntityType.Process);
+  });
+
+  test("process: numeric pid coerces to string identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "process.pid": 1234, "host.id": "h-1" },
+      EntityType.Process,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "process.pid": "1234",
+      "host.id": "h-1",
+    });
+  });
+
+  test("telemetry.sdk: from sdk name + language", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.language": "nodejs",
+      },
+      EntityType.TelemetrySdk,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.language": "nodejs",
+    });
+  });
+});
+
+describe("InventoryItem.extractEntities — composition & safety", () => {
+  test("no phantom entities when identity is absent", () => {
+    expect(keysFor({})).toEqual([]);
+    // host.* missing, only an unrelated attr present
+    expect(typesFor({ "http.method": "GET" })).toEqual([]);
+  });
+
+  test("a full k8s resource yields its proper entity set without a phantom host", () => {
+    const types: Array<EntityType> = typesFor({
+      "service.name": "checkout",
+      "service.instance.id": "i-1",
+      "host.name": "ip-10-0-1-5",
+      "k8s.cluster.name": "prod-us",
+      "k8s.namespace.name": "shop",
+      "k8s.node.name": "ip-10-0-1-5",
+      "k8s.pod.name": "checkout-7d9f",
+      "k8s.deployment.name": "checkout",
+      "container.id": "c-1",
+      "process.pid": 1234,
+      "telemetry.sdk.name": "opentelemetry",
+    });
+    expect(new Set(types)).toEqual(
+      new Set([
+        EntityType.Service,
+        EntityType.ServiceInstance,
+        EntityType.KubernetesCluster,
+        EntityType.KubernetesNamespace,
+        EntityType.KubernetesNode,
+        EntityType.KubernetesPod,
+        EntityType.KubernetesDeployment,
+        EntityType.Container,
+        EntityType.Process,
+        EntityType.TelemetrySdk,
+      ]),
+    );
+  });
+
+  test("a full proxmox resource yields the whole entity set", () => {
+    const types: Array<EntityType> = typesFor({
+      "proxmox.cluster.name": "pve-prod",
+      "proxmox.node.name": "pve-1",
+      "proxmox.guest.vmid": "100",
+      "proxmox.guest.name": "web-vm",
+      "proxmox.guest.type": "qemu",
+    });
+    expect(new Set(types)).toEqual(
+      new Set([
+        EntityType.ProxmoxCluster,
+        EntityType.ProxmoxNode,
+        EntityType.ProxmoxGuest,
+      ]),
+    );
+  });
+
+  test("a full vmware VM resource yields vcenter + cluster + host + vm", () => {
+    // The vcenter receiver's resource for a VM inside a cluster.
+    const types: Array<EntityType> = typesFor({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.cluster.name": "Prod",
+      "vcenter.host.name": "esxi-01.example.com",
+      "vcenter.vm.name": "web-01",
+      "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      "vcenter.resource_pool.name": "Resources",
+      "vcenter.resource_pool.inventory_path": "/DC1/host/Prod/Resources",
+    });
+    expect(new Set(types)).toEqual(
+      new Set([
+        EntityType.VMwareVCenter,
+        EntityType.VMwareCluster,
+        EntityType.VMwareHost,
+        EntityType.VMwareVirtualMachine,
+      ]),
+    );
+  });
+
+  test("a vmware VM resource on a standalone host yields no cluster entity", () => {
+    const types: Array<EntityType> = typesFor({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.host.name": "esxi-01.example.com",
+      "vcenter.vm.name": "web-01",
+      "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+    });
+    expect(new Set(types)).toEqual(
+      new Set([
+        EntityType.VMwareVCenter,
+        EntityType.VMwareHost,
+        EntityType.VMwareVirtualMachine,
+      ]),
+    );
+  });
+
+  test("a vmware datastore resource yields vcenter + datastore only", () => {
+    const types: Array<EntityType> = typesFor({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.datastore.name": "vsanDatastore",
+    });
+    expect(new Set(types)).toEqual(
+      new Set([EntityType.VMwareVCenter, EntityType.VMwareDatastore]),
+    );
+  });
+
+  test("vmware datacenter / resource pool resources yield only the vcenter entity", () => {
+    // Datacenters and resource pools are inventory rows, not entities.
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+      }),
+    ).toEqual([EntityType.VMwareVCenter]);
+    expect(
+      new Set(
+        typesFor({
+          "vmware.vcenter.name": "vcsa-prod",
+          "vcenter.datacenter.name": "DC1",
+          "vcenter.cluster.name": "Prod",
+          "vcenter.resource_pool.name": "Resources",
+          "vcenter.resource_pool.inventory_path": "/DC1/host/Prod/Resources",
+        }),
+      ),
+    ).toEqual(new Set([EntityType.VMwareVCenter, EntityType.VMwareCluster]));
+  });
+
+  test("extractEntityKeys is sorted, deduped, and a superset of the primary", () => {
+    const attrs: EntityAttributes = {
+      "service.name": "checkout",
+      "host.name": "web-1",
+    };
+    const keys: Array<string> = keysFor(attrs);
+    // sorted
+    expect([...keys].sort()).toEqual(keys);
+    // deduped
+    expect(new Set(keys).size).toBe(keys.length);
+    // includes the service (primary) key
+    const serviceKey: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.Service,
+      identifyingAttributes: { "service.name": "checkout" },
+    });
+    expect(keys).toContain(serviceKey);
+  });
+
+  test("same namespace name in two clusters does not collide", () => {
+    const clusterA: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.KubernetesNamespace,
+      identifyingAttributes: {
+        "k8s.cluster.name": "prod-us",
+        "k8s.namespace.name": "default",
+      },
+    });
+    const clusterB: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.KubernetesNamespace,
+      identifyingAttributes: {
+        "k8s.cluster.name": "prod-eu",
+        "k8s.namespace.name": "default",
+      },
+    });
+    expect(clusterA).not.toBe(clusterB);
+  });
+
+  test("same vmid in two proxmox clusters does not collide", () => {
+    const clusterA: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.ProxmoxGuest,
+      identifyingAttributes: {
+        "proxmox.cluster.name": "pve-us",
+        "proxmox.guest.vmid": "100",
+      },
+    });
+    const clusterB: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.ProxmoxGuest,
+      identifyingAttributes: {
+        "proxmox.cluster.name": "pve-eu",
+        "proxmox.guest.vmid": "100",
+      },
+    });
+    expect(clusterA).not.toBe(clusterB);
+  });
+
+  test("same cluster name in two vcenters does not collide", () => {
+    const a: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-us",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+      },
+      EntityType.VMwareCluster,
+    );
+    const b: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-eu",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+      },
+      EntityType.VMwareCluster,
+    );
+    expect(a!.entityKey).not.toBe(b!.entityKey);
+  });
+
+  test("same cluster name in two datacenters of one vcenter does not collide", () => {
+    const a: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+      },
+      EntityType.VMwareCluster,
+    );
+    const b: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC2",
+        "vcenter.cluster.name": "Prod",
+      },
+      EntityType.VMwareCluster,
+    );
+    expect(a!.entityKey).not.toBe(b!.entityKey);
+  });
+
+  test("same VM instance UUID in two vcenters does not collide", () => {
+    const a: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.VMwareVirtualMachine,
+      identifyingAttributes: {
+        "vmware.vcenter.name": "vcsa-us",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+    });
+    const b: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.VMwareVirtualMachine,
+      identifyingAttributes: {
+        "vmware.vcenter.name": "vcsa-eu",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+    });
+    expect(a).not.toBe(b);
+  });
+});
+
+describe("read-side keyFor* helpers match ingest-side extraction", () => {
+  test("keyForHost matches the host entity stamped from host.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "host.name": "web-1" },
+      EntityType.Host,
+    );
+    expect(stamped).toBeDefined();
+    expect(keyForHost(PROJECT, "web-1")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForHost canonicalizes casing/whitespace like ingest", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "host.name": "Web-1" },
+      EntityType.Host,
+    );
+    expect(keyForHost(PROJECT, "web-1")).toBe(stamped!.entityKey);
+    expect(keyForHost(PROJECT, "  WEB-1 ")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForService matches the service entity stamped from service.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "service.name": "checkout" },
+      EntityType.Service,
+    );
+    expect(keyForService(PROJECT, "checkout")).toBe(stamped!.entityKey);
+    // An undefined or blank namespace must not alter the key.
+    expect(keyForService(PROJECT, "checkout", undefined)).toBe(
+      stamped!.entityKey,
+    );
+    expect(keyForService(PROJECT, "checkout", "  ")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForService matches the namespaced service entity stamped from service.name + service.namespace", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "service.name": "checkout", "service.namespace": "shop" },
+      EntityType.Service,
+    );
+    expect(stamped).toBeDefined();
+    expect(keyForService(PROJECT, "checkout", "shop")).toBe(stamped!.entityKey);
+    // Namespace is part of the identity: without it the key matches nothing.
+    expect(keyForService(PROJECT, "checkout")).not.toBe(stamped!.entityKey);
+  });
+
+  test("keyForKubernetesCluster matches the cluster entity stamped from k8s.cluster.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "k8s.cluster.name": "prod-us" },
+      EntityType.KubernetesCluster,
+    );
+    expect(keyForKubernetesCluster(PROJECT, "prod-us")).toBe(
+      stamped!.entityKey,
+    );
+  });
+
+  test("keyForKubernetesCluster still matches when the resource also carries a uid", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "k8s.cluster.uid": "u-1", "k8s.cluster.name": "prod-us" },
+      EntityType.KubernetesCluster,
+    );
+    expect(keyForKubernetesCluster(PROJECT, "prod-us")).toBe(
+      stamped!.entityKey,
+    );
+  });
+
+  test("keyForProxmoxCluster matches the cluster entity stamped from proxmox.cluster.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "pve-prod" },
+      EntityType.ProxmoxCluster,
+    );
+    expect(keyForProxmoxCluster(PROJECT, "pve-prod")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForProxmoxCluster canonicalizes casing/whitespace like ingest", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "PVE-Prod" },
+      EntityType.ProxmoxCluster,
+    );
+    expect(keyForProxmoxCluster(PROJECT, "pve-prod")).toBe(stamped!.entityKey);
+    expect(keyForProxmoxCluster(PROJECT, "  PVE-PROD ")).toBe(
+      stamped!.entityKey,
+    );
+  });
+
+  test("keyForVMwareVCenter matches the vcenter entity stamped from vmware.vcenter.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "vmware.vcenter.name": "vcsa-prod" },
+      EntityType.VMwareVCenter,
+    );
+    expect(stamped).toBeDefined();
+    expect(keyForVMwareVCenter(PROJECT, "vcsa-prod")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForVMwareVCenter canonicalizes casing/whitespace like ingest", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "vmware.vcenter.name": "VCSA-Prod" },
+      EntityType.VMwareVCenter,
+    );
+    expect(keyForVMwareVCenter(PROJECT, "vcsa-prod")).toBe(stamped!.entityKey);
+    expect(keyForVMwareVCenter(PROJECT, "  VCSA-PROD ")).toBe(
+      stamped!.entityKey,
+    );
+  });
+
+  test("keyForVMwareVCenter still matches when the resource carries vcenter.* child attributes", () => {
+    // The vcenter entity is name-only; child attributes must not leak in.
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVCenter,
+    );
+    expect(keyForVMwareVCenter(PROJECT, "vcsa-prod")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForCephCluster matches the cluster entity stamped from ceph.cluster.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "ceph.cluster.name": "ceph-prod" },
+      EntityType.CephCluster,
+    );
+    expect(keyForCephCluster(PROJECT, "ceph-prod")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForCephCluster still matches when the resource also carries a fsid", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "ceph.cluster.fsid": "f-1", "ceph.cluster.name": "ceph-prod" },
+      EntityType.CephCluster,
+    );
+    expect(keyForCephCluster(PROJECT, "ceph-prod")).toBe(stamped!.entityKey);
+  });
+});
+
+describe("descriptive attributes & labels (never identity-bearing)", () => {
+  test("host: allowlisted descriptive attributes are emitted, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      { "host.name": "web-1" },
+      EntityType.Host,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "host.name": "web-1",
+        "os.type": "linux",
+        "os.description": "Ubuntu 24.04.1 LTS (Noble Numbat)",
+        "host.arch": "arm64",
+        "host.id": "ec2-9f3c",
+        // an array attribute — joined, not truncated to its first element.
+        "host.ip": ["10.0.0.1", "10.0.0.2"],
+        "host.serial_number": "7XYZ123",
+        "device.manufacturer": "Dell Inc.",
+        "device.model.name": "OptiPlex 7090",
+        "cloud.provider": "aws",
+        "cloud.region": "us-east-1",
+        "cloud.availability_zone": "us-east-1a",
+        // still not in the allowlist — must not leak into descriptive.
+        "host.mac": ["02:42:ac:11:00:02"],
+      },
+      EntityType.Host,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.identifyingAttributes).toEqual(
+      bare!.identifyingAttributes,
+    );
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "os.type": "linux",
+      "os.description": "Ubuntu 24.04.1 LTS (Noble Numbat)",
+      "host.arch": "arm64",
+      "host.id": "ec2-9f3c",
+      "host.ip": "10.0.0.1, 10.0.0.2",
+      "host.serial_number": "7XYZ123",
+      "device.manufacturer": "Dell Inc.",
+      "device.model.name": "OptiPlex 7090",
+      "cloud.provider": "aws",
+      "cloud.region": "us-east-1",
+      "cloud.availability_zone": "us-east-1a",
+    });
+    expect(bare!.descriptiveAttributes).toBeUndefined();
+  });
+
+  test("service: sdk descriptive attributes captured, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      { "service.name": "checkout" },
+      EntityType.Service,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "service.name": "checkout",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.version": "1.30.0",
+      },
+      EntityType.Service,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.language": "nodejs",
+      "telemetry.sdk.version": "1.30.0",
+    });
+  });
+
+  test("k8s.node: instance-type descriptive when present", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "k8s.cluster.name": "prod-us",
+        "k8s.node.name": "node-1",
+        "node.kubernetes.io/instance-type": "n2-standard-4",
+      },
+      EntityType.KubernetesNode,
+    );
+    expect(e!.descriptiveAttributes).toEqual({
+      "k8s.node.name": "node-1",
+      "node.kubernetes.io/instance-type": "n2-standard-4",
+    });
+  });
+
+  test.each([
+    {
+      label: "pod",
+      type: EntityType.KubernetesPod,
+      uidKey: "k8s.pod.uid",
+      uid: "pod-uid-1",
+      nameKey: "k8s.pod.name",
+      name: "checkout-7d9f",
+    },
+    {
+      label: "node",
+      type: EntityType.KubernetesNode,
+      uidKey: "k8s.node.uid",
+      uid: "node-uid-1",
+      nameKey: "k8s.node.name",
+      name: "worker-1",
+    },
+  ])(
+    "k8s.$label: keys on the name and carries the UID descriptively",
+    ({
+      type,
+      uidKey,
+      uid,
+      nameKey,
+      name,
+    }: {
+      label: string;
+      type: EntityType;
+      uidKey: string;
+      uid: string;
+      nameKey: string;
+      name: string;
+    }) => {
+      const named: ExtractedEntity | undefined = entityOfType(
+        { [uidKey]: uid, [nameKey]: name },
+        type,
+      );
+
+      expect(named).toBeDefined();
+      expect(named!.identifyingAttributes).toEqual({ [nameKey]: name });
+      /*
+       * The name is carried descriptively as well as identifying it. That is
+       * deliberate: `buildDescriptiveUpdate` reads the display name out of
+       * the descriptive bag first, so a row whose identity later changes
+       * shape still has a name to show.
+       */
+      expect(named!.descriptiveAttributes).toEqual({
+        [nameKey]: name,
+        [uidKey]: uid,
+      });
+    },
+  );
+
+  /*
+   * The regression test for duplicate Inventory rows.
+   *
+   * The shipped Kubernetes agent runs two collectors over the same nodes and
+   * pods. The Deployment's `k8s_cluster` receiver resolves uids; the
+   * DaemonSet's kubeletstats / hostmetrics / cAdvisor / filelog receivers
+   * never do. Identity must not depend on which of them is talking.
+   */
+  test.each([
+    {
+      label: "node",
+      type: EntityType.KubernetesNode,
+      withUid: {
+        "k8s.cluster.name": "prod-us",
+        "k8s.node.name": "worker-1",
+        "k8s.node.uid": "node-uid-1",
+      },
+      withoutUid: {
+        "k8s.cluster.name": "prod-us",
+        "k8s.node.name": "worker-1",
+      },
+    },
+    {
+      label: "pod",
+      type: EntityType.KubernetesPod,
+      withUid: {
+        "k8s.cluster.name": "prod-us",
+        "k8s.namespace.name": "shop",
+        "k8s.pod.name": "checkout-7d9f",
+        "k8s.pod.uid": "pod-uid-1",
+      },
+      withoutUid: {
+        "k8s.cluster.name": "prod-us",
+        "k8s.namespace.name": "shop",
+        "k8s.pod.name": "checkout-7d9f",
+      },
+    },
+  ])(
+    "k8s.$label: a producer that resolves the UID and one that does not agree on identity",
+    ({
+      type,
+      withUid,
+      withoutUid,
+    }: {
+      label: string;
+      type: EntityType;
+      withUid: EntityAttributes;
+      withoutUid: EntityAttributes;
+    }) => {
+      const resolved: ExtractedEntity | undefined = entityOfType(withUid, type);
+      const unresolved: ExtractedEntity | undefined = entityOfType(
+        withoutUid,
+        type,
+      );
+
+      expect(resolved).toBeDefined();
+      expect(unresolved).toBeDefined();
+      expect(resolved!.entityKey).toBe(unresolved!.entityKey);
+      expect(resolved!.identifyingAttributes).toEqual(
+        unresolved!.identifyingAttributes,
+      );
+    },
+  );
+
+  test.each([
+    {
+      label: "node",
+      type: EntityType.KubernetesNode,
+      uidKey: "k8s.node.uid",
+      uid: "node-uid-1",
+    },
+    {
+      label: "pod",
+      type: EntityType.KubernetesPod,
+      uidKey: "k8s.pod.uid",
+      uid: "pod-uid-1",
+    },
+  ])(
+    "k8s.$label: falls back to the UID when the resource carries no name",
+    ({
+      type,
+      uidKey,
+      uid,
+    }: {
+      label: string;
+      type: EntityType;
+      uidKey: string;
+      uid: string;
+    }) => {
+      const entity: ExtractedEntity | undefined = entityOfType(
+        { [uidKey]: uid },
+        type,
+      );
+
+      expect(entity).toBeDefined();
+      expect(entity!.identifyingAttributes).toEqual({ [uidKey]: uid });
+    },
+  );
+
+  test("container: image name/tag descriptive; array-valued tags accepted", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "container.id": "c-1",
+        "container.image.name": "redis",
+        "container.image.tags": ["7.2", "latest"],
+      },
+      EntityType.Container,
+    );
+    expect(e!.identifyingAttributes).toEqual({ "container.id": "c-1" });
+    expect(e!.descriptiveAttributes).toEqual({
+      "container.image.name": "redis",
+      "container.image.tags": "7.2",
+    });
+  });
+
+  test("proxmox.guest: name/type descriptive attributes are emitted, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      { "proxmox.cluster.name": "pve-prod", "proxmox.guest.vmid": "100" },
+      EntityType.ProxmoxGuest,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "proxmox.cluster.name": "pve-prod",
+        "proxmox.guest.vmid": "100",
+        "proxmox.guest.name": "web-vm",
+        "proxmox.guest.type": "qemu",
+      },
+      EntityType.ProxmoxGuest,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.identifyingAttributes).toEqual(
+      bare!.identifyingAttributes,
+    );
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "proxmox.guest.name": "web-vm",
+      "proxmox.guest.type": "qemu",
+    });
+    expect(bare!.descriptiveAttributes).toBeUndefined();
+  });
+
+  test("vmware.vm: name/host/cluster/pool descriptive attributes are emitted, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+        "vcenter.resource_pool.name": "Resources",
+        "vcenter.resource_pool.inventory_path": "/DC1/host/Prod/Resources",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.identifyingAttributes).toEqual(
+      bare!.identifyingAttributes,
+    );
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "vcenter.vm.name": "web-01",
+      "vcenter.host.name": "esxi-01.example.com",
+      "vcenter.cluster.name": "Prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.resource_pool.name": "Resources",
+    });
+    expect(bare!.descriptiveAttributes).toBeUndefined();
+  });
+
+  test("vmware.vm: a template carries its template name as descriptive metadata", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm_template.name": "ubuntu-22.04-golden",
+        "vcenter.vm_template.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(e!.descriptiveAttributes).toEqual({
+      "vcenter.vm_template.name": "ubuntu-22.04-golden",
+      "vcenter.host.name": "esxi-01.example.com",
+      "vcenter.datacenter.name": "DC1",
+    });
+  });
+
+  test("vmware.host: cluster descriptive when present, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "vcenter.cluster.name": "Prod",
+    });
+    expect(bare!.descriptiveAttributes).toBeUndefined();
+  });
+
+  test("vmware.vcenter / cluster / datastore emit no descriptive attributes", () => {
+    const attrs: EntityAttributes = {
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.cluster.name": "Prod",
+      "vcenter.datastore.name": "vsanDatastore",
+    };
+    for (const type of [
+      EntityType.VMwareVCenter,
+      EntityType.VMwareCluster,
+      EntityType.VMwareDatastore,
+    ]) {
+      expect(entityOfType(attrs, type)!.descriptiveAttributes).toBeUndefined();
+    }
+  });
+
+  test("ceph.cluster: fsid descriptive when present, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      { "ceph.cluster.name": "ceph-prod" },
+      EntityType.CephCluster,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      { "ceph.cluster.name": "ceph-prod", "ceph.cluster.fsid": "f-1" },
+      EntityType.CephCluster,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "ceph.cluster.fsid": "f-1",
+    });
+  });
+
+  test("the full membership key set is byte-identical with and without descriptive attrs / labels", () => {
+    const identityOnly: EntityAttributes = {
+      "service.name": "checkout",
+      "host.name": "web-1",
+      "k8s.cluster.name": "prod-us",
+      "k8s.node.name": "node-1",
+      "container.id": "c-1",
+    };
+    const decorated: EntityAttributes = {
+      ...identityOnly,
+      "os.type": "linux",
+      "os.description": "Ubuntu 24.04.1 LTS",
+      "host.arch": "amd64",
+      "host.id": "gce-77aa",
+      "host.ip": ["10.0.0.1", "10.0.0.2", "fe80::1"],
+      "host.serial_number": "7XYZ123",
+      "device.manufacturer": "Dell Inc.",
+      "device.model.name": "OptiPlex 7090",
+      "cloud.provider": "gcp",
+      "cloud.region": "europe-west1",
+      "cloud.availability_zone": "europe-west1-b",
+      "telemetry.sdk.language": "go",
+      "node.kubernetes.io/instance-type": "n2-standard-4",
+      "container.image.name": "ghcr.io/acme/checkout",
+      "container.image.tag": "1.2.3",
+      "oneuptime.label.team": "payments",
+    };
+    expect(keysFor(decorated)).toEqual(keysFor(identityOnly));
+  });
+
+  test("oneuptime.label.* suffixes become labels on every extracted entity", () => {
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
+      projectId: PROJECT,
+      attributes: {
+        "service.name": "checkout",
+        "host.name": "web-1",
+        "oneuptime.label.team": "payments",
+        "oneuptime.label.env": "prod",
+        // empty suffix is skipped
+        "oneuptime.label.": "ignored",
+      },
+    });
+    expect(entities.length).toBeGreaterThan(0);
+    for (const entity of entities) {
+      expect(entity.labels).toEqual(["env", "team"]);
+    }
+  });
+
+  test("no labels attribute → labels field omitted", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "service.name": "checkout" },
+      EntityType.Service,
+    );
+    expect(e!.labels).toBeUndefined();
+  });
+});
+
+/*
+ * Issue #3866 — a discovered host's Attributes card showed only host.name,
+ * host.arch and os.type, so a CMDB sync had to collect the machine's IP,
+ * serial number, make and model somewhere else. These assert the shape of
+ * what the extractor now emits, and — more importantly — that none of it
+ * is allowed to touch identity.
+ */
+describe("host asset attributes (issue #3866)", () => {
+  const IDENTITY: EntityAttributes = { "host.name": "wbprjdeais002" };
+
+  function hostDescriptive(
+    extra: EntityAttributes,
+  ): Record<string, string> | undefined {
+    return entityOfType({ ...IDENTITY, ...extra }, EntityType.Host)
+      ?.descriptiveAttributes;
+  }
+
+  describe("host.ip", () => {
+    test("every address is kept, comma-joined in source order", () => {
+      expect(
+        hostDescriptive({ "host.ip": ["10.1.2.3", "10.1.2.4", "fe80::1"] }),
+      ).toEqual({ "host.ip": "10.1.2.3, 10.1.2.4, fe80::1" });
+    });
+
+    /*
+     * The bug this replaces: strOrFirst kept element 0 and dropped the
+     * rest, so a Docker host reported whichever veth the detector
+     * enumerated first as "the host's IP".
+     */
+    test("is not truncated to its first element", () => {
+      const value: string = hostDescriptive({
+        "host.ip": ["172.17.0.1", "192.168.1.42"],
+      })!["host.ip"]!;
+      expect(value).toContain("192.168.1.42");
+    });
+
+    test("dedupes case-insensitively, because IPv6 hex casing is not stable", () => {
+      expect(
+        hostDescriptive({ "host.ip": ["FE80::1", "fe80::1", "10.0.0.1"] }),
+      ).toEqual({ "host.ip": "FE80::1, 10.0.0.1" });
+    });
+
+    test("a scalar string passes through unchanged", () => {
+      expect(hostDescriptive({ "host.ip": "10.1.2.3" })).toEqual({
+        "host.ip": "10.1.2.3",
+      });
+    });
+
+    /*
+     * The `env` resource detector can only express scalars, so a list set
+     * through OTEL_RESOURCE_ATTRIBUTES arrives as one comma-joined string.
+     * Both routes must produce the same stored value.
+     */
+    test("an env-detector comma-separated scalar matches the array form", () => {
+      const fromEnv: Record<string, string> | undefined = hostDescriptive({
+        "host.ip": "10.1.2.3,10.1.2.4",
+      });
+      const fromArray: Record<string, string> | undefined = hostDescriptive({
+        "host.ip": ["10.1.2.3", "10.1.2.4"],
+      });
+      expect(fromEnv).toEqual(fromArray);
+      expect(fromEnv).toEqual({ "host.ip": "10.1.2.3, 10.1.2.4" });
+    });
+
+    test.each([
+      ["an empty array", []],
+      ["whitespace-only entries", ["  ", "\t"]],
+      ["an empty string", ""],
+    ])("%s emits no attribute at all", (_label: string, value: unknown) => {
+      expect(
+        hostDescriptive({
+          "host.ip": value as
+            | EntityAttributeValue
+            | Array<EntityAttributeValue>,
+        }),
+      ).toBeUndefined();
+    });
+
+    test("caps at MAX_INVENTORY_HOST_IP_ADDRESS_COUNT addresses", () => {
+      const addresses: Array<string> = [];
+      for (let i: number = 0; i < 40; i++) {
+        addresses.push(`10.0.${i}.1`);
+      }
+      const value: string = hostDescriptive({ "host.ip": addresses })![
+        "host.ip"
+      ]!;
+      expect(value.split(", ")).toHaveLength(
+        MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
+      );
+      expect(value).toContain("10.0.0.1");
+      expect(value).not.toContain("10.0.39.1");
+    });
+
+    test("caps by length, and never on a half-written address", () => {
+      const addresses: Array<string> = [];
+      for (let i: number = 0; i < 30; i++) {
+        addresses.push(`fd00:dead:beef:${i.toString(16)}::abcd:1234`);
+      }
+      const value: string = hostDescriptive({ "host.ip": addresses })![
+        "host.ip"
+      ]!;
+      expect(value.length).toBeLessThanOrEqual(
+        MAX_INVENTORY_HOST_IP_ADDRESSES_LENGTH,
+      );
+      for (const address of value.split(", ")) {
+        expect(addresses).toContain(address);
+      }
+    });
+
+    /*
+     * The Host row keeps the lossless list. Below the inventory caps the
+     * two surfaces must agree byte for byte, or the same host reads
+     * differently on its Network card and in a CMDB export.
+     */
+    test("is byte-identical to Host.hostIpAddresses below the caps", () => {
+      const addresses: Array<string> = [
+        "192.168.1.42",
+        "10.0.0.7",
+        "fe80::42:acff:fe11:1",
+      ];
+      expect(hostDescriptive({ "host.ip": addresses })!["host.ip"]).toBe(
+        normalizeHostIpAddresses(addresses),
+      );
+    });
+
+    test("never becomes identifying, and never moves the entity key", () => {
+      const withIp: ExtractedEntity | undefined = entityOfType(
+        { ...IDENTITY, "host.ip": ["10.1.2.3", "10.1.2.4"] },
+        EntityType.Host,
+      );
+      const without: ExtractedEntity | undefined = entityOfType(
+        IDENTITY,
+        EntityType.Host,
+      );
+      expect(withIp!.identifyingAttributes).toEqual({
+        "host.name": "wbprjdeais002",
+      });
+      expect(withIp!.entityKey).toBe(without!.entityKey);
+    });
+  });
+
+  describe("serial number, make and model", () => {
+    test("land verbatim from the keys issue #3866 names", () => {
+      expect(
+        hostDescriptive({
+          "host.serial_number": "7XYZ123",
+          "device.manufacturer": "Dell Inc.",
+          "device.model.name": "OptiPlex 7090",
+        }),
+      ).toEqual({
+        "host.serial_number": "7XYZ123",
+        "device.manufacturer": "Dell Inc.",
+        "device.model.name": "OptiPlex 7090",
+      });
+    });
+
+    /*
+     * host.* is the namespace an operator reaches for when describing a
+     * machine. Accept it, but store under the canonical key so a CMDB
+     * export has one column per fact.
+     */
+    test.each([
+      ["host.manufacturer", "device.manufacturer", "Lenovo"],
+      ["host.model.name", "device.model.name", "ThinkSystem SR650"],
+      ["host.model", "device.model.name", "PowerEdge R760"],
+    ])(
+      "%s is accepted and stored as %s",
+      (alias: string, canonical: string, value: string) => {
+        expect(hostDescriptive({ [alias]: value })).toEqual({
+          [canonical]: value,
+        });
+      },
+    );
+
+    test("the canonical key wins when both spellings are present", () => {
+      expect(
+        hostDescriptive({
+          "device.manufacturer": "Dell Inc.",
+          "host.manufacturer": "ignored",
+        }),
+      ).toEqual({ "device.manufacturer": "Dell Inc." });
+    });
+
+    /*
+     * These arrive from a customer-controlled environment variable into a
+     * jsonb bag that never drops a key, and nothing downstream bounds them.
+     */
+    test("an over-long value is truncated, not dropped", () => {
+      const long: string = "D".repeat(400);
+      const value: string = hostDescriptive({ "device.manufacturer": long })![
+        "device.manufacturer"
+      ]!;
+      expect(value).toHaveLength(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH);
+      expect(long.startsWith(value)).toBe(true);
+    });
+
+    /*
+     * A cut that lands inside a surrogate pair leaves an unpaired half.
+     * JSON.stringify emits that as a bare \uD83D escape, which Postgres
+     * rejects on the jsonb write — and reconcile swallows its errors, so
+     * the row would just silently stop updating.
+     */
+    test("truncation never leaves a lone surrogate", () => {
+      // Put a non-BMP character exactly astride the cut.
+      const long: string =
+        "x".repeat(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH - 1) +
+        "\u{1F5A5}".repeat(20);
+      const value: string = hostDescriptive({ "device.manufacturer": long })![
+        "device.manufacturer"
+      ]!;
+
+      // One code unit short: the cut stepped back off the high surrogate.
+      expect(value).toHaveLength(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH - 1);
+
+      // No unpaired half in either direction.
+      const loneHighSurrogate: RegExp = new RegExp(
+        "[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])",
+      );
+      const loneLowSurrogate: RegExp = new RegExp(
+        "(?<![\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]",
+      );
+      expect(loneHighSurrogate.test(value)).toBe(false);
+      expect(loneLowSurrogate.test(value)).toBe(false);
+
+      /*
+       * The property that actually matters downstream: JSON.stringify must
+       * not emit a bare surrogate escape, because that is what the jsonb
+       * write rejects.
+       */
+      expect(JSON.stringify(value)).not.toMatch(
+        /\\u[dD][89abAB][0-9a-fA-F]{2}/,
+      );
+    });
+
+    test("a whole non-BMP character still survives when it fits", () => {
+      const long: string =
+        "x".repeat(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH - 2) +
+        "\u{1F5A5}".repeat(20);
+      const value: string = hostDescriptive({ "device.manufacturer": long })![
+        "device.manufacturer"
+      ]!;
+
+      expect(value).toHaveLength(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH);
+      expect(value.endsWith("\u{1F5A5}")).toBe(true);
+    });
+  });
+
+  test("os.description and host.id are collected too", () => {
+    expect(
+      hostDescriptive({
+        "host.id": "4C4C4544-0037-5A10-8054-B4C04F335931",
+        "os.description": "Microsoft Windows 11 Enterprise",
+      }),
+    ).toEqual({
+      "host.id": "4C4C4544-0037-5A10-8054-B4C04F335931",
+      "os.description": "Microsoft Windows 11 Enterprise",
+    });
+  });
+
+  /*
+   * The join is scoped to host.ip by key. Any tag names the same image, so
+   * container.image.tags must still collapse to its first element.
+   */
+  test("the list join did not leak into other array attributes", () => {
+    const container: ExtractedEntity | undefined = entityOfType(
+      {
+        "container.id": "c-1",
+        "container.image.name": "ghcr.io/acme/checkout",
+        "container.image.tags": ["7.2", "latest"],
+      },
+      EntityType.Container,
+    );
+    expect(container!.descriptiveAttributes!["container.image.tags"]).toBe(
+      "7.2",
+    );
+  });
+
+  describe("producer-declared entity_refs get the same treatment", () => {
+    function hostFromRef(attrs: EntityAttributes): ExtractedEntity | undefined {
+      return InventoryItem.extractEntities({
+        projectId: PROJECT,
+        attributes: attrs,
+        entityRefs: [
+          {
+            type: "host",
+            idKeys: ["host.name"],
+            descriptionKeys: ["host.ip", "device.manufacturer"],
+          },
+        ],
+      }).find((e: ExtractedEntity) => {
+        return e.entityType === EntityType.Host;
+      });
+    }
+
+    test("a description_keys host.ip is joined, not truncated", () => {
+      expect(
+        hostFromRef({ ...IDENTITY, "host.ip": ["10.1.2.3", "10.1.2.4"] })!
+          .descriptiveAttributes,
+      ).toEqual({ "host.ip": "10.1.2.3, 10.1.2.4" });
+    });
+
+    test("an over-long description value is capped", () => {
+      expect(
+        hostFromRef({
+          ...IDENTITY,
+          "device.manufacturer": "D".repeat(400),
+        })!.descriptiveAttributes!["device.manufacturer"],
+      ).toHaveLength(MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH);
+    });
+
+    /*
+     * description_keys is producer-controlled, so the alias lookup takes a
+     * key we did not choose. An object-literal alias table would resolve
+     * "constructor" to Object.prototype.constructor — truthy, not iterable
+     * — and spreading it threw a TypeError out of extractEntities. Nothing
+     * up the ingest path catches that, so one malformed ref would have
+     * rejected the entire OTLP batch.
+     */
+    test.each(["constructor", "toString", "__proto__", "valueOf"])(
+      "a description_keys entry named %s does not throw",
+      (inheritedKey: string) => {
+        expect(() => {
+          return InventoryItem.extractEntities({
+            projectId: PROJECT,
+            attributes: { ...IDENTITY, "host.arch": "amd64" },
+            entityRefs: [
+              {
+                type: "host",
+                idKeys: ["host.name"],
+                descriptionKeys: [inheritedKey, "host.arch"],
+              },
+            ],
+          });
+        }).not.toThrow();
+      },
+    );
+
+    test("the batch still produces its entity alongside a poisoned key", () => {
+      const host: ExtractedEntity | undefined = InventoryItem.extractEntities({
+        projectId: PROJECT,
+        attributes: { ...IDENTITY, "host.arch": "amd64" },
+        entityRefs: [
+          {
+            type: "host",
+            idKeys: ["host.name"],
+            descriptionKeys: ["constructor", "host.arch"],
+          },
+        ],
+      }).find((e: ExtractedEntity) => {
+        return e.entityType === EntityType.Host;
+      });
+
+      expect(host!.descriptiveAttributes).toEqual({ "host.arch": "amd64" });
+    });
+  });
+});
+
+describe("extractEntitiesWithRetirements — legacy Kubernetes Host repair", () => {
+  test.each([
+    ["pod name", "k8s.pod.name", "checkout-7d9f"],
+    ["pod uid", "k8s.pod.uid", "pod-uid-1"],
+    ["node name", "k8s.node.name", "worker-1"],
+    ["node uid", "k8s.node.uid", "node-uid-1"],
+    ["cluster name", "k8s.cluster.name", "prod-us"],
+    ["namespace name", "k8s.namespace.name", "shop"],
+    ["deployment name", "k8s.deployment.name", "checkout"],
+  ])(
+    "returns the exact suppressed Host identity beside a Kubernetes %s identity",
+    (_label: string, identityKey: string, identityValue: string) => {
+      const result: EntityExtractionResult =
+        InventoryItem.extractEntitiesWithRetirements({
+          projectId: PROJECT,
+          attributes: {
+            "host.name": "  CHECKOUT-7D9F  ",
+            [identityKey]: identityValue,
+          },
+        });
+
+      expect(result.entities).not.toContainEqual(
+        expect.objectContaining({ entityType: EntityType.Host }),
+      );
+      expect(result.retiredEntities).toEqual([
+        {
+          entityType: EntityType.Host,
+          entityKey: keyForHost(PROJECT, "checkout-7d9f"),
+          identifyingAttributes: { "host.name": "checkout-7d9f" },
+        },
+      ]);
+    },
+  );
+
+  test("an empty entity_refs array remains heuristic and permits repair", () => {
+    const result: EntityExtractionResult =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes: {
+          "host.name": "checkout-7d9f",
+          "k8s.pod.uid": "pod-uid-1",
+        },
+        entityRefs: [],
+      });
+
+    expect(result.retiredEntities?.[0]?.entityKey).toBe(
+      keyForHost(PROJECT, "checkout-7d9f"),
+    );
+  });
+
+  test.each([
+    ["standalone host", { "host.name": "web-1", "os.type": "linux" }],
+    ["host without a name", { "host.id": "h-1", "k8s.pod.uid": "p-1" }],
+    ["blank Kubernetes identity", { "host.name": "web-1", "k8s.pod.uid": " " }],
+    [
+      "unrelated Kubernetes metadata",
+      { "host.name": "web-1", "k8s.pod.phase": "Running" },
+    ],
+    [
+      "unsupported cluster UID alone",
+      { "host.name": "web-1", "k8s.cluster.uid": "c-1" },
+    ],
+  ] as Array<[string, EntityAttributes]>)(
+    "does not retire a %s",
+    (_label: string, attributes: EntityAttributes) => {
+      const result: EntityExtractionResult =
+        InventoryItem.extractEntitiesWithRetirements({
+          projectId: PROJECT,
+          attributes,
+        });
+
+      expect(result.retiredEntities).toBeUndefined();
+    },
+  );
+
+  test("an explicit Host ref on Kubernetes is authoritative and never retired", () => {
+    const result: EntityExtractionResult =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes: {
+          "host.name": "checkout-7d9f",
+          "k8s.pod.uid": "pod-uid-1",
+        },
+        entityRefs: [{ type: "host", idKeys: ["host.name"] }],
+      });
+
+    expect(result.entities).toEqual([
+      expect.objectContaining({
+        entityType: EntityType.Host,
+        entityKey: keyForHost(PROJECT, "checkout-7d9f"),
+      }),
+    ]);
+    expect(result.retiredEntities).toBeUndefined();
+  });
+
+  test("any non-empty entity_refs authority boundary disables inferred repair", () => {
+    const result: EntityExtractionResult =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes: {
+          "service.name": "checkout",
+          "host.name": "checkout-7d9f",
+          "k8s.pod.uid": "pod-uid-1",
+        },
+        entityRefs: [{ type: "service", idKeys: ["service.name"] }],
+      });
+
+    expect(result.retiredEntities).toBeUndefined();
+  });
+
+  test("even unusable non-empty refs disable retirement while entity fallback remains", () => {
+    const debugSpy: jest.SpyInstance = jest
+      .spyOn(logger, "debug")
+      .mockImplementation(() => {});
+    try {
+      const result: EntityExtractionResult =
+        InventoryItem.extractEntitiesWithRetirements({
+          projectId: PROJECT,
+          attributes: {
+            "host.name": "checkout-7d9f",
+            "k8s.pod.uid": "pod-uid-1",
+          },
+          entityRefs: [{ type: "unknown.widget", idKeys: ["missing"] }],
+        });
+
+      expect(result.entities).toContainEqual(
+        expect.objectContaining({ entityType: EntityType.KubernetesPod }),
+      );
+      expect(result.retiredEntities).toBeUndefined();
+    } finally {
+      debugSpy.mockRestore();
+    }
+  });
+
+  test("the retired Host key remains tenant-scoped", () => {
+    const attributes: EntityAttributes = {
+      "host.name": "checkout-7d9f",
+      "k8s.pod.uid": "pod-uid-1",
+    };
+    const first: RetiredEntityIdentity =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: "project-a",
+        attributes,
+      }).retiredEntities![0]!;
+    const second: RetiredEntityIdentity =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: "project-b",
+        attributes,
+      }).retiredEntities![0]!;
+
+    expect(first.entityKey).not.toBe(second.entityKey);
+    expect(first.entityKey).toBe(keyForHost("project-a", "checkout-7d9f"));
+    expect(second.entityKey).toBe(keyForHost("project-b", "checkout-7d9f"));
+  });
+});
+
+describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
+  const attrs: EntityAttributes = {
+    "service.name": "checkout",
+    "service.namespace": "shop",
+    "host.name": "web-1",
+    "telemetry.sdk.language": "nodejs",
+  };
+
+  test("builds entities from refs instead of the heuristics", () => {
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
+      projectId: PROJECT,
+      attributes: attrs,
+      entityRefs: [
+        {
+          type: "service",
+          idKeys: ["service.name", "service.namespace"],
+          descriptionKeys: ["telemetry.sdk.language"],
+        },
+        { type: "host", idKeys: ["host.name"] },
+      ],
+    });
+
+    /*
+     * Refs are authoritative: only the two declared entities, no
+     * heuristic extras (the resource would heuristically also yield a
+     * telemetry.sdk entity if telemetry.sdk.name were present, etc.).
+     */
+    expect(entities).toHaveLength(2);
+
+    const service: ExtractedEntity = entities.find((e: ExtractedEntity) => {
+      return e.entityType === EntityType.Service;
+    })!;
+    expect(service.identifyingAttributes).toEqual({
+      "service.name": "checkout",
+      "service.namespace": "shop",
+    });
+    expect(service.descriptiveAttributes).toEqual({
+      "telemetry.sdk.language": "nodejs",
+    });
+    // Ref-built keys are byte-identical to read-side/heuristic keys.
+    expect(service.entityKey).toBe(keyForService(PROJECT, "checkout", "shop"));
+
+    const host: ExtractedEntity = entities.find((e: ExtractedEntity) => {
+      return e.entityType === EntityType.Host;
+    })!;
+    expect(host.entityKey).toBe(keyForHost(PROJECT, "web-1"));
+  });
+
+  test("an explicit host ref remains authoritative on a Kubernetes resource", () => {
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
+      projectId: PROJECT,
+      attributes: {
+        "host.name": "checkout-7d9f",
+        "k8s.cluster.name": "prod-us",
+        "k8s.namespace.name": "shop",
+        "k8s.pod.name": "checkout-7d9f",
+      },
+      entityRefs: [{ type: "host", idKeys: ["host.name"] }],
+    });
+
+    expect(entities).toHaveLength(1);
+    expect(entities[0]!.entityType).toBe(EntityType.Host);
+    expect(entities[0]!.entityKey).toBe(keyForHost(PROJECT, "checkout-7d9f"));
+  });
+
+  test("unknown ref types are skipped (debug log), known refs still built", () => {
+    const debugSpy: jest.SpyInstance = jest
+      .spyOn(logger, "debug")
+      .mockImplementation(() => {});
+    try {
+      const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
+        projectId: PROJECT,
+        attributes: attrs,
+        entityRefs: [
+          { type: "acme.custom.widget", idKeys: ["service.name"] },
+          { type: "service", idKeys: ["service.name"] },
+        ],
+      });
+      expect(
+        entities.map((e: ExtractedEntity) => {
+          return e.entityType;
+        }),
+      ).toEqual([EntityType.Service]);
+      expect(debugSpy).toHaveBeenCalled();
+    } finally {
+      debugSpy.mockRestore();
+    }
+  });
+
+  test("a ref whose identifying value is missing from the resource is skipped", () => {
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
+      projectId: PROJECT,
+      attributes: attrs,
+      entityRefs: [
+        { type: "service", idKeys: ["service.name"] },
+        // k8s.pod.name is not in attrs — no half-identified entity.
+        { type: "k8s.pod", idKeys: ["k8s.pod.name"] },
+      ],
+    });
+    expect(
+      entities.map((e: ExtractedEntity) => {
+        return e.entityType;
+      }),
+    ).toEqual([EntityType.Service]);
+  });
+
+  test("absent or empty refs fall back to the heuristic resolvers", () => {
+    const heuristic: Array<ExtractedEntity> = InventoryItem.extractEntities({
+      projectId: PROJECT,
+      attributes: attrs,
+    });
+    expect(heuristic.length).toBeGreaterThan(0);
+    expect(
+      InventoryItem.extractEntities({
+        projectId: PROJECT,
+        attributes: attrs,
+        entityRefs: [],
+      }),
+    ).toEqual(heuristic);
+  });
+
+  test("when every ref is unusable the heuristics still produce membership keys", () => {
+    const debugSpy: jest.SpyInstance = jest
+      .spyOn(logger, "debug")
+      .mockImplementation(() => {});
+    try {
+      const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
+        projectId: PROJECT,
+        attributes: attrs,
+        entityRefs: [{ type: "acme.custom.widget", idKeys: ["whatever"] }],
+      });
+      expect(entities).toEqual(
+        InventoryItem.extractEntities({
+          projectId: PROJECT,
+          attributes: attrs,
+        }),
+      );
+    } finally {
+      debugSpy.mockRestore();
+    }
+  });
+
+  test("a mutable value declared as identifying is honored with a cardinality warning", () => {
+    const warnSpy: jest.SpyInstance = jest
+      .spyOn(logger, "warn")
+      .mockImplementation(() => {});
+    try {
+      const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
+        projectId: PROJECT,
+        attributes: {
+          "container.id": "c-1",
+          "container.image.tag": "1.2.3",
+        },
+        entityRefs: [
+          {
+            type: "container",
+            idKeys: ["container.id", "container.image.tag"],
+          },
+        ],
+      });
+      // Honored: the mutable key IS part of identity (per the producer).
+      expect(entities).toHaveLength(1);
+      expect(entities[0]!.identifyingAttributes).toEqual({
+        "container.id": "c-1",
+        "container.image.tag": "1.2.3",
+      });
+      expect(warnSpy).toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  test("labels attach on the refs path too", () => {
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
+      projectId: PROJECT,
+      attributes: { ...attrs, "oneuptime.label.team": "payments" },
+      entityRefs: [{ type: "service", idKeys: ["service.name"] }],
+    });
+    expect(entities).toHaveLength(1);
+    expect(entities[0]!.labels).toEqual(["team"]);
+  });
+});
+
+describe("InventoryItem.parseEntityRefs", () => {
+  test("normalizes camelCase and snake_case shapes; drops malformed entries", () => {
+    const refs: Array<ResourceEntityRef> = InventoryItem.parseEntityRefs([
+      {
+        type: "service",
+        idKeys: ["service.name"],
+        descriptionKeys: ["telemetry.sdk.language"],
+        schemaUrl: "https://opentelemetry.io/schemas/1.30.0",
+      },
+      {
+        type: "host",
+        id_keys: ["host.name"],
+        description_keys: [],
+        schema_url: "https://opentelemetry.io/schemas/1.30.0",
+      },
+      "garbage",
+      null,
+      42,
+      ["not", "a", "ref"],
+    ]);
+
+    expect(refs).toHaveLength(2);
+    expect(refs[0]).toEqual({
+      type: "service",
+      idKeys: ["service.name"],
+      descriptionKeys: ["telemetry.sdk.language"],
+      schemaUrl: "https://opentelemetry.io/schemas/1.30.0",
+    });
+    expect(refs[1]).toEqual({
+      type: "host",
+      idKeys: ["host.name"],
+      descriptionKeys: [],
+      schemaUrl: "https://opentelemetry.io/schemas/1.30.0",
+    });
+  });
+
+  test("non-array input yields no refs", () => {
+    expect(InventoryItem.parseEntityRefs(undefined)).toEqual([]);
+    expect(InventoryItem.parseEntityRefs(null)).toEqual([]);
+    expect(InventoryItem.parseEntityRefs({})).toEqual([]);
+    expect(InventoryItem.parseEntityRefs("nope")).toEqual([]);
+  });
+});

@@ -1,0 +1,1156 @@
+import CompareCriteria from "../../../../../Server/Utils/Monitor/Criteria/CompareCriteria";
+import {
+  CheckOn,
+  CriteriaFilter,
+  EvaluateOverTimeType,
+  FilterType,
+} from "../../../../../Types/Monitor/CriteriaFilter";
+
+/*
+ * CompareCriteria is the pure comparison engine that decides whether a
+ * monitored value breaches a criterion and, if so, builds the human-readable
+ * root-cause message. It is exercised indirectly by every monitor-criteria
+ * evaluator, but had no direct unit test — so the AnyValue/AllValues array
+ * semantics, the number/string/boolean coercion rules, and the message
+ * formatting are pinned down here.
+ */
+
+/**
+ * Build a minimal CriteriaFilter for the numeric/string comparison helpers.
+ */
+function makeFilter(overrides: Partial<CriteriaFilter>): CriteriaFilter {
+  return {
+    checkOn: CheckOn.ResponseTime,
+    filterType: FilterType.GreaterThan,
+    value: undefined,
+    ...overrides,
+  };
+}
+
+describe("CompareCriteria", () => {
+  describe("greaterThan", () => {
+    test("compares a scalar against the threshold", () => {
+      expect(CompareCriteria.greaterThan({ value: 10, threshold: 5 })).toBe(
+        true,
+      );
+      expect(CompareCriteria.greaterThan({ value: 5, threshold: 5 })).toBe(
+        false,
+      );
+      expect(CompareCriteria.greaterThan({ value: 1, threshold: 5 })).toBe(
+        false,
+      );
+    });
+
+    test("AnyValue passes when at least one array element exceeds the threshold", () => {
+      expect(
+        CompareCriteria.greaterThan({
+          value: [1, 2, 9],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AnyValue,
+        }),
+      ).toBe(true);
+
+      expect(
+        CompareCriteria.greaterThan({
+          value: [1, 2, 3],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AnyValue,
+        }),
+      ).toBe(false);
+    });
+
+    test("AllValues (and an unspecified evaluation type) require every element to exceed the threshold", () => {
+      expect(
+        CompareCriteria.greaterThan({
+          value: [6, 7, 8],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AllValues,
+        }),
+      ).toBe(true);
+
+      expect(
+        CompareCriteria.greaterThan({
+          value: [6, 7, 4],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AllValues,
+        }),
+      ).toBe(false);
+
+      // No evaluationType provided defaults to the "every" branch.
+      expect(
+        CompareCriteria.greaterThan({ value: [6, 7, 8], threshold: 5 }),
+      ).toBe(true);
+      expect(
+        CompareCriteria.greaterThan({ value: [6, 7, 4], threshold: 5 }),
+      ).toBe(false);
+    });
+  });
+
+  describe("lessThan", () => {
+    test("scalar comparison", () => {
+      expect(CompareCriteria.lessThan({ value: 3, threshold: 5 })).toBe(true);
+      expect(CompareCriteria.lessThan({ value: 5, threshold: 5 })).toBe(false);
+    });
+
+    test("AnyValue vs AllValues array semantics", () => {
+      expect(
+        CompareCriteria.lessThan({
+          value: [9, 9, 1],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AnyValue,
+        }),
+      ).toBe(true);
+      expect(
+        CompareCriteria.lessThan({
+          value: [9, 9, 1],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AllValues,
+        }),
+      ).toBe(false);
+    });
+  });
+
+  describe("greaterThanOrEqual / lessThanOrEqual", () => {
+    test("boundary values are inclusive", () => {
+      expect(
+        CompareCriteria.greaterThanOrEqual({ value: 5, threshold: 5 }),
+      ).toBe(true);
+      expect(CompareCriteria.lessThanOrEqual({ value: 5, threshold: 5 })).toBe(
+        true,
+      );
+      expect(
+        CompareCriteria.greaterThanOrEqual({ value: 4, threshold: 5 }),
+      ).toBe(false);
+      expect(CompareCriteria.lessThanOrEqual({ value: 6, threshold: 5 })).toBe(
+        false,
+      );
+    });
+
+    test("AnyValue arrays", () => {
+      expect(
+        CompareCriteria.greaterThanOrEqual({
+          value: [1, 5],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AnyValue,
+        }),
+      ).toBe(true);
+      expect(
+        CompareCriteria.lessThanOrEqual({
+          value: [5, 9],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AnyValue,
+        }),
+      ).toBe(true);
+    });
+  });
+
+  describe("equalTo / notEqualTo", () => {
+    test("scalar equality", () => {
+      expect(CompareCriteria.equalTo({ value: 5, threshold: 5 })).toBe(true);
+      expect(CompareCriteria.equalTo({ value: 4, threshold: 5 })).toBe(false);
+      expect(CompareCriteria.notEqualTo({ value: 4, threshold: 5 })).toBe(true);
+      expect(CompareCriteria.notEqualTo({ value: 5, threshold: 5 })).toBe(
+        false,
+      );
+    });
+
+    test("equalTo with AllValues requires every element to match", () => {
+      expect(
+        CompareCriteria.equalTo({
+          value: [5, 5, 5],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AllValues,
+        }),
+      ).toBe(true);
+      expect(
+        CompareCriteria.equalTo({
+          value: [5, 5, 6],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AllValues,
+        }),
+      ).toBe(false);
+    });
+
+    test("notEqualTo with AnyValue passes when any element differs", () => {
+      expect(
+        CompareCriteria.notEqualTo({
+          value: [5, 5, 6],
+          threshold: 5,
+          evaluationType: EvaluateOverTimeType.AnyValue,
+        }),
+      ).toBe(true);
+    });
+  });
+
+  describe("isTrue / isFalse", () => {
+    test("scalar booleans", () => {
+      expect(CompareCriteria.isTrue({ value: true })).toBe(true);
+      expect(CompareCriteria.isTrue({ value: false })).toBe(false);
+      expect(CompareCriteria.isFalse({ value: false })).toBe(true);
+      expect(CompareCriteria.isFalse({ value: true })).toBe(false);
+    });
+
+    test("array semantics for isTrue", () => {
+      expect(
+        CompareCriteria.isTrue({
+          value: [true, false],
+          evaluationType: EvaluateOverTimeType.AnyValue,
+        }),
+      ).toBe(true);
+      expect(
+        CompareCriteria.isTrue({
+          value: [true, false],
+          evaluationType: EvaluateOverTimeType.AllValues,
+        }),
+      ).toBe(false);
+      expect(
+        CompareCriteria.isTrue({
+          value: [true, true],
+          evaluationType: EvaluateOverTimeType.AllValues,
+        }),
+      ).toBe(true);
+    });
+
+    test("array semantics for isFalse", () => {
+      expect(
+        CompareCriteria.isFalse({
+          value: [false, true],
+          evaluationType: EvaluateOverTimeType.AnyValue,
+        }),
+      ).toBe(true);
+      expect(
+        CompareCriteria.isFalse({
+          value: [false, false],
+          evaluationType: EvaluateOverTimeType.AllValues,
+        }),
+      ).toBe(true);
+    });
+  });
+
+  describe("convertToNumber", () => {
+    test("passes numbers through unchanged", () => {
+      expect(CompareCriteria.convertToNumber(42)).toBe(42);
+      expect(CompareCriteria.convertToNumber(0)).toBe(0);
+      expect(CompareCriteria.convertToNumber(-3.5)).toBe(-3.5);
+    });
+
+    test("parses integer-ish strings (parseInt semantics)", () => {
+      expect(CompareCriteria.convertToNumber("42")).toBe(42);
+      // parseInt stops at the first non-numeric char.
+      expect(CompareCriteria.convertToNumber("42.9")).toBe(42);
+      expect(CompareCriteria.convertToNumber("10px")).toBe(10);
+      expect(CompareCriteria.convertToNumber("  7  ")).toBe(7);
+    });
+
+    test("returns null for undefined", () => {
+      expect(CompareCriteria.convertToNumber(undefined)).toBeNull();
+    });
+
+    test("returns null (not NaN) for an unparseable string", () => {
+      /*
+       * Regression guard: callers only check `=== null`; a leaked NaN would
+       * make every downstream numeric comparison silently false.
+       */
+      expect(CompareCriteria.convertToNumber("abc")).toBeNull();
+      expect(CompareCriteria.convertToNumber("")).toBeNull();
+    });
+  });
+
+  describe("checkEqualToOrNotEqualTo", () => {
+    test("EqualTo returns a message only when the values match", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseStatusCode,
+        filterType: FilterType.EqualTo,
+      });
+
+      expect(
+        CompareCriteria.checkEqualToOrNotEqualTo({
+          value: 200,
+          threshold: 200,
+          criteriaFilter: filter,
+        }),
+      ).toBe("Response Status Code is equal to 200.");
+
+      expect(
+        CompareCriteria.checkEqualToOrNotEqualTo({
+          value: 200,
+          threshold: 500,
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+
+    test("uses strict equality, so number and string forms differ", () => {
+      const filter: CriteriaFilter = makeFilter({
+        filterType: FilterType.EqualTo,
+      });
+      expect(
+        CompareCriteria.checkEqualToOrNotEqualTo({
+          value: 200,
+          threshold: "200",
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+
+    test("NotEqualTo returns a message only when the values differ", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseStatusCode,
+        filterType: FilterType.NotEqualTo,
+      });
+
+      expect(
+        CompareCriteria.checkEqualToOrNotEqualTo({
+          value: 200,
+          threshold: 500,
+          criteriaFilter: filter,
+        }),
+      ).toBe("Response Status Code is not equal to 500.");
+
+      expect(
+        CompareCriteria.checkEqualToOrNotEqualTo({
+          value: 200,
+          threshold: 200,
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+
+    test("returns null for an unrelated filter type", () => {
+      const filter: CriteriaFilter = makeFilter({
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.checkEqualToOrNotEqualTo({
+          value: 1,
+          threshold: 1,
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+  });
+
+  describe("compareEmptyAndNotEmpty", () => {
+    test("IsEmpty matches null and undefined only", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseBody,
+        filterType: FilterType.IsEmpty,
+      });
+
+      expect(
+        CompareCriteria.compareEmptyAndNotEmpty({
+          value: null,
+          criteriaFilter: filter,
+        }),
+      ).toBe("Response Body is empty.");
+      expect(
+        CompareCriteria.compareEmptyAndNotEmpty({
+          value: undefined,
+          criteriaFilter: filter,
+        }),
+      ).toBe("Response Body is empty.");
+      expect(
+        CompareCriteria.compareEmptyAndNotEmpty({
+          value: "something",
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+
+    test("IsNotEmpty reports the value and truncates very long values", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseBody,
+        filterType: FilterType.IsNotEmpty,
+      });
+
+      expect(
+        CompareCriteria.compareEmptyAndNotEmpty({
+          value: "hello",
+          criteriaFilter: filter,
+        }),
+      ).toBe("Response Body is not empty. Value: hello");
+
+      const longValue: string = "a".repeat(600);
+      const message: string | null = CompareCriteria.compareEmptyAndNotEmpty({
+        value: longValue,
+        criteriaFilter: filter,
+      });
+      expect(message).toBe(
+        `Response Body is not empty. Value: ${"a".repeat(500)}...`,
+      );
+
+      expect(
+        CompareCriteria.compareEmptyAndNotEmpty({
+          value: null,
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+  });
+
+  describe("compareCriteriaStrings", () => {
+    test("Contains / NotContains", () => {
+      const contains: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseBody,
+        filterType: FilterType.Contains,
+      });
+      expect(
+        CompareCriteria.compareCriteriaStrings({
+          value: "the quick brown fox",
+          threshold: "quick",
+          criteriaFilter: contains,
+        }),
+      ).toContain("contains");
+      expect(
+        CompareCriteria.compareCriteriaStrings({
+          value: "the quick brown fox",
+          threshold: "slow",
+          criteriaFilter: contains,
+        }),
+      ).toBeNull();
+
+      const notContains: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseBody,
+        filterType: FilterType.NotContains,
+      });
+      expect(
+        CompareCriteria.compareCriteriaStrings({
+          value: "the quick brown fox",
+          threshold: "slow",
+          criteriaFilter: notContains,
+        }),
+      ).toContain("does not contain");
+      expect(
+        CompareCriteria.compareCriteriaStrings({
+          value: "the quick brown fox",
+          threshold: "quick",
+          criteriaFilter: notContains,
+        }),
+      ).toBeNull();
+    });
+
+    test("StartsWith / EndsWith", () => {
+      const startsWith: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseBody,
+        filterType: FilterType.StartsWith,
+      });
+      expect(
+        CompareCriteria.compareCriteriaStrings({
+          value: "error: boom",
+          threshold: "error",
+          criteriaFilter: startsWith,
+        }),
+      ).toContain("starts with");
+      expect(
+        CompareCriteria.compareCriteriaStrings({
+          value: "error: boom",
+          threshold: "boom",
+          criteriaFilter: startsWith,
+        }),
+      ).toBeNull();
+
+      const endsWith: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseBody,
+        filterType: FilterType.EndsWith,
+      });
+      expect(
+        CompareCriteria.compareCriteriaStrings({
+          value: "error: boom",
+          threshold: "boom",
+          criteriaFilter: endsWith,
+        }),
+      ).toContain("ends with");
+    });
+
+    test("coerces non-string values before comparing", () => {
+      const contains: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseStatusCode,
+        filterType: FilterType.Contains,
+      });
+      // 404 is coerced to "404" which includes "40".
+      expect(
+        CompareCriteria.compareCriteriaStrings({
+          value: 404 as unknown as string,
+          threshold: "40" as unknown as string,
+          criteriaFilter: contains,
+        }),
+      ).toContain("contains");
+    });
+
+    test("returns null when the value or threshold is missing", () => {
+      const contains: CriteriaFilter = makeFilter({
+        filterType: FilterType.Contains,
+      });
+      expect(
+        CompareCriteria.compareCriteriaStrings({
+          value: null as unknown as string,
+          threshold: "x",
+          criteriaFilter: contains,
+        }),
+      ).toBeNull();
+      expect(
+        CompareCriteria.compareCriteriaStrings({
+          value: "x",
+          threshold: null as unknown as string,
+          criteriaFilter: contains,
+        }),
+      ).toBeNull();
+    });
+  });
+
+  describe("compareCriteriaBoolean", () => {
+    test("True fires only for a true value", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.True,
+      });
+      expect(
+        CompareCriteria.compareCriteriaBoolean({
+          value: true,
+          criteriaFilter: filter,
+        }),
+      ).toBe("Is Online is true.");
+      expect(
+        CompareCriteria.compareCriteriaBoolean({
+          value: false,
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+
+    test("False fires only for a false value", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.False,
+      });
+      expect(
+        CompareCriteria.compareCriteriaBoolean({
+          value: false,
+          criteriaFilter: filter,
+        }),
+      ).toBe("Is Online is false.");
+      expect(
+        CompareCriteria.compareCriteriaBoolean({
+          value: true,
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+
+    test("null/undefined value never fires", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.True,
+      });
+      expect(
+        CompareCriteria.compareCriteriaBoolean({
+          value: null as unknown as boolean,
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+
+    test("honors AnyValue array evaluation", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.True,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: EvaluateOverTimeType.AnyValue,
+        },
+      });
+      expect(
+        CompareCriteria.compareCriteriaBoolean({
+          value: [false, true],
+          criteriaFilter: filter,
+        }),
+      ).not.toBeNull();
+    });
+  });
+
+  describe("compareCriteriaNumbers", () => {
+    test("GreaterThan fires and returns a descriptive message", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseTime,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.compareCriteriaNumbers({
+          value: 100,
+          threshold: 50,
+          criteriaFilter: filter,
+        }),
+      ).toBe("Response Time (in ms) was 100, above the 50 threshold.");
+    });
+
+    test("does not fire when the threshold is not breached", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseTime,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.compareCriteriaNumbers({
+          value: 10,
+          threshold: 50,
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+
+    test("each numeric filter type is wired to the right comparator", () => {
+      const cases: Array<{
+        filterType: FilterType;
+        value: number;
+        threshold: number;
+        fires: boolean;
+      }> = [
+        {
+          filterType: FilterType.LessThan,
+          value: 1,
+          threshold: 5,
+          fires: true,
+        },
+        {
+          filterType: FilterType.LessThan,
+          value: 9,
+          threshold: 5,
+          fires: false,
+        },
+        { filterType: FilterType.EqualTo, value: 5, threshold: 5, fires: true },
+        {
+          filterType: FilterType.NotEqualTo,
+          value: 4,
+          threshold: 5,
+          fires: true,
+        },
+        {
+          filterType: FilterType.GreaterThanOrEqualTo,
+          value: 5,
+          threshold: 5,
+          fires: true,
+        },
+        {
+          filterType: FilterType.LessThanOrEqualTo,
+          value: 5,
+          threshold: 5,
+          fires: true,
+        },
+      ];
+
+      for (const c of cases) {
+        const filter: CriteriaFilter = makeFilter({
+          checkOn: CheckOn.ResponseTime,
+          filterType: c.filterType,
+        });
+        const result: string | null = CompareCriteria.compareCriteriaNumbers({
+          value: c.value,
+          threshold: c.threshold,
+          criteriaFilter: filter,
+        });
+        if (c.fires) {
+          expect(result).not.toBeNull();
+        } else {
+          expect(result).toBeNull();
+        }
+      }
+    });
+
+    test("returns null when value or threshold is missing", () => {
+      const filter: CriteriaFilter = makeFilter({
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.compareCriteriaNumbers({
+          value: null as unknown as number,
+          threshold: 5,
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+      expect(
+        CompareCriteria.compareCriteriaNumbers({
+          value: 5,
+          threshold: null as unknown as number,
+          criteriaFilter: filter,
+        }),
+      ).toBeNull();
+    });
+  });
+
+  describe("getCompareMessage formatting", () => {
+    test("summarizes the readings when AnyValue and AllValues both match the whole window", () => {
+      const anyFilter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseTime,
+        filterType: FilterType.GreaterThan,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: undefined,
+          evaluateOverTimeType: EvaluateOverTimeType.AnyValue,
+        },
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: [10, 20],
+          threshold: 5,
+          criteriaFilter: anyFilter,
+        }),
+      ).toBe(
+        "Response Time (in ms) ranged from 10 to 20 across all 2 readings, above the 5 threshold.",
+      );
+
+      const allFilter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseTime,
+        filterType: FilterType.GreaterThan,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: undefined,
+          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+        },
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: [10, 20],
+          threshold: 5,
+          criteriaFilter: allFilter,
+        }),
+      ).toBe(
+        "Response Time (in ms) ranged from 10 to 20 across all 2 readings, above the 5 threshold.",
+      );
+    });
+
+    test("summarizes more than five numeric samples as a range", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseTime,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: [1, 2, 3, 4, 5, 6],
+          threshold: 0,
+          criteriaFilter: filter,
+        }),
+      ).toBe(
+        "Response Time (in ms) ranged from 1 to 6 across all 6 readings, above the 0 threshold.",
+      );
+    });
+
+    test("truncates a long non-numeric value list", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.GreaterThan,
+      });
+      // A boolean in the array makes it "not all numeric" -> truncated list.
+      const message: string = CompareCriteria.getCompareMessage({
+        values: [1, 2, 3, 4, 5, true] as Array<number | boolean>,
+        threshold: 0,
+        criteriaFilter: filter,
+      });
+      expect(message).toContain("1, 2, 3, 4, 5, … (6 values total)");
+    });
+
+    test("rounds non-integer values to two decimals", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseTime,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 12.3456,
+          threshold: 1.9999,
+          criteriaFilter: filter,
+        }),
+      ).toBe("Response Time (in ms) was 12.35, above the 2 threshold.");
+    });
+
+    test("appends a unit suffix to both the value and the threshold", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 100,
+          threshold: 50,
+          criteriaFilter: filter,
+          unit: "ms",
+        }),
+      ).toBe("Metric Value was 100 ms, above the 50 ms threshold.");
+    });
+
+    /*
+     * HUMAN-READABLE UNITS.
+     *
+     * This sentence is the "Filter Conditions Met" line of the alert and
+     * incident email. It used to glue the exporter's raw UCUM code onto
+     * raw digits, so a memory breach the dashboard drew as "1.07 GB"
+     * arrived in the inbox as "1073741824 By".
+     *
+     * The unit rides each NUMBER rather than the sentence, because
+     * auto-scaling can land two samples of one window on different scales
+     * and a single trailing suffix cannot describe both.
+     */
+    test("renders a byte value and its threshold at human scale", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 1073741824,
+          threshold: 1000000000,
+          criteriaFilter: filter,
+          unit: "By",
+        }),
+      ).toBe("Metric Value was 1.07 GB, above the 1 GB threshold.");
+    });
+
+    test("rescales a duration", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 1500,
+          threshold: 1000,
+          criteriaFilter: filter,
+          unit: "ms",
+        }),
+      ).toBe("Metric Value was 1.5 sec, above the 1 sec threshold.");
+    });
+
+    test("gives each end of a range its own scale", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+        evaluateOverTime: true,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+        },
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: [921600, 1258291],
+          threshold: 900000,
+          criteriaFilter: filter,
+          unit: "By",
+        }),
+      ).toBe(
+        "Metric Value over the last 5 minutes ranged from 922 KB to 1.26 MB across all 2 readings, above the 900 KB threshold.",
+      );
+    });
+
+    test("units ride both ends of a range summary", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+        },
+      });
+      const message: string = CompareCriteria.getCompareMessage({
+        values: [1e9, 2e9, 3e9, 4e9, 5e9, 6e9],
+        threshold: 5e8,
+        criteriaFilter: filter,
+        unit: "By",
+      });
+
+      expect(message).toContain(
+        "ranged from 1 GB to 6 GB across all 6 readings",
+      );
+      expect(message).toContain("above the 500 MB threshold");
+    });
+
+    /*
+     * OTel's dimensionless "1" used to be printed: a CLS breach read
+     * "is 0.31 1 which is greater than or equal to 0.25 1".
+     */
+    test("the dimensionless '1' is suppressed on a non-fraction metric", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThanOrEqualTo,
+      });
+      const message: string = CompareCriteria.getCompareMessage({
+        values: 0.31,
+        threshold: 0.25,
+        criteriaFilter: filter,
+        metricDisplayName: "browser.cumulative_layout_shift",
+        metricName: "browser.cumulative_layout_shift",
+        unit: "1",
+      });
+
+      expect(message).toBe(
+        "browser.cumulative_layout_shift was 0.31, at or above the 0.25 threshold.",
+      );
+      expect(message).not.toContain("0.31 1");
+    });
+
+    test("a fraction metric still carrying '1' reads as a percentage", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      const message: string = CompareCriteria.getCompareMessage({
+        values: 0.0585,
+        threshold: 0.05,
+        criteriaFilter: filter,
+        metricDisplayName: "system.cpu.utilization",
+        metricName: "system.cpu.utilization",
+        unit: "1",
+      });
+
+      expect(message).toBe(
+        "system.cpu.utilization was 5.85%, above the 5.00% threshold.",
+      );
+    });
+
+    test("a UCUM annotation-only unit is suppressed", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      const message: string = CompareCriteria.getCompareMessage({
+        values: 512,
+        threshold: 500,
+        criteriaFilter: filter,
+        unit: "{thread}",
+      });
+
+      expect(message).toBe("Metric Value was 512, above the 500 threshold.");
+      expect(message).not.toContain("{thread}");
+    });
+
+    /*
+     * THE FORMULA GUARD. metricDisplayName is the formula EXPRESSION for a
+     * formula criteria, and `a / b_ratio` ends in `_ratio` — the suffix
+     * the fraction heuristic keys on. Only `metricName`, which callers
+     * pass exclusively for plain metric criteria, may reach that
+     * heuristic; a formula reported at 100× its value would be a far worse
+     * bug than an unlabelled number.
+     */
+    test("a formula expression is never read as a fraction metric name", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      const message: string = CompareCriteria.getCompareMessage({
+        values: 0.42,
+        threshold: 0.4,
+        criteriaFilter: filter,
+        metricDisplayName: "a / b_ratio",
+        unit: "1",
+      });
+
+      expect(message).toBe("a / b_ratio was 0.42, above the 0.4 threshold.");
+      expect(message).not.toContain("42.00%");
+    });
+
+    /*
+     * BACKWARD COMPATIBILITY. Only MetricMonitorCriteria and
+     * DatabaseMonitorCriteria pass a unit; every other monitor type
+     * carries its unit inside the CheckOn label ("Response Time (in ms)")
+     * and must keep its numbers unabbreviated.
+     */
+    test("a message with no unit preserves its original numeric scale", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseTime,
+        filterType: FilterType.GreaterThan,
+      });
+
+      const expected: string =
+        "Response Time (in ms) was 5000, above the 4900 threshold.";
+
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 5000,
+          threshold: 4900,
+          criteriaFilter: filter,
+        }),
+      ).toBe(expected);
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 5000,
+          threshold: 4900,
+          criteriaFilter: filter,
+          unit: undefined,
+        }),
+      ).toBe(expected);
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 5000,
+          threshold: 4900,
+          criteriaFilter: filter,
+          unit: "",
+        }),
+      ).toBe(expected);
+    });
+
+    test("non-numeric filter types ignore a supplied unit", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.Contains,
+      });
+
+      const message: string = CompareCriteria.getCompareMessage({
+        values: "abc",
+        threshold: "b",
+        criteriaFilter: filter,
+        unit: "By",
+      });
+
+      expect(message).not.toContain("By");
+      expect(message).not.toContain("GB");
+    });
+
+    test("a non-finite value never reaches the scaling ladder", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+
+      const message: string = CompareCriteria.getCompareMessage({
+        values: Infinity,
+        threshold: 1000,
+        criteriaFilter: filter,
+        unit: "By",
+      });
+
+      expect(message).toContain("is Infinity which is");
+      expect(message).not.toContain("InfinityP");
+    });
+
+    test("includes the disk path for disk usage checks", () => {
+      const withPath: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.DiskUsagePercent,
+        filterType: FilterType.GreaterThan,
+        serverMonitorOptions: { diskPath: "/var" },
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 95,
+          threshold: 80,
+          criteriaFilter: withPath,
+        }),
+      ).toBe("Disk Usage (in %) on disk /var was 95, above the 80 threshold.");
+
+      const withoutPath: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.DiskUsagePercent,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 95,
+          threshold: 80,
+          criteriaFilter: withoutPath,
+        }),
+      ).toContain("on disk /");
+    });
+
+    test("mentions the evaluation window when evaluateOverTime is set", () => {
+      const filter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.CPUUsagePercent,
+        filterType: FilterType.GreaterThan,
+        evaluateOverTime: true,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: EvaluateOverTimeType.Average,
+        },
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 90,
+          threshold: 70,
+          criteriaFilter: filter,
+        }),
+      ).toContain("over the last 5 minutes");
+    });
+
+    test("uses the metric display name only for MetricValue checks", () => {
+      const metricFilter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 100,
+          threshold: 50,
+          criteriaFilter: metricFilter,
+          metricDisplayName: "http.server.duration",
+        }),
+      ).toBe("http.server.duration was 100, above the 50 threshold.");
+
+      // For a non-MetricValue check the display name is ignored.
+      const responseFilter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.ResponseTime,
+        filterType: FilterType.GreaterThan,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: 100,
+          threshold: 50,
+          criteriaFilter: responseFilter,
+          metricDisplayName: "http.server.duration",
+        }),
+      ).toBe("Response Time (in ms) was 100, above the 50 threshold.");
+    });
+
+    test("True/False messages omit the 'which is' clause", () => {
+      const trueFilter: CriteriaFilter = makeFilter({
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.True,
+      });
+      expect(
+        CompareCriteria.getCompareMessage({
+          values: true,
+          threshold: true,
+          criteriaFilter: trueFilter,
+        }),
+      ).toBe("Is Online is true.");
+    });
+
+    test.each([
+      { filterType: FilterType.GreaterThan, value: 100, relation: "above" },
+      {
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 50,
+        relation: "at or above",
+      },
+      { filterType: FilterType.LessThan, value: 25, relation: "below" },
+      {
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 50,
+        relation: "at or below",
+      },
+      { filterType: FilterType.EqualTo, value: 50, relation: "equal to" },
+      {
+        filterType: FilterType.NotEqualTo,
+        value: 100,
+        relation: "different from",
+      },
+    ])(
+      "renders $filterType as $relation",
+      ({
+        filterType,
+        value,
+        relation,
+      }: {
+        filterType: FilterType;
+        value: number;
+        relation: string;
+      }) => {
+        const filter: CriteriaFilter = makeFilter({
+          checkOn: CheckOn.ResponseTime,
+          filterType,
+        });
+        expect(
+          CompareCriteria.getCompareMessage({
+            values: value,
+            threshold: 50,
+            criteriaFilter: filter,
+          }),
+        ).toBe(
+          `Response Time (in ms) was ${value}, ${relation} the 50 threshold.`,
+        );
+      },
+    );
+  });
+});

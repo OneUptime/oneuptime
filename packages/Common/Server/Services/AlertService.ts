@@ -1,0 +1,2294 @@
+import DatabaseConfig from "../DatabaseConfig";
+import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
+import AlertMeasurementService from "./AlertMeasurementService";
+import CountBy from "../Types/Database/CountBy";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import FindBy from "../Types/Database/FindBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
+import DatabaseService from "./DatabaseService";
+import AlertCustomField from "../../Models/DatabaseModels/AlertCustomField";
+import CustomFieldMappingService from "./CustomFieldMappingService";
+import AlertOwnerTeamService from "./AlertOwnerTeamService";
+import AlertOwnerUserService from "./AlertOwnerUserService";
+import AlertStateService from "./AlertStateService";
+import AlertStateTimelineService from "./AlertStateTimelineService";
+import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import TeamMemberService from "./TeamMemberService";
+import UserService from "./UserService";
+import URL from "../../Types/API/URL";
+import { getSloAffectedResourceMarkdownLines } from "../../Utils/Slo/SloAffectedResourceMarkdown";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
+import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
+import Model from "../../Models/DatabaseModels/Alert";
+import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "../../Models/DatabaseModels/AlertOwnerUser";
+import AlertState from "../../Models/DatabaseModels/AlertState";
+import MonitorStatusService from "./MonitorStatusService";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
+import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
+import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
+import User from "../../Models/DatabaseModels/User";
+import { IsBillingEnabled } from "../EnvironmentConfig";
+import logger, { LogAttributes } from "../Utils/Logger";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import TelemetryUtil from "../Utils/Telemetry/Telemetry";
+import MetricResourceAttributeUtil from "../../Utils/Metrics/MetricResourceAttributeUtil";
+import MutableMetricService from "./MutableMetricService";
+import GlobalConfigService from "./GlobalConfigService";
+import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import OneUptimeDate from "../../Types/Date";
+import MutableMetric from "../../Models/AnalyticsModels/MutableMetric";
+import { MetricPointType } from "../../Models/AnalyticsModels/Metric";
+import ServiceType from "../../Types/Telemetry/ServiceType";
+import AlertMetricType from "../../Types/Alerts/AlertMetricType";
+import AlertMeasurementValueService from "./AlertMeasurementValueService";
+import AlertFeedService from "./AlertFeedService";
+import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
+import { Gray500, Red500 } from "../../Types/BrandColors";
+import Label from "../../Models/DatabaseModels/Label";
+import LabelService from "./LabelService";
+import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
+import AlertSeverityService from "./AlertSeverityService";
+import AlertReminderRuleService from "./AlertReminderRuleService";
+import AlertReminderRule from "../../Models/DatabaseModels/AlertReminderRule";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import AlertWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Alert";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
+import MonitorService from "./MonitorService";
+import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import MetricType from "../../Models/DatabaseModels/MetricType";
+import Dictionary from "../../Types/Dictionary";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import AlertGroupingEngineService from "./AlertGroupingEngineService";
+import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
+import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
+import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
+import RunbookRuleEngineService from "./RunbookRuleEngineService";
+import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
+import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
+import ProjectService from "./ProjectService";
+
+export class Service extends DatabaseService<Model> {
+  public constructor() {
+    super(Model);
+    if (IsBillingEnabled) {
+      this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
+    }
+  }
+
+  @CaptureSpan()
+  public async isAlertAcknowledged(data: {
+    alertId: ObjectID;
+  }): Promise<boolean> {
+    const alert: Model | null = await this.findOneBy({
+      query: {
+        _id: data.alertId,
+      },
+      select: {
+        projectId: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      throw new BadDataException("Alert not found");
+    }
+
+    if (!alert.projectId) {
+      throw new BadDataException("Alert Project ID not found");
+    }
+
+    const ackAlertState: AlertState =
+      await AlertStateService.getAcknowledgedAlertState({
+        projectId: alert.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentAlertStateOrder: number = alert.currentAlertState!.order!;
+    const ackAlertStateOrder: number = ackAlertState.order!;
+
+    if (currentAlertStateOrder >= ackAlertStateOrder) {
+      return true;
+    }
+
+    return false;
+  }
+
+  @CaptureSpan()
+  public async refreshReminderSchedule(data: {
+    alertId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const alert: Model | null = await this.findOneById({
+      id: data.alertId,
+      select: {
+        enableReminders: true,
+        alertSeverityId: true,
+        labels: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      return;
+    }
+
+    let nextReminderNotificationAt: Date | null = null;
+
+    if (alert.enableReminders !== false) {
+      const matchingRule: AlertReminderRule | null =
+        await AlertReminderRuleService.findMatchingRule({
+          projectId: data.projectId,
+          alertSeverityId: alert.alertSeverityId,
+          labelIds: alert.labels?.map((label: Label) => {
+            return label.id!;
+          }),
+        });
+
+      if (
+        matchingRule &&
+        matchingRule.reminderIntervalInMinutes &&
+        !(await this.isAlertResolved({ alertId: data.alertId }))
+      ) {
+        nextReminderNotificationAt = OneUptimeDate.addRemoveMinutes(
+          OneUptimeDate.getCurrentDate(),
+          matchingRule.reminderIntervalInMinutes,
+        );
+      }
+    }
+
+    await this.updateOneById({
+      id: data.alertId,
+      data: {
+        nextReminderNotificationAt: nextReminderNotificationAt,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public async acknowledgeAlert(
+    alertId: ObjectID,
+    acknowledgedByUserId: ObjectID,
+  ): Promise<void> {
+    const alert: Model | null = await this.findOneById({
+      id: alertId,
+      select: {
+        projectId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert || !alert.projectId) {
+      throw new BadDataException("Alert not found.");
+    }
+
+    const alertState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        projectId: alert.projectId,
+        isAcknowledgedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alertState || !alertState.id) {
+      throw new BadDataException(
+        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+      );
+    }
+
+    const alertStateTimeline: AlertStateTimeline = new AlertStateTimeline();
+    alertStateTimeline.projectId = alert.projectId;
+    alertStateTimeline.alertId = alertId;
+    alertStateTimeline.alertStateId = alertState.id;
+    alertStateTimeline.createdByUserId = acknowledgedByUserId;
+
+    await AlertStateTimelineService.create({
+      data: alertStateTimeline,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = applyAlertSelfPrivacyFilter(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = applyAlertSelfPrivacyFilter(countBy.query, countBy.props);
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    updateBy.query = applyAlertSelfPrivacyFilter(
+      updateBy.query,
+      updateBy.props,
+    );
+
+    await this.validateProjectScopedReferences(updateBy);
+
+    /*
+     * Two cases, one call. The Custom Fields modal saves the WHOLE bag back
+     * (it has no server-side merge), so a mapped value would be clobbered by
+     * any manual edit of a neighbouring field; and re-pointing the alert at
+     * another monitor changes what the mapped fields should hold. Both are
+     * folded into this payload so the row is written once, with an audit entry,
+     * workflow payload and realtime event that carry the value that was
+     * actually stored.
+     */
+    await CustomFieldMappingService.applyMappingsToUpdate({
+      definitionModelType: AlertCustomField,
+      updateBy: updateBy,
+    });
+
+    return { updateBy, carryForward: null };
+  }
+
+  /*
+   * An update can repoint an alert at another project's state, severity or
+   * monitor status just as easily as a create can, and the result is the same:
+   * the referenced project can no longer be deleted. Only the columns actually
+   * being written are checked, so ordinary updates cost no extra queries.
+   */
+  private async validateProjectScopedReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const alertStateId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.currentAlertStateId) ||
+      resolveReferenceId(updateBy.data.currentAlertState);
+
+    const alertSeverityId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.alertSeverityId) ||
+      resolveReferenceId(updateBy.data.alertSeverity);
+
+    const monitorStatusId: ObjectID | string | undefined =
+      resolveReferenceId(
+        updateBy.data.monitorStatusWhenThisAlertWasCreatedId,
+      ) ||
+      resolveReferenceId(updateBy.data.monitorStatusWhenThisAlertWasCreated);
+
+    /*
+     * The SLOs this alert affects: a relation list the API accepts on update.
+     * Checked for the same reason as on create; see
+     * SloRecordReferenceValidator.
+     */
+    const hasServiceLevelObjectiveIds: boolean =
+      SloRecordReferenceValidator.getReferencedIds(
+        updateBy.data.serviceLevelObjectives,
+      ).length > 0;
+
+    if (
+      !alertStateId &&
+      !alertSeverityId &&
+      !monitorStatusId &&
+      !hasServiceLevelObjectiveIds
+    ) {
+      return;
+    }
+
+    /*
+     * Root/API updates do not always carry a tenantId, so fall back to the
+     * project of each alert the query actually matches.
+     */
+    const projectIds: Array<ObjectID> = updateBy.props.tenantId
+      ? [updateBy.props.tenantId]
+      : await this.getProjectIdsForUpdateQuery(updateBy);
+
+    for (const projectId of projectIds) {
+      if (hasServiceLevelObjectiveIds) {
+        await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+          {
+            projectId: projectId,
+            subject: "alert",
+            serviceLevelObjectives: updateBy.data.serviceLevelObjectives,
+          },
+        );
+      }
+
+      if (!alertStateId && !alertSeverityId && !monitorStatusId) {
+        continue;
+      }
+
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        subject: "alert",
+        references: [
+          {
+            modelName: "Alert State",
+            id: alertStateId,
+            service: AlertStateService,
+          },
+          {
+            modelName: "Alert Severity",
+            id: alertSeverityId,
+            service: AlertSeverityService,
+          },
+          {
+            modelName: "Monitor Status",
+            id: monitorStatusId,
+            service: MonitorStatusService,
+          },
+        ],
+      });
+    }
+  }
+
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const alerts: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    for (const alert of alerts) {
+      if (alert.projectId) {
+        projectIds[alert.projectId.toString()] = alert.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    if (!createBy.props.tenantId && !createBy.props.isRoot) {
+      throw new BadDataException("ProjectId required to create alert.");
+    }
+
+    const projectId: ObjectID =
+      createBy.props.tenantId || createBy.data.projectId!;
+
+    const alertState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        projectId: projectId,
+        isCreatedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alertState || !alertState.id) {
+      throw new BadDataException(
+        "Created alert state not found for this project. Please add created alert state from settings.",
+      );
+    }
+
+    createBy.data.currentAlertStateId = alertState.id;
+
+    /*
+     * The severity and the monitor status stamped on the alert come from the
+     * monitor criteria or the API caller, neither of which checked that the
+     * record belongs to this project. Persisting another project's id leaves
+     * that project undeletable. Runs before the counter increment so a
+     * rejected create does not burn an alert number.
+     */
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: projectId,
+      subject: "alert",
+      references: [
+        {
+          modelName: "Alert Severity",
+          id:
+            resolveReferenceId(createBy.data.alertSeverityId) ||
+            resolveReferenceId(createBy.data.alertSeverity),
+          service: AlertSeverityService,
+        },
+        {
+          modelName: "Monitor Status",
+          id:
+            resolveReferenceId(
+              createBy.data.monitorStatusWhenThisAlertWasCreatedId,
+            ) ||
+            resolveReferenceId(
+              createBy.data.monitorStatusWhenThisAlertWasCreated,
+            ),
+          service: MonitorStatusService,
+        },
+      ],
+    });
+
+    /*
+     * The SLOs this alert affects. The burn-rate worker links its own
+     * same-project SLO as root, but the column is writable by API callers too.
+     * Another project's SLO would put that SLO's name into this project's
+     * feed, lists and metrics. Before the counter increment, like the check
+     * above.
+     */
+    await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+      {
+        projectId: projectId,
+        subject: "alert",
+        serviceLevelObjectives: createBy.data.serviceLevelObjectives,
+      },
+    );
+
+    /*
+     * Custom fields configured to inherit from the alert's monitor are stamped
+     * here rather than in onCreateSuccess: `customFields` is a column on this
+     * very row, and the onCreateSuccess chain below is un-awaited and runs
+     * after the API response, so a value written there would be missing from
+     * the alert the caller is handed back. Before the counter increment, for
+     * the reason given above — although applyMappingsToCreate is written not
+     * to throw, because a custom field failing to inherit must never stop an
+     * alert from being opened.
+     */
+    await CustomFieldMappingService.applyMappingsToCreate({
+      definitionModelType: AlertCustomField,
+      createBy: createBy,
+    });
+
+    const alertCounterResult: {
+      counter: number;
+      prefix: string | undefined;
+    } = await ProjectService.incrementAndGetAlertCounter(projectId);
+
+    createBy.data.alertNumber = alertCounterResult.counter;
+    createBy.data.alertNumberWithPrefix = alertCounterResult.prefix
+      ? `${alertCounterResult.prefix}${alertCounterResult.counter}`
+      : `#${alertCounterResult.counter}`;
+
+    if (
+      (createBy.data.createdByUserId ||
+        createBy.data.createdByUser ||
+        createBy.props.userId) &&
+      !createBy.data.rootCause
+    ) {
+      let userId: ObjectID | undefined = createBy.data.createdByUserId;
+
+      if (createBy.props.userId) {
+        userId = createBy.props.userId;
+      }
+
+      if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
+        userId = createBy.data.createdByUser.id;
+      }
+
+      if (userId) {
+        createBy.data.rootCause = `Alert created by ${await UserService.getUserMarkdownString(
+          {
+            userId: userId!,
+            projectId: projectId,
+          },
+        )}`;
+      }
+    }
+
+    return { createBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (!createdItem.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!createdItem.id) {
+      throw new BadDataException("id is required");
+    }
+
+    if (!createdItem.currentAlertStateId) {
+      throw new BadDataException("currentAlertStateId is required");
+    }
+
+    /*
+     * Whether an AI investigation run was enqueued for this alert — set by
+     * the investigation step below and read by the auto-remediation step
+     * after it: an enqueued investigation DEFERS remediation until the run
+     * settles (RCA-first ordering, see RemediationHandoff).
+     */
+    let aiInvestigationEnqueued: boolean = false;
+
+    // Execute operations sequentially with error handling
+    Promise.resolve()
+      .then(async () => {
+        /*
+         * Apply privacy rules BEFORE workspace operations so the workspace
+         * channel is created with the correct privacy setting. This may set
+         * createdItem.isPrivate=true in memory.
+         */
+        try {
+          await AlertPrivacyRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply alert privacy rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        if (createdItem.projectId && createdItem.id) {
+          try {
+            return await this.handleAlertWorkspaceOperationsAsync(createdItem);
+          } catch (error) {
+            logger.error(
+              `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
+              {
+                projectId: createdItem.projectId?.toString(),
+                alertId: createdItem.id?.toString(),
+              } as LogAttributes,
+            );
+            return Promise.resolve();
+          }
+        }
+        return Promise.resolve();
+      })
+      .then(async () => {
+        try {
+          return await this.createAlertFeedAsync(createdItem.id!);
+        } catch (error) {
+          logger.error(
+            `Create alert feed failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve(); // Continue chain even on error
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.handleAlertStateChangeAsync(createdItem);
+        } catch (error) {
+          logger.error(
+            `Handle alert state change failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve(); // Continue chain even on error
+        }
+      })
+      .then(async () => {
+        try {
+          if (
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps["ownerTeams"] ||
+              onCreate.createBy.miscDataProps["ownerUsers"])
+          ) {
+            return await this.addOwners(
+              createdItem.projectId!,
+              createdItem.id!,
+              (onCreate.createBy.miscDataProps![
+                "ownerUsers"
+              ] as Array<ObjectID>) || [],
+              (onCreate.createBy.miscDataProps![
+                "ownerTeams"
+              ] as Array<ObjectID>) || [],
+              false,
+              onCreate.createBy.props,
+            );
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Add owners failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve(); // Continue chain even on error
+        }
+      })
+      .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the alert.
+        try {
+          await AlertOwnerRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply alert owner rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Apply label rules: attach matched (and inherited monitor) labels.
+        try {
+          await AlertLabelRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply alert label rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Apply on-call rules: match alert against AlertOnCallRule rows and
+         * merge their on-call policies into createdItem.onCallDutyPolicies
+         * before the fan-out below picks up the merged list.
+         */
+        try {
+          await AlertOnCallRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply alert on-call rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        try {
+          await RunbookRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply runbook rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        if (
+          createdItem.onCallDutyPolicies?.length &&
+          createdItem.onCallDutyPolicies?.length > 0
+        ) {
+          try {
+            return await this.executeAlertOnCallDutyPoliciesAsync(createdItem);
+          } catch (error) {
+            logger.error(
+              `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
+              {
+                projectId: createdItem.projectId?.toString(),
+                alertId: createdItem.id?.toString(),
+              } as LogAttributes,
+            );
+            return Promise.resolve();
+          }
+        }
+        return Promise.resolve();
+      })
+      .then(async () => {
+        // Process alert for grouping into episodes
+        try {
+          await AlertGroupingEngineService.processAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Alert grouping failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Schedule reminder notifications for alert if a matching reminder rule exists
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            await this.refreshReminderSchedule({
+              alertId: createdItem.id,
+              projectId: createdItem.projectId,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Reminder scheduling failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * AI (AI SRE): automatically investigate the new alert and post a
+         * cited root cause analysis to the alert timeline + Slack/Teams. Runs
+         * last, is gated per project (opt-in) + requires an LLM provider, and is
+         * read-only.
+         */
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            aiInvestigationEnqueued =
+              await AIAlertInvestigationRunner.investigateNewAlert({
+                alertId: createdItem.id,
+                projectId: createdItem.projectId,
+              });
+          }
+        } catch (error) {
+          logger.error(
+            `AI alert investigation failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Auto-remediation runs LAST — and only when NO AI investigation
+         * was enqueued above. RCA-first ordering: when an investigation is
+         * in flight, remediation is deferred until that run settles
+         * (RemediationHandoff releases it on any terminal outcome), so the
+         * remediation planner always has the posted root cause analysis as
+         * input instead of racing it. Without an investigation (opt-out,
+         * gates, budget) remediation fires here immediately — it must
+         * never silently depend on the AI lane being enabled.
+         */
+        try {
+          if (!aiInvestigationEnqueued) {
+            await AutoRemediationRuleEngineService.applyRulesToAlert(
+              createdItem,
+            );
+          }
+        } catch (error) {
+          logger.error(
+            `Apply auto-remediation rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .catch((error: Error) => {
+        logger.error(
+          `Critical error in AlertService sequential operations: ${error}`,
+          {
+            projectId: createdItem.projectId?.toString(),
+            alertId: createdItem.id?.toString(),
+          } as LogAttributes,
+        );
+      });
+
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  private async handleAlertWorkspaceOperationsAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      if (!createdItem.projectId || !createdItem.id) {
+        throw new BadDataException(
+          "projectId and id are required for workspace operations",
+        );
+      }
+
+      // send message to workspaces - slack, teams, etc.
+      const workspaceResult: {
+        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+      } | null =
+        await AlertWorkspaceMessages.createChannelsAndInviteUsersToChannels({
+          projectId: createdItem.projectId,
+          alertId: createdItem.id,
+          alertNumber: createdItem.alertNumber!,
+          ...(createdItem.alertNumberWithPrefix
+            ? { alertNumberWithPrefix: createdItem.alertNumberWithPrefix }
+            : {}),
+          isPrivate: createdItem.isPrivate === true,
+        });
+
+      logger.debug("Alert created. Workspace result:", {
+        projectId: createdItem.projectId?.toString(),
+        alertId: createdItem.id?.toString(),
+      } as LogAttributes);
+      logger.debug(workspaceResult, {
+        projectId: createdItem.projectId?.toString(),
+        alertId: createdItem.id?.toString(),
+      } as LogAttributes);
+
+      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
+        // update alert with these channels.
+        await this.updateOneById({
+          id: createdItem.id,
+          data: {
+            postUpdatesToWorkspaceChannels:
+              workspaceResult.channelsCreated || [],
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    } catch (error) {
+      logger.error(`Error in handleAlertWorkspaceOperationsAsync: ${error}`, {
+        projectId: createdItem.projectId?.toString(),
+        alertId: createdItem.id?.toString(),
+      } as LogAttributes);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async createAlertFeedAsync(alertId: ObjectID): Promise<void> {
+    try {
+      // Get alert data for feed creation
+      const alert: Model | null = await this.findOneById({
+        id: alertId,
+        select: {
+          projectId: true,
+          alertNumber: true,
+          alertNumberWithPrefix: true,
+          title: true,
+          description: true,
+          alertSeverity: {
+            name: true,
+          },
+          rootCause: true,
+          createdByUserId: true,
+          createdByUser: {
+            _id: true,
+            name: true,
+            email: true,
+          },
+          remediationNotes: true,
+          currentAlertState: {
+            name: true,
+          },
+          labels: {
+            name: true,
+          },
+          monitor: {
+            name: true,
+            _id: true,
+          },
+          /*
+           * This read runs as root, so projectId comes along and the feed
+           * names only this project's SLOs (getSloAffectedResourceMarkdownLines).
+           */
+          serviceLevelObjectives: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!alert) {
+        throw new BadDataException("Alert not found");
+      }
+
+      const createdByUserId: ObjectID | undefined | null =
+        alert.createdByUserId || alert.createdByUser?.id;
+
+      let feedInfoInMarkdown: string = `#### 🚨 Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber?.toString()} Created:
+           
+**${alert.title || "No title provided."}**:
+     
+${alert.description || "No description provided."}
+     
+`;
+
+      if (alert.currentAlertState?.name) {
+        feedInfoInMarkdown += `🔴 **Alert State**: ${alert.currentAlertState.name} \n\n`;
+      }
+
+      if (alert.alertSeverity?.name) {
+        feedInfoInMarkdown += `⚠️ **Severity**: ${alert.alertSeverity.name} \n\n`;
+      }
+
+      /*
+       * The monitor, then the SLOs this alert is linked to. A burn-rate alert
+       * has no monitor, so its SLO is the only resource there is to name -
+       * and the feed's only way back to the objective that raised it. The SLO
+       * link is built inline: ServiceLevelObjectiveService cannot be imported
+       * here (it reaches this service through the burn-rate rule service).
+       */
+      const sloLines: Array<string> =
+        alert.serviceLevelObjectives && alert.serviceLevelObjectives.length > 0
+          ? getSloAffectedResourceMarkdownLines({
+              dashboardUrl: await DatabaseConfig.getDashboardUrl(),
+              projectId: alert.projectId!,
+              serviceLevelObjectives: alert.serviceLevelObjectives,
+            })
+          : [];
+
+      if (alert.monitor || sloLines.length > 0) {
+        feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
+
+        if (alert.monitor) {
+          const monitor: Monitor = alert.monitor;
+          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(alert.projectId!, monitor.id!)).toString()})\n`;
+        }
+
+        for (const sloLine of sloLines) {
+          feedInfoInMarkdown += `${sloLine}\n`;
+        }
+
+        feedInfoInMarkdown += `\n\n`;
+      }
+
+      if (alert.rootCause) {
+        feedInfoInMarkdown += `\n
+📄 **Root Cause**:
+     
+${alert.rootCause || "No root cause provided."}
+     
+`;
+      }
+
+      if (alert.remediationNotes) {
+        feedInfoInMarkdown += `\n 
+🎯 **Remediation Notes**:
+     
+${alert.remediationNotes || "No remediation notes provided."}
+     
+     
+     `;
+      }
+
+      const alertCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+        await AlertWorkspaceMessages.getAlertCreateMessageBlocks({
+          alertId: alert.id!,
+          projectId: alert.projectId!,
+        });
+
+      await AlertFeedService.createAlertFeedItem({
+        alertId: alert.id!,
+        projectId: alert.projectId!,
+        alertFeedEventType: AlertFeedEventType.AlertCreated,
+        displayColor: Red500,
+        feedInfoInMarkdown: feedInfoInMarkdown,
+        userId: createdByUserId || undefined,
+        workspaceNotification: {
+          appendMessageBlocks: alertCreateMessageBlocks,
+          sendWorkspaceNotification: true,
+        },
+      });
+    } catch (error) {
+      logger.error(`Error in createAlertFeedAsync: ${error}`, {
+        alertId: alertId?.toString(),
+      } as LogAttributes);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async handleAlertStateChangeAsync(createdItem: Model): Promise<void> {
+    try {
+      if (!createdItem.projectId || !createdItem.id) {
+        throw new BadDataException(
+          "projectId and id are required for state change",
+        );
+      }
+
+      await this.changeAlertState({
+        projectId: createdItem.projectId,
+        alertId: createdItem.id,
+        alertStateId: createdItem.currentAlertStateId!,
+        notifyOwners: false,
+        rootCause: createdItem.rootCause,
+        stateChangeLog: createdItem.createdStateLog,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(`Error in handleAlertStateChangeAsync: ${error}`, {
+        projectId: createdItem.projectId?.toString(),
+        alertId: createdItem.id?.toString(),
+      } as LogAttributes);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async executeAlertOnCallDutyPoliciesAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      if (
+        createdItem.onCallDutyPolicies?.length &&
+        createdItem.onCallDutyPolicies?.length > 0
+      ) {
+        // Execute all on-call policies in parallel
+        const policyPromises: Promise<void>[] =
+          createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
+            return OnCallDutyPolicyService.executePolicy(
+              new ObjectID(policy["_id"] as string),
+              {
+                triggeredByAlertId: createdItem.id!,
+                userNotificationEventType:
+                  UserNotificationEventType.AlertCreated,
+              },
+            );
+          });
+
+        await Promise.allSettled(policyPromises);
+      }
+    } catch (error) {
+      logger.error(`Error in executeAlertOnCallDutyPoliciesAsync: ${error}`, {
+        projectId: createdItem.projectId?.toString(),
+        alertId: createdItem.id?.toString(),
+      } as LogAttributes);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  public async getWorkspaceChannelForAlert(data: {
+    alertId: ObjectID;
+    workspaceType?: WorkspaceType | null;
+  }): Promise<Array<NotificationRuleWorkspaceChannel>> {
+    const alert: Model | null = await this.findOneById({
+      id: data.alertId,
+      select: {
+        postUpdatesToWorkspaceChannels: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      throw new BadDataException("Alert not found.");
+    }
+
+    return (alert.postUpdatesToWorkspaceChannels || []).filter(
+      (channel: NotificationRuleWorkspaceChannel) => {
+        if (!data.workspaceType) {
+          return true;
+        }
+
+        return channel.workspaceType === data.workspaceType;
+      },
+    );
+  }
+
+  @CaptureSpan()
+  public async getAlertIdentifiedDate(alertId: ObjectID): Promise<Date> {
+    const timeline: AlertStateTimeline | null =
+      await AlertStateTimelineService.findOneBy({
+        query: {
+          alertId: alertId,
+        },
+        select: {
+          startsAt: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (timeline && timeline.startsAt) {
+      return timeline.startsAt;
+    }
+
+    /*
+     * The identified-state timeline is created asynchronously after the alert
+     * is committed (see onCreateSuccess), so it may not exist yet, or may be
+     * missing entirely if that step failed. Fall back to the alert's creation
+     * date instead of throwing, otherwise the owner-notification cron fails
+     * permanently for this alert and retries every minute forever.
+     */
+    const alert: Model | null = await this.findOneById({
+      id: alertId,
+      select: {
+        createdAt: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (alert && alert.createdAt) {
+      return alert.createdAt;
+    }
+
+    throw new BadDataException("Alert identified date not found.");
+  }
+
+  @CaptureSpan()
+  public async findOwners(alertId: ObjectID): Promise<Array<User>> {
+    if (!alertId) {
+      throw new BadDataException("alertId is required");
+    }
+
+    const ownerUsers: Array<AlertOwnerUser> =
+      await AlertOwnerUserService.findBy({
+        query: {
+          alertId: alertId,
+        },
+        select: {
+          _id: true,
+          user: {
+            _id: true,
+            email: true,
+            name: true,
+            timezone: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const ownerTeams: Array<AlertOwnerTeam> =
+      await AlertOwnerTeamService.findBy({
+        query: {
+          alertId: alertId,
+        },
+        select: {
+          _id: true,
+          teamId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const users: Array<User> =
+      ownerUsers.map((ownerUser: AlertOwnerUser) => {
+        return ownerUser.user!;
+      }) || [];
+
+    if (ownerTeams.length > 0) {
+      const teamIds: Array<ObjectID> =
+        ownerTeams.map((ownerTeam: AlertOwnerTeam) => {
+          return ownerTeam.teamId!;
+        }) || [];
+
+      const teamUsers: Array<User> =
+        await TeamMemberService.getUsersInTeams(teamIds);
+
+      for (const teamUser of teamUsers) {
+        //check if the user is already added.
+        const isUserAlreadyAdded: User | undefined = users.find(
+          (user: User) => {
+            return user.id!.toString() === teamUser.id!.toString();
+          },
+        );
+
+        if (!isUserAlreadyAdded) {
+          users.push(teamUser);
+        }
+      }
+    }
+
+    return users;
+  }
+
+  @CaptureSpan()
+  public async addOwners(
+    projectId: ObjectID,
+    alertId: ObjectID,
+    userIds: Array<ObjectID>,
+    teamIds: Array<ObjectID>,
+    notifyOwners: boolean,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    // Owners already on the alert are skipped, not added a second time.
+    await OwnerRuleAssignment.addOwners({
+      ownerUserService: AlertOwnerUserService,
+      ownerTeamService: AlertOwnerTeamService,
+      resourceIdColumn: "alertId",
+      resourceId: alertId,
+      projectId: projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: !notifyOwners,
+      props: props,
+    });
+  }
+
+  @CaptureSpan()
+  public async getAlertLinkInDashboard(
+    projectId: ObjectID,
+    alertId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/alerts/${alertId.toString()}`,
+    );
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: ObjectID[],
+  ): Promise<OnUpdate<Model>> {
+    CustomFieldMappingService.restampAfterMultiRowUpdate({
+      definitionModelType: AlertCustomField,
+      updateBy: onUpdate.updateBy,
+      updatedItemIds: updatedItemIds,
+    });
+
+    /*
+     * Correcting a timestamp is the whole point of making these fields
+     * editable, so the numbers derived from them have to move. Without this
+     * the metric refresh fires only from the state-timeline hooks, and a
+     * corrected impactStartedAt leaves every derived value stale for good.
+     */
+    const anchorTimestampChanged: boolean = ["impactStartedAt"].some(
+      (key: string) => {
+        return Object.prototype.hasOwnProperty.call(
+          onUpdate.updateBy.data,
+          key,
+        );
+      },
+    );
+
+    if (anchorTimestampChanged) {
+      for (const itemId of updatedItemIds) {
+        this.refreshAlertMetrics({ alertId: itemId }).catch((err: Error) => {
+          logger.error(err);
+
+          AlertMeasurementValueService.recomputeForAlert({
+            alertId: itemId,
+          }).catch((err: Error) => {
+            logger.error(err);
+          });
+        });
+      }
+    }
+
+    if (
+      onUpdate.updateBy.data.currentAlertStateId &&
+      onUpdate.updateBy.props.tenantId
+    ) {
+      for (const itemId of updatedItemIds) {
+        await this.changeAlertState({
+          projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+          alertId: itemId,
+          alertStateId: onUpdate.updateBy.data.currentAlertStateId as ObjectID,
+          notifyOwners: true,
+          rootCause: "This status was changed when the alert was updated.",
+          stateChangeLog: undefined,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
+
+    if (updatedItemIds.length > 0) {
+      for (const alertId of updatedItemIds) {
+        let shouldAddAlertFeed: boolean = false;
+
+        const alert: Model | null = await this.findOneById({
+          id: alertId,
+          select: {
+            projectId: true,
+            alertNumber: true,
+            alertNumberWithPrefix: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const projectId: ObjectID = alert!.projectId!;
+        const alertNumber: number = alert!.alertNumber!;
+        const alertNumberWithPrefix: string | undefined =
+          alert!.alertNumberWithPrefix || undefined;
+
+        let feedInfoInMarkdown: string = `**[Alert ${alertNumberWithPrefix || "#" + alertNumber}](${(await this.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) was updated.**`;
+
+        const createdByUserId: ObjectID | undefined | null =
+          onUpdate.updateBy.props.userId;
+
+        if (onUpdate.updateBy.data.title) {
+          // add alert feed.
+
+          feedInfoInMarkdown += `\n\n**Title**: 
+${onUpdate.updateBy.data.title || "No title provided."}
+`;
+          shouldAddAlertFeed = true;
+        }
+
+        if (onUpdate.updateBy.data.rootCause) {
+          if (onUpdate.updateBy.data.title) {
+            // add alert feed.
+
+            feedInfoInMarkdown += `\n\n**📄 Root Cause**: 
+${onUpdate.updateBy.data.rootCause || "No root cause provided."}
+  `;
+            shouldAddAlertFeed = true;
+          }
+        }
+
+        if (onUpdate.updateBy.data.description) {
+          // add alert feed.
+
+          feedInfoInMarkdown += `\n\n**Alert Description**: 
+          ${onUpdate.updateBy.data.description || "No description provided."}
+          `;
+          shouldAddAlertFeed = true;
+        }
+
+        if (onUpdate.updateBy.data.remediationNotes) {
+          // add alert feed.
+
+          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: 
+${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
+        `;
+          shouldAddAlertFeed = true;
+        }
+
+        if (
+          onUpdate.updateBy.data.labels &&
+          onUpdate.updateBy.data.labels.length > 0 &&
+          Array.isArray(onUpdate.updateBy.data.labels)
+        ) {
+          const labelIds: Array<ObjectID> = (
+            onUpdate.updateBy.data.labels as any
+          )
+            .map((label: Label) => {
+              if (label._id) {
+                return new ObjectID(label._id?.toString());
+              }
+
+              return null;
+            })
+            .filter((labelId: ObjectID | null) => {
+              return labelId !== null;
+            });
+
+          const labels: Array<Label> = await LabelService.findBy({
+            query: {
+              _id: QueryHelper.any(labelIds),
+            },
+            select: {
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (labels.length > 0) {
+            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
+
+${labels
+  .map((label: Label) => {
+    return `- ${label.name}`;
+  })
+  .join("\n")}
+`;
+
+            shouldAddAlertFeed = true;
+          }
+        }
+
+        if (
+          onUpdate.updateBy.data.alertSeverity &&
+          (onUpdate.updateBy.data.alertSeverity as any)._id
+        ) {
+          const alertSeverity: AlertSeverity | null =
+            await AlertSeverityService.findOneBy({
+              query: {
+                _id: new ObjectID(
+                  (onUpdate.updateBy.data.alertSeverity as any)?._id.toString(),
+                ),
+              },
+              select: {
+                name: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (alertSeverity) {
+            feedInfoInMarkdown += `\n\n**⚠️ Alert Severity**:
+${alertSeverity.name}
+`;
+
+            shouldAddAlertFeed = true;
+          }
+        }
+
+        // Re-evaluate reminder schedule when severity or labels change or reminders are toggled
+        if (
+          (onUpdate.updateBy.data.alertSeverity &&
+            (onUpdate.updateBy.data.alertSeverity as any)._id) ||
+          (onUpdate.updateBy.data.labels &&
+            Array.isArray(onUpdate.updateBy.data.labels)) ||
+          Object.prototype.hasOwnProperty.call(
+            onUpdate.updateBy.data,
+            "enableReminders",
+          )
+        ) {
+          try {
+            await this.refreshReminderSchedule({
+              alertId: alertId,
+              projectId: projectId,
+            });
+          } catch (reminderError) {
+            logger.error(
+              `Reminder rescheduling failed in AlertService.onUpdateSuccess: ${reminderError}`,
+              {
+                projectId: projectId?.toString(),
+                alertId: alertId?.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+
+        if (shouldAddAlertFeed) {
+          await AlertFeedService.createAlertFeedItem({
+            alertId: alertId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            alertFeedEventType: AlertFeedEventType.AlertUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: feedInfoInMarkdown,
+            userId: createdByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            },
+          });
+        }
+      }
+    }
+
+    return onUpdate;
+  }
+
+  @CaptureSpan()
+  public async doesMonitorHasMoreActiveManualAlerts(
+    monitorId: ObjectID,
+    proojectId: ObjectID,
+  ): Promise<boolean> {
+    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        projectId: proojectId,
+        isResolvedState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        order: true,
+      },
+    });
+
+    const alertCount: PositiveNumber = await this.countBy({
+      query: {
+        monitorId: monitorId,
+        currentAlertState: {
+          order: QueryHelper.lessThan(resolvedState?.order as number),
+        },
+        isCreatedAutomatically: false,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return alertCount.toNumber() > 0;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    deleteBy.query = applyAlertSelfPrivacyFilter(
+      deleteBy.query,
+      deleteBy.props,
+    );
+
+    const alerts: Array<Model> = await this.findBy({
+      query: deleteBy.query,
+      limit: LIMIT_MAX,
+      skip: 0,
+      select: {
+        _id: true,
+        projectId: true,
+        monitor: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      deleteBy,
+      carryForward: {
+        alerts: alerts,
+      },
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    _itemIdsBeforeDelete: ObjectID[],
+  ): Promise<OnDelete<Model>> {
+    if (onDelete.carryForward && onDelete.carryForward.alerts) {
+      for (const alert of onDelete.carryForward.alerts) {
+        if (alert.projectId && alert.id) {
+          const metricRetentionDays: number =
+            await this.getMetricRetentionDays();
+
+          await MutableMetricService.tombstoneEntityMetrics({
+            projectId: alert.projectId,
+            primaryEntityId: alert.id,
+            primaryEntityType: ServiceType.Alert,
+            metricNames: Object.values(AlertMetricType),
+            retentionDate: OneUptimeDate.addRemoveDays(
+              OneUptimeDate.getCurrentDate(),
+              metricRetentionDays,
+            ),
+          });
+
+          /*
+           * Measurement points carry project-defined names, so they are not
+           * in the enum above and would otherwise linger in every chart
+           * until their retention date -- for an entity that no longer
+           * exists.
+           */
+          const measurementMetricNames: Array<string> =
+            await AlertMeasurementService.getMetricNamesForProject(
+              alert.projectId,
+            );
+
+          await MeasurementMetricWriter.tombstoneAll({
+            projectId: alert.projectId,
+            primaryEntityId: alert.id,
+            primaryEntityType: ServiceType.Alert,
+            allMeasurementMetricNames: measurementMetricNames,
+          });
+        }
+      }
+    }
+
+    return onDelete;
+  }
+
+  @CaptureSpan()
+  public async changeAlertState(data: {
+    projectId: ObjectID;
+    alertId: ObjectID;
+    alertStateId: ObjectID;
+    notifyOwners: boolean;
+    rootCause: string | undefined;
+    stateChangeLog: JSONObject | undefined;
+    props: DatabaseCommonInteractionProps | undefined;
+  }): Promise<void> {
+    const {
+      projectId,
+      alertId,
+      alertStateId,
+      notifyOwners,
+      rootCause,
+      stateChangeLog,
+      props,
+    } = data;
+
+    // get last monitor status timeline.
+    const lastAlertStatusTimeline: AlertStateTimeline | null =
+      await AlertStateTimelineService.findOneBy({
+        query: {
+          alertId: alertId,
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          alertStateId: true,
+        },
+        sort: {
+          createdAt: SortOrder.Descending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (
+      lastAlertStatusTimeline &&
+      lastAlertStatusTimeline.alertStateId &&
+      lastAlertStatusTimeline.alertStateId.toString() ===
+        alertStateId.toString()
+    ) {
+      return;
+    }
+
+    const statusTimeline: AlertStateTimeline = new AlertStateTimeline();
+
+    statusTimeline.alertId = alertId;
+    statusTimeline.alertStateId = alertStateId;
+    statusTimeline.projectId = projectId;
+    statusTimeline.isOwnerNotified = !notifyOwners;
+
+    if (stateChangeLog) {
+      statusTimeline.stateChangeLog = stateChangeLog;
+    }
+    if (rootCause) {
+      statusTimeline.rootCause = rootCause;
+    }
+
+    await AlertStateTimelineService.create({
+      data: statusTimeline,
+      props: props || {},
+    });
+  }
+
+  private static readonly DEFAULT_METRIC_RETENTION_DAYS: number = 180;
+
+  private async getMetricRetentionDays(): Promise<number> {
+    try {
+      const globalConfig: GlobalConfig | null =
+        await GlobalConfigService.findOneBy({
+          query: {
+            _id: ObjectID.getZeroObjectID().toString(),
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            monitorMetricRetentionInDays: true,
+          },
+        });
+
+      if (
+        globalConfig &&
+        globalConfig.monitorMetricRetentionInDays !== undefined &&
+        globalConfig.monitorMetricRetentionInDays !== null &&
+        globalConfig.monitorMetricRetentionInDays > 0
+      ) {
+        return globalConfig.monitorMetricRetentionInDays;
+      }
+    } catch (error) {
+      logger.error("Error fetching metric retention config, using default:");
+      logger.error(error);
+    }
+
+    return Service.DEFAULT_METRIC_RETENTION_DAYS;
+  }
+
+  @CaptureSpan()
+  public async refreshAlertMetrics(data: { alertId: ObjectID }): Promise<void> {
+    const alert: Model | null = await this.findOneById({
+      id: data.alertId,
+      select: {
+        projectId: true,
+        monitor: {
+          _id: true,
+          name: true,
+        },
+        /*
+         * The SLOs this alert affects, stamped below so an SLO's Metrics page
+         * can chart the alerts raised against it. Only _id and name, which
+         * the SLO model allows on relation reads.
+         */
+        serviceLevelObjectives: {
+          _id: true,
+          name: true,
+        },
+        alertSeverity: {
+          _id: true,
+          name: true,
+        },
+        /*
+         * A project's own taxonomy. Both become metric attributes below so
+         * dashboards can group MTTA/MTTR by the dimensions the project
+         * actually thinks in.
+         */
+        labels: {
+          _id: true,
+          name: true,
+        },
+        customFields: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      throw new BadDataException("Alert not found");
+    }
+
+    if (!alert.projectId) {
+      throw new BadDataException("Alert Project ID not found");
+    }
+
+    // get alert state timeline
+    const alertStateTimelines: Array<AlertStateTimeline> =
+      await AlertStateTimelineService.findBy({
+        query: {
+          alertId: data.alertId,
+        },
+        select: {
+          projectId: true,
+          alertStateId: true,
+          alertState: {
+            isAcknowledgedState: true,
+            isResolvedState: true,
+          },
+          startsAt: true,
+          endsAt: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const firstAlertStateTimeline: AlertStateTimeline | undefined =
+      alertStateTimelines[0];
+
+    /*
+     * Serialize concurrent refreshes for this alert across pods. Mutable
+     * metrics are versioned inserts, but the replace operation also tombstones
+     * stale metric-point identities. The lock keeps that read+insert cycle
+     * ordered for each alert.
+     */
+    let metricRefreshMutex: SemaphoreMutex | null = null;
+    try {
+      metricRefreshMutex = await Semaphore.lock({
+        key: data.alertId.toString(),
+        namespace: "AlertService.refreshAlertMetrics",
+        lockTimeout: 30000,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: alert.projectId?.toString(),
+          alertId: alert.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    try {
+      const itemsToSave: Array<MutableMetric> = [];
+      const metricTypesMap: Dictionary<MetricType> = {};
+
+      const metricRetentionDays: number = await this.getMetricRetentionDays();
+      const alertMetricRetentionDate: Date = OneUptimeDate.addRemoveDays(
+        OneUptimeDate.getCurrentDate(),
+        metricRetentionDays,
+      );
+
+      /*
+       * Dimensions shared by every alert metric. Built once so all four
+       * metrics below record the identical attribute set — a dashboard that
+       * groups by oneuptime.label.product must not find the dimension on
+       * AlertCount but missing from TimeToResolve.
+       */
+      const baseMetricAttributes: JSONObject = {
+        alertId: data.alertId.toString(),
+        projectId: alert.projectId.toString(),
+        monitorId: alert.monitor?._id?.toString(),
+        monitorName: alert.monitor?.name?.toString(),
+        /*
+         * Plural and comma-joined, unlike monitorId: an alert can affect
+         * several SLOs. The SLO Metrics page filters its Alert tab on
+         * serviceLevelObjectiveIds (SERVICE_LEVEL_OBJECTIVE_IDS_METRIC_ATTRIBUTE
+         * in Common/Utils/Slo/SloMetricType), so the key must not be renamed.
+         */
+        serviceLevelObjectiveIds: (
+          alert.serviceLevelObjectives
+            ?.map((serviceLevelObjective: ServiceLevelObjective) => {
+              return serviceLevelObjective._id?.toString();
+            })
+            .filter(Boolean) || []
+        ).join(", "),
+        serviceLevelObjectiveNames: (
+          alert.serviceLevelObjectives
+            ?.map((serviceLevelObjective: ServiceLevelObjective) => {
+              return serviceLevelObjective.name?.toString();
+            })
+            .filter(Boolean) || []
+        ).join(", "),
+        alertSeverityId: alert.alertSeverity?._id?.toString(),
+        alertSeverityName: alert.alertSeverity?.name?.toString(),
+        /*
+         * oneuptime.label.* / oneuptime.customField.* — namespaced, so they can
+         * never collide with the unprefixed dimensions above.
+         */
+        ...MetricResourceAttributeUtil.getResourceAttributes({
+          labels: alert.labels,
+          customFields: alert.customFields,
+        }),
+      };
+
+      // now we need to create new metrics for this alert - TimeToAcknowledge, TimeToResolve, AlertCount, AlertDuration
+      const alertStartsAt: Date =
+        firstAlertStateTimeline?.startsAt ||
+        alert.createdAt ||
+        OneUptimeDate.getCurrentDate();
+
+      // register the metric type so the catalog stays complete across refreshes.
+      const alertCountMetricType: MetricType = new MetricType();
+      alertCountMetricType.name = AlertMetricType.AlertCount;
+      alertCountMetricType.description = "Number of alerts created";
+      alertCountMetricType.unit = "";
+      alertCountMetricType.services = [];
+      metricTypesMap[AlertMetricType.AlertCount] = alertCountMetricType;
+
+      const alertCountMetric: MutableMetric = new MutableMetric();
+
+      alertCountMetric.projectId = alert.projectId;
+      alertCountMetric.primaryEntityId = alert.id!;
+      alertCountMetric.primaryEntityType = ServiceType.Alert;
+      alertCountMetric.name = AlertMetricType.AlertCount;
+      alertCountMetric.metricPointId = AlertMetricType.AlertCount;
+      alertCountMetric.value = 1;
+      alertCountMetric.attributes = { ...baseMetricAttributes };
+      alertCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+        alertCountMetric.attributes,
+      );
+
+      alertCountMetric.time = alertStartsAt;
+      alertCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+        alertCountMetric.time,
+      );
+      alertCountMetric.metricPointType = MetricPointType.Sum;
+      alertCountMetric.retentionDate = alertMetricRetentionDate;
+
+      itemsToSave.push(alertCountMetric);
+
+      // is the alert acknowledged?
+      const isAlertAcknowledged: boolean = alertStateTimelines.some(
+        (timeline: AlertStateTimeline) => {
+          return timeline.alertState?.isAcknowledgedState;
+        },
+      );
+
+      if (isAlertAcknowledged) {
+        const ackAlertStateTimeline: AlertStateTimeline | undefined =
+          alertStateTimelines.find((timeline: AlertStateTimeline) => {
+            return timeline.alertState?.isAcknowledgedState;
+          });
+
+        if (ackAlertStateTimeline) {
+          // register the metric type so the catalog stays complete across refreshes.
+          const metricType: MetricType = new MetricType();
+          metricType.name = AlertMetricType.TimeToAcknowledge;
+          metricType.description = "Time taken to acknowledge the alert";
+          metricType.unit = "seconds";
+          metricTypesMap[AlertMetricType.TimeToAcknowledge] = metricType;
+
+          const timeToAcknowledgeMetric: MutableMetric = new MutableMetric();
+
+          timeToAcknowledgeMetric.projectId = alert.projectId;
+          timeToAcknowledgeMetric.primaryEntityId = alert.id!;
+          timeToAcknowledgeMetric.primaryEntityType = ServiceType.Alert;
+          timeToAcknowledgeMetric.name = AlertMetricType.TimeToAcknowledge;
+          timeToAcknowledgeMetric.metricPointId =
+            AlertMetricType.TimeToAcknowledge;
+          timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
+            ackAlertStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
+            alertStartsAt,
+          );
+          timeToAcknowledgeMetric.attributes = { ...baseMetricAttributes };
+          timeToAcknowledgeMetric.attributeKeys =
+            TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
+
+          timeToAcknowledgeMetric.time =
+            ackAlertStateTimeline?.startsAt ||
+            alert.createdAt ||
+            OneUptimeDate.getCurrentDate();
+          timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+            timeToAcknowledgeMetric.time,
+          );
+          timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+          timeToAcknowledgeMetric.retentionDate = alertMetricRetentionDate;
+
+          itemsToSave.push(timeToAcknowledgeMetric);
+        }
+      }
+
+      // time to resolve
+      const isAlertResolved: boolean = alertStateTimelines.some(
+        (timeline: AlertStateTimeline) => {
+          return timeline.alertState?.isResolvedState;
+        },
+      );
+
+      const resolvedAlertStateTimeline: AlertStateTimeline | undefined =
+        alertStateTimelines.find((timeline: AlertStateTimeline) => {
+          return timeline.alertState?.isResolvedState;
+        });
+
+      if (isAlertResolved && resolvedAlertStateTimeline) {
+        // register the metric type so the catalog stays complete across refreshes.
+        const metricType: MetricType = new MetricType();
+        metricType.name = AlertMetricType.TimeToResolve;
+        metricType.description = "Time taken to resolve the alert";
+        metricType.unit = "seconds";
+        metricTypesMap[AlertMetricType.TimeToResolve] = metricType;
+
+        const timeToResolveMetric: MutableMetric = new MutableMetric();
+
+        timeToResolveMetric.projectId = alert.projectId;
+        timeToResolveMetric.primaryEntityId = alert.id!;
+        timeToResolveMetric.primaryEntityType = ServiceType.Alert;
+        timeToResolveMetric.name = AlertMetricType.TimeToResolve;
+        timeToResolveMetric.metricPointId = AlertMetricType.TimeToResolve;
+        timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          resolvedAlertStateTimeline?.startsAt ||
+            OneUptimeDate.getCurrentDate(),
+          alertStartsAt,
+        );
+        timeToResolveMetric.attributes = { ...baseMetricAttributes };
+        timeToResolveMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToResolveMetric.attributes,
+        );
+
+        timeToResolveMetric.time =
+          resolvedAlertStateTimeline?.startsAt ||
+          alert.createdAt ||
+          OneUptimeDate.getCurrentDate();
+        timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeToResolveMetric.time,
+        );
+        timeToResolveMetric.metricPointType = MetricPointType.Sum;
+        timeToResolveMetric.retentionDate = alertMetricRetentionDate;
+
+        itemsToSave.push(timeToResolveMetric);
+      }
+
+      if (isAlertResolved && resolvedAlertStateTimeline) {
+        // register the metric type so the catalog stays complete across refreshes.
+        const metricType: MetricType = new MetricType();
+        metricType.name = AlertMetricType.AlertDuration;
+        metricType.description = "Duration of the alert";
+        metricType.unit = "seconds";
+        metricTypesMap[AlertMetricType.AlertDuration] = metricType;
+
+        const alertEndsAt: Date =
+          resolvedAlertStateTimeline.startsAt || OneUptimeDate.getCurrentDate();
+
+        const alertDurationMetric: MutableMetric = new MutableMetric();
+
+        alertDurationMetric.projectId = alert.projectId;
+        alertDurationMetric.primaryEntityId = alert.id!;
+        alertDurationMetric.primaryEntityType = ServiceType.Alert;
+        alertDurationMetric.name = AlertMetricType.AlertDuration;
+        alertDurationMetric.metricPointId = AlertMetricType.AlertDuration;
+        alertDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          alertEndsAt,
+          alertStartsAt,
+        );
+        alertDurationMetric.attributes = { ...baseMetricAttributes };
+        alertDurationMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          alertDurationMetric.attributes,
+        );
+
+        alertDurationMetric.time = alertEndsAt;
+        alertDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          alertDurationMetric.time,
+        );
+        alertDurationMetric.metricPointType = MetricPointType.Sum;
+        alertDurationMetric.retentionDate = alertMetricRetentionDate;
+
+        itemsToSave.push(alertDurationMetric);
+      }
+
+      await MutableMetricService.replaceEntityMetrics({
+        projectId: alert.projectId,
+        primaryEntityId: alert.id!,
+        primaryEntityType: ServiceType.Alert,
+        metricNames: Object.values(AlertMetricType),
+        metrics: itemsToSave,
+        retentionDate: alertMetricRetentionDate,
+      });
+
+      TelemetryUtil.indexMetricNameServiceNameMap({
+        metricNameServiceNameMap: metricTypesMap,
+        projectId: alert.projectId,
+      }).catch((err: Error) => {
+        logger.error(err, {
+          projectId: alert.projectId?.toString(),
+          alertId: alert.id?.toString(),
+        } as LogAttributes);
+      });
+    } finally {
+      if (metricRefreshMutex) {
+        try {
+          await Semaphore.release(metricRefreshMutex);
+        } catch (err) {
+          logger.error(
+            err as Error,
+            {
+              projectId: alert.projectId?.toString(),
+              alertId: alert.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+    }
+  }
+
+  @CaptureSpan()
+  public async isAlertResolved(data: { alertId: ObjectID }): Promise<boolean> {
+    const alert: Model | null = await this.findOneBy({
+      query: {
+        _id: data.alertId,
+      },
+      select: {
+        projectId: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      throw new BadDataException("Alert not found");
+    }
+
+    if (!alert.projectId) {
+      throw new BadDataException("Alert Project ID not found");
+    }
+
+    const resolvedAlertState: AlertState =
+      await AlertStateService.getResolvedAlertState({
+        projectId: alert.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentAlertStateOrder: number = alert.currentAlertState!.order!;
+    const resolvedAlertStateOrder: number = resolvedAlertState.order!;
+
+    if (currentAlertStateOrder >= resolvedAlertStateOrder) {
+      return true;
+    }
+
+    return false;
+  }
+
+  @CaptureSpan()
+  public async getAlertNumber(data: { alertId: ObjectID }): Promise<{
+    number: number | null;
+    numberWithPrefix: string | null;
+  }> {
+    const alert: Model | null = await this.findOneById({
+      id: data.alertId,
+      select: {
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      throw new BadDataException("Alert not found.");
+    }
+
+    return {
+      number: alert.alertNumber ? Number(alert.alertNumber) : null,
+      numberWithPrefix: alert.alertNumberWithPrefix || null,
+    };
+  }
+
+  @CaptureSpan()
+  public async resolveAlert(
+    alertId: ObjectID,
+    resolvedByUserId: ObjectID,
+  ): Promise<Model> {
+    const alert: Model | null = await this.findOneById({
+      id: alertId,
+      select: {
+        projectId: true,
+        alertNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert || !alert.projectId) {
+      throw new BadDataException("Alert not found.");
+    }
+
+    const alertState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        projectId: alert.projectId,
+        isResolvedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alertState || !alertState.id) {
+      throw new BadDataException(
+        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+      );
+    }
+
+    const alertStateTimeline: AlertStateTimeline = new AlertStateTimeline();
+    alertStateTimeline.projectId = alert.projectId;
+    alertStateTimeline.alertId = alertId;
+    alertStateTimeline.alertStateId = alertState.id;
+    alertStateTimeline.createdByUserId = resolvedByUserId;
+
+    await AlertStateTimelineService.create({
+      data: alertStateTimeline,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // store alert metric
+
+    return alert;
+  }
+
+  /**
+   * Ensures the currentAlertStateId of the alert matches the latest timeline entry.
+   */
+  public async refreshAlertCurrentStatus(alertId: ObjectID): Promise<void> {
+    const alert: Model | null = await this.findOneById({
+      id: alertId,
+      select: {
+        _id: true,
+        projectId: true,
+        currentAlertStateId: true,
+      },
+      props: { isRoot: true },
+    });
+    if (!alert || !alert.projectId) {
+      return;
+    }
+    const latestTimeline: AlertStateTimeline | null =
+      await AlertStateTimelineService.findOneBy({
+        query: {
+          alertId: alert.id!,
+          projectId: alert.projectId,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        select: {
+          alertStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    if (
+      latestTimeline &&
+      latestTimeline.alertStateId &&
+      alert.currentAlertStateId?.toString() !==
+        latestTimeline.alertStateId.toString()
+    ) {
+      await this.updateOneBy({
+        query: { _id: alert.id!.toString() },
+        data: {
+          currentAlertStateId: latestTimeline.alertStateId,
+        },
+        props: { isRoot: true },
+      });
+      logger.info(
+        `Updated Alert ${alert.id} current state to ${latestTimeline.alertStateId}`,
+        {
+          projectId: alert.projectId?.toString(),
+          alertId: alert.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+}
+export default new Service();

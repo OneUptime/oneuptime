@@ -28,4 +28,4 @@ jobs:
           cache-dependency-path: '**/package-lock.json'
 
       - name: Test Mobile Recorder
-        run: cd App/FeatureSet/MobileRecorder && npm install && npm run test
+        run: cd packages/App/FeatureSet/MobileRecorder && npm install && npm run test
