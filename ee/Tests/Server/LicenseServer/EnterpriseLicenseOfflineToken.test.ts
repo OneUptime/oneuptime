@@ -236,7 +236,12 @@ describe("POST /enterprise-license/:enterpriseLicenseId/offline-token", () => {
       ).toEqual([MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware]);
     });
 
-    test("the master admin gate refuses a request with no session", async () => {
+    /*
+     * No session is a 401 (the gate answers "who are you?" before "may you?"),
+     * so an Admin Dashboard tab whose access token expired refreshes the
+     * session and replays the request instead of showing "Unauthorized".
+     */
+    test("the master admin gate refuses a request with no session with 401", async () => {
       const next: NextFunction = jest.fn() as unknown as NextFunction;
 
       await MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware(
@@ -248,7 +253,7 @@ describe("POST /enterprise-license/:enterpriseLicenseId/offline-token", () => {
       expect(next).not.toHaveBeenCalled();
       expect(sendErrorResponseMock).toHaveBeenCalledTimes(1);
       expect((sendErrorResponseMock.mock.calls[0]?.[2] as Exception).code).toBe(
-        ExceptionCode.NotAuthorizedException,
+        ExceptionCode.NotAuthenticatedException,
       );
     });
 

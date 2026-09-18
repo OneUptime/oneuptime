@@ -40,6 +40,9 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import Exception from "Common/Types/Exception/Exception";
+import ExceptionCode from "Common/Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import ObjectID from "Common/Types/ObjectID";
@@ -114,6 +117,24 @@ const COMPLIANCE_ROUTE: string = "/team/compliance-status/:teamId";
  * and "does not exist" must be indistinguishable to the caller.
  */
 const REFUSAL: string = "You are not authorized to access this project's data.";
+
+/*
+ * The refusal for a caller with no credentials. Deliberately NOT the sentence
+ * above: it is decided before anything project-specific is consulted, so it is
+ * the same answer for every project and every id and discloses nothing - and
+ * it has to be a 401, because that is the only status the browser client
+ * answers by refreshing the session.
+ */
+function expectAuthenticationRequired(thrown: unknown): void {
+  expect(thrown).toBeInstanceOf(NotAuthenticatedException);
+  expect((thrown as Exception).code).toBe(
+    ExceptionCode.NotAuthenticatedException,
+  );
+  expect((thrown as Exception).code).toBe(401);
+  expect((thrown as Exception).message).toBe(
+    CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+  );
+}
 
 /** Enough of a findBy argument to assert on, without importing FindBy generics. */
 interface CapturedFindBy {
@@ -1170,7 +1191,8 @@ describe("GET /team/compliance-status/:teamId - authorisation", () => {
     );
   });
 
-  test("refuses an unauthenticated caller before reading anything", async () => {
+  // Was a BadDataException (400) before the credential check.
+  test("refuses an unauthenticated caller with 401 before reading anything", async () => {
     propsSpy.mockResolvedValue({} as never);
 
     const result: RouteCallResult = await callGetRoute({
@@ -1178,16 +1200,21 @@ describe("GET /team/compliance-status/:teamId - authorisation", () => {
       params: { teamId: teamId.toString() },
     });
 
-    expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+    expectAuthenticationRequired(result.thrownToNext);
     expect(teamFindOneById).not.toHaveBeenCalled();
     expect(complianceSpy).not.toHaveBeenCalled();
   });
 
-  test("refuses a public caller that merely supplies a tenantid header", async () => {
+  test("refuses a public caller that merely supplies a tenantid header with 401", async () => {
     /*
      * THE hole, in its exact shape: the request getUserMiddleware produces for
      * an anonymous caller who sent a `tenantid` header. A project id, no user,
      * no permissions - and, until this change, a complete compliance report.
+     *
+     * Refused as unauthenticated (401), not with the member refusal it used to
+     * get: this is also what a signed-in admin's request looks like once the
+     * access-token cookie has expired, and only a 401 makes the dashboard
+     * refresh the session and resend.
      */
     propsSpy.mockResolvedValue({
       tenantId: projectId,
@@ -1200,10 +1227,7 @@ describe("GET /team/compliance-status/:teamId - authorisation", () => {
       params: { teamId: teamId.toString() },
     });
 
-    expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-    expect((result.thrownToNext as NotAuthorizedException).message).toBe(
-      REFUSAL,
-    );
+    expectAuthenticationRequired(result.thrownToNext);
     expect(teamFindOneById).not.toHaveBeenCalled();
     expect(complianceSpy).not.toHaveBeenCalled();
   });
