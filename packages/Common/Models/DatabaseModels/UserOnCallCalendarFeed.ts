@@ -258,7 +258,7 @@ export default class UserOnCallCalendarFeed extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [],
+    read: [Permission.CurrentUser],
     update: [],
   })
   @TableColumn({

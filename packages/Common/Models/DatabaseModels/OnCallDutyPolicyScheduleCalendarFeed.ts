@@ -298,7 +298,7 @@ export default class OnCallDutyPolicyScheduleCalendarFeed extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [],
+    read: readPermissions,
     update: [],
   })
   @TableColumn({
