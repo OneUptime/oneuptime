@@ -612,6 +612,7 @@ describe("ApiKeyPermissionService update boundaries", () => {
           userPermission({
             permission: Permission.EditProjectApiKeyPermissions,
           }),
+          userPermission({ permission: Permission.ReadProjectApiKey }),
           userPermission({
             permission: Permission.TelemetryAdmin,
             labels: [allowedLabelId],
@@ -636,6 +637,7 @@ describe("ApiKeyPermissionService update boundaries", () => {
           userPermission({
             permission: Permission.EditProjectApiKeyPermissions,
           }),
+          userPermission({ permission: Permission.ReadProjectApiKey }),
           userPermission({
             permission: Permission.TelemetryAdmin,
             labels: [allowedLabelId],

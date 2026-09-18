@@ -444,11 +444,11 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
         projectId,
       );
       /*
-       * One query is the update hook's security snapshot of the affected
-       * permission rows; the third call proves the cached auth result was
+       * Two queries select the update's IDs and load their complete security
+       * snapshot; the fourth call proves the cached auth result was
        * evicted and had to be loaded again afterwards.
        */
-      expect(findBy).toHaveBeenCalledTimes(3);
+      expect(findBy).toHaveBeenCalledTimes(4);
     });
 
     test("deleting a permission clears the cache", async () => {
