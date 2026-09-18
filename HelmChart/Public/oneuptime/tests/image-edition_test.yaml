@@ -1,0 +1,320 @@
+# image.type picks the edition of every OneUptime image the chart runs.
+#
+# The Community and Enterprise images are published under the same tags, the
+# Enterprise ones with an "enterprise-" prefix (Scripts/GHA/build_docker_images.sh
+# pushes both for every image). For the App the two are really different
+# builds: the Enterprise image is the Community build plus ee/, and it carries
+# ONEUPTIME_EDITION=enterprise itself, which makes the App refuse to boot
+# without the Enterprise code. So everything below hangs on one helper,
+# oneuptime.image.tag, getting the prefix right for every workload:
+#
+#   - every component the chart deploys gets the prefix, including the ones
+#     that run the App image under another name (worker, telemetry-writer, the
+#     migrate Job and its wait-for-postgres init container);
+#   - a tag that already names the enterprise build is not prefixed twice;
+#   - the Community edition leaves every tag alone.
+#
+# IS_ENTERPRISE_EDITION is still emitted (informational and deprecated), and
+# the chart must never set ONEUPTIME_EDITION: an empty value from the chart
+# would override the Enterprise image's own marker.
+suite: image edition
+release:
+  name: oneuptime
+  namespace: oneuptime
+set:
+  # Opt the optional components in, so every image-bearing template renders.
+  home:
+    enabled: true
+  worker:
+    enabled: true
+  telemetryWriter:
+    enabled: true
+  runner:
+    enabled: true
+tests:
+  # --- enterprise-edition: every workload gets the enterprise- prefix. ------
+  - it: runs the Enterprise app image
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:enterprise-release
+
+  - it: runs the Enterprise app image for the worker
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:enterprise-release
+
+  - it: runs the Enterprise app image for the telemetry writer
+    templates:
+      - templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:enterprise-release
+
+  - it: migrates with the Enterprise app image, init container included
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:enterprise-release
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: docker.io/oneuptime/app:enterprise-release
+
+  - it: runs the Enterprise nginx image
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/nginx:enterprise-release
+
+  - it: runs the Enterprise nginx image for the sysctl init container too
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+      nginx.sysctlTuning.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: docker.io/oneuptime/nginx:enterprise-release
+
+  - it: runs the Enterprise probe image
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/probe:enterprise-release
+
+  - it: runs the Enterprise runner image
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/runner:enterprise-release
+
+  - it: runs the Enterprise home image
+    templates:
+      - templates/home.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/home:enterprise-release
+
+  # --- Tags ------------------------------------------------------------------
+  - it: prefixes a pinned version tag
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+      image.tag: 13.1.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:enterprise-13.1.0
+
+  - it: does not prefix a tag that already names the enterprise build
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+      image.tag: enterprise-13.1.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:enterprise-13.1.0
+
+  - it: does not prefix enterprise-release twice either
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+      image.tag: enterprise-release
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:enterprise-release
+
+  - it: keeps a custom registry and repository with the enterprise tag
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+      image.registry: ghcr.io
+      image.repository: oneuptime
+      image.tag: 13.1.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/oneuptime/app:enterprise-13.1.0
+
+  # --- community-edition (the default): tags as given. ----------------------
+  - it: runs the Community images by default
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:release
+
+  - it: keeps a pinned tag unchanged for the Community edition
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: community-edition
+      image.tag: 13.1.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/probe:13.1.0
+
+  - it: keeps the Community migrate Job on the Community image
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      image.type: community-edition
+      image.tag: 13.1.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:13.1.0
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: docker.io/oneuptime/app:13.1.0
+
+  # --- IS_ENTERPRISE_EDITION (informational) and ONEUPTIME_EDITION ----------
+  - it: still tells the Enterprise app IS_ENTERPRISE_EDITION=true
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: IS_ENTERPRISE_EDITION
+            value: "true"
+
+  - it: still tells the Community app IS_ENTERPRISE_EDITION=false
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: IS_ENTERPRISE_EDITION
+            value: "false"
+
+  - it: never sets ONEUPTIME_EDITION, which would override the image's marker
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "ONEUPTIME_EDITION")]
+
+  - it: never sets ONEUPTIME_EDITION on the worker either
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.type: enterprise-edition
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "ONEUPTIME_EDITION")]
+
+  # --- The schema -------------------------------------------------------------
+  - it: rejects an image.type that is neither edition
+    templates:
+      - templates/app.yaml
+    set:
+      image.type: hardened-edition
+    asserts:
+      - failedTemplate:
+          errorPattern: "image.type"

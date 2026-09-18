@@ -58,11 +58,16 @@ The docs are split into focused guides:
 
 | Edition            | Best for                                             | Included                                                                                             | Requirements  |
 |--------------------|-------------------------------------------------------|------------------------------------------------------------------------------------------------------|---------------|
-| Community Edition  | Getting started, small self-hosted deployments        | Fully featured OneUptime platform with the standard security posture.                                | None          |
-| Enterprise Edition | Regulated industries, teams with strict compliance    | Hardened container images with additional security controls; custom features and roadmap input; a dedicated engineer with 1-hour priority phone support; custom data residency and retention; private cloud or SaaS with annual invoicing. | Valid license |
+| Community Edition  | Getting started, small self-hosted deployments        | The OneUptime platform, Apache-2.0 licensed.                                                         | None          |
+| Enterprise Edition | Regulated industries, teams with strict compliance    | Everything in the Community Edition plus the enterprise features (SSO/SAML, OIDC, SCIM, audit logs, team compliance, instance health dashboards), licensed under the OneUptime Enterprise License; custom features and roadmap input; a dedicated engineer with 1-hour priority phone support; custom data residency and retention; private cloud or SaaS with annual invoicing. | Valid license |
 
 Select the edition with `image.type` (`community-edition` or
 `enterprise-edition`) — see the [Configuration reference](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#images).
+`enterprise-edition` runs the Enterprise Edition images: the same tags with an
+`enterprise-` prefix. Without a valid license (after a 14-day grace period)
+enterprise configuration becomes read-only and the enterprise admin dashboards
+are locked. Everything already configured keeps working — SSO, SCIM and audit
+logging never stop — and core monitoring is never affected.
 
 ## Uninstalling
 
