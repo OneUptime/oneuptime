@@ -36,8 +36,10 @@ import {
   jest,
 } from "@jest/globals";
 
-// The real creators import the template sandbox, but these fixtures do not
-// execute JavaScript templates or need the native isolated-vm addon.
+/*
+ * The real creators import the template sandbox, but these fixtures do not
+ * execute JavaScript templates or need the native isolated-vm addon.
+ */
 jest.mock("isolated-vm", () => {
   return {};
 });
@@ -289,8 +291,10 @@ describe.each<EntityKind>(["alert", "incident"])(
           recordCreation(entity);
           return entity;
         });
-      // Owner assignment happens after persistence. Its completion time is
-      // deliberately later than the database's createdAt timestamp.
+      /*
+       * Owner assignment happens after persistence. Its completion time is
+       * deliberately later than the database's createdAt timestamp.
+       */
       jest.spyOn(AlertService, "addOwners").mockImplementation(async () => {
         currentDate = AFTER_OWNERS_AT;
       });

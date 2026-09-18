@@ -127,10 +127,12 @@ describe("monitor summary action timestamps", () => {
 
       renderEvents([first, second]);
 
-      const firstAction: HTMLElement = screen.getByText(first.title)
-        .parentElement!;
-      const secondAction: HTMLElement = screen.getByText(second.title)
-        .parentElement!;
+      const firstAction: HTMLElement = screen.getByText(
+        first.title,
+      ).parentElement!;
+      const secondAction: HTMLElement = screen.getByText(
+        second.title,
+      ).parentElement!;
 
       expect(
         within(firstAction).getByText(
@@ -152,7 +154,9 @@ describe("monitor summary action timestamps", () => {
 
     it("preserves the original creation date when the next evaluation arrives", () => {
       const { rerender } = render(
-        <EvaluationLogList evaluationSummary={summary([activeEvent(entity)])} />,
+        <EvaluationLogList
+          evaluationSummary={summary([activeEvent(entity)])}
+        />,
       );
 
       rerender(
@@ -220,8 +224,9 @@ describe("monitor summary action timestamps", () => {
       const restored: MonitorSummarySnapshot =
         MonitorSummarySnapshotUtil.deserialize(stored)!;
       const persistedSummary: MonitorEvaluationSummary =
-        MonitorSummarySnapshotUtil.toSummaryInfoProps(restored)
-          .evaluationSummary!;
+        MonitorSummarySnapshotUtil.toSummaryInfoProps(
+          restored,
+        ).evaluationSummary!;
       const restoredEvent: MonitorEvaluationEvent = persistedSummary.events[0]!;
 
       expect(restoredEvent.at).toBeInstanceOf(Date);
@@ -321,7 +326,9 @@ describe("monitor summary action timestamps", () => {
         }),
       ]);
 
-      expect(screen.queryByText(/created at|Checked at/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/created at|Checked at/i),
+      ).not.toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: `View ${entity}` }),
       ).toBeVisible();
@@ -348,9 +355,7 @@ describe("monitor summary action timestamps", () => {
         },
       ]);
 
-      expect(
-        screen.getByText(`${label} Sep 18 2026, 11:32 BST`),
-      ).toBeVisible();
+      expect(screen.getByText(`${label} Sep 18 2026, 11:32 BST`)).toBeVisible();
       expect(
         screen.queryByText(/Alert created at|Incident created at/),
       ).not.toBeInTheDocument();
