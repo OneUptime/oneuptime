@@ -36,8 +36,10 @@ publish_to_npm() {
     local npm_package_name
     npm_package_name=$(node -p "require('./$directory_name/package.json').name")
 
-    # Check if this version is already published on npm
-    if npm view "$npm_package_name@$package_version" version 2>/dev/null; then
+    # Check if this version is already published on npm.
+    # `--prefer-online` for the same reason as the wait loop below: without it
+    # this read can be answered from a packument npm cached earlier in the run.
+    if npm view --prefer-online "$npm_package_name@$package_version" version 2>/dev/null; then
         echo "$npm_package_name@$package_version is already published on npm. Skipping."
         return 0
     fi
@@ -68,19 +70,31 @@ publish_to_npm() {
 # Publish Common first - other packages depend on it
 publish_to_npm "packages/Common"
 
-# Wait for @oneuptime/common to be available on the npm registry.
-# There is a propagation delay after publishing, so we poll until
-# the version resolves (up to ~5 minutes).
+# Wait for @oneuptime/common to be readable from the registry, because the
+# packages below install against it by version.
+#
+# `--prefer-online` is load-bearing, not belt and braces. registry.npmjs.org
+# serves packuments with max-age=300, and npm answers from its own cache
+# without revalidating until that expires. The `npm view` in publish_to_npm
+# above therefore seeds a cached packument that does not contain the version
+# being published, and every poll here reads that same stale copy — so the
+# loop could not observe the new version until the cache entry aged out,
+# which is the five minutes this loop used to allow in total. 13.0.7 timed
+# out here after publishing successfully, skipping the CLI and React Native
+# publishes and every job gated behind them.
+#
+# The budget is raised to 15 minutes as well: @oneuptime/common unpacks to
+# ~156 MB, and real propagation of a tarball that size is not instant.
 echo "Waiting for @oneuptime/common@$package_version to be available on npm..."
-max_attempts=30
-attempt=0
-until npm view "@oneuptime/common@$package_version" version 2>/dev/null; do
-    attempt=$((attempt + 1))
+max_attempts=90
+attempt=1
+until npm view --prefer-online "@oneuptime/common@$package_version" version 2>/dev/null; do
     if [ "$attempt" -ge "$max_attempts" ]; then
-        echo "Timed out waiting for @oneuptime/common@$package_version to appear on npm"
+        echo "Timed out waiting for @oneuptime/common@$package_version to appear on npm after $((max_attempts * 10))s"
         exit 1
     fi
     echo "Attempt $attempt/$max_attempts - not available yet, retrying in 10s..."
+    attempt=$((attempt + 1))
     sleep 10
 done
 echo "@oneuptime/common@$package_version is now available on npm"

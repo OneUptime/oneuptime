@@ -21,6 +21,43 @@ describe("PublishAllPackages", () => {
     expect(mobilePublish).toBeGreaterThan(waitEnd);
   });
 
+  /*
+   * 13.0.7 published @oneuptime/common successfully and then failed this
+   * wait, which skipped the CLI and React Native publishes and every job
+   * gated behind them. registry.npmjs.org serves packuments with
+   * max-age=300 and npm answers from its cache until that expires, so the
+   * already-published check seeded a document without the new version and
+   * the poll re-read it for the whole five minutes it was allowed.
+   */
+  it("reads the registry rather than npm's cache when polling", () => {
+    // Command lines only — the comment above the loop says "npm view" too.
+    const registryReads: Array<string> = SOURCE.split("\n").filter(
+      (line: string): boolean => {
+        return line.includes("npm view") && !line.trim().startsWith("#");
+      },
+    );
+
+    expect(registryReads).toHaveLength(2);
+
+    for (const read of registryReads) {
+      expect(read).toContain("npm view --prefer-online");
+    }
+  });
+
+  it("allows longer than one packument cache lifetime for Common to appear", () => {
+    const attempts: RegExpMatchArray | null =
+      SOURCE.match(/max_attempts=(\d+)/u);
+    const delay: RegExpMatchArray | null = SOURCE.match(/sleep (\d+)/u);
+
+    expect(attempts).not.toBeNull();
+    expect(delay).not.toBeNull();
+
+    const budgetInSeconds: number = Number(attempts![1]) * Number(delay![1]);
+
+    // The registry's own max-age is 300s; wait comfortably past it.
+    expect(budgetInSeconds).toBeGreaterThan(300);
+  });
+
   it("isolates each nested package publish so the next path starts at the repo root", () => {
     const functionBody: string = SOURCE.slice(
       SOURCE.indexOf("publish_to_npm()"),
