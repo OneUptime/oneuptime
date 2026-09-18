@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "Diese Schalter bestimmen, welche Benachrichtigungen Sie erreichen, nicht wie viele E-Mails daraus entstehen.",
   "Reduce routine emails or change email rollup in Email Preferences": "Routine-E-Mails reduzieren oder E-Mail-Zusammenfassung ändern in den E-Mail-Einstellungen",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Deaktivieren Sie E-Mails über Notizen, das Hinzufügen als Eigentümer, neue Monitore und Statusseiten, zu Episoden hinzugefügte Elemente und Änderungen der Mitgliedschaft in Rufbereitschaftsrichtlinien.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Ihre Einstellungen für das Erstellen von Vorfällen und Warnungen, Statusänderungen, Erinnerungen, Zuweisungen, Monitorzustand und Rufbereitschaftsschichten bleiben unverändert. Andere Benachrichtigungskanäle, Alarmierung sowie Konto- und Abrechnungs-E-Mails sind nicht betroffen."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Ihre Einstellungen für das Erstellen von Vorfällen und Warnungen, Statusänderungen, Erinnerungen, Zuweisungen, Monitorzustand und Rufbereitschaftsschichten bleiben unverändert. Andere Benachrichtigungskanäle, Alarmierung sowie Konto- und Abrechnungs-E-Mails sind nicht betroffen.",
+  "Schedule Timeline": "Zeitachse der Bereitschaftspläne",
+  "Timeline View": "Zeitachsenansicht",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "Alle Bereitschaftspläne dieses Projekts nebeneinander: wer Bereitschaft hat, wer wen vertritt und wo niemand erreichbar ist.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "Wer in jedem Bereitschaftsplan dieses Teams Bereitschaft hat, Woche für Woche oder Monat für Monat.",
+  "No on-call schedules yet": "Noch keine Bereitschaftspläne",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "Erstellen Sie einen Bereitschaftsplan, und jede Rotation in diesem Projekt erscheint hier nebeneinander.",
+  "This team does not own any on-call schedules yet": "Dieses Team besitzt noch keine Bereitschaftspläne",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Fügen Sie dieses Team auf der Registerkarte „Eigentümer“ eines Plans als Eigentümer hinzu, und seine Rotationen erscheinen hier."
 }

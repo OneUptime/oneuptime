@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "Questi interruttori decidono quali notifiche ti raggiungono, non quante e-mail diventano.",
   "Reduce routine emails or change email rollup in Email Preferences": "Riduci le e-mail di routine o modifica il raggruppamento e-mail nelle preferenze e-mail",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Disattiva le e-mail su note, aggiunta come proprietario, nuovi monitor e pagine di stato, elementi aggiunti agli episodi e modifiche di appartenenza alle policy di reperibilità.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Le tue scelte per creazione di incidenti e avvisi, cambi di stato, promemoria, assegnazioni, salute dei monitor e turni di reperibilità restano invariate. Altri canali di notifica, le chiamate di reperibilità e le e-mail di account e fatturazione non sono interessati."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Le tue scelte per creazione di incidenti e avvisi, cambi di stato, promemoria, assegnazioni, salute dei monitor e turni di reperibilità restano invariate. Altri canali di notifica, le chiamate di reperibilità e le e-mail di account e fatturazione non sono interessati.",
+  "Schedule Timeline": "Cronologia delle reperibilità",
+  "Timeline View": "Vista cronologica",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "Tutte le pianificazioni di reperibilità di questo progetto affiancate: chi è reperibile, chi sostituisce chi e dove non c'è nessuno.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "Chi è reperibile in ogni pianificazione di questo team, settimana per settimana o mese per mese.",
+  "No on-call schedules yet": "Nessuna pianificazione di reperibilità",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "Crea una pianificazione di reperibilità e ogni rotazione di questo progetto apparirà qui, affiancata alle altre.",
+  "This team does not own any on-call schedules yet": "Questo team non possiede ancora pianificazioni di reperibilità",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Aggiungi questo team come proprietario nella scheda Proprietari di una pianificazione e le sue rotazioni appariranno qui."
 }

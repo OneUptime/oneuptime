@@ -67,6 +67,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon: IconProp.Calendar,
         },
         /*
+         * Every schedule on one week / month grid. Directly under the list
+         * it visualises, since "who is on call across all of these" is the
+         * question the list cannot answer.
+         */
+        {
+          link: {
+            title: "Schedule Timeline",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE] as Route,
+            ),
+          },
+          icon: IconProp.ViewColumns,
+        },
+        /*
          * Next to the schedules it exports: the project-wide feed and the
          * pointers to the personal and per-schedule links live here.
          */

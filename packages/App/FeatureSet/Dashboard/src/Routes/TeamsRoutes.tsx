@@ -9,6 +9,7 @@ import TeamsViewMembers from "../Pages/Teams/View/Members";
 import TeamsViewPermissions from "../Pages/Teams/View/Permissions";
 import TeamsViewBlockPermissions from "../Pages/Teams/View/BlockPermissions";
 import TeamsViewCompliance from "../Pages/Teams/View/Compliance";
+import TeamsViewOnCallSchedules from "../Pages/Teams/View/OnCallSchedules";
 import TeamsViewCustomFields from "../Pages/Teams/View/CustomFields";
 import TeamsViewDelete from "../Pages/Teams/View/Delete";
 
@@ -63,6 +64,17 @@ const TeamsRoutes: FunctionComponent<ComponentProps> = (
             <TeamsViewBlockPermissions
               {...props}
               pageRoute={RouteMap[PageMap.TEAM_VIEW_BLOCK_PERMISSIONS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.TEAM_VIEW_ON_CALL_SCHEDULES,
+          )}
+          element={
+            <TeamsViewOnCallSchedules
+              {...props}
+              pageRoute={RouteMap[PageMap.TEAM_VIEW_ON_CALL_SCHEDULES] as Route}
             />
           }
         />

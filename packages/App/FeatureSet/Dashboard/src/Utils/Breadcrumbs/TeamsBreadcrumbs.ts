@@ -40,6 +40,12 @@ export function getTeamsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Team",
       "Compliance",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW_ON_CALL_SCHEDULES, [
+      "Project",
+      "Teams",
+      "View Team",
+      "On-Call Schedules",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW_CUSTOM_FIELDS, [
       "Project",
       "Teams",

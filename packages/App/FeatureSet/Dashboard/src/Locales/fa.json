@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "این کلیدها تعیین می‌کنند کدام اعلان‌ها به شما برسد، نه اینکه در مجموع چقدر ایمیل تولید کنند.",
   "Reduce routine emails or change email rollup in Email Preferences": "کاهش ایمیل‌های روتین یا تغییر تجمیع ایمیل در ترجیحات ایمیل",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "ایمیل‌های مربوط به یادداشت‌ها، افزوده شدن به‌عنوان مالک، مانیتورها و صفحات وضعیت جدید، موردهای افزوده‌شده به اپیزودها و تغییرهای عضویت سیاست آنکال را خاموش کنید.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "انتخاب‌های شما برای ساخت حادثه و هشدار، تغییر وضعیت، یادآوری‌ها، تخصیص‌ها، سلامت مانیتور و نوبت‌های آنکال دست‌نخورده می‌ماند. سایر کانال‌های اعلان، فراخوان‌ها و ایمیل‌های حساب و صورت‌حساب تحت تأثیر قرار نمی‌گیرند."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "انتخاب‌های شما برای ساخت حادثه و هشدار، تغییر وضعیت، یادآوری‌ها، تخصیص‌ها، سلامت مانیتور و نوبت‌های آنکال دست‌نخورده می‌ماند. سایر کانال‌های اعلان، فراخوان‌ها و ایمیل‌های حساب و صورت‌حساب تحت تأثیر قرار نمی‌گیرند.",
+  "Schedule Timeline": "خط زمانی زمان‌بندی‌ها",
+  "Timeline View": "نمای خط زمانی",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "همه زمان‌بندی‌های آنکال این پروژه در کنار هم: چه کسی آنکال است، چه کسی جای چه کسی را پوشش می‌دهد و کجا هیچ‌کس نیست.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "چه کسی در هر زمان‌بندی متعلق به این تیم آنکال است، هفته به هفته یا ماه به ماه.",
+  "No on-call schedules yet": "هنوز هیچ زمان‌بندی آنکالی وجود ندارد",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "یک زمان‌بندی آنکال بسازید تا همه چرخش‌های این پروژه اینجا در کنار هم نمایش داده شوند.",
+  "This team does not own any on-call schedules yet": "این تیم هنوز مالک هیچ زمان‌بندی آنکالی نیست",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "این تیم را در زبانه مالکان یک زمان‌بندی به‌عنوان مالک اضافه کنید تا چرخش‌های آن اینجا نمایش داده شوند."
 }

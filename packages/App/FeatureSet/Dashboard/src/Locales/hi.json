@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "ये स्विच यह तय करते हैं कि कौन-सी सूचनाएँ आप तक पहुँचें, यह नहीं कि वे कितने ईमेल बनें।",
   "Reduce routine emails or change email rollup in Email Preferences": "ईमेल प्राथमिकताओं में नियमित ईमेल घटाएँ या ईमेल रोलअप बदलें",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "नोट्स, स्वामी के रूप में जोड़े जाने, नए मॉनिटर और स्थिति पृष्ठों, एपिसोड में जोड़ी गई वस्तुओं, और ऑन-कॉल नीति सदस्यता में बदलाव से जुड़े ईमेल बंद करें।",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "इंसिडेंट और अलर्ट बनने, स्थिति बदलने, रिमाइंडर, असाइनमेंट, मॉनिटर स्वास्थ्य और ऑन-कॉल शिफ्ट के लिए आपके विकल्प जैसे हैं वैसे ही रहते हैं। अन्य सूचना चैनल, ऑन-कॉल पेजिंग, खाता और बिलिंग ईमेल अप्रभावित रहते हैं।"
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "इंसिडेंट और अलर्ट बनने, स्थिति बदलने, रिमाइंडर, असाइनमेंट, मॉनिटर स्वास्थ्य और ऑन-कॉल शिफ्ट के लिए आपके विकल्प जैसे हैं वैसे ही रहते हैं। अन्य सूचना चैनल, ऑन-कॉल पेजिंग, खाता और बिलिंग ईमेल अप्रभावित रहते हैं।",
+  "Schedule Timeline": "शेड्यूल टाइमलाइन",
+  "Timeline View": "टाइमलाइन व्यू",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "इस प्रोजेक्ट के सभी ऑन-कॉल शेड्यूल एक साथ: कौन ऑन-कॉल है, कौन किसकी जगह कवर कर रहा है, और कहाँ कोई नहीं है।",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "इस टीम के हर शेड्यूल पर कौन ऑन-कॉल है, सप्ताह-दर-सप्ताह या महीने-दर-महीने।",
+  "No on-call schedules yet": "अभी तक कोई ऑन-कॉल शेड्यूल नहीं",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "एक ऑन-कॉल शेड्यूल बनाएँ और इस प्रोजेक्ट का हर रोटेशन यहाँ एक साथ दिखाई देगा।",
+  "This team does not own any on-call schedules yet": "इस टीम के पास अभी तक कोई ऑन-कॉल शेड्यूल नहीं है",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "किसी शेड्यूल के मालिक टैब पर इस टीम को मालिक के रूप में जोड़ें और उसके रोटेशन यहाँ दिखाई देंगे।"
 }

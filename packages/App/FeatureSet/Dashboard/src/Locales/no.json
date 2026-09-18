@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "Disse bryterne avgjør hvilke varsler som når deg, ikke hvor mye e-post det blir.",
   "Reduce routine emails or change email rollup in Email Preferences": "Reduser rutine-e-poster eller endre e-postsamling under e-postinnstillinger",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Slå av e-poster om notater, å bli lagt til som eier, nye overvåkinger og statussider, elementer lagt til i episoder og endringer i medlemskap i vaktordninger.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Valgene dine for oppretting av hendelser og varsler, tilstandsendringer, påminnelser, tildelinger, overvåkingstilstand og vakter forblir som de er. Andre varslingskanaler, vaktoppkall og konto- og faktureringse-poster påvirkes ikke."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Valgene dine for oppretting av hendelser og varsler, tilstandsendringer, påminnelser, tildelinger, overvåkingstilstand og vakter forblir som de er. Andre varslingskanaler, vaktoppkall og konto- og faktureringse-poster påvirkes ikke.",
+  "Schedule Timeline": "Tidslinje for vaktplaner",
+  "Timeline View": "Tidslinjevisning",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "Alle vaktplaner i dette prosjektet side om side: hvem har vakt, hvem dekker for hvem, og hvor ingen er tilgjengelig.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "Hvem har vakt på hver vaktplan dette teamet eier, uke for uke eller måned for måned.",
+  "No on-call schedules yet": "Ingen vaktplaner ennå",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "Opprett en vaktplan, så vises hver rotasjon i dette prosjektet her side om side.",
+  "This team does not own any on-call schedules yet": "Dette teamet eier ingen vaktplaner ennå",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Legg til dette teamet som eier på fanen Eiere på en vaktplan, så vises rotasjonene her."
 }
