@@ -271,6 +271,8 @@ import OnCallCalendarFeedRateLimit, {
 import OnCallDutyPolicyScheduleCalendarFeedService from "../../../Server/Services/OnCallDutyPolicyScheduleCalendarFeedService";
 import ProjectOnCallCalendarFeedService from "../../../Server/Services/ProjectOnCallCalendarFeedService";
 import UserOnCallCalendarFeedService from "../../../Server/Services/UserOnCallCalendarFeedService";
+import SelectPermission from "../../../Server/Types/Database/Permissions/SelectPermission";
+import Select from "../../../Server/Types/Database/Select";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -294,6 +296,9 @@ import OnCallCalendarFeedUrls, {
   PROTOCOL_WARNING,
 } from "../../../Server/Utils/OnCall/OnCallCalendarFeedUrls";
 import Response from "../../../Server/Utils/Response";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import OnCallDutyPolicyScheduleCalendarFeed from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
+import ProjectOnCallCalendarFeed from "../../../Models/DatabaseModels/ProjectOnCallCalendarFeed";
 import Protocol from "../../../Types/API/Protocol";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../Types/Date";
@@ -366,9 +371,7 @@ interface HttpResult {
 interface CapturedFindOneBy {
   query: Record<string, unknown>;
   select?: Record<string, unknown> | undefined;
-  props?:
-    | { isRoot?: boolean | undefined; ignoreHooks?: boolean | undefined }
-    | undefined;
+  props?: DatabaseCommonInteractionProps | undefined;
 }
 
 interface CapturedUpdate {
@@ -458,11 +461,13 @@ function routeFor(method: string, uri: string): RegisteredRoute {
 function buildMemberProps(data: {
   projectId: ObjectID | undefined;
   userId: ObjectID | undefined;
+  permission?: Permission | undefined;
 }): DatabaseCommonInteractionProps {
   const memberPermission: UserPermission = {
     _type: "UserPermission",
-    permission: Permission.ProjectMember,
+    permission: data.permission ?? Permission.ProjectMember,
     labelIds: [],
+    isBlockPermission: false,
   };
 
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
@@ -4231,6 +4236,237 @@ describe("project-feed session routes", () => {
     }
   });
 });
+
+/*
+ * Regression: these routes selected previousTokenExpiresAt as a caller even
+ * though the column denied every reader. Returning fixture rows from a
+ * mocked service hid the failure, including on an unpublished feed. Keep the
+ * HTTP routes real and enforce the model's actual column permissions on the
+ * exact select each route sends before the in-memory lookup runs.
+ */
+describe.each([
+  OnCallCalendarFeedKind.Schedule,
+  OnCallCalendarFeedKind.Project,
+])(
+  "%s status routes with real select permissions",
+  (kind: OnCallCalendarFeedKind) => {
+    let scheduleId: ObjectID;
+    let rows: Array<FeedRowFixture>;
+    let token: string;
+    let find: jest.SpyInstance;
+    let findToken: jest.SpyInstance;
+    let create: jest.SpyInstance;
+    let update: jest.SpyInstance;
+    let rotate: jest.SpyInstance;
+
+    function route(action: "current" | "publish" | "rotate"): string {
+      const routes: Record<typeof action, string> =
+        kind === OnCallCalendarFeedKind.Schedule
+          ? {
+              current: SCHEDULE_FEED_CURRENT_ROUTE,
+              publish: SCHEDULE_FEED_PUBLISH_ROUTE,
+              rotate: SCHEDULE_FEED_ROTATE_ROUTE,
+            }
+          : {
+              current: PROJECT_FEED_CURRENT_ROUTE,
+              publish: PROJECT_FEED_PUBLISH_ROUTE,
+              rotate: PROJECT_FEED_ROTATE_ROUTE,
+            };
+
+      return `${API_PREFIX}${routes[action].replace(":scheduleId", scheduleId.toString())}`;
+    }
+
+    function addFeed(previousTokenExpiresAt?: Date): FeedRowFixture {
+      const makeRow: typeof scheduleRow =
+        kind === OnCallCalendarFeedKind.Schedule ? scheduleRow : projectRow;
+      const row: FeedRowFixture = makeRow({
+        projectId,
+        onCallDutyPolicyScheduleId: scheduleId,
+        tokenHash: CalendarFeedToken.hash(token),
+        previousTokenExpiresAt,
+      });
+
+      rows.push(row);
+      return row;
+    }
+
+    beforeEach(() => {
+      scheduleId = ObjectID.generate();
+      rows = [];
+      token = CalendarFeedToken.mint();
+
+      const isSchedule: boolean = kind === OnCallCalendarFeedKind.Schedule;
+      const modelType:
+        | typeof OnCallDutyPolicyScheduleCalendarFeed
+        | typeof ProjectOnCallCalendarFeed = isSchedule
+        ? OnCallDutyPolicyScheduleCalendarFeed
+        : ProjectOnCallCalendarFeed;
+
+      find = isSchedule ? scheduleFindOneBy : projectFindOneBy;
+      findToken = isSchedule ? scheduleFindOneById : projectFindOneById;
+      create = isSchedule ? scheduleCreate : projectCreate;
+      update = isSchedule ? scheduleUpdateOneBy : projectUpdateOneBy;
+      rotate = isSchedule ? scheduleRotate : projectRotate;
+
+      find.mockImplementation(async (args: CapturedFindOneBy) => {
+        expect(args.props?.isRoot).not.toBe(true);
+        SelectPermission.checkSelectPermission(
+          modelType,
+          args.select as Select<BaseModel>,
+          args.props || {},
+        );
+
+        return await lookupFrom(rows)(args);
+      });
+      findToken.mockImplementation(async (args: { id: ObjectID }) => {
+        const row: FeedRowFixture | undefined = rows.find(
+          (candidate: FeedRowFixture) => {
+            return candidate.id.toString() === args.id.toString();
+          },
+        );
+
+        return row ? { id: row.id, token, tokenHash: row.tokenHash } : null;
+      });
+    });
+
+    test("a viewer can read an unpublished feed without a column permission error", async () => {
+      propsSpy.mockResolvedValue(
+        buildMemberProps({ projectId, userId, permission: Permission.Viewer }),
+      );
+
+      const result: HttpResult = await request(route("current"));
+
+      expect(result.status).toBe(200);
+      expect(json(result)).toEqual(buildAbsentFeedStatus(kind));
+      expect(findToken).not.toHaveBeenCalled();
+    });
+
+    test.each([undefined, at("2026-10-01T12:00:00Z")])(
+      "a viewer can read the link and expiration %p without exposing token hashes",
+      async (expiresAt: Date | undefined) => {
+        propsSpy.mockResolvedValue(
+          buildMemberProps({
+            projectId,
+            userId,
+            permission: Permission.Viewer,
+          }),
+        );
+        const row: FeedRowFixture = addFeed(expiresAt);
+        row.previousTokenHash = CalendarFeedToken.hash(
+          CalendarFeedToken.mint(),
+        );
+
+        const result: HttpResult = await request(route("current"));
+        const status: Record<string, unknown> = json(result);
+
+        expect(result.status).toBe(200);
+        expect(status["exists"]).toBe(true);
+        expect(status["needsRegeneration"]).toBe(false);
+        expect(status["previousTokenExpiresAt"]).toBe(
+          expiresAt?.toISOString() ?? null,
+        );
+        expect((status["urls"] as Record<string, string>)["https"]).toContain(
+          token,
+        );
+        expect(result.body).not.toContain(row.tokenHash);
+        expect(result.body).not.toContain(row.previousTokenHash);
+        expect(status).not.toHaveProperty("token");
+        expect(status).not.toHaveProperty("tokenHash");
+        expect(status).not.toHaveProperty("previousTokenHash");
+
+        const read: CapturedFindOneBy = find.mock
+          .calls[0]?.[0] as CapturedFindOneBy;
+        expect(read.select?.["previousTokenExpiresAt"]).toBe(true);
+        for (const secret of ["token", "tokenHash", "previousTokenHash"]) {
+          expect(read.select?.[secret]).toBeUndefined();
+        }
+        expect(findToken.mock.invocationCallOrder[0]).toBeGreaterThan(
+          find.mock.invocationCallOrder[0] as number,
+        );
+      },
+    );
+
+    test("first publish passes both caller status reads and returns a null expiration", async () => {
+      create.mockImplementation(async () => {
+        return addFeed();
+      });
+
+      const result: HttpResult = await postJson(route("publish"));
+
+      expect(result.status).toBe(200);
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(find).toHaveBeenCalledTimes(2);
+      expect(json(result)["previousTokenExpiresAt"]).toBeNull();
+      expect(
+        (json(result)["urls"] as Record<string, string>)["https"],
+      ).toContain(token);
+    });
+
+    test("rotation passes both caller status reads and returns the previous link's expiration", async () => {
+      const row: FeedRowFixture = addFeed();
+      const expiresAt: Date = at("2026-10-01T12:00:00Z");
+      const newToken: string = CalendarFeedToken.mint();
+
+      rotate.mockImplementation(async (): Promise<CalendarFeedRotation> => {
+        row.previousTokenHash = row.tokenHash;
+        row.previousTokenExpiresAt = expiresAt;
+        row.tokenHash = CalendarFeedToken.hash(newToken);
+        row.tokenHint = newToken.slice(-4);
+        row.rotatedAt = NOW;
+
+        return {
+          token: newToken,
+          tokenHash: row.tokenHash,
+          tokenHint: row.tokenHint,
+          rotatedAt: NOW,
+          previousTokenHash: row.previousTokenHash,
+          previousTokenExpiresAt: expiresAt,
+        };
+      });
+
+      const result: HttpResult = await postJson(route("rotate"));
+
+      expect(result.status).toBe(200);
+      expect(find).toHaveBeenCalledTimes(2);
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(rotate).toHaveBeenCalledTimes(1);
+      expect(json(result)["previousTokenExpiresAt"]).toBe(
+        expiresAt.toISOString(),
+      );
+      expect(
+        (json(result)["urls"] as Record<string, string>)["https"],
+      ).toContain(newToken);
+      expect(findToken).not.toHaveBeenCalled();
+      expect(result.body).not.toContain(token);
+    });
+
+    test.each(["current", "publish", "rotate"] as const)(
+      "%s refuses a member without shared-feed read permissions before secrets or writes",
+      async (action: "current" | "publish" | "rotate") => {
+        addFeed();
+        propsSpy.mockResolvedValue(
+          buildMemberProps({
+            projectId,
+            userId,
+            permission: Permission.CurrentUser,
+          }),
+        );
+
+        const result: HttpResult =
+          action === "current"
+            ? await request(route(action))
+            : await postJson(route(action));
+
+        expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
+        expect(findToken).not.toHaveBeenCalled();
+        expect(create).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
+        expect(rotate).not.toHaveBeenCalled();
+        expect(result.body).not.toContain(token);
+      },
+    );
+  },
+);
 
 // -- Session route: /my-shifts --------------------------------------------------
 
