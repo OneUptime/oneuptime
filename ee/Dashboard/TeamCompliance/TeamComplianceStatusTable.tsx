@@ -191,10 +191,15 @@ const TeamComplianceStatusTable: React.ForwardRefExoticComponent<
 
     let content: ReactElement;
 
-    if (isLoading || !complianceStatus) {
-      content = <Loader />;
-    } else if (error) {
+    /*
+     * The error is checked before "no status yet": a FIRST read that fails
+     * leaves complianceStatus null for good, and checking that first kept
+     * the spinner up forever instead of saying what went wrong.
+     */
+    if (!isLoading && error) {
       content = <ErrorMessage message={error} />;
+    } else if (isLoading || !complianceStatus) {
+      content = <Loader />;
     } else if (complianceStatus.userComplianceStatuses.length === 0) {
       content = (
         <div className="text-center text-gray-500 py-8">

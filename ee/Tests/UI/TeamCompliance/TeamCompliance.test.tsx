@@ -265,6 +265,50 @@ describe("the member compliance status table", () => {
       expect(container).toBeEmptyDOMElement();
     });
   });
+
+  test("a first read that fails shows the error, not an endless spinner", async () => {
+    apiGet.mockRejectedValue(new Error("boom") as never);
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
+
+    render(<TeamComplianceStatusTable teamId={TEAM_ID} />);
+
+    expect(await screen.findByText("Compliance is down")).toBeInTheDocument();
+    expect(screen.queryByText("Jane Doe")).not.toBeInTheDocument();
+  });
+
+  test("a refresh that fails after a good read shows the error too", async () => {
+    const tableRef: React.RefObject<TeamComplianceStatusTableRef> =
+      React.createRef<TeamComplianceStatusTableRef>();
+
+    await renderTable(tableRef);
+
+    apiGet.mockRejectedValue(new Error("boom") as never);
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
+
+    await act(async () => {
+      tableRef.current?.refresh();
+    });
+
+    expect(await screen.findByText("Compliance is down")).toBeInTheDocument();
+  });
+
+  test("a successful refresh after a failure clears the error", async () => {
+    const tableRef: React.RefObject<TeamComplianceStatusTableRef> =
+      React.createRef<TeamComplianceStatusTableRef>();
+
+    apiGet.mockRejectedValueOnce(new Error("boom") as never);
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
+
+    render(<TeamComplianceStatusTable ref={tableRef} teamId={TEAM_ID} />);
+    expect(await screen.findByText("Compliance is down")).toBeInTheDocument();
+
+    await act(async () => {
+      tableRef.current?.refresh();
+    });
+
+    expect(await screen.findByText("Jane Doe")).toBeInTheDocument();
+    expect(screen.queryByText("Compliance is down")).not.toBeInTheDocument();
+  });
 });
 
 describe("the Compliance page", () => {
