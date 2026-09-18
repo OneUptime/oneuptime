@@ -19,10 +19,13 @@ import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
  *      not mention leaves the stored column alone, so an installation upgraded
  *      ahead of oneuptime.com cannot have its license blanked,
  *   3. one bad field no longer costs the whole day's sync,
- *   4. the gating and the report body, so the fix did not disturb them.
+ *   4. the gating and the report body, so the fix did not disturb them,
+ *   5. (since the job moved into the Enterprise license client) never
+ *      downgrading the stored license, skipping installations activated
+ *      offline, and refreshing this process's license cache after a write.
  *
- * The job registers itself through RunCron at import time and exports nothing,
- * so Cron is mocked to capture the handler and each test drives one tick.
+ * The job registers itself through RunCron at import time, so Cron is mocked
+ * to capture the handler and each test drives one tick.
  */
 
 type CronHandler = () => Promise<void>;
@@ -42,6 +45,7 @@ const mockCapturedJobs: Record<string, CapturedJob> = {};
 
 let mockBillingEnabled: boolean = false;
 let mockEnterpriseEdition: boolean = true;
+const mockRefreshLicense: jest.Mock = jest.fn();
 
 jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
   return {
@@ -89,6 +93,18 @@ jest.mock("Common/Server/Services/UserService", () => {
   };
 });
 
+// The provider is the job's collaborator here; its own behaviour has its own suite.
+jest.mock("../../../Server/License/LicenseProvider", () => {
+  return {
+    __esModule: true,
+    default: {
+      refresh: (...args: Array<unknown>): unknown => {
+        return mockRefreshLicense(...args);
+      },
+    },
+  };
+});
+
 /*
  * Only the two deployment flags are swapped; everything else in this module
  * stays real. They have to be live accessors rather than values, because
@@ -127,7 +143,8 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
  * TypeScript emits requires where the import sits, so an import hoisted above
  * those `let`s would touch them in their temporal dead zone.
  */
-import "../../../Server/License/Jobs/ReportUserCount";
+import { REPORT_USER_COUNT_JOB_NAME } from "../../../Server/License/Jobs/ReportUserCount";
+import { setTrustedLicenseKeysForTests } from "../../../Server/License/TrustedLicenseKeys";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import UserService from "Common/Server/Services/UserService";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
@@ -140,8 +157,21 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+import {
+  DAY_IN_MS,
+  generateEd25519,
+  KeyPair,
+  legacyToken,
+  signLicense,
+  trustedEntryFor,
+} from "./Helpers/LicenseTestKit";
 
 const JOB_NAME: string = "EnterpriseLicense:ReportUserCount";
+const SIGNING_KEY: KeyPair = generateEd25519();
+const EXPIRES_AT: Date = new Date(
+  Math.floor((Date.now() + 365 * DAY_IN_MS) / 1000) * 1000,
+);
+const SERVER_TOKEN: string = legacyToken("from-server");
 const LICENSE_KEY: string = "acme-license-key";
 const INSTANCE_ID: ObjectID = ObjectID.generate();
 
@@ -190,14 +220,14 @@ type ServerBodyFunction = (overrides?: JSONObject) => JSONObject;
 const serverBody: ServerBodyFunction = (overrides?: JSONObject): JSONObject => {
   return {
     companyName: "Acme Inc",
-    expiresAt: "2027-01-01T00:00:00.000Z",
+    expiresAt: EXPIRES_AT.toISOString(),
     licenseKey: LICENSE_KEY,
     userLimit: 150,
     currentUserCount: 3,
     userCountUpdatedAt: "2026-08-24T09:59:00.000Z",
     isEvaluationLicense: false,
     instances: [{ instanceId: INSTANCE_ID.toString(), host: "acme.internal" }],
-    token: "signed.jwt.token",
+    token: SERVER_TOKEN,
     ...overrides,
   };
 };
@@ -233,6 +263,8 @@ describe("EnterpriseLicense:ReportUserCount", () => {
 
     mockBillingEnabled = false;
     mockEnterpriseEdition = true;
+    mockRefreshLicense.mockResolvedValue(undefined);
+    setTrustedLicenseKeysForTests([trustedEntryFor(SIGNING_KEY)]);
 
     (GlobalConfigService.findOneById as unknown as SpiedApi).mockResolvedValue({
       enterpriseLicenseKey: LICENSE_KEY,
@@ -255,10 +287,15 @@ describe("EnterpriseLicense:ReportUserCount", () => {
   });
 
   afterEach(() => {
+    setTrustedLicenseKeysForTests(null);
     jest.restoreAllMocks();
   });
 
   describe("registration", () => {
+    it("registers under the job name core keeps a placeholder for", () => {
+      expect(REPORT_USER_COUNT_JOB_NAME).toBe(JOB_NAME);
+    });
+
     it("runs once a day and does not fire on boot", () => {
       const captured: CapturedJob | undefined = mockCapturedJobs[JOB_NAME];
 
@@ -278,12 +315,35 @@ describe("EnterpriseLicense:ReportUserCount", () => {
       expect(GlobalConfigService.updateOneById).not.toHaveBeenCalled();
     });
 
-    it("stays silent on a community edition install", async () => {
+    /*
+     * The job only exists where the Enterprise module is loaded, so the loaded
+     * module IS the edition. The raw IS_ENTERPRISE_EDITION variable no longer
+     * gates anything: an Enterprise image with it unset still reports.
+     */
+    it("reports whatever the raw IS_ENTERPRISE_EDITION variable says", async () => {
       mockEnterpriseEdition = false;
 
       await runTick();
 
+      expect(API.post).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * Activated by pasting a signed token: it holds no key, and it is offline
+     * on purpose. Calling home would only fail every day.
+     */
+    it("stays silent on an installation activated offline", async () => {
+      (
+        GlobalConfigService.findOneById as unknown as SpiedApi
+      ).mockResolvedValue({
+        enterpriseLicenseToken: signLicense(SIGNING_KEY),
+        instanceId: INSTANCE_ID,
+      } as unknown as GlobalConfig);
+
+      await runTick();
+
       expect(API.post).not.toHaveBeenCalled();
+      expect(GlobalConfigService.updateOneById).not.toHaveBeenCalled();
     });
 
     it("stays silent when no license key has been entered yet", async () => {
@@ -408,11 +468,9 @@ describe("EnterpriseLicense:ReportUserCount", () => {
 
       const update: JSONObject = getLicenseUpdate();
 
-      expect(update["enterpriseLicenseExpiresAt"]).toEqual(
-        new Date("2027-01-01T00:00:00.000Z"),
-      );
+      expect(update["enterpriseLicenseExpiresAt"]).toEqual(EXPIRES_AT);
       expect(update["enterpriseCompanyName"]).toBe("Acme Inc");
-      expect(update["enterpriseLicenseToken"]).toBe("signed.jwt.token");
+      expect(update["enterpriseLicenseToken"]).toBe(SERVER_TOKEN);
     });
 
     it("stores the deduplicated count across every instance, not this one's count", async () => {
@@ -531,9 +589,7 @@ describe("EnterpriseLicense:ReportUserCount", () => {
       const update: JSONObject = getLicenseUpdate();
 
       expect(update["enterpriseLicenseUserLimit"]).toBe(150);
-      expect(update["enterpriseLicenseExpiresAt"]).toEqual(
-        new Date("2027-01-01T00:00:00.000Z"),
-      );
+      expect(update["enterpriseLicenseExpiresAt"]).toEqual(EXPIRES_AT);
       expect(Object.keys(update)).not.toContain(
         "enterpriseLicenseCurrentUserCount",
       );
@@ -550,6 +606,84 @@ describe("EnterpriseLicense:ReportUserCount", () => {
       expect(update["enterpriseLicenseCurrentUserCount"]).toBe(3);
       expect(Object.keys(update)).not.toContain("enterpriseLicenseUserLimit");
       expect(logger.error).toHaveBeenCalled();
+    });
+  });
+  describe("never downgrading the stored license", () => {
+    const storeInstalled: (token: string) => void = (token: string): void => {
+      (
+        GlobalConfigService.findOneById as unknown as SpiedApi
+      ).mockResolvedValue({
+        enterpriseLicenseKey: LICENSE_KEY,
+        instanceId: INSTANCE_ID,
+        enterpriseLicenseToken: token,
+      } as unknown as GlobalConfig);
+    };
+
+    /*
+     * The failure this closes: a signing misconfiguration on oneuptime.com
+     * would, through this very job, replace a working license on every
+     * installation within a day.
+     */
+    it("keeps a verified license when the report brings back a legacy one", async () => {
+      storeInstalled(signLicense(SIGNING_KEY));
+      respondWith(serverBody({ userLimit: 100_000 }));
+
+      await runTick();
+
+      const update: JSONObject = getLicenseUpdate();
+
+      expect(Object.keys(update)).not.toContain("enterpriseLicenseToken");
+      expect(Object.keys(update)).not.toContain("enterpriseLicenseUserLimit");
+      expect(Object.keys(update)).not.toContain("enterpriseLicenseExpiresAt");
+      expect(update["enterpriseLicenseCurrentUserCount"]).toBe(3);
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("The installed license was kept"),
+      );
+    });
+
+    it("keeps the stored token when the report brings back garbage", async () => {
+      storeInstalled(legacyToken("stored"));
+      respondWith(serverBody({ token: "signed.jwt.token" }));
+
+      await runTick();
+
+      expect(Object.keys(getLicenseUpdate())).not.toContain(
+        "enterpriseLicenseToken",
+      );
+    });
+
+    it("upgrades a legacy license to a signed one", async () => {
+      const signed: string = signLicense(SIGNING_KEY);
+      storeInstalled(legacyToken("stored"));
+      respondWith(serverBody({ token: signed }));
+
+      await runTick();
+
+      expect(getLicenseUpdate()["enterpriseLicenseToken"]).toBe(signed);
+    });
+
+    it("accepts a renewed legacy license", async () => {
+      storeInstalled(legacyToken("stored"));
+
+      await runTick();
+
+      expect(getLicenseUpdate()["enterpriseLicenseToken"]).toBe(SERVER_TOKEN);
+    });
+  });
+
+  describe("this process's license cache", () => {
+    it("is refreshed after the license is written", async () => {
+      await runTick();
+
+      expect(mockRefreshLicense).toHaveBeenCalledTimes(1);
+    });
+
+    it("is left alone when nothing was written", async () => {
+      apiPost.mockResolvedValue(new HTTPErrorResponse(500, {}, {}));
+
+      await runTick();
+
+      expect(mockRefreshLicense).not.toHaveBeenCalled();
     });
   });
 });

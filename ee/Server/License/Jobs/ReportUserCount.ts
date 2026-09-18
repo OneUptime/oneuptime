@@ -6,7 +6,6 @@ import {
   Host,
   IsBillingEnabled,
   IsDevelopment,
-  IsEnterpriseEdition,
 } from "Common/Server/EnvironmentConfig";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import UserService from "Common/Server/Services/UserService";
@@ -25,6 +24,13 @@ import EnterpriseLicenseSyncUtil, {
 } from "Common/Utils/EnterpriseLicense/EnterpriseLicenseSync";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import logger from "Common/Server/Utils/Logger";
+import LicenseInputsUtil, { LicenseInputs } from "../LicenseInputs";
+import licenseProvider from "../LicenseProvider";
+import LicenseRanking, { GuardedLicenseUpdate } from "../LicenseRanking";
+import LicenseStore from "../LicenseStore";
+
+export const REPORT_USER_COUNT_JOB_NAME: string =
+  "EnterpriseLicense:ReportUserCount";
 
 type GetUserEmailHashesFunction = () => Promise<Array<string>>;
 
@@ -118,13 +124,13 @@ const getMasterAdminEmails: GetMasterAdminEmailsFunction = async (): Promise<
   return Array.from(emails);
 };
 
-RunCron(
-  "EnterpriseLicense:ReportUserCount",
-  {
-    schedule: IsDevelopment ? EVERY_FIVE_MINUTE : EVERY_DAY,
-    runOnStartup: false,
-  },
-  async () => {
+/*
+ * The daily call home of an online Enterprise installation: report this
+ * instance's (hashed) users, and bring back the license as oneuptime.com knows
+ * it today. Registered by the license area's registerWorkerJobs.
+ */
+export const reportUserCount: () => Promise<void> =
+  async (): Promise<void> => {
     /*
      * Only self-hosted enterprise installs report usage back to oneuptime.com.
      * The hosted oneuptime.com itself runs with billing enabled and should skip.
@@ -133,22 +139,21 @@ RunCron(
       return;
     }
 
-    if (!IsEnterpriseEdition) {
+    const config: GlobalConfig | null = await LicenseStore.readLicenseConfig();
+    const inputs: LicenseInputs = LicenseInputsUtil.fromGlobalConfig(config);
+
+    /*
+     * An installation activated offline holds a signed token and no key. It is
+     * offline on purpose; calling home would only fail every day.
+     */
+    if (LicenseInputsUtil.isOfflineActivated(inputs)) {
+      logger.debug(
+        "EnterpriseLicense:ReportUserCount: This installation was activated offline with a license token. Skipping report.",
+      );
       return;
     }
 
-    const config: GlobalConfig | null = await GlobalConfigService.findOneById({
-      id: ObjectID.getZeroObjectID(),
-      select: {
-        enterpriseLicenseKey: true,
-        instanceId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const licenseKey: string | undefined = config?.enterpriseLicenseKey;
+    const licenseKey: string | null = inputs.licenseKey;
 
     if (!licenseKey) {
       logger.debug(
@@ -173,6 +178,8 @@ RunCron(
           ignoreHooks: true,
         },
       });
+
+      inputs.instanceId = instanceId.toString();
     }
 
     const userEmailHashes: Array<string> = await getUserEmailHashes();
@@ -238,7 +245,25 @@ RunCron(
       logger.error(`EnterpriseLicense:ReportUserCount: ${warning}`);
     }
 
-    if (Object.keys(sync.updateData).length === 0) {
+    /*
+     * Never downgrade: a returned token that classifies worse than the stored
+     * one (a signing misconfiguration on oneuptime.com, a token for another
+     * instance) is refused, with the license terms that came with it. The
+     * usage figures are still stored.
+     */
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs,
+      update: sync.updateData,
+      now: reportedAt,
+    });
+
+    if (guarded.downgrade) {
+      logger.error(
+        `EnterpriseLicense:ReportUserCount: ${LicenseRanking.describeDowngrade(guarded.downgrade)}`,
+      );
+    }
+
+    if (Object.keys(guarded.update).length === 0) {
       logger.error(
         "EnterpriseLicense:ReportUserCount: The license server returned nothing this build could store. Keeping the previously stored license state.",
       );
@@ -247,14 +272,17 @@ RunCron(
 
     await GlobalConfigService.updateOneById({
       id: ObjectID.getZeroObjectID(),
-      data: sync.updateData,
+      data: guarded.update,
       props: {
         isRoot: true,
         ignoreHooks: true,
       },
     });
 
-    const aggregatedUserCount: number | null | undefined = sync.updateData
+    // This process sees the new license at once; other processes within the cache TTL.
+    await licenseProvider.refresh();
+
+    const aggregatedUserCount: number | null | undefined = guarded.update
       .enterpriseLicenseCurrentUserCount as number | null | undefined;
 
     logger.debug(
@@ -266,5 +294,13 @@ RunCron(
           : "unchanged"
       }.`,
     );
+  };
+
+RunCron(
+  REPORT_USER_COUNT_JOB_NAME,
+  {
+    schedule: IsDevelopment ? EVERY_FIVE_MINUTE : EVERY_DAY,
+    runOnStartup: false,
   },
+  reportUserCount,
 );

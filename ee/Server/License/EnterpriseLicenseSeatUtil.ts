@@ -1,76 +1,83 @@
-import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
-import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
 import EnterpriseLicenseSeatsUtil, {
   SeatUsage,
 } from "Common/Utils/EnterpriseLicense/EnterpriseLicenseSeats";
-import { IsBillingEnabled, IsEnterpriseEdition } from "Common/Server/EnvironmentConfig";
-import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import {
+  EnterpriseLicenseSnapshot,
+  EnterpriseLicenseSnapshotUtil,
+} from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { LicenseInputs } from "./LicenseInputs";
 
 /*
  * Counts the users on THIS installation. Passed in rather than called
- * directly so this util never has to import UserService — and, more usefully,
- * so the count is only paid for on the installations that actually enforce a
- * limit. On Community Edition and on oneuptime.com itself the callbacks below
- * are never invoked.
+ * directly so the count is only paid for on the installations that actually
+ * enforce a limit: on oneuptime.com, on an installation without a usable
+ * license and on a license with no seat limit, the callback is never invoked.
  */
 export type GetLocalUserCountFunction = () => Promise<number>;
+
+export interface SeatCheckData {
+  // The license inputs: the aggregated count, the instances, this instance's id.
+  inputs: LicenseInputs;
+  // The license as classified now: whether it is usable, and its seat limit.
+  snapshot: EnterpriseLicenseSnapshot | null;
+  getLocalUserCount: GetLocalUserCountFunction;
+}
 
 /*
  * Enforcement of the enterprise license seat limit on a self-hosted
  * installation.
  *
- * The limit itself is set on oneuptime.com and mirrored into GlobalConfig by
- * the daily report job (and by validating or refreshing the license by hand).
+ * The limit is set on oneuptime.com and reaches the installation in the
+ * license: from the signed claims for a verified license, from the stored
+ * column for an unverified legacy one (either way it is snapshot.userLimit).
  * This is the half that acts on it: it is the only thing standing between a
  * customer's license terms and an unbounded User table.
  *
  * The seat arithmetic lives in Common/Utils/EnterpriseLicense/EnterpriseLicenseSeats
- * as a pure function; everything here is about reading the license state and
- * deciding whether the installation is one that enforces at all.
+ * as a pure function; everything here is about deciding whether the
+ * installation enforces at all.
  */
 export default class EnterpriseLicenseSeatUtil {
   /*
-   * Whether this process is an installation whose users are governed by an
-   * enterprise license at all.
+   * Whether seats are limited on this installation right now.
    *
-   * Community Edition has no license and no limit. oneuptime.com runs with
-   * billing enabled and bounds seats through subscriptions instead
-   * (TeamMemberService.onBeforeCreate) — enforcing a license limit there as
-   * well would be a second, wrong answer to the same question.
+   * oneuptime.com runs with billing enabled and bounds seats through
+   * subscriptions instead (TeamMemberService.onBeforeCreate) — enforcing a
+   * license limit there as well would be a second, wrong answer to the same
+   * question.
+   *
+   * Only a license that is valid or in its grace period limits seats. An
+   * expired, missing or invalid license stops limiting them rather than
+   * locking a customer out of adding people: the license already stops
+   * enterprise configuration changes, and that is the whole of soft
+   * enforcement.
    */
-  public static isSeatLimitEnforceable(): boolean {
-    return IsEnterpriseEdition && !IsBillingEnabled;
+  public static isSeatLimitEnforceable(
+    snapshot: EnterpriseLicenseSnapshot | null,
+  ): boolean {
+    return !IsBillingEnabled && EnterpriseLicenseSnapshotUtil.isUsable(snapshot);
   }
 
   /*
-   * Seat usage derived from an already-loaded GlobalConfig row. Kept separate
-   * from the loading so a caller that has the row in hand — the license
-   * endpoint, which has just read it — does not read it a second time.
-   *
-   * A null config (a fresh installation whose GlobalConfig has not been seeded
-   * yet) yields no limit, which is the same answer as a licence with no seat
-   * limit set.
+   * Seat usage for a known local user count. The limit comes from the
+   * snapshot; the license-wide count and the per-instance breakdown from the
+   * last usage report.
    */
-  public static getSeatUsageFromGlobalConfig(data: {
-    config: GlobalConfig | null;
+  public static getSeatUsageFromLicense(data: {
+    inputs: LicenseInputs;
+    snapshot: EnterpriseLicenseSnapshot | null;
     localUserCount: number;
   }): SeatUsage {
-    const config: GlobalConfig | null = data.config;
-
-    const instances: Array<EnterpriseLicenseInstanceSummary> = Array.isArray(
-      config?.enterpriseLicenseInstances,
-    )
-      ? config.enterpriseLicenseInstances
-      : [];
-
     return EnterpriseLicenseSeatsUtil.getSeatUsage({
-      userLimit: config?.enterpriseLicenseUserLimit,
+      userLimit: data.snapshot ? data.snapshot.userLimit : null,
       localUserCount: data.localUserCount,
-      aggregatedUserCount: config?.enterpriseLicenseCurrentUserCount,
-      instances: instances,
-      thisInstanceId: config?.instanceId ? config.instanceId.toString() : null,
+      aggregatedUserCount: data.inputs.currentUserCount,
+      instances: Array.isArray(data.inputs.instances)
+        ? data.inputs.instances
+        : [],
+      thisInstanceId: data.inputs.instanceId,
     });
   }
 
@@ -79,49 +86,13 @@ export default class EnterpriseLicenseSeatUtil {
    * that does not enforce a seat limit.
    *
    * Null rather than an unenforced SeatUsage so callers cannot accidentally
-   * present Community Edition with a seat report it has no business having,
-   * and so the user count is never queried there.
+   * present an unlimited installation with a seat report it has no business
+   * having, and so the user count is never queried there.
    */
-  public static async getSeatUsage(data: {
-    getLocalUserCount: GetLocalUserCountFunction;
-  }): Promise<SeatUsage | null> {
-    if (!this.isSeatLimitEnforceable()) {
-      return null;
-    }
-
-    const config: GlobalConfig | null = await GlobalConfigService.findOneById({
-      id: ObjectID.getZeroObjectID(),
-      select: {
-        enterpriseLicenseUserLimit: true,
-        enterpriseLicenseCurrentUserCount: true,
-        enterpriseLicenseInstances: true,
-        instanceId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return this.getSeatUsageForLoadedGlobalConfig({
-      config: config,
-      getLocalUserCount: data.getLocalUserCount,
-    });
-  }
-
-  /*
-   * The same answer as getSeatUsage, for a caller that has already loaded the
-   * GlobalConfig row (the license endpoint reads it to build its response, and
-   * reading it twice per request would be silly).
-   *
-   * The row must have been selected with enterpriseLicenseUserLimit,
-   * enterpriseLicenseCurrentUserCount, enterpriseLicenseInstances and
-   * instanceId, or the numbers here are a fiction built from missing columns.
-   */
-  public static async getSeatUsageForLoadedGlobalConfig(data: {
-    config: GlobalConfig | null;
-    getLocalUserCount: GetLocalUserCountFunction;
-  }): Promise<SeatUsage | null> {
-    if (!this.isSeatLimitEnforceable()) {
+  public static async getSeatUsageForLicense(
+    data: SeatCheckData,
+  ): Promise<SeatUsage | null> {
+    if (!EnterpriseLicenseSeatUtil.isSeatLimitEnforceable(data.snapshot)) {
       return null;
     }
 
@@ -132,17 +103,20 @@ export default class EnterpriseLicenseSeatUtil {
      * installation where counting the User table on every user creation would
      * be worth avoiding.
      */
-    const withoutLocalUsers: SeatUsage = this.getSeatUsageFromGlobalConfig({
-      config: data.config,
-      localUserCount: 0,
-    });
+    const withoutLocalUsers: SeatUsage =
+      EnterpriseLicenseSeatUtil.getSeatUsageFromLicense({
+        inputs: data.inputs,
+        snapshot: data.snapshot,
+        localUserCount: 0,
+      });
 
     if (!withoutLocalUsers.isEnforced) {
       return withoutLocalUsers;
     }
 
-    return this.getSeatUsageFromGlobalConfig({
-      config: data.config,
+    return EnterpriseLicenseSeatUtil.getSeatUsageFromLicense({
+      inputs: data.inputs,
+      snapshot: data.snapshot,
       localUserCount: await data.getLocalUserCount(),
     });
   }
@@ -150,23 +124,22 @@ export default class EnterpriseLicenseSeatUtil {
   /*
    * Throws if this installation cannot take another user.
    *
-   * Called from UserService.onBeforeCreate, which every path that creates a
-   * user goes through — team invitations, self-service signup, SSO and OIDC
-   * just-in-time provisioning, SCIM, and the Admin Dashboard. Enforcing on the
-   * User row rather than on the invitation is what makes that true: a seat is
-   * consumed by a person existing on the installation, not by the particular
-   * door they came through.
+   * Reached from UserService.onBeforeCreate (through EnterpriseEdition), which
+   * every path that creates a user goes through — team invitations,
+   * self-service signup, SSO and OIDC just-in-time provisioning, SCIM, and the
+   * Admin Dashboard. Enforcing on the User row rather than on the invitation
+   * is what makes that true: a seat is consumed by a person existing on the
+   * installation, not by the particular door they came through.
    *
    * It is also why this deliberately does NOT exempt root/internal writes.
    * Team invitations create the invited user with `isRoot: true`, so an
    * isRoot escape hatch here would exempt the single most important path.
    */
-  public static async assertSeatAvailableForNewUser(data: {
-    getLocalUserCount: GetLocalUserCountFunction;
-  }): Promise<void> {
-    const seatUsage: SeatUsage | null = await this.getSeatUsage({
-      getLocalUserCount: data.getLocalUserCount,
-    });
+  public static async assertSeatAvailableForNewUser(
+    data: SeatCheckData,
+  ): Promise<void> {
+    const seatUsage: SeatUsage | null =
+      await EnterpriseLicenseSeatUtil.getSeatUsageForLicense(data);
 
     if (!seatUsage || !seatUsage.isEnforced) {
       return;

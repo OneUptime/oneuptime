@@ -1,9 +1,18 @@
-import GlobalConfigAPI from "Common/Server/API/GlobalConfigAPI";
+import {
+  createLicenseClientRouter,
+  LICENSE_REFRESH_ROUTE,
+  LICENSE_ROUTE,
+} from "../../../Server/License/API/LicenseClientAPI";
+import licenseProvider from "../../../Server/License/LicenseProvider";
+import { setTrustedLicenseKeysForTests } from "../../../Server/License/TrustedLicenseKeys";
+import { LICENSE_TOKEN_MAX_LENGTH } from "../../../Server/License/LicenseToken";
+import { EnterpriseServerModuleShape } from "Common/Server/Enterprise/EnterpriseServerModule";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import UserService from "Common/Server/Services/UserService";
 import Response from "Common/Server/Utils/Response";
-import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import logger from "Common/Server/Utils/Logger";
+import type { ExpressRouter } from "Common/Server/Utils/Express";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -11,160 +20,68 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import API from "Common/Utils/API";
+import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 import {
-  NextFunction,
-  OneUptimeRequest,
-  OneUptimeResponse,
-} from "Common/Server/Utils/Express";
-import { mockRouter } from "Common/Tests/Server/API/Helpers";
-import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
+  DAY_IN_MS,
+  FakeGlobalConfigRow,
+  findRoute,
+  FoundRoute,
+  generateEd25519,
+  KeyPair,
+  legacyToken,
+  listRoutes,
+  RecordedWrite,
+  signLicense,
+  trustedEntryFor,
+} from "./Helpers/LicenseTestKit";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
- * The self-hosted half of the licence: activating a key, refreshing the key
- * the installation already holds, and reporting what the seat limit means
- * right now.
+ * The license client's write routes: activating a license (online with a key,
+ * or offline with a signed token) and refreshing the license this
+ * installation already holds.
  *
- * Two things brought this suite into being.
+ * They moved out of core's GlobalConfigAPI into the Enterprise module; the GET
+ * on the same path stays in core (packages/Common/Tests/Server/API/
+ * GlobalConfigLicense.test.ts). What these pin, beyond the behaviour the core
+ * routes had:
  *
- * The seat limit is set on oneuptime.com and changes on any day — a customer
- * buys ten more seats at noon. It reaches the installation through the daily
- * report job, so until now the only way to apply it sooner was for somebody to
- * re-type the licence key into a box that is HIDDEN while the licence is
- * valid. /license/refresh is that missing button, and it exists precisely
- * because the installation now refuses users above the limit: waiting a day to
- * learn about seats you have already paid for is a different feature when the
- * old number is being enforced.
- *
- * And both writes used to run on UserMiddleware.getUserMiddleware, which lets
- * anonymous callers through — it has to, because the GET on the same path
- * serves the signed-out login page. That made the route that decides this
- * installation's seat ceiling reachable without signing in at all.
+ *   - both routes are master-admin only, checked per route (an ee router may
+ *     hold no router.use() layers);
+ *   - offline activation accepts only a VERIFIED token, and refuses one bound
+ *     to another instance;
+ *   - a refresh never downgrades the installed license;
+ *   - every write lands as root with hooks off, and the license cache of this
+ *     process sees it at once.
  */
 
-/*
- * PasswordHash carries a pre-existing TS diagnostic that fails any suite whose
- * require graph reaches it, and BaseAPI's graph still reaches it. Replaced with
- * a factory rather than automocked, because an automock still type-checks the
- * real file.
- */
-jest.mock("Common/Server/Utils/PasswordHash", () => {
-  return {
-    __esModule: true,
-    default: {
-      hash: jest.fn(),
-      verify: jest.fn(),
-      generateSalt: jest.fn(),
-      needsUpgrade: jest.fn(),
-      applyPepper: jest.fn(),
-    },
-  };
-});
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "Common/Tests/Server/Enterprise/TestBillingFlag",
+    ) as typeof import("Common/Tests/Server/Enterprise/TestBillingFlag");
 
-// Same story as PasswordHash: a local-only diagnostic in a module dragged in.
-jest.mock("Common/Server/Utils/VerificationCode", () => {
-  return {
-    __esModule: true,
-    default: {
-      generate: jest.fn(),
-      hashCode: jest.fn(),
-      isHashEqual: jest.fn(),
-      generateUnusableHash: jest.fn(),
-    },
-  };
-});
-
-jest.mock("Common/Server/Utils/Express", () => {
-  return {
-    getRouter: () => {
-      return mockRouter;
-    },
-  };
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
 });
 
 jest.mock("Common/Server/Utils/Response", () => {
   return {
-    sendEntityArrayResponse: jest.fn().mockImplementation((...args: []) => {
-      return args;
-    }),
-    sendJsonObjectResponse: jest.fn().mockImplementation((...args: []) => {
-      return args;
-    }),
-    sendEmptySuccessResponse: jest.fn(),
-    sendEntityResponse: jest.fn().mockImplementation((...args: []) => {
-      return args;
-    }),
-    sendErrorResponse: jest.fn().mockImplementation((...args: []) => {
-      return args;
-    }),
-  };
-});
-
-/*
- * The deployment flags live on globalThis rather than in module-scope
- * variables, and the getters below reference nothing but globalThis.
- *
- * jest hoists the mock factory above every declaration in this file, and
- * BaseAPI's import graph reaches IncidentFeedService, which reads
- * IsBillingEnabled at module scope. That read lands inside these getters
- * during the import — before a `let` in this file has initialised — and a
- * getter that closed over one would throw a temporal-dead-zone
- * ReferenceError before a single test ran. Absent flags read as false, which
- * is a fine thing for an unrelated service to see on its way past.
- *
- * They are also live accessors rather than values: the routes read the flags
- * when they run, and object spread would flatten them at import time.
- */
-const BILLING_FLAG_KEY: string = "__oneUptimeTestIsBillingEnabled";
-const ENTERPRISE_FLAG_KEY: string = "__oneUptimeTestIsEnterpriseEdition";
-
-type SetDeploymentFlagFunction = (key: string, value: boolean) => void;
-
-const setDeploymentFlag: SetDeploymentFlagFunction = (
-  key: string,
-  value: boolean,
-): void => {
-  (globalThis as unknown as Record<string, unknown>)[key] = value;
-};
-
-jest.mock("Common/Server/EnvironmentConfig", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "Common/Server/EnvironmentConfig",
-  ) as Record<string, unknown>;
-
-  const mocked: Record<string, unknown> = {
-    ...actual,
     __esModule: true,
+    default: {
+      sendJsonObjectResponse: jest.fn(),
+      sendErrorResponse: jest.fn(),
+      sendEmptySuccessResponse: jest.fn(),
+      sendEntityResponse: jest.fn(),
+      sendEntityArrayResponse: jest.fn(),
+    },
   };
-
-  Object.defineProperty(mocked, "IsBillingEnabled", {
-    get: (): boolean => {
-      return (
-        (globalThis as unknown as Record<string, unknown>)[
-          "__oneUptimeTestIsBillingEnabled"
-        ] === true
-      );
-    },
-  });
-
-  Object.defineProperty(mocked, "IsEnterpriseEdition", {
-    get: (): boolean => {
-      return (
-        (globalThis as unknown as Record<string, unknown>)[
-          "__oneUptimeTestIsEnterpriseEdition"
-        ] === true
-      );
-    },
-  });
-
-  return mocked;
 });
 
-/*
- * Factories rather than automocks. An automock still loads the real module to
- * copy its shape, and loading UserService drags in most of the service graph -
- * some of which reads IsBillingEnabled at module scope, before the flags above
- * have initialised. Nothing here needs the real implementations.
- */
 jest.mock("Common/Utils/API", () => {
   return {
     __esModule: true,
@@ -194,39 +111,28 @@ jest.mock("Common/Server/Services/UserService", () => {
   };
 });
 
-const LICENSE_ROUTE: string = "/global-config/license";
-const REFRESH_ROUTE: string = "/global-config/license/refresh";
+const SIGNING_KEY: KeyPair = generateEd25519();
+const UNTRUSTED_KEY: KeyPair = generateEd25519();
 
 const STORED_LICENSE_KEY: string = "acme-stored-license-key";
 const INSTANCE_ID: ObjectID = ObjectID.generate();
 
-type MakeStoredConfigFunction = (
-  overrides?: Record<string, unknown>,
-) => GlobalConfig;
-
-const makeStoredConfig: MakeStoredConfigFunction = (
-  overrides?: Record<string, unknown>,
-): GlobalConfig => {
-  const config: GlobalConfig = new GlobalConfig();
-  config.id = ObjectID.getZeroObjectID();
-  config.instanceId = INSTANCE_ID;
-  config.enterpriseLicenseKey = STORED_LICENSE_KEY;
-
-  return Object.assign(config, overrides || {});
-};
+let store: FakeGlobalConfigRow;
+let router: ExpressRouter;
 
 type LicenseServerPayloadFunction = (
   overrides?: Record<string, unknown>,
 ) => JSONObject;
 
+// What oneuptime.com answers today: a legacy (HS256) token.
 const licenseServerPayload: LicenseServerPayloadFunction = (
   overrides?: Record<string, unknown>,
 ): JSONObject => {
   return {
     companyName: "Acme Inc",
-    expiresAt: "2030-01-01T00:00:00.000Z",
+    expiresAt: new Date(Date.now() + 365 * DAY_IN_MS).toISOString(),
     licenseKey: STORED_LICENSE_KEY,
-    token: "signed.jwt.token",
+    token: legacyToken("from-server"),
     isEvaluationLicense: false,
     userLimit: 150,
     currentUserCount: 42,
@@ -236,422 +142,785 @@ const licenseServerPayload: LicenseServerPayloadFunction = (
   };
 };
 
-type GetResponseBodyFunction = () => JSONObject;
+const respondWith: (payload: JSONObject) => void = (
+  payload: JSONObject,
+): void => {
+  (API.post as unknown as jest.Mock).mockResolvedValue(
+    new HTTPResponse<JSONObject>(200, payload, {}),
+  );
+};
 
-const getResponseBody: GetResponseBodyFunction = (): JSONObject => {
-  const calls: Array<Array<unknown>> = (
-    Response.sendJsonObjectResponse as unknown as jest.Mock
-  ).mock.calls as Array<Array<unknown>>;
+const storedRow: (overrides?: Record<string, unknown>) => Record<
+  string,
+  unknown
+> = (overrides?: Record<string, unknown>): Record<string, unknown> => {
+  return {
+    instanceId: INSTANCE_ID,
+    enterpriseLicenseKey: STORED_LICENSE_KEY,
+    enterpriseLicenseToken: legacyToken("stored"),
+    enterpriseLicenseExpiresAt: new Date(Date.now() + 100 * DAY_IN_MS),
+    enterpriseCompanyName: "Acme Inc",
+    enterpriseLicenseUserLimit: 50,
+    enterpriseEditionFirstSeenAt: new Date(Date.now() - 100 * DAY_IN_MS),
+    ...(overrides || {}),
+  };
+};
+
+interface CallResult {
+  body: JSONObject | null;
+  error: Error | null;
+}
+
+const callRoute: (path: string, body?: JSONObject) => Promise<CallResult> =
+  async (path: string, body?: JSONObject): Promise<CallResult> => {
+    const route: FoundRoute = findRoute(router, "post", path);
+    const next: jest.Mock = jest.fn();
+
+    (Response.sendJsonObjectResponse as unknown as jest.Mock).mockClear();
+
+    await route.handler({ body: body || {} }, {}, next);
+
+    const errors: Array<Array<unknown>> = next.mock.calls as Array<
+      Array<unknown>
+    >;
+    const responses: Array<Array<unknown>> = (
+      Response.sendJsonObjectResponse as unknown as jest.Mock
+    ).mock.calls as Array<Array<unknown>>;
+
+    return {
+      body: responses[0] ? (responses[0][2] as JSONObject) : null,
+      error: errors[0] ? (errors[0][0] as Error) : null,
+    };
+  };
+
+const sentToLicenseServer: () => JSONObject = (): JSONObject => {
+  const calls: Array<Array<unknown>> = (API.post as unknown as jest.Mock).mock
+    .calls as Array<Array<unknown>>;
 
   expect(calls).toHaveLength(1);
 
-  return calls[0]![2] as JSONObject;
+  return (calls[0]![0] as JSONObject)["data"] as JSONObject;
 };
 
-type GetStoredUpdateFunction = () => JSONObject;
+const lastLicenseWrite: () => RecordedWrite = (): RecordedWrite => {
+  const writes: Array<RecordedWrite> = store.licenseWrites();
+  const write: RecordedWrite | undefined = writes[writes.length - 1];
 
-const getStoredUpdate: GetStoredUpdateFunction = (): JSONObject => {
-  const calls: Array<Array<unknown>> = (
-    GlobalConfigService.updateOneById as unknown as jest.Mock
-  ).mock.calls as Array<Array<unknown>>;
+  if (!write) {
+    throw new Error("No license write happened.");
+  }
 
-  expect(calls.length).toBeGreaterThan(0);
-
-  return (calls[0]![0] as Record<string, unknown>)["data"] as JSONObject;
+  return write;
 };
 
-describe("GlobalConfigAPI licence routes", () => {
-  let mockRequest: OneUptimeRequest;
-  let mockResponse: OneUptimeResponse;
-  let nextFunction: NextFunction;
-
-  type CallRouteFunction = (route: string) => Promise<void>;
-
-  const callRoute: CallRouteFunction = async (route: string): Promise<void> => {
-    await mockRouter
-      .match("post", route)
-      .handlerFunction(mockRequest, mockResponse, nextFunction);
-  };
-
-  type NextErrorFunction = () => Error;
-
-  const nextError: NextErrorFunction = (): Error => {
-    const calls: Array<Array<unknown>> = (nextFunction as unknown as jest.Mock)
-      .mock.calls as Array<Array<unknown>>;
-
-    expect(calls).toHaveLength(1);
-
-    return calls[0]![0] as Error;
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockRouter.routes = [];
-    setDeploymentFlag(BILLING_FLAG_KEY, false);
-    setDeploymentFlag(ENTERPRISE_FLAG_KEY, true);
-
-    new GlobalConfigAPI();
-
-    GlobalConfigService.findOneById = jest
-      .fn()
-      .mockResolvedValue(makeStoredConfig());
-    GlobalConfigService.updateOneById = jest.fn().mockResolvedValue(undefined);
-    GlobalConfigService.create = jest.fn().mockResolvedValue(undefined);
-
-    UserService.countBy = jest.fn().mockResolvedValue(new PositiveNumber(42));
-
-    (API.post as unknown as jest.Mock) = jest
-      .fn()
-      .mockResolvedValue(
-        new HTTPResponse<JSONObject>(200, licenseServerPayload(), {}),
-      );
-
-    mockRequest = {
-      body: {},
-    } as unknown as OneUptimeRequest;
-
-    mockResponse = {
-      send: jest.fn(),
-      json: jest.fn(),
-      status: jest.fn().mockReturnThis(),
-    } as unknown as OneUptimeResponse;
-
-    nextFunction = jest.fn();
+beforeEach(async () => {
+  jest.clearAllMocks();
+  setTestBillingEnabled(false);
+  setTrustedLicenseKeysForTests([trustedEntryFor(SIGNING_KEY)]);
+  jest.spyOn(logger, "warn").mockImplementation((): void => {
+    return undefined;
+  });
+  jest.spyOn(logger, "info").mockImplementation((): void => {
+    return undefined;
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
+  store = new FakeGlobalConfigRow(storedRow());
+  store.install(GlobalConfigService);
+
+  (UserService as unknown as Record<string, unknown>)["countBy"] = jest
+    .fn()
+    .mockResolvedValue(new PositiveNumber(42) as never);
+
+  respondWith(licenseServerPayload());
+  router = createLicenseClientRouter();
+
+  await licenseProvider.refresh();
+});
+
+afterEach(() => {
+  setTrustedLicenseKeysForTests(null);
+  setTestBillingEnabled(false);
+  jest.restoreAllMocks();
+});
+
+describe("the license client router", () => {
+  it("serves exactly the two license writes", () => {
+    expect(listRoutes(router)).toEqual(
+      [`POST ${LICENSE_ROUTE}`, `POST ${LICENSE_REFRESH_ROUTE}`].sort(),
+    );
   });
 
-  describe("who is allowed to write the licence", () => {
-    /*
-     * The seat limit these routes store is the number UserService refuses new
-     * users against. UserMiddleware.getUserMiddleware — which the GET on the
-     * same path uses, and has to, because it serves the signed-out login page —
-     * lets anonymous callers straight through, so it is not a guard here.
-     */
-    it.each([
-      ["activating a licence key", LICENSE_ROUTE],
-      ["refreshing the stored licence", REFRESH_ROUTE],
-    ])("requires a master admin for %s", (_label: string, route: string) => {
-      expect(mockRouter.match("post", route).middlewares).toContain(
+  it("keeps the paths the Admin Dashboard already calls", () => {
+    expect(LICENSE_ROUTE).toBe("/global-config/license");
+    expect(LICENSE_REFRESH_ROUTE).toBe("/global-config/license/refresh");
+  });
+
+  /*
+   * Mounted under "/api" ahead of core's routers: a router.use() layer here
+   * would run for every core request that passes through.
+   */
+  it("holds routes only, no router.use() layers", () => {
+    expect(EnterpriseServerModuleShape.findLayersWithoutRoute(router)).toEqual(
+      [],
+    );
+  });
+
+  /*
+   * The seat limit these routes store is the number UserService refuses new
+   * users against. The GET on the same path serves the signed-out login page,
+   * so its middleware is no guard here.
+   */
+  it.each([LICENSE_ROUTE, LICENSE_REFRESH_ROUTE])(
+    "requires a master admin for POST %s",
+    (path: string) => {
+      expect(findRoute(router, "post", path).middlewares).toEqual([
         MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
-      );
+      ]);
+    },
+  );
+
+  it("turns away a request without a master admin's token before the handler runs", async () => {
+    const next: jest.Mock = jest.fn();
+
+    await MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware(
+      { headers: {}, query: {}, cookies: {} } as never,
+      {} as never,
+      next as never,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(Response.sendErrorResponse).toHaveBeenCalled();
+  });
+});
+
+describe("POST /global-config/license - activating a key online", () => {
+  it("rejects a request with no licence key", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {});
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
+  it("rejects a licence key that is only whitespace", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: "   ",
     });
 
-    it("still serves the licence GET to anyone, so the login page keeps working", () => {
-      expect(mockRouter.match("get", LICENSE_ROUTE).middlewares).not.toContain(
-        MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
-      );
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
+  it("validates the supplied key against oneuptime.com", async () => {
+    await callRoute(LICENSE_ROUTE, { licenseKey: "  a-new-key  " });
+
+    const sent: JSONObject = sentToLicenseServer();
+
+    expect(sent["licenseKey"]).toBe("a-new-key");
+    expect(sent["instanceId"]).toBe(INSTANCE_ID.toString());
+    expect(sent).toHaveProperty("host");
+    expect(sent).toHaveProperty("version");
+  });
+
+  it("stores the seat limit the licence server reported", async () => {
+    await callRoute(LICENSE_ROUTE, { licenseKey: STORED_LICENSE_KEY });
+
+    expect(lastLicenseWrite().data["enterpriseLicenseUserLimit"]).toBe(150);
+  });
+
+  it("writes as root with hooks off", async () => {
+    await callRoute(LICENSE_ROUTE, { licenseKey: STORED_LICENSE_KEY });
+
+    expect(lastLicenseWrite().props).toEqual({
+      isRoot: true,
+      ignoreHooks: true,
     });
   });
 
-  describe("POST /global-config/license - activating a key", () => {
-    it("rejects a request with no licence key", async () => {
-      mockRequest.body = {};
+  it("stores the key the licence server echoes back", async () => {
+    respondWith(licenseServerPayload({ licenseKey: "CANONICAL-KEY" }));
 
-      await callRoute(LICENSE_ROUTE);
+    await callRoute(LICENSE_ROUTE, { licenseKey: "canonical-key" });
 
-      expect(nextError()).toBeInstanceOf(BadDataException);
-      expect(API.post).not.toHaveBeenCalled();
-    });
-
-    it("rejects a licence key that is only whitespace", async () => {
-      mockRequest.body = { licenseKey: "   " };
-
-      await callRoute(LICENSE_ROUTE);
-
-      expect(nextError()).toBeInstanceOf(BadDataException);
-    });
-
-    it("validates the supplied key against oneuptime.com", async () => {
-      mockRequest.body = { licenseKey: "  a-new-key  " };
-
-      await callRoute(LICENSE_ROUTE);
-
-      const sent: JSONObject = (
-        (API.post as unknown as jest.Mock).mock.calls[0]![0] as Record<
-          string,
-          JSONObject
-        >
-      )["data"] as JSONObject;
-
-      expect(sent["licenseKey"]).toBe("a-new-key");
-      expect(sent["instanceId"]).toBe(INSTANCE_ID.toString());
-    });
-
-    it("stores the seat limit the licence server reported", async () => {
-      mockRequest.body = { licenseKey: STORED_LICENSE_KEY };
-
-      await callRoute(LICENSE_ROUTE);
-
-      expect(getStoredUpdate()["enterpriseLicenseUserLimit"]).toBe(150);
-    });
+    expect(store.row?.["enterpriseLicenseKey"]).toBe("CANONICAL-KEY");
   });
 
-  describe("POST /global-config/license/refresh", () => {
-    /*
-     * The whole point of the route: no key in the body. A refresh that
-     * accepted one would be an activation with a friendlier name, and a
-     * mistyped key would be able to replace a working licence by accident.
-     */
-    it("refreshes using the stored key and ignores anything in the body", async () => {
-      mockRequest.body = { licenseKey: "somebody-elses-key" };
+  it("stores the typed key when the server echoes none", async () => {
+    respondWith(licenseServerPayload({ licenseKey: undefined }));
 
-      await callRoute(REFRESH_ROUTE);
+    await callRoute(LICENSE_ROUTE, { licenseKey: "typed-key" });
 
-      const sent: JSONObject = (
-        (API.post as unknown as jest.Mock).mock.calls[0]![0] as Record<
-          string,
-          JSONObject
-        >
-      )["data"] as JSONObject;
-
-      expect(sent["licenseKey"]).toBe(STORED_LICENSE_KEY);
-    });
-
-    it("refuses to refresh an installation that has no licence key yet", async () => {
-      GlobalConfigService.findOneById = jest
-        .fn()
-        .mockResolvedValue(
-          makeStoredConfig({ enterpriseLicenseKey: undefined }),
-        );
-
-      await callRoute(REFRESH_ROUTE);
-
-      expect(nextError()).toBeInstanceOf(BadDataException);
-      expect(API.post).not.toHaveBeenCalled();
-    });
-
-    it("refuses to refresh when there is no config row at all", async () => {
-      GlobalConfigService.findOneById = jest.fn().mockResolvedValue(null);
-
-      await callRoute(REFRESH_ROUTE);
-
-      expect(nextError()).toBeInstanceOf(BadDataException);
-      expect(API.post).not.toHaveBeenCalled();
-    });
-
-    /*
-     * The reason the button exists. The customer raised the limit on
-     * oneuptime.com; the stored 50 is what this installation is refusing users
-     * against until something writes the new number down.
-     */
-    it("applies a seat limit that has been raised on oneuptime.com", async () => {
-      (API.post as unknown as jest.Mock).mockResolvedValue(
-        new HTTPResponse<JSONObject>(
-          200,
-          licenseServerPayload({ userLimit: 500 }),
-          {},
-        ),
-      );
-
-      await callRoute(REFRESH_ROUTE);
-
-      expect(getStoredUpdate()["enterpriseLicenseUserLimit"]).toBe(500);
-      expect(getResponseBody()["userLimit"]).toBe(500);
-    });
-
-    it("applies a seat limit that has been lowered on oneuptime.com", async () => {
-      (API.post as unknown as jest.Mock).mockResolvedValue(
-        new HTTPResponse<JSONObject>(
-          200,
-          licenseServerPayload({ userLimit: 5 }),
-          {},
-        ),
-      );
-
-      await callRoute(REFRESH_ROUTE);
-
-      expect(getStoredUpdate()["enterpriseLicenseUserLimit"]).toBe(5);
-    });
-
-    it("clears the seat limit when the licence no longer carries one", async () => {
-      (API.post as unknown as jest.Mock).mockResolvedValue(
-        new HTTPResponse<JSONObject>(
-          200,
-          licenseServerPayload({ userLimit: null }),
-          {},
-        ),
-      );
-
-      await callRoute(REFRESH_ROUTE);
-
-      expect(getStoredUpdate()["enterpriseLicenseUserLimit"]).toBeNull();
-    });
-
-    it("refreshes the expiry as well as the seat limit", async () => {
-      (API.post as unknown as jest.Mock).mockResolvedValue(
-        new HTTPResponse<JSONObject>(
-          200,
-          licenseServerPayload({ expiresAt: "2031-06-01T00:00:00.000Z" }),
-          {},
-        ),
-      );
-
-      await callRoute(REFRESH_ROUTE);
-
-      expect(
-        (
-          getStoredUpdate()["enterpriseLicenseExpiresAt"] as unknown as Date
-        ).toISOString(),
-      ).toBe("2031-06-01T00:00:00.000Z");
-    });
-
-    /*
-     * An installation that cannot reach oneuptime.com must be told so rather
-     * than quietly keeping the old terms and reporting success — the
-     * administrator pressed this button precisely because they believe the old
-     * terms are wrong.
-     */
-    it("surfaces a failure from the licence server instead of storing anything", async () => {
-      (API.post as unknown as jest.Mock).mockResolvedValue(
-        new HTTPErrorResponse(500, { message: "License key is invalid" }, {}),
-      );
-
-      await callRoute(REFRESH_ROUTE);
-
-      const error: Error = nextError();
-
-      expect(error).toBeInstanceOf(BadDataException);
-      expect(error.message).toBe("License key is invalid");
-      expect(GlobalConfigService.updateOneById).not.toHaveBeenCalled();
-    });
-
-    it("does not store anything when the returned expiry is not a date", async () => {
-      (API.post as unknown as jest.Mock).mockResolvedValue(
-        new HTTPResponse<JSONObject>(
-          200,
-          licenseServerPayload({ expiresAt: "the-first-of-never" }),
-          {},
-        ),
-      );
-
-      await callRoute(REFRESH_ROUTE);
-
-      expect(nextError()).toBeInstanceOf(BadDataException);
-      expect(GlobalConfigService.updateOneById).not.toHaveBeenCalled();
-    });
+    expect(store.row?.["enterpriseLicenseKey"]).toBe("typed-key");
   });
 
-  describe("the seat enforcement the response reports", () => {
-    it("reports the seats in use against the freshly refreshed limit", async () => {
-      UserService.countBy = jest.fn().mockResolvedValue(new PositiveNumber(42));
-
-      await callRoute(REFRESH_ROUTE);
-
-      const body: JSONObject = getResponseBody();
-
-      expect(body["isSeatLimitEnforced"]).toBe(true);
-      expect(body["seatsInUse"]).toBe(42);
-      expect(body["seatsRemaining"]).toBe(108);
-      expect(body["canAddMoreUsers"]).toBe(true);
+  it("answers with the master-admin view of the new license", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: STORED_LICENSE_KEY,
     });
 
-    /*
-     * The live count is what enforcement uses, and it is allowed to be higher
-     * than the licence-wide figure oneuptime.com last computed — that figure is
-     * up to a day old.
-     */
-    it("prefers the live user count over the licence server's stale one", async () => {
-      UserService.countBy = jest
-        .fn()
-        .mockResolvedValue(new PositiveNumber(150));
-
-      await callRoute(REFRESH_ROUTE);
-
-      const body: JSONObject = getResponseBody();
-
-      expect(body["seatsInUse"]).toBe(150);
-      expect(body["seatsRemaining"]).toBe(0);
-      expect(body["canAddMoreUsers"]).toBe(false);
-    });
-
-    it("says the limit is not enforced when the licence has none", async () => {
-      (API.post as unknown as jest.Mock).mockResolvedValue(
-        new HTTPResponse<JSONObject>(
-          200,
-          licenseServerPayload({ userLimit: null }),
-          {},
-        ),
-      );
-
-      await callRoute(REFRESH_ROUTE);
-
-      const body: JSONObject = getResponseBody();
-
-      expect(body["isSeatLimitEnforced"]).toBe(false);
-      expect(body["seatsInUse"]).toBeNull();
-      expect(body["canAddMoreUsers"]).toBe(true);
-    });
-
-    it("says the limit is not enforced on Community Edition", async () => {
-      setDeploymentFlag(ENTERPRISE_FLAG_KEY, false);
-
-      await callRoute(REFRESH_ROUTE);
-
-      const body: JSONObject = getResponseBody();
-
-      expect(body["isSeatLimitEnforced"]).toBe(false);
-      expect(body["canAddMoreUsers"]).toBe(true);
-      expect(UserService.countBy).not.toHaveBeenCalled();
-    });
+    expect(result.error).toBeNull();
+    expect(result.body?.["edition"]).toBe("enterprise");
+    expect(result.body?.["status"]).toBe("valid");
+    expect(result.body?.["verification"]).toBe("unverified");
+    expect(result.body?.["licenseValid"]).toBe(true);
+    expect(result.body?.["licenseKey"]).toBe(STORED_LICENSE_KEY);
+    expect(result.body?.["userLimit"]).toBe(150);
+    expect(result.body?.["activationMode"]).toBe("online");
   });
 
-  describe("GET /global-config/license", () => {
-    type CallGetFunction = () => Promise<void>;
+  it("generates and persists an instance id for an install that predates them", async () => {
+    store.row!["instanceId"] = undefined;
 
-    const callGet: CallGetFunction = async (): Promise<void> => {
-      await mockRouter
-        .match("get", LICENSE_ROUTE)
-        .handlerFunction(mockRequest, mockResponse, nextFunction);
-    };
+    await callRoute(LICENSE_ROUTE, { licenseKey: STORED_LICENSE_KEY });
 
-    beforeEach(() => {
-      GlobalConfigService.findOneById = jest.fn().mockResolvedValue(
-        makeStoredConfig({
-          enterpriseLicenseUserLimit: 150,
-          enterpriseLicenseCurrentUserCount: 42,
-          enterpriseLicenseInstances: [],
-        }),
-      );
+    const reported: string = sentToLicenseServer()["instanceId"] as string;
+
+    expect(reported.length).toBeGreaterThan(0);
+    expect(String(store.row?.["instanceId"])).toBe(reported);
+  });
+
+  /*
+   * An activation can run before the default GlobalConfig row is seeded; the
+   * license client then creates it (as root) rather than dropping the license.
+   */
+  it("creates the config row when there is none yet", async () => {
+    store.row = null;
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: STORED_LICENSE_KEY,
     });
 
-    it("tells a signed-in administrator how close the installation is to refusing users", async () => {
-      (mockRequest as unknown as Record<string, unknown>)["userAuthorization"] =
-        {
-          userId: ObjectID.generate(),
-        };
-      UserService.countBy = jest
-        .fn()
-        .mockResolvedValue(new PositiveNumber(149));
+    expect(result.error).toBeNull();
+    expect(GlobalConfigService.create).toHaveBeenCalledTimes(1);
+    expect(lastLicenseWrite().kind).toBe("create");
+    expect(lastLicenseWrite().props).toEqual({
+      isRoot: true,
+      ignoreHooks: true,
+    });
+    expect(store.row?.["enterpriseLicenseUserLimit"]).toBe(150);
+  });
 
-      await callGet();
+  it("surfaces a failure from the licence server instead of storing anything", async () => {
+    (API.post as unknown as jest.Mock).mockResolvedValue(
+      new HTTPErrorResponse(400, { message: "License key is invalid" }, {}),
+    );
 
-      const body: JSONObject = getResponseBody();
-
-      expect(body["isSeatLimitEnforced"]).toBe(true);
-      expect(body["seatsInUse"]).toBe(149);
-      expect(body["seatsRemaining"]).toBe(1);
-      expect(body["canAddMoreUsers"]).toBe(true);
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: "wrong-key",
     });
 
-    /*
-     * The same route serves the signed-out login page. How near this server is
-     * to refusing new accounts is operational detail, and counting its users
-     * for an anonymous visitor would be a free query on an unauthenticated
-     * endpoint besides.
-     */
-    it("tells an anonymous visitor nothing about seat enforcement", async () => {
-      await callGet();
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toBe("License key is invalid");
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
 
-      const body: JSONObject = getResponseBody();
+  /*
+   * An explicit activation replaces the installed license, but never with one
+   * that cannot work here at all.
+   */
+  it("refuses a returned license this installation cannot use, and stores nothing", async () => {
+    respondWith(
+      licenseServerPayload({
+        token: signLicense(SIGNING_KEY, { instanceId: "another-instance" }),
+      }),
+    );
 
-      expect(body["isSeatLimitEnforced"]).toBe(false);
-      expect(body["seatsInUse"]).toBeNull();
-      expect(body["seatsRemaining"]).toBeNull();
-      expect(body["canAddMoreUsers"]).toBe(true);
-      expect(UserService.countBy).not.toHaveBeenCalled();
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: STORED_LICENSE_KEY,
     });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain("cannot use");
+    expect(result.error?.message).toContain("different OneUptime instance");
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("lets an administrator replace the installed license on purpose", async () => {
+    store.row!["enterpriseLicenseToken"] = signLicense(SIGNING_KEY);
+    await licenseProvider.refresh();
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: "another-license",
+    });
+
+    expect(result.error).toBeNull();
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(
+      legacyToken("from-server"),
+    );
+  });
+
+  it("makes the new license visible to this process's permission checks at once", async () => {
+    store.row = storedRow({
+      enterpriseLicenseToken: undefined,
+      enterpriseLicenseKey: undefined,
+      enterpriseEditionFirstSeenAt: new Date(Date.now() - 100 * DAY_IN_MS),
+    });
+    await licenseProvider.refresh();
+
+    expect(licenseProvider.getCachedSnapshot()?.status).toBe("missing");
+
+    await callRoute(LICENSE_ROUTE, { licenseKey: STORED_LICENSE_KEY });
+
+    expect(licenseProvider.getCachedSnapshot()?.status).toBe("valid");
+  });
+});
+
+describe("POST /global-config/license/refresh", () => {
+  /*
+   * The whole point of the route: no key in the body. A refresh that
+   * accepted one would be an activation with a friendlier name, and a
+   * mistyped key would be able to replace a working licence by accident.
+   */
+  it("refreshes using the stored key and ignores anything in the body", async () => {
+    await callRoute(LICENSE_REFRESH_ROUTE, {
+      licenseKey: "somebody-elses-key",
+    });
+
+    expect(sentToLicenseServer()["licenseKey"]).toBe(STORED_LICENSE_KEY);
+  });
+
+  it("never lets the response swap the key it refreshed with", async () => {
+    respondWith(licenseServerPayload({ licenseKey: "somebody-elses-key" }));
+
+    await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(lastLicenseWrite().data).not.toHaveProperty("enterpriseLicenseKey");
+    expect(store.row?.["enterpriseLicenseKey"]).toBe(STORED_LICENSE_KEY);
+  });
+
+  it("refuses to refresh an installation that has no licence key yet", async () => {
+    store.row!["enterpriseLicenseKey"] = undefined;
+    store.row!["enterpriseLicenseToken"] = undefined;
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
+  it("refuses to refresh when there is no config row at all", async () => {
+    store.row = null;
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
+  it("explains that an offline-activated installation has nothing to refresh", async () => {
+    store.row!["enterpriseLicenseKey"] = undefined;
+    store.row!["enterpriseLicenseToken"] = signLicense(SIGNING_KEY);
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain("activated offline");
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The reason the button exists. The customer raised the limit on
+   * oneuptime.com; the stored 50 is what this installation is refusing users
+   * against until something writes the new number down.
+   */
+  it("applies a seat limit that has been raised on oneuptime.com", async () => {
+    respondWith(licenseServerPayload({ userLimit: 500 }));
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(lastLicenseWrite().data["enterpriseLicenseUserLimit"]).toBe(500);
+    expect(result.body?.["userLimit"]).toBe(500);
+  });
+
+  it("applies a seat limit that has been lowered on oneuptime.com", async () => {
+    respondWith(licenseServerPayload({ userLimit: 5 }));
+
+    await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(lastLicenseWrite().data["enterpriseLicenseUserLimit"]).toBe(5);
+  });
+
+  it("clears the seat limit when the licence no longer carries one", async () => {
+    respondWith(licenseServerPayload({ userLimit: null }));
+
+    await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(lastLicenseWrite().data["enterpriseLicenseUserLimit"]).toBeNull();
+  });
+
+  it("refreshes the expiry as well as the seat limit", async () => {
+    respondWith(
+      licenseServerPayload({ expiresAt: "2031-06-01T00:00:00.000Z" }),
+    );
+
+    await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(
+      (
+        lastLicenseWrite().data["enterpriseLicenseExpiresAt"] as Date
+      ).toISOString(),
+    ).toBe("2031-06-01T00:00:00.000Z");
+  });
+
+  /*
+   * An installation that cannot reach oneuptime.com must be told so rather
+   * than quietly keeping the old terms and reporting success — the
+   * administrator pressed this button precisely because they believe the old
+   * terms are wrong.
+   */
+  it("surfaces a failure from the licence server instead of storing anything", async () => {
+    (API.post as unknown as jest.Mock).mockResolvedValue(
+      new HTTPErrorResponse(500, { message: "License key is invalid" }, {}),
+    );
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toBe("License key is invalid");
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("does not store anything when the returned expiry is not a date", async () => {
+    respondWith(licenseServerPayload({ expiresAt: "the-first-of-never" }));
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("upgrades a legacy license to a signed one", async () => {
+    const signed: string = signLicense(SIGNING_KEY);
+    respondWith(licenseServerPayload({ token: signed }));
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeNull();
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(signed);
+    expect(result.body?.["verification"]).toBe("verified");
+  });
+});
+
+describe("POST /global-config/license/refresh - never downgrade", () => {
+  let installedToken: string;
+
+  beforeEach(async () => {
+    installedToken = signLicense(SIGNING_KEY, { userLimit: 50 });
+    store.row!["enterpriseLicenseToken"] = installedToken;
+    await licenseProvider.refresh();
+  });
+
+  it("keeps a verified license when the server answers with a legacy one", async () => {
+    respondWith(licenseServerPayload({ userLimit: 100_000 }));
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain("The installed license was kept");
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(installedToken);
+    expect(licenseProvider.getCachedSnapshot()?.userLimit).toBe(50);
+  });
+
+  it("keeps a working license when the server sends no token at all", async () => {
+    respondWith(licenseServerPayload({ token: undefined }));
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(installedToken);
+  });
+
+  it("keeps a working license when the server's signature does not verify", async () => {
+    const forged: string = `${installedToken.split(".").slice(0, 2).join(".")}.${
+      signLicense(UNTRUSTED_KEY).split(".")[2]
+    }`;
+    respondWith(licenseServerPayload({ token: forged }));
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(installedToken);
+  });
+
+  it("still stores the usage figures of a refused license", async () => {
+    respondWith(
+      licenseServerPayload({
+        currentUserCount: 77,
+        instances: [{ instanceId: "x", host: "h" }],
+      }),
+    );
+
+    await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(store.row?.["enterpriseLicenseCurrentUserCount"]).toBe(77);
+    expect(store.row?.["enterpriseLicenseInstances"]).toHaveLength(1);
+    expect(store.row?.["enterpriseLicenseUserLimit"]).toBe(50);
+  });
+
+  it("accepts a renewal that ranks the same", async () => {
+    const renewal: string = signLicense(SIGNING_KEY, { daysFromNow: 700 });
+    respondWith(licenseServerPayload({ token: renewal }));
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeNull();
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(renewal);
+  });
+});
+
+describe("the seat enforcement the response reports", () => {
+  it("reports the seats in use against the freshly refreshed limit", async () => {
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.body?.["isSeatLimitEnforced"]).toBe(true);
+    expect(result.body?.["seatsInUse"]).toBe(42);
+    expect(result.body?.["seatsRemaining"]).toBe(108);
+    expect(result.body?.["canAddMoreUsers"]).toBe(true);
+  });
+
+  /*
+   * The live count is what enforcement uses, and it is allowed to be higher
+   * than the licence-wide figure oneuptime.com last computed — that figure is
+   * up to a day old.
+   */
+  it("prefers the live user count over the licence server's stale one", async () => {
+    (UserService as unknown as Record<string, unknown>)["countBy"] = jest
+      .fn()
+      .mockResolvedValue(new PositiveNumber(150) as never);
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.body?.["seatsInUse"]).toBe(150);
+    expect(result.body?.["seatsRemaining"]).toBe(0);
+    expect(result.body?.["canAddMoreUsers"]).toBe(false);
+  });
+
+  it("says the limit is not enforced when the licence has none", async () => {
+    respondWith(licenseServerPayload({ userLimit: null }));
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.body?.["isSeatLimitEnforced"]).toBe(false);
+    expect(result.body?.["seatsInUse"]).toBeNull();
+    expect(result.body?.["canAddMoreUsers"]).toBe(true);
+  });
+
+  it("says the limit is not enforced where billing bounds seats", async () => {
+    setTestBillingEnabled(true);
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.body?.["isSeatLimitEnforced"]).toBe(false);
+    expect(result.body?.["canAddMoreUsers"]).toBe(true);
+    expect(UserService.countBy).not.toHaveBeenCalled();
+  });
+
+  it("says the limit is not enforced once the license expired past its grace", async () => {
+    respondWith(
+      licenseServerPayload({
+        expiresAt: new Date(Date.now() - 60 * DAY_IN_MS).toISOString(),
+      }),
+    );
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: STORED_LICENSE_KEY,
+    });
+
+    expect(result.body?.["status"]).toBe("expired");
+    expect(result.body?.["licenseValid"]).toBe(false);
+    expect(result.body?.["isSeatLimitEnforced"]).toBe(false);
+  });
+});
+
+describe("POST /global-config/license - activating offline with a signed token", () => {
+  it("accepts a token signed by a trusted key and never calls home", async () => {
+    const token: string = signLicense(SIGNING_KEY, {
+      companyName: "Offline Corp",
+      userLimit: 25,
+    });
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: token,
+    });
+
+    expect(result.error).toBeNull();
+    expect(API.post).not.toHaveBeenCalled();
+    expect(result.body?.["status"]).toBe("valid");
+    expect(result.body?.["verification"]).toBe("verified");
+    expect(result.body?.["companyName"]).toBe("Offline Corp");
+    expect(result.body?.["userLimit"]).toBe(25);
+    expect(result.body?.["activationMode"]).toBe("offline");
+  });
+
+  /*
+   * No key is what marks the installation as offline-activated: it has
+   * nothing to call home with, so the daily report and the boot refresh skip
+   * it. The online usage figures are cleared rather than enforced forever.
+   */
+  it("stores the token without a key, mirrors the signed terms and clears the online usage", async () => {
+    store.row!["enterpriseLicenseCurrentUserCount"] = 90;
+    store.row!["enterpriseLicenseInstances"] = [{ instanceId: "x" }];
+    const token: string = signLicense(SIGNING_KEY, {
+      companyName: "Offline Corp",
+      userLimit: 25,
+      isEvaluation: true,
+    });
+
+    await callRoute(LICENSE_ROUTE, { licenseToken: token });
+
+    const write: RecordedWrite = lastLicenseWrite();
+
+    expect(write.props).toEqual({ isRoot: true, ignoreHooks: true });
+    expect(write.data["enterpriseLicenseToken"]).toBe(token);
+    expect(write.data["enterpriseLicenseKey"]).toBeNull();
+    expect(write.data["enterpriseCompanyName"]).toBe("Offline Corp");
+    expect(write.data["enterpriseLicenseUserLimit"]).toBe(25);
+    expect(write.data["enterpriseLicenseIsEvaluation"]).toBe(true);
+    expect(write.data["enterpriseLicenseCurrentUserCount"]).toBeNull();
+    expect(write.data["enterpriseLicenseInstances"]).toEqual([]);
+  });
+
+  it("accepts a token bound to this instance", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY, {
+        instanceId: INSTANCE_ID.toString(),
+      }),
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.body?.["status"]).toBe("valid");
+  });
+
+  it("refuses a token bound to a different instance, and says which id to ask for", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY, {
+        instanceId: "another-instance",
+      }),
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain("different OneUptime instance");
+    expect(result.error?.message).toContain(INSTANCE_ID.toString());
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  /*
+   * With an empty trust list every token is unverified. Accepting one here
+   * would make this form a license forger.
+   */
+  it("refuses a token signed by a key this build does not trust", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(UNTRUSTED_KEY),
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain(
+      "does not trust the key that signed this token",
+    );
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("refuses everything while this build trusts no key at all", async () => {
+    setTrustedLicenseKeysForTests([]);
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY),
+    });
+
+    expect(result.error?.message).toContain("does not trust the key");
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("refuses a legacy HS256 token", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: legacyToken(),
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain("does not trust the key");
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("refuses a token whose signature does not verify", async () => {
+    const good: string = signLicense(SIGNING_KEY);
+    const tampered: string = `${good.split(".").slice(0, 2).join(".")}.${
+      signLicense(UNTRUSTED_KEY).split(".")[2]
+    }`;
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: tampered,
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain("not valid");
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("refuses something that is not a license token", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: "definitely not a token",
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain("not a OneUptime license token");
+  });
+
+  it("refuses an oversized paste before it can reach the database", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: `${"a".repeat(LICENSE_TOKEN_MAX_LENGTH)}.b.c`,
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("refuses a token that expired past its grace period", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY, { daysFromNow: -30 }),
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain("expired");
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("accepts a token still inside its grace period", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY, { daysFromNow: -3 }),
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.body?.["status"]).toBe("grace");
+    expect(result.body?.["licenseValid"]).toBe(true);
+  });
+
+  it("ignores the whitespace and line breaks a copy-paste adds", async () => {
+    const token: string = signLicense(SIGNING_KEY);
+    const wrapped: string = `\n  ${token.slice(0, 40)}\n${token.slice(40, 90)}\r\n${token.slice(90)}  \n`;
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: wrapped,
+    });
+
+    expect(result.error).toBeNull();
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(token);
+  });
+
+  it("refuses a request that sends both a key and a token", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: STORED_LICENSE_KEY,
+      licenseToken: signLicense(SIGNING_KEY),
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(API.post).not.toHaveBeenCalled();
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("refuses a token that is not a string", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: { alg: "none" } as unknown as JSONObject,
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
   });
 });
