@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "이 스위치는 어떤 알림이 도착할지를 정할 뿐, 이메일이 몇 통이 될지를 정하지는 않습니다.",
   "Reduce routine emails or change email rollup in Email Preferences": "이메일 환경설정에서 정기 이메일 줄이기 또는 이메일 묶음 발송 변경하기",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "메모, 소유자로 추가됨, 새 모니터 및 상태 페이지, 에피소드에 추가된 항목, 온콜 정책 구성원 변경에 대한 이메일을 끕니다.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "인시던트 및 알림 생성, 상태 변경, 알림 재통지, 할당, 모니터 상태, 온콜 근무에 대한 설정은 그대로 유지됩니다. 다른 알림 채널, 온콜 호출, 계정 및 청구 이메일은 영향을 받지 않습니다."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "인시던트 및 알림 생성, 상태 변경, 알림 재통지, 할당, 모니터 상태, 온콜 근무에 대한 설정은 그대로 유지됩니다. 다른 알림 채널, 온콜 호출, 계정 및 청구 이메일은 영향을 받지 않습니다.",
+  "Schedule Timeline": "스케줄 타임라인",
+  "Timeline View": "타임라인 보기",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "이 프로젝트의 모든 온콜 스케줄을 나란히 표시합니다: 누가 온콜인지, 누가 누구를 대신하는지, 아무도 없는 시간은 언제인지.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "이 팀이 소유한 각 스케줄의 온콜 담당자를 주 단위 또는 월 단위로 보여줍니다.",
+  "No on-call schedules yet": "아직 온콜 스케줄이 없습니다",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "온콜 스케줄을 만들면 이 프로젝트의 모든 로테이션이 여기에 나란히 표시됩니다.",
+  "This team does not own any on-call schedules yet": "이 팀이 소유한 온콜 스케줄이 아직 없습니다",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "스케줄의 소유자 탭에서 이 팀을 소유자로 추가하면 해당 로테이션이 여기에 표시됩니다."
 }

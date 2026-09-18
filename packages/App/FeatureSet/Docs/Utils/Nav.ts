@@ -448,6 +448,10 @@ const DocsNav: NavGroup[] = [
     title: "On Call",
     links: [
       {
+        title: "Schedule Timeline",
+        url: "/docs/on-call/schedule-timeline",
+      },
+      {
         title: "Calendar Feeds",
         url: "/docs/on-call/calendar-feeds",
       },

@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "これらのスイッチが決めるのは、どの通知が届くかであって、メールが何通になるかではありません。",
   "Reduce routine emails or change email rollup in Email Preferences": "メール設定で定型メールを減らす、またはメールのまとめ送信を変更する",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "メモ、オーナーへの追加、新しいモニターとステータスページ、エピソードへの項目追加、オンコールポリシーのメンバー変更に関するメールをオフにします。",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "インシデントとアラートの作成、状態変更、リマインダー、割り当て、モニターの健全性、オンコールシフトに関する設定はそのまま維持されます。他の通知チャネル、オンコール呼び出し、アカウントおよび請求のメールには影響しません。"
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "インシデントとアラートの作成、状態変更、リマインダー、割り当て、モニターの健全性、オンコールシフトに関する設定はそのまま維持されます。他の通知チャネル、オンコール呼び出し、アカウントおよび請求のメールには影響しません。",
+  "Schedule Timeline": "スケジュールタイムライン",
+  "Timeline View": "タイムライン表示",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "このプロジェクトのすべてのオンコールスケジュールを並べて表示します。誰がオンコールか、誰が誰の代わりをしているか、誰もいない時間帯はどこかがわかります。",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "このチームが所有する各スケジュールで誰がオンコールかを、週単位または月単位で表示します。",
+  "No on-call schedules yet": "オンコールスケジュールはまだありません",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "オンコールスケジュールを作成すると、このプロジェクトのすべてのローテーションがここに並んで表示されます。",
+  "This team does not own any on-call schedules yet": "このチームが所有するオンコールスケジュールはまだありません",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "スケジュールの「所有者」タブでこのチームを所有者に追加すると、そのローテーションがここに表示されます。"
 }

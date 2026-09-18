@@ -1012,6 +1012,7 @@ export const TeamsRoutePath: Dictionary<string> = {
   [PageMap.TEAM_VIEW_PERMISSIONS]: `${RouteParams.ModelID}/permissions`,
   [PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]: `${RouteParams.ModelID}/block-permissions`,
   [PageMap.TEAM_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
+  [PageMap.TEAM_VIEW_ON_CALL_SCHEDULES]: `${RouteParams.ModelID}/on-call-schedules`,
   [PageMap.TEAM_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.TEAM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
@@ -1039,6 +1040,7 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
   [PageMap.ON_CALL_DUTY_READINESS]: "readiness",
   [PageMap.ON_CALL_DUTY_CALENDAR_FEEDS]: "calendar-feeds",
+  [PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE]: "schedule-timeline",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: `policies/${RouteParams.ModelID}/delete`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: `policies/${RouteParams.ModelID}/execution-logs`,
@@ -5347,6 +5349,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE]
+    }`,
+  ),
+
   [PageMap.ON_CALL_DUTY_EXECUTION_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_EXECUTION_LOGS]
@@ -6028,6 +6036,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TEAM_VIEW_COMPLIANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/teams/${
       TeamsRoutePath[PageMap.TEAM_VIEW_COMPLIANCE]
+    }`,
+  ),
+
+  [PageMap.TEAM_VIEW_ON_CALL_SCHEDULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_VIEW_ON_CALL_SCHEDULES]
     }`,
   ),
 

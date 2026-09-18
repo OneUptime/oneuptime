@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "Эти переключатели определяют, какие уведомления доходят до вас, а не сколько писем из них получится.",
   "Reduce routine emails or change email rollup in Email Preferences": "Сократить рутинные письма или изменить объединение писем в настройках электронной почты",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Отключите письма о заметках, назначении вас владельцем, новых мониторах и страницах статуса, элементах, добавленных в эпизоды, и изменениях состава политик дежурств.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Ваши настройки для создания инцидентов и оповещений, изменений состояния, напоминаний, назначений, состояния мониторов и дежурных смен остаются без изменений. Другие каналы уведомлений, вызовы дежурных, письма об аккаунте и оплате не затрагиваются."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Ваши настройки для создания инцидентов и оповещений, изменений состояния, напоминаний, назначений, состояния мониторов и дежурных смен остаются без изменений. Другие каналы уведомлений, вызовы дежурных, письма об аккаунте и оплате не затрагиваются.",
+  "Schedule Timeline": "Хронология дежурств",
+  "Timeline View": "Вид хронологии",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "Все расписания дежурств проекта рядом: кто дежурит, кто кого подменяет и где никого нет.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "Кто дежурит в каждом расписании этой команды — по неделям или по месяцам.",
+  "No on-call schedules yet": "Расписаний дежурств пока нет",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "Создайте расписание дежурств, и все ротации проекта появятся здесь рядом друг с другом.",
+  "This team does not own any on-call schedules yet": "Эта команда пока не владеет расписаниями дежурств",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Добавьте эту команду владельцем на вкладке «Владельцы» расписания, и его ротации появятся здесь."
 }

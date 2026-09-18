@@ -176,7 +176,7 @@ export interface EmptyOutcomeOptions {
 }
 
 /* The schedule facts every render needs, read once per request. */
-interface ScheduleInfo {
+export interface ScheduleInfo {
   id: ObjectID;
   name: string;
   timezone?: string | undefined;

@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "这些开关决定哪些通知会送达您，而不是它们会变成多少封邮件。",
   "Reduce routine emails or change email rollup in Email Preferences": "在邮件偏好设置中减少例行邮件或更改邮件合并",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "关闭有关备注、被添加为所有者、新监控器和状态页、添加到事件集的条目，以及值班策略成员变更的邮件。",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "您对事故和告警创建、状态变更、提醒、指派、监控器健康状况和值班班次的选择保持不变。其他通知渠道、值班呼叫以及账户和账单邮件均不受影响。"
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "您对事故和告警创建、状态变更、提醒、指派、监控器健康状况和值班班次的选择保持不变。其他通知渠道、值班呼叫以及账户和账单邮件均不受影响。",
+  "Schedule Timeline": "值班时间线",
+  "Timeline View": "时间线视图",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "并排查看本项目中的所有值班计划：谁在值班、谁在替谁值班，以及哪里无人值班。",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "按周或按月查看本团队拥有的每个值班计划由谁值班。",
+  "No on-call schedules yet": "还没有值班计划",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "创建值班计划后，本项目中的所有轮值都会在这里并排显示。",
+  "This team does not own any on-call schedules yet": "该团队还没有拥有任何值班计划",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "在值班计划的“所有者”选项卡中将该团队添加为所有者，其轮值就会显示在这里。"
 }

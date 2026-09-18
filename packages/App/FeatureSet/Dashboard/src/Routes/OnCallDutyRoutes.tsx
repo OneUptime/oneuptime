@@ -15,6 +15,7 @@ import OnCallDutyExecutionLogs from "../Pages/OnCallDuty/OnCallDutyExecutionLogs
 import OnCallDutyUserOverrides from "../Pages/OnCallDuty/UserOverrides";
 import OnCallDutyReadiness from "../Pages/OnCallDuty/Readiness";
 import OnCallDutyCalendarFeeds from "../Pages/OnCallDuty/CalendarFeeds";
+import OnCallDutyScheduleTimeline from "../Pages/OnCallDuty/ScheduleTimeline";
 
 import OnCallDutyPolicyViewUserOverrides from "../Pages/OnCallDuty/OnCallDutyPolicy/UserOverrides";
 import OnCallDutyPolicyExecutionLogTimeline from "../Pages/OnCallDuty/OnCallDutyExecutionLogView";
@@ -151,6 +152,19 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
             <OnCallDutyReadiness
               {...props}
               pageRoute={RouteMap[PageMap.ON_CALL_DUTY_READINESS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE] || ""
+          }
+          element={
+            <OnCallDutyScheduleTimeline
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE] as Route
+              }
             />
           }
         />

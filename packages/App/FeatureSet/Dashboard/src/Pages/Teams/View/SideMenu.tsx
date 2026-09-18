@@ -71,6 +71,21 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
+    {
+      title: "On-Call",
+      items: [
+        {
+          link: {
+            title: "On-Call Schedules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TEAM_VIEW_ON_CALL_SCHEDULES] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.Calendar,
+        },
+      ],
+    },
   ];
 
   if (isComplianceEnterpriseEligible) {

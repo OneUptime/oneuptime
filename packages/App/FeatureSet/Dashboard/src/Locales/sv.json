@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "De här reglagen avgör vilka aviseringar som når dig, inte hur mycket e-post de blir.",
   "Reduce routine emails or change email rollup in Email Preferences": "Minska rutinmässig e-post eller ändra e-postsamling under e-postinställningar",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Stäng av e-post om anteckningar, att läggas till som ägare, nya övervakningar och statussidor, objekt som lagts till i avsnitt och ändringar i medlemskap i jourpolicyer.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Dina val för skapande av incidenter och varningar, tillståndsändringar, påminnelser, tilldelningar, övervakningshälsa och jourpass förblir som de är. Andra aviseringskanaler, jourutlarmning samt konto- och faktureringsmejl påverkas inte."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Dina val för skapande av incidenter och varningar, tillståndsändringar, påminnelser, tilldelningar, övervakningshälsa och jourpass förblir som de är. Andra aviseringskanaler, jourutlarmning samt konto- och faktureringsmejl påverkas inte.",
+  "Schedule Timeline": "Tidslinje för jourscheman",
+  "Timeline View": "Tidslinjevy",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "Alla jourscheman i det här projektet sida vid sida: vem som har jour, vem som täcker för vem och var ingen finns.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "Vem som har jour på varje schema som teamet äger, vecka för vecka eller månad för månad.",
+  "No on-call schedules yet": "Inga jourscheman ännu",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "Skapa ett jourschema så visas varje rotation i projektet här, sida vid sida.",
+  "This team does not own any on-call schedules yet": "Teamet äger inga jourscheman ännu",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Lägg till teamet som ägare på fliken Ägare för ett schema så visas dess rotationer här."
 }
