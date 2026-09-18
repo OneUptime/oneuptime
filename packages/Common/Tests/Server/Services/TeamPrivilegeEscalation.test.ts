@@ -103,6 +103,11 @@ function propsWith(
   return {
     userId: USER_ID,
     tenantId: tenantId,
+    userGlobalAccessPermission: {
+      _type: "UserGlobalAccessPermission",
+      projectIds: [tenantId],
+      globalPermissions: [Permission.Public, Permission.User],
+    },
     userTenantAccessPermission: {
       [tenantId.toString()]: tenantPermission,
     },
@@ -117,6 +122,7 @@ function makePermission(data?: {
   scope?: PermissionScope | undefined;
 }): TeamPermission {
   const permission: TeamPermission = new TeamPermission();
+  permission.id = ObjectID.generate();
   permission.projectId = data?.projectId || PROJECT_ID;
   permission.teamId = data?.teamId || TEAM_ID;
   permission.permission = data?.permission || Permission.ProjectMember;
