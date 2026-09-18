@@ -44,6 +44,13 @@ export interface CategoryCheckboxProps {
   options: Array<CategoryCheckboxOption>;
 }
 
+export interface FormFieldCollapsibleSection<TEntity> {
+  id: string;
+  title: string;
+  description?: string | undefined;
+  isConfigured: (values: FormValues<TEntity>) => boolean;
+}
+
 export default interface Field<TEntity> {
   name?: string; // form field name, should be unique in thr form. If not provided, the field will be auto generated.
   title?: string;
@@ -178,4 +185,7 @@ export default interface Field<TEntity> {
    */
   sectionTitle?: string | undefined;
   sectionDescription?: string | ReactElement | undefined;
+
+  // Consecutive visible fields with the same id share one collapsible section.
+  collapsibleSection?: FormFieldCollapsibleSection<TEntity> | undefined;
 }

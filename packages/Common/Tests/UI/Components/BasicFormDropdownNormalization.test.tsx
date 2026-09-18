@@ -2,9 +2,10 @@ import BasicForm from "../../../UI/Components/Forms/BasicForm";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import ObjectID from "../../../Types/ObjectID";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { describe, expect, test } from "@jest/globals";
@@ -163,5 +164,119 @@ describe("BasicForm dropdown initial-value normalization", () => {
     );
 
     expect(submitted["snmpVersion"]).toBeUndefined();
+  });
+
+  test("preserves all multiselect IDs when available options contain only some selections", async () => {
+    const submitted: FormValues<any> = await submitForm(
+      { owners: ["unavailable-owner", "available-owner"] },
+      [
+        {
+          field: { owners: true },
+          title: "Owners",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownOptions: [
+            { label: "Available Owner", value: "available-owner" },
+          ],
+        },
+      ],
+    );
+
+    expect(submitted["owners"]).toEqual([
+      "unavailable-owner",
+      "available-owner",
+    ]);
+  });
+
+  test("preserves and canonicalizes multiselect ObjectIDs before options load", async () => {
+    const firstId: ObjectID = new ObjectID(
+      "3f1b6b0e-0000-4000-8000-000000000003",
+    );
+    const secondId: ObjectID = new ObjectID(
+      "3f1b6b0e-0000-4000-8000-000000000004",
+    );
+    const submitted: FormValues<any> = await submitForm(
+      { owners: [firstId, secondId] } as unknown as FormValues<any>,
+      [
+        {
+          field: { owners: true },
+          title: "Owners",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        },
+      ],
+    );
+
+    expect(submitted["owners"]).toEqual([
+      firstId.toString(),
+      secondId.toString(),
+    ]);
+  });
+
+  test("keeps saved owners visible and submitted when their step loads options after initialization", async () => {
+    const onSubmit: MockFunction = getJestMockFunction();
+    const ownerId: string = "3f1b6b0e-0000-4000-8000-000000000005";
+    let resolveOptions: (options: Array<DropdownOption>) => void = () => {};
+    const optionsLoaded: Promise<Array<DropdownOption>> = new Promise(
+      (resolve: (options: Array<DropdownOption>) => void) => {
+        resolveOptions = resolve;
+      },
+    );
+    const steps: Array<FormStep<FormValues<any>>> = [
+      { id: "details", title: "Details" },
+      { id: "owners", title: "Owner Settings" },
+    ];
+    const fields: Fields<FormValues<any>> = [
+      {
+        field: { title: true },
+        title: "Rule Title",
+        fieldType: FormFieldSchemaType.Text,
+        stepId: "details",
+      },
+      {
+        field: { owners: true },
+        title: "Owners",
+        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        stepId: "owners",
+        fetchDropdownOptions: async (): Promise<Array<DropdownOption>> => {
+          return optionsLoaded;
+        },
+      },
+    ];
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+      delay: null,
+    });
+
+    render(
+      <BasicForm
+        fields={fields}
+        steps={steps}
+        initialValues={{ title: "Existing rule", owners: [ownerId] }}
+        onSubmit={onSubmit}
+        submitButtonText="Save"
+        disableAutofocus={true}
+      />,
+    );
+
+    await screen.findByRole("textbox", { name: /^Rule Title/ });
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByRole("combobox", { name: /^Owners/ });
+    await act(async () => {
+      resolveOptions([{ label: "Saved Owner", value: ownerId }]);
+      await optionsLoaded;
+    });
+
+    expect(await screen.findByText("Saved Owner")).toBeTruthy();
+    await user.click(
+      within(screen.getByRole("navigation", { name: "Progress" })).getByText(
+        "Details",
+      ),
+    );
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(await screen.findByText("Saved Owner")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSubmit.mock.calls[0]?.[0]).toEqual({
+      title: "Existing rule",
+      owners: [ownerId],
+    });
   });
 });

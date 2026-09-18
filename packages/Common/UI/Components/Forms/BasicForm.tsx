@@ -11,6 +11,7 @@ import {
   DropdownValue,
 } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import CollapsibleFormSection from "./CollapsibleFormSection";
 import FormField from "./Fields/FormField";
 import FormSummary from "./FormSummary";
 import Steps from "./Steps/Steps";
@@ -222,6 +223,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
     const [errors, setErrors] = useState<Dictionary<string>>({});
     const [touched, setTouched] = useState<Dictionary<boolean>>({});
+    const [validationAttempt, setValidationAttempt] = useState<number>(0);
 
     useEffect(() => {
       setFormSteps(getVisibleFormSteps());
@@ -402,6 +404,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const submitForm: () => void = (): void => {
       // check for any boolean values and if they don't exist in values - mark them as false.
 
+      setValidationAttempt((attempt: number) => {
+        return attempt + 1;
+      });
       setAllTouched();
 
       const validationErrors: Dictionary<string> = validate(
@@ -592,41 +597,16 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           field.fieldType === FormFieldSchemaType.MultiSelectDropdown &&
           (values as any)[fieldName]
         ) {
-          const flatDropdownOptions: Array<DropdownOption> =
-            field.dropdownOptions?.flatMap(
-              (item: DropdownOption | DropdownOptionGroup) => {
-                if (
-                  "options" in item &&
-                  Array.isArray((item as DropdownOptionGroup).options)
-                ) {
-                  return (item as DropdownOptionGroup).options;
-                }
-                return [item as DropdownOption];
-              },
-            ) || [];
-
-          const dropdownOptions: Array<DropdownOption> =
-            flatDropdownOptions.filter((option: DropdownOption) => {
-              let valueToCompare: Array<DropdownValue> = [
-                ...(values as any)[fieldName],
-              ];
-
-              valueToCompare = valueToCompare.map((item: DropdownValue) => {
-                if ((item as any) instanceof ObjectID) {
-                  return item.toString();
-                }
-
-                return item;
-              });
-
-              return valueToCompare.includes(option.value);
-            });
-
-          (values as any)[fieldName] = dropdownOptions.map(
-            (option: DropdownOption) => {
-              return option.value;
-            },
-          );
+          /*
+           * Options can be loaded lazily for a later step or omit entities the
+           * user cannot browse. Preserve every stored selection just as a single
+           * dropdown does; an option list is not an authorization to clear IDs.
+           */
+          (values as any)[fieldName] = (
+            (values as any)[fieldName] as Array<DropdownValue | ObjectID>
+          ).map((value: DropdownValue | ObjectID): DropdownValue => {
+            return value instanceof ObjectID ? value.toString() : value;
+          });
         }
 
         // if the field is still null but has a default value then... have the default initial value
@@ -742,102 +722,147 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     const activeColumns: number =
                       currentStep?.columns || props.showAsColumns || 1;
                     const fullRowSpan: string = `md:col-span-${activeColumns}`;
+                    const visibleFields: Fields<T> = formFields.filter(
+                      (field: Field<T>): boolean => {
+                        return (
+                          (!currentFormStepId ||
+                            field.stepId === currentFormStepId) &&
+                          (!field.showIf ||
+                            field.showIf(refCurrentValue.current))
+                        );
+                      },
+                    );
+                    const fieldGroups: Array<Fields<T>> = [];
+
+                    for (const field of visibleFields) {
+                      const previousGroup: Fields<T> | undefined =
+                        fieldGroups[fieldGroups.length - 1];
+                      if (
+                        field.collapsibleSection &&
+                        previousGroup?.[0]?.collapsibleSection?.id ===
+                          field.collapsibleSection.id
+                      ) {
+                        previousGroup.push(field);
+                      } else {
+                        fieldGroups.push([field]);
+                      }
+                    }
+
+                    const renderField: (
+                      field: Field<T>,
+                      index: number,
+                    ) => ReactElement = (
+                      field: Field<T>,
+                      index: number,
+                    ): ReactElement => {
+                      const fieldName: string = getFieldName(field);
+                      return (
+                        <Fragment key={fieldName}>
+                          {field.sectionTitle && (
+                            <div
+                              className={`${fullRowSpan} mt-4 pt-5 first:mt-0 first:pt-0 border-t first:border-t-0 border-gray-200`}
+                            >
+                              <h3 className="text-base font-semibold text-gray-900">
+                                {translateString(field.sectionTitle) ??
+                                  field.sectionTitle}
+                              </h3>
+                              {field.sectionDescription && (
+                                <p className="mt-1 text-sm text-gray-500">
+                                  {typeof field.sectionDescription === "string"
+                                    ? translateString(
+                                        field.sectionDescription,
+                                      ) ?? field.sectionDescription
+                                    : field.sectionDescription}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          <div
+                            className={
+                              field.spanFullRow ? fullRowSpan : undefined
+                            }
+                          >
+                            <FormField<T>
+                              field={field}
+                              fieldName={fieldName}
+                              index={index}
+                              error={errors[fieldName] || ""}
+                              touched={touched[fieldName] || false}
+                              isDisabled={
+                                isLoading ||
+                                (isDropdownOptionsLoading &&
+                                  isDropdownField(field)) ||
+                                false
+                              }
+                              currentValues={refCurrentValue.current}
+                              setFieldValue={setFieldValue}
+                              setFieldTouched={setFieldTouched}
+                              submitForm={submitForm}
+                              disableAutofocus={props.disableAutofocus || false}
+                              setFormValues={(values: FormValues<T>) => {
+                                refCurrentValue.current = values;
+                                setCurrentValue(refCurrentValue.current);
+                              }}
+                            />
+                            {field.footerElement}
+                            {field.getFooterElement &&
+                              field.getFooterElement(
+                                refCurrentValue.current,
+                                touched[fieldName]
+                                  ? errors[fieldName] || undefined
+                                  : undefined,
+                              )}
+                          </div>
+                        </Fragment>
+                      );
+                    };
+                    let fieldIndex: number = 0;
+
                     return (
                       <div
                         className={`grid md:grid-cols-${activeColumns} grid-cols-1 gap-x-4 gap-y-3`}
                       >
-                        {formFields &&
-                          formFields
-                            .filter((field: Field<T>) => {
-                              if (currentFormStepId) {
-                                return field.stepId === currentFormStepId;
-                              }
+                        {fieldGroups.map((group: Fields<T>): ReactElement => {
+                          const firstField: Field<T> = group[0]!;
+                          const fields: Array<ReactElement> = group.map(
+                            (field: Field<T>): ReactElement => {
+                              return renderField(field, fieldIndex++);
+                            },
+                          );
 
-                              return true;
-                            })
-                            .filter((field: Field<T>) => {
-                              const currentValues: FormValues<T> =
-                                refCurrentValue.current;
-                              if (
-                                field.showIf &&
-                                !field.showIf(currentValues)
-                              ) {
-                                return false;
-                              }
+                          if (!firstField.collapsibleSection) {
+                            return fields[0]!;
+                          }
 
-                              return true;
-                            })
-                            .map((field: Field<T>, i: number) => {
-                              const fieldName: string = getFieldName(field);
-                              return (
-                                <Fragment key={fieldName}>
-                                  {field.sectionTitle && (
-                                    <div
-                                      className={`${fullRowSpan} mt-4 pt-5 first:mt-0 first:pt-0 border-t first:border-t-0 border-gray-200`}
-                                    >
-                                      <h3 className="text-base font-semibold text-gray-900">
-                                        {translateString(field.sectionTitle) ??
-                                          field.sectionTitle}
-                                      </h3>
-                                      {field.sectionDescription && (
-                                        <p className="mt-1 text-sm text-gray-500">
-                                          {typeof field.sectionDescription ===
-                                          "string"
-                                            ? translateString(
-                                                field.sectionDescription,
-                                              ) ?? field.sectionDescription
-                                            : field.sectionDescription}
-                                        </p>
-                                      )}
-                                    </div>
-                                  )}
-                                  <div
-                                    className={
-                                      field.spanFullRow
-                                        ? fullRowSpan
-                                        : undefined
-                                    }
-                                  >
-                                    <FormField<T>
-                                      field={field}
-                                      fieldName={fieldName}
-                                      index={i}
-                                      error={errors[fieldName] || ""}
-                                      touched={touched[fieldName] || false}
-                                      isDisabled={
-                                        isLoading ||
-                                        (isDropdownOptionsLoading &&
-                                          isDropdownField(field)) ||
-                                        false
-                                      }
-                                      currentValues={refCurrentValue.current}
-                                      setFieldValue={setFieldValue}
-                                      setFieldTouched={setFieldTouched}
-                                      submitForm={submitForm}
-                                      disableAutofocus={
-                                        props.disableAutofocus || false
-                                      }
-                                      setFormValues={(
-                                        values: FormValues<T>,
-                                      ) => {
-                                        refCurrentValue.current = values;
-                                        setCurrentValue(
-                                          refCurrentValue.current,
-                                        );
-                                      }}
-                                    />
-                                    {field.footerElement}
-                                    {field.getFooterElement &&
-                                      field.getFooterElement(
-                                        refCurrentValue.current,
-                                        touched[fieldName]
-                                          ? errors[fieldName] || undefined
-                                          : undefined,
-                                      )}
-                                  </div>
-                                </Fragment>
-                              );
-                            })}
+                          return (
+                            <CollapsibleFormSection
+                              key={`${firstField.collapsibleSection.id}-${getFieldName(firstField)}`}
+                              title={firstField.collapsibleSection.title}
+                              description={
+                                firstField.collapsibleSection.description
+                              }
+                              isConfigured={firstField.collapsibleSection.isConfigured(
+                                refCurrentValue.current,
+                              )}
+                              hasError={group.some(
+                                (field: Field<T>): boolean => {
+                                  const fieldName: string = getFieldName(field);
+                                  return Boolean(
+                                    touched[fieldName] && errors[fieldName],
+                                  );
+                                },
+                              )}
+                              validationAttempt={validationAttempt}
+                              className={fullRowSpan}
+                            >
+                              <div
+                                className={`grid md:grid-cols-${activeColumns} grid-cols-1 gap-x-4 gap-y-3`}
+                              >
+                                {fields}
+                              </div>
+                            </CollapsibleFormSection>
+                          );
+                        })}
 
                         {/* If Summary, show Model detail  */}
 

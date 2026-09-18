@@ -178,15 +178,15 @@ While any monitor attached to the SLO is in an active scheduled maintenance wind
 3. Click **Create SLO Burn Rate Rule** (or edit one of the seeded defaults)
 4. Work through the steps:
 
-| Step                 | What you set                                                                                                                                     |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Rule**             | **Name** — e.g., "Fast burn" — and whether the rule is **enabled**.                                                                              |
-| **Burn Window**      | **Burn rate threshold** (e.g., `14.4`), the **long window** and **short window** in minutes, and **re-fire suppression** in minutes.             |
-| **What It Declares** | **Create alert** (on by default) and **declare incident** (off by default) — at least one must be on — and **add SLO owners as owners**.         |
-| **Alert Details**    | The alert's **title**, **description** and **severity**. Shown only when the rule raises an alert.                                               |
-| **Alert Routing**    | The alert's **on-call duty policies**, **owner teams**, **owner users**, **labels**, **auto resolve**, **private** and **remediation notes**.    |
-| **Incident Details** | The incident's **title**, **description** and **severity**. Shown only when the rule declares an incident.                                       |
-| **Incident Routing** | The incident's **on-call duty policies**, **owner teams**, **owner users**, **labels**, **auto resolve**, **private** and **remediation notes**. |
+| Step                 | What you set                                                                                                                                        |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Rule**             | **Name** — e.g., "Fast burn" — and whether the rule is **enabled**.                                                                                 |
+| **Burn Window**      | **Burn rate threshold** (e.g., `14.4`), the **long window** and **short window** in minutes, and **re-fire suppression** in minutes.                |
+| **What It Declares** | **Create alert** (on by default) and **declare incident** (off by default) — at least one must be on — and **add SLO owners as owners**.            |
+| **Alert**            | The alert’s **title** and **severity**, plus expandable sections for **Description**, **Ownership & Labels**, **On-Call** and **Advanced Options**. |
+| **Incident**         | The incident’s own **title**, **severity** and optional settings, grouped in the same way.                                                          |
+
+Optional sections open automatically when they contain saved settings. **Advanced Options** contains auto-resolve, privacy and remediation notes.
 
 The alert and incident steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incidents.
 

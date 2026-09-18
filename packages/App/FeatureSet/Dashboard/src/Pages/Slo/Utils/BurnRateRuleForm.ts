@@ -14,6 +14,7 @@ import {
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 
 /*
@@ -85,7 +86,7 @@ export const validateBurnRateThreshold: ValidateBurnRateThresholdFunction = (
 
 /*
  * The two output flags are read in several places - the validator below, the
- * four conditional form steps, and the Declares column - and they are read with
+ * two conditional form steps, and the Declares column - and they are read with
  * the model's own defaults, because both ModelForm and a ModelTable `select`
  * leave an untouched or unselected field undefined. `!== false` for the alert
  * and `=== true` for the incident is the asymmetry the evaluation worker and
@@ -280,15 +281,9 @@ const TEMPLATE_VARIABLES_HINT: string =
   'Supports template variables such as {{sloName}}, {{ruleName}} and {{longWindowBurnRate}} - see "How Burn Rate Rules Work" for the full list.';
 
 /*
- * Eleven fields were already too many for one scrolling modal; with titles,
- * descriptions, owners, labels and the auto-resolve and private switches for
- * each output there are more than twice that. The steps follow the questions a
- * rule answers: what is it, when does it fire, what does it declare, and - for
- * each output it declares - what the record says and where it goes.
- *
- * The four per-output steps appear only for the output they configure.
- * BasicForm filters hidden steps out of both the rail and the next/previous
- * walk, so an alert-only rule never sees an incident field it has no use for.
+ * Each output has one step, matching the monitor form: title and severity
+ * stay visible, with optional settings grouped into expandable sections.
+ * Hidden outputs are skipped by both the step rail and Next/Previous.
  */
 export const BURN_RATE_RULE_FORM_STEPS: Array<
   FormStep<ServiceLevelObjectiveBurnRateRule>
@@ -307,33 +302,141 @@ export const BURN_RATE_RULE_FORM_STEPS: Array<
   },
   {
     id: "alert-details",
-    title: "Alert Details",
-    showIf: (value: FormValues<ServiceLevelObjectiveBurnRateRule>): boolean => {
-      return willCreateAlert(value);
-    },
-  },
-  {
-    id: "alert-routing",
-    title: "Alert Routing",
+    title: "Alert",
     showIf: (value: FormValues<ServiceLevelObjectiveBurnRateRule>): boolean => {
       return willCreateAlert(value);
     },
   },
   {
     id: "incident-details",
-    title: "Incident Details",
-    showIf: (value: FormValues<ServiceLevelObjectiveBurnRateRule>): boolean => {
-      return willDeclareIncident(value);
-    },
-  },
-  {
-    id: "incident-routing",
-    title: "Incident Routing",
+    title: "Incident",
     showIf: (value: FormValues<ServiceLevelObjectiveBurnRateRule>): boolean => {
       return willDeclareIncident(value);
     },
   },
 ];
+
+const alertDescriptionSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
+  {
+    id: "alert-description",
+    title: "Description",
+    description: "Optional alert description",
+    isConfigured: (
+      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ): boolean => {
+      return Boolean(value.alertDescriptionTemplate);
+    },
+  };
+
+const alertOwnershipSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
+  {
+    id: "alert-ownership",
+    title: "Ownership & Labels",
+    description: "Assign owners and labels to the alert",
+    isConfigured: (
+      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ): boolean => {
+      return [
+        value.alertOwnerTeams,
+        value.alertOwnerUsers,
+        value.alertLabels,
+      ].some((selection: unknown): boolean => {
+        return Array.isArray(selection) && selection.length > 0;
+      });
+    },
+  };
+
+const alertOnCallSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
+  {
+    id: "alert-on-call",
+    title: "On-Call",
+    description: "Configure on-call policy escalation",
+    isConfigured: (
+      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ): boolean => {
+      return (
+        Array.isArray(value.onCallDutyPolicies) &&
+        value.onCallDutyPolicies.length > 0
+      );
+    },
+  };
+
+const alertAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
+  {
+    id: "alert-advanced",
+    title: "Advanced Options",
+    description: "Auto-resolve, privacy and remediation settings",
+    isConfigured: (
+      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ): boolean => {
+      return (
+        value.autoResolveAlert === false ||
+        value.isAlertPrivate === true ||
+        Boolean(value.alertRemediationNotes)
+      );
+    },
+  };
+
+const incidentDescriptionSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
+  {
+    id: "incident-description",
+    title: "Description",
+    description: "Optional incident description",
+    isConfigured: (
+      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ): boolean => {
+      return Boolean(value.incidentDescriptionTemplate);
+    },
+  };
+
+const incidentOwnershipSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
+  {
+    id: "incident-ownership",
+    title: "Ownership & Labels",
+    description: "Assign owners and labels to the incident",
+    isConfigured: (
+      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ): boolean => {
+      return [
+        value.incidentOwnerTeams,
+        value.incidentOwnerUsers,
+        value.incidentLabels,
+      ].some((selection: unknown): boolean => {
+        return Array.isArray(selection) && selection.length > 0;
+      });
+    },
+  };
+
+const incidentOnCallSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
+  {
+    id: "incident-on-call",
+    title: "On-Call",
+    description: "Configure on-call policy escalation",
+    isConfigured: (
+      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ): boolean => {
+      return (
+        Array.isArray(value.incidentOnCallDutyPolicies) &&
+        value.incidentOnCallDutyPolicies.length > 0
+      );
+    },
+  };
+
+const incidentAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
+  {
+    id: "incident-advanced",
+    title: "Advanced Options",
+    description: "Auto-resolve, privacy and remediation settings",
+    isConfigured: (
+      value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ): boolean => {
+      return (
+        value.autoResolveIncident === false ||
+        value.isIncidentPrivate === true ||
+        Boolean(value.incidentRemediationNotes)
+      );
+    },
+  };
 
 /*
  * Hoisted out of the JSX so the wiring is assertable: every field has to
@@ -494,11 +597,6 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     required: false,
     stepId: "declares",
   },
-  /*
-   * Alert Details: what the alert says. A blank title or description keeps the
-   * built-in text every burn rate alert has always carried, so an untouched
-   * form changes nothing.
-   */
   {
     field: {
       alertTitleTemplate: true,
@@ -510,19 +608,6 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
     validation: {
       maxLength: SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
-    },
-    stepId: "alert-details",
-  },
-  {
-    field: {
-      alertDescriptionTemplate: true,
-    },
-    title: "Alert Description",
-    description: `Description of the alert, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
-    fieldType: FormFieldSchemaType.Markdown,
-    required: false,
-    validation: {
-      maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
     },
     stepId: "alert-details",
   },
@@ -543,22 +628,19 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     placeholder: "Select Alert Severity",
     stepId: "alert-details",
   },
-  // Alert Routing: who hears about the alert, and what happens to it.
   {
     field: {
-      onCallDutyPolicies: true,
+      alertDescriptionTemplate: true,
     },
-    title: "Alert On-Call Duty Policies",
-    description: "On-call policies to execute when this rule creates an alert.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: OnCallDutyPolicy,
-      labelField: "name",
-      valueField: "_id",
-    },
+    title: "Alert Description",
+    description: `Description of the alert, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
+    fieldType: FormFieldSchemaType.Markdown,
     required: false,
-    placeholder: "Select On-Call Policies (optional)",
-    stepId: "alert-routing",
+    validation: {
+      maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+    },
+    collapsibleSection: alertDescriptionSection,
+    stepId: "alert-details",
   },
   {
     field: {
@@ -575,7 +657,8 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     required: false,
     placeholder: "Select Teams (optional)",
-    stepId: "alert-routing",
+    collapsibleSection: alertOwnershipSection,
+    stepId: "alert-details",
   },
   /*
    * No dropdownModal: User is not a project-listable model, so its options
@@ -592,7 +675,8 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     fieldType: FormFieldSchemaType.MultiSelectDropdown,
     required: false,
     placeholder: "Select Users (optional)",
-    stepId: "alert-routing",
+    collapsibleSection: alertOwnershipSection,
+    stepId: "alert-details",
   },
   {
     field: {
@@ -609,7 +693,25 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     required: false,
     placeholder: "Select Labels (optional)",
-    stepId: "alert-routing",
+    collapsibleSection: alertOwnershipSection,
+    stepId: "alert-details",
+  },
+  {
+    field: {
+      onCallDutyPolicies: true,
+    },
+    title: "Alert On-Call Duty Policies",
+    description: "On-call policies to execute when this rule creates an alert.",
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    dropdownModal: {
+      type: OnCallDutyPolicy,
+      labelField: "name",
+      valueField: "_id",
+    },
+    required: false,
+    placeholder: "Select On-Call Policies (optional)",
+    collapsibleSection: alertOnCallSection,
+    stepId: "alert-details",
   },
   {
     field: {
@@ -625,7 +727,8 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
      * create form would show auto-resolve off while the row is written on.
      */
     defaultValue: true,
-    stepId: "alert-routing",
+    collapsibleSection: alertAdvancedSection,
+    stepId: "alert-details",
   },
   {
     field: {
@@ -636,7 +739,8 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       "Only the alert's owners, project admins and project owners can see it.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
-    stepId: "alert-routing",
+    collapsibleSection: alertAdvancedSection,
+    stepId: "alert-details",
   },
   {
     field: {
@@ -649,9 +753,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     validation: {
       maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
     },
-    stepId: "alert-routing",
+    collapsibleSection: alertAdvancedSection,
+    stepId: "alert-details",
   },
-  // Incident Details: the incident's own copy, kept apart from the alert's.
   {
     field: {
       incidentTitleTemplate: true,
@@ -663,19 +767,6 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
     validation: {
       maxLength: SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
-    },
-    stepId: "incident-details",
-  },
-  {
-    field: {
-      incidentDescriptionTemplate: true,
-    },
-    title: "Incident Description",
-    description: `Description of the incident, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
-    fieldType: FormFieldSchemaType.Markdown,
-    required: false,
-    validation: {
-      maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
     },
     stepId: "incident-details",
   },
@@ -696,23 +787,19 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     placeholder: "Select Incident Severity",
     stepId: "incident-details",
   },
-  // Incident Routing: the alert routing's twin, for the incident.
   {
     field: {
-      incidentOnCallDutyPolicies: true,
+      incidentDescriptionTemplate: true,
     },
-    title: "Incident On-Call Duty Policies",
-    description:
-      "On-call policies to execute when this rule declares an incident. Kept separate from the alert policies so the two can escalate differently.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: OnCallDutyPolicy,
-      labelField: "name",
-      valueField: "_id",
-    },
+    title: "Incident Description",
+    description: `Description of the incident, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
+    fieldType: FormFieldSchemaType.Markdown,
     required: false,
-    placeholder: "Select On-Call Policies (optional)",
-    stepId: "incident-routing",
+    validation: {
+      maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+    },
+    collapsibleSection: incidentDescriptionSection,
+    stepId: "incident-details",
   },
   {
     field: {
@@ -729,7 +816,8 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     required: false,
     placeholder: "Select Teams (optional)",
-    stepId: "incident-routing",
+    collapsibleSection: incidentOwnershipSection,
+    stepId: "incident-details",
   },
   {
     field: {
@@ -741,7 +829,8 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     fieldType: FormFieldSchemaType.MultiSelectDropdown,
     required: false,
     placeholder: "Select Users (optional)",
-    stepId: "incident-routing",
+    collapsibleSection: incidentOwnershipSection,
+    stepId: "incident-details",
   },
   {
     field: {
@@ -758,7 +847,26 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     required: false,
     placeholder: "Select Labels (optional)",
-    stepId: "incident-routing",
+    collapsibleSection: incidentOwnershipSection,
+    stepId: "incident-details",
+  },
+  {
+    field: {
+      incidentOnCallDutyPolicies: true,
+    },
+    title: "Incident On-Call Duty Policies",
+    description:
+      "On-call policies to execute when this rule declares an incident. Kept separate from the alert policies so the two can escalate differently.",
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    dropdownModal: {
+      type: OnCallDutyPolicy,
+      labelField: "name",
+      valueField: "_id",
+    },
+    required: false,
+    placeholder: "Select On-Call Policies (optional)",
+    collapsibleSection: incidentOnCallSection,
+    stepId: "incident-details",
   },
   {
     field: {
@@ -771,7 +879,8 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     required: false,
     // TRUE, as on the alert toggle above.
     defaultValue: true,
-    stepId: "incident-routing",
+    collapsibleSection: incidentAdvancedSection,
+    stepId: "incident-details",
   },
   {
     field: {
@@ -782,7 +891,8 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       "Only the incident's owners, project admins and project owners can see it.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
-    stepId: "incident-routing",
+    collapsibleSection: incidentAdvancedSection,
+    stepId: "incident-details",
   },
   {
     field: {
@@ -795,7 +905,8 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     validation: {
       maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
     },
-    stepId: "incident-routing",
+    collapsibleSection: incidentAdvancedSection,
+    stepId: "incident-details",
   },
 ];
 

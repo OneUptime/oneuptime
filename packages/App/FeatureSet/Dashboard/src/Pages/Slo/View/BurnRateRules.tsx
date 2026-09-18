@@ -30,6 +30,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
@@ -125,10 +126,10 @@ The form walks the questions a rule answers:
 | **Rule** | Its name, and whether it is enabled. |
 | **Burn Window** | The threshold, the long and short windows, and the re-fire suppression. |
 | **What It Declares** | Alert, Incident, or both, and whether the SLO's owners are added as owners. |
-| **Alert Details** | The alert's title, description and severity. Only shown when the rule raises one. |
-| **Alert Routing** | The alert's on-call policies, owners, labels, auto-resolve, privacy and remediation notes. |
-| **Incident Details** | The incident's title, description and severity. Only shown when the rule declares one. |
-| **Incident Routing** | The incident's on-call policies, owners, labels, auto-resolve, privacy and remediation notes. |
+| **Alert** | Title and severity, with expandable sections for description, ownership and labels, on-call policies, and advanced options. |
+| **Incident** | The incident’s own title, severity and optional settings, grouped in the same way. |
+
+Optional sections open automatically when they contain saved settings.
 
 The alert and incident steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incidents.
 
@@ -340,6 +341,7 @@ const SloBurnRateRules: FunctionComponent<
             type: FieldType.Boolean,
           },
         ]}
+        createEditModalWidth={ModalWidth.Large}
         formSteps={BURN_RATE_RULE_FORM_STEPS}
         formFields={BURN_RATE_RULE_FORM_FIELDS_WITH_OWNER_USERS}
         columns={[

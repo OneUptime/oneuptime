@@ -1,4 +1,10 @@
-import { expect, Page, Route as PlaywrightRoute, test } from "@playwright/test";
+import {
+  expect,
+  Locator,
+  Page,
+  Route as PlaywrightRoute,
+  test,
+} from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 
@@ -158,18 +164,16 @@ test("the table reports what each rule declares, and where each output goes", as
 /*
  * The create form is a wizard. These walk it, because the interesting part is
  * not that the fields exist — the unit suite pins that from the exported
- * arrays — but that the rail reacts: the incident steps are absent until the
- * rule says it declares one, and the alert steps leave when it says it does not.
+ * arrays — but that the rail reacts: the incident step is absent until the
+ * rule says it declares one, and the alert step leaves when it says it does not.
  */
 
 const STEP_RAIL: Array<string> = [
   "Rule",
   "Burn Window",
   "What It Declares",
-  "Alert Details",
-  "Alert Routing",
-  "Incident Details",
-  "Incident Routing",
+  "Alert",
+  "Incident",
 ];
 
 /*
@@ -217,9 +221,12 @@ function toggle(page: Page, title: string): ReturnType<Page["locator"]> {
     .first();
 }
 
-async function fillRuleAndWindow(page: Page): Promise<void> {
+async function fillRuleAndWindow(
+  page: Page,
+  name: string = "Fast burn",
+): Promise<void> {
   // Step 1 - Rule.
-  await page.getByPlaceholder("Fast burn").fill("Fast burn");
+  await page.getByPlaceholder("Fast burn").fill(name);
   await next(page);
 
   // Step 2 - Burn Window. Every field here is required, so fill them all.
@@ -228,7 +235,7 @@ async function fillRuleAndWindow(page: Page): Promise<void> {
   await page.getByPlaceholder("5").fill("5");
 }
 
-test("the form opens as a wizard, and offers no incident steps until asked", async ({
+test("the wider form opens with only the steps for its enabled outputs", async ({
   page,
 }: {
   page: Page;
@@ -236,18 +243,21 @@ test("the form opens as a wizard, and offers no incident steps until asked", asy
   await openCreateForm(page);
 
   /*
-   * Five steps, not seven. `shouldCreateIncident` defaults to false, so the
-   * two steps that configure an incident have nothing to configure — BasicForm
-   * drops a step whose showIf is false from the rail AND from the
-   * next/previous walk, so it cannot be reached by tabbing past it either.
+   * Incident defaults to false. BasicForm drops that step from both the
+   * rail and the next/previous walk until the rule declares an incident.
    */
   expect(await visibleSteps(page)).toEqual([
     "Rule",
     "Burn Window",
     "What It Declares",
-    "Alert Details",
-    "Alert Routing",
+    "Alert",
   ]);
+
+  const bounds: Awaited<ReturnType<Locator["boundingBox"]>> = await page
+    .getByRole("dialog")
+    .boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.width).toBe(1280);
 
   // Enabled carries its column default, so the first step is already truthful.
   await expect(toggle(page, "Enabled")).toHaveAttribute("aria-checked", "true");
@@ -255,7 +265,7 @@ test("the form opens as a wizard, and offers no incident steps until asked", asy
   await screenshot(page, "burn-rate-rule-form-step-rule-synthetic", false);
 });
 
-test("the step rail gains and loses each output's steps with the toggle that owns them", async ({
+test("the step rail gains and loses each output step with its toggle", async ({
   page,
 }: {
   page: Page;
@@ -283,7 +293,7 @@ test("the step rail gains and loses each output's steps with the toggle that own
 
   await screenshot(page, "burn-rate-rule-form-step-declares-synthetic", false);
 
-  // Declaring an incident adds the two steps that configure it.
+  // Declaring an incident adds its configuration step.
   await incidentToggle.click();
   await expect(incidentToggle).toHaveAttribute("aria-checked", "true");
   await expect
@@ -298,20 +308,14 @@ test("the step rail gains and loses each output's steps with the toggle that own
     false,
   );
 
-  // And dropping the alert takes its two steps away again.
+  // And dropping the alert takes its configuration step away again.
   await alertToggle.click();
   await expect(alertToggle).toHaveAttribute("aria-checked", "false");
   await expect
     .poll(() => {
       return visibleSteps(page);
     })
-    .toEqual([
-      "Rule",
-      "Burn Window",
-      "What It Declares",
-      "Incident Details",
-      "Incident Routing",
-    ]);
+    .toEqual(["Rule", "Burn Window", "What It Declares", "Incident"]);
 
   /*
    * A rule that declares nothing is refused here rather than after a
@@ -353,7 +357,57 @@ test("the step rail gains and loses each output's steps with the toggle that own
   await screenshot(page, "burn-rate-rule-form-no-output-synthetic", false);
 });
 
-test("each output gets a details step and a routing step of its own", async ({
+const OUTPUT_SECTIONS: Array<string> = [
+  "Description",
+  "Ownership & Labels",
+  "On-Call",
+  "Advanced Options",
+];
+
+async function setSection(
+  page: Page,
+  title: string,
+  expanded: boolean,
+): Promise<void> {
+  const header: Locator = page.getByRole("button", {
+    name: title,
+    exact: true,
+  });
+  await expect(header).toBeVisible();
+  if ((await header.getAttribute("aria-expanded")) !== String(expanded)) {
+    await header.click();
+  }
+  await expect(header).toHaveAttribute("aria-expanded", String(expanded));
+}
+
+async function selectOption(
+  page: Page,
+  field: string,
+  value: string,
+): Promise<void> {
+  await page.getByRole("combobox", { name: field }).click();
+  await page.getByRole("option", { name: value, exact: true }).click();
+}
+
+async function openEditForm(page: Page, ruleName: string): Promise<void> {
+  await page
+    .locator("tr")
+    .filter({ hasText: ruleName })
+    .getByRole("button", { name: "Edit", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "Edit SLO Burn Rate Rule", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByPlaceholder("Fast burn")).toHaveValue(ruleName);
+}
+
+async function reachOutputStep(page: Page): Promise<void> {
+  await next(page);
+  await next(page);
+  await next(page);
+}
+
+test("each output keeps title and severity beside collapsible optional sections", async ({
   page,
 }: {
   page: Page;
@@ -361,93 +415,387 @@ test("each output gets a details step and a routing step of its own", async ({
   await openCreateForm(page);
   await fillRuleAndWindow(page);
   await next(page);
-
   await toggle(page, "Declare Incident").click();
   await next(page);
 
-  /*
-   * Alert Details - what the alert says. The title field shows the built-in
-   * title as its placeholder, so an empty field says what the alert will be
-   * called rather than implying it will be untitled.
-   */
-  await expect(page.getByText("Alert Title").first()).toBeVisible();
-  await expect(
-    page.getByPlaceholder("SLO burn rate: {{sloName}} — {{ruleName}}"),
-  ).toBeVisible();
-  await expect(page.getByText("Alert Description").first()).toBeVisible();
-  await expect(page.getByText("Alert Severity").first()).toBeVisible();
-  await expect(page.getByText("Incident Severity")).toHaveCount(0);
+  for (const output of ["Alert", "Incident"]) {
+    await expect(
+      page.getByRole("textbox", { name: `${output} Title` }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("combobox", { name: `${output} Severity` }),
+    ).toBeVisible();
+    await expect(
+      page.getByPlaceholder("SLO burn rate: {{sloName}} — {{ruleName}}"),
+    ).toBeVisible();
 
-  await screenshot(
-    page,
-    "burn-rate-rule-form-step-alert-details-synthetic",
-    false,
+    for (const title of OUTPUT_SECTIONS) {
+      await expect(
+        page.getByRole("button", { name: title, exact: true }),
+      ).toHaveAttribute("aria-expanded", "false");
+    }
+
+    await screenshot(
+      page,
+      `burn-rate-rule-form-step-${output.toLowerCase()}-synthetic`,
+      false,
+    );
+
+    await setSection(page, "Description", true);
+    await expect(
+      page.getByRole("textbox", { name: `${output} Description` }),
+    ).toBeVisible();
+    await setSection(page, "Ownership & Labels", true);
+    for (const field of ["Owner Teams", "Owner Users", "Labels"]) {
+      await expect(
+        page.getByRole("combobox", { name: `${output} ${field}` }),
+      ).toBeVisible();
+    }
+    await setSection(page, "On-Call", true);
+    await expect(
+      page.getByRole("combobox", { name: `${output} On-Call Duty Policies` }),
+    ).toBeVisible();
+    await setSection(page, "Advanced Options", true);
+    await expect(toggle(page, `Auto Resolve ${output}`)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(toggle(page, `Private ${output}`)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await expect(
+      page.getByRole("textbox", { name: `${output} Remediation Notes` }),
+    ).toBeVisible();
+
+    const otherOutput: string = output === "Alert" ? "Incident" : "Alert";
+    await expect(
+      page.getByRole("combobox", { name: `${otherOutput} Severity` }),
+    ).toHaveCount(0);
+
+    if (output === "Alert") {
+      await next(page);
+    }
+  }
+});
+
+interface OutputValues {
+  output: "Alert" | "Incident";
+  title: string;
+  description: string;
+  severity: string;
+  team: string;
+  user: string;
+  label: string;
+  policy: string;
+  remediation: string;
+}
+
+const ALERT_VALUES: OutputValues = {
+  output: "Alert",
+  title: "Investigate {{sloName}}",
+  description: "Alert context for {{ruleName}}",
+  severity: "Warning",
+  team: "Checkout team",
+  user: "Sam Lee",
+  label: "checkout",
+  policy: "Checkout on-call",
+  remediation: "Check the latest checkout deployment",
+};
+
+const INCIDENT_VALUES: OutputValues = {
+  output: "Incident",
+  title: "Coordinate response for {{sloName}}",
+  description: "Incident context for {{ruleName}}",
+  severity: "SEV2 - Major",
+  team: "Major incident team",
+  user: "Jane Doe",
+  label: "customer-impact",
+  policy: "Major incident commander",
+  remediation: "Start the incident response call",
+};
+
+async function configureOutput(
+  page: Page,
+  values: OutputValues,
+): Promise<void> {
+  const output: string = values.output;
+  await page
+    .getByRole("textbox", { name: `${output} Title` })
+    .fill(values.title);
+  await selectOption(page, `${output} Severity`, values.severity);
+  await setSection(page, "Description", true);
+  await page
+    .getByRole("textbox", { name: `${output} Description` })
+    .fill(values.description);
+  await setSection(page, "Ownership & Labels", true);
+  await selectOption(page, `${output} Owner Teams`, values.team);
+  await selectOption(page, `${output} Owner Users`, values.user);
+  await selectOption(page, `${output} Labels`, values.label);
+  await setSection(page, "On-Call", true);
+  await selectOption(page, `${output} On-Call Duty Policies`, values.policy);
+  await setSection(page, "Advanced Options", true);
+  await toggle(page, `Auto Resolve ${output}`).click();
+  await toggle(page, `Private ${output}`).click();
+  await page
+    .getByRole("textbox", { name: `${output} Remediation Notes` })
+    .fill(values.remediation);
+
+  // Saving a closed section must retain all of its values.
+  for (const title of OUTPUT_SECTIONS) {
+    await setSection(page, title, false);
+  }
+}
+
+async function expectOutputValues(
+  page: Page,
+  values: OutputValues,
+): Promise<void> {
+  const output: string = values.output;
+  for (const title of OUTPUT_SECTIONS) {
+    await expect(
+      page.getByRole("button", { name: title, exact: true }),
+    ).toHaveAttribute("aria-expanded", "true");
+  }
+  await expect(
+    page.getByRole("textbox", { name: `${output} Title` }),
+  ).toHaveValue(values.title);
+  await expect(
+    page.getByRole("textbox", { name: `${output} Description` }),
+  ).toHaveText(values.description);
+  await expect(
+    page.getByRole("textbox", { name: `${output} Remediation Notes` }),
+  ).toHaveText(values.remediation);
+  const dialog: Locator = page.getByRole("dialog");
+  for (const value of [
+    values.severity,
+    values.team,
+    values.user,
+    values.label,
+    values.policy,
+  ]) {
+    await expect(dialog.getByText(value, { exact: true })).toBeVisible();
+  }
+  await expect(toggle(page, `Auto Resolve ${output}`)).toHaveAttribute(
+    "aria-checked",
+    "false",
   );
+  await expect(toggle(page, `Private ${output}`)).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+}
 
+test("creating and editing preserve both outputs' optional values and distinct routing", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  // This covers a complete create plus two edit journeys for both outputs.
+  test.setTimeout(180000);
+  await openCreateForm(page);
+  await fillRuleAndWindow(page, "Custom burn");
   await next(page);
+  await toggle(page, "Declare Incident").click();
+  await toggle(page, "Add SLO Owners as Owners").click();
+  await next(page);
+  await configureOutput(page, ALERT_VALUES);
+  await next(page);
+  await configureOutput(page, INCIDENT_VALUES);
 
-  // Alert Routing - who hears about the alert, and what happens to it.
+  /*
+   * Go back with every optional section closed. The filled values survive
+   * both remounting a wizard step and the final create request.
+   */
+  await page
+    .locator('nav[aria-label="Progress"] li')
+    .filter({ hasText: /^Alert$/ })
+    .click();
+  await expectOutputValues(page, ALERT_VALUES);
+  await next(page);
+  await expectOutputValues(page, INCIDENT_VALUES);
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Create SLO Burn Rate Rule", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await openEditForm(page, "Custom burn");
+  await page.getByPlaceholder("Fast burn").fill("Custom burn updated");
+  await next(page);
+  await next(page);
+  await expect(toggle(page, "Add SLO Owners as Owners")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await next(page);
+  await expectOutputValues(page, ALERT_VALUES);
+  await page
+    .getByRole("textbox", { name: "Alert Title" })
+    .fill("Updated alert title");
+  await setSection(page, "Ownership & Labels", false);
+  await setSection(page, "On-Call", false);
+  await next(page);
+  await expectOutputValues(page, INCIDENT_VALUES);
+  await page
+    .getByRole("textbox", { name: "Incident Title" })
+    .fill("Updated incident title");
+  await setSection(page, "Ownership & Labels", false);
+  await setSection(page, "On-Call", false);
+  await page.getByRole("button", { name: "Save Changes", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await openEditForm(page, "Custom burn updated");
+  await reachOutputStep(page);
+  await expectOutputValues(page, {
+    ...ALERT_VALUES,
+    title: "Updated alert title",
+  });
+  await next(page);
+  await expectOutputValues(page, {
+    ...INCIDENT_VALUES,
+    title: "Updated incident title",
+  });
+});
+
+test("editing expands configured sections and keeps empty defaults collapsed", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openEditForm(page, "Fast burn");
+  await reachOutputStep(page);
+  for (const output of ["Alert", "Incident"]) {
+    await expect(
+      page
+        .getByRole("dialog")
+        .getByText(output === "Alert" ? "Checkout team" : "Jane Doe", {
+          exact: true,
+        }),
+    ).toBeVisible();
+    for (const title of ["Ownership & Labels", "On-Call"]) {
+      await expect(
+        page.getByRole("button", { name: title, exact: true }),
+      ).toHaveAttribute("aria-expanded", "true");
+    }
+    for (const title of ["Description", "Advanced Options"]) {
+      await expect(
+        page.getByRole("button", { name: title, exact: true }),
+      ).toHaveAttribute("aria-expanded", "false");
+    }
+    if (output === "Alert") {
+      await next(page);
+    }
+  }
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  // A false auto-resolve value is configured; a truthy-only check loses it.
+  await openEditForm(page, "Slow burn");
+  await reachOutputStep(page);
   await expect(
-    page.getByText("Alert On-Call Duty Policies").first(),
-  ).toBeVisible();
-  await expect(page.getByText("Alert Owner Teams").first()).toBeVisible();
-  await expect(page.getByText("Alert Owner Users").first()).toBeVisible();
-  await expect(page.getByText("Alert Labels").first()).toBeVisible();
-  await expect(page.getByText("Alert Remediation Notes").first()).toBeVisible();
-
-  // Auto-resolve defaults ON (every rule always resolved), private OFF.
+    page.getByRole("button", { name: "Advanced Options", exact: true }),
+  ).toHaveAttribute("aria-expanded", "true");
   await expect(toggle(page, "Auto Resolve Alert")).toHaveAttribute(
     "aria-checked",
-    "true",
-  );
-  await expect(toggle(page, "Private Alert")).toHaveAttribute(
-    "aria-checked",
     "false",
   );
-  await expect(page.getByText("Incident On-Call Duty Policies")).toHaveCount(0);
-
-  await screenshot(
-    page,
-    "burn-rate-rule-form-step-alert-routing-synthetic",
-    false,
-  );
-
-  await next(page);
-
-  // Incident Details - its twin, and nothing about alerts.
-  await expect(page.getByText("Incident Title").first()).toBeVisible();
-  await expect(page.getByText("Incident Description").first()).toBeVisible();
-  await expect(page.getByText("Incident Severity").first()).toBeVisible();
-  await expect(page.getByText("Alert Severity")).toHaveCount(0);
-
-  await screenshot(
-    page,
-    "burn-rate-rule-form-step-incident-details-synthetic",
-    false,
-  );
-
-  await next(page);
-
-  // Incident Routing.
   await expect(
-    page.getByText("Incident On-Call Duty Policies").first(),
+    page.getByRole("button", { name: "Ownership & Labels", exact: true }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  await openEditForm(page, "Budget emergency");
+  await reachOutputStep(page);
+  await expect(
+    page.getByRole("textbox", { name: "Incident Title" }),
   ).toBeVisible();
-  await expect(page.getByText("Incident Owner Teams").first()).toBeVisible();
-  await expect(page.getByText("Incident Owner Users").first()).toBeVisible();
-  await expect(page.getByText("Incident Labels").first()).toBeVisible();
-  await expect(toggle(page, "Auto Resolve Incident")).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
+  await expect(
+    page.getByRole("button", { name: "Advanced Options", exact: true }),
+  ).toHaveAttribute("aria-expanded", "true");
   await expect(toggle(page, "Private Incident")).toHaveAttribute(
     "aria-checked",
-    "false",
+    "true",
   );
-  await expect(page.getByText("Alert On-Call Duty Policies")).toHaveCount(0);
+});
 
-  await screenshot(
-    page,
-    "burn-rate-rule-form-step-incident-routing-synthetic",
-    false,
-  );
+test("validation reopens a collapsed section containing an invalid description", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openCreateForm(page);
+  await fillRuleAndWindow(page);
+  await next(page);
+  await toggle(page, "Declare Incident").click();
+  await next(page);
+  await setSection(page, "Description", true);
+  await page
+    .getByRole("textbox", { name: "Alert Description" })
+    .fill("x".repeat(50001));
+  await setSection(page, "Description", false);
+  await next(page);
+  await expect(
+    page.getByRole("button", { name: "Description", exact: true }),
+  ).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    page.getByText("Alert Description cannot be more than 50000 characters.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Alert Title" }),
+  ).toBeVisible();
+
+  await page
+    .getByRole("textbox", { name: "Alert Description" })
+    .fill("Valid description");
+  await next(page);
+  await expect(
+    page.getByRole("textbox", { name: "Incident Title" }),
+  ).toBeVisible();
+});
+
+test("the wider modal fits a narrow viewport and its sections work by keyboard", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openCreateForm(page);
+  await fillRuleAndWindow(page);
+  await next(page);
+  await next(page);
+  const dialog: Locator = page.getByRole("dialog");
+  const bounds: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await dialog.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+  expect(bounds!.height).toBeLessThanOrEqual(844);
+  expect(
+    await dialog.evaluate((element: HTMLElement | SVGElement): boolean => {
+      return element.scrollWidth <= element.clientWidth;
+    }),
+  ).toBe(true);
+
+  const description: Locator = page.getByRole("button", {
+    name: "Description",
+    exact: true,
+  });
+  await description.focus();
+  await page.keyboard.press("Enter");
+  await expect(description).toHaveAttribute("aria-expanded", "true");
+  await page
+    .getByRole("textbox", { name: "Alert Description" })
+    .fill("Written on a narrow screen");
+  await description.focus();
+  await page.keyboard.press("Space");
+  await expect(description).toHaveAttribute("aria-expanded", "false");
+  await selectOption(page, "Alert Severity", "Warning");
+  await screenshot(page, "burn-rate-rule-form-narrow-synthetic", false);
+
+  await dialog
+    .getByRole("button", { name: "Create SLO Burn Rate Rule", exact: true })
+    .click();
+  await expect(dialog).toHaveCount(0);
 });
