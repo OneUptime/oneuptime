@@ -311,38 +311,46 @@ describe("Pay as you go creation notices", () => {
   });
 
   describe("creating a telemetry ingestion key off the Free plan", () => {
-    it("asks for nothing extra on a paid plan", async () => {
-      getJestSpyOn(ProjectUtil, "getCurrentPlan").mockReturnValue(
-        PlanType.Growth,
-      );
+    it.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+      "creates a key on the %s plan without checking for a payment method",
+      async (plan: PlanType) => {
+        getJestSpyOn(ProjectUtil, "getCurrentPlan").mockReturnValue(plan);
+        jest
+          .spyOn(BaseAPI, "get")
+          .mockResolvedValue({ data: { isAllowed: false } } as any);
 
-      renderIngestionKeyForm();
+        renderIngestionKeyForm();
 
-      await userEvent.type(
-        await screen.findByTestId(
-          "ingestion-key-name",
-          {},
+        await userEvent.type(
+          await screen.findByTestId(
+            "ingestion-key-name",
+            {},
+            { timeout: WAIT_TIMEOUT },
+          ),
+          "Production",
+        );
+
+        expect(
+          screen.queryByTestId("telemetry-pay-as-you-go-consent"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole("region", { name: "Telemetry pricing" }),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/Add a payment method/),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByText("Create Ingestion Key"));
+
+        await waitFor(
+          () => {
+            expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+          },
           { timeout: WAIT_TIMEOUT },
-        ),
-        "Production",
-      );
-
-      expect(
-        screen.queryByTestId("telemetry-pay-as-you-go-consent"),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole("region", { name: "Telemetry pricing" }),
-      ).not.toBeInTheDocument();
-
-      await userEvent.click(screen.getByText("Create Ingestion Key"));
-
-      await waitFor(
-        () => {
-          expect(createOrUpdateMock).toHaveBeenCalled();
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
-    });
+        );
+        expect(BaseAPI.get).not.toHaveBeenCalled();
+      },
+    );
 
     it("asks for nothing extra on a self-hosted install", async () => {
       config.billingEnabled = false;
@@ -411,21 +419,29 @@ describe("Pay as you go creation notices", () => {
   });
 
   describe("creating a monitor off the Free plan", () => {
-    it("advances without a warning or acknowledgement on a paid plan", async () => {
-      getJestSpyOn(ProjectUtil, "getCurrentPlan").mockReturnValue(
-        PlanType.Growth,
-      );
-      renderMonitorPage(MonitorType.Website);
+    it.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+      "advances on the %s plan without a payment method or billing warning",
+      async (plan: PlanType) => {
+        getJestSpyOn(ProjectUtil, "getCurrentPlan").mockReturnValue(plan);
+        jest
+          .spyOn(BaseAPI, "get")
+          .mockResolvedValue({ data: { isAllowed: false } } as any);
+        renderMonitorPage(MonitorType.Website);
 
-      await advanceMonitorInfo();
+        await advanceMonitorInfo();
 
-      expect(
-        screen.queryByTestId("monitor-pay-as-you-go-card"),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId("monitor-pay-as-you-go-consent"),
-      ).not.toBeInTheDocument();
-    });
+        expect(
+          screen.queryByTestId("monitor-pay-as-you-go-card"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId("monitor-pay-as-you-go-consent"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/Add a payment method/),
+        ).not.toBeInTheDocument();
+        expect(BaseAPI.get).not.toHaveBeenCalled();
+      },
+    );
 
     it("advances without a warning or acknowledgement on a self-hosted install", async () => {
       config.billingEnabled = false;

@@ -1,5 +1,10 @@
 import BillingAPI from "../../../Server/API/BillingAPI";
-import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
+import PayAsYouGoBillingService, {
+  Service,
+} from "../../../Server/Services/PayAsYouGoBillingService";
+import BillingService from "../../../Server/Services/BillingService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import Project from "../../../Models/DatabaseModels/Project";
 import {
   NextFunction,
   OneUptimeRequest,
@@ -8,13 +13,22 @@ import {
 import Response from "../../../Server/Utils/Response";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../Types/Billing/SubscriptionPlan";
 import { mockRouter } from "./Helpers";
 
 jest.mock("../../../Server/Services/BillingService", () => {
-  return { __esModule: true, default: {} };
+  return {
+    __esModule: true,
+    default: { isBillingEnabled: jest.fn(), hasPaymentMethods: jest.fn() },
+  };
 });
 jest.mock("../../../Server/Services/ProjectService", () => {
-  return { __esModule: true, default: {} };
+  return { __esModule: true, default: { findOneById: jest.fn() } };
+});
+jest.mock("../../../Server/Services/PromoCodeService", () => {
+  return { __esModule: true, default: { findOneBy: jest.fn() } };
 });
 jest.mock("../../../Server/API/CommonAPI", () => {
   return { __esModule: true, default: {} };
@@ -28,9 +42,6 @@ jest.mock("../../../Server/Utils/Express", () => {
       return mockRouter;
     },
   };
-});
-jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
-  return { __esModule: true, default: { canUsePayAsYouGo: jest.fn() } };
 });
 jest.mock("../../../Server/Utils/Response", () => {
   return { __esModule: true, default: { sendJsonObjectResponse: jest.fn() } };
@@ -54,6 +65,9 @@ describe("GET /billing/pay-as-you-go-status", () => {
     req = { tenantId: projectId } as OneUptimeRequest;
     res = {} as OneUptimeResponse;
     next = jest.fn();
+    jest
+      .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
+      .mockResolvedValue(false);
     jest
       .spyOn(BillingAPI.prototype, "getPermissionsForTenant")
       .mockResolvedValue([
@@ -79,6 +93,53 @@ describe("GET /billing/pay-as-you-go-status", () => {
         isAllowed,
       });
       expect(next).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    PlanType.Free,
+    PlanType.Growth,
+    PlanType.Scale,
+    PlanType.Enterprise,
+  ])(
+    "returns the real %s plan eligibility without a payment method",
+    async (plan: PlanType) => {
+      const service: Service = new Service();
+      jest.mocked(BillingService.isBillingEnabled).mockReturnValue(true);
+      jest.mocked(BillingService.hasPaymentMethods).mockResolvedValue(false);
+      jest.mocked(ProjectService.findOneById).mockResolvedValue(
+        Object.assign(new Project(), {
+          paymentProviderPlanId: plan,
+          paymentProviderCustomerId: "cus_status_project",
+        }),
+      );
+      jest
+        .spyOn(SubscriptionPlan, "getSubscriptionPlanById")
+        .mockReturnValue(
+          new SubscriptionPlan(plan, `${plan}_yearly`, plan, 0, 0, 0, 0),
+        );
+      jest
+        .mocked(PayAsYouGoBillingService.canUsePayAsYouGo)
+        .mockImplementation((id: ObjectID): Promise<boolean> => {
+          return service.canUsePayAsYouGo(id);
+        });
+
+      await requestStatus();
+
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(req, res, {
+        isAllowed: plan !== PlanType.Free,
+      });
+      expect(ProjectService.findOneById).toHaveBeenCalledWith(
+        expect.objectContaining({ id: projectId }),
+      );
+      expect(next).not.toHaveBeenCalled();
+      if (plan === PlanType.Free) {
+        expect(BillingService.hasPaymentMethods).toHaveBeenCalledWith(
+          "cus_status_project",
+        );
+      } else {
+        expect(BillingService.hasPaymentMethods).not.toHaveBeenCalled();
+      }
     },
   );
 

@@ -15,7 +15,7 @@ import Stripe from "stripe";
 export const PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE: string =
   "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry. These features have usage charges even on the Free plan. Manual monitors remain free.";
 
-type PaymentAuthorization = "payment-method" | "invoice" | "reseller";
+type PaymentAuthorization = "payment-method" | "paid-plan" | "reseller";
 
 type NotAuthorized = "none";
 const NOT_AUTHORIZED: NotAuthorized = "none";
@@ -24,9 +24,8 @@ const NOT_AUTHORIZED: NotAuthorized = "none";
  * A denial is the expensive answer. An authorized project answers from the
  * positive cache and costs one provider read a minute; an unauthorized one
  * re-ran the full check every time, and that check costs a payment-method
- * read per supported type, plus - on a paid plan - the subscription read that
- * rules out an invoice agreement. On the telemetry admission path - which
- * runs for every ingested batch over OTLP, gRPC, MQTT and session replay, and
+ * read per supported type on the Free plan. On the telemetry admission path -
+ * which runs for every ingested batch over OTLP, gRPC, MQTT and session replay, and
  * which deliberately re-checks even on a key-cache hit - that is a provider
  * read storm proportional to ingest traffic, for exactly the projects that
  * are not paying. It is enough on its own to hold a Stripe account at its
@@ -78,16 +77,15 @@ export class Service {
   /*
    * Whether a project bills under an agreement that already covers its earlier
    * telemetry, and so takes no cutoff. Kept apart from authorizedProjects,
-   * which records only what authorized the project first - and for an invoice
-   * customer who also keeps a card on file, that is the card.
+   * which records plan eligibility separately from payment and invoice terms.
    */
   private noCutoffAgreements: InMemoryTTLCache<boolean> = new InMemoryTTLCache(
     10_000,
   );
 
   /**
-   * A subscription created during signup is not permission to incur charges.
-   * Require a payment method, or a real invoice/reseller billing agreement.
+   * Free projects need a payment method before incurring usage charges.
+   * Paid plans and verified reseller agreements already authorize usage.
    * Short positive caching keeps the telemetry admission path affordable.
    *
    * `allowStaleDenial` additionally lets a recent denial answer without going
@@ -207,16 +205,14 @@ export class Service {
 
     const authorization: PaymentAuthorization | NotAuthorized | undefined =
       this.authorizedProjects.get(projectId.toString());
-    if (authorization === "invoice" || authorization === "reseller") {
+    if (authorization === "reseller") {
       return undefined;
     }
 
     /*
-     * "payment-method" is not the whole answer. The card is checked before the
-     * invoice agreement, so an invoice customer who also keeps a card on file
-     * is authorized by the card - and a cutoff stamped for them would waive
-     * telemetry their contract already bills. Ask about the agreement itself
-     * before any marker is written.
+     * Plan eligibility does not determine billing history. A cutoff stamped
+     * for an invoice customer would waive telemetry their contract already
+     * bills, so verify the agreement before writing a marker.
      */
     if (await this.hasNoCutoffAgreement(projectId)) {
       return undefined;
@@ -300,7 +296,7 @@ export class Service {
       return "reseller";
     }
 
-    if (!project.paymentProviderPlanId || !project.paymentProviderCustomerId) {
+    if (!project.paymentProviderPlanId) {
       return null;
     }
 
@@ -314,23 +310,22 @@ export class Service {
       return null;
     }
 
-    /*
-     * Card first, and a card holder's subscription is never read. Stripe
-     * rate-limits GET /v1/subscriptions/:id on its own, apart from the
-     * account-wide limit, and this check sits on synchronous paths - creating
-     * a monitor, the billing page's gate, every metered report. Reading the
-     * subscription first put that endpoint in front of every answer, three or
-     * four times per monitor create, and held it at its limit. Only a project
-     * with no card needs the subscription: it is what tells an invoice
-     * agreement apart from no agreement at all.
-     */
+    // The payment-method requirement applies only to the Free plan.
+    if (plan.getName() !== PlanType.Free) {
+      return "paid-plan";
+    }
+
+    if (!project.paymentProviderCustomerId) {
+      return null;
+    }
+
     if (
       await BillingService.hasPaymentMethods(project.paymentProviderCustomerId)
     ) {
       return "payment-method";
     }
 
-    return (await this.hasInvoiceAgreement(project)) ? "invoice" : null;
+    return null;
   }
 
   /*
@@ -404,8 +399,8 @@ export class Service {
 
   /*
    * A paid plan whose own subscription, billed to this project's own customer,
-   * is active and collected by invoice. The single definition behind both the
-   * "invoice" authorization and the telemetry cutoff exemption.
+   * is active and collected by invoice. This determines the telemetry cutoff
+   * exemption independently of the project's eligibility to use paid features.
    */
   private async hasInvoiceAgreement(project: Project): Promise<boolean> {
     if (
