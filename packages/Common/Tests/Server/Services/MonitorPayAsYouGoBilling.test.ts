@@ -2,15 +2,19 @@ import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
+import BillingService from "../../../Server/Services/BillingService";
 import MonitorStepsProjectValidator from "../../../Server/Utils/Monitor/MonitorStepsProjectValidator";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import Project from "../../../Models/DatabaseModels/Project";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../Types/Billing/SubscriptionPlan";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import * as EnvironmentConfig from "../../../Server/EnvironmentConfig";
 import {
@@ -87,6 +91,30 @@ function expectPaymentCheckedFor(project: ObjectID): void {
   for (const check of checks) {
     expect(check[1]?.allowStaleDenial).toBeFalsy();
   }
+}
+
+function useRealPaymentEligibility(plan: PlanType): void {
+  jest.mocked(PayAsYouGoBillingService.canUsePayAsYouGo).mockRestore();
+  PayAsYouGoBillingService.invalidate(projectId);
+  PayAsYouGoBillingService.invalidate(otherProjectId);
+  jest.spyOn(BillingService, "isBillingEnabled").mockReturnValue(true);
+  jest.spyOn(BillingService, "hasPaymentMethods").mockResolvedValue(false);
+  jest.spyOn(BillingService, "getSubscription");
+  jest.spyOn(ProjectService, "findOneById").mockResolvedValue(
+    Object.assign(new Project(), {
+      paymentProviderPlanId: plan,
+      paymentProviderCustomerId: "cus_monitor_project",
+    }),
+  );
+  jest
+    .spyOn(SubscriptionPlan, "getSubscriptionPlanById")
+    .mockReturnValue(
+      new SubscriptionPlan(plan, `${plan}_yearly`, plan, 0, 0, 0, 0),
+    );
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan,
+    isSubscriptionUnpaid: false,
+  });
 }
 
 beforeEach(() => {
@@ -299,4 +327,90 @@ describe("monitor update payment admission", () => {
     await hooks.onBeforeUpdate(updateInput({ disableActiveMonitoring: false }));
     expect(MonitorService.findBy).not.toHaveBeenCalled();
   });
+});
+
+describe("monitor operations use the stored subscription plan for payment eligibility", () => {
+  test.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+    "allows active monitor creation on %s without a payment method",
+    async (plan: PlanType) => {
+      useRealPaymentEligibility(plan);
+
+      await expect(
+        hooks.onBeforeCreate(createInput(MonitorType.Website)),
+      ).resolves.toBeDefined();
+
+      expect(ProjectService.findOneById).toHaveBeenCalledWith(
+        expect.objectContaining({ id: projectId }),
+      );
+      expect(BillingService.hasPaymentMethods).not.toHaveBeenCalled();
+      expect(BillingService.getSubscription).not.toHaveBeenCalled();
+      expect(MonitorService.countBy).not.toHaveBeenCalled();
+    },
+  );
+
+  describe.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+    "%s monitor updates without a payment method",
+    (plan: PlanType) => {
+      test.each([
+        { disableActiveMonitoring: false },
+        { monitorType: MonitorType.API },
+      ])(
+        "allows the billable update %j",
+        async (data: UpdateBy<Monitor>["data"]) => {
+          useRealPaymentEligibility(plan);
+          jest
+            .spyOn(MonitorService, "findBy")
+            .mockResolvedValue([
+              storedMonitor(otherProjectId, MonitorType.Website),
+            ]);
+
+          await expect(
+            hooks.onBeforeUpdate(updateInput(data)),
+          ).resolves.toBeDefined();
+
+          expect(ProjectService.findOneById).toHaveBeenCalledWith(
+            expect.objectContaining({ id: otherProjectId }),
+          );
+          expect(BillingService.hasPaymentMethods).not.toHaveBeenCalled();
+        },
+      );
+    },
+  );
+
+  test("still rejects Free monitor creation and re-enabling without a payment method", async () => {
+    useRealPaymentEligibility(PlanType.Free);
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([storedMonitor(projectId, MonitorType.Website)]);
+
+    await expect(
+      hooks.onBeforeCreate(createInput(MonitorType.Website)),
+    ).rejects.toBeInstanceOf(PaymentRequiredException);
+    await expect(
+      hooks.onBeforeUpdate(updateInput({ disableActiveMonitoring: false })),
+    ).rejects.toBeInstanceOf(PaymentRequiredException);
+
+    expect(BillingService.hasPaymentMethods).toHaveBeenCalledWith(
+      "cus_monitor_project",
+    );
+    expect(MonitorStatusService.findOneBy).not.toHaveBeenCalled();
+  });
+
+  test.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+    "retains the separate unpaid %s subscription check after exempting payment setup",
+    async (plan: PlanType) => {
+      useRealPaymentEligibility(plan);
+      jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+        plan,
+        isSubscriptionUnpaid: true,
+      });
+
+      await expect(
+        hooks.onBeforeCreate(createInput(MonitorType.Website)),
+      ).rejects.toThrow("subscription is unpaid");
+
+      expect(BillingService.hasPaymentMethods).not.toHaveBeenCalled();
+      expect(MonitorStatusService.findOneBy).not.toHaveBeenCalled();
+    },
+  );
 });

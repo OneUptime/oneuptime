@@ -138,6 +138,80 @@ describe("PayAsYouGoBillingService", () => {
     expect(hasPaymentMethods).toHaveBeenCalledWith("cus_project");
   });
 
+  describe.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+    "%s plan payment-method exemption",
+    (planType: PlanType) => {
+      beforeEach(() => {
+        getPlan.mockRestore();
+        getJestSpyOn(SubscriptionPlan, "getSubscriptionPlans").mockReturnValue([
+          new SubscriptionPlan(
+            "paid_monthly",
+            "paid_yearly",
+            planType,
+            20,
+            200,
+            1,
+            14,
+          ),
+        ]);
+        hasPaymentMethods.mockRejectedValue(
+          new Error("Payment provider unavailable"),
+        );
+        getSubscription.mockRejectedValue(
+          new Error("Payment provider unavailable"),
+        );
+      });
+
+      it.each(["paid_monthly", "paid_yearly"])(
+        "allows %s without consulting the payment provider",
+        async (planId: string) => {
+          project.paymentProviderPlanId = planId;
+          await expect(
+            service.canUsePayAsYouGo(PROJECT_ID, { useCache: false }),
+          ).resolves.toBe(true);
+          await expect(
+            service.requirePayAsYouGo(PROJECT_ID),
+          ).resolves.toBeUndefined();
+          expect(hasPaymentMethods).not.toHaveBeenCalled();
+          expect(getSubscription).not.toHaveBeenCalled();
+        },
+      );
+
+      it("does not require a Stripe customer or subscription for admission", async () => {
+        project.paymentProviderPlanId = "paid_monthly";
+        delete project.paymentProviderCustomerId;
+        delete project.paymentProviderSubscriptionId;
+        await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
+        expect(hasPaymentMethods).not.toHaveBeenCalled();
+        expect(getSubscription).not.toHaveBeenCalled();
+      });
+
+      it("authorizes direct metered usage for the subscription's paid project", async () => {
+        project.paymentProviderPlanId = "paid_yearly";
+        const owner: Project = new Project();
+        owner.id = PROJECT_ID;
+        getJestSpyOn(ProjectService, "findOneBy").mockResolvedValue(owner);
+        const subscription: Stripe.Subscription = {
+          customer: "cus_project",
+        } as Stripe.Subscription;
+        await expect(
+          service.requireMeteredSubscriptionPayment(subscription),
+        ).resolves.toBeUndefined();
+        const authorization: LiveUsageAuthorization | null =
+          await service.authorizeUsageNow(PROJECT_ID);
+        expect(authorization).not.toBeNull();
+        expect(
+          service.isLiveAuthorizationFor(
+            authorization || undefined,
+            PROJECT_ID,
+          ),
+        ).toBe(true);
+        expect(hasPaymentMethods).not.toHaveBeenCalled();
+        expect(getSubscription).not.toHaveBeenCalled();
+      });
+    },
+  );
+
   it("does not cache a rejection, so adding a payment method takes effect immediately", async () => {
     await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
     hasPaymentMethods.mockResolvedValue(true);
@@ -318,34 +392,11 @@ describe("PayAsYouGoBillingService", () => {
 
   describe("paid subscriptions without a stored payment method", () => {
     beforeEach(() => {
-      getPlan.mockReturnValue(
-        new SubscriptionPlan(
-          "growth",
-          "growth_yearly",
-          PlanType.Growth,
-          20,
-          200,
-          1,
-          14,
-        ),
-      );
-    });
-
-    it("permits a verified active invoice agreement", async () => {
-      getSubscription.mockResolvedValue({
-        customer: { id: "cus_project" },
-        status: "active",
-        collection_method: "send_invoice",
-      });
-      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
+      getPlan.mockReturnValue(GROWTH_PLAN);
     });
 
     it("preserves already authorized invoice history without a new cutoff", async () => {
-      getSubscription.mockResolvedValue({
-        customer: "cus_project",
-        status: "active",
-        collection_method: "send_invoice",
-      });
+      getSubscription.mockResolvedValue(ACTIVE_INVOICE_AGREEMENT);
       const start: jest.SpyInstance = getJestSpyOn(
         BillingService,
         "getMeteredBillingStartDate",
@@ -354,30 +405,73 @@ describe("PayAsYouGoBillingService", () => {
         service.getTelemetryBillingStartDate(PROJECT_ID),
       ).resolves.toBeUndefined();
       expect(start).not.toHaveBeenCalled();
+      expect(hasPaymentMethods).not.toHaveBeenCalled();
     });
 
-    it.each(["trialing", "unpaid", "canceled", "past_due", "incomplete"])(
-      "does not interpret a %s subscription as a paid invoice contract",
+    it.each([
+      "active",
+      "trialing",
+      "unpaid",
+      "canceled",
+      "past_due",
+      "incomplete",
+    ])(
+      "leaves %s subscription enforcement to the existing subscription checks",
       async (status: string) => {
         getSubscription.mockResolvedValue({
           customer: "cus_project",
           status,
           collection_method: "send_invoice",
         });
-        await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
+        await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
+        expect(hasPaymentMethods).not.toHaveBeenCalled();
+        expect(getSubscription).not.toHaveBeenCalled();
       },
     );
+  });
 
-    it("denies automatic collection without a card", async () => {
-      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
+  describe("plan changes", () => {
+    it("allows an upgrade immediately on a fresh check after a cached Free denial", async () => {
+      await expect(
+        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+      ).resolves.toBe(false);
+      getPlan.mockReturnValue(GROWTH_PLAN);
+      project.paymentProviderPlanId = "growth";
+      await expect(
+        service.canUsePayAsYouGo(PROJECT_ID, { useCache: false }),
+      ).resolves.toBe(true);
+      await expect(
+        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+      ).resolves.toBe(true);
+      expect(hasPaymentMethods).toHaveBeenCalledTimes(1);
     });
 
-    it("does not accept another customer's invoice contract", async () => {
-      getSubscription.mockResolvedValue({
-        customer: "cus_other",
-        status: "active",
-        collection_method: "send_invoice",
-      });
+    it("requires a card after a downgrade on the next fresh check", async () => {
+      getPlan.mockReturnValueOnce(GROWTH_PLAN);
+      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
+      await expect(
+        service.canUsePayAsYouGo(PROJECT_ID, { useCache: false }),
+      ).resolves.toBe(false);
+      await expect(
+        service.requirePayAsYouGo(PROJECT_ID),
+      ).rejects.toBeInstanceOf(PaymentRequiredException);
+    });
+
+    it("does not keep a paid exemption past the admission cache lifetime", async () => {
+      const now: jest.SpyInstance = getJestSpyOn(Date, "now").mockReturnValue(
+        100_000,
+      );
+      getPlan.mockReturnValueOnce(GROWTH_PLAN);
+      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
+      now.mockReturnValue(160_001);
+      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
+      expect(hasPaymentMethods).toHaveBeenCalledTimes(1);
+    });
+
+    it("rechecks the plan after invalidation", async () => {
+      getPlan.mockReturnValueOnce(GROWTH_PLAN);
+      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
+      service.invalidate(PROJECT_ID);
       await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
     });
   });
@@ -467,116 +561,30 @@ describe("PayAsYouGoBillingService", () => {
     expect(hasPaymentMethods).not.toHaveBeenCalled();
   });
 
-  /*
-   * Stripe rate-limits GET /v1/subscriptions/:id per endpoint. Reading the
-   * subscription before the card put that endpoint in front of every card
-   * holder's answer - three or four reads per monitor create - and CI's Stripe
-   * test account, shared with every other environment running this code, was
-   * held at the limit until requests failed. The card is read first now, and
-   * the subscription only when there is no card.
-   */
-  describe("reading the card before the subscription", () => {
-    beforeEach(() => {
-      getPlan.mockReturnValue(GROWTH_PLAN);
-    });
+  it("refuses a no-card Free project even with an invoice-looking subscription", async () => {
+    getSubscription.mockResolvedValue(ACTIVE_INVOICE_AGREEMENT);
+    await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
+    expect(hasPaymentMethods).toHaveBeenCalledTimes(1);
+    expect(getSubscription).not.toHaveBeenCalled();
+  });
 
-    it("authorizes a card holder on a paid plan without reading its subscription", async () => {
-      hasPaymentMethods.mockResolvedValue(true);
-      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
-      expect(hasPaymentMethods).toHaveBeenCalledWith("cus_project");
-      expect(getSubscription).not.toHaveBeenCalled();
-    });
-
-    it("reads the card first, then accepts this customer's active invoice agreement", async () => {
-      getSubscription.mockResolvedValue(ACTIVE_INVOICE_AGREEMENT);
-      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
-      expect(getSubscription).toHaveBeenCalledWith("sub_project");
-      expect(hasPaymentMethods).toHaveBeenCalledTimes(1);
-      expect(hasPaymentMethods.mock.invocationCallOrder[0]).toBeLessThan(
-        getSubscription.mock.invocationCallOrder[0]!,
-      );
-    });
-
-    it("still refuses a no-card project an invoice agreement that belongs to another customer", async () => {
-      getSubscription.mockResolvedValue({
-        ...ACTIVE_INVOICE_AGREEMENT,
-        customer: { id: "cus_other" },
-      });
-      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
-      expect(hasPaymentMethods).toHaveBeenCalledTimes(1);
-      expect(getSubscription).toHaveBeenCalledTimes(1);
-    });
-
-    it.each(["trialing", "past_due", "canceled"])(
-      "still refuses a no-card project whose invoice subscription is %s",
-      async (status: string) => {
-        getSubscription.mockResolvedValue({
-          ...ACTIVE_INVOICE_AGREEMENT,
-          status,
-        });
-        await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
-        expect(hasPaymentMethods).toHaveBeenCalledTimes(1);
-      },
+  it("does not cache a failed Free-plan payment-method read", async () => {
+    hasPaymentMethods.mockRejectedValueOnce(
+      new Error("Payment provider unavailable"),
     );
-
-    it("refuses a no-card Free project without reading even an invoice-looking subscription", async () => {
-      getPlan.mockReturnValue(
-        new SubscriptionPlan("free", "free_yearly", PlanType.Free, 0, 0, 0, 0),
-      );
-      getSubscription.mockResolvedValue(ACTIVE_INVOICE_AGREEMENT);
-      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
-      expect(hasPaymentMethods).toHaveBeenCalledTimes(1);
-      expect(getSubscription).not.toHaveBeenCalled();
-    });
-
-    it("authorizes a redeemed reseller license without any payment-provider call", async () => {
-      project.resellerId = ObjectID.generate();
-      project.resellerPlanId = ObjectID.generate();
-      getJestSpyOn(PromoCodeService, "findOneBy").mockResolvedValue(
-        new PromoCode(),
-      );
-      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
-      expect(hasPaymentMethods).not.toHaveBeenCalled();
-      expect(getSubscription).not.toHaveBeenCalled();
-    });
-
-    it("propagates a failed card read without falling through to the invoice read or caching an answer", async () => {
-      hasPaymentMethods.mockRejectedValueOnce(
-        new Error("Payment provider unavailable"),
-      );
-      await expect(
-        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
-      ).rejects.toThrow("Payment provider unavailable");
-      expect(getSubscription).not.toHaveBeenCalled();
-
-      /*
-       * Neither a denial nor an allow was recorded: even the admission path,
-       * which may answer from a cached denial, has to read again.
-       */
-      hasPaymentMethods.mockResolvedValue(true);
-      await expect(
-        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
-      ).resolves.toBe(true);
-      expect(hasPaymentMethods).toHaveBeenCalledTimes(2);
-    });
-
-    it("propagates a failed invoice read on the no-card path without caching an answer", async () => {
-      getSubscription.mockRejectedValueOnce(new Error("Stripe rate limited"));
-      await expect(
-        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
-      ).rejects.toThrow("Stripe rate limited");
-
-      getSubscription.mockResolvedValue(ACTIVE_INVOICE_AGREEMENT);
-      await expect(
-        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
-      ).resolves.toBe(true);
-      expect(getSubscription).toHaveBeenCalledTimes(2);
-    });
+    await expect(
+      service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+    ).rejects.toThrow("Payment provider unavailable");
+    expect(getSubscription).not.toHaveBeenCalled();
+    hasPaymentMethods.mockResolvedValue(true);
+    await expect(
+      service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+    ).resolves.toBe(true);
+    expect(hasPaymentMethods).toHaveBeenCalledTimes(2);
   });
 
   /*
-   * With the card read first, an invoice customer who also keeps a card on
-   * file is authorized as "payment-method". That answer must not earn them a
+   * Paid-plan authorization must not change an invoice customer's existing
    * metered billing cutoff: a cutoff waives every unreported telemetry cost
    * before it, which their invoice agreement already bills.
    */
@@ -601,6 +609,48 @@ describe("PayAsYouGoBillingService", () => {
     });
 
     it("still starts a card holder without an agreement on the next complete UTC day", async () => {
+      await expect(
+        service.getTelemetryBillingStartDate(PROJECT_ID),
+      ).resolves.toEqual(new Date("2026-09-09T00:00:00Z"));
+      expect(meteredBillingStart).toHaveBeenCalledWith("cus_project");
+    });
+
+    it.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+      "preserves the durable billing cutoff for a %s project without a card",
+      async (planType: PlanType) => {
+        getPlan.mockReturnValue(
+          new SubscriptionPlan("paid", "paid_yearly", planType, 20, 200, 1, 14),
+        );
+        hasPaymentMethods.mockResolvedValue(false);
+        await expect(
+          service.getTelemetryBillingStartDate(PROJECT_ID),
+        ).resolves.toEqual(new Date("2026-09-09T00:00:00Z"));
+        expect(meteredBillingStart).toHaveBeenCalledWith("cus_project");
+        expect(hasPaymentMethods).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(["trialing", "unpaid", "canceled", "past_due", "incomplete"])(
+      "does not waive billing history for a %s invoice subscription",
+      async (status: string) => {
+        getSubscription.mockResolvedValue({
+          ...ACTIVE_INVOICE_AGREEMENT,
+          status,
+        });
+        await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
+        await expect(
+          service.getTelemetryBillingStartDate(PROJECT_ID),
+        ).resolves.toEqual(new Date("2026-09-09T00:00:00Z"));
+        expect(meteredBillingStart).toHaveBeenCalledWith("cus_project");
+      },
+    );
+
+    it("does not waive billing history using another customer's invoice subscription", async () => {
+      getSubscription.mockResolvedValue({
+        ...ACTIVE_INVOICE_AGREEMENT,
+        customer: { id: "cus_other" },
+      });
+      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
       await expect(
         service.getTelemetryBillingStartDate(PROJECT_ID),
       ).resolves.toEqual(new Date("2026-09-09T00:00:00Z"));
