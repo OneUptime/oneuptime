@@ -1,7 +1,7 @@
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import OnCallDutyPolicyChildService from "./OnCallDutyPolicyChildService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
@@ -26,7 +26,7 @@ import Team from "../../Models/DatabaseModels/Team";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
     super(Model);
   }
