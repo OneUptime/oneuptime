@@ -1,4 +1,5 @@
 import UserTotpAuthAPI from "../../../Server/API/UserTotpAuthAPI";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
 import UserService from "../../../Server/Services/UserService";
 import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
@@ -17,6 +18,8 @@ import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import UserTotpAuth from "../../../Models/DatabaseModels/UserTotpAuth";
@@ -358,11 +361,54 @@ describe("POST /user-totp-auth/validate", () => {
      * `userAuthorization` off an unauthenticated request, the ownership
      * comparison below would compare against `undefined`, and anybody could
      * verify anybody's TOTP row.
+     *
+     * Two middlewares now, asserted by identity (a count of two would not
+     * notice one being swapped for another). getUserMiddleware resolves the
+     * session, but lets a request with NO session through as Public;
+     * requireUserAuthentication is what turns that request into a 401. It was
+     * added because an enrolment page left open past the session lifetime
+     * sends exactly that request - the access-token cookie expires with the
+     * token - and the handler answered it with a "Two factor auth not found"
+     * 400 (after reading the row as root), which the browser client does not
+     * treat as a cue to refresh the session and retry.
      */
     test("is behind an authentication middleware", () => {
-      expect(mockRouter.match("post", VALIDATE_ROUTE).middlewares.length).toBe(
-        1,
+      expect(mockRouter.match("post", VALIDATE_ROUTE).middlewares).toEqual([
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+      ]);
+    });
+
+    test("answers a request with no session 401 before any row is read", async () => {
+      const req: OneUptimeRequest = {
+        body: { id: TOTP_ID.toString(), code: "123456" },
+        params: {},
+        query: {},
+        headers: {},
+      } as unknown as OneUptimeRequest;
+
+      const res: OneUptimeResponse = {
+        status: jest.fn().mockReturnThis(),
+      } as unknown as OneUptimeResponse;
+
+      const next: jest.Mock = jest.fn();
+
+      await mockRouter.match("post", VALIDATE_ROUTE).middlewares[1]!(
+        req,
+        res,
+        next as unknown as NextFunction,
       );
+
+      expect(next).not.toHaveBeenCalled();
+
+      const error: Exception = asMock(Response.sendErrorResponse).mock
+        .calls[0]![2] as Exception;
+
+      expect(error).toBeInstanceOf(NotAuthenticatedException);
+      expect(error.code).toBe(ExceptionCode.NotAuthenticatedException);
+      expect(findTotpById).not.toHaveBeenCalled();
+      expect(updateTotpById).not.toHaveBeenCalled();
+      expect(generateForUserIfNoneSpy).not.toHaveBeenCalled();
     });
   });
 

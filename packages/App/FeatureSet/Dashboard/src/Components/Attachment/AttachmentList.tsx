@@ -7,6 +7,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { handleAuthenticatedLinkClick } from "Common/UI/Utils/OpenAuthenticatedUrl";
 
 export interface AttachmentListProps {
   modelId?: string | null;
@@ -121,12 +122,23 @@ const AttachmentList: FunctionComponent<AttachmentListProps> = (
     const fileMetadata: string | null = getFileMetadata(file);
     const fileExtension: string | null = getFileExtension(file.name);
 
+    /*
+     * The download route authenticates with the session cookie, which lapses
+     * with the 15-minute access token; a note left open longer than that
+     * opened its attachments as a bare 401. A click refreshes the session
+     * before the new tab loads; the href stays for middle-click and copy-link.
+     */
+    const attachmentUrl: string = downloadUrl;
+
     attachmentLinks.push(
       <li key={fileIdAsString} className="list-none">
         <a
-          href={downloadUrl}
+          href={attachmentUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={(event: React.MouseEvent<HTMLAnchorElement>): void => {
+            handleAuthenticatedLinkClick(event, attachmentUrl);
+          }}
           className="group flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white/80 px-4 py-3 text-sm text-gray-900 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
         >
           <span className="flex items-center gap-3">

@@ -712,20 +712,30 @@ export default class UserMiddleware {
   ): Promise<void> {
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
-    if (
-      !oneuptimeRequest.userType ||
-      oneuptimeRequest.userType === UserType.Public
-    ) {
+    if (UserMiddleware.isAnonymousRequest(oneuptimeRequest)) {
       return Response.sendErrorResponse(
         req,
         res,
         new NotAuthenticatedException(
-          "Authentication required. Please log in to access this resource.",
+          UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
         ),
       );
     }
 
     return next();
+  }
+
+  // Same wording as CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE.
+  public static readonly AUTHENTICATION_REQUIRED_MESSAGE: string =
+    "Authentication required. Please log in to access this resource.";
+
+  /*
+   * The request-level twin of CommonAPI.isAnonymous: getUserMiddleware found
+   * no access token and no API key. Usually an expired session, since the
+   * access-token cookie expires with the JWT inside it.
+   */
+  public static isAnonymousRequest(req: OneUptimeRequest): boolean {
+    return !req.userType || req.userType === UserType.Public;
   }
 
   public static requirePermission(data: {
@@ -741,6 +751,21 @@ export default class UserMiddleware {
       next: NextFunction,
     ): Promise<void> => {
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+
+      /*
+       * An anonymous caller has no permissions to compare, and telling it so
+       * with a 422 would stop the browser client from refreshing an expired
+       * session. Ask who it is first.
+       */
+      if (UserMiddleware.isAnonymousRequest(oneuptimeRequest)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
+          ),
+        );
+      }
 
       // Master admins bypass permission checks
       if (oneuptimeRequest.userType === UserType.MasterAdmin) {

@@ -27,7 +27,13 @@ jest.mock("../../../Server/API/CommonAPI", () => {
 });
 
 jest.mock("../../../Server/Middleware/UserAuthorization", () => {
-  return { __esModule: true, default: { getUserMiddleware: jest.fn() } };
+  return {
+    __esModule: true,
+    default: {
+      getUserMiddleware: jest.fn(),
+      requireUserAuthentication: jest.fn(),
+    },
+  };
 });
 
 jest.mock("../../../Server/Middleware/IdentityRateLimit", () => {
@@ -107,9 +113,19 @@ describe("passkey registration API", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * getUserMiddleware resolves the session; requireUserAuthentication turns a
+   * request that has none (a settings page left open until the access-token
+   * cookie expired) into a 401 the browser client refreshes on, rather than
+   * letting the handler dereference a missing userAuthorization. Both are
+   * mocked to distinct functions so the identity check below is real: with
+   * the second left out of the mock, the route would register `undefined` in
+   * its place and toEqual would still match a one-element list.
+   */
   test("requires authentication before allowing registration", () => {
-    expect(mockRouter.match("post", ROUTE).middlewares).toEqual([
+    expect(mockRouter.match("post", ROUTE).middlewares).toStrictEqual([
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
     ]);
   });
 

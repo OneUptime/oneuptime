@@ -16,7 +16,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import { JSONObject } from "Common/Types/JSON";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";

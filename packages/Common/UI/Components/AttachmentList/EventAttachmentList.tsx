@@ -1,3 +1,4 @@
+import { handleAuthenticatedLinkClick } from "../../Utils/OpenAuthenticatedUrl";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface EventAttachment {
@@ -12,6 +13,14 @@ export interface EventAttachmentListProps {
   showHeader?: boolean;
   showCount?: boolean;
   className?: string;
+  /*
+   * Set when the download URLs are behind a session that can lapse while the
+   * page is open (a private status page). A click then refreshes the session
+   * before the new tab loads the file, so a reader who has had the page open
+   * past the access token's lifetime gets the attachment, not a 401. Left
+   * unset, the cards are plain links.
+   */
+  refreshSession?: (() => Promise<boolean>) | undefined;
 }
 
 function getAttachmentExtensionLabel(fileName?: string | null): string | null {
@@ -31,12 +40,13 @@ function getAttachmentExtensionLabel(fileName?: string | null): string | null {
 
 type AttachmentCardProps = {
   attachment: EventAttachment;
+  refreshSession?: (() => Promise<boolean>) | undefined;
 };
 
 const AttachmentCard: FunctionComponent<AttachmentCardProps> = (
   props: AttachmentCardProps,
 ): ReactElement => {
-  const { attachment } = props;
+  const { attachment, refreshSession } = props;
   const extensionLabel: string | null = getAttachmentExtensionLabel(
     attachment.name,
   );
@@ -47,6 +57,17 @@ const AttachmentCard: FunctionComponent<AttachmentCardProps> = (
         href={attachment.downloadUrl}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={
+          refreshSession
+            ? (event: React.MouseEvent<HTMLAnchorElement>): void => {
+                handleAuthenticatedLinkClick(
+                  event,
+                  attachment.downloadUrl,
+                  refreshSession,
+                );
+              }
+            : undefined
+        }
         title={attachment.name}
         className="group flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-200"
       >
@@ -81,6 +102,7 @@ const EventAttachmentList: FunctionComponent<EventAttachmentListProps> = (
     showHeader = true,
     showCount = true,
     className = "",
+    refreshSession,
   } = props;
 
   if (!attachments || attachments.length === 0) {
@@ -90,7 +112,13 @@ const EventAttachmentList: FunctionComponent<EventAttachmentListProps> = (
   const attachmentsList: ReactElement = (
     <ul className="space-y-2">
       {attachments.map((attachment: EventAttachment, index: number) => {
-        return <AttachmentCard attachment={attachment} key={index} />;
+        return (
+          <AttachmentCard
+            attachment={attachment}
+            refreshSession={refreshSession}
+            key={index}
+          />
+        );
       })}
     </ul>
   );

@@ -546,6 +546,30 @@ async function fetchManifest(args: {
 }
 
 /*
+ * fetch() for the two transports below that cannot use the API class, with
+ * the one part of its behaviour they were missing. A request made through
+ * the API class that comes back 401 refreshes the session and replays
+ * itself; a raw fetch just failed. The access cookie expires with the
+ * 15-minute access token, so a replay watched (or followed live) for longer
+ * than that stopped loading footage with "Could not load recording data
+ * (HTTP 401)" although the refresh token was still good. One refresh, one
+ * retry: a second 401, or a refresh that fails, is a session that has really
+ * ended, and that response goes back to the caller's own error path.
+ */
+async function fetchWithSessionRefresh(
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  const response: Response = await fetch(url, init);
+
+  if (response.status !== 401 || !(await API.refreshSession())) {
+    return response;
+  }
+
+  return await fetch(url, init);
+}
+
+/*
  * Watch-time heartbeat. fetch with keepalive rather than the shared API
  * util so the final flush on pagehide / unmount survives the page going
  * away; the same headers the chunk transport sends. Fire-and-forget: a
@@ -562,21 +586,35 @@ function postHeartbeat(
       "Content-Type": "application/json",
     };
 
-    void fetch(
-      URL.fromString(APP_API_URL.toString())
-        .addRoute(HEARTBEAT_ROUTE)
-        .toString(),
-      {
-        method: "POST",
-        headers: headers,
-        credentials: "same-origin",
-        keepalive: keepalive,
-        body: JSON.stringify({
-          viewId: viewId,
-          secondsWatched: secondsWatched,
-        }),
-      },
-    ).catch((): void => {
+    const url: string = URL.fromString(APP_API_URL.toString())
+      .addRoute(HEARTBEAT_ROUTE)
+      .toString();
+
+    const init: RequestInit = {
+      method: "POST",
+      headers: headers,
+      credentials: "same-origin",
+      keepalive: keepalive,
+      body: JSON.stringify({
+        viewId: viewId,
+        secondsWatched: secondsWatched,
+      }),
+    };
+
+    /*
+     * The periodic send recovers from an expired session as the chunk
+     * transport does, so the audit row keeps advancing through a long
+     * watch; the server keeps the larger of two figures, so a late retry
+     * never winds it back. The flush on the way out (keepalive) never
+     * refreshes: nothing can wait for it then, and a refresh the page
+     * abandons half way can leave the server holding a rotated refresh
+     * token the browser never received, which signs out every tab.
+     */
+    const request: Promise<Response> = keepalive
+      ? fetch(url, init)
+      : fetchWithSessionRefresh(url, init);
+
+    void request.catch((): void => {
       /* Deliberately ignored - see above. */
     });
   } catch {
@@ -776,8 +814,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       /*
        * fetch rather than the shared API util: the response is
        * application/octet-stream and the axios-based helper deserialises
-       * JSON. The loader's abort signal is forwarded so a timeout or a
-       * dispose frees the connection, not just the promise.
+       * JSON. fetchWithSessionRefresh supplies the one thing the util would
+       * have done for us, recovering from an expired session. The loader's
+       * abort signal is forwarded so a timeout or a dispose frees the
+       * connection, not just the promise.
        */
       const headers: Dictionary<string> = {
         ...ModelAPI.getCommonHeaders(),
@@ -801,7 +841,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         init.signal = request.signal;
       }
 
-      const response: Response = await fetch(
+      const response: Response = await fetchWithSessionRefresh(
         URL.fromString(APP_API_URL.toString())
           .addRoute(CHUNKS_ROUTE)
           .toString(),

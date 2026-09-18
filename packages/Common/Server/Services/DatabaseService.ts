@@ -22,6 +22,8 @@ import {
   OnUpdate,
 } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import PublicPermission from "../Types/Database/Permissions/PublicPermission";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
 import { CheckReadPermissionType } from "../Types/Database/Permissions/ReadPermission";
 import Query from "../Types/Database/Query";
@@ -293,6 +295,31 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return data;
+  }
+
+  /*
+   * The permission layer's login check, run BEFORE the hooks instead of only
+   * after them.
+   *
+   * The hooks run first, and many of them key off props.userId: a missing one
+   * reads as "userId is required" (400), "User should be logged in" (422), or,
+   * for Project reads, an empty list with a 200. For an anonymous caller that
+   * is almost always a dashboard tab whose access-token cookie expired, and
+   * only a 401 makes the browser client refresh the session and replay the
+   * request. Everything this admits, the permission check would have admitted
+   * too (same condition, same exemptions for API keys and public models), so
+   * it only changes which refusal an anonymous caller gets, and it keeps hooks
+   * with side effects from running for them at all.
+   */
+  private checkIfUserIsLoggedInBeforeHooks(
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    PublicPermission.checkIfUserIsLoggedIn(this.modelType, props, type);
   }
 
   protected async onBeforeCreate(
@@ -1368,6 +1395,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+    this.checkIfUserIsLoggedInBeforeHooks(
+      createBy.props,
+      DatabaseRequestType.Create,
+    );
+
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
 
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
@@ -2291,6 +2323,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
+      this.checkIfUserIsLoggedInBeforeHooks(
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      );
+
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
@@ -2352,6 +2389,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
+
+      this.checkIfUserIsLoggedInBeforeHooks(
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      );
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
@@ -2586,6 +2628,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<Array<TBaseModel>> {
     try {
       this.setTelemetryContextFromProps(findBy.props);
+
+      this.checkIfUserIsLoggedInBeforeHooks(
+        findBy.props,
+        DatabaseRequestType.Read,
+      );
 
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
         findBy.sort = {
@@ -2966,6 +3013,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
     try {
       this.setTelemetryContextFromProps(updateBy.props);
+
+      this.checkIfUserIsLoggedInBeforeHooks(
+        updateBy.props,
+        DatabaseRequestType.Update,
+      );
 
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
 

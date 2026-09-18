@@ -30,6 +30,8 @@ import {
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionCode from "Common/Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -392,7 +394,13 @@ describe("POST /workflow/run-step/:workflowId", () => {
       expect(getPropsSpy).not.toHaveBeenCalled();
     });
 
-    test("the caller is not logged in", async () => {
+    /*
+     * Was BadDataException: with no tenantid header either, the missing
+     * project used to be reported first. Credentials are checked first now,
+     * so a caller with none - usually a builder tab whose session expired -
+     * gets 401, the status the browser client refreshes the session on.
+     */
+    test("the caller is not logged in - 401, not the missing-project 400", async () => {
       getPropsSpy.mockResolvedValue({
         userType: UserType.Public,
       } as never);
@@ -402,7 +410,64 @@ describe("POST /workflow/run-step/:workflowId", () => {
       });
 
       expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthenticatedException);
+      expect(result.thrownToNext).not.toBeInstanceOf(BadDataException);
+      expect((result.thrownToNext as NotAuthenticatedException).code).toBe(
+        ExceptionCode.NotAuthenticatedException,
+      );
+      expect((result.thrownToNext as NotAuthenticatedException).message).toBe(
+        CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+      );
+    });
+
+    test("the caller is not logged in but names a project in the tenant header - still 401", async () => {
+      getPropsSpy.mockResolvedValue({
+        userType: UserType.Public,
+        tenantId: callerProjectId,
+      } as never);
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunStepRoute({
+        workflowId: workflowId.toString(),
+      });
+
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthenticatedException);
+      expect(result.thrownToNext).not.toBeInstanceOf(NotAuthorizedException);
+    });
+
+    /*
+     * An API key is a credential, so it is refused as not-a-member (422)
+     * rather than as anonymous (401): running a step backs the builder's
+     * button and needs a logged-in member.
+     */
+    test("the caller is a project API key - 422, not 401", async () => {
+      const props: DatabaseCommonInteractionProps = buildUserProps({
+        projectId: callerProjectId,
+        userId: callerUserId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      getPropsSpy.mockResolvedValue({
+        ...props,
+        userId: undefined,
+        userType: UserType.API,
+      } as never);
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunStepRoute({
+        workflowId: workflowId.toString(),
+      });
+
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(result.thrownToNext).not.toBeInstanceOf(NotAuthenticatedException);
+      expect((result.thrownToNext as NotAuthorizedException).code).toBe(
+        ExceptionCode.NotAuthorizedException,
+      );
     });
 
     test("the caller holds no permission on the claimed project", async () => {

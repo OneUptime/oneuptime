@@ -1500,11 +1500,10 @@ async function findPersonalFeed(data: {
 }
 
 function requireUserId(props: DatabaseCommonInteractionProps): ObjectID {
-  if (!props.userId) {
-    throw new BadDataException("A logged-in user is required.");
-  }
-
-  return props.userId;
+  return CommonAPI.assertAuthenticatedUser(
+    props,
+    "A logged-in user is required.",
+  );
 }
 
 router.get(

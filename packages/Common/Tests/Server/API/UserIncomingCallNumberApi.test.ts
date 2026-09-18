@@ -157,6 +157,12 @@ describe("UserIncomingCallNumberAPI", () => {
         expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
       });
 
+      /*
+       * The handler's own check, reached directly. Through the router, a
+       * request with no session is answered 401 by requireUserAuthentication
+       * before the limiter or this handler runs (see
+       * ExpiredSessionRouteGuards.test.ts); this pins the defence in depth.
+       */
       it("should reject when the request carries no user authorization", async () => {
         mockRequest.body = { itemId: ITEM_ID };
         UserIncomingCallNumberService.findOneById = jest

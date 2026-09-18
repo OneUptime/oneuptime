@@ -1,5 +1,6 @@
 import GlobalConfigAPI from "../../../Server/API/GlobalConfigAPI";
 import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import UserService from "../../../Server/Services/UserService";
 import Response from "../../../Server/Utils/Response";
@@ -7,9 +8,12 @@ import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import UserType from "../../../Types/UserType";
 import API from "../../../Utils/API";
 import {
   NextFunction,
@@ -306,8 +310,13 @@ describe("GlobalConfigAPI licence routes", () => {
         new HTTPResponse<JSONObject>(200, licenseServerPayload(), {}),
       );
 
+    /*
+     * Express always gives a request a `query` object; the licence GET reads
+     * `signedIn` from it before anything else.
+     */
     mockRequest = {
       body: {},
+      query: {},
     } as unknown as OneUptimeRequest;
 
     mockResponse = {
@@ -652,6 +661,137 @@ describe("GlobalConfigAPI licence routes", () => {
       expect(body["seatsRemaining"]).toBeNull();
       expect(body["canAddMoreUsers"]).toBe(true);
       expect(UserService.countBy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * THE EXPIRED-SESSION CASE
+     *
+     * The dashboard's access-token cookie expires with the JWT inside it, so a
+     * signed-in tab left idle past the token lifetime asks for the licence
+     * with no session at all. On its own this route cannot tell that apart
+     * from the login page, and answers with the reduced anonymous payload and
+     * a 200 - which the edition pill reads as "no licence, no instances". The
+     * dashboards now say `?signedIn=true`; a caller that says so but carries
+     * no credentials is answered 401, the one status the browser client
+     * refreshes the session and replays on.
+     */
+    describe("?signedIn=true", () => {
+      type SetCallerFunction = (caller: Record<string, unknown>) => void;
+
+      const setCaller: SetCallerFunction = (
+        caller: Record<string, unknown>,
+      ): void => {
+        Object.assign(
+          mockRequest as unknown as Record<string, unknown>,
+          caller,
+        );
+      };
+
+      it.each([
+        ["no userType at all", {}],
+        [
+          "userType Public (what getUserMiddleware stamps)",
+          { userType: UserType.Public },
+        ],
+      ])(
+        "answers an anonymous caller (%s) with a 401 before reading the config",
+        async (_label: string, caller: Record<string, unknown>) => {
+          setCaller({ ...caller, query: { signedIn: "true" } });
+
+          await callGet();
+
+          const error: Error = nextError();
+
+          expect(error).toBeInstanceOf(NotAuthenticatedException);
+          expect((error as Exception).code).toBe(401);
+          expect(error.message).toBe(
+            UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
+          );
+          expect(GlobalConfigService.findOneById).not.toHaveBeenCalled();
+          expect(UserService.countBy).not.toHaveBeenCalled();
+          expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+        },
+      );
+
+      // The login page does not send the flag and must keep working.
+      it("still serves an anonymous caller without the flag the reduced payload", async () => {
+        setCaller({ userType: UserType.Public, query: {} });
+
+        await callGet();
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(GlobalConfigService.findOneById).toHaveBeenCalledTimes(1);
+
+        const body: JSONObject = getResponseBody();
+
+        expect(body["licenseKey"]).toBeNull();
+        expect(body["token"]).toBeNull();
+        expect(body["instanceId"]).toBeNull();
+        expect(body["instances"]).toEqual([]);
+        expect(body["currentVersion"]).toBeNull();
+        expect(body["seatsInUse"]).toBeNull();
+      });
+
+      it.each([
+        ["signedIn=false", { signedIn: "false" }],
+        ["an empty signedIn", { signedIn: "" }],
+        ["signedIn=1", { signedIn: "1" }],
+      ])(
+        'only the exact string "true" asks for a 401 (%s serves the reduced payload)',
+        async (_label: string, query: Record<string, unknown>) => {
+          setCaller({ userType: UserType.Public, query: query });
+
+          await callGet();
+
+          expect(nextFunction).not.toHaveBeenCalled();
+          expect(getResponseBody()["licenseKey"]).toBeNull();
+        },
+      );
+
+      it("serves a signed-in user the full payload with the flag", async () => {
+        setCaller({
+          userType: UserType.User,
+          userAuthorization: { userId: ObjectID.generate() },
+          query: { signedIn: "true" },
+        });
+
+        await callGet();
+
+        expect(nextFunction).not.toHaveBeenCalled();
+
+        const body: JSONObject = getResponseBody();
+
+        expect(body["licenseKey"]).toBe(STORED_LICENSE_KEY);
+        expect(body["instanceId"]).toBe(INSTANCE_ID.toString());
+        expect(body["seatsInUse"]).toBe(42);
+      });
+
+      it("serves a signed-in user the same full payload without the flag", async () => {
+        setCaller({
+          userType: UserType.User,
+          userAuthorization: { userId: ObjectID.generate() },
+          query: {},
+        });
+
+        await callGet();
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(getResponseBody()["licenseKey"]).toBe(STORED_LICENSE_KEY);
+      });
+
+      /*
+       * A project API key has credentials, so it is not an expired session:
+       * no 401. It has no user either, so it still gets only what an
+       * anonymous caller gets.
+       */
+      it("does not 401 an API-key caller that sends the flag", async () => {
+        setCaller({ userType: UserType.API, query: { signedIn: "true" } });
+
+        await callGet();
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(getResponseBody()["licenseKey"]).toBeNull();
+      });
     });
   });
 });

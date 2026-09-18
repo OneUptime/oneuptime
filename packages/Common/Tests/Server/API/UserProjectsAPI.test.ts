@@ -18,6 +18,10 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
@@ -916,7 +920,7 @@ describe("POST /user/:userId/projects — the master API key path", () => {
   type MiddlewareCallResult = {
     // Whether the gate let the request through to the read.
     reachedHandler: boolean;
-    errorSentToClient: NotAuthorizedException | undefined;
+    errorSentToClient: Exception | undefined;
     // The request object as the handler saw it, to inspect what the gate set.
     request: ExpressRequest;
   };
@@ -974,7 +978,7 @@ describe("POST /user/:userId/projects — the master API key path", () => {
 
     return {
       reachedHandler: reachedHandler,
-      errorSentToClient: errorCall?.[2] as NotAuthorizedException | undefined,
+      errorSentToClient: errorCall?.[2] as Exception | undefined,
       request: req,
     };
   }
@@ -1145,7 +1149,19 @@ describe("POST /user/:userId/projects — the master API key path", () => {
         expect(findBySpy).not.toHaveBeenCalled();
         expect(Response.sendJsonArrayResponse).not.toHaveBeenCalled();
 
-        expect(result.errorSentToClient).toBeInstanceOf(NotAuthorizedException);
+        /*
+         * An unusable key falls through to the session check, and with no
+         * session that is the no-token refusal - a 401 now, where it used to
+         * be a NotAuthorizedException (422). Still a refusal, and still AT the
+         * gate; only the status changed, so that an Admin Dashboard tab whose
+         * session cookie has expired refreshes instead of showing an error.
+         */
+        expect(result.errorSentToClient).toBeInstanceOf(
+          NotAuthenticatedException,
+        );
+        expect(result.errorSentToClient?.code).toBe(
+          ExceptionCode.NotAuthenticatedException,
+        );
         expect(result.errorSentToClient?.message).toBe(
           "Unauthorized: Access token is required.",
         );
@@ -1159,6 +1175,41 @@ describe("POST /user/:userId/projects — the master API key path", () => {
 
       expect(result.reachedHandler).toBe(false);
       expect(findBySpy).not.toHaveBeenCalled();
+
+      /*
+       * This is what the Admin Dashboard's User > Projects page sends once
+       * its session cookie has expired. Only a 401 makes the browser client
+       * refresh the session and replay the read.
+       */
+      expect(result.errorSentToClient).toBeInstanceOf(
+        NotAuthenticatedException,
+      );
+      expect(result.errorSentToClient?.code).toBe(
+        ExceptionCode.NotAuthenticatedException,
+      );
+    });
+
+    test("refuses an expired session with no key with a 401, without reading anything", async () => {
+      jest
+        .spyOn(UserMiddleware, "getAccessTokenFromExpressRequest")
+        .mockReturnValue("an.expired.token" as never);
+
+      jest.spyOn(JSONWebToken, "decode").mockImplementation(() => {
+        throw new BadDataException("AccessToken is invalid or expired");
+      });
+
+      const result: MiddlewareCallResult = await callThroughMiddleware({
+        headers: {},
+      });
+
+      expect(result.reachedHandler).toBe(false);
+      expect(findBySpy).not.toHaveBeenCalled();
+      expect(result.errorSentToClient).toBeInstanceOf(
+        NotAuthenticatedException,
+      );
+      expect(result.errorSentToClient?.message).toBe(
+        "Unauthorized: Invalid or expired access token.",
+      );
     });
 
     /*
@@ -1230,6 +1281,15 @@ describe("POST /user/:userId/projects — the master API key path", () => {
       expect(findBySpy).not.toHaveBeenCalled();
       expect(result.errorSentToClient?.message).toBe(
         "Unauthorized: Only master admins can perform this action.",
+      );
+
+      /*
+       * Still a 422, unlike the missing-token case: this caller is signed in,
+       * and refreshing their session would not make them a master admin.
+       */
+      expect(result.errorSentToClient).toBeInstanceOf(NotAuthorizedException);
+      expect(result.errorSentToClient?.code).toBe(
+        ExceptionCode.NotAuthorizedException,
       );
     });
 

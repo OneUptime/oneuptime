@@ -11,7 +11,6 @@ import Response from "../Utils/Response";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Query from "../../Types/BaseDatabase/Query";
 import { JSONArray, JSONObject } from "../../Types/JSON";
@@ -184,9 +183,7 @@ async function getLoggedInProps(
   const props: DatabaseCommonInteractionProps =
     await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-  if (!props.userId) {
-    throw new NotAuthorizedException("A logged-in user session is required.");
-  }
+  CommonAPI.assertAuthenticatedUser(props);
 
   return props;
 }

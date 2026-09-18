@@ -49,11 +49,10 @@ router.post(
        * because it loads the exception with the caller's props first, and
        * derives the project from that authorized row.
        */
-      if (!props.userId) {
-        throw new NotAuthorizedException(
-          "AI readiness requires a logged-in user session.",
-        );
-      }
+      CommonAPI.assertAuthenticatedUser(
+        props,
+        "AI readiness requires a logged-in user session.",
+      );
 
       if (!props.tenantId) {
         throw new BadDataException("Project ID is required (tenantid header).");

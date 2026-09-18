@@ -240,6 +240,18 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           new Route("/global-config/license"),
         );
 
+        /*
+         * The route also serves the login page, so on its own it answers a
+         * caller with no session with the reduced anonymous payload and a 200.
+         * Inside a signed-in app that caller is us with an expired session,
+         * and the reduced payload reads as "no license, no instances". Saying
+         * we expect to be signed in makes the server answer 401 instead,
+         * which the API client refreshes and replays.
+         */
+        if (UserUtil.isLoggedIn()) {
+          licenseUrl.addQueryParam("signedIn", "true");
+        }
+
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.fetch<JSONObject>({
             method: HTTPMethod.GET,

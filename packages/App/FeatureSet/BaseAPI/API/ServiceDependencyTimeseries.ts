@@ -90,6 +90,8 @@ export default class ServiceDependencyTimeseriesAPI {
           const props: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+          CommonAPI.assertCredentialsPresent(props);
+
           if (!props.tenantId) {
             throw new BadDataException("Project not found in request");
           }

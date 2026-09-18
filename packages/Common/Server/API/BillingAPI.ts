@@ -126,6 +126,7 @@ export default class BillingAPI {
     this.router.get(
       `/billing/pay-as-you-go-status`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const projectId: ObjectID | null = this.getTenantId(req);
@@ -158,6 +159,7 @@ export default class BillingAPI {
     this.router.get(
       `/billing/customer-balance`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!IsBillingEnabled) {

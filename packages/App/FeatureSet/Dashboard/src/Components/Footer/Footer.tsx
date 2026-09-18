@@ -4,7 +4,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import IconProp from "Common/Types/Icon/IconProp";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import Footer from "Common/UI/Components/Footer/Footer";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";

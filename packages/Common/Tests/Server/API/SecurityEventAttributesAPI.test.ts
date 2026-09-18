@@ -8,6 +8,10 @@ import {
 import Response from "../../../Server/Utils/Response";
 import Dictionary from "../../../Types/Dictionary";
 import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -339,7 +343,13 @@ describe("Security event attribute API", () => {
   });
 
   describe("access control", () => {
-    test("an unauthenticated caller is refused", async () => {
+    /*
+     * Tightened from "refused somehow" to the exact refusal. A tokenless
+     * request is, in practice, a SIEM page left open past the access-token
+     * lifetime; the browser client refreshes the session and replays only on
+     * a 401, so the status is as much the contract as the refusal itself.
+     */
+    test("an unauthenticated caller is refused with NotAuthenticatedException (401)", async () => {
       const result: CallResult = await callRoute({
         uri: KEYS_ROUTE,
         request: { userType: UserType.Public, tenantId: projectId },
@@ -347,8 +357,69 @@ describe("Security event attribute API", () => {
       });
 
       expect(result.reachedHandler).toBe(false);
-      expect(result.deniedWith).toBeDefined();
+      expect(result.deniedWith).toBeInstanceOf(NotAuthenticatedException);
+      expect(result.deniedWith?.code).toBe(
+        ExceptionCode.NotAuthenticatedException,
+      );
+      expect(result.deniedWith?.code).toBe(401);
+      expect(result.deniedWith?.message).toBe(
+        UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
+      );
       expect(fetchAttributes.mock.calls).toHaveLength(0);
+    });
+
+    test("a request with no userType at all is the same 401", async () => {
+      const result: CallResult = await callRoute({
+        uri: KEYS_ROUTE,
+        request: { tenantId: projectId },
+        body: {},
+      });
+
+      expect(result.reachedHandler).toBe(false);
+      expect(result.deniedWith).toBeInstanceOf(NotAuthenticatedException);
+      expect(result.deniedWith?.code).toBe(401);
+      expect(fetchAttributes.mock.calls).toHaveLength(0);
+    });
+
+    /*
+     * requireUserAuthentication answers the anonymous caller first, but the
+     * permission guard behind it must not depend on that ordering: run on its
+     * own, it too asks "who are you?" before comparing permissions, rather
+     * than answering an expired session with the 422 below.
+     */
+    test("the permission guard on its own answers an anonymous caller with 401, not 422", async () => {
+      const guard: RouterFunction | undefined =
+        findRoute(KEYS_ROUTE).handlers[2];
+
+      expect(guard).toBeDefined();
+
+      const req: ExpressRequest = {
+        userType: UserType.Public,
+        tenantId: projectId,
+        headers: {},
+      } as unknown as ExpressRequest;
+
+      const res: ExpressResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as unknown as ExpressResponse;
+
+      const step: { calledNext: boolean } = { calledNext: false };
+
+      await guard!(req, res, ((): void => {
+        step.calledNext = true;
+      }) as unknown as NextFunction);
+
+      // The guard answered the request itself.
+      expect(step.calledNext).toBe(false);
+
+      const sendErrorResponse: jest.Mock =
+        Response.sendErrorResponse as unknown as jest.Mock;
+      const denied: Exception = sendErrorResponse.mock
+        .calls[0]![2] as Exception;
+
+      expect(denied).toBeInstanceOf(NotAuthenticatedException);
+      expect(denied.code).toBe(401);
     });
 
     test("a project member without any security read permission is refused", async () => {
@@ -364,6 +435,14 @@ describe("Security event attribute API", () => {
 
       expect(result.reachedHandler).toBe(false);
       expect(result.deniedWith).toBeDefined();
+      /*
+       * Logged in, so this stays the 422: a 401 here would make the browser
+       * refresh a perfectly good session and replay into the same refusal.
+       */
+      expect(result.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(result.deniedWith?.code).toBe(
+        ExceptionCode.NotAuthorizedException,
+      );
       expect(fetchAttributes.mock.calls).toHaveLength(0);
     });
 
@@ -507,6 +586,14 @@ describe("Security event attribute API", () => {
 
       expect(result.reachedHandler).toBe(false);
       expect(result.deniedWith).toBeDefined();
+      expect(result.deniedWith).toBeInstanceOf(NotAuthenticatedException);
+      expect(result.deniedWith?.code).toBe(
+        ExceptionCode.NotAuthenticatedException,
+      );
+      expect(result.deniedWith?.message).toBe(
+        UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
+      );
+      expect(fetchAttributeValues.mock.calls).toHaveLength(0);
     });
   });
 

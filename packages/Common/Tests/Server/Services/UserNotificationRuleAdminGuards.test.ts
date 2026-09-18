@@ -38,6 +38,7 @@ import NotificationRuleType from "../../../Types/NotificationRule/NotificationRu
 import ObjectID from "../../../Types/ObjectID";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -616,6 +617,11 @@ describe("UserNotificationRule administrative write guards", () => {
        * An API key has no user identity. If the widened create list ever admits
        * one, "actor equals owner" is trivially false and must NOT be read as
        * "nobody else involved, carry on".
+       *
+       * The fixture says userType API because an API key is the only actor-less
+       * caller that can reach this hook: DatabaseService.create now refuses a
+       * caller with no credentials at all (no userId, not an API key) with a
+       * 401 before any hook runs.
        */
       stubs.teamMemberFind.mockResolvedValue(null as never);
 
@@ -623,7 +629,7 @@ describe("UserNotificationRule administrative write guards", () => {
         hooks().onBeforeCreate(
           createBy({
             userId: VICTIM_USER_ID,
-            props: { tenantId: PROJECT_ID },
+            props: { tenantId: PROJECT_ID, userType: UserType.API },
             channels: { userEmailId: METHOD_ID },
           }),
         ),
@@ -631,10 +637,15 @@ describe("UserNotificationRule administrative write guards", () => {
     });
 
     test("a rule with neither an owner nor an actor is refused rather than written unowned", async () => {
+      /*
+       * Actor-less means an API key here, for the same reason as above: an
+       * anonymous caller is refused (401) by DatabaseService.create before
+       * this hook, so it never sees this 400.
+       */
       await expect(
         hooks().onBeforeCreate(
           createBy({
-            props: { tenantId: PROJECT_ID },
+            props: { tenantId: PROJECT_ID, userType: UserType.API },
             channels: { userEmailId: METHOD_ID },
           }),
         ),

@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Modal from "Common/UI/Components/Modal/Modal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Dictionary from "Common/UI/Components/Dictionary/Dictionary";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import { HOME_URL } from "Common/UI/Config";
 import WorkspaceProjectAuthToken, {

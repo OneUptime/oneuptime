@@ -1,4 +1,4 @@
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
