@@ -89,19 +89,29 @@ webhooks:
 
 Four monitor types are affected: **API**, **Website**, **External Status Page** and **Custom JavaScript Code**. On a stock probe they can reach public HTTP(S) targets, but refuse private address space. API, Website and External Status Page monitors validate and pin DNS results for every connection and revalidate each redirect; Custom JavaScript Code applies the same address policy in its sandbox bridge.
 
-The switch is read by the **private probe process from its own environment**, not from the API server's. Whoever deploys a private probe controls its environment, and they are the party who knows which network that probe can see — a custom probe is usually a different machine, often run by a different person, and it never reads the API server's configuration.
+The switch is read by the **probe process from its own environment**, not from the API server's, and every probe reads it: the ones bundled with Docker Compose, the ones the Helm chart deploys, and any [custom probe](/docs/probe/custom-probe) you run yourself. Whoever deploys a probe controls its environment, and they are the party who knows which network that probe can see — a custom probe is usually a different machine, often run by a different person, and it never reads the API server's configuration.
 
 ```
 PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true
 ```
 
-Auto-registered global probes always use the strict public-network policy,
-even if this variable is present. Deploy a project-owned private probe for
-monitors that intentionally target an internal network.
+On Docker Compose, `config.env` already has a `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=false` line: change that line to `true` rather than adding a second one, because when a variable appears twice the later line wins. Then run `npm run start`, which recreates the containers with the new value; `docker compose restart` does not re-read `config.env`. Every bundled probe reads that one line, so it applies to `probe-1` and, where your stack runs a second probe, `probe-2`.
 
-Set it only on a separately deployed private probe. The probes bundled with
-Docker Compose and the Helm chart auto-register as global probes, so they
-always ignore this switch.
+On Kubernetes, set it per probe in your values file and upgrade the release. Each entry under `probes:` is a separate probe, so set it on every one that should reach private addresses:
+
+```yaml
+probes:
+  one:
+    allowPrivateNetworkMonitors: true
+```
+
+On a custom probe, set `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` in that probe's own environment and restart it. The value must be exactly `true`; anything else, such as `TRUE` or `1`, leaves the switch off and the probe says so in a startup warning, whatever `LOG_LEVEL` is set to.
+
+The bundled probes are **global probes**: they register themselves with the instance's `REGISTER_PROBE_KEY`, and every project on the instance can select them. Turning the switch on for a bundled probe therefore lets monitors from **every project on the instance** reach private addresses through it. That is usually what a single-team install wants. Where projects should not share that reach — separate teams, or customers you host — leave it off on the bundled probes and deploy a private (custom) probe inside each network instead, turned on only there.
+
+There is one exception. A probe that registers itself with `REGISTER_PROBE_KEY` and has `BILLING_ENABLED=true` in its own environment — a global probe of the hosted, open-signup product, where anyone can sign up and every project shares the global probes — stays public-only even with the switch on, and logs a startup warning that it is ignoring it. The probes bundled with Docker Compose and the Helm chart are given the instance's `BILLING_ENABLED` automatically; give it to any other `REGISTER_PROBE_KEY` probe you run for such an instance. A probe cannot tell that it is global in any other way, so a global probe created in the Admin Dashboard and run with `PROBE_ID` and `PROBE_KEY` honors the switch like a private one: do not turn it on there if projects should not share that probe's network. A private probe honors the switch on any instance.
+
+Every probe logs its effective private-network policy when it starts: whether private network monitoring is on or off, and why. A value that is being ignored, and a global probe that the switch opens to every project, are logged as warnings at any `LOG_LEVEL`. The routine on or off line, and the "Probe environment" JSON that records the same decision under `privateNetworkMonitors`, are logged at `LOG_LEVEL=INFO`, the Helm chart's default; Docker Compose ships `LOG_LEVEL=ERROR`, so set `LOG_LEVEL=INFO` to see them there. Check that log first when a monitor on a probe you just changed is still refused.
 
 Turning it on does **not** open loopback, link-local or the cloud metadata endpoint. Those stay refused on every probe, which matters most for probes that run in a network the monitor's author does not own.
 
@@ -112,8 +122,10 @@ Leave it off on probes you operate on behalf of other people.
 Run the workflow or monitor again. If it is still refused, the error message names which gate is closed:
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ — the API server setting is missing.
-- _"...points to a private network address and is not allowed. Set `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` on the probe running this monitor to allow it."_ — the probe's setting is missing. Note that this is set on the probe, not on the API server.
-- _"Global probes cannot monitor private network addresses..."_ — select a project-owned private probe; the global-probe policy cannot be relaxed.
+- _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ — a private (custom) probe ran the monitor, and its switch is off. Note that this is set on the probe, not on the API server.
+- _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — a bundled (global) probe ran the monitor, and its switch is off. Turn it on for that probe as described above if every project on the instance may reach that network; otherwise select a private probe on the monitor.
+- _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — a global probe with `BILLING_ENABLED=true` in its environment ran the monitor. Auto-registered global probes stay public-only there, whatever their switch says; deploy a private probe inside the target's network and select it on the monitor.
+- _"Monitor target host ... could not be reached."_ — an API, Website or External Status Page monitor whose target is a **hostname** reports this when the name resolves to a refused address as well as when DNS fails, so a monitor cannot be used to map which internal names exist. The error details shown with it mention `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` either way; they do not say which case applied. If the name points at a private address, check the probe's startup log for its private-network policy; when it is off, the fix is the same as for the messages above. With `LOG_LEVEL=DEBUG`, the probe also logs the exact reason for each refused name.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ — the target is in the forbidden tier. For a webhook, name the exact host or CIDR in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` if you really need it. For a monitor, there is no override.
 - _"...hostname could not be resolved via DNS."_ — the container cannot resolve the name. Check that it shares a network with the target.
 

@@ -1069,12 +1069,15 @@ const HEARTBEAT_SILENCE_MINUTES: number = 1;
  * The alerting spec drives its pipeline with a heartbeat monitor rather than
  * a probed one, and these are the pieces that make that work. Why a heartbeat:
  * since 78b19735bd every address that reaches this stack is loopback or
- * RFC1918, and a probe holding a REGISTER_PROBE_KEY refuses both - so a probed
- * monitor here can only ever report a refusal, which is indistinguishable from
- * an outage. Everything downstream of MonitorResourceUtil.monitorResource is
- * monitor-type agnostic, so a heartbeat exercises the identical incident ->
- * on-call -> escalation -> notification -> auto-resolve path with no egress at
- * all. The probe's own execution path is covered by ProbeExecution.spec.ts.
+ * RFC1918, and a probe holding a REGISTER_PROBE_KEY refuses both by default -
+ * loopback always, RFC1918 unless its operator opted in with
+ * PROBE_ALLOW_PRIVATE_NETWORK_MONITORS (issue #3879), which this stack leaves
+ * off - so a probed monitor here can only ever report a refusal, which is
+ * indistinguishable from an outage. Everything downstream of
+ * MonitorResourceUtil.monitorResource is monitor-type agnostic, so a heartbeat
+ * exercises the identical incident -> on-call -> escalation -> notification
+ * -> auto-resolve path with no egress at all. The probe's own execution path
+ * is covered by ProbeExecution.spec.ts.
  */
 
 interface HeartbeatMonitorStepsOptions {
