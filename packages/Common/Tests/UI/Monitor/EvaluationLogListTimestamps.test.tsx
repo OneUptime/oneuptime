@@ -29,6 +29,17 @@ interface ActionTimestampCase {
   label: string;
 }
 
+const ACTION_TIMESTAMP_CASES: Array<ActionTimestampCase> = [
+  { type: "alert-created", label: "Created at" },
+  { type: "incident-created", label: "Created at" },
+  { type: "alert-resolved", label: "Resolved at" },
+  { type: "incident-resolved", label: "Resolved at" },
+  { type: "alert-skipped", label: "Skipped at" },
+  { type: "incident-skipped", label: "Skipped at" },
+  { type: "monitor-status-changed", label: "Action at" },
+  { type: "probe-agreement", label: "Action at" },
+];
+
 const ENTITIES: Array<Entity> = ["Alert", "Incident"];
 const ENTITY_ID: string = "11111111-1111-4111-8111-111111111111";
 const CREATED_AT: Date = new Date("2026-01-15T10:00:00.000Z");
@@ -335,16 +346,7 @@ describe("monitor summary action timestamps", () => {
     });
   });
 
-  it.each<ActionTimestampCase>([
-    { type: "alert-created", label: "Created at" },
-    { type: "incident-created", label: "Created at" },
-    { type: "alert-resolved", label: "Resolved at" },
-    { type: "incident-resolved", label: "Resolved at" },
-    { type: "alert-skipped", label: "Skipped at" },
-    { type: "incident-skipped", label: "Skipped at" },
-    { type: "monitor-status-changed", label: "Action at" },
-    { type: "probe-agreement", label: "Action at" },
-  ])(
+  it.each(ACTION_TIMESTAMP_CASES)(
     "labels a $type action as '$label'",
     ({ type, label }: ActionTimestampCase) => {
       renderEvents([

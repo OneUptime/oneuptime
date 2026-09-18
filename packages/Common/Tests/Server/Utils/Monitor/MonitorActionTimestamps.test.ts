@@ -47,6 +47,8 @@ jest.mock("isolated-vm", () => {
 type EntityKind = "alert" | "incident";
 type Entity = Alert | Incident;
 
+const ENTITY_KINDS: Array<EntityKind> = ["alert", "incident"];
+
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
@@ -119,9 +121,15 @@ function openEntity(input: {
   entity._id = input.id;
   entity.projectId = PROJECT_ID;
   entity.title = "High CPU on an existing host";
-  entity.createdAt = input.createdAt;
+  if (input.createdAt !== undefined) {
+    entity.createdAt = input.createdAt;
+  } else {
+    delete entity.createdAt;
+  }
   entity.createdCriteriaId = input.criteriaId || CRITERIA_ID;
-  entity.seriesFingerprint = input.fingerprint;
+  if (input.fingerprint !== undefined) {
+    entity.seriesFingerprint = input.fingerprint;
+  }
   if (entity instanceof Alert) {
     entity.alertNumber = 372;
     entity.alertNumberWithPrefix = "ALT-372";
@@ -172,7 +180,7 @@ const DATA_TO_PROCESS: ProbeMonitorResponse = {
   monitoredAt: CHECK_AT,
 } as unknown as ProbeMonitorResponse;
 
-describe.each<EntityKind>(["alert", "incident"])(
+describe.each(ENTITY_KINDS)(
   "Monitor summary %s action timestamps",
   (kind: EntityKind) => {
     let openEntities: Array<Entity> = [];
@@ -235,8 +243,13 @@ describe.each<EntityKind>(["alert", "incident"])(
 
     function recordCreation(entity: Entity): void {
       entity._id = `created-${createdEntities.length + 1}`;
-      entity.createdAt =
+      const createdAt: Date | undefined =
         seriesCreatedAt[entity.seriesFingerprint || ""] || databaseCreatedAt;
+      if (createdAt !== undefined) {
+        entity.createdAt = createdAt;
+      } else {
+        delete entity.createdAt;
+      }
       createdEntities.push(entity);
     }
 
