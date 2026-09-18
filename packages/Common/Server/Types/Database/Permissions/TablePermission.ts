@@ -168,35 +168,31 @@ export default class TablePermission {
     const modelPermissions: Array<Permission> =
       TablePermission.getTablePermission(modelType, type);
 
-    const intersectingPermissions: Array<Permission> =
-      PermissionHelper.getIntersectingPermissions(
-        userPermissions.map((userPermission: UserPermission) => {
-          return userPermission.permission;
-        }) || [],
-        modelPermissions,
-      );
-
-    if (intersectingPermissions && intersectingPermissions.length > 0) {
-      for (const permission of intersectingPermissions) {
-        const userPermission: UserPermission = userPermissions.find(
-          (userPermission: UserPermission) => {
-            return userPermission.permission === permission;
-          },
-        ) as UserPermission;
-
-        if (
-          userPermission &&
+    /*
+     * The user gets one block row per TeamPermission across all of their
+     * teams, unmerged and unordered, so the same permission can be blocked
+     * both for some labels and for the whole table. A row without labels
+     * blocks the whole table and must win whichever row comes first:
+     * ReadPermission and AccessControlPermission only enforce the labelled
+     * rows, so an unlabelled row missed here is enforced nowhere.
+     */
+    const tableWideBlock: UserPermission | undefined = userPermissions.find(
+      (userPermission: UserPermission) => {
+        return (
+          modelPermissions.includes(userPermission.permission) &&
           (!userPermission.labelIds || userPermission.labelIds.length === 0)
-        ) {
-          throw new NotAuthorizedException(
-            `You are not authorized to ${type} ${
-              new modelType().singularName
-            } because ${
-              userPermission.permission
-            } is in your team's permission block list.`,
-          );
-        }
-      }
+        );
+      },
+    );
+
+    if (tableWideBlock) {
+      throw new NotAuthorizedException(
+        `You are not authorized to ${type} ${
+          new modelType().singularName
+        } because ${
+          tableWideBlock.permission
+        } is in your team's permission block list.`,
+      );
     }
   }
 }
