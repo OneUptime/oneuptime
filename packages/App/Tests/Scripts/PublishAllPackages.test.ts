@@ -58,6 +58,29 @@ describe("PublishAllPackages", () => {
     expect(budgetInSeconds).toBeGreaterThan(300);
   });
 
+  /*
+   * The dependent packages type-check packages/Common's real sources through
+   * the node_modules/Common link their lockfiles pin, so that directory needs
+   * its own dependencies installed. publish_to_npm does that only as a side
+   * effect of publishing and returns early when the version is already on
+   * npm — which is what happens on a re-run after a partial failure. The
+   * 13.0.7 retry skipped Common's publish and @oneuptime/cli then failed with
+   * "Cannot find module 'typeorm'" against ../Common.
+   */
+  it("installs Common's dependencies before the dependent packages build", () => {
+    const commonInstall: number = SOURCE.indexOf(
+      "(cd packages/Common && npm install)",
+    );
+    const mobilePublish: number = SOURCE.indexOf(
+      'publish_to_npm "packages/App/FeatureSet/MobileRecorder"',
+    );
+    const cliPublish: number = SOURCE.indexOf('publish_to_npm "packages/CLI"');
+
+    expect(commonInstall).toBeGreaterThan(-1);
+    expect(mobilePublish).toBeGreaterThan(commonInstall);
+    expect(cliPublish).toBeGreaterThan(commonInstall);
+  });
+
   it("isolates each nested package publish so the next path starts at the repo root", () => {
     const functionBody: string = SOURCE.slice(
       SOURCE.indexOf("publish_to_npm()"),
