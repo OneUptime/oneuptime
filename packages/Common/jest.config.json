@@ -40,7 +40,9 @@
     "^remark-gfm$": "<rootDir>/Tests/__mocks__/remark-gfm.js",
     "^react-syntax-highlighter$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",
     "^react-syntax-highlighter/dist/esm/.*$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",
-    "^mermaid$": "<rootDir>/Tests/__mocks__/mermaid.js"
+    "^mermaid$": "<rootDir>/Tests/__mocks__/mermaid.js",
+    "^@oneuptime/ee-dashboard$": "<rootDir>/../App/FeatureSet/Dashboard/src/Enterprise/CommunityPlugins.ts",
+    "^@oneuptime/ee-admin-dashboard$": "<rootDir>/../App/FeatureSet/AdminDashboard/src/Enterprise/CommunityPlugins.ts"
   },
   "moduleFileExtensions": ["ts", "tsx", "js", "json"],
   "transform": {
