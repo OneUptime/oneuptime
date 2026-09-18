@@ -21,6 +21,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
+import { MockFunction } from "../../MockType";
 
 configure({ asyncUtilTimeout: 15000 });
 
@@ -197,8 +198,13 @@ let now: Date = NOW;
 
 type AggregateCall = { aggregateBy: AggregateBy<SecurityEvent> };
 
-let aggregateMock: jest.SpiedFunction<typeof AnalyticsModelAPI.aggregate>;
-let getListMock: jest.SpiedFunction<typeof AnalyticsModelAPI.getList>;
+/*
+ * aggregate and getList are generic statics, which spyOn's typing cannot
+ * express as a SpiedFunction of the method; the calls are read back untyped
+ * and cast where they are inspected.
+ */
+let aggregateMock: MockFunction;
+let getListMock: MockFunction;
 
 function row(
   timestamp: string,
@@ -286,8 +292,14 @@ beforeEach(() => {
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
     return new Date(now.getTime());
   });
-  aggregateMock = jest.spyOn(AnalyticsModelAPI, "aggregate");
-  getListMock = jest.spyOn(AnalyticsModelAPI, "getList");
+  aggregateMock = jest.spyOn(
+    AnalyticsModelAPI,
+    "aggregate",
+  ) as unknown as MockFunction;
+  getListMock = jest.spyOn(
+    AnalyticsModelAPI,
+    "getList",
+  ) as unknown as MockFunction;
   resolvesWith(SOME_EVENTS);
   getListMock.mockImplementation(async (): Promise<ListResult<never>> => {
     return { data: [], count: 0, skip: 0, limit: 1 };
