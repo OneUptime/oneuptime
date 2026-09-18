@@ -1,5 +1,6 @@
 import { AddAIInvestigationDecision1793700000000 } from "./1793700000000-AddAIInvestigationDecision";
 import { RemoveMonitorDescriptionLengthLimit1793800000000 } from "./1793800000000-RemoveMonitorDescriptionLengthLimit";
+import { AddEnterpriseEditionFirstSeenAt1793900000000 } from "./1793900000000-AddEnterpriseEditionFirstSeenAt";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1200,4 +1201,5 @@ export default [
   MakeOwnerRowsUnique1793500000000,
   AddAIInvestigationDecision1793700000000,
   RemoveMonitorDescriptionLengthLimit1793800000000,
+  AddEnterpriseEditionFirstSeenAt1793900000000,
 ];
