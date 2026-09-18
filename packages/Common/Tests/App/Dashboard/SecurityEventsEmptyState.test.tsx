@@ -33,6 +33,7 @@ type CapturedTableProps = {
   id?: string;
   noItemsMessage?: ReactElement;
   showRefreshButton?: boolean;
+  query?: Record<string, unknown>;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -250,16 +251,21 @@ describe("SecurityEventsEmptyState", () => {
 });
 
 describe("SecurityEventsTable empty state wiring", () => {
-  test("hands the table the Security Events empty state, with Refresh", () => {
+  test("hands the table the Security Events empty state by default", () => {
     render(
       <MemoryRouter>
-        <SecurityEventsTable />
+        <SecurityEventsTable query={{ projectId: PROJECT_ID }} />
       </MemoryRouter>,
     );
 
     expect(capturedTableProps).not.toBeNull();
     expect(capturedTableProps?.id).toBe("security-events-table");
-    expect(capturedTableProps?.showRefreshButton).toBe(true);
+    expect(capturedTableProps?.query).toEqual({ projectId: PROJECT_ID });
+    /*
+     * The page's Refresh re-reads a relative window from now and recounts
+     * the volume chart; the table's own could only re-list its old window.
+     */
+    expect(capturedTableProps?.showRefreshButton).toBe(false);
     expect(capturedTableProps?.noItemsMessage?.type).toBe(
       SecurityEventsEmptyState,
     );
@@ -278,5 +284,24 @@ describe("SecurityEventsTable empty state wiring", () => {
         name: "Connect a security product",
       }),
     ).toBeInTheDocument();
+  });
+
+  test("a page that knows events exist can swap in its own message", () => {
+    render(
+      <MemoryRouter>
+        <SecurityEventsTable
+          query={{ projectId: PROJECT_ID }}
+          noItemsMessage={<p>Nothing in this window</p>}
+        />
+      </MemoryRouter>,
+    );
+
+    const table: HTMLElement = screen.getByTestId(
+      "security-events-analytics-table",
+    );
+    expect(within(table).getByText("Nothing in this window")).toBeVisible();
+    expect(
+      within(table).queryByRole("heading", { name: "No security events yet" }),
+    ).toBeNull();
   });
 });

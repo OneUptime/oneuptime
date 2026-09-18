@@ -36,6 +36,7 @@ import {
   readConnectorProviderDetails,
   validateConnectionRange,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionDiagnosticsUtil";
+import { readSecurityEventsTimeRange } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsTimeRange";
 import { RouteUtil } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
 import SecurityEventConnectionRun from "../../../Models/DatabaseModels/SecurityEventConnectionRun";
@@ -44,6 +45,8 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "../../../Types/Time/TimeRange";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
@@ -261,22 +264,33 @@ function scheduledPolling(): HTMLElement {
   return screen.getByRole("region", { name: "Scheduled polling" });
 }
 
-function eventsFilter(route: Route): JSONObject {
+function eventsParams(route: Route): URLSearchParams {
   const text: string = route.toString();
-  const params: URLSearchParams = new URLSearchParams(
-    text.slice(text.indexOf("?")),
-  );
-  return JSONFunctions.deserialize(
-    JSON.parse(params.get("security-events-table-filter")!) as JSONObject,
-  );
+  return new URLSearchParams(text.slice(text.indexOf("?")));
 }
 
-function filterRange(filter: JSONObject): [string, string] {
-  const range: InBetween<Date> = filter["time"] as InBetween<Date>;
-  expect(range).toBeInstanceOf(InBetween);
+// The table's own filter on the link; {} when the link sets none.
+function eventsFilter(route: Route): JSONObject {
+  const raw: string | null = eventsParams(route).get(
+    "security-events-table-filter",
+  );
+  return raw ? JSONFunctions.deserialize(JSON.parse(raw) as JSONObject) : {};
+}
+
+/*
+ * The window the link opens. It rides on the page's own range params (the
+ * window the Security Events range picker, volume chart and table share), and
+ * is read back here the way the page reads it.
+ */
+function eventsRange(route: Route): [string, string] {
+  const range: RangeStartAndEndDateTime = readSecurityEventsTimeRange(
+    `?${eventsParams(route).toString()}`,
+  );
+  expect(range.range).toBe(TimeRange.CUSTOM);
+  expect(range.startAndEndDate).toBeInstanceOf(InBetween);
   return [
-    new Date(range.startValue).toISOString(),
-    new Date(range.endValue).toISOString(),
+    new Date(range.startAndEndDate!.startValue).toISOString(),
+    new Date(range.startAndEndDate!.endValue).toISOString(),
   ];
 }
 
@@ -1458,13 +1472,36 @@ describe("View events for a connection run", () => {
   });
 
   test("View events targets detection time rather than creation or import time", (): void => {
-    const filter: JSONObject = eventsFilter(connectionEventsRoute(result()));
-    expect(filterRange(filter)).toEqual([
+    const route: Route = connectionEventsRoute(result());
+    expect(eventsRange(route)).toEqual([
       "2026-09-09T01:30:29.000Z",
       "2026-09-09T01:30:31.000Z",
     ]);
     // Without a connection id there is nothing to scope on.
-    expect(filter["attributes"]).toBeUndefined();
+    expect(eventsFilter(route)["attributes"]).toBeUndefined();
+  });
+
+  test("the window is the page's time range, not a table filter", (): void => {
+    const route: Route = connectionEventsRoute(result(), CONNECTION_ID);
+    const params: URLSearchParams = eventsParams(route);
+
+    expect(params.get("range")).toBe(TimeRange.CUSTOM);
+    expect(params.get("start")).toBe("2026-09-09T01:30:29.000Z");
+    expect(params.get("end")).toBe("2026-09-09T01:30:31.000Z");
+    // The table no longer offers a Time filter, so none is written for it.
+    expect(eventsFilter(route)["time"]).toBeUndefined();
+    expect(eventsFilter(route)["attributes"]).toEqual({
+      [SECURITY_CONNECTION_ID_ATTRIBUTE]: CONNECTION_ID,
+    });
+  });
+
+  test("a link with nothing to filter on sets no table filter at all", (): void => {
+    const params: URLSearchParams = eventsParams(
+      connectionEventsRoute(result()),
+    );
+
+    expect(params.get("security-events-table-filter")).toBeNull();
+    expect(params.get("range")).toBe(TimeRange.CUSTOM);
   });
 
   /*
@@ -1474,22 +1511,20 @@ describe("View events for a connection run", () => {
    * which for a late-created detection is a day before its creation time.
    */
   test("duplicate-only links recover the detection-time range from samples", (): void => {
-    const filter: JSONObject = eventsFilter(
-      connectionEventsRoute(
-        result({
-          ingestedCount: 0,
-          duplicateCount: 1,
-          eventTimeStart: undefined,
-          eventTimeEnd: undefined,
-        }),
-        CONNECTION_ID,
-      ),
+    const route: Route = connectionEventsRoute(
+      result({
+        ingestedCount: 0,
+        duplicateCount: 1,
+        eventTimeStart: undefined,
+        eventTimeEnd: undefined,
+      }),
+      CONNECTION_ID,
     );
-    expect(filterRange(filter)).toEqual([
+    expect(eventsRange(route)).toEqual([
       "2026-09-09T01:30:29.000Z",
       "2026-09-09T01:30:31.000Z",
     ]);
-    expect(filter["attributes"]).toBeUndefined();
+    expect(eventsFilter(route)["attributes"]).toBeUndefined();
   });
 
   test("a legacy sample's detection time is used the same way", (): void => {
@@ -1498,18 +1533,16 @@ describe("View events for a connection run", () => {
       detectionTime: "2026-09-08T22:00:00Z",
       createdTime: "2026-09-10T04:00:00Z",
     } as unknown as SecurityConnectorSample;
-    const filter: JSONObject = eventsFilter(
-      connectionEventsRoute(
-        result({
-          ingestedCount: 0,
-          duplicateCount: 1,
-          eventTimeStart: undefined,
-          eventTimeEnd: undefined,
-          samples: [legacySample],
-        }),
-      ),
+    const route: Route = connectionEventsRoute(
+      result({
+        ingestedCount: 0,
+        duplicateCount: 1,
+        eventTimeStart: undefined,
+        eventTimeEnd: undefined,
+        samples: [legacySample],
+      }),
     );
-    expect(filterRange(filter)).toEqual([
+    expect(eventsRange(route)).toEqual([
       "2026-09-08T21:59:59.000Z",
       "2026-09-08T22:00:01.000Z",
     ]);
@@ -1517,34 +1550,30 @@ describe("View events for a connection run", () => {
 
   test("creation time is the fallback for a sample without an event time, and the window for no samples", (): void => {
     expect(
-      filterRange(
-        eventsFilter(
-          connectionEventsRoute(
-            result({
-              eventTimeStart: undefined,
-              eventTimeEnd: undefined,
-              samples: [
-                sample({
-                  eventTime: undefined,
-                  createdTime: "2026-09-10T04:10:00Z",
-                }),
-              ],
-            }),
-          ),
+      eventsRange(
+        connectionEventsRoute(
+          result({
+            eventTimeStart: undefined,
+            eventTimeEnd: undefined,
+            samples: [
+              sample({
+                eventTime: undefined,
+                createdTime: "2026-09-10T04:10:00Z",
+              }),
+            ],
+          }),
         ),
       ),
     ).toEqual(["2026-09-10T04:09:59.000Z", "2026-09-10T04:10:01.000Z"]);
 
     expect(
-      filterRange(
-        eventsFilter(
-          connectionEventsRoute(
-            result({
-              eventTimeStart: undefined,
-              eventTimeEnd: undefined,
-              samples: [],
-            }),
-          ),
+      eventsRange(
+        connectionEventsRoute(
+          result({
+            eventTimeStart: undefined,
+            eventTimeEnd: undefined,
+            samples: [],
+          }),
         ),
       ),
     ).toEqual(["2026-09-10T03:59:59.000Z", "2026-09-10T05:00:01.000Z"]);
@@ -1552,14 +1581,12 @@ describe("View events for a connection run", () => {
 
   test("a stored event-time range wins over the samples", (): void => {
     expect(
-      filterRange(
-        eventsFilter(
-          connectionEventsRoute(
-            result({
-              eventTimeStart: "2026-09-01T00:00:00Z",
-              eventTimeEnd: "2026-09-02T00:00:00Z",
-            }),
-          ),
+      eventsRange(
+        connectionEventsRoute(
+          result({
+            eventTimeStart: "2026-09-01T00:00:00Z",
+            eventTimeEnd: "2026-09-02T00:00:00Z",
+          }),
         ),
       ),
     ).toEqual(["2026-08-31T23:59:59.000Z", "2026-09-02T00:00:01.000Z"]);

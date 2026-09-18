@@ -1,7 +1,6 @@
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { Green, LightGray, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
@@ -26,6 +25,10 @@ import { DOCS_URL } from "Common/UI/Config";
 import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  SECURITY_EVENTS_TABLE_ID,
+  getSecurityEventsTimeRangeLinkParams,
+} from "./SecurityEventsTimeRange";
 
 /*
  * Shared by every provider on the Security Event Connections page. The
@@ -443,12 +446,14 @@ export function connectionEventAttributeKey(
 }
 
 /*
- * Link to the Security Events table filtered on the event-time range this
- * run touched and, when something was imported, on this connection's
- * attribute (connectionEventAttributeKey). Without a stored event-time
- * range the samples' EVENT times are used before their creation times: a
- * duplicate-only run of late-created detections must open the range the
- * detections are stored under, not the day the source created them.
+ * Link to Security Events on the event-time range this run touched and, when
+ * something was imported, with the table filtered on this connection's
+ * attribute (connectionEventAttributeKey). The range is the page's own time
+ * range (the one its picker, volume chart and table share), not a table
+ * filter. Without a stored event-time range the samples' EVENT times are used
+ * before their creation times: a duplicate-only run of late-created
+ * detections must open the range the detections are stored under, not the
+ * day the source created them.
  */
 export function connectionEventsRoute(
   result: SecurityEventConnectionRunResult,
@@ -472,23 +477,21 @@ export function connectionEventsRoute(
 
   return RouteUtil.populateRouteParams(
     RouteMap[PageMap.SECURITY_EVENTS] as Route,
-  ).addQueryParams(
-    TableFilterUrlState.getLinkQueryParams("security-events-table", {
-      filter: {
-        time: new InBetween(
-          new Date(start.getTime() - 1000),
-          new Date(end.getTime() + 1000),
-        ),
-        ...(connectionId && result.ingestedCount > 0
-          ? {
-              attributes: {
-                [connectionEventAttributeKey(result)]: connectionId,
-              },
-            }
-          : {}),
-      },
-    }),
-  );
+  ).addQueryParams({
+    ...getSecurityEventsTimeRangeLinkParams(
+      new Date(start.getTime() - 1000),
+      new Date(end.getTime() + 1000),
+    ),
+    ...(connectionId && result.ingestedCount > 0
+      ? TableFilterUrlState.getLinkQueryParams(SECURITY_EVENTS_TABLE_ID, {
+          filter: {
+            attributes: {
+              [connectionEventAttributeKey(result)]: connectionId,
+            },
+          },
+        })
+      : {}),
+  });
 }
 
 /*

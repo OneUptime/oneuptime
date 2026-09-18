@@ -118,8 +118,15 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
   const activeSeries: Array<HistogramSeriesOption> = useMemo(() => {
     const present: Set<string> = new Set<string>();
 
+    /*
+     * A zero-count bucket holds a slot on the time axis (so a quiet stretch
+     * reads as a gap rather than being squeezed out); it is not a sighting
+     * of its series, which draws nothing and must not be legended.
+     */
     for (const bucket of props.buckets) {
-      present.add(bucket.series);
+      if (bucket.count > 0) {
+        present.add(bucket.series);
+      }
     }
 
     return props.series.filter((option: HistogramSeriesOption): boolean => {
