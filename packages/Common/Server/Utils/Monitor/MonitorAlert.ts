@@ -86,6 +86,7 @@ export default class MonitorAlert {
       select: {
         _id: true,
         title: true,
+        createdAt: true,
         createdCriteriaId: true,
         projectId: true,
         alertNumber: true,
@@ -514,6 +515,7 @@ export default class MonitorAlert {
               relatedAlertNumber: alreadyOpenAlert?.alertNumber,
               relatedAlertNumberWithPrefix:
                 alreadyOpenAlert?.alertNumberWithPrefix,
+              relatedAlertCreatedAt: alreadyOpenAlert?.createdAt,
               at: OneUptimeDate.getCurrentDate(),
             });
             continue;
@@ -794,7 +796,7 @@ export default class MonitorAlert {
             relatedAlertId: createdAlert.id?.toString(),
             relatedAlertNumber: createdAlert.alertNumber,
             relatedAlertNumberWithPrefix: createdAlert.alertNumberWithPrefix,
-            at: OneUptimeDate.getCurrentDate(),
+            at: createdAlert.createdAt || OneUptimeDate.getCurrentDate(),
           });
         } catch (err) {
           /*

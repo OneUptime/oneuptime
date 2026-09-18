@@ -45,9 +45,12 @@ export interface MonitorEvaluationEvent {
   relatedIncidentId?: string | undefined;
   relatedIncidentNumber?: number | undefined;
   relatedIncidentNumberWithPrefix?: string | undefined;
+  relatedIncidentCreatedAt?: Date | undefined;
   relatedAlertId?: string | undefined;
   relatedAlertNumber?: number | undefined;
   relatedAlertNumberWithPrefix?: string | undefined;
+  relatedAlertCreatedAt?: Date | undefined;
+  // When this action occurred, distinct from an already-active entity's creation.
   at?: Date | undefined;
 }
 
