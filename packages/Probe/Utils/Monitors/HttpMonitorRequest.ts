@@ -20,6 +20,7 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import http from "http";
 import https from "https";
 import net from "net";
+import tls from "tls";
 
 /*
  * Monitor response bodies are stored and shown back to the project. Leaving
@@ -254,13 +255,37 @@ export class PinnedHttpsProxyAgent extends HttpsProxyAgent<string> {
     request: HttpsProxyRequest,
     options: HttpsProxyConnectOptions,
   ): ReturnType<HttpsProxyAgent<string>["connect"]> {
-    const targetOptions: HttpsProxyConnectOptions = {
+    const targetAddress: string = this.targetServername;
+    const targetOptions: Record<string, unknown> = {
       ...options,
       ...this.targetTlsOptions,
-      servername: this.targetServername,
-    } as HttpsProxyConnectOptions;
+    };
 
-    return super.connect(request, targetOptions);
+    if (net.isIP(targetAddress) === 0) {
+      targetOptions["servername"] = targetAddress;
+    } else {
+      /*
+       * An IP literal is not a valid SNI name (RFC 6066), and Node 26 refuses
+       * one outright ("Setting the TLS ServerName to an IP address is not
+       * permitted"), so a monitor on https://<private IP> failed its handshake
+       * before sending a byte. Send no SNI - the caller's options carry the IP
+       * as servername too, so drop it - and verify the certificate against the
+       * IP ourselves: without a servername, tls.connect would check it against
+       * the tunnel socket's host, which is the proxy.
+       */
+      delete targetOptions["servername"];
+      targetOptions["checkServerIdentity"] = (
+        _hostname: string,
+        certificate: tls.PeerCertificate,
+      ): Error | undefined => {
+        return tls.checkServerIdentity(targetAddress, certificate);
+      };
+    }
+
+    return super.connect(
+      request,
+      targetOptions as unknown as HttpsProxyConnectOptions,
+    );
   }
 }
 
