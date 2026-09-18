@@ -62,6 +62,14 @@ jest.mock("../../../UI/Utils/User", () => {
       isMasterAdmin: (): boolean => {
         return isMasterAdmin;
       },
+      /*
+       * EditionLabel asks whether anybody is signed in before it fetches the
+       * license, to add `signedIn=true` (see EditionLabelLicenseRefresh).
+       * These are signed-in dashboard screens.
+       */
+      isLoggedIn: (): boolean => {
+        return true;
+      },
     },
   };
 });
