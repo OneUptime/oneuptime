@@ -553,6 +553,19 @@ export default class BaseAPI<
       this.entityType,
     ) as TBaseModel;
 
+    /*
+     * A create builds a brand-new row, so it must not carry the row's own
+     * primary key. getRepository().save() treats an entity that already has an
+     * id as an update of the existing row rather than an insert, so a stray
+     * `_id` (or the `id` spelling, which BaseModel.fromJSON has already folded
+     * into `_id`) would make a "create" modify an existing record instead.
+     * updateItem strips `_id` for a related reason; do it here too. Only the
+     * top-level primary key is removed - nested `_id`s inside relation
+     * objects/arrays reference existing related rows and are left untouched.
+     */
+    delete (item as any)["_id"];
+    delete (item as any)["id"];
+
     const miscDataProps: JSONObject = JSONFunctions.deserialize(
       body["miscDataProps"] as JSONObject,
     );
