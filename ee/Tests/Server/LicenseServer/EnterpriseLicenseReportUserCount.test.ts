@@ -23,6 +23,27 @@ import {
   OneUptimeResponse,
 } from "Common/Server/Utils/Express";
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import LicenseServerRateLimit, {
+  LicenseServerRateLimitBucket,
+} from "../../../Server/LicenseServer/LicenseServerRateLimit";
+import LicenseSigner, {
+  ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV,
+} from "../../../Server/LicenseServer/LicenseSigner";
+import {
+  classifyLicenseToken,
+  LicenseTokenClassification,
+} from "../../../Server/License/LicenseToken";
+import {
+  setTrustedLicenseKeysForTests,
+  TrustedLicenseKey,
+} from "../../../Server/License/TrustedLicenseKeys";
+import {
+  generateEd25519KeyPair,
+  TestKeyPair,
+  toPrivatePem,
+  toTrustedKey,
+} from "./LicenseServerTestKit";
 import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -202,6 +223,26 @@ const getResponseBody: GetResponseBodyFunction = (): JSONObject => {
 
   return calls[0]![2] as JSONObject;
 };
+
+/*
+ * Every suite below runs the license server in its default signing mode - no
+ * signing key, so the legacy HS256 token (mocked above) - unless it installs
+ * a key itself. Reset around each test so one suite's key never leaks into
+ * the next.
+ */
+const resetLicenseSigning: () => void = (): void => {
+  delete process.env[ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV];
+  setTrustedLicenseKeysForTests(null);
+  LicenseSigner.resetForTests();
+};
+
+beforeEach(() => {
+  resetLicenseSigning();
+});
+
+afterEach(() => {
+  resetLicenseSigning();
+});
 
 describe("EnterpriseLicenseAPI POST /enterprise-license/report-user-count", () => {
   let mockRequest: OneUptimeRequest;
@@ -469,9 +510,15 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/report-user-count", () =
     });
 
     it("stays unauthenticated - instances report before anyone signs in", () => {
-      expect(mockRouter.match("post", REPORT_ROUTE).middlewares).toHaveLength(
-        0,
-      );
+      /*
+       * The only thing in front of the handler is the request limiter; no
+       * authentication middleware.
+       */
+      expect(mockRouter.match("post", REPORT_ROUTE).middlewares).toEqual([
+        LicenseServerRateLimit.getMiddleware(
+          LicenseServerRateLimitBucket.ReportUserCount,
+        ),
+      ]);
     });
   });
 
@@ -1847,5 +1894,216 @@ describe("the contract between the two halves of the sync", () => {
     expect(Object.keys(result.updateData)).not.toContain(
       "enterpriseLicenseKey",
     );
+  });
+
+  it("carries a signed EdDSA license through the mapper unchanged", async () => {
+    const signingKey: TestKeyPair = generateEd25519KeyPair();
+
+    process.env[ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV] =
+      toPrivatePem(signingKey);
+    setTrustedLicenseKeysForTests([toTrustedKey(signingKey)]);
+    LicenseSigner.resetForTests();
+    LicenseSigner.init();
+
+    await mockRouter.match("post", REPORT_ROUTE).handlerFunction(
+      {
+        body: {
+          licenseKey: LICENSE_KEY,
+          userCount: 2,
+          instanceId: "instance-1",
+        },
+      } as unknown as OneUptimeRequest,
+      {
+        send: jest.fn(),
+        json: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+      } as unknown as OneUptimeResponse,
+      nextFunction,
+    );
+
+    const wireBody: JSONObject = getResponseBody();
+    const result: EnterpriseLicenseSyncResult =
+      EnterpriseLicenseSyncUtil.getGlobalConfigUpdateFromLicenseResponse({
+        payload: wireBody,
+        reportedAt: OneUptimeDate.getCurrentDate(),
+      });
+
+    expect(typeof wireBody["token"]).toBe("string");
+    expect(result.updateData.enterpriseLicenseToken).toBe(wireBody["token"]);
+    expect(JSONWebToken.signJsonPayload).not.toHaveBeenCalled();
+  });
+});
+
+describe("the token when the license server holds a signing key", () => {
+  const signingKey: TestKeyPair = generateEd25519KeyPair();
+  const trusted: TrustedLicenseKey = toTrustedKey(signingKey);
+
+  let nextFunction: NextFunction;
+
+  type CallFunction = (route: string) => Promise<void>;
+
+  const call: CallFunction = async (route: string): Promise<void> => {
+    await mockRouter.match("post", route).handlerFunction(
+      {
+        body: {
+          licenseKey: LICENSE_KEY,
+          userCount: 2,
+          instanceId: "instance-1",
+        },
+      } as unknown as OneUptimeRequest,
+      {
+        send: jest.fn(),
+        json: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+      } as unknown as OneUptimeResponse,
+      nextFunction,
+    );
+  };
+
+  type ClassifyFunction = (token: string) => LicenseTokenClassification;
+
+  const classifyAsInstallation: ClassifyFunction = (
+    token: string,
+  ): LicenseTokenClassification => {
+    return classifyLicenseToken({
+      token,
+      storedColumns: {},
+      now: new Date(),
+      trustedKeys: [trusted],
+      localInstanceId: "instance-1",
+      graceDays: 14,
+      acceptUnverified: false,
+    });
+  };
+
+  const useSigningKey: (trustedKeys: Array<TrustedLicenseKey>) => void = (
+    trustedKeys: Array<TrustedLicenseKey>,
+  ): void => {
+    process.env[ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV] =
+      toPrivatePem(signingKey);
+    setTrustedLicenseKeysForTests(trustedKeys);
+    LicenseSigner.resetForTests();
+    LicenseSigner.init();
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    new EnterpriseLicenseAPI();
+
+    EnterpriseLicenseService.findOneBy = jest
+      .fn()
+      .mockResolvedValue(makeLicense());
+    EnterpriseLicenseService.findOneById = jest
+      .fn()
+      .mockResolvedValue(makeLicense());
+    EnterpriseLicenseService.updateOneById = jest
+      .fn()
+      .mockResolvedValue(undefined);
+    EnterpriseLicenseService.runWithUsageAggregationLock = jest
+      .fn()
+      .mockImplementation(
+        async (data: { fn: () => Promise<unknown> }): Promise<unknown> => {
+          return await data.fn();
+        },
+      );
+    EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([]);
+    EnterpriseLicenseInstanceService.findOneBy = jest
+      .fn()
+      .mockResolvedValue(null);
+    EnterpriseLicenseInstanceService.create = jest
+      .fn()
+      .mockResolvedValue(undefined);
+    EnterpriseLicenseInstanceService.countBy = jest
+      .fn()
+      .mockResolvedValue(new PositiveNumber(0));
+
+    nextFunction = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("puts the request limiter in front of /validate, then the optional user lookup", () => {
+    expect(mockRouter.match("post", VALIDATE_ROUTE).middlewares).toEqual([
+      LicenseServerRateLimit.getMiddleware(
+        LicenseServerRateLimitBucket.Validate,
+      ),
+      UserMiddleware.getUserMiddleware,
+    ]);
+  });
+
+  it.each([
+    ["/report-user-count", REPORT_ROUTE],
+    ["/validate", VALIDATE_ROUTE],
+  ])(
+    "%s answers with a signed license an installation verifies, when the key is trusted by this build",
+    async (_label: string, route: string) => {
+      useSigningKey([trusted]);
+
+      await call(route);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+
+      const body: JSONObject = getResponseBody();
+      const classification: LicenseTokenClassification = classifyAsInstallation(
+        body["token"] as string,
+      );
+
+      expect(classification.verification).toBe("verified");
+      expect(classification.status).toBe("valid");
+      expect(classification.licenseId).toBe(LICENSE_ID.toString());
+      expect(classification.companyName).toBe("Acme Inc");
+      expect(classification.userLimit).toBe(150);
+      expect(classification.instanceId).toBeUndefined();
+      expect(JSONWebToken.signJsonPayload).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["/report-user-count", REPORT_ROUTE],
+    ["/validate", VALIDATE_ROUTE],
+  ])(
+    "%s keeps the legacy token when this build does not trust the key",
+    async (_label: string, route: string) => {
+      useSigningKey([]);
+
+      await call(route);
+
+      expect(getResponseBody()["token"]).toBe("signed.jwt.token");
+      expect(JSONWebToken.signJsonPayload).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("keeps the response shape identical in both modes", async () => {
+    await call(REPORT_ROUTE);
+
+    const legacyKeys: Array<string> = Object.keys(getResponseBody()).sort();
+
+    jest.clearAllMocks();
+    new EnterpriseLicenseAPI();
+    useSigningKey([trusted]);
+
+    await call(REPORT_ROUTE);
+
+    expect(Object.keys(getResponseBody()).sort()).toEqual(legacyKeys);
+  });
+
+  it("still withholds the token from an expired license", async () => {
+    useSigningKey([trusted]);
+
+    EnterpriseLicenseService.findOneBy = jest.fn().mockResolvedValue(
+      makeLicense({
+        expiresAt: OneUptimeDate.addRemoveDays(
+          OneUptimeDate.getCurrentDate(),
+          -1,
+        ),
+      }),
+    );
+
+    await call(REPORT_ROUTE);
+
+    expect(getResponseBody()).toHaveProperty("token", null);
   });
 });

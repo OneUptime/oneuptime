@@ -17,7 +17,6 @@ import EnterpriseLicenseService, {
 } from "Common/Server/Services/EnterpriseLicenseService";
 import EnterpriseLicenseInstanceService from "Common/Server/Services/EnterpriseLicenseInstanceService";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import OneUptimeDate from "Common/Types/Date";
 import Response from "Common/Server/Utils/Response";
 import {
@@ -27,7 +26,23 @@ import {
 } from "Common/Server/Utils/Express";
 import BaseAPI from "Common/Server/API/BaseAPI";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
-// import { Host } from "Common/Server/EnvironmentConfig";
+import LicenseServerRateLimit, {
+  LicenseServerRateLimitBucket,
+} from "./LicenseServerRateLimit";
+import LicenseSigner, { LicenseTokenSubject } from "./LicenseSigner";
+
+/*
+ * The license server self-hosted Enterprise installations activate against
+ * and report to. Served only by OneUptime Cloud (billing enabled): the
+ * LicenseServer area (./Index.ts) mounts this router only then.
+ *
+ * Besides the generic EnterpriseLicense CRUD the Admin Dashboard's license
+ * screens use (master admins only - the model's access control is empty):
+ *
+ *   GET  /enterprise-license/:id/active-usage   master admins
+ *   POST /enterprise-license/validate           anonymous, rate limited
+ *   POST /enterprise-license/report-user-count  anonymous, rate limited
+ */
 
 /*
  * The license state every installation of a license key mirrors locally.
@@ -303,6 +318,9 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/validate`,
+      LicenseServerRateLimit.getMiddleware(
+        LicenseServerRateLimitBucket.Validate,
+      ),
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -311,16 +329,6 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
           if (!licenseKey) {
             throw new BadDataException("License key is required");
           }
-
-          //const serverHost: string = Host.toString();
-
-          /*
-           * if (!serverHost.includes("oneuptime.com")) {
-           *   throw new BadDataException(
-           *     "Enterprise license validation is only available on oneuptime.com",
-           *   );
-           * }
-           */
 
           const license: EnterpriseLicense | null =
             await EnterpriseLicenseService.findOneBy({
@@ -463,6 +471,9 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/report-user-count`,
+      LicenseServerRateLimit.getMiddleware(
+        LicenseServerRateLimitBucket.ReportUserCount,
+      ),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const licenseKey: string | undefined = (
@@ -660,35 +671,31 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
   }
 
   /*
-   * Signed with the license server's own secret, so it is opaque to the
-   * installation holding it - it is the proof that oneuptime.com recognized
-   * the key, and the instance only checks that it exists. An expired license
-   * gets none, which is why this returns null rather than a short-lived token.
+   * The proof that oneuptime.com recognized the key: a signed EdDSA license
+   * the installation verifies offline when this server holds a signing key
+   * its release trusts, otherwise the legacy token signed with this server's
+   * own secret (see LicenseSigner). An expired license gets none, which is why
+   * this returns null rather than a short-lived token.
    */
   private signLicenseToken(license: EnterpriseLicense): string | null {
-    if (!license.expiresAt) {
-      return null;
-    }
-
-    const secondsUntilExpiry: number = Math.floor(
-      (license.expiresAt.getTime() - Date.now()) / 1000,
+    return LicenseSigner.signOnlineToken(
+      EnterpriseLicenseAPI.getTokenSubject(license),
     );
+  }
 
-    if (secondsUntilExpiry <= 0) {
-      return null;
-    }
-
-    const terms: LicenseTerms = this.getLicenseTerms(license);
-
-    return JSONWebToken.signJsonPayload(
-      {
-        companyName: terms.companyName,
-        expiresAt: terms.expiresAt,
-        licenseKey: terms.licenseKey,
-        userLimit: terms.userLimit,
-      },
-      Math.max(secondsUntilExpiry, 1),
-    );
+  // What a token is issued for, from the license row.
+  public static getTokenSubject(
+    license: EnterpriseLicense,
+  ): LicenseTokenSubject {
+    return {
+      licenseId: license.id?.toString() || "",
+      licenseKey: license.licenseKey || "",
+      companyName: license.companyName || "",
+      userLimit:
+        typeof license.userLimit === "number" ? license.userLimit : null,
+      isEvaluation: Boolean(license.isEvaluationLicense),
+      expiresAt: license.expiresAt || null,
+    };
   }
 
   private parseShortText(value: unknown): string {

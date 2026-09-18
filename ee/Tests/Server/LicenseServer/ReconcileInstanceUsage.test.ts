@@ -345,6 +345,37 @@ describe("EnterpriseLicense:ReconcileInstanceUsage", () => {
       expect(enterpriseLoader).toContain(`"${JOB_NAME}"`);
     });
 
+    /*
+     * The LicenseServer area requires this module - which registers the job -
+     * only after its billing check. LicenseServerArea.test.ts drives the same
+     * rule through the real hook.
+     */
+    test("is registered by the LicenseServer area, only on billing-enabled deployments", () => {
+      const areaSource: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Server",
+          "LicenseServer",
+          "Index.ts",
+        ),
+        "utf8",
+      );
+      const registration: string =
+        areaSource.split("registerLicenseServerWorkerJobs")[1] || "";
+      const billingCheckAt: number = registration.indexOf(
+        "if (!IsBillingEnabled)",
+      );
+      const requireAt: number = registration.indexOf(
+        'require("./Jobs/ReconcileInstanceUsage")',
+      );
+
+      expect(billingCheckAt).toBeGreaterThanOrEqual(0);
+      expect(requireAt).toBeGreaterThan(billingCheckAt);
+    });
+
     test("runs hourly in production and immediately after startup", () => {
       expect(mockCapturedJobs[JOB_NAME]).toEqual({
         options: {
