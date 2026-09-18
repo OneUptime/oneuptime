@@ -99,6 +99,7 @@ export default class MonitorIncident {
       select: {
         _id: true,
         title: true,
+        createdAt: true,
         createdCriteriaId: true,
         createdIncidentTemplateId: true,
         projectId: true,
@@ -579,6 +580,7 @@ export default class MonitorIncident {
               relatedIncidentNumber: alreadyOpenIncident?.incidentNumber,
               relatedIncidentNumberWithPrefix:
                 alreadyOpenIncident?.incidentNumberWithPrefix,
+              relatedIncidentCreatedAt: alreadyOpenIncident?.createdAt,
               at: OneUptimeDate.getCurrentDate(),
             });
             continue;
@@ -913,7 +915,7 @@ export default class MonitorIncident {
             relatedIncidentNumber: createdIncident.incidentNumber,
             relatedIncidentNumberWithPrefix:
               createdIncident.incidentNumberWithPrefix,
-            at: OneUptimeDate.getCurrentDate(),
+            at: createdIncident.createdAt || OneUptimeDate.getCurrentDate(),
           });
         } catch (err) {
           /*
