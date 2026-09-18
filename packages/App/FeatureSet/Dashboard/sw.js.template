@@ -6,9 +6,12 @@
 console.log('[ServiceWorker] OneUptime PWA Service Worker Loaded');
 
 // Cache configuration - Updated dynamically during build
-// Version format: oneuptime-v{APP_VERSION}-{GIT_SHA}
-// This ensures cache invalidation on every deployment
-const CACHE_VERSION = 'oneuptime-v{{APP_VERSION}}-{{GIT_SHA}}'; // Auto-generated version
+// Version format: oneuptime-v{APP_VERSION}-{EDITION}-{GIT_SHA}
+// This ensures cache invalidation on every deployment. EDITION is "community"
+// or "enterprise": the two images of one release share APP_VERSION and
+// GIT_SHA but bundle a different Dashboard, so switching a deployment between
+// them must drop the other edition's cached assets too.
+const CACHE_VERSION = 'oneuptime-v{{APP_VERSION}}-{{EDITION}}-{{GIT_SHA}}'; // Auto-generated version
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -96,8 +99,19 @@ async function handleRequest(request) {
   const pathname = url.pathname;
   
   try {
+    // Strategy 0: Network First for the runtime configuration (env.js).
+    // The server renders it per deployment - the edition, feature flags and
+    // host settings - so it must never be answered from the cache while the
+    // network is up: served cache-first (it ends in .js, so Strategy 2 below
+    // would take it) a browser keeps an old edition or configuration after an
+    // upgrade or a Community/Enterprise switch. The cached copy is only an
+    // offline fallback.
+    if (isRuntimeConfigRequest(pathname)) {
+      return await networkFirstWithFallback(request, DYNAMIC_CACHE);
+    }
+
     // Strategy 1: Network First for HTML pages (with fallback)
-    if (pathname.endsWith('/') || pathname.endsWith('.html') || 
+    if (pathname.endsWith('/') || pathname.endsWith('.html') ||
         pathname === '/dashboard' || pathname.startsWith('/dashboard/') && !pathname.includes('.')) {
       return await networkFirstWithFallback(request, DYNAMIC_CACHE);
     }
@@ -134,6 +148,12 @@ async function handleRequest(request) {
       headers: { 'Content-Type': 'text/plain' }
     });
   }
+}
+
+// The runtime configuration script: /dashboard/env.js (and any other
+// frontend's /<frontend>/env.js this worker might see).
+function isRuntimeConfigRequest(pathname) {
+  return pathname === '/env.js' || pathname.endsWith('/env.js');
 }
 
 // Caching Strategy 1: Network First with Fallback (for HTML)
