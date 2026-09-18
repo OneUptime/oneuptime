@@ -99,6 +99,25 @@ until npm view --prefer-online "@oneuptime/common@$package_version" version 2>/d
 done
 echo "@oneuptime/common@$package_version is now available on npm"
 
+# Install packages/Common's own dependencies before anything compiles against
+# it.
+#
+# The packages below do not actually type-check against the tarball. Their
+# lockfiles pin node_modules/Common as a link to ../Common, and npm keeps that
+# link, so tsc follows the symlink and type-checks packages/Common's real
+# sources — which import typeorm, react, axios and zod. Those resolve only if
+# packages/Common/node_modules is populated.
+#
+# publish_to_npm populates it as a side effect of publishing, but it returns
+# early when the version is already on npm, which is exactly the case when a
+# release is re-run after a partial failure. 13.0.7 hit this: Common was
+# already published, its install was skipped, and @oneuptime/cli failed with
+# "Cannot find module 'typeorm'" against ../Common/**. Installing here makes
+# the dependents' build independent of whether this run is the one that
+# published Common.
+echo "Installing packages/Common dependencies so dependents can compile against it"
+(cd packages/Common && npm install)
+
 # Publish packages that depend on Common (after Common is available on npm)
 publish_to_npm "packages/App/FeatureSet/MobileRecorder"
 publish_to_npm "packages/CLI"
