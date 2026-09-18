@@ -2,7 +2,7 @@
  * End-to-end tests for the OIDC login path (OIDCUtil).
  *
  * These run against a real OpenID Provider served on a loopback socket
- * (Tests/Identity/OidcTestIdp.ts) rather than a stubbed openid-client. That
+ * (./OidcTestIdp.ts) rather than a stubbed openid-client. That
  * distinction matters: almost everything protecting an OIDC login happens
  * inside the library and the network exchange — the ID token signature is
  * verified against the JWKS the discovery document advertises, `aud` is matched
