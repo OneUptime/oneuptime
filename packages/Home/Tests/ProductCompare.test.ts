@@ -2,6 +2,7 @@ import ProductCompare, {
   Category,
   FAQ,
   Item,
+  KeyDifference,
   PricingTier,
   Product,
   getProductCompareSlugs,
@@ -153,6 +154,93 @@ describe("Every product is fully populated", () => {
         expect(Array.isArray(tier.features)).toBe(true);
         expect(Array.isArray(tier.limitations)).toBe(true);
       }
+    },
+  );
+});
+
+const FULLY_OPEN_SOURCE_CLAIM: RegExp = /OneUptime is fully open[- ]source/i;
+
+const WHOLE_PLATFORM_FREE_CLAIM: RegExp =
+  /self-host the (?:entire|whole) (?:Apache|OneUptime|platform)|(?:entire|whole) platform self-hosts/i;
+
+describe("Comparison copy matches the Community / Enterprise Edition split", () => {
+  /*
+   * OneUptime is open-core: SSO, SCIM and audit logs live in the separately
+   * licensed ee/ directory. The SigNoz page used to contrast "OneUptime is
+   * fully Apache 2.0 across the platform" with SigNoz's open-core ee module,
+   * which now describes OneUptime as well.
+   */
+  const signoz: Product = ProductCompare("signoz");
+
+  const findSignozRow: (title: string) => Item | undefined = (
+    title: string,
+  ): Item | undefined => {
+    for (const category of signoz.items as Array<Category>) {
+      const row: Item | undefined = category.data.find((item: Item) => {
+        return item.title === title;
+      });
+
+      if (row) {
+        return row;
+      }
+    }
+
+    return undefined;
+  };
+
+  test("the SigNoz license row describes OneUptime as open-core too", () => {
+    const row: Item | undefined = findSignozRow("Open Source License");
+
+    expect(row).toBeDefined();
+    expect(row!.productColumn).toBe("Open-core (ee module)");
+    expect(row!.oneuptimeColumn).toContain("Open-core");
+    expect(row!.oneuptimeColumn).toContain("Apache 2.0");
+  });
+
+  test("the SigNoz SSO row no longer implies OneUptime SSO is ungated", () => {
+    const row: Item | undefined = findSignozRow("SSO/SAML");
+
+    expect(row).toBeDefined();
+    expect(row!.oneuptimeColumn).not.toBe("tick");
+    expect(row!.oneuptimeColumn).toContain("Enterprise Edition");
+  });
+
+  test("the SigNoz page no longer sells OneUptime as a single permissive license", () => {
+    const text: string = [
+      ...signoz.keyDifferences.map((difference: KeyDifference) => {
+        return `${difference.title} ${difference.description}`;
+      }),
+      ...signoz.faq.map((faq: FAQ) => {
+        return faq.answer;
+      }),
+      ...(signoz.migrationBenefits || []),
+    ].join(" ");
+
+    expect(text).not.toMatch(/fully apache/i);
+    expect(text).not.toMatch(/single permissive license/i);
+    expect(text).not.toMatch(/stay fully open source/i);
+    expect(text).toContain("both follow an open-core model");
+  });
+
+  test.each(slugs)(
+    "%s does not say OneUptime is fully open source or free to self-host in full",
+    (slug: string) => {
+      const product: Product = ProductCompare(slug);
+      const oneUptimeCopy: string = [
+        product.oneUptimeDescription,
+        product.description,
+        product.descriptionLine2,
+        ...(product.migrationBenefits || []),
+        ...product.keyDifferences.map((difference: KeyDifference) => {
+          return difference.description;
+        }),
+        ...product.faq.map((faq: FAQ) => {
+          return faq.answer;
+        }),
+      ].join(" ");
+
+      expect(oneUptimeCopy).not.toMatch(FULLY_OPEN_SOURCE_CLAIM);
+      expect(oneUptimeCopy).not.toMatch(WHOLE_PLATFORM_FREE_CLAIM);
     },
   );
 });

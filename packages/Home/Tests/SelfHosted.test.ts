@@ -8,12 +8,13 @@ import {
   DeploymentModel,
   DeploymentModels,
   DisasterRecoveryPractices,
-  HardenedImageFeatures,
+  EnterpriseEditionFeatures,
   HelmDocs,
   InfrastructureRequirements,
   RequirementGroup,
   ResilienceControl,
   ResponsibilityRow,
+  SecurityHardeningFeatures,
   SelfHostedContent,
   SelfHostedFaq,
   SelfHostedFaqs,
@@ -214,8 +215,67 @@ describe("SelfHosted content model", () => {
     expect(settings).toContain("helm upgrade");
   });
 
-  test("hardened image guidance names the enterprise-edition chart value", () => {
-    expect(HardenedImageFeatures.join(" ")).toContain("enterprise-edition");
+  test("Enterprise Edition guidance names the chart value and the compose tag", () => {
+    const text: string = EnterpriseEditionFeatures.join(" ");
+
+    expect(text).toContain("image.type: enterprise-edition");
+    expect(text).toContain("APP_TAG=enterprise-release");
+  });
+
+  test("Enterprise Edition guidance lists what the ee/ modules add", () => {
+    const text: string = EnterpriseEditionFeatures.join(" ");
+
+    for (const feature of [
+      "SAML",
+      "OpenID Connect",
+      "SCIM",
+      "Audit logs",
+      "team compliance",
+      "health dashboards",
+      "query console",
+    ]) {
+      expect(text).toContain(feature);
+    }
+  });
+
+  test("Enterprise Edition guidance states that production use needs a license", () => {
+    expect(EnterpriseEditionFeatures.join(" ")).toContain(
+      "OneUptime Enterprise License",
+    );
+  });
+
+  test("no self-hosted copy calls the Enterprise Edition images hardened", () => {
+    /*
+     * The Enterprise image is the Community image plus ee/. Hardening comes
+     * from the chart and applies to both editions.
+     */
+    const text: string = [
+      ...EnterpriseEditionFeatures,
+      ...SupportBoundaries.flatMap((tier: SupportTierRow) => {
+        return [tier.description, ...tier.included, ...tier.excluded];
+      }),
+      ...SelfHostedFaqs.map((faq: SelfHostedFaq) => {
+        return faq.answer;
+      }),
+    ].join(" ");
+
+    expect(text).not.toMatch(/hardened/i);
+  });
+
+  test("the chart hardening controls are not attributed to one edition", () => {
+    expect(SecurityHardeningFeatures.length).toBeGreaterThanOrEqual(4);
+
+    const text: string = SecurityHardeningFeatures.join(" ");
+
+    expect(text).toContain("RuntimeDefault seccomp");
+    expect(text).toContain("Non-root");
+    expect(text).not.toMatch(/enterprise/i);
+  });
+
+  test("the edition lists do not overlap", () => {
+    for (const feature of EnterpriseEditionFeatures) {
+      expect(SecurityHardeningFeatures).not.toContain(feature);
+    }
   });
 
   test("upgrade responsibilities split every area between us and the customer", () => {
@@ -275,6 +335,112 @@ describe("SelfHosted content model", () => {
     );
   });
 
+  test("the community tier no longer claims every feature, and names what it lacks", () => {
+    const community: SupportTierRow | undefined = SupportBoundaries.find(
+      (tier: SupportTierRow) => {
+        return tier.key === "community";
+      },
+    );
+
+    expect(community).toBeDefined();
+
+    const included: string = community!.included.join(" ");
+    const excluded: string = community!.excluded.join(" ");
+
+    expect(`${community!.description} ${included}`).not.toMatch(
+      /feature-limited|every product feature|full platform/i,
+    );
+    expect(community!.description).toContain("Apache-2.0");
+
+    for (const enterpriseOnly of [
+      "SSO",
+      "SCIM",
+      "audit logs",
+      "team compliance",
+      "instance health dashboards",
+    ]) {
+      expect(excluded).toContain(enterpriseOnly);
+    }
+  });
+
+  test("the enterprise tier names the features the Enterprise Edition image adds", () => {
+    const enterprise: SupportTierRow | undefined = SupportBoundaries.find(
+      (tier: SupportTierRow) => {
+        return tier.key === "enterprise";
+      },
+    );
+
+    expect(enterprise).toBeDefined();
+
+    const included: string = enterprise!.included.join(" ");
+
+    expect(included).toContain("Enterprise Edition image");
+    expect(included).toContain("SSO");
+    expect(included).toContain("SCIM");
+    expect(included).toContain("audit logs");
+    expect(enterprise!.description).toContain("Community Edition plus");
+  });
+
+  test("the edition FAQ names the enterprise features and their license", () => {
+    const editionFaq: SelfHostedFaq | undefined = SelfHostedFaqs.find(
+      (faq: SelfHostedFaq) => {
+        return faq.question.includes("feature-limited");
+      },
+    );
+
+    expect(editionFaq).toBeDefined();
+    expect(editionFaq!.answer).not.toMatch(/^No\./);
+    expect(editionFaq!.answer).toContain("Community Edition");
+    expect(editionFaq!.answer).toContain("Apache 2.0");
+    expect(editionFaq!.answer).toContain("OneUptime Enterprise License");
+    expect(editionFaq!.answer).toContain("SCIM");
+    expect(editionFaq!.answer).toContain("audit logs");
+  });
+
+  test("the phone-home FAQ discloses the Enterprise license check and what it sends", () => {
+    const phoneHomeFaq: SelfHostedFaq | undefined = SelfHostedFaqs.find(
+      (faq: SelfHostedFaq) => {
+        return faq.question.includes("phone home");
+      },
+    );
+
+    expect(phoneHomeFaq).toBeDefined();
+
+    const answer: string = phoneHomeFaq!.answer;
+
+    expect(answer).toContain("version check");
+    expect(answer).toContain("Enterprise Edition");
+    expect(answer).toContain("hashed user emails");
+    expect(answer).toContain("master-admin contact emails");
+    expect(answer).toContain("never monitoring data");
+    // The "no connectivity at all" promise is scoped to the Community Edition.
+    expect(answer).not.toMatch(/(?<!Community Edition )install runs with no connectivity/);
+  });
+
+  test("the update-check air-gap step mentions the Enterprise license check", () => {
+    const updateCheck: AirGapStep | undefined = AirGapSteps.find(
+      (step: AirGapStep) => {
+        return step.setting === "updateCheck.disabled";
+      },
+    );
+
+    expect(updateCheck).toBeDefined();
+    expect(updateCheck!.description).toContain("Community Edition");
+    expect(updateCheck!.description).toContain("offline license token");
+  });
+
+  test("shared responsibility puts SSO, SCIM, and audit logs in the Enterprise Edition", () => {
+    const accessControl: ResponsibilityRow | undefined =
+      SharedResponsibilities.find((row: ResponsibilityRow) => {
+        return row.area === "Access control";
+      });
+
+    expect(accessControl).toBeDefined();
+    expect(accessControl!.oneuptime).toContain(
+      "SSO/SAML, SCIM, and audit logs in the Enterprise Edition",
+    );
+  });
+
   test("the FAQ answers the uptime-responsibility question directly", () => {
     const uptimeFaq: SelfHostedFaq | undefined = SelfHostedFaqs.find(
       (faq: SelfHostedFaq) => {
@@ -313,7 +479,8 @@ describe("SelfHosted content model", () => {
     expect(content.availabilityControls).toBe(AvailabilityControls);
     expect(content.disasterRecoveryPractices).toBe(DisasterRecoveryPractices);
     expect(content.airGapSteps).toBe(AirGapSteps);
-    expect(content.hardenedImageFeatures).toBe(HardenedImageFeatures);
+    expect(content.enterpriseEditionFeatures).toBe(EnterpriseEditionFeatures);
+    expect(content.securityHardeningFeatures).toBe(SecurityHardeningFeatures);
     expect(content.upgradeResponsibilities).toBe(UpgradeResponsibilities);
     expect(content.sharedResponsibilities).toBe(SharedResponsibilities);
     expect(content.supportBoundaries).toBe(SupportBoundaries);
@@ -359,6 +526,14 @@ describe("SelfHosted page SEO", () => {
     expect(joined).toContain("helm");
     expect(joined).toContain("air-gapped");
     expect(joined).toContain("high availability");
-    expect(joined).toContain("hardened");
+    expect(joined).toContain("enterprise edition");
+    expect(joined).not.toContain("hardened");
+  });
+
+  test("the description names the Enterprise Edition, not hardened images", () => {
+    const seo: PageSEOData = PageSEOConfig["/enterprise/self-hosted"]!;
+
+    expect(seo.description).toContain("the Enterprise Edition");
+    expect(seo.description.toLowerCase()).not.toContain("hardened");
   });
 });

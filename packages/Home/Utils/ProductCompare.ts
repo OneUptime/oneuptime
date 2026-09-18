@@ -2427,7 +2427,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is OneUptime open source and self-hostable?",
         answer:
-          "Yes. OneUptime is fully open source under the Apache 2.0 license and can be self-hosted on your own infrastructure at no license cost, giving you complete control over your data. New Relic is SaaS-only and closed source. You can also use OneUptime's managed cloud if you prefer not to run it yourself.",
+          "Yes. OneUptime is open source under the Apache 2.0 license and can be self-hosted on your own infrastructure at no license cost, giving you complete control over your data. New Relic is SaaS-only and closed source. You can also use OneUptime's managed cloud if you prefer not to run it yourself.",
       },
       {
         question: "Can I migrate my New Relic telemetry to OneUptime?",
@@ -2452,9 +2452,9 @@ const products: Dictionary<Product> = {
     productDescription:
       "Better Stack (formerly Better Uptime) offers uptime monitoring, status pages, on-call, incident management, and log and metric telemetry in one modern, developer-friendly product. Its pricing is modular: you start free, then pay a per-responder license and layer on packs for extra monitors, status page features, and telemetry volume. The polished UX is a real strength, but costs compound as your on-call team, monitor count, and subscriber list grow.",
     oneUptimeDescription:
-      "OneUptime provides monitoring at a flat $1/month per active monitor, status pages with unlimited subscribers, and full on-call scheduling and incident management included for the whole team at no extra per-person cost. It is OpenTelemetry-native for logs, metrics, and traces, and is fully open source under Apache 2.0 so you can self-host it on your own infrastructure. You get the same unified vision with transparent pricing and no vendor lock-in.",
+      "OneUptime provides monitoring at a flat $1/month per active monitor, status pages with unlimited subscribers, and full on-call scheduling and incident management included for the whole team at no extra per-person cost. It is OpenTelemetry-native for logs, metrics, and traces, and is open source under Apache 2.0 so you can self-host it on your own infrastructure. You get the same unified vision with transparent pricing and no vendor lock-in.",
     description:
-      "Better Stack (formerly Better Uptime) and OneUptime share the same unified vision: monitoring, status pages, on-call, incidents, and telemetry in one place instead of a stack of point tools. The difference is how you pay and how much control you keep. Better Stack layers a $29-34/month per-responder license on top of add-on packs for monitors, status pages, and telemetry, so the bill scales with every engineer, subscriber, and gigabyte. OneUptime charges a flat $1/month per active monitor with on-call, incidents, and unlimited status page subscribers included, and is fully open source and self-hostable.",
+      "Better Stack (formerly Better Uptime) and OneUptime share the same unified vision: monitoring, status pages, on-call, incidents, and telemetry in one place instead of a stack of point tools. The difference is how you pay and how much control you keep. Better Stack layers a $29-34/month per-responder license on top of add-on packs for monitors, status pages, and telemetry, so the bill scales with every engineer, subscriber, and gigabyte. OneUptime charges a flat $1/month per active monitor with on-call, incidents, and unlimited status page subscribers included, and is open source and self-hostable.",
     descriptionLine2:
       "Both consolidate your observability tooling into one product. OneUptime adds predictable per-monitor pricing, no per-responder or per-subscriber fees, open-source transparency, and the option to self-host.",
     migrationBenefits: [
@@ -2912,7 +2912,7 @@ const products: Dictionary<Product> = {
       {
         question: "How does OneUptime compare to Better Stack (Better Uptime)?",
         answer:
-          "Better Stack (formerly Better Uptime) and OneUptime share a similar vision of unified observability. Both provide monitoring, status pages, incident management, and telemetry in one platform. The key differences are pricing and openness: Better Stack charges a $29-34/month per-responder license plus add-on packs for monitors ($21-25 per 50), status page features, and telemetry, while OneUptime offers simple usage-based pricing at $1/month per active monitor with on-call, incidents, and unlimited status page subscribers included. OneUptime is also fully open source under Apache 2.0 with self-hosting options, giving you complete control over your data and infrastructure.",
+          "Better Stack (formerly Better Uptime) and OneUptime share a similar vision of unified observability. Both provide monitoring, status pages, incident management, and telemetry in one platform. The key differences are pricing and openness: Better Stack charges a $29-34/month per-responder license plus add-on packs for monitors ($21-25 per 50), status page features, and telemetry, while OneUptime offers simple usage-based pricing at $1/month per active monitor with on-call, incidents, and unlimited status page subscribers included. OneUptime is also open source under Apache 2.0 with self-hosting options, giving you complete control over your data and infrastructure.",
       },
       {
         question: "What is Better Uptime and why did it become Better Stack?",
@@ -2939,7 +2939,7 @@ const products: Dictionary<Product> = {
       {
         question: "Can I self-host OneUptime like Better Stack?",
         answer:
-          "Yes, and this is a major differentiator. OneUptime is fully open source under the Apache 2.0 license and can be self-hosted on your own infrastructure using Docker or Kubernetes. Better Stack is a closed-source SaaS product with no self-hosting option. Self-hosting gives you complete control over your data, helps meet compliance requirements, and eliminates vendor lock-in.",
+          "Yes, and this is a major differentiator. OneUptime is open source under the Apache 2.0 license and can be self-hosted on your own infrastructure using Docker or Kubernetes. Better Stack is a closed-source SaaS product with no self-hosting option. Self-hosting gives you complete control over your data, helps meet compliance requirements, and eliminates vendor lock-in.",
       },
       {
         question:
@@ -3386,7 +3386,7 @@ const products: Dictionary<Product> = {
       {
         question: "Can I self-host OneUptime?",
         answer:
-          "Yes. OneUptime is fully open source under Apache 2.0, so you can self-host it on your own infrastructure for free. Uptime Robot is SaaS-only with no self-hosting option, which matters for teams with data-residency, compliance, or air-gapped requirements.",
+          "Yes. OneUptime is open source under Apache 2.0, so you can self-host it on your own infrastructure for free. Uptime Robot is SaaS-only with no self-hosting option, which matters for teams with data-residency, compliance, or air-gapped requirements.",
       },
       {
         question:
@@ -4353,7 +4353,7 @@ const products: Dictionary<Product> = {
       "Add unlimited-subscriber, custom-domain status pages your customers can trust",
       "Add synthetic, SSL, port, and heartbeat monitoring alongside your telemetry",
       "Predictable pricing - flat $1/active monitor and ~$0.10/GB telemetry, no per-sample surprises",
-      "Stay fully open source and self-hostable under a permissive Apache 2.0 license",
+      "Stay open source and self-hostable, with the core platform under a permissive Apache 2.0 license",
     ],
     competitorPricingTiers: [
       {
@@ -4468,9 +4468,9 @@ const products: Dictionary<Product> = {
         icon: "monitoring",
       },
       {
-        title: "Fully Apache 2.0",
+        title: "Apache 2.0 Reliability Stack",
         description:
-          "Permissive single license vs SigNoz's open-core enterprise module",
+          "Monitoring, on-call, incidents, and status pages are all in the Apache 2.0 Community Edition",
         icon: "open-source",
       },
     ],
@@ -4658,7 +4658,7 @@ const products: Dictionary<Product> = {
             title: "Open Source License",
             description: "How the code is licensed",
             productColumn: "Open-core (ee module)",
-            oneuptimeColumn: "Apache 2.0",
+            oneuptimeColumn: "Open-core (Apache 2.0 + ee module)",
           },
           {
             title: "Pricing Model",
@@ -4676,7 +4676,7 @@ const products: Dictionary<Product> = {
             title: "SSO/SAML",
             description: "Enterprise identity",
             productColumn: "Enterprise only",
-            oneuptimeColumn: "tick",
+            oneuptimeColumn: "Scale plan or Enterprise Edition",
           },
           {
             title: "Full Reliability Stack",
@@ -4696,7 +4696,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is SigNoz really open source like OneUptime?",
         answer:
-          "Both are genuinely open source and self-hostable. SigNoz follows an open-core model - its core is permissively licensed while an enterprise (ee) module is under a separate commercial license - and it focuses on observability data. OneUptime is fully Apache 2.0 across the platform and covers the whole incident lifecycle. They solve related but different problems, and OneUptime's single permissive license keeps self-hosting simple.",
+          "Both are open source and self-hostable, and both follow an open-core model: the core is permissively licensed while an enterprise (ee) module is under a separate commercial license. SigNoz focuses on observability data. OneUptime's Apache 2.0 Community Edition covers the whole incident lifecycle - monitoring, on-call, incidents, status pages, and telemetry - and its enterprise module adds SSO, SCIM, audit logs, and instance administration. They solve related but different problems.",
       },
       {
         question: "What about SigNoz's usage-based pricing?",
@@ -5258,7 +5258,7 @@ const products: Dictionary<Product> = {
       "Get native website, API, server, container, synthetic, SSL, port, and cron monitoring built in, not just alert ingestion",
       "Ingest OpenTelemetry logs, metrics, and traces alongside incidents for real root-cause context Squadcast does not store",
       "Publish unlimited status page subscribers on every plan instead of Squadcast's 5,000-per-page cap on higher tiers",
-      "Self-host the entire Apache 2.0 platform for free with full data ownership, or use the managed cloud",
+      "Self-host the Apache 2.0 Community Edition for free with full data ownership, or use the managed cloud",
     ],
     competitorPricingTiers: [
       {
@@ -7307,7 +7307,7 @@ const products: Dictionary<Product> = {
     productDescription:
       "Grafana Cloud is Grafana Labs' hosted observability stack, combining Grafana dashboards with Mimir for metrics, Loki for logs, Tempo for traces, Pyroscope for profiling, and k6 for synthetics and load testing. It is highly flexible and best-in-class for visualization, but it is assembled from many independent components with separate usage meters. Setting it up well typically requires significant instrumentation, tuning, and cost management expertise.",
     oneUptimeDescription:
-      "OneUptime is an open-source, unified reliability platform that brings monitoring, status pages, on-call, incident management, and OpenTelemetry-native logs, metrics, and traces together in a single product. Everything is designed to work out of the box with predictable, flat pricing of $1 per active monitor per month and telemetry around $0.10/GB. You can use the generous free cloud tier or self-host the whole platform for free.",
+      "OneUptime is an open-source, unified reliability platform that brings monitoring, status pages, on-call, incident management, and OpenTelemetry-native logs, metrics, and traces together in a single product. Everything is designed to work out of the box with predictable, flat pricing of $1 per active monitor per month and telemetry around $0.10/GB. You can use the generous free cloud tier or self-host the Community Edition for free.",
     description:
       "Grafana Cloud is a powerful observability toolkit: Grafana dashboards on top of Mimir, Loki, Tempo, and k6, with Grafana Cloud IRM bolted on for on-call and incidents. The power comes with assembly: multiple usage meters, per-active-series metric billing, three-part logs and traces pricing, per-user IRM fees, and a steep setup and tuning curve. OneUptime takes a different approach, delivering monitoring, status pages, on-call, incident management, and OpenTelemetry telemetry as one cohesive product. You get predictable, flat pricing instead of a spreadsheet full of usage meters, and you can self-host the entire stack under Apache 2.0.",
     descriptionLine2:
@@ -7318,7 +7318,7 @@ const products: Dictionary<Product> = {
       "Get real public and private status pages with unlimited subscribers, which Grafana Cloud does not offer as a product",
       "Keep on-call and incident response built in, instead of paying separate per-active-user Grafana Cloud IRM fees",
       "Stay OpenTelemetry-native for logs, metrics, and traces without stitching together separate backends",
-      "Self-host the entire Apache 2.0 platform for free, avoiding the complexity of running Mimir, Loki, and Tempo yourself",
+      "Self-host the Apache 2.0 Community Edition for free, avoiding the complexity of running Mimir, Loki, and Tempo yourself",
     ],
     competitorPricingTiers: [
       {
@@ -7418,7 +7418,7 @@ const products: Dictionary<Product> = {
         competitorCost:
           "No license fee but heavy engineering and infrastructure overhead",
         oneuptimeSolution:
-          "Self-host the entire OneUptime platform under Apache 2.0",
+          "Self-host the OneUptime Community Edition under Apache 2.0",
         oneuptimeCost: "Free self-hosted, one unified deployment to operate",
       },
     ],
@@ -7450,7 +7450,7 @@ const products: Dictionary<Product> = {
       {
         title: "Open-source and self-hostable",
         description:
-          "OneUptime is Apache 2.0 and the whole platform self-hosts for free, without operating Mimir, Loki, and Tempo as separate systems.",
+          "OneUptime's Community Edition is Apache 2.0 and self-hosts for free, without operating Mimir, Loki, and Tempo as separate systems.",
         icon: "open-source",
       },
       {
@@ -7788,7 +7788,7 @@ const products: Dictionary<Product> = {
       {
         question: "Can I self-host instead of using the cloud?",
         answer:
-          "Yes. OneUptime is Apache 2.0 licensed and the entire platform self-hosts for free as a single deployment. Self-hosting the Grafana stack means running Grafana plus separate systems like Mimir, Loki, and Tempo yourself, which is powerful but significantly more complex to operate.",
+          "Yes. OneUptime's Community Edition is Apache 2.0 licensed and self-hosts for free as a single deployment. Self-hosting the Grafana stack means running Grafana plus separate systems like Mimir, Loki, and Tempo yourself, which is powerful but significantly more complex to operate.",
       },
       {
         question: "Is OneUptime OpenTelemetry-native like Grafana?",
@@ -9012,7 +9012,7 @@ const products: Dictionary<Product> = {
       {
         title: "Truly open source",
         description:
-          "Sentry is source-available under the Functional Source License, not OSI open source at release. OneUptime is Apache 2.0 and free to self-host with no strings attached.",
+          "Sentry is source-available under the Functional Source License, not OSI open source at release. OneUptime's Community Edition is Apache 2.0 and free to self-host with no strings attached.",
         icon: "open-source",
       },
       {
@@ -9353,7 +9353,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is Sentry open source?",
         answer:
-          "Sentry is source-available and self-hostable under the Functional Source License, which converts to Apache 2.0 two years after each release, so it is not OSI-approved open source at the time of release. OneUptime is fully open source under Apache 2.0 today and free to self-host.",
+          "Sentry is source-available and self-hostable under the Functional Source License, which converts to Apache 2.0 two years after each release, so it is not OSI-approved open source at the time of release. OneUptime's Community Edition is open source under Apache 2.0 today and free to self-host.",
       },
       {
         question: "Does Sentry have status pages?",
@@ -9514,7 +9514,7 @@ const products: Dictionary<Product> = {
           "AppDynamics on-premises, still licensed per CPU core with heavyweight agents and a paid contract",
         competitorCost: "Custom, per-core license",
         oneuptimeSolution:
-          "Self-host the Apache 2.0 platform on your own infrastructure with the full feature set",
+          "Self-host the Apache 2.0 Community Edition on your own infrastructure with the full APM and observability feature set",
         oneuptimeCost: "$0 license (self-host)",
       },
     ],
@@ -9879,7 +9879,7 @@ const products: Dictionary<Product> = {
         question:
           "Can I self-host OneUptime the way I run AppDynamics on-premises?",
         answer:
-          "Yes, and it is free. OneUptime is open source under Apache 2.0 and can be self-hosted on your own infrastructure with the full feature set, so you pay only for the compute you run. AppDynamics on-premises is still a paid, per-core licensed product.",
+          "Yes, and it is free. OneUptime is open source under Apache 2.0 and can be self-hosted on your own infrastructure with the full APM and observability feature set, so you pay only for the compute you run. AppDynamics on-premises is still a paid, per-core licensed product.",
       },
       {
         question: "Is OneUptime enterprise-ready for security and compliance?",
@@ -9920,7 +9920,7 @@ const products: Dictionary<Product> = {
       "Keep OpenTelemetry-native logs, metrics, and traces without vendor-specific agents or lock-in",
       "Eliminate the operational burden of sizing, scaling, and tuning Elasticsearch clusters and shards",
       "Publish unlimited-subscriber status pages with a custom domain and free SSL that Elastic does not offer",
-      "Self-host the entire platform for free under a permissive Apache 2.0 license instead of AGPL-gated tiers",
+      "Self-host the Community Edition for free under a permissive Apache 2.0 license instead of AGPL-gated tiers",
     ],
     competitorPricingTiers: [
       {
@@ -10405,7 +10405,7 @@ const products: Dictionary<Product> = {
     productDescription:
       "Site24x7 is an all-in-one monitoring product from Zoho's ManageEngine division, covering website uptime, application performance monitoring, server and network infrastructure, and real user monitoring. It is a mature, feature-broad suite, but its console feels dated and its cost is built around a base plan plus many separate add-ons for host monitors, advanced monitors, logs, synthetic runs, and RUM page views. Incident response and on-call scheduling are comparatively shallow, and the platform is closed source with no self-host option.",
     oneUptimeDescription:
-      "OneUptime is an open-source, Apache 2.0 licensed platform that combines monitoring, status pages, on-call rotations, incident management, and OpenTelemetry-native logs, metrics, and traces in a single app. Active monitors are billed at a flat $1 per month with no per-check tiers or caps, and telemetry ingestion runs about $0.10 per GB. Teams can run it fully hosted or self-host the whole platform for free.",
+      "OneUptime is an open-source, Apache 2.0 licensed platform that combines monitoring, status pages, on-call rotations, incident management, and OpenTelemetry-native logs, metrics, and traces in a single app. Active monitors are billed at a flat $1 per month with no per-check tiers or caps, and telemetry ingestion runs about $0.10 per GB. Teams can run it fully hosted or self-host the Community Edition for free.",
     description:
       "Site24x7 and OneUptime both promise all-in-one monitoring, but they take very different paths. Site24x7 is a broad, closed-source suite from ManageEngine whose real cost climbs as you stack add-ons for host monitors, advanced monitors, logs, synthetic runs, and RUM page views. OneUptime is open source and delivers comparable monitoring breadth alongside far deeper on-call and incident management, plus OpenTelemetry-native observability. Pricing is a predictable flat $1 per active monitor per month, with a generous free tier and free self-hosting.",
     descriptionLine2:
@@ -12375,7 +12375,7 @@ const products: Dictionary<Product> = {
           {
             title: "Open source (Apache 2.0)",
             description:
-              "Fully open-source codebase you can inspect and extend.",
+              "Open-source codebase you can inspect and extend.",
             productColumn: "",
             oneuptimeColumn: "tick",
           },

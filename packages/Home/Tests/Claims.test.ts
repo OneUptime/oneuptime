@@ -433,4 +433,76 @@ describe("Retired claims", () => {
     expect(examples).toContain("guaranteed response times");
     expect(examples).toContain("financial-backed reliability guarantee");
   });
+
+  test("the retired list covers the claims the Community / Enterprise split made false", () => {
+    const examples: Array<string> = RetiredClaims.map(
+      (retired: RetiredClaim) => {
+        return retired.example;
+      },
+    );
+
+    expect(examples).toContain("fully open-source, not open-core");
+    expect(examples).toContain("100% open source");
+    expect(examples).toContain("the entire platform is Apache-2.0 open source");
+    expect(examples).toContain("Hardened Enterprise Edition container images");
+    expect(examples).toContain("the community edition is not feature-limited");
+  });
+});
+
+describe("Claims match the Community / Enterprise Edition split", () => {
+  test("the open-source claim limits Apache-2.0 to the core and names the ee/ license", () => {
+    const claim: Claim = getClaim("deployment-open-source")!;
+
+    expect(claim.statement).toContain("The core platform is Apache-2.0");
+    expect(claim.statement).not.toMatch(/entire platform is Apache/i);
+    expect(claim.qualifier).toContain("OneUptime Enterprise License");
+    expect(claim.evidence).toContain("ee/LICENSE");
+  });
+
+  test("the Enterprise Edition images claim replaces the hardened-images claim", () => {
+    expect(getClaim("deployment-hardened-images")).toBeNull();
+
+    const claim: Claim = getClaim("deployment-enterprise-edition")!;
+
+    expect(claim.subject).toBe("Enterprise Edition images");
+    expect(claim.statement).not.toMatch(/hardened/i);
+    expect(claim.statement).toContain("SSO");
+    expect(claim.statement).toContain("SCIM");
+    expect(claim.statement).toContain("audit logs");
+    expect(claim.qualifier).toContain("requires a valid Enterprise license");
+    expect(claim.qualifier).toContain("not separately hardened");
+  });
+
+  test("the self-hosted claim no longer calls the Community Edition the complete product", () => {
+    const claim: Claim = getClaim("deployment-self-hosted")!;
+
+    expect(claim.qualifier).not.toMatch(/complete product|hardened/i);
+    expect(claim.qualifier).toContain("core platform under Apache 2.0");
+    expect(claim.qualifier).toContain("OneUptime Enterprise License");
+  });
+
+  test("the air-gapped claim discloses the Enterprise Edition license check", () => {
+    const claim: Claim = getClaim("deployment-air-gapped")!;
+
+    expect(claim.qualifier).toContain("offline license token");
+  });
+
+  test("free self-hosting is claimed for the Community Edition only", () => {
+    expect(getClaim("discount-open-source")!.statement).toContain(
+      "The Community Edition is free to self-host",
+    );
+    expect(getClaim("discount-self-host")!.statement).toContain(
+      "The Community Edition is free to run yourself",
+    );
+  });
+
+  test("no claim says all of OneUptime is Apache-2.0 or open source", () => {
+    for (const claim of Claims) {
+      const text: string = `${claim.statement} ${claim.qualifier}`;
+
+      expect(text).not.toMatch(/\b(?:entire|whole)\s+platform\s+is\s+Apache/i);
+      expect(text).not.toMatch(/100\s*%\s*open[- ]source/i);
+      expect(text).not.toMatch(/not\s+open[- ]core/i);
+    }
+  });
 });

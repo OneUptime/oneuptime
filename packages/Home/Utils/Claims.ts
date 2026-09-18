@@ -650,7 +650,7 @@ export const Claims: Array<Claim> = [
     statement:
       "The full platform runs on your own Kubernetes cluster via our Helm chart, or on a single host with Docker Compose.",
     qualifier:
-      "The Community Edition is the complete product under Apache 2.0; the Enterprise Edition adds hardened images and a support agreement.",
+      "The Community Edition is the core platform under Apache 2.0; the Enterprise Edition adds SSO, SCIM, audit logs, team compliance, and instance health dashboards under the OneUptime Enterprise License, plus a support agreement.",
     evidence: "The public Helm chart and its installation guide.",
     sourceUrl: "/enterprise/self-hosted",
   },
@@ -663,20 +663,22 @@ export const Claims: Array<Claim> = [
     statement:
       "OneUptime runs with no outbound connectivity: mirror the images to your registry, disable the update check, and keep DNS internal.",
     qualifier:
-      "Features that call an external service by design — hosted AI models, third-party notification transports — need an internal equivalent or must stay off.",
+      "Features that call an external service by design — hosted AI models, third-party notification transports — need an internal equivalent or must stay off. The Enterprise Edition checks its license with oneuptime.com unless it is activated with an offline license token.",
     evidence: "The Helm chart configuration reference.",
     sourceUrl: "/enterprise/self-hosted",
   },
   {
-    id: "deployment-hardened-images",
+    id: "deployment-enterprise-edition",
     category: "deployment",
-    subject: "Hardened images",
+    subject: "Enterprise Edition images",
     status: "customer-configurable",
     scope: "self-hosted",
     statement:
-      "Enterprise Edition container images ship additional security controls and are selected with a single chart value.",
-    qualifier: "Enterprise Edition images require a valid license.",
-    evidence: "The chart's image configuration and your license.",
+      "Enterprise Edition images add SSO, SCIM, audit logs, team compliance, and instance health dashboards to the Community Edition, and are selected with a single chart value.",
+    qualifier:
+      "Production use requires a valid Enterprise license. The images are not separately hardened: both editions are built from the same source and run with the same chart security defaults.",
+    evidence:
+      "The chart's image configuration, the ee/ directory and its license, and your license.",
     sourceUrl: "/enterprise/self-hosted",
   },
   {
@@ -699,10 +701,10 @@ export const Claims: Array<Claim> = [
     status: "aligned",
     scope: "both",
     statement:
-      "The entire platform is Apache-2.0 licensed and developed in public on GitHub.",
+      "The core platform is Apache-2.0 licensed, and all of OneUptime, including the Enterprise Edition modules, is developed in public on GitHub.",
     qualifier:
-      "Auditable by anyone, and free to run yourself for as long as you like.",
-    evidence: "The public repository and its license.",
+      "Auditable by anyone. The Community Edition is free to run yourself for as long as you like; the enterprise modules in ee/ are licensed separately under the OneUptime Enterprise License.",
+    evidence: "The public repository, its Apache-2.0 LICENSE, and ee/LICENSE.",
     sourceUrl: "https://github.com/OneUptime/oneuptime",
   },
 
@@ -821,7 +823,7 @@ export const Claims: Array<Claim> = [
     status: "aligned",
     scope: "cloud",
     statement:
-      "There is no non-profit, education, or open-source discount on OneUptime Cloud. The software itself is free to self-host at any scale instead.",
+      "There is no non-profit, education, or open-source discount on OneUptime Cloud. The Community Edition is free to self-host at any scale instead.",
     qualifier:
       "Everyone on the cloud service pays the same published price. Say this plainly rather than implying a programme we do not run.",
     evidence: "The pricing page FAQ and the Apache 2.0 license.",
@@ -923,6 +925,110 @@ export interface RetiredClaim {
   claimId: string;
 }
 
+/*
+ * Language the Community / Enterprise Edition split made false. OneUptime is
+ * open-core: the Community Edition is Apache-2.0, and the Enterprise Edition
+ * modules in the repository's ee/ directory are licensed under the OneUptime
+ * Enterprise License. A sentence that says ALL of OneUptime is Apache-2.0,
+ * open source, free to self-host, or feature-complete in the Community
+ * Edition, or that calls the Enterprise images "hardened", is now wrong.
+ * Plain "open source (Apache 2.0)" stays correct: the Community Edition is.
+ *
+ * They are part of RetiredClaims, so every template is scanned for them.
+ * Tests/ClaimsGovernance.test.ts also scans the Utils modules that feed pages
+ * (ProductCompare, SelfHosted, PageSEO, ...) for these, because a claim about
+ * OneUptime is just as wrong in a comparison table. The patterns are narrow
+ * enough that competitor descriptions ("Zabbix is fully open source") do not
+ * trip them. If one ever does, narrow the pattern rather than the competitor
+ * copy.
+ */
+export const RetiredEditionClaims: Array<RetiredClaim> = [
+  {
+    pattern: /\bnot\s+open[- ]core\b/i,
+    example: "fully open-source, not open-core",
+    reason:
+      "OneUptime is open-core: the Enterprise Edition modules in ee/ are licensed under the OneUptime Enterprise License, not Apache 2.0.",
+    replacement:
+      "Open source under Apache 2.0, with enterprise features in a separately licensed ee/ directory.",
+    claimId: "deployment-open-source",
+  },
+  {
+    pattern: /100\s*%\s*open[- ]source/i,
+    example: "100% open source",
+    reason:
+      "The ee/ directory is licensed under the OneUptime Enterprise License, so not all of OneUptime is open source.",
+    replacement: "Open source (Apache 2.0).",
+    claimId: "deployment-open-source",
+  },
+  {
+    pattern:
+      /\b(?:OneUptime\s+is|OneUptime\s+as\s+an?|we(?:'|’)re|we\s+are)\s+(?:fully|completely|entirely|100\s*%)\s+open[- ]source/i,
+    example: "OneUptime is fully open-source",
+    reason:
+      "Only the Community Edition is open source. The Enterprise Edition modules in ee/ are licensed separately.",
+    replacement: "OneUptime is open source (Apache 2.0).",
+    claimId: "deployment-open-source",
+  },
+  {
+    pattern:
+      /\b(?:entire|whole)\s+(?:platform|thing)\s+is\s+(?:Apache|open[- ]source)/i,
+    example: "the entire platform is Apache-2.0 open source",
+    reason:
+      "The enterprise modules in ee/ are part of the platform and are not Apache-2.0.",
+    replacement: "The core platform is Apache-2.0 open source.",
+    claimId: "deployment-open-source",
+  },
+  {
+    pattern:
+      /\bself-host(?:s|ed|ing)?\s+the\s+(?:entire|whole)\s+(?:Apache|OneUptime|platform)|\b(?:entire|whole)\s+platform\s+self-hosts\b/i,
+    example: "Self-host the entire Apache 2.0 platform for free",
+    reason:
+      "Only the Community Edition is free to self-host. Production use of the Enterprise Edition needs a license.",
+    replacement: "Self-host the Apache 2.0 Community Edition for free.",
+    claimId: "discount-self-host",
+  },
+  {
+    pattern:
+      /\bhardened\s+(?:enterprise(?:\s+edition)?\s+)?(?:container\s+|docker\s+)?images\b/i,
+    example: "Hardened Enterprise Edition container images",
+    reason:
+      "Enterprise Edition images are the Community Edition image plus the ee/ modules, not a separately hardened base. Hardening comes from the Helm chart and applies to both editions.",
+    replacement:
+      "Enterprise Edition images, which add SSO, SCIM, audit logs, team compliance, and instance health dashboards.",
+    claimId: "deployment-enterprise-edition",
+  },
+  {
+    pattern:
+      /\bnot\s+feature[- ]limited\b|\bno\s+feature\s+gates\b|\bcommunity\s+edition\s+is\s+the\s+(?:full\s+feature\s+set|complete\s+product)/i,
+    example: "the community edition is not feature-limited",
+    reason:
+      "SSO, SCIM, audit logs, team compliance, and instance health dashboards are Enterprise Edition features.",
+    replacement:
+      "The Community Edition includes the whole monitoring, incident, and observability platform.",
+    claimId: "deployment-self-hosted",
+  },
+  {
+    pattern:
+      /\b(?:self-host(?:ed|ing)?|Apache[- ]2\.0)\b[^.]{0,80}\bwith\s+the\s+full\s+feature\s+set\b/i,
+    example: "self-hosted on your own infrastructure with the full feature set",
+    reason:
+      "The self-hosted Community Edition does not include the Enterprise Edition features.",
+    replacement:
+      "Self-hosted on your own infrastructure with the full APM and observability feature set.",
+    claimId: "deployment-self-hosted",
+  },
+  {
+    pattern:
+      /\b(?:both\s+editions\s+are|community\s+and\s+enterprise\s+(?:are|run))\s+the\s+same\s+product\b/i,
+    example: "Community and Enterprise run the same product",
+    reason:
+      "The Enterprise Edition adds features the Community Edition does not have.",
+    replacement:
+      "The Enterprise Edition adds enterprise features on top of the same core platform.",
+    claimId: "deployment-enterprise-edition",
+  },
+];
+
 export const RetiredClaims: Array<RetiredClaim> = [
   {
     pattern: /99\.99\s*%\s*(?:uptime\s*)?SLA/i,
@@ -1001,6 +1107,7 @@ export const RetiredClaims: Array<RetiredClaim> = [
       "Controls that support 21 CFR Part 11, with validation documentation available. Validation of your system is yours to perform.",
     claimId: "compliance-gxp",
   },
+  ...RetiredEditionClaims,
 ];
 
 export type GetClaimsByCategoryFunction = (

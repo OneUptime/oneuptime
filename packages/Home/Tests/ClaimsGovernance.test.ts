@@ -1,4 +1,8 @@
-import { RetiredClaim, RetiredClaims } from "../Utils/Claims";
+import {
+  RetiredClaim,
+  RetiredClaims,
+  RetiredEditionClaims,
+} from "../Utils/Claims";
 import fs from "fs";
 import path from "path";
 
@@ -44,16 +48,42 @@ function collectViewFiles(directory: string): Array<ViewFile> {
 
 const viewFiles: Array<ViewFile> = collectViewFiles(VIEWS_ROOT);
 
+const UTILS_ROOT: string = path.join(__dirname, "..", "Utils");
+
+/*
+ * The Utils modules that carry page copy: comparison tables, the self-hosted
+ * page's content, SEO descriptions and structured data. Claims.ts is left
+ * out because it defines the retired patterns, and so quotes every one.
+ */
+function collectPageDataFiles(directory: string): Array<ViewFile> {
+  return fs
+    .readdirSync(directory)
+    .filter((name: string) => {
+      return name.endsWith(".ts") && name !== "Claims.ts";
+    })
+    .map((name: string): ViewFile => {
+      return {
+        relativePath: name,
+        contents: fs.readFileSync(path.join(directory, name), "utf-8"),
+      };
+    });
+}
+
+const pageDataFiles: Array<ViewFile> = collectPageDataFiles(UTILS_ROOT);
+
 interface Violation {
   file: string;
   line: number;
   text: string;
 }
 
-function findViolations(pattern: RegExp): Array<Violation> {
+function findViolations(
+  pattern: RegExp,
+  files: Array<ViewFile> = viewFiles,
+): Array<Violation> {
   const violations: Array<Violation> = [];
 
-  for (const file of viewFiles) {
+  for (const file of files) {
     const lines: Array<string> = file.contents.split("\n");
 
     lines.forEach((line: string, index: number) => {
@@ -78,10 +108,11 @@ function findViolations(pattern: RegExp): Array<Violation> {
 function describeViolations(
   retired: RetiredClaim,
   violations: Array<Violation>,
+  rootLabel: string = "Views",
 ): string {
   const locations: string = violations
     .map((violation: Violation) => {
-      return `  - Views/${violation.file}:${violation.line}\n      ${violation.text}`;
+      return `  - ${rootLabel}/${violation.file}:${violation.line}\n      ${violation.text}`;
     })
     .join("\n");
 
@@ -118,6 +149,137 @@ describe("Claims governance over Home/Views", () => {
       expect(violations).toHaveLength(0);
     },
   );
+});
+
+describe("Edition claims governance over the Home/Utils page data", () => {
+  test("the scanner found the modules that carry page copy, and skipped Claims.ts", () => {
+    const names: Array<string> = pageDataFiles.map((file: ViewFile) => {
+      return file.relativePath;
+    });
+
+    expect(names).toContain("ProductCompare.ts");
+    expect(names).toContain("SelfHosted.ts");
+    expect(names).toContain("PageSEO.ts");
+    expect(names).not.toContain("Claims.ts");
+  });
+
+  test.each(
+    RetiredEditionClaims.map((retired: RetiredClaim) => {
+      return [retired.example, retired] as [string, RetiredClaim];
+    }),
+  )(
+    'no page data uses retired edition language: "%s"',
+    (_example: string, retired: RetiredClaim) => {
+      const violations: Array<Violation> = findViolations(
+        retired.pattern,
+        pageDataFiles,
+      );
+
+      if (violations.length > 0) {
+        throw new Error(describeViolations(retired, violations, "Utils"));
+      }
+
+      expect(violations).toHaveLength(0);
+    },
+  );
+});
+
+describe("Edition retired claims catch what the split made false", () => {
+  /*
+   * The exact sentences the Community / Enterprise split made false, as they
+   * stood on the site before it. Each must still be caught, so none of them
+   * can quietly come back.
+   */
+  const formerlyPublished: Array<string> = [
+    "100% open source under Apache 2.0 - not open-core. Every line ships on GitHub, and the community edition is the full feature set.",
+    "We're fully open-source, not open-core. Every line of code is on GitHub.",
+    "That's why we built OneUptime as a fully open-source platform that combines monitoring, incident management, status pages, and on-call scheduling into one unified solution.",
+    "<span>100% Open Source</span>",
+    "The entire platform is Apache-2.0 licensed and developed in public on GitHub.",
+    "The entire platform is open source on GitHub.",
+    "Telemetry is priced per GB ingested, the whole thing is Apache-2.0 open source, and you can self-host the exact same product for free.",
+    "The whole platform is Apache-2.0 open source, and you can self-host this exact product for free.",
+    "OneUptime is fully open-source. Monitor your applications, manage incidents,",
+    "Every product feature — the community edition is not feature-limited",
+    "Same product as our cloud, no feature gates, no telemetry leaving your network.",
+    "Hardened enterprise images",
+    "Hardened Enterprise Edition container images",
+    "No hardened Enterprise Edition images",
+    "Enterprise agreements add hardened images, deployment support, and custom data residency",
+    "Community and Enterprise run the same product. What the Enterprise Edition changes is the container image.",
+    "Both editions are the same product. The difference is accountability.",
+    "Self-host the entire Apache 2.0 platform for free with full data ownership, or use the managed cloud",
+    "Self-host the entire OneUptime platform under Apache 2.0",
+    "OneUptime is Apache 2.0 and the whole platform self-hosts for free, without operating Mimir, Loki, and Tempo as separate systems.",
+    "Self-host the Apache 2.0 platform on your own infrastructure with the full feature set",
+    "OneUptime is open source under Apache 2.0 and can be self-hosted on your own infrastructure with the full feature set, so you pay only for the compute you run.",
+  ];
+
+  test.each(formerlyPublished)("catches: %s", (sentence: string) => {
+    const caughtBy: Array<RetiredClaim> = RetiredEditionClaims.filter(
+      (retired: RetiredClaim) => {
+        return retired.pattern.test(sentence);
+      },
+    );
+
+    expect(caughtBy.length).toBeGreaterThan(0);
+  });
+
+  /*
+   * Comparison pages describe other products in the same Utils files. The
+   * edition patterns must only catch statements about OneUptime.
+   */
+  const competitorCopy: Array<string> = [
+    "Zabbix is a mature, fully open-source monitoring system built for infrastructure, network, and server metrics.",
+    "Fully open source (GPL), no license fee",
+    "SigNoz follows an open-core model - its core is permissively licensed.",
+    "Sentry is source-available under the Functional Source License, not OSI open source at release.",
+    "Open-core (ee module)",
+  ];
+
+  test.each(competitorCopy)("leaves competitor copy alone: %s", (sentence: string) => {
+    for (const retired of RetiredEditionClaims) {
+      expect(retired.pattern.test(sentence)).toBe(false);
+    }
+  });
+
+  test("every edition claim is also enforced over the templates", () => {
+    for (const retired of RetiredEditionClaims) {
+      expect(RetiredClaims).toContain(retired);
+    }
+  });
+});
+
+describe("Pages state the edition split accurately", () => {
+  function readView(relativePath: string): string {
+    return fs.readFileSync(path.join(VIEWS_ROOT, relativePath), "utf-8");
+  }
+
+  test("the home page's open-source section names the separately licensed ee/ directory", () => {
+    const contents: string = readView("Partials/home-own-it.ejs");
+
+    expect(contents).toContain("Open source under Apache 2.0");
+    expect(contents).toContain("separately licensed ee/ directory");
+  });
+
+  test("the about page says the core is Apache 2.0 and the enterprise modules are on GitHub too", () => {
+    const contents: string = readView("about.ejs");
+
+    expect(contents).toContain("The core platform is open source under Apache 2.0");
+    expect(contents).toContain("including the enterprise modules, is on GitHub");
+  });
+
+  test("the trust center still promises the whole source is auditable", () => {
+    expect(readView("trust.ejs")).toContain(
+      "The entire platform's source code is public on",
+    );
+  });
+
+  test("the demo FAQ names what the Enterprise Edition adds", () => {
+    expect(readView("demo.ejs")).toContain(
+      "Enterprise agreements add the Enterprise Edition (SSO, SCIM, audit logs, and instance health dashboards)",
+    );
+  });
 });
 
 describe("Aligned pages state the governed numbers", () => {
