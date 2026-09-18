@@ -3508,6 +3508,23 @@ export default class StatusPageAPI extends BaseAPI<
     return statusPageSubscriber;
   }
 
+  private serializeIncidentsForStatusPage(
+    incidents: Array<Incident>,
+  ): JSONArray {
+    return incidents.map((incident: Incident): JSONObject => {
+      const incidentJson: JSONObject = BaseModel.toJSON(incident, Incident);
+
+      // Enforce postmortem visibility before sending or caching status-page JSON.
+      if (incident.showPostmortemOnStatusPage !== true) {
+        delete incidentJson["postmortemNote"];
+        delete incidentJson["postmortemPostedAt"];
+        delete incidentJson["postmortemAttachments"];
+      }
+
+      return incidentJson;
+    });
+  }
+
   @CaptureSpan()
   public async getIncidents(
     statusPageId: ObjectID,
@@ -3771,7 +3788,7 @@ export default class StatusPageAPI extends BaseAPI<
         IncidentPublicNote,
       ),
       incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
-      incidents: BaseModel.toJSONArray(incidents, Incident),
+      incidents: this.serializeIncidentsForStatusPage(incidents),
       statusPageResources: BaseModel.toJSONArray(
         statusPageResources,
         StatusPageResource,
@@ -5374,7 +5391,7 @@ export default class StatusPageAPI extends BaseAPI<
         IncidentPublicNote,
       ),
 
-      activeIncidents: BaseModel.toJSONArray(activeIncidents, Incident),
+      activeIncidents: this.serializeIncidentsForStatusPage(activeIncidents),
 
       activeEpisodes: activeEpisodesJson,
       episodePublicNotes: BaseModel.toJSONArray(
