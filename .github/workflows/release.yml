@@ -1503,10 +1503,14 @@ jobs:
               echo "${k}=${v}" >> config.env
             fi
           done
-      - name: Pin APP_TAG to versioned release
+      # SaaS runs with billing on, and the App refuses to boot with billing on
+      # unless the Enterprise Edition (ee/) is loaded, so this job runs the
+      # enterprise- tags of every image. The self-hosted job below stays on the
+      # Community tags.
+      - name: Pin APP_TAG to the versioned enterprise release
         run: |
           VERSION="${{needs.read-version.outputs.major_minor}}"
-          SANITIZED_VERSION="${VERSION//+/-}"
+          SANITIZED_VERSION="enterprise-${VERSION//+/-}"
           if [ -f config.env ]; then
             if grep -q '^APP_TAG=' config.env; then
               sed -i "s/^APP_TAG=.*/APP_TAG=${SANITIZED_VERSION}/" config.env
@@ -1545,7 +1549,7 @@ jobs:
       - name: Start Server with version tag
         run: |
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
           # The e2e overlay publishes ClickHouse on the runner's loopback for the
           # exception fixtures; see the header of packages/E2E/docker-compose.e2e-clickhouse.yml.
           docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml up --remove-orphans -d
@@ -1564,13 +1568,13 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
           docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml pull e2e
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
           trap 'docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml rm -sfv e2e || true' EXIT
           if ! docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
             docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml logs e2e

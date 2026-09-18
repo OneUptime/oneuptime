@@ -1,0 +1,52 @@
+name: Enterprise Edition Test
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  # ee/'s own jest suites: the "server" and "ui" projects in ee/jest.config.js.
+  # The Common and App test jobs remove ee/ before they run, so this is the only
+  # job that tests it.
+  #
+  # ee code runs against the real Common and App sources, so both are
+  # installed, then ee (npm ci: exactly the lockfile; --ignore-scripts: no
+  # lifecycle scripts of the linked Common/App). test-setup.sh writes the same
+  # config.env the core suites run with -- including BILLING_ENABLED=true, which
+  # is why every ee suite that touches gating pins billing and the edition
+  # facade itself -- and ee's `npm test` exports it, as App's test script does.
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+      BILLING_PRIVATE_KEY: ${{ secrets.TEST_BILLING_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - name: Set up test services and config.env
+        working-directory: packages/Common
+        run: bash test-setup.sh
+      - name: Install Common
+        working-directory: packages/Common
+        run: npm install
+      - name: Install App
+        working-directory: packages/App
+        run: npm install
+      - name: Install ee
+        working-directory: ee
+        run: npm ci --ignore-scripts
+      - name: Run the ee tests
+        working-directory: ee
+        run: npm test
