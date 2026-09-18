@@ -118,9 +118,12 @@ function headingSlugs(markdown: string): Set<string> {
 }
 
 function docsLinks(markdown: string): Array<string> {
-  return Array.from(markdown.matchAll(DOCS_LINK_PATTERN), (match: RegExpMatchArray) => {
-    return match[1]!;
-  });
+  return Array.from(
+    markdown.matchAll(DOCS_LINK_PATTERN),
+    (match: RegExpMatchArray) => {
+      return match[1]!;
+    },
+  );
 }
 
 /*
@@ -248,13 +251,11 @@ describe("Enterprise Edition docs page", () => {
     );
 
     for (const feature of ALL_ENTERPRISE_FEATURES) {
-      const row: string | undefined = page
-        .split("\n")
-        .find((line: string) => {
-          return (
-            line.startsWith("|") && line.includes(MATRIX_ROW_FOR_FEATURE[feature])
-          );
-        });
+      const row: string | undefined = page.split("\n").find((line: string) => {
+        return (
+          line.startsWith("|") && line.includes(MATRIX_ROW_FOR_FEATURE[feature])
+        );
+      });
 
       expect({ feature: feature, row: row }).toEqual({
         feature: feature,
@@ -438,16 +439,18 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
       expect(page).not.toContain(OLD_V11_CLAIM);
       // The corrected v11 paragraph points at the new section.
       expect(page).toContain("(#community-and-enterprise-edition-images)");
-      expect(headingSlugs(page).has("community-and-enterprise-edition-images")).toBe(
-        true,
-      );
+      expect(
+        headingSlugs(page).has("community-and-enterprise-edition-images"),
+      ).toBe(true);
     },
   );
 
   it("tells Docker Compose users on IS_ENTERPRISE_EDITION to switch images", () => {
     const page: string = readContent("en", "installation/upgrading");
 
-    expect(page).toContain("**Docker Compose with `IS_ENTERPRISE_EDITION=true`:**");
+    expect(page).toContain(
+      "**Docker Compose with `IS_ENTERPRISE_EDITION=true`:**",
+    );
     expect(page).toContain("`APP_TAG=enterprise-release`");
   });
 
@@ -463,9 +466,9 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
   });
 
   it("only links to docs pages and headings that exist", () => {
-    expect(unresolvedDocsLinks(readContent("en", "installation/upgrading"))).toEqual(
-      [],
-    );
+    expect(
+      unresolvedDocsLinks(readContent("en", "installation/upgrading")),
+    ).toEqual([]);
   });
 });
 
@@ -473,18 +476,22 @@ describe("Identity docs carry an edition note in every language", () => {
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
     "%s SSO, SCIM and global SSO pages link to the Enterprise Edition page",
     (lang: string) => {
-      for (const page of ["identity/sso", "identity/scim", "identity/global-sso"]) {
+      for (const page of [
+        "identity/sso",
+        "identity/scim",
+        "identity/global-sso",
+      ]) {
         const content: string = readContent(lang, page);
 
-        expect({ page: page, linked: content.includes(`](${PAGE_URL})`) }).toEqual(
-          { page: page, linked: true },
-        );
+        expect({
+          page: page,
+          linked: content.includes(`](${PAGE_URL})`),
+        }).toEqual({ page: page, linked: true });
         expect(unresolvedDocsLinks(content)).toEqual([]);
       }
 
       for (const page of ["identity/sso", "identity/scim"]) {
-        const intro: string = readContent(lang, page)
-          .split("\n## ")[0]!;
+        const intro: string = readContent(lang, page).split("\n## ")[0]!;
 
         // The note sits in the introduction, above the first section.
         expect(intro).toContain(PAGE_URL);

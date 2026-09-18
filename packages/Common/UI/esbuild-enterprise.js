@@ -66,7 +66,11 @@ const PLUGIN_ENTRY_FILENAME = "Index.tsx";
  * The Community stub, relative to the frontend directory. Every tsconfig and
  * jest config maps the plugin specifier to this same file.
  */
-const COMMUNITY_STUB_PATH = path.join("src", "Enterprise", "CommunityPlugins.ts");
+const COMMUNITY_STUB_PATH = path.join(
+  "src",
+  "Enterprise",
+  "CommunityPlugins.ts",
+);
 
 function isFile(filePath) {
   try {

@@ -128,7 +128,8 @@ const STATES: Array<EditionState> = [
     runs: false,
   },
   {
-    label: "the Enterprise Edition with a license that leaves out instance health",
+    label:
+      "the Enterprise Edition with a license that leaves out instance health",
     billing: false,
     install: (): void => {
       installFakeEnterpriseModuleWithFeatures([
@@ -201,28 +202,26 @@ afterEach(() => {
 });
 
 describe.each(JOBS)("the $label health evaluation", (job: Job) => {
-  test.each(STATES)(
-    "on $label: runs = $runs",
-    async (state: EditionState) => {
-      setTestBillingEnabled(state.billing);
-      state.install();
+  test.each(STATES)("on $label: runs = $runs", async (state: EditionState) => {
+    setTestBillingEnabled(state.billing);
+    state.install();
 
-      await job.runWithLock();
+    await job.runWithLock();
 
-      if (!state.runs) {
-        expect(leaseSpy).not.toHaveBeenCalled();
-        return;
-      }
+    if (!state.runs) {
+      expect(leaseSpy).not.toHaveBeenCalled();
+      return;
+    }
 
-      expect(leaseSpy).toHaveBeenCalledTimes(1);
-      expect(leaseSpy).toHaveBeenCalledWith({
-        jobName: job.jobName,
-        lockLabel: job.lockLabel,
-        leaseTtlInSeconds: InstanceHealthLock.INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
-        run: job.evaluate,
-      });
-    },
-  );
+    expect(leaseSpy).toHaveBeenCalledTimes(1);
+    expect(leaseSpy).toHaveBeenCalledWith({
+      jobName: job.jobName,
+      lockLabel: job.lockLabel,
+      leaseTtlInSeconds:
+        InstanceHealthLock.INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
+      run: job.evaluate,
+    });
+  });
 
   test("a license that lapses stops the next run, a renewal restarts it, no restart needed", async () => {
     const fake: FakeEnterpriseModule = installFakeEnterpriseModule();

@@ -277,9 +277,7 @@ describe("EditionLabel - an expired license in its grace period", () => {
     expect(notice).toHaveTextContent(
       "enterprise configuration becomes read-only",
     );
-    expect(notice).toHaveTextContent(
-      "SSO, SCIM and audit logging never stop",
-    );
+    expect(notice).toHaveTextContent("SSO, SCIM and audit logging never stop");
     expect(notice).toHaveTextContent("core monitoring is never affected");
   });
 

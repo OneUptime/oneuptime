@@ -865,11 +865,11 @@ describe("TrustedLicenseKeys", () => {
         };
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       const isolatedLicenseToken: typeof import("../../../Server/License/LicenseToken") =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
         require("../../../Server/License/LicenseToken");
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       const isolatedKeys: typeof import("../../../Server/License/TrustedLicenseKeys") =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
         require("../../../Server/License/TrustedLicenseKeys");
 
       classification = isolatedLicenseToken.classifyLicenseToken({

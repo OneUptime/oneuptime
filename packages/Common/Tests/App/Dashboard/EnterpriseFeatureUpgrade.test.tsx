@@ -458,9 +458,9 @@ describe("EnterpriseFeatureUpgrade", () => {
 
     renderCard();
 
-    expect(
-      screen.getAllByText("Learn about Enterprise Edition"),
-    ).toHaveLength(2);
+    expect(screen.getAllByText("Learn about Enterprise Edition")).toHaveLength(
+      2,
+    );
     expect(screen.queryByText("Compare plans")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Read docs"));
@@ -475,9 +475,9 @@ describe("EnterpriseFeatureUpgrade", () => {
 
     renderCard({ reason: EnterpriseUpgradeReason.Edition });
 
-    expect(
-      screen.getAllByText("Learn about Enterprise Edition"),
-    ).toHaveLength(2);
+    expect(screen.getAllByText("Learn about Enterprise Edition")).toHaveLength(
+      2,
+    );
     expect(screen.queryByText("Upgrade to Scale")).not.toBeInTheDocument();
   });
 });
@@ -539,9 +539,9 @@ describe("AuditLogsEnterpriseUpgrade", () => {
       />,
     );
 
-    expect(
-      screen.getAllByText("Learn about Enterprise Edition"),
-    ).toHaveLength(2);
+    expect(screen.getAllByText("Learn about Enterprise Edition")).toHaveLength(
+      2,
+    );
     expect(screen.queryByText("Upgrade to Enterprise")).not.toBeInTheDocument();
   });
 });

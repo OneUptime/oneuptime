@@ -278,9 +278,9 @@ describe("EnterprisePluginPage", () => {
       />,
     );
 
-    expect(
-      screen.getAllByText("Learn about Enterprise Edition"),
-    ).toHaveLength(2);
+    expect(screen.getAllByText("Learn about Enterprise Edition")).toHaveLength(
+      2,
+    );
     expect(screen.queryByText("Upgrade to Scale")).not.toBeInTheDocument();
   });
 
@@ -311,9 +311,9 @@ describe("EnterprisePluginPage", () => {
       />,
     );
 
-    expect(
-      screen.getAllByText("Learn about Enterprise Edition"),
-    ).toHaveLength(2);
+    expect(screen.getAllByText("Learn about Enterprise Edition")).toHaveLength(
+      2,
+    );
     expect(screen.queryByTestId("fake-sso-plugin")).not.toBeInTheDocument();
   });
 
@@ -329,9 +329,9 @@ describe("EnterprisePluginPage", () => {
       />,
     );
 
-    expect(
-      screen.getAllByText("Learn about Enterprise Edition"),
-    ).toHaveLength(2);
+    expect(screen.getAllByText("Learn about Enterprise Edition")).toHaveLength(
+      2,
+    );
   });
 
   test("a lazy plugin shows the in-card loader, then the plugin", async () => {
@@ -475,7 +475,10 @@ describe("EnterprisePluginPage", () => {
     const FakeComplianceTable: React.ForwardRefExoticComponent<
       TeamComplianceStatusTableProps &
         React.RefAttributes<TeamComplianceStatusTableRef>
-    > = forwardRef<TeamComplianceStatusTableRef, TeamComplianceStatusTableProps>(
+    > = forwardRef<
+      TeamComplianceStatusTableRef,
+      TeamComplianceStatusTableProps
+    >(
       (
         props: TeamComplianceStatusTableProps,
         ref: React.Ref<TeamComplianceStatusTableRef>,
@@ -507,11 +510,9 @@ describe("EnterprisePluginPage", () => {
       NonNullable<DashboardEnterprisePlugins["TeamComplianceStatusTable"]>
     > = [
       FakeComplianceTable,
-      React.lazy(
-        async (): Promise<{ default: typeof FakeComplianceTable }> => {
-          return { default: FakeComplianceTable };
-        },
-      ),
+      React.lazy(async (): Promise<{ default: typeof FakeComplianceTable }> => {
+        return { default: FakeComplianceTable };
+      }),
     ];
 
     for (const plugin of plugins) {
@@ -588,9 +589,9 @@ describe("the Community plugin door (what this jest config resolves)", () => {
       />,
     );
 
-    expect(
-      screen.getAllByText("Learn about Enterprise Edition"),
-    ).toHaveLength(2);
+    expect(screen.getAllByText("Learn about Enterprise Edition")).toHaveLength(
+      2,
+    );
   });
 });
 

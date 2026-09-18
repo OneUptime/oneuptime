@@ -796,7 +796,8 @@ describe("EvaluateClickhouseCapacity on every edition", () => {
     expect(leaseSpy).toHaveBeenCalledWith({
       jobName: "InstanceHealth:EvaluateClickhouseCapacity",
       lockLabel: "oneuptime:instance-health:clickhouse-capacity",
-      leaseTtlInSeconds: InstanceHealthLock.INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
+      leaseTtlInSeconds:
+        InstanceHealthLock.INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
       run: evaluateClickhouseCapacity,
     });
   };

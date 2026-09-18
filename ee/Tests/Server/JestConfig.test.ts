@@ -40,9 +40,9 @@ const EE_OVERRIDDEN_KEYS: ReadonlySet<string> = new Set<string>([
   "^@oneuptime/ee-admin-dashboard$",
 ]);
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 const jestConfig: {
   projects: Array<JestProject>;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 } = require("../../jest.config.js");
 
 const project: (name: string) => JestProject = (name: string): JestProject => {
@@ -174,21 +174,19 @@ describe("ee/jest.config.js", () => {
     const assetKeys: Array<string> = keys.filter(isAssetKey);
     expect(assetKeys.length).toBeGreaterThan(0);
     expect(keys.slice(0, assetKeys.length)).toEqual(assetKeys);
-    expect(assetKeys.some((key: string) => {
-      return key.includes("svg");
-    })).toBe(true);
-
     expect(
-      keys.slice(assetKeys.length, assetKeys.length + 4),
-    ).toEqual([
+      assetKeys.some((key: string) => {
+        return key.includes("svg");
+      }),
+    ).toBe(true);
+
+    expect(keys.slice(assetKeys.length, assetKeys.length + 4)).toEqual([
       "^@oneuptime/dashboard/(.*)$",
       "^@oneuptime/admin-dashboard/(.*)$",
       "^@oneuptime/ee-dashboard$",
       "^@oneuptime/ee-admin-dashboard$",
     ]);
-    expect(keys.indexOf("^Common/(.*)$")).toBeGreaterThan(
-      assetKeys.length + 3,
-    );
+    expect(keys.indexOf("^Common/(.*)$")).toBeGreaterThan(assetKeys.length + 3);
     expect(mapper["^@oneuptime/dashboard/(.*)$"]).toBe(
       path.join(APP_DIR, "FeatureSet", "Dashboard", "src", "$1"),
     );

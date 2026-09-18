@@ -12374,8 +12374,7 @@ const products: Dictionary<Product> = {
         data: [
           {
             title: "Open source (Apache 2.0)",
-            description:
-              "Open-source codebase you can inspect and extend.",
+            description: "Open-source codebase you can inspect and extend.",
             productColumn: "",
             oneuptimeColumn: "tick",
           },

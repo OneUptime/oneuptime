@@ -104,7 +104,12 @@ jest.mock("Common/Server/Utils/InstanceHealth/TelemetryIngestion", () => {
         signals: Array<never>;
         truncated: boolean;
       }> => {
-        return { connected: false, projects: [], signals: [], truncated: false };
+        return {
+          connected: false,
+          projects: [],
+          signals: [],
+          truncated: false,
+        };
       },
     ),
   };
@@ -225,7 +230,8 @@ const LOCKED_STATES: Array<EditionState & { message: string }> = [
     message: EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,
   },
   {
-    label: "the Enterprise Edition with a license expired past its grace period",
+    label:
+      "the Enterprise Edition with a license expired past its grace period",
     billing: false,
     install: (): void => {
       installFakeEnterpriseModule({
@@ -245,7 +251,8 @@ const LOCKED_STATES: Array<EditionState & { message: string }> = [
     message: EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,
   },
   {
-    label: "the Enterprise Edition with a license that leaves out instance health",
+    label:
+      "the Enterprise Edition with a license that leaves out instance health",
     billing: false,
     install: (): void => {
       installFakeEnterpriseModuleWithFeatures([
@@ -429,9 +436,7 @@ beforeEach(() => {
     total: 0,
   });
   jest.spyOn(Queue, "getFailedJobsWithDetails").mockResolvedValue([]);
-  jest
-    .spyOn(InstanceHealthLogService, "findBy")
-    .mockResolvedValue([] as never);
+  jest.spyOn(InstanceHealthLogService, "findBy").mockResolvedValue([] as never);
 });
 
 afterEach(() => {
@@ -771,10 +776,10 @@ describe("the master admin API reference matches the routes", () => {
 
   test.each(
     MasterAdminApis.map(
-      (api: { path: string; isEnterpriseEdition: boolean }): [
-        string,
-        boolean,
-      ] => {
+      (api: {
+        path: string;
+        isEnterpriseEdition: boolean;
+      }): [string, boolean] => {
         return [api.path, api.isEnterpriseEdition];
       },
     ),

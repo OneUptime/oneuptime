@@ -27,8 +27,12 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  */
 
 type GlobalConfigServiceWithHooks = {
-  onBeforeCreate(createBy: CreateBy<GlobalConfig>): Promise<OnCreate<GlobalConfig>>;
-  onBeforeUpdate(updateBy: UpdateBy<GlobalConfig>): Promise<OnUpdate<GlobalConfig>>;
+  onBeforeCreate(
+    createBy: CreateBy<GlobalConfig>,
+  ): Promise<OnCreate<GlobalConfig>>;
+  onBeforeUpdate(
+    updateBy: UpdateBy<GlobalConfig>,
+  ): Promise<OnUpdate<GlobalConfig>>;
 };
 
 const hooks: GlobalConfigServiceWithHooks =
@@ -167,10 +171,9 @@ describe("GlobalConfigService - a master admin forging the license (update)", ()
   test("refuses an ordinary signed-in user too", async () => {
     await expect(
       hooks.onBeforeUpdate(
-        makeUpdateBy(
-          { enterpriseLicenseToken: "forged.license.token" },
-          { userId: ObjectID.generate() } as DatabaseCommonInteractionProps,
-        ),
+        makeUpdateBy({ enterpriseLicenseToken: "forged.license.token" }, {
+          userId: ObjectID.generate(),
+        } as DatabaseCommonInteractionProps),
       ),
     ).rejects.toBeInstanceOf(NotAuthorizedException);
   });
@@ -241,7 +244,9 @@ describe("GlobalConfigService - a master admin forging the license (update)", ()
     "lets a master admin change %s",
     async (column: string, value: unknown) => {
       await expect(
-        hooks.onBeforeUpdate(makeUpdateBy({ [column]: value }, MASTER_ADMIN_PROPS)),
+        hooks.onBeforeUpdate(
+          makeUpdateBy({ [column]: value }, MASTER_ADMIN_PROPS),
+        ),
       ).resolves.toBeDefined();
     },
   );
@@ -255,9 +260,9 @@ describe("GlobalConfigService - OneUptime's own license writes (update)", () => 
         makeUpdateBy({ [column]: FORGED_VALUES[column] }, ROOT_PROPS),
       );
 
-      expect(
-        (result.updateBy.data as Record<string, unknown>)[column],
-      ).toEqual(FORGED_VALUES[column]);
+      expect((result.updateBy.data as Record<string, unknown>)[column]).toEqual(
+        FORGED_VALUES[column],
+      );
     },
   );
 

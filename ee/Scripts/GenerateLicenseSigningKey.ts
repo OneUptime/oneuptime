@@ -156,7 +156,10 @@ export const generateLicenseSigningKey: (data: {
     repositoryRoot: data.repositoryRoot || getRepositoryRoot(),
   });
 
-  const { publicKey, privateKey }: { publicKey: KeyObject; privateKey: KeyObject } =
+  const {
+    publicKey,
+    privateKey,
+  }: { publicKey: KeyObject; privateKey: KeyObject } =
     crypto.generateKeyPairSync("ed25519");
 
   const privateKeyPem: string = privateKey
@@ -256,9 +259,7 @@ export const main: (data: {
     data.writeOut(`${formatReport(result)}\n`);
     return 0;
   } catch (err) {
-    data.writeError(
-      `${err instanceof Error ? err.message : String(err)}\n`,
-    );
+    data.writeError(`${err instanceof Error ? err.message : String(err)}\n`);
     return 1;
   }
 };

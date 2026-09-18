@@ -214,7 +214,10 @@ describe("jest moduleNameMapper twins map to the same stubs", () => {
   }
 
   const cases: Array<JestCase> = [
-    { jestConfig: path.join(COMMON_DIR, "jest.config.json"), rootDir: COMMON_DIR },
+    {
+      jestConfig: path.join(COMMON_DIR, "jest.config.json"),
+      rootDir: COMMON_DIR,
+    },
     { jestConfig: path.join(APP_DIR, "jest.config.json"), rootDir: APP_DIR },
   ];
 
@@ -286,27 +289,35 @@ describe("jest moduleNameMapper twins map to the same stubs", () => {
 });
 
 describe("the frontends' esbuild configs route the specifier through the enterprise helper", () => {
-  test.each(FRONTENDS.map(toFrontendCase))("%s", (_name: string, frontend: Frontend) => {
-    const source: string = fs
-      .readFileSync(path.join(frontend.directory, "esbuild.config.js"), "utf8")
-      .replace(WHITESPACE_RUNS, " ");
+  test.each(FRONTENDS.map(toFrontendCase))(
+    "%s",
+    (_name: string, frontend: Frontend) => {
+      const source: string = fs
+        .readFileSync(
+          path.join(frontend.directory, "esbuild.config.js"),
+          "utf8",
+        )
+        .replace(WHITESPACE_RUNS, " ");
 
-    expect(source).toContain('require("Common/UI/esbuild-enterprise")');
-    expect(source).toContain(`pluginSpecifier: "${frontend.pluginSpecifier}"`);
-    expect(source).toContain(`eeSubdir: "${frontend.eeSubdirectory}"`);
-    expect(source).toContain(
-      `internalSpecifier: "${frontend.internalSpecifier}"`,
-    );
-    expect(source).toContain("frontendDir: __dirname");
-    expect(source).toContain("additionalAlias: enterprise.alias");
+      expect(source).toContain('require("Common/UI/esbuild-enterprise")');
+      expect(source).toContain(
+        `pluginSpecifier: "${frontend.pluginSpecifier}"`,
+      );
+      expect(source).toContain(`eeSubdir: "${frontend.eeSubdirectory}"`);
+      expect(source).toContain(
+        `internalSpecifier: "${frontend.internalSpecifier}"`,
+      );
+      expect(source).toContain("frontendDir: __dirname");
+      expect(source).toContain("additionalAlias: enterprise.alias");
 
-    /*
-     * createConfig({ additionalAlias }) only: EsbuildConfig.test pins the
-     * config's keys, and nodePaths would let the repository root's
-     * node_modules shadow the frontend's.
-     */
-    expect(source).not.toContain("nodePaths");
-  });
+      /*
+       * createConfig({ additionalAlias }) only: EsbuildConfig.test pins the
+       * config's keys, and nodePaths would let the repository root's
+       * node_modules shadow the frontend's.
+       */
+      expect(source).not.toContain("nodePaths");
+    },
+  );
 });
 
 describe("eslint's Enterprise boundary names the real plugin doors", () => {
@@ -338,35 +349,47 @@ describe("eslint's Enterprise boundary names the real plugin doors", () => {
  * something to check in a full checkout. It reports as skipped rather than
  * passing vacuously.
  */
-const describeWhenEnterprisePresent: typeof describe.skip = fs.existsSync(EE_DIR)
+const describeWhenEnterprisePresent: typeof describe.skip = fs.existsSync(
+  EE_DIR,
+)
   ? describe
   : describe.skip;
 
-describeWhenEnterprisePresent("the ee UI tsconfigs point at the real plugin", () => {
-  test.each(FRONTENDS.map(toFrontendCase))("%s", (_name: string, frontend: Frontend) => {
-    const eeFrontendDir: string = path.join(EE_DIR, frontend.eeSubdirectory);
-    const tsconfigPath: string = path.join(eeFrontendDir, "tsconfig.json");
-    const options: CompilerOptionsWithPaths =
-      readTsconfigCompilerOptions(tsconfigPath);
+describeWhenEnterprisePresent(
+  "the ee UI tsconfigs point at the real plugin",
+  () => {
+    test.each(FRONTENDS.map(toFrontendCase))(
+      "%s",
+      (_name: string, frontend: Frontend) => {
+        const eeFrontendDir: string = path.join(
+          EE_DIR,
+          frontend.eeSubdirectory,
+        );
+        const tsconfigPath: string = path.join(eeFrontendDir, "tsconfig.json");
+        const options: CompilerOptionsWithPaths =
+          readTsconfigCompilerOptions(tsconfigPath);
 
-    const pluginTarget: string | undefined =
-      options.paths?.[frontend.pluginSpecifier]?.[0];
-    expect(pluginTarget).toBeDefined();
-    expect(resolveTarget(path.resolve(eeFrontendDir, pluginTarget!))).toBe(
-      path.join(eeFrontendDir, "Index.tsx"),
-    );
+        const pluginTarget: string | undefined =
+          options.paths?.[frontend.pluginSpecifier]?.[0];
+        expect(pluginTarget).toBeDefined();
+        expect(resolveTarget(path.resolve(eeFrontendDir, pluginTarget!))).toBe(
+          path.join(eeFrontendDir, "Index.tsx"),
+        );
 
-    const internalTarget: string | undefined =
-      options.paths?.[`${frontend.internalSpecifier}/*`]?.[0];
-    expect(internalTarget).toBeDefined();
-    expect(path.resolve(eeFrontendDir, internalTarget!)).toBe(
-      path.join(frontend.directory, "src", "*"),
-    );
+        const internalTarget: string | undefined =
+          options.paths?.[`${frontend.internalSpecifier}/*`]?.[0];
+        expect(internalTarget).toBeDefined();
+        expect(path.resolve(eeFrontendDir, internalTarget!)).toBe(
+          path.join(frontend.directory, "src", "*"),
+        );
 
-    const commonTarget: string | undefined = options.paths?.["Common/*"]?.[0];
-    expect(commonTarget).toBeDefined();
-    expect(path.resolve(eeFrontendDir, commonTarget!)).toBe(
-      path.join(COMMON_DIR, "*"),
+        const commonTarget: string | undefined =
+          options.paths?.["Common/*"]?.[0];
+        expect(commonTarget).toBeDefined();
+        expect(path.resolve(eeFrontendDir, commonTarget!)).toBe(
+          path.join(COMMON_DIR, "*"),
+        );
+      },
     );
-  });
-});
+  },
+);

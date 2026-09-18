@@ -189,8 +189,9 @@ describe("the audit-log plugin keys", () => {
   });
 
   test("the table plugin resolves to the Enterprise table body and passes the shell's props through", async () => {
-    const TablePlugin: NonNullable<DashboardEnterprisePlugins["AuditLogsTable"]> =
-      AuditLogsPlugins.AuditLogsTable!;
+    const TablePlugin: NonNullable<
+      DashboardEnterprisePlugins["AuditLogsTable"]
+    > = AuditLogsPlugins.AuditLogsTable!;
 
     render(
       <MemoryRouter>
@@ -293,9 +294,7 @@ describe("the audit-log screens' imports", () => {
   ])(
     "%s/%s never imports a core shell that reads the plugins",
     (directory: string, file: string) => {
-      const specifiers: Array<string> = importsOf(
-        readSource(directory, file),
-      );
+      const specifiers: Array<string> = importsOf(readSource(directory, file));
 
       for (const specifier of specifiers) {
         expect(specifier).not.toBe(

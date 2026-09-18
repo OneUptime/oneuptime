@@ -250,11 +250,7 @@ export default class GlobalConfigAPI extends BaseAPI<
        * "offline" when the license was activated by pasting a signed token:
        * such an installation holds no license key and never calls home.
        */
-      activationMode: licenseToken
-        ? licenseKey
-          ? "online"
-          : "offline"
-        : null,
+      activationMode: licenseToken ? (licenseKey ? "online" : "offline") : null,
       // From the signed claims for a verified license, else the stored column.
       userLimit:
         typeof snapshot?.userLimit === "number" ? snapshot.userLimit : null,

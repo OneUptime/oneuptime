@@ -155,10 +155,7 @@ const STATUS_TABLE_PROPS_MATCH: Exactly<
   TeamComplianceStatusTableProps
 > = true;
 
-type Deployment =
-  | "cloud"
-  | "self-hosted-enterprise"
-  | "self-hosted-community";
+type Deployment = "cloud" | "self-hosted-enterprise" | "self-hosted-community";
 
 const pinDeployment: (deployment: Deployment, plan?: PlanType) => void = (
   deployment: Deployment,
@@ -226,9 +223,11 @@ FakeStatusTable.displayName = "FakeStatusTable";
 
 let lazyLoads: number = 0;
 
-const lazyPlugin: (key: string) => React.ExoticComponent<
-  Record<string, unknown>
-> = (key: string): React.ExoticComponent<Record<string, unknown>> => {
+const lazyPlugin: (
+  key: string,
+) => React.ExoticComponent<Record<string, unknown>> = (
+  key: string,
+): React.ExoticComponent<Record<string, unknown>> => {
   return React.lazy(
     async (): Promise<{
       default: FunctionComponent<Record<string, unknown>>;
@@ -486,9 +485,7 @@ describe("Teams > View > Compliance", () => {
 
       render(<TeamViewCompliance {...PAGE_PROPS} />);
 
-      expect(screen.getAllByText("Upgrade to Scale").length).toBeGreaterThan(
-        0,
-      );
+      expect(screen.getAllByText("Upgrade to Scale").length).toBeGreaterThan(0);
       expect(
         screen.getByText(TEAM_COMPLIANCE_UPSELL.featureName),
       ).toBeInTheDocument();

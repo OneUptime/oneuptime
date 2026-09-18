@@ -13,7 +13,9 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import SpanUtil from "Common/Server/Utils/Telemetry/SpanUtil";
-import logger, { getLogAttributesFromRequest } from "Common/Server/Utils/Logger";
+import logger, {
+  getLogAttributesFromRequest,
+} from "Common/Server/Utils/Logger";
 
 export default class SCIMMiddleware {
   @CaptureSpan()

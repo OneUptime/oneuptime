@@ -146,7 +146,9 @@ describe("EnterprisePluginPage (Admin Dashboard)", () => {
         <EnterprisePluginPage plugin={makeLazyPlugin(false)} upsell={UPSELL} />,
       );
 
-      expect(screen.getByText("Global SAML Single Sign On")).toBeInTheDocument();
+      expect(
+        screen.getByText("Global SAML Single Sign On"),
+      ).toBeInTheDocument();
       expect(
         screen.getAllByText("Learn about Enterprise Edition"),
       ).toHaveLength(2);

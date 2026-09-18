@@ -252,22 +252,21 @@ describe("GET /global-config/license", () => {
     };
   };
 
-  const callGet: () => Promise<JSONObject> =
-    async (): Promise<JSONObject> => {
-      await mockRouter
-        .match("get", LICENSE_ROUTE)
-        .handlerFunction(mockRequest, mockResponse, nextFunction);
+  const callGet: () => Promise<JSONObject> = async (): Promise<JSONObject> => {
+    await mockRouter
+      .match("get", LICENSE_ROUTE)
+      .handlerFunction(mockRequest, mockResponse, nextFunction);
 
-      expect(nextFunction).not.toHaveBeenCalled();
+    expect(nextFunction).not.toHaveBeenCalled();
 
-      const calls: Array<Array<unknown>> = (
-        Response.sendJsonObjectResponse as unknown as jest.Mock
-      ).mock.calls as Array<Array<unknown>>;
+    const calls: Array<Array<unknown>> = (
+      Response.sendJsonObjectResponse as unknown as jest.Mock
+    ).mock.calls as Array<Array<unknown>>;
 
-      expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(1);
 
-      return calls[0]![2] as JSONObject;
-    };
+    return calls[0]![2] as JSONObject;
+  };
 
   const installWithSnapshot: (
     snapshot: EnterpriseLicenseSnapshot | null,
@@ -359,7 +358,11 @@ describe("GET /global-config/license", () => {
   });
 
   describe("on the Community Edition", () => {
-    it.each(["anonymous", "signed-in user", "master admin"] as Array<CallerKind>)(
+    it.each([
+      "anonymous",
+      "signed-in user",
+      "master admin",
+    ] as Array<CallerKind>)(
       "says community with no license to a %s",
       async (caller: CallerKind) => {
         setCaller(caller);
@@ -387,9 +390,7 @@ describe("GET /global-config/license", () => {
 
       expect(body["currentVersion"]).toBe(AppVersion);
       expect(body["latestVersion"]).toBe("99.0.0");
-      expect(body["latestVersionPublishedAt"]).toBe(
-        "2026-09-10T00:00:00.000Z",
-      );
+      expect(body["latestVersionPublishedAt"]).toBe("2026-09-10T00:00:00.000Z");
       expect(body["latestVersionCheckedAt"]).toBe("2026-09-11T00:00:00.000Z");
       expect(typeof body["isUpdateAvailable"]).toBe("boolean");
       expect(typeof body["isUpdateCheckDisabled"]).toBe("boolean");
@@ -959,6 +960,5 @@ describe("GlobalConfigAPI.buildLicenseResponse", () => {
       seatsRemaining: 0,
       canAddMoreUsers: false,
     });
-
   });
 });

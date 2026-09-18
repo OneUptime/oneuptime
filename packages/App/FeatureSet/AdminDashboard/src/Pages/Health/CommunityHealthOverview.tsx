@@ -75,9 +75,7 @@ const CommunityHealthOverview: FunctionComponent = (): ReactElement => {
             return (
               <Link
                 key={tool.title}
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[tool.page] as Route,
-                )}
+                to={RouteUtil.populateRouteParams(RouteMap[tool.page] as Route)}
                 className="group flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md"
               >
                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">

@@ -1551,9 +1551,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   const modalDisableSubmitButton: boolean | undefined = IS_ENTERPRISE_EDITION
     ? shouldShowEnterpriseValidationButton
-      ? !(activationInputMode === "token"
-          ? licenseTokenInput
-          : licenseKeyInput
+      ? !(
+          activationInputMode === "token" ? licenseTokenInput : licenseKeyInput
         ).trim() ||
         isValidating ||
         isConfigLoading
@@ -2471,17 +2470,17 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                             : licenseKeyHelperText}
                           {!isChangingLicense &&
                             activationInputMode === "key" && (
-                            <>
-                              {" "}
-                              <a
-                                href={SALES_MAILTO_URL}
-                                className="font-medium text-indigo-600 hover:text-indigo-700"
-                              >
-                                {SALES_EMAIL}
-                              </a>
-                              .
-                            </>
-                          )}
+                              <>
+                                {" "}
+                                <a
+                                  href={SALES_MAILTO_URL}
+                                  className="font-medium text-indigo-600 hover:text-indigo-700"
+                                >
+                                  {SALES_EMAIL}
+                                </a>
+                                .
+                              </>
+                            )}
                         </p>
                       </div>
                       {isChangingLicense && (
@@ -2556,8 +2555,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       {canManageLicense
                         ? "A valid license keeps enterprise configuration (SSO, SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
                         : "A master admin can add the license to keep enterprise configuration editable."}{" "}
-                      Nothing you already configured stops working without
-                      one.
+                      Nothing you already configured stops working without one.
                     </p>
                     <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {enterpriseFeatures.map(

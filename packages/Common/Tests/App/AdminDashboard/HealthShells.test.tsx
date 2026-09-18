@@ -59,8 +59,9 @@ jest.mock("@oneuptime/ee-admin-dashboard", () => {
 });
 
 jest.mock("../../../UI/Components/Page/Page", () => {
-  const react: typeof import("react") =
-    jest.requireActual("react") as typeof import("react");
+  const react: typeof import("react") = jest.requireActual(
+    "react",
+  ) as typeof import("react");
 
   return {
     __esModule: true,
@@ -92,8 +93,9 @@ jest.mock("../../../UI/Utils/API/API", () => {
 jest.mock(
   "../../../../App/FeatureSet/AdminDashboard/src/Pages/Health/ClickhouseCapacity",
   () => {
-    const react: typeof import("react") =
-      jest.requireActual("react") as typeof import("react");
+    const react: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -109,8 +111,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/AdminDashboard/src/Pages/Health/ClickhouseCapacitySettings",
   () => {
-    const react: typeof import("react") =
-      jest.requireActual("react") as typeof import("react");
+    const react: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -126,8 +129,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/AdminDashboard/src/Pages/Health/InstanceHealthLogs",
   () => {
-    const react: typeof import("react") =
-      jest.requireActual("react") as typeof import("react");
+    const react: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -320,7 +324,9 @@ describe.each(GATED_PAGES)("Health > $label", (page: GatedPage) => {
 
     render(<page.Page />);
 
-    expect(screen.getByRole("heading", { name: page.featureName })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: page.featureName }),
+    ).toBeInTheDocument();
     expect(screen.getByText(EVERY_EDITION_HEALTH_NOTE)).toBeInTheDocument();
     expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
     expect(screen.getByTestId("page")).toHaveAttribute(
@@ -336,7 +342,9 @@ describe.each(GATED_PAGES)("Health > $label", (page: GatedPage) => {
     render(<page.Page />);
 
     expect(await screen.findByTestId(testId)).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: page.featureName })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: page.featureName }),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("page")).toHaveAttribute(
       "data-title",
       page.label,
@@ -348,7 +356,9 @@ describe.each(GATED_PAGES)("Health > $label", (page: GatedPage) => {
 
     render(<page.Page />);
 
-    expect(screen.getByRole("heading", { name: page.featureName })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: page.featureName }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -445,9 +455,13 @@ describe("Health > Overview (the landing page)", () => {
   const expectCommunitySections: () => Promise<void> =
     async (): Promise<void> => {
       expect(
-        await screen.findByText("Fullest of 2 disks · Shard 2 · ch-2 · default"),
+        await screen.findByText(
+          "Fullest of 2 disks · Shard 2 · ch-2 · default",
+        ),
       ).toBeInTheDocument();
-      expect(screen.getByText("Available on every edition")).toBeInTheDocument();
+      expect(
+        screen.getByText("Available on every edition"),
+      ).toBeInTheDocument();
 
       for (const tool of EVERY_EDITION_HEALTH_TOOLS) {
         expect(screen.getByText(tool.title).closest("a")).toHaveAttribute(
@@ -542,11 +556,9 @@ describe("Health > Overview (the landing page)", () => {
     render(<HealthLanding />);
 
     expect(
-      await screen.findByText(
-        (content: string): boolean => {
-          return content.includes("ClickHouse is not reachable");
-        },
-      ),
+      await screen.findByText((content: string): boolean => {
+        return content.includes("ClickHouse is not reachable");
+      }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Fullest of/)).not.toBeInTheDocument();
   });

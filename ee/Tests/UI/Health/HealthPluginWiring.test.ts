@@ -48,6 +48,13 @@ const healthFiles: () => Array<string> = (): Array<string> => {
 // The static tail of every "/admin/health/..." URL a screen builds.
 const API_PATH_PATTERN: RegExp = /["`]\/admin\/health(\/[^"`$]*)/g;
 
+// A core Health page imported through the admin-dashboard specifier.
+const CORE_HEALTH_PAGE_IMPORT: RegExp =
+  /@oneuptime\/admin-dashboard\/Pages\/Health\//;
+
+// Any relative import that climbs out of the screen's own directory.
+const RELATIVE_IMPORT: RegExp = /from "\.\.\//;
+
 const PLUGIN_ENTRIES: Array<{ key: string; module: string }> = [
   { key: "HealthOverview", module: "./Overview" },
   { key: "HealthQueues", module: "./Queues" },
@@ -93,7 +100,9 @@ describe("the Health plugin object", () => {
       fs.readFileSync(path.join(EE_DIR, "AdminDashboard", "Index.tsx"), "utf8"),
     );
 
-    expect(indexSource).toContain('import HealthPlugins from "./Health/Plugins"');
+    expect(indexSource).toContain(
+      'import HealthPlugins from "./Health/Plugins"',
+    );
     expect(indexSource).toContain("...HealthPlugins");
   });
 });
@@ -121,11 +130,13 @@ describe("the Health screens render content only", () => {
 
       expect({
         file,
-        importsCoreHealthPage: /@oneuptime\/admin-dashboard\/Pages\/Health\//.test(
-          source,
-        ),
+        importsCoreHealthPage: CORE_HEALTH_PAGE_IMPORT.test(source),
         importsPluginDoor: source.includes("Enterprise/Plugins"),
-      }).toEqual({ file, importsCoreHealthPage: false, importsPluginDoor: false });
+      }).toEqual({
+        file,
+        importsCoreHealthPage: false,
+        importsPluginDoor: false,
+      });
     }
   });
 
@@ -133,7 +144,7 @@ describe("the Health screens render content only", () => {
     for (const file of healthFiles()) {
       const source: string = readHealthSource(file);
 
-      expect({ file, relativeCore: /from "\.\.\//.test(source) }).toEqual({
+      expect({ file, relativeCore: RELATIVE_IMPORT.test(source) }).toEqual({
         file,
         relativeCore: false,
       });

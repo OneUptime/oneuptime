@@ -32,16 +32,19 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
  * runs too, and that branch talks to Redis.
  */
 
-jest.mock("Common/Server/Utils/SessionReplay/SessionReplayGateCacheStore", () => {
-  return {
-    __esModule: true,
-    default: {
-      markProjectDisabled: jest.fn(),
-      clearProjectDisabled: jest.fn(),
-      clearCache: jest.fn(),
-    },
-  };
-});
+jest.mock(
+  "Common/Server/Utils/SessionReplay/SessionReplayGateCacheStore",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        markProjectDisabled: jest.fn(),
+        clearProjectDisabled: jest.fn(),
+        clearCache: jest.fn(),
+      },
+    };
+  },
+);
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =

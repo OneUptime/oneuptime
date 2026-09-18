@@ -241,7 +241,7 @@ export class Service extends DatabaseService<Model> {
    * token is as much a forgery as setting one.
    */
   public assertLicenseColumnsWrittenByRootOnly(
-    data: object,
+    data: unknown,
     props: DatabaseCommonInteractionProps,
   ): void {
     if (props.isRoot) {
@@ -250,7 +250,9 @@ export class Service extends DatabaseService<Model> {
 
     const writtenColumns: Array<string> = ROOT_ONLY_LICENSE_COLUMNS.filter(
       (column: keyof Model): boolean => {
-        return (data as Record<string, unknown>)[column as string] !== undefined;
+        return (
+          (data as Record<string, unknown>)[column as string] !== undefined
+        );
       },
     ).map((column: keyof Model): string => {
       return column as string;

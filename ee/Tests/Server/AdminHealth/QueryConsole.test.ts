@@ -173,7 +173,11 @@ interface FakeQueryRunner {
   commitTransaction: () => Promise<void>;
   rollbackTransaction: () => Promise<void>;
   release: () => Promise<void>;
-  query: (sql: string, parameters?: unknown, useStructuredResult?: boolean) => Promise<unknown>;
+  query: (
+    sql: string,
+    parameters?: unknown,
+    useStructuredResult?: boolean,
+  ) => Promise<unknown>;
 }
 
 const createFakeQueryRunner: (data: {
@@ -299,7 +303,9 @@ const useClickhouse: (result: {
   jest
     .spyOn(ClickhouseAppInstance, "getDataSource")
     .mockReturnValue(
-      client as unknown as ReturnType<typeof ClickhouseAppInstance.getDataSource>,
+      client as unknown as ReturnType<
+        typeof ClickhouseAppInstance.getDataSource
+      >,
     );
 
   return client;
@@ -411,9 +417,8 @@ afterEach(() => {
 
 describe("the enterprise admin-health router", () => {
   const layers: () => Array<RouteLayer> = (): Array<RouteLayer> => {
-    return (
-      getAdminHealthRouter() as unknown as { stack: Array<RouteLayer> }
-    ).stack;
+    return (getAdminHealthRouter() as unknown as { stack: Array<RouteLayer> })
+      .stack;
   };
 
   test("is what the assembled enterprise module hands core, built once", () => {
@@ -448,8 +453,16 @@ describe("the enterprise admin-health router", () => {
       layers().map((layer: RouteLayer): string => {
         return `${Object.keys(layer.route?.methods || {}).join(",")} ${layer.route?.path}`;
       }),
-    ).toEqual(["post /query/postgres", "post /query/clickhouse", "post /query/redis"]);
-    expect([...QUERY_CONSOLE_ENGINES]).toEqual(["postgres", "clickhouse", "redis"]);
+    ).toEqual([
+      "post /query/postgres",
+      "post /query/clickhouse",
+      "post /query/redis",
+    ]);
+    expect([...QUERY_CONSOLE_ENGINES]).toEqual([
+      "postgres",
+      "clickhouse",
+      "redis",
+    ]);
   });
 
   test("never shadows a core read-only route", () => {
@@ -491,13 +504,18 @@ describe("who may use the console", () => {
     const runner: FakeQueryRunner = createFakeQueryRunner({ records: [] });
     usePostgres(runner);
 
-    await runQuery("postgres", { query: "DELETE FROM \"User\"", readOnly: false });
+    await runQuery("postgres", {
+      query: 'DELETE FROM "User"',
+      readOnly: false,
+    });
 
     expect(runner.queries).toEqual([]);
   });
 
   test("without the enterprise module registered it answers with the Community message", async () => {
-    const result: HttpResult = await runQuery("postgres", { query: "SELECT 1" });
+    const result: HttpResult = await runQuery("postgres", {
+      query: "SELECT 1",
+    });
 
     expect(result.status).toBe(402);
     expect(result.body["message"]).toBe(
@@ -596,7 +614,7 @@ describe("Postgres", () => {
     usePostgres(runner);
 
     const result: HttpResult = await runQuery("postgres", {
-      query: "SELECT id FROM \"User\";",
+      query: 'SELECT id FROM "User";',
       maxRows: 2,
     });
 
@@ -642,7 +660,9 @@ describe("Postgres", () => {
 
     expect(runner.queries).not.toContain("SET TRANSACTION READ ONLY");
     expect(runner.committed).toBe(true);
-    expect(result.body["message"]).toBe("Statement executed. 3 row(s) affected.");
+    expect(result.body["message"]).toBe(
+      "Statement executed. 3 row(s) affected.",
+    );
     expect(result.body["affectedRows"]).toBe(3);
   });
 
@@ -685,7 +705,9 @@ describe("Postgres", () => {
 
     expect(result.status).toBe(200);
     expect(result.body["success"]).toBe(false);
-    expect(result.body["error"]).toBe('relation "missing_table" does not exist');
+    expect(result.body["error"]).toBe(
+      'relation "missing_table" does not exist',
+    );
     expect(runner.rolledBack).toBe(true);
     expect(runner.released).toBe(true);
   });
@@ -758,7 +780,10 @@ describe("ClickHouse", () => {
     expect(result.body["success"]).toBe(true);
     expect(result.body["message"]).toBe("Statement executed successfully.");
     expect(client.commands).toEqual([
-      { query: "OPTIMIZE TABLE Log FINAL", settings: { max_execution_time: 30 } },
+      {
+        query: "OPTIMIZE TABLE Log FINAL",
+        settings: { max_execution_time: 30 },
+      },
     ]);
   });
 });
@@ -782,7 +807,10 @@ describe("Valkey", () => {
     ]);
     expect(redis.base.calls).toEqual([]);
     expect(redis.connections).toHaveLength(1);
-    expect(redis.connections[0]?.calls).toEqual([["PING"], ["GET", "some:key"]]);
+    expect(redis.connections[0]?.calls).toEqual([
+      ["PING"],
+      ["GET", "some:key"],
+    ]);
     expect(redis.connections[0]?.disconnected).toBe(true);
   });
 
@@ -838,7 +866,9 @@ describe("Valkey", () => {
 
     expect((results[0] as JSONObject)["ok"]).toBe(true);
     expect((results[1] as JSONObject)["ok"]).toBe(false);
-    expect(redis.connections[0]?.calls).toEqual([["MEMORY", "USAGE", "some:key"]]);
+    expect(redis.connections[0]?.calls).toEqual([
+      ["MEMORY", "USAGE", "some:key"],
+    ]);
   });
 
   test("more than the command cap is refused as a whole", async () => {
@@ -858,7 +888,9 @@ describe("Valkey", () => {
     const result: HttpResult = await runQuery("redis", { query: "PING" });
 
     expect(result.body["success"]).toBe(false);
-    expect(result.body["error"]).toBe("Valkey is not connected on this instance.");
+    expect(result.body["error"]).toBe(
+      "Valkey is not connected on this instance.",
+    );
   });
 });
 
@@ -904,17 +936,30 @@ describe("the console's pure helpers", () => {
   });
 
   test("clickhouseStatementIsRead recognises read statements only", () => {
-    for (const sql of ["SELECT 1", "WITH a AS (SELECT 1) SELECT * FROM a", "SHOW TABLES", "DESCRIBE Log", "EXPLAIN SELECT 1", "EXISTS TABLE Log"]) {
+    for (const sql of [
+      "SELECT 1",
+      "WITH a AS (SELECT 1) SELECT * FROM a",
+      "SHOW TABLES",
+      "DESCRIBE Log",
+      "EXPLAIN SELECT 1",
+      "EXISTS TABLE Log",
+    ]) {
       expect(clickhouseStatementIsRead(sql)).toBe(true);
     }
 
-    for (const sql of ["INSERT INTO Log VALUES", "ALTER TABLE Log DELETE WHERE 1", "DROP TABLE Log", "TRUNCATE TABLE Log", "SYSTEM STOP MERGES"]) {
+    for (const sql of [
+      "INSERT INTO Log VALUES",
+      "ALTER TABLE Log DELETE WHERE 1",
+      "DROP TABLE Log",
+      "TRUNCATE TABLE Log",
+      "SYSTEM STOP MERGES",
+    ]) {
       expect(clickhouseStatementIsRead(sql)).toBe(false);
     }
   });
 
   test("parseRedisCommandLine respects quotes and escapes", () => {
-    expect(parseRedisCommandLine('SET key "a value" \'single q\'')).toEqual([
+    expect(parseRedisCommandLine("SET key \"a value\" 'single q'")).toEqual([
       "SET",
       "key",
       "a value",
@@ -930,7 +975,9 @@ describe("the console's pure helpers", () => {
 
   test("assertPostgresStatementAllowed lets ordinary statements through", () => {
     expect(() => {
-      assertPostgresStatementAllowed('SELECT * FROM "Monitor" WHERE "copy" = 1');
+      assertPostgresStatementAllowed(
+        'SELECT * FROM "Monitor" WHERE "copy" = 1',
+      );
     }).not.toThrow();
     expect(() => {
       assertPostgresStatementAllowed("COPY x FROM PROGRAM 'id'");

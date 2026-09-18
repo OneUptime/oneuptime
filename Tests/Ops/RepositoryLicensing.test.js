@@ -205,7 +205,9 @@ describe("ee/README.md", () => {
   });
 
   test("documents the edition switches the loader and the builds read", () => {
-    const environmentConfig = read("packages/Common/Server/EnvironmentConfig.ts");
+    const environmentConfig = read(
+      "packages/Common/Server/EnvironmentConfig.ts",
+    );
 
     for (const variable of [
       "ONEUPTIME_EDITION",
@@ -228,7 +230,9 @@ describe("ee/README.md", () => {
 
     for (const script of ["test", "compile"]) {
       expect(eePackage.scripts[script]).toBeDefined();
-      expect(readme).toContain(`npm ${script === "test" ? "test" : `run ${script}`}`);
+      expect(readme).toContain(
+        `npm ${script === "test" ? "test" : `run ${script}`}`,
+      );
     }
   });
 
@@ -311,7 +315,9 @@ describe("package.json license fields", () => {
         : APACHE_LICENSE_FIELD;
 
       if (manifest.license !== expected) {
-        wrong.push(`${relativeDirectory}: ${manifest.license} (expected ${expected})`);
+        wrong.push(
+          `${relativeDirectory}: ${manifest.license} (expected ${expected})`,
+        );
       }
     }
 
@@ -372,7 +378,9 @@ describe(".github/CODEOWNERS", () => {
       .split("\n")
       .map((candidate) => candidate.trim())
       .find((candidate) => {
-        return !candidate.startsWith("#") && candidate.split(/\s+/)[0] === pattern;
+        return (
+          !candidate.startsWith("#") && candidate.split(/\s+/)[0] === pattern
+        );
       });
 
     return line ? line.split(/\s+/).slice(1) : null;
@@ -409,7 +417,9 @@ describe(".github/CONTRIBUTING.md", () => {
     expect(contributing).toContain(
       "**Everything outside the [`ee/`](../ee) directory** is licensed under the",
     );
-    expect(contributing).toContain("[OneUptime Enterprise License](../ee/LICENSE)");
+    expect(contributing).toContain(
+      "[OneUptime Enterprise License](../ee/LICENSE)",
+    );
     expect(contributing).toContain(
       "OneUptime may use, modify, distribute,\n  sublicense and sell it",
     );
@@ -498,9 +508,12 @@ describe("README and its translations", () => {
     "이 모든 것이 **100% 오픈소스(Apache 2.0)**이며 셀프 호스팅이 무료입니다.",
     "Всё это **на 100% открытый исходный код (Apache 2.0)** и бесплатно для самостоятельного развёртывания.",
     "以上一切均为 **100% 开源（Apache 2.0）**，可免费自托管。",
-  ])("the 100%% check catches the wording that used to be published: %s", (sentence) => {
-    expect(sentence).toMatch(HUNDRED_PERCENT_OPEN_SOURCE);
-  });
+  ])(
+    "the 100%% check catches the wording that used to be published: %s",
+    (sentence) => {
+      expect(sentence).toMatch(HUNDRED_PERCENT_OPEN_SOURCE);
+    },
+  );
 
   test("the 100%% check leaves the corrected wording alone", () => {
     expect(

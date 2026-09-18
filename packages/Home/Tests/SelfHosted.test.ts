@@ -414,7 +414,9 @@ describe("SelfHosted content model", () => {
     expect(answer).toContain("master-admin contact emails");
     expect(answer).toContain("never monitoring data");
     // The "no connectivity at all" promise is scoped to the Community Edition.
-    expect(answer).not.toMatch(/(?<!Community Edition )install runs with no connectivity/);
+    expect(answer).not.toMatch(
+      /(?<!Community Edition )install runs with no connectivity/,
+    );
   });
 
   test("the update-check air-gap step mentions the Enterprise license check", () => {

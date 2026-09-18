@@ -20,7 +20,7 @@ import Navigation from "../../../UI/Utils/Navigation";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
-import SSO from "../../../../App/FeatureSet/Dashboard/src/Pages/Onboarding/SSO";
+import OnboardingSsoPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Onboarding/SSO";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { getJestSpyOn } from "../../Spy";
@@ -105,7 +105,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const renderPage: () => Promise<void> = async (): Promise<void> => {
   await act(async () => {
     render(
-      <SSO
+      <OnboardingSsoPage
         pageRoute={new Route("/dashboard/project/sso")}
         currentProject={null}
         hasPaymentMethod={false}

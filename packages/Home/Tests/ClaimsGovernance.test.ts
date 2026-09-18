@@ -237,11 +237,14 @@ describe("Edition retired claims catch what the split made false", () => {
     "Open-core (ee module)",
   ];
 
-  test.each(competitorCopy)("leaves competitor copy alone: %s", (sentence: string) => {
-    for (const retired of RetiredEditionClaims) {
-      expect(retired.pattern.test(sentence)).toBe(false);
-    }
-  });
+  test.each(competitorCopy)(
+    "leaves competitor copy alone: %s",
+    (sentence: string) => {
+      for (const retired of RetiredEditionClaims) {
+        expect(retired.pattern.test(sentence)).toBe(false);
+      }
+    },
+  );
 
   test("every edition claim is also enforced over the templates", () => {
     for (const retired of RetiredEditionClaims) {
@@ -265,8 +268,12 @@ describe("Pages state the edition split accurately", () => {
   test("the about page says the core is Apache 2.0 and the enterprise modules are on GitHub too", () => {
     const contents: string = readView("about.ejs");
 
-    expect(contents).toContain("The core platform is open source under Apache 2.0");
-    expect(contents).toContain("including the enterprise modules, is on GitHub");
+    expect(contents).toContain(
+      "The core platform is open source under Apache 2.0",
+    );
+    expect(contents).toContain(
+      "including the enterprise modules, is on GitHub",
+    );
   });
 
   test("the trust center still promises the whole source is auditable", () => {

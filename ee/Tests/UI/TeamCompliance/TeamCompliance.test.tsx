@@ -99,30 +99,29 @@ type ComplianceResponse = {
   }>;
 };
 
-const complianceResponse: () => ComplianceResponse =
-  (): ComplianceResponse => {
-    return {
-      teamId: TEAM_ID.toString(),
-      teamName: "On-Call",
-      complianceSettings: [
-        { ruleType: "HasNotificationEmailMethod", enabled: true },
-      ],
-      userComplianceStatuses: [
-        {
-          userId: USER_ID,
-          userName: "Jane Doe",
-          userEmail: "jane@acme.com",
-          isCompliant: false,
-          nonCompliantRules: [
-            {
-              ruleType: "HasNotificationEmailMethod",
-              reason: "No email notification method",
-            },
-          ],
-        },
-      ],
-    };
+const complianceResponse: () => ComplianceResponse = (): ComplianceResponse => {
+  return {
+    teamId: TEAM_ID.toString(),
+    teamName: "On-Call",
+    complianceSettings: [
+      { ruleType: "HasNotificationEmailMethod", enabled: true },
+    ],
+    userComplianceStatuses: [
+      {
+        userId: USER_ID,
+        userName: "Jane Doe",
+        userEmail: "jane@acme.com",
+        isCompliant: false,
+        nonCompliantRules: [
+          {
+            ruleType: "HasNotificationEmailMethod",
+            reason: "No email notification method",
+          },
+        ],
+      },
+    ],
   };
+};
 
 const EE_DASHBOARD_DIR: string = path.resolve(
   __dirname,
@@ -207,9 +206,7 @@ describe("the member compliance status table", () => {
   test("shows the member's email beside their name", async () => {
     await renderTable();
 
-    expect(screen.getByTestId("user-email")).toHaveTextContent(
-      "jane@acme.com",
-    );
+    expect(screen.getByTestId("user-email")).toHaveTextContent("jane@acme.com");
   });
 
   /*

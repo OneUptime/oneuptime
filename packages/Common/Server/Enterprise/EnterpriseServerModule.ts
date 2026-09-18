@@ -18,7 +18,9 @@ import type ObjectID from "../../Types/ObjectID";
  * behaves differently per edition asks EnterpriseEdition, never ee directly.
  */
 
-export const ENTERPRISE_SERVER_MODULE_NAME: "oneuptime-enterprise" =
+export type EnterpriseServerModuleName = "oneuptime-enterprise";
+
+export const ENTERPRISE_SERVER_MODULE_NAME: EnterpriseServerModuleName =
   "oneuptime-enterprise";
 
 /*

@@ -204,6 +204,7 @@ const renderDashboardPage: (
 ) => () => ReactElement = (
   Page: FunctionComponent<PageComponentProps>,
 ): (() => ReactElement) => {
+  // eslint-disable-next-line react/display-name
   return (): ReactElement => {
     return <Page {...PAGE_PROPS} />;
   };
@@ -212,6 +213,7 @@ const renderDashboardPage: (
 const renderAdminPage: (Page: FunctionComponent) => () => ReactElement = (
   Page: FunctionComponent,
 ): (() => ReactElement) => {
+  // eslint-disable-next-line react/display-name
   return (): ReactElement => {
     return <Page />;
   };

@@ -257,9 +257,7 @@ describe("with the Enterprise Edition loaded", () => {
     AuditLogServiceInstance.invalidateProjectSettings(PROJECT_ID);
 
     expect(recorder.invalidateProjectSettings).toHaveBeenCalledTimes(1);
-    expect(recorder.invalidateProjectSettings).toHaveBeenCalledWith(
-      PROJECT_ID,
-    );
+    expect(recorder.invalidateProjectSettings).toHaveBeenCalledWith(PROJECT_ID);
   });
 
   test("core itself never writes: an entry is the recorder's to write", async () => {
@@ -286,11 +284,9 @@ describe("with the Enterprise Edition loaded", () => {
   test.each(RECORD_ENTRY_POINTS)(
     "$name never fails the audited write when the recorder rejects",
     async (entryPoint: EntryPoint) => {
-      recorder[entryPoint.name].mockImplementation(
-        async (): Promise<void> => {
-          throw new Error("clickhouse unavailable");
-        },
-      );
+      recorder[entryPoint.name].mockImplementation(async (): Promise<void> => {
+        throw new Error("clickhouse unavailable");
+      });
 
       await expect(
         entryPoint.call(AuditLogServiceInstance),

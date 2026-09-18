@@ -107,12 +107,20 @@ describe("the enterprise Workers area", () => {
 
   test("each is scheduled every five minutes on the worker queue, and not run on startup", () => {
     for (const jobName of HEALTH_JOB_NAMES) {
-      const calls: Array<Array<unknown>> = addJobSpy.mock.calls.filter((call: Array<unknown>): boolean => {
-        return call[1] === jobName;
-      });
+      const calls: Array<Array<unknown>> = addJobSpy.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return call[1] === jobName;
+        },
+      );
 
       expect(calls).toEqual([
-        [QueueName.Worker, jobName, jobName, {}, { scheduleAt: EVERY_FIVE_MINUTE }],
+        [
+          QueueName.Worker,
+          jobName,
+          jobName,
+          {},
+          { scheduleAt: EVERY_FIVE_MINUTE },
+        ],
       ]);
     }
   });

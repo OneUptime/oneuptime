@@ -308,9 +308,7 @@ describe("the Health pages decide the edition in one place", () => {
       const source: string = readAdminSource(`Pages/Health/${shell.file}`);
 
       expect(source).toContain("<EnterprisePluginPage");
-      expect(source).toContain(
-        `getAdminDashboardPlugins().${shell.pluginKey}`,
-      );
+      expect(source).toContain(`getAdminDashboardPlugins().${shell.pluginKey}`);
       expect(source).toContain("<HealthPage");
       expect(source).toContain("renderUpsell=");
     },
@@ -436,7 +434,10 @@ describe("API wiring", () => {
       '"/clickhouse-telemetry-ingestion-by-project"',
     ]) {
       const routeAt: number = adminHealthApiSource.indexOf(route);
-      const handler: string = adminHealthApiSource.slice(routeAt, routeAt + 600);
+      const handler: string = adminHealthApiSource.slice(
+        routeAt,
+        routeAt + 600,
+      );
 
       expect(handler).toContain("EnterpriseEdition.assertFeatureAvailable(");
       expect(handler).toContain("EnterpriseFeature.InstanceHealth");

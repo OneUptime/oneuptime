@@ -561,7 +561,8 @@ const ELIGIBILITY_MATRIX: Array<EligibilityRow> = [
     recorded: false,
   },
   {
-    deployment: "Community Edition, even with the Enterprise plan and the switch on",
+    deployment:
+      "Community Edition, even with the Enterprise plan and the switch on",
     billing: false,
     loaded: false,
     planName: PlanType.Enterprise,
@@ -577,7 +578,8 @@ const ELIGIBILITY_MATRIX: Array<EligibilityRow> = [
     recorded: true,
   },
   {
-    deployment: "Cloud (Enterprise Edition loaded), Enterprise plan, audit logs off",
+    deployment:
+      "Cloud (Enterprise Edition loaded), Enterprise plan, audit logs off",
     billing: true,
     loaded: true,
     planName: PlanType.Enterprise,

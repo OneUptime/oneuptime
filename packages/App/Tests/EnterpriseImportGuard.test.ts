@@ -192,10 +192,7 @@ function isRequireLikeCall(node: ts.CallExpression): boolean {
  * jest.requireActual/requireMock. jest.mock is deliberately NOT a load - it
  * replaces a specifier, it does not pull the real module in.
  */
-function readImportSpecifiers(
-  fileName: string,
-  source: string,
-): Array<string> {
+function readImportSpecifiers(fileName: string, source: string): Array<string> {
   const specifiers: Array<string> = [];
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
@@ -458,9 +455,12 @@ describe("the Enterprise import guard's own machinery", () => {
     ["../tree", false],
     ["./eel/Index", false],
     ["react", false],
-  ])("classifies %s as an Enterprise specifier: %s", (specifier: string, expected: boolean) => {
-    expect(isEnterpriseSpecifier(specifier)).toBe(expected);
-  });
+  ])(
+    "classifies %s as an Enterprise specifier: %s",
+    (specifier: string, expected: boolean) => {
+      expect(isEnterpriseSpecifier(specifier)).toBe(expected);
+    },
+  );
 
   test("lets only each plugin entry file import its own plugin specifier", () => {
     const dashboardEntry: string =
@@ -480,7 +480,10 @@ describe("the Enterprise import guard's own machinery", () => {
       isAllowedCoreImport(dashboardEntry, "@oneuptime/ee-admin-dashboard"),
     ).toBe(false);
     expect(
-      isAllowedCoreImport(dashboardEntry, "../../../../../../ee/Dashboard/Index"),
+      isAllowedCoreImport(
+        dashboardEntry,
+        "../../../../../../ee/Dashboard/Index",
+      ),
     ).toBe(false);
     expect(isAllowedCoreImport(dashboardEntry, "@oneuptime/ee")).toBe(false);
 
@@ -512,7 +515,9 @@ describe("the Enterprise import guard's own machinery", () => {
       false,
     );
     expect(
-      isAllowedEnterpriseImport("../../packages/App/FeatureSet/Dashboard/src/X"),
+      isAllowedEnterpriseImport(
+        "../../packages/App/FeatureSet/Dashboard/src/X",
+      ),
     ).toBe(false);
     expect(isAllowedEnterpriseImport("./../../packages/Common/X")).toBe(false);
 
@@ -742,7 +747,9 @@ describe("core never imports the Enterprise Edition", () => {
  * construction), so this block only has something to check in a full
  * checkout. It reports as skipped rather than passing vacuously.
  */
-const describeWhenEnterprisePresent: typeof describe.skip = fs.existsSync(EE_DIR)
+const describeWhenEnterprisePresent: typeof describe.skip = fs.existsSync(
+  EE_DIR,
+)
   ? describe
   : describe.skip;
 

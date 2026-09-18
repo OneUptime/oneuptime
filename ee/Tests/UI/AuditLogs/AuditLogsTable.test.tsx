@@ -181,7 +181,9 @@ describe("the audit logging switch", () => {
     renderTable({ rootResourceId: SLO_ID });
     await flushSettingsRead();
 
-    expect(screen.getByTestId("audit-logs-analytics-table")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("audit-logs-analytics-table"),
+    ).toBeInTheDocument();
     expect(capturedTableProps?.cardProps?.title).toBe("SLO Audit Logs");
     expect(capturedTableProps?.cardProps?.description).toBe(
       "Changes people made to this SLO.",

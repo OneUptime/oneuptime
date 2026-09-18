@@ -157,9 +157,9 @@ describe("UserService - the enterprise seat limit", () => {
     async (_label: string, props: Record<string, unknown>) => {
       fake.licensing.seatError = new BadDataException("No seats left");
 
-      await expect(
-        onBeforeCreate(makeCreateBy(props)),
-      ).rejects.toBeInstanceOf(BadDataException);
+      await expect(onBeforeCreate(makeCreateBy(props))).rejects.toBeInstanceOf(
+        BadDataException,
+      );
     },
   );
 

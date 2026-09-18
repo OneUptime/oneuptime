@@ -103,7 +103,7 @@ const isTestFixture: (relativePath: string) => boolean = (
 
   return (
     normalized.split("/").includes("Tests") ||
-    /\.test\.[cm]?[jt]sx?$/.test(normalized) ||
+    (/\.test\.[cm]?[jt]sx?$/).test(normalized) ||
     normalized.split("/").includes("__fixtures__")
   );
 };
