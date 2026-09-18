@@ -256,7 +256,7 @@ export default class StatusPageAPI extends BaseAPI<
     // get title, description of the page.  This is used for SEO.
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/seo/:statusPageIdOrDomain`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         const statusPageIdOrDomain: string = req.params[
           "statusPageIdOrDomain"
@@ -484,7 +484,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/incident-public-note/attachment/:statusPageId/:incidentId/:noteId/:fileId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getIncidentPublicNoteAttachment(req, res);
@@ -498,7 +498,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/incident-episode-public-note/attachment/:statusPageId/:episodeId/:noteId/:fileId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getIncidentEpisodePublicNoteAttachment(req, res);
@@ -512,7 +512,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/incident/postmortem/attachment/:statusPageId/:incidentId/:fileId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getIncidentPostmortemAttachment(req, res);
@@ -526,7 +526,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/scheduled-maintenance-public-note/attachment/:statusPageId/:scheduledMaintenanceId/:noteId/:fileId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getScheduledMaintenancePublicNoteAttachment(req, res);
@@ -540,7 +540,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getStatusPageAnnouncementAttachment(req, res);
@@ -931,7 +931,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!req.body["domain"]) {
@@ -975,7 +975,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/master-page/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const statusPageIdParam: string = req.params[
@@ -1158,7 +1158,7 @@ export default class StatusPageAPI extends BaseAPI<
       PublicDashboardRateLimit.getMiddleware(
         PublicDashboardRateLimitBucket.StatusPageMasterPassword,
       ),
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!req.params["statusPageId"]) {
@@ -1232,7 +1232,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/sso/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
@@ -1272,7 +1272,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/oidc/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
@@ -1315,7 +1315,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/resources/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const statusPageId: ObjectID = new ObjectID(
@@ -1366,7 +1366,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/uptime/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           // This reosurce ID can be of a status page resource OR a status page group.
@@ -1810,7 +1810,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       overviewApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       overviewHandler,
     );
 
@@ -1821,7 +1821,7 @@ export default class StatusPageAPI extends BaseAPI<
      */
     this.router.get(
       overviewApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       overviewHandler,
     );
 
@@ -1829,7 +1829,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/update-subscription/:statusPageId/:subscriberId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.subscribeToStatusPage(req);
@@ -1844,7 +1844,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/get-subscription/:statusPageId/:subscriberId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const subscriber: StatusPageSubscriber =
@@ -1866,7 +1866,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/subscribe/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.subscribeToStatusPage(req);
@@ -1882,7 +1882,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/manage-subscription/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.manageExistingSubscription(req);
@@ -1933,13 +1933,13 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       incidentsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       incidentsListHandler,
     );
 
     this.router.get(
       incidentsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       incidentsListHandler,
     );
 
@@ -1984,13 +1984,13 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       scheduledMaintenanceEventsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       scheduledMaintenanceEventsListHandler,
     );
 
     this.router.get(
       scheduledMaintenanceEventsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       scheduledMaintenanceEventsListHandler,
     );
 
@@ -2034,13 +2034,13 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       announcementsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       announcementsListHandler,
     );
 
     this.router.get(
       announcementsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       announcementsListHandler,
     );
 
@@ -2048,7 +2048,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/incidents/:statusPageIdOrDomain/:incidentId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = await resolveStatusPageIdOrThrow(
@@ -2076,7 +2076,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/scheduled-maintenance-events/:statusPageIdOrDomain/:scheduledMaintenanceId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = await resolveStatusPageIdOrThrow(
@@ -2105,7 +2105,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/announcements/:statusPageIdOrDomain/:announcementId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = await resolveStatusPageIdOrThrow(
@@ -2135,7 +2135,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/episodes/:statusPageIdOrDomain`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = await resolveStatusPageIdOrThrow(
@@ -2159,7 +2159,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/episodes/:statusPageIdOrDomain/:episodeId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = await resolveStatusPageIdOrThrow(

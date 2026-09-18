@@ -331,9 +331,11 @@ describe("StatusPageAPI master password rate limiting", () => {
       );
 
       expect(registered.middlewares[0]).not.toBe(
-        UserMiddleware.getUserMiddleware,
+        UserMiddleware.getPublicRouteUserMiddleware,
       );
-      expect(registered.middlewares[1]).toBe(UserMiddleware.getUserMiddleware);
+      expect(registered.middlewares[1]).toBe(
+        UserMiddleware.getPublicRouteUserMiddleware,
+      );
     });
   });
 
