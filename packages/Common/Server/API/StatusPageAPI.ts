@@ -31,6 +31,7 @@ import StatusPageService, {
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
@@ -46,8 +47,10 @@ import {
 } from "../../Types/StatusPage/SearchEngineIndexing";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import CommonAPI from "./CommonAPI";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ArrayUtil from "../../Utils/Array";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
@@ -55,6 +58,7 @@ import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -194,6 +198,56 @@ export default class StatusPageAPI extends BaseAPI<
   public static clearOverviewResponseCache(): void {
     this.overviewResponseCache.clear();
     this.overviewResponseInFlight.clear();
+  }
+
+  /*
+   * Holding one of StatusPage's update roles is not the same as being allowed
+   * to update a given page: team block rows, label-restricted grants and
+   * Owned-scoped grants all narrow it. Apply the checks a CRUD update of this
+   * page would run - block and label rules against the loaded page, then the
+   * query narrowing (tenant, labels, Owned scope) - and require the page to
+   * survive them. `statusPage` must have been loaded with its labels.
+   */
+  private static async assertCanUpdateStatusPage(data: {
+    statusPage: StatusPage;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await ModelPermission.checkUpdatePermissionByModel({
+      modelType: StatusPage,
+      fetchModelWithAccessControlIds: async (): Promise<StatusPage> => {
+        return data.statusPage;
+      },
+      props: data.props,
+    });
+
+    const permittedQuery: Query<StatusPage> =
+      await ModelPermission.checkUpdateQueryPermissions(
+        StatusPage,
+        {
+          _id: data.statusPage.id!,
+          projectId: data.projectId,
+        },
+        {},
+        data.props,
+      );
+
+    const permittedStatusPage: StatusPage | null =
+      await StatusPageService.findOneBy({
+        query: permittedQuery,
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!permittedStatusPage) {
+      throw new NotAuthorizedException(
+        "You do not have permission to send this status page's report.",
+      );
+    }
   }
 
   public constructor() {
@@ -795,15 +849,73 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
+    /*
+     * Sends the status page's report to an address the caller chooses, so it
+     * is gated like editing the status page: an authenticated member of the
+     * project that owns it who could update this particular page.
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/test-email-report`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
+          /*
+           * This route acts on one page in one project, and the permission
+           * checks below must be evaluated for that single tenant, so the
+           * request is never treated as multi-tenant.
+           */
+          const props: DatabaseCommonInteractionProps = {
+            ...(await CommonAPI.getDatabaseCommonInteractionProps(req)),
+            isMultiTenantRequest: false,
+          };
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new StatusPage().getUpdatePermissions(),
+            errorMessage:
+              "You do not have permission to send this status page's report.",
+          });
+
+          if (
+            !req.body["statusPageId"] ||
+            !ObjectID.isValidUUID(req.body["statusPageId"].toString())
+          ) {
+            throw new BadDataException("A valid statusPageId is required.");
+          }
+
           const email: Email = new Email(req.body["email"] as string);
           const statusPageId: ObjectID = new ObjectID(
             req.body["statusPageId"].toString() as string,
           );
+
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneById({
+              id: statusPageId,
+              select: {
+                _id: true,
+                projectId: true,
+                labels: {
+                  _id: true,
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          CommonAPI.assertResourceBelongsToProject({
+            resourceProjectId: statusPage?.projectId,
+            projectId,
+          });
+
+          await StatusPageAPI.assertCanUpdateStatusPage({
+            statusPage: statusPage!,
+            projectId,
+            props,
+          });
 
           await StatusPageService.sendEmailReport({
             email: email,
