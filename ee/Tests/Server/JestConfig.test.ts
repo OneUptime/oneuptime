@@ -157,16 +157,38 @@ describe("ee/jest.config.js", () => {
     }
   });
 
-  test("the frontend specifiers come before Common's patterns and map into the frontends", () => {
+  /*
+   * jest uses the first matching mapper. Asset mappers (keys that are not a
+   * bare module name) must win over ^Common/(.*)$, or an import such as
+   * "Common/UI/Images/logo.svg" resolves to the file and is parsed as JS; the
+   * frontend specifiers must win over every bare Common pattern, or
+   * "@oneuptime/dashboard/Components/Common/..." is caught by a Common/ key.
+   */
+  test("asset mappers come first, then the frontend specifiers, then Common's bare patterns", () => {
     const keys: Array<string> = Object.keys(project("ui").moduleNameMapper);
     const mapper: Record<string, string> = project("ui").moduleNameMapper;
+    const isAssetKey: (key: string) => boolean = (key: string): boolean => {
+      return key.startsWith("\\.");
+    };
 
-    expect(keys.slice(0, 4)).toEqual([
+    const assetKeys: Array<string> = keys.filter(isAssetKey);
+    expect(assetKeys.length).toBeGreaterThan(0);
+    expect(keys.slice(0, assetKeys.length)).toEqual(assetKeys);
+    expect(assetKeys.some((key: string) => {
+      return key.includes("svg");
+    })).toBe(true);
+
+    expect(
+      keys.slice(assetKeys.length, assetKeys.length + 4),
+    ).toEqual([
       "^@oneuptime/dashboard/(.*)$",
       "^@oneuptime/admin-dashboard/(.*)$",
       "^@oneuptime/ee-dashboard$",
       "^@oneuptime/ee-admin-dashboard$",
     ]);
+    expect(keys.indexOf("^Common/(.*)$")).toBeGreaterThan(
+      assetKeys.length + 3,
+    );
     expect(mapper["^@oneuptime/dashboard/(.*)$"]).toBe(
       path.join(APP_DIR, "FeatureSet", "Dashboard", "src", "$1"),
     );

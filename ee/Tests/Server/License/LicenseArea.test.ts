@@ -324,6 +324,23 @@ describe("License area - init(): refreshing an unverified license at boot", () =
     expect(licensing.getCachedSnapshot()?.status).toBe("valid");
   });
 
+  /*
+   * Before the key ceremony the build trusts no signing key, so a fresh
+   * license could not be verified either - every pod of every installation
+   * would call home on every boot for nothing.
+   */
+  it("does not call home while this build trusts no signing key", async () => {
+    installLegacyLicense();
+    setTrustedLicenseKeysForTests([]);
+
+    await LicenseArea.init!();
+
+    expect(getLastBootRefresh()).toBeNull();
+    expect(API.post).not.toHaveBeenCalled();
+    expect(licensing.getCachedSnapshot()?.status).toBe("valid");
+    expect(licensing.getCachedSnapshot()?.verification).toBe("unverified");
+  });
+
   it("does not call home for a verified license", async () => {
     store.row!["enterpriseLicenseKey"] = "acme-license-key";
     store.row!["enterpriseLicenseToken"] = signLicense(SIGNING_KEY);

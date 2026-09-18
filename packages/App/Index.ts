@@ -14,6 +14,7 @@ import AppMetricsAPI from "./API/Metrics";
 import AdminHealthAPI from "./API/AdminHealth";
 import EnterpriseLoader from "./Utils/EnterpriseLoader";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
+import CommunityEditionSsoReport from "Common/Server/Utils/CommunityEditionSsoReport";
 import Express, {
   ExpressApplication,
   ExpressRouter,
@@ -161,6 +162,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * IS_ENTERPRISE_EDITION=true without ee logs a loud warning.
      */
     await EnterpriseLoader.load();
+
+    /*
+     * On the Community Edition, log once which SSO requirements and SCIM team
+     * locks left over from an Enterprise install are no longer enforced (the
+     * SSO login routes are part of ee/). Fire-and-forget; no-op on EE.
+     */
+    void CommunityEditionSsoReport.logRelaxedEnforcementOnce();
 
     // Initialize real-time functionalities
     await Realtime.init();

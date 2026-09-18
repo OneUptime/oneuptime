@@ -19,6 +19,7 @@ import licenseProvider from "./LicenseProvider";
 import LicenseRanking, { GuardedLicenseUpdate } from "./LicenseRanking";
 import LicenseStore from "./LicenseStore";
 import { LicenseTokenClassification } from "./LicenseToken";
+import { getTrustedLicenseKeys } from "./TrustedLicenseKeys";
 
 /*
  * The license client's writes: activating a license online (a license key
@@ -354,12 +355,22 @@ export default class LicenseClient {
    * fresh one - which, once the license server signs, is a verified token.
    * Runs in the background: the boot never waits on the network.
    *
+   * Only while this build trusts at least one signing key. Before the key
+   * ceremony no answer can be verified, so every pod of every installation
+   * would call home on every boot for nothing; the daily usage report still
+   * keeps the license terms current. After it, the first successful refresh
+   * stores a verified token and later boots skip this again.
+   *
    * Returns the started refresh (for tests), or null when none was needed.
    */
   public static startBootRefreshIfUnverified(
     inputs: LicenseInputs | null,
   ): Promise<void> | null {
     if (IsBillingEnabled || !inputs || !inputs.licenseKey || !inputs.token) {
+      return null;
+    }
+
+    if (getTrustedLicenseKeys().length === 0) {
       return null;
     }
 

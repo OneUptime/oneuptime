@@ -47,5 +47,9 @@
     "resolveJsonModule": true
   },
   "include": ["Server/**/*", "Tests/**/*", "Scripts/**/*"],
-  "exclude": ["node_modules", "build"]
+  /*
+   * Tests/UI renders React screens and has its own tsconfig
+   * (Tests/UI/tsconfig.json), which `npm run compile` also runs.
+   */
+  "exclude": ["node_modules", "build", "Tests/UI"]
 }

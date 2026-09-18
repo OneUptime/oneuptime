@@ -6,10 +6,11 @@ import LicenseToken from "../Server/License/LicenseToken";
 /*
  * Generates the Ed25519 key pair OneUptime signs Enterprise licenses with.
  *
- *   node ../packages/App/node_modules/.bin/ts-node --transpile-only \
- *     Scripts/GenerateLicenseSigningKey.ts --out /secure/place/license-signing-key.pem
+ *   npm run generate-license-signing-key -- \
+ *     --out /secure/place/license-signing-key.pem
  *
- * (run from ee/). What it does, and what it deliberately does not:
+ * (run from ee/, with packages/App installed). What it does, and what it
+ * deliberately does not:
  *
  *   - writes the PRIVATE key (PKCS#8 PEM) to --out, creating the file with
  *     mode 0600 and refusing to overwrite anything that already exists;

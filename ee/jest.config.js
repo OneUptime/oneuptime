@@ -55,6 +55,11 @@ const ANCHORED_CORE_MAPPERS = {
 // A bare-module key such as "Common/(.*)" matches anywhere in a path unless anchored.
 const BARE_MODULE_KEY = /^[A-Za-z@]/;
 
+// A file-extension mapper such as "\.(svg|png)$" (asset stubs).
+const isFileExtensionKey = (key) => {
+  return key.startsWith("\\.");
+};
+
 const withCommonRoot = (value) => {
   return value.split("<rootDir>").join(COMMON_DIR);
 };
@@ -75,12 +80,26 @@ const readCommonJestConfig = () => {
 
 /*
  * Common's mappers with <rootDir> pointing at packages/Common and every
- * bare-module key anchored. The ee-specific keys come FIRST: jest uses the
- * first mapper that matches, and "@oneuptime/dashboard/Components/Common/..."
- * would otherwise be caught by a Common/ pattern.
+ * bare-module key anchored. jest uses the FIRST mapper that matches, so the
+ * order is:
+ *
+ *   1. Common's asset mappers (\.(css|svg|png...)$ and the like) - otherwise
+ *      "Common/UI/Images/x.svg" is caught by ^Common/(.*)$ and parsed as JS;
+ *   2. the ee-specific keys - "@oneuptime/dashboard/Components/Common/..."
+ *      would otherwise be caught by a Common/ pattern;
+ *   3. the rest of Common's (bare-module) mappers.
  */
 const deriveUiModuleNameMapper = (commonJestConfig) => {
-  const mapper = {
+  const commonEntries = Object.entries(commonJestConfig.moduleNameMapper || {});
+  const mapper = {};
+
+  for (const [key, value] of commonEntries) {
+    if (isFileExtensionKey(key)) {
+      mapper[key] = withCommonRoot(value);
+    }
+  }
+
+  Object.assign(mapper, {
     "^@oneuptime/dashboard/(.*)$": path.join(DASHBOARD_SRC_DIR, "$1"),
     "^@oneuptime/admin-dashboard/(.*)$": path.join(
       ADMIN_DASHBOARD_SRC_DIR,
@@ -93,11 +112,13 @@ const deriveUiModuleNameMapper = (commonJestConfig) => {
       "Index.tsx",
     ),
     ...ANCHORED_CORE_MAPPERS,
-  };
+  });
 
-  for (const [key, value] of Object.entries(
-    commonJestConfig.moduleNameMapper || {},
-  )) {
+  for (const [key, value] of commonEntries) {
+    if (isFileExtensionKey(key)) {
+      continue;
+    }
+
     const anchoredKey = anchor(key);
 
     if (anchoredKey in mapper) {
