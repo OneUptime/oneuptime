@@ -172,6 +172,14 @@ function rule(data) {
   record.refireSuppressionMinutes = data.refireSuppressionMinutes;
   record.shouldCreateAlert = data.shouldCreateAlert;
   record.shouldCreateIncident = data.shouldCreateIncident;
+  // Existing database rows have null templates when they use the backend
+  // fallback. Unlike missing create values, these must not be prefilled.
+  record.alertTitleTemplate = data.alertTitleTemplate ?? null;
+  record.alertDescriptionTemplate = data.alertDescriptionTemplate ?? null;
+  record.alertRemediationNotes = data.alertRemediationNotes ?? null;
+  record.incidentTitleTemplate = data.incidentTitleTemplate ?? null;
+  record.incidentDescriptionTemplate = data.incidentDescriptionTemplate ?? null;
+  record.incidentRemediationNotes = data.incidentRemediationNotes ?? null;
   record.alertSeverity = data.alertSeverity;
   record.alertSeverityId = data.alertSeverity && data.alertSeverity.id;
   record.incidentSeverity = data.incidentSeverity;

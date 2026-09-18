@@ -5,6 +5,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
 import {
+  DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
   SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
   SLO_BURN_RATE_TEMPLATE_VARIABLES,
@@ -606,6 +607,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     fieldType: FormFieldSchemaType.Text,
     required: false,
     placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+    defaultValue: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
     validation: {
       maxLength: SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
     },
@@ -635,6 +637,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     title: "Alert Description",
     description: `Description of the alert, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
     fieldType: FormFieldSchemaType.Markdown,
+    defaultValue: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
     required: false,
     validation: {
       maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
@@ -765,6 +768,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     fieldType: FormFieldSchemaType.Text,
     required: false,
     placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+    defaultValue: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
     validation: {
       maxLength: SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
     },
@@ -794,6 +798,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     title: "Incident Description",
     description: `Description of the incident, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
     fieldType: FormFieldSchemaType.Markdown,
+    defaultValue: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
     required: false,
     validation: {
       maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,

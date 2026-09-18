@@ -5,6 +5,10 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import {
+  DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+  DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
+} from "Common/Utils/Slo/SloBurnRateTemplate";
 import fs from "fs/promises";
 import path from "path";
 
@@ -428,11 +432,17 @@ test("each output keeps title and severity beside collapsible optional sections"
     await expect(
       page.getByPlaceholder("SLO burn rate: {{sloName}} — {{ruleName}}"),
     ).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: `${output} Title` }),
+    ).toHaveValue(DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE);
+    await expect(
+      page.getByRole("textbox", { name: `${output} Description` }),
+    ).toHaveText(DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE);
 
     for (const title of OUTPUT_SECTIONS) {
       await expect(
         page.getByRole("button", { name: title, exact: true }),
-      ).toHaveAttribute("aria-expanded", "false");
+      ).toHaveAttribute("aria-expanded", String(title === "Description"));
     }
 
     await screenshot(
@@ -667,6 +677,9 @@ test("editing expands configured sections and keeps empty defaults collapsed", a
   await reachOutputStep(page);
   for (const output of ["Alert", "Incident"]) {
     await expect(
+      page.getByRole("textbox", { name: `${output} Title` }),
+    ).toHaveValue("");
+    await expect(
       page
         .getByRole("dialog")
         .getByText(output === "Alert" ? "Checkout team" : "Jane Doe", {
@@ -782,6 +795,10 @@ test("the wider modal fits a narrow viewport and its sections work by keyboard",
     name: "Description",
     exact: true,
   });
+  await expect(description).toHaveAttribute("aria-expanded", "true");
+  await description.focus();
+  await page.keyboard.press("Space");
+  await expect(description).toHaveAttribute("aria-expanded", "false");
   await description.focus();
   await page.keyboard.press("Enter");
   await expect(description).toHaveAttribute("aria-expanded", "true");
@@ -799,3 +816,171 @@ test("the wider modal fits a narrow viewport and its sections work by keyboard",
     .click();
   await expect(dialog).toHaveCount(0);
 });
+
+test("default templates survive saving and reopening, and clearing them keeps the backend fallback", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openCreateForm(page);
+  await fillRuleAndWindow(page, "Default templates");
+  await next(page);
+  await toggle(page, "Declare Incident").click();
+  await next(page);
+
+  for (const output of ["Alert", "Incident"]) {
+    await expect(
+      page.getByRole("textbox", { name: `${output} Title` }),
+    ).toHaveValue(DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE);
+    await expect(
+      page.getByRole("textbox", { name: `${output} Description` }),
+    ).toHaveText(DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE);
+    await expect(
+      page.getByRole("button", { name: "Description", exact: true }),
+    ).toHaveAttribute("aria-expanded", "true");
+    if (output === "Alert") {
+      await next(page);
+    }
+  }
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Create SLO Burn Rate Rule", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await openEditForm(page, "Default templates");
+  await reachOutputStep(page);
+  for (const output of ["Alert", "Incident"]) {
+    const title: Locator = page.getByRole("textbox", {
+      name: `${output} Title`,
+    });
+    const description: Locator = page.getByRole("textbox", {
+      name: `${output} Description`,
+    });
+    await expect(title).toHaveValue(DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE);
+    await expect(description).toHaveText(
+      DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+    );
+    await title.fill("");
+    await description.fill("");
+    if (output === "Alert") {
+      await next(page);
+    }
+  }
+  await page.getByRole("button", { name: "Save Changes", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await openEditForm(page, "Default templates");
+  await reachOutputStep(page);
+  for (const output of ["Alert", "Incident"]) {
+    await expect(
+      page.getByRole("textbox", { name: `${output} Title` }),
+    ).toHaveValue("");
+    await expect(
+      page.getByRole("button", { name: "Description", exact: true }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await setSection(page, "Description", true);
+    await expect(
+      page.getByRole("textbox", { name: `${output} Description` }),
+    ).toBeEmpty();
+    if (output === "Alert") {
+      await next(page);
+    }
+  }
+});
+
+for (const disabledOutput of ["Alert", "Incident"]) {
+  test(`a disabled ${disabledOutput.toLowerCase()} restores its configured values after saving and re-enabling`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEditForm(page, "Fast burn");
+    await reachOutputStep(page);
+    for (const output of ["Alert", "Incident"]) {
+      await page
+        .getByRole("textbox", { name: `${output} Title` })
+        .fill(`Retained ${output.toLowerCase()} title`);
+      await setSection(page, "Description", true);
+      await page
+        .getByRole("textbox", { name: `${output} Description` })
+        .fill(`Retained ${output.toLowerCase()} description`);
+      if (output === "Alert") {
+        await next(page);
+      }
+    }
+
+    await page
+      .locator('nav[aria-label="Progress"] li')
+      .filter({ hasText: /^What It Declares$/ })
+      .click();
+    const disabledToggle: string =
+      disabledOutput === "Alert" ? "Create Alert" : "Declare Incident";
+    const enabledOutput: string =
+      disabledOutput === "Alert" ? "Incident" : "Alert";
+    await toggle(page, disabledToggle).click();
+    await expect
+      .poll(() => {
+        return visibleSteps(page);
+      })
+      .toEqual(["Rule", "Burn Window", "What It Declares", enabledOutput]);
+    await next(page);
+    await expect(
+      page.getByRole("textbox", { name: `${enabledOutput} Title` }),
+    ).toHaveValue(`Retained ${enabledOutput.toLowerCase()} title`);
+    await expect(
+      page.getByRole("textbox", { name: `${disabledOutput} Title` }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Save Changes", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await openEditForm(page, "Fast burn");
+    await next(page);
+    await next(page);
+    await expect(toggle(page, disabledToggle)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await toggle(page, disabledToggle).click();
+    await expect
+      .poll(() => {
+        return visibleSteps(page);
+      })
+      .toEqual(STEP_RAIL);
+    await next(page);
+
+    for (const output of ["Alert", "Incident"]) {
+      await expect(
+        page.getByRole("textbox", { name: `${output} Title` }),
+      ).toHaveValue(`Retained ${output.toLowerCase()} title`);
+      await expect(
+        page.getByRole("textbox", { name: `${output} Description` }),
+      ).toHaveText(`Retained ${output.toLowerCase()} description`);
+      for (const section of ["Description", "Ownership & Labels", "On-Call"]) {
+        await expect(
+          page.getByRole("button", { name: section, exact: true }),
+        ).toHaveAttribute("aria-expanded", "true");
+      }
+      const savedRelations: Array<string> =
+        output === "Alert"
+          ? ["Critical", "Checkout team", "Checkout on-call", "checkout"]
+          : [
+              "SEV1 - Critical",
+              "Jane Doe",
+              "Major incident commander",
+              "checkout",
+              "customer-impact",
+            ];
+      for (const relation of savedRelations) {
+        await expect(
+          page.getByRole("dialog").getByText(relation, { exact: true }),
+        ).toBeVisible();
+      }
+      if (output === "Alert") {
+        await next(page);
+      }
+    }
+  });
+}

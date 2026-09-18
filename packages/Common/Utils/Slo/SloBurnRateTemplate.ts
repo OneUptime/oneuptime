@@ -175,8 +175,8 @@ export const SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH: number = 50000;
  * existed, expressed as templates. Rendering these with the variable map
  * reproduces the old strings character for character (the worker test pins
  * the literal), so a rule with blank templates - every existing and every
- * seeded rule - raises exactly what it always did. The dashboard shows them as
- * placeholders, so the default is visible rather than implied.
+ * seeded rule - raises exactly what it always did. The dashboard prefills new
+ * rules with these templates so users can review and customize the defaults.
  */
 export const DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE: string =
   "SLO burn rate: {{sloName}} — {{ruleName}}";

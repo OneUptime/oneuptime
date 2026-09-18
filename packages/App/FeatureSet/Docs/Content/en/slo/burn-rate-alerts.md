@@ -99,7 +99,7 @@ Nothing re-declares it. The rule will not open another incident until the burn r
 
 ## What each alert and incident says
 
-Leave the **title** and **description** empty and the rule uses its built-in text. The title is:
+New rules prefill both the alert and incident **title** and **description** with the built-in templates, ready to edit. Existing custom text and deliberately cleared fields are preserved when you edit a rule. Clear a title or description to use the built-in text automatically. The default title is:
 
 ```
 SLO burn rate: {{sloName}} — {{ruleName}}
@@ -186,7 +186,7 @@ While any monitor attached to the SLO is in an active scheduled maintenance wind
 | **Alert**            | The alert’s **title** and **severity**, plus expandable sections for **Description**, **Ownership & Labels**, **On-Call** and **Advanced Options**. |
 | **Incident**         | The incident’s own **title**, **severity** and optional settings, grouped in the same way.                                                          |
 
-Optional sections open automatically when they contain saved settings. **Advanced Options** contains auto-resolve, privacy and remediation notes.
+Description sections open automatically to show the prefilled text on new rules. Other sections open when they contain saved settings. **Advanced Options** contains auto-resolve, privacy and remediation notes.
 
 The alert and incident steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incidents.
 

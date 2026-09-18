@@ -129,7 +129,7 @@ The form walks the questions a rule answers:
 | **Alert** | Title and severity, with expandable sections for description, ownership and labels, on-call policies, and advanced options. |
 | **Incident** | The incident’s own title, severity and optional settings, grouped in the same way. |
 
-Optional sections open automatically when they contain saved settings.
+New rules prefill the alert and incident titles and descriptions with editable defaults. Sections open automatically when they contain a prefilled description or saved settings.
 
 The alert and incident steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incidents.
 

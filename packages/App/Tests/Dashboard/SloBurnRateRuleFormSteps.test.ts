@@ -21,6 +21,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import {
+  DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
   SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
   SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
@@ -425,7 +426,7 @@ describe("the template fields", () => {
     "incidentRemediationNotes",
   ];
 
-  test("titles are single-line text, limited like the server and showing the default", () => {
+  test("titles prefill the worker's default as editable text and remain optional", () => {
     for (const column of TITLE_COLUMNS) {
       const field: FieldOf = fieldFor(column);
 
@@ -436,14 +437,35 @@ describe("the template fields", () => {
       );
 
       /*
-       * The placeholder IS the default template, so an empty field shows what
-       * the record will be titled rather than implying it will be untitled.
+       * A default must be a value, not only a placeholder. Keep the placeholder
+       * too, so clearing the field still explains the worker's fallback.
        */
       expect(field.placeholder).toBe(DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE);
+      expect(field.defaultValue).toBe(DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE);
       expect(descriptionOf(field)).toContain(
         DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
       );
     }
+  });
+
+  test.each(["alertDescriptionTemplate", "incidentDescriptionTemplate"])(
+    "%s prefills the worker's description and permits clearing to the fallback",
+    (column: string) => {
+      const field: FieldOf = fieldFor(column);
+      expect(field.fieldType).toBe(FormFieldSchemaType.Markdown);
+      expect(field.defaultValue).toBe(
+        DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+      );
+      expect(field.required).toBe(false);
+      expect(
+        DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE.length,
+      ).toBeLessThanOrEqual(field.validation!.maxLength!);
+    },
+  );
+
+  test("prefilling descriptions leaves both remediation notes empty", () => {
+    expect(fieldFor("alertRemediationNotes").defaultValue).toBeUndefined();
+    expect(fieldFor("incidentRemediationNotes").defaultValue).toBeUndefined();
   });
 
   test("the title limit is the column's own length, so a saved template always fits", () => {
@@ -802,7 +824,7 @@ describe("the output sections", () => {
     },
   );
 
-  test("an untouched rule keeps every optional section collapsed, including auto-resolve defaults", () => {
+  test("values without templates keep optional sections collapsed, including auto-resolve defaults", () => {
     for (const field of BURN_RATE_RULE_FORM_FIELDS) {
       if (field.collapsibleSection) {
         expect(field.collapsibleSection.isConfigured({})).toBe(false);
@@ -812,6 +834,25 @@ describe("the output sections", () => {
             autoResolveIncident: true,
           }),
         ).toBe(false);
+      }
+    }
+  });
+
+  test("prefilled descriptions open their sections while routing and advanced defaults stay collapsed", () => {
+    const defaults: FormValues<ServiceLevelObjectiveBurnRateRule> =
+      Object.fromEntries(
+        BURN_RATE_RULE_FORM_FIELDS.filter((field: FieldOf): boolean => {
+          return field.defaultValue !== undefined;
+        }).map((field: FieldOf): [string, unknown] => {
+          return [columnOf(field), field.defaultValue];
+        }),
+      );
+
+    for (const field of BURN_RATE_RULE_FORM_FIELDS) {
+      if (field.collapsibleSection) {
+        expect(field.collapsibleSection.isConfigured(defaults)).toBe(
+          field.collapsibleSection.title === "Description",
+        );
       }
     }
   });
