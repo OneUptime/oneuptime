@@ -1,7 +1,3 @@
-import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
-import RouteMap from "@oneuptime/admin-dashboard/Utils/RouteMap";
-import HealthPage from "@oneuptime/admin-dashboard/Pages/Health/HealthPage";
-import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -845,18 +841,9 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
   );
 };
 
-const QueryConsole: FunctionComponent = (): ReactElement => {
-  return (
-    <HealthPage
-      title="Query Console"
-      currentRoute={RouteMap[PageMap.HEALTH_QUERY] as Route}
-      enterpriseOnly={true}
-      enterpriseFeatureName="Query console"
-      enterpriseFeatureDescription="Run ad-hoc Postgres, ClickHouse and Valkey queries against the datastores backing this instance, with read-only safety and result export."
-    >
-      <QueryConsoleContent />
-    </HealthPage>
-  );
-};
-
-export default QueryConsole;
+/*
+ * The core Health > Query Console page renders this content inside the Health
+ * layout on the self-hosted Enterprise Edition. The server refuses the console
+ * on OneUptime Cloud and without a license that covers instance health.
+ */
+export default QueryConsoleContent;

@@ -1,6 +1,5 @@
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
-import HealthPage from "@oneuptime/admin-dashboard/Pages/Health/HealthPage";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -224,13 +223,6 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
       route: route(PageMap.HEALTH_QUERY),
     },
     {
-      title: "Instance Logs",
-      description:
-        "Audit trail of capacity notifications and automatic pruning work.",
-      icon: IconProp.Logs,
-      route: route(PageMap.HEALTH_INSTANCE_LOGS),
-    },
-    {
       title: "Diagnostic Logs",
       description: "Recent application and datastore diagnostic output.",
       icon: IconProp.List,
@@ -242,24 +234,6 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
         "Log, metric and trace ingestion rate — per signal and per project.",
       icon: IconProp.ChartBar,
       route: route(PageMap.HEALTH_TELEMETRY),
-    },
-    {
-      title: "Global Probes",
-      description: "Connectivity and status of the global monitoring probes.",
-      icon: IconProp.Signal,
-      route: route(PageMap.HEALTH_PROBES),
-    },
-    {
-      title: "Migrations",
-      description: "Database schema migration status and history.",
-      icon: IconProp.Database,
-      route: route(PageMap.HEALTH_MIGRATIONS),
-    },
-    {
-      title: "Support Bundle",
-      description: "Download a diagnostic bundle to share with support.",
-      icon: IconProp.File,
-      route: route(PageMap.HEALTH_SUPPORT_BUNDLE),
     },
   ];
 
@@ -318,7 +292,7 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
 
       <Card
         title="Explore"
-        description="Jump to the diagnostics, maintenance and tooling for this instance."
+        description="Jump to the enterprise diagnostics and tooling for this instance. ClickHouse capacity, the instance log, probes, migrations and the support bundle are listed below."
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {shortcuts.map((shortcut: Shortcut): ReactElement => {
@@ -357,18 +331,9 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
   );
 };
 
-const Health: FunctionComponent = (): ReactElement => {
-  return (
-    <HealthPage
-      title="Overview"
-      currentRoute={RouteMap[PageMap.HEALTH] as Route}
-      enterpriseOnly={true}
-      enterpriseFeatureName="OneUptime Health Dashboard"
-      enterpriseFeatureDescription="A cluster-health summary of every datastore and the background-queue workers, with shortcuts into the full diagnostics for this OneUptime deployment."
-    >
-      <HealthOverview />
-    </HealthPage>
-  );
-};
-
-export default Health;
+/*
+ * The Enterprise part of the Health landing page. The core page renders it
+ * above the Community sections (ClickHouse capacity and the tools available on
+ * every edition), inside the Health layout.
+ */
+export default HealthOverview;

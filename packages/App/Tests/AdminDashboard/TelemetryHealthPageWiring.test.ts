@@ -3,19 +3,25 @@ import fs from "fs";
 import nodePath from "path";
 
 /*
- * Instance Health > Diagnostics > Telemetry is reached through five independent
+ * Instance Health > Diagnostics > Telemetry is reached through independent
  * hand-written wirings — a PageMap key, a RouteMap Route, a PageRoute in
- * App.tsx, a SideMenuItem and a shortcut on the health overview — and it is fed
- * by two API routes whose paths are typed out separately in the server and in
- * the components that call them. Nothing ties any of that together, and every
- * one of them fails quietly:
+ * App.tsx and a SideMenuItem — and it is fed by two API routes whose paths are
+ * typed out separately in the server and in the screens that call them.
+ * Nothing ties any of that together, and every one of them fails quietly:
  *
  *  - a missing RouteMap entry makes RouteUtil.populateRouteParams stringify
  *    `undefined`, so the side-menu link and the breadcrumb both point at
  *    "/undefined";
  *  - a missing PageRoute in App.tsx renders a blank page under a working link;
- *  - and a route path that drifts from the one the component fetches produces a
+ *  - and a route path that drifts from the one the screen fetches produces a
  *    404 the page reports as a generic error, with the numbers simply absent.
+ *
+ * Telemetry ingestion is an Enterprise Edition screen. Its content (the two
+ * tabs and the components that call the API) ships in the enterprise plugin
+ * under ee/, which the Community build does not contain, so this core suite
+ * pins only what core owns: the route, the page shell that renders the plugin
+ * or the upsell, the Health layout, and the server routes. The screen-side
+ * pins live with the screens in ee/Tests/UI/Health.
  *
  * The page also exists because the ingestion card MOVED here off the ClickHouse
  * datastore page. A re-added copy there would not fail anything — it would just
@@ -37,6 +43,11 @@ let PageMap: PageMapModule["default"];
 const ADMIN_DASHBOARD_SRC: string = nodePath.join(
   __dirname,
   "../../FeatureSet/AdminDashboard/src",
+);
+
+const HEALTH_PAGES_DIR: string = nodePath.join(
+  ADMIN_DASHBOARD_SRC,
+  "Pages/Health",
 );
 
 /*
@@ -79,21 +90,47 @@ function routePath(pageKey: string): string {
 
 const appSource: string = readAdminSource("App.tsx");
 const sideMenuSource: string = readAdminSource("Pages/Health/SideMenu.tsx");
-const overviewSource: string = readAdminSource("Pages/Health/Index.tsx");
 const telemetryPageSource: string = readAdminSource(
   "Pages/Health/Telemetry.tsx",
 );
 const clickhousePageSource: string = readAdminSource(
   "Pages/Health/Clickhouse.tsx",
 );
-const byProjectSource: string = readAdminSource(
-  "Pages/Health/TelemetryIngestionByProject.tsx",
-);
-const bySignalSource: string = readAdminSource(
-  "Pages/Health/TelemetryIngestionBySignal.tsx",
+const healthLayoutSource: string = readAdminSource(
+  "Pages/Health/HealthPage.tsx",
 );
 const adminHealthApiSource: string = readAppSource("API/AdminHealth.ts");
 const appIndexSource: string = readAppSource("Index.ts");
+
+/*
+ * Every Health page whose content is an Enterprise feature, and the plugin
+ * key its shell renders. The Community pages (ClickHouse capacity, the
+ * instance log, probes, migrations, the support bundle) are not in this list.
+ */
+const ENTERPRISE_HEALTH_SHELLS: Array<{ file: string; pluginKey: string }> = [
+  { file: "Index.tsx", pluginKey: "HealthOverview" },
+  { file: "Queues.tsx", pluginKey: "HealthQueues" },
+  { file: "Postgres.tsx", pluginKey: "HealthPostgres" },
+  { file: "Redis.tsx", pluginKey: "HealthRedis" },
+  { file: "Logs.tsx", pluginKey: "HealthLogs" },
+  { file: "Telemetry.tsx", pluginKey: "HealthTelemetry" },
+  { file: "QueryConsole.tsx", pluginKey: "HealthQueryConsole" },
+  { file: "Clickhouse.tsx", pluginKey: "HealthClickhouseCluster" },
+];
+
+// The Enterprise screens that moved to ee/AdminDashboard/Health.
+const MOVED_TO_ENTERPRISE: Array<string> = [
+  "BackgroundQueues.tsx",
+  "ClickhouseCluster.tsx",
+  "DiagnosticLogs.tsx",
+  "PostgresCluster.tsx",
+  "PostgresHealthSettings.tsx",
+  "RedisHealth.tsx",
+  "RedisHealthSettings.tsx",
+  "TelemetryIngestionByProject.tsx",
+  "TelemetryIngestionBySignal.tsx",
+  "TelemetryIngestionUtils.ts",
+];
 
 /*
  * Common/UI/Config reads `window` the moment it loads, and ObjectID is pulled in
@@ -216,32 +253,16 @@ describe("Health > Telemetry page registration", () => {
     expect(linkAt).toBeGreaterThan(diagnosticsAt);
     expect(linkAt).toBeLessThan(nextSectionAt);
   });
-
-  test("the health overview offers it as a shortcut", () => {
-    expect(overviewSource).toContain("route(PageMap.HEALTH_TELEMETRY)");
-  });
 });
 
-describe("Health > Telemetry page contents", () => {
-  test("the page renders both views", () => {
-    expect(telemetryPageSource).toContain("<TelemetryIngestionBySignal />");
-    expect(telemetryPageSource).toContain("<TelemetryIngestionByProject />");
-  });
-
-  // The per-project breakdown is the new view, and it belongs in its own tab.
-  test("the two views are tabs rather than stacked cards", () => {
-    expect(telemetryPageSource).toContain("<Tabs");
-    expect(telemetryPageSource).toMatch(/name:\s*"By signal"/);
-    expect(telemetryPageSource).toMatch(/name:\s*"By project"/);
-  });
-
-  /*
-   * Every other page under OneUptime Health is Enterprise-gated. A page that
-   * forgot the flag would render its cards on Community and then fail every
-   * request with a payment-required error the user cannot act on.
-   */
-  test("the page carries the same Enterprise gate as its siblings", () => {
-    expect(telemetryPageSource).toContain("enterpriseOnly={true}");
+describe("Health > Telemetry page shell", () => {
+  test("renders the enterprise Telemetry plugin, or the upsell", () => {
+    expect(telemetryPageSource).toContain("<EnterprisePluginPage");
+    expect(telemetryPageSource).toContain(
+      "getAdminDashboardPlugins().HealthTelemetry",
+    );
+    expect(telemetryPageSource).toContain("<EnterpriseHealthUpgrade");
+    expect(telemetryPageSource).toContain('featureName="Telemetry ingestion"');
   });
 
   test("the page uses the shared health layout, so it keeps the side menu", () => {
@@ -249,6 +270,72 @@ describe("Health > Telemetry page contents", () => {
     expect(telemetryPageSource).toContain(
       "currentRoute={RouteMap[PageMap.HEALTH_TELEMETRY] as Route}",
     );
+  });
+
+  // The screens it used to import directly are enterprise code now.
+  test("does not import the enterprise screens", () => {
+    expect(telemetryPageSource).not.toContain("TelemetryIngestionBySignal");
+    expect(telemetryPageSource).not.toContain("TelemetryIngestionByProject");
+  });
+});
+
+describe("the Health pages decide the edition in one place", () => {
+  /*
+   * The layout used to carry an `enterpriseOnly` flag that read the raw
+   * edition; a page that forgot it rendered Enterprise cards on the Community
+   * Edition and then failed every request with a payment-required error.
+   */
+  test("the Health layout has no edition gate of its own", () => {
+    expect(healthLayoutSource).not.toContain("enterpriseOnly");
+    expect(healthLayoutSource).not.toContain("IS_ENTERPRISE_EDITION");
+    expect(healthLayoutSource).not.toContain("EnterpriseHealthUpgrade");
+  });
+
+  test("no Health page passes the removed enterpriseOnly flag", () => {
+    for (const file of fs.readdirSync(HEALTH_PAGES_DIR)) {
+      expect({
+        file,
+        enterpriseOnly: readAdminSource(`Pages/Health/${file}`).includes(
+          "enterpriseOnly",
+        ),
+      }).toEqual({ file, enterpriseOnly: false });
+    }
+  });
+
+  test.each(ENTERPRISE_HEALTH_SHELLS)(
+    "$file renders its Enterprise content through the $pluginKey plugin",
+    (shell: { file: string; pluginKey: string }) => {
+      const source: string = readAdminSource(`Pages/Health/${shell.file}`);
+
+      expect(source).toContain("<EnterprisePluginPage");
+      expect(source).toContain(
+        `getAdminDashboardPlugins().${shell.pluginKey}`,
+      );
+      expect(source).toContain("<HealthPage");
+      expect(source).toContain("renderUpsell=");
+    },
+  );
+
+  test.each(MOVED_TO_ENTERPRISE)(
+    "%s is no longer in the Community Admin Dashboard",
+    (file: string) => {
+      expect(fs.existsSync(nodePath.join(HEALTH_PAGES_DIR, file))).toBe(false);
+    },
+  );
+
+  test("no Health page imports a screen that moved to ee", () => {
+    for (const file of fs.readdirSync(HEALTH_PAGES_DIR)) {
+      const source: string = readAdminSource(`Pages/Health/${file}`);
+
+      for (const moved of MOVED_TO_ENTERPRISE) {
+        const moduleName: string = moved.replace(/\.tsx?$/, "");
+
+        expect({
+          file,
+          imports: source.includes(`from "./${moduleName}"`),
+        }).toEqual({ file, imports: false });
+      }
+    }
   });
 });
 
@@ -264,9 +351,32 @@ describe("the ingestion card moved off the ClickHouse page", () => {
     expect(clickhousePageSource).not.toContain("ClickhouseTelemetryIngestion");
   });
 
-  test("the ClickHouse page keeps its datastore cards", () => {
+  /*
+   * Capacity and its settings are Community features (capacity alerts and
+   * automatic pruning run on every edition), so they render outside the
+   * plugin; only the cluster section is Enterprise.
+   */
+  test("the ClickHouse page keeps its datastore cards, capacity on every edition", () => {
     expect(clickhousePageSource).toContain("<ClickhouseCapacity />");
-    expect(clickhousePageSource).toContain("<ClickhouseCluster />");
+    expect(clickhousePageSource).toContain("<ClickhouseCapacitySettings />");
+    expect(clickhousePageSource).toContain(
+      "getAdminDashboardPlugins().HealthClickhouseCluster",
+    );
+
+    const pluginAt: number = clickhousePageSource.indexOf(
+      "<EnterprisePluginPage",
+    );
+    const pluginEnd: number = clickhousePageSource.indexOf("/>", pluginAt);
+    const capacityAt: number = clickhousePageSource.indexOf(
+      "<ClickhouseCapacity />",
+    );
+    const settingsAt: number = clickhousePageSource.indexOf(
+      "<ClickhouseCapacitySettings />",
+    );
+
+    // Both capacity cards sit outside the plugin element.
+    expect(capacityAt).toBeLessThan(pluginAt);
+    expect(settingsAt).toBeGreaterThan(pluginEnd);
   });
 
   // The old file is gone, so nothing can import the superseded copy by accident.
@@ -286,27 +396,18 @@ describe("API wiring", () => {
   const HEALTH_API_PREFIX: string = "/api/admin/health";
 
   /*
-   * The components build their URLs as APP_API_URL + "/admin/health/<route>",
+   * The screens build their URLs as APP_API_URL + "/admin/health/<route>",
    * and the server mounts this router at "/api/admin/health". If either half
    * moves, every request 404s and the page shows an error instead of numbers.
    */
-  test("the health router is mounted where the components look for it", () => {
+  test("the health router is mounted where the screens look for it", () => {
     expect(appIndexSource).toContain(
       `expressApp.use("${HEALTH_API_PREFIX}", AdminHealthAPI)`,
     );
   });
 
-  test("the by-signal card calls a route the API registers", () => {
-    expect(bySignalSource).toContain(
-      '"/admin/health/clickhouse-telemetry-ingestion"',
-    );
+  test("the API registers both ingestion routes", () => {
     expect(adminHealthApiSource).toContain('"/clickhouse-telemetry-ingestion"');
-  });
-
-  test("the by-project card calls a route the API registers", () => {
-    expect(byProjectSource).toContain(
-      '"/admin/health/clickhouse-telemetry-ingestion-by-project"',
-    );
     expect(adminHealthApiSource).toContain(
       '"/clickhouse-telemetry-ingestion-by-project"',
     );
@@ -324,15 +425,23 @@ describe("API wiring", () => {
     );
   });
 
-  // Same Enterprise gate as the page that calls it, and as every sibling route.
-  test("the by-project route is Enterprise-gated", () => {
-    const routeAt: number = adminHealthApiSource.indexOf(
+  /*
+   * Same licensed gate as every other live dashboard route: the Enterprise
+   * Edition with a license that covers instance health (OneUptime Cloud
+   * always passes). Never the raw IS_ENTERPRISE_EDITION flag.
+   */
+  test("both ingestion routes are license-gated", () => {
+    for (const route of [
+      '"/clickhouse-telemetry-ingestion"',
       '"/clickhouse-telemetry-ingestion-by-project"',
-    );
-    const handler: string = adminHealthApiSource.slice(routeAt, routeAt + 1200);
+    ]) {
+      const routeAt: number = adminHealthApiSource.indexOf(route);
+      const handler: string = adminHealthApiSource.slice(routeAt, routeAt + 600);
 
-    expect(handler).toContain("if (!IsEnterpriseEdition)");
-    expect(handler).toContain("PaymentRequiredException");
+      expect(handler).toContain("EnterpriseEdition.assertFeatureAvailable(");
+      expect(handler).toContain("EnterpriseFeature.InstanceHealth");
+      expect(handler).not.toContain("IsEnterpriseEdition");
+    }
   });
 
   /*
@@ -349,9 +458,9 @@ describe("API wiring", () => {
   });
 
   /*
-   * The support bundle carries the by-signal ingestion figures. Moving the probe
-   * out of this file must not have dropped them from the bundle operators send
-   * us when they report an ingest problem.
+   * The support bundle carries the by-signal ingestion figures, on every
+   * edition. Moving the probe out of this file must not have dropped them
+   * from the bundle operators send us when they report an ingest problem.
    */
   test("the support bundle still carries the by-signal ingestion figures", () => {
     expect(adminHealthApiSource).toContain("clickhouseTelemetryIngestion,");
