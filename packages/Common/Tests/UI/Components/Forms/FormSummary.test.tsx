@@ -452,3 +452,131 @@ describe("FormSummary: titles and descriptions", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+/*
+ * A dropdown's form value is only the chosen ID. The Create Alert summary
+ * printed a blank "Alert Severity" row for a severity that had been picked,
+ * because the options that map the ID back to its name never reached the
+ * summary. ModelForm has already fetched them onto the field by this point.
+ */
+describe("FormSummary: dropdowns", () => {
+  const CRITICAL_ID: string = "11111111-1111-4111-8111-111111111111";
+  const MINOR_ID: string = "22222222-2222-4222-8222-222222222222";
+  const LABEL_A_ID: string = "33333333-3333-4333-8333-333333333333";
+  const LABEL_B_ID: string = "44444444-4444-4444-8444-444444444444";
+
+  const DROPDOWN_FIELDS: Fields<JSONObject> = [
+    {
+      field: { alertSeverity: true },
+      title: "Alert Severity",
+      fieldType: FormFieldSchemaType.Dropdown,
+      placeholder: "Alert Severity",
+      dropdownOptions: [
+        { label: "Critical", value: CRITICAL_ID },
+        { label: "Minor", value: MINOR_ID },
+      ],
+    },
+    {
+      field: { labels: true },
+      title: "Labels",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      dropdownOptions: [
+        { label: "Production", value: LABEL_A_ID },
+        { label: "EU West", value: LABEL_B_ID },
+      ],
+    },
+  ];
+
+  test("a single select shows the chosen option's name, not a blank row", () => {
+    renderSummary({
+      values: { alertSeverity: CRITICAL_ID },
+      fields: DROPDOWN_FIELDS,
+      steps: undefined,
+    });
+
+    expect(screen.getByText("Critical")).toBeInTheDocument();
+    expect(screen.queryByText("Minor")).toBeNull();
+    expect(screen.queryByText(CRITICAL_ID)).toBeNull();
+  });
+
+  test("a multi select shows every chosen option by name, never its ID", () => {
+    renderSummary({
+      values: { labels: [LABEL_A_ID, LABEL_B_ID] },
+      fields: DROPDOWN_FIELDS,
+      steps: undefined,
+    });
+
+    expect(screen.getByText("Production")).toBeInTheDocument();
+    expect(screen.getByText("EU West")).toBeInTheDocument();
+    expect(screen.queryByText(LABEL_A_ID)).toBeNull();
+    expect(screen.queryByText(LABEL_B_ID)).toBeNull();
+  });
+
+  test("options grouped under headings are matched too", () => {
+    renderSummary({
+      values: { alertSeverity: MINOR_ID },
+      fields: [
+        {
+          field: { alertSeverity: true },
+          title: "Alert Severity",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownOptions: [
+            {
+              label: "Low",
+              options: [{ label: "Minor", value: MINOR_ID }],
+            },
+          ],
+        },
+      ],
+      steps: undefined,
+    });
+
+    expect(screen.getByText("Minor")).toBeInTheDocument();
+  });
+
+  test("a field's own summary element still wins over the options", () => {
+    renderSummary({
+      values: { alertSeverity: CRITICAL_ID },
+      fields: [
+        {
+          ...DROPDOWN_FIELDS[0]!,
+          getSummaryElement: (): ReactElement => {
+            return <span>Custom severity summary</span>;
+          },
+        },
+      ],
+      steps: undefined,
+    });
+
+    expect(screen.getByText("Custom severity summary")).toBeInTheDocument();
+    expect(screen.queryByText("Critical")).toBeNull();
+  });
+
+  /*
+   * Detail prints a dropdown's placeholder whenever no option matches, and
+   * any empty field's placeholder in its place. Passed through, "Alert
+   * Severity" would read as the chosen value of an optional dropdown left
+   * empty. The title is "Alert Severity" too, so exactly one match means the
+   * placeholder stayed out.
+   */
+  test.each([
+    ["nothing is chosen", {}],
+    ["the chosen ID is not among the options", { alertSeverity: MINOR_ID }],
+  ])(
+    "the field's placeholder is not printed as a value when %s",
+    (_case: string, values: JSONObject) => {
+      renderSummary({
+        values,
+        fields: [
+          {
+            ...DROPDOWN_FIELDS[0]!,
+            dropdownOptions: [{ label: "Critical", value: CRITICAL_ID }],
+          },
+        ],
+        steps: undefined,
+      });
+
+      expect(screen.getAllByText("Alert Severity")).toHaveLength(1);
+    },
+  );
+});

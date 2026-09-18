@@ -209,6 +209,13 @@ const FormSummary: <T extends GenericObject>(
                 description: field.description || "",
                 getElement: (field.getSummaryElement ||
                   defaultSummaryElement) as any,
+                /*
+                 * A dropdown's form value is only the chosen ID. The options
+                 * ModelForm already fetched are what turn it back into a
+                 * name — without them a single select prints nothing and a
+                 * multi select prints raw IDs.
+                 */
+                dropdownOptions: field.dropdownOptions,
                 sideLink: field.sideLink,
                 key: (Object.keys(field.field || {})[0]?.toString() ||
                   "") as keyof T,
