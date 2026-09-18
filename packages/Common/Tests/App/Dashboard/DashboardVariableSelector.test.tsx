@@ -424,18 +424,22 @@ describe("DashboardVariableSelector", () => {
 
     test("a default the attribute no longer reports does not select some other value", async () => {
       /*
-       * The attribute stopped reporting "prod" in this time range. There is no
-       * option to select, so the control lands on "All" — the point being that
-       * it does not silently scope the board to a different cluster.
+       * The attribute stopped reporting "prod" in this time range. The
+       * widgets still filter by "prod", so the control shows "prod" rather
+       * than scoping the board to a different cluster, or reading "All".
        */
       getTelemetryAttributeValuesMock.mockResolvedValue(["staging"]);
 
-      renderToolbar([telemetryVariable({ defaultValue: "prod" })]);
+      const state: ToolbarState = renderToolbar([
+        telemetryVariable({ defaultValue: "prod" }),
+      ]);
 
       const select: HTMLSelectElement = await waitForOptions();
 
-      expect(optionLabels(select)).toEqual(["All", "staging"]);
-      expect(select).toHaveValue("");
+      expect(optionLabels(select)).toEqual(["All", "prod", "staging"]);
+      expect(select).toHaveValue("prod");
+      expect(select).toHaveDisplayValue("prod");
+      expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "prod" });
     });
   });
 
@@ -477,17 +481,167 @@ describe("DashboardVariableSelector", () => {
       expect(getSelect()).toHaveValue("prod");
     });
 
-    test('a failed fetch leaves the control usable and on "All"', async () => {
+    test("a failed fetch leaves the control usable and still showing the default", async () => {
       getTelemetryAttributeValuesMock.mockRejectedValue(
         new Error("attribute values unavailable"),
       );
 
-      renderToolbar([telemetryVariable({ defaultValue: "prod" })]);
+      const state: ToolbarState = renderToolbar([
+        telemetryVariable({ defaultValue: "prod" }),
+      ]);
+
+      const select: HTMLSelectElement = await waitForOptions();
+
+      // No values came back, but the widgets are still filtered by "prod".
+      expect(optionLabels(select)).toEqual(["All", "prod"]);
+      expect(select).toHaveDisplayValue("prod");
+      expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "prod" });
+    });
+
+    test("a failed fetch with no default or selection stays on All", async () => {
+      getTelemetryAttributeValuesMock.mockRejectedValue(
+        new Error("attribute values unavailable"),
+      );
+
+      renderToolbar([telemetryVariable({})]);
 
       const select: HTMLSelectElement = await waitForOptions();
 
       expect(optionLabels(select)).toEqual(["All"]);
       expect(select).toHaveValue("");
+    });
+  });
+
+  describe("a value missing from the fetched options", () => {
+    /*
+     * The option list is not every value the attribute has: the server
+     * returns the first 100 in ascending order, from the last day only. A
+     * variable's default is free text, and a selection can come from the URL,
+     * so the value in effect can be missing from the list and still match
+     * data. The widgets filter by it regardless. The select used to have no
+     * option for it, so the browser showed the first one, "All", over widgets
+     * that were filtered.
+     */
+    const FIRST_HUNDRED: Array<string> = Array.from(
+      { length: 100 },
+      (_unused: unknown, index: number): string => {
+        return `cluster-${String(index).padStart(3, "0")}`;
+      },
+    );
+
+    test("a default past the first 100 values reads as itself, not All", async () => {
+      getTelemetryAttributeValuesMock.mockResolvedValue(FIRST_HUNDRED);
+
+      const state: ToolbarState = renderToolbar([
+        telemetryVariable({ defaultValue: "zeta" }),
+      ]);
+
+      const select: HTMLSelectElement = await waitForOptions();
+
+      expect(select).toHaveValue("zeta");
+      expect(select).toHaveDisplayValue("zeta");
+      expect(optionLabels(select)).toEqual(["All", "zeta", ...FIRST_HUNDRED]);
+      expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "zeta" });
+      expect(
+        DashboardVariableInterpolation.applyToAttributes({}, state.variables),
+      ).toEqual({ [ATTRIBUTE_KEY]: "zeta" });
+    });
+
+    test("a selection missing from the options reads as itself", async () => {
+      const state: ToolbarState = renderToolbar([
+        telemetryVariable({ defaultValue: "prod", selectedValue: "zeta" }),
+      ]);
+
+      const select: HTMLSelectElement = await waitForOptions();
+
+      expect(select).toHaveValue("zeta");
+      expect(select).toHaveDisplayValue("zeta");
+      expect(optionLabels(select)).toEqual(["All", "zeta", "prod", "staging"]);
+      expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "zeta" });
+    });
+
+    test("a listed value is not offered twice", async () => {
+      renderToolbar([telemetryVariable({ defaultValue: "staging" })]);
+
+      const select: HTMLSelectElement = await waitForOptions();
+
+      expect(optionLabels(select)).toEqual(["All", "prod", "staging"]);
+      expect(select).toHaveDisplayValue("staging");
+    });
+
+    test("the extra option goes away once the user picks something else", async () => {
+      const state: ToolbarState = renderToolbar([
+        telemetryVariable({ defaultValue: "zeta" }),
+      ]);
+
+      selectValue(await waitForOptions(), "staging");
+
+      expect(getSelect()).toHaveDisplayValue("staging");
+      expect(optionLabels(getSelect())).toEqual(["All", "prod", "staging"]);
+      expect(resolvedFilter(state.variables[0]!)).toEqual({
+        scalar: "staging",
+      });
+
+      selectValue(getSelect(), "");
+
+      expect(getSelect()).toHaveDisplayValue("All");
+      expect(optionLabels(getSelect())).toEqual(["All", "prod", "staging"]);
+      expect(resolvedFilter(state.variables[0]!)).toBeUndefined();
+    });
+
+    test("while values load it still reads Loading…, not the value", async () => {
+      let releaseValues: (values: Array<string>) => void = (): void => {
+        // Replaced synchronously by the executor below.
+      };
+
+      getTelemetryAttributeValuesMock.mockImplementation((): unknown => {
+        return new Promise<Array<string>>(
+          (resolve: (values: Array<string>) => void): void => {
+            releaseValues = resolve;
+          },
+        );
+      });
+
+      renderToolbar([telemetryVariable({ defaultValue: "zeta" })]);
+
+      expect(optionLabels(getSelect())).toEqual(["Loading…"]);
+
+      await act(async (): Promise<void> => {
+        releaseValues(OPTIONS);
+      });
+
+      expect(optionLabels(getSelect())).toEqual([
+        "All",
+        "zeta",
+        "prod",
+        "staging",
+      ]);
+      expect(getSelect()).toHaveDisplayValue("zeta");
+    });
+
+    test("a multi-select keeps and names a picked value the options do not list", async () => {
+      const state: ToolbarState = renderToolbar([
+        telemetryVariable({ isMultiSelect: true, selectedValues: ["zeta"] }),
+      ]);
+
+      await waitFor((): void => {
+        expect(screen.getByRole("button")).not.toBeDisabled();
+      });
+
+      expect(screen.getByRole("button")).toHaveTextContent("zeta");
+      expect(resolvedFilter(state.variables[0]!)).toEqual({ multi: ["zeta"] });
+
+      fireEvent.click(screen.getByRole("button"));
+      fireEvent.click(screen.getByRole("checkbox", { name: "staging" }));
+
+      // Ticking a listed value adds to the selection; "zeta" is not dropped.
+      expect(state.variables[0]!.selectedValues).toEqual(["zeta", "staging"]);
+      expect(
+        screen.getByRole("button", { name: "Cluster: 2 selected" }),
+      ).toBeInTheDocument();
+      expect(resolvedFilter(state.variables[0]!)).toEqual({
+        multi: ["zeta", "staging"],
+      });
     });
   });
 
