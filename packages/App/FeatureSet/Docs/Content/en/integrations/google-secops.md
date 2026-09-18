@@ -136,7 +136,20 @@ Work through these in order. Each one is distinguishable from the next in **Diag
 4. **Is anything polling at all?** **Last Polled: Never** with an empty Last Error means no poll has finished for this connection. Test connection reports **Background workers** (processes consuming the Worker queue), **Poll scheduler** (the minute-cadence scheduler registration) and **Scheduled polling** (this connection's own schedule, including an overdue poll or a run stuck in queued). See the Troubleshooting entry below for the deployment settings that cause it.
 5. **Look in the right place.** Events are stored under their detection time, which can be hours or days before the time they were created and imported, so a "last hour" filter in Security Events hides a detection imported a minute ago about yesterday. Use **View events in this time range** on a run in Diagnostics: it opens the event-time range of the detections that run returned.
 
+### How severity is set
+
+Google SecOps stores a detection's severity in different places depending on who wrote the rule, and OneUptime reads them in this order, using the first one that names a severity:
+
+1. **Google's own severity** (`detection[].severity`). Google sets this on curated rules, such as Applied Threat Intelligence and the curated rule sets.
+2. **The alert's severity** (the Collection's `severity`), for SOAR alerts and webhook bodies.
+3. **The rule's `meta` severity.** For a custom YARA-L rule, Google leaves `detection[].severity` empty and returns the rule's `meta` section as `ruleLabels`. OneUptime reads the `severity` label, which is the value the Google SecOps rules dashboard shows. Info, Informational, Low, Medium, High and Critical are recognized, in any letter case.
+4. **The rule's `$risk_score` outcome**, if the rule sets no severity, graded with [Google's recommended ranges](https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax): 90–100 Critical, 80–89 High, 50–79 Medium, 20–49 Low, 1–19 Informational. OneUptime only uses a score the rule sets itself. It ignores the `riskScore` Google fills in for rules without one (40 for alerting rules, 15 otherwise), because that default says nothing about how severe the detection is.
+
+A detection that none of these grade is shown as **Unknown**. To grade a custom rule, add a severity to its `meta` section in Google SecOps, for example `severity = "High"`, or set `$risk_score` in its `outcome` section. Detections the rule creates after that are imported with that severity.
+
 ### Troubleshooting
+
+- **Custom-rule detections show severity Unknown while curated ones are graded** — the rule sets no severity. Add `severity = "Low"`, `"Medium"`, `"High"` or `"Critical"` to the rule's `meta` section, or set `$risk_score` in its `outcome` section (see **How severity is set** above). Releases before this change also ignored a custom rule's `meta` severity; upgrading re-grades the detections those releases imported, using the rule labels stored with each detection.
 
 - **Alerts appear in Google SecOps but never in OneUptime** — upgrade to a release that reads curated rule detections one curated rule at a time and sweeps the alerts view for late alerts. Earlier releases sent `ruleId=-` to `legacySearchCuratedDetections`, which has no wildcard, so Google answered every curated search with an empty success; and they read the alerts view only over the poll's own few minutes of detection time, so an alert Google made readable later was never seen. Both looked like a healthy, quiet connection. After upgrading, use **Import this time range** in Diagnostics to import the last 7 days.
 - **Google returns zero records** — check the exact time window, the time basis and the saved **Data to import** selection in Diagnostics, and run Test connection to read the availability counts with and without **Detections**. A non-alerting rule match requires the **Detections** checkbox. Preview a period covering both its detection time and creation time. The initial scheduled poll looks back 24 hours by created time; use **Import this time range** for older records.

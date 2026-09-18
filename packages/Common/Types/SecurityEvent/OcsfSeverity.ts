@@ -44,6 +44,36 @@ export function ocsfSeverityFromId(id: number): OcsfSeverity {
 }
 
 /*
+ * Upper-cased severity text -> OCSF severity. Exported so SQL that grades
+ * stored rows (the Google SecOps severity backfill) is generated from this
+ * table instead of restating it.
+ */
+export const OCSF_SEVERITY_ALIASES: Readonly<Record<string, OcsfSeverity>> = {
+  UNKNOWN: OcsfSeverity.Unknown,
+  UNKNOWN_SEVERITY: OcsfSeverity.Unknown,
+  NONE: OcsfSeverity.Informational,
+  INFO: OcsfSeverity.Informational,
+  INFORMATION: OcsfSeverity.Informational,
+  INFORMATIONAL: OcsfSeverity.Informational,
+  NOTICE: OcsfSeverity.Informational,
+  DEBUG: OcsfSeverity.Informational,
+  LOW: OcsfSeverity.Low,
+  WARN: OcsfSeverity.Low,
+  WARNING: OcsfSeverity.Low,
+  MEDIUM: OcsfSeverity.Medium,
+  MODERATE: OcsfSeverity.Medium,
+  ERR: OcsfSeverity.Medium,
+  ERROR: OcsfSeverity.Medium,
+  HIGH: OcsfSeverity.High,
+  SEVERE: OcsfSeverity.High,
+  CRITICAL: OcsfSeverity.Critical,
+  CRIT: OcsfSeverity.Critical,
+  ALERT: OcsfSeverity.Critical,
+  FATAL: OcsfSeverity.Fatal,
+  EMERGENCY: OcsfSeverity.Fatal,
+};
+
+/*
  * Loose severity text -> OCSF severity. Accepts the dialects we ingest:
  * UDM security_result severities (EMERGENCY/ALERT/CRITICAL/ERROR/HIGH/...),
  * syslog-style levels, and common vendor strings. Returns null for anything
@@ -57,32 +87,7 @@ export function normalizeOcsfSeverity(text: string): OcsfSeverity | null {
     return null;
   }
 
-  const aliases: Record<string, OcsfSeverity> = {
-    UNKNOWN: OcsfSeverity.Unknown,
-    UNKNOWN_SEVERITY: OcsfSeverity.Unknown,
-    NONE: OcsfSeverity.Informational,
-    INFO: OcsfSeverity.Informational,
-    INFORMATION: OcsfSeverity.Informational,
-    INFORMATIONAL: OcsfSeverity.Informational,
-    NOTICE: OcsfSeverity.Informational,
-    DEBUG: OcsfSeverity.Informational,
-    LOW: OcsfSeverity.Low,
-    WARN: OcsfSeverity.Low,
-    WARNING: OcsfSeverity.Low,
-    MEDIUM: OcsfSeverity.Medium,
-    MODERATE: OcsfSeverity.Medium,
-    ERR: OcsfSeverity.Medium,
-    ERROR: OcsfSeverity.Medium,
-    HIGH: OcsfSeverity.High,
-    SEVERE: OcsfSeverity.High,
-    CRITICAL: OcsfSeverity.Critical,
-    CRIT: OcsfSeverity.Critical,
-    ALERT: OcsfSeverity.Critical,
-    FATAL: OcsfSeverity.Fatal,
-    EMERGENCY: OcsfSeverity.Fatal,
-  };
-
-  return aliases[normalized] || null;
+  return OCSF_SEVERITY_ALIASES[normalized] || null;
 }
 
 export default OcsfSeverity;
