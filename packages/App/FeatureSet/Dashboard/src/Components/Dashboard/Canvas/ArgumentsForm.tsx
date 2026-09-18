@@ -1053,9 +1053,25 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               return { key };
             });
 
-      const attributeOptions: Array<DropdownOption> = (
-        props.metrics.telemetryAttributes || []
-      ).map((attr: string): DropdownOption => {
+      /*
+       * The attribute list only covers keys seen recently (and is capped),
+       * so a saved key for an infrequently emitted attribute can be missing
+       * from it. Keep every saved key as an option: the dropdown only emits
+       * the chips it can show, so an unlisted key would be dropped - along
+       * with its header - on the next add/remove.
+       */
+      const telemetryAttributes: Array<string> =
+        props.metrics.telemetryAttributes || [];
+      const attributeOptions: Array<DropdownOption> = [
+        ...telemetryAttributes,
+        ...groupByAttributes
+          .map((g: TableGroupByAttribute): string => {
+            return g.key;
+          })
+          .filter((key: string): boolean => {
+            return !telemetryAttributes.includes(key);
+          }),
+      ].map((attr: string): DropdownOption => {
         return { value: attr, label: attr };
       });
 
