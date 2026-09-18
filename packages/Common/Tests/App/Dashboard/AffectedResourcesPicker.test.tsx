@@ -866,7 +866,8 @@ const FormHarness: (props: {
       monitors={asModels<Monitor>(monitors)}
       resourceTypes={["Monitor"]}
       onChange={(payload: AffectedResourcesPayload) => {
-        setMonitors(payload.monitors);
+        // Monitor is a type this picker shows, so it always comes back as an array.
+        setMonitors(payload.monitors || []);
       }}
     />
   );
