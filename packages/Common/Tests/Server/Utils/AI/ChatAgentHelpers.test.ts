@@ -4,9 +4,26 @@ import {
 } from "../../../../Server/Utils/AI/Chat/ChatAgentRunner";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import { pinQueryToRequestingUser } from "../../../../Server/Utils/AI/AIChatPrivacyFilter";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Exception from "../../../../Types/Exception/Exception";
+import ExceptionCode from "../../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
+import UserType from "../../../../Types/UserType";
 import { describe, expect, test } from "@jest/globals";
+
+// Runs `fn` and returns what it threw; fails the test if it returned.
+const thrownBy: (fn: () => void) => Exception = (fn: () => void): Exception => {
+  try {
+    fn();
+  } catch (error) {
+    return error as Exception;
+  }
+
+  throw new Error("Expected the call to throw, but it returned normally.");
+};
 
 const citation: (id: string) => AIChatCitation = (id: string) => {
   return {
@@ -81,9 +98,76 @@ describe("pinQueryToRequestingUser", () => {
     expect(pinned["createdByUserId"]).toBeUndefined();
   });
 
-  test("throws when there is no user in a non-root context", () => {
-    expect(() => {
-      pinQueryToRequestingUser({}, {}, "createdByUserId");
-    }).toThrow(NotAuthorizedException);
+  /*
+   * No credentials at all is a signed-in user whose access-token cookie
+   * expired, not someone reaching for another member's conversations. It has
+   * to be a 401 - the browser client refreshes the session and replays only
+   * on a 401 - so the old 422 would leave the chat panel showing an error.
+   */
+  test.each([
+    ["no props at all", {}],
+    ["a tenant but no user", { tenantId: ObjectID.generate() }],
+    ["an explicitly Public caller", { userType: UserType.Public }],
+  ])(
+    "answers an anonymous caller (%s) with 401, not 422",
+    (_label: string, props: DatabaseCommonInteractionProps) => {
+      const error: Exception = thrownBy(() => {
+        pinQueryToRequestingUser({}, props, "createdByUserId");
+      });
+
+      expect(error).toBeInstanceOf(NotAuthenticatedException);
+      expect(error).not.toBeInstanceOf(NotAuthorizedException);
+      expect(error.code).toBe(ExceptionCode.NotAuthenticatedException);
+      expect(error.code).toBe(401);
+      expect(error.message).toBe(
+        DatabaseCommonInteractionPropsUtil.AUTHENTICATION_REQUIRED_MESSAGE,
+      );
+    },
+  );
+
+  /*
+   * A project API key has credentials but no user, so it has no personal
+   * scope. That is a real "not allowed" - refreshing cannot give a key a
+   * user - and it keeps the 422 and the message it always had.
+   */
+  test("still refuses a project API key (no user) with the 422", () => {
+    const error: Exception = thrownBy(() => {
+      pinQueryToRequestingUser(
+        {},
+        { tenantId: ObjectID.generate(), userType: UserType.API },
+        "createdByUserId",
+      );
+    });
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error).not.toBeInstanceOf(NotAuthenticatedException);
+    expect(error.code).toBe(422);
+    expect(error.message).toBe(
+      "AI conversations are personal and can only be accessed by the user who created them.",
+    );
+  });
+
+  test("master admin bypasses the pin without a user", () => {
+    const query: Record<string, unknown> = {};
+
+    const pinned: Record<string, unknown> = pinQueryToRequestingUser(
+      query,
+      { isMasterAdmin: true },
+      "createdByUserId",
+    );
+
+    expect(pinned["createdByUserId"]).toBeUndefined();
+  });
+
+  test("a signed-in user is pinned even when userType is not set", () => {
+    const userId: ObjectID = ObjectID.generate();
+
+    const pinned: Record<string, unknown> = pinQueryToRequestingUser(
+      {},
+      { userId, userType: UserType.User },
+      "createdByUserId",
+    );
+
+    expect(pinned["createdByUserId"]).toBe(userId);
   });
 });

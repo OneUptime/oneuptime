@@ -27,6 +27,8 @@ import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../Models/DatabaseModels/Project";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
@@ -265,6 +267,24 @@ function withProps(props: DatabaseCommonInteractionProps): void {
     .mockResolvedValue(props);
 }
 
+/*
+ * The refusal an anonymous caller must get: 401, not 422. A request with no
+ * credentials is almost always a signed-in user whose access-token cookie
+ * expired together with its JWT, and the dashboard refreshes the session and
+ * replays the request on a 401 and on nothing else. A 422 would strand that
+ * user on "You are not authorized to access this project's data."
+ */
+function expectAuthenticationRequired(thrown: unknown): void {
+  expect(thrown).toBeInstanceOf(NotAuthenticatedException);
+  expect(thrown).not.toBeInstanceOf(NotAuthorizedException);
+  expect((thrown as NotAuthenticatedException).code).toBe(
+    ExceptionCode.NotAuthenticatedException,
+  );
+  expect((thrown as NotAuthenticatedException).message).toBe(
+    CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+  );
+}
+
 // A provider row with the exact metadata the advisory says leaked.
 function victimProvider(): LlmProvider {
   const provider: LlmProvider = new LlmProvider(PROVIDER_ID);
@@ -441,17 +461,35 @@ describe("POST /ai-chat/providers - cross-tenant disclosure (GHSA-hm7m-9qjj-xj5x
   });
 });
 
+/*
+ * Anonymous callers used to get the same 422 as an outsider. They now get
+ * 401 (see expectAuthenticationRequired): still a refusal, still before any
+ * lookup, but one the browser client answers by refreshing the session
+ * instead of showing an authorization error to someone who is signed in.
+ */
 describe("POST /ai-chat/providers - anonymous and unscoped callers", () => {
-  test("an unauthenticated caller (getUserMiddleware admits these as public) is refused", async () => {
+  test("an unauthenticated caller (getUserMiddleware admits these as public) is refused with 401, not 422", async () => {
     withProps(buildProps({ tenantId: PROJECT_B_ID }));
 
     const call: RouteCall = await callProviders();
 
-    expect(call.thrown).toBeInstanceOf(NotAuthorizedException);
+    expectAuthenticationRequired(call.thrown);
+    expect(providerLookupsRan()).toBe(false);
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test("an explicitly Public caller is anonymous too, and gets 401", async () => {
+    withProps(
+      buildProps({ tenantId: PROJECT_B_ID, userType: UserType.Public }),
+    );
+
+    const call: RouteCall = await callProviders();
+
+    expectAuthenticationRequired(call.thrown);
     expect(providerLookupsRan()).toBe(false);
   });
 
-  test("an anonymous caller carrying a stray tenant permission entry but no user id is refused", async () => {
+  test("an anonymous caller carrying a stray tenant permission entry but no user id is refused with 401", async () => {
     withProps(
       buildProps({
         userId: undefined,
@@ -462,7 +500,37 @@ describe("POST /ai-chat/providers - anonymous and unscoped callers", () => {
 
     const call: RouteCall = await callProviders();
 
-    expect(call.thrown).toBeInstanceOf(NotAuthorizedException);
+    expectAuthenticationRequired(call.thrown);
+    expect(providerLookupsRan()).toBe(false);
+  });
+
+  /*
+   * "Who are you?" comes before "which project?". An expired session that
+   * also lost its tenantid header must still be told to authenticate, or the
+   * client shows "Project ID is required" instead of refreshing.
+   */
+  test("an anonymous caller with no tenantid header gets 401, not the missing-project 400", async () => {
+    withProps(buildProps({}));
+
+    const call: RouteCall = await callProviders();
+
+    expectAuthenticationRequired(call.thrown);
+    expect(call.thrown).not.toBeInstanceOf(BadDataException);
+    expect(providerLookupsRan()).toBe(false);
+  });
+
+  /*
+   * isMasterAdmin is derived from a master-admin SESSION (userType
+   * MasterAdmin). The flag on its own, with no user and no such session, is
+   * not a credential and must not turn an anonymous request into an
+   * authenticated one.
+   */
+  test("an isMasterAdmin flag without a user or a master-admin session is not a credential", async () => {
+    withProps(buildProps({ tenantId: PROJECT_B_ID, isMasterAdmin: true }));
+
+    const call: RouteCall = await callProviders();
+
+    expectAuthenticationRequired(call.thrown);
     expect(providerLookupsRan()).toBe(false);
   });
 
@@ -483,6 +551,11 @@ describe("POST /ai-chat/providers - anonymous and unscoped callers", () => {
     expect(providerLookupsRan()).toBe(false);
   });
 
+  /*
+   * An API key IS a credential, so it is not "anonymous" and must not get
+   * the 401 an expired session gets - its client has no session to refresh
+   * and would only retry. It keeps the member-route refusal it always had.
+   */
   test("a project API key (no user id) cannot use this route - it is a logged-in-member route", async () => {
     withProps(
       buildProps({
@@ -495,6 +568,13 @@ describe("POST /ai-chat/providers - anonymous and unscoped callers", () => {
     const call: RouteCall = await callProviders();
 
     expect(call.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect(call.thrown).not.toBeInstanceOf(NotAuthenticatedException);
+    expect((call.thrown as NotAuthorizedException).code).toBe(
+      ExceptionCode.NotAuthorizedException,
+    );
+    expect((call.thrown as NotAuthorizedException).message).toBe(
+      "You are not authorized to access this project's data.",
+    );
     expect(providerLookupsRan()).toBe(false);
   });
 });
@@ -767,8 +847,13 @@ describe("every /ai-chat/* route requires membership of the project it was given
     },
   );
 
+  /*
+   * Was NotAuthorizedException (422). An unauthenticated caller is now told
+   * to authenticate (401) so an expired dashboard session refreshes and
+   * replays instead of surfacing an authorization error.
+   */
   test.each(routes)(
-    "$uri refuses an unauthenticated caller",
+    "$uri refuses an unauthenticated caller with 401 and touches nothing",
     async (route: { uri: string; body: JSONObject }) => {
       withProps(buildProps({ tenantId: PROJECT_B_ID }));
 
@@ -777,7 +862,55 @@ describe("every /ai-chat/* route requires membership of the project it was given
         body: route.body,
       });
 
+      expectAuthenticationRequired(call.thrown);
+      expect(call.nextCallCount).toBe(1);
+      expect(AIConversationService.findOneById).not.toHaveBeenCalled();
+      expect(AIConversationMessageService.findOneById).not.toHaveBeenCalled();
+      expect(ProjectService.findOneById).not.toHaveBeenCalled();
+      expect(providerLookupsRan()).toBe(false);
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(routes)(
+    "$uri refuses an unauthenticated caller with no tenantid header with 401, not 400",
+    async (route: { uri: string; body: JSONObject }) => {
+      withProps(buildProps({}));
+
+      const call: RouteCall = await callRoute({
+        uri: route.uri,
+        body: route.body,
+      });
+
+      expectAuthenticationRequired(call.thrown);
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(routes)(
+    "$uri still refuses a project API key with 422, not 401",
+    async (route: { uri: string; body: JSONObject }) => {
+      withProps(
+        buildProps({
+          tenantId: PROJECT_B_ID,
+          memberOfProjectId: PROJECT_B_ID,
+          userType: UserType.API,
+        }),
+      );
+
+      const call: RouteCall = await callRoute({
+        uri: route.uri,
+        body: route.body,
+      });
+
       expect(call.thrown).toBeInstanceOf(NotAuthorizedException);
+      expect((call.thrown as NotAuthorizedException).code).toBe(
+        ExceptionCode.NotAuthorizedException,
+      );
+      expect(AIConversationService.findOneById).not.toHaveBeenCalled();
+      expect(AIConversationMessageService.findOneById).not.toHaveBeenCalled();
+      expect(providerLookupsRan()).toBe(false);
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
     },
   );
 

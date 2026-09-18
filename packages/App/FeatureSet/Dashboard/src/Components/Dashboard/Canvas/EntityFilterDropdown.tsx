@@ -47,6 +47,14 @@ interface EntityModelDef<T extends BaseModel> {
    * the load below), labelled with `unpickableLabelSuffix`.
    */
   pickableQuery?: Query<T> | undefined;
+  /*
+   * A selected item the list is missing is not necessarily unpickable - it may
+   * just sit past the list's row cap. `isUnpickable` tells the two apart for an
+   * item looked up by id, reading the fields named in `unpickableSelect`, and
+   * only an item it flags gets `unpickableLabelSuffix`.
+   */
+  unpickableSelect?: Record<string, true> | undefined;
+  isUnpickable?: ((item: T) => boolean) | undefined;
   unpickableLabelSuffix?: string | undefined;
 }
 
@@ -130,6 +138,10 @@ function getEntityModelDef(
          * that already points at one keeps loading it by id.
          */
         pickableQuery: { isArchived: false } as Query<BaseModel>,
+        unpickableSelect: { isArchived: true },
+        isUnpickable: (item: BaseModel): boolean => {
+          return (item as ServiceLevelObjective).isArchived === true;
+        },
         unpickableLabelSuffix: " (archived)",
       };
     case EntityFilterModelType.Label:
@@ -249,66 +261,69 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
           listResult.data.map(toDropdownOption);
 
         /*
-         * A selection made before its item stopped being pickable (a widget
-         * pointing at an SLO that has since been archived) is not in the list
-         * above. Left out, the dropdown would render as if nothing were chosen
-         * while the widget keeps using the item - and the next multi-select
-         * edit would silently drop it. So those items are fetched by id and
-         * shown, marked, for the user to keep or remove on purpose.
+         * A saved selection can be missing from the list above: past its row
+         * cap in a big project, or no longer pickable (a widget pointing at an
+         * SLO that has since been archived). Left out, the dropdown would
+         * render as if nothing were chosen while the widget keeps using the
+         * item - and the next multi-select edit would silently drop it. So
+         * those items are fetched by id and shown, the unpickable ones marked,
+         * for the user to keep or remove on purpose.
+         *
+         * Only well-formed ids are looked up: a saved value that is not one
+         * would make the server reject the whole lookup and cost the real
+         * selections their labels too.
          */
-        if (def.pickableQuery) {
-          /*
-           * Only well-formed ids are looked up: a saved value that is not one
-           * would make the server reject the whole lookup and cost the real
-           * archived selections their labels too.
-           */
-          const unlistedSelectedIds: Array<string> = getSelectedIds(
-            props.value,
-          ).filter((id: string): boolean => {
-            return (
-              ObjectID.isValidUUID(id) &&
-              !newOptions.some((option: DropdownOption): boolean => {
-                return option.value === id;
-              })
-            );
-          });
+        const unlistedSelectedIds: Array<string> = getSelectedIds(
+          props.value,
+        ).filter((id: string): boolean => {
+          return (
+            ObjectID.isValidUUID(id) &&
+            !newOptions.some((option: DropdownOption): boolean => {
+              return option.value === id;
+            })
+          );
+        });
 
-          if (unlistedSelectedIds.length > 0) {
-            try {
-              const selectedResult: ListResult<BaseModel> =
-                await ModelAPI.getList<BaseModel>({
-                  modelType: def.modelType,
-                  query: {
-                    projectId: projectId,
-                    _id: new Includes(
-                      unlistedSelectedIds.map((id: string): ObjectID => {
-                        return new ObjectID(id);
-                      }),
-                    ),
-                  } as Query<BaseModel>,
-                  limit: unlistedSelectedIds.length,
-                  skip: 0,
-                  select: { _id: true, name: true } as Record<string, true>,
-                  sort: { [def.sortField]: def.sortOrder } as Record<
-                    string,
-                    SortOrder
-                  >,
-                });
+        if (unlistedSelectedIds.length > 0) {
+          try {
+            const selectedResult: ListResult<BaseModel> =
+              await ModelAPI.getList<BaseModel>({
+                modelType: def.modelType,
+                query: {
+                  projectId: projectId,
+                  _id: new Includes(
+                    unlistedSelectedIds.map((id: string): ObjectID => {
+                      return new ObjectID(id);
+                    }),
+                  ),
+                } as Query<BaseModel>,
+                limit: unlistedSelectedIds.length,
+                skip: 0,
+                select: {
+                  ...(def.unpickableSelect || {}),
+                  _id: true,
+                  name: true,
+                } as Record<string, true>,
+                sort: { [def.sortField]: def.sortOrder } as Record<
+                  string,
+                  SortOrder
+                >,
+              });
 
-              for (const item of selectedResult.data) {
-                const option: DropdownOption = toDropdownOption(item);
+            for (const item of selectedResult.data) {
+              const option: DropdownOption = toDropdownOption(item);
 
-                newOptions.push({
-                  value: option.value,
-                  label: `${option.label}${def.unpickableLabelSuffix || ""}`,
-                });
+              if (def.isUnpickable?.(item)) {
+                option.label = `${option.label}${def.unpickableLabelSuffix || ""}`;
               }
-            } catch {
-              /*
-               * This lookup only labels a stale selection. Failing it must not
-               * take the pickable list down with it.
-               */
+
+              newOptions.push(option);
             }
+          } catch {
+            /*
+             * This lookup only labels a selection the list is missing. Failing
+             * it must not take the pickable list down with it.
+             */
           }
         }
 

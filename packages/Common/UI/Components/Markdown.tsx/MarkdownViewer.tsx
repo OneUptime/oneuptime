@@ -79,6 +79,7 @@ SyntaxHighlighter.registerLanguage("php", php);
 SyntaxHighlighter.registerLanguage("graphql", graphql);
 SyntaxHighlighter.registerLanguage("http", http);
 import DOMPurify from "dompurify";
+import SessionAwareImage from "./SessionAwareImage";
 import OneUptimeDate from "../../../Types/Date";
 import { Theme, useTheme } from "../../Utils/Theme";
 import {
@@ -598,7 +599,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           ) : null;
         }
         return (
-          <img
+          <SessionAwareImage
             className="max-w-full h-auto rounded-md border border-gray-200 my-3"
             loading="lazy"
             alt={alt}

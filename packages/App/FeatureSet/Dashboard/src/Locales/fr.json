@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "Ces interrupteurs déterminent quelles notifications vous parviennent, pas le volume d'e-mails qu'elles représentent.",
   "Reduce routine emails or change email rollup in Email Preferences": "Réduire les e-mails de routine ou modifier le regroupement des e-mails dans les préférences e-mail",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Désactivez les e-mails concernant les notes, l'ajout en tant que propriétaire, les nouveaux moniteurs et pages de statut, les éléments ajoutés aux épisodes et les changements d'appartenance aux politiques d'astreinte.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Vos choix pour la création d'incidents et d'alertes, les changements d'état, les rappels, les affectations, la santé des moniteurs et les gardes restent inchangés. Les autres canaux de notification, les appels d'astreinte et les e-mails de compte et de facturation ne sont pas affectés."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Vos choix pour la création d'incidents et d'alertes, les changements d'état, les rappels, les affectations, la santé des moniteurs et les gardes restent inchangés. Les autres canaux de notification, les appels d'astreinte et les e-mails de compte et de facturation ne sont pas affectés.",
+  "Schedule Timeline": "Chronologie des astreintes",
+  "Timeline View": "Vue chronologique",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "Tous les plannings d'astreinte de ce projet côte à côte : qui est d'astreinte, qui remplace qui, et où personne ne l'est.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "Qui est d'astreinte sur chaque planning de cette équipe, semaine par semaine ou mois par mois.",
+  "No on-call schedules yet": "Aucun planning d'astreinte pour le moment",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "Créez un planning d'astreinte et chaque rotation de ce projet apparaîtra ici, côte à côte.",
+  "This team does not own any on-call schedules yet": "Cette équipe ne possède encore aucun planning d'astreinte",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Ajoutez cette équipe comme propriétaire dans l'onglet Propriétaires d'un planning et ses rotations apparaîtront ici."
 }

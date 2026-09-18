@@ -40,6 +40,42 @@ to the `externalValkey:` block, which is the supported way to point at a cache
 this chart does not run. The same applies to any per-service `<service>.extraEnv`
 and to a docker-compose.override.yml that sets REDIS_* by hand.
 {{- end }}
+{{- /*
+  Chart probes register with REGISTER_PROBE_KEY, so each one is a global probe
+  shared by every project on the instance (issue #3879). Only probes that
+  actually render a Deployment count, and only a value the probe will read as
+  "true" (probe.yaml renders it with squote).
+*/}}
+{{- $privateNetworkProbes := list }}
+{{- if not .Values.deployment.disableDeployments }}
+{{- range $key, $val := .Values.probes }}
+{{- if and (or (not (hasKey $val "enabled")) $val.enabled) (eq (toString $val.allowPrivateNetworkMonitors) "true") }}
+{{- $privateNetworkProbes = append $privateNetworkProbes $key }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if $privateNetworkProbes }}
+{{- if .Values.billing.enabled }}
+{{- $ignoredPrivateNetworkValues := list }}
+{{- range $privateNetworkProbes }}{{- $ignoredPrivateNetworkValues = append $ignoredPrivateNetworkValues (printf "probes.%s.allowPrivateNetworkMonitors" .) }}{{- end }}
+
+IGNORED VALUES: {{ join ", " $ignoredPrivateNetworkValues }}
+
+billing.enabled is true, so these chart probes -- global probes shared by every
+project on this instance -- stay public-only: their API, Website, External
+Status Page and Custom JavaScript Code monitors still refuse private network
+addresses, and each probe logs a warning at startup. To monitor an internal
+target, deploy a private probe on that network and select it on the monitor.
+{{- else }}
+
+Private network monitoring is on for probes: {{ join ", " $privateNetworkProbes }}
+
+These are global probes, so API, Website, External Status Page and Custom
+JavaScript Code monitors from every project on this instance can reach private
+network addresses (RFC-1918, CGNAT, IPv6 unique-local) through them. Loopback,
+link-local and cloud metadata addresses stay blocked.
+{{- end }}
+{{- end }}
 {{- if and (include "oneuptime.kedaOperatorInstalled" .) (not .Values.keda.enabled) }}
 
 The bundled KEDA operator is installed, but this release renders no ScaledObject

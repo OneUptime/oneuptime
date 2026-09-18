@@ -323,6 +323,7 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import {
   DASHBOARD_URL,
   at,
@@ -3391,7 +3392,13 @@ describe("GET /on-call-calendar/feed/current", () => {
     expect(personalFindOneBy).not.toHaveBeenCalled();
   });
 
-  test("an anonymous caller (no user) is refused", async () => {
+  /*
+   * Tightened from "any 4xx" to the exact 401. A caller with no user and no
+   * key is, in practice, a dashboard tab whose access-token cookie expired;
+   * the browser client refreshes the session and replays only on a 401, so
+   * any other status leaves the user looking at an error on their own feed.
+   */
+  test("an anonymous caller (no user) is refused with 401", async () => {
     propsSpy.mockResolvedValue(
       buildMemberProps({ projectId, userId: undefined }),
     );
@@ -3400,7 +3407,43 @@ describe("GET /on-call-calendar/feed/current", () => {
       `${API_PREFIX}${FEED_CURRENT_ROUTE}`,
     );
 
-    expect(result.status).toBeGreaterThanOrEqual(400);
+    expect(result.status).toBe(ExceptionCode.NotAuthenticatedException);
+    expect(result.status).toBe(401);
+    expect(json(result)["message"]).toBe(
+      CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+    );
+    expect(personalFindOneBy).not.toHaveBeenCalled();
+  });
+
+  test("an anonymous caller with no tenant header is the 401, not the missing-tenant 400", async () => {
+    propsSpy.mockResolvedValue(
+      buildMemberProps({ projectId: undefined, userId: undefined }),
+    );
+
+    const result: HttpResult = await request(
+      `${API_PREFIX}${FEED_CURRENT_ROUTE}`,
+    );
+
+    expect(result.status).toBe(ExceptionCode.NotAuthenticatedException);
+    expect(personalFindOneBy).not.toHaveBeenCalled();
+  });
+
+  test("a project API key is authenticated but is nobody, so it gets 422 rather than a 401", async () => {
+    /*
+     * A personal feed belongs to a person. The key fails the member guard
+     * (no userId) before requireUserId is reached, and the answer is the 422 -
+     * a 401 would send an API client off to refresh a session it never had.
+     */
+    propsSpy.mockResolvedValue({
+      ...buildMemberProps({ projectId, userId: undefined }),
+      userType: UserType.API,
+    });
+
+    const result: HttpResult = await request(
+      `${API_PREFIX}${FEED_CURRENT_ROUTE}`,
+    );
+
+    expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
     expect(personalFindOneBy).not.toHaveBeenCalled();
   });
 });
@@ -3430,6 +3473,41 @@ describe("POST /on-call-calendar/feed/rotate", () => {
     );
 
     expect(result.status).toBe(415);
+  });
+
+  test("an anonymous JSON POST is 401 and mints nothing", async () => {
+    /*
+     * The rotate button on a page left open past the access-token lifetime.
+     * The 401 is what makes the dashboard refresh and replay the POST; the
+     * guard runs before the lock, so nothing is minted for the refused call.
+     */
+    propsSpy.mockResolvedValue(
+      buildMemberProps({ projectId, userId: undefined }),
+    );
+
+    const result: HttpResult = await postJson(
+      `${API_PREFIX}${FEED_ROTATE_ROUTE}`,
+    );
+
+    expect(result.status).toBe(ExceptionCode.NotAuthenticatedException);
+    expect(personalCreateForUser).not.toHaveBeenCalled();
+    expect(personalRotate).not.toHaveBeenCalled();
+    expect(semaphoreLock).not.toHaveBeenCalled();
+  });
+
+  test("a project API key POST is 422 and mints nothing", async () => {
+    propsSpy.mockResolvedValue({
+      ...buildMemberProps({ projectId, userId: undefined }),
+      userType: UserType.API,
+    });
+
+    const result: HttpResult = await postJson(
+      `${API_PREFIX}${FEED_ROTATE_ROUTE}`,
+    );
+
+    expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
+    expect(personalCreateForUser).not.toHaveBeenCalled();
+    expect(personalRotate).not.toHaveBeenCalled();
   });
 
   test("first time: mints the row as root under the (project, user) lock, purges, and returns the plaintext once", async () => {
@@ -4539,12 +4617,65 @@ describe("GET /on-call-calendar/my-shifts", () => {
     expect(materializeSpy).not.toHaveBeenCalled();
   });
 
-  test("an anonymous caller is refused", async () => {
+  /*
+   * Was a 400 ("A logged-in user is required." as BadDataException). The
+   * route's requireUserId now goes through CommonAPI.assertAuthenticatedUser,
+   * which answers a caller with no credentials with 401 - the status the
+   * dashboard and the mobile app both answer by refreshing the session.
+   */
+  test("an anonymous caller is refused with 401", async () => {
     propsSpy.mockResolvedValue({ tenantId: undefined, userId: undefined });
 
     const result: HttpResult = await request(`${API_PREFIX}${MY_SHIFTS_ROUTE}`);
 
-    expect(result.status).toBe(ExceptionCode.BadDataException);
+    expect(result.status).toBe(ExceptionCode.NotAuthenticatedException);
+    expect(result.status).toBe(401);
+    expect(json(result)["message"]).toBe(
+      CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+    );
+    expect(materializeSpy).not.toHaveBeenCalled();
+  });
+
+  test("an anonymous caller with a tenant header is refused with 401 too", async () => {
+    propsSpy.mockResolvedValue(
+      buildMemberProps({ projectId, userId: undefined }),
+    );
+
+    const result: HttpResult = await request(`${API_PREFIX}${MY_SHIFTS_ROUTE}`);
+
+    expect(result.status).toBe(ExceptionCode.NotAuthenticatedException);
+    expect(materializeSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * An API key is authenticated, so it is not a 401 - but "my shifts" needs a
+   * person, so it is refused as not authorised (422) with the route's own
+   * message. This used to be a BadDataException (400) with the same text.
+   */
+  test("a project API key without a tenant header is refused with 422 'A logged-in user is required.'", async () => {
+    propsSpy.mockResolvedValue({
+      tenantId: undefined,
+      userId: undefined,
+      userType: UserType.API,
+    });
+
+    const result: HttpResult = await request(`${API_PREFIX}${MY_SHIFTS_ROUTE}`);
+
+    expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
+    expect(json(result)["message"]).toBe("A logged-in user is required.");
+    expect(materializeSpy).not.toHaveBeenCalled();
+  });
+
+  test("a project API key with a tenant header gets the same 422 - the user check runs first on this route", async () => {
+    propsSpy.mockResolvedValue({
+      ...buildMemberProps({ projectId, userId: undefined }),
+      userType: UserType.API,
+    });
+
+    const result: HttpResult = await request(`${API_PREFIX}${MY_SHIFTS_ROUTE}`);
+
+    expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
+    expect(json(result)["message"]).toBe("A logged-in user is required.");
     expect(materializeSpy).not.toHaveBeenCalled();
   });
 

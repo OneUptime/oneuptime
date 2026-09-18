@@ -569,13 +569,18 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       return;
     }
 
+    // Uncontrolled selections belong to this component, even if options refresh.
+    if (!("value" in props)) {
+      return;
+    }
+
     const value: DropdownOption | Array<DropdownOption> | undefined =
       getDropdownOptionFromValue(
         props.value === null ? undefined : props.value,
       );
 
     setValue(value);
-  }, [props.value]);
+  }, [props.value, props.options]);
 
   const menuPortalTarget: HTMLElement | null =
     typeof document === "undefined" ? null : document.body;

@@ -1,4 +1,5 @@
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 
 /*
@@ -15,6 +16,13 @@ export function pinQueryToRequestingUser<TQuery>(
   if (props.isRoot || props.isMasterAdmin) {
     return query;
   }
+
+  /*
+   * No credentials at all is an expired session, not someone else's data:
+   * 401 so the client refreshes. The countBy overrides reach this before the
+   * permission layer's own login check does.
+   */
+  DatabaseCommonInteractionPropsUtil.assertCredentialsPresent(props);
 
   if (!props.userId) {
     throw new NotAuthorizedException(

@@ -24,6 +24,8 @@ import Response from "Common/Server/Utils/Response";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionCode from "Common/Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -291,6 +293,23 @@ function buildApiKeyProps(data: {
   };
 }
 
+/*
+ * How a caller with no credentials at all is refused: 401, with the shared
+ * wording. 401 is the status the browser client answers by refreshing an
+ * expired session and replaying the request; a 422 would leave a signed-in
+ * user staring at "not authorized".
+ */
+function expectAuthenticationRequired(thrown: unknown): void {
+  expect(thrown).toBeInstanceOf(NotAuthenticatedException);
+  expect(thrown).not.toBeInstanceOf(NotAuthorizedException);
+  expect((thrown as NotAuthenticatedException).code).toBe(
+    ExceptionCode.NotAuthenticatedException,
+  );
+  expect((thrown as NotAuthenticatedException).message).toBe(
+    CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+  );
+}
+
 describe("Runbook execution routes require an authorized member of the runbook's own project", () => {
   let callerProjectId: ObjectID;
   let otherProjectId: ObjectID;
@@ -467,7 +486,14 @@ describe("Runbook execution routes require an authorized member of the runbook's
      * victim's infrastructure. It must be rejected in the handler with
      * nothing enqueued.
      */
-    test("VULN REGRESSION: a credential-less POST /run/:runbookId with a victim tenant header is rejected and nothing is enqueued", async () => {
+    /*
+     * The rejection is 401 (NotAuthenticatedException), not the 422 it used
+     * to be. A credential-less request is usually a dashboard tab whose
+     * access-token cookie expired with its JWT, and the browser client only
+     * refreshes the session and replays on a 401. What matters for the
+     * vulnerability is unchanged: rejected, nothing read, nothing enqueued.
+     */
+    test("VULN REGRESSION: a credential-less POST /run/:runbookId with a victim tenant header is rejected with 401 and nothing is enqueued", async () => {
       mockProps({
         userType: UserType.Public,
         tenantId: callerProjectId,
@@ -480,13 +506,18 @@ describe("Runbook execution routes require an authorized member of the runbook's
         params: runParams(),
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expectAuthenticationRequired(result.thrownToNext);
       // Never even reads the runbook, let alone runs it.
       expect(runbookFindSpy).not.toHaveBeenCalled();
       expectNothingExecutedOrMutated();
     });
 
-    test("VULN REGRESSION: a credential-less POST with no tenant header at all is rejected too", async () => {
+    /*
+     * Was BadDataException (missing tenant). Credentials are now checked
+     * before the tenant, so an expired session that also lost its header is
+     * still told to authenticate rather than "Project ID is required".
+     */
+    test("VULN REGRESSION: a credential-less POST with no tenant header at all is rejected too, with 401 rather than the missing-tenant 400", async () => {
       mockProps({ userType: UserType.Public });
 
       const result: RouteCallResult = await callRoute({
@@ -494,13 +525,14 @@ describe("Runbook execution routes require an authorized member of the runbook's
         params: runParams(),
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expectAuthenticationRequired(result.thrownToNext);
+      expect(result.thrownToNext).not.toBeInstanceOf(BadDataException);
       expect(runbookFindSpy).not.toHaveBeenCalled();
       expectNothingExecutedOrMutated();
     });
 
     test.each(ALL_ROUTES)(
-      "VULN REGRESSION: rejects a credential-less caller on POST %s and touches nothing",
+      "VULN REGRESSION: rejects a credential-less caller on POST %s with 401 and touches nothing",
       async (uri: string) => {
         mockProps({
           userType: UserType.Public,
@@ -514,12 +546,57 @@ describe("Runbook execution routes require an authorized member of the runbook's
           params: paramsForRoute(uri),
         });
 
-        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expectAuthenticationRequired(result.thrownToNext);
         expect(runbookFindSpy).not.toHaveBeenCalled();
         expect(executionFindSpy).not.toHaveBeenCalled();
         expectNothingExecutedOrMutated();
       },
     );
+
+    test.each(ALL_ROUTES)(
+      "rejects a credential-less caller with no tenant header on POST %s with 401 and touches nothing",
+      async (uri: string) => {
+        mockProps({ userType: UserType.Public });
+
+        const result: RouteCallResult = await callRoute({
+          uri,
+          params: paramsForRoute(uri),
+        });
+
+        expectAuthenticationRequired(result.thrownToNext);
+        expect(runbookFindSpy).not.toHaveBeenCalled();
+        expect(executionFindSpy).not.toHaveBeenCalled();
+        expectNothingExecutedOrMutated();
+      },
+    );
+
+    /*
+     * A credential-less caller cannot borrow authority from a stray tenant
+     * permission entry on the request: without a user, an API key or a
+     * master-admin session it is anonymous, whatever else the props say.
+     */
+    test("a credential-less caller carrying a tenant permission entry is still anonymous", async () => {
+      mockProps({
+        userType: UserType.Public,
+        tenantId: callerProjectId,
+        userId: undefined,
+        userTenantAccessPermission: buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.ProjectOwner],
+        }).userTenantAccessPermission,
+      });
+      mockRunbookInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expectAuthenticationRequired(result.thrownToNext);
+      expect(runbookFindSpy).not.toHaveBeenCalled();
+      expectNothingExecutedOrMutated();
+    });
 
     /*
      * The second half of the original bug: complete/skip/cancel skipped the
@@ -561,6 +638,35 @@ describe("Runbook execution routes require an authorized member of the runbook's
       });
 
       expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      // Authenticated, just not allowed: 422, never the 401 a session gets.
+      expect(result.thrownToNext).not.toBeInstanceOf(NotAuthenticatedException);
+      expect((result.thrownToNext as NotAuthorizedException).code).toBe(
+        ExceptionCode.NotAuthorizedException,
+      );
+      expectNothingExecutedOrMutated();
+    });
+
+    /*
+     * An API key is a credential. Pointed at a project it has no grants in,
+     * it is refused as unauthorized (422), not as anonymous (401): its
+     * client has no session to refresh.
+     */
+    test("rejects a project API key with no grants in the tenant with 422, not 401", async () => {
+      mockProps({
+        userType: UserType.API,
+        tenantId: callerProjectId,
+        userId: undefined,
+        userTenantAccessPermission: undefined,
+      });
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(result.thrownToNext).not.toBeInstanceOf(NotAuthenticatedException);
+      expect(runbookFindSpy).not.toHaveBeenCalled();
       expectNothingExecutedOrMutated();
     });
   });
@@ -769,6 +875,28 @@ describe("Runbook execution routes require an authorized member of the runbook's
 
       expect(result.thrownToNext).toBeUndefined();
     });
+
+    /*
+     * The anonymous-caller 401 must not catch keys: a key carries no userId,
+     * but it is a credential, so every route still lets it through to the
+     * permission check.
+     */
+    test.each([COMPLETE_ROUTE, SKIP_ROUTE, CANCEL_ROUTE])(
+      "an API key is not treated as anonymous on POST %s",
+      async (uri: string) => {
+        apiKeyProps([Permission.EditRunbookExecution]);
+        mockExecutionInProject({ projectId: callerProjectId });
+
+        const result: RouteCallResult = await callRoute({
+          uri,
+          params: paramsForRoute(uri),
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(executionFindSpy).toHaveBeenCalled();
+        expect(executionUpdateSpy).toHaveBeenCalled();
+      },
+    );
 
     /*
      * No user is behind the request, so the execution records no triggering

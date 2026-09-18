@@ -11,8 +11,11 @@ are only legible in the rendered table: which rule declares what, which severiti
 on-call policies, owners and labels each output uses, which options depart from the
 defaults (resolved by hand, private, SLO owners added as owners), and whether the rule
 is firing right now. The spec also walks the create wizard (Rule, Burn Window, What It
-Declares, then an Alert Details / Alert Routing and Incident Details / Incident Routing
-pair per declared output) and checks that the step rail follows the output toggles.
+Declares, then Alert and Incident for the enabled outputs). It checks expandable
+settings, prefilled templates and clearing them to use backend defaults,
+create/edit persistence, validation, the conditional step rail, and desktop and
+mobile modal layouts. It also saves rules with either configured output disabled
+and checks that re-enabling it restores its title, description and routing.
 
 ## Run it
 

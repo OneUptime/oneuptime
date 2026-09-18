@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "Deze schakelaars bepalen welke meldingen u bereiken, niet hoeveel e-mail dat oplevert.",
   "Reduce routine emails or change email rollup in Email Preferences": "Routine-e-mails verminderen of e-mailbundeling wijzigen in e-mailvoorkeuren",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Schakel e-mails uit over notities, toegevoegd worden als eigenaar, nieuwe monitors en statuspagina's, items die aan afleveringen zijn toegevoegd en wijzigingen in het lidmaatschap van piketregels.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Uw keuzes voor het aanmaken van incidenten en waarschuwingen, statuswijzigingen, herinneringen, toewijzingen, monitorstatus en piketdiensten blijven ongewijzigd. Andere meldingskanalen, piketoproepen en account- en facturatie-e-mails blijven onaangetast."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Uw keuzes voor het aanmaken van incidenten en waarschuwingen, statuswijzigingen, herinneringen, toewijzingen, monitorstatus en piketdiensten blijven ongewijzigd. Andere meldingskanalen, piketoproepen en account- en facturatie-e-mails blijven onaangetast.",
+  "Schedule Timeline": "Tijdlijn van bereikbaarheidsschema's",
+  "Timeline View": "Tijdlijnweergave",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "Alle bereikbaarheidsschema's van dit project naast elkaar: wie dienst heeft, wie voor wie invalt en waar niemand is.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "Wie dienst heeft op elk schema van dit team, per week of per maand.",
+  "No on-call schedules yet": "Nog geen bereikbaarheidsschema's",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "Maak een bereikbaarheidsschema en elke rotatie in dit project verschijnt hier, naast elkaar.",
+  "This team does not own any on-call schedules yet": "Dit team is nog geen eigenaar van bereikbaarheidsschema's",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Voeg dit team toe als eigenaar op het tabblad Eigenaren van een schema en de rotaties verschijnen hier."
 }

@@ -159,8 +159,12 @@ spec:
             - name: PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED
               value: {{ default false $val.syntheticMonitorChromiumSandboxEnabled | squote }}
             # Whether API, Website, External Status Page and Custom JavaScript
-            # Code monitors on this private probe may reach private network
-            # addresses. Ignored by auto-registered global probes.
+            # Code monitors on this probe may reach private network addresses.
+            # The probe honors only the exact string "true", so a YAML boolean
+            # is rendered quoted. This probe also gets REGISTER_PROBE_KEY
+            # below, which makes it a global probe: the setting then applies to
+            # every project on the instance, and the probe ignores it (logging
+            # a warning) when BILLING_ENABLED above is "true". Issue #3879.
             - name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
               value: {{ default false $val.allowPrivateNetworkMonitors | squote }}
             - name: PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS

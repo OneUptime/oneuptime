@@ -15,6 +15,13 @@ export interface ComponentProps {
   richContent?: ReactElement | undefined;
   // Large collections can wait to create a tooltip until first opened.
   lazy?: boolean | undefined;
+  /*
+   * Rich tooltips are interactive by default, and Tippy mounts an interactive
+   * tooltip inside the trigger's parent - where an overflow-clipped ancestor
+   * (a scrolling grid, say) cuts it off. Pass false for rich content that has
+   * nothing to click: it then mounts on <body> and hides on mouse-out.
+   */
+  interactive?: boolean | undefined;
 }
 
 interface PopupProps extends ComponentProps {
@@ -61,7 +68,7 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
       {...(props.reference
         ? { reference: props.reference, showOnCreate: true }
         : { children: props.children })}
-      interactive={isRich}
+      interactive={props.interactive ?? isRich}
       trigger="mouseenter focus"
       hideOnClick={false}
       maxWidth={isRich ? 380 : 350}

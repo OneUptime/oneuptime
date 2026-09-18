@@ -17,6 +17,7 @@ import { AppVersion, DisableUpdateCheck } from "../EnvironmentConfig";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import VersionUtil from "../../Utils/VersionUtil";
 import UserMiddleware from "../Middleware/UserAuthorization";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import {
   EnterpriseLicenseSnapshot,
@@ -116,6 +117,22 @@ export default class GlobalConfigAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
+          /*
+           * This route also serves the login page, so a caller with no session
+           * normally gets the reduced anonymous payload below. Unless it says
+           * it is signed in (the dashboards do): then no session means an
+           * expired one, and the anonymous payload would read as "unlicensed".
+           * Answer 401 so the client refreshes and asks again.
+           */
+          if (
+            req.query["signedIn"] === "true" &&
+            UserMiddleware.isAnonymousRequest(req as OneUptimeRequest)
+          ) {
+            throw new NotAuthenticatedException(
+              UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
+            );
+          }
+
           const audience: LicenseResponseAudience =
             GlobalConfigAPI.getLicenseResponseAudience(req);
           const isEnterpriseEditionLoaded: boolean =

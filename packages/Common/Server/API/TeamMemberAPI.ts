@@ -40,6 +40,7 @@ export default class TeamMemberAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/is-user-registered`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -104,6 +105,7 @@ export default class TeamMemberAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/remove-user-from-project`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -166,6 +168,7 @@ export default class TeamMemberAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id/leave`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;

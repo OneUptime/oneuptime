@@ -68,8 +68,19 @@ jest.mock("../../../Server/Utils/Response", () => {
     },
   };
 });
+/*
+ * Both middlewares are distinct mocks so the route registration can be
+ * asserted by identity. Leaving requireUserAuthentication out would register
+ * `undefined` in its place, and toEqual reads a trailing undefined as absent.
+ */
 jest.mock("../../../Server/Middleware/UserAuthorization", () => {
-  return { __esModule: true, default: { getUserMiddleware: jest.fn() } };
+  return {
+    __esModule: true,
+    default: {
+      getUserMiddleware: jest.fn(),
+      requireUserAuthentication: jest.fn(),
+    },
+  };
 });
 jest.mock("../../../Server/API/CommonAPI", () => {
   return { __esModule: true, default: {} };
@@ -190,13 +201,23 @@ describe("BillingPaymentMethodAPI", () => {
   });
 
   describe(`POST ${SET_DEFAULT_ROUTE}`, () => {
-    it("is registered behind the user middleware", () => {
+    /*
+     * getUserMiddleware lets a request with no session through as Public;
+     * requireUserAuthentication then answers it with a 401. The billing page
+     * left open past the access-token lifetime sends exactly that request,
+     * and the 401 is what makes the browser client refresh the session and
+     * replay it instead of showing a permission error.
+     */
+    it("is registered behind the user middleware and the authentication guard", () => {
       const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
         "post",
         SET_DEFAULT_ROUTE,
       );
 
-      expect(route.middlewares).toEqual([UserMiddleware.getUserMiddleware]);
+      expect(route.middlewares).toStrictEqual([
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+      ]);
     });
 
     it("makes the card the default on the project's own customer, invalidates the pay-as-you-go cache and answers with an empty success", async () => {
@@ -458,6 +479,18 @@ describe("BillingPaymentMethodAPI", () => {
   });
 
   describe(`POST ${SETUP_ROUTE}`, () => {
+    it("is registered behind the user middleware and the authentication guard", () => {
+      const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
+        "post",
+        SETUP_ROUTE,
+      );
+
+      expect(route.middlewares).toStrictEqual([
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+      ]);
+    });
+
     it("rejects a projectId in the body with a message that says so", async () => {
       /*
        * The check always rejected a body projectId, but told the caller that

@@ -193,8 +193,16 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
       });
   const selectedValue: string =
     variable.selectedValue ?? variable.defaultValue ?? "";
+  /*
+   * With no option for its value the browser would show "All", while
+   * VariableInterpolation still filters every widget by that value. A project
+   * label can be deleted or disallowed. A telemetry attribute only lists the
+   * first 100 values seen in the last day, and its default is free text, so
+   * its value can be missing from the list and still match data. Skipped
+   * while those values load: the select reads "Loading…" until they arrive.
+   */
   const isUnavailableSelection: boolean = Boolean(
-    isProjectLabel &&
+    (isProjectLabel || (isTelemetryAttribute && !props.isLoadingOptions)) &&
       selectedValue &&
       !options.some((option: DashboardVariableOption) => {
         return option.value === selectedValue;
@@ -253,7 +261,9 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
             {props.isLoadingOptions ? "Loading…" : "All"}
           </option>
           {isUnavailableSelection && (
-            <option value={selectedValue}>Unavailable label</option>
+            <option value={selectedValue}>
+              {isProjectLabel ? "Unavailable label" : selectedValue}
+            </option>
           )}
           {options.map((option: DashboardVariableOption) => {
             return (

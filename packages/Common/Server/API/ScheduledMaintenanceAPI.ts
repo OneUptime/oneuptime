@@ -43,6 +43,7 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/generate-note-from-ai/:scheduledMaintenanceId`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.generateNoteFromAI(req, res);

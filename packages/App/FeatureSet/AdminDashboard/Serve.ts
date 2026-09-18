@@ -6,13 +6,9 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
-import Response from "Common/Server/Utils/Response";
-import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
-import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import { ensureMasterAdminPageAccess } from "Common/Server/Utils/MasterAdminPageAccess";
 import { JSONObject } from "Common/Types/JSON";
 import "ejs";
-import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 
 export const APP_NAME: string = "admin";
 
@@ -27,46 +23,7 @@ const ensureMasterAdminAccess: EnsureMasterAdminAccessFunction = async (
   req: ExpressRequest,
   res: ExpressResponse,
 ): Promise<JSONObject> => {
-  try {
-    const accessToken: string | undefined =
-      UserMiddleware.getAccessTokenFromExpressRequest(req);
-
-    if (!accessToken) {
-      Response.sendErrorResponse(
-        req,
-        res,
-        new NotAuthorizedException(
-          "Unauthorized: Only master admins can access the admin dashboard.",
-        ),
-      );
-      return {};
-    }
-
-    const authData: JSONWebTokenData = JSONWebToken.decode(accessToken);
-
-    if (!authData.isMasterAdmin) {
-      Response.sendErrorResponse(
-        req,
-        res,
-        new NotAuthorizedException(
-          "Unauthorized: Only master admins can access the admin dashboard.",
-        ),
-      );
-      return {};
-    }
-
-    return {};
-  } catch (error) {
-    logger.error(error, { service: "admin" });
-    Response.sendErrorResponse(
-      req,
-      res,
-      new NotAuthorizedException(
-        "Unauthorized: Only master admins can access the admin dashboard.",
-      ),
-    );
-    return {};
-  }
+  return await ensureMasterAdminPageAccess({ req, res, service: "admin" });
 };
 
 const init: PromiseVoidFunction = async (): Promise<void> => {

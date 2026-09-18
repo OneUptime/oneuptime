@@ -12,9 +12,13 @@ import Response from "../../../Server/Utils/Response";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import { ROUTINE_EMAIL_EVENT_TYPES } from "../../../Types/NotificationSetting/RoutineEmailEvents";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -28,6 +32,15 @@ const ROUTE: string = "/user-notification-setting/reduce-routine-emails";
 const USER_ID: ObjectID = ObjectID.generate();
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const OTHER_PROJECT_ID: ObjectID = ObjectID.generate();
+
+/*
+ * The exception the handler handed to next(). Its code is the HTTP status the
+ * client sees, and the browser client refreshes the session on 401 only, so
+ * the code is asserted alongside the class.
+ */
+function errorPassedTo(next: jest.Mock): Exception {
+  return next.mock.calls[0]![0] as Exception;
+}
 
 describe("POST reduce routine emails", () => {
   let props: DatabaseCommonInteractionProps;
@@ -128,21 +141,67 @@ describe("POST reduce routine emails", () => {
     });
   });
 
-  test.each(["anonymous", "project API key"])(
-    "rejects a %s without an authenticated user",
-    async () => {
+  /*
+   * Both callers are refused, but differently. The anonymous one - no user, no
+   * key, typically a dashboard tab whose access-token cookie expired - gets
+   * NotAuthenticatedException (401), which is what makes the browser refresh
+   * the session and resend; it used to get the 422 below. A project API key
+   * is authenticated but is nobody's preferences, so it keeps the 422: a 401
+   * would send its client off to refresh a session it never had.
+   */
+  test.each([
+    {
+      caller: "an anonymous caller",
+      userType: undefined,
+      exception: NotAuthenticatedException,
+      code: ExceptionCode.NotAuthenticatedException,
+    },
+    {
+      caller: "an explicitly Public caller",
+      userType: UserType.Public,
+      exception: NotAuthenticatedException,
+      code: ExceptionCode.NotAuthenticatedException,
+    },
+    {
+      caller: "a project API key",
+      userType: UserType.API,
+      exception: NotAuthorizedException,
+      code: ExceptionCode.NotAuthorizedException,
+    },
+  ])(
+    "rejects $caller without an authenticated user",
+    async (testCase: {
+      caller: string;
+      userType: UserType | undefined;
+      exception:
+        | typeof NotAuthenticatedException
+        | typeof NotAuthorizedException;
+      code: ExceptionCode;
+    }) => {
       props.userId = undefined;
+      props.userType = testCase.userType;
       const next: jest.Mock = await call({ userId: USER_ID.toString() });
-      expect(next).toHaveBeenCalledWith(expect.any(NotAuthorizedException));
+      expect(next).toHaveBeenCalledWith(expect.any(testCase.exception));
+      expect(errorPassedTo(next).code).toBe(testCase.code);
       expect(reduceSpy).not.toHaveBeenCalled();
       expect(responseSpy).not.toHaveBeenCalled();
     },
   );
 
+  test("an anonymous caller with no tenant is asked to log in before the missing project is reported", async () => {
+    props.userId = undefined;
+    props.tenantId = undefined;
+    const next: jest.Mock = await call();
+    expect(next).toHaveBeenCalledWith(expect.any(NotAuthenticatedException));
+    expect(errorPassedTo(next).code).toBe(401);
+    expect(reduceSpy).not.toHaveBeenCalled();
+  });
+
   test("rejects missing project context before changing preferences", async () => {
     props.tenantId = undefined;
     const next: jest.Mock = await call({ projectId: PROJECT_ID.toString() });
     expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
+    expect(errorPassedTo(next).code).toBe(ExceptionCode.BadDataException);
     expect(reduceSpy).not.toHaveBeenCalled();
   });
 
@@ -150,6 +209,7 @@ describe("POST reduce routine emails", () => {
     props.userTenantAccessPermission = undefined;
     const next: jest.Mock = await call();
     expect(next).toHaveBeenCalledWith(expect.any(NotAuthorizedException));
+    expect(errorPassedTo(next).code).toBe(ExceptionCode.NotAuthorizedException);
     expect(reduceSpy).not.toHaveBeenCalled();
   });
 
@@ -157,6 +217,7 @@ describe("POST reduce routine emails", () => {
     props.tenantId = OTHER_PROJECT_ID;
     const next: jest.Mock = await call();
     expect(next).toHaveBeenCalledWith(expect.any(NotAuthorizedException));
+    expect(errorPassedTo(next).code).toBe(ExceptionCode.NotAuthorizedException);
     expect(reduceSpy).not.toHaveBeenCalled();
   });
 

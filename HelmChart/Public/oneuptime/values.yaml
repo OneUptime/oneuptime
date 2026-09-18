@@ -1055,9 +1055,9 @@ captcha:
 # OneUptime refuses to send workflow requests, project webhooks, on-call user
 # webhooks and sandboxed HTTP calls to targets that resolve into private,
 # loopback or link-local ranges. Both settings below relax that for self-hosted
-# installs and both are off by default. Neither grants anything on its own:
-# each project must ALSO enable "Allow Private Network Webhooks" in
-# Settings -> Project. Status page subscriber webhooks are never covered.
+# installs and both are off by default. They are instance-wide and the only
+# gate: there is no per-project setting, so whatever they allow applies to
+# every project. Status page subscriber webhooks are never covered.
 webhooks:
   # Permit RFC-1918, CGNAT, IPv6 unique-local and site-local targets. Loopback,
   # link-local (169.254.169.254) and multicast stay blocked.
@@ -1289,11 +1289,15 @@ probes:
     # Probes do not call the Kubernetes API. Keep cluster credentials out of
     # the pod—and therefore out of synthetic browser processes—by default.
     automountServiceAccountToken: false
-    # Private-network opt-in for API, Website, External Status Page and Custom
-    # JavaScript Code monitors on a private probe. Chart-managed probes
-    # auto-register as global probes, so they ignore this value and always
-    # enforce public-only egress. Turning this on for a separately deployed
-    # private probe still does NOT open loopback, link-local or cloud metadata.
+    # Let API, Website, External Status Page and Custom JavaScript Code monitors
+    # on this probe reach private network addresses (RFC-1918, CGNAT, IPv6
+    # unique-local), e.g. http://10.0.0.5/health. Honored on this chart probe.
+    # Chart probes auto-register as GLOBAL probes, so turning it on lets those
+    # monitors from EVERY project on this instance reach private addresses
+    # through this probe. Loopback, link-local and the cloud metadata endpoint
+    # stay blocked either way. Ignored, with a startup warning in the probe's
+    # log, when billing.enabled is true: global probes of a billing-enabled
+    # instance stay public-only, so deploy a private probe for internal targets.
     allowPrivateNetworkMonitors: false
     syntheticMonitorScriptTimeoutInMs: 60000
     # Maximum number of isolated browser worker processes started concurrently
@@ -1408,6 +1412,7 @@ probes:
 #   key:
 #   replicaCount: 1
 #   automountServiceAccountToken: false
+#   allowPrivateNetworkMonitors: false
 #   ports:
 #     http: 3874
 #   syntheticMonitorScriptTimeoutInMs: 60000

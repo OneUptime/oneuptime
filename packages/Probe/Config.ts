@@ -5,7 +5,13 @@ import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
 import Port from "Common/Types/Port";
 import NumberUtil from "Common/Utils/Number";
-import { HasRegisterProbeKey } from "Common/Server/EnvironmentConfig";
+import {
+  HasRegisterProbeKey,
+  IsBillingEnabled,
+} from "Common/Server/EnvironmentConfig";
+import PrivateNetworkMonitorPolicy, {
+  ResolvedPrivateNetworkMonitorPolicy,
+} from "./Utils/PrivateNetworkMonitorPolicy";
 import {
   MAX_NODE_TIMER_DELAY_IN_MS,
   MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
@@ -145,38 +151,46 @@ export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =
  * instance - a custom probe is usually a different machine, often run by a
  * different person, and never reads the API server's configuration.
  *
- * Off by default, and deliberately ignored by auto-registered global probes.
- * A REGISTER_PROBE_KEY is the server-issued authority that creates a global
- * probe, so a tenant-controlled monitor can never loosen that probe's policy
- * by changing monitor data. Turning this on for a private probe still does
- * NOT open loopback, link-local or the cloud metadata endpoint: those stay
+ * Off by default on every probe. Honored on the auto-registered global probes
+ * the Helm chart and Docker Compose bundle, too (OneUptime issue #3879): their
+ * operator is the instance's operator, and ignoring the setting there left no
+ * way to monitor an internal target from them. The exception is a global probe
+ * on an instance with BILLING_ENABLED=true, which every sign-up shares; it
+ * stays public-only and says so at startup. Utils/PrivateNetworkMonitorPolicy.ts
+ * holds the full decision and its reasoning. Turning this on still does NOT
+ * open loopback, link-local or the cloud metadata endpoint: those stay
  * forbidden in every deployment.
  */
+export const PROBE_PRIVATE_NETWORK_MONITOR_POLICY: ResolvedPrivateNetworkMonitorPolicy =
+  PrivateNetworkMonitorPolicy.resolve({
+    configuredValue: process.env["PROBE_ALLOW_PRIVATE_NETWORK_MONITORS"],
+    isAutoRegisteredGlobalProbe: HasRegisterProbeKey,
+    isBillingEnabled: IsBillingEnabled,
+  });
+
 export const PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: boolean =
-  !HasRegisterProbeKey &&
-  process.env["PROBE_ALLOW_PRIVATE_NETWORK_MONITORS"] === "true";
+  PROBE_PRIVATE_NETWORK_MONITOR_POLICY.allowed;
 
 /*
- * Appended to a private-tier refusal from a Custom Code monitor. The guard's
- * default sentence names the API server's webhook settings, which are neither
- * read by this process nor usually editable by whoever runs this probe.
+ * Appended to a private-tier refusal from an API, Website, External Status
+ * Page or Custom Code monitor. The guards' default sentence names the API
+ * server's webhook settings, which are neither read by this process nor
+ * usually editable by whoever runs this probe.
  */
+export const PROBE_PRIVATE_NETWORK_HINT: string =
+  PROBE_PRIVATE_NETWORK_MONITOR_POLICY.refusalHint;
+
 /*
  * Whether this process is a GLOBAL probe — one registered with the
  * server-issued REGISTER_PROBE_KEY rather than deployed by a customer inside
  * their own network.
  *
- * Re-exported so other probe code can apply the same "global probes never
- * touch private space" rule PROBE_ALLOW_PRIVATE_NETWORK_MONITORS applies,
- * without reaching past this file into Common's environment config. Discovery
- * uses it to refuse NetBIOS name lookups outright on a global probe (OneUptime
- * issue #3677), whatever the scan row asks for.
+ * Re-exported so other probe code can apply global-probe rules without
+ * reaching past this file into Common's environment config. Discovery uses it
+ * to refuse NetBIOS name lookups outright on a global probe (OneUptime issue
+ * #3677), whatever the scan row asks for.
  */
 export { HasRegisterProbeKey };
-
-export const PROBE_PRIVATE_NETWORK_HINT: string = HasRegisterProbeKey
-  ? " Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."
-  : " Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it.";
 
 export const PROBE_MONITOR_RETRY_LIMIT: number =
   NumberUtil.parseNumberWithDefault({

@@ -115,10 +115,18 @@ describe("On-Call Duty side menu - Calendar Feeds item", () => {
       return link.title;
     });
 
+    /*
+     * The two views of the schedules come first - the list and the timeline
+     * of all of them - and the feeds that export them follow directly.
+     */
     expect(titles).toContain("On-Call Schedules");
+    expect(titles).toContain("Schedule Timeline");
     expect(titles).toContain("Calendar Feeds");
-    expect(titles.indexOf("Calendar Feeds")).toBe(
+    expect(titles.indexOf("Schedule Timeline")).toBe(
       titles.indexOf("On-Call Schedules") + 1,
+    );
+    expect(titles.indexOf("Calendar Feeds")).toBe(
+      titles.indexOf("Schedule Timeline") + 1,
     );
 
     const calendarFeeds: MenuLink | undefined = links.find(

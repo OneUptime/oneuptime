@@ -11,7 +11,6 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
@@ -65,9 +64,7 @@ async function getLoggedInProps(
   const props: DatabaseCommonInteractionProps =
     await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-  if (!props.userId) {
-    throw new NotAuthorizedException("A logged-in user session is required.");
-  }
+  CommonAPI.assertAuthenticatedUser(props);
 
   return props;
 }

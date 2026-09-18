@@ -33,8 +33,8 @@ x-common-variables: &common-variables
   ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
 
   # Outbound webhook egress policy — see config.example.env for the full
-  # explanation. Both are off by default and both need a matching per-project
-  # opt-in in Project Settings before they grant anything.
+  # explanation. Both are off by default and instance-wide; there is no
+  # per-project setting.
   ALLOW_PRIVATE_NETWORK_WEBHOOKS: ${ALLOW_PRIVATE_NETWORK_WEBHOOKS:-false}
   PRIVATE_NETWORK_WEBHOOK_ALLOWLIST: ${PRIVATE_NETWORK_WEBHOOK_ALLOWLIST:-}
 
@@ -439,10 +439,15 @@ services:
       # be required instead of silently falling back to --no-sandbox.
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
-      # Bundled probes auto-register as global probes, so the process ignores
-      # this private-probe opt-in and always enforces public-only HTTP egress.
-      # See config.example.env.
+      # Honored here too (issue #3879). This one config.env value applies to
+      # both bundled probes, which auto-register as global probes, so "true"
+      # lets monitors from every project on the instance reach private
+      # addresses through them. Off by default; see config.example.env.
       PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: ${PROBE_ALLOW_PRIVATE_NETWORK_MONITORS:-false}
+      # Lets the probe apply the one exception to the setting above: a global
+      # probe of a billing-enabled (hosted, open-signup) instance stays
+      # public-only. The Helm chart passes billing.enabled the same way.
+      BILLING_ENABLED: ${BILLING_ENABLED}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
       PROBE_NETWORK_DEVICE_POLL_CONCURRENCY: ${GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY:-}
       PROBE_SNMP_GET_CHUNK_SIZE: ${GLOBAL_PROBE_1_SNMP_GET_CHUNK_SIZE:-}
@@ -494,10 +499,15 @@ services:
       PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_MAX_DISK_BYTES:-268435456}
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
-      # Bundled probes auto-register as global probes, so the process ignores
-      # this private-probe opt-in and always enforces public-only HTTP egress.
-      # See config.example.env.
+      # Honored here too (issue #3879). This one config.env value applies to
+      # both bundled probes, which auto-register as global probes, so "true"
+      # lets monitors from every project on the instance reach private
+      # addresses through them. Off by default; see config.example.env.
       PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: ${PROBE_ALLOW_PRIVATE_NETWORK_MONITORS:-false}
+      # Lets the probe apply the one exception to the setting above: a global
+      # probe of a billing-enabled (hosted, open-signup) instance stays
+      # public-only. The Helm chart passes billing.enabled the same way.
+      BILLING_ENABLED: ${BILLING_ENABLED}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
       PROBE_NETWORK_DEVICE_POLL_CONCURRENCY: ${GLOBAL_PROBE_2_NETWORK_DEVICE_POLL_CONCURRENCY:-}
       PROBE_SNMP_GET_CHUNK_SIZE: ${GLOBAL_PROBE_2_SNMP_GET_CHUNK_SIZE:-}

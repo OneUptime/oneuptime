@@ -104,6 +104,11 @@ const eventsTableSource: string = readDashboardSource(
   "SecurityEvents",
   "SecurityEventsTable.tsx",
 );
+const eventsExplorerSource: string = readDashboardSource(
+  "Components",
+  "SecurityEvents",
+  "SecurityEventsExplorer.tsx",
+);
 const eventsEmptyStateSource: string = readDashboardSource(
   "Components",
   "SecurityEvents",
@@ -263,12 +268,15 @@ describe("Security events setup guide wiring", () => {
   /*
    * The empty state is its own component (rendered and clicked through in
    * Common/Tests/App/Dashboard/SecurityEventsEmptyState.test.tsx); this pins
-   * that the table still uses it and that it still names both pages.
+   * that the table still falls back to it, that the page still shows it for a
+   * project that has never received an event (SecurityEventsExplorer.test.tsx
+   * drives that), and that it still names both pages.
    */
   test("the empty events table points at the setup guide and at Connections", () => {
     expect(eventsTableSource).toContain(
-      "noItemsMessage={<SecurityEventsEmptyState />}",
+      "noItemsMessage={props.noItemsMessage || <SecurityEventsEmptyState />}",
     );
+    expect(eventsExplorerSource).toContain("<SecurityEventsEmptyState />");
     expect(eventsEmptyStateSource).toContain(
       "navigateTo(PageMap.SECURITY_EVENTS_DOCUMENTATION);",
     );

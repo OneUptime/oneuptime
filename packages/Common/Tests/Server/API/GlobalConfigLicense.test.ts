@@ -13,8 +13,11 @@ import {
   SeatUsage,
 } from "../../../Server/Enterprise/EnterpriseLicenseSnapshot";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
+import Exception from "../../../Types/Exception/Exception";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import UserType from "../../../Types/UserType";
 import {
   NextFunction,
   OneUptimeRequest,
@@ -291,8 +294,13 @@ describe("GET /global-config/license", () => {
       .fn()
       .mockResolvedValue(makeStoredConfig());
 
+    /*
+     * Express always gives a request a `query` object; the licence GET reads
+     * `signedIn` from it before anything else.
+     */
     mockRequest = {
       body: {},
+      query: {},
     } as unknown as OneUptimeRequest;
 
     mockResponse = {
@@ -726,6 +734,138 @@ describe("GET /global-config/license", () => {
     });
   });
 
+  /*
+   * THE EXPIRED-SESSION CASE
+   *
+   * The dashboard's access-token cookie expires with the JWT inside it, so a
+   * signed-in tab left idle past the token lifetime asks for the licence
+   * with no session at all. On its own this route cannot tell that apart
+   * from the login page, and answers with the reduced anonymous payload and
+   * a 200 - which the edition pill reads as "no licence, no instances". The
+   * dashboards now say `?signedIn=true`; a caller that says so but carries
+   * no credentials is answered 401, the one status the browser client
+   * refreshes the session and replays on.
+   */
+  describe("?signedIn=true", () => {
+    const setRequest: (fields: Record<string, unknown>) => void = (
+      fields: Record<string, unknown>,
+    ): void => {
+      Object.assign(mockRequest as unknown as Record<string, unknown>, fields);
+    };
+
+    const callGetExpectingError: () => Promise<Error> =
+      async (): Promise<Error> => {
+        await mockRouter
+          .match("get", LICENSE_ROUTE)
+          .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+        expect(nextFunction).toHaveBeenCalledTimes(1);
+
+        return (nextFunction as unknown as jest.Mock).mock
+          .calls[0]![0] as Error;
+      };
+
+    it.each([
+      ["no userType at all", {}],
+      [
+        "userType Public (what getUserMiddleware stamps)",
+        { userType: UserType.Public },
+      ],
+    ])(
+      "answers an anonymous caller (%s) with a 401 before reading anything",
+      async (_label: string, caller: Record<string, unknown>) => {
+        installWithSnapshot(createLicenseSnapshot());
+        const snapshotSpy: jest.SpyInstance = jest.spyOn(
+          EnterpriseEdition,
+          "getLicenseSnapshot",
+        );
+
+        setRequest({ ...caller, query: { signedIn: "true" } });
+
+        const error: Error = await callGetExpectingError();
+
+        expect(error).toBeInstanceOf(NotAuthenticatedException);
+        expect((error as Exception).code).toBe(401);
+        expect(error.message).toBe(
+          UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
+        );
+        expect(snapshotSpy).not.toHaveBeenCalled();
+        expect(GlobalConfigService.findOneById).not.toHaveBeenCalled();
+        expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+      },
+    );
+
+    it("answers the 401 on the Community Edition too", async () => {
+      setRequest({ userType: UserType.Public, query: { signedIn: "true" } });
+
+      const error: Error = await callGetExpectingError();
+
+      expect(error).toBeInstanceOf(NotAuthenticatedException);
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    });
+
+    // The login page does not send the flag and must keep working.
+    it("still serves an anonymous caller without the flag the public payload", async () => {
+      installWithSnapshot(createLicenseSnapshot());
+      setRequest({ userType: UserType.Public, query: {} });
+
+      const body: JSONObject = await callGet();
+
+      expect(Object.keys(body).sort()).toEqual(PUBLIC_KEYS);
+      expect(body["licenseKey"]).toBeUndefined();
+    });
+
+    it.each([
+      ["signedIn=false", { signedIn: "false" }],
+      ["an empty signedIn", { signedIn: "" }],
+      ["signedIn=1", { signedIn: "1" }],
+    ])(
+      'only the exact string "true" asks for a 401 (%s serves the public payload)',
+      async (_label: string, query: Record<string, unknown>) => {
+        setRequest({ userType: UserType.Public, query: query });
+
+        const body: JSONObject = await callGet();
+
+        expect(Object.keys(body).sort()).toEqual(PUBLIC_KEYS);
+      },
+    );
+
+    it("serves a signed-in master admin the full payload with the flag", async () => {
+      installWithSnapshot(createLicenseSnapshot({ userLimit: 50 }));
+      setCaller("master admin");
+      setRequest({ userType: UserType.User, query: { signedIn: "true" } });
+
+      const body: JSONObject = await callGet();
+
+      expect(body["licenseKey"]).toBe(STORED_LICENSE_KEY);
+      expect(body["instanceId"]).toBe(INSTANCE_ID.toString());
+    });
+
+    it("serves a signed-in user who is not a master admin the public payload with the flag", async () => {
+      installWithSnapshot(createLicenseSnapshot());
+      setCaller("signed-in user");
+      setRequest({ userType: UserType.User, query: { signedIn: "true" } });
+
+      const body: JSONObject = await callGet();
+
+      expect(Object.keys(body).sort()).toEqual(PUBLIC_KEYS);
+    });
+
+    /*
+     * A project API key has credentials, so it is not an expired session:
+     * no 401. It has no user either, so it still gets only what an
+     * anonymous caller gets.
+     */
+    it("does not 401 an API-key caller that sends the flag", async () => {
+      installWithSnapshot(createLicenseSnapshot());
+      setRequest({ userType: UserType.API, query: { signedIn: "true" } });
+
+      const body: JSONObject = await callGet();
+
+      expect(Object.keys(body).sort()).toEqual(PUBLIC_KEYS);
+    });
+  });
+
   describe("errors", () => {
     it("passes a database failure to next instead of answering", async () => {
       GlobalConfigService.findOneById = jest
@@ -819,5 +959,6 @@ describe("GlobalConfigAPI.buildLicenseResponse", () => {
       seatsRemaining: 0,
       canAddMoreUsers: false,
     });
+
   });
 });

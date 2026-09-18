@@ -55,7 +55,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
 import { JSONObject } from "Common/Types/JSON";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import URL from "Common/Types/API/URL";

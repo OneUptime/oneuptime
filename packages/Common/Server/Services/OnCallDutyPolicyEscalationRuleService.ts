@@ -5,7 +5,7 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import OnCallDutyPolicyChildService from "./OnCallDutyPolicyChildService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "./OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyEscalationRuleUserService from "./OnCallDutyPolicyEscalationRuleUserService";
@@ -36,7 +36,7 @@ import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDuty
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends OnCallDutyPolicyChildService<Model> {
   @CaptureSpan()
   public async getRouteAlertToUserId(data: {
     userId: ObjectID;

@@ -31,14 +31,19 @@ export default class CommonAPI {
    * missing header. Assert the scope up front so the caller gets the real
    * cause.
    *
-   * This deliberately checks the tenant only, not the user: API-key callers
-   * are authenticated by ProjectMiddleware and carry tenant permissions
-   * without ever setting `userId`. Use assertAuthenticatedProjectMember when
-   * an endpoint must additionally be a logged-in human member.
+   * This deliberately checks the tenant, not the user: API-key callers are
+   * authenticated by ProjectMiddleware and carry tenant permissions without
+   * ever setting `userId`. It does refuse a caller with no credentials at all
+   * (401, see assertCredentialsPresent), because a tenant header on its own
+   * proves nothing and usually means an expired session. Use
+   * assertAuthenticatedProjectMember when an endpoint must additionally be a
+   * logged-in human member.
    */
   public static assertTenantScoped(
     databaseProps: DatabaseCommonInteractionProps,
   ): ObjectID {
+    CommonAPI.assertCredentialsPresent(databaseProps);
+
     const projectId: ObjectID | undefined = databaseProps.tenantId;
 
     if (!projectId) {
@@ -64,6 +69,8 @@ export default class CommonAPI {
   public static assertAuthenticatedProjectPrincipal(
     databaseProps: DatabaseCommonInteractionProps,
   ): ObjectID {
+    CommonAPI.assertCredentialsPresent(databaseProps);
+
     const projectId: ObjectID | undefined = databaseProps.tenantId;
 
     if (!projectId) {
@@ -85,6 +92,59 @@ export default class CommonAPI {
     return projectId;
   }
 
+  public static readonly AUTHENTICATION_REQUIRED_MESSAGE: string =
+    DatabaseCommonInteractionPropsUtil.AUTHENTICATION_REQUIRED_MESSAGE;
+
+  // See DatabaseCommonInteractionPropsUtil.isAnonymous.
+  public static isAnonymous(
+    databaseProps: DatabaseCommonInteractionProps,
+  ): boolean {
+    return DatabaseCommonInteractionPropsUtil.isAnonymous(databaseProps);
+  }
+
+  /*
+   * "Who are you?" comes before "may you?".
+   *
+   * An anonymous caller has to get 401, never 422 or 400. The browser client
+   * (Common/UI/Utils/API/API.ts) refreshes the session and replays the request
+   * on a 401 and on nothing else, so answering an expired session with "you
+   * are not authorized to access this project's data" leaves a signed-in user
+   * looking at an authorization error until something else happens to trigger
+   * a 401. Every guard below calls this first, and so should any custom route
+   * that checks its caller by hand.
+   *
+   * Callers that ARE authenticated but lack access keep whatever refusal the
+   * route already gives them.
+   */
+  public static assertCredentialsPresent(
+    databaseProps: DatabaseCommonInteractionProps,
+  ): void {
+    DatabaseCommonInteractionPropsUtil.assertCredentialsPresent(databaseProps);
+  }
+
+  /*
+   * For routes that act as a person (they record who approved, who asked,
+   * whose settings changed) and so cannot run on an API key.
+   *
+   * No credentials is 401, as above. A project API key IS authenticated, so it
+   * gets the route's own refusal (422) rather than a 401 its client would
+   * answer by trying to refresh a session it never had.
+   */
+  public static assertAuthenticatedUser(
+    databaseProps: DatabaseCommonInteractionProps,
+    notAUserMessage?: string,
+  ): ObjectID {
+    CommonAPI.assertCredentialsPresent(databaseProps);
+
+    if (!databaseProps.userId) {
+      throw new NotAuthorizedException(
+        notAUserMessage || "A logged-in user session is required.",
+      );
+    }
+
+    return databaseProps.userId;
+  }
+
   /*
    * getUserMiddleware lets unauthenticated requests through as "public" and
    * takes the tenant id from a caller-supplied header — custom endpoints
@@ -95,6 +155,8 @@ export default class CommonAPI {
   public static assertAuthenticatedProjectMember(
     databaseProps: DatabaseCommonInteractionProps,
   ): ObjectID {
+    CommonAPI.assertCredentialsPresent(databaseProps);
+
     const projectId: ObjectID | undefined = databaseProps.tenantId;
 
     if (!projectId) {
@@ -179,6 +241,8 @@ export default class CommonAPI {
     allowedPermissions: Array<Permission>;
     errorMessage?: string | undefined;
   }): void {
+    CommonAPI.assertCredentialsPresent(data.databaseProps);
+
     if (data.databaseProps.isMasterAdmin) {
       return;
     }

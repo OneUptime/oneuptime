@@ -5,6 +5,8 @@ import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
 import ThemeUtil from "Common/UI/Utils/Theme";
 import UserUtil from "Common/UI/Utils/User";
+import API from "Common/UI/Utils/API/API";
+import { enablePrivateImageSessionRefresh } from "Common/UI/Components/Markdown.tsx/SessionAwareImage";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
@@ -13,6 +15,16 @@ ThemeUtil.initialize();
 
 // Render dates in the timezone the user picked in User Settings.
 UserUtil.initializeUserTimezone();
+
+/*
+ * Let a private markdown image that failed because the access token lapsed
+ * refresh this app's session and load again (see SessionAwareImage). Opt-in
+ * per app: status pages and public dashboards render the same markdown
+ * without a session of this kind.
+ */
+enablePrivateImageSessionRefresh((): Promise<boolean> => {
+  return API.refreshSession();
+});
 
 Telemetry.init({
   serviceName: "admin-dashboard",

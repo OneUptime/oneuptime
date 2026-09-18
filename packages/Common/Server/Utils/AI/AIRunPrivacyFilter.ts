@@ -1,4 +1,5 @@
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import AIRunType from "../../../Types/AI/AIRunType";
@@ -57,6 +58,13 @@ export function getAIRunPrivacyRaw(
    * /ai-run nor /code-fix-run grants today. That is a separate product
    * decision and must not ride in as a side effect of this filter.
    */
+  /*
+   * No credentials at all is an expired session, not someone else's data:
+   * 401 so the client refreshes. The countBy overrides reach this before the
+   * permission layer's own login check does.
+   */
+  DatabaseCommonInteractionPropsUtil.assertCredentialsPresent(props);
+
   if (!props.userId) {
     throw new NotAuthorizedException(
       "AI runs are personal and can only be accessed by the user who created them.",

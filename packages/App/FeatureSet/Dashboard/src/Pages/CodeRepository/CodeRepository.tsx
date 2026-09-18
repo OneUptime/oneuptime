@@ -15,11 +15,14 @@ import Label from "Common/Models/DatabaseModels/Label";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { env, HOME_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
 import AIPlanGate from "../../Components/AI/AIPlanGate";
 import RepositoryConnectionStatus from "../../Components/CodeRepository/RepositoryConnectionStatus";
 import Card from "Common/UI/Components/Card/Card";
@@ -37,6 +40,14 @@ const CodeRepositoryPage: FunctionComponent<
     useBulkLabelActions<CodeRepository>({ modelType: CodeRepository });
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  /*
+   * Set while the click waits for the session refresh, so a double click
+   * does not navigate twice. A ref, not state: the second click can land
+   * before a re-render would have shown this handler a state flag.
+   */
+  const isConnectingToGitHubRef: MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   useEffect(() => {
     /*
@@ -60,23 +71,51 @@ const CodeRepositoryPage: FunctionComponent<
     }
   }, []);
 
-  const handleConnectWithGitHub: () => void = (): void => {
-    if (!projectId) {
-      return;
-    }
+  const handleConnectWithGitHub: () => Promise<void> =
+    async (): Promise<void> => {
+      if (!projectId || isConnectingToGitHubRef.current) {
+        return;
+      }
 
-    /*
-     * Redirect to GitHub to install (or update) the GitHub App. Once
-     * installed, all repositories in the installation are imported
-     * automatically and kept in sync via webhooks.
-     *
-     * No userId is sent: the install route takes the user from the session
-     * cookie. It used to accept one here, which meant anyone could mint the
-     * signed state the callback trusts, for any user and project they named.
-     */
-    const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}`;
-    window.location.href = installUrl;
-  };
+      isConnectingToGitHubRef.current = true;
+
+      /*
+       * Redirect to GitHub to install (or update) the GitHub App. Once
+       * installed, all repositories in the installation are imported
+       * automatically and kept in sync via webhooks.
+       *
+       * No userId is sent: the install route takes the user from the session
+       * cookie. It used to accept one here, which meant anyone could mint the
+       * signed state the callback trusts, for any user and project they
+       * named.
+       *
+       * The route is reached by a full navigation, which carries the cookie
+       * but none of the API class's refresh-and-replay: once the page had
+       * been open past the 15-minute access token, the click landed on a raw
+       * 401 JSON page. So the session is refreshed first.
+       */
+      const refreshed: boolean = await API.refreshSession();
+
+      /*
+       * Released before navigating, so a page the browser restores from its
+       * back/forward cache (Back from GitHub) does not come back with a
+       * button that ignores clicks.
+       */
+      isConnectingToGitHubRef.current = false;
+
+      /*
+       * A refused refresh means the session has ended, and the API client is
+       * already taking the user to the login page; navigating to GitHub now
+       * would cancel that and show the install route's 401 instead. One that
+       * got no answer means the server cannot be reached at all.
+       */
+      if (!refreshed) {
+        return;
+      }
+
+      const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}`;
+      window.location.href = installUrl;
+    };
 
   // Read GitHub App Name fresh on each render to avoid module initialization timing issues
   const gitHubAppName: string | null = env("GITHUB_APP_NAME") || null;
@@ -122,7 +161,9 @@ const CodeRepositoryPage: FunctionComponent<
             {/* GitHub App Option */}
             <div
               className="relative rounded-lg border border-gray-200 bg-white p-6 hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer group"
-              onClick={handleConnectWithGitHub}
+              onClick={() => {
+                void handleConnectWithGitHub();
+              }}
             >
               <div className="flex items-start space-x-4">
                 <div className="flex-shrink-0">

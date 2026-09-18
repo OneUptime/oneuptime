@@ -242,6 +242,13 @@ describe("POST /team-member/remove-user-from-project", () => {
     );
   });
 
+  /*
+   * The handler's own check, called directly. On the router an anonymous
+   * request (an expired session) never gets this far any more:
+   * requireUserAuthentication answers it with a 401 first, which is pinned
+   * in ExpiredSessionRouteGuards.test.ts. This stays as defence in depth for
+   * a credentialed caller with no user id, such as a project API key.
+   */
   test("rejects an unauthenticated caller without deleting anything", async () => {
     await callRoute({ body: { userId: targetUserId.toString() } });
 

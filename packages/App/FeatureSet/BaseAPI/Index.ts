@@ -1539,6 +1539,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
+import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -4767,6 +4768,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * CRUD can never return one.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallCalendarAPI);
+
+    /*
+     * The schedule timeline: every schedule the caller can read, side by
+     * side over a week or a month (/on-call-schedule-timeline). Session-only;
+     * it reads through the same schedule-level shift cache as the feeds.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallScheduleTimelineAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

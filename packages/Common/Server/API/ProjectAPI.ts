@@ -48,6 +48,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
     this.router.put(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id/change-plan`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!IsBillingEnabled) {

@@ -51,6 +51,9 @@ import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -58,6 +61,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import Phone from "../../../Types/Phone";
+import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -91,6 +95,14 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * caller-supplied `tenantid` header, and everything underneath reads with
  * isRoot: true. The handlers are therefore the only gate there is, which is why
  * a disproportionate share of this file is spent on who gets refused.
+ *
+ * And on HOW they are refused. A caller with no credentials at all is answered
+ * with NotAuthenticatedException (401) before the tenant header or the path is
+ * looked at; an authenticated caller who may not see the data keeps the 422.
+ * In practice the anonymous caller is an admin whose access-token cookie
+ * expired while the page sat open, and the dashboard refreshes the session and
+ * resends only on a 401 - a 422 left them looking at "not authorized" on their
+ * own project.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -133,6 +145,24 @@ const SETUP_REMINDER_ROUTE: string = "/on-call-readiness/send-setup-reminder";
  * and "does not exist" must be indistinguishable to the caller.
  */
 const REFUSAL: string = "You are not authorized to access this project's data.";
+
+/*
+ * The refusal for a caller with no credentials. Deliberately NOT the sentence
+ * above: it is decided before anything project-specific is consulted, so it is
+ * the same answer for every project and every id and discloses nothing - and
+ * it has to be a 401, because that is the only status the browser client
+ * answers by refreshing the session.
+ */
+function expectAuthenticationRequired(thrown: unknown): void {
+  expect(thrown).toBeInstanceOf(NotAuthenticatedException);
+  expect((thrown as Exception).code).toBe(
+    ExceptionCode.NotAuthenticatedException,
+  );
+  expect((thrown as Exception).code).toBe(401);
+  expect((thrown as Exception).message).toBe(
+    CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+  );
+}
 
 /** Enough of a findBy argument to assert on, without importing FindBy generics. */
 interface CapturedFindBy {
@@ -840,7 +870,12 @@ describe("GET /on-call-readiness/policy/:policyId", () => {
     expect(read.props.isRoot).toBe(true);
   });
 
-  test("refuses an unauthenticated caller before reading anything", async () => {
+  /*
+   * No session and no tenant header. This was a BadDataException (400,
+   * "Project ID is required") until the guards learned to ask "who are you?"
+   * before "which project?"; a 400 never made the dashboard refresh.
+   */
+  test("refuses an unauthenticated caller with 401 before reading anything", async () => {
     propsSpy.mockResolvedValue({} as never);
 
     const result: RouteCallResult = await callGetRoute({
@@ -848,17 +883,21 @@ describe("GET /on-call-readiness/policy/:policyId", () => {
       params: { policyId: policyId.toString() },
     });
 
-    expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+    expectAuthenticationRequired(result.thrownToNext);
     expect(policyFindOneById).not.toHaveBeenCalled();
     expect(policySpy).not.toHaveBeenCalled();
   });
 
-  test("refuses a public caller that merely supplies a tenantid header", async () => {
+  test("refuses a public caller that merely supplies a tenantid header with 401", async () => {
     /*
      * The exact shape getUserMiddleware produces for an anonymous request that
      * carried a `tenantid` header: a project id, no user, no permissions. If
      * this got through, one header would be the whole authentication story for
      * every responder's configuration in that project.
+     *
+     * It is also the shape of an admin's request once their access-token
+     * cookie has expired, which is why the refusal is a 401 (it used to be the
+     * 422 "not authorized") - the dashboard refreshes and resends on a 401.
      */
     propsSpy.mockResolvedValue({
       tenantId: projectId,
@@ -871,9 +910,41 @@ describe("GET /on-call-readiness/policy/:policyId", () => {
       params: { policyId: policyId.toString() },
     });
 
-    expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    expectAuthenticationRequired(result.thrownToNext);
     expect(policyFindOneById).not.toHaveBeenCalled();
     expect(policySpy).not.toHaveBeenCalled();
+  });
+
+  test("an anonymous caller is refused before the path is validated", async () => {
+    /*
+     * A malformed id from a logged-in member is a 400 (below). From a caller
+     * with no credentials it must still be the 401, so the refresh-and-replay
+     * happens and the replayed request gets the real answer.
+     */
+    propsSpy.mockResolvedValue({ tenantId: projectId } as never);
+
+    const result: RouteCallResult = await callGetRoute({
+      uri: POLICY_ROUTE,
+      params: { policyId: "not-a-uuid" },
+    });
+
+    expectAuthenticationRequired(result.thrownToNext);
+    expect(policyFindOneById).not.toHaveBeenCalled();
+  });
+
+  test("a logged-in caller with no tenant header is still the 400", async () => {
+    propsSpy.mockResolvedValue({ userId: callerUserId } as never);
+
+    const result: RouteCallResult = await callGetRoute({
+      uri: POLICY_ROUTE,
+      params: { policyId: policyId.toString() },
+    });
+
+    expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+    expect((result.thrownToNext as Exception).code).toBe(
+      ExceptionCode.BadDataException,
+    );
+    expect(policyFindOneById).not.toHaveBeenCalled();
   });
 
   test("a member of one project cannot read another project's policy", async () => {
@@ -987,12 +1058,36 @@ describe("GET /on-call-readiness/project", () => {
     expect(projectSpy.mock.calls[0]).toEqual([projectId]);
   });
 
-  test("refuses an unauthenticated caller", async () => {
+  // Was a BadDataException (400) before the credential check.
+  test("refuses an unauthenticated caller with 401", async () => {
     propsSpy.mockResolvedValue({} as never);
 
     const result: RouteCallResult = await callGetRoute({ uri: PROJECT_ROUTE });
 
-    expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+    expectAuthenticationRequired(result.thrownToNext);
+    expect(projectSpy).not.toHaveBeenCalled();
+  });
+
+  test("refuses an anonymous caller carrying a tenantid header with 401, and does not clear the cache for it", async () => {
+    /*
+     * ?refresh=true drops the readiness cache for everyone. It sits after the
+     * guard, so a caller with no session cannot use it to make every other
+     * viewer's next page load recompute.
+     */
+    const clearSpy: jest.SpyInstance = jest.spyOn(
+      OnCallReadinessService,
+      "clearCache",
+    );
+
+    propsSpy.mockResolvedValue({ tenantId: projectId } as never);
+
+    const result: RouteCallResult = await callGetRoute({
+      uri: PROJECT_ROUTE,
+      query: { refresh: "true" },
+    });
+
+    expectAuthenticationRequired(result.thrownToNext);
+    expect(clearSpy).not.toHaveBeenCalled();
     expect(projectSpy).not.toHaveBeenCalled();
   });
 
@@ -1191,7 +1286,12 @@ describe("paging the readiness summaries", () => {
     expect(payload["skip"]).toBe(200);
   });
 
-  test("paging is refused for a caller who is not a member, before any readiness work", async () => {
+  /*
+   * The caller here has no session at all, so the refusal is the 401 (it was
+   * the 422 before the credential check). The point of the test is unchanged:
+   * the paging parameters buy nothing before authorisation.
+   */
+  test("paging is refused for a caller with no session (401), before any readiness work", async () => {
     propsSpy.mockResolvedValue({
       tenantId: projectId,
       userId: undefined,
@@ -1203,7 +1303,26 @@ describe("paging the readiness summaries", () => {
       query: { limit: "10" },
     });
 
+    expectAuthenticationRequired(result.thrownToNext);
+    expect(projectSpy).not.toHaveBeenCalled();
+  });
+
+  test("paging is refused for a logged-in caller who is not a member (422), before any readiness work", async () => {
+    propsSpy.mockResolvedValue({
+      tenantId: projectId,
+      userId: callerUserId,
+      userTenantAccessPermission: {},
+    } as never);
+
+    const result: RouteCallResult = await callGetRoute({
+      uri: PROJECT_ROUTE,
+      query: { limit: "10" },
+    });
+
     expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    expect((result.thrownToNext as Exception).code).toBe(
+      ExceptionCode.NotAuthorizedException,
+    );
     expect(projectSpy).not.toHaveBeenCalled();
   });
 });
@@ -1323,7 +1442,8 @@ describe("GET /on-call-readiness/user/:userId", () => {
     expect(userSpy).not.toHaveBeenCalled();
   });
 
-  test("refuses an unauthenticated caller before the membership query", async () => {
+  // Was a BadDataException (400) before the credential check.
+  test("refuses an unauthenticated caller with 401 before the membership query", async () => {
     propsSpy.mockResolvedValue({} as never);
 
     const result: RouteCallResult = await callGetRoute({
@@ -1331,12 +1451,13 @@ describe("GET /on-call-readiness/user/:userId", () => {
       params: { userId: subjectUserId.toString() },
     });
 
-    expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+    expectAuthenticationRequired(result.thrownToNext);
     expect(teamMemberFindBy).not.toHaveBeenCalled();
     expect(userSpy).not.toHaveBeenCalled();
   });
 
-  test("refuses a public caller that merely supplies a tenantid header", async () => {
+  // Was a NotAuthorizedException (422) before the credential check.
+  test("refuses a public caller that merely supplies a tenantid header with 401", async () => {
     propsSpy.mockResolvedValue({
       tenantId: projectId,
       userId: undefined,
@@ -1348,7 +1469,37 @@ describe("GET /on-call-readiness/user/:userId", () => {
       params: { userId: subjectUserId.toString() },
     });
 
+    expectAuthenticationRequired(result.thrownToNext);
+    expect(teamMemberFindBy).not.toHaveBeenCalled();
+    expect(userSpy).not.toHaveBeenCalled();
+  });
+
+  test("a project API key is authenticated but not a member: still the 422", async () => {
+    /*
+     * The readiness routes are for people inside the project. A key is a
+     * credential, so it must NOT get the 401 - an API client would answer it
+     * by trying to refresh a session it never had.
+     */
+    propsSpy.mockResolvedValue({
+      tenantId: projectId,
+      userId: undefined,
+      userType: UserType.API,
+      userTenantAccessPermission: buildMemberProps({
+        projectId: projectId,
+        userId: callerUserId,
+      }).userTenantAccessPermission,
+    } as never);
+
+    const result: RouteCallResult = await callGetRoute({
+      uri: USER_ROUTE,
+      params: { userId: subjectUserId.toString() },
+    });
+
     expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    expect((result.thrownToNext as Exception).code).toBe(
+      ExceptionCode.NotAuthorizedException,
+    );
+    expect((result.thrownToNext as Exception).message).toBe(REFUSAL);
     expect(teamMemberFindBy).not.toHaveBeenCalled();
     expect(userSpy).not.toHaveBeenCalled();
   });

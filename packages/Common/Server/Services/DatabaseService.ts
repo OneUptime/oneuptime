@@ -22,6 +22,8 @@ import {
   OnUpdate,
 } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import PublicPermission from "../Types/Database/Permissions/PublicPermission";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
 import { CheckReadPermissionType } from "../Types/Database/Permissions/ReadPermission";
 import Query from "../Types/Database/Query";
@@ -96,6 +98,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import type AuditLogServiceType from "./AuditLogService";
 import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -293,6 +296,31 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return data;
+  }
+
+  /*
+   * The permission layer's login check, run BEFORE the hooks instead of only
+   * after them.
+   *
+   * The hooks run first, and many of them key off props.userId: a missing one
+   * reads as "userId is required" (400), "User should be logged in" (422), or,
+   * for Project reads, an empty list with a 200. For an anonymous caller that
+   * is almost always a dashboard tab whose access-token cookie expired, and
+   * only a 401 makes the browser client refresh the session and replay the
+   * request. Everything this admits, the permission check would have admitted
+   * too (same condition, same exemptions for API keys and public models), so
+   * it only changes which refusal an anonymous caller gets, and it keeps hooks
+   * with side effects from running for them at all.
+   */
+  private checkIfUserIsLoggedInBeforeHooks(
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    PublicPermission.checkIfUserIsLoggedIn(this.modelType, props, type);
   }
 
   protected async onBeforeCreate(
@@ -984,6 +1012,107 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN;
   }
 
+  /*
+   * A tenant model declares its tenant TWICE: a scalar column (e.g.
+   * `projectId`) AND a ManyToOne relation (`project`) whose @JoinColumn names
+   * that same scalar. Both are separately writable through the public API, and
+   * both land on the entity that reaches getRepository().save()/update().
+   * TypeORM (metadata/ColumnMetadata.js getEntityValue) resolves the relation
+   * object to the join-column value with PRECEDENCE over the scalar, so a
+   * request carrying `project: { _id: <another project> }` is persisted under
+   * THAT project even though create() has just stamped the scalar to
+   * props.tenantId. That is a cross-tenant write of the whole row (reproduced
+   * end to end: the generated INSERT binds `projectId` to the relation's id,
+   * not the stamped scalar).
+   *
+   * The stamped scalar is the authoritative tenant for every non-root write,
+   * and no `project` relation in the schema legitimately points at a project
+   * other than the tenant (every one joins on `projectId`; there is no second,
+   * foreign-project reference to preserve). So neutralize the relation
+   * spelling: reject a tenant relation that points anywhere other than the
+   * request tenant, then delete it so the scalar is the single source of truth
+   * and no TypeORM precedence rule between the two can move the row. This is
+   * the framework-level generalisation of the per-service fixes already
+   * shipped in ApiKeyPermissionService and UserTelegramService.
+   *
+   * Root / master-admin / internal callers are left untouched — they have no
+   * request tenant (props.tenantId is unset) and legitimately set the tenant
+   * relation for another project during seeding, migrations and
+   * invitation-acceptance. This mirrors the create() scalar stamp, which is
+   * likewise gated on props.tenantId.
+   */
+  private enforceTenantRelationMatchesScalar(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const tenantColumn: string | null = this.model.getTenantColumn();
+
+    if (!tenantColumn || !props.tenantId) {
+      return;
+    }
+
+    const tenantRelationProperty: string | null =
+      this.getTenantRelationProperty(tenantColumn);
+
+    if (!tenantRelationProperty) {
+      /*
+       * e.g. Project itself, whose tenant column is its own `_id`, has no such
+       * relation; global (non-tenant) models return null from getTenantColumn.
+       */
+      return;
+    }
+
+    const suppliedRelation: unknown = (data as Record<string, unknown>)[
+      tenantRelationProperty
+    ];
+
+    if (suppliedRelation === undefined) {
+      return;
+    }
+
+    const relationTenantId: ObjectID | null = RelationIdUtil.read(
+      data as Record<string, unknown>,
+      [tenantRelationProperty],
+    );
+
+    if (
+      relationTenantId &&
+      relationTenantId.toString() !== props.tenantId.toString()
+    ) {
+      throw new BadDataException(
+        `The ${tenantRelationProperty} relation does not belong to this project.`,
+      );
+    }
+
+    delete (data as Record<string, unknown>)[tenantRelationProperty];
+  }
+
+  /*
+   * Property name of the ManyToOne relation that shares the tenant scalar
+   * column as its join column (`project` for the `projectId` tenant column),
+   * or null when the model has no such relation.
+   */
+  private getTenantRelationProperty(tenantColumn: string): string | null {
+    for (const columnName of this.model.getTableColumns().columns) {
+      const metadata: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(columnName);
+
+      if (
+        metadata &&
+        metadata.type === TableColumnType.Entity &&
+        metadata.manyToOneRelationColumn === tenantColumn
+      ) {
+        return columnName;
+      }
+    }
+
+    return null;
+  }
+
   private async sanitizeCreateOrUpdate(
     data: TBaseModel | PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
@@ -1368,6 +1497,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+    this.checkIfUserIsLoggedInBeforeHooks(
+      createBy.props,
+      DatabaseRequestType.Create,
+    );
+
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
 
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
@@ -1388,6 +1522,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     if (tenantColumnName && _createdBy.props.tenantId) {
       data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
     }
+
+    /*
+     * The tenant scalar has just been stamped to the request tenant, but the
+     * matching tenant RELATION object (e.g. `project`) is still whatever the
+     * caller sent, and TypeORM lets that relation override the scalar on the
+     * INSERT. Force the relation to agree with — or be dropped in favour of —
+     * the stamped scalar so a caller cannot write the row into another tenant.
+     */
+    this.enforceTenantRelationMatchesScalar(data, _createdBy.props);
 
     data = this.generateDefaultValues(data);
 
@@ -2291,6 +2434,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
+      this.checkIfUserIsLoggedInBeforeHooks(
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      );
+
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
@@ -2352,6 +2500,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
+
+      this.checkIfUserIsLoggedInBeforeHooks(
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      );
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
@@ -2586,6 +2739,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<Array<TBaseModel>> {
     try {
       this.setTelemetryContextFromProps(findBy.props);
+
+      this.checkIfUserIsLoggedInBeforeHooks(
+        findBy.props,
+        DatabaseRequestType.Read,
+      );
 
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
         findBy.sort = {
@@ -2967,7 +3125,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(updateBy.props);
 
+      this.checkIfUserIsLoggedInBeforeHooks(
+        updateBy.props,
+        DatabaseRequestType.Update,
+      );
+
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
+
+      /*
+       * Defense in depth for the tenant confused-deputy on the update path.
+       * Unlike create(), _updateBy() never re-stamps the tenant scalar, and a
+       * tenant relation object would likewise override the scalar join column
+       * on the UPDATE. Today the tenant columns carry `update: []` so the
+       * column-permission check rejects them first, but that is incidental —
+       * this keeps the row's tenant immutable even if a model ever grants
+       * update on the tenant relation. Runs before the permission check so the
+       * ACL stays a redundant second line rather than the only one.
+       */
+      this.enforceTenantRelationMatchesScalar(updateBy.data, updateBy.props);
 
       this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
 

@@ -323,6 +323,18 @@ export interface BaseTableProps<
 
   onFilterApplied?: ((isFilterApplied: boolean) => void) | undefined;
 
+  /**
+   * Called with the query the rows are fetched with - the caller's `query`,
+   * the column filters and the search box, merged exactly as the list request
+   * merges them - on mount and whenever that set of matching rows changes.
+   *
+   * For a surface that summarizes the same rows the table lists (a volume
+   * chart above it, say): reading the filters any other way would let the
+   * summary and the list quietly disagree about what "these events" means.
+   * Sort and page are not part of it; they re-order the same matching set.
+   */
+  onQueryChange?: ((query: Query<TBaseModel>) => void) | undefined;
+
   formSummary?: FormSummaryConfig | undefined;
 
   onAdvancedFiltersToggle?:
@@ -2029,6 +2041,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     clearBulkSelectionState();
   }, [effectiveQueryKey]);
 
+  type BuildEffectiveQueryFunction = () => Query<TBaseModel>;
+
+  // The one merge the list request and `onQueryChange` both read.
+  const buildEffectiveQuery: BuildEffectiveQueryFunction =
+    (): Query<TBaseModel> => {
+      return {
+        ...props.query,
+        ...query,
+        ...buildSearchQueryFragment(),
+      };
+    };
+
+  /*
+   * Keyed on effectiveQueryKey rather than on the query object, which is a
+   * fresh literal every render: a caller that stores what it is handed here
+   * re-renders, and must not be handed the same query again for it.
+   */
+  useEffect(() => {
+    props.onQueryChange?.(buildEffectiveQuery());
+  }, [effectiveQueryKey]);
+
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
     setIsLoading(true);
@@ -2047,11 +2080,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         modelType: props.modelType as
           | DatabaseBaseModelType
           | AnalyticsBaseModelType,
-        query: {
-          ...props.query,
-          ...query,
-          ...buildSearchQueryFragment(),
-        },
+        query: buildEffectiveQuery(),
         groupBy: {
           ...props.groupBy,
         },

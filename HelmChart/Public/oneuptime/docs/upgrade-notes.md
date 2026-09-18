@@ -11,6 +11,31 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
 
 ## Upgrade notes
 
+- **Unreleased (after 13.0.6)** — Chart probes honor
+  `probes.<key>.allowPrivateNetworkMonitors` again
+  ([#3879](https://github.com/OneUptime/oneuptime/issues/3879)). 12.0.34 (and
+  so 13.0.0) added a private-address check to API, Website and External Status
+  Page monitors, which had none before, and at the same time made the probes
+  this chart deploys ignore the value, because they register themselves as
+  global probes. Custom JavaScript Code monitors always refused private
+  targets; from 12.0.25 this value had let them reach those targets from chart
+  probes, and 12.0.34 took that away too. Monitors of internal services started
+  failing on upgrade, with no setting that brought them back. **Nothing changes
+  unless you set the value**: it still defaults to `false`.
+
+  - To monitor internal targets from a chart probe, set
+    `probes.<key>.allowPrivateNetworkMonitors: true` on that probe. Chart probes
+    are global probes, so this applies to monitors from **every project** on the
+    instance, and `helm upgrade` prints a reminder naming the probes it is on.
+    Coming from 12.0.33 or earlier with such monitors, set it before you
+    upgrade.
+  - Loopback, link-local and the cloud metadata endpoint (`169.254.169.254`)
+    stay blocked on every probe, whatever the value.
+  - With `billing.enabled: true` the value is still ignored on chart probes,
+    which stay public-only; the probe now logs a warning at startup and
+    `helm upgrade` prints an `IGNORED VALUES` notice instead of dropping it
+    silently. Deploy a private probe for internal targets there.
+
 - **13.0.0 (2026-09-07)** — The cache and queue tier is Valkey, the
   BSD-licensed fork of Redis 7.2, and everything is named for it. **No values
   file needs editing**, but read the last two bullets before upgrading

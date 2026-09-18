@@ -27,7 +27,7 @@ const getMock: MockFunction = getJestMockFunction();
 const countMock: MockFunction = getJestMockFunction();
 const currentProjectIdMock: MockFunction = getJestMockFunction();
 
-jest.mock("../../../Utils/API", () => {
+jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {

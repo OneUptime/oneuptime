@@ -20,7 +20,9 @@ Clickhouse migrations are written manually. Please write the migration code in D
 
 ### After you make a change.
 
-Please run "npm run fix" in root to fix all the lint issues. Please run "npm run compile" in projects that you made changes to make sure compile works.
+Do not lint the entire project. Only lint the files you have modified by passing their paths explicitly to `npx eslint --fix` from the root. Do not run `npm run lint`, `npm run fix-lint`, or `npm run fix`, as these commands lint the entire project.
+
+Please run "npm run compile" in projects that you made changes to make sure compile works.
 
 ### Tests
 

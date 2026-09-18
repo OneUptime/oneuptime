@@ -7,18 +7,19 @@ import React, {
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
+import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Select from "Common/Types/BaseDatabase/Select";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import ProjectUtil from "Common/UI/Utils/Project";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import SecurityEventDetail from "./SecurityEventDetail";
 import securityEventColumns from "./SecurityEventsTableColumns";
 import SecurityEventAttributeUtil from "./SecurityEventAttributeUtil";
 import SecurityEventsEmptyState from "./SecurityEventsEmptyState";
+import { SECURITY_EVENTS_TABLE_ID } from "./SecurityEventsTimeRange";
 
 const severityDropdownOptions: Array<DropdownOption> = Object.values(
   OcsfSeverity,
@@ -29,7 +30,35 @@ const severityDropdownOptions: Array<DropdownOption> = Object.values(
   };
 });
 
-const SecurityEventsTable: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+  /*
+   * The page's scope: the project and the time window its range picker is on.
+   * Time is set here rather than being one of the table's own filters so the
+   * volume chart above and this list are always on the same window.
+   */
+  query: Query<SecurityEvent>;
+  /*
+   * Handed the query the rows are fetched with - this scope plus whatever the
+   * table's filters add - whenever it changes. The volume chart counts
+   * exactly this.
+   */
+  onQueryChange?: ((query: Query<SecurityEvent>) => void) | undefined;
+  /*
+   * Changing it refetches the rows without the query changing (a Refresh on a
+   * fixed, custom window).
+   */
+  refreshToggle?: string | undefined;
+  /*
+   * An empty table here means "nothing is sending yet" far more often than
+   * "nothing happened", so the default is the setup empty state; the page
+   * swaps in a no-results message once it knows events exist.
+   */
+  noItemsMessage?: ReactElement | undefined;
+}
+
+const SecurityEventsTable: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const [detailEvent, setDetailEvent] = useState<SecurityEvent | null>(null);
 
   /*
@@ -89,11 +118,11 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
     <Fragment>
       <AnalyticsModelTable<SecurityEvent>
         modelType={SecurityEvent}
-        id="security-events-table"
+        id={SECURITY_EVENTS_TABLE_ID}
         name="Security Events"
         singularName="Security Event"
         pluralName="Security Events"
-        userPreferencesKey="security-events-table"
+        userPreferencesKey={SECURITY_EVENTS_TABLE_ID}
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
@@ -103,9 +132,9 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
           description:
             "SIEM signals normalized to OCSF and stored beside your observability data. Click an event for its full detail, including every source attribute.",
         }}
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
+        query={props.query}
+        onQueryChange={props.onQueryChange}
+        refreshToggle={props.refreshToggle}
         sortBy="time"
         sortOrder={SortOrder.Descending}
         selectMoreFields={extraSelect}
@@ -127,12 +156,12 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
             return SecurityEventAttributeUtil.getAttributeKeys();
           },
         }}
+        noItemsMessage={props.noItemsMessage || <SecurityEventsEmptyState />}
         /*
-         * An empty table here means "nothing is sending yet" far more often
-         * than "nothing happened", and the answer to that is a page away.
+         * The page's Refresh re-reads "Past 1 Day" from now and recounts the
+         * chart too; this one could only re-list the window it already had.
          */
-        noItemsMessage={<SecurityEventsEmptyState />}
-        showRefreshButton={true}
+        showRefreshButton={false}
         showViewIdButton={false}
         filters={[
           {
@@ -170,11 +199,6 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
             field: { principalHost: true },
             type: FieldType.Text,
             title: "Principal Host",
-          },
-          {
-            field: { time: true },
-            type: FieldType.DateTime,
-            title: "Time",
           },
           /*
            * Arbitrary flattened source attributes — including the

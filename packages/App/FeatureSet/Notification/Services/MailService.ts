@@ -32,6 +32,7 @@ import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
+import { createHash } from "crypto";
 import fsp from "fs/promises";
 import Handlebars from "handlebars";
 import nodemailer, {
@@ -43,15 +44,28 @@ import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Path from "path";
 import * as tls from "tls";
 
+interface PooledTransporter {
+  transporter: Transporter<SMTPSentMessageInfo>;
+  lastUsedAt: number; // Unix timestamp in milliseconds
+}
+
 /*
  * Connection pool for email transporters
  * Exported so the SSRF guard on tenant-supplied SMTP hosts can be tested.
  */
 export class TransporterPool {
-  private static pools: Map<string, Transporter<SMTPSentMessageInfo>> =
-    new Map();
+  private static pools: Map<string, PooledTransporter> = new Map();
   private static semaphore: Map<string, number> = new Map();
   private static readonly MAX_CONCURRENT_CONNECTIONS = 100;
+
+  /*
+   * A pooled transporter that nothing has used for this long is closed and
+   * dropped. Every credential is part of the pool key, so once a config is
+   * edited or deleted its old transporter can no longer be reached. This
+   * closes its authenticated connections instead of keeping them open for
+   * the life of the process.
+   */
+  private static readonly IDLE_TTL_MS: number = 10 * 60 * 1000;
 
   private static resolveConnectionSettings(emailServer: EmailServer): {
     portNumber: number;
@@ -96,14 +110,72 @@ export class TransporterPool {
     };
   }
 
+  /*
+   * A pooled transporter holds an SMTP session that is already
+   * authenticated, and a key hit hands it out without authenticating again.
+   * So the key has to cover the credentials themselves, not only the account
+   * they log in to. Host, port and username are not secret: SendGrid's
+   * username is "apikey" for every customer, and an O365 or Gmail username
+   * is the sender address printed on every email. With only those in the
+   * key, a project that copied them and gave any password was sent through
+   * another project's authenticated connection.
+   *
+   * The key also carries the ProjectSmtpConfig id (null for the operator's
+   * global settings), so two configs never share a connection even when
+   * their credentials match. It also carries the requested secure flag,
+   * which decides whether the certificate is verified.
+   *
+   * The tuple is JSON-encoded, so a separator inside a tenant-supplied value
+   * cannot make two different tuples encode the same. It is then hashed, so
+   * the key holds no plaintext password.
+   */
   private static getPoolKey(emailServer: EmailServer): string {
-    const { portNumber, mode } = this.resolveConnectionSettings(emailServer);
-    const username: string = emailServer.username || "noauth";
-    const authType: string = emailServer.authType || "password";
-    // resolveConnectionSettings has already guarded that host is defined.
-    const host: string = emailServer.host!.toString();
+    const { portNumber, wantsSecureConnection, mode } =
+      this.resolveConnectionSettings(emailServer);
 
-    return `${host}:${portNumber}:${username}:${mode}:${authType}`;
+    return createHash("sha256")
+      .update(
+        JSON.stringify([
+          emailServer.id ? emailServer.id.toString() : null,
+          // resolveConnectionSettings has already guarded that host is defined.
+          emailServer.host!.toString(),
+          portNumber,
+          mode,
+          wantsSecureConnection,
+          emailServer.authType || SMTPAuthenticationType.UsernamePassword,
+          emailServer.username || null,
+          emailServer.password || null,
+          emailServer.clientId || null,
+          emailServer.clientSecret || null,
+          emailServer.tokenUrl ? emailServer.tokenUrl.toString() : null,
+          emailServer.scope || null,
+          emailServer.oauthProviderType || null,
+        ]),
+      )
+      .digest("hex");
+  }
+
+  /*
+   * Close and drop pooled transporters that nothing has used for
+   * IDLE_TTL_MS. A transporter with a send in flight (a held semaphore slot)
+   * is never evicted. getTransporter stamps lastUsedAt before it returns, so
+   * the one it just handed out cannot be idle either.
+   */
+  private static evictIdleTransporters(): void {
+    const now: number = Date.now();
+
+    for (const [key, pooled] of this.pools) {
+      if ((this.semaphore.get(key) || 0) > 0) {
+        continue;
+      }
+
+      if (now - pooled.lastUsedAt < this.IDLE_TTL_MS) {
+        continue;
+      }
+
+      this.pools.delete(key);
+      pooled.transporter.close();
+    }
   }
 
   /*
@@ -149,6 +221,8 @@ export class TransporterPool {
   ): Promise<Transporter<SMTPSentMessageInfo>> {
     await this.assertMailServerHostIsAllowed(emailServer);
 
+    this.evictIdleTransporters();
+
     /*
      * For OAuth, we need to create a new transporter each time to get fresh tokens
      * The access token has a limited lifetime and needs to be refreshed
@@ -159,14 +233,19 @@ export class TransporterPool {
 
     const key: string = this.getPoolKey(emailServer);
 
-    if (!this.pools.has(key)) {
-      const transporter: Transporter<SMTPSentMessageInfo> =
-        this.createTransporter(emailServer, options);
-      this.pools.set(key, transporter);
-      this.semaphore.set(key, 0);
+    let pooled: PooledTransporter | undefined = this.pools.get(key);
+
+    if (!pooled) {
+      pooled = {
+        transporter: this.createTransporter(emailServer, options),
+        lastUsedAt: Date.now(),
+      };
+      this.pools.set(key, pooled);
     }
 
-    return this.pools.get(key)!;
+    pooled.lastUsedAt = Date.now();
+
+    return pooled.transporter;
   }
 
   private static async createOAuthTransporter(
@@ -208,6 +287,7 @@ export class TransporterPool {
      * Provider type determines which grant flow to use (Client Credentials vs JWT Bearer)
      */
     const accessToken: string = await SMTPOAuthService.getAccessToken({
+      configId: emailServer.id ? emailServer.id.toString() : undefined,
       clientId: emailServer.clientId,
       clientSecret: emailServer.clientSecret,
       tokenUrl: emailServer.tokenUrl,
@@ -297,17 +377,33 @@ export class TransporterPool {
 
   public static releaseConnection(emailServer: EmailServer): void {
     const key: string = this.getPoolKey(emailServer);
-    const current: number = this.semaphore.get(key) || 0;
-    this.semaphore.set(key, Math.max(0, current - 1));
+    const next: number = Math.max(0, (this.semaphore.get(key) || 0) - 1);
+
+    /*
+     * acquireConnection reads a missing key as 0, so drop the entry rather
+     * than keep a 0 for every config that has ever sent mail.
+     */
+    if (next === 0) {
+      this.semaphore.delete(key);
+    } else {
+      this.semaphore.set(key, next);
+    }
+
+    // The idle clock starts when the last send finishes, not when it began.
+    const pooled: PooledTransporter | undefined = this.pools.get(key);
+
+    if (pooled) {
+      pooled.lastUsedAt = Date.now();
+    }
   }
 
   public static async cleanup(): Promise<void> {
     const closePromises: Promise<void>[] = [];
 
-    for (const [, transporter] of this.pools) {
+    for (const [, pooled] of this.pools) {
       closePromises.push(
         new Promise<void>((resolve: () => void) => {
-          transporter.close();
+          pooled.transporter.close();
           resolve();
         }),
       );

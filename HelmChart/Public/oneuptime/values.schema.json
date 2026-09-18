@@ -2173,7 +2173,8 @@
                             "type": "boolean"
                         },
                         "allowPrivateNetworkMonitors": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "Let API, Website, External Status Page and Custom JavaScript Code monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes are global probes, so this applies to monitors from every project on the instance. Loopback, link-local and cloud metadata addresses stay blocked. Ignored, with a startup warning, when billing.enabled is true."
                         },
                         "syntheticMonitorScriptTimeoutInMs": {
                             "type": "integer",

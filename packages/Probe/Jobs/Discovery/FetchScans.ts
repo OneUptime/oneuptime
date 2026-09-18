@@ -1319,10 +1319,12 @@ export function getRejectionReason(
  *
  * WHY a global probe never runs it, whatever the scan row says: a probe
  * registered with REGISTER_PROBE_KEY is operated by the OneUptime instance,
- * not by the customer whose network it would be sending UDP 137 into. It is
- * the same line PROBE_ALLOW_PRIVATE_NETWORK_MONITORS draws — global probes do
- * not touch private address space on a tenant's say-so — and the lookup only
- * ever targets private space.
+ * not by the customer whose network it would be sending UDP 137 into. Global
+ * probes do not touch private address space on a tenant's say-so, and the
+ * lookup only ever targets private space. This is separate from
+ * PROBE_ALLOW_PRIVATE_NETWORK_MONITORS, the operator's opt-in for HTTP
+ * monitors, which a self-hosted global probe honors (issue #3879); that
+ * setting does not unlock this lookup.
  */
 export const DiscoveryNetbiosPolicy: {
   isGlobalProbe: () => boolean;
