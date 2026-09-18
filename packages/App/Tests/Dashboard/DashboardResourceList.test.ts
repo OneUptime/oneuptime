@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import DashboardResourceList from "../../FeatureSet/Dashboard/src/Components/Dashboard/Utils/DashboardResourceList";
 import {
+  PublicDashboardContext,
   PublicDashboardPostJSON,
   setPublicDashboardContext,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
@@ -9,6 +10,13 @@ import DashboardVariable, {
   DashboardVariableType,
 } from "Common/Types/Dashboard/DashboardVariable";
 import ObjectID from "Common/Types/ObjectID";
+
+/*
+ * Stands in for the public dashboard's API class: these tests only check that
+ * the options carry whatever client the context holds.
+ */
+const PUBLIC_API_CLIENT: PublicDashboardContext["apiClient"] =
+  {} as unknown as PublicDashboardContext["apiClient"];
 
 describe("DashboardResourceList request context", () => {
   afterEach(() => {
@@ -29,6 +37,7 @@ describe("DashboardResourceList request context", () => {
       dashboardId: new ObjectID("dashboard-id"),
       apiUrl: URL.fromString("https://example.com/public-dashboard-api"),
       postJSON: jest.fn<PublicDashboardPostJSON>(),
+      apiClient: PUBLIC_API_CLIENT,
     });
 
     const variables: Array<DashboardVariable> = [
@@ -87,6 +96,7 @@ describe("DashboardResourceList request context", () => {
       dashboardId: new ObjectID("dashboard-id"),
       apiUrl: URL.fromString("https://example.com/public-dashboard-api"),
       postJSON: jest.fn<PublicDashboardPostJSON>(),
+      apiClient: PUBLIC_API_CLIENT,
     });
 
     const options: ReturnType<typeof DashboardResourceList.getRequestOptions> =
@@ -101,6 +111,30 @@ describe("DashboardResourceList request context", () => {
       componentId: "component-id",
       variables: [],
     });
+  });
+
+  /*
+   * The public URL and the public client travel together: a widget read sent
+   * to /public-dashboard-api through the dashboard client would answer a 401
+   * with the dashboard's refresh-token + logout + /accounts/login.
+   */
+  test("public reads carry the public dashboard's API client", () => {
+    setPublicDashboardContext({
+      dashboardId: new ObjectID("dashboard-id"),
+      apiUrl: URL.fromString("https://example.com/public-dashboard-api"),
+      postJSON: jest.fn<PublicDashboardPostJSON>(),
+      apiClient: PUBLIC_API_CLIENT,
+    });
+
+    expect(DashboardResourceList.getRequestOptions("incident")?.apiClient).toBe(
+      PUBLIC_API_CLIENT,
+    );
+    expect(
+      DashboardResourceList.getRequestOptions("log", {
+        componentId: new ObjectID("component-id"),
+        variables: [],
+      })?.apiClient,
+    ).toBe(PUBLIC_API_CLIENT);
   });
 
   test("leaves an authenticated SLO read on the private CRUD route", () => {

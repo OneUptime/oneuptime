@@ -47,6 +47,16 @@ export default class ModelAPI {
     return API;
   }
 
+  /*
+   * The client for ONE request: a client the caller routed this request
+   * through (RequestOptions.apiClient) wins; otherwise this class's client.
+   */
+  protected static getApiClientForRequest(
+    requestOptions?: RequestOptions | undefined,
+  ): typeof API {
+    return requestOptions?.apiClient || this.getApiClient();
+  }
+
   public static async create<TBaseModel extends BaseModel>(data: {
     model: TBaseModel;
     modelType: { new (): TBaseModel };
@@ -109,7 +119,7 @@ export default class ModelAPI {
 
     const result: HTTPResponse<
       JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
-    > = await this.getApiClient().fetch<
+    > = await this.getApiClientForRequest(data.requestOptions).fetch<
       JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
     >({
       method: HTTPMethod.PUT,
@@ -163,7 +173,7 @@ export default class ModelAPI {
     }
 
     const apiResult: HTTPErrorResponse | HTTPResponse<TBaseModel> =
-      await this.getApiClient().fetch<TBaseModel>({
+      await this.getApiClientForRequest(data.requestOptions).fetch<TBaseModel>({
         method: httpMethod,
         url: apiUrl,
         data: {
@@ -241,7 +251,7 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
-      await this.getApiClient().fetch<JSONArray>({
+      await this.getApiClientForRequest(data.requestOptions).fetch<JSONArray>({
         method: HTTPMethod.POST,
         url: apiUrl,
         data: {
@@ -315,7 +325,7 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await this.getApiClient().fetch<JSONObject>({
+      await this.getApiClientForRequest(data.requestOptions).fetch<JSONObject>({
         method: HTTPMethod.POST,
         url: apiUrl,
         data: {
@@ -343,10 +353,21 @@ export default class ModelAPI {
   ): Dictionary<string> {
     let headers: Dictionary<string> = {};
 
+    /*
+     * A request routed through another app's client (a public dashboard
+     * widget's /public-dashboard-api read) is not scoped to the viewer's own
+     * project: that client sends its own tenant header. The viewer's
+     * last-opened dashboard project would override it, and a stale or
+     * foreign one turns the public read into a 405 (tenant not found) that
+     * the public page treats as a login event.
+     */
+    const isRoutedToAnotherClient: boolean = Boolean(requestOptions?.apiClient);
+
     if (
-      !requestOptions ||
-      !requestOptions.isMultiTenantRequest ||
-      Object.keys(requestOptions).length === 0
+      !isRoutedToAnotherClient &&
+      (!requestOptions ||
+        !requestOptions.isMultiTenantRequest ||
+        Object.keys(requestOptions).length === 0)
     ) {
       /*
        * Read the tenant id via getCurrentProjectId() first - a plain string
@@ -427,7 +448,7 @@ export default class ModelAPI {
     requestOptions?: RequestOptions | undefined;
   }): Promise<TBaseModel | null> {
     const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
-      await this.getApiClient().fetch<TBaseModel>({
+      await this.getApiClientForRequest(data.requestOptions).fetch<TBaseModel>({
         method: HTTPMethod.POST,
         url: data.apiUrl,
         data: {
@@ -476,7 +497,7 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
-      await this.getApiClient().fetch<TBaseModel>({
+      await this.getApiClientForRequest(data.requestOptions).fetch<TBaseModel>({
         method: HTTPMethod.DELETE,
         url: apiUrl,
         headers: this.getCommonHeaders(data.requestOptions),
