@@ -30,9 +30,8 @@ import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 
 /*
  * The SLO overview hero, RENDERED: the verdict, the facts every number below
- * depends on, and the owners and labels strip. In particular the "window
- * filling" chip that replaced the full-width "Window not yet full" banner
- * must appear for a young rolling window and for nothing else.
+ * depends on, and ownership. The facts form a labelled definition list,
+ * and the window-filling badge appears only for a young rolling window.
  */
 
 const SLO_ID: ObjectID = new ObjectID("5f8b7c1e2d3a4b5c6d7e8f90");
@@ -97,11 +96,11 @@ const renderHero: RenderHeroFunction = (
   );
 };
 
-type ChipTextsFunction = () => Array<string>;
+type FactValuesFunction = () => Array<string>;
 
-const getChipTexts: ChipTextsFunction = (): Array<string> => {
-  return within(screen.getByRole("list", { name: "SLO at a glance" }))
-    .getAllByRole("listitem")
+const getFactValues: FactValuesFunction = (): Array<string> => {
+  return within(screen.getByLabelText("SLO at a glance"))
+    .getAllByRole("definition")
     .map((item: HTMLElement) => {
       return item.textContent || "";
     });
@@ -118,12 +117,69 @@ describe("SloOverviewHero", () => {
     expect(
       screen.getByText("Customers can pay for their basket."),
     ).toBeInTheDocument();
-    expect(getChipTexts()).toEqual([
-      "Target 99.9%",
+    const facts: HTMLElement = screen.getByLabelText("SLO at a glance");
+    expect(facts.tagName).toBe("DL");
+    expect(
+      within(facts)
+        .getAllByRole("term")
+        .map((term: HTMLElement) => {
+          return term.textContent;
+        }),
+    ).toEqual(["Target", "Compliance window", "Monitors", "Owners"]);
+    expect(getFactValues()).toEqual([
+      "99.9%",
       "Rolling 30 days",
       "3 monitors",
+      "Add owners",
     ]);
   });
+
+  test.each([
+    {
+      status: SloStatus.Healthy,
+      headline: "Within error budget",
+      tone: "text-emerald-800",
+    },
+    {
+      status: SloStatus.AtRisk,
+      headline: "Error budget running low",
+      tone: "text-amber-800",
+    },
+    {
+      status: SloStatus.BudgetExhausted,
+      headline: "Error budget exhausted",
+      tone: "text-red-800",
+    },
+    {
+      status: SloStatus.Misconfigured,
+      headline: "Cannot be evaluated",
+      tone: "text-gray-700",
+    },
+    {
+      status: SloStatus.Paused,
+      headline: "Measurement paused",
+      tone: "text-gray-700",
+    },
+  ])(
+    "renders $status with a matching headline and soft status badge",
+    ({
+      status,
+      headline,
+      tone,
+    }: {
+      status: SloStatus;
+      headline: string;
+      tone: string;
+    }) => {
+      renderHero({ slo: buildSlo({ sloStatus: status }) });
+
+      expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
+        headline,
+      );
+      expect(screen.getByText(status)).toHaveClass("bg-gradient-to-r", tone);
+      expect(screen.queryByRole("img")).toBeNull();
+    },
+  );
 
   test("says when it was last evaluated, with the exact time on hover", () => {
     renderHero({});
@@ -132,7 +188,9 @@ describe("SloOverviewHero", () => {
       "slo-overview-last-evaluated",
     );
 
-    expect(lastEvaluated.textContent).toMatch(/^Evaluated .+ · every 5 min$/);
+    expect(lastEvaluated.textContent).toMatch(/^Evaluated .+/);
+    expect(lastEvaluated).not.toHaveTextContent("Runs every");
+    expect(screen.getByText("Runs every 5 minutes")).toBeInTheDocument();
 
     const time: HTMLElement = lastEvaluated.querySelector("time")!;
     expect(time).toHaveAttribute("dateTime", LAST_EVALUATED_AT.toISOString());
@@ -154,17 +212,21 @@ describe("SloOverviewHero", () => {
     );
     expect(screen.queryByText("Unknown")).toBeNull();
     expect(screen.getByTestId("slo-overview-last-evaluated")).toHaveTextContent(
-      "Not evaluated yet · runs every 5 min",
+      "Not evaluated yet",
     );
+    expect(screen.getByText("Runs every 5 minutes")).toBeInTheDocument();
+    expect(screen.getAllByText("Not evaluated yet")).toHaveLength(2);
 
     const monitorsChip: HTMLElement = screen.getByTestId(
       "slo-overview-chip-monitors",
     );
     expect(monitorsChip).toHaveTextContent("No monitors");
-    expect(monitorsChip.querySelector("span")!.className).toContain("amber");
+    expect(within(monitorsChip).getByText("No monitors")).toHaveClass(
+      "text-yellow-700",
+    );
   });
 
-  test("a young rolling window gets a 'window filling' chip instead of a banner", () => {
+  test("a young rolling window shows its filling badge alongside its compliance window", () => {
     renderHero({ slo: buildSlo({ errorBudgetTotalSeconds: 648 }) });
 
     const chip: HTMLElement = screen.getByTestId(
@@ -175,12 +237,14 @@ describe("SloOverviewHero", () => {
     expect(chip.getAttribute("title")).toContain(
       "younger than its compliance window",
     );
-    expect(getChipTexts()).toEqual([
-      "Target 99.9%",
+    const window: HTMLElement = screen.getByTestId("slo-overview-chip-window");
+    expect(window).toContainElement(chip);
+    expect(within(window).getByRole("term")).toHaveTextContent(
+      "Compliance window",
+    );
+    expect(within(window).getByRole("definition")).toHaveTextContent(
       "Rolling 30 days",
-      "Window 25% full",
-      "3 monitors",
-    ]);
+    );
   });
 
   test("a mature window, a calendar month and an averaged SLO get no window chip", () => {
@@ -196,7 +260,7 @@ describe("SloOverviewHero", () => {
       }),
     });
     expect(screen.queryByTestId("slo-overview-chip-window-fill")).toBeNull();
-    expect(getChipTexts()).toContain("Calendar month (Europe/Berlin)");
+    expect(getFactValues()).toContain("Calendar month (Europe/Berlin)");
     cleanup();
 
     renderHero({
@@ -208,28 +272,79 @@ describe("SloOverviewHero", () => {
     expect(screen.queryByTestId("slo-overview-chip-window-fill")).toBeNull();
   });
 
-  test("disabled and archived SLOs say so, and never claim a stale verdict", () => {
-    renderHero({
-      slo: buildSlo({ isEnabled: false, isArchived: true }),
-    });
+  test.each([
+    { isEnabled: false, isArchived: false, status: "Disabled" },
+    { isEnabled: true, isArchived: true, status: "Archived" },
+    { isEnabled: false, isArchived: true, status: "Archived" },
+  ])(
+    "$status overrides stale health when enabled=$isEnabled and archived=$isArchived",
+    ({
+      isEnabled,
+      isArchived,
+      status,
+    }: {
+      isEnabled: boolean;
+      isArchived: boolean;
+      status: string;
+    }) => {
+      renderHero({ slo: buildSlo({ isEnabled, isArchived }) });
 
-    expect(screen.getByTestId("slo-overview-headline")).toHaveTextContent(
-      "Archived — not being measured",
-    );
-    expect(getChipTexts()).toEqual(
-      expect.arrayContaining(["Disabled", "Archived"]),
-    );
-  });
+      expect(screen.getByTestId("slo-overview-headline")).toHaveTextContent(
+        `${status} — not being measured`,
+      );
+      expect(screen.getByText(status, { exact: true })).toHaveClass(
+        "text-gray-700",
+      );
+      expect(screen.queryByText("Healthy", { exact: true })).toBeNull();
+      expect(screen.queryByText("Within error budget")).toBeNull();
+      if (isArchived) {
+        expect(screen.queryByText("Disabled", { exact: true })).toBeNull();
+      }
+    },
+  );
 
-  test("an SLO without a description invites one", () => {
-    renderHero({ slo: buildSlo({ description: undefined }) });
+  test.each([undefined, ""])(
+    "an empty description (%s) adds no placeholder copy",
+    (description: string | undefined) => {
+      renderHero({ slo: buildSlo({ description }) });
+
+      expect(screen.queryByText(/No description/)).toBeNull();
+      expect(
+        screen.getByTestId("slo-overview-headline").nextElementSibling,
+      ).toBeNull();
+    },
+  );
+
+  test("a missing target is explicit instead of showing an incomplete percentage", () => {
+    renderHero({ slo: buildSlo({ targetPercentage: undefined }) });
 
     expect(
-      screen.getByText(
-        "No description yet. Say what this objective protects in SLO Details below.",
+      within(screen.getByTestId("slo-overview-chip-target")).getByRole(
+        "definition",
       ),
-    ).toBeInTheDocument();
+    ).toHaveTextContent("Not set");
   });
+
+  test.each([
+    { count: 0, label: "No monitors" },
+    { count: 1, label: "1 monitor" },
+    { count: 3, label: "3 monitors" },
+  ])(
+    "the $label summary links to this SLO's Monitors page",
+    ({ count, label }: { count: number; label: string }) => {
+      renderHero({ monitorCount: count });
+
+      const monitorsHref: string = RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SLO_VIEW_MONITORS] as Route,
+        { modelId: SLO_ID },
+      ).toString();
+
+      expect(screen.getByRole("link", { name: label })).toHaveAttribute(
+        "href",
+        monitorsHref,
+      );
+    },
+  );
 
   describe("owners", () => {
     const ownersHref: string = RouteUtil.populateRouteParams(
@@ -286,10 +401,11 @@ describe("SloOverviewHero", () => {
     expect(screen.queryByText("No labels")).toBeNull();
   });
 
-  test("owners sit beside the evaluation time, labelled", () => {
+  test("owners are labelled within the summary facts", () => {
     renderHero({ owners: [] });
 
     const owners: HTMLElement = screen.getByTestId("slo-overview-owners");
+    expect(screen.getByLabelText("SLO at a glance")).toContainElement(owners);
     expect(owners).toHaveTextContent("Owners");
     expect(
       within(owners).getByRole("link", { name: "Add owners" }),
@@ -307,5 +423,24 @@ describe("SloOverviewHero", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Could not refresh — showing the last numbers that loaded. Network error.",
     );
+    expect(getFactValues()).toContain("99.9%");
+  });
+
+  test("an in-progress refresh disables duplicate requests and keeps the summary visible", () => {
+    const onRefresh: MockFunction = getJestMockFunction();
+
+    renderHero({ onRefresh, isRefreshing: true });
+
+    const refreshButton: HTMLElement = screen.getByRole("button", {
+      name: "Refresh",
+    });
+    expect(refreshButton).toBeDisabled();
+    expect(refreshButton).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(refreshButton);
+    expect(onRefresh).not.toHaveBeenCalled();
+    expect(screen.getByTestId("slo-overview-headline")).toHaveTextContent(
+      "Within error budget",
+    );
+    expect(getFactValues()).toContain("99.9%");
   });
 });

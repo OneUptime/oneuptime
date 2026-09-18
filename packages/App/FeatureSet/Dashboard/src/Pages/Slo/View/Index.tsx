@@ -4,10 +4,8 @@ import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSk
 import SloActiveBurnEventsCard from "../../../Components/Slo/SloActiveBurnEventsCard";
 import SloBudgetBurnDownCard from "../../../Components/Slo/SloBudgetBurnDownCard";
 import SloBurnRateRulesSummaryCard from "../../../Components/Slo/SloBurnRateRulesSummaryCard";
-import SloConfigurationSummaryCard from "../../../Components/Slo/SloConfigurationSummaryCard";
 import SloFeed from "../../../Components/Slo/SloFeed";
 import SloKpiStrip from "../../../Components/Slo/SloKpiStrip";
-import SloMonitorsSummaryCard from "../../../Components/Slo/SloMonitorsSummaryCard";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import SloOverviewGettingStartedCard from "../../../Components/Slo/SloOverviewGettingStartedCard";
 import SloOverviewHero from "../../../Components/Slo/SloOverviewHero";
@@ -44,11 +42,10 @@ import React, {
  * Top to bottom: the notice banner for anything that stops measurement; the
  * hero with the verdict and what the SLO is; the four headline numbers; then
  * the incident overview's two-thirds / one-third grid — how the budget has
- * been spent and which monitors it depends on, beside what is open, what
- * alerts, and how the SLO is configured — and finally the editable name,
- * description and labels. Configuration moved to Settings, monitors to the
- * Monitors and Monitor Rules pages, history to Metrics; this page summarises
- * each and links to it.
+ * been spent and recent activity, beside open events and burn rate rules —
+ * and finally the editable name, description and labels. Configuration lives
+ * on Settings, monitors on the Monitors and Monitor Rules pages, and detailed
+ * history on Metrics.
  *
  * A brand-new SLO has no monitors and no monitor rules (the create form no
  * longer asks for monitors), so it gets a getting-started card in place of
@@ -200,26 +197,15 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               enabledBurnRateRuleCount={enabledBurnRateRules.length}
             />
           ) : (
-            <Fragment>
-              <SloBudgetBurnDownCard
-                sloId={modelId}
-                slo={slo}
-                refreshToken={
-                  slo.lastEvaluatedAt
-                    ? OneUptimeDate.fromString(
-                        slo.lastEvaluatedAt,
-                      ).toISOString()
-                    : ""
-                }
-              />
-              <SloMonitorsSummaryCard
-                sloId={modelId}
-                monitorIds={monitorIds}
-                monitorRuleCount={data.monitorRuleCount ?? 0}
-                enabledMonitorRuleCount={data.enabledMonitorRuleCount ?? 0}
-                refreshToken={data.refreshCount}
-              />
-            </Fragment>
+            <SloBudgetBurnDownCard
+              sloId={modelId}
+              slo={slo}
+              refreshToken={
+                slo.lastEvaluatedAt
+                  ? OneUptimeDate.fromString(slo.lastEvaluatedAt).toISOString()
+                  : ""
+              }
+            />
           )}
 
           <SloFeed
@@ -240,7 +226,6 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             currentBurnRate={slo.currentBurnRate}
             error={data.burnRateRulesError}
           />
-          <SloConfigurationSummaryCard sloId={modelId} slo={slo} now={now} />
         </div>
       </div>
 
