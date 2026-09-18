@@ -3,7 +3,10 @@ import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import { THREAT_INTEL_DEFAULT_VALID_DAYS } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
+import {
+  THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
+  THREAT_INTEL_DEFAULT_VALID_DAYS,
+} from "../../../../Types/SecurityEvent/ThreatIntelConstants";
 import StixPatternParser, {
   ParsedIndicatorValue,
 } from "../../../../Utils/SecurityEvent/ThreatIntel/StixPatternParser";
@@ -146,7 +149,8 @@ export default class ThreatIntelFeedPoller {
     for (const feed of feeds) {
       const intervalInMinutes: number = Math.max(
         1,
-        feed.pollIntervalInMinutes || 60,
+        feed.pollIntervalInMinutes ||
+          THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
       );
 
       if (feed.lastPolledAt) {

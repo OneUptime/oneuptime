@@ -3,6 +3,8 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import SigmaRule, {
+  SIGMA_DEFAULT_LEVEL,
+  SIGMA_SUPPORTED_MODIFIERS,
   SigmaConditionNode,
   SigmaFieldRequirement,
   SigmaLevel,
@@ -20,21 +22,9 @@ import SigmaRule, {
  * engine evaluates faithfully.
  */
 
-const SUPPORTED_MODIFIERS: Set<string> = new Set<string>([
-  "contains",
-  "startswith",
-  "endswith",
-  "all",
-  "re",
-  "cased",
-  "gt",
-  "gte",
-  "lt",
-  "lte",
-  "cidr",
-  "exists",
-  "windash",
-]);
+const SUPPORTED_MODIFIERS: Set<string> = new Set<string>(
+  SIGMA_SUPPORTED_MODIFIERS,
+);
 
 const WHITESPACE_REGEX: RegExp = /\s/;
 const COUNT_REGEX: RegExp = /^\d+$/;
@@ -461,12 +451,14 @@ export default class SigmaRuleParser {
     // Every referenced selection must exist.
     this.validateConditionReferences(condition, selections);
 
-    const levelRaw: string = String(doc["level"] || "medium").toLowerCase();
+    const levelRaw: string = String(
+      doc["level"] || SIGMA_DEFAULT_LEVEL,
+    ).toLowerCase();
     const level: SigmaLevel = (
       Object.values(SigmaLevel) as Array<string>
     ).includes(levelRaw)
       ? (levelRaw as SigmaLevel)
-      : SigmaLevel.Medium;
+      : SIGMA_DEFAULT_LEVEL;
 
     const tags: Array<string> = Array.isArray(doc["tags"])
       ? (doc["tags"] as Array<JSONValue>).map((tag: JSONValue): string => {

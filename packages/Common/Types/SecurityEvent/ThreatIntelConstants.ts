@@ -106,6 +106,24 @@ export const THREAT_INTEL_MINIMUM_CONFIDENCE_MIN: number = 0;
 export const THREAT_INTEL_MINIMUM_CONFIDENCE_MAX: number = 100;
 
 /*
+ * Save-time bounds and default for ThreatIntelFeed.pollIntervalInMinutes —
+ * shared by the server validator, the poller's fallback and the dashboard
+ * form, so the three cannot drift apart.
+ */
+export const THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES: number = 1;
+export const THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES: number = 1440;
+export const THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES: number = 60;
+
+// Cap on one match evaluation's scan, whatever lastEvaluatedAt says.
+export const THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
+
+// First-ever match evaluation window for a feed.
+export const THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES: number = 15;
+
+// One alert per distinct indicator value per cycle, at most.
+export const THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION: number = 100;
+
+/*
  * Indicators whose STIX object carries no valid_until stay active this
  * long after valid_from. STIX says "valid until revoked"; unbounded
  * validity would grow the IOC table forever, so a year is the ceiling.
