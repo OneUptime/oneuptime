@@ -5,14 +5,7 @@ import DashboardSideMenu from "@oneuptime/admin-dashboard/Pages/Settings/SideMen
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
-import {
-  HOST,
-  HTTP_PROTOCOL,
-  IDENTITY_URL,
-  IS_ENTERPRISE_EDITION,
-} from "Common/UI/Config";
-import IconProp from "Common/Types/Icon/IconProp";
-import EnterpriseFeatureUpgrade from "@oneuptime/admin-dashboard/Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -20,7 +13,6 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
-import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
@@ -36,6 +28,16 @@ import ProjectScopedTeamsPicker, {
 } from "@oneuptime/admin-dashboard/Components/GlobalProvider/ProjectScopedTeamsPicker";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+/*
+ * The license state helpers are shared with the Dashboard's identity
+ * screens; they import Common/... only, so either frontend can bundle them.
+ */
+import EnterpriseLicenseBanner from "../../../../Dashboard/SSO/License/EnterpriseLicenseBanner";
+import {
+  EnterpriseLicenseMode,
+  isEnterpriseConfigurationReadOnly,
+} from "../../../../Dashboard/SSO/License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../../../../Dashboard/SSO/License/UseEnterpriseLicenseMode";
 
 const GlobalOIDCView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -55,66 +57,14 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
     new Route(`/global-oidc/${modelId.toString()}`),
   );
 
-  // Global OIDC is a OneUptime Enterprise Edition feature, just like project SSO.
-  if (!IS_ENTERPRISE_EDITION) {
-    return (
-      <Page
-        title={t("pages.settings.title")}
-        breadcrumbLinks={[
-          {
-            title: t("breadcrumbs.adminDashboard"),
-            to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-          },
-          {
-            title: t("breadcrumbs.settings"),
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS] as Route,
-            ),
-          },
-          {
-            title: "Global OIDC",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_GLOBAL_OIDC] as Route,
-            ),
-          },
-        ]}
-        sideMenu={<DashboardSideMenu />}
-      >
-        <EnterpriseFeatureUpgrade
-          title="Global OIDC"
-          description="Instance-wide OpenID Connect identity providers that can be connected to any project on this OneUptime server."
-          featureName="Global OIDC"
-          featureDescription="Configure an OpenID Connect identity provider once at the instance level and connect it to any project on this OneUptime server."
-          benefits={[
-            {
-              icon: IconProp.Lock,
-              title: "Instance-wide auth",
-              subtitle:
-                "Configure one identity provider and connect it to any project on the server.",
-            },
-            {
-              icon: IconProp.ShieldCheck,
-              title: "Enforce SSO",
-              subtitle:
-                "Require SSO across the whole instance — no shared passwords.",
-            },
-            {
-              icon: IconProp.User,
-              title: "Auto provisioning",
-              subtitle:
-                "Attach projects and place signed-in users into the right teams automatically.",
-            },
-            {
-              icon: IconProp.ClipboardDocumentList,
-              title: "Audit trail",
-              subtitle:
-                "Every SSO sign-in is recorded alongside the rest of your audit events.",
-            },
-          ]}
-        />
-      </Page>
-    );
-  }
+  /*
+   * Without a valid Enterprise license (after the grace period) the server
+   * refuses to create or change this configuration, master admins
+   * included; say so up front and hide what would fail. Sign-in and
+   * deletes keep working.
+   */
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
   return (
     <ModelPage
@@ -151,6 +101,8 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
       sideMenu={<DashboardSideMenu />}
     >
       <Fragment>
+        <EnterpriseLicenseBanner mode={licenseMode} />
+
         <CardModelDetail<GlobalOIDC>
           name="Global OIDC Configuration"
           modelAPI={AdminModelAPI}
@@ -158,7 +110,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
             title: "OIDC SSO Configuration",
             description: "Configuration for this instance-wide OIDC provider.",
           }}
-          isEditable={true}
+          isEditable={!isReadOnly}
           editButtonText={"Edit Configuration"}
           formFields={[
             {
@@ -411,7 +363,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           name="Settings > Global OIDC > Attached Projects"
           isDeleteable={true}
           isEditable={false}
-          isCreateable={true}
+          isCreateable={!isReadOnly}
           modelAPI={AdminModelAPI}
           cardProps={{
             title: "Attached Projects",

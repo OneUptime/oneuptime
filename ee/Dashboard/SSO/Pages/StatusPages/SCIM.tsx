@@ -16,16 +16,18 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useMemo,
   useState,
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import StatusPageSCIMLogsTable from "../../Components/SCIMLogs/StatusPageSCIMLogsTable";
-import EnterpriseFeatureUpgrade, {
-  isEnterpriseFeatureEligible,
-} from "@oneuptime/dashboard/Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
+import {
+  EnterpriseLicenseMode,
+  isEnterpriseConfigurationReadOnly,
+} from "../../License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -45,45 +47,13 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
     useState<boolean>(false);
   const [newBearerToken, setNewBearerToken] = useState<string>("");
 
-  const isEnterpriseEligible: boolean = useMemo(() => {
-    return isEnterpriseFeatureEligible();
-  }, []);
-
-  if (!isEnterpriseEligible) {
-    return (
-      <EnterpriseFeatureUpgrade
-        title="Status Page SCIM"
-        description="Automate user provisioning for this status page."
-        featureName="Status Page SCIM Provisioning"
-        featureDescription="Provision and deprovision viewers of this status page directly from your identity provider — Okta, Azure AD and any SCIM 2.0 system."
-        benefits={[
-          {
-            icon: IconProp.User,
-            title: "Automatic provisioning",
-            subtitle: "Status page viewers are added when granted in your IdP.",
-          },
-          {
-            icon: IconProp.Lock,
-            title: "Automatic deprovisioning",
-            subtitle:
-              "Disable access in your IdP and they lose access here in sync.",
-          },
-          {
-            icon: IconProp.ShieldCheck,
-            title: "Group sync",
-            subtitle:
-              "Map IdP groups to status page viewers without manual upkeep.",
-          },
-          {
-            icon: IconProp.ClipboardDocumentList,
-            title: "SCIM activity logs",
-            subtitle:
-              "Every provisioning event is recorded for troubleshooting.",
-          },
-        ]}
-      />
-    );
-  }
+  /*
+   * Without a valid Enterprise license (after the grace period) the server
+   * refuses to create or change this configuration; say so up front and
+   * hide what would fail. Sign-in and deletes keep working.
+   */
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
   const resetBearerToken: () => Promise<void> = async (): Promise<void> => {
     setIsResetLoading(true);
@@ -110,6 +80,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      <EnterpriseLicenseBanner mode={licenseMode} />
       <Tabs
         tabs={[
           {
@@ -125,8 +96,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 id="status-page-scim-table"
                 name="Status Page > SCIM"
                 isDeleteable={true}
-                isEditable={true}
-                isCreateable={true}
+                isEditable={!isReadOnly}
+                isCreateable={!isReadOnly}
                 cardProps={{
                   title: "SCIM (System for Cross-domain Identity Management)",
                   description:
@@ -250,6 +221,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   },
                   {
                     title: "Reset Bearer Token",
+                    isVisible: (): boolean => {
+                      return !isReadOnly;
+                    },
                     buttonStyleType: ButtonStyleType.OUTLINE,
                     icon: IconProp.Refresh,
                     onClick: async (

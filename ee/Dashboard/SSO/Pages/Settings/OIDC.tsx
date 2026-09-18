@@ -2,7 +2,6 @@ import TeamsElement from "@oneuptime/dashboard/Components/Team/TeamsElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import URL from "Common/Types/API/URL";
-import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -18,14 +17,16 @@ import {
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import Team from "Common/Models/DatabaseModels/Team";
-import EnterpriseFeatureUpgrade, {
-  isEnterpriseFeatureEligible,
-} from "@oneuptime/dashboard/Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
+import {
+  EnterpriseLicenseMode,
+  isEnterpriseConfigurationReadOnly,
+} from "../../License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useMemo,
   useState,
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
@@ -35,49 +36,17 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const [showOidcConfigId, setShowOidcConfigId] = useState<string>("");
 
-  const isEnterpriseEligible: boolean = useMemo(() => {
-    return isEnterpriseFeatureEligible();
-  }, []);
-
-  if (!isEnterpriseEligible) {
-    return (
-      <EnterpriseFeatureUpgrade
-        title="OpenID Connect (OIDC)"
-        description="Configure OIDC sign-on for your project."
-        featureName="OIDC Single Sign On"
-        featureDescription="Authenticate team members through any OIDC provider — Google Workspace, Auth0, Keycloak, Microsoft Entra ID and more."
-        benefits={[
-          {
-            icon: IconProp.Lock,
-            title: "Modern OAuth2 flow",
-            subtitle:
-              "Use any OIDC-compliant identity provider to manage who can sign in.",
-          },
-          {
-            icon: IconProp.ShieldCheck,
-            title: "Enforce SSO",
-            subtitle:
-              "Require OIDC login for everyone in the project — no shared passwords.",
-          },
-          {
-            icon: IconProp.User,
-            title: "Auto team assignment",
-            subtitle:
-              "Map signed-in users into the right teams the moment they log in.",
-          },
-          {
-            icon: IconProp.ClipboardDocumentList,
-            title: "Audit trail",
-            subtitle:
-              "Every OIDC sign-in is recorded alongside the rest of your audit events.",
-          },
-        ]}
-      />
-    );
-  }
+  /*
+   * Without a valid Enterprise license (after the grace period) the server
+   * refuses to create or change this configuration; say so up front and
+   * hide what would fail. Sign-in and deletes keep working.
+   */
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
   return (
     <Fragment>
+      <EnterpriseLicenseBanner mode={licenseMode} />
       <>
         <ModelTable<ProjectOIDC>
           modelType={ProjectOIDC}
@@ -91,8 +60,8 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
             tableId: "settings-project-oidc-table",
           }}
           isDeleteable={true}
-          isEditable={true}
-          isCreateable={true}
+          isEditable={!isReadOnly}
+          isCreateable={!isReadOnly}
           cardProps={{
             title: "OpenID Connect (OIDC)",
             description:

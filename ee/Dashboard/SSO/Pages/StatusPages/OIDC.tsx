@@ -3,7 +3,6 @@ import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -18,14 +17,16 @@ import {
 } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
-import EnterpriseFeatureUpgrade, {
-  isEnterpriseFeatureEligible,
-} from "@oneuptime/dashboard/Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
+import {
+  EnterpriseLicenseMode,
+  isEnterpriseConfigurationReadOnly,
+} from "../../License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useMemo,
   useState,
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
@@ -38,48 +39,17 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
 
   const [showOidcConfigId, setShowOidcConfigId] = useState<string>("");
 
-  const isEnterpriseEligible: boolean = useMemo(() => {
-    return isEnterpriseFeatureEligible();
-  }, []);
-
-  if (!isEnterpriseEligible) {
-    return (
-      <EnterpriseFeatureUpgrade
-        title="Status Page OIDC"
-        description="Configure OIDC sign-on for this private status page."
-        featureName="Status Page OIDC SSO"
-        featureDescription="Restrict access to this status page using any OIDC provider — Google Workspace, Auth0, Keycloak and more."
-        benefits={[
-          {
-            icon: IconProp.Lock,
-            title: "Private status pages",
-            subtitle:
-              "Only OIDC-authenticated users can view this status page.",
-          },
-          {
-            icon: IconProp.ShieldCheck,
-            title: "Centralized control",
-            subtitle:
-              "Revoke a user in your IdP and they lose access immediately.",
-          },
-          {
-            icon: IconProp.User,
-            title: "Per-status-page identity",
-            subtitle:
-              "Run distinct IdPs for different audiences (internal vs partner).",
-          },
-          {
-            icon: IconProp.ClipboardDocumentList,
-            title: "Audit trail",
-            subtitle: "See who signed in to your status page and when.",
-          },
-        ]}
-      />
-    );
-  }
+  /*
+   * Without a valid Enterprise license (after the grace period) the server
+   * refuses to create or change this configuration; say so up front and
+   * hide what would fail. Sign-in and deletes keep working.
+   */
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
   return (
     <Fragment>
+      <EnterpriseLicenseBanner mode={licenseMode} />
       <>
         <ModelTable<StatusPageOIDC>
           modelType={StatusPageOIDC}
@@ -104,8 +74,8 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
             tableId: "status-page-oidc-table",
           }}
           isDeleteable={true}
-          isEditable={true}
-          isCreateable={true}
+          isEditable={!isReadOnly}
+          isCreateable={!isReadOnly}
           cardProps={{
             title: "OpenID Connect (OIDC)",
             description:

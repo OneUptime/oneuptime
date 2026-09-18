@@ -18,16 +18,18 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useMemo,
   useState,
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import ProjectSCIMLogsTable from "../../Components/SCIMLogs/ProjectSCIMLogsTable";
-import EnterpriseFeatureUpgrade, {
-  isEnterpriseFeatureEligible,
-} from "@oneuptime/dashboard/Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
+import {
+  EnterpriseLicenseMode,
+  isEnterpriseConfigurationReadOnly,
+} from "../../License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -43,46 +45,14 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   const [showResetErrorModal, setShowResetErrorModal] =
     useState<boolean>(false);
 
-  const isEnterpriseEligible: boolean = useMemo(() => {
-    return isEnterpriseFeatureEligible();
-  }, []);
+  /*
+   * Without a valid Enterprise license (after the grace period) the server
+   * refuses to create or change this configuration; say so up front and
+   * hide what would fail. Sign-in and deletes keep working.
+   */
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
-  if (!isEnterpriseEligible) {
-    return (
-      <EnterpriseFeatureUpgrade
-        title="SCIM User Provisioning"
-        description="Automate user provisioning via SCIM."
-        featureName="SCIM User Provisioning"
-        featureDescription="Provision and deprovision users automatically from your identity provider — Okta, Azure AD, OneLogin and any other SCIM 2.0 system."
-        benefits={[
-          {
-            icon: IconProp.User,
-            title: "Automatic provisioning",
-            subtitle:
-              "Users created in your IdP are added to OneUptime without manual invites.",
-          },
-          {
-            icon: IconProp.Lock,
-            title: "Automatic deprovisioning",
-            subtitle:
-              "Disable a user in your IdP and access here is removed at the same time.",
-          },
-          {
-            icon: IconProp.ShieldCheck,
-            title: "Group sync",
-            subtitle:
-              "Map IdP groups to teams to keep on-call rosters and permissions accurate.",
-          },
-          {
-            icon: IconProp.ClipboardDocumentList,
-            title: "SCIM activity logs",
-            subtitle:
-              "See every provisioning event so you can debug sync issues quickly.",
-          },
-        ]}
-      />
-    );
-  }
   const [showResetSuccessModal, setShowResetSuccessModal] =
     useState<boolean>(false);
   const [newBearerToken, setNewBearerToken] = useState<string>("");
@@ -112,6 +82,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      <EnterpriseLicenseBanner mode={licenseMode} />
       <Tabs
         tabs={[
           {
@@ -130,8 +101,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   tableId: "settings-project-scim-table",
                 }}
                 isDeleteable={true}
-                isEditable={true}
-                isCreateable={true}
+                isEditable={!isReadOnly}
+                isCreateable={!isReadOnly}
                 showRefreshButton={true}
                 cardProps={{
                   title: "SCIM (System for Cross-domain Identity Management)",
@@ -305,6 +276,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   },
                   {
                     title: "Reset Bearer Token",
+                    isVisible: (): boolean => {
+                      return !isReadOnly;
+                    },
                     buttonStyleType: ButtonStyleType.OUTLINE,
                     icon: IconProp.Refresh,
                     onClick: async (

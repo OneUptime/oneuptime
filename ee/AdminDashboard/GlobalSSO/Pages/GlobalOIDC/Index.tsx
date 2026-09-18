@@ -10,11 +10,18 @@ import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
-import EnterpriseFeatureUpgrade from "@oneuptime/admin-dashboard/Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
-import { IS_ENTERPRISE_EDITION } from "Common/UI/Config";
-import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+/*
+ * The license state helpers are shared with the Dashboard's identity
+ * screens; they import Common/... only, so either frontend can bundle them.
+ */
+import EnterpriseLicenseBanner from "../../../../Dashboard/SSO/License/EnterpriseLicenseBanner";
+import {
+  EnterpriseLicenseMode,
+  isEnterpriseConfigurationReadOnly,
+} from "../../../../Dashboard/SSO/License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../../../../Dashboard/SSO/License/UseEnterpriseLicenseMode";
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -36,49 +43,14 @@ const Settings: FunctionComponent = (): ReactElement => {
     },
   ];
 
-  // Global OIDC is a OneUptime Enterprise Edition feature, just like project SSO.
-  if (!IS_ENTERPRISE_EDITION) {
-    return (
-      <Page
-        title={t("pages.settings.title")}
-        breadcrumbLinks={breadcrumbLinks}
-        sideMenu={<DashboardSideMenu />}
-      >
-        <EnterpriseFeatureUpgrade
-          title="Global OIDC"
-          description="Instance-wide OpenID Connect identity providers that can be connected to any project on this OneUptime server."
-          featureName="Global OIDC"
-          featureDescription="Configure an OpenID Connect identity provider once at the instance level and connect it to any project on this OneUptime server."
-          benefits={[
-            {
-              icon: IconProp.Lock,
-              title: "Instance-wide auth",
-              subtitle:
-                "Configure one identity provider and connect it to any project on the server.",
-            },
-            {
-              icon: IconProp.ShieldCheck,
-              title: "Enforce SSO",
-              subtitle:
-                "Require SSO across the whole instance — no shared passwords.",
-            },
-            {
-              icon: IconProp.User,
-              title: "Auto provisioning",
-              subtitle:
-                "Attach projects and place signed-in users into the right teams automatically.",
-            },
-            {
-              icon: IconProp.ClipboardDocumentList,
-              title: "Audit trail",
-              subtitle:
-                "Every SSO sign-in is recorded alongside the rest of your audit events.",
-            },
-          ]}
-        />
-      </Page>
-    );
-  }
+  /*
+   * Without a valid Enterprise license (after the grace period) the server
+   * refuses to create or change this configuration, master admins
+   * included; say so up front and hide what would fail. Sign-in and
+   * deletes keep working.
+   */
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
   return (
     <Page
@@ -86,6 +58,8 @@ const Settings: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={breadcrumbLinks}
       sideMenu={<DashboardSideMenu />}
     >
+      <EnterpriseLicenseBanner mode={licenseMode} />
+
       <Banner
         openInNewTab={true}
         title="Instance-wide OpenID Connect (OIDC) SSO"
@@ -102,7 +76,7 @@ const Settings: FunctionComponent = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isViewable={true}
-        isCreateable={true}
+        isCreateable={!isReadOnly}
         cardProps={{
           title: "Global OIDC SSO",
           description:
