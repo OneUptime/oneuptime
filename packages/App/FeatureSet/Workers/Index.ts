@@ -206,10 +206,12 @@ import "./Jobs/SecurityEvents/RunSecurityEventConnection";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 
-// Instance health and capacity management.
+/*
+ * Instance capacity management (Community Edition). The Postgres and Redis
+ * health evaluations are Enterprise jobs: the enterprise module registers them
+ * through EnterpriseLoader.registerWorkerJobs() in init() below.
+ */
 import "./Jobs/InstanceHealth/EvaluateClickhouseCapacity";
-import "./Jobs/InstanceHealth/EvaluatePostgresHealth";
-import "./Jobs/InstanceHealth/EvaluateRedisHealth";
 
 // Derived / recording-rule metrics.
 import "./Jobs/Metrics/ComputeRecordingRules";
@@ -313,11 +315,11 @@ import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";
 
 import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 
-// Enterprise License usage reporting (self-hosted only).
-import "./Jobs/EnterpriseLicense/ReportUserCount";
-import "./Jobs/EnterpriseLicense/SendLicenseNotificationEmails";
-// Hosted license counts derived from active instance reports.
-import "./Jobs/EnterpriseLicense/ReconcileInstanceUsage";
+/*
+ * Enterprise license jobs (usage reporting, license notification emails,
+ * hosted instance usage) belong to the enterprise module and are registered
+ * by EnterpriseLoader.registerWorkerJobs() in init() below.
+ */
 
 // Checks GitHub for a newer OneUptime release so admins can be told to upgrade.
 import "./Jobs/InstanceUpdate/CheckForNewVersion";
@@ -340,6 +342,7 @@ import {
 } from "Common/Server/EnvironmentConfig";
 import { WORKER_CONCURRENCY } from "./Config";
 import MetricsAPI from "./API/Metrics";
+import EnterpriseLoader from "../../Utils/EnterpriseLoader";
 
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 
@@ -348,6 +351,16 @@ const app: ExpressApplication = Express.getExpressApp();
 const WorkersFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     try {
+      /*
+       * Enterprise cron jobs. The enterprise module (loaded by App/Index.ts
+       * before any feature set) registers its jobs here, before the queue
+       * consumers below start; then every ee-owned job name still missing
+       * gets a no-op handler, so repeatable definitions an earlier release
+       * left in Redis never fail with "No job found" on the Community
+       * Edition. Like core's cron imports above, this runs in every role.
+       */
+      await EnterpriseLoader.registerWorkerJobs();
+
       // attach bull board to the app, gated behind ENABLE_QUEUE_DASHBOARD
       if (EnableQueueDashboard) {
         if (!QueueDashboardSecret) {

@@ -70,11 +70,7 @@ import TelegramLogAPI from "./TelegramLogAPI";
 
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
-import EnterpriseLicenseAPI from "Common/Server/API/EnterpriseLicenseAPI";
-import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
-import EnterpriseLicenseInstanceService, {
-  Service as EnterpriseLicenseInstanceServiceType,
-} from "Common/Server/Services/EnterpriseLicenseInstanceService";
+import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
 import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
@@ -1126,6 +1122,7 @@ import Express, {
   ExpressApplication,
   ExpressRequest,
   ExpressResponse,
+  ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
@@ -1543,7 +1540,6 @@ import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
-import TeamComplianceAPI from "Common/Server/API/TeamComplianceAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
 import OnCallDutyPolicyFeedService, {
@@ -4750,12 +4746,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // TeamComplianceAPI
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new TeamComplianceAPI().getRouter(),
-    );
-
     /*
      * On-call responder readiness — "can this person actually be paged?" for a
      * policy, the whole project, or one user. A bare router, not a
@@ -4951,24 +4941,19 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ResellerPlanAPI().getRouter(),
     );
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new EnterpriseLicenseAPI().getRouter(),
-    );
     /*
-     * Read/list for the admin dashboard Enterprise Licenses page
-     * (empty table ACLs — master admin only).
+     * Enterprise API routers from the Enterprise Edition module (ee/): the
+     * license client (activate / refresh), team compliance status, and - only
+     * on the hosted oneuptime.com (billing enabled) - the license server with
+     * its instance usage. The Community Edition mounts none of them.
      */
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        EnterpriseLicenseInstance,
-        EnterpriseLicenseInstanceServiceType
-      >(
-        EnterpriseLicenseInstance,
-        EnterpriseLicenseInstanceService,
-      ).getRouter(),
-    );
+    const enterpriseApiRouters: Array<ExpressRouter> =
+      EnterpriseEdition.getModule()?.getApiRouters() || [];
+
+    for (const enterpriseApiRouter of enterpriseApiRouters) {
+      app.use(`/${APP_NAME.toLocaleLowerCase()}`, enterpriseApiRouter);
+    }
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new OpenSourceDeploymentAPI().getRouter(),

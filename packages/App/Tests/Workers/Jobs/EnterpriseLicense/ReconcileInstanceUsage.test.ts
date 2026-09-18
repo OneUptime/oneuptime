@@ -301,7 +301,13 @@ describe("EnterpriseLicense:ReconcileInstanceUsage", () => {
   });
 
   describe("registration", () => {
-    test("is wired into the worker entry point", () => {
+    /*
+     * License-server job: registered by the enterprise module (ee/) through
+     * EnterpriseLoader.registerWorkerJobs(), no longer imported by core's
+     * worker entry point. The loader keeps a no-op placeholder for its name so
+     * a repeatable definition left in Redis never fails with "No job found".
+     */
+    test("is owned by the enterprise module, not core's worker entry point", () => {
       const workersIndex: string = fs.readFileSync(
         path.join(
           __dirname,
@@ -315,10 +321,24 @@ describe("EnterpriseLicense:ReconcileInstanceUsage", () => {
         ),
         "utf8",
       );
+      const enterpriseLoader: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "Utils",
+          "EnterpriseLoader.ts",
+        ),
+        "utf8",
+      );
 
-      expect(workersIndex).toContain(
+      expect(workersIndex).not.toContain(
         'import "./Jobs/EnterpriseLicense/ReconcileInstanceUsage"',
       );
+      expect(workersIndex).toContain("EnterpriseLoader.registerWorkerJobs()");
+      expect(enterpriseLoader).toContain(`"${JOB_NAME}"`);
     });
 
     test("runs hourly in production and immediately after startup", () => {
