@@ -9,6 +9,8 @@ import ObjectID from "../../Types/ObjectID";
 import {
   THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MIN,
+  THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES,
+  THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES,
 } from "../../Types/SecurityEvent/ThreatIntelConstants";
 import TaxiiClient from "../Utils/SecurityEvent/ThreatIntel/TaxiiClient";
 
@@ -40,11 +42,12 @@ export class Service extends DatabaseService<Model> {
     if (data.pollIntervalInMinutes !== undefined) {
       if (
         !Number.isInteger(data.pollIntervalInMinutes) ||
-        data.pollIntervalInMinutes < 1 ||
-        data.pollIntervalInMinutes > 1440
+        data.pollIntervalInMinutes <
+          THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES ||
+        data.pollIntervalInMinutes > THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES
       ) {
         throw new BadDataException(
-          "Poll interval must be a whole number of minutes between 1 and 1440.",
+          `Poll interval must be a whole number of minutes between ${THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES} and ${THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES}.`,
         );
       }
     }

@@ -64,7 +64,7 @@ const ARRAY_COLUMNS: Set<string> = new Set<string>([
  * under its original spelling — which is exactly the flattened source
  * payload key, so rules written against raw UDM/OCSF field paths work.
  */
-const FIELD_ALIASES: Record<string, string> = {
+export const FIELD_ALIASES: Record<string, string> = {
   user: "principalUser",
   username: "principalUser",
   "user.name": "principalUser",

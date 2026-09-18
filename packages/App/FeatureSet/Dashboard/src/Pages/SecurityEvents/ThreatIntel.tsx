@@ -10,8 +10,11 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
 import {
+  THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MIN,
+  THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES,
+  THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES,
 } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -33,35 +36,15 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import SecurityEventsHowItWorksCard from "../../Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard";
+import ThreatIntelGuide from "../../Components/SecurityEvents/HowItWorks/ThreatIntelGuide";
+import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useState,
 } from "react";
-
-const documentationMarkdown: string = `
-### How Threat Intel Feeds Work
-
-A feed subscribes one **TAXII 2.1 collection** — public or private. OneUptime polls it on the interval set here, parses **STIX 2.1 indicator** objects into normalized IOCs (IPs, domains, URLs, email addresses, file hashes), and keeps them for as long as each indicator's \`valid_until\` says.
-
-Two things then happen, continuously:
-
-- **Enrichment at ingest** — an incoming security event whose observables match an active indicator is stamped with \`threat.matched\`, \`threat.indicator_id\`, \`threat.feed\` and \`threat.confidence\` attributes. Sigma rules and Security Events monitors can filter on those keys immediately, with no new query language.
-- **Matching on a schedule** — every minute, the events whose event time falls in the window since the feed's last evaluation are joined against the feed's active indicators. A match writes a **Detection Finding** back into the event stream (product \`OneUptime Threat Intel\`, \`oneuptime.threat.*\` attributes) and opens a **deduplicated alert** per indicator — the same downstream machinery as Sigma detection rules, including optional incidents and on-call. Each window is evaluated once, at close, against the indicators known at that moment — so this lane catches intel that arrived after the enricher saw the event but before the window closed (and, after matcher downtime, anything inside the 24-hour catch-up); intel arriving later than that is not retroactively joined against already-evaluated events.
-
-Supported patterns are plain IOC equality — \`[ipv4-addr:value = '...']\`, \`domain-name\`, \`url\`, \`email-addr\`, and \`file:hashes\` (SHA-256, SHA-1, MD5), including OR-lists. Anything more elaborate (AND, temporal qualifiers, regex) is counted in **Last Poll Summary** as unsupported rather than half-translated.
-
----
-
-### Reading Feed Health
-
-- **Last Polled / Last Error** describe the TAXII side: a recent poll with an empty error is a healthy subscription. Errors carry the failing step and the first part of the server's response, and clear on the next successful poll.
-- **Last Poll Summary** says what the poll actually ingested — objects fetched, indicator values stored, unsupported patterns skipped. A large feed syncs across several polls; the summary says when more pages remain.
-- **Last Evaluated / Last Match / Last Match Error** describe the matching side, kept separate so a broken TAXII server and a broken match query are distinguishable at a glance.
-
-A disabled feed is neither polled nor matched; its already-ingested indicators stop matching only when they expire.
-`;
 
 const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -106,6 +89,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      <SecurityEventsHowItWorksCard guide={ThreatIntelGuide} />
+
       <ModelTable<ThreatIntelFeed>
         modelType={ThreatIntelFeed}
         query={{
@@ -127,10 +112,9 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.",
         }}
         helpContent={{
-          title: "How Threat Intel Feeds Work",
-          description:
-            "What a feed polls, how indicators enrich and match events, and how to read feed health",
-          markdown: documentationMarkdown,
+          title: ThreatIntelGuide.guideTitle,
+          description: ThreatIntelGuide.guideDescription,
+          markdown: guideToMarkdown(ThreatIntelGuide),
         }}
         noItemsMessage={
           'No threat intel feeds found. Click on the "Create" button to subscribe a TAXII collection.'
@@ -142,7 +126,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
            * create form and hides fields whose toggles are actually on.
            */
           isEnabled: true,
-          pollIntervalInMinutes: 60,
+          pollIntervalInMinutes: THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
           minimumConfidence: 0,
           shouldCreateAlert: true,
           shouldWriteDetectionFinding: true,
@@ -271,8 +255,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
              * value fails in the form instead of at submit.
              */
             validation: {
-              minValue: 1,
-              maxValue: 1440,
+              minValue: THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES,
+              maxValue: THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES,
             },
           },
           {
