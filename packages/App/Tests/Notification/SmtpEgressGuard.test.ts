@@ -10,6 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { generateKeyPairSync } from "crypto";
 import dns from "dns";
 import nodemailer from "nodemailer";
 
@@ -32,7 +33,8 @@ jest.mock("../../FeatureSet/Notification/Config", () => {
 });
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
-  return { IsDevelopment: false };
+  // SMTPOAuthService keys its token cache with EncryptionSecret.
+  return { IsDevelopment: false, EncryptionSecret: "test-encryption-secret" };
 });
 
 jest.mock("Common/Server/Services/EmailLogService", () => {
@@ -215,14 +217,24 @@ describe("SMTP OAuth token URL is guarded", () => {
   });
 
   test("the JWT Bearer flow is guarded on the same path", async () => {
+    /*
+     * A real key, so the assertion is signed and the only thing left that can
+     * refuse the request is the egress guard. With a fake key, signing throws
+     * first and the test would pass even if the guard were removed.
+     */
+    const { privateKey } = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+      publicKeyEncoding: { type: "spki", format: "pem" },
+    });
+
     await expect(
       SMTPOAuthService.getAccessToken({
         ...makeOAuthConfig("http://169.254.169.254/token"),
         providerType: OAuthProviderType.JWTBearer,
-        clientSecret:
-          "-----BEGIN PRIVATE KEY-----\nnot-a-real-key\n-----END PRIVATE KEY-----",
+        clientSecret: privateKey,
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow("OAuth token URL host 169.254.169.254 is not allowed");
 
     expect(fetchSpy).not.toHaveBeenCalled();
   });
