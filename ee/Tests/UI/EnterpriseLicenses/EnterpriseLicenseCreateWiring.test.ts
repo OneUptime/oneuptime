@@ -29,7 +29,7 @@ import { JSONObject } from "Common/Types/JSON";
 
 const ADMIN_DASHBOARD_SRC: string = nodePath.join(
   __dirname,
-  "../../FeatureSet/AdminDashboard/src",
+  "../../../AdminDashboard/EnterpriseLicenses",
 );
 
 type StripCommentsFunction = (source: string) => string;
@@ -42,7 +42,7 @@ const stripComments: StripCommentsFunction = (source: string): string => {
 
 const pageSource: string = stripComments(
   fs.readFileSync(
-    nodePath.join(ADMIN_DASHBOARD_SRC, "Pages/EnterpriseLicenses/Index.tsx"),
+    nodePath.join(ADMIN_DASHBOARD_SRC, "Pages/Index.tsx"),
     "utf8",
   ),
 );

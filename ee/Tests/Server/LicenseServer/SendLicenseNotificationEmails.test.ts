@@ -37,7 +37,7 @@ const mockMailService: {
   sendMail: jest.fn<AsyncMockFunction>(),
 };
 
-jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
+jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(
@@ -105,7 +105,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
-import "../../../../FeatureSet/Workers/Jobs/EnterpriseLicense/SendLicenseNotificationEmails";
+import "../../../Server/LicenseServer/Jobs/SendLicenseNotificationEmails";
 import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";

@@ -17,18 +17,18 @@ import {
 } from "@jest/globals";
 import React, { ReactElement, ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
-import EnterpriseLicenseView from "../../../../App/FeatureSet/AdminDashboard/src/Pages/EnterpriseLicenses/View/Index";
-import AdminModelAPI from "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI";
-import EnterpriseLicense from "../../../Models/DatabaseModels/EnterpriseLicense";
-import EnterpriseLicenseInstance from "../../../Models/DatabaseModels/EnterpriseLicenseInstance";
-import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
-import OneUptimeDate from "../../../Types/Date";
-import EnterpriseLicenseUsageSnapshot from "../../../Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
-import ObjectID from "../../../Types/ObjectID";
-import API from "../../../UI/Utils/API/API";
-import Navigation from "../../../UI/Utils/Navigation";
-import PermissionGate from "../../../UI/Utils/PermissionGate";
-import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import EnterpriseLicenseView from "../../../AdminDashboard/EnterpriseLicenses/Pages/View/Index";
+import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
+import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
+import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import OneUptimeDate from "Common/Types/Date";
+import EnterpriseLicenseUsageSnapshot from "Common/Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
+import ObjectID from "Common/Types/ObjectID";
+import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
+import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 
 jest.mock("react-i18next", () => {
   return {
@@ -42,7 +42,7 @@ jest.mock("react-i18next", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/Translation", () => {
+jest.mock("Common/UI/Utils/Translation", () => {
   return {
     __esModule: true,
     default: () => {
@@ -58,7 +58,7 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/Permission", () => {
+jest.mock("Common/UI/Utils/Permission", () => {
   return {
     __esModule: true,
     default: {
@@ -75,7 +75,7 @@ jest.mock("../../../UI/Utils/Permission", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/User", () => {
+jest.mock("Common/UI/Utils/User", () => {
   return {
     __esModule: true,
     default: {
@@ -93,7 +93,7 @@ jest.mock("../../../UI/Utils/User", () => {
  * Keep the page's actual table, permission checks and cell renderers. Only
  * unrelated header, detail form and license deletion scaffolding are omitted.
  */
-jest.mock("../../../UI/Components/Page/ModelPage", () => {
+jest.mock("Common/UI/Components/Page/ModelPage", () => {
   return {
     __esModule: true,
     default: (props: { children: ReactNode }): ReactElement => {
@@ -102,7 +102,7 @@ jest.mock("../../../UI/Components/Page/ModelPage", () => {
   };
 });
 
-jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
+jest.mock("Common/UI/Components/ModelDetail/CardModelDetail", () => {
   return {
     __esModule: true,
     default: (): null => {
@@ -111,7 +111,7 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   };
 });
 
-jest.mock("../../../UI/Components/ModelDelete/ModelDelete", () => {
+jest.mock("Common/UI/Components/ModelDelete/ModelDelete", () => {
   return {
     __esModule: true,
     default: (): null => {

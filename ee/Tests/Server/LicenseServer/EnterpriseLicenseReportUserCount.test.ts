@@ -1,28 +1,28 @@
-import EnterpriseLicenseAPI from "../../../Server/API/EnterpriseLicenseAPI";
-import EnterpriseLicenseService from "../../../Server/Services/EnterpriseLicenseService";
-import EnterpriseLicenseInstanceService from "../../../Server/Services/EnterpriseLicenseInstanceService";
-import JSONWebToken from "../../../Server/Utils/JsonWebToken";
-import Response from "../../../Server/Utils/Response";
-import EnterpriseLicense from "../../../Models/DatabaseModels/EnterpriseLicense";
-import EnterpriseLicenseInstance from "../../../Models/DatabaseModels/EnterpriseLicenseInstance";
-import BadDataException from "../../../Types/Exception/BadDataException";
-import ObjectID from "../../../Types/ObjectID";
-import OneUptimeDate from "../../../Types/Date";
-import PositiveNumber from "../../../Types/PositiveNumber";
-import { JSONObject } from "../../../Types/JSON";
+import EnterpriseLicenseAPI from "../../../Server/LicenseServer/EnterpriseLicenseAPI";
+import EnterpriseLicenseService from "Common/Server/Services/EnterpriseLicenseService";
+import EnterpriseLicenseInstanceService from "Common/Server/Services/EnterpriseLicenseInstanceService";
+import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import Response from "Common/Server/Utils/Response";
+import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
+import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
+import PositiveNumber from "Common/Types/PositiveNumber";
+import { JSONObject } from "Common/Types/JSON";
 import EnterpriseLicenseSyncUtil, {
   EnterpriseLicenseSyncResult,
-} from "../../../Utils/EnterpriseLicense/EnterpriseLicenseSync";
-import EnterpriseLicenseUsageUtil from "../../../Utils/EnterpriseLicense/EnterpriseLicenseUsage";
-import EnterpriseLicenseUserCountSource from "../../../Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
-import EnterpriseLicenseInstanceSummary from "../../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
-import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
+} from "Common/Utils/EnterpriseLicense/EnterpriseLicenseSync";
+import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
+import EnterpriseLicenseUserCountSource from "Common/Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
+import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import {
   NextFunction,
   OneUptimeRequest,
   OneUptimeResponse,
-} from "../../../Server/Utils/Express";
-import { mockRouter } from "./Helpers";
+} from "Common/Server/Utils/Express";
+import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -47,7 +47,7 @@ import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
  * service below — imports it. Replaced with a factory rather than automocked,
  * because an automock still type-checks the real file.
  */
-jest.mock("../../../Server/Utils/PasswordHash", () => {
+jest.mock("Common/Server/Utils/PasswordHash", () => {
   return {
     __esModule: true,
     default: {
@@ -64,7 +64,7 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
  * Same story as PasswordHash: a pre-existing local-only TS diagnostic in a
  * module the service graph drags in. Nothing here verifies a code.
  */
-jest.mock("../../../Server/Utils/VerificationCode", () => {
+jest.mock("Common/Server/Utils/VerificationCode", () => {
   return {
     __esModule: true,
     default: {
@@ -76,7 +76,7 @@ jest.mock("../../../Server/Utils/VerificationCode", () => {
   };
 });
 
-jest.mock("../../../Server/Utils/Express", () => {
+jest.mock("Common/Server/Utils/Express", () => {
   return {
     getRouter: () => {
       return mockRouter;
@@ -84,7 +84,7 @@ jest.mock("../../../Server/Utils/Express", () => {
   };
 });
 
-jest.mock("../../../Server/Utils/Response", () => {
+jest.mock("Common/Server/Utils/Response", () => {
   return {
     sendEntityArrayResponse: jest.fn().mockImplementation((...args: []) => {
       return args;
@@ -107,7 +107,7 @@ jest.mock("../../../Server/Utils/Response", () => {
  * deterministic and countable, so the expiry gating can be asserted on whether
  * it was called at all.
  */
-jest.mock("../../../Server/Utils/JsonWebToken", () => {
+jest.mock("Common/Server/Utils/JsonWebToken", () => {
   return {
     __esModule: true,
     default: {
@@ -116,8 +116,8 @@ jest.mock("../../../Server/Utils/JsonWebToken", () => {
   };
 });
 
-jest.mock("../../../Server/Services/EnterpriseLicenseService");
-jest.mock("../../../Server/Services/EnterpriseLicenseInstanceService");
+jest.mock("Common/Server/Services/EnterpriseLicenseService");
+jest.mock("Common/Server/Services/EnterpriseLicenseInstanceService");
 
 const REPORT_ROUTE: string = "/enterprise-license/report-user-count";
 const VALIDATE_ROUTE: string = "/enterprise-license/validate";

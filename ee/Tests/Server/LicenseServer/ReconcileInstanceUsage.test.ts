@@ -52,7 +52,7 @@ const mockEnterpriseLicenseInstanceService: EnterpriseLicenseInstanceServiceMock
 
 let mockBillingEnabled: boolean = true;
 
-jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
+jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(
@@ -125,7 +125,7 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 });
 
 // Imported for its RunCron registration side effect, after all mocks above.
-import "../../../../FeatureSet/Workers/Jobs/EnterpriseLicense/ReconcileInstanceUsage";
+import "../../../Server/LicenseServer/Jobs/ReconcileInstanceUsage";
 import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
@@ -315,6 +315,8 @@ describe("EnterpriseLicense:ReconcileInstanceUsage", () => {
           "..",
           "..",
           "..",
+          "packages",
+          "App",
           "FeatureSet",
           "Workers",
           "Index.ts",
@@ -328,6 +330,8 @@ describe("EnterpriseLicense:ReconcileInstanceUsage", () => {
           "..",
           "..",
           "..",
+          "packages",
+          "App",
           "Utils",
           "EnterpriseLoader.ts",
         ),
@@ -358,11 +362,9 @@ describe("EnterpriseLicense:ReconcileInstanceUsage", () => {
           "..",
           "..",
           "..",
-          "..",
-          "FeatureSet",
-          "Workers",
+          "Server",
+          "LicenseServer",
           "Jobs",
-          "EnterpriseLicense",
           "ReconcileInstanceUsage.ts",
         ),
         "utf8",

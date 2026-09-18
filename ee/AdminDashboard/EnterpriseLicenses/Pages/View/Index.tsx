@@ -1,16 +1,18 @@
-import AdminModelAPI from "../../../Utils/ModelAPI";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
+import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
   EnterpriseLicenseInstanceStatusPill,
   LicenseStatusPill,
   SeatUsageMeter,
-} from "../../../Components/EnterpriseLicense/LicenseUtil";
+} from "../../Components/LicenseUtil";
 import {
   EnterpriseLicenseUsageRefreshIntervalInMilliseconds,
   getEnterpriseLicenseUsageBoundaryRefreshDelay,
   isEnterpriseLicenseUsageRequestCurrent,
-} from "../../../Components/EnterpriseLicense/LicenseActivityUtil";
+} from "../../Components/LicenseActivityUtil";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";

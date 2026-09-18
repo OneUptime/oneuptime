@@ -8,7 +8,7 @@ import {
   getEnterpriseLicenseInstanceActivityState,
   getEnterpriseLicenseUsageBoundaryRefreshDelay,
   isEnterpriseLicenseUsageRequestCurrent,
-} from "../../FeatureSet/AdminDashboard/src/Components/EnterpriseLicense/LicenseActivityUtil";
+} from "../../../AdminDashboard/EnterpriseLicenses/Components/LicenseActivityUtil";
 
 /*
  * The Admin Dashboard package has no React render harness, so this suite pins
@@ -19,7 +19,7 @@ import {
 
 const ADMIN_DASHBOARD_SRC: string = nodePath.join(
   __dirname,
-  "../../FeatureSet/AdminDashboard/src",
+  "../../../AdminDashboard/EnterpriseLicenses",
 );
 
 type StripCommentsFunction = (source: string) => string;
@@ -32,30 +32,21 @@ const stripComments: StripCommentsFunction = (source: string): string => {
 
 const viewSource: string = stripComments(
   fs.readFileSync(
-    nodePath.join(
-      ADMIN_DASHBOARD_SRC,
-      "Pages/EnterpriseLicenses/View/Index.tsx",
-    ),
+    nodePath.join(ADMIN_DASHBOARD_SRC, "Pages/View/Index.tsx"),
     "utf8",
   ),
 );
 
 const licenseUtilSource: string = stripComments(
   fs.readFileSync(
-    nodePath.join(
-      ADMIN_DASHBOARD_SRC,
-      "Components/EnterpriseLicense/LicenseUtil.tsx",
-    ),
+    nodePath.join(ADMIN_DASHBOARD_SRC, "Components/LicenseUtil.tsx"),
     "utf8",
   ),
 );
 
 const licenseActivityUtilSource: string = stripComments(
   fs.readFileSync(
-    nodePath.join(
-      ADMIN_DASHBOARD_SRC,
-      "Components/EnterpriseLicense/LicenseActivityUtil.ts",
-    ),
+    nodePath.join(ADMIN_DASHBOARD_SRC, "Components/LicenseActivityUtil.ts"),
     "utf8",
   ),
 );

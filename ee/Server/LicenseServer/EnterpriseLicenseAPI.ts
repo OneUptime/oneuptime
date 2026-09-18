@@ -1,33 +1,33 @@
-import EnterpriseLicense from "../../Models/DatabaseModels/EnterpriseLicense";
-import EnterpriseLicenseInstance from "../../Models/DatabaseModels/EnterpriseLicenseInstance";
-import BadDataException from "../../Types/Exception/BadDataException";
-import PartialEntity from "../../Types/Database/PartialEntity";
-import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
-import EnterpriseLicenseUsageSnapshot from "../../Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
-import EnterpriseLicenseUserCountSource from "../../Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
-import EnterpriseLicenseUsageUtil from "../../Utils/EnterpriseLicense/EnterpriseLicenseUsage";
-import VersionUtil from "../../Utils/VersionUtil";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
-import ObjectID from "../../Types/ObjectID";
-import PositiveNumber from "../../Types/PositiveNumber";
-import { JSONObject } from "../../Types/JSON";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
+import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import PartialEntity from "Common/Types/Database/PartialEntity";
+import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import EnterpriseLicenseUsageSnapshot from "Common/Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
+import EnterpriseLicenseUserCountSource from "Common/Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
+import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
+import VersionUtil from "Common/Utils/VersionUtil";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import ObjectID from "Common/Types/ObjectID";
+import PositiveNumber from "Common/Types/PositiveNumber";
+import { JSONObject } from "Common/Types/JSON";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import EnterpriseLicenseService, {
   Service as EnterpriseLicenseServiceType,
-} from "../Services/EnterpriseLicenseService";
-import EnterpriseLicenseInstanceService from "../Services/EnterpriseLicenseInstanceService";
-import UserMiddleware from "../Middleware/UserAuthorization";
-import JSONWebToken from "../Utils/JsonWebToken";
-import OneUptimeDate from "../../Types/Date";
-import Response from "../Utils/Response";
+} from "Common/Server/Services/EnterpriseLicenseService";
+import EnterpriseLicenseInstanceService from "Common/Server/Services/EnterpriseLicenseInstanceService";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import OneUptimeDate from "Common/Types/Date";
+import Response from "Common/Server/Utils/Response";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
-} from "../Utils/Express";
-import BaseAPI from "./BaseAPI";
-import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
-// import { Host } from "../EnvironmentConfig";
+} from "Common/Server/Utils/Express";
+import BaseAPI from "Common/Server/API/BaseAPI";
+import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
+// import { Host } from "Common/Server/EnvironmentConfig";
 
 /*
  * The license state every installation of a license key mirrors locally.

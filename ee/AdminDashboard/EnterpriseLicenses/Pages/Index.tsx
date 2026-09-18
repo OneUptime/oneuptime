@@ -1,12 +1,14 @@
-import AdminModelAPI from "../../Utils/ModelAPI";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
+import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
   LicenseStatusPill,
   SeatUsageMeter,
   getLicenseLifecycle,
   isOverUserLimit,
-} from "../../Components/EnterpriseLicense/LicenseUtil";
+} from "../Components/LicenseUtil";
 import Route from "Common/Types/API/Route";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
