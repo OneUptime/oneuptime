@@ -7,9 +7,14 @@ import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import MonitorTemplateService from "Common/Server/Services/MonitorTemplateService";
 import Response from "Common/Server/Utils/Response";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionCode from "Common/Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { UserPermission } from "Common/Types/Permission";
+import UserType from "Common/Types/UserType";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -924,5 +929,158 @@ describe("Network automation rule run endpoints", () => {
 
       expect(errorFrom(next).message).toContain("Project ID is required");
     });
+  });
+
+  /*
+   * An expired dashboard session. The access-token cookie expires with the
+   * JWT inside it, so a Run pressed on a tab left open past the token
+   * lifetime arrives with no credentials; getUserMiddleware passes it on as
+   * Public with whatever tenantid header the page sent. assertTenantScoped
+   * answers it 401 - before the missing-project 400 and the permission 422 -
+   * because 401 is the status the browser client refreshes the session on
+   * and replays. Nothing is read and no device is touched either way.
+   *
+   * A project API key is a credential: these endpoints are automatable, so a
+   * key goes on to the same permission check a person does.
+   */
+  describe("callers without a session", () => {
+    const ALL_RULE_URIS: Array<string> = [
+      SITE_RULE_URI,
+      AUTO_IMPORT_RULE_URI,
+      LABEL_RULE_URI,
+    ];
+
+    function expectNothingRan(): void {
+      expect(
+        deviceService.applySiteAssignmentRuleToExistingDevices,
+      ).not.toHaveBeenCalled();
+      expect(
+        labelRuleEngine.applyRuleToExistingNetworkDevices,
+      ).not.toHaveBeenCalled();
+      expect(autoImportRuleService.findOneBy).not.toHaveBeenCalled();
+      expect(monitorTemplateService.findOneById).not.toHaveBeenCalled();
+      expect(
+        autoImportRuleEngine.applyRuleToCompletedScans,
+      ).not.toHaveBeenCalled();
+      expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();
+    }
+
+    function expectAuthenticationRequired(next: NextFunction): void {
+      const error: Error = errorFrom(next);
+
+      expect(error).toBeInstanceOf(NotAuthenticatedException);
+      expect(error).not.toBeInstanceOf(NotAuthorizedException);
+      expect(error).not.toBeInstanceOf(BadDataException);
+      expect((error as NotAuthenticatedException).code).toBe(
+        ExceptionCode.NotAuthenticatedException,
+      );
+      expect(error.message).toBe(CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE);
+    }
+
+    // What getDatabaseCommonInteractionProps returns for a project API key.
+    function apiKeyProps(
+      permissions: Array<Permission>,
+    ): DatabaseCommonInteractionProps {
+      return {
+        ...propsWith({ permissions: permissions }),
+        userId: undefined,
+        userType: UserType.API,
+      };
+    }
+
+    test.each(ALL_RULE_URIS)(
+      "POST %s answers an anonymous caller with 401 and runs nothing",
+      async (uri: string) => {
+        mockProps({ tenantId: PROJECT_ID, userType: UserType.Public });
+
+        const next: NextFunction = await callRoute({ uri: uri });
+
+        expectAuthenticationRequired(next);
+        expectNothingRan();
+      },
+    );
+
+    test.each(ALL_RULE_URIS)(
+      "POST %s answers an anonymous caller with no tenant header with 401, not 400",
+      async (uri: string) => {
+        mockProps({ userType: UserType.Public });
+
+        const next: NextFunction = await callRoute({ uri: uri });
+
+        expectAuthenticationRequired(next);
+        expectNothingRan();
+      },
+    );
+
+    /*
+     * Tenant permissions on a request with no user, no key and no
+     * master-admin session prove nothing, and must not stand in for a
+     * credential.
+     */
+    test.each(ALL_RULE_URIS)(
+      "POST %s treats a caller with no user but stray admin permissions as anonymous",
+      async (uri: string) => {
+        mockProps({
+          ...propsWith({ permissions: ADMIN_PERMISSIONS }),
+          userId: undefined,
+        });
+
+        const next: NextFunction = await callRoute({ uri: uri });
+
+        expectAuthenticationRequired(next);
+        expectNothingRan();
+      },
+    );
+
+    test("a project API key holding the rule's permissions runs the site assignment rule", async () => {
+      mockProps(apiKeyProps(ADMIN_PERMISSIONS));
+
+      const next: NextFunction = await callRoute({ uri: SITE_RULE_URI });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(
+        deviceService.applySiteAssignmentRuleToExistingDevices,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    test("a project API key holding the rule's permissions runs the label rule", async () => {
+      mockProps(apiKeyProps(ADMIN_PERMISSIONS));
+
+      const next: NextFunction = await callRoute({ uri: LABEL_RULE_URI });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(
+        labelRuleEngine.applyRuleToExistingNetworkDevices,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    test("a project API key holding the rule's permissions runs the auto-import rule", async () => {
+      mockProps(apiKeyProps(ADMIN_PERMISSIONS));
+
+      const next: NextFunction = await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(autoImportRuleService.findOneBy).toHaveBeenCalledTimes(1);
+      expect(
+        autoImportRuleEngine.applyRuleToCompletedScans,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    test.each(ALL_RULE_URIS)(
+      "POST %s refuses a project API key without the permission with 422, not 401",
+      async (uri: string) => {
+        mockProps(apiKeyProps([]));
+
+        const next: NextFunction = await callRoute({ uri: uri });
+
+        const error: Error = errorFrom(next);
+        expect(error).toBeInstanceOf(NotAuthorizedException);
+        expect(error).not.toBeInstanceOf(NotAuthenticatedException);
+        expect(error.message).toContain("You do not have permission");
+        expectNothingRan();
+      },
+    );
   });
 });

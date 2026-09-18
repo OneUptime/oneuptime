@@ -24,6 +24,8 @@ import Response from "Common/Server/Utils/Response";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionCode from "Common/Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -442,8 +444,23 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
       expect(runnerFindSpy).not.toHaveBeenCalled();
       expectNoClaimAndNoExecution();
     });
+  });
 
-    test("a credential-less caller is rejected before the suggestion is read at all", async () => {
+  /*
+   * Who the caller is, before what they may do. A request with no
+   * credentials at all is usually a signed-in user whose access-token cookie
+   * expired with its JWT; answering it 401 (it used to be 422) is what makes
+   * the dashboard refresh the session and replay the click instead of
+   * showing an authorization error. Either way nothing is read, claimed or
+   * run. A project API key IS a credential - approving records a person as
+   * the approver, so it is refused, but with 422: its client has no session
+   * to refresh.
+   */
+  describe.each([
+    ["POST /auto-remediation/approve", APPROVE_ROUTE],
+    ["POST /auto-remediation/dismiss", DISMISS_ROUTE],
+  ])("%s - callers without a user session", (_label: string, uri: string) => {
+    test("a credential-less caller is rejected with 401 before the suggestion is read at all", async () => {
       getPropsSpy.mockResolvedValue({
         userType: UserType.Public,
         tenantId: PROJECT_ID,
@@ -451,10 +468,53 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
         userTenantAccessPermission: undefined,
       });
 
-      const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+      const result: RouteCallResult = await callRoute({ uri });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthenticatedException);
+      expect(result.thrownToNext).not.toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as NotAuthenticatedException).code).toBe(
+        ExceptionCode.NotAuthenticatedException,
+      );
+      expect((result.thrownToNext as NotAuthenticatedException).message).toBe(
+        CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+      );
+      expect(suggestionFindSpy).not.toHaveBeenCalled();
+      expect(projectFindSpy).not.toHaveBeenCalled();
+      expect(incidentFeedSpy).not.toHaveBeenCalled();
+      expect(alertFeedSpy).not.toHaveBeenCalled();
+      expectNoClaimAndNoExecution();
+    });
+
+    test("a credential-less caller with no tenant header is rejected with 401 too", async () => {
+      getPropsSpy.mockResolvedValue({ userType: UserType.Public });
+
+      const result: RouteCallResult = await callRoute({ uri });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthenticatedException);
+      expect(suggestionFindSpy).not.toHaveBeenCalled();
+      expectNoClaimAndNoExecution();
+    });
+
+    test("a project API key is rejected with 422, not 401, before the suggestion is read", async () => {
+      const userProps: DatabaseCommonInteractionProps = buildUserProps({
+        permissions: [Permission.ProjectOwner],
+      });
+
+      getPropsSpy.mockResolvedValue({
+        ...userProps,
+        userId: undefined,
+        userType: UserType.API,
+      });
+
+      const result: RouteCallResult = await callRoute({ uri });
 
       expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(result.thrownToNext).not.toBeInstanceOf(NotAuthenticatedException);
+      expect((result.thrownToNext as NotAuthorizedException).message).toBe(
+        "A logged-in user session is required.",
+      );
       expect(suggestionFindSpy).not.toHaveBeenCalled();
+      expect(incidentFeedSpy).not.toHaveBeenCalled();
       expectNoClaimAndNoExecution();
     });
   });

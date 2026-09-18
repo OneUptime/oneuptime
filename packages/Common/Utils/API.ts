@@ -247,34 +247,43 @@ export default class API {
     return false;
   }
 
+  /*
+   * The class this instance was built from, so `new BaseAPI(...).get()` gets
+   * BaseAPI's session refresh, error handling and headers rather than the
+   * base class's no-op versions.
+   */
+  private getStaticClient(): typeof API {
+    return this.constructor as typeof API;
+  }
+
   public async get<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
   >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    return await API.get<T>(options);
+    return await this.getStaticClient().get<T>(options);
   }
 
   public async delete<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
   >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    return await API.delete<T>(options);
+    return await this.getStaticClient().delete<T>(options);
   }
 
   public async head<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
   >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    return await API.head<T>(options);
+    return await this.getStaticClient().head<T>(options);
   }
 
   public async put<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
   >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    return await API.put<T>(options);
+    return await this.getStaticClient().put<T>(options);
   }
 
   public async patch<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
   >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    return await API.patch<T>(options);
+    return await this.getStaticClient().patch<T>(options);
   }
 
   public static handleError(

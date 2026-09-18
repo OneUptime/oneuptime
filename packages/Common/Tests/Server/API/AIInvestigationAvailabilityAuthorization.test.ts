@@ -20,9 +20,12 @@ import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../Types/AI/AIRunType";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import UserType from "../../../Types/UserType";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -225,13 +228,58 @@ describe.each(["incident", "alert"] as const)(
       expectNoPrivateReads();
     });
 
-    test("requires a logged-in user before any subject or explanation read", async () => {
+    /*
+     * A caller with no credentials at all (only a tenantid header) is an
+     * expired session far more often than a stranger, so it gets 401 - the
+     * status the dashboard answers by refreshing the session and replaying -
+     * rather than the 422 it used to get.
+     */
+    test("requires a logged-in user before any subject or explanation read, answering an anonymous caller with 401", async () => {
       jest
         .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
         .mockResolvedValue({ tenantId: PROJECT_ID });
 
-      expect(await callRoute()).toHaveBeenCalledWith(
-        expect.any(NotAuthorizedException),
+      const next: jest.Mock = await callRoute();
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(expect.any(NotAuthenticatedException));
+      expect((next.mock.calls[0]![0] as NotAuthenticatedException).code).toBe(
+        ExceptionCode.NotAuthenticatedException,
+      );
+      expect(subjectRead).not.toHaveBeenCalled();
+      expectNoPrivateReads();
+    });
+
+    test("an anonymous caller with no tenant either still gets 401, not the missing-tenant 400", async () => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue({ userType: UserType.Public });
+
+      const next: jest.Mock = await callRoute();
+
+      expect(next).toHaveBeenCalledWith(expect.any(NotAuthenticatedException));
+      expect(subjectRead).not.toHaveBeenCalled();
+      expectNoPrivateReads();
+    });
+
+    /*
+     * A project API key is authenticated, just not as a person. The panel
+     * is a person's view, so the key is refused - with 422, never the 401
+     * that would send its client off to refresh a session it never had.
+     */
+    test("refuses a project API key with 422 before any subject or explanation read", async () => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue({ tenantId: PROJECT_ID, userType: UserType.API });
+
+      const next: jest.Mock = await callRoute();
+
+      expect(next).toHaveBeenCalledWith(expect.any(NotAuthorizedException));
+      expect(next).not.toHaveBeenCalledWith(
+        expect.any(NotAuthenticatedException),
+      );
+      expect((next.mock.calls[0]![0] as NotAuthorizedException).message).toBe(
+        "A logged-in user session is required.",
       );
       expect(subjectRead).not.toHaveBeenCalled();
       expectNoPrivateReads();

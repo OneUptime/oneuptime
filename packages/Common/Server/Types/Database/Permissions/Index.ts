@@ -7,9 +7,40 @@ import ReadPermission, { CheckReadPermissionType } from "./ReadPermission";
 import UpdatePermission from "./UpdatePermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class ModelPermission {
+  /*
+   * A refusal of a caller with no credentials at all is a 401.
+   *
+   * The login check near the top of every permission check passes an
+   * anonymous caller straight through on models that are readable (or
+   * creatable) by Public - Probe, AIAgent, LlmProvider and friends - and the
+   * column, select and query checks that follow then refuse it with 422
+   * NotAuthorizedException. For the dashboard that caller is a signed-in user
+   * whose access-token cookie expired, and only a 401 makes the browser client
+   * refresh the session and replay the request. Callers with credentials keep
+   * the 422 they always got; the message is kept either way.
+   */
+  private static toAnonymousRefusal(
+    error: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): unknown {
+    if (
+      error instanceof NotAuthorizedException &&
+      !props.isRoot &&
+      !props.isMasterAdmin &&
+      DatabaseCommonInteractionPropsUtil.isAnonymous(props)
+    ) {
+      return new NotAuthenticatedException(error.message);
+    }
+
+    return error;
+  }
+
   @CaptureSpan()
   public static async checkDeletePermissionByModel<
     TBaseModel extends BaseModel,
@@ -18,7 +49,11 @@ export default class ModelPermission {
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    return DeletePermission.checkDeletePermissionByModel(data);
+    try {
+      return await DeletePermission.checkDeletePermissionByModel(data);
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, data.props);
+    }
   }
 
   @CaptureSpan()
@@ -29,7 +64,11 @@ export default class ModelPermission {
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    return UpdatePermission.checkUpdatePermissionByModel(data);
+    try {
+      return await UpdatePermission.checkUpdatePermissionByModel(data);
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, data.props);
+    }
   }
 
   @CaptureSpan()
@@ -38,7 +77,15 @@ export default class ModelPermission {
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
-    return DeletePermission.checkDeletePermission(modelType, query, props);
+    try {
+      return await DeletePermission.checkDeletePermission(
+        modelType,
+        query,
+        props,
+      );
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, props);
+    }
   }
 
   @CaptureSpan()
@@ -48,12 +95,16 @@ export default class ModelPermission {
     data: QueryDeepPartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
-    return UpdatePermission.checkUpdatePermissions(
-      modelType,
-      query,
-      data,
-      props,
-    );
+    try {
+      return await UpdatePermission.checkUpdatePermissions(
+        modelType,
+        query,
+        data,
+        props,
+      );
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, props);
+    }
   }
 
   @CaptureSpan()
@@ -62,7 +113,11 @@ export default class ModelPermission {
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
   ): void {
-    return CreatePermission.checkCreatePermissions(modelType, data, props);
+    try {
+      return CreatePermission.checkCreatePermissions(modelType, data, props);
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, props);
+    }
   }
 
   @CaptureSpan()
@@ -72,6 +127,15 @@ export default class ModelPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
-    return ReadPermission.checkReadPermission(modelType, query, select, props);
+    try {
+      return await ReadPermission.checkReadPermission(
+        modelType,
+        query,
+        select,
+        props,
+      );
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, props);
+    }
   }
 }

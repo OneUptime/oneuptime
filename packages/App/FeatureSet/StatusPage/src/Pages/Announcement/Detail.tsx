@@ -165,6 +165,17 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
           announcement.id!,
         ),
     isDetailItem: !isSummary,
+    /*
+     * A private page serves its attachments behind the reader's session,
+     * whose access cookie lapses while the page sits open, so a click
+     * refreshes the session before the file loads. Public pages keep plain
+     * links.
+     */
+    attachmentRefreshSession: StatusPageUtil.isPrivateStatusPage()
+      ? (): Promise<boolean> => {
+          return API.refreshSession();
+        }
+      : undefined,
     eventTypeColor: Blue500,
     eventSecondDescription: announcement.showAnnouncementAt!
       ? i18n.t("announcements.announcedAt") +

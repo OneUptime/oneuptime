@@ -9,7 +9,7 @@ import Route from "Common/Types/API/Route";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Page from "Common/UI/Components/Page/Page";
 import { APP_API_URL } from "Common/UI/Config";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";

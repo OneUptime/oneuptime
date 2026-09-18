@@ -5,10 +5,13 @@ import RuleRunPermission from "Common/Server/Utils/Rules/RuleRun/RuleRunPermissi
 import Response from "Common/Server/Utils/Response";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionCode from "Common/Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { RuleRunType } from "Common/Types/Rules/RuleRun";
+import UserType from "Common/Types/UserType";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -274,5 +277,103 @@ describe("RuleRunAPI", () => {
 
     expect(errorFrom(next).message).toBe("Rule not found.");
     expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * An expired dashboard session. The access-token cookie expires together
+ * with its JWT, so a tab left open past the token lifetime sends "Run now"
+ * with no credentials; getUserMiddleware passes it on as Public, tenantid
+ * header and all. assertTenantScoped now answers that with 401 - checked
+ * before the tenant, the rule type and the permission - because 401 is the
+ * one status the browser client refreshes the session on and replays.
+ *
+ * A project API key is a credential, not an anonymous caller: this endpoint
+ * is automatable, so a key still reaches the permission check that decides
+ * whether it may run the rule.
+ */
+describe("RuleRunAPI - callers without a session", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+    runner.runPass.mockResolvedValue(PASS_RESULT as never);
+  });
+
+  function mockRawProps(props: DatabaseCommonInteractionProps): void {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(props);
+  }
+
+  function expectAuthenticationRequired(next: NextFunction): void {
+    const error: Error = errorFrom(next);
+
+    expect(error).toBeInstanceOf(NotAuthenticatedException);
+    expect(error).not.toBeInstanceOf(NotAuthorizedException);
+    expect((error as NotAuthenticatedException).code).toBe(
+      ExceptionCode.NotAuthenticatedException,
+    );
+    expect(error.message).toBe(CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE);
+    expect(permission.assertCanRun).not.toHaveBeenCalled();
+    expect(runner.runPass).not.toHaveBeenCalled();
+    expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();
+  }
+
+  test("an anonymous caller naming a project in the tenant header gets 401 and runs nothing", async () => {
+    mockRawProps({ tenantId: PROJECT_ID, userType: UserType.Public });
+
+    expectAuthenticationRequired(await callRoute({}));
+  });
+
+  test("an anonymous caller with no tenant header gets 401, not the missing-project 400", async () => {
+    mockRawProps({ userType: UserType.Public });
+
+    const next: NextFunction = await callRoute({});
+
+    expectAuthenticationRequired(next);
+    expect(errorFrom(next)).not.toBeInstanceOf(BadDataException);
+  });
+
+  test("a caller getUserMiddleware left unclassified is anonymous too", async () => {
+    mockRawProps({ tenantId: PROJECT_ID });
+
+    expectAuthenticationRequired(await callRoute({}));
+  });
+
+  test("an anonymous caller is told to authenticate before the rule type is judged", async () => {
+    mockRawProps({ tenantId: PROJECT_ID, userType: UserType.Public });
+
+    expectAuthenticationRequired(await callRoute({ ruleType: "NotARule" }));
+  });
+
+  test("a project API key is admitted past the credential check to the permission check and the run", async () => {
+    const props: DatabaseCommonInteractionProps = {
+      tenantId: PROJECT_ID,
+      userType: UserType.API,
+    };
+    mockRawProps(props);
+
+    const next: NextFunction = await callRoute({});
+
+    expect(next).not.toHaveBeenCalled();
+    expect(permission.assertCanRun).toHaveBeenCalledWith({
+      props: props,
+      ruleType: RuleRunType.MonitorLabelRule,
+    });
+    expect(runner.runPass).toHaveBeenCalledTimes(1);
+    expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+  });
+
+  test("a project API key still stops at the permission check when the key may not run the rule", async () => {
+    mockRawProps({ tenantId: PROJECT_ID, userType: UserType.API });
+    permission.assertCanRun.mockImplementationOnce(() => {
+      throw new NotAuthorizedException("nope");
+    });
+
+    const next: NextFunction = await callRoute({});
+
+    expect(errorFrom(next)).toBeInstanceOf(NotAuthorizedException);
+    expect(errorFrom(next)).not.toBeInstanceOf(NotAuthenticatedException);
+    expect(runner.runPass).not.toHaveBeenCalled();
   });
 });

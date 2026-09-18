@@ -58,6 +58,11 @@ export interface ComponentProps {
   eventSecondDescription: string;
   labels?: Array<EventItemLabel> | undefined;
   eventAttachments?: Array<TimelineAttachment> | undefined;
+  /*
+   * Handed to every EventAttachmentList this item renders: the event's own
+   * attachments and each timeline note's. See EventAttachmentList.
+   */
+  attachmentRefreshSession?: (() => Promise<boolean>) | undefined;
 }
 
 const EventItem: FunctionComponent<ComponentProps> = (
@@ -116,7 +121,10 @@ const EventItem: FunctionComponent<ComponentProps> = (
         )}
 
         {props.eventAttachments && props.eventAttachments.length > 0 && (
-          <EventAttachmentList attachments={props.eventAttachments} />
+          <EventAttachmentList
+            attachments={props.eventAttachments}
+            refreshSession={props.attachmentRefreshSession}
+          />
         )}
 
         {props.eventSecondDescription && (
@@ -320,6 +328,9 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                 item.attachments.length > 0 && (
                                   <EventAttachmentList
                                     attachments={item.attachments}
+                                    refreshSession={
+                                      props.attachmentRefreshSession
+                                    }
                                     variant="inline"
                                     showHeader={false}
                                     showCount={false}

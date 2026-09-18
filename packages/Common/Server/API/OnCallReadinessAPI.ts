@@ -68,7 +68,10 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
  * header before any authorisation runs. So each route asserts, itself:
  *
  *   1. the caller is a logged-in member of the project it named
- *      (CommonAPI.assertAuthenticatedProjectMember), and
+ *      (CommonAPI.assertAuthenticatedProjectMember). A caller with no session
+ *      at all gets 401, not the 422 a non-member gets: in practice that caller
+ *      is an admin whose access-token cookie expired while the page sat open,
+ *      and only a 401 makes the dashboard refresh the session and resend, and
  *   2. the resource in the path - the policy, or the user - actually belongs to
  *      that same project, because otherwise a member of project A reads project
  *      B's data simply by sending their own `tenantid` header alongside a

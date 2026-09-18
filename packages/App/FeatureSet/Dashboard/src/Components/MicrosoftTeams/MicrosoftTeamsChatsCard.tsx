@@ -10,7 +10,7 @@ import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";

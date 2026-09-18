@@ -22,7 +22,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
 import SpanStatusElement from "../Span/SpanStatusElement";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 
 export interface ComponentProps {
   // Extra query (merged with isLlmSpan + projectId).

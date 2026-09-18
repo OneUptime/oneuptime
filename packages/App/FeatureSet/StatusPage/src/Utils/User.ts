@@ -3,7 +3,7 @@ import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/Utils/API";
-import { IDENTITY_URL } from "Common/UI/Config";
+import { STATUS_PAGE_IDENTITY_API_URL } from "./Config";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 
 export default class User {
@@ -85,10 +85,16 @@ export default class User {
   }
 
   public static async logout(statusPageId: ObjectID): Promise<void> {
+    /*
+     * Same origin as the page, like the refresh in ./API.ts: on a custom domain
+     * the session cookies are not sent to IDENTITY_URL's host, so a logout
+     * there cleared nothing. The bare API client on purpose - this runs from
+     * API.handleError, and must not trigger another refresh or logout.
+     */
     await API.post({
-      url: URL.fromString(IDENTITY_URL.toString())
-        .addRoute("/status-page/logout")
-        .addRoute("/" + statusPageId.toString()),
+      url: URL.fromURL(STATUS_PAGE_IDENTITY_API_URL).addRoute(
+        `/logout/${statusPageId.toString()}`,
+      ),
     });
     this.removeUser(statusPageId);
     for (const storageKey of this.getMasterPasswordStorageKeys(statusPageId)) {

@@ -8,6 +8,7 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import ObjectID from "../../Types/ObjectID";
 
@@ -21,11 +22,21 @@ export default class MasterAdminAuthorization {
       const accessToken: string | undefined =
         UserMiddleware.getAccessTokenFromExpressRequest(req);
 
+      /*
+       * No token and an undecodable one are both 401, not 422: the access-token
+       * cookie expires with the JWT inside it, so an Admin Dashboard tab left
+       * idle past the token lifetime arrives here with no token at all. Only a
+       * 401 makes the browser client refresh the session and replay the
+       * request; a 422 left the admin looking at "Unauthorized" until a reload.
+       * A valid session that simply is not a master admin stays 422.
+       */
       if (!accessToken) {
         Response.sendErrorResponse(
           req,
           res,
-          new NotAuthorizedException("Unauthorized: Access token is required."),
+          new NotAuthenticatedException(
+            "Unauthorized: Access token is required.",
+          ),
         );
         return;
       }
@@ -48,7 +59,7 @@ export default class MasterAdminAuthorization {
       Response.sendErrorResponse(
         req,
         res,
-        new NotAuthorizedException(
+        new NotAuthenticatedException(
           "Unauthorized: Invalid or expired access token.",
         ),
       );

@@ -35,7 +35,9 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -628,6 +630,125 @@ describe("Session replay playback API", () => {
       expect(summaryGuard).toBeDefined();
       expect(summaryGuard).not.toBe(listGuard);
       expect(summaryGuard).not.toBe(payloadGuard);
+    });
+  });
+
+  /*
+   * The one caller the note on status codes at the top of this file does NOT
+   * cover: somebody with no credentials at all. That is a 401 - it is the case
+   * NotAuthenticatedException exists for - and in practice it is a reviewer
+   * whose replay tab sat open past the access-token lifetime, so the cookie
+   * stopped being sent. The browser client refreshes the session and replays
+   * the request on a 401 and on nothing else, which is why these assert the
+   * code and not merely a refusal.
+   */
+  describe("an expired session is asked to authenticate, on every route", () => {
+    const allRoutes: Array<string> = [
+      LIST_ROUTE,
+      SUMMARIES_ROUTE,
+      USERS_ROUTE,
+      MANIFEST_ROUTE,
+      CHUNKS_ROUTE,
+      HEARTBEAT_ROUTE,
+      VIEWS_ROUTE,
+      FOR_EXCEPTION_ROUTE,
+      INGEST_STATUS_ROUTE,
+    ];
+
+    function expectAuthenticationRequired(denied: Exception | undefined): void {
+      expect(denied).toBeInstanceOf(NotAuthenticatedException);
+      expect(denied?.code).toBe(ExceptionCode.NotAuthenticatedException);
+      expect(denied?.code).toBe(401);
+      expect(denied?.message).toBe(
+        UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
+      );
+    }
+
+    test.each(allRoutes)(
+      "%s refuses a Public caller carrying a tenant with 401 and reads nothing",
+      async (uri: string) => {
+        const result: CallResult = await callRoute({
+          uri: uri,
+          request: {
+            userType: UserType.Public,
+            tenantId: projectId,
+          } as unknown as JSONObject,
+          body: { sessionId: "session-1" },
+        });
+
+        expectAuthenticationRequired(result.deniedWith);
+        expect(result.reachedHandler).toBe(false);
+        expect(result.thrownToNext).toBeUndefined();
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+        expect(chunkQuerySpy).not.toHaveBeenCalled();
+        expect(recordViewSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    /*
+     * requireUserAuthentication answers first on the real chain, so this runs
+     * each route's permission guard (handlers[2]) by itself. It must ask "who
+     * are you?" before comparing permissions too; otherwise an anonymous
+     * request that ever reached it would get the 422 - the answer that left
+     * the customer's dashboard stuck.
+     */
+    test.each(allRoutes)(
+      "%s: the permission guard alone answers an anonymous caller with 401, not 422",
+      async (uri: string) => {
+        const guard: RouterFunction | undefined = findRoute(uri).handlers[2];
+
+        expect(guard).toBeDefined();
+
+        const req: ExpressRequest = {
+          userType: UserType.Public,
+          tenantId: projectId,
+          headers: {},
+        } as unknown as ExpressRequest;
+
+        const res: ExpressResponse = {
+          status: jest.fn().mockReturnThis(),
+          send: jest.fn(),
+        } as unknown as ExpressResponse;
+
+        const next: jest.Mock = jest.fn();
+
+        await guard!(req, res, next as unknown as NextFunction);
+
+        expect(next).not.toHaveBeenCalled();
+
+        const sendErrorResponse: jest.Mock =
+          Response.sendErrorResponse as unknown as jest.Mock;
+
+        expectAuthenticationRequired(
+          sendErrorResponse.mock.calls[0]?.[2] as Exception | undefined,
+        );
+      },
+    );
+
+    test("a logged-in caller without the payload permission still gets the 422, not a 401", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectMember],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(result.deniedWith).not.toBeInstanceOf(NotAuthenticatedException);
+      expect(result.deniedWith?.code).toBe(
+        ExceptionCode.NotAuthorizedException,
+      );
+      expect(result.reachedHandler).toBe(false);
     });
   });
 

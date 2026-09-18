@@ -16,11 +16,15 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import {
   afterEach,
   beforeAll,
@@ -46,6 +50,13 @@ import {
  * path belongs to that same project. Checking only the first would let a
  * member of project A send their own tenant header while targeting project
  * B's resource id.
+ *
+ * A caller with no credentials at all is refused with NotAuthenticatedException
+ * (401) before either check, and before the tenant header is even looked at.
+ * That is almost always a signed-in user whose access-token cookie expired, and
+ * the dashboard only refreshes the session and resends on a 401. Authenticated
+ * callers keep the refusals they always had (400 no tenant, 422 not a member /
+ * wrong project).
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -108,6 +119,17 @@ type RouteCallResult = {
   thrownToNext: unknown;
   nextCallCount: number;
 };
+
+function expectAuthenticationRequired(thrown: unknown): void {
+  expect(thrown).toBeInstanceOf(NotAuthenticatedException);
+  expect((thrown as Exception).code).toBe(
+    ExceptionCode.NotAuthenticatedException,
+  );
+  expect((thrown as Exception).code).toBe(401);
+  expect((thrown as Exception).message).toBe(
+    CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+  );
+}
 
 async function callGetRoute(data: {
   uri: string;
@@ -246,7 +268,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
       expect(readArgs.props["isRoot"]).toBe(true);
     });
 
-    test("rejects an unauthenticated caller with BadDataException and never reads the monitor", async () => {
+    // Was BadDataException (400) before the credential check.
+    test("rejects an unauthenticated caller with NotAuthenticatedException (401) and never reads the monitor", async () => {
       mockProps({});
 
       const result: RouteCallResult = await callGetRoute({
@@ -254,12 +277,29 @@ describe("Project-scoped custom routes require an authenticated member of the re
         params: { monitorId: monitorId.toString() },
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expectAuthenticationRequired(result.thrownToNext);
       expect(findOneByIdSpy).not.toHaveBeenCalled();
       expect(refreshSpy).not.toHaveBeenCalled();
     });
 
-    test("rejects a public caller that supplies a tenant header it is not a member of", async () => {
+    test("rejects a logged-in caller with no tenant header with BadDataException (400) and never reads the monitor", async () => {
+      mockProps({ userId: callerUserId, userType: UserType.User });
+
+      const result: RouteCallResult = await callGetRoute({
+        uri: MONITOR_REFRESH_ROUTE,
+        params: { monitorId: monitorId.toString() },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect((result.thrownToNext as Exception).code).toBe(
+        ExceptionCode.BadDataException,
+      );
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(refreshSpy).not.toHaveBeenCalled();
+    });
+
+    // Was NotAuthorizedException (422) before the credential check.
+    test("rejects a public caller that supplies a tenant header it is not a member of with 401", async () => {
       mockProps({
         tenantId: callerProjectId,
         userId: undefined,
@@ -271,7 +311,28 @@ describe("Project-scoped custom routes require an authenticated member of the re
         params: { monitorId: monitorId.toString() },
       });
 
+      expectAuthenticationRequired(result.thrownToNext);
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(refreshSpy).not.toHaveBeenCalled();
+    });
+
+    test("rejects a logged-in caller whose tenant header names a project they are not in with 422", async () => {
+      mockProps({
+        tenantId: callerProjectId,
+        userId: callerUserId,
+        userType: UserType.User,
+        userTenantAccessPermission: {},
+      });
+
+      const result: RouteCallResult = await callGetRoute({
+        uri: MONITOR_REFRESH_ROUTE,
+        params: { monitorId: monitorId.toString() },
+      });
+
       expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Exception).code).toBe(
+        ExceptionCode.NotAuthorizedException,
+      );
       expect(findOneByIdSpy).not.toHaveBeenCalled();
       expect(refreshSpy).not.toHaveBeenCalled();
     });
@@ -383,7 +444,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
       expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
     });
 
-    test("rejects an unauthenticated caller with BadDataException and never reads the rule", async () => {
+    // Was BadDataException (400) before the credential check.
+    test("rejects an unauthenticated caller with NotAuthenticatedException (401) and never reads the rule", async () => {
       mockProps({});
 
       const result: RouteCallResult = await callGetRoute({
@@ -391,12 +453,29 @@ describe("Project-scoped custom routes require an authenticated member of the re
         params: { workspaceNotifcationRuleId: ruleId.toString() },
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expectAuthenticationRequired(result.thrownToNext);
       expect(findOneByIdSpy).not.toHaveBeenCalled();
       expect(testRuleSpy).not.toHaveBeenCalled();
     });
 
-    test("rejects a public caller that supplies a tenant header it is not a member of", async () => {
+    test("rejects a logged-in caller with no tenant header with BadDataException (400) and never reads the rule", async () => {
+      mockProps({ userId: callerUserId, userType: UserType.User });
+
+      const result: RouteCallResult = await callGetRoute({
+        uri: TEST_RULE_ROUTE,
+        params: { workspaceNotifcationRuleId: ruleId.toString() },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect((result.thrownToNext as Exception).code).toBe(
+        ExceptionCode.BadDataException,
+      );
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(testRuleSpy).not.toHaveBeenCalled();
+    });
+
+    // Was NotAuthorizedException (422) before the credential check.
+    test("rejects a public caller that supplies a tenant header it is not a member of with 401", async () => {
       mockProps({
         tenantId: callerProjectId,
         userId: undefined,
@@ -408,7 +487,35 @@ describe("Project-scoped custom routes require an authenticated member of the re
         params: { workspaceNotifcationRuleId: ruleId.toString() },
       });
 
+      expectAuthenticationRequired(result.thrownToNext);
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(testRuleSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The rule test posts a message as a person (testByUserId), so a project
+     * API key - authenticated, but nobody - is refused. With the 422, not a
+     * 401: the key's client has no session to refresh.
+     */
+    test("rejects a project API key with 422 and never reads the rule", async () => {
+      mockProps({
+        ...buildMemberProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+        }),
+        userId: undefined,
+        userType: UserType.API,
+      });
+
+      const result: RouteCallResult = await callGetRoute({
+        uri: TEST_RULE_ROUTE,
+        params: { workspaceNotifcationRuleId: ruleId.toString() },
+      });
+
       expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Exception).code).toBe(
+        ExceptionCode.NotAuthorizedException,
+      );
       expect(findOneByIdSpy).not.toHaveBeenCalled();
       expect(testRuleSpy).not.toHaveBeenCalled();
     });

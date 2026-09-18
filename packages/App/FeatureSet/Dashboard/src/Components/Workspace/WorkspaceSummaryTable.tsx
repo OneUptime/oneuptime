@@ -24,7 +24,7 @@ import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/
 import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import NotificationRuleConditions from "./NotificationRuleForm/NotificationRuleConditions";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";

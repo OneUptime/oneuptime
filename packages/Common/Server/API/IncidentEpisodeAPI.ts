@@ -43,6 +43,7 @@ export default class IncidentEpisodeAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/generate-postmortem-from-ai/:episodeId`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.generatePostmortemFromAI(req, res);

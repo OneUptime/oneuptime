@@ -18,12 +18,16 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -38,7 +42,12 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  *   admits anonymous callers as UserType.Public and takes the project from a
  *   caller-supplied `tenantid` header. So the handler is the only gate, and it
  *   has to refuse BEFORE any mail-sending work starts - a route that refuses
- *   after the send has not refused anything.
+ *   after the send has not refused anything. An anonymous caller is refused
+ *   with a 401, not the 422 below: this is the route from the customer report,
+ *   where an admin's tab sat open past the access-token lifetime, the cookie
+ *   stopped being sent, and "Send setup reminder" answered "You are not
+ *   authorized to access this project's data." The dashboard refreshes the
+ *   session and resends only on a 401.
  *
  *   WITH WHAT STANDING. Membership is the bar for the READS on this router and
  *   was, wrongly, the bar for this write too. Every read-only Viewer holds an
@@ -97,10 +106,27 @@ const REMINDER_ROUTE: string = "/on-call-readiness/send-setup-reminder";
 
 /*
  * The message every authorisation refusal on this router carries. Asserted on
- * the literal so "you are in the wrong project" cannot drift apart from "you are
- * not logged in" - a caller must not be able to tell them apart.
+ * the literal so "you are in the wrong project" cannot drift apart from "you may
+ * not do this here" - an authenticated caller must not be able to tell them
+ * apart.
+ *
+ * "You are not logged in" is deliberately a different answer (401, below). It
+ * is decided before the tenant, the body or anything else project-specific is
+ * looked at, so it is the same for every project and discloses nothing.
  */
 const REFUSAL: string = "You are not authorized to access this project's data.";
+
+function expectAuthenticationRequired(thrown: unknown): void {
+  expect(thrown).toBeInstanceOf(NotAuthenticatedException);
+  expect(thrown).not.toBeInstanceOf(NotAuthorizedException);
+  expect((thrown as Exception).code).toBe(
+    ExceptionCode.NotAuthenticatedException,
+  );
+  expect((thrown as Exception).code).toBe(401);
+  expect((thrown as Exception).message).toBe(
+    CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+  );
+}
 
 interface RegisteredRoute {
   method: string;
@@ -365,7 +391,12 @@ describe("OnCallReadinessAPI POST /send-setup-reminder - registration", () => {
 });
 
 describe("OnCallReadinessAPI POST /send-setup-reminder - who may call it", () => {
-  test("an anonymous caller is refused and nothing is sent", async () => {
+  /*
+   * Was the 422 REFUSAL. An anonymous caller with a tenant header is, in
+   * practice, an admin whose session expired while the page sat open; the 401
+   * is what makes the dashboard refresh and resend the same POST.
+   */
+  test("an anonymous caller is refused with 401 and nothing is sent", async () => {
     propsSpy.mockResolvedValue({
       tenantId: projectId,
       userTenantAccessPermission: {},
@@ -375,10 +406,52 @@ describe("OnCallReadinessAPI POST /send-setup-reminder - who may call it", () =>
       userIds: [userA.toString()],
     });
 
+    expectAuthenticationRequired(result.thrownToNext);
+    expect(result.nextCallCount).toBe(1);
+    expect(sendRemindersSpy).not.toHaveBeenCalled();
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test("an explicitly Public caller is refused with 401 and nothing is sent", async () => {
+    propsSpy.mockResolvedValue({
+      tenantId: projectId,
+      userType: UserType.Public,
+    } as never);
+
+    const result: RouteCallResult = await callRoute({
+      userIds: [userA.toString()],
+    });
+
+    expectAuthenticationRequired(result.thrownToNext);
+    expect(sendRemindersSpy).not.toHaveBeenCalled();
+  });
+
+  test("a project API key is authenticated, so it gets the member refusal (422), not a 401", async () => {
+    /*
+     * The route sends mail as a person acting for the project and only admits
+     * logged-in members. A key that even holds ProjectOwner is refused - but
+     * as an authorisation failure, because a 401 would send an API client off
+     * to refresh a session it never had.
+     */
+    propsSpy.mockResolvedValue({
+      ...buildProps({
+        projectId: projectId,
+        userId: callerUserId,
+        permissions: [Permission.ProjectOwner],
+      }),
+      userId: undefined,
+      userType: UserType.API,
+    } as never);
+
+    const result: RouteCallResult = await callRoute({
+      userIds: [userA.toString()],
+    });
+
     expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-    expect((result.thrownToNext as NotAuthorizedException).message).toBe(
-      REFUSAL,
+    expect((result.thrownToNext as Exception).code).toBe(
+      ExceptionCode.NotAuthorizedException,
     );
+    expect((result.thrownToNext as Exception).message).toBe(REFUSAL);
     expect(sendRemindersSpy).not.toHaveBeenCalled();
   });
 
@@ -401,7 +474,11 @@ describe("OnCallReadinessAPI POST /send-setup-reminder - who may call it", () =>
   });
 
   test("a request with no tenant header is refused before the body is even parsed", async () => {
-    propsSpy.mockResolvedValue({} as never);
+    /*
+     * A logged-in caller who sent no tenant header. (With no session as well,
+     * the refusal is the 401 - next test.)
+     */
+    propsSpy.mockResolvedValue({ userId: callerUserId } as never);
 
     const result: RouteCallResult = await callRoute({
       userIds: ["obviously-not-a-uuid"],
@@ -416,6 +493,33 @@ describe("OnCallReadinessAPI POST /send-setup-reminder - who may call it", () =>
     expect((result.thrownToNext as BadDataException).message).toContain(
       "Project ID is required",
     );
+    expect(sendRemindersSpy).not.toHaveBeenCalled();
+  });
+
+  test("a request with no session and no tenant header is a 401, decided before the tenant or the body", async () => {
+    /*
+     * This used to be the 400 above. "Who are you?" now comes first, so a
+     * signed-out caller cannot learn anything about the tenant rules or the
+     * body format, and the dashboard gets the 401 it refreshes on.
+     */
+    propsSpy.mockResolvedValue({} as never);
+
+    const result: RouteCallResult = await callRoute({
+      userIds: ["obviously-not-a-uuid"],
+    });
+
+    expectAuthenticationRequired(result.thrownToNext);
+    expect(sendRemindersSpy).not.toHaveBeenCalled();
+  });
+
+  test("an anonymous caller with a malformed body is still the 401, not the body's 400", async () => {
+    propsSpy.mockResolvedValue({ tenantId: projectId } as never);
+
+    const result: RouteCallResult = await callRoute({
+      userIds: "not-even-an-array",
+    } as unknown as JSONObject);
+
+    expectAuthenticationRequired(result.thrownToNext);
     expect(sendRemindersSpy).not.toHaveBeenCalled();
   });
 });
@@ -447,6 +551,14 @@ describe("OnCallReadinessAPI POST /send-setup-reminder - membership is not enoug
     expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
     expect((result.thrownToNext as NotAuthorizedException).message).toBe(
       REFUSAL,
+    );
+    /*
+     * 422, not 401: this member IS logged in. Answering with a 401 would make
+     * the dashboard refresh a perfectly good session and replay the POST, only
+     * to be refused again.
+     */
+    expect((result.thrownToNext as Exception).code).toBe(
+      ExceptionCode.NotAuthorizedException,
     );
     expect(sendRemindersSpy).not.toHaveBeenCalled();
   });

@@ -16,11 +16,29 @@ import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import Search from "../../../../Types/BaseDatabase/Search";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Exception from "../../../../Types/Exception/Exception";
+import ExceptionCode from "../../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../../Types/Permission";
+import UserType from "../../../../Types/UserType";
 import { describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+
+// Runs `fn` and returns what it threw; fails the test if it returned.
+const thrownBy: (fn: () => unknown) => Exception = (
+  fn: () => unknown,
+): Exception => {
+  try {
+    fn();
+  } catch (error) {
+    return error as Exception;
+  }
+
+  throw new Error("Expected the call to throw, but it returned normally.");
+};
 
 /*
  * The forced privacy clause must survive every operator a client can smuggle
@@ -125,23 +143,97 @@ describe("getAIRunPrivacyRaw", () => {
    * project fix history — access neither /ai-run nor /code-fix-run grants.
    */
   test("rejects a caller with no user, even though CodeFix runs are shared", () => {
+    /*
+     * userType API is what ProjectAuthorization stamps on a key-authenticated
+     * request. Without it the props would read as anonymous (no credentials
+     * at all) and get the 401 below instead of this 422.
+     */
     const apiKeyShapedProps: DatabaseCommonInteractionProps = {
       tenantId: ObjectID.generate(),
+      userType: UserType.API,
       userTenantAccessPermission: {} as {
         [tenantId: string]: UserTenantAccessPermission;
       },
     };
 
-    expect(() => {
-      return getAIRunPrivacyRaw(apiKeyShapedProps);
-    }).toThrow(NotAuthorizedException);
-
-    expect(() => {
-      return applyAIRunPrivacyFilter(
-        { runType: AIRunType.CodeFix },
-        apiKeyShapedProps,
+    for (const error of [
+      thrownBy(() => {
+        return getAIRunPrivacyRaw(apiKeyShapedProps);
+      }),
+      thrownBy(() => {
+        return applyAIRunPrivacyFilter(
+          { runType: AIRunType.CodeFix },
+          apiKeyShapedProps,
+        );
+      }),
+    ]) {
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error).not.toBeInstanceOf(NotAuthenticatedException);
+      expect(error.code).toBe(ExceptionCode.NotAuthorizedException);
+      expect(error.code).toBe(422);
+      expect(error.message).toBe(
+        "AI runs are personal and can only be accessed by the user who created them.",
       );
-    }).toThrow(NotAuthorizedException);
+    }
+  });
+
+  /*
+   * No credentials at all is a signed-in user whose access-token cookie
+   * expired. The browser client refreshes the session and replays only on a
+   * 401, so this must not be the 422 an API key gets above.
+   */
+  test.each([
+    ["no props at all", {}],
+    [
+      "a tenant and tenant permissions but no user and no userType",
+      {
+        tenantId: ObjectID.generate(),
+        userTenantAccessPermission: {} as {
+          [tenantId: string]: UserTenantAccessPermission;
+        },
+      },
+    ],
+    [
+      "an explicitly Public caller",
+      { tenantId: ObjectID.generate(), userType: UserType.Public },
+    ],
+  ])(
+    "answers an anonymous caller (%s) with 401",
+    (_label: string, props: DatabaseCommonInteractionProps) => {
+      for (const error of [
+        thrownBy(() => {
+          return getAIRunPrivacyRaw(props);
+        }),
+        thrownBy(() => {
+          return applyAIRunPrivacyFilter({ runType: AIRunType.CodeFix }, props);
+        }),
+      ]) {
+        expect(error).toBeInstanceOf(NotAuthenticatedException);
+        expect(error).not.toBeInstanceOf(NotAuthorizedException);
+        expect(error.code).toBe(ExceptionCode.NotAuthenticatedException);
+        expect(error.code).toBe(401);
+        expect(error.message).toBe(
+          DatabaseCommonInteractionPropsUtil.AUTHENTICATION_REQUIRED_MESSAGE,
+        );
+      }
+    },
+  );
+
+  test("a signed-in user still gets the clause, not a refusal", () => {
+    const signedInUserId: ObjectID = ObjectID.generate();
+
+    const filtered: Record<string, unknown> = applyAIRunPrivacyFilter(
+      {},
+      { userId: signedInUserId, userType: UserType.User },
+    );
+
+    expect(filtered["runType"]).toBeInstanceOf(FindOperator);
+    expect(render(filtered["runType"])).toContain(`"AIRun"."userId"`);
+  });
+
+  test("root and master admin without a user are not refused", () => {
+    expect(applyAIRunPrivacyFilter({}, { isRoot: true })).toEqual({});
+    expect(applyAIRunPrivacyFilter({}, { isMasterAdmin: true })).toEqual({});
   });
 });
 

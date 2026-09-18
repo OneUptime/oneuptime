@@ -62,7 +62,7 @@ let apiGet: ApiGetFunction = async (): Promise<{ data: JSONObject }> => {
   return { data: { chats: [] } };
 };
 
-jest.mock("../../../Utils/API", () => {
+jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {

@@ -3,7 +3,7 @@ import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import Footer from "Common/UI/Components/Footer/Footer";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";

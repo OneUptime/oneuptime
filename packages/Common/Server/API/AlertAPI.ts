@@ -38,6 +38,7 @@ export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/generate-note-from-ai/:alertId`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.generateNoteFromAI(req, res);

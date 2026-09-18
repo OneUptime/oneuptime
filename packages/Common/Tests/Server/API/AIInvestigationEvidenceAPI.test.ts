@@ -37,9 +37,12 @@ import { InvestigationEvidenceRowsResponse } from "../../../Types/AI/Investigati
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import UserType from "../../../Types/UserType";
 import {
   afterEach,
   beforeEach,
@@ -340,7 +343,12 @@ describe("POST /ai-investigation/evidence", () => {
       expectNoReads();
     });
 
-    it("requires a logged-in user session", async () => {
+    /*
+     * No credentials at all is 401, not 422: it is almost always an expired
+     * dashboard session, and 401 is what makes the client refresh it and
+     * replay the request.
+     */
+    it("requires a logged-in user session, answering a caller with no credentials with 401", async () => {
       jest
         .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
         .mockResolvedValue({
@@ -350,7 +358,52 @@ describe("POST /ai-investigation/evidence", () => {
       const next: ReturnType<typeof jest.fn> =
         await callEvidenceRoute(incidentBody());
 
-      expect(next).toHaveBeenCalledWith(expect.any(NotAuthorizedException));
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(expect.any(NotAuthenticatedException));
+      expect((next.mock.calls[0]![0] as NotAuthenticatedException).code).toBe(
+        ExceptionCode.NotAuthenticatedException,
+      );
+      expectNoReads();
+    });
+
+    it("answers an anonymous caller with 401 even when its body is malformed too", async () => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue({
+          userType: UserType.Public,
+        } as DatabaseCommonInteractionProps);
+
+      const next: ReturnType<typeof jest.fn> = await callEvidenceRoute(
+        incidentBody({ citationId: "not-a-citation" }),
+      );
+
+      expect(next).toHaveBeenCalledWith(expect.any(NotAuthenticatedException));
+      expectNoReads();
+    });
+
+    /*
+     * A project API key is authenticated, so it keeps the 422 this
+     * person-only route has always given it; a 401 would only send its
+     * client to refresh a session that does not exist.
+     */
+    it("refuses a project API key with 422 before any read", async () => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue({
+          tenantId: PROJECT_ID,
+          userType: UserType.API,
+          userTenantAccessPermission: viewerProps.userTenantAccessPermission,
+        } as DatabaseCommonInteractionProps);
+
+      const next: ReturnType<typeof jest.fn> =
+        await callEvidenceRoute(incidentBody());
+
+      expect(next).toHaveBeenCalledWith(
+        new NotAuthorizedException("A logged-in user session is required."),
+      );
+      expect(next).not.toHaveBeenCalledWith(
+        expect.any(NotAuthenticatedException),
+      );
       expectNoReads();
     });
 

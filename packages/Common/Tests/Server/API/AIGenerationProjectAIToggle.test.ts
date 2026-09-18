@@ -4,6 +4,7 @@ import CommonAPI from "../../../Server/API/CommonAPI";
 import IncidentAPI from "../../../Server/API/IncidentAPI";
 import IncidentEpisodeAPI from "../../../Server/API/IncidentEpisodeAPI";
 import ScheduledMaintenanceAPI from "../../../Server/API/ScheduledMaintenanceAPI";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import AIService from "../../../Server/Services/AIService";
 import AlertService from "../../../Server/Services/AlertService";
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
@@ -30,12 +31,15 @@ import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMainte
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import {
   afterEach,
   beforeAll,
@@ -535,6 +539,189 @@ describe.each(GENERATE_ROUTES)(
 
       expect(projectLookup).toHaveBeenCalledTimes(1);
       expect(gatedProjectId()).toBe(PROJECT_ID.toString());
+    });
+  },
+);
+
+/*
+ * A project API key holding Project Admin in `tenantId`: what
+ * getDatabaseCommonInteractionProps returns for a key - no userId, userType
+ * API, and the permissions ProjectMiddleware attached to the key itself.
+ */
+function apiKeyProps(tenantId: ObjectID): DatabaseCommonInteractionProps {
+  const props: DatabaseCommonInteractionProps = adminProps(tenantId);
+
+  return {
+    ...props,
+    userId: undefined,
+    userType: UserType.API,
+  };
+}
+
+type GateResult = {
+  // False when a middleware answered the request itself.
+  handlerReached: boolean;
+  thrown: unknown;
+};
+
+/*
+ * Runs a registered route the way Express does once getUserMiddleware has
+ * classified the caller as `userType`: every later middleware in order, then
+ * the handler, stopping at the first middleware that answers instead of
+ * calling next(). getUserMiddleware itself is not run - it needs a real
+ * token to verify - so the request carries the userType it would have set.
+ */
+async function callThroughAuthGate(
+  route: GenerateRoute,
+  userType: UserType | undefined,
+): Promise<GateResult> {
+  const req: ExpressRequest = {
+    params: route.params,
+    query: {},
+    body: route.body,
+    headers: {},
+    userType: userType,
+  } as unknown as ExpressRequest;
+
+  const res: ExpressResponse = {} as ExpressResponse;
+
+  const registered: {
+    middlewares: Array<
+      (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => void | Promise<void>
+    >;
+  } = mockRouter.match("post", route.uri);
+
+  for (const middleware of registered.middlewares.slice(1)) {
+    let calledNext: boolean = false;
+
+    await middleware(req, res, ((): void => {
+      calledNext = true;
+    }) as NextFunction);
+
+    if (!calledNext) {
+      return { handlerReached: false, thrown: undefined };
+    }
+  }
+
+  const next: jest.Mock = jest.fn();
+
+  await mockRouter
+    .match("post", route.uri)
+    .handlerFunction(req, res, next as unknown as NextFunction);
+
+  return {
+    handlerReached: true,
+    thrown: next.mock.calls[0] ? next.mock.calls[0][0] : undefined,
+  };
+}
+
+/*
+ * The expired-session half of these routes. The dashboard's access-token
+ * cookie expires with the JWT inside it, so a tab left open past the token
+ * lifetime sends "Generate with AI" with no credentials at all.
+ * getUserMiddleware lets that through as Public; requireUserAuthentication,
+ * mounted straight after it, answers 401 - the one status the browser client
+ * refreshes the session on and replays. Before it was mounted the handler's
+ * own permission check answered 400, which the client showed as an error.
+ */
+describe.each(GENERATE_ROUTES)(
+  "POST $uri - expired session",
+  (route: GenerateRoute) => {
+    test("is mounted with requireUserAuthentication directly after getUserMiddleware", () => {
+      expect(mockRouter.match("post", route.uri).middlewares).toEqual([
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+      ]);
+    });
+
+    test.each([
+      ["a Public caller", UserType.Public],
+      ["a caller getUserMiddleware left unclassified", undefined],
+    ])(
+      "%s is answered 401 before the handler runs, and nothing is read or spent",
+      async (_label: string, userType: UserType | undefined) => {
+        const stubs: RouteStubs = route.stub(PROJECT_ID);
+
+        const result: GateResult = await callThroughAuthGate(route, userType);
+
+        expect(result.handlerReached).toBe(false);
+
+        const sendError: jest.Mock =
+          Response.sendErrorResponse as unknown as jest.Mock;
+        expect(sendError).toHaveBeenCalledTimes(1);
+
+        const error: unknown = sendError.mock.calls[0]![2];
+        expect(error).toBeInstanceOf(NotAuthenticatedException);
+        expect((error as NotAuthenticatedException).code).toBe(
+          ExceptionCode.NotAuthenticatedException,
+        );
+        expect((error as NotAuthenticatedException).message).toBe(
+          UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
+        );
+
+        expect(stubs.resourceLookup).not.toHaveBeenCalled();
+        expect(stubs.contextBuild).not.toHaveBeenCalled();
+        expect(projectLookup).not.toHaveBeenCalled();
+        expect(executeWithLogging).not.toHaveBeenCalled();
+        expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+      },
+    );
+
+    /*
+     * Generating from CI or a script is supported: the gate is about "no
+     * credentials", not "no human". A key with the right permission still
+     * gets its text, subject to the same kill switch as everyone else.
+     */
+    test("a project API key passes the gate and still generates", async () => {
+      const stubs: RouteStubs = route.stub(PROJECT_ID);
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue(apiKeyProps(PROJECT_ID));
+
+      const result: GateResult = await callThroughAuthGate(route, UserType.API);
+
+      expect(result.handlerReached).toBe(true);
+      expect(result.thrown).toBeUndefined();
+      expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+      expect(stubs.contextBuild).toHaveBeenCalledTimes(1);
+      expect(executeWithLogging).toHaveBeenCalledTimes(1);
+      expect(sentPayload()[route.responseKey]).toBe(GENERATED_TEXT);
+    });
+
+    test("a logged-in user passes the gate unchanged", async () => {
+      route.stub(PROJECT_ID);
+
+      const result: GateResult = await callThroughAuthGate(
+        route,
+        UserType.User,
+      );
+
+      expect(result.handlerReached).toBe(true);
+      expect(result.thrown).toBeUndefined();
+      expect(executeWithLogging).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * Defence in depth: the handler does not rely on the middleware alone.
+     * Its own tenant check refuses a credential-less caller with the same
+     * 401 - ahead of the permission check that used to answer it with 400.
+     */
+    test("the handler itself answers credential-less props with 401 before reading the row", async () => {
+      const stubs: RouteStubs = route.stub(PROJECT_ID);
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue({ tenantId: PROJECT_ID });
+
+      const call: RouteCall = await callRoute(route);
+
+      expect(call.thrown).toBeInstanceOf(NotAuthenticatedException);
+      expect(call.thrown).not.toBeInstanceOf(BadDataException);
+      expect(stubs.resourceLookup).not.toHaveBeenCalled();
+      expect(executeWithLogging).not.toHaveBeenCalled();
     });
   },
 );

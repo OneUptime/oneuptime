@@ -1,4 +1,3 @@
-import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import {
   GoogleTagManagerEnabled,
   IsBillingEnabled,
@@ -11,12 +10,9 @@ import Express, {
   NextFunction,
   RequestHandler,
 } from "Common/Server/Utils/Express";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
-import JSONWebTokenData from "Common/Types/JsonWebTokenData";
+import { ensureMasterAdminPageAccess } from "Common/Server/Utils/MasterAdminPageAccess";
 import logger from "Common/Server/Utils/Logger";
-import Response from "Common/Server/Utils/Response";
 import applyStatusPageContentSecurityPolicy from "Common/Server/Utils/StatusPageContentSecurityPolicy";
-import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -281,46 +277,11 @@ const ensureMasterAdminAccess: (
   req: ExpressRequest,
   res: ExpressResponse,
 ): Promise<JSONObject> => {
-  try {
-    const accessToken: string | undefined =
-      UserMiddleware.getAccessTokenFromExpressRequest(req);
-
-    if (!accessToken) {
-      Response.sendErrorResponse(
-        req,
-        res,
-        new NotAuthorizedException(
-          "Unauthorized: Only master admins can access the admin dashboard.",
-        ),
-      );
-      return {};
-    }
-
-    const authData: JSONWebTokenData = JSONWebToken.decode(accessToken);
-
-    if (!authData.isMasterAdmin) {
-      Response.sendErrorResponse(
-        req,
-        res,
-        new NotAuthorizedException(
-          "Unauthorized: Only master admins can access the admin dashboard.",
-        ),
-      );
-      return {};
-    }
-
-    return {};
-  } catch (error) {
-    logger.error(error, { service: "frontend" });
-    Response.sendErrorResponse(
-      req,
-      res,
-      new NotAuthorizedException(
-        "Unauthorized: Only master admins can access the admin dashboard.",
-      ),
-    );
-    return {};
-  }
+  return await ensureMasterAdminPageAccess({
+    req,
+    res,
+    service: "frontend",
+  });
 };
 
 const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (

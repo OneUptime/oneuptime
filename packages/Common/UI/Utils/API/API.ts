@@ -22,8 +22,25 @@ import {
 import API, { AuthRetryContext } from "../../../Utils/API";
 import { IDENTITY_URL } from "../../Config";
 
+/*
+ * One in-flight refresh per session, shared by every caller in this tab: the
+ * dashboard's BaseAPI, any subclass that inherits its refresh, and callers of
+ * refreshSession() that are not going through a request at all (raw fetch,
+ * navigations, the realtime socket). Keyed by session name rather than kept on
+ * `this`, because a static field read through `this` gives every subclass its
+ * own slot, and two slots for one session means two refreshes racing with the
+ * same rotating refresh token.
+ */
+const inFlightSessionRefreshes: Map<string, Promise<boolean>> = new Map();
+
 class BaseAPI extends API {
-  private static refreshPromise: Promise<boolean> | null = null;
+  /*
+   * A refresh another tab finished this recently is one this tab can reuse:
+   * tabs share cookies, so its new access token is already ours. Comfortably
+   * longer than a refresh round trip, far shorter than the token lifetime.
+   */
+  public static readonly RECENT_SESSION_REFRESH_WINDOW_IN_MS: number =
+    15 * 1000;
 
   public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
     super(protocol, hostname, route);
@@ -117,6 +134,14 @@ class BaseAPI extends API {
 
       this.logoutUser();
 
+      /*
+       * Already there: a forced navigation would reload the login page, whose
+       * requests would fail the same way and reload it again.
+       */
+      if (Navigation.getCurrentRoute().toString() === loginRoute.toString()) {
+        return error;
+      }
+
       if (Navigation.getQueryStringByName("token")) {
         Navigation.navigate(loginRoute.addRouteParam("sso", "true"), {
           forceNavigate: true,
@@ -140,14 +165,79 @@ class BaseAPI extends API {
     return error;
   }
 
+  /*
+   * A refresh that got no answer at all (network down, identity unreachable)
+   * rejects here rather than resolving false: the request that asked for it
+   * then fails with that transport error, instead of logging the user out
+   * over a blip.
+   */
   protected static override async tryRefreshAuth(
     _context: AuthRetryContext,
   ): Promise<boolean> {
-    if (!this.refreshPromise) {
-      this.refreshPromise = (async () => {
-        const refreshUrl: URL = URL.fromString(
-          IDENTITY_URL.toString(),
-        ).addRoute("/refresh-token");
+    return await this.refreshSessionOrThrow();
+  }
+
+  /*
+   * Where this client's session is refreshed, or null when it has no session
+   * that can be (a public dashboard, a status page with no id yet).
+   */
+  protected static getRefreshSessionUrl(): URL | null {
+    return URL.fromString(IDENTITY_URL.toString()).addRoute("/refresh-token");
+  }
+
+  // Names the session for the in-tab single flight, the cross-tab lock and the "recently refreshed" marker.
+  protected static getSessionName(): string {
+    return "dashboard";
+  }
+
+  /*
+   * Refresh the session now, and say whether it worked.
+   *
+   * Requests made through this class already do this for themselves when they
+   * come back 401. This is for the paths that cannot: a raw fetch() (binary
+   * responses), a navigation or new tab pointed at an authenticated route, the
+   * realtime socket's handshake. Those call it before (or after) and carry on.
+   *
+   * Concurrent callers share one refresh, in this tab and across tabs. The
+   * server rotates the refresh token on every use, and a token that has
+   * already been rotated no longer matches a session: that refresh gets a 401
+   * and a response that clears every session cookie, including the ones the
+   * winning refresh just set. So two tabs that both notice an expired session
+   * and both refresh would log each other out. The refresh therefore runs
+   * under a cross-tab lock, and a tab that gets the lock just after another
+   * tab refreshed reuses that result instead of spending the stale token.
+   */
+  public static async refreshSession(): Promise<boolean> {
+    try {
+      return await this.refreshSessionOrThrow();
+    } catch {
+      // No answer at all; callers outside a request just carry on.
+      return false;
+    }
+  }
+
+  private static async refreshSessionOrThrow(): Promise<boolean> {
+    const refreshUrl: URL | null = this.getRefreshSessionUrl();
+
+    if (!refreshUrl) {
+      return false;
+    }
+
+    const sessionName: string = this.getSessionName();
+
+    const inFlight: Promise<boolean> | undefined =
+      inFlightSessionRefreshes.get(sessionName);
+
+    if (inFlight) {
+      return await inFlight;
+    }
+
+    const refresh: Promise<boolean> = this.runWithSessionLock(
+      sessionName,
+      async (): Promise<boolean> => {
+        if (this.wasSessionRefreshedRecently(sessionName)) {
+          return true;
+        }
 
         const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await super.fetch<JSONObject>({
@@ -156,20 +246,91 @@ class BaseAPI extends API {
             options: {
               skipAuthRefresh: true,
               hasAttemptedAuthRefresh: true,
+              /*
+               * A refresh that fails because the identity service is
+               * restarting is not a dead session, and treating it as one logs
+               * the user out. Retry what a retry can fix; a 401 is final.
+               */
+              retries: 2,
+              exponentialBackoff: true,
+              retryOnlyOnRetryableErrors: true,
             },
           });
 
-        if (result instanceof HTTPResponse && result.isSuccess()) {
-          return true;
+        const refreshed: boolean =
+          result instanceof HTTPResponse && result.isSuccess();
+
+        if (refreshed) {
+          this.markSessionRefreshed(sessionName);
         }
 
+        return refreshed;
+      },
+    ).finally(() => {
+      inFlightSessionRefreshes.delete(sessionName);
+    });
+
+    inFlightSessionRefreshes.set(sessionName, refresh);
+
+    return await refresh;
+  }
+
+  private static getSessionRefreshedAtKey(sessionName: string): string {
+    return `session-refreshed-at:${sessionName}`;
+  }
+
+  private static wasSessionRefreshedRecently(sessionName: string): boolean {
+    try {
+      const refreshedAt: number = Number(
+        LocalStorage.getItem(this.getSessionRefreshedAtKey(sessionName)),
+      );
+
+      if (!refreshedAt) {
         return false;
-      })().finally(() => {
-        this.refreshPromise = null;
-      });
+      }
+
+      const ageInMs: number = Date.now() - refreshedAt;
+
+      return (
+        ageInMs >= 0 && ageInMs < BaseAPI.RECENT_SESSION_REFRESH_WINDOW_IN_MS
+      );
+    } catch {
+      // Storage can be unavailable (privacy modes); then every tab refreshes.
+      return false;
+    }
+  }
+
+  private static markSessionRefreshed(sessionName: string): void {
+    try {
+      LocalStorage.setItem(
+        this.getSessionRefreshedAtKey(sessionName),
+        Date.now().toString(),
+      );
+    } catch {
+      // Best effort, as above.
+    }
+  }
+
+  /*
+   * Web Locks serialise the refresh across every tab of this origin. Where
+   * they are unavailable the refresh simply runs, which is what happened
+   * before this lock existed.
+   */
+  private static async runWithSessionLock(
+    sessionName: string,
+    work: () => Promise<boolean>,
+  ): Promise<boolean> {
+    const locks: LockManager | undefined =
+      typeof navigator !== "undefined" ? navigator.locks : undefined;
+
+    if (!locks || typeof locks.request !== "function") {
+      return await work();
     }
 
-    return await this.refreshPromise;
+    return await locks.request(
+      `oneuptime-session-refresh:${sessionName}`,
+      work,
+    );
   }
 
   protected static getLoginRoute(): Route {

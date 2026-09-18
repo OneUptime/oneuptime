@@ -1,4 +1,5 @@
 import BillingAPI from "../../../Server/API/BillingAPI";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import PayAsYouGoBillingService, {
   Service,
 } from "../../../Server/Services/PayAsYouGoBillingService";
@@ -34,7 +35,13 @@ jest.mock("../../../Server/API/CommonAPI", () => {
   return { __esModule: true, default: {} };
 });
 jest.mock("../../../Server/Middleware/UserAuthorization", () => {
-  return { __esModule: true, default: { getUserMiddleware: jest.fn() } };
+  return {
+    __esModule: true,
+    default: {
+      getUserMiddleware: jest.fn(),
+      requireUserAuthentication: jest.fn(),
+    },
+  };
 });
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -78,6 +85,24 @@ describe("GET /billing/pay-as-you-go-status", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
+
+  /*
+   * A Dashboard tab left open past the access-token lifetime asks for these
+   * with no session at all (the cookie expires with the token), and
+   * getUserMiddleware lets that request through as Public.
+   * requireUserAuthentication is what answers it with the 401 that makes the
+   * browser client refresh the session and retry, instead of the handler's
+   * "You do not have access to this project" 400.
+   */
+  it.each(["/billing/pay-as-you-go-status", "/billing/customer-balance"])(
+    "registers %s behind the user middleware and the authentication guard",
+    (uri: string) => {
+      expect(mockRouter.match("get", uri).middlewares).toStrictEqual([
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+      ]);
+    },
+  );
 
   it.each([true, false])(
     "returns only the feature eligibility (%s) to a project member",

@@ -24,6 +24,9 @@ import path from "path";
  *   - the live poll carries isRefresh + viewId (one audit row per view) and
  *     no bare manifest request is ever repeated;
  *   - the heartbeat counts time PLAYED and flushes on the way out;
+ *   - the two raw-fetch transports (chunks, heartbeat) recover from an
+ *     expired session the way the API class does, except for the flush on
+ *     the way out, which must never start a refresh;
  *   - the rail sits beside the stage and is fed the playhead and selection;
  *   - the header is handed the identity the manifest served;
  *   - the page keys the player on the session, so browser back/forward
@@ -856,6 +859,57 @@ describe("watch-time heartbeat", () => {
 
   test("never sends the same figure twice", () => {
     expect(heartbeat).toContain("seconds === lastSentSeconds");
+  });
+});
+
+/*
+ * The chunk and heartbeat transports call fetch() directly (binary
+ * responses; keepalive), so they never had the API class's refresh-and-
+ * replay. The access cookie expires with the 15-minute access token, and a
+ * replay watched or followed live past that stopped loading footage with
+ * "Could not load recording data (HTTP 401)" while the refresh token was
+ * still good.
+ */
+describe("an expired session", () => {
+  const helper: string = slice(
+    SOURCE,
+    "async function fetchWithSessionRefresh(",
+    "\n}\n",
+  );
+
+  test("a raw fetch answered 401 refreshes the session and is retried exactly once", () => {
+    expect(helper).toMatch(
+      /if \(response\.status !== 401 \|\| !\(await API\.refreshSession\(\)\)\) \{\s*return response;\s*\}\s*return await fetch\(url, init\);/,
+    );
+    expect(helper.match(/\bfetch\(url, init\)/g) ?? []).toHaveLength(2);
+  });
+
+  test("the chunk transport goes through it and keeps its own error path", () => {
+    const transport: string = slice(
+      SOURCE,
+      "const fetchChunks: (",
+      "[rumApplicationIdString],",
+    );
+
+    expect(transport).toMatch(
+      /await fetchWithSessionRefresh\(\s*URL\.fromString\(APP_API_URL\.toString\(\)\)\s*\.addRoute\(CHUNKS_ROUTE\)/,
+    );
+    expect(transport).not.toMatch(/[^.\w]fetch\(/);
+    expect(transport).toContain("if (!response.ok) {");
+  });
+
+  test("the periodic heartbeat recovers; the keepalive flush on the way out never refreshes", () => {
+    const heartbeatTransport: string = slice(
+      SOURCE,
+      "function postHeartbeat(",
+      "const SessionReplayPlayer: FunctionComponent",
+    );
+
+    expect(heartbeatTransport).toMatch(
+      /keepalive\s*\?\s*fetch\(url, init\)\s*:\s*fetchWithSessionRefresh\(url, init\)/,
+    );
+    expect(heartbeatTransport).not.toContain("API.refreshSession");
+    expect(heartbeatTransport).toContain("keepalive: keepalive");
   });
 });
 
