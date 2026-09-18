@@ -1,17 +1,26 @@
 import type { ExpressRouter } from "Common/Server/Utils/Express";
 import EnterpriseArea from "../Types/EnterpriseArea";
+import { createQueryConsoleRouter } from "./QueryConsole";
 
 /*
- * The enterprise admin-health routes (the query console), mounted at
- * "/api/admin/health" ahead of core's AdminHealth router, which answers the
- * same paths with 402 on the Community Edition.
+ * The enterprise admin-health routes: the OneUptime Health query console
+ * (POST /query/postgres, /query/clickhouse, /query/redis). App/Index.ts mounts
+ * this router at "/api/admin/health" ahead of core's AdminHealth router, which
+ * keeps every read-only health route (gated by the license through
+ * EnterpriseEdition) and answers these three paths with 402 when this module
+ * is not loaded.
  *
- * Skeleton: no router yet. The query console moves here from
- * packages/App/API/AdminHealth.ts.
+ * Built once and reused, so every caller mounts the same router.
  */
+let adminHealthRouter: ExpressRouter | null = null;
+
 export const getAdminHealthRouter: () => ExpressRouter | null =
   (): ExpressRouter | null => {
-    return null;
+    if (!adminHealthRouter) {
+      adminHealthRouter = createQueryConsoleRouter();
+    }
+
+    return adminHealthRouter;
   };
 
 const AdminHealthArea: EnterpriseArea = {

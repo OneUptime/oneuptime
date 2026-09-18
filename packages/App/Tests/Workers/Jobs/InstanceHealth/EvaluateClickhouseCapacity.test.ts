@@ -21,6 +21,24 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
+/*
+ * Billing is pinned for the edition tests below: CI's config.env sets
+ * BILLING_ENABLED=true, and this job must run the same either way.
+ */
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "Common/Tests/Server/Enterprise/TestBillingFlag",
+    ) as typeof import("Common/Tests/Server/Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
+
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
@@ -42,9 +60,21 @@ jest.mock("Common/Server/Utils/AnalyticsDatabase/ClickhouseCapacity", () => {
 
 import {
   ClickhouseCapacitySettings,
+  evaluateClickhouseCapacity,
   evaluateNotification,
   evaluatePruning,
+  runEvaluateClickhouseCapacityWithLock,
 } from "../../../../FeatureSet/Workers/Jobs/InstanceHealth/EvaluateClickhouseCapacity";
+import * as InstanceHealthLock from "../../../../FeatureSet/Workers/Jobs/InstanceHealth/InstanceHealthLock";
+import { ENTERPRISE_OWNED_JOB_NAMES } from "../../../../Utils/EnterpriseLoader";
+import {
+  createLicenseSnapshotWithStatus,
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import fs from "fs";
+import nodePath from "path";
 
 const now: Date = new Date("2026-07-13T12:00:00.000Z");
 const later: Date = new Date("2026-07-13T12:10:00.000Z");
@@ -737,5 +767,121 @@ describe("EvaluateClickhouseCapacity", () => {
     expect(updateSpy.mock.calls[0]?.[0].data.status).toBe(
       InstanceHealthLogStatus.WaitingForReclaim,
     );
+  });
+});
+
+/*
+ * ClickHouse capacity alerts and automatic pruning are Community Edition
+ * features: a full ClickHouse disk stops telemetry ingestion on every edition,
+ * so the job must run without the enterprise module and without a license.
+ * (Both halves stay opt-in through the global config toggles.)
+ */
+describe("EvaluateClickhouseCapacity on every edition", () => {
+  let leaseSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    leaseSpy = jest
+      .spyOn(InstanceHealthLock, "runWithInstanceHealthLease")
+      .mockResolvedValue(undefined as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    uninstallEnterpriseModule();
+    setTestBillingEnabled(false);
+  });
+
+  const expectEvaluated: () => void = (): void => {
+    expect(leaseSpy).toHaveBeenCalledTimes(1);
+    expect(leaseSpy).toHaveBeenCalledWith({
+      jobName: "InstanceHealth:EvaluateClickhouseCapacity",
+      lockLabel: "oneuptime:instance-health:clickhouse-capacity",
+      leaseTtlInSeconds: InstanceHealthLock.INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
+      run: evaluateClickhouseCapacity,
+    });
+  };
+
+  test("runs on Community Edition (no ee loaded, billing off)", async () => {
+    setTestBillingEnabled(false);
+    uninstallEnterpriseModule();
+
+    await runEvaluateClickhouseCapacityWithLock();
+
+    expectEvaluated();
+  });
+
+  test.each([
+    [
+      "the Community Edition with billing on",
+      true,
+      (): void => {
+        uninstallEnterpriseModule();
+      },
+    ],
+    [
+      "the Enterprise Edition without a license",
+      false,
+      (): void => {
+        installFakeEnterpriseModule({
+          snapshot: createLicenseSnapshotWithStatus("missing"),
+        });
+      },
+    ],
+    [
+      "the Enterprise Edition with an expired license",
+      false,
+      (): void => {
+        installFakeEnterpriseModule({
+          snapshot: createLicenseSnapshotWithStatus("expired"),
+        });
+      },
+    ],
+    [
+      "the Enterprise Edition with a valid license",
+      false,
+      (): void => {
+        installFakeEnterpriseModule();
+      },
+    ],
+    [
+      "OneUptime Cloud",
+      true,
+      (): void => {
+        installFakeEnterpriseModule();
+      },
+    ],
+  ])(
+    "runs on %s too",
+    async (_label: string, billing: boolean, install: () => void) => {
+      setTestBillingEnabled(billing);
+      install();
+
+      await runEvaluateClickhouseCapacityWithLock();
+
+      expectEvaluated();
+    },
+  );
+
+  test("is a core job, never one the enterprise module owns", () => {
+    expect(ENTERPRISE_OWNED_JOB_NAMES).not.toContain(
+      "InstanceHealth:EvaluateClickhouseCapacity",
+    );
+  });
+
+  test("does not consult the edition or the license at all", () => {
+    const source: string = fs
+      .readFileSync(
+        nodePath.join(
+          __dirname,
+          "../../../../FeatureSet/Workers/Jobs/InstanceHealth/EvaluateClickhouseCapacity.ts",
+        ),
+        "utf8",
+      )
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+
+    expect(source).not.toContain("IsEnterpriseEdition");
+    expect(source).not.toContain("EnterpriseEdition");
+    expect(source).not.toContain("IsBillingEnabled");
   });
 });

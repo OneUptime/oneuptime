@@ -2,7 +2,9 @@ import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import InstanceHealthLog, {
   InstanceHealthLogEventType,
 } from "Common/Models/DatabaseModels/InstanceHealthLog";
-import { Host, IsEnterpriseEdition } from "Common/Server/EnvironmentConfig";
+import { Host } from "Common/Server/EnvironmentConfig";
+import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
+import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import {
   getRedisHealthSnapshot,
@@ -487,7 +489,20 @@ export async function evaluateRedisHealth(): Promise<void> {
 }
 
 export async function runEvaluateRedisHealthWithLock(): Promise<void> {
-  if (!IsEnterpriseEdition) {
+  /*
+   * Instance health is licensed: evaluate on the Enterprise Edition with a
+   * license that covers it (always on OneUptime Cloud), skip otherwise. The
+   * notification state already recorded is left as it is, so a renewed
+   * license picks up where the lapsed one stopped.
+   */
+  if (
+    !(await EnterpriseEdition.isFeatureAvailable(
+      EnterpriseFeature.InstanceHealth,
+    ))
+  ) {
+    logger.debug(
+      `${JOB_NAME}: skipped. Instance health needs a OneUptime Enterprise license that includes it.`,
+    );
     return;
   }
 
