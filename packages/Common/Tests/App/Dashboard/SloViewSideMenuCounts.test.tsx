@@ -7,7 +7,13 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -94,9 +100,11 @@ import {
   MenuLink,
   PROJECT_ID,
   goTo,
+  isExpanded,
   linksIn,
   renderMenu,
   sectionRoot,
+  sectionToggle,
   setViewportWidth,
 } from "./SideMenuHarness";
 
@@ -162,7 +170,7 @@ function idsOf(value: unknown): Array<string> {
 
 function anchorFor(page: PageMap): HTMLAnchorElement {
   const anchor: HTMLAnchorElement | undefined = Array.from(
-    sectionRoot("SLO").querySelectorAll<HTMLAnchorElement>("a"),
+    sectionRoot("Activity").querySelectorAll<HTMLAnchorElement>("a"),
   ).find((candidate: HTMLAnchorElement): boolean => {
     return candidate.getAttribute("href") === pagePath(page);
   });
@@ -246,7 +254,7 @@ describe("SLO side menu open counts", () => {
       expect(mockCount).toHaveBeenCalledTimes(2);
     });
 
-    const titles: Array<string> = linksIn("SLO").map(
+    const titles: Array<string> = linksIn("Activity").map(
       (link: MenuLink): string => {
         return link.title;
       },
@@ -297,6 +305,35 @@ describe("SLO side menu open counts", () => {
     await waitFor(() => {
       expect(badgesInMenu()).toHaveLength(2);
     });
+  });
+
+  test("collapsing Activity preserves its destinations and loaded badges", async () => {
+    await renderSloMenu();
+
+    await waitFor(() => {
+      expect(badgesInMenu()).toHaveLength(2);
+    });
+
+    const activityLinks: Array<MenuLink> = linksIn("Activity");
+
+    fireEvent.click(sectionToggle("Activity"));
+
+    expect(isExpanded("Activity")).toBe(false);
+    expect(linksIn("Activity")).toEqual(activityLinks);
+
+    fireEvent.click(sectionToggle("Activity"));
+
+    expect(isExpanded("Activity")).toBe(true);
+    expect(linksIn("Activity")).toEqual(activityLinks);
+    expect(
+      within(anchorFor(PageMap.SLO_VIEW_ALERTS)).getByText(`${OPEN_ALERTS}`),
+    ).toBeInTheDocument();
+    expect(
+      within(anchorFor(PageMap.SLO_VIEW_INCIDENTS)).getByText(
+        `${OPEN_INCIDENTS}`,
+      ),
+    ).toBeInTheDocument();
+    expect(mockCount).toHaveBeenCalledTimes(2);
   });
 
   test("asks for no count while the unresolved states are still loading", async () => {

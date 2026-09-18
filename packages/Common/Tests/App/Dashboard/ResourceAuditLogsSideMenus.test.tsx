@@ -92,8 +92,9 @@ interface ResourceAuditMenuCase {
   name: string;
   menu: () => ReactElement;
   auditPage: PageMap;
+  auditSection: string;
   sections: Array<string>;
-  advancedLinks: Array<ExpectedLink>;
+  auditSectionLinks: Array<ExpectedLink>;
 }
 
 const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
@@ -103,6 +104,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       return <IncidentSideMenu modelId={MODEL_ID} />;
     },
     auditPage: PageMap.INCIDENT_VIEW_AUDIT_LOGS,
+    auditSection: "Advanced",
     sections: [
       "Overview",
       "Investigation",
@@ -111,7 +113,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       "Notes",
       "Advanced",
     ],
-    advancedLinks: [
+    auditSectionLinks: [
       {
         title: "Custom Fields",
         page: PageMap.INCIDENT_VIEW_CUSTOM_FIELDS,
@@ -129,8 +131,9 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       );
     },
     auditPage: PageMap.MONITOR_VIEW_AUDIT_LOGS,
+    auditSection: "Advanced",
     sections: ["Overview", "Activity", "Configuration", "Advanced"],
-    advancedLinks: [
+    auditSectionLinks: [
       { title: "Owners", page: PageMap.MONITOR_VIEW_OWNERS },
       { title: "Custom Fields", page: PageMap.MONITOR_VIEW_CUSTOM_FIELDS },
       { title: "Settings", page: PageMap.MONITOR_VIEW_SETTINGS },
@@ -144,8 +147,9 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       return <SloSideMenu modelId={MODEL_ID} />;
     },
     auditPage: PageMap.SLO_VIEW_AUDIT_LOGS,
-    sections: ["SLO", "Advanced"],
-    advancedLinks: [
+    auditSection: "Management",
+    sections: ["Overview", "Activity", "Configuration", "Management"],
+    auditSectionLinks: [
       { title: "Owners", page: PageMap.SLO_VIEW_OWNERS },
       { title: "Settings", page: PageMap.SLO_VIEW_SETTINGS },
       { title: "Audit Logs", page: PageMap.SLO_VIEW_AUDIT_LOGS },
@@ -158,6 +162,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       return <StatusPageSideMenu modelId={MODEL_ID} />;
     },
     auditPage: PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS,
+    auditSection: "Advanced",
     sections: [
       "Basic",
       "Resources",
@@ -168,7 +173,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       "AI",
       "Advanced",
     ],
-    advancedLinks: [
+    auditSectionLinks: [
       { title: "Embedded Status", page: PageMap.STATUS_PAGE_VIEW_EMBEDDED },
       { title: "Reports", page: PageMap.STATUS_PAGE_VIEW_REPORTS },
       {
@@ -228,11 +233,11 @@ describe.each(RESOURCE_CASES)(
       expect(sectionTitlesInOrder()).not.toContain("Settings");
     });
 
-    test("keeps every Advanced destination in the expected order", async () => {
+    test("keeps every destination in the audit section in the expected order", async () => {
       await renderAuditPage(resource);
 
-      expect(linksIn("Advanced")).toEqual(
-        resource.advancedLinks.map((link: ExpectedLink): MenuLink => {
+      expect(linksIn(resource.auditSection)).toEqual(
+        resource.auditSectionLinks.map((link: ExpectedLink): MenuLink => {
           return {
             title: link.title,
             href: resourceRoute(link.page),
@@ -259,25 +264,29 @@ describe.each(RESOURCE_CASES)(
       });
     });
 
-    test("marks Audit Logs active and expands Advanced", async () => {
+    test("marks Audit Logs active and expands its section", async () => {
       const auditPath: string = await renderAuditPage(resource);
       const auditLogAnchor: HTMLAnchorElement | undefined = Array.from(
-        sectionRoot("Advanced").querySelectorAll<HTMLAnchorElement>("a"),
+        sectionRoot(resource.auditSection).querySelectorAll<HTMLAnchorElement>(
+          "a",
+        ),
       ).find((anchor: HTMLAnchorElement): boolean => {
         return anchor.getAttribute("href") === auditPath;
       });
 
       expect(auditLogAnchor).toBeDefined();
       expect(auditLogAnchor).toHaveClass("bg-indigo-50", "text-indigo-700");
-      expect(isExpanded("Advanced")).toBe(true);
+      expect(isExpanded(resource.auditSection)).toBe(true);
     });
 
-    test("names Audit Logs as an Advanced page in the mobile summary", async () => {
+    test("names the Audit Logs section in the mobile summary", async () => {
       setViewportWidth(MOBILE_WIDTH);
 
       await renderAuditPage(resource);
 
-      expect(mobileSummaryText()).toContain("Advanced / Audit Logs");
+      expect(mobileSummaryText()).toContain(
+        `${resource.auditSection} / Audit Logs`,
+      );
     });
 
     test("retains a visible label and icon for every destination", async () => {
@@ -296,20 +305,18 @@ describe.each(RESOURCE_CASES)(
 );
 
 /*
- * The SLO section follows what an SLO is made of: the monitors it measures
- * and the rules that attach them, its burn-rate rules and metrics, what it
- * raised, then its feed. Charts is deliberately absent - its history lives in
- * Metrics, and its route only survives for bookmarks.
+ * SLO performance and activity precede configuration. Charts remains absent:
+ * its history lives in Metrics, and its route only survives for bookmarks.
  */
 const SLO_SECTION_LINKS: Array<ExpectedLink> = [
   { title: "Overview", page: PageMap.SLO_VIEW },
+  { title: "Metrics", page: PageMap.SLO_VIEW_METRICS },
+  { title: "Incidents", page: PageMap.SLO_VIEW_INCIDENTS },
+  { title: "Alerts", page: PageMap.SLO_VIEW_ALERTS },
+  { title: "Feed", page: PageMap.SLO_VIEW_FEED },
   { title: "Monitors", page: PageMap.SLO_VIEW_MONITORS },
   { title: "Monitor Rules", page: PageMap.SLO_VIEW_MONITOR_RULES },
   { title: "Burn Rate Rules", page: PageMap.SLO_VIEW_BURN_RATE_RULES },
-  { title: "Metrics", page: PageMap.SLO_VIEW_METRICS },
-  { title: "Alerts", page: PageMap.SLO_VIEW_ALERTS },
-  { title: "Incidents", page: PageMap.SLO_VIEW_INCIDENTS },
-  { title: "Feed", page: PageMap.SLO_VIEW_FEED },
 ];
 
 describe("SLO resource menu", () => {
@@ -324,7 +331,11 @@ describe("SLO resource menu", () => {
 
     await renderAuditPage(slo!);
 
-    expect(linksIn("SLO")).toEqual(
+    expect([
+      ...linksIn("Overview"),
+      ...linksIn("Activity"),
+      ...linksIn("Configuration"),
+    ]).toEqual(
       SLO_SECTION_LINKS.map((link: ExpectedLink): MenuLink => {
         return {
           title: link.title,
