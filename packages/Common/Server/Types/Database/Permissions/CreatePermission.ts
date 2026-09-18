@@ -1,5 +1,6 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import ColumnPermissions from "./ColumnPermission";
+import EditionPermissions from "./EditionPermission";
 import TablePermission from "./TablePermission";
 import TenantPermission from "./TenantPermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -15,6 +16,20 @@ export default class CreatePermission {
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
   ): void {
+    /*
+     * Master admins skip every table-level check below, but not the edition
+     * check: creating enterprise configuration (global SSO/OIDC providers
+     * are only ever created by master admins) needs the license for them
+     * too. Everyone else gets the same check through TablePermission.
+     */
+    if (props.isMasterAdmin && !props.isRoot) {
+      EditionPermissions.checkEditionPermissions(
+        modelType,
+        props,
+        DatabaseRequestType.Create,
+      );
+    }
+
     // If system is making this query then let the query run!
     if (props.isRoot || props.isMasterAdmin) {
       return;

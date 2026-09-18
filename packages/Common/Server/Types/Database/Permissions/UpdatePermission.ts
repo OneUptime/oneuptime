@@ -3,6 +3,7 @@ import Query from "../Query";
 import AccessControlUtil from "./AccessControlPermission";
 import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
 import ColumnPermissions from "./ColumnPermission";
+import EditionPermissions from "./EditionPermission";
 import TablePermission from "./TablePermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -35,6 +36,20 @@ export default class UpdatePermission {
     data: QueryDeepPartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
+    /*
+     * Master admins skip every table-level check below, but not the edition
+     * check: changing enterprise configuration (global SSO/OIDC providers are
+     * only ever edited by master admins) needs the license for them too.
+     * Everyone else gets the same check through TablePermission.
+     */
+    if (props.isMasterAdmin && !props.isRoot) {
+      EditionPermissions.checkEditionPermissions(
+        modelType,
+        props,
+        DatabaseRequestType.Update,
+      );
+    }
+
     if (props.isRoot || props.isMasterAdmin) {
       // If system is making this query then let the query run!
       return query;
