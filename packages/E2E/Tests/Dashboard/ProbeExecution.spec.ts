@@ -28,10 +28,13 @@ import {
  * a Website monitor at the stack's own URL. Since 78b19735bd that cannot work:
  * every address which reaches this stack is loopback or RFC1918, an HTTP
  * monitor runs DataSourceEgressGuard over the RESOLVED address before opening
- * a socket, and a probe holding a REGISTER_PROBE_KEY refuses both tiers. Worse,
- * a refusal is indistinguishable from an outage, so that spec's outage half
- * passed for entirely the wrong reason while its recovery half could never
- * complete. It is now driven by a heartbeat monitor and involves no probe.
+ * a socket, and a probe holding a REGISTER_PROBE_KEY refuses both tiers by
+ * default: loopback always, RFC1918 unless its operator opted in with
+ * PROBE_ALLOW_PRIVATE_NETWORK_MONITORS (issue #3879), which this stack leaves
+ * off. Worse, a refusal is indistinguishable from an outage, so that spec's
+ * outage half passed for entirely the wrong reason while its recovery half
+ * could never complete. It is now driven by a heartbeat monitor and involves
+ * no probe.
  *
  * This spec restores the probe coverage honestly, using the one probeable
  * monitor type that does NOT go through the HTTP egress guard: PortMonitor

@@ -18,6 +18,8 @@ import logger from "Common/Server/Utils/Logger";
 import ProbeApiDiagnostics, {
   ProbeRequestStallPhase,
 } from "../../Utils/ProbeApiDiagnostics";
+import { PROBE_PRIVATE_NETWORK_MONITOR_POLICY } from "../../Config";
+import PrivateNetworkMonitorPolicy from "../../Utils/PrivateNetworkMonitorPolicy";
 
 /*
  * A probe that cannot reach the server logs `timeout of 45000ms exceeded`
@@ -377,5 +379,161 @@ describe("in-flight requests", () => {
     const snapshot: JSONObject = ProbeApiDiagnostics.getProcessSnapshot();
 
     expect(snapshot["inFlightRequestCount"]).toBe(0);
+  });
+});
+
+describe("the startup environment dump records the private-network monitor policy", () => {
+  /*
+   * OneUptime issue #3879 reached support as "monitors on internal targets
+   * broke after the upgrade", and the environment dump support asks for said
+   * nothing about why: the probe had dropped its operator's opt-in without a
+   * word. The dump now carries the decision and the inputs it came from.
+   */
+  const policyEnvironmentKeys: Array<string> = [
+    "PROBE_ALLOW_PRIVATE_NETWORK_MONITORS",
+    "REGISTER_PROBE_KEY",
+    "BILLING_ENABLED",
+  ];
+  const originalPolicyEnvironment: Array<string | undefined> =
+    policyEnvironmentKeys.map((key: string): string | undefined => {
+      return process.env[key];
+    });
+
+  afterEach(() => {
+    policyEnvironmentKeys.forEach((key: string, index: number) => {
+      const original: string | undefined = originalPolicyEnvironment[index];
+      if (original === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = original;
+      }
+    });
+  });
+
+  function readStartupEnvironment(
+    diagnostics: typeof ProbeApiDiagnostics,
+    log: typeof logger,
+  ): JSONObject {
+    const info: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(log, "info")
+      .mockImplementation((): void => {});
+
+    diagnostics.logStartupEnvironment();
+
+    const dumps: Array<JSONObject> = info.mock.calls
+      .map((call: Array<unknown>): string => {
+        return String(call[0]);
+      })
+      .filter((text: string): boolean => {
+        return text.startsWith("{");
+      })
+      .map((text: string): JSONObject => {
+        return JSON.parse(text) as JSONObject;
+      });
+
+    expect(dumps).toHaveLength(1);
+    return dumps[0]!;
+  }
+
+  // Re-imports the probe under this environment: Config.ts reads it once.
+  function readStartupEnvironmentUnder(
+    environment: Record<string, string | undefined>,
+  ): JSONObject {
+    for (const key of policyEnvironmentKeys) {
+      const value: string | undefined = environment[key];
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+
+    const dumps: Array<JSONObject> = [];
+    jest.isolateModules(() => {
+      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+      const isolatedLogger: typeof logger = (
+        require("Common/Server/Utils/Logger") as { default: typeof logger }
+      ).default;
+      const isolatedDiagnostics: typeof ProbeApiDiagnostics = (
+        require("../../Utils/ProbeApiDiagnostics") as {
+          default: typeof ProbeApiDiagnostics;
+        }
+      ).default;
+      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+      dumps.push(readStartupEnvironment(isolatedDiagnostics, isolatedLogger));
+    });
+
+    return dumps[0]!;
+  }
+
+  test("records the policy this probe resolved at startup, as a JSON field support can read", () => {
+    const environment: JSONObject = readStartupEnvironment(
+      ProbeApiDiagnostics,
+      logger,
+    );
+
+    expect(environment["privateNetworkMonitors"]).toEqual(
+      PrivateNetworkMonitorPolicy.getDiagnosticsSnapshot(
+        PROBE_PRIVATE_NETWORK_MONITOR_POLICY,
+      ),
+    );
+    expect(
+      Object.keys(environment["privateNetworkMonitors"] as JSONObject).sort(),
+    ).toEqual([
+      "allowed",
+      "autoRegisteredGlobalProbe",
+      "billingEnabled",
+      "configuredValue",
+      "reason",
+    ]);
+  });
+
+  test("ISSUE #3879: a bundled global probe on a self-hosted instance records the opt-in as honored", () => {
+    const environment: JSONObject = readStartupEnvironmentUnder({
+      PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: "true",
+      REGISTER_PROBE_KEY: "11111111-2222-3333-4444-555555555555",
+      BILLING_ENABLED: undefined,
+    });
+
+    expect(environment["privateNetworkMonitors"]).toEqual({
+      allowed: true,
+      reason: "Allowed",
+      configuredValue: "true",
+      autoRegisteredGlobalProbe: true,
+      billingEnabled: false,
+    });
+  });
+
+  test("a global probe on a billing-enabled instance records the opt-in as refused, and why", () => {
+    const environment: JSONObject = readStartupEnvironmentUnder({
+      PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: "true",
+      REGISTER_PROBE_KEY: "11111111-2222-3333-4444-555555555555",
+      BILLING_ENABLED: "true",
+    });
+
+    expect(environment["privateNetworkMonitors"]).toEqual({
+      allowed: false,
+      reason: "RefusedOnHostedGlobalProbe",
+      configuredValue: "true",
+      autoRegisteredGlobalProbe: true,
+      billingEnabled: true,
+    });
+  });
+
+  test("an unset opt-in is recorded as null rather than left out of the dump", () => {
+    const environment: JSONObject = readStartupEnvironmentUnder({
+      PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: undefined,
+      REGISTER_PROBE_KEY: undefined,
+      BILLING_ENABLED: undefined,
+    });
+
+    expect(environment["privateNetworkMonitors"]).toEqual({
+      allowed: false,
+      reason: "NotRequested",
+      configuredValue: null,
+      autoRegisteredGlobalProbe: false,
+      billingEnabled: false,
+    });
   });
 });

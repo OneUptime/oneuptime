@@ -5,8 +5,10 @@ import {
   PROBE_API_REQUEST_TIMEOUT_IN_MS,
   PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS,
   PROBE_INGEST_URL,
+  PROBE_PRIVATE_NETWORK_MONITOR_POLICY,
 } from "../Config";
 import ProxyConfig, { ProxyAgents } from "./ProxyConfig";
+import PrivateNetworkMonitorPolicy from "./PrivateNetworkMonitorPolicy";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import API, { RequestOutcome } from "Common/Utils/API";
@@ -974,6 +976,10 @@ export default class ProbeApiDiagnostics {
           process.env["NODE_TLS_REJECT_UNAUTHORIZED"] === "0",
       },
       systemResolvers: dns.getServers(),
+      privateNetworkMonitors:
+        PrivateNetworkMonitorPolicy.getDiagnosticsSnapshot(
+          PROBE_PRIVATE_NETWORK_MONITOR_POLICY,
+        ),
     };
 
     logger.info("Probe environment (include this when reporting an issue):");
