@@ -28,6 +28,24 @@ export type ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel> =
   BaseListResult<TAnalyticsBaseModel>;
 
 export default class ModelAPI {
+  /**
+   * The API client used for analytics model requests: the authenticated
+   * dashboard client.
+   */
+  protected static getApiClient(): typeof API {
+    return API;
+  }
+
+  /*
+   * The client for ONE request: a client the caller routed this request
+   * through (RequestOptions.apiClient) wins; otherwise this class's client.
+   */
+  protected static getApiClientForRequest(
+    requestOptions?: RequestOptions | undefined,
+  ): typeof API {
+    return requestOptions?.apiClient || this.getApiClient();
+  }
+
   public static async create<
     TAnalyticsBaseModel extends AnalyticsBaseModel,
   >(data: {
@@ -103,7 +121,7 @@ export default class ModelAPI {
           | JSONArray
           | TAnalyticsBaseModel
           | Array<TAnalyticsBaseModel>
-        > = await API.fetch<
+        > = await this.getApiClientForRequest(requestOptions).fetch<
       JSONObject | JSONArray | TAnalyticsBaseModel | Array<TAnalyticsBaseModel>
     >({
       method: HTTPMethod.PUT,
@@ -155,7 +173,9 @@ export default class ModelAPI {
     }
 
     const apiResult: HTTPErrorResponse | HTTPResponse<TAnalyticsBaseModel> =
-      await API.fetch<TAnalyticsBaseModel>({
+      await this.getApiClientForRequest(
+        requestOptions,
+      ).fetch<TAnalyticsBaseModel>({
         method: httpMethod,
         url: apiUrl,
         data: {
@@ -221,7 +241,7 @@ export default class ModelAPI {
     const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
 
     const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
-      await API.fetch<JSONArray>({
+      await this.getApiClientForRequest(requestOptions).fetch<JSONArray>({
         method: HTTPMethod.POST,
         url: apiUrl,
         data: {
@@ -288,7 +308,7 @@ export default class ModelAPI {
     const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
 
     const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
-      await API.fetch<JSONArray>({
+      await this.getApiClientForRequest(requestOptions).fetch<JSONArray>({
         method: HTTPMethod.POST,
         url: apiUrl,
         data: {
@@ -355,7 +375,7 @@ export default class ModelAPI {
     const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
 
     const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.fetch<JSONObject>({
+      await this.getApiClientForRequest(requestOptions).fetch<JSONObject>({
         method: HTTPMethod.POST,
         url: apiUrl,
         data: {
@@ -440,7 +460,9 @@ export default class ModelAPI {
     requestOptions?: RequestOptions | undefined,
   ): Promise<TAnalyticsBaseModel | null> {
     const result: HTTPResponse<TAnalyticsBaseModel> | HTTPErrorResponse =
-      await API.fetch<TAnalyticsBaseModel>({
+      await this.getApiClientForRequest(
+        requestOptions,
+      ).fetch<TAnalyticsBaseModel>({
         method: HTTPMethod.POST,
         url: apiUrl,
         data: {
@@ -488,7 +510,9 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<TAnalyticsBaseModel> | HTTPErrorResponse =
-      await API.fetch<TAnalyticsBaseModel>({
+      await this.getApiClientForRequest(
+        requestOptions,
+      ).fetch<TAnalyticsBaseModel>({
         method: HTTPMethod.DELETE,
         url: apiUrl,
         headers: this.getCommonHeaders(requestOptions),
