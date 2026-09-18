@@ -21,7 +21,7 @@ import {
   TelemetrySortColumn,
   TelemetrySortDirection,
   toCountOrNull,
-} from "../../FeatureSet/AdminDashboard/src/Pages/Health/TelemetryIngestionUtils";
+} from "../../../AdminDashboard/Health/TelemetryIngestionUtils";
 import { JSONObject } from "Common/Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 

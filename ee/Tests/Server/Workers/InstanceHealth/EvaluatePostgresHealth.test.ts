@@ -21,7 +21,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
-jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
+jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(),
@@ -48,8 +48,8 @@ import {
   evaluatePostgresHealth,
   getPostgresHealthSettings,
   PostgresHealthSettings,
-} from "../../../../FeatureSet/Workers/Jobs/InstanceHealth/EvaluatePostgresHealth";
-import { InstanceHealthCheckResult } from "../../../../FeatureSet/Workers/Jobs/InstanceHealth/InstanceHealthNotification";
+} from "../../../../Server/Workers/InstanceHealth/EvaluatePostgresHealth";
+import { InstanceHealthCheckResult } from "App/FeatureSet/Workers/Jobs/InstanceHealth/InstanceHealthNotification";
 
 const now: Date = new Date("2026-08-03T12:00:00.000Z");
 const later: Date = new Date("2026-08-03T13:00:00.000Z");

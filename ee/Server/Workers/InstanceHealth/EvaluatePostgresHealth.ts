@@ -16,12 +16,12 @@ import OneUptimeDate from "Common/Types/Date";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
-import RunCron from "../../Utils/Cron";
+import RunCron from "App/FeatureSet/Workers/Utils/Cron";
 import {
   runWithInstanceHealthLease,
   INSTANCE_HEALTH_JOB_TIMEOUT_IN_MINUTES,
   INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
-} from "./InstanceHealthLock";
+} from "App/FeatureSet/Workers/Jobs/InstanceHealth/InstanceHealthLock";
 import {
   bytesToReadable,
   evaluateInstanceHealthNotification,
@@ -30,7 +30,7 @@ import {
   InstanceHealthCheckResult,
   notApplicable,
   serializeForMetadata,
-} from "./InstanceHealthNotification";
+} from "App/FeatureSet/Workers/Jobs/InstanceHealth/InstanceHealthNotification";
 
 const JOB_NAME: string = "InstanceHealth:EvaluatePostgresHealth";
 const LEASE_KEY: string = "oneuptime:instance-health:postgres";

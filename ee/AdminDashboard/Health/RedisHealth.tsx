@@ -16,7 +16,7 @@ import {
   MetricInfo,
   MetricInfoTip,
   MetricInfoWrap,
-} from "../../Components/HealthMetricTooltip/HealthMetricTooltip";
+} from "./HealthMetricTooltip";
 import React, {
   FunctionComponent,
   ReactElement,
