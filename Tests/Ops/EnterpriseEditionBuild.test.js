@@ -1173,7 +1173,6 @@ const RUNTIME = process.env["RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS"] === "1";
 describe("COPY ./ee through the real .dockerignore", () => {
   test("is enabled with RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1 (reports why it is idle otherwise)", () => {
     if (!RUNTIME) {
-      // eslint-disable-next-line no-console
       console.log(
         "COPY ./ee runtime check skipped: set RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1 (needs docker).",
       );
