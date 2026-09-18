@@ -467,6 +467,30 @@ describe("dashboard variable All contract", () => {
 
       expect(screen.getByRole("combobox")).toHaveValue("eu-1");
     });
+
+    test("a TelemetryAttribute Default missing from the values does not read All", async () => {
+      /*
+       * The attribute values list is capped, and the Default is free text,
+       * so the Default can be missing from it. The widgets still filter by
+       * the Default, so the select has to show it. The mocked public API
+       * returns no values at all.
+       */
+      const variable: DashboardVariable = makeVariable({
+        type: DashboardVariableType.TelemetryAttribute,
+        customListValues: undefined,
+        attributeKey: ATTRIBUTE_KEY,
+        defaultValue: "prod",
+      });
+
+      renderPublic(variable);
+
+      await waitFor(() => {
+        expect(screen.getByRole("combobox")).not.toBeDisabled();
+      });
+      expect(screen.getByRole("combobox")).toHaveValue("prod");
+      expect(screen.getByRole("combobox")).toHaveDisplayValue("prod");
+      expect(isUnfiltered(variable)).toBe(false);
+    });
   });
 
   /*

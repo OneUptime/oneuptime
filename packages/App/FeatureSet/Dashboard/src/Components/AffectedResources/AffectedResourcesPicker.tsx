@@ -64,22 +64,32 @@ export interface AffectedResourceItem {
  * Shape that the picker passes to onChange. The wrapper sentinel lets the
  * form-level handler tell our payload apart from a regular Array<Monitor>
  * the form may produce or receive from the API.
+ *
+ * A type the picker shows is always an array. A type it does not show (the
+ * viewer cannot read it, or the page left it out of `resourceTypes`) is the
+ * prop handed in, as IDs, unchanged - and stays undefined if that prop was
+ * undefined, so the page writes back exactly what the form already held.
  */
 export interface AffectedResourcesPayload {
   __affectedResourcesPayload: true;
-  monitors: Array<string>;
-  hosts: Array<string>;
-  kubernetesClusters: Array<string>;
-  dockerHosts: Array<string>;
-  podmanHosts: Array<string>;
-  proxmoxClusters: Array<string>;
-  vmwareVCenters: Array<string>;
-  cephClusters: Array<string>;
-  dockerSwarmClusters: Array<string>;
-  iotFleets: Array<string>;
-  networkSites: Array<string>;
-  services: Array<string>;
+  monitors: Array<string> | undefined;
+  hosts: Array<string> | undefined;
+  kubernetesClusters: Array<string> | undefined;
+  dockerHosts: Array<string> | undefined;
+  podmanHosts: Array<string> | undefined;
+  proxmoxClusters: Array<string> | undefined;
+  vmwareVCenters: Array<string> | undefined;
+  cephClusters: Array<string> | undefined;
+  dockerSwarmClusters: Array<string> | undefined;
+  iotFleets: Array<string> | undefined;
+  networkSites: Array<string> | undefined;
+  services: Array<string> | undefined;
 }
+
+type AffectedResourceArrayKey = Exclude<
+  keyof AffectedResourcesPayload,
+  "__affectedResourcesPayload"
+>;
 
 export interface ComponentProps {
   monitors?: Array<Monitor> | undefined;
@@ -110,6 +120,8 @@ interface ResourceConfig {
   label: string;
   icon: IconProp;
   modelType: { new (): BaseModel };
+  // The key holding this type's resources in ComponentProps and the payload.
+  key: AffectedResourceArrayKey;
   /*
    * Whether the model carries a `labels` relation. The Labels tab bulk-adds
    * by querying `{ labels: Includes([...]) }`, which is a 400 against a
@@ -125,66 +137,77 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     label: "Monitor",
     icon: IconProp.AltGlobe,
     modelType: Monitor,
+    key: "monitors",
     supportsLabels: true,
   },
   Host: {
     label: "Host",
     icon: IconProp.Server,
     modelType: Host,
+    key: "hosts",
     supportsLabels: true,
   },
   KubernetesCluster: {
     label: "Kubernetes Cluster",
     icon: IconProp.Kubernetes,
     modelType: KubernetesCluster,
+    key: "kubernetesClusters",
     supportsLabels: true,
   },
   DockerHost: {
     label: "Docker Host",
     icon: IconProp.Docker,
     modelType: DockerHost,
+    key: "dockerHosts",
     supportsLabels: true,
   },
   PodmanHost: {
     label: "Podman Host",
     icon: IconProp.Podman,
     modelType: PodmanHost,
+    key: "podmanHosts",
     supportsLabels: true,
   },
   ProxmoxCluster: {
     label: "Proxmox Cluster",
     icon: IconProp.Proxmox,
     modelType: ProxmoxCluster,
+    key: "proxmoxClusters",
     supportsLabels: true,
   },
   VMwareVCenter: {
     label: "vCenter",
     icon: IconProp.VMware,
     modelType: VMwareVCenter,
+    key: "vmwareVCenters",
     supportsLabels: true,
   },
   CephCluster: {
     label: "Ceph Cluster",
     icon: IconProp.Ceph,
     modelType: CephCluster,
+    key: "cephClusters",
     supportsLabels: true,
   },
   DockerSwarmCluster: {
     label: "Docker Swarm Cluster",
     icon: IconProp.DockerSwarm,
     modelType: DockerSwarmCluster,
+    key: "dockerSwarmClusters",
     supportsLabels: true,
   },
   IoTFleet: {
     label: "IoT Fleet",
     icon: IconProp.IoT,
     modelType: IoTFleet,
+    key: "iotFleets",
     supportsLabels: true,
   },
   NetworkSite: {
     label: "Network Site",
     icon: IconProp.BuildingOffice,
     modelType: NetworkSite,
+    key: "networkSites",
     /*
      * NetworkSite has no labels relation — it is organised by its own
      * hierarchy instead, and attaching a parent covers everything under it.
@@ -195,6 +218,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     label: "Service",
     icon: IconProp.SquareStack,
     modelType: Service,
+    key: "services",
     supportsLabels: true,
   },
 };
@@ -349,6 +373,46 @@ export const toItems: (
     items.push(toItemWithoutName(id));
   }
   return items;
+};
+
+/*
+ * IDs of a resource array the picker is NOT showing - a type the viewer
+ * cannot read, or one the page left out of `resourceTypes`. notify() hands
+ * these back unchanged: emitting [] instead would detach every one of them
+ * on save, because an empty many-to-many array clears the junction rows.
+ *
+ * Anything that is not an array (never loaded, or the transient payload
+ * described on toItems) stays undefined, which the form leaves out of the
+ * request, so the server keeps that relation as it is.
+ */
+const toIds: (models: unknown) => Array<string> | undefined = (
+  models: unknown,
+): Array<string> | undefined => {
+  if (!Array.isArray(models)) {
+    return undefined;
+  }
+  const ids: Array<string> = [];
+  for (const model of models) {
+    if (typeof model === "string") {
+      if (model) {
+        ids.push(model);
+      }
+      continue;
+    }
+    if (!model || typeof model !== "object") {
+      continue;
+    }
+    const anyModel: { _id?: unknown; id?: unknown } = model as {
+      _id?: unknown;
+      id?: unknown;
+    };
+    if (anyModel._id) {
+      ids.push(String(anyModel._id));
+    } else if (anyModel.id) {
+      ids.push(String(anyModel.id));
+    }
+  }
+  return ids;
 };
 
 /*
@@ -891,95 +955,44 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     return flat;
   }, [groupedAvailable]);
 
+  /*
+   * Rebuilds the payload from `next` for the types this picker shows. Every
+   * other type is carried through from props untouched (see toIds): the page
+   * writes every array of the payload back into the form, so a type the
+   * viewer cannot read must come back exactly as it went in, not as [].
+   */
   const notify: (next: Array<AffectedResourceItem>) => void = (
     next: Array<AffectedResourceItem>,
   ): void => {
+    const idsFor: (type: AffectedResourceType) => Array<string> | undefined = (
+      type: AffectedResourceType,
+    ): Array<string> | undefined => {
+      if (!resourceTypes.includes(type)) {
+        return toIds(props[RESOURCE_CONFIG[type].key]);
+      }
+      return next
+        .filter((i: AffectedResourceItem): boolean => {
+          return i.type === type;
+        })
+        .map((i: AffectedResourceItem): string => {
+          return i._id;
+        });
+    };
+
     props.onChange({
       __affectedResourcesPayload: true,
-      monitors: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "Monitor";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      hosts: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "Host";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      kubernetesClusters: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "KubernetesCluster";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      dockerHosts: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "DockerHost";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      podmanHosts: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "PodmanHost";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      proxmoxClusters: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "ProxmoxCluster";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      vmwareVCenters: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "VMwareVCenter";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      cephClusters: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "CephCluster";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      dockerSwarmClusters: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "DockerSwarmCluster";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      iotFleets: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "IoTFleet";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      networkSites: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "NetworkSite";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
-      services: next
-        .filter((i: AffectedResourceItem): boolean => {
-          return i.type === "Service";
-        })
-        .map((i: AffectedResourceItem): string => {
-          return i._id;
-        }),
+      monitors: idsFor("Monitor"),
+      hosts: idsFor("Host"),
+      kubernetesClusters: idsFor("KubernetesCluster"),
+      dockerHosts: idsFor("DockerHost"),
+      podmanHosts: idsFor("PodmanHost"),
+      proxmoxClusters: idsFor("ProxmoxCluster"),
+      vmwareVCenters: idsFor("VMwareVCenter"),
+      cephClusters: idsFor("CephCluster"),
+      dockerSwarmClusters: idsFor("DockerSwarmCluster"),
+      iotFleets: idsFor("IoTFleet"),
+      networkSites: idsFor("NetworkSite"),
+      services: idsFor("Service"),
     });
   };
 
@@ -1272,6 +1285,21 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   const placeholder: string =
     activeTab === "labels" ? "Search labels..." : resourcesPlaceholder;
 
+  /*
+   * Resources already attached under a type the viewer cannot read. They get
+   * no chip - the viewer cannot see what they are, so removing them is not
+   * theirs to do - but notify() keeps them, and a note says they are there.
+   */
+  const hiddenLabels: Array<string> = [];
+  let hiddenCount: number = 0;
+  for (const type of deniedTypes) {
+    const count: number = toIds(props[RESOURCE_CONFIG[type].key])?.length || 0;
+    if (count > 0) {
+      hiddenCount += count;
+      hiddenLabels.push(RESOURCE_CONFIG[type].label);
+    }
+  }
+
   const isEditable: boolean = !props.disabled && !props.readOnly;
 
   const chipOverflow: number = Math.max(0, selected.length - MAX_VISIBLE_CHIPS);
@@ -1366,6 +1394,27 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {hiddenCount > 0 && (
+        <div
+          data-testid="affected-resources-hidden-note"
+          className={`flex items-start gap-1.5 text-xs text-gray-500 ${
+            props.readOnly ? "mt-2" : "mb-2"
+          }`}
+        >
+          <Icon
+            icon={IconProp.Lock}
+            className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+          />
+          <span>
+            {hiddenCount.toLocaleString()}{" "}
+            {hiddenCount === 1 ? "resource" : "resources"} you don&apos;t have
+            permission to view {hiddenCount === 1 ? "is" : "are"} also attached
+            ({hiddenLabels.join(", ")}). {hiddenCount === 1 ? "It" : "They"}{" "}
+            will be kept.
+          </span>
         </div>
       )}
 

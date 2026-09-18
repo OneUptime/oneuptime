@@ -360,15 +360,23 @@ describe("Public dashboard variable selector", () => {
       expect(optionLabels(select)).toEqual(["All", "prod", "staging"]);
     });
 
-    test('a failed fetch leaves the control usable and on "All"', async () => {
+    test("a failed fetch leaves the control usable and still showing the default", async () => {
       apiPostMock.mockRejectedValue(new Error("forbidden"));
 
-      renderViewer([telemetryVariable({ defaultValue: "prod" })]);
+      const state: ViewerState = renderViewer([
+        telemetryVariable({ defaultValue: "prod" }),
+      ]);
 
       const select: HTMLSelectElement = await waitForOptions();
 
-      expect(optionLabels(select)).toEqual(["All"]);
-      expect(select).toHaveValue("");
+      /*
+       * No values came back, but the widgets are still filtered by "prod", so
+       * the select shows "prod" rather than "All".
+       */
+      expect(optionLabels(select)).toEqual(["All", "prod"]);
+      expect(select).toHaveValue("prod");
+      expect(select).toHaveDisplayValue("prod");
+      expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "prod" });
     });
 
     test("a response with no values yields just the All option", async () => {

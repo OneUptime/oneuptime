@@ -11,7 +11,10 @@ import DashboardMonitorListComponentElement, {
   ComponentProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardMonitorListComponent";
 import DashboardVariableSelector from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardVariableSelector";
-import { setPublicDashboardContext } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
+import {
+  PublicDashboardContext,
+  setPublicDashboardContext,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
 import DashboardMonitorListComponentUtil from "../../../Utils/Dashboard/Components/DashboardMonitorListComponent";
 import DashboardVariable, {
   DashboardVariableType,
@@ -36,6 +39,9 @@ const DASHBOARD_ID: ObjectID = new ObjectID(
 const UNIT_660: string = "06600000-0000-4000-8000-000000000000";
 const UNIT_661: string = "06610000-0000-4000-8000-000000000000";
 const NETWORK: string = "00000000-0000-4000-8000-000000000001";
+// Stands in for the public dashboard's API class; ModelAPI is mocked here.
+const PUBLIC_API_CLIENT: PublicDashboardContext["apiClient"] =
+  {} as unknown as PublicDashboardContext["apiClient"];
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -411,6 +417,7 @@ describe("MonitorList project label variables", () => {
       postJSON: async () => {
         throw new Error("Unexpected public request");
       },
+      apiClient: PUBLIC_API_CLIENT,
     });
     const input: ComponentProps = props({
       variables: [
@@ -424,6 +431,7 @@ describe("MonitorList project label variables", () => {
     expect(options["overrideRequestUrl"].toString()).toContain(
       `/resource-list/${DASHBOARD_ID.toString()}/monitor`,
     );
+    expect(options["apiClient"]).toBe(PUBLIC_API_CLIENT);
     expect(options["additionalRequestBody"]).toEqual({
       componentId: input.componentId.toString(),
       variables: [

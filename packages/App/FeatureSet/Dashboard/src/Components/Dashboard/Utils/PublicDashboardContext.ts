@@ -3,6 +3,7 @@ import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
+import type BaseAPI from "Common/UI/Utils/API/API";
 
 /*
  * Public-dashboard rendering context.
@@ -16,10 +17,12 @@ import { JSONObject } from "Common/Types/JSON";
  *
  * The public dashboard page registers this context on mount. While it is set,
  * the widgets route their reads to the public, dashboard-scoped endpoints
- * under /public-dashboard-api instead. `postJSON` is bound to the public
- * dashboard's API client (so any auth redirect lands on the master-password
- * page, not /accounts/login); `apiUrl` is the /public-dashboard-api base used
- * to build `overrideRequestUrl`s for the shared ModelAPI list calls.
+ * under /public-dashboard-api instead. `postJSON` and `apiClient` are both
+ * the public dashboard's API client (so any auth redirect lands on the
+ * master-password page, not /accounts/login, and never refreshes or logs out
+ * a dashboard session on the same host); `apiUrl` is the /public-dashboard-api
+ * base used to build `overrideRequestUrl`s for the shared ModelAPI /
+ * AnalyticsModelAPI list calls, which carry `apiClient` alongside the URL.
  */
 export type PublicDashboardPostJSON = (
   route: string,
@@ -30,6 +33,14 @@ export interface PublicDashboardContext {
   dashboardId: ObjectID;
   apiUrl: URL;
   postJSON: PublicDashboardPostJSON;
+  /*
+   * The public dashboard's own API client. Every shared ModelAPI /
+   * AnalyticsModelAPI read routed to /public-dashboard-api
+   * (DashboardResourceList.getRequestOptions) is sent through it, so a 401
+   * lands on the master-password page instead of the dashboard client's
+   * refresh-token + User.logout + /accounts/login.
+   */
+  apiClient: typeof BaseAPI;
 }
 
 export type PublicDashboardContextListener = (
