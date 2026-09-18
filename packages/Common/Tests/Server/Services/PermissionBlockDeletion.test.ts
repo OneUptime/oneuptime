@@ -211,7 +211,15 @@ describe.each(serviceCases)(
     function editorProps(
       permissions: Array<UserPermission> = [],
     ): DatabaseCommonInteractionProps {
-      return props([userPermission(serviceCase.editor), ...permissions]);
+      return props([
+        userPermission(serviceCase.editor),
+        userPermission(
+          serviceCase.isTeam
+            ? Permission.ReadProjectTeam
+            : Permission.ReadProjectApiKey,
+        ),
+        ...permissions,
+      ]);
     }
 
     async function deleteAs(
@@ -413,7 +421,7 @@ describe.each(serviceCases)(
       { name: "mixed labels", labels: [labelA, labelB] },
     ])(
       "label authority cannot remove a saved block covering $name",
-      async ({ labels }) => {
+      async ({ labels }: { labels: Array<ObjectID> }) => {
         rows = [makeRow(serviceCase, { labels })];
         await expect(
           deleteAs(

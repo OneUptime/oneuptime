@@ -295,7 +295,9 @@ describePostgres("permission block removal against Postgres", () => {
             projectId,
           );
     expect(permission).not.toBeNull();
-    const result: DatabaseCommonInteractionProps = props(permission!.permissions);
+    const result: DatabaseCommonInteractionProps = props(
+      permission!.permissions,
+    );
     if (target.table === "ApiKeyPermission") {
       result.userType = UserType.API;
       result.userId = undefined;
@@ -340,6 +342,13 @@ describePostgres("permission block removal against Postgres", () => {
       limit: 10,
     };
     return await target.service[method](request);
+  }
+
+  async function expectDelegationDenied(
+    mutation: Promise<number>,
+  ): Promise<void> {
+    await expect(mutation).rejects.toBeInstanceOf(NotAuthorizedException);
+    await expect(mutation).rejects.toThrow("cannot grant");
   }
 
   describe.each(targets)(
@@ -522,13 +531,13 @@ describePostgres("permission block removal against Postgres", () => {
 
       test("narrowing a stored block by update cannot bypass the removal ceiling", async () => {
         const blockId: ObjectID = await seed(target, { block: true });
-        await expect(
+        await expectDelegationDenied(
           target.service.updateOneBy({
             query: { _id: blockId },
             data: { permission: target.editor },
-            props: props([grant(target.editor)]),
+            props: props([grant(target.editor), grant(target.reader)]),
           }),
-        ).rejects.toBeInstanceOf(NotAuthorizedException);
+        );
         const rows: Array<{ permission: string; isBlockPermission: boolean }> =
           await database.query(
             `SELECT "permission", "isBlockPermission" FROM "${target.table}" WHERE "_id" = $1`,
@@ -549,27 +558,31 @@ describePostgres("permission block removal against Postgres", () => {
           });
           const caller: DatabaseCommonInteractionProps = props([
             grant(target.editor),
+            grant(target.reader),
             grant(Permission.MonitorViewer, {
               labelIds: [labelId],
               scope: PermissionScope.Labels,
             }),
           ]);
-          const query: { _id: ObjectID; labels: { _id: ObjectID } } = {
+          const query: {
+            _id: ObjectID;
+            labels: Array<{ _id: string }>;
+          } = {
             _id: blockId,
-            labels: { _id: labelId },
+            labels: [{ _id: labelId.toString() }],
           };
           const mutation: Promise<number> =
             operation === "delete"
               ? target.service.deleteOneBy({
-                  query: query as never,
+                  query,
                   props: caller,
                 })
               : target.service.updateOneBy({
-                  query: query as never,
+                  query,
                   data: { permission: target.editor },
                   props: caller,
                 });
-          await expect(mutation).rejects.toBeInstanceOf(NotAuthorizedException);
+          await expectDelegationDenied(mutation);
           expect(await storedIds(target)).toEqual([blockId.toString()]);
           const labels: Array<{ labelId: string }> = await database.query(
             `SELECT "labelId" FROM "${target.table}Label" WHERE "${target.labelColumn}" = $1 ORDER BY "labelId"`,
@@ -592,15 +605,15 @@ describePostgres("permission block removal against Postgres", () => {
           `UPDATE "${target.table}" SET "createdAt" = NOW() - INTERVAL '1 day' WHERE "_id" = $1`,
           [blockId.toString()],
         );
-        await expect(
+        await expectDelegationDenied(
           target.service.updateBy({
             query: { projectId },
             data: { permission: target.editor },
             skip: 1,
             limit: 1,
-            props: props([grant(target.editor)]),
+            props: props([grant(target.editor), grant(target.reader)]),
           }),
-        ).rejects.toBeInstanceOf(NotAuthorizedException);
+        );
         expect(await storedIds(target)).toEqual(
           [blockId.toString(), allowedId.toString()].sort(),
         );

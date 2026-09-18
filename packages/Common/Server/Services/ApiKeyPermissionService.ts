@@ -507,9 +507,11 @@ export class Service extends DatabaseService<Model> {
       limit: updateBy.limit,
       props: { isRoot: true },
     });
-    const selectedIds: Array<ObjectID> = selectedPermissions.map((row: Model) => {
-      return row.id!;
-    });
+    const selectedIds: Array<ObjectID> = selectedPermissions.map(
+      (row: Model) => {
+        return row.id!;
+      },
+    );
     // Reload by ID so a label filter cannot hide part of a saved block's scope.
     const existingPermissions: Array<Model> = await this.findAllBy({
       query: { _id: QueryHelper.any(selectedIds) },
@@ -697,9 +699,11 @@ export class Service extends DatabaseService<Model> {
         limit: deleteBy.limit,
         props: { isRoot: true },
       });
-      const selectedIds: Array<ObjectID> = selectedPermissions.map((row: Model) => {
-        return row.id!;
-      });
+      const selectedIds: Array<ObjectID> = selectedPermissions.map(
+        (row: Model) => {
+          return row.id!;
+        },
+      );
       // A relation filter may select a row, but must not trim its saved labels.
       const permissions: Array<Model> = await this.findAllBy({
         query: { _id: QueryHelper.any(selectedIds) },
@@ -714,8 +718,10 @@ export class Service extends DatabaseService<Model> {
       });
 
       for (const permission of permissions) {
-        // Revoking an allow cannot expand access. Removing a deny can expose
-        // an existing allow, so it requires authority over the entire deny.
+        /*
+         * Revoking an allow cannot expand access. Removing a deny can expose
+         * an existing allow, so it requires authority over the entire deny.
+         */
         if (permission.isBlockPermission) {
           if (!permission.projectId || !permission.permission) {
             throw new BadDataException("Invalid API Key permission");
@@ -736,8 +742,10 @@ export class Service extends DatabaseService<Model> {
         }
       }
 
-      // Delete exactly the checked page, even when the query matches more
-      // than one batch. The original offset has already been applied.
+      /*
+       * Delete exactly the checked page, even when the query matches more
+       * than one batch. The original offset has already been applied.
+       */
       deleteBy.query = {
         ...deleteBy.query,
         _id: QueryHelper.any(selectedIds),

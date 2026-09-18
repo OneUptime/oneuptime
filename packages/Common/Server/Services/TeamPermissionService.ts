@@ -166,8 +166,10 @@ export class Service extends DatabaseService<Model> {
       data.scope !== PermissionScope.Owned;
     const isBlocked: boolean = matchingBlocks.some(
       (permission: UserPermission) => {
-        // An unrestricted/Owned grant may include resources blocked from the
-        // caller. Ownership also cannot be transferred between principals.
+        /*
+         * An unrestricted/Owned grant may include resources blocked from the
+         * caller. Ownership also cannot be transferred between principals.
+         */
         if (
           !targetHasLabelScope ||
           permission.scope === PermissionScope.All ||
@@ -404,9 +406,11 @@ export class Service extends DatabaseService<Model> {
       limit: updateBy.limit,
       props: { isRoot: true },
     });
-    const selectedIds: Array<ObjectID> = selectedPermissions.map((row: Model) => {
-      return row.id!;
-    });
+    const selectedIds: Array<ObjectID> = selectedPermissions.map(
+      (row: Model) => {
+        return row.id!;
+      },
+    );
     // Read complete labels independently of any relation filters in the query.
     const teamPermissions: Array<Model> = await this.findAllBy({
       query: { _id: QueryHelper.any(selectedIds) },
@@ -589,9 +593,11 @@ export class Service extends DatabaseService<Model> {
       limit: deleteBy.limit,
       props: { isRoot: true },
     });
-    const selectedIds: Array<ObjectID> = selectedPermissions.map((row: Model) => {
-      return row.id!;
-    });
+    const selectedIds: Array<ObjectID> = selectedPermissions.map(
+      (row: Model) => {
+        return row.id!;
+      },
+    );
     const teamPermissions: Array<Model> = await this.findAllBy({
       query: { _id: QueryHelper.any(selectedIds) },
       select: {
