@@ -415,7 +415,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/seo/:dashboardIdOrDomain`,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const dashboardIdOrDomain: string = req.params[
@@ -596,7 +596,7 @@ export default class DashboardAPI extends BaseAPI<
     this.router.post(
       overviewApiPath,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       overviewHandler,
     );
 
@@ -608,7 +608,7 @@ export default class DashboardAPI extends BaseAPI<
     this.router.get(
       overviewApiPath,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       overviewHandler,
     );
 
@@ -616,7 +616,7 @@ export default class DashboardAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!req.body["domain"]) {
@@ -662,7 +662,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/metadata/:dashboardId`,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const dashboardId: ObjectID = new ObjectID(
@@ -725,7 +725,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/view-config/:dashboardId`,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const dashboardId: ObjectID = new ObjectID(
@@ -827,7 +827,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/attribute-values/:dashboardId`,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const dashboardId: ObjectID = new ObjectID(
@@ -941,7 +941,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/metric-types/:dashboardId`,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const dashboardId: ObjectID = new ObjectID(
@@ -1051,7 +1051,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/metrics-aggregate/:dashboardId`,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const dashboardId: ObjectID = new ObjectID(
@@ -1328,7 +1328,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/resource-list/:dashboardId/:resourceType`,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const resourceType: string = req.params["resourceType"] as string;
@@ -1368,7 +1368,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/slo-history-aggregate/:dashboardId`,
       publicDashboardRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const dashboardId: ObjectID = new ObjectID(
@@ -1506,7 +1506,7 @@ export default class DashboardAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/master-password/:dashboardId`,
       masterPasswordRateLimit,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!req.params["dashboardId"]) {

@@ -354,10 +354,10 @@ describe("DashboardAPI public rate limiting", () => {
         );
 
         expect(registered.middlewares[1]).toBe(
-          UserMiddleware.getUserMiddleware,
+          UserMiddleware.getPublicRouteUserMiddleware,
         );
         expect(registered.middlewares[0]).not.toBe(
-          UserMiddleware.getUserMiddleware,
+          UserMiddleware.getPublicRouteUserMiddleware,
         );
       },
     );
@@ -394,7 +394,10 @@ describe("DashboardAPI public rate limiting", () => {
           return !inheritedRouteKeys.has(`${route.method} ${route.uri}`);
         })
         .filter((route: { middlewares: Array<unknown> }) => {
-          return route.middlewares[0] === UserMiddleware.getUserMiddleware;
+          return (
+            route.middlewares[0] === UserMiddleware.getUserMiddleware ||
+            route.middlewares[0] === UserMiddleware.getPublicRouteUserMiddleware
+          );
         })
         .map((route: { method: string; uri: string }) => {
           return `${route.method} ${route.uri}`;
