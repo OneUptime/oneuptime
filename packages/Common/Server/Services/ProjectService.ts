@@ -14,6 +14,7 @@ import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 import Errors from "../Utils/Errors";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import MarketingEventUtil, {
@@ -2550,6 +2551,40 @@ These are no longer recorded against the project and have to be cancelled by han
     }
 
     return { findBy, carryForward: null };
+  }
+
+  /*
+   * On the Community Edition a project's SSO requirement is not enforced (the
+   * SSO login routes are part of the Enterprise Edition), so reads made for a
+   * caller report the EFFECTIVE value: not required, no required provider.
+   * Clients decide from these columns whether to start an SSO flow - the
+   * mobile app hides a project's on-call data behind an SSO login it cannot
+   * complete here, and its store builds cannot be patched.
+   *
+   * Only the returned objects change. Internal (root) reads, and the stored
+   * row, keep the real value, so switching back to the Enterprise Edition
+   * restores enforcement exactly as configured.
+   */
+  @CaptureSpan()
+  protected override async onFindSuccess(
+    onFind: OnFind<Model>,
+    items: Array<Model>,
+  ): Promise<OnFind<Model>> {
+    if (
+      EditionEnforcement.shouldMaskSsoRequirementOnRead(onFind.findBy.props)
+    ) {
+      for (const item of items) {
+        if (item.requireSsoForLogin !== undefined) {
+          item.requireSsoForLogin = false;
+        }
+
+        if (item.requireSsoWithSsoProviderId !== undefined) {
+          item.requireSsoWithSsoProviderId = null!;
+        }
+      }
+    }
+
+    return { ...onFind, carryForward: items };
   }
 
   @CaptureSpan()

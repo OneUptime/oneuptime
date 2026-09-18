@@ -1,9 +1,10 @@
 import DatabaseConfig from "../DatabaseConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CookieUtil from "../Utils/Cookie";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -266,6 +267,32 @@ export class Service extends DatabaseService<StatusPage> {
       return statusPage.subscriberEmailNotificationFooterText;
     }
     return this.getDefaultEmailFooterText();
+  }
+
+  /*
+   * On the Community Edition a status page's SSO requirement is not enforced
+   * (status page SSO login is part of the Enterprise Edition), so reads made
+   * for a caller report the EFFECTIVE value: not required. Internal (root)
+   * reads and the stored row keep the real value, so switching back to the
+   * Enterprise Edition restores enforcement exactly as configured. The
+   * public master-page route reads as root and applies the same rule itself.
+   */
+  @CaptureSpan()
+  protected override async onFindSuccess(
+    onFind: OnFind<StatusPage>,
+    items: Array<StatusPage>,
+  ): Promise<OnFind<StatusPage>> {
+    if (
+      EditionEnforcement.shouldMaskSsoRequirementOnRead(onFind.findBy.props)
+    ) {
+      for (const item of items) {
+        if (item.requireSsoForLogin !== undefined) {
+          item.requireSsoForLogin = false;
+        }
+      }
+    }
+
+    return { ...onFind, carryForward: items };
   }
 
   @CaptureSpan()
