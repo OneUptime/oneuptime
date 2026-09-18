@@ -4,7 +4,6 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import BaseAPI from "../../../Server/API/BaseAPI";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import DatabaseService from "../../../Server/Services/DatabaseService";
-import Query from "../../../Server/Types/Database/Query";
 import Select from "../../../Server/Types/Database/Select";
 import {
   ExpressResponse,
@@ -203,7 +202,7 @@ describePostgres(
 
     async function getList(data: {
       select: Select<TeamMember>;
-      query?: Query<TeamMember>;
+      query?: JSONObject;
       isMultiTenantRequest?: boolean;
     }): Promise<JSONObject> {
       const requestProps: DatabaseCommonInteractionProps = props();
