@@ -3,6 +3,9 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import AnalyticsDatabaseService from "../Services/AnalyticsDatabaseService";
 import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
 import GroupBy from "../Types/AnalyticsDatabase/GroupBy";
+import ModelPermission, {
+  CheckReadPermissionType,
+} from "../Types/AnalyticsDatabase/ModelPermission";
 import Query from "../Types/AnalyticsDatabase/Query";
 import Select from "../Types/AnalyticsDatabase/Select";
 import Sort from "../Types/AnalyticsDatabase/Sort";
@@ -39,11 +42,9 @@ import logger from "../Utils/Logger";
  * widgets loading on the same page) onto a single ClickHouse query
  * while still looking real-time to humans.
  *
- * Project-scoped only: analytics data is project-wide and the
- * service layer enforces project-scoped read permissions, so
- * caching across users within the same project is safe. Endpoints
- * with row-level access scoping should override `getAggregate` to
- * skip the cache (or shape the key to include the access scope).
+ * A cache hit never reaches the service, which is where the read
+ * check lives, so getAggregateCacheKey runs that check itself and
+ * keys the slot on the permission-scoped query — see there.
  */
 const ANALYTICS_AGGREGATE_CACHE_TTL_SECONDS: number = 8;
 
@@ -396,11 +397,11 @@ export default class BaseAnalyticsAPI<
      * burst. On cache outage (Redis down, parse error, …) we fall
      * through to a live query so behavior degrades to today's.
      */
-    const projectId: string | undefined = databaseProps.tenantId?.toString();
     const cacheNamespace: string = `${this.getEntityName()}-aggregate`;
-    const cacheKey: string | null = projectId
-      ? `${projectId}:${this.buildAggregateCacheKey(aggregateBy)}`
-      : null;
+    const cacheKey: string | null = await this.getAggregateCacheKey(
+      aggregateBy,
+      databaseProps,
+    );
 
     if (cacheKey) {
       try {
@@ -436,6 +437,76 @@ export default class BaseAnalyticsAPI<
     }
 
     return Response.sendJsonObjectResponse(req, res, responseBody);
+  }
+
+  /*
+   * A cached aggregate is answered BEFORE service.aggregateBy runs, and
+   * service.aggregateBy is where the read check lives. So a hit has to
+   * clear that same check first — otherwise anyone who can name a project
+   * in the `tenantid` header (getUserMiddleware accepts it even from an
+   * anonymous caller) reads whatever someone else aggregated there in the
+   * last few seconds.
+   *
+   * checkReadPermission runs here on a copy of the query, with the same
+   * select the service passes. It throws for an anonymous caller (401) and
+   * for one without read permission on the model or the queried columns
+   * (422), and it returns the query the live path would send to
+   * ClickHouse. That scoped query goes into the key because it carries
+   * everything that makes one caller's result differ from another's: the
+   * tenant, the Owned / label-restricted `IN (...)` filter on the owning
+   * resource, and for a multi-tenant request the caller's own list of
+   * projects.
+   *
+   * The caller's raw query stays in the key next to it. Scoping overwrites
+   * projectId, but a service can still plan from the raw query —
+   * MetricService picks point-type and rollup routing from the projectId
+   * the caller sent, before its own check rewrites it — so two requests
+   * that scope to the same query can still compute different results.
+   * Callers share a slot only when both their request and their access
+   * scope are identical.
+   *
+   * Returns null (skip the cache) without a tenant, and for a request the
+   * service's own validation is about to reject, so that request gets the
+   * service's error message rather than one from the check here.
+   */
+  protected async getAggregateCacheKey(
+    aggregateBy: AggregateBy<AnalyticsDataModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<string | null> {
+    if (!props.tenantId) {
+      return null;
+    }
+
+    const aggregateColumnName: string | undefined =
+      aggregateBy.aggregateColumnName?.toString();
+    const timestampColumnName: string | undefined =
+      aggregateBy.aggregationTimestampColumnName?.toString();
+    const model: TAnalyticsDataModel = new this.entityType();
+
+    if (
+      !aggregateColumnName ||
+      !timestampColumnName ||
+      !model.getTableColumn(aggregateColumnName) ||
+      !model.getTableColumn(timestampColumnName)
+    ) {
+      return null;
+    }
+
+    const scoped: CheckReadPermissionType<TAnalyticsDataModel> =
+      await ModelPermission.checkReadPermission(
+        this.entityType,
+        { ...(aggregateBy.query || {}) } as Query<TAnalyticsDataModel>,
+        {
+          [aggregateColumnName]: true,
+          [timestampColumnName]: true,
+        } as Select<TAnalyticsDataModel>,
+        props,
+      );
+
+    return `${props.tenantId.toString()}:${this.buildAggregateCacheKey({
+      ...aggregateBy,
+      scopedQuery: scoped.query,
+    } as AggregateBy<AnalyticsDataModel>)}`;
   }
 
   /*
