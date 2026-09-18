@@ -17,12 +17,17 @@ import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
  * The shared audit log table: the "logging is off" notice and its filters
  * ---------------------------------------------------------------------------
  *
+ * The table body is Enterprise code (ee/Dashboard/AuditLogs/AuditLogsTable).
+ * Every resource page renders core's Components/AuditLogs/AuditLogsTable
+ * shell, which decides between this body and the upsell card - that decision
+ * is pinned by packages/Common/Tests/App/Dashboard/AuditLogsShells.test.tsx.
+ * By the time this body renders, the project may have audit logs.
+ *
  * Audit logging is off by default and switched on only in Settings, so for
  * most projects an empty audit page means "nothing is being recorded", not
- * "nothing changed" - and the table used to say the latter. It now reads the
- * project's switch (after the Enterprise check, so a project that cannot have
- * audit logs still gets the upsell card) and, when it is off, shows a compact
- * notice that links to the setting.
+ * "nothing changed" - and the table used to say the latter. It reads the
+ * project's switch and, when it is off, shows a compact notice that links to
+ * the setting.
  *
  * Also pinned: the query each page asks for - a resource page that shows its
  * children filters on rootResourceId alone - and where each entry links.
@@ -50,7 +55,6 @@ type CapturedTableProps = {
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
-let isEligibleForTest: boolean = true;
 const getItemMock: MockFunction = getJestMockFunction();
 
 jest.mock("Common/UI/Components/ModelTable/AnalyticsModelTable", () => {
@@ -81,27 +85,6 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-jest.mock(
-  "@oneuptime/dashboard/Components/AuditLogs/AuditLogsEnterpriseUpgrade",
-  () => {
-    return {
-      __esModule: true,
-      isAuditLogsEnterpriseEligible: (): boolean => {
-        return isEligibleForTest;
-      },
-      default: (props: { title: string }): React.ReactElement => {
-        const react: typeof React = jest.requireActual("react") as typeof React;
-
-        return react.createElement(
-          "div",
-          { "data-testid": "audit-logs-upsell" },
-          props.title,
-        );
-      },
-    };
-  },
-);
-
 import AuditLogsTable, {
   ComponentProps,
 } from "../../../Dashboard/AuditLogs/AuditLogsTable";
@@ -110,9 +93,7 @@ import {
   ResourceMeta,
 } from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsTableUtils";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
-import RouteMap, {
-  RouteUtil,
-} from "@oneuptime/dashboard/Utils/RouteMap";
+import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import RouteParams from "@oneuptime/dashboard/Utils/RouteParams";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -184,7 +165,6 @@ const flushSettingsRead: FlushFunction = async (): Promise<void> => {
 
 beforeEach(() => {
   capturedTableProps = null;
-  isEligibleForTest = true;
   getItemMock.mockReset();
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
 });
@@ -195,19 +175,18 @@ afterEach(() => {
 });
 
 describe("the audit logging switch", () => {
-  test("a project that cannot have audit logs gets the upsell card, and no settings read", async () => {
-    isEligibleForTest = false;
-    getItemMock.mockResolvedValue(projectWith(false));
+  test("the body renders the table and reads the project's switch at once - eligibility is the core shell's decision", async () => {
+    getItemMock.mockResolvedValue(projectWith(true));
 
     renderTable({ rootResourceId: SLO_ID });
     await flushSettingsRead();
 
-    expect(screen.getByTestId("audit-logs-upsell")).toHaveTextContent(
-      "SLO Audit Logs",
+    expect(screen.getByTestId("audit-logs-analytics-table")).toBeInTheDocument();
+    expect(capturedTableProps?.cardProps?.title).toBe("SLO Audit Logs");
+    expect(capturedTableProps?.cardProps?.description).toBe(
+      "Changes people made to this SLO.",
     );
-    expect(screen.queryByTestId("audit-logs-analytics-table")).toBeNull();
-    expect(screen.queryByTestId("audit-logging-disabled-notice")).toBeNull();
-    expect(getItemMock).not.toHaveBeenCalled();
+    expect(getItemMock).toHaveBeenCalledTimes(1);
   });
 
   test("when logging is off, a compact notice links to the Audit Logs settings", async () => {

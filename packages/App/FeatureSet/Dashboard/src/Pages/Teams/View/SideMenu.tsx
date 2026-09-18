@@ -6,18 +6,33 @@ import ObjectID from "Common/Types/ObjectID";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
-import { isEnterpriseFeatureEligible } from "../../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import {
+  IDENTITY_REQUIRED_PLAN,
+  isEnterpriseFeatureEligible,
+} from "../../../Enterprise/EnterpriseEligibility";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export interface ComponentProps {
   modelId: ObjectID;
 }
 
+/*
+ * Whether the team's Compliance item is shown: exactly when the Compliance
+ * page (Pages/Teams/View/Compliance) would show the feature rather than its
+ * upsell - the same check, at the same tier. On the Cloud that is the
+ * project's plan (Scale and above: TeamComplianceSetting is sold at Scale),
+ * self-hosted it is the Enterprise Edition. The item is hidden rather than
+ * pointed at an upsell, as it always was.
+ */
+export const isTeamComplianceMenuItemVisible: () => boolean = (): boolean => {
+  return isEnterpriseFeatureEligible(IDENTITY_REQUIRED_PLAN);
+};
+
 const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const isComplianceEnterpriseEligible: boolean = useMemo(() => {
-    return isEnterpriseFeatureEligible();
+    return isTeamComplianceMenuItemVisible();
   }, []);
 
   const sections: SideMenuSectionProps[] = [

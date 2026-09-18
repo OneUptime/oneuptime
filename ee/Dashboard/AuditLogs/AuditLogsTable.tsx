@@ -18,9 +18,6 @@ import AppLink from "@oneuptime/dashboard/Components/AppLink/AppLink";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import AuditLogChangesModal from "./AuditLogChangesModal";
-import AuditLogsEnterpriseUpgrade, {
-  isAuditLogsEnterpriseEligible,
-} from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsEnterpriseUpgrade";
 import {
   ResourceLink,
   ResourceMeta,
@@ -29,6 +26,7 @@ import {
   getResourceLink,
   getResourceMeta,
 } from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsTableUtils";
+import { AuditLogsTableProps } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
 import React, {
   Fragment,
   FunctionComponent,
@@ -38,18 +36,20 @@ import React, {
   useState,
 } from "react";
 
-export interface ComponentProps {
-  title: string;
-  description: string;
-  resourceType?: string | undefined;
-  resourceId?: ObjectID | undefined;
-  /*
-   * Lists every entry that rolls up to this resource: its own, and those of
-   * the rows it owns (see EnableAuditLogOn.rootResource). Pass it instead of
-   * resourceType / resourceId, which match the resource's own entries only.
-   */
-  rootResourceId?: ObjectID | undefined;
-}
+/*
+ * The body of the shared audit log table (OneUptime Enterprise).
+ *
+ * Every resource page renders core's Components/AuditLogs/AuditLogsTable,
+ * which renders THIS component through the Dashboard plugin (the
+ * "AuditLogsTable" key) - or the audit log upsell card when the project is not
+ * eligible or the build has no Enterprise plugin. The eligibility check
+ * therefore lives in that shell, not here: by the time this renders, the
+ * project may have audit logs.
+ *
+ * The props are the contract's AuditLogsTableProps, so the shell and the body
+ * cannot drift apart.
+ */
+export type ComponentProps = AuditLogsTableProps;
 
 interface ActionStyle {
   label: string;
@@ -82,10 +82,6 @@ const ACTION_STYLES: { [key: string]: ActionStyle } = {
 const AuditLogsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const isEnterpriseEligible: boolean = useMemo(() => {
-    return isAuditLogsEnterpriseEligible();
-  }, []);
-
   const [detailItem, setDetailItem] = useState<AuditLog | null>(null);
 
   /*
@@ -100,14 +96,6 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
   >(null);
 
   useEffect(() => {
-    /*
-     * A project that cannot have audit logs gets the upsell card instead of
-     * the table, and has no setting worth reporting.
-     */
-    if (!isEnterpriseEligible) {
-      return;
-    }
-
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
     if (!projectId) {
@@ -140,7 +128,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     return () => {
       isUnmounted = true;
     };
-  }, [isEnterpriseEligible]);
+  }, []);
 
   const computedQuery: Query<AuditLog> = useMemo(() => {
     return getAuditLogsQuery({
@@ -150,15 +138,6 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
       rootResourceId: props.rootResourceId,
     });
   }, [props.resourceType, props.resourceId, props.rootResourceId]);
-
-  if (!isEnterpriseEligible) {
-    return (
-      <AuditLogsEnterpriseUpgrade
-        title={props.title}
-        description={props.description}
-      />
-    );
-  }
 
   const extraSelect: Select<AuditLog> = {
     resourceName: true,

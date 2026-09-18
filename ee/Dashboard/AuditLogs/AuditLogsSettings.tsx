@@ -5,33 +5,21 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
-import AuditLogsEnterpriseUpgrade, {
-  isAuditLogsEnterpriseEligible,
-} from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsEnterpriseUpgrade";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useMemo,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
+/*
+ * Settings > Audit Logs (OneUptime Enterprise): the project's recording switch,
+ * retention and system events.
+ *
+ * Core's Pages/Settings/AuditLogsSettings is the page the route renders; it
+ * renders this component through the Dashboard plugin (the
+ * "SettingsAuditLogsSettings" key), or the audit log upsell card when the
+ * project is not eligible or the build has no Enterprise plugin. The
+ * eligibility check lives in that shell.
+ */
 const AuditLogsSettings: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
-  const isEnterpriseEligible: boolean = useMemo(() => {
-    return isAuditLogsEnterpriseEligible();
-  }, []);
-
-  if (!isEnterpriseEligible) {
-    return (
-      <AuditLogsEnterpriseUpgrade
-        title="Audit Logs Settings"
-        description="Configure how long audit logs are retained for this project."
-        featureDescription="Toggle audit logging for this project and choose how long we keep the history."
-      />
-    );
-  }
-
   return (
     <Fragment>
       <CardModelDetail
