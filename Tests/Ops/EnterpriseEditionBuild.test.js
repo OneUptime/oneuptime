@@ -985,7 +985,14 @@ describe("dev.sh: install_enterprise_deps", () => {
   });
 });
 
-describe("Scripts/Dev/install-node-modules.sh installs ee/ last, with --ignore-scripts", () => {
+/*
+ * The Scripts/Dev node_modules scripts, each run for real in a throwaway
+ * repository with a fake npm (and ncu) on PATH that logs "<dir> <args>".
+ * ee/package.json links packages/Common and packages/App (file:), so ee/ must
+ * come after them, and --ignore-scripts keeps npm from running the linked
+ * packages' lifecycle scripts too.
+ */
+describe("Scripts/Dev node_modules scripts and ee/", () => {
   const workspaces = [];
 
   afterAll(() => {
@@ -994,49 +1001,56 @@ describe("Scripts/Dev/install-node-modules.sh installs ee/ last, with --ignore-s
     }
   });
 
-  function repository(withEnterprise) {
-    const root = fs.mkdtempSync(
-      path.join(os.tmpdir(), "install-node-modules-"),
-    );
+  function repository(script, withEnterprise) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dev-node-modules-"));
     workspaces.push(root);
     fs.mkdirSync(path.join(root, "Scripts", "Dev"), { recursive: true });
     fs.copyFileSync(
-      path.join(REPO_ROOT, "Scripts", "Dev", "install-node-modules.sh"),
-      path.join(root, "Scripts", "Dev", "install-node-modules.sh"),
+      path.join(REPO_ROOT, "Scripts", "Dev", script),
+      path.join(root, "Scripts", "Dev", script),
     );
-    for (const dir of [
-      "packages/Common",
-      "packages/App",
-      "agents/DockerAgent",
-      "Docs",
-    ]) {
-      fs.mkdirSync(path.join(root, dir), { recursive: true });
-    }
+    const packages = ["packages/Common", "packages/App", "agents/DockerAgent"];
     if (withEnterprise) {
-      fs.mkdirSync(path.join(root, "ee"));
-      fs.writeFileSync(path.join(root, "ee", "package.json"), "{}\n");
+      packages.push("ee");
+    }
+    for (const dir of packages) {
+      fs.mkdirSync(path.join(root, dir, "node_modules", "left-pad"), {
+        recursive: true,
+      });
+      fs.writeFileSync(path.join(root, dir, "package.json"), "{}\n");
+      fs.writeFileSync(path.join(root, dir, "package-lock.json"), "{}\n");
+    }
+    fs.mkdirSync(path.join(root, "Docs"));
+    if (withEnterprise) {
+      fs.mkdirSync(path.join(root, "ee", "Server"));
+      fs.writeFileSync(
+        path.join(root, "ee", "Server", "Index.ts"),
+        "export {};\n",
+      );
     }
     const bin = path.join(root, "fake-bin");
     fs.mkdirSync(bin);
-    fs.writeFileSync(
-      path.join(bin, "npm"),
-      '#!/usr/bin/env bash\necho "$(basename "$PWD") $*" >> "$FAKE_NPM_LOG"\n',
-      { mode: 0o755 },
-    );
+    for (const tool of ["npm", "ncu"]) {
+      fs.writeFileSync(
+        path.join(bin, tool),
+        `#!/usr/bin/env bash\necho "$(basename "$PWD") ${tool} $*" >> "$FAKE_TOOL_LOG"\n`,
+        { mode: 0o755 },
+      );
+    }
     return root;
   }
 
-  function run(root) {
-    const log = path.join(root, "npm.log");
+  function run(root, script) {
+    const log = path.join(root, "tools.log");
     const result = spawnSync(
       "bash",
-      [path.join(root, "Scripts", "Dev", "install-node-modules.sh")],
+      [path.join(root, "Scripts", "Dev", script)],
       {
         encoding: "utf8",
         env: {
           ...process.env,
           PATH: `${path.join(root, "fake-bin")}:${process.env.PATH}`,
-          FAKE_NPM_LOG: log,
+          FAKE_TOOL_LOG: log,
         },
       },
     );
@@ -1048,29 +1062,77 @@ describe("Scripts/Dev/install-node-modules.sh installs ee/ last, with --ignore-s
     };
   }
 
-  test("ee/ is installed after the packages it links, with npm ci --ignore-scripts", () => {
-    const { result, calls } = run(repository(true));
+  function enterpriseCalls(calls) {
+    return calls.filter((call) => {
+      return call.startsWith("ee ");
+    });
+  }
+
+  test("install-node-modules.sh installs ee/ last, with npm ci --ignore-scripts", () => {
+    const root = repository("install-node-modules.sh", true);
+    const { result, calls } = run(root, "install-node-modules.sh");
 
     expect(result.status).toBe(0);
-    expect(calls[calls.length - 1]).toBe("ee ci --ignore-scripts");
-    expect(calls).toContain("Common install --force");
-    expect(calls).toContain("App install --force");
-    expect(
-      calls.filter((call) => {
-        return call.startsWith("ee ");
-      }),
-    ).toEqual(["ee ci --ignore-scripts"]);
+    expect(calls[calls.length - 1]).toBe("ee npm ci --ignore-scripts");
+    expect(calls).toContain("Common npm install --force");
+    expect(calls).toContain("App npm install --force");
+    expect(enterpriseCalls(calls)).toEqual(["ee npm ci --ignore-scripts"]);
+    // npm ci installs exactly the lockfile; it must not be touched.
+    expect(fs.existsSync(path.join(root, "ee", "package-lock.json"))).toBe(
+      true,
+    );
   });
 
-  test("a checkout without ee/ never tries to install it", () => {
-    const { calls } = run(repository(false));
+  test("install-node-modules.sh never tries ee/ in a checkout without it", () => {
+    const { calls } = run(
+      repository("install-node-modules.sh", false),
+      "install-node-modules.sh",
+    );
 
     expect(calls.length).toBeGreaterThan(0);
+    expect(enterpriseCalls(calls)).toEqual([]);
+  });
+
+  test("clean-npm-install.sh regenerates ee/ last, with --ignore-scripts", () => {
+    const root = repository("clean-npm-install.sh", true);
+    const { result, calls } = run(root, "clean-npm-install.sh");
+
+    expect(result.status).toBe(0);
+    expect(calls[calls.length - 1]).toBe("ee npm install --ignore-scripts");
+    expect(enterpriseCalls(calls)).toEqual(["ee npm install --ignore-scripts"]);
+    expect(calls).toContain("Common npm i --force");
+    expect(fs.existsSync(path.join(root, "ee", "package-lock.json"))).toBe(
+      false,
+    );
+    expect(fs.existsSync(path.join(root, "ee", "node_modules"))).toBe(false);
+  });
+
+  test("update-node-modules.sh updates ee/ last, with --ignore-scripts", () => {
+    const { result, calls } = run(
+      repository("update-node-modules.sh", true),
+      "update-node-modules.sh",
+    );
+
+    expect(result.status).toBe(0);
+    expect(enterpriseCalls(calls)).toEqual([
+      "ee ncu -u",
+      "ee npm install --ignore-scripts",
+    ]);
+    expect(calls[calls.length - 1]).toBe("ee npm install --ignore-scripts");
+  });
+
+  test("remove-node-modules.sh removes ee/node_modules and keeps ee/ itself", () => {
+    const root = repository("remove-node-modules.sh", true);
+    const { result } = run(root, "remove-node-modules.sh");
+
+    expect(result.status).toBe(0);
+    expect(fs.existsSync(path.join(root, "ee", "node_modules"))).toBe(false);
+    expect(fs.existsSync(path.join(root, "ee", "Server", "Index.ts"))).toBe(
+      true,
+    );
     expect(
-      calls.filter((call) => {
-        return call.startsWith("ee ");
-      }),
-    ).toEqual([]);
+      fs.existsSync(path.join(root, "packages", "App", "node_modules")),
+    ).toBe(false);
   });
 });
 
