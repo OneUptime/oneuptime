@@ -80,18 +80,33 @@ export const setPageUrl: (pageUrl: string) => void = (
   pageLocation.origin = parsed.origin;
 };
 
+/*
+ * Defined rather than assigned. Node 26 ships Web Storage, and under jest's
+ * node environment its sessionStorage is a read-only (but configurable) data
+ * property, so `globalThis.sessionStorage = ...` throws "Cannot redefine
+ * property". Redefining it works on every Node version.
+ */
+const setGlobal: (name: string, value: unknown) => void = (
+  name: string,
+  value: unknown,
+): void => {
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value: value,
+  });
+};
+
 export const installBrowserGlobals: (pageUrl: string) => void = (
   pageUrl: string,
 ): void => {
   setPageUrl(pageUrl);
 
-  const globals: Dictionary<unknown> =
-    globalThis as unknown as Dictionary<unknown>;
-
-  globals["window"] = globalThis;
-  globals["location"] = pageLocation;
-  globals["localStorage"] = new MemoryStorage();
-  globals["sessionStorage"] = new MemoryStorage();
+  setGlobal("window", globalThis);
+  setGlobal("location", pageLocation);
+  setGlobal("localStorage", new MemoryStorage());
+  setGlobal("sessionStorage", new MemoryStorage());
 };
 
 export const clearBrowserStorage: () => void = (): void => {
