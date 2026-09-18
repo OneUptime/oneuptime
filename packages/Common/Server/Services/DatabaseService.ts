@@ -59,6 +59,7 @@ import PartialEntity from "../../Types/Database/PartialEntity";
 import { TableColumnMetadata } from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import { getUniqueColumnsBy } from "../../Types/Database/UniqueColumnBy";
+import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -372,6 +373,49 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       ) {
         (data as Record<string, unknown>)[columnName] = value.toString();
       }
+    }
+  }
+
+  /*
+   * Query operators (StartsWith, NotNull, Search, GreaterThan, Includes...)
+   * belong in the `query` of a read/update, never in the `data` of a write.
+   * They can reach create/update data because JSONFunctions.deserialize - run
+   * on every request body while building the model - turns
+   * `{"_type":"StartsWith","value":"a"}` into a real operator instance, and
+   * DatabaseBaseModel._fromJSON assigns it to an id/text column unchanged.
+   *
+   * An operator is never a valid stored value, and leaving one on a write
+   * payload also feeds it to the lookups built from that data - the uniqueness
+   * check here and the findBy/countBy calls in service hooks - where QueryUtil
+   * turns the intended exact comparison into a pattern match, quietly matching
+   * rows the caller never named. Refuse such a write up front instead. JSON
+   * columns are exempt: they legitimately hold arbitrary objects, and their
+   * values are not used to build a query.
+   */
+  private rejectQueryOperatorsInData(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): void {
+    for (const columnName of Object.keys(data)) {
+      const value: unknown = (data as Record<string, unknown>)[columnName];
+
+      if (!(value instanceof QueryOperator)) {
+        continue;
+      }
+
+      if (!this.model.isTableColumn(columnName)) {
+        continue;
+      }
+
+      const metadata: TableColumnMetadata =
+        this.model.getTableColumnMetadata(columnName);
+
+      if (metadata && metadata.type === TableColumnType.JSON) {
+        continue;
+      }
+
+      throw new BadDataException(
+        `Invalid value for ${columnName}. A query operator cannot be used as a value when creating or updating ${this.model.singularName}.`,
+      );
     }
   }
 
@@ -1501,6 +1545,29 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       createBy.props,
       DatabaseRequestType.Create,
     );
+
+    /*
+     * A non-root create must not pin the row's own primary key. save() treats
+     * an entity carrying an existing id as an update of that row rather than an
+     * insert, so a supplied `_id` turns a create into an in-place modification
+     * of a record the caller never named. BaseAPI.createItem already strips it;
+     * this guards every other non-root caller (custom routes, workflow
+     * components) too. Root/internal seeding legitimately assigns ids and is
+     * exempt. Only the top-level primary key is checked - nested relation
+     * `_id`s reference existing related rows and are fine.
+     */
+    if (
+      !createBy.props.isRoot &&
+      !createBy.props.isMasterAdmin &&
+      (createBy.data as TBaseModel)._id
+    ) {
+      throw new BadDataException(
+        `An id cannot be supplied when creating ${this.model.singularName}.`,
+      );
+    }
+
+    // Query operators are for queries, not for write payloads. See the helper.
+    this.rejectQueryOperatorsInData(createBy.data);
 
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
 
@@ -3131,6 +3198,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
+
+      // Query operators are for queries, not for write payloads. See the helper.
+      this.rejectQueryOperatorsInData(updateBy.data);
 
       /*
        * Defense in depth for the tenant confused-deputy on the update path.
