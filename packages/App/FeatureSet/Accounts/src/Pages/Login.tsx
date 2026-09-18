@@ -9,6 +9,7 @@ import {
   GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
   VERIFY_WEBAUTHN_AUTH_API_URL,
 } from "../Utils/ApiPaths";
+import { isSsoLoginOffered } from "../Utils/SsoAvailability";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
@@ -1192,15 +1193,22 @@ const LoginPage: () => JSX.Element = () => {
                   }}
                   maxPrimaryButtonWidth={true}
                   footer={
-                    <div className="actions text-center mt-4 hover:underline fw-semibold">
-                      <div>
-                        <Link to={new Route("/accounts/sso")}>
-                          <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                            {t("login.useSso")}
-                          </div>
-                        </Link>
+                    /*
+                     * SSO login is part of the Enterprise Edition; a
+                     * Community Edition server does not serve it, so it
+                     * does not offer it either.
+                     */
+                    isSsoLoginOffered() ? (
+                      <div className="actions text-center mt-4 hover:underline fw-semibold">
+                        <div>
+                          <Link to={new Route("/accounts/sso")}>
+                            <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
+                              {t("login.useSso")}
+                            </div>
+                          </Link>
+                        </div>
                       </div>
-                    </div>
+                    ) : undefined
                   }
                 />
               </fieldset>

@@ -37,6 +37,24 @@ import WebAuthnTestUtil, {
 import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 
+/*
+ * These tests expect the SSO choice next to the password and passkey ones,
+ * which the page offers only on the Enterprise Edition or the cloud. Pin the
+ * edition instead of inheriting it from the environment (CI's config.env sets
+ * BILLING_ENABLED=true); LoginSsoEdition.test.tsx covers the Community case.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  return {
+    ...actual,
+    BILLING_ENABLED: false,
+    IS_ENTERPRISE_EDITION: true,
+  };
+});
+
 jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
   return {
     __esModule: true,
