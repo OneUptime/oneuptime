@@ -1047,9 +1047,9 @@ captcha:
 # OneUptime refuses to send workflow requests, project webhooks, on-call user
 # webhooks and sandboxed HTTP calls to targets that resolve into private,
 # loopback or link-local ranges. Both settings below relax that for self-hosted
-# installs and both are off by default. Neither grants anything on its own:
-# each project must ALSO enable "Allow Private Network Webhooks" in
-# Settings -> Project. Status page subscriber webhooks are never covered.
+# installs and both are off by default. They are instance-wide and the only
+# gate: there is no per-project setting, so whatever they allow applies to
+# every project. Status page subscriber webhooks are never covered.
 webhooks:
   # Permit RFC-1918, CGNAT, IPv6 unique-local and site-local targets. Loopback,
   # link-local (169.254.169.254) and multicast stay blocked.
