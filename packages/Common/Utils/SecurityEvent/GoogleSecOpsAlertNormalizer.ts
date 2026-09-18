@@ -36,7 +36,11 @@ import {
  * the originating system, which is enough for a finding row.
  */
 
-const DETECTION_FINDING_CLASS_UID: number = 2004;
+export const DETECTION_FINDING_CLASS_UID: number = 2004;
+
+// The source every row this normalizer writes is attributed to.
+export const GOOGLE_SECOPS_VENDOR_NAME: string = "Google";
+export const GOOGLE_SECOPS_PRODUCT_NAME: string = "Google SecOps";
 
 /*
  * How many sample events to mine for observables. Detections can carry
@@ -57,6 +61,24 @@ const COLLECTION_TYPES: Array<string> = [
   "UPPERCASE_ALERT",
   "MACHINE_INTELLIGENCE_ALERT",
   "SOAR_ALERT",
+];
+
+/*
+ * Google's recommended risk_score ranges for custom detections, highest
+ * band first (https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax):
+ * 90-100 critical, 80-89 high, 50-79 medium, 20-49 low, 1-19 observations.
+ * A score grades into the first band whose minimum it reaches; a score of
+ * zero or less grades nothing.
+ */
+export const GOOGLE_SECOPS_RISK_SCORE_BANDS: ReadonlyArray<{
+  minimum: number;
+  severity: OcsfSeverity;
+}> = [
+  { minimum: 90, severity: OcsfSeverity.Critical },
+  { minimum: 80, severity: OcsfSeverity.High },
+  { minimum: 50, severity: OcsfSeverity.Medium },
+  { minimum: 20, severity: OcsfSeverity.Low },
+  { minimum: 0, severity: OcsfSeverity.Informational },
 ];
 
 function collectSampleEvents(payload: JSONObject): Array<JSONObject> {
@@ -120,6 +142,137 @@ function readDetectionEntry(payload: JSONObject): JSONObject | null {
   }
 
   return null;
+}
+
+/*
+ * Every value stored under one key of a Google key/value list. ruleLabels
+ * and outcomes both arrive as [{ key, value }]; a plain object map is
+ * accepted too, the shape a hand-built webhook body may use. Keys compare
+ * trimmed and case-insensitively because YARA-L meta keys are free text.
+ */
+function readKeyedValues(list: JSONValue, key: string): Array<JSONValue> {
+  const wanted: string = key.toLowerCase();
+  const values: Array<JSONValue> = [];
+
+  if (Array.isArray(list)) {
+    for (const entry of list) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        continue;
+      }
+
+      const entryKey: JSONValue = (entry as JSONObject)["key"] as JSONValue;
+
+      if (
+        typeof entryKey === "string" &&
+        entryKey.trim().toLowerCase() === wanted
+      ) {
+        values.push((entry as JSONObject)["value"] as JSONValue);
+      }
+    }
+
+    return values;
+  }
+
+  if (list && typeof list === "object") {
+    for (const entryKey of Object.keys(list as JSONObject)) {
+      if (entryKey.trim().toLowerCase() === wanted) {
+        values.push((list as JSONObject)[entryKey] as JSONValue);
+      }
+    }
+  }
+
+  return values;
+}
+
+/*
+ * A severity only when the text names one. "Unknown" is the absence of a
+ * grade, not a grade, so it does not stop the search for a real one.
+ */
+function gradeSeverityText(value: JSONValue): OcsfSeverity | null {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return null;
+  }
+
+  const severity: OcsfSeverity | null = normalizeOcsfSeverity(String(value));
+
+  return severity === OcsfSeverity.Unknown ? null : severity;
+}
+
+function gradeRiskScore(value: JSONValue): OcsfSeverity | null {
+  let score: number = Number.NaN;
+
+  if (typeof value === "number") {
+    score = value;
+  } else if (typeof value === "string" && value.trim() !== "") {
+    score = Number(value);
+  }
+
+  if (!Number.isFinite(score) || score <= 0) {
+    return null;
+  }
+
+  for (const band of GOOGLE_SECOPS_RISK_SCORE_BANDS) {
+    if (score >= band.minimum) {
+      return band.severity;
+    }
+  }
+
+  return null;
+}
+
+function firstGrade(
+  values: Array<JSONValue>,
+  grade: (value: JSONValue) => OcsfSeverity | null,
+): OcsfSeverity | null {
+  for (const value of values) {
+    const severity: OcsfSeverity | null = grade(value);
+
+    if (severity) {
+      return severity;
+    }
+  }
+
+  return null;
+}
+
+/*
+ * Where a detection's severity lives depends on who wrote the rule.
+ *
+ *   1. detection[].severity — Google grades its own curated rules (Applied
+ *      Threat Intelligence, the curated rule sets) here.
+ *   2. The Collection's own severity — SOAR alerts and webhook bodies.
+ *   3. detection[].ruleLabels "severity" — a custom YARA-L rule's
+ *      `meta: severity = "High"`. Google leaves detection[].severity empty
+ *      for these and returns the meta section as ruleLabels; it is the value
+ *      the SecOps rules dashboard shows as the rule's severity.
+ *   4. detection[].outcomes "risk_score" — a rule that sets no severity but
+ *      scores its detections with $risk_score, graded with Google's
+ *      published bands. Only the outcome counts: the bare riskScore field
+ *      is filled with a default (40 when alerting, 15 when not) for rules
+ *      that set no score, and grading that would invent a severity.
+ *
+ * The first two are the only places read before, and they are read first,
+ * so a detection that already graded grades exactly as it did.
+ */
+function resolveSeverity(
+  payload: JSONObject,
+  detection: JSONObject | null,
+): OcsfSeverity {
+  const ruleLabels: JSONValue = detection
+    ? readValue(detection, "ruleLabels") ?? readValue(detection, "rule_labels")
+    : null;
+
+  const outcomes: JSONValue = detection
+    ? readValue(detection, "outcomes")
+    : null;
+
+  return (
+    (detection && gradeSeverityText(readString(detection, "severity"))) ||
+    gradeSeverityText(readString(payload, "severity")) ||
+    firstGrade(readKeyedValues(ruleLabels, "severity"), gradeSeverityText) ||
+    firstGrade(readKeyedValues(outcomes, "risk_score"), gradeRiskScore) ||
+    OcsfSeverity.Unknown
+  );
 }
 
 function readCollectionType(payload: JSONObject): string {
@@ -234,10 +387,7 @@ export default class GoogleSecOpsAlertNormalizer {
         readString(detection, "rule_version_id")
       : "";
 
-    const severityName: OcsfSeverity =
-      (detection && normalizeOcsfSeverity(readString(detection, "severity"))) ||
-      normalizeOcsfSeverity(readString(payload, "severity")) ||
-      OcsfSeverity.Unknown;
+    const severityName: OcsfSeverity = resolveSeverity(payload, detection);
 
     const time: Date | null = parseEventTime(
       readValue(payload, "detectionTime") ??
@@ -296,8 +446,8 @@ export default class GoogleSecOpsAlertNormalizer {
         readString(payload, "detection.alert_state") ||
         "",
       message,
-      vendorName: "Google",
-      productName: "Google SecOps",
+      vendorName: GOOGLE_SECOPS_VENDOR_NAME,
+      productName: GOOGLE_SECOPS_PRODUCT_NAME,
       ruleId,
       ruleName,
       mitreTactics: firstSample ? firstSample.mitreTactics : [],
