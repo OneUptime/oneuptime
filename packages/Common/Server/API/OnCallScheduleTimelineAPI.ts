@@ -22,6 +22,7 @@ import CommonAPI from "./CommonAPI";
 import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyScheduleOwnerTeam from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerTeam";
+import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import Team from "../../Models/DatabaseModels/Team";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -29,6 +30,8 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -50,12 +53,20 @@ import ScheduleTimelineUtil, {
  * resolved shifts of each over [from, to): the data behind the "all schedules
  * in one week / month view" page and the per-team schedule view.
  *
- * WHO MAY SEE WHAT. The schedule list is read with the CALLER's props, so the
- * table permission and the label scoping (@CanAccessIfCanReadOn) decide which
- * schedules appear, exactly as they do for the schedules table. Everything
+ * WHO MAY SEE WHAT. The shifts are the schedules' rosters -- who is on which
+ * layer, and when -- so the route first requires the permission the CRUD
+ * read of layer users requires (assertPermittedInProject with that model's
+ * read list); a role that can list schedules but not open their layers gets
+ * a 403 here too, not a back door. Override provenance (whose shift is being
+ * covered, the override's window) is likewise only sent to callers who could
+ * read user overrides; anyone else still sees who is paged, which the
+ * schedule row itself already exposes as currentUserOnRoster.
+ *
+ * WHICH schedules appear is then decided by reading the schedule list with
+ * the CALLER's props, so the table permission and the label scoping
+ * (@CanAccessIfCanReadOn) apply exactly as on the schedules table. Everything
  * after that -- the shift expansion, user names, team names, "am I on this
- * roster" -- is a root read keyed on the ids that gate returned, so it can
- * never widen what the caller sees.
+ * roster" -- is a root read keyed on the ids that gate returned.
  *
  * WHAT IT COSTS. The shifts come from the schedule-level cache the calendar
  * feeds and /my-shifts share (OnCallCalendarFeedRenderer), keyed on each
@@ -136,6 +147,8 @@ export function buildTimelineResponse(data: {
   teamNames: Map<string, string>;
   memberTeamIds: Set<string>;
   totalScheduleCount: number;
+  // False strips override provenance: the caller cannot read user overrides.
+  includeOverrides: boolean;
 }): ScheduleTimelineResponse {
   const segmentsById: Map<string, CachedScheduleSegments> = new Map();
 
@@ -160,7 +173,11 @@ export function buildTimelineResponse(data: {
           ScheduleTimelineUtil.toTimelineShift(shift, data.window);
 
         if (projected) {
-          shifts.push(projected);
+          shifts.push(
+            data.includeOverrides
+              ? projected
+              : { ...projected, override: null },
+          );
         }
       }
     }
@@ -301,6 +318,18 @@ async function loadOwnerTeamIds(data: {
       props: data.props,
     });
   } catch (err) {
+    /*
+     * Only a refusal is a reason to serve the timeline ungrouped. A database
+     * error must surface: silently dropping every team would look like a
+     * successful answer with all schedules under "No owner team".
+     */
+    if (
+      !(err instanceof NotAuthorizedException) &&
+      !(err instanceof PaymentRequiredException)
+    ) {
+      throw err;
+    }
+
     logger.debug(
       "OnCallScheduleTimelineAPI: owner teams could not be read for this caller; the timeline is served ungrouped.",
     );
@@ -437,6 +466,22 @@ async function loadRosterScheduleIds(data: {
   );
 }
 
+// Whether the caller could read user overrides through their CRUD endpoint.
+export function canReadUserOverrides(
+  props: DatabaseCommonInteractionProps,
+): boolean {
+  try {
+    CommonAPI.assertPermittedInProject({
+      databaseProps: props,
+      allowedPermissions:
+        new OnCallDutyPolicyUserOverride().getReadPermissions(),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function emptyResponse(
   window: TimelineWindow,
   now: Date,
@@ -451,6 +496,7 @@ function emptyResponse(
     teamNames: new Map(),
     memberTeamIds: new Set(),
     totalScheduleCount: 0,
+    includeOverrides: false,
   });
 }
 
@@ -470,6 +516,17 @@ router.get(
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(props);
       const userId: ObjectID = props.userId as ObjectID;
+
+      // The rosters are layer-user data: require what reading them requires.
+      CommonAPI.assertPermittedInProject({
+        databaseProps: props,
+        allowedPermissions:
+          new OnCallDutyPolicyScheduleLayerUser().getReadPermissions(),
+        errorMessage:
+          "You do not have permission to read this project's on-call schedule layers.",
+      });
+
+      const includeOverrides: boolean = canReadUserOverrides(props);
 
       const now: Date = OneUptimeDate.getCurrentDate();
       const window: TimelineWindow = readTimelineWindow(req, now);
@@ -631,6 +688,7 @@ router.get(
         teamNames,
         memberTeamIds,
         totalScheduleCount,
+        includeOverrides,
       });
 
       return Response.sendJsonObjectResponse(

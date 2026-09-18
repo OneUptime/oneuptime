@@ -73,6 +73,13 @@ export default class ScheduleTimelineAPI {
     to: Date;
     teamId?: ObjectID | undefined;
     sleep?: SleepFunction | undefined;
+    /*
+     * True once the caller no longer wants the answer (the reader moved to
+     * another range, or left). Checked before every retry, so a request for a
+     * week nobody is looking at stops adding load to a server that has just
+     * said it is busy.
+     */
+    isCancelled?: (() => boolean) | undefined;
   }): Promise<ScheduleTimelineResponse> {
     const sleep: SleepFunction = data.sleep || defaultSleep;
 
@@ -89,6 +96,11 @@ export default class ScheduleTimelineAPI {
 
       if (response.statusCode === 503 && attempt < TIMELINE_MAX_ATTEMPTS) {
         await sleep(getRetryDelayMilliseconds(response));
+
+        if (data.isCancelled && data.isCancelled()) {
+          throw response;
+        }
+
         continue;
       }
 

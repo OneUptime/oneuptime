@@ -73,6 +73,42 @@ jest.mock("react-i18next", () => {
   };
 });
 
+/*
+ * The real picker opens a modal with a searchable dropdown; the page only
+ * cares about the zone it hands back, so each test clicks straight to one.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/TimezoneSelectButton",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: {
+        value?: string;
+        onChange: (value: string | undefined) => void;
+      }) => {
+        return (
+          <span data-testid="timezone-picker" data-value={props.value}>
+            {["Asia/Tokyo", "America/New_York", "UTC"].map((zone: string) => {
+              return (
+                <button
+                  key={zone}
+                  type="button"
+                  data-testid={`timezone-to-${zone}`}
+                  onClick={() => {
+                    props.onChange(zone);
+                  }}
+                >
+                  {zone}
+                </button>
+              );
+            })}
+          </span>
+        );
+      },
+    };
+  },
+);
+
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
@@ -87,6 +123,7 @@ import ScheduleTimeline, {
   GROUP_BY_TEAM_STORAGE_KEY,
   VIEW_MODE_STORAGE_KEY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/ScheduleTimeline";
+import TimelineRow from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineRow";
 
 // Thursday. The week on screen is Mon 14 - Sun 20 September 2026 (UTC).
 const NOW: Date = new Date("2026-09-17T12:00:00.000Z");
@@ -1019,5 +1056,398 @@ describe("empty, error and partial answers", () => {
         .getByTestId("timeline-gap")
         .getAttribute("aria-label"),
     ).toBe("No one on call, Wed, Sep 16, 00:00 → Mon, Sep 21, 00:00");
+  });
+});
+
+// -- Behaviour found in review -------------------------------------------------
+
+function pendingAnswers(): Array<(value: HTTPResponse<JSONObject>) => void> {
+  const pending: Array<(value: HTTPResponse<JSONObject>) => void> = [];
+
+  getMock.mockImplementation(() => {
+    return new Promise<HTTPResponse<JSONObject>>(
+      (done: (value: HTTPResponse<JSONObject>) => void) => {
+        pending.push(done);
+      },
+    );
+  });
+
+  return pending;
+}
+
+function dayKeys(): Array<string> {
+  return screen
+    .getAllByTestId("timeline-day-header")
+    .map((header: HTMLElement) => {
+      return header.getAttribute("title") || "";
+    });
+}
+
+describe("while the next range loads", () => {
+  test("the previous week stays drawn, dimmed, against its own days", async () => {
+    const pending: Array<(value: HTTPResponse<JSONObject>) => void> =
+      pendingAnswers();
+
+    renderTimeline();
+
+    await waitFor(() => {
+      expect(pending).toHaveLength(1);
+    });
+
+    await act(async () => {
+      pending[0]!(ok(timeline()));
+    });
+
+    await loaded();
+
+    const rowsBefore: Array<string> = rowIds();
+    const gapsBefore: number = screen.getAllByTestId("timeline-gap").length;
+
+    fireEvent.click(screen.getByTestId("timeline-next-button"));
+
+    await waitFor(() => {
+      expect(pending).toHaveLength(2);
+    });
+
+    // The label follows the request...
+    expect(screen.getByTestId("timeline-range-label")).toHaveTextContent(
+      "September 21 – 27, 2026",
+    );
+    expect(screen.getByTestId("timeline-refreshing")).toBeInTheDocument();
+
+    // ...the grid stays on the week its data belongs to, gaps and all.
+    expect(dayKeys()[0]).toBe("2026-09-14");
+    expect(rowIds()).toEqual(rowsBefore);
+    expect(screen.getAllByTestId("timeline-gap")).toHaveLength(gapsBefore);
+    expect(screen.getByTestId("timeline-now-line")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("timeline-unavailable"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("timeline-outside-range"),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      pending[1]!(
+        ok(
+          timeline({
+            from: "2026-09-21T00:00:00.000Z",
+            to: "2026-09-28T00:00:00.000Z",
+          }),
+        ),
+      );
+    });
+
+    await waitFor(() => {
+      expect(dayKeys()[0]).toBe("2026-09-21");
+    });
+    expect(screen.queryByTestId("timeline-refreshing")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("timeline-now-line")).not.toBeInTheDocument();
+  });
+
+  test("an empty team page stays on its empty state", async () => {
+    const pending: Array<(value: HTTPResponse<JSONObject>) => void> =
+      pendingAnswers();
+
+    renderTimeline({ teamId: ObjectID.generate() });
+
+    await waitFor(() => {
+      expect(pending).toHaveLength(1);
+    });
+
+    await act(async () => {
+      pending[0]!(ok(timeline({ schedules: [], teams: [] })));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("This team does not own any on-call schedules yet"),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("timeline-next-button"));
+
+    await waitFor(() => {
+      expect(pending).toHaveLength(2);
+    });
+
+    expect(
+      screen.getByText("This team does not own any on-call schedules yet"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("timeline-summary")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("timeline-no-matches")).not.toBeInTheDocument();
+  });
+
+  test("leaving the page stops a request that is waiting to retry", async () => {
+    getMock.mockResolvedValue(
+      new HTTPErrorResponse(503, { message: "busy" }, { "retry-after": "1" }),
+    );
+
+    jest.useFakeTimers();
+
+    try {
+      renderTimeline();
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(getMock).toHaveBeenCalledTimes(1);
+
+      cleanup();
+
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+        await Promise.resolve();
+      });
+
+      expect(getMock).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe("changing the time zone", () => {
+  test("keeps the same dates on screen, even across the date line", async () => {
+    // Sunday 22:00 UTC: already Monday in Tokyo.
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-09-20T22:00:00.000Z"));
+
+    renderTimeline();
+
+    await loaded();
+
+    expect(dayKeys()[0]).toBe("2026-09-14");
+
+    fireEvent.click(screen.getByTestId("timezone-to-Asia/Tokyo"));
+
+    // The week of 14 September, now laid out in Tokyo.
+    await waitFor(() => {
+      expect(lastRequested().from).toBe("2026-09-13T15:00:00.000Z");
+    });
+    expect(lastRequested().to).toBe("2026-09-20T15:00:00.000Z");
+    expect(screen.getByTestId("timeline-range-label")).toHaveTextContent(
+      "September 14 – 20, 2026",
+    );
+  });
+
+  test("after paging forward, a zone to the west does not page back", async () => {
+    renderTimeline();
+
+    await loaded();
+
+    fireEvent.click(screen.getByTestId("timeline-next-button"));
+
+    await waitFor(() => {
+      expect(lastRequested().from).toBe("2026-09-21T00:00:00.000Z");
+    });
+
+    fireEvent.click(screen.getByTestId("timezone-to-America/New_York"));
+
+    await waitFor(() => {
+      expect(lastRequested().from).toBe("2026-09-21T04:00:00.000Z");
+    });
+    expect(screen.getByTestId("timeline-range-label")).toHaveTextContent(
+      "September 21 – 27, 2026",
+    );
+  });
+});
+
+describe("the Week / Month switch", () => {
+  test("is one tab stop, and the arrow keys move the selection", async () => {
+    renderTimeline();
+
+    await loaded();
+
+    const weekButton: HTMLElement = screen.getByTestId("timeline-mode-week");
+    const monthButton: HTMLElement = screen.getByTestId("timeline-mode-month");
+
+    expect(weekButton).toHaveAttribute("tabindex", "0");
+    expect(monthButton).toHaveAttribute("tabindex", "-1");
+
+    weekButton.focus();
+    fireEvent.keyDown(weekButton, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(lastRequested().from).toBe("2026-09-01T00:00:00.000Z");
+    });
+
+    expect(monthButton).toHaveAttribute("aria-checked", "true");
+    expect(monthButton).toHaveAttribute("tabindex", "0");
+    expect(document.activeElement).toBe(monthButton);
+
+    fireEvent.keyDown(monthButton, { key: "Home" });
+
+    await waitFor(() => {
+      expect(weekButton).toHaveAttribute("aria-checked", "true");
+    });
+    expect(document.activeElement).toBe(weekButton);
+
+    // Other keys are left alone.
+    fireEvent.keyDown(weekButton, { key: "a" });
+    expect(weekButton).toHaveAttribute("aria-checked", "true");
+  });
+});
+
+describe("attention filters", () => {
+  test("'no one on call now' is dropped when the reader pages away from now", async () => {
+    renderTimeline();
+
+    await loaded();
+
+    fireEvent.click(screen.getByTestId("timeline-summary-uncovered-now"));
+
+    expect(rowIds()).toEqual(["s-sre", "s-sre", "s-legacy"]);
+
+    fireEvent.click(screen.getByTestId("timeline-next-button"));
+
+    // Next week cannot say who is uncovered "now": every schedule is back.
+    await waitFor(() => {
+      expect(dayKeys()[0]).toBe("2026-09-21");
+    });
+    await waitFor(() => {
+      expect(rowIds()).toHaveLength(4);
+    });
+    expect(screen.queryByTestId("timeline-no-matches")).not.toBeInTheDocument();
+  });
+
+  test("an active 'coverage gaps' chip stays visible even at zero, so it can be turned off", async () => {
+    const covered: ScheduleTimelineScheduleJson = {
+      ...PAYMENTS,
+      shifts: [
+        {
+          ...PAYMENTS.shifts[0]!,
+          start: "2026-09-01T00:00:00.000Z",
+          end: "2026-10-15T00:00:00.000Z",
+        },
+      ],
+    };
+
+    getMock.mockImplementation(async (options: { url: URL }) => {
+      const parsed: globalThis.URL = new globalThis.URL(options.url.toString());
+      const from: string = parsed.searchParams.get("from") || WEEK_FROM;
+      const to: string = parsed.searchParams.get("to") || WEEK_TO;
+
+      return ok(
+        from === WEEK_FROM
+          ? timeline()
+          : timeline({ from, to, schedules: [covered] }),
+      );
+    });
+
+    renderTimeline();
+
+    await loaded();
+
+    fireEvent.click(screen.getByTestId("timeline-summary-gaps"));
+    fireEvent.click(screen.getByTestId("timeline-next-button"));
+
+    // Next week has no gaps at all; the chip must stay, at zero and pressed.
+    await waitFor(() => {
+      expect(screen.getByTestId("timeline-summary-gaps")).toHaveTextContent(
+        "0with coverage gaps this week",
+      );
+    });
+
+    const chip: HTMLElement = screen.getByTestId("timeline-summary-gaps");
+
+    expect(chip).toHaveTextContent("0with coverage gaps this week");
+    expect(chip).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("timeline-no-matches")).toBeInTheDocument();
+
+    fireEvent.click(chip);
+
+    expect(rowIds()).toEqual(["s-pay"]);
+    expect(
+      screen.queryByTestId("timeline-summary-gaps"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("layout details", () => {
+  test("'no schedules match' is drawn outside the scrolling grid", async () => {
+    renderTimeline();
+
+    await loaded();
+
+    fireEvent.change(screen.getByTestId("timeline-search"), {
+      target: { value: "zzz" },
+    });
+
+    expect(screen.getByTestId("timeline-no-matches")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("schedule-timeline-grid"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a row reads in time order, each override lane right after its shift", async () => {
+    renderTimeline();
+
+    await loaded();
+
+    const order: Array<string> = within(row("s-sre"))
+      .getAllByTestId(/timeline-(shift-bar|gap|overridden-segment)/)
+      .map((element: HTMLElement) => {
+        const kind: string = element.getAttribute("data-testid") || "";
+        return kind === "timeline-shift-bar"
+          ? `shift:${element.getAttribute("data-user-id")}`
+          : kind.replace("timeline-", "");
+      });
+
+    expect(order).toEqual([
+      "shift:u-carol",
+      "gap",
+      "shift:u-dan",
+      "overridden-segment",
+    ]);
+  });
+
+  test("a served window wholly outside the range shades the whole range", async () => {
+    getMock.mockResolvedValue(
+      ok(
+        timeline({
+          from: "2027-09-17T12:00:00.000Z",
+          to: "2027-09-18T12:00:00.000Z",
+        }),
+      ),
+    );
+
+    renderTimeline();
+
+    await loaded();
+
+    const bands: Array<HTMLElement> = screen.getAllByTestId(
+      "timeline-unavailable",
+    );
+
+    expect(bands).toHaveLength(1);
+    expect(bands[0]?.style.left).toBe("0%");
+    expect(bands[0]?.style.width).toBe("100%");
+    expect(screen.getByTestId("timeline-outside-range")).toBeInTheDocument();
+    expect(screen.queryAllByTestId("timeline-gap")).toHaveLength(0);
+  });
+
+  test("keyboard focus uses an outline, which inline shadows and opacity cannot hide", async () => {
+    renderTimeline();
+
+    await loaded();
+
+    for (const element of [
+      ...screen.getAllByTestId("timeline-shift-bar"),
+      ...screen.getAllByTestId("timeline-gap"),
+      ...screen.getAllByTestId("timeline-overridden-segment"),
+    ]) {
+      expect(element.className).toContain("focus-visible:outline-2");
+      expect(element.className).toContain("focus-visible:!opacity-100");
+      expect(element.className).not.toContain("focus-visible:ring");
+    }
+  });
+
+  test("rows are memoized", () => {
+    expect((TimelineRow as unknown as { $$typeof: symbol }).$$typeof).toBe(
+      Symbol.for("react.memo"),
+    );
   });
 });

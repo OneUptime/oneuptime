@@ -2,6 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import { ScheduleTimelineResponse } from "../../../Types/OnCallDutyPolicy/ScheduleTimeline";
 import { TimeInterval } from "../../../Types/OnCallDutyPolicy/ScheduleTimelineLayout";
 import { getColorForUserId } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerUserColors";
+import {
+  NEAR_BLACK_REPLACEMENT,
+  getTimelineColor,
+  getTimelineColorForUserId,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineColors";
 import TimelineModel, {
   ALL_SCHEDULES_GROUP_KEY,
   ALL_TEAMS,
@@ -503,7 +508,7 @@ describe("collectPeople", () => {
       ["Bob Berg", 48, 1, false],
     ]);
 
-    expect(people[0]?.color).toBe(getColorForUserId("u-alice"));
+    expect(people[0]?.color).toBe(getTimelineColorForUserId("u-alice"));
   });
 
   test("one person on two schedules is counted once, with both loads", () => {
@@ -631,5 +636,38 @@ describe("countPeople / hasOverrides", () => {
       }),
     ).toBe(false);
     expect(TimelineModel.hasOverrides(withOverride, null)).toBe(false);
+  });
+});
+
+describe("timeline colours", () => {
+  test("near-black is lifted so it reads on the dark-mode surface", () => {
+    expect(getTimelineColor("#000000")).toBe(NEAR_BLACK_REPLACEMENT);
+    expect(getTimelineColor("#111111")).toBe(NEAR_BLACK_REPLACEMENT);
+    expect(getTimelineColor("000000")).toBe(NEAR_BLACK_REPLACEMENT);
+  });
+
+  test("every other palette colour is kept as the layer editor shows it", () => {
+    for (const color of ["#6366f1", "#ffbf53", "#ef4444", "#64748b"]) {
+      expect(getTimelineColor(color)).toBe(color);
+    }
+  });
+
+  test("anything that is not a hex colour passes through", () => {
+    expect(getTimelineColor("red")).toBe("red");
+    expect(getTimelineColor("#fff")).toBe("#fff");
+  });
+
+  test("a user's timeline colour is their layer colour, lifted only if near-black", () => {
+    for (let index: number = 0; index < 200; index++) {
+      const userId: string = `user-${index}`;
+      const layerColor: string = getColorForUserId(userId);
+      const timelineColor: string = getTimelineColorForUserId(userId);
+
+      if (layerColor === "#000000") {
+        expect(timelineColor).toBe(NEAR_BLACK_REPLACEMENT);
+      } else {
+        expect(timelineColor).toBe(layerColor);
+      }
+    }
   });
 });

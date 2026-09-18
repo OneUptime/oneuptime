@@ -1,16 +1,7 @@
-import { getColorForUserId } from "../OnCallScheduleLayer/LayerUserColors";
-import { GapBlock, OverriddenSegment, ShiftBar } from "./TimelineBar";
-import TimelineModel, {
-  TimelineGroup,
-  TimelineSchedule,
-  TimelineShift,
-} from "./TimelineModel";
-import AppLink from "../../AppLink/AppLink";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
+import { TimelineGroup, TimelineSchedule } from "./TimelineModel";
+import TimelineRow, { LABEL_COLUMN_WIDTH } from "./TimelineRow";
 import IconProp from "Common/Types/Icon/IconProp";
-import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
 import ScheduleTimelineLayout, {
   PositionedInterval,
   TimeInterval,
@@ -24,6 +15,7 @@ import React, {
   ReactElement,
   RefObject,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -38,18 +30,15 @@ import React, {
  * the name column disappears beneath it instead of drawing over it.
  */
 
-/*
- * The schedule-name column. A CSS variable rather than a number so the
- * stylesheet can narrow it on a phone, where 264px would leave no room for
- * the days (see ScheduleTimeline.css).
- */
-export const LABEL_COLUMN_WIDTH: string =
-  "var(--oneuptime-schedule-timeline-label-width, 264px)";
 export const WEEK_MIN_DAY_WIDTH_PX: number = 104;
 export const MONTH_MIN_DAY_WIDTH_PX: number = 34;
-export const ROW_HEIGHT_PX: number = 48;
-export const ROW_WITH_OVERRIDES_HEIGHT_PX: number = 70;
 
+/*
+ * The day area's width in whole pixels. It only decides how much text fits
+ * in a block, so resize bursts are coalesced into one update per frame and
+ * sub-pixel changes are ignored - otherwise dragging a window edge would
+ * re-render every row on every frame.
+ */
 function useElementWidth(ref: RefObject<HTMLElement | null>): number | null {
   const [width, setWidth] = useState<number | null>(null);
 
@@ -60,32 +49,36 @@ function useElementWidth(ref: RefObject<HTMLElement | null>): number | null {
       return;
     }
 
+    let frame: number | null = null;
+
     const measure: () => void = (): void => {
-      const measured: number = element.getBoundingClientRect().width;
+      frame = null;
+      const measured: number = Math.round(
+        element.getBoundingClientRect().width,
+      );
       setWidth(measured > 0 ? measured : null);
     };
 
     measure();
 
     const observer: ResizeObserver = new ResizeObserver(() => {
-      measure();
+      if (frame === null) {
+        frame = window.requestAnimationFrame(measure);
+      }
     });
 
     observer.observe(element);
 
     return () => {
       observer.disconnect();
+
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
     };
   }, [ref]);
 
   return width;
-}
-
-export function getScheduleRoute(scheduleId: string): Route {
-  return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW] as Route,
-    { modelId: new ObjectID(scheduleId) },
-  );
 }
 
 export interface ComponentProps {
@@ -94,12 +87,18 @@ export interface ComponentProps {
   now: Date;
   // The part of the range the server computed; null while nothing has.
   computedWindow: TimeInterval | null;
+  /*
+   * The window the server served. Outside it the grid is shaded "not
+   * available" - even when it does not overlap the range at all, in which
+   * case the whole range is shaded.
+   */
+  servedWindow: TimeInterval | null;
   showGroupHeaders: boolean;
   collapsedGroupKeys: Set<string>;
   onToggleGroup: (key: string) => void;
   highlightedUserId: string | null;
   onToggleHighlight: (userId: string) => void;
-  // Replaces the rows (skeletons, "no match" message).
+  // Replaces the rows (the loading skeleton).
   body?: ReactElement | undefined;
 }
 
@@ -109,6 +108,11 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
   const dayAreaRef: RefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
   const dayAreaWidth: number | null = useElementWidth(dayAreaRef);
+
+  // The probe builds an Intl.DateTimeFormat; once per grid, not per block.
+  const use12HourFormat: boolean = useMemo(() => {
+    return OneUptimeDate.getUserPrefers12HourFormat();
+  }, []);
 
   const days: Array<TimelineDay> = props.range.days;
   const todayKey: string = ScheduleTimelineLayout.getDayKey(
@@ -131,26 +135,33 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
     ScheduleTimelineLayout.getFraction(props.now, props.range) * 100;
 
   /*
+   * The "now" rows see. Past / active / future and "on call now" only change
+   * while now is inside the range, so on any other week the minute tick does
+   * not reach the rows at all.
+   */
+  const nowTick: number = nowIsVisible ? props.now.getTime() : -1;
+  const rowNow: Date = useMemo(() => {
+    return props.now;
+  }, [nowTick]);
+
+  /*
    * The parts of the range the server would not compute (beyond the
    * look-back / look-ahead limits), drawn as a neutral band across every row.
    */
-  const unavailable: Array<PositionedInterval<TimeInterval>> =
-    props.computedWindow
-      ? ScheduleTimelineLayout.positionIntervals(
-          ScheduleTimelineLayout.computeGaps(
-            [props.computedWindow],
-            props.range.start,
-            props.range.end,
-          ),
-          props.range,
-        )
-      : [];
+  const unavailable: Array<PositionedInterval<TimeInterval>> = useMemo(() => {
+    if (!props.servedWindow) {
+      return [];
+    }
 
-  const toPixels: (percent: number) => number | null = (
-    percent: number,
-  ): number | null => {
-    return dayAreaWidth === null ? null : (percent / 100) * dayAreaWidth;
-  };
+    return ScheduleTimelineLayout.positionIntervals(
+      ScheduleTimelineLayout.computeGaps(
+        [props.servedWindow],
+        props.range.start,
+        props.range.end,
+      ),
+      props.range,
+    );
+  }, [props.servedWindow, props.range]);
 
   const renderDayHeader: (day: TimelineDay) => ReactElement = (
     day: TimelineDay,
@@ -205,7 +216,7 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
             props.onToggleGroup(group.key);
           }}
           aria-expanded={!isCollapsed}
-          className="sticky left-0 z-20 flex shrink-0 items-center gap-2 border-r border-gray-200 bg-gray-50 px-3 py-2 text-left hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+          className="sticky left-0 z-20 flex min-w-0 shrink-0 items-center gap-2 overflow-hidden border-r border-gray-200 bg-gray-50 px-3 py-2 text-left hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
           style={{ width: LABEL_COLUMN_WIDTH }}
         >
           <Icon
@@ -216,185 +227,19 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
             icon={group.teamId ? IconProp.UserGroup : IconProp.Calendar}
             className="h-4 w-4 shrink-0 text-gray-400"
           />
-          <span className="truncate text-xs font-semibold uppercase tracking-wide text-gray-700">
+          <span className="min-w-0 truncate text-xs font-semibold uppercase tracking-wide text-gray-700">
             {group.title}
           </span>
           <span className="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 ring-1 ring-inset ring-gray-200">
             {group.schedules.length}
           </span>
           {group.isCurrentUserMember && (
-            <span className="shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200">
+            <span className="hidden shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 sm:inline-flex">
               Your team
             </span>
           )}
         </button>
         <div className="flex-1" />
-      </div>
-    );
-  };
-
-  const renderSubline: (schedule: TimelineSchedule) => ReactElement = (
-    schedule: TimelineSchedule,
-  ): ReactElement => {
-    const nowIsComputed: boolean = Boolean(
-      props.computedWindow &&
-        ScheduleTimelineLayout.isWithinRange(props.now, props.computedWindow),
-    );
-
-    if (nowIsComputed) {
-      const active: TimelineShift | null = TimelineModel.getOnCallNow(
-        schedule,
-        props.now,
-      );
-
-      if (active) {
-        return (
-          <span
-            className="flex min-w-0 items-center gap-1.5"
-            data-testid="timeline-on-call-now"
-            title={`${active.userName} is on call now`}
-          >
-            <span className="relative flex h-2 w-2 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-            </span>
-            <span
-              className="inline-block h-2 w-2 shrink-0 rounded-sm"
-              style={{ backgroundColor: getColorForUserId(active.userId) }}
-            />
-            <span className="truncate font-medium text-gray-800">
-              {active.userName}
-            </span>
-            <span className="hidden shrink-0 text-gray-400 sm:inline">
-              on call now
-            </span>
-          </span>
-        );
-      }
-
-      return (
-        <span
-          className="flex items-center gap-1 font-medium text-amber-700"
-          data-testid="timeline-uncovered-now"
-        >
-          <Icon icon={IconProp.Alert} className="h-3.5 w-3.5 shrink-0" />
-          No one on call now
-        </span>
-      );
-    }
-
-    const people: number = TimelineModel.countPeople(
-      schedule,
-      props.computedWindow,
-    );
-
-    const period: string =
-      props.range.mode === TimelineViewMode.Month ? "month" : "week";
-
-    return (
-      <span className="truncate text-gray-500">
-        {people === 0
-          ? `No one on call this ${period}`
-          : `${people} ${people === 1 ? "person" : "people"} on call this ${period}`}
-      </span>
-    );
-  };
-
-  const renderRow: (
-    schedule: TimelineSchedule,
-    groupKey: string,
-  ) => ReactElement = (
-    schedule: TimelineSchedule,
-    groupKey: string,
-  ): ReactElement => {
-    const bars: Array<PositionedInterval<TimelineShift>> =
-      ScheduleTimelineLayout.positionIntervals(schedule.shifts, props.range);
-
-    const gaps: Array<PositionedInterval<TimeInterval>> =
-      ScheduleTimelineLayout.positionIntervals(
-        TimelineModel.getGaps(schedule, props.computedWindow),
-        props.range,
-      );
-
-    const overridden: Array<PositionedInterval<TimelineShift>> = bars.filter(
-      (bar: PositionedInterval<TimelineShift>) => {
-        return bar.item.override !== null;
-      },
-    );
-
-    const height: number =
-      overridden.length > 0 ? ROW_WITH_OVERRIDES_HEIGHT_PX : ROW_HEIGHT_PX;
-
-    return (
-      <div
-        key={`${groupKey}-${schedule.id}`}
-        className="group relative flex border-b border-gray-100 last:border-b-0"
-        style={{ height }}
-        data-testid="timeline-schedule-row"
-        data-schedule-id={schedule.id}
-      >
-        <div
-          className="sticky left-0 z-20 flex shrink-0 flex-col justify-center border-r border-gray-200 bg-white px-4 group-hover:bg-gray-50"
-          style={{ width: LABEL_COLUMN_WIDTH }}
-        >
-          <div className="flex min-w-0 items-center gap-1.5">
-            <AppLink
-              to={getScheduleRoute(schedule.id)}
-              className="min-w-0 truncate text-sm font-medium text-gray-900 hover:text-indigo-600 hover:underline"
-            >
-              {schedule.name}
-            </AppLink>
-            {schedule.isCurrentUserOnRoster && (
-              <span
-                className="shrink-0 rounded bg-indigo-50 px-1 py-px text-[10px] font-semibold uppercase tracking-wide text-indigo-700 ring-1 ring-inset ring-indigo-200"
-                title="You are on this schedule's roster"
-              >
-                You
-              </span>
-            )}
-          </div>
-          <div className="mt-0.5 flex min-w-0 items-center text-xs">
-            {renderSubline(schedule)}
-          </div>
-        </div>
-
-        <div className="relative min-w-0 flex-1 overflow-hidden">
-          {gaps.map((gap: PositionedInterval<TimeInterval>) => {
-            return (
-              <GapBlock
-                key={`gap-${gap.item.start.getTime()}`}
-                positioned={gap}
-                widthPx={toPixels(gap.width)}
-                timezone={props.range.timezone}
-              />
-            );
-          })}
-          {bars.map((bar: PositionedInterval<TimelineShift>) => {
-            return (
-              <ShiftBar
-                key={bar.item.key}
-                positioned={bar}
-                widthPx={toPixels(bar.width)}
-                scheduleName={schedule.name}
-                timezone={props.range.timezone}
-                now={props.now}
-                highlightedUserId={props.highlightedUserId}
-                onToggleHighlight={props.onToggleHighlight}
-              />
-            );
-          })}
-          {overridden.map((bar: PositionedInterval<TimelineShift>) => {
-            return (
-              <OverriddenSegment
-                key={`overridden-${bar.item.key}`}
-                positioned={bar}
-                widthPx={toPixels(bar.width)}
-                timezone={props.range.timezone}
-                highlightedUserId={props.highlightedUserId}
-              />
-            );
-          })}
-        </div>
       </div>
     );
   };
@@ -488,7 +333,19 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
                     renderGroupHeader(group)}
                   {!isCollapsed &&
                     group.schedules.map((schedule: TimelineSchedule) => {
-                      return renderRow(schedule, group.key);
+                      return (
+                        <TimelineRow
+                          key={`${group.key}-${schedule.id}`}
+                          schedule={schedule}
+                          range={props.range}
+                          computedWindow={props.computedWindow}
+                          now={rowNow}
+                          dayAreaWidth={dayAreaWidth}
+                          highlightedUserId={props.highlightedUserId}
+                          onToggleHighlight={props.onToggleHighlight}
+                          use12HourFormat={use12HourFormat}
+                        />
+                      );
                     })}
                 </React.Fragment>
               );

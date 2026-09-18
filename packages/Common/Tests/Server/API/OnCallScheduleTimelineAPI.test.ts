@@ -128,6 +128,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
 import MaterializedShiftUtil, {
   MaterializedShift,
@@ -218,12 +219,19 @@ function registeredRoutes(): Array<RegisteredRoute> {
 function buildMemberProps(data: {
   projectId: ObjectID | undefined;
   userId: ObjectID | undefined;
+  // Defaults to ProjectMember, which can read every on-call table.
+  permissions?: Array<Permission> | undefined;
 }): DatabaseCommonInteractionProps {
-  const memberPermission: UserPermission = {
-    _type: "UserPermission",
-    permission: Permission.ProjectMember,
-    labelIds: [],
-  };
+  const grants: Array<UserPermission> = (
+    data.permissions || [Permission.ProjectMember]
+  ).map((permission: Permission): UserPermission => {
+    return {
+      _type: "UserPermission",
+      permission,
+      labelIds: [],
+      isBlockPermission: false,
+    };
+  });
 
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
 
@@ -231,7 +239,7 @@ function buildMemberProps(data: {
     permissionMap[data.projectId.toString()] = {
       _type: "UserTenantAccessPermission",
       projectId: data.projectId,
-      permissions: [memberPermission],
+      permissions: grants,
     };
   }
 
@@ -612,6 +620,7 @@ describe("buildTimelineResponse", () => {
       teamNames: new Map(),
       memberTeamIds: new Set(),
       totalScheduleCount: 2,
+      includeOverrides: true,
       ...(overrides || {}),
     });
   }
@@ -738,6 +747,38 @@ describe("buildTimelineResponse", () => {
     ).toEqual([false, true]);
   });
 
+  test("without override access the shift stays but its provenance is stripped", () => {
+    const covered: MaterializedShift = shift({
+      start: at("2026-09-15T12:00:00.000Z"),
+      end: at("2026-09-15T18:00:00.000Z"),
+      userId: "user-b",
+      userName: "Bob Berg",
+      override: {
+        originalUserId: "user-a",
+        originalUserName: "Alice Andersson",
+        overrideStartsAt: at("2026-09-15T12:00:00.000Z"),
+        overrideEndsAt: at("2026-09-15T18:00:00.000Z"),
+      },
+    });
+
+    const withAccess: ScheduleTimelineResponse = build({
+      segments: [segment({ scheduleId: "s-1", shifts: [covered] })],
+    });
+    const withoutAccess: ScheduleTimelineResponse = build({
+      segments: [segment({ scheduleId: "s-1", shifts: [covered] })],
+      includeOverrides: false,
+    });
+
+    expect(withAccess.schedules[0]?.shifts[0]?.override?.originalUserName).toBe(
+      "Alice Andersson",
+    );
+    expect(withoutAccess.schedules[0]?.shifts[0]).toMatchObject({
+      userId: "user-b",
+      userName: "Bob Berg",
+      override: null,
+    });
+  });
+
   test("schedulesTruncated compares the total with what was returned", () => {
     expect(build({ totalScheduleCount: 2 }).schedulesTruncated).toBe(false);
 
@@ -795,6 +836,95 @@ describe("GET /on-call-schedule-timeline: who may call it", () => {
 
     expect(result.status).toBe(ExceptionCode.BadDataException);
     expect(scheduleFindBy).not.toHaveBeenCalled();
+  });
+
+  test("a role that can list schedules but not read their layers is refused before anything is read", async () => {
+    propsSpy.mockResolvedValue(
+      buildMemberProps({
+        projectId,
+        userId,
+        permissions: [Permission.ReadProjectOnCallDutyPolicySchedule],
+      }),
+    );
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
+    expect(JSON.parse(result.body).message).toBe(
+      "You do not have permission to read this project's on-call schedule layers.",
+    );
+    expect(scheduleFindBy).not.toHaveBeenCalled();
+    expect(loadSchedules).not.toHaveBeenCalled();
+    expect(loadSegments).not.toHaveBeenCalled();
+    expect(tryAcquireRenderSlot).not.toHaveBeenCalled();
+  });
+
+  test("the layer read permission alone is enough to be served", async () => {
+    propsSpy.mockResolvedValue(
+      buildMemberProps({
+        projectId,
+        userId,
+        permissions: [
+          Permission.ReadProjectOnCallDutyPolicySchedule,
+          Permission.ReadOnCallDutyPolicyScheduleLayer,
+        ],
+      }),
+    );
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(200);
+    expect(json(result).schedules).toHaveLength(2);
+  });
+
+  test("override provenance is only sent to callers who can read user overrides", async () => {
+    loadSegments.mockResolvedValue([
+      segment({
+        scheduleId: scheduleA.toString(),
+        shifts: [
+          shift({
+            scheduleId: scheduleA.toString(),
+            start: at("2026-09-15T12:00:00.000Z"),
+            end: at("2026-09-15T18:00:00.000Z"),
+            userId: "user-b",
+            userName: "Bob Berg",
+            override: {
+              originalUserId: "user-a",
+              originalUserName: "Alice Andersson",
+              overrideStartsAt: at("2026-09-15T12:00:00.000Z"),
+              overrideEndsAt: at("2026-09-15T18:00:00.000Z"),
+            },
+          }),
+        ],
+      }),
+    ]);
+
+    const full: ScheduleTimelineResponse = json(await request(timelinePath()));
+
+    expect(full.schedules[0]?.shifts[0]?.override?.originalUserId).toBe(
+      "user-a",
+    );
+
+    propsSpy.mockResolvedValue(
+      buildMemberProps({
+        projectId,
+        userId,
+        permissions: [
+          Permission.ReadProjectOnCallDutyPolicySchedule,
+          Permission.ReadOnCallDutyPolicyScheduleLayer,
+        ],
+      }),
+    );
+
+    const restricted: ScheduleTimelineResponse = json(
+      await request(timelinePath()),
+    );
+
+    expect(restricted.schedules[0]?.shifts[0]).toMatchObject({
+      userName: "Bob Berg",
+      override: null,
+    });
+    expect(JSON.stringify(restricted)).not.toContain("Alice Andersson");
   });
 
   test("a permission error from the gate read is passed through", async () => {
@@ -964,7 +1094,83 @@ describe("GET /on-call-schedule-timeline: the gate", () => {
   });
 });
 
+describe("GET /on-call-schedule-timeline: owner-team failures", () => {
+  test("a database error reading owner teams is an error, not an ungrouped 200", async () => {
+    ownerTeamFindBy.mockRejectedValue(new Error("statement timeout"));
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(500);
+    expect(loadSegments).not.toHaveBeenCalled();
+    expect(releaseRenderSlot).not.toHaveBeenCalled();
+  });
+
+  test("a plan refusal reading owner teams also serves the timeline ungrouped", async () => {
+    ownerTeamFindBy.mockRejectedValue(
+      new PaymentRequiredException("Upgrade your plan."),
+    );
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(200);
+    expect(json(result).teams).toEqual([]);
+  });
+});
+
 describe("GET /on-call-schedule-timeline: ?teamId=", () => {
+  /*
+   * The team owns A and B, but label scoping lets the caller read only B.
+   * Everything after the gate must be keyed on what the gate returned, never
+   * on the team's own list of schedule ids.
+   */
+  test("a team schedule the gate does not return is never read or rendered", async () => {
+    ownerTeamFindBy
+      .mockResolvedValueOnce([
+        { onCallDutyPolicyScheduleId: scheduleA },
+        { onCallDutyPolicyScheduleId: scheduleB },
+      ] as never)
+      .mockResolvedValueOnce([
+        { onCallDutyPolicyScheduleId: scheduleB, teamId: teamSre },
+      ] as never);
+    scheduleFindBy.mockResolvedValue([scheduleRow(scheduleB, "SRE primary")]);
+
+    const result: HttpResult = await request(
+      timelinePath({ teamId: teamSre.toString() }),
+    );
+
+    expect(result.status).toBe(200);
+
+    // The gate was asked about both of the team's schedules...
+    expect(anyValues(captured(scheduleFindBy).query["_id"]).sort()).toEqual(
+      [scheduleA.toString(), scheduleB.toString()].sort(),
+    );
+
+    // ...and everything after it only about the one it returned.
+    expect(
+      json(result).schedules.map((item: ScheduleTimelineScheduleJson) => {
+        return item.scheduleId;
+      }),
+    ).toEqual([scheduleB.toString()]);
+    expect(
+      anyValues(
+        captured(ownerTeamFindBy, 1).query["onCallDutyPolicyScheduleId"],
+      ),
+    ).toEqual([scheduleB.toString()]);
+    expect(
+      anyValues(captured(layerUserFindBy).query["onCallDutyPolicyScheduleId"]),
+    ).toEqual([scheduleB.toString()]);
+    expect(
+      (loadSchedules.mock.calls[0]?.[0] as Array<ObjectID>).map(String),
+    ).toEqual([scheduleB.toString()]);
+    expect(
+      (
+        loadSegments.mock.calls[0]?.[0] as { schedules: Array<ScheduleInfo> }
+      ).schedules.map((info: ScheduleInfo) => {
+        return info.id.toString();
+      }),
+    ).toEqual([scheduleB.toString()]);
+  });
+
   test("narrows the gate to the team's schedules", async () => {
     ownerTeamFindBy
       .mockResolvedValueOnce([

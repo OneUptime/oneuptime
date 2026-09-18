@@ -30,4 +30,4 @@ Bytt mellom **Week** og **Month**, bla med pilene og gå tilbake med **Today**. 
 
 ## Hvem ser hva
 
-Tidslinjen følger de samme tilgangene og etikettbegrensningene som **Vaktplaner**. Den viser opptil 250 vaktplaner om gangen; et teams side **Vaktplaner** viser alle vaktplanene teamet eier.
+Tidslinjen følger de samme tilgangene og etikettbegrensningene som **Vaktplaner** og krever i tillegg tilgang til å lese vaktplanenes lag. Hvem en overstyring dekker for, vises bare for dem som kan lese brukeroverstyringer. Den viser opptil 250 vaktplaner om gangen, sortert etter navn; et teams side **Vaktplaner** begrenser den til teamets vaktplaner.

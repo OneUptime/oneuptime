@@ -202,6 +202,52 @@ describe("getTimeline", () => {
     expect(sleep).toHaveBeenCalledTimes(TIMELINE_MAX_ATTEMPTS - 1);
   });
 
+  test("a request the caller has abandoned stops retrying after its wait", async () => {
+    let cancelled: boolean = false;
+    const sleep: MockFunction = getJestMockFunction();
+
+    sleep.mockImplementation(async () => {
+      // The reader moves to another week while this request waits.
+      cancelled = true;
+    });
+
+    getMock.mockResolvedValue(failure(503, { "retry-after": "5" }));
+
+    await expect(
+      ScheduleTimelineAPI.getTimeline({
+        from: FROM,
+        to: TO,
+        sleep: sleep as unknown as (milliseconds: number) => Promise<void>,
+        isCancelled: () => {
+          return cancelled;
+        },
+      }),
+    ).rejects.toMatchObject({ statusCode: 503 });
+
+    expect(getMock).toHaveBeenCalledTimes(1);
+    expect(sleep).toHaveBeenCalledTimes(1);
+  });
+
+  test("a request that is still wanted keeps its retries", async () => {
+    const sleep: MockFunction = getJestMockFunction();
+    sleep.mockResolvedValue(undefined);
+
+    getMock.mockResolvedValueOnce(failure(503)).mockResolvedValueOnce(ok(BODY));
+
+    const response: ScheduleTimelineResponse =
+      await ScheduleTimelineAPI.getTimeline({
+        from: FROM,
+        to: TO,
+        sleep: sleep as unknown as (milliseconds: number) => Promise<void>,
+        isCancelled: () => {
+          return false;
+        },
+      });
+
+    expect(response.schedules).toHaveLength(1);
+    expect(getMock).toHaveBeenCalledTimes(2);
+  });
+
   test.each([400, 403, 404, 422, 500])(
     "a %i is not retried",
     async (statusCode: number) => {

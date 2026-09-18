@@ -7,10 +7,19 @@
 
 .oneuptime-schedule-timeline-grid {
   --oneuptime-schedule-timeline-label-width: 264px;
+  /*
+   * Keyboard focus scrolls a block clear of the sticky name column and the
+   * sticky day header, instead of leaving it hidden underneath them.
+   */
+  scroll-padding-left: var(--oneuptime-schedule-timeline-label-width);
+  scroll-padding-top: 64px;
 }
 
-/* On a phone the name column gives the days most of the width. */
-@media (max-width: 640px) {
+/*
+ * On a phone the name column gives the days most of the width. The edge is
+ * one sub-pixel below Tailwind's sm (640px) so the two never overlap.
+ */
+@media (max-width: 639.98px) {
   .oneuptime-schedule-timeline-grid {
     --oneuptime-schedule-timeline-label-width: 148px;
   }

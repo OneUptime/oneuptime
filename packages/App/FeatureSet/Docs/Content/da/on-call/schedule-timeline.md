@@ -30,4 +30,4 @@ Skift mellem **Week** og **Month**, bladr med pilene, og vend tilbage med **Toda
 
 ## Hvem ser hvad
 
-Tidslinjen følger de samme rettigheder og etiketbegrænsninger som **Vagtplaner**. Den viser op til 250 vagtplaner ad gangen; et teams side **Vagtplaner** viser alle vagtplaner, teamet ejer.
+Tidslinjen følger de samme rettigheder og etiketbegrænsninger som **Vagtplaner** og kræver desuden rettighed til at læse vagtplanernes lag. Hvis vagt en tilsidesættelse dækker, vises kun for personer, der må læse brugertilsidesættelser. Den viser op til 250 vagtplaner ad gangen, sorteret efter navn; et teams side **Vagtplaner** begrænser den til teamets vagtplaner.

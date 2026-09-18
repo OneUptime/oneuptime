@@ -20,6 +20,10 @@ const NEW_YORK: string = "America/New_York";
 const TOKYO: string = "Asia/Tokyo";
 const LONDON: string = "Europe/London";
 const UTC: string = "UTC";
+const BERLIN: string = "Europe/Berlin";
+const SANTIAGO: string = "America/Santiago";
+const CAIRO: string = "Africa/Cairo";
+const HAVANA: string = "America/Havana";
 
 function week(anchor: Date, timezone: string): TimelineRange {
   return ScheduleTimelineLayout.getRange({
@@ -232,6 +236,130 @@ describe("DST", () => {
   });
 });
 
+describe("DST gap at local midnight", () => {
+  /*
+   * In these zones the clocks jump from 24:00 straight to 01:00, so the change
+   * day has no 00:00. Each day must still start at its first real instant and
+   * the days must still tile the range end to start.
+   */
+  function expectTiled(range: TimelineRange): void {
+    for (let index: number = 0; index < range.days.length - 1; index++) {
+      expect(range.days[index]?.end.getTime()).toBe(
+        range.days[index + 1]?.start.getTime(),
+      );
+    }
+
+    expect(range.days[0]?.start.getTime()).toBe(range.start.getTime());
+    expect(range.days[range.days.length - 1]?.end.getTime()).toBe(
+      range.end.getTime(),
+    );
+  }
+
+  test("America/Santiago, week of 31 August 2026", () => {
+    const range: TimelineRange = week(at("2026-09-02T15:00:00Z"), SANTIAGO);
+
+    expectTiled(range);
+    expect(range.days[5]?.key).toBe("2026-09-05");
+    expect(range.days[5]?.end.toISOString()).toBe("2026-09-06T04:00:00.000Z");
+    expect(range.days[6]?.key).toBe("2026-09-06");
+    expect(range.days[6]?.start.toISOString()).toBe("2026-09-06T04:00:00.000Z");
+    expect(range.end.toISOString()).toBe("2026-09-07T03:00:00.000Z");
+
+    const hours: Array<number> = range.days.map((day: TimelineDay) => {
+      return (day.end.getTime() - day.start.getTime()) / 3600000;
+    });
+
+    expect(hours).toEqual([24, 24, 24, 24, 24, 24, 23]);
+  });
+
+  test("Santiago: the Saturday/Sunday hand-off lands exactly on the gridline", () => {
+    const range: TimelineRange = week(at("2026-09-02T15:00:00Z"), SANTIAGO);
+
+    expect(
+      ScheduleTimelineLayout.getFraction(at("2026-09-06T04:00:00Z"), range),
+    ).toBe(6 / 7);
+  });
+
+  test("Africa/Cairo, week of 20 April 2026 (the Friday has no midnight)", () => {
+    const range: TimelineRange = week(at("2026-04-22T10:00:00Z"), CAIRO);
+
+    expectTiled(range);
+    expect(range.days[4]?.key).toBe("2026-04-24");
+    expect(range.days[4]?.start.toISOString()).toBe("2026-04-23T22:00:00.000Z");
+    expect(range.days[4]?.end.toISOString()).toBe("2026-04-24T21:00:00.000Z");
+  });
+
+  test("America/Havana, the whole of March 2026", () => {
+    const range: TimelineRange = month(at("2026-03-15T15:00:00Z"), HAVANA);
+
+    expect(range.days).toHaveLength(31);
+    expectTiled(range);
+    expect(range.days[7]?.key).toBe("2026-03-08");
+    expect(range.days[7]?.start.toISOString()).toBe("2026-03-08T05:00:00.000Z");
+    expect(range.days[8]?.start.toISOString()).toBe("2026-03-09T04:00:00.000Z");
+  });
+});
+
+describe("moveAnchorToTimezone", () => {
+  test("keeps the wall clock, so the same dates stay on screen", () => {
+    // Next from Berlin puts the anchor on Monday 21 September, local noon.
+    const anchor: Date = ScheduleTimelineLayout.shiftAnchor({
+      mode: TimelineViewMode.Week,
+      anchor: tzInstant("2026-09-17 09:00", BERLIN),
+      timezone: BERLIN,
+      direction: 1,
+    });
+
+    for (const zone of [
+      UTC,
+      NEW_YORK,
+      TOKYO,
+      "Pacific/Kiritimati",
+      "Pacific/Pago_Pago",
+    ]) {
+      const moved: Date = ScheduleTimelineLayout.moveAnchorToTimezone({
+        anchor,
+        fromTimezone: BERLIN,
+        toTimezone: zone,
+      });
+
+      expect({ zone, first: week(moved, zone).days[0]?.key }).toEqual({
+        zone,
+        first: "2026-09-21",
+      });
+    }
+  });
+
+  test("a month stays the same month", () => {
+    const anchor: Date = ScheduleTimelineLayout.shiftAnchor({
+      mode: TimelineViewMode.Month,
+      anchor: tzInstant("2026-09-17 09:00", TOKYO),
+      timezone: TOKYO,
+      direction: 1,
+    });
+
+    const moved: Date = ScheduleTimelineLayout.moveAnchorToTimezone({
+      anchor,
+      fromTimezone: TOKYO,
+      toTimezone: "America/Los_Angeles",
+    });
+
+    expect(month(moved, "America/Los_Angeles").days[0]?.key).toBe("2026-10-01");
+  });
+
+  test("the same zone is a no-op", () => {
+    const anchor: Date = at("2026-09-17T12:34:56Z");
+
+    expect(
+      ScheduleTimelineLayout.moveAnchorToTimezone({
+        anchor,
+        fromTimezone: NEW_YORK,
+        toTimezone: NEW_YORK,
+      }).toISOString(),
+    ).toBe(anchor.toISOString());
+  });
+});
+
 describe("shiftAnchor", () => {
   test("weeks move by seven days", () => {
     const anchor: Date = at("2026-09-17T12:00:00Z");
@@ -253,7 +381,7 @@ describe("shiftAnchor", () => {
     expect(week(previous, UTC).days[0]?.key).toBe("2026-09-07");
   });
 
-  test("a week step across DST keeps local midnight", () => {
+  test("the new anchor is local noon of the target period's first day, across DST too", () => {
     const next: Date = ScheduleTimelineLayout.shiftAnchor({
       mode: TimelineViewMode.Week,
       anchor: tzInstant("2026-03-04 12:00", NEW_YORK),
@@ -262,8 +390,31 @@ describe("shiftAnchor", () => {
     });
 
     expect(next.toISOString()).toBe(
-      tzInstant("2026-03-09 00:00", NEW_YORK).toISOString(),
+      tzInstant("2026-03-09 12:00", NEW_YORK).toISOString(),
     );
+
+    const nextMonth: Date = ScheduleTimelineLayout.shiftAnchor({
+      mode: TimelineViewMode.Month,
+      anchor: tzInstant("2026-03-31 23:30", NEW_YORK),
+      timezone: NEW_YORK,
+      direction: 1,
+    });
+
+    expect(nextMonth.toISOString()).toBe(
+      tzInstant("2026-04-01 12:00", NEW_YORK).toISOString(),
+    );
+  });
+
+  test("a week step onto a DST gap at midnight still lands in the right week", () => {
+    // Santiago skips 00:00 on Sunday 6 September 2026.
+    const next: Date = ScheduleTimelineLayout.shiftAnchor({
+      mode: TimelineViewMode.Week,
+      anchor: tzInstant("2026-08-26 09:00", SANTIAGO),
+      timezone: SANTIAGO,
+      direction: 1,
+    });
+
+    expect(week(next, SANTIAGO).days[0]?.key).toBe("2026-08-31");
   });
 
   test("months move by calendar month, even from the 31st", () => {

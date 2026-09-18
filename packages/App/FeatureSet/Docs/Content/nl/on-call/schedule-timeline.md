@@ -30,4 +30,4 @@ Wissel tussen **Week** en **Month**, blader met de pijlen en ga terug met **Toda
 
 ## Wie wat ziet
 
-De tijdlijn volgt dezelfde rechten en labelbeperkingen als **Bereikbaarheidsschema's**. Hij toont maximaal 250 schema's tegelijk; de pagina **Bereikbaarheidsschema's** van een team toont elk schema waarvan dat team eigenaar is.
+De tijdlijn volgt dezelfde rechten en labelbeperkingen als **Bereikbaarheidsschema's** en vereist daarnaast het recht om schemalagen te lezen. Wiens dienst een vervanging overneemt, zien alleen mensen die gebruikersvervangingen mogen lezen. Hij toont maximaal 250 schema's tegelijk, gesorteerd op naam; de pagina **Bereikbaarheidsschema's** van een team beperkt hem tot de schema's van dat team.

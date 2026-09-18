@@ -1,5 +1,6 @@
 import ScheduleTimelineAPI from "./ScheduleTimelineAPI";
-import TimelineGrid, { LABEL_COLUMN_WIDTH } from "./TimelineGrid";
+import TimelineGrid from "./TimelineGrid";
+import { LABEL_COLUMN_WIDTH } from "./TimelineRow";
 import TimelineLegend from "./TimelineLegend";
 import TimelineModel, {
   ALL_TEAMS,
@@ -40,9 +41,9 @@ import LocalStorage from "Common/UI/Utils/LocalStorage";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import "./ScheduleTimeline.css";
@@ -199,7 +200,6 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [reloadCounter, setReloadCounter] = useState<number>(0);
-  const latestRequest: React.MutableRefObject<number> = useRef<number>(0);
 
   const [filters, setFilters] = useState<TimelineFilters>(DEFAULT_FILTERS);
   const [groupByTeam, setGroupByTeam] = useState<boolean>(
@@ -217,8 +217,12 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
   }, [mode, anchor, timezone]);
 
   useEffect(() => {
-    const requestId: number = latestRequest.current + 1;
-    latestRequest.current = requestId;
+    /*
+     * Set by the cleanup when the reader moves to another range (or leaves
+     * the page): a slower answer for a range they have left is dropped, and a
+     * request still waiting to retry a busy server stops retrying.
+     */
+    let cancelled: boolean = false;
     const requestedRange: TimelineRange = range;
 
     setIsLoading(true);
@@ -228,10 +232,12 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
       from: requestedRange.start,
       to: requestedRange.end,
       teamId: props.teamId,
+      isCancelled: () => {
+        return cancelled;
+      },
     })
       .then((response: ScheduleTimelineResponse) => {
-        // A slower answer for a range the reader has already left is dropped.
-        if (requestId !== latestRequest.current) {
+        if (cancelled) {
           return;
         }
 
@@ -242,13 +248,17 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
         setIsLoading(false);
       })
       .catch((err: unknown) => {
-        if (requestId !== latestRequest.current) {
+        if (cancelled) {
           return;
         }
 
         setError(API.getFriendlyMessage(err));
         setIsLoading(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [range, teamIdString, reloadCounter]);
 
   const data: TimelineData | null = loaded ? loaded.data : null;
@@ -336,11 +346,47 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
     filters.onlyMine ||
     filters.attention !== AttentionFilter.None;
 
-  const toggleHighlight: (userId: string) => void = (userId: string): void => {
-    setHighlightedUserId((current: string | null) => {
-      return current === userId ? null : userId;
-    });
-  };
+  /*
+   * "Uncovered now" means nothing for a range that does not contain now; once
+   * the reader pages away, the filter would silently hide every schedule.
+   */
+  useEffect(() => {
+    if (
+      filters.attention === AttentionFilter.UncoveredNow &&
+      summary.uncoveredNow === null
+    ) {
+      setFilters((current: TimelineFilters) => {
+        return { ...current, attention: AttentionFilter.None };
+      });
+    }
+  }, [filters.attention, summary.uncoveredNow]);
+
+  // Stable identities: rows are memoized on their props.
+  const toggleHighlight: (userId: string) => void = useCallback(
+    (userId: string): void => {
+      setHighlightedUserId((current: string | null) => {
+        return current === userId ? null : userId;
+      });
+    },
+    [],
+  );
+
+  const toggleGroup: (key: string) => void = useCallback(
+    (key: string): void => {
+      setCollapsedGroupKeys((current: Set<string>) => {
+        const next: Set<string> = new Set<string>(current);
+
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
+
+        return next;
+      });
+    },
+    [],
+  );
 
   const changeMode: (next: TimelineViewMode) => void = (
     next: TimelineViewMode,
@@ -464,8 +510,9 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
 
   const isInitialLoad: boolean = isLoading && !data;
   const isRefreshing: boolean = isLoading && Boolean(data);
+  // Kept while the next range loads, so an empty page does not flicker.
   const hasNoSchedules: boolean = Boolean(
-    data && !isLoading && !error && data.schedules.length === 0,
+    data && !error && data.schedules.length === 0,
   );
 
   const renderBody: () => ReactElement = (): ReactElement => {
@@ -488,13 +535,26 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
       return renderEmpty();
     }
 
-    let gridBody: ReactElement | undefined = undefined;
-
-    if (isInitialLoad) {
-      gridBody = renderSkeleton();
-    } else if (groups.length === 0) {
-      gridBody = renderNoMatches();
+    /*
+     * Outside the grid, like the empty and error states: inside it, the panel
+     * would be centred across the grid's full scroll width (off screen on a
+     * phone) and the now-line would be drawn through it.
+     */
+    if (!isInitialLoad && groups.length === 0) {
+      return (
+        <div
+          className={`overflow-hidden rounded-lg border border-gray-200 transition-opacity duration-200 ${
+            isRefreshing ? "opacity-60" : "opacity-100"
+          }`}
+        >
+          {renderNoMatches()}
+        </div>
+      );
     }
+
+    const gridBody: ReactElement | undefined = isInitialLoad
+      ? renderSkeleton()
+      : undefined;
 
     return (
       <div
@@ -507,21 +567,10 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
           groups={groups}
           now={now}
           computedWindow={computedWindow}
+          servedWindow={data ? data.servedWindow : null}
           showGroupHeaders={groupByTeam && !isTeamLocked}
           collapsedGroupKeys={collapsedGroupKeys}
-          onToggleGroup={(key: string) => {
-            setCollapsedGroupKeys((current: Set<string>) => {
-              const next: Set<string> = new Set<string>(current);
-
-              if (next.has(key)) {
-                next.delete(key);
-              } else {
-                next.add(key);
-              }
-
-              return next;
-            });
-          }}
+          onToggleGroup={toggleGroup}
           highlightedUserId={highlightedUserId}
           onToggleHighlight={toggleHighlight}
           body={gridBody}
@@ -589,7 +638,21 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
             canGoBack={navigability.canGoBack}
             canGoForward={navigability.canGoForward}
             timezone={timezone}
-            onTimezoneChange={setTimezone}
+            onTimezoneChange={(nextTimezone: string) => {
+              /*
+               * Keep the wall clock, not the instant: the same instant falls
+               * on the previous day west of here and would page the view
+               * back a whole week or month.
+               */
+              setAnchor(
+                ScheduleTimelineLayout.moveAnchorToTimezone({
+                  anchor,
+                  fromTimezone: timezone,
+                  toTimezone: nextTimezone,
+                }),
+              );
+              setTimezone(nextTimezone);
+            }}
             isRefreshing={isRefreshing}
           />
 
@@ -629,8 +692,12 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 Showing the first {data.schedules.length} of{" "}
-                {data.totalScheduleCount} schedules, by name. Open a team&apos;s
-                On-Call Schedules page to see every schedule that team owns.
+                {data.totalScheduleCount}{" "}
+                {isTeamLocked ? "schedules this team owns" : "schedules"}, by
+                name.
+                {isTeamLocked
+                  ? ""
+                  : " Open a team's On-Call Schedules page to see just the schedules that team owns."}
               </span>
             </div>
           )}

@@ -30,4 +30,4 @@ Passa da **Week** a **Month**, spostati con le frecce e torna indietro con **Tod
 
 ## Chi vede cosa
 
-La cronologia rispetta gli stessi permessi e le stesse restrizioni per etichetta di **Pianificazioni di reperibilità**. Mostra fino a 250 pianificazioni alla volta; la pagina **Pianificazioni di reperibilità** di un team elenca tutte le pianificazioni di proprietà di quel team.
+La cronologia rispetta gli stessi permessi e le stesse restrizioni per etichetta di **Pianificazioni di reperibilità** e richiede inoltre il permesso di leggere i livelli delle pianificazioni. Chi viene sostituito da una sostituzione è visibile solo a chi può leggere le sostituzioni degli utenti. Mostra fino a 250 pianificazioni alla volta, ordinate per nome; la pagina **Pianificazioni di reperibilità** di un team la limita alle pianificazioni di quel team.

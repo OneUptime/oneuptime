@@ -21,6 +21,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 // -- Navigation -------------------------------------------------------------
 
+const VIEW_MODES: Array<TimelineViewMode> = [
+  TimelineViewMode.Week,
+  TimelineViewMode.Month,
+];
+
 export interface NavigationBarProps {
   rangeLabel: string;
   mode: TimelineViewMode;
@@ -113,36 +118,71 @@ export const NavigationBar: FunctionComponent<NavigationBarProps> = (
             }
           }}
         />
+        {/*
+         * A radio group, so it behaves like one: one tab stop (the checked
+         * option) and the arrow keys, Home and End move the selection.
+         */}
         <div
           role="radiogroup"
           aria-label="Timeline range"
           className="inline-flex rounded-lg bg-gray-100 p-0.5"
-        >
-          {[TimelineViewMode.Week, TimelineViewMode.Month].map(
-            (mode: TimelineViewMode) => {
-              const isActive: boolean = props.mode === mode;
+          onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+            const current: number = VIEW_MODES.indexOf(props.mode);
+            let next: number | null = null;
 
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  role="radio"
-                  aria-checked={isActive}
-                  data-testid={`timeline-mode-${mode}`}
-                  onClick={() => {
-                    props.onModeChange(mode);
-                  }}
-                  className={`rounded-md px-3 py-1 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                    isActive
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-800"
-                  }`}
-                >
-                  {mode === TimelineViewMode.Week ? "Week" : "Month"}
-                </button>
-              );
-            },
-          )}
+            if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+              next = (current + 1) % VIEW_MODES.length;
+            } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+              next = (current - 1 + VIEW_MODES.length) % VIEW_MODES.length;
+            } else if (event.key === "Home") {
+              next = 0;
+            } else if (event.key === "End") {
+              next = VIEW_MODES.length - 1;
+            }
+
+            if (next === null) {
+              return;
+            }
+
+            event.preventDefault();
+
+            const target: TimelineViewMode = VIEW_MODES[next]!;
+
+            event.currentTarget
+              .querySelector<HTMLButtonElement>(
+                `[data-testid="timeline-mode-${target}"]`,
+              )
+              ?.focus();
+
+            if (target !== props.mode) {
+              props.onModeChange(target);
+            }
+          }}
+        >
+          {VIEW_MODES.map((mode: TimelineViewMode) => {
+            const isActive: boolean = props.mode === mode;
+
+            return (
+              <button
+                key={mode}
+                type="button"
+                role="radio"
+                aria-checked={isActive}
+                tabIndex={isActive ? 0 : -1}
+                data-testid={`timeline-mode-${mode}`}
+                onClick={() => {
+                  props.onModeChange(mode);
+                }}
+                className={`rounded-md px-3 py-1 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  isActive
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                {mode === TimelineViewMode.Week ? "Week" : "Month"}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -207,28 +247,36 @@ export const SummaryBar: FunctionComponent<SummaryBarProps> = (
         </span>
       )}
 
-      {props.summary.uncoveredNow !== null &&
-        props.summary.uncoveredNow > 0 && (
-          <button
-            type="button"
-            data-testid="timeline-summary-uncovered-now"
-            aria-pressed={props.attention === AttentionFilter.UncoveredNow}
-            onClick={() => {
-              toggle(AttentionFilter.UncoveredNow);
-            }}
-            className={chipClassName(
-              props.attention === AttentionFilter.UncoveredNow,
-              "bg-amber-50 text-amber-800 ring-amber-300",
-            )}
-            title="Show only schedules with nobody on call right now"
-          >
-            <Icon icon={IconProp.Alert} className="h-4 w-4 text-amber-500" />
-            <span className="font-semibold">{props.summary.uncoveredNow}</span>
-            with no one on call now
-          </button>
-        )}
+      {/*
+       * The two attention chips are the only way to see or turn off their
+       * filter, so each stays up while its filter is on - even at zero.
+       */}
+      {((props.summary.uncoveredNow !== null &&
+        props.summary.uncoveredNow > 0) ||
+        props.attention === AttentionFilter.UncoveredNow) && (
+        <button
+          type="button"
+          data-testid="timeline-summary-uncovered-now"
+          aria-pressed={props.attention === AttentionFilter.UncoveredNow}
+          onClick={() => {
+            toggle(AttentionFilter.UncoveredNow);
+          }}
+          className={chipClassName(
+            props.attention === AttentionFilter.UncoveredNow,
+            "bg-amber-50 text-amber-800 ring-amber-300",
+          )}
+          title="Show only schedules with nobody on call right now"
+        >
+          <Icon icon={IconProp.Alert} className="h-4 w-4 text-amber-500" />
+          <span className="font-semibold">
+            {props.summary.uncoveredNow ?? 0}
+          </span>
+          with no one on call now
+        </button>
+      )}
 
-      {props.summary.withGaps > 0 && (
+      {(props.summary.withGaps > 0 ||
+        props.attention === AttentionFilter.HasGaps) && (
         <button
           type="button"
           data-testid="timeline-summary-gaps"

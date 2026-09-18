@@ -30,4 +30,4 @@ Switch between **Week** and **Month**, move with the arrows and return with **To
 
 ## Who sees what
 
-The timeline respects the same permissions and label restrictions as **On-Call Schedules**. It shows up to 250 schedules at a time; a team's **On-Call Schedules** page lists every schedule that team owns.
+The timeline follows the same permissions and label restrictions as **On-Call Schedules**, and also needs permission to read schedule layers. Whose shift an override covers is only shown to people who can read user overrides. It shows up to 250 schedules at a time, sorted by name; a team's **On-Call Schedules** page narrows it to the schedules that team owns.

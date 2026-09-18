@@ -73,77 +73,132 @@ export default class ScheduleTimelineLayout {
    * The days on screen for `mode` around `anchor`, in `timezone`:
    *   Week  -> the ISO week (Monday first) containing the anchor;
    *   Month -> the calendar month containing the anchor.
+   *
+   * Days are walked as plain calendar dates and each day's edge is parsed in
+   * the zone, rather than by stepping a zoned moment a day at a time. In the
+   * zones whose DST gap is AT midnight (America/Santiago, America/Havana,
+   * Asia/Beirut, Atlantic/Azores, Africa/Cairo) there is no 00:00 on the
+   * change day; stepping a zoned moment lands an hour off and drags the
+   * neighbouring day's edge with it, while parsing the date resolves to the
+   * first instant that day actually has.
    */
   public static getRange(data: {
     mode: TimelineViewMode;
     anchor: Date;
     timezone: string;
   }): TimelineRange {
-    const zoned: moment.Moment = moment.tz(data.anchor, data.timezone);
+    const anchorDate: moment.Moment = ScheduleTimelineLayout.getCalendarDate(
+      data.anchor,
+      data.timezone,
+    );
 
-    const first: moment.Moment =
+    const firstDate: moment.Moment =
       data.mode === TimelineViewMode.Month
-        ? zoned.clone().startOf("month")
-        : zoned.clone().startOf("isoWeek");
+        ? anchorDate.clone().startOf("month")
+        : anchorDate.clone().startOf("isoWeek");
 
-    const last: moment.Moment =
-      data.mode === TimelineViewMode.Month
-        ? first.clone().add(1, "month")
-        : first.clone().add(7, "days");
+    const dayCount: number =
+      data.mode === TimelineViewMode.Month ? firstDate.daysInMonth() : 7;
 
     const days: Array<TimelineDay> = [];
-    const cursor: moment.Moment = first.clone();
 
-    // Bounded: a month has at most 31 days; the guard only stops a bad zone.
-    while (cursor.isBefore(last) && days.length < 32) {
-      const next: moment.Moment = cursor.clone().add(1, "day");
-      const isoWeekday: number = cursor.isoWeekday();
+    for (let index: number = 0; index < dayCount; index++) {
+      const date: moment.Moment = firstDate.clone().add(index, "days");
+      const isoWeekday: number = date.isoWeekday();
 
       days.push({
-        key: cursor.format("YYYY-MM-DD"),
-        start: cursor.toDate(),
-        end: next.toDate(),
-        dayOfMonth: cursor.date(),
-        weekdayShort: cursor.format("ddd"),
-        weekdayNarrow: cursor.format("dd").charAt(0),
-        monthShort: cursor.format("MMM"),
+        key: date.format("YYYY-MM-DD"),
+        start: ScheduleTimelineLayout.getStartOfLocalDay(date, data.timezone),
+        end: ScheduleTimelineLayout.getStartOfLocalDay(
+          date.clone().add(1, "day"),
+          data.timezone,
+        ),
+        dayOfMonth: date.date(),
+        weekdayShort: date.format("ddd"),
+        weekdayNarrow: date.format("dd").charAt(0),
+        monthShort: date.format("MMM"),
         isWeekend: isoWeekday === 6 || isoWeekday === 7,
-        isFirstOfMonth: cursor.date() === 1,
+        isFirstOfMonth: date.date() === 1,
       });
-
-      cursor.add(1, "day");
     }
 
     return {
       mode: data.mode,
       timezone: data.timezone,
-      start: first.toDate(),
-      end: last.toDate(),
+      start: days[0]!.start,
+      end: days[days.length - 1]!.end,
       days,
     };
   }
 
-  // The anchor one week / month before or after, keeping the wall clock.
+  /*
+   * An anchor inside the week / month before or after: local noon of that
+   * period's first day. Noon rather than midnight, so no anchor ever sits on
+   * an edge that a DST change or a later zone switch could move.
+   */
   public static shiftAnchor(data: {
     mode: TimelineViewMode;
     anchor: Date;
     timezone: string;
     direction: 1 | -1;
   }): Date {
-    const zoned: moment.Moment = moment.tz(data.anchor, data.timezone);
+    const anchorDate: moment.Moment = ScheduleTimelineLayout.getCalendarDate(
+      data.anchor,
+      data.timezone,
+    );
 
-    if (data.mode === TimelineViewMode.Month) {
-      return zoned
-        .clone()
-        .startOf("month")
-        .add(data.direction, "month")
-        .toDate();
-    }
+    const target: moment.Moment =
+      data.mode === TimelineViewMode.Month
+        ? anchorDate.clone().startOf("month").add(data.direction, "month")
+        : anchorDate
+            .clone()
+            .startOf("isoWeek")
+            .add(data.direction * 7, "days");
 
-    return zoned
-      .clone()
-      .startOf("isoWeek")
-      .add(data.direction * 7, "days")
+    return moment
+      .tz(
+        `${target.format("YYYY-MM-DD")} 12:00`,
+        "YYYY-MM-DD HH:mm",
+        data.timezone,
+      )
+      .toDate();
+  }
+
+  /*
+   * The same wall-clock moment in another zone. Used when the reader changes
+   * the view zone, so the dates on screen stay the dates on screen: the same
+   * INSTANT would fall on the previous day in any zone west of the old one
+   * and quietly page the view back a week or a month.
+   */
+  public static moveAnchorToTimezone(data: {
+    anchor: Date;
+    fromTimezone: string;
+    toTimezone: string;
+  }): Date {
+    const wallClock: string = moment
+      .tz(data.anchor, data.fromTimezone)
+      .format("YYYY-MM-DDTHH:mm:ss");
+
+    return moment
+      .tz(wallClock, "YYYY-MM-DDTHH:mm:ss", data.toTimezone)
+      .toDate();
+  }
+
+  // The calendar date of `date` in `timezone`, as a zone-free UTC moment.
+  private static getCalendarDate(date: Date, timezone: string): moment.Moment {
+    return moment.utc(
+      moment.tz(date, timezone).format("YYYY-MM-DD"),
+      "YYYY-MM-DD",
+    );
+  }
+
+  // The first instant of a calendar date in `timezone` (DST-gap safe).
+  private static getStartOfLocalDay(
+    calendarDate: moment.Moment,
+    timezone: string,
+  ): Date {
+    return moment
+      .tz(calendarDate.format("YYYY-MM-DD"), "YYYY-MM-DD", timezone)
       .toDate();
   }
 

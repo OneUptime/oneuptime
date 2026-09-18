@@ -30,4 +30,4 @@ Växla mellan **Week** och **Month**, bläddra med pilarna och gå tillbaka med 
 
 ## Vem ser vad
 
-Tidslinjen följer samma behörigheter och etikettbegränsningar som **Jourscheman**. Den visar upp till 250 scheman åt gången; ett teams sida **Jourscheman** listar alla scheman som teamet äger.
+Tidslinjen följer samma behörigheter och etikettbegränsningar som **Jourscheman** och kräver dessutom behörighet att läsa schemalager. Vems pass en åsidosättning täcker visas bara för dem som får läsa användaråsidosättningar. Den visar upp till 250 scheman åt gången, sorterade efter namn; ett teams sida **Jourscheman** begränsar den till teamets scheman.

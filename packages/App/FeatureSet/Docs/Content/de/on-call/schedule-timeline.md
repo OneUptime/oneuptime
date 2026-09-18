@@ -30,4 +30,4 @@ Wechseln Sie zwischen **Week** und **Month**, blättern Sie mit den Pfeilen und 
 
 ## Wer was sieht
 
-Die Zeitachse beachtet dieselben Berechtigungen und Label-Einschränkungen wie **Bereitschaftspläne**. Sie zeigt bis zu 250 Pläne auf einmal; die Seite **Bereitschaftspläne** eines Teams listet jeden Plan auf, den dieses Team besitzt.
+Die Zeitachse beachtet dieselben Berechtigungen und Label-Einschränkungen wie **Bereitschaftspläne** und erfordert zusätzlich die Berechtigung, Planebenen zu lesen. Wessen Schicht eine Vertretung übernimmt, sehen nur Personen, die Benutzervertretungen lesen dürfen. Sie zeigt bis zu 250 Pläne auf einmal, nach Namen sortiert; die Seite **Bereitschaftspläne** eines Teams beschränkt sie auf die Pläne dieses Teams.

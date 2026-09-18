@@ -30,4 +30,4 @@ Cambie entre **Week** y **Month**, avance o retroceda con las flechas y vuelva c
 
 ## Quién ve qué
 
-La línea de tiempo respeta los mismos permisos y restricciones por etiqueta que **Horarios de Guardia**. Muestra hasta 250 horarios a la vez; la página **Horarios de Guardia** de un equipo lista todos los horarios de los que ese equipo es propietario.
+La línea de tiempo respeta los mismos permisos y restricciones por etiqueta que **Horarios de Guardia** y además requiere permiso para leer las capas de los horarios. A quién cubre una sustitución solo lo ven las personas que pueden leer las sustituciones de usuarios. Muestra hasta 250 horarios a la vez, ordenados por nombre; la página **Horarios de Guardia** de un equipo la limita a los horarios de los que ese equipo es propietario.

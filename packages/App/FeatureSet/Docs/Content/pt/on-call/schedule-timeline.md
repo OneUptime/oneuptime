@@ -30,4 +30,4 @@ Alterne entre **Week** e **Month**, navegue com as setas e volte com **Today**. 
 
 ## Quem vê o quê
 
-A linha do tempo respeita as mesmas permissões e restrições por rótulo de **Agendamentos de plantão**. Ela mostra até 250 agendamentos por vez; a página **Agendamentos de plantão** de uma equipe lista todos os agendamentos dos quais essa equipe é proprietária.
+A linha do tempo respeita as mesmas permissões e restrições por rótulo de **Agendamentos de plantão** e também exige permissão para ler as camadas dos agendamentos. Quem está sendo coberto por uma substituição só é mostrado a quem pode ler substituições de usuários. Ela mostra até 250 agendamentos por vez, ordenados por nome; a página **Agendamentos de plantão** de uma equipe a restringe aos agendamentos dessa equipe.

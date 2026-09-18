@@ -1,7 +1,5 @@
-import {
-  getColorForUserId,
-  getUserInitials,
-} from "../OnCallScheduleLayer/LayerUserColors";
+import { getUserInitials } from "../OnCallScheduleLayer/LayerUserColors";
+import { getTimelineColorForUserId } from "./TimelineColors";
 import { OVERRIDE_TITLE_MARKER } from "../OnCallScheduleLayer/OverridePresentation";
 import { TimelineShift } from "./TimelineModel";
 import ScheduleTimelineLayout, {
@@ -43,6 +41,8 @@ export interface ShiftBarProps {
   widthPx: number | null;
   scheduleName: string;
   timezone: string;
+  // Probed once per grid: the probe builds an Intl.DateTimeFormat.
+  use12HourFormat: boolean;
   now: Date;
   // Another user is highlighted: fade this bar unless it is theirs.
   highlightedUserId: string | null;
@@ -53,7 +53,7 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
   props: ShiftBarProps,
 ): ReactElement => {
   const shift: TimelineShift = props.positioned.item;
-  const color: string = getColorForUserId(shift.userId);
+  const color: string = getTimelineColorForUserId(shift.userId);
   const isActive: boolean =
     shift.start.getTime() <= props.now.getTime() &&
     shift.end.getTime() > props.now.getTime();
@@ -65,6 +65,7 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
     start: shift.start,
     end: shift.end,
     timezone: props.timezone,
+    use12HourFormat: props.use12HourFormat,
   });
   const duration: string = ScheduleTimelineLayout.formatDuration(
     shift.end.getTime() - shift.start.getTime(),
@@ -153,7 +154,7 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
         onClick={() => {
           props.onToggleHighlight(shift.userId);
         }}
-        className={`absolute top-[9px] flex h-[30px] items-center gap-1.5 overflow-hidden text-left text-xs font-medium text-gray-900 transition-[opacity,box-shadow] duration-150 hover:z-10 focus:z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+        className={`absolute top-[9px] flex h-[30px] items-center gap-1.5 overflow-hidden text-left text-xs font-medium text-gray-900 transition-[opacity,box-shadow] duration-150 hover:z-10 focus:z-10 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:!opacity-100 focus-visible:outline-indigo-500 ${
           hasText ? "px-1.5" : "px-0"
         }`}
         style={{
@@ -202,6 +203,8 @@ export interface GapBlockProps {
   positioned: PositionedInterval<TimeInterval>;
   widthPx: number | null;
   timezone: string;
+  // Probed once per grid: the probe builds an Intl.DateTimeFormat.
+  use12HourFormat: boolean;
 }
 
 /*
@@ -217,6 +220,7 @@ export const GapBlock: FunctionComponent<GapBlockProps> = (
     start: gap.start,
     end: gap.end,
     timezone: props.timezone,
+    use12HourFormat: props.use12HourFormat,
   });
   const duration: string = ScheduleTimelineLayout.formatDuration(
     gap.end.getTime() - gap.start.getTime(),
@@ -240,7 +244,7 @@ export const GapBlock: FunctionComponent<GapBlockProps> = (
         data-testid="timeline-gap"
         tabIndex={0}
         aria-label={`No one on call, ${interval}`}
-        className={`oneuptime-schedule-timeline-gap absolute top-[9px] flex h-[30px] items-center overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
+        className={`oneuptime-schedule-timeline-gap absolute top-[9px] flex h-[30px] items-center overflow-hidden focus:z-10 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:!opacity-100 focus-visible:outline-amber-500 ${
           fits(props.widthPx, GAP_TEXT_MIN_WIDTH_PX) ? "px-2" : "px-0"
         }`}
         style={{
@@ -264,6 +268,8 @@ export interface OverriddenSegmentProps {
   positioned: PositionedInterval<TimelineShift>;
   widthPx: number | null;
   timezone: string;
+  // Probed once per grid: the probe builds an Intl.DateTimeFormat.
+  use12HourFormat: boolean;
   highlightedUserId: string | null;
 }
 
@@ -281,7 +287,7 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
     return <></>;
   }
 
-  const originalColor: string = getColorForUserId(
+  const originalColor: string = getTimelineColorForUserId(
     shift.override.originalUserId,
   );
 
@@ -302,6 +308,7 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
           start: shift.start,
           end: shift.end,
           timezone: props.timezone,
+          use12HourFormat: props.use12HourFormat,
         })}
         .
       </div>
@@ -311,6 +318,7 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
           start: shift.override.start,
           end: shift.override.end,
           timezone: props.timezone,
+          use12HourFormat: props.use12HourFormat,
         })}
       </div>
     </div>
@@ -322,7 +330,7 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
         data-testid="timeline-overridden-segment"
         tabIndex={0}
         aria-label={`${shift.override.originalUserName}'s shift, covered by ${shift.userName}`}
-        className={`absolute top-[46px] flex h-[18px] items-center gap-1 overflow-hidden rounded text-[11px] text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+        className={`absolute top-[46px] flex h-[18px] items-center gap-1 overflow-hidden rounded text-[11px] text-gray-500 focus:z-10 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:!opacity-100 focus-visible:outline-indigo-500 ${
           fits(props.widthPx, BAR_TEXT_MIN_WIDTH_PX) ? "px-1.5" : "px-0"
         }`}
         style={{
