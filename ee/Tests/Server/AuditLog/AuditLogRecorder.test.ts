@@ -1,5 +1,15 @@
-import { AuditLogService } from "Common/Server/Services/AuditLogService";
+import AuditLogRecorder, {
+  AuditLogStore,
+} from "../../../Server/AuditLog/AuditLogRecorder";
+import CoreAuditLogService from "Common/Server/Services/AuditLogService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
+import { EnterpriseLicenseStatus } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
+import {
+  createLicenseSnapshotWithStatus,
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 import FindBy from "Common/Server/Types/Database/FindBy";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -25,12 +35,15 @@ import UserType from "Common/Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * AuditLogService decides whether a change is recorded, and what the entry
- * says. Every failure mode here is silent - record* swallows its errors and
- * an empty audit page looks exactly like "nobody changed anything" - so each
- * rule is pinned against the entry that actually reaches the insert:
+ * The Enterprise audit-log recorder decides whether a change is recorded, and
+ * what the entry says. Every failure mode here is silent - record* swallows
+ * its errors and an empty audit page looks exactly like "nobody changed
+ * anything" - so each rule is pinned against the entry that actually reaches
+ * the insert:
  *
- *   - eligibility: Enterprise gate, the project's switch, system events;
+ *   - eligibility: billing first (the Cloud records Enterprise-plan projects
+ *     only), else the Enterprise Edition being loaded (never the license),
+ *     then the project's switch and system events;
  *   - identity: resourceType is the model's singularName, and every entry
  *     carries the root resource it rolls up to (an SLO's burn-rate rules,
  *     monitor rules and owners roll up to the SLO);
@@ -38,6 +51,16 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *   - readability: relations are recorded as { _id, name }, nameless owner
  *     rows are named after their user or team, and names are only ever read
  *     from inside the audited project.
+ *
+ * This behaviour lived in core's AuditLogService until the Community /
+ * Enterprise split; core now only delegates to the recorder (its own suite,
+ * packages/Common/Tests/Server/Services/AuditLogService.test.ts, pins that).
+ * The eligibility matrix below also runs through core's delegate, so the seam
+ * between the two is covered as well.
+ *
+ * Billing and the edition are pinned in every test (CI's config.env sets
+ * BILLING_ENABLED=true): billing through TestBillingFlag, the edition by
+ * registering a fake enterprise module whose recorder is the one under test.
  *
  * No ClickHouse or Postgres: the insert, the project and user reads and the
  * related-row lookups are all stubbed. ProjectService and UserService are
@@ -71,22 +94,18 @@ jest.mock("Common/Server/Services/UserService", () => {
 });
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "Common/Server/EnvironmentConfig",
-  ) as Record<string, unknown>;
+  const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "Common/Tests/Server/Enterprise/TestBillingFlag",
+    ) as typeof import("Common/Tests/Server/Enterprise/TestBillingFlag");
 
-  // A writable copy: each test sets the build flags it needs.
-  return { ...actual, IsEnterpriseEdition: true, IsBillingEnabled: false };
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
 });
-
-type EnvironmentFlags = {
-  IsEnterpriseEdition: boolean;
-  IsBillingEnabled: boolean;
-};
-
-const environment: EnvironmentFlags = jest.requireMock(
-  "Common/Server/EnvironmentConfig",
-) as EnvironmentFlags;
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -131,11 +150,11 @@ interface RelatedLookup {
 }
 
 interface Harness {
-  service: AuditLogService;
+  recorder: AuditLogRecorder;
   inserted: Array<AuditLog>;
   findProject: jest.Mock;
   findUser: jest.Mock;
-  insert: jest.SpyInstance;
+  insert: jest.Mock;
   relatedLookups: Array<RelatedLookup>;
 }
 
@@ -176,15 +195,17 @@ function makeUser(id: ObjectID, name: string | null, email: string): User {
 }
 
 function createHarness(): Harness {
-  const service: AuditLogService = new AuditLogService();
   const inserted: Array<AuditLog> = [];
 
-  const insert: jest.SpyInstance = jest
-    .spyOn(service, "create")
-    .mockImplementation(((createBy: { data: AuditLog }) => {
-      inserted.push(createBy.data);
-      return Promise.resolve(createBy.data);
-    }) as never);
+  // The store the recorder writes to: core's AuditLog analytics service in production.
+  const insert: jest.Mock = jest.fn(((createBy: { data: AuditLog }) => {
+    inserted.push(createBy.data);
+    return Promise.resolve(createBy.data);
+  }) as never);
+
+  const recorder: AuditLogRecorder = new AuditLogRecorder({
+    store: { create: insert } as unknown as AuditLogStore,
+  });
 
   const findProject: jest.Mock = findProjectMock;
   findProject.mockReset();
@@ -220,7 +241,7 @@ function createHarness(): Harness {
     return Promise.resolve(relatedRows.get(tableName) || []);
   } as never);
 
-  return { service, inserted, findProject, findUser, insert, relatedLookups };
+  return { recorder, inserted, findProject, findUser, insert, relatedLookups };
 }
 
 // The ids a tenant-scoped lookup asked for, read back out of QueryHelper.any.
@@ -321,8 +342,8 @@ function changeFor(entry: AuditLog, field: string): JSONObject | undefined {
 }
 
 beforeEach(() => {
-  environment.IsEnterpriseEdition = true;
-  environment.IsBillingEnabled = false;
+  // Self-hosted Enterprise Edition, with the recorder under test registered.
+  setTestBillingEnabled(false);
   project = makeProject({ enableAuditLogs: true });
   usersById = new Map<string, User>([
     [USER_ID.toString(), makeUser(USER_ID, "Ada Lovelace", "ada@example.com")],
@@ -330,15 +351,18 @@ beforeEach(() => {
   relatedRows = new Map<string, Array<BaseModel>>();
   failRelatedLookups = false;
   harness = createHarness();
+  installFakeEnterpriseModule({ auditLogRecorder: harness.recorder });
 });
 
 afterEach(() => {
+  uninstallEnterpriseModule();
+  setTestBillingEnabled(false);
   jest.restoreAllMocks();
 });
 
 describe("which changes are recorded", () => {
   test("a person's change on an eligible project is recorded with its actor and retention", async () => {
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjective(),
       createdItem: makeSlo(),
       props: USER_PROPS,
@@ -365,7 +389,7 @@ describe("which changes are recorded", () => {
   test("nothing is recorded while the project has audit logging off", async () => {
     project = makeProject({ enableAuditLogs: false });
 
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjective(),
       createdItem: makeSlo(),
       props: USER_PROPS,
@@ -379,7 +403,7 @@ describe("which changes are recorded", () => {
       return Promise.resolve(null);
     });
 
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjective(),
       createdItem: makeSlo(),
       props: USER_PROPS,
@@ -389,7 +413,7 @@ describe("which changes are recorded", () => {
   });
 
   test("system events are dropped unless the project stores them", async () => {
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjective(),
       createdItem: makeSlo(),
       props: SYSTEM_PROPS,
@@ -401,9 +425,9 @@ describe("which changes are recorded", () => {
       enableAuditLogs: true,
       storeSystemEventsInAuditLogs: true,
     });
-    harness.service.invalidateProjectSettings(PROJECT_ID);
+    harness.recorder.invalidateProjectSettings(PROJECT_ID);
 
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjective(),
       createdItem: makeSlo(),
       props: SYSTEM_PROPS,
@@ -414,65 +438,11 @@ describe("which changes are recorded", () => {
     expect(entry.userId).toBeUndefined();
   });
 
-  test.each([
-    {
-      build: "the Enterprise Edition",
-      isEnterpriseEdition: true,
-      isBillingEnabled: false,
-      planName: undefined,
-      recorded: true,
-    },
-    {
-      build: "cloud on the Enterprise plan",
-      isEnterpriseEdition: false,
-      isBillingEnabled: true,
-      planName: PlanType.Enterprise,
-      recorded: true,
-    },
-    {
-      build: "cloud on the Growth plan",
-      isEnterpriseEdition: false,
-      isBillingEnabled: true,
-      planName: PlanType.Growth,
-      recorded: false,
-    },
-    {
-      build: "the free self-hosted build",
-      isEnterpriseEdition: false,
-      isBillingEnabled: false,
-      planName: PlanType.Enterprise,
-      recorded: false,
-    },
-  ])(
-    "on $build an entry is recorded: $recorded",
-    async (data: {
-      isEnterpriseEdition: boolean;
-      isBillingEnabled: boolean;
-      planName: PlanType | undefined;
-      recorded: boolean;
-    }) => {
-      environment.IsEnterpriseEdition = data.isEnterpriseEdition;
-      environment.IsBillingEnabled = data.isBillingEnabled;
-      project = makeProject({
-        enableAuditLogs: true,
-        ...(data.planName ? { planName: data.planName } : {}),
-      });
-
-      await harness.service.recordCreate({
-        model: new ServiceLevelObjective(),
-        createdItem: makeSlo(),
-        props: USER_PROPS,
-      });
-
-      expect(harness.inserted).toHaveLength(data.recorded ? 1 : 0);
-    },
-  );
-
   test("a change with no project to file it under records nothing and reads nothing", async () => {
     const slo: ServiceLevelObjective = makeSlo();
     (slo as unknown as Record<string, unknown>)["projectId"] = undefined;
 
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjective(),
       createdItem: slo,
       props: { userId: USER_ID, userType: UserType.User },
@@ -484,7 +454,7 @@ describe("which changes are recorded", () => {
 
   test("the project's settings are read once per cache period, and again after invalidation", async () => {
     for (let i: number = 0; i < 3; i++) {
-      await harness.service.recordCreate({
+      await harness.recorder.recordCreate({
         model: new ServiceLevelObjective(),
         createdItem: makeSlo(),
         props: USER_PROPS,
@@ -493,9 +463,9 @@ describe("which changes are recorded", () => {
 
     expect(harness.findProject).toHaveBeenCalledTimes(1);
 
-    harness.service.invalidateProjectSettings(PROJECT_ID);
+    harness.recorder.invalidateProjectSettings(PROJECT_ID);
 
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjective(),
       createdItem: makeSlo(),
       props: USER_PROPS,
@@ -510,12 +480,347 @@ describe("which changes are recorded", () => {
     }) as never);
 
     await expect(
-      harness.service.recordCreate({
+      harness.recorder.recordCreate({
         model: new ServiceLevelObjective(),
         createdItem: makeSlo(),
         props: USER_PROPS,
       }),
     ).resolves.toBeUndefined();
+  });
+});
+
+/*
+ * --------------------------------------------------------------------------- *
+ * Who records at all: billing first, then the edition - never the license.
+ *
+ * Each row runs twice: straight into the recorder, and through core's
+ * AuditLogService delegate (what DatabaseService actually calls), which finds
+ * the recorder through EnterpriseEdition. "Loaded" means an enterprise module
+ * is registered with this recorder; "not loaded" is the Community Edition,
+ * where core has no recorder to delegate to.
+ * ---------------------------------------------------------------------------
+ */
+
+interface EligibilityRow {
+  deployment: string;
+  billing: boolean;
+  loaded: boolean;
+  license?: EnterpriseLicenseStatus | undefined;
+  planName?: PlanType | undefined;
+  enableAuditLogs: boolean;
+  recorded: boolean;
+}
+
+const ELIGIBILITY_MATRIX: Array<EligibilityRow> = [
+  {
+    deployment: "self-hosted Enterprise Edition, valid license",
+    billing: false,
+    loaded: true,
+    license: "valid",
+    enableAuditLogs: true,
+    recorded: true,
+  },
+  {
+    deployment: "self-hosted Enterprise Edition, license in grace",
+    billing: false,
+    loaded: true,
+    license: "grace",
+    enableAuditLogs: true,
+    recorded: true,
+  },
+  {
+    deployment: "self-hosted Enterprise Edition, license expired past grace",
+    billing: false,
+    loaded: true,
+    license: "expired",
+    enableAuditLogs: true,
+    recorded: true,
+  },
+  {
+    deployment: "self-hosted Enterprise Edition, no license at all",
+    billing: false,
+    loaded: true,
+    license: "missing",
+    enableAuditLogs: true,
+    recorded: true,
+  },
+  {
+    deployment: "self-hosted Enterprise Edition, license invalid",
+    billing: false,
+    loaded: true,
+    license: "invalid",
+    enableAuditLogs: true,
+    recorded: true,
+  },
+  {
+    deployment: "self-hosted Enterprise Edition, project has audit logs off",
+    billing: false,
+    loaded: true,
+    license: "valid",
+    enableAuditLogs: false,
+    recorded: false,
+  },
+  {
+    deployment: "Community Edition, even with the Enterprise plan and the switch on",
+    billing: false,
+    loaded: false,
+    planName: PlanType.Enterprise,
+    enableAuditLogs: true,
+    recorded: false,
+  },
+  {
+    deployment: "Cloud (Enterprise Edition loaded), Enterprise plan",
+    billing: true,
+    loaded: true,
+    planName: PlanType.Enterprise,
+    enableAuditLogs: true,
+    recorded: true,
+  },
+  {
+    deployment: "Cloud (Enterprise Edition loaded), Enterprise plan, audit logs off",
+    billing: true,
+    loaded: true,
+    planName: PlanType.Enterprise,
+    enableAuditLogs: false,
+    recorded: false,
+  },
+  {
+    /*
+     * The precedence bug this split fixes: the old order asked about the
+     * edition before billing, and the Cloud runs the Enterprise image, so
+     * every Growth project on the Cloud was recorded.
+     */
+    deployment: "Cloud (Enterprise Edition loaded), Growth plan",
+    billing: true,
+    loaded: true,
+    planName: PlanType.Growth,
+    enableAuditLogs: true,
+    recorded: false,
+  },
+  {
+    deployment: "Cloud (Enterprise Edition loaded), Scale plan",
+    billing: true,
+    loaded: true,
+    planName: PlanType.Scale,
+    enableAuditLogs: true,
+    recorded: false,
+  },
+  {
+    deployment: "Cloud (Enterprise Edition loaded), Free plan",
+    billing: true,
+    loaded: true,
+    planName: PlanType.Free,
+    enableAuditLogs: true,
+    recorded: false,
+  },
+  {
+    deployment: "Cloud (Enterprise Edition loaded), no plan on the project",
+    billing: true,
+    loaded: true,
+    enableAuditLogs: true,
+    recorded: false,
+  },
+];
+
+type RecordThrough = "the recorder" | "core's AuditLogService";
+
+const ELIGIBILITY_CASES: Array<EligibilityRow & { via: RecordThrough }> =
+  ELIGIBILITY_MATRIX.flatMap((row: EligibilityRow) => {
+    return [
+      { ...row, via: "the recorder" as RecordThrough },
+      { ...row, via: "core's AuditLogService" as RecordThrough },
+    ];
+  });
+
+describe("who records audit logs", () => {
+  test.each(ELIGIBILITY_CASES)(
+    "$deployment, through $via: recorded=$recorded",
+    async (row: EligibilityRow & { via: RecordThrough }) => {
+      setTestBillingEnabled(row.billing);
+
+      if (row.loaded) {
+        installFakeEnterpriseModule({
+          auditLogRecorder: harness.recorder,
+          snapshot: createLicenseSnapshotWithStatus(row.license || "valid"),
+        });
+      } else {
+        uninstallEnterpriseModule();
+      }
+
+      project = makeProject({
+        enableAuditLogs: row.enableAuditLogs,
+        ...(row.planName ? { planName: row.planName } : {}),
+      });
+
+      const data: {
+        model: ServiceLevelObjective;
+        createdItem: ServiceLevelObjective;
+        props: DatabaseCommonInteractionProps;
+      } = {
+        model: new ServiceLevelObjective(),
+        createdItem: makeSlo(),
+        props: USER_PROPS,
+      };
+
+      if (row.via === "the recorder") {
+        await harness.recorder.recordCreate(data);
+      } else {
+        await CoreAuditLogService.recordCreate(data);
+      }
+
+      expect(harness.inserted).toHaveLength(row.recorded ? 1 : 0);
+    },
+  );
+
+  test("the Cloud reads the plan from the project, not the edition: switching plan changes the answer after invalidation", async () => {
+    setTestBillingEnabled(true);
+    project = makeProject({
+      enableAuditLogs: true,
+      planName: PlanType.Growth,
+    });
+
+    await harness.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+
+    expect(harness.inserted).toHaveLength(0);
+
+    project = makeProject({
+      enableAuditLogs: true,
+      planName: PlanType.Enterprise,
+    });
+    harness.recorder.invalidateProjectSettings(PROJECT_ID);
+
+    await harness.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+
+    expect(harness.inserted).toHaveLength(1);
+  });
+
+  test("the license snapshot is never read to decide whether to record", async () => {
+    const fake: ReturnType<typeof installFakeEnterpriseModule> =
+      installFakeEnterpriseModule({ auditLogRecorder: harness.recorder });
+    fake.licensing.getCachedSnapshotError = new Error("must not be read");
+    fake.licensing.getSnapshotError = new Error("must not be read");
+
+    await harness.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+
+    expect(harness.inserted).toHaveLength(1);
+  });
+
+  test("the billing flag is read at call time, not when the recorder was built", async () => {
+    project = makeProject({
+      enableAuditLogs: true,
+      planName: PlanType.Growth,
+    });
+
+    await harness.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+
+    // Self-hosted: the plan is irrelevant.
+    expect(harness.inserted).toHaveLength(1);
+
+    setTestBillingEnabled(true);
+
+    await harness.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+
+    // Same recorder, same cached settings, billing now on: Growth is not recorded.
+    expect(harness.inserted).toHaveLength(1);
+  });
+
+  test("an ineligible update still costs no settings read when nothing tracked changed", async () => {
+    setTestBillingEnabled(true);
+
+    await harness.recorder.recordUpdate({
+      model: new ServiceLevelObjective(),
+      before: makeSlo(),
+      updatedFields: { targetPercentage: 99.9 },
+      itemId: SLO_ID,
+      props: USER_PROPS,
+    });
+
+    expect(harness.findProject).not.toHaveBeenCalled();
+  });
+});
+
+describe("where entries are written", () => {
+  test("by default the recorder writes through core's AuditLog analytics service, as root", async () => {
+    const coreCreate: jest.SpyInstance = jest
+      .spyOn(CoreAuditLogService, "create")
+      .mockImplementation(((createBy: { data: AuditLog }) => {
+        return Promise.resolve(createBy.data);
+      }) as never);
+
+    const defaultRecorder: AuditLogRecorder = new AuditLogRecorder();
+
+    await defaultRecorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+
+    expect(coreCreate).toHaveBeenCalledTimes(1);
+
+    const createBy: { data: AuditLog; props: JSONObject } = coreCreate.mock
+      .calls[0]![0] as { data: AuditLog; props: JSONObject };
+
+    expect(createBy.data).toBeInstanceOf(AuditLog);
+    expect(createBy.data.resourceType).toBe(SLO_RESOURCE_TYPE);
+    expect(createBy.props).toEqual({ isRoot: true });
+  });
+
+  test("each recorder keeps its own settings cache", async () => {
+    const other: Harness = createHarness();
+
+    await harness.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+    await other.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+
+    // findProjectMock is shared: one read per recorder.
+    expect(findProjectMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("the retention date is clamped to 1-180 days from now", async () => {
+    const now: number = Date.now();
+
+    project = makeProject({ enableAuditLogs: true });
+    project.auditLogsRetentionInDays = 5000;
+    harness.recorder.invalidateProjectSettings(PROJECT_ID);
+
+    await harness.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+
+    const retention: Date = onlyEntry().retentionDate as Date;
+    const days: number = (retention.getTime() - now) / (24 * 60 * 60 * 1000);
+
+    expect(days).toBeGreaterThan(179);
+    expect(days).toBeLessThan(181);
   });
 });
 
@@ -531,7 +836,7 @@ describe("resource identity", () => {
 
 describe("update diffs", () => {
   test("an update that changed nothing records nothing and costs no settings read", async () => {
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjective(),
       before: makeSlo(),
       updatedFields: { targetPercentage: 99.9 },
@@ -555,7 +860,7 @@ describe("update diffs", () => {
     before.currentBurnRate = 0.4;
     before.lastEvaluatedAt = new Date("2026-09-15T10:00:00.000Z");
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjective(),
       before,
       updatedFields: {
@@ -583,7 +888,7 @@ describe("update diffs", () => {
     const before: ServiceLevelObjective = makeSlo();
     before.currentSliPercentage = 99.95;
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjective(),
       before,
       updatedFields: {
@@ -601,7 +906,7 @@ describe("update diffs", () => {
   });
 
   test("a burn-rate rule's refire bookkeeping records nothing; a threshold edit does", async () => {
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjectiveBurnRateRule(),
       before: makeBurnRateRule(),
       updatedFields: {
@@ -616,7 +921,7 @@ describe("update diffs", () => {
 
     expect(harness.inserted).toHaveLength(0);
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjectiveBurnRateRule(),
       before: makeBurnRateRule(),
       updatedFields: { burnRateThreshold: 6 },
@@ -633,7 +938,7 @@ describe("update diffs", () => {
       storeSystemEventsInAuditLogs: true,
     });
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjectiveOwnerUser(),
       before: makeOwnerUser(),
       updatedFields: { isOwnerNotified: true },
@@ -650,7 +955,7 @@ describe("update diffs", () => {
     slo.currentSliPercentage = 99.2;
     slo.nextEvaluationAt = new Date("2026-09-15T10:10:00.000Z");
 
-    await harness.service.recordDelete({
+    await harness.recorder.recordDelete({
       model: new ServiceLevelObjective(),
       deletedItem: slo,
       itemId: SLO_ID,
@@ -676,7 +981,7 @@ describe("update diffs", () => {
 
 describe("every entry points at the resource it rolls up to", () => {
   test("an SLO's own entries point at the SLO", async () => {
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjective(),
       createdItem: makeSlo(),
       props: USER_PROPS,
@@ -693,7 +998,7 @@ describe("every entry points at the resource it rolls up to", () => {
     before.projectId = PROJECT_ID;
     before.name = "Checkout API";
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new Monitor(),
       before,
       updatedFields: { name: "Checkout API (primary)" },
@@ -759,13 +1064,13 @@ describe("every entry points at the resource it rolls up to", () => {
       resourceType: string;
       resourceId: ObjectID;
     }) => {
-      await harness.service.recordCreate({
+      await harness.recorder.recordCreate({
         model: data.model(),
         createdItem: data.item(),
         props: USER_PROPS,
       });
 
-      await harness.service.recordDelete({
+      await harness.recorder.recordDelete({
         model: data.model(),
         deletedItem: data.item(),
         itemId: data.resourceId,
@@ -784,7 +1089,7 @@ describe("every entry points at the resource it rolls up to", () => {
   );
 
   test("a child's update rolls up through the parent id on its before-row", async () => {
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjectiveBurnRateRule(),
       before: makeBurnRateRule(),
       updatedFields: { name: "Fast burn (1h)" },
@@ -803,7 +1108,7 @@ describe("every entry points at the resource it rolls up to", () => {
     (rule as unknown as Record<string, unknown>)["serviceLevelObjectiveId"] =
       undefined;
 
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjectiveBurnRateRule(),
       createdItem: rule,
       props: USER_PROPS,
@@ -823,7 +1128,7 @@ describe("relation values are recorded as named references", () => {
     const before: ServiceLevelObjective = makeSlo();
     before.labels = [label(LABEL_A, "Production"), label(LABEL_B, "Payments")];
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjective(),
       before,
       updatedFields: {
@@ -857,7 +1162,7 @@ describe("relation values are recorded as named references", () => {
 
   test("a label the project does not own is recorded by id only", async () => {
     // The tenant-scoped lookup finds nothing for another project's label.
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjective(),
       before: Object.assign(makeSlo(), { labels: [] }),
       updatedFields: { labels: [LABEL_C] } as unknown as JSONObject,
@@ -876,7 +1181,7 @@ describe("relation values are recorded as named references", () => {
     const before: ServiceLevelObjective = makeSlo();
     before.labels = [label(LABEL_A, "Production"), label(LABEL_B, "Payments")];
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjective(),
       before,
       updatedFields: {
@@ -895,7 +1200,7 @@ describe("relation values are recorded as named references", () => {
     const before: ServiceLevelObjective = makeSlo();
     before.labels = [label(LABEL_A, "Production")];
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjective(),
       before,
       updatedFields: {
@@ -920,7 +1225,7 @@ describe("relation values are recorded as named references", () => {
     const before: ServiceLevelObjectiveBurnRateRule = makeBurnRateRule();
     before.alertOwnerUsers = [];
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjectiveBurnRateRule(),
       before,
       updatedFields: {
@@ -956,7 +1261,7 @@ describe("relation values are recorded as named references", () => {
     const next: AlertSeverity = new AlertSeverity();
     next._id = SEVERITY_2;
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjectiveBurnRateRule(),
       before,
       updatedFields: { alertSeverity: next } as unknown as JSONObject,
@@ -977,7 +1282,7 @@ describe("relation values are recorded as named references", () => {
     const slo: ServiceLevelObjective = makeSlo();
     slo.labels = [label(LABEL_A)];
 
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjective(),
       createdItem: slo,
       props: USER_PROPS,
@@ -997,7 +1302,7 @@ describe("relation values are recorded as named references", () => {
       },
     );
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjective(),
       before: Object.assign(makeSlo(), { labels: [] }),
       updatedFields: { labels: manyIds } as unknown as JSONObject,
@@ -1023,7 +1328,7 @@ describe("relation values are recorded as named references", () => {
     const before: ServiceLevelObjective = makeSlo();
     before.metricQueryConfig = { _id: "query-1", query: "a" };
 
-    await harness.service.recordUpdate({
+    await harness.recorder.recordUpdate({
       model: new ServiceLevelObjective(),
       before,
       updatedFields: {
@@ -1049,7 +1354,7 @@ describe("rows with no name of their own are named after what they point at", ()
       makeUser(OWNER_USER_ID, "Grace Hopper", "grace@example.com"),
     );
 
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjectiveOwnerUser(),
       createdItem: makeOwnerUser(),
       props: USER_PROPS,
@@ -1064,7 +1369,7 @@ describe("rows with no name of their own are named after what they point at", ()
       makeUser(OWNER_USER_ID, null, "grace@example.com"),
     );
 
-    await harness.service.recordDelete({
+    await harness.recorder.recordDelete({
       model: new ServiceLevelObjectiveOwnerUser(),
       deletedItem: makeOwnerUser(),
       itemId: OWNER_ROW_ID,
@@ -1081,7 +1386,7 @@ describe("rows with no name of their own are named after what they point at", ()
     team.name = "Site Reliability";
     relatedRows.set("Team", [team]);
 
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjectiveOwnerTeam(),
       createdItem: makeOwnerTeam(),
       props: USER_PROPS,
@@ -1098,7 +1403,7 @@ describe("rows with no name of their own are named after what they point at", ()
   test("a failed team lookup still records the entry, unnamed", async () => {
     failRelatedLookups = true;
 
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjectiveOwnerTeam(),
       createdItem: makeOwnerTeam(),
       props: USER_PROPS,
@@ -1110,7 +1415,7 @@ describe("rows with no name of their own are named after what they point at", ()
   });
 
   test("a row with its own name never looks anywhere else", async () => {
-    await harness.service.recordCreate({
+    await harness.recorder.recordCreate({
       model: new ServiceLevelObjectiveBurnRateRule(),
       createdItem: makeBurnRateRule(),
       props: USER_PROPS,

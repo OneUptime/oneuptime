@@ -1,7 +1,5 @@
 import { mockRouter } from "./Helpers";
 import OnCallReadinessAPI from "../../../Server/API/OnCallReadinessAPI";
-import TeamComplianceAPI from "../../../Server/API/TeamComplianceAPI";
-import TeamComplianceService from "../../../Server/Services/TeamComplianceService";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import OnCallReadinessService, {
@@ -21,9 +19,7 @@ import OnCallDutyPolicyScheduleLayerUserService from "../../../Server/Services/O
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallDutyPolicyUserOverrideService from "../../../Server/Services/OnCallDutyPolicyUserOverrideService";
 import ProjectService from "../../../Server/Services/ProjectService";
-import TeamComplianceSettingService from "../../../Server/Services/TeamComplianceSettingService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
-import TeamService from "../../../Server/Services/TeamService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
@@ -51,7 +47,6 @@ import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -63,19 +58,15 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import Phone from "../../../Types/Phone";
-import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * The HTTP face of Phase 2, plus the TeamComplianceService rebuild that now sits
- * behind it.
+ * The HTTP face of Phase 2.
+ *
+ * The team compliance route (/team/compliance-status/:teamId) and the
+ * TeamComplianceService rebuild behind it are Enterprise Edition code since the
+ * Community / Enterprise split; their HTTP tests moved with them to
+ * ee/Tests/Server/TeamCompliance/TeamComplianceAPI.test.ts.
  *
  * Two different levels of test live in this file on purpose, because the two
  * risks are different:
@@ -88,16 +79,12 @@ import {
  *   answered identically so the endpoints cannot be used to enumerate ids
  *   across tenants.
  *
- *   MASKING AND THE COMPLIANCE REBUILD are tested end to end, with the REAL
- *   OnCallReadinessService and only the database-facing services stubbed. A
- *   masking test that stubs the service it is testing proves nothing: the whole
- *   claim is that a raw phone number put into the database cannot come out of
- *   the HTTP response, and the only way to test that claim is to put a raw phone
- *   number in one end and read the JSON out of the other. The same reasoning
- *   applies to the compliance rebuild - TeamComplianceServiceBehaviour.test.ts
- *   already pins its mapping with readiness stubbed, so what is left worth
- *   proving is that the real seam between the two behaves, which is exactly
- *   where the four defects used to live.
+ *   MASKING is tested end to end, with the REAL OnCallReadinessService and only
+ *   the database-facing services stubbed. A masking test that stubs the service
+ *   it is testing proves nothing: the whole claim is that a raw phone number put
+ *   into the database cannot come out of the HTTP response, and the only way to
+ *   test that claim is to put a raw phone number in one end and read the JSON
+ *   out of the other.
  *
  * These routes are mounted with UserMiddleware.getUserMiddleware, which admits
  * anonymous callers as UserType.Public and takes the project from a
@@ -139,7 +126,6 @@ const POLICY_ROUTE: string = "/on-call-readiness/policy/:policyId";
 const PROJECT_ROUTE: string = "/on-call-readiness/project";
 const USER_ROUTE: string = "/on-call-readiness/user/:userId";
 const SETUP_REMINDER_ROUTE: string = "/on-call-readiness/send-setup-reminder";
-const COMPLIANCE_ROUTE: string = "/team/compliance-status/:teamId";
 
 /*
  * The message every authorisation refusal on these routes carries. Asserting on
@@ -176,19 +162,6 @@ interface RegisteredRoute {
 interface RouteCallResult {
   thrownToNext: unknown;
   nextCallCount: number;
-}
-
-/** A minimal user row, as UserService.findBy would hand one back. */
-interface StubUser {
-  id: ObjectID;
-  name: string;
-  email: string;
-}
-
-/** A minimal severity row - the shape both severity services return here. */
-interface StubSeverity {
-  id: ObjectID;
-  name: string;
 }
 
 function buildMemberProps(data: {
@@ -305,7 +278,7 @@ function firstCall(spy: jest.SpyInstance): CapturedFindBy {
 
 let propsSpy: jest.SpyInstance;
 
-// Every database-facing read the readiness / compliance path can make.
+// Every database-facing read the readiness path can make.
 let policyFindOneById: jest.SpyInstance;
 let escalationUserFindBy: jest.SpyInstance;
 let escalationTeamFindBy: jest.SpyInstance;
@@ -327,9 +300,6 @@ let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
 let alertSeverityFindBy: jest.SpyInstance;
 let projectFindOneById: jest.SpyInstance;
-let teamFindOneById: jest.SpyInstance;
-let teamFindOneBy: jest.SpyInstance;
-let complianceSettingFindBy: jest.SpyInstance;
 
 function everyFindBySpy(): Array<jest.SpyInstance> {
   return [
@@ -352,7 +322,6 @@ function everyFindBySpy(): Array<jest.SpyInstance> {
     notificationRuleFindBy,
     incidentSeverityFindBy,
     alertSeverityFindBy,
-    complianceSettingFindBy,
   ];
 }
 
@@ -361,20 +330,6 @@ let otherProjectId: ObjectID;
 let callerUserId: ObjectID;
 let policyId: ObjectID;
 let subjectUserId: ObjectID;
-let teamId: ObjectID;
-
-beforeAll(() => {
-  /*
-   * OnCallReadinessAPI registers its routes when the MODULE is evaluated - it
-   * exports a bare router rather than a class - so its three routes are already
-   * on mockRouter by the time this runs. TeamComplianceAPI registers in its
-   * constructor, so it needs the explicit `new`. Nothing clears
-   * mockRouter.routes here for exactly that reason: doing so would throw away
-   * the readiness routes, which cannot be re-registered without re-importing
-   * the module.
-   */
-  new TeamComplianceAPI();
-});
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -393,7 +348,6 @@ beforeEach(() => {
   callerUserId = ObjectID.generate();
   policyId = ObjectID.generate();
   subjectUserId = ObjectID.generate();
-  teamId = ObjectID.generate();
   stubEmailMethodId = ObjectID.generate();
   stubTeamId = ObjectID.generate();
 
@@ -481,30 +435,6 @@ beforeEach(() => {
       enableWhatsAppNotifications: true,
       enableTelegramNotifications: true,
     } as never);
-
-  /*
-   * The team is read TWICE on the compliance route, by two different methods,
-   * and both are stubbed because they answer two different questions.
-   *
-   * findOneById is the route's authorisation read: it fetches the team's own
-   * projectId so the handler can refuse a team that belongs to somebody else.
-   * The stub therefore carries a projectId - a row without one is refused, which
-   * is the behaviour the "foreign team" tests below rely on.
-   *
-   * findOneBy is the service's own read, scoped to id AND project in the query,
-   * so that an in-process caller reaching the service directly cannot resolve a
-   * foreign team either.
-   */
-  teamFindOneById = jest.spyOn(TeamService, "findOneById").mockResolvedValue({
-    _id: teamId.toString(),
-    projectId: projectId,
-  } as never);
-  teamFindOneBy = jest
-    .spyOn(TeamService, "findOneBy")
-    .mockResolvedValue({ name: "Platform On-Call" } as never);
-  complianceSettingFindBy = jest
-    .spyOn(TeamComplianceSettingService, "findBy")
-    .mockResolvedValue([] as never);
 });
 
 afterEach(() => {
@@ -1970,830 +1900,33 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
 
 /*
  * --------------------------------------------------------------------------- *
- * The TeamComplianceService rebuild, exercised through its own route with the
- * REAL readiness service underneath.
- *
- * Teams > View > Compliance renders this payload field for field - including
- * the reason strings, which it prints as prose rather than mapping through any
- * lookup - so the shape is a hard contract. What changed underneath is where
- * the two "does this user have on-call rules?" answers come from, and the four
- * defects that lived in the old answer are re-tested here across the real seam
- * rather than against a stubbed readiness service.
+ * A refused caller costs nothing. Every database-facing read the readiness
+ * routes can reach is stubbed above; an anonymous caller must be turned away
+ * before ANY of them runs, on every read route - the refusal is the only gate,
+ * so it has to come first.
  * ---------------------------------------------------------------------------
  */
 
-interface StubRule {
-  _id: string;
-  userId: ObjectID;
-  ruleType: NotificationRuleType;
-  incidentSeverityId?: ObjectID | undefined;
-  alertSeverityId?: ObjectID | undefined;
-  isOptOut?: boolean | undefined;
-  userCallId?: ObjectID | undefined;
-  userSmsId?: ObjectID | undefined;
-  userEmailId?: ObjectID | undefined;
-  userPushId?: ObjectID | undefined;
-  userTelegramId?: ObjectID | undefined;
-  userSlackId?: ObjectID | undefined;
-  userMicrosoftTeamsId?: ObjectID | undefined;
-  userWhatsAppId?: ObjectID | undefined;
-  userWebhookId?: ObjectID | undefined;
-}
+describe("the readiness read routes - a refused caller reads nothing", () => {
+  test.each<[string]>([[POLICY_ROUTE], [PROJECT_ROUTE], [USER_ROUTE]])(
+    "%s",
+    async (uri: string) => {
+      propsSpy.mockResolvedValue({} as never);
 
-describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
-  let ada: StubUser;
-  let grace: StubUser;
-  let critical: StubSeverity;
-  let major: StubSeverity;
-  let page: StubSeverity;
-
-  function stage(data: {
-    settings: Array<{ ruleType: ComplianceRuleType; enabled: boolean }>;
-    members: Array<StubUser>;
-    rules: Array<StubRule>;
-    incidentSeverities: Array<StubSeverity>;
-    alertSeverities: Array<StubSeverity>;
-  }): void {
-    complianceSettingFindBy.mockResolvedValue(data.settings as never);
-
-    teamMemberFindBy.mockResolvedValue(
-      data.members.map((member: StubUser): Record<string, unknown> => {
-        return { _id: `tm-${member.id.toString()}`, userId: member.id };
-      }) as never,
-    );
-
-    userFindBy.mockResolvedValue(data.members as never);
-
-    /*
-     * The members are attached DIRECTLY to an escalation rule, which is the
-     * arrangement that lets the project-scope readiness summary answer for all
-     * of them in one pass. It is also the arrangement TeamComplianceService is
-     * designed around: a team on a compliance page exists because its members
-     * are on call.
-     */
-    escalationUserFindBy.mockResolvedValue(
-      data.members.map((member: StubUser): Record<string, unknown> => {
-        return { _id: `er-${member.id.toString()}`, userId: member.id };
-      }) as never,
-    );
-
-    notificationRuleFindBy.mockResolvedValue(data.rules as never);
-    incidentSeverityFindBy.mockResolvedValue(data.incidentSeverities as never);
-    alertSeverityFindBy.mockResolvedValue(data.alertSeverities as never);
-  }
-
-  async function readCompliance(): Promise<Record<string, unknown>> {
-    const result: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: teamId.toString() },
-    });
-
-    expect(result.nextCallCount).toBe(0);
-
-    return jsonPayload();
-  }
-
-  function statusesOf(
-    payload: Record<string, unknown>,
-  ): Array<Record<string, unknown>> {
-    return payload["userComplianceStatuses"] as Array<Record<string, unknown>>;
-  }
-
-  beforeEach(() => {
-    ada = { id: ObjectID.generate(), name: "Ada", email: "ada@example.com" };
-    grace = {
-      id: ObjectID.generate(),
-      name: "Grace",
-      email: "grace@example.com",
-    };
-    critical = { id: ObjectID.generate(), name: "Critical" };
-    major = { id: ObjectID.generate(), name: "Major" };
-    page = { id: ObjectID.generate(), name: "Page" };
-  });
-
-  test("the response shape the dashboard renders is unchanged", async () => {
-    stage({
-      settings: [
-        {
-          ruleType: ComplianceRuleType.HasNotificationEmailMethod,
-          enabled: true,
+      const result: RouteCallResult = await callGetRoute({
+        uri,
+        params: {
+          policyId: policyId.toString(),
+          userId: subjectUserId.toString(),
         },
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-      ],
-      members: [ada],
-      rules: [],
-      incidentSeverities: [critical],
-      alertSeverities: [],
-    });
+      });
 
-    const payload: Record<string, unknown> = await readCompliance();
+      expect(result.nextCallCount).toBe(1);
+      expect(result.thrownToNext).toBeDefined();
 
-    expect(Object.keys(payload).sort()).toEqual([
-      "complianceSettings",
-      "teamId",
-      "teamName",
-      "userComplianceStatuses",
-    ]);
-    expect(payload["teamId"]).toBe(teamId.toString());
-    expect(payload["teamName"]).toBe("Platform On-Call");
-    expect(payload["complianceSettings"]).toEqual([
-      {
-        ruleType: ComplianceRuleType.HasNotificationEmailMethod,
-        enabled: true,
-      },
-      { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-    ]);
-
-    const statuses: Array<Record<string, unknown>> = statusesOf(payload);
-    expect(statuses).toHaveLength(1);
-    expect(Object.keys(statuses[0]!).sort()).toEqual([
-      "isCompliant",
-      "nonCompliantRules",
-      "userEmail",
-      "userId",
-      "userName",
-      "userProfilePictureId",
-    ]);
-    expect(statuses[0]!["userId"]).toBe(ada.id.toString());
-    expect(statuses[0]!["userName"]).toBe("Ada");
-    expect(statuses[0]!["isCompliant"]).toBe(false);
-    /*
-     * The reason strings are printed verbatim by TeamComplianceStatusTable, so
-     * their exact wording is part of the payload contract, not an internal
-     * detail. Both an old-style channel rule and a rebuilt on-call rule are
-     * asserted together to show neither vocabulary shifted.
-     */
-    expect(statuses[0]!["nonCompliantRules"]).toEqual([
-      {
-        ruleType: ComplianceRuleType.HasNotificationEmailMethod,
-        reason: "No verified email address configured for notifications",
-      },
-      {
-        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        reason: "Missing notification rules for incident severities: Critical",
-      },
-    ]);
-  });
-
-  test("DEFECT closed: a rule on Telegram, WhatsApp, Slack, Teams or a webhook now counts", async () => {
-    /*
-     * The old check read userCallId/userSmsId/userEmailId/userPushId off the
-     * rule row and treated a row carrying none of them as no rule at all, so a
-     * responder reachable only on Telegram, WhatsApp or a webhook was reported
-     * non-compliant while the runtime was quite happily paging them. A false RED
-     * teaches admins to ignore the table, which is worse than no table. Slack
-     * and Microsoft Teams arrived after the fix and are staged alongside so the
-     * defect cannot return for the channels that never lived through it.
-     *
-     * All five channels are staged onto one user at once: whichever column the
-     * rule carries, the row is a rule.
-     */
-    const minor: StubSeverity = { id: ObjectID.generate(), name: "Minor" };
-    const warn: StubSeverity = { id: ObjectID.generate(), name: "Warn" };
-
-    stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-        { ruleType: ComplianceRuleType.HasAlertOnCallRules, enabled: true },
-      ],
-      members: [ada],
-      rules: [
-        {
-          _id: "rule-telegram",
-          userId: ada.id,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-          incidentSeverityId: critical.id,
-          userTelegramId: ObjectID.generate(),
-        },
-        {
-          _id: "rule-whatsapp",
-          userId: ada.id,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-          incidentSeverityId: major.id,
-          userWhatsAppId: ObjectID.generate(),
-        },
-        {
-          _id: "rule-slack",
-          userId: ada.id,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-          incidentSeverityId: minor.id,
-          userSlackId: ObjectID.generate(),
-        },
-        {
-          _id: "rule-webhook",
-          userId: ada.id,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-          alertSeverityId: page.id,
-          userWebhookId: ObjectID.generate(),
-        },
-        {
-          _id: "rule-microsoft-teams",
-          userId: ada.id,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-          alertSeverityId: warn.id,
-          userMicrosoftTeamsId: ObjectID.generate(),
-        },
-      ],
-      incidentSeverities: [critical, major, minor],
-      alertSeverities: [page, warn],
-    });
-
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
-
-    expect(statuses[0]!["isCompliant"]).toBe(true);
-    expect(statuses[0]!["nonCompliantRules"]).toEqual([]);
-  });
-
-  test("DEFECT closed: no channel column is even read, so none can be missed", async () => {
-    /*
-     * The structural half of the fix. The three formerly-invisible channels were
-     * invisible because they were never SELECTed; asserting that NONE of the
-     * nine is selected means no future edit can reintroduce a partial column
-     * list and quietly start under-counting again.
-     */
-    stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-      ],
-      members: [ada],
-      rules: [],
-      incidentSeverities: [critical],
-      alertSeverities: [],
-    });
-
-    await readCompliance();
-
-    const call: CapturedFindBy = firstCall(notificationRuleFindBy);
-
-    for (const column of [
-      "userCallId",
-      "userSmsId",
-      "userEmailId",
-      "userPushId",
-      "userTelegramId",
-      "userSlackId",
-      "userMicrosoftTeamsId",
-      "userWhatsAppId",
-      "userWebhookId",
-    ]) {
-      expect(call.select?.[column]).toBeUndefined();
-    }
-
-    // What IS read: who, what kind of page, which severity, and opt-out state.
-    expect(call.select?.["ruleType"]).toBe(true);
-    expect(call.select?.["incidentSeverityId"]).toBe(true);
-    expect(call.select?.["alertSeverityId"]).toBe(true);
-    expect(call.select?.["isOptOut"]).toBe(true);
-  });
-
-  test("DEFECT closed: a WHEN_USER_GOES_OFF_CALL rule is no longer incident coverage", async () => {
-    /*
-     * The false GREEN, and the more dangerous of the two directions: the owner
-     * was told a responder was covered for Sev1 incidents when their only rule
-     * fired as they went off call. The row below carries an incidentSeverityId,
-     * which is exactly what made the old severity-only match accept it.
-     */
-    stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-      ],
-      members: [ada],
-      rules: [
-        {
-          _id: "rule-off-call",
-          userId: ada.id,
-          ruleType: NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
-          incidentSeverityId: critical.id,
-          userEmailId: ObjectID.generate(),
-        },
-      ],
-      incidentSeverities: [critical],
-      alertSeverities: [],
-    });
-
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
-
-    expect(statuses[0]!["isCompliant"]).toBe(false);
-    expect(statuses[0]!["nonCompliantRules"]).toEqual([
-      {
-        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        reason: "Missing notification rules for incident severities: Critical",
-      },
-    ]);
-  });
-
-  test("DEFECT closed: an alert rule does not satisfy an incident severity of the same id", async () => {
-    /*
-     * The sharpest form of the ruleType fix. One rule row, one severity id, and
-     * the two checks disagree about it - because the severity is taken from the
-     * column the RULE TYPE dictates rather than from whichever one happens to be
-     * populated.
-     */
-    stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-        { ruleType: ComplianceRuleType.HasAlertOnCallRules, enabled: true },
-      ],
-      members: [ada],
-      rules: [
-        {
-          _id: "rule-alert-only",
-          userId: ada.id,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-          alertSeverityId: page.id,
-          userEmailId: ObjectID.generate(),
-        },
-      ],
-      incidentSeverities: [critical],
-      alertSeverities: [page],
-    });
-
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
-
-    expect(statuses[0]!["nonCompliantRules"]).toEqual([
-      {
-        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
-        reason: "Missing notification rules for incident severities: Critical",
-      },
-    ]);
-  });
-
-  test("a legacy rule row with a NULL isOptOut still counts as coverage", async () => {
-    /*
-     * isOptOut is nullable and was added long after these rows started
-     * existing, so it is NULL on every rule in every existing install. An
-     * implementation that classified coverage with `isOptOut === false` would
-     * match none of them and report a fully-configured project as entirely
-     * unready - which is why the split is `isOptOut === true`, the exact dual of
-     * the notInOrNull predicate the paging path uses.
-     */
-    stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-      ],
-      members: [ada],
-      rules: [
-        {
-          _id: "rule-legacy",
-          userId: ada.id,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-          incidentSeverityId: critical.id,
-          isOptOut: undefined,
-          userEmailId: ObjectID.generate(),
-        },
-      ],
-      incidentSeverities: [critical],
-      alertSeverities: [],
-    });
-
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
-
-    expect(statuses[0]!["isCompliant"]).toBe(true);
-  });
-
-  test("an explicitly opted-out severity is coverage, not a gap", async () => {
-    stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-      ],
-      members: [ada],
-      rules: [
-        {
-          _id: "rule-opt-out",
-          userId: ada.id,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-          incidentSeverityId: critical.id,
-          isOptOut: true,
-        },
-      ],
-      incidentSeverities: [critical],
-      alertSeverities: [],
-    });
-
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
-
-    // Deliberate silence is not a compliance failure.
-    expect(statuses[0]!["isCompliant"]).toBe(true);
-  });
-
-  test("DEFECT closed: not one read in the whole render carries the literal limit 100", async () => {
-    /*
-     * The old code capped team members, users and alert severities at 100 while
-     * capping incident severities at LIMIT_PER_PROJECT. Truncation is the worst
-     * failure mode a compliance page has: the 101st member was not reported
-     * non-compliant, they were simply absent, and an absent row reads as "no
-     * problem here". Sweeping every read the render makes - the compliance
-     * service's three and the readiness service's dozen - is the assertion that
-     * cannot be satisfied by fixing three call sites and missing a fourth.
-     */
-    stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-        { ruleType: ComplianceRuleType.HasAlertOnCallRules, enabled: true },
-      ],
-      members: [ada, grace],
-      rules: [],
-      incidentSeverities: [critical, major],
-      alertSeverities: [page],
-    });
-
-    await readCompliance();
-
-    let readsInspected: number = 0;
-
-    for (const spy of everyFindBySpy()) {
-      for (const call of callsOf(spy)) {
-        readsInspected++;
-        expect(call.limit).not.toBe(100);
+      for (const spy of [...everyFindBySpy(), projectFindOneById]) {
+        expect(spy).not.toHaveBeenCalled();
       }
-    }
-
-    // Guards the guard: an assertion over zero reads proves nothing.
-    expect(readsInspected).toBeGreaterThan(10);
-
-    expect(firstCall(complianceSettingFindBy).limit).toBe(LIMIT_PER_PROJECT);
-    expect(firstCall(teamMemberFindBy).limit).toBe(LIMIT_PER_PROJECT);
-    expect(firstCall(userFindBy).limit).toBe(LIMIT_PER_PROJECT);
-    // Both severity kinds, which is where the two halves used to disagree.
-    expect(firstCall(incidentSeverityFindBy).limit).toBe(LIMIT_PER_PROJECT);
-    expect(firstCall(alertSeverityFindBy).limit).toBe(LIMIT_PER_PROJECT);
-    expect(firstCall(notificationRuleFindBy).limit).toBe(LIMIT_PER_PROJECT);
-  });
-
-  test("DEFECT closed: the read count does not grow with members or severities", async () => {
-    /*
-     * The N+1. The old service issued one findBy per severity per user, so a
-     * team of 20 in a project with 5 severities cost 100 round trips to render
-     * one page. The proof is comparative rather than absolute: the same render
-     * with three times the members and three times the severities must cost the
-     * same number of reads, whatever that number happens to be.
-     */
-    stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-      ],
-      members: [ada],
-      rules: [],
-      incidentSeverities: [critical],
-      alertSeverities: [],
-    });
-
-    await readCompliance();
-
-    const smallRuleReads: number = notificationRuleFindBy.mock.calls.length;
-    const smallUserReads: number = userFindBy.mock.calls.length;
-    const smallSeverityReads: number =
-      incidentSeverityFindBy.mock.calls.length +
-      alertSeverityFindBy.mock.calls.length;
-
-    expect(smallRuleReads).toBe(1);
-
-    /*
-     * mockClear, not mockReset: the stubs' resolved values are implementations
-     * and have to survive into the second render.
-     */
-    jest.clearAllMocks();
-    OnCallReadinessService.clearCache();
-
-    const carol: StubUser = {
-      id: ObjectID.generate(),
-      name: "Carol",
-      email: "carol@example.com",
-    };
-    const minor: StubSeverity = { id: ObjectID.generate(), name: "Minor" };
-    const trivial: StubSeverity = { id: ObjectID.generate(), name: "Trivial" };
-
-    stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-      ],
-      members: [ada, grace, carol],
-      rules: [],
-      incidentSeverities: [critical, major, minor, trivial],
-      alertSeverities: [page],
-    });
-
-    await readCompliance();
-
-    expect(notificationRuleFindBy.mock.calls.length).toBe(smallRuleReads);
-    expect(userFindBy.mock.calls.length).toBe(smallUserReads);
-    expect(
-      incidentSeverityFindBy.mock.calls.length +
-        alertSeverityFindBy.mock.calls.length,
-    ).toBe(smallSeverityReads);
-  });
-
-  test("one notification-rule read covers every member, batched on userId", async () => {
-    stage({
-      settings: [
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
-      ],
-      members: [ada, grace],
-      rules: [
-        {
-          _id: "rule-ada",
-          userId: ada.id,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-          incidentSeverityId: critical.id,
-          userEmailId: ObjectID.generate(),
-        },
-      ],
-      incidentSeverities: [critical],
-      alertSeverities: [],
-    });
-
-    const statuses: Array<Record<string, unknown>> = statusesOf(
-      await readCompliance(),
-    );
-
-    expect(notificationRuleFindBy).toHaveBeenCalledTimes(1);
-
-    const call: CapturedFindBy = firstCall(notificationRuleFindBy);
-    // One query, scoped to the project, listing every user it is asking about.
-    expect(call.query["userId"]).toBeDefined();
-    expect(call.props?.isRoot).toBe(true);
-
-    /*
-     * And the batched read still separates the two people: Ada's rule must not
-     * cover Grace. A batched query folded into a per-user map is exactly where
-     * that mistake would hide.
-     */
-    expect(statuses[0]!["userName"]).toBe("Ada");
-    expect(statuses[0]!["isCompliant"]).toBe(true);
-    expect(statuses[1]!["userName"]).toBe("Grace");
-    expect(statuses[1]!["isCompliant"]).toBe(false);
-  });
-
-  test("readiness is not computed at all when no on-call rule is enabled", async () => {
-    /*
-     * The four channel rules do not consult readiness, so a team that only
-     * checks "has a verified email" must not pay for a project-wide readiness
-     * pass on every render.
-     */
-    stage({
-      settings: [
-        {
-          ruleType: ComplianceRuleType.HasNotificationEmailMethod,
-          enabled: true,
-        },
-        { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: false },
-      ],
-      members: [ada],
-      rules: [],
-      incidentSeverities: [critical],
-      alertSeverities: [],
-    });
-
-    await readCompliance();
-
-    expect(notificationRuleFindBy).not.toHaveBeenCalled();
-    expect(incidentSeverityFindBy).not.toHaveBeenCalled();
-    expect(escalationUserFindBy).not.toHaveBeenCalled();
-    expect(projectFindOneById).not.toHaveBeenCalled();
-    // The channel rule it WAS asked about still runs.
-    expect(userEmailFindBy).toHaveBeenCalledTimes(1);
-  });
-
-  test("a team that does not exist is refused rather than described", async () => {
-    /*
-     * Refused by the ROUTE now, before the service is reached, and with the same
-     * words a team in another project gets - see the authorisation block below
-     * for why those two cases must be indistinguishable. The service refuses it
-     * as well, on its own, with a BadDataException; that guard is pinned in
-     * TeamComplianceServiceBehaviour.test.ts because it protects in-process
-     * callers who never come through this route.
-     */
-    teamFindOneById.mockResolvedValue(null as never);
-
-    const result: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: teamId.toString() },
-    });
-
-    expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-    expect((result.thrownToNext as NotAuthorizedException).message).toBe(
-      REFUSAL,
-    );
-    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
-  });
-});
-
-/*
- * --------------------------------------------------------------------------- *
- * GET /team/compliance-status/:teamId - authorisation.
- *
- * PRE-EXISTING HOLE, not a Phase 2 regression, closed here because Phase 2
- * rebuilt what sits behind this route.
- *
- * The route was mounted with UserMiddleware.getUserMiddleware - which admits an
- * anonymous request as UserType.Public and calls next() - and then checked only
- * that `databaseProps.tenantId` was non-empty. tenantId comes from a
- * caller-supplied `tenantid` header. Everything underneath reads with
- * isRoot: true. So a `tenantid` header and a team id were the entire
- * authentication story for "which of these named people cannot be paged", which
- * is a roster of who to phone during an outage and who will never pick up.
- *
- * Worse in combination: the service read the team by id with no projectId in the
- * query, so the team did not even have to belong to the project in the header.
- *
- * Both halves are tested here - the caller has to be a member, AND the team has
- * to be theirs - and the refusals are asserted to be word-for-word identical so
- * the route cannot be used to enumerate team ids across tenants.
- * ---------------------------------------------------------------------------
- */
-
-describe("GET /team/compliance-status/:teamId - authorisation", () => {
-  let complianceSpy: jest.SpyInstance;
-
-  beforeEach(() => {
-    complianceSpy = jest.spyOn(
-      TeamComplianceService,
-      "getTeamComplianceStatus",
-    );
-  });
-
-  test("refuses an unauthenticated caller before reading anything", async () => {
-    propsSpy.mockResolvedValue({} as never);
-
-    const result: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: teamId.toString() },
-    });
-
-    expect(result.thrownToNext).toBeInstanceOf(BadDataException);
-    expect(teamFindOneById).not.toHaveBeenCalled();
-    expect(complianceSpy).not.toHaveBeenCalled();
-  });
-
-  test("refuses a public caller that merely supplies a tenantid header", async () => {
-    /*
-     * THE hole, in its exact shape: the request getUserMiddleware produces for
-     * an anonymous caller who sent a `tenantid` header. A project id, no user,
-     * no permissions - and, until this change, a complete compliance report.
-     */
-    propsSpy.mockResolvedValue({
-      tenantId: projectId,
-      userId: undefined,
-      userTenantAccessPermission: undefined,
-    } as never);
-
-    const result: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: teamId.toString() },
-    });
-
-    expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-    expect((result.thrownToNext as NotAuthorizedException).message).toBe(
-      REFUSAL,
-    );
-    expect(teamFindOneById).not.toHaveBeenCalled();
-    expect(complianceSpy).not.toHaveBeenCalled();
-  });
-
-  test("refuses a logged-in caller whose tenantid names a project they are not in", async () => {
-    propsSpy.mockResolvedValue({
-      tenantId: projectId,
-      userId: callerUserId,
-      // Logged in, but with no permission entry for the project they named.
-      userTenantAccessPermission: {},
-    } as never);
-
-    const result: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: teamId.toString() },
-    });
-
-    expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-    expect(complianceSpy).not.toHaveBeenCalled();
-  });
-
-  test("a member of one project cannot read another project's team", async () => {
-    /*
-     * The caller is a real member of their own project; only the team id is
-     * borrowed. Without the resource check this is the whole exploit - every
-     * read underneath runs as root, so the borrowed id resolves and the report
-     * is rendered for a team the caller has nothing to do with.
-     */
-    teamFindOneById.mockResolvedValue({
-      _id: teamId.toString(),
-      projectId: otherProjectId,
-    } as never);
-
-    const result: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: teamId.toString() },
-    });
-
-    expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-    expect((result.thrownToNext as NotAuthorizedException).message).toBe(
-      REFUSAL,
-    );
-    expect(complianceSpy).not.toHaveBeenCalled();
-    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
-  });
-
-  test("a foreign team and an unknown team are refused in identical words", async () => {
-    teamFindOneById.mockResolvedValue({
-      _id: teamId.toString(),
-      projectId: otherProjectId,
-    } as never);
-    const foreign: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: teamId.toString() },
-    });
-
-    teamFindOneById.mockResolvedValue(null as never);
-    const unknown: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: ObjectID.generate().toString() },
-    });
-
-    expect((foreign.thrownToNext as NotAuthorizedException).message).toBe(
-      (unknown.thrownToNext as NotAuthorizedException).message,
-    );
-    expect((foreign.thrownToNext as NotAuthorizedException).message).toBe(
-      REFUSAL,
-    );
-  });
-
-  test("a team row carrying no projectId at all is refused, not trusted", async () => {
-    // The shape a `select` that forgot projectId would produce.
-    teamFindOneById.mockResolvedValue({ _id: teamId.toString() } as never);
-
-    const result: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: teamId.toString() },
-    });
-
-    expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-    expect(complianceSpy).not.toHaveBeenCalled();
-  });
-
-  test("a malformed team id is rejected as bad data, not turned into a query", async () => {
-    /*
-     * The old handler built `new ObjectID(req.params.teamId)` from any string
-     * and then tested it for truthiness - which an ObjectID always is - so a
-     * malformed id travelled all the way to a query that matched nothing and
-     * came back as "this team does not exist".
-     */
-    const result: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: "not-a-uuid" },
-    });
-
-    expect(result.thrownToNext).toBeInstanceOf(BadDataException);
-    expect(teamFindOneById).not.toHaveBeenCalled();
-    expect(complianceSpy).not.toHaveBeenCalled();
-  });
-
-  test("the authorised path reads the team's own projectId, as root, and proceeds", async () => {
-    const result: RouteCallResult = await callGetRoute({
-      uri: COMPLIANCE_ROUTE,
-      params: { teamId: teamId.toString() },
-    });
-
-    expect(result.nextCallCount).toBe(0);
-
-    const read: {
-      id: ObjectID;
-      select: Record<string, unknown>;
-      props: { isRoot?: boolean | undefined };
-    } = teamFindOneById.mock.calls[0]![0] as {
-      id: ObjectID;
-      select: Record<string, unknown>;
-      props: { isRoot?: boolean | undefined };
-    };
-
-    expect(read.id.toString()).toBe(teamId.toString());
-    expect(read.select["projectId"]).toBe(true);
-    expect(read.props.isRoot).toBe(true);
-
-    // And the service is asked about the project the CALLER was authorised for.
-    expect(complianceSpy).toHaveBeenCalledTimes(1);
-    expect(complianceSpy.mock.calls[0]![1]).toEqual(projectId);
-
-    /*
-     * Underneath, the service scopes its OWN team read to id and project
-     * together. The route's check and this one are not redundant: the route's
-     * answers an authorisation question (403, and only for HTTP callers), this
-     * one is a data-scoping guard that also covers the on-call banner and any
-     * other in-process caller that never passes through the route at all.
-     */
-    const scoped: CapturedFindBy = firstCall(teamFindOneBy);
-    expect(scoped.query["_id"]).toBe(teamId.toString());
-    expect((scoped.query["projectId"] as ObjectID).toString()).toBe(
-      projectId.toString(),
-    );
-    expect(scoped.props?.isRoot).toBe(true);
-  });
+    },
+  );
 });

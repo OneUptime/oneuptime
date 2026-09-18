@@ -3,20 +3,18 @@ import TeamComplianceService, {
   TeamComplianceStatus,
   UserComplianceStatus,
 } from "./TeamComplianceService";
-import {
+import Express, {
   ExpressRequest,
   ExpressResponse,
+  ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import BaseAPI from "Common/Server/API/BaseAPI";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "Common/Types/ObjectID";
 import Team from "Common/Models/DatabaseModels/Team";
-import TeamService, {
-  Service as TeamServiceType,
-} from "Common/Server/Services/TeamService";
+import TeamService from "Common/Server/Services/TeamService";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 
 /*
@@ -56,103 +54,118 @@ import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
  * service happens to do today. The wording of the refusal is identical to the
  * one a nonexistent team gets, so the route cannot be used to enumerate team ids
  * across tenants.
+ *
+ * A PLAIN ROUTER (OnCallReadinessAPI's pattern). This file used to be
+ * `class TeamComplianceAPI extends BaseAPI<Team>` purely to inherit a router,
+ * which registered a second, dead copy of the whole Team CRUD route set on it.
+ * The enterprise module mounts this router at "/api" through getApiRouters(),
+ * so it carries this one route and nothing else - and no router.use() layer,
+ * which in a router mounted at "/api" would run for core's requests too
+ * (ee/Tests/Server/ModuleShape.test.ts enforces that for every ee router).
+ *
+ * Reading the status is runtime behaviour of the Enterprise Edition, not
+ * enterprise configuration: it keeps working while ee is loaded whatever the
+ * license says. Creating or changing the compliance RULES
+ * (TeamComplianceSetting) is what the license governs, in EditionPermission.
  */
-export default class TeamComplianceAPI extends BaseAPI<Team, TeamServiceType> {
-  public constructor() {
-    super(Team, TeamService);
 
-    // Get team compliance status
-    this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/compliance-status/:teamId`,
-      UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
+/*
+ * The path is part of the contract with the Dashboard's compliance status
+ * table, which requests it verbatim. Team's CRUD path is "/team".
+ */
+export const TEAM_COMPLIANCE_STATUS_ROUTE: string =
+  "/team/compliance-status/:teamId";
 
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+const router: ExpressRouter = Express.getRouter();
 
-          /*
-           * ObjectID's constructor accepts any string, so an unparseable path
-           * segment would otherwise travel all the way to a query that matches
-           * nothing and be reported as "this team does not exist" rather than as
-           * "you sent nonsense". The guard this replaces was `if (!teamId)`,
-           * which could never fire: `new ObjectID(...)` is always truthy, so a
-           * malformed id was accepted silently.
-           */
-          const rawTeamId: string = (req.params["teamId"] as string) || "";
-          ObjectID.validateUUID(rawTeamId);
-          const teamId: ObjectID = new ObjectID(rawTeamId);
+router.get(
+  TEAM_COMPLIANCE_STATUS_ROUTE,
+  UserMiddleware.getUserMiddleware,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-          /*
-           * The team id arrives from the caller and everything downstream reads
-           * as root, so the team's OWN projectId - not the header - is what has
-           * to agree with the project the caller was authorised for.
-           */
-          const team: Team | null = await TeamService.findOneById({
-            id: teamId,
-            select: {
-              projectId: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(databaseProps);
 
-          CommonAPI.assertResourceBelongsToProject({
-            resourceProjectId: team?.projectId,
-            projectId: projectId,
-          });
+      /*
+       * ObjectID's constructor accepts any string, so an unparseable path
+       * segment would otherwise travel all the way to a query that matches
+       * nothing and be reported as "this team does not exist" rather than as
+       * "you sent nonsense". The guard this replaces was `if (!teamId)`,
+       * which could never fire: `new ObjectID(...)` is always truthy, so a
+       * malformed id was accepted silently.
+       */
+      const rawTeamId: string = (req.params["teamId"] as string) || "";
+      ObjectID.validateUUID(rawTeamId);
+      const teamId: ObjectID = new ObjectID(rawTeamId);
 
-          const complianceStatus: TeamComplianceStatus =
-            await TeamComplianceService.getTeamComplianceStatus(
-              teamId,
-              projectId,
-            );
+      /*
+       * The team id arrives from the caller and everything downstream reads
+       * as root, so the team's OWN projectId - not the header - is what has
+       * to agree with the project the caller was authorised for.
+       */
+      const team: Team | null = await TeamService.findOneById({
+        id: teamId,
+        select: {
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
-          // Convert ObjectIDs to strings for JSON response
-          const responseData: {
-            teamId: string;
-            teamName: string;
-            complianceSettings: Array<{
-              ruleType: ComplianceRuleType;
-              enabled: boolean;
-            }>;
-            userComplianceStatuses: Array<{
-              userId: string;
-              userName: string;
-              userEmail: string;
-              userProfilePictureId: string | undefined;
-              isCompliant: boolean;
-              nonCompliantRules: Array<{
-                ruleType: ComplianceRuleType;
-                reason: string;
-              }>;
-            }>;
-          } = {
-            teamId: complianceStatus.teamId.toString(),
-            teamName: complianceStatus.teamName,
-            complianceSettings: complianceStatus.complianceSettings,
-            userComplianceStatuses: complianceStatus.userComplianceStatuses.map(
-              (user: UserComplianceStatus) => {
-                return {
-                  userId: user.userId.toString(),
-                  userName: user.userName,
-                  userEmail: user.userEmail,
-                  userProfilePictureId: user.userProfilePictureId?.toString(),
-                  isCompliant: user.isCompliant,
-                  nonCompliantRules: user.nonCompliantRules,
-                };
-              },
-            ),
-          };
+      CommonAPI.assertResourceBelongsToProject({
+        resourceProjectId: team?.projectId,
+        projectId: projectId,
+      });
 
-          return Response.sendJsonObjectResponse(req, res, responseData);
-        } catch (e) {
-          next(e);
-        }
-      },
-    );
-  }
-}
+      const complianceStatus: TeamComplianceStatus =
+        await TeamComplianceService.getTeamComplianceStatus(teamId, projectId);
+
+      // Convert ObjectIDs to strings for JSON response
+      const responseData: {
+        teamId: string;
+        teamName: string;
+        complianceSettings: Array<{
+          ruleType: ComplianceRuleType;
+          enabled: boolean;
+        }>;
+        userComplianceStatuses: Array<{
+          userId: string;
+          userName: string;
+          userEmail: string;
+          userProfilePictureId: string | undefined;
+          isCompliant: boolean;
+          nonCompliantRules: Array<{
+            ruleType: ComplianceRuleType;
+            reason: string;
+          }>;
+        }>;
+      } = {
+        teamId: complianceStatus.teamId.toString(),
+        teamName: complianceStatus.teamName,
+        complianceSettings: complianceStatus.complianceSettings,
+        userComplianceStatuses: complianceStatus.userComplianceStatuses.map(
+          (user: UserComplianceStatus) => {
+            return {
+              userId: user.userId.toString(),
+              userName: user.userName,
+              userEmail: user.userEmail,
+              userProfilePictureId: user.userProfilePictureId?.toString(),
+              isCompliant: user.isCompliant,
+              nonCompliantRules: user.nonCompliantRules,
+            };
+          },
+        ),
+      };
+
+      return Response.sendJsonObjectResponse(req, res, responseData);
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
+export default router;

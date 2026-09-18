@@ -1,6 +1,6 @@
 import TeamComplianceService, {
   TeamComplianceStatus,
-} from "Common/Server/TeamCompliance/TeamComplianceService";
+} from "../../../Server/TeamCompliance/TeamComplianceService";
 import OnCallReadinessService, {
   ReadinessCoverageCell,
   ReadinessStatus,
