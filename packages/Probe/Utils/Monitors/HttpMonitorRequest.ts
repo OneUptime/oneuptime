@@ -20,6 +20,7 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import http from "http";
 import https from "https";
 import net from "net";
+import tls from "tls";
 
 /*
  * Monitor response bodies are stored and shown back to the project. Leaving
@@ -229,15 +230,16 @@ export class PinnedHttpProxyAgent extends HttpProxyAgent<string> {
 /*
  * HTTPS proxying uses CONNECT. The request URL contains the validated IP so
  * CONNECT cannot be DNS-rebound by the proxy, while TLS still needs the
- * original hostname for SNI and certificate verification.
+ * original host - a hostname or an IP literal - for SNI and certificate
+ * verification.
  */
 export class PinnedHttpsProxyAgent extends HttpsProxyAgent<string> {
-  private readonly targetServername: string;
+  private readonly targetHost: string;
   private readonly targetTlsOptions: https.AgentOptions;
 
   public constructor(
     proxyUrl: string,
-    targetServername: string,
+    targetHost: string,
     tlsOptions: https.AgentOptions,
   ) {
     /*
@@ -246,7 +248,7 @@ export class PinnedHttpsProxyAgent extends HttpsProxyAgent<string> {
      * proxy; merge those options into the target-side connection below.
      */
     super(proxyUrl);
-    this.targetServername = targetServername;
+    this.targetHost = targetHost;
     this.targetTlsOptions = tlsOptions;
   }
 
@@ -254,10 +256,31 @@ export class PinnedHttpsProxyAgent extends HttpsProxyAgent<string> {
     request: HttpsProxyRequest,
     options: HttpsProxyConnectOptions,
   ): ReturnType<HttpsProxyAgent<string>["connect"]> {
+    const targetHost: string = this.targetHost;
+
     const targetOptions: HttpsProxyConnectOptions = {
       ...options,
       ...this.targetTlsOptions,
-      servername: this.targetServername,
+      /*
+       * SNI names hosts, never addresses (RFC 6066 section 3), and Node 26
+       * throws ERR_INVALID_ARG_VALUE for an IP servername. An empty string
+       * sends no SNI and stops https-proxy-agent from filling one in.
+       */
+      servername: net.isIP(targetHost) === 0 ? targetHost : "",
+      /*
+       * tls.connect checks the certificate against servername, else host,
+       * else the name the socket it was given was opened with, else
+       * "localhost". Inside a CONNECT tunnel host is dropped and that socket
+       * is the one to the PROXY, so with no SNI an IP target would be checked
+       * against the proxy's name or "localhost". The certificate has to
+       * identify the monitored target itself.
+       */
+      checkServerIdentity: (
+        _hostname: string,
+        certificate: tls.PeerCertificate,
+      ): Error | undefined => {
+        return tls.checkServerIdentity(targetHost, certificate);
+      },
     } as HttpsProxyConnectOptions;
 
     return super.connect(request, targetOptions);

@@ -80,18 +80,33 @@ export const setPageUrl: (pageUrl: string) => void = (
   pageLocation.origin = parsed.origin;
 };
 
+/*
+ * Defined rather than assigned. Node 26 has localStorage and sessionStorage
+ * globals of its own, and Jest's node environment turns a Node global into a
+ * read-only property of the test's global the first time anything reads it,
+ * after which assigning to it throws "Cannot redefine property".
+ */
+const defineGlobal: (name: string, value: unknown) => void = (
+  name: string,
+  value: unknown,
+): void => {
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value: value,
+  });
+};
+
 export const installBrowserGlobals: (pageUrl: string) => void = (
   pageUrl: string,
 ): void => {
   setPageUrl(pageUrl);
 
-  const globals: Dictionary<unknown> =
-    globalThis as unknown as Dictionary<unknown>;
-
-  globals["window"] = globalThis;
-  globals["location"] = pageLocation;
-  globals["localStorage"] = new MemoryStorage();
-  globals["sessionStorage"] = new MemoryStorage();
+  defineGlobal("window", globalThis);
+  defineGlobal("location", pageLocation);
+  defineGlobal("localStorage", new MemoryStorage());
+  defineGlobal("sessionStorage", new MemoryStorage());
 };
 
 export const clearBrowserStorage: () => void = (): void => {

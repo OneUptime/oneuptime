@@ -42,6 +42,7 @@ import { EventEmitter } from "events";
 import http from "http";
 import https from "https";
 import net from "net";
+import tls from "tls";
 
 /*
  * HttpMonitorRequest is the security boundary between a tenant-controlled
@@ -743,6 +744,47 @@ describe("Pinned proxy agents", () => {
     );
     socket.destroy();
   });
+
+  test.each([PUBLIC_IPV4.address, "2001:db8::10"])(
+    "PinnedHttpsProxyAgent sends no SNI for the IP-literal target %s and checks its certificate against that address",
+    async (targetAddress: string) => {
+      const socket: net.Socket = new net.Socket();
+      const parentConnect: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(HttpsProxyAgent.prototype, "connect")
+        .mockResolvedValue(socket as never);
+      const checkServerIdentity: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(tls, "checkServerIdentity")
+        .mockReturnValue(undefined);
+      const agent: PinnedHttpsProxyAgent = new PinnedHttpsProxyAgent(
+        "http://proxy.example.com:3128",
+        targetAddress,
+        {},
+      );
+      const request: EventEmitter = new EventEmitter();
+
+      await agent.connect(
+        request as never,
+        {
+          host: targetAddress,
+          port: 443,
+          secureEndpoint: true,
+          servername: "",
+        } as never,
+      );
+
+      const targetOptions: tls.ConnectionOptions = parentConnect.mock
+        .calls[0]![1] as tls.ConnectionOptions;
+      expect(targetOptions.servername).toBe("");
+
+      const certificate: tls.PeerCertificate = {} as tls.PeerCertificate;
+      targetOptions.checkServerIdentity!("localhost", certificate);
+      expect(checkServerIdentity).toHaveBeenCalledWith(
+        targetAddress,
+        certificate,
+      );
+      socket.destroy();
+    },
+  );
 });
 
 describe("HttpMonitorRequest.getRedirectRequest", () => {
