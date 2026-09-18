@@ -1,27 +1,27 @@
-import { AuditLogService } from "../../../Server/Services/AuditLogService";
-import DatabaseService from "../../../Server/Services/DatabaseService";
-import FindBy from "../../../Server/Types/Database/FindBy";
-import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
-import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
-import Label from "../../../Models/DatabaseModels/Label";
-import Monitor from "../../../Models/DatabaseModels/Monitor";
-import Project from "../../../Models/DatabaseModels/Project";
-import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
-import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
-import ServiceLevelObjectiveMonitorRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
-import ServiceLevelObjectiveOwnerTeam from "../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
-import ServiceLevelObjectiveOwnerUser from "../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
-import Team from "../../../Models/DatabaseModels/Team";
-import User from "../../../Models/DatabaseModels/User";
-import AuditLogAction from "../../../Types/AuditLog/AuditLogAction";
-import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
-import Email from "../../../Types/Email";
-import { JSONObject } from "../../../Types/JSON";
-import Name from "../../../Types/Name";
-import ObjectID from "../../../Types/ObjectID";
-import UserType from "../../../Types/UserType";
+import { AuditLogService } from "Common/Server/Services/AuditLogService";
+import DatabaseService from "Common/Server/Services/DatabaseService";
+import FindBy from "Common/Server/Types/Database/FindBy";
+import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Project from "Common/Models/DatabaseModels/Project";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
+import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
+import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import Email from "Common/Types/Email";
+import { JSONObject } from "Common/Types/JSON";
+import Name from "Common/Types/Name";
+import ObjectID from "Common/Types/ObjectID";
+import UserType from "Common/Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -48,7 +48,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 const findProjectMock: jest.Mock = jest.fn();
 const findUserMock: jest.Mock = jest.fn();
 
-jest.mock("../../../Server/Services/ProjectService", () => {
+jest.mock("Common/Server/Services/ProjectService", () => {
   return {
     __esModule: true,
     default: {
@@ -59,7 +59,7 @@ jest.mock("../../../Server/Services/ProjectService", () => {
   };
 });
 
-jest.mock("../../../Server/Services/UserService", () => {
+jest.mock("Common/Server/Services/UserService", () => {
   return {
     __esModule: true,
     default: {
@@ -70,9 +70,9 @@ jest.mock("../../../Server/Services/UserService", () => {
   };
 });
 
-jest.mock("../../../Server/EnvironmentConfig", () => {
+jest.mock("Common/Server/EnvironmentConfig", () => {
   const actual: Record<string, unknown> = jest.requireActual(
-    "../../../Server/EnvironmentConfig",
+    "Common/Server/EnvironmentConfig",
   ) as Record<string, unknown>;
 
   // A writable copy: each test sets the build flags it needs.
@@ -85,7 +85,7 @@ type EnvironmentFlags = {
 };
 
 const environment: EnvironmentFlags = jest.requireMock(
-  "../../../Server/EnvironmentConfig",
+  "Common/Server/EnvironmentConfig",
 ) as EnvironmentFlags;
 
 const PROJECT_ID: ObjectID = new ObjectID(

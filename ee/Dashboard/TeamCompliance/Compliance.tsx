@@ -1,5 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageComponentProps from "../../PageComponentProps";
+import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
@@ -18,11 +18,11 @@ import React, {
 } from "react";
 import TeamComplianceStatusTable, {
   TeamComplianceStatusTableRef,
-} from "../../../Components/Team/TeamComplianceStatusTable";
+} from "./TeamComplianceStatusTable";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import EnterpriseFeatureUpgrade, {
   isEnterpriseFeatureEligible,
-} from "../../../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+} from "@oneuptime/dashboard/Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
 
 const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

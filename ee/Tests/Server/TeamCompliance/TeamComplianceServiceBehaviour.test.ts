@@ -1,29 +1,29 @@
 import TeamComplianceService, {
   TeamComplianceStatus,
-} from "../../../Server/Services/TeamComplianceService";
+} from "Common/Server/TeamCompliance/TeamComplianceService";
 import OnCallReadinessService, {
   ReadinessCoverageCell,
   ReadinessStatus,
   ReadinessSummary,
   UserReadiness,
-} from "../../../Server/Services/OnCallReadinessService";
-import TeamComplianceSettingService from "../../../Server/Services/TeamComplianceSettingService";
-import TeamMemberService from "../../../Server/Services/TeamMemberService";
-import TeamService from "../../../Server/Services/TeamService";
-import UserService from "../../../Server/Services/UserService";
-import UserEmailService from "../../../Server/Services/UserEmailService";
-import UserSmsService from "../../../Server/Services/UserSmsService";
-import UserCallService from "../../../Server/Services/UserCallService";
-import UserPushService from "../../../Server/Services/UserPushService";
-import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
-import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
-import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
-import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
-import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
-import BadDataException from "../../../Types/Exception/BadDataException";
-import ObjectID from "../../../Types/ObjectID";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
-import Team from "../../../Models/DatabaseModels/Team";
+} from "Common/Server/Services/OnCallReadinessService";
+import TeamComplianceSettingService from "Common/Server/Services/TeamComplianceSettingService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import TeamService from "Common/Server/Services/TeamService";
+import UserService from "Common/Server/Services/UserService";
+import UserEmailService from "Common/Server/Services/UserEmailService";
+import UserSmsService from "Common/Server/Services/UserSmsService";
+import UserCallService from "Common/Server/Services/UserCallService";
+import UserPushService from "Common/Server/Services/UserPushService";
+import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
+import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
+import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
+import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
+import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Team from "Common/Models/DatabaseModels/Team";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -42,9 +42,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * readiness contract this service depends on" below - rather than letting a
  * jest.spyOn failure in beforeEach take out fifty unrelated tests.
  */
-jest.mock("../../../Server/Services/OnCallReadinessService", () => {
+jest.mock("Common/Server/Services/OnCallReadinessService", () => {
   const actual: Record<string, unknown> = jest.requireActual(
-    "../../../Server/Services/OnCallReadinessService",
+    "Common/Server/Services/OnCallReadinessService",
   );
 
   return {
@@ -1836,7 +1836,7 @@ describe("getTeamComplianceStatus", () => {
      * should break here first.
      */
     const actual: { default: Record<string, unknown> } = jest.requireActual(
-      "../../../Server/Services/OnCallReadinessService",
+      "Common/Server/Services/OnCallReadinessService",
     );
 
     expect(typeof actual.default["getReadinessForProject"]).toBe("function");

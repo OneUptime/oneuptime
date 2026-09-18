@@ -1,23 +1,23 @@
-import UserMiddleware from "../Middleware/UserAuthorization";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import TeamComplianceService, {
   TeamComplianceStatus,
   UserComplianceStatus,
-} from "../Services/TeamComplianceService";
+} from "./TeamComplianceService";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
-} from "../Utils/Express";
-import Response from "../Utils/Response";
-import BaseAPI from "./BaseAPI";
-import CommonAPI from "./CommonAPI";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import ObjectID from "../../Types/ObjectID";
-import Team from "../../Models/DatabaseModels/Team";
+} from "Common/Server/Utils/Express";
+import Response from "Common/Server/Utils/Response";
+import BaseAPI from "Common/Server/API/BaseAPI";
+import CommonAPI from "Common/Server/API/CommonAPI";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ObjectID from "Common/Types/ObjectID";
+import Team from "Common/Models/DatabaseModels/Team";
 import TeamService, {
   Service as TeamServiceType,
-} from "../Services/TeamService";
-import ComplianceRuleType from "../../Types/Team/ComplianceRuleType";
+} from "Common/Server/Services/TeamService";
+import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 
 /*
  * `/team/compliance-status/:teamId` - who on this team cannot be paged, and why.

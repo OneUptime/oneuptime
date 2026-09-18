@@ -10,7 +10,7 @@ import {
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
-import getJestMockFunction, { MockFunction } from "../../MockType";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
 /*
  * ---------------------------------------------------------------------------
@@ -53,7 +53,7 @@ let capturedTableProps: CapturedTableProps | null = null;
 let isEligibleForTest: boolean = true;
 const getItemMock: MockFunction = getJestMockFunction();
 
-jest.mock("../../../UI/Components/ModelTable/AnalyticsModelTable", () => {
+jest.mock("Common/UI/Components/ModelTable/AnalyticsModelTable", () => {
   return {
     __esModule: true,
     default: (props: CapturedTableProps): React.ReactElement => {
@@ -70,7 +70,7 @@ jest.mock("../../../UI/Components/ModelTable/AnalyticsModelTable", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
@@ -82,7 +82,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/AuditLogs/AuditLogsEnterpriseUpgrade",
+  "@oneuptime/dashboard/Components/AuditLogs/AuditLogsEnterpriseUpgrade",
   () => {
     return {
       __esModule: true,
@@ -104,21 +104,21 @@ jest.mock(
 
 import AuditLogsTable, {
   ComponentProps,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AuditLogs/AuditLogsTable";
+} from "../../../Dashboard/AuditLogs/AuditLogsTable";
 import {
   RESOURCE_META,
   ResourceMeta,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AuditLogs/AuditLogsTableUtils";
-import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+} from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsTableUtils";
+import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
-} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
-import RouteParams from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteParams";
-import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
-import Project from "../../../Models/DatabaseModels/Project";
-import Route from "../../../Types/API/Route";
-import ObjectID from "../../../Types/ObjectID";
-import ProjectUtil from "../../../UI/Utils/Project";
+} from "@oneuptime/dashboard/Utils/RouteMap";
+import RouteParams from "@oneuptime/dashboard/Utils/RouteParams";
+import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
+import Project from "Common/Models/DatabaseModels/Project";
+import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",

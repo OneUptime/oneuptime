@@ -2,25 +2,25 @@ import OnCallReadinessService, {
   ReadinessCoverageCell,
   ReadinessSummary,
   UserReadiness,
-} from "./OnCallReadinessService";
-import TeamComplianceSettingService from "./TeamComplianceSettingService";
-import TeamMemberService from "./TeamMemberService";
-import UserEmailService from "./UserEmailService";
-import UserSmsService from "./UserSmsService";
-import UserCallService from "./UserCallService";
-import UserPushService from "./UserPushService";
-import UserService from "./UserService";
-import TeamService from "./TeamService";
-import ObjectID from "../../Types/ObjectID";
-import ComplianceRuleType from "../../Types/Team/ComplianceRuleType";
-import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
-import BadDataException from "../../Types/Exception/BadDataException";
-import Includes from "../../Types/BaseDatabase/Includes";
-import logger from "../Utils/Logger";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import Team from "../../Models/DatabaseModels/Team";
-import User from "../../Models/DatabaseModels/User";
-import TeamMember from "../../Models/DatabaseModels/TeamMember";
+} from "Common/Server/Services/OnCallReadinessService";
+import TeamComplianceSettingService from "Common/Server/Services/TeamComplianceSettingService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import UserEmailService from "Common/Server/Services/UserEmailService";
+import UserSmsService from "Common/Server/Services/UserSmsService";
+import UserCallService from "Common/Server/Services/UserCallService";
+import UserPushService from "Common/Server/Services/UserPushService";
+import UserService from "Common/Server/Services/UserService";
+import TeamService from "Common/Server/Services/TeamService";
+import ObjectID from "Common/Types/ObjectID";
+import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
+import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import logger from "Common/Server/Utils/Logger";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 
 export interface UserComplianceStatus {
   userId: ObjectID;

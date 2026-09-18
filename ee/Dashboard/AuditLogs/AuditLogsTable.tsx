@@ -14,13 +14,13 @@ import OneUptimeDate from "Common/Types/Date";
 import Route from "Common/Types/API/Route";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONArray } from "Common/Types/JSON";
-import AppLink from "../AppLink/AppLink";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import AppLink from "@oneuptime/dashboard/Components/AppLink/AppLink";
+import PageMap from "@oneuptime/dashboard/Utils/PageMap";
+import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import AuditLogChangesModal from "./AuditLogChangesModal";
 import AuditLogsEnterpriseUpgrade, {
   isAuditLogsEnterpriseEligible,
-} from "./AuditLogsEnterpriseUpgrade";
+} from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsEnterpriseUpgrade";
 import {
   ResourceLink,
   ResourceMeta,
@@ -28,7 +28,7 @@ import {
   getAuditLogsQuery,
   getResourceLink,
   getResourceMeta,
-} from "./AuditLogsTableUtils";
+} from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsTableUtils";
 import React, {
   Fragment,
   FunctionComponent,

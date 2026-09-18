@@ -11,7 +11,7 @@ import LocalTable from "Common/UI/Components/Table/LocalTable";
 import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import UserElement from "../User/User";
+import UserElement from "@oneuptime/dashboard/Components/User/User";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import React, {

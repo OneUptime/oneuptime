@@ -1,5 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -7,7 +7,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import AuditLogsEnterpriseUpgrade, {
   isAuditLogsEnterpriseEligible,
-} from "../../Components/AuditLogs/AuditLogsEnterpriseUpgrade";
+} from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsEnterpriseUpgrade";
 import React, {
   Fragment,
   FunctionComponent,
