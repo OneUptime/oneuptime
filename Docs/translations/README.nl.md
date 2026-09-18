@@ -71,7 +71,7 @@ OneUptime brengt monitoring, alerting, incidentafhandeling en observability same
 | Loggly | **Logbeheer** — logs verzamelen, doorzoeken en erop alerten |
 | Sentry | **Foutopsporing** — uitzonderingen met volledige stacktraces en context |
 
-Alles is **100% open source (Apache 2.0)** en gratis om zelf te hosten.
+Alles is **open source (Apache 2.0)** en gratis om zelf te hosten met de Community Edition.
 
 ---
 
@@ -205,13 +205,16 @@ Plaats kant-en-klare **OpenTelemetry-gebaseerde** agents om alles in de gaten te
 |---|---|---|
 | **Ideaal voor** | Zelf-hosters en kleine teams | Gereguleerde teams die premium ondersteuning nodig hebben |
 | **Kosten** | Gratis en open source | [Neem contact op met sales](mailto:sales@oneuptime.com) |
-| **Functies** | Volledige functieset | Volledige functieset + geharde images, prioritaire ondersteuning, maatwerkfuncties en dataresidentie |
+| **Licentie** | Apache 2.0 | Apache 2.0, plus de [OneUptime Enterprise License](/ee/LICENSE) voor de map `ee/` |
+| **Functies** | Alles uit het pakket hierboven — monitoring, statuspagina's, incidenten, oproepdiensten, logs, traces, metrics, foutopsporing, workflows en AI | Alles uit Community + SAML- en OIDC-single sign-on, SCIM-provisioning, auditlogs, teamcompliance en dashboards voor de gezondheid van de instantie, met prioritaire ondersteuning, maatwerkfuncties en dataresidentie |
+
+De Enterprise-functies staan in de map [`ee/`](/ee) en zitten alleen in de Enterprise-image. Zie [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) voor de volledige vergelijking.
 
 ---
 
 ## 💡 Waarom OneUptime?
 
-Onze missie is eenvoudig: **downtime verminderen en meer producten helpen slagen.** In plaats van zeven leveranciers aan elkaar te plakken, krijg je één platform dat je helpt begrijpen *waarom* dingen kapotgaan, snel op incidenten te reageren en operationeel monnikenwerk terug te dringen — volledig open source, zodat je eigenaar bent van je data en je stack.
+Onze missie is eenvoudig: **downtime verminderen en meer producten helpen slagen.** In plaats van zeven leveranciers aan elkaar te plakken, krijg je één platform dat je helpt begrijpen *waarom* dingen kapotgaan, snel op incidenten te reageren en operationeel monnikenwerk terug te dringen — met een open-source kern (Apache 2.0), zodat je eigenaar bent van je data en je stack.
 
 ---
 
@@ -239,7 +242,7 @@ Als OneUptime nuttig voor je is:
 
 ## 📄 Licentie
 
-OneUptime is gelicentieerd onder de [Apache License 2.0](/LICENSE).
+OneUptime is open source onder de [Apache License 2.0](/LICENSE), met uitzondering van de map [`ee/`](/ee). Die map bevat de Enterprise Edition en valt onder de [OneUptime Enterprise License](/ee/LICENSE). De image van de Community Edition bevat geen code uit `ee/`.
 
 <div align="center">
   <sub>Gemaakt met ❤️ door het <a href="https://oneuptime.com">OneUptime</a>-team en <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">bijdragers</a>.</sub>

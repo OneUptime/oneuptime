@@ -71,7 +71,7 @@ OneUptime은 모니터링, 알림, 인시던트 대응, 옵저버빌리티를 �
 | Loggly | **로그 관리** — 로그 수집, 검색, 알림 |
 | Sentry | **오류 추적** — 전체 스택 트레이스와 컨텍스트를 포함한 예외 |
 
-이 모든 것이 **100% 오픈소스(Apache 2.0)**이며 셀프 호스팅이 무료입니다.
+이 모든 것이 **오픈소스(Apache 2.0)**이며 커뮤니티 에디션으로 무료로 셀프 호스팅할 수 있습니다.
 
 ---
 
@@ -205,13 +205,16 @@ helm install oneuptime oneuptime/oneuptime
 |---|---|---|
 | **적합 대상** | 셀프 호스터 및 소규모 팀 | 프리미엄 지원이 필요한 규제 산업 팀 |
 | **비용** | 무료 및 오픈소스 | [영업팀 문의](mailto:sales@oneuptime.com) |
-| **기능** | 전체 기능 세트 | 전체 기능 세트 + 강화된 이미지, 우선 지원, 맞춤형 기능 및 데이터 레지던시 |
+| **라이선스** | Apache 2.0 | Apache 2.0, 그리고 `ee/` 디렉터리에는 [OneUptime Enterprise License](/ee/LICENSE) |
+| **기능** | 위의 기본 제공 기능 전부 — 모니터링, 상태 페이지, 인시던트, 온콜, 로그, 트레이스, 메트릭, 오류 추적, 워크플로, AI | 커뮤니티의 모든 기능 + SAML 및 OIDC 싱글 사인온, SCIM 프로비저닝, 감사 로그, 팀 컴플라이언스, 인스턴스 상태 대시보드, 그리고 우선 지원, 맞춤형 기능 및 데이터 레지던시 |
+
+엔터프라이즈 기능은 [`ee/`](/ee) 디렉터리에 있으며 엔터프라이즈 이미지에만 포함됩니다. 전체 비교는 [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md)을 참고하세요.
 
 ---
 
 ## 💡 왜 OneUptime인가요?
 
-우리의 사명은 간단합니다: **다운타임을 줄이고 더 많은 제품이 성공하도록 돕는 것.** 일곱 개의 벤더를 억지로 이어 붙이는 대신, 문제가 *왜* 발생하는지 이해하고, 인시던트에 빠르게 대응하며, 운영 부담을 줄이도록 돕는 하나의 플랫폼을 얻습니다 — 완전한 오픈소스이므로 데이터와 스택을 여러분이 소유합니다.
+우리의 사명은 간단합니다: **다운타임을 줄이고 더 많은 제품이 성공하도록 돕는 것.** 일곱 개의 벤더를 억지로 이어 붙이는 대신, 문제가 *왜* 발생하는지 이해하고, 인시던트에 빠르게 대응하며, 운영 부담을 줄이도록 돕는 하나의 플랫폼을 얻습니다 — 핵심은 오픈소스(Apache 2.0)이므로 데이터와 스택을 여러분이 소유합니다.
 
 ---
 
@@ -239,7 +242,7 @@ OneUptime이 유용하다면:
 
 ## 📄 라이선스
 
-OneUptime은 [Apache License 2.0](/LICENSE)에 따라 라이선스가 부여됩니다.
+OneUptime은 [Apache License 2.0](/LICENSE)에 따른 오픈소스이며, [`ee/`](/ee) 디렉터리만 예외입니다. 이 디렉터리에는 엔터프라이즈 에디션이 들어 있으며 [OneUptime Enterprise License](/ee/LICENSE)에 따라 라이선스가 부여됩니다. 커뮤니티 에디션 이미지에는 `ee/`의 코드가 포함되지 않습니다.
 
 <div align="center">
   <sub><a href="https://oneuptime.com">OneUptime</a> 팀과 <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">기여자들</a>이 ❤️를 담아 만들었습니다.</sub>

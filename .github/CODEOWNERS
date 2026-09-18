@@ -1,0 +1,17 @@
+# Code owners for the paths whose license terms matter.
+#
+# GitHub requests a review from these owners on every pull request that
+# touches a matching path. When several patterns match a file, the LAST
+# matching pattern wins, so keep the most specific entries at the bottom.
+#
+# - ee/ is the OneUptime Enterprise Edition, licensed under ee/LICENSE rather
+#   than the Apache License 2.0 (see .github/CONTRIBUTING.md).
+# - The root LICENSE must stay the verbatim Apache License 2.0 text, so that
+#   GitHub keeps detecting the repository's license.
+#
+# Owners are the core maintainers listed in .github/MAINTAINERS.
+
+/ee/                    @simlarsen @nawazdhandala
+/ee/LICENSE             @simlarsen @nawazdhandala
+/LICENSE                @simlarsen @nawazdhandala
+/.github/CODEOWNERS     @simlarsen @nawazdhandala
