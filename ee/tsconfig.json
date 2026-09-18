@@ -1,0 +1,51 @@
+{
+  /*
+   * Type-checks the enterprise server, its tests and scripts. The compiler
+   * flags are IDENTICAL to packages/App/tsconfig.json on purpose: in
+   * production ts-node transpiles ee/ with App's tsconfig, so anything this
+   * check accepts must also be valid there. The ee UI (Dashboard/,
+   * AdminDashboard/) has its own tsconfig files.
+   *
+   * noEmit: an emit would write Common + App + ee JavaScript into ee/build.
+   */
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs",
+      "resolveJsonModule": true
+    }
+  },
+  "compilerOptions": {
+    "target": "es2017",
+    "jsx": "react",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "module": "es2022",
+    "moduleResolution": "node",
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["node", "jest"],
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["Server/**/*", "Tests/**/*", "Scripts/**/*"],
+  "exclude": ["node_modules", "build"]
+}
