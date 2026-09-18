@@ -71,9 +71,28 @@ describe("Admin Dashboard > Enterprise Licenses > create", () => {
       expect(expiresAtField).toContain("FormFieldSchemaType.Date");
     });
 
-    test("auto-generates a licence key when the admin leaves it blank", () => {
-      expect(pageSource).toContain("onBeforeCreate");
-      expect(pageSource).toContain("item.licenseKey = UUID.generate()");
+    /*
+     * A key left blank is generated on the SERVER now
+     * (EnterpriseLicenseService.onBeforeCreate, from crypto.randomBytes -
+     * pinned by Common's EnterpriseLicenseServiceKeyGeneration suite), so the
+     * browser must not invent one first: whatever it sent would be kept.
+     */
+    test("leaves licence key generation to the server", () => {
+      expect(pageSource).not.toContain("UUID.generate");
+      expect(pageSource).not.toContain("item.licenseKey =");
+      expect(pageSource).not.toContain("onBeforeCreate");
+    });
+
+    test("still offers to auto-generate the key when the admin leaves it blank", () => {
+      const formFields: string = (
+        pageSource.split("formFields={[")[1] || ""
+      ).split("selectMoreFields=")[0] as string;
+      const licenseKeyField: string = (
+        formFields.split("licenseKey: true")[1] || ""
+      ).split("field: {")[0] as string;
+
+      expect(licenseKeyField).toContain("required: false");
+      expect(licenseKeyField).toContain("Leave blank to auto-generate a key.");
     });
   });
 

@@ -1,8 +1,6 @@
 import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
-import RouteMap, {
-  RouteUtil,
-} from "@oneuptime/admin-dashboard/Utils/RouteMap";
+import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
   LicenseStatusPill,
   SeatUsageMeter,
@@ -13,9 +11,7 @@ import Route from "Common/Types/API/Route";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import UUID from "Common/Utils/UUID";
 import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -23,7 +19,6 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -82,11 +77,12 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
   const [statsError, setStatsError] = useState<string>("");
   const [tableRefreshToggle, setTableRefreshToggle] = useState<boolean>(false);
 
+  /*
+   * Rendered only on OneUptime Cloud: the core shell at
+   * Pages/EnterpriseLicenses/Index.tsx shows its own empty state everywhere
+   * billing is disabled.
+   */
   useEffect(() => {
-    if (!BILLING_ENABLED) {
-      return;
-    }
-
     const loadStats: () => Promise<void> = async (): Promise<void> => {
       try {
         const globalConfig: GlobalConfig | null =
@@ -154,33 +150,6 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
       setStatsError(API.getFriendlyMessage(err));
     });
   }, [tableRefreshToggle]);
-
-  if (!BILLING_ENABLED) {
-    return (
-      <Page
-        title={t("pages.enterpriseLicenses.title")}
-        breadcrumbLinks={[
-          {
-            title: t("breadcrumbs.adminDashboard"),
-            to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-          },
-          {
-            title: t("breadcrumbs.enterpriseLicenses"),
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ENTERPRISE_LICENSES] as Route,
-            ),
-          },
-        ]}
-      >
-        <EmptyState
-          id="enterprise-licenses-not-available"
-          icon={IconProp.Lock}
-          title="Only available on OneUptime Cloud"
-          description="Enterprise licenses are issued and tracked on the hosted oneuptime.com, where billing is enabled. This self-hosted instance does not manage licenses."
-        />
-      </Page>
-    );
-  }
 
   return (
     <Page
@@ -263,15 +232,11 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
           noItemsMessage={t("pages.enterpriseLicenses.noItems")}
           searchableFields={["companyName", "email"]}
           viewPageRoute={Navigation.getCurrentRoute()}
-          onBeforeCreate={(
-            item: EnterpriseLicense,
-          ): Promise<EnterpriseLicense> => {
-            if (!item.licenseKey) {
-              item.licenseKey = UUID.generate();
-            }
-
-            return Promise.resolve(item);
-          }}
+          /*
+           * No key is made in the browser: a license created with the key
+           * left blank gets one from the server's CSPRNG
+           * (EnterpriseLicenseService.onBeforeCreate).
+           */
           formFields={[
             {
               field: {

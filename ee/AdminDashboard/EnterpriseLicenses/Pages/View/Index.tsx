@@ -1,8 +1,6 @@
 import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
-import RouteMap, {
-  RouteUtil,
-} from "@oneuptime/admin-dashboard/Utils/RouteMap";
+import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
   EnterpriseLicenseInstanceStatusPill,
   LicenseStatusPill,
@@ -13,6 +11,7 @@ import {
   getEnterpriseLicenseUsageBoundaryRefreshDelay,
   isEnterpriseLicenseUsageRequestCurrent,
 } from "../../Components/LicenseActivityUtil";
+import OfflineLicenseTokenCard from "../../Components/OfflineLicenseTokenCard";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -385,6 +384,11 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
             ],
             modelId: modelId,
           }}
+        />
+
+        <OfflineLicenseTokenCard
+          licenseId={modelId}
+          companyName={license?.companyName}
         />
 
         <Card
