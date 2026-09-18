@@ -1059,6 +1059,67 @@ export const EnableProfiling: boolean =
 export const IsEnterpriseEdition: boolean =
   process.env["IS_ENTERPRISE_EDITION"] === "true";
 
+/*
+ * Which edition this process should run (ONEUPTIME_EDITION):
+ *   auto        (default) load the enterprise module from ee/ when it is present
+ *   community   never load it, even when ee/ is present
+ *   enterprise  it MUST load; a missing or broken ee/ stops the boot (the
+ *               Enterprise image sets this, so a broken image never silently
+ *               runs as the Community Edition)
+ *
+ * The effective edition is EnterpriseEdition.isLoaded(), decided at boot by
+ * packages/App/Utils/EnterpriseLoader.ts. IS_ENTERPRISE_EDITION above is kept
+ * only for compatibility and gates nothing.
+ */
+export type OneUptimeEditionSetting = "auto" | "community" | "enterprise";
+
+export const ONEUPTIME_EDITION_SETTINGS: ReadonlyArray<OneUptimeEditionSetting> =
+  ["auto", "community", "enterprise"];
+
+// Unset or blank reads as "auto"; an unrecognised value is null.
+export const parseOneUptimeEdition: (
+  rawValue: string | undefined,
+) => OneUptimeEditionSetting | null = (
+  rawValue: string | undefined,
+): OneUptimeEditionSetting | null => {
+  const value: string = (rawValue || "").trim().toLowerCase();
+
+  if (!value) {
+    return "auto";
+  }
+
+  return (
+    ONEUPTIME_EDITION_SETTINGS.find(
+      (setting: OneUptimeEditionSetting): boolean => {
+        return setting === value;
+      },
+    ) || null
+  );
+};
+
+/*
+ * Null when ONEUPTIME_EDITION holds something unrecognised: the loader refuses
+ * to boot rather than guess which edition a typo meant.
+ */
+export const OneUptimeEdition: OneUptimeEditionSetting | null =
+  parseOneUptimeEdition(process.env["ONEUPTIME_EDITION"]);
+
+/*
+ * Overrides where the loader looks for the ee/ directory (tests and fixtures).
+ * Unset: the repo layout <root>/ee, then the container layout /usr/src/ee.
+ */
+export const OneUptimeEnterpriseDirectory: string | undefined =
+  process.env["ONEUPTIME_EE_DIR"]?.trim() || undefined;
+
+/*
+ * The hosted oneuptime.com (billing enabled) must run the Enterprise image:
+ * on the Community image paid SSO and audit logging would silently stop, and
+ * the license server self-hosted customers activate against would be gone. The
+ * boot refuses that combination unless this development escape hatch is set.
+ */
+export const AllowBillingWithoutEnterprise: boolean =
+  process.env["ALLOW_BILLING_WITHOUT_ENTERPRISE"] === "true";
+
 export const AverageSpanRowSizeInBytes: number = parsePositiveNumberFromEnv(
   "AVERAGE_SPAN_ROW_SIZE_IN_BYTES",
   1024,
@@ -1182,12 +1243,68 @@ export const PushNotificationRelayUrl: string =
   process.env["PUSH_NOTIFICATION_RELAY_URL"] ||
   "https://oneuptime.com/api/notification/push-relay/send";
 
+export const DEFAULT_ENTERPRISE_LICENSE_SERVER_URL: string =
+  "https://oneuptime.com";
+
+const TRAILING_SLASHES_PATTERN: RegExp = /\/+$/;
+
+/*
+ * The license server self-hosted Enterprise installs activate against and
+ * report seat usage to. Overridable for a staging license server or an
+ * internal relay. The license key travels in these requests, so plain http is
+ * accepted only when `allowInsecure` (development and test environments);
+ * anything else unusable - empty, unparseable, another scheme, or http in
+ * production - falls back to the default rather than sending the key in the
+ * clear.
+ */
+export const resolveEnterpriseLicenseServerUrl: (
+  rawValue: string | undefined,
+  allowInsecure: boolean,
+) => string = (
+  rawValue: string | undefined,
+  allowInsecure: boolean,
+): string => {
+  const value: string = (rawValue || "")
+    .trim()
+    .replace(TRAILING_SLASHES_PATTERN, "");
+
+  if (!value) {
+    return DEFAULT_ENTERPRISE_LICENSE_SERVER_URL;
+  }
+
+  const lowerCasedValue: string = value.toLowerCase();
+  const isHttps: boolean = lowerCasedValue.startsWith("https://");
+  const isHttp: boolean = lowerCasedValue.startsWith("http://");
+
+  if (!isHttps && !(isHttp && allowInsecure)) {
+    return DEFAULT_ENTERPRISE_LICENSE_SERVER_URL;
+  }
+
+  try {
+    URL.fromString(value);
+  } catch {
+    return DEFAULT_ENTERPRISE_LICENSE_SERVER_URL;
+  }
+
+  return value;
+};
+
+const enterpriseLicenseServerUrlValue: string =
+  resolveEnterpriseLicenseServerUrl(
+    process.env["ENTERPRISE_LICENSE_SERVER_URL"],
+    IsDevelopment || IsTest,
+  );
+
+export const EnterpriseLicenseServerUrl: URL = URL.fromString(
+  enterpriseLicenseServerUrlValue,
+);
+
 export const EnterpriseLicenseValidationUrl: URL = URL.fromString(
-  "https://oneuptime.com/api/enterprise-license/validate",
+  `${enterpriseLicenseServerUrlValue}/api/enterprise-license/validate`,
 );
 
 export const EnterpriseLicenseUserCountReportUrl: URL = URL.fromString(
-  "https://oneuptime.com/api/enterprise-license/report-user-count",
+  `${enterpriseLicenseServerUrlValue}/api/enterprise-license/report-user-count`,
 );
 
 /*

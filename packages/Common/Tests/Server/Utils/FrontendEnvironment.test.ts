@@ -6,6 +6,8 @@ import type {
 
 const MANAGED_KEYS: Array<string> = [
   "HOST",
+  "IS_ENTERPRISE_EDITION",
+  "ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED",
   "PUBLIC_TEST_SETTING",
   "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
   "OPENTELEMETRY_EXPORTER_OTLP_HEADERS",
@@ -22,9 +24,15 @@ interface BrowserWindow {
   };
 }
 
+interface RenderOptions {
+  // Register a fake enterprise module before serializing (the EE image).
+  enterpriseLoaded?: boolean;
+}
+
 async function render(
   overrides: Record<string, string | undefined>,
   initialWindow: BrowserWindow = {},
+  options: RenderOptions = {},
 ): Promise<{ script: string; window: BrowserWindow }> {
   for (const key of MANAGED_KEYS) {
     delete process.env[key];
@@ -42,6 +50,20 @@ async function render(
   const { getFrontendEnvironmentScript } = await import(
     "../../../Server/Utils/FrontendEnvironment"
   );
+
+  /*
+   * Imported from the same fresh module registry as the serializer, so the
+   * fake is registered on the very EnterpriseEdition instance it reads.
+   */
+  const enterpriseKit: typeof import("../Enterprise/FakeEnterpriseModule") =
+    await import("../Enterprise/FakeEnterpriseModule");
+
+  if (options.enterpriseLoaded) {
+    enterpriseKit.installFakeEnterpriseModule();
+  } else {
+    enterpriseKit.uninstallEnterpriseModule();
+  }
+
   const script: string = getFrontendEnvironmentScript();
 
   new Function("window", script)(initialWindow);
@@ -186,5 +208,100 @@ describe("frontend environment script serialization", () => {
       "Content-Type": "text/javascript",
     });
     expect(end).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("frontend environment edition flags", () => {
+  interface EditionCase {
+    rawValue: string | undefined;
+    enterpriseLoaded: boolean;
+    effective: string;
+    requestedButNotLoaded: string;
+  }
+
+  test.each([
+    {
+      rawValue: undefined,
+      enterpriseLoaded: false,
+      effective: "false",
+      requestedButNotLoaded: "false",
+    },
+    {
+      rawValue: "false",
+      enterpriseLoaded: false,
+      effective: "false",
+      requestedButNotLoaded: "false",
+    },
+    {
+      rawValue: "true",
+      enterpriseLoaded: false,
+      effective: "false",
+      requestedButNotLoaded: "true",
+    },
+    {
+      rawValue: "true",
+      enterpriseLoaded: true,
+      effective: "true",
+      requestedButNotLoaded: "false",
+    },
+    {
+      rawValue: undefined,
+      enterpriseLoaded: true,
+      effective: "true",
+      requestedButNotLoaded: "false",
+    },
+    {
+      rawValue: "false",
+      enterpriseLoaded: true,
+      effective: "true",
+      requestedButNotLoaded: "false",
+    },
+  ] as Array<EditionCase>)(
+    "IS_ENTERPRISE_EDITION=$rawValue with ee loaded=$enterpriseLoaded serializes the effective edition $effective",
+    async (editionCase: EditionCase) => {
+      const result: Awaited<ReturnType<typeof render>> = await render(
+        { IS_ENTERPRISE_EDITION: editionCase.rawValue },
+        {},
+        { enterpriseLoaded: editionCase.enterpriseLoaded },
+      );
+
+      expect(result.window.process?.env?.["IS_ENTERPRISE_EDITION"]).toBe(
+        editionCase.effective,
+      );
+      expect(
+        result.window.process?.env?.[
+          "ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED"
+        ],
+      ).toBe(editionCase.requestedButNotLoaded);
+    },
+  );
+
+  test("a client-supplied ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED cannot leak through", async () => {
+    const result: Awaited<ReturnType<typeof render>> = await render(
+      {
+        ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED: "true",
+        PUBLIC_TEST_SETTING: "kept",
+      },
+      {},
+      { enterpriseLoaded: true },
+    );
+
+    expect(
+      result.window.process?.env?.[
+        "ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED"
+      ],
+    ).toBe("false");
+    expect(result.window.process?.env?.["PUBLIC_TEST_SETTING"]).toBe("kept");
+  });
+
+  test("the effective flags are the only edition values in the script", async () => {
+    const result: Awaited<ReturnType<typeof render>> = await render(
+      { IS_ENTERPRISE_EDITION: "true" },
+      {},
+      { enterpriseLoaded: false },
+    );
+
+    expect(result.script.match(/IS_ENTERPRISE_EDITION/g)?.length).toBe(1);
+    expect(result.script).toContain('"IS_ENTERPRISE_EDITION":"false"');
   });
 });

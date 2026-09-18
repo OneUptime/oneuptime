@@ -1,9 +1,37 @@
 import { getFrontendEnvVars } from "../EnvironmentConfig";
+import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import { ExpressRequest, ExpressResponse } from "./Express";
 import Response from "./Response";
+import { JSONObject } from "../../Types/JSON";
 
 export const FRONTEND_ENVIRONMENT_CACHE_CONTROL: string =
   "private, no-store, no-cache, must-revalidate";
+
+/*
+ * The edition the frontends are told about is the EFFECTIVE one: whether the
+ * enterprise module actually loaded in this process, not what the raw
+ * IS_ENTERPRISE_EDITION variable claims. A Community image with a leftover
+ * IS_ENTERPRISE_EDITION=true must not show enterprise pages whose server
+ * routes do not exist; ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED lets the
+ * admin UI explain that mismatch to a master admin instead.
+ */
+export const getFrontendEnvironmentVariables: () => JSONObject =
+  (): JSONObject => {
+    const frontendEnv: JSONObject = getFrontendEnvVars();
+    const isEnterpriseEditionLoaded: boolean = EnterpriseEdition.isLoaded();
+    const isEnterpriseEditionRequested: boolean =
+      process.env["IS_ENTERPRISE_EDITION"] === "true";
+
+    frontendEnv["IS_ENTERPRISE_EDITION"] = isEnterpriseEditionLoaded
+      ? "true"
+      : "false";
+    frontendEnv["ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED"] =
+      isEnterpriseEditionRequested && !isEnterpriseEditionLoaded
+        ? "true"
+        : "false";
+
+    return frontendEnv;
+  };
 
 /*
  * The combined App server and the five standalone frontend servers must emit
@@ -19,7 +47,7 @@ if(!window.process){
 if(!window.process.env){
   window.process.env = {}
 }
-window.process.env = ${JSON.stringify(getFrontendEnvVars())};
+window.process.env = ${JSON.stringify(getFrontendEnvironmentVariables())};
 `;
 };
 
