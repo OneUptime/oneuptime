@@ -952,6 +952,16 @@ jobs:
           # so `docker compose` interpolates ${KEY} straight from the process
           # env and does not depend on the config.env round-trip.
           echo "${KEY}=true" >> "$GITHUB_ENV"
+      # The App tag this job boots is a published enterprise- image. Check it is
+      # the Enterprise Edition before booting it: ee/ in the image and in its UI
+      # bundles, and the loader actually loading it.
+      - name: Check the App image is the Enterprise Edition
+        env:
+          APP_IMAGE: oneuptime/app:enterprise-${{needs.read-version.outputs.major_minor}}-test
+        run: |
+          set -euo pipefail
+          docker pull "$APP_IMAGE"
+          bash ./Scripts/GHA/check_app_image_edition.sh --image "$APP_IMAGE" --edition enterprise
       - name: Start Server with release tag
         run: |
           set -euo pipefail
@@ -1040,6 +1050,16 @@ jobs:
           else
             echo "APP_TAG=${SANITIZED_VERSION}" > config.env
           fi
+      # The App tag this job boots is a published Community image. Check it is
+      # the Community Edition before booting it: no ee/ anywhere in the image or
+      # its UI bundles, and the loader finding none.
+      - name: Check the App image is the Community Edition
+        env:
+          APP_IMAGE: oneuptime/app:${{needs.read-version.outputs.major_minor}}-test
+        run: |
+          set -euo pipefail
+          docker pull "$APP_IMAGE"
+          bash ./Scripts/GHA/check_app_image_edition.sh --image "$APP_IMAGE" --edition community
       - name: Start Server with release tag
         run: |
           set -euo pipefail

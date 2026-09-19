@@ -39,6 +39,12 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
 # /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
 RUN npm config set foreground-scripts true
+# ee/package.json depends on Common and App as file: packages. They must stay
+# symlinks to /usr/src/Common and /usr/src/app, or ee gets its own copy of
+# Common and a second EnterpriseEdition that core never reads. That is npm's
+# default today, but npm@latest below is unpinned and npm 9.0 briefly made
+# copying the default, so pin it.
+RUN npm config set install-links false --global
 
 # Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
 # brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
