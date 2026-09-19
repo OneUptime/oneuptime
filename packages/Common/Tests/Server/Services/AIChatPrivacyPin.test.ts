@@ -27,6 +27,7 @@ import Permission, {
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import UserType from "../../../Types/UserType";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
@@ -107,6 +108,7 @@ const memberProps: (userId: ObjectID) => DatabaseCommonInteractionProps = (
  */
 const apiKeyProps: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,
+  userType: UserType.API,
   userTenantAccessPermission: {} as {
     [tenantId: string]: UserTenantAccessPermission;
   },
