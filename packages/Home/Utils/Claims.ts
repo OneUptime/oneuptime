@@ -1086,6 +1086,25 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
       "Free to self-host: Run the Apache 2.0 Community Edition on your own infrastructure.",
     claimId: "discount-self-host",
   },
+  {
+    /*
+     * An Enterprise Edition feature (SSO, SAML, SCIM, audit logs) followed by
+     * a claim that OneUptime stays open source ("while remaining open
+     * source") in the same sentence, or by a sentence that puts self-hosting
+     * under the Apache license right after the feature list. A competitor
+     * that ships SSO under its own Apache license ("Keycloak ... SSO ...,
+     * licensed under the Apache 2.0 license") is left alone.
+     */
+    pattern:
+      /\b(?:SSO|SAML|SCIM|audit\s+logs?)\b[^.]{0,200}\bremain(?:s|ing)?\s+open[- ]source\b|\b(?:SSO|SAML|SCIM|audit\s+logs?)\b[^.]{0,200}\.\s+Self-host(?:ing|ed)?\b[^.]{0,40}\bunder\s+the\s+Apache/i,
+    example:
+      "supports SSO/SAML, RBAC, and audit logs while remaining open source",
+    reason:
+      "SSO, SAML, SCIM, and audit logs are Enterprise Edition features in ee/, licensed under the OneUptime Enterprise License, not Apache 2.0.",
+    replacement:
+      "The core platform is open source (Apache 2.0) and self-hostable; SSO/SAML and audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
+    claimId: "deployment-open-source",
+  },
 ];
 
 export const RetiredClaims: Array<RetiredClaim> = [

@@ -231,6 +231,9 @@ describe("Edition retired claims catch what the split made false", () => {
     "Self-hostable for free: Run the full platform on your own infra.",
     "Free to self-host: Run the full platform on your own infrastructure.",
     "Free self-hosting: Run the full product on your own infrastructure at no license cost.",
+    // Comparison FAQs that put the Enterprise Edition features under the open-source license.
+    "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance, so it fits enterprise requirements while remaining open source and self-hostable.",
+    "Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. Self-hosting is available under the Apache 2.0 license for organizations requiring complete infrastructure control.",
   ];
 
   test.each(formerlyPublished)("catches: %s", (sentence: string) => {
@@ -257,6 +260,7 @@ describe("Edition retired claims catch what the split made false", () => {
     "Free and open source, fully self-hosted",
     "It is free to self-host and highly customizable, with powerful triggers, templates, and auto-discovery.",
     "Grafana dashboards on top of Mimir, Loki, Tempo, and k6, with Grafana Cloud IRM bolted on for on-call and incidents.",
+    "Keycloak is an open-source identity provider with SSO, SAML, and LDAP support, licensed under the Apache 2.0 license.",
   ];
 
   test.each(competitorCopy)(
@@ -289,6 +293,8 @@ describe("Edition retired claims catch what the split made false", () => {
     "OneUptime delivers the entire stack in one platform, self-hosted free or on a predictable managed tier",
     "Self-hosted OneUptime under Apache 2.0 with monitoring, status, on-call, and incidents built in",
     "OneUptime is open source under Apache 2.0 and can be self-hosted for free, or run as managed cloud.",
+    "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance. The core platform is open source (Apache 2.0) and self-hostable; SSO/SAML and audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
+    "Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. The Apache 2.0 Community Edition can be self-hosted for complete infrastructure control; self-hosted SSO/SAML and audit logs need the Enterprise Edition and an Enterprise license.",
   ];
 
   test.each(accurateCopy)(

@@ -542,7 +542,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is OneUptime enterprise-ready?",
         answer:
-          "Absolutely. OneUptime is built on distributed, high-availability infrastructure across multiple cloud regions. We are SOC 2 Type II certified, ISO 27001 compliant, and GDPR compliant. Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. Self-hosting is available under the Apache 2.0 license for organizations requiring complete infrastructure control.",
+          "Absolutely. OneUptime is built on distributed, high-availability infrastructure across multiple cloud regions. We are SOC 2 Type II certified, ISO 27001 compliant, and GDPR compliant. Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. The Apache 2.0 Community Edition can be self-hosted for complete infrastructure control; self-hosted SSO/SAML and audit logs need the Enterprise Edition and an Enterprise license.",
       },
     ],
   },
@@ -10388,7 +10388,7 @@ const products: Dictionary<Product> = {
         question:
           "Does OneUptime meet enterprise security and compliance needs?",
         answer:
-          "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance, so it fits enterprise requirements while remaining open source and self-hostable.",
+          "Yes. OneUptime supports SSO/SAML, RBAC, and audit logs, and maintains SOC 2 Type II, ISO 27001, and GDPR compliance. The core platform is open source (Apache 2.0) and self-hostable; SSO/SAML and audit logs are part of the Enterprise Edition, licensed under the OneUptime Enterprise License.",
       },
     ],
   },

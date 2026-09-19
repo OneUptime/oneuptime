@@ -13,8 +13,9 @@
  *    unmodified. NOTICE repeats the preamble's split. With a preamble GitHub
  *    no longer names the repository's license, so the READMEs show a static
  *    license badge instead of the dynamic one;
- *  - ee/LICENSE carries the final terms, and no document still says they are
- *    pending legal review or that the root LICENSE is kept verbatim;
+ *  - ee/LICENSE carries the final terms, pinned here in full, and no document
+ *    still says they are pending legal review or that the root LICENSE is kept
+ *    verbatim;
  *  - both App images ship LICENSE and NOTICE, and the Enterprise image
  *    ee/LICENSE, and Scripts/GHA/check_app_image_edition.sh looks for them
  *    with the same wording the files use;
@@ -194,6 +195,66 @@ const packageDirectories = findPackageDirectories(REPO_ROOT);
  * looks for to tell an Enterprise License from any other LICENSE in an image.
  */
 const ENTERPRISE_LICENSE_TITLE = "OneUptime Enterprise License";
+
+/**
+ * The final text of ee/LICENSE, pinned in full so no clause can be dropped or
+ * reworded unnoticed. It follows PostHog's ee/LICENSE. Compared with
+ * whitespace normalised, so rewrapping a line is not a change.
+ */
+const EE_LICENSE_TEXT = [
+  'The OneUptime Enterprise License (the "Enterprise License")',
+  "Copyright (c) 2026-present HackerBay, Inc. (doing business as OneUptime,",
+  '"OneUptime")',
+  "",
+  "With regard to the OneUptime Software:",
+  "",
+  'This software and associated documentation files in the "ee/" directory of this',
+  'repository and its subdirectories (the "Software") may only be used in',
+  "production, if you (and any entity that you represent) have agreed to, and are",
+  "in compliance with, the OneUptime Terms of Service, available at",
+  'https://oneuptime.com/legal/terms (the "Enterprise Terms"), or other agreement',
+  "governing the use of the Software, as agreed by you and OneUptime, and",
+  "otherwise have a valid OneUptime Enterprise license for the correct number of",
+  "user seats. Subject to the foregoing sentence, you are free to modify this",
+  "Software and publish patches to the Software. You agree that OneUptime and/or",
+  "its licensors (as applicable) retain all right, title and interest in and to",
+  "all such modifications and/or patches, and all such modifications and/or",
+  "patches may only be used, copied, modified, displayed, distributed, or",
+  "otherwise exploited with a valid OneUptime Enterprise license for the correct",
+  "number of user seats. Notwithstanding the foregoing, you may copy and modify",
+  "the Software for development and testing purposes, without requiring a",
+  "subscription. You agree that OneUptime and/or its licensors (as applicable)",
+  "retain all right, title and interest in and to all such modifications. You are",
+  "not granted any other rights beyond what is expressly stated herein. Subject to",
+  "the foregoing, it is forbidden to copy, merge, publish, distribute, sublicense,",
+  "and/or sell the Software.",
+  "",
+  'Content outside the "ee/" directory is not covered by this Enterprise License;',
+  "it is licensed as set out in the LICENSE file at the root of this repository.",
+  "",
+  "The full text of this Enterprise License shall be included in all copies or",
+  "substantial portions of the Software.",
+  "",
+  'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR',
+  "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,",
+  "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE",
+  "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER",
+  "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,",
+  "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE",
+  "SOFTWARE.",
+  "",
+  "For all third party components incorporated into the OneUptime Software, those",
+  "components are licensed under the original license provided by the owner of",
+  "the applicable component.",
+  "",
+].join("\n");
+
+/**
+ * Whether `text` is the final Enterprise License text, apart from whitespace.
+ */
+function isFinalEnterpriseLicense(text) {
+  return normaliseWhitespace(text) === normaliseWhitespace(EE_LICENSE_TEXT);
+}
 
 const ROOT_LICENSE_COPYRIGHT =
   'Copyright (c) HackerBay, Inc. (doing business as OneUptime, "OneUptime")';
@@ -395,6 +456,45 @@ describe("ee/LICENSE", () => {
     expect(text).toContain(
       'Copyright (c) 2026-present HackerBay, Inc. (doing business as OneUptime, "OneUptime")',
     );
+    expect(text).toContain("With regard to the OneUptime Software:");
+  });
+
+  test("is the final Enterprise License text, every clause of it", () => {
+    expect(isFinalEnterpriseLicense(license)).toBe(true);
+  });
+
+  test("the final-text check fails on a dropped, reworded or added clause (negative control)", () => {
+    expect(
+      isFinalEnterpriseLicense(
+        edited(
+          license,
+          "The full text of this Enterprise License shall be included in all copies or\nsubstantial portions of the Software.\n\n",
+          "",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      isFinalEnterpriseLicense(
+        edited(license, "AND NONINFRINGEMENT", "AND NON-INFRINGEMENT"),
+      ),
+    ).toBe(false);
+    expect(
+      isFinalEnterpriseLicense(
+        edited(
+          license,
+          "retain all right, title and interest in and to all such modifications. You are",
+          "retain no right in any such modifications. You are",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      isFinalEnterpriseLicense(`${license}\nAdditional terms apply.\n`),
+    ).toBe(false);
+
+    // Rewrapping is not a change.
+    expect(isFinalEnterpriseLicense(license.replace(/\n(?!\n)/g, " "))).toBe(
+      true,
+    );
   });
 
   test("covers the ee/ directory only, and leaves the rest to the root LICENSE", () => {
@@ -415,9 +515,9 @@ describe("ee/LICENSE", () => {
     );
   });
 
-  test("allows development and testing without a subscription", () => {
+  test("allows development and testing without a subscription, with those modifications owned by OneUptime", () => {
     expect(text).toContain(
-      "Notwithstanding the foregoing, you may copy and modify the Software for development and testing purposes, without requiring a subscription.",
+      "Notwithstanding the foregoing, you may copy and modify the Software for development and testing purposes, without requiring a subscription. You agree that OneUptime and/or its licensors (as applicable) retain all right, title and interest in and to all such modifications. You are not granted",
     );
   });
 
@@ -436,9 +536,15 @@ describe("ee/LICENSE", () => {
     );
   });
 
-  test("disclaims warranties and leaves third-party components alone", () => {
+  test("requires the license to travel with the Software", () => {
     expect(text).toContain(
-      'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,',
+      "The full text of this Enterprise License shall be included in all copies or substantial portions of the Software.",
+    );
+  });
+
+  test("disclaims warranties and liability, and leaves third-party components alone", () => {
+    expect(text).toContain(
+      'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.',
     );
     expect(text).toContain(
       "For all third party components incorporated into the OneUptime Software, those components are licensed under the original license provided by the owner of the applicable component.",
