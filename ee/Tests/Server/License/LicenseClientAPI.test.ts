@@ -6,6 +6,10 @@ import {
 import licenseProvider from "../../../Server/License/LicenseProvider";
 import { setTrustedLicenseKeysForTests } from "../../../Server/License/TrustedLicenseKeys";
 import { LICENSE_TOKEN_MAX_LENGTH } from "../../../Server/License/LicenseToken";
+import LicenseSigner, {
+  ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV,
+  LicenseTokenSubject,
+} from "../../../Server/LicenseServer/LicenseSigner";
 import { EnterpriseServerModuleShape } from "Common/Server/Enterprise/EnterpriseServerModule";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
@@ -48,8 +52,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *
  *   - both routes are master-admin only, checked per route (an ee router may
  *     hold no router.use() layers);
- *   - offline activation accepts only a VERIFIED token, and refuses one bound
- *     to another instance;
+ *   - offline activation accepts only a VERIFIED token bound to THIS
+ *     instance: one bound to another instance is refused, and so is one
+ *     bound to none (the token an online installation receives, which the GET
+ *     shows its master admins);
  *   - a refresh never downgrades the installed license;
  *   - every write lands as root with hooks off, and the license cache of this
  *     process sees it at once.
@@ -200,6 +206,19 @@ const sentToLicenseServer: () => JSONObject = (): JSONObject => {
   expect(calls).toHaveLength(1);
 
   return (calls[0]![0] as JSONObject)["data"] as JSONObject;
+};
+
+/*
+ * A token as OneUptime issues it for offline activation: signed by a trusted
+ * key and bound to this installation's instance id.
+ */
+const offlineToken: (
+  overrides?: Parameters<typeof signLicense>[1],
+) => string = (overrides?: Parameters<typeof signLicense>[1]): string => {
+  return signLicense(SIGNING_KEY, {
+    instanceId: INSTANCE_ID.toString(),
+    ...(overrides || {}),
+  });
 };
 
 const lastLicenseWrite: () => RecordedWrite = (): RecordedWrite => {
@@ -733,7 +752,7 @@ describe("the seat enforcement the response reports", () => {
 
 describe("POST /global-config/license - activating offline with a signed token", () => {
   it("accepts a token signed by a trusted key and never calls home", async () => {
-    const token: string = signLicense(SIGNING_KEY, {
+    const token: string = offlineToken({
       companyName: "Offline Corp",
       userLimit: 25,
     });
@@ -759,7 +778,7 @@ describe("POST /global-config/license - activating offline with a signed token",
   it("stores the token without a key, mirrors the signed terms and clears the online usage", async () => {
     store.row!["enterpriseLicenseCurrentUserCount"] = 90;
     store.row!["enterpriseLicenseInstances"] = [{ instanceId: "x" }];
-    const token: string = signLicense(SIGNING_KEY, {
+    const token: string = offlineToken({
       companyName: "Offline Corp",
       userLimit: 25,
       isEvaluation: true,
@@ -800,6 +819,144 @@ describe("POST /global-config/license - activating offline with a signed token",
     expect(result.error).toBeInstanceOf(BadDataException);
     expect(result.error?.message).toContain("different OneUptime instance");
     expect(result.error?.message).toContain(INSTANCE_ID.toString());
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  /*
+   * The token oneuptime.com hands an ONLINE installation is signed by the
+   * same trusted key but bound to no instance, and GET /global-config/license
+   * shows it to master admins. Accepting it here would let one online license
+   * be pasted into any number of air-gapped installs, none of which reports
+   * its usage.
+   */
+  it("refuses a verified token bound to no instance, and says which id to ask for", async () => {
+    const unbound: string = signLicense(SIGNING_KEY);
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: unbound,
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain(
+      "not bound to a OneUptime instance",
+    );
+    expect(result.error?.message).toContain(INSTANCE_ID.toString());
+    expect(result.error?.message).toContain("offline license token");
+    expect(result.body).toBeNull();
+    expect(API.post).not.toHaveBeenCalled();
+    expect(store.licenseWrites()).toHaveLength(0);
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(legacyToken("stored"));
+    expect(store.row?.["enterpriseLicenseKey"]).toBe(STORED_LICENSE_KEY);
+  });
+
+  it("refuses the online token of a valid license even inside its grace period", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY, { daysFromNow: -3 }),
+    });
+
+    expect(result.error?.message).toContain(
+      "not bound to a OneUptime instance",
+    );
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  /*
+   * Negative control for the check above: the same claims, bound to this
+   * instance, are accepted - so it is the missing binding that is refused,
+   * not anything else about the token.
+   */
+  it("accepts the same claims once they are bound to this instance", async () => {
+    const claims: Parameters<typeof signLicense>[1] = {
+      companyName: "Bound Corp",
+      userLimit: 12,
+    };
+
+    const unbound: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY, claims),
+    });
+    const bound: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: offlineToken(claims),
+    });
+
+    expect(unbound.error).toBeInstanceOf(BadDataException);
+    expect(bound.error).toBeNull();
+    expect(bound.body?.["companyName"]).toBe("Bound Corp");
+    expect(bound.body?.["userLimit"]).toBe(12);
+    expect(bound.body?.["activationMode"]).toBe("offline");
+  });
+
+  /*
+   * A tampered token carries no trustworthy claims at all, so it is reported
+   * as not valid rather than as unbound.
+   */
+  it("reports a tampered unbound token as not valid, not as unbound", async () => {
+    const good: string = signLicense(SIGNING_KEY);
+    const tampered: string = `${good.split(".").slice(0, 2).join(".")}.${
+      signLicense(UNTRUSTED_KEY).split(".")[2]
+    }`;
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: tampered,
+    });
+
+    expect(result.error?.message).toContain("not valid");
+    expect(result.error?.message).not.toContain("not bound");
+  });
+
+  /*
+   * An installation that predates instance ids has none stored. The id the
+   * refusal quotes is the one a token must be issued for, so it is kept -
+   * and a second attempt quotes the same id. The license itself is untouched.
+   */
+  it("keeps the instance id it quotes when the installation had none", async () => {
+    store.row!["instanceId"] = undefined;
+
+    const first: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY),
+    });
+
+    const storedId: string = String(store.row?.["instanceId"]);
+
+    expect(first.error).toBeInstanceOf(BadDataException);
+    expect(storedId.length).toBeGreaterThan(0);
+    expect(storedId).not.toBe("undefined");
+    expect(first.error?.message).toContain(storedId);
+    expect(store.licenseWrites()).toHaveLength(1);
+    expect(lastLicenseWrite().data).toEqual({
+      instanceId: store.row?.["instanceId"],
+    });
+    expect(lastLicenseWrite().props).toEqual({
+      isRoot: true,
+      ignoreHooks: true,
+    });
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(legacyToken("stored"));
+
+    const second: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY),
+    });
+
+    // The id is stored now, so the second refusal writes nothing.
+    expect(second.error?.message).toContain(storedId);
+    expect(store.licenseWrites()).toHaveLength(1);
+    expect(String(store.row?.["instanceId"])).toBe(storedId);
+
+    // A token issued for the quoted id is then accepted.
+    const accepted: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY, { instanceId: storedId }),
+    });
+
+    expect(accepted.error).toBeNull();
+    expect(accepted.body?.["status"]).toBe("valid");
+  });
+
+  it("does not write anything for a refused token when the instance id is already stored", async () => {
+    await callRoute(LICENSE_ROUTE, { licenseToken: signLicense(SIGNING_KEY) });
+    await callRoute(LICENSE_ROUTE, {
+      licenseToken: signLicense(SIGNING_KEY, {
+        instanceId: "another-instance",
+      }),
+    });
+
     expect(store.licenseWrites()).toHaveLength(0);
   });
 
@@ -875,7 +1032,7 @@ describe("POST /global-config/license - activating offline with a signed token",
 
   it("refuses a token that expired past its grace period", async () => {
     const result: CallResult = await callRoute(LICENSE_ROUTE, {
-      licenseToken: signLicense(SIGNING_KEY, { daysFromNow: -30 }),
+      licenseToken: offlineToken({ daysFromNow: -30 }),
     });
 
     expect(result.error).toBeInstanceOf(BadDataException);
@@ -885,7 +1042,7 @@ describe("POST /global-config/license - activating offline with a signed token",
 
   it("accepts a token still inside its grace period", async () => {
     const result: CallResult = await callRoute(LICENSE_ROUTE, {
-      licenseToken: signLicense(SIGNING_KEY, { daysFromNow: -3 }),
+      licenseToken: offlineToken({ daysFromNow: -3 }),
     });
 
     expect(result.error).toBeNull();
@@ -894,7 +1051,7 @@ describe("POST /global-config/license - activating offline with a signed token",
   });
 
   it("ignores the whitespace and line breaks a copy-paste adds", async () => {
-    const token: string = signLicense(SIGNING_KEY);
+    const token: string = offlineToken();
     const wrapped: string = `\n  ${token.slice(0, 40)}\n${token.slice(40, 90)}\r\n${token.slice(90)}  \n`;
 
     const result: CallResult = await callRoute(LICENSE_ROUTE, {
@@ -922,5 +1079,83 @@ describe("POST /global-config/license - activating offline with a signed token",
     });
 
     expect(result.error).toBeInstanceOf(BadDataException);
+  });
+});
+
+/*
+ * The same pair of tokens the license server really issues, signed by the
+ * real LicenseSigner with a key this build trusts: the online token (what
+ * /validate answers an online installation with) is refused offline, and the
+ * offline token issued for this instance is accepted.
+ */
+describe("POST /global-config/license - the license server's own tokens, offline", () => {
+  const subject: LicenseTokenSubject = {
+    licenseId: "license-0042",
+    licenseKey: "OU-ENT-0042",
+    companyName: "Signer Corp",
+    userLimit: 30,
+    isEvaluation: false,
+    expiresAt: new Date(Date.now() + 200 * DAY_IN_MS),
+  };
+
+  beforeEach(() => {
+    process.env[ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV] =
+      SIGNING_KEY.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+    LicenseSigner.resetForTests();
+    LicenseSigner.init();
+  });
+
+  afterEach(() => {
+    delete process.env[ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV];
+    LicenseSigner.resetForTests();
+  });
+
+  it("signs with EdDSA in this setup, so the online token verifies here", () => {
+    expect(LicenseSigner.isEdDsaEnabled()).toBe(true);
+  });
+
+  it("refuses the online token", async () => {
+    const onlineToken: string | null = LicenseSigner.signOnlineToken(subject);
+
+    expect(onlineToken).not.toBeNull();
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: onlineToken,
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain(
+      "not bound to a OneUptime instance",
+    );
+    expect(store.licenseWrites()).toHaveLength(0);
+  });
+
+  it("accepts the offline token issued for this instance", async () => {
+    const token: string = LicenseSigner.signOfflineToken({
+      subject,
+      instanceId: INSTANCE_ID.toString(),
+    });
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: token,
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.body?.["verification"]).toBe("verified");
+    expect(result.body?.["companyName"]).toBe("Signer Corp");
+    expect(result.body?.["activationMode"]).toBe("offline");
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(token);
+  });
+
+  it("refuses the offline token issued for another instance", async () => {
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseToken: LicenseSigner.signOfflineToken({
+        subject,
+        instanceId: ObjectID.generate().toString(),
+      }),
+    });
+
+    expect(result.error?.message).toContain("different OneUptime instance");
+    expect(store.licenseWrites()).toHaveLength(0);
   });
 });

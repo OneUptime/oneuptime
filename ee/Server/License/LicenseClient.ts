@@ -257,7 +257,16 @@ export default class LicenseClient {
    * Only a VERIFIED token is accepted - one signed by a key this build
    * trusts. An unverifiable token would turn this form into a license
    * forger, so it is refused outright rather than treated as a legacy
-   * license. A token bound to another instance is refused too.
+   * license.
+   *
+   * And only a token bound to THIS instance (an instanceId claim equal to
+   * this installation's id). A token bound to another instance is refused,
+   * and so is a verified token bound to none: that is the token oneuptime.com
+   * hands an ONLINE installation (LicenseSigner.signOnlineToken), which GET
+   * /global-config/license shows its master admins. Accepted here, one online
+   * license could be pasted into any number of air-gapped installs, none of
+   * which ever reports its usage. Offline tokens are issued per instance
+   * (EnterpriseLicenseOfflineTokenAPI) and always carry the claim.
    *
    * The installation is then marked as offline-activated by holding the token
    * but no license key: it has nothing to call home with, so the daily usage
@@ -296,11 +305,13 @@ export default class LicenseClient {
     }
 
     if (candidate.reason === "instance-mismatch") {
-      throw new BadDataException(
-        `This license token is bound to a different OneUptime instance${
+      throw await LicenseClient.instanceBindingRefusal({
+        inputs,
+        instanceId,
+        message: `This license token is bound to a different OneUptime instance${
           candidate.instanceId ? ` (${candidate.instanceId})` : ""
         }. This installation's instance id is ${instanceId.toString()}: ask OneUptime for a token issued for it.`,
-      );
+      });
     }
 
     if (candidate.verification !== "verified") {
@@ -314,6 +325,24 @@ export default class LicenseClient {
       throw new BadDataException(
         `This license token is not valid: ${candidate.message || "it could not be verified"}.`,
       );
+    }
+
+    /*
+     * Verified, but bound to no instance: an online installation's token (see
+     * above). Checked after the signature, so a tampered token is still
+     * reported as not valid, and before the expiry, because a renewed online
+     * token would be refused all the same.
+     */
+    if (!candidate.instanceId) {
+      throw await LicenseClient.instanceBindingRefusal({
+        inputs,
+        instanceId,
+        message:
+          "This license token is not bound to a OneUptime instance, so it cannot be activated offline: " +
+          "it is the token an installation that activates online receives. " +
+          `This installation's instance id is ${instanceId.toString()}: ask OneUptime for an offline license token issued for it, ` +
+          "or activate online with your license key.",
+      });
     }
 
     if (candidate.status === "expired") {
@@ -386,6 +415,30 @@ export default class LicenseClient {
         `OneUptime Enterprise Edition: could not refresh the unverified license at boot; keeping the stored one. ${describeError(err)}`,
       );
     });
+  }
+
+  /*
+   * The refusal for an offline token bound to another instance, or to none.
+   * The message names this installation's instance id, the id to ask
+   * OneUptime for a token for. An installation that predates instance ids has
+   * none stored, and the one generated for this request would be forgotten
+   * with it, so it is kept first (only the id, as root, as the first
+   * activation would have kept it): the id quoted is then the id a token must
+   * carry. Nothing about the license changes.
+   */
+  private static async instanceBindingRefusal(data: {
+    inputs: LicenseInputs;
+    instanceId: ObjectID;
+    message: string;
+  }): Promise<BadDataException> {
+    if (!data.inputs.instanceId) {
+      await LicenseStore.writeLicenseColumns({
+        update: { instanceId: data.instanceId },
+        rowExists: data.inputs.hasConfigRow,
+      });
+    }
+
+    return new BadDataException(data.message);
   }
 
   private static async store(
