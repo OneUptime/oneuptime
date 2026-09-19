@@ -318,7 +318,7 @@ export default class CommunityEditionSsoReport {
       "because SSO login and SCIM provisioning are part of the OneUptime Enterprise Edition. " +
       "Users of these projects and status pages sign in with email and password instead. " +
       `Not enforced: ${relaxed.join("; ")}. ` +
-      "The settings are kept unchanged and are enforced again when this server runs the Enterprise Edition image."
+      "The settings are kept unchanged and are enforced again when this server runs the Enterprise Edition image with a valid license (or during its 14-day trial or grace period)."
     );
   }
 

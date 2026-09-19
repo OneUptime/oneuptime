@@ -344,6 +344,33 @@ describe("CommunityEditionSsoReport", () => {
       }
       expect(lapseReports()).toHaveLength(0);
     });
+
+    /*
+     * The first boot of an upgraded install whose first-run stamp could not
+     * be written: no license, and no known trial start. Not a lapse - and the
+     * control below, the same install once the trial is known to be over, is.
+     */
+    test("no license and an unknown trial start is not a lapse", async () => {
+      const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("missing", {
+          graceEndsAt: undefined,
+        }),
+      });
+
+      await CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+      await flush();
+
+      for (const spy of allQuerySpies()) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+      expect(lapseReports()).toHaveLength(0);
+
+      fake.setSnapshot(createLicenseSnapshotWithStatus("missing"));
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+      await flush();
+
+      expect(lapseReports()).toHaveLength(1);
+    });
   });
 
   test("on the Community Edition, logs every relaxed setting once, with counts and ids", async () => {
@@ -377,6 +404,14 @@ describe("CommunityEditionSsoReport", () => {
       `1 SCIM configuration(s) with Push Groups on, whose teams can be edited in OneUptime again (project ids: ${PROJECT_B.toString()})`,
     );
     expect(message).toContain("kept unchanged");
+    /*
+     * Running the Enterprise image is not enough on its own: an Enterprise
+     * install enforces them only while its license (or trial, or grace)
+     * covers SSO and SCIM.
+     */
+    expect(message).toContain(
+      "enforced again when this server runs the Enterprise Edition image with a valid license (or during its 14-day trial or grace period)",
+    );
   });
 
   test("reads the stored settings as root, with bounded id lists", async () => {

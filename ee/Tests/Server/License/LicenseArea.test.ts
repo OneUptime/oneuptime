@@ -213,6 +213,103 @@ describe("License area - init(): the first run of the Enterprise Edition", () =>
     expect(firstSeenWrites()).toHaveLength(1);
   });
 
+  /*
+   * An upgrade's first Enterprise boot (say, a pre-split Enterprise install
+   * that already requires SSO) whose first-run stamp cannot be written: no
+   * license, and no known trial start, so nobody can tell whether the trial
+   * is over. That is an unknown license state - SSO, SCIM and audit logging
+   * must keep running, not stop until the next read retries the stamp.
+   */
+  describe("when the first-run stamp cannot be written", () => {
+    const registerRealProvider: () => void = (): void => {
+      const fake: FakeEnterpriseModule = new FakeEnterpriseModule();
+      (fake as unknown as { licensing: EnterpriseLicensingProvider }).licensing =
+        licensing;
+      EnterpriseEdition.resetForTests();
+      EnterpriseEdition.register(fake);
+    };
+
+    const runtimeFeatures: Array<EnterpriseFeature> = [
+      EnterpriseFeature.SSO,
+      EnterpriseFeature.SCIM,
+      EnterpriseFeature.AuditLogs,
+    ];
+
+    const failStampWrites: () => jest.Mock = (): jest.Mock => {
+      const failing: jest.Mock = jest
+        .fn()
+        .mockRejectedValue(new Error("read-only replica") as never);
+      (GlobalConfigService as unknown as Record<string, unknown>)[
+        "updateOneById"
+      ] = failing;
+      return failing;
+    };
+
+    it("keeps SSO, SCIM and audit logging running, and configuration read-only", async () => {
+      failStampWrites();
+      registerRealProvider();
+
+      await LicenseArea.init!();
+
+      const snapshot: ReturnType<typeof licensing.getCachedSnapshot> =
+        licensing.getCachedSnapshot();
+
+      expect(snapshot?.status).toBe("missing");
+      expect(snapshot?.graceEndsAt).toBeUndefined();
+
+      for (const feature of runtimeFeatures) {
+        expect(EnterpriseEdition.isFeatureActive(feature)).toBe(true);
+        expect(EnterpriseEdition.isFeatureAvailableSync(feature)).toBe(false);
+      }
+    });
+
+    it("starts the trial once a later read can write the stamp", async () => {
+      failStampWrites();
+      registerRealProvider();
+      await LicenseArea.init!();
+
+      store.install(GlobalConfigService);
+      await licenseProvider.refresh();
+
+      expect(firstSeenWrites()).toHaveLength(1);
+      expect(licensing.getCachedSnapshot()?.status).toBe("grace");
+      expect(licensing.getCachedSnapshot()?.graceReason).toBe("unlicensed");
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+        true,
+      );
+      expect(
+        EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO),
+      ).toBe(true);
+    });
+
+    it("negative control: an install whose recorded trial is over has lapsed", async () => {
+      store.row!["enterpriseEditionFirstSeenAt"] = new Date(
+        Date.now() - 30 * DAY_IN_MS,
+      );
+      registerRealProvider();
+
+      await LicenseArea.init!();
+
+      expect(licensing.getCachedSnapshot()?.status).toBe("missing");
+      expect(licensing.getCachedSnapshot()?.graceEndsAt).toBeDefined();
+
+      for (const feature of runtimeFeatures) {
+        expect(EnterpriseEdition.isFeatureActive(feature)).toBe(false);
+      }
+    });
+
+    it("a brand-new installation, whose config row does not exist yet, is not a lapse either", async () => {
+      store.row = null;
+      registerRealProvider();
+
+      await LicenseArea.init!();
+
+      for (const feature of runtimeFeatures) {
+        expect(EnterpriseEdition.isFeatureActive(feature)).toBe(true);
+      }
+    });
+  });
+
   it("still loads the license when the stamp cannot be written", async () => {
     (GlobalConfigService as unknown as Record<string, unknown>)[
       "updateOneById"

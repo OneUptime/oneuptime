@@ -46,7 +46,9 @@ export interface SeatUsage {
  * Where the license stands in time. Deliberately about time only; whether the
  * token was cryptographically verified is the separate `verification` axis.
  *
- *   missing  no license token is stored (and the unlicensed grace, if any, is over)
+ *   missing  no license token is stored and the unlicensed trial is over, in
+ *            which case graceEndsAt says when it ended. With no graceEndsAt
+ *            the trial start is not known (see isTrialStartUnknown).
  *   valid    the license is current
  *   grace    expired no more than the grace period ago, OR an unlicensed
  *            Enterprise install still inside its first-seen grace window
@@ -143,6 +145,25 @@ export class EnterpriseLicenseSnapshotUtil {
       EnterpriseLicenseSnapshotUtil.isUsable(snapshot) &&
       EnterpriseLicenseSnapshotUtil.includesFeature(snapshot, feature)
     );
+  }
+
+  /*
+   * "missing" with no graceEndsAt: no license is installed, and the start of
+   * the unlicensed trial (GlobalConfig.enterpriseEditionFirstSeenAt) is not
+   * known - the stamp has not been written yet (it failed, or the row does
+   * not exist yet), or nothing could be read at all (createMissing). So
+   * whether the install is still in its trial is unknown.
+   * EnterpriseEdition.isFeatureActive treats it as an unknown license state
+   * (active); the configuration checks still fail closed on it.
+   */
+  public static isTrialStartUnknown(
+    snapshot: EnterpriseLicenseSnapshot | null,
+  ): boolean {
+    if (!snapshot) {
+      return false;
+    }
+
+    return snapshot.status === "missing" && !snapshot.graceEndsAt;
   }
 
   public static createMissing(message?: string): EnterpriseLicenseSnapshot {

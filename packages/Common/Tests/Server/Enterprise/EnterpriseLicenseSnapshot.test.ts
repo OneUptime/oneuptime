@@ -207,6 +207,59 @@ describe("EnterpriseLicenseSnapshotUtil", () => {
     );
   });
 
+  describe("isTrialStartUnknown", () => {
+    test("is true only for 'missing' with no graceEndsAt", () => {
+      expect(
+        EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(
+          createLicenseSnapshotWithStatus("missing", {
+            graceEndsAt: undefined,
+          }),
+        ),
+      ).toBe(true);
+      // What the provider answers when nothing could be read at all.
+      expect(
+        EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(
+          EnterpriseLicenseSnapshotUtil.createMissing(),
+        ),
+      ).toBe(true);
+    });
+
+    test("a trial that is known to be over is not unknown", () => {
+      expect(
+        EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(
+          createLicenseSnapshotWithStatus("missing", {
+            graceEndsAt: new Date(Date.now() - 1000),
+          }),
+        ),
+      ).toBe(false);
+      // The test kit's "missing" is the known lapse.
+      expect(
+        EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(
+          createLicenseSnapshotWithStatus("missing"),
+        ),
+      ).toBe(false);
+    });
+
+    test("every other status, and no snapshot, is not about the trial start", () => {
+      for (const status of [
+        "valid",
+        "grace",
+        "expired",
+        "invalid",
+      ] as Array<EnterpriseLicenseStatus>) {
+        expect(
+          EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(
+            createLicenseSnapshotWithStatus(status, { graceEndsAt: undefined }),
+          ),
+        ).toBe(false);
+      }
+
+      expect(EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(null)).toBe(
+        false,
+      );
+    });
+  });
+
   test("createMissing returns a fresh object each time", () => {
     const first: EnterpriseLicenseSnapshot =
       EnterpriseLicenseSnapshotUtil.createMissing();

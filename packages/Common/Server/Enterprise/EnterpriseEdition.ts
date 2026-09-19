@@ -117,7 +117,7 @@ export default class EnterpriseEdition {
 
   public static readonly LICENSE_REQUIRED_MESSAGE: string =
     "This OneUptime Enterprise feature needs a valid Enterprise license that includes it. " +
-    "Enterprise configuration you already have keeps working and can still be viewed or deleted, " +
+    "Enterprise configuration you already have is kept and can still be viewed or deleted, " +
     "but it cannot be created or changed until a master admin adds or renews the license " +
     "from the edition label in the Admin Dashboard header.";
 
@@ -135,6 +135,8 @@ export default class EnterpriseEdition {
   private static hasWarnedAboutUnreadLicense: boolean = false;
 
   private static hasWarnedAboutUnreadableLicense: boolean = false;
+
+  private static hasWarnedAboutUnknownTrialStart: boolean = false;
 
   private static featureStateListeners: Array<EnterpriseFeatureStateListener> =
     [];
@@ -171,6 +173,7 @@ export default class EnterpriseEdition {
     EnterpriseEdition.lastKnownFeatureState.clear();
     EnterpriseEdition.hasWarnedAboutUnreadLicense = false;
     EnterpriseEdition.hasWarnedAboutUnreadableLicense = false;
+    EnterpriseEdition.hasWarnedAboutUnknownTrialStart = false;
     EnterpriseEdition.featureStateListeners = [];
   }
 
@@ -184,12 +187,17 @@ export default class EnterpriseEdition {
    *   no enterprise module        false (the Community Edition)
    *   billing on                  true (OneUptime Cloud: plan tiers gate)
    *   license state UNKNOWN       true: the first snapshot has not loaded yet,
-   *                               or reading the cached one threw. An unknown
-   *                               state must never lock anyone out or switch
-   *                               SSO enforcement off. The loader waits
-   *                               (bounded) for the first snapshot before any
-   *                               router is mounted, so the window is small.
-   *                               Warned about once per process.
+   *                               reading the cached one threw, or it says no
+   *                               license is installed but not when the trial
+   *                               started (the first-run stamp could not be
+   *                               read or written yet, so whether the trial
+   *                               is over is not known; see
+   *                               EnterpriseLicenseSnapshotUtil.isTrialStartUnknown).
+   *                               An unknown state must never lock anyone out
+   *                               or switch SSO enforcement off. The loader
+   *                               waits (bounded) for the first snapshot
+   *                               before any router is mounted, so the window
+   *                               is small. Warned about once per process.
    *   otherwise                   the license entitles the feature (valid or
    *                               grace, feature included)
    *
@@ -230,6 +238,17 @@ export default class EnterpriseEdition {
         EnterpriseEdition.hasWarnedAboutUnreadLicense = true;
         logger.warn(
           "EnterpriseEdition: the license has not been read yet. Until it is, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
+        );
+      }
+
+      return true;
+    }
+
+    if (EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(snapshot)) {
+      if (!EnterpriseEdition.hasWarnedAboutUnknownTrialStart) {
+        EnterpriseEdition.hasWarnedAboutUnknownTrialStart = true;
+        logger.warn(
+          "EnterpriseEdition: no license is installed and the start of the 14-day trial has not been recorded yet, so it is not known whether the trial is over. Until it is recorded, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
         );
       }
 

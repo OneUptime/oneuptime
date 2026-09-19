@@ -43,7 +43,12 @@ export const createLicenseSnapshot: (
   };
 };
 
-// A snapshot in the given status, with the fields that status normally carries.
+/*
+ * A snapshot in the given status, with the fields that status normally
+ * carries. "missing" is an install whose trial ended a day ago (graceEndsAt
+ * in the past): a known lapse. Pass graceEndsAt: undefined for "the trial
+ * start is not known", which isFeatureActive treats as an unknown state.
+ */
 export const createLicenseSnapshotWithStatus: (
   status: EnterpriseLicenseStatus,
   overrides?: Partial<EnterpriseLicenseSnapshot>,
@@ -60,6 +65,7 @@ export const createLicenseSnapshotWithStatus: (
         verification: "none",
         companyName: undefined,
         expiresAt: undefined,
+        graceEndsAt: new Date(now - DAY_IN_MS),
         features: [],
         ...(overrides || {}),
       });
@@ -304,7 +310,7 @@ export interface LicenseStateCase {
   // Whether SSO, SCIM and audit logging run in this state with billing off.
   isActiveWithoutBilling: boolean;
   /*
-   * The two unknown states: active for runtime checks, but unavailable for
+   * The unknown states: active for runtime checks, but unavailable for
    * configuration checks (isFeatureAvailableSync fails closed).
    */
   isUnknown: boolean;
@@ -414,6 +420,18 @@ export const LICENSE_STATE_CASES: ReadonlyArray<LicenseStateCase> = [
     label: "license not read yet (unknown)",
     install: (): FakeEnterpriseModule => {
       return installFakeEnterpriseModule({ snapshot: null });
+    },
+    isActiveWithoutBilling: true,
+    isUnknown: true,
+  },
+  {
+    label: "no license, trial start not recorded yet (unknown)",
+    install: (): FakeEnterpriseModule => {
+      return installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("missing", {
+          graceEndsAt: undefined,
+        }),
+      });
     },
     isActiveWithoutBilling: true,
     isUnknown: true,

@@ -515,6 +515,22 @@ describe("EnterpriseEdition unavailable messages", () => {
     );
   });
 
+  test("the license message never claims existing configuration keeps working", () => {
+    /*
+     * Every configuration write refused on a lapsed license answers with
+     * this message - SSO, OIDC and SCIM models, and the audit log settings -
+     * and for those features nothing keeps working: SSO, SCIM and audit
+     * logging stop (EnterpriseEdition.isFeatureActive). The configuration is
+     * only kept.
+     */
+    expect(EnterpriseEdition.LICENSE_REQUIRED_MESSAGE).not.toMatch(
+      /keeps? (?:on )?working|keeps? running|continues? to work/i,
+    );
+    expect(EnterpriseEdition.LICENSE_REQUIRED_MESSAGE).toContain(
+      "Enterprise configuration you already have is kept and can still be viewed or deleted",
+    );
+  });
+
   test("the Community Edition message is used on CE even with billing on", async () => {
     setTestBillingEnabled(true);
 

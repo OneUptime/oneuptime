@@ -41,9 +41,9 @@ type SpyInstance = ReturnType<typeof getJestSpyOn>;
  *   - self-hosted: while the license covers the feature (valid, grace, trial,
  *     accepted unverified legacy), and NOT once it lapsed (expired past grace,
  *     missing past the trial, invalid, feature not in the license);
- *   - unknown license state (not read yet, unreadable): active, with one
- *     warning per process - an unknown state must never lock anyone out or
- *     relax SSO.
+ *   - unknown license state (not read yet, unreadable, or no license with no
+ *     recorded trial start): active, with one warning per process - an
+ *     unknown state must never lock anyone out or relax SSO.
  *
  * A change of answer is logged once per change and reported to listeners.
  * Billing is pinned through the mocked EnvironmentConfig (CI's config.env sets
@@ -294,6 +294,102 @@ describe("an unknown license state counts as active, and is warned about once", 
       false,
     );
     expect(lapseWarnings()).toHaveLength(1);
+  });
+
+  /*
+   * An upgraded install's first Enterprise boot whose first-run stamp could
+   * not be written (or whose GlobalConfig row does not exist yet): the
+   * classifier says "missing" with no graceEndsAt, because it cannot tell
+   * when the trial started - so it cannot tell whether the trial is over.
+   */
+  describe("no license, and the trial start is not recorded yet", () => {
+    const unknownTrialStart: () => EnterpriseLicenseSnapshot =
+      (): EnterpriseLicenseSnapshot => {
+        return createLicenseSnapshotWithStatus("missing", {
+          graceEndsAt: undefined,
+        });
+      };
+
+    test("is active for every runtime feature, with one warning however many calls", () => {
+      installFakeEnterpriseModule({ snapshot: unknownTrialStart() });
+
+      for (let call: number = 0; call < 25; call++) {
+        for (const feature of RUNTIME_ENTERPRISE_FEATURES) {
+          expect(EnterpriseEdition.isFeatureActive(feature)).toBe(true);
+        }
+      }
+
+      expect(warnings()).toHaveLength(1);
+      expect(warnings()[0]).toContain(
+        "the start of the 14-day trial has not been recorded yet",
+      );
+      expect(warnings()[0]).toContain("once per process");
+      expect(lapseWarnings()).toEqual([]);
+      expect(info).not.toHaveBeenCalled();
+    });
+
+    test("configuration still fails closed", () => {
+      installFakeEnterpriseModule({ snapshot: unknownTrialStart() });
+
+      for (const feature of ALL_ENTERPRISE_FEATURES) {
+        expect(EnterpriseEdition.isFeatureAvailableSync(feature)).toBe(false);
+      }
+    });
+
+    test("negative control: the same install once the trial is known to be over has lapsed", () => {
+      installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("missing", {
+          graceEndsAt: new Date(Date.now() - 1000),
+        }),
+      });
+
+      for (const feature of RUNTIME_ENTERPRISE_FEATURES) {
+        expect(EnterpriseEdition.isFeatureActive(feature)).toBe(false);
+      }
+
+      expect(lapseWarnings()).toHaveLength(1);
+      expect(lapseWarnings()[0]).toContain("has lapsed (status: missing)");
+    });
+
+    test("is not reported to listeners, and does not hide a later lapse", () => {
+      const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("valid"),
+      });
+      const changes: Array<EnterpriseFeatureStateChange> = [];
+
+      EnterpriseEdition.onFeatureStateChange(
+        (change: EnterpriseFeatureStateChange): void => {
+          changes.push(change);
+        },
+      );
+
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+        true,
+      );
+
+      fake.setSnapshot(unknownTrialStart());
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+        true,
+      );
+      expect(changes).toEqual([]);
+
+      fake.setSnapshot(createLicenseSnapshotWithStatus("missing"));
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+        false,
+      );
+      expect(changes).toHaveLength(1);
+      expect(changes[0]!.stopped).toContain(EnterpriseFeature.SSO);
+    });
+
+    test("billing on never reads it (the Cloud gates by plan)", () => {
+      setTestBillingEnabled(true);
+      installFakeEnterpriseModule({ snapshot: unknownTrialStart() });
+
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+        true,
+      );
+      expect(warn).not.toHaveBeenCalled();
+    });
   });
 
   test("resetForTests forgets the one-time warning (a fresh process warns again)", () => {
