@@ -168,7 +168,14 @@
       "usageCardDescription": "Unike brukere på tvers av alle kundens selv-hostede instanser, slik installasjonene deres rapporterer daglig.",
       "instancesCardTitle": "Instanser",
       "instancesCardDescription": "Selv-hostede instanser (staging, produksjon osv.) som rapporterer på denne lisensen, og hovedadministratorene vi kan kontakte på hver enkelt.",
-      "noInstances": "Ingen instanser har ennå rapportert på denne lisensen."
+      "noInstances": "Ingen instanser har ennå rapportert på denne lisensen.",
+      "offlineTokenCardTitle": "Frakoblet lisenstoken",
+      "offlineTokenCardDescription": "For en installasjon som ikke kan nå oneuptime.com: last ned et signert lisenstoken som er knyttet til installasjonens instans-ID. Kunden limer det inn i sitt Admin Dashboard.",
+      "offlineTokenButton": "Last ned frakoblet token",
+      "offlineTokenIssued": "Et frakoblet lisenstoken ble lastet ned for instansen {{instanceId}}.",
+      "offlineTokenModalTitle": "Last ned frakoblet lisenstoken",
+      "offlineTokenModalDescription": "Skriv inn instans-ID-en til kundens installasjon. Tokenet fungerer bare på den installasjonen.",
+      "offlineTokenSubmitButton": "Last ned token"
     },
     "userView": {
       "title": "Bruker",

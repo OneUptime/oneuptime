@@ -168,7 +168,14 @@
       "usageCardDescription": "Usuarios únicos en todas las instancias autoalojadas del cliente, según lo informado a diario por sus instalaciones.",
       "instancesCardTitle": "Instancias",
       "instancesCardDescription": "Instancias autoalojadas (staging, producción, etc.) que informan sobre esta licencia, y los administradores maestros con los que podemos contactar en cada una.",
-      "noInstances": "Todavía ninguna instancia ha informado sobre esta licencia."
+      "noInstances": "Todavía ninguna instancia ha informado sobre esta licencia.",
+      "offlineTokenCardTitle": "Token de licencia sin conexión",
+      "offlineTokenCardDescription": "Para una instalación que no puede acceder a oneuptime.com: descargue un token de licencia firmado y vinculado al ID de instancia de esa instalación. El cliente lo pega en su Panel de administración.",
+      "offlineTokenButton": "Descargar token sin conexión",
+      "offlineTokenIssued": "Se descargó un token de licencia sin conexión para la instancia {{instanceId}}.",
+      "offlineTokenModalTitle": "Descargar token de licencia sin conexión",
+      "offlineTokenModalDescription": "Introduzca el ID de instancia de la instalación del cliente. El token solo funciona en esa instalación.",
+      "offlineTokenSubmitButton": "Descargar token"
     },
     "userView": {
       "title": "Usuario",

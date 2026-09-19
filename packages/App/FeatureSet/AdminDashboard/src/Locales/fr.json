@@ -168,7 +168,14 @@
       "usageCardDescription": "Utilisateurs uniques sur l'ensemble des instances auto-hébergées du client, tels que signalés quotidiennement par leurs installations.",
       "instancesCardTitle": "Instances",
       "instancesCardDescription": "Instances auto-hébergées (préproduction, production, etc.) qui remontent des données pour cette licence, et les administrateurs principaux que nous pouvons contacter pour chacune.",
-      "noInstances": "Aucune instance n'a encore remonté de données pour cette licence."
+      "noInstances": "Aucune instance n'a encore remonté de données pour cette licence.",
+      "offlineTokenCardTitle": "Jeton de licence hors ligne",
+      "offlineTokenCardDescription": "Pour une installation qui ne peut pas joindre oneuptime.com : téléchargez un jeton de licence signé, lié à l'identifiant d'instance de cette installation. Le client le colle dans son tableau de bord d'administration.",
+      "offlineTokenButton": "Télécharger le jeton hors ligne",
+      "offlineTokenIssued": "Un jeton de licence hors ligne a été téléchargé pour l'instance {{instanceId}}.",
+      "offlineTokenModalTitle": "Télécharger le jeton de licence hors ligne",
+      "offlineTokenModalDescription": "Saisissez l'identifiant d'instance de l'installation du client. Le jeton ne fonctionne que sur cette installation.",
+      "offlineTokenSubmitButton": "Télécharger le jeton"
     },
     "userView": {
       "title": "Utilisateur",

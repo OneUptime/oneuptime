@@ -168,7 +168,14 @@
       "usageCardDescription": "該客戶所有自架執行個體中的不重複使用者數，由其安裝環境每天回報。",
       "instancesCardTitle": "執行個體",
       "instancesCardDescription": "針對此授權回報資料的自架執行個體（測試、正式等），以及我們可以在各執行個體上聯絡的主要管理員。",
-      "noInstances": "尚無執行個體針對此授權回報資料。"
+      "noInstances": "尚無執行個體針對此授權回報資料。",
+      "offlineTokenCardTitle": "離線授權權杖",
+      "offlineTokenCardDescription": "適用於無法連線至 oneuptime.com 的安裝：下載與該安裝的執行個體 ID 綁定的已簽署授權權杖。客戶將其貼到自己的管理儀表板中。",
+      "offlineTokenButton": "下載離線權杖",
+      "offlineTokenIssued": "已為執行個體 {{instanceId}} 下載離線授權權杖。",
+      "offlineTokenModalTitle": "下載離線授權權杖",
+      "offlineTokenModalDescription": "輸入客戶安裝的執行個體 ID。此權杖僅在該安裝上有效。",
+      "offlineTokenSubmitButton": "下載權杖"
     },
     "userView": {
       "title": "使用者",

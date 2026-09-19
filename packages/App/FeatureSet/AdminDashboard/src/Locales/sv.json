@@ -168,7 +168,14 @@
       "usageCardDescription": "Unika användare i alla kundens självhostade instanser, enligt vad deras installationer rapporterar dagligen.",
       "instancesCardTitle": "Instanser",
       "instancesCardDescription": "Självhostade instanser (staging, produktion osv.) som rapporterar mot den här licensen, och de huvudadministratörer vi kan kontakta på var och en.",
-      "noInstances": "Inga instanser har rapporterat mot den här licensen ännu."
+      "noInstances": "Inga instanser har rapporterat mot den här licensen ännu.",
+      "offlineTokenCardTitle": "Offline-licenstoken",
+      "offlineTokenCardDescription": "För en installation som inte kan nå oneuptime.com: ladda ned en signerad licenstoken som är bunden till installationens instans-ID. Kunden klistrar in den i sin Admin Dashboard.",
+      "offlineTokenButton": "Ladda ned offline-token",
+      "offlineTokenIssued": "En offline-licenstoken laddades ned för instansen {{instanceId}}.",
+      "offlineTokenModalTitle": "Ladda ned offline-licenstoken",
+      "offlineTokenModalDescription": "Ange instans-ID:t för kundens installation. Token fungerar bara på den installationen.",
+      "offlineTokenSubmitButton": "Ladda ned token"
     },
     "userView": {
       "title": "Användare",
