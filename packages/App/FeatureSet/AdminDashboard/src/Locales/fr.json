@@ -834,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "Projets, utilisateurs, moniteurs et incidents à travers l'instance.",
   "Valkey memory": "Mémoire Valkey",
   "Spot job backlogs and failures before they cause incidents.": "Repérez les arriérés et les échecs de tâches avant qu'ils ne provoquent des incidents.",
-  "Track database disk and memory utilization before you run out.": "Suivez l'utilisation du disque et de la mémoire de la base de données avant d'arriver à saturation."
+  "Track database disk and memory utilization before you run out.": "Suivez l'utilisation du disque et de la mémoire de la base de données avant d'arriver à saturation.",
+  "You can still disable a provider.": "Vous pouvez toujours désactiver un fournisseur.",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "Sans licence Enterprise valide, cette configuration est en lecture seule, mais la désactivation d'un fournisseur est toujours autorisée, car elle ne peut que renforcer la sécurité. Si un fournisseur d'identité est compromis, utilisez « Désactiver » pour bloquer immédiatement les connexions via ce fournisseur. Pour réactiver un fournisseur, une licence valide est nécessaire.",
+  "Disable Provider": "Désactiver le fournisseur",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "Personne ne pourra se connecter avec ce fournisseur tant qu'il ne sera pas réactivé, et sa réactivation nécessite une licence Enterprise valide.",
+  "Disable": "Désactiver",
+  "Disable Project Attachment": "Désactiver le rattachement au projet",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "Ce fournisseur ne provisionnera plus d'utilisateurs dans ce projet et n'y donnera plus accès lorsqu'il est limité aux projets rattachés. Pour réactiver le rattachement, une licence Enterprise valide est nécessaire.",
+  "Disable this provider": "Désactiver ce fournisseur",
+  "Stop every sign-in through this provider. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Bloquez toutes les connexions via ce fournisseur. Sa configuration reste inchangée, et il pourra être réactivé dès que la licence Enterprise sera de nouveau valide."
 }

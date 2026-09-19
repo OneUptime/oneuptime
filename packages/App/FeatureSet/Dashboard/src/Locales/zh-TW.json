@@ -6264,5 +6264,12 @@
   "No on-call schedules yet": "尚無待命排程",
   "Create an on-call schedule and every rotation in this project will show up here, side by side.": "建立待命排程後，此專案中的所有輪值都會在這裡並排顯示。",
   "This team does not own any on-call schedules yet": "此團隊尚未擁有任何待命排程",
-  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "在排程的「擁有者」分頁中將此團隊新增為擁有者，其輪值就會顯示在這裡。"
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "在排程的「擁有者」分頁中將此團隊新增為擁有者，其輪值就會顯示在這裡。",
+  "You can still disable a provider.": "您仍然可以停用提供者。",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "沒有有效的 Enterprise 授權時，此設定為唯讀，但一律可以停用提供者，因為這只會加強安全性。如果身分提供者遭到入侵，請使用「停用」立即阻止透過它登入。重新啟用提供者需要有效的授權。",
+  "You can still reset a SCIM bearer token.": "您仍然可以重設 SCIM Bearer Token。",
+  "Without a valid Enterprise license this configuration is read-only, but resetting a bearer token is always allowed, because it can only tighten security. If a token has leaked, use Reset Bearer Token to replace it, then give the new token to your identity provider.": "沒有有效的 Enterprise 授權時，此設定為唯讀，但一律可以重設 Bearer Token，因為這只會加強安全性。如果權杖已外洩，請使用「重設 Bearer Token」替換它，然後將新權杖提供給您的身分提供者。",
+  "Disable Provider": "停用提供者",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "在重新啟用之前，任何人都無法透過此提供者登入，而重新啟用需要有效的 Enterprise 授權。",
+  "This browser cannot generate a secure bearer token. Please use a current browser and try again.": "此瀏覽器無法產生安全的 Bearer Token。請使用最新的瀏覽器後再試一次。"
 }

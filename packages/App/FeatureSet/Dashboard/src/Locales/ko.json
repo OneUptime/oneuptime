@@ -6264,5 +6264,12 @@
   "No on-call schedules yet": "아직 온콜 스케줄이 없습니다",
   "Create an on-call schedule and every rotation in this project will show up here, side by side.": "온콜 스케줄을 만들면 이 프로젝트의 모든 로테이션이 여기에 나란히 표시됩니다.",
   "This team does not own any on-call schedules yet": "이 팀이 소유한 온콜 스케줄이 아직 없습니다",
-  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "스케줄의 소유자 탭에서 이 팀을 소유자로 추가하면 해당 로테이션이 여기에 표시됩니다."
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "스케줄의 소유자 탭에서 이 팀을 소유자로 추가하면 해당 로테이션이 여기에 표시됩니다.",
+  "You can still disable a provider.": "공급자는 계속 비활성화할 수 있습니다.",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "유효한 Enterprise 라이선스가 없으면 이 구성은 읽기 전용이지만, 공급자 비활성화는 보안을 강화하기만 하므로 항상 허용됩니다. ID 공급자가 손상된 경우 \"비활성화\"를 사용하여 해당 공급자를 통한 로그인을 즉시 중지하세요. 공급자를 다시 활성화하려면 유효한 라이선스가 필요합니다.",
+  "You can still reset a SCIM bearer token.": "SCIM Bearer 토큰은 계속 재설정할 수 있습니다.",
+  "Without a valid Enterprise license this configuration is read-only, but resetting a bearer token is always allowed, because it can only tighten security. If a token has leaked, use Reset Bearer Token to replace it, then give the new token to your identity provider.": "유효한 Enterprise 라이선스가 없으면 이 구성은 읽기 전용이지만, Bearer 토큰 재설정은 보안을 강화하기만 하므로 항상 허용됩니다. 토큰이 유출된 경우 \"Bearer 토큰 재설정\"으로 교체한 다음 새 토큰을 ID 공급자에 등록하세요.",
+  "Disable Provider": "공급자 비활성화",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "다시 활성화할 때까지 아무도 이 공급자로 로그인할 수 없으며, 다시 활성화하려면 유효한 Enterprise 라이선스가 필요합니다.",
+  "This browser cannot generate a secure bearer token. Please use a current browser and try again.": "이 브라우저에서는 안전한 Bearer 토큰을 생성할 수 없습니다. 최신 브라우저를 사용하여 다시 시도하세요."
 }

@@ -30,6 +30,13 @@ import {
   isEnterpriseConfigurationReadOnly,
 } from "../../License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
+import ReadOnlyActionsNotice, {
+  ReadOnlyActionsKind,
+} from "../../TightenOnly/ReadOnlyActionsNotice";
+import {
+  buildRotateBearerTokenUpdate,
+  generateScimBearerToken,
+} from "../../TightenOnly/TightenOnlyUpdates";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -48,7 +55,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   /*
    * Without a valid Enterprise license (after the grace period) the server
    * refuses to create or change this configuration; say so up front and
-   * hide what would fail. Sign-in and deletes keep working.
+   * hide what would fail. Sign-in and deletes keep working, and so does
+   * "Reset Bearer Token": it writes the bearer token alone, which the server
+   * accepts without a license, so a leaked token can always be replaced.
    */
   const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
@@ -60,15 +69,18 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   const resetBearerToken: () => Promise<void> = async (): Promise<void> => {
     setIsResetLoading(true);
     try {
-      const newToken: ObjectID = ObjectID.generate();
+      /*
+       * The bearer token alone, 256 bits from the browser's secure random
+       * number generator (never Math.random), so the server accepts it with
+       * or without a license (see TightenOnlyUpdates).
+       */
+      const newToken: string = generateScimBearerToken();
       await ModelAPI.updateById<ProjectSCIM>({
         modelType: ProjectSCIM,
         id: new ObjectID(resetSCIMId),
-        data: {
-          bearerToken: newToken.toString(),
-        },
+        data: buildRotateBearerTokenUpdate(newToken),
       });
-      setNewBearerToken(newToken.toString());
+      setNewBearerToken(newToken);
       setShowResetModal(false);
       setShowResetSuccessModal(true);
       setRefresher(!refresher);
@@ -83,6 +95,10 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   return (
     <Fragment>
       <EnterpriseLicenseBanner mode={licenseMode} />
+      <ReadOnlyActionsNotice
+        mode={licenseMode}
+        kind={ReadOnlyActionsKind.Scim}
+      />
       <Tabs
         tabs={[
           {
@@ -276,9 +292,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   },
                   {
                     title: "Reset Bearer Token",
-                    isVisible: (): boolean => {
-                      return !isReadOnly;
-                    },
                     buttonStyleType: ButtonStyleType.OUTLINE,
                     icon: IconProp.Refresh,
                     onClick: async (

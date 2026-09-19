@@ -834,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "پروژه‌ها، کاربران، مانیتورها و حوادث در سراسر این نمونه.",
   "Valkey memory": "حافظه Valkey",
   "Spot job backlogs and failures before they cause incidents.": "انباشت و خطاهای کارها را پیش از آنکه به حادثه بینجامند تشخیص دهید.",
-  "Track database disk and memory utilization before you run out.": "مصرف دیسک و حافظه پایگاه داده را پیش از پر شدن رصد کنید."
+  "Track database disk and memory utilization before you run out.": "مصرف دیسک و حافظه پایگاه داده را پیش از پر شدن رصد کنید.",
+  "You can still disable a provider.": "همچنان می‌توانید یک ارائه‌دهنده را غیرفعال کنید.",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "بدون مجوز معتبر Enterprise این پیکربندی فقط‌خواندنی است، اما غیرفعال کردن یک ارائه‌دهنده همیشه مجاز است، زیرا فقط می‌تواند امنیت را سخت‌گیرانه‌تر کند. اگر یک ارائه‌دهنده هویت به خطر افتاده است، از «غیرفعال کردن» استفاده کنید تا ورود از طریق آن فوراً متوقف شود. برای فعال کردن دوباره یک ارائه‌دهنده به مجوز معتبر نیاز است.",
+  "Disable Provider": "غیرفعال کردن ارائه‌دهنده",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "تا زمانی که این ارائه‌دهنده دوباره فعال نشود، هیچ‌کس نمی‌تواند با آن وارد شود و فعال کردن دوباره آن به مجوز معتبر Enterprise نیاز دارد.",
+  "Disable": "غیرفعال کردن",
+  "Disable Project Attachment": "غیرفعال کردن اتصال پروژه",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "این ارائه‌دهنده دیگر کاربری را در این پروژه ایجاد نمی‌کند و وقتی به پروژه‌های متصل محدود شده باشد، دسترسی به آن را نیز نمی‌دهد. برای فعال کردن دوباره این اتصال به مجوز معتبر Enterprise نیاز است.",
+  "Disable this provider": "غیرفعال کردن این ارائه‌دهنده",
+  "Stop every sign-in through this provider. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "همه ورودها از طریق این ارائه‌دهنده را متوقف کنید. پیکربندی آن همان‌طور که هست باقی می‌ماند و وقتی مجوز Enterprise دوباره معتبر شد، می‌توان آن را دوباره فعال کرد."
 }

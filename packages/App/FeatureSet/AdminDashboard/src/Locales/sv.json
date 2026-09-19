@@ -834,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "Projekt, användare, övervakningar och incidenter i hela instansen.",
   "Valkey memory": "Valkey-minne",
   "Spot job backlogs and failures before they cause incidents.": "Upptäck eftersläpningar och fel i jobb innan de orsakar incidenter.",
-  "Track database disk and memory utilization before you run out.": "Spåra databasens disk- och minnesanvändning innan du får slut."
+  "Track database disk and memory utilization before you run out.": "Spåra databasens disk- och minnesanvändning innan du får slut.",
+  "You can still disable a provider.": "Du kan fortfarande inaktivera en leverantör.",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "Utan en giltig Enterprise-licens är den här konfigurationen skrivskyddad, men det är alltid tillåtet att inaktivera en leverantör, eftersom det bara kan skärpa säkerheten. Om en identitetsleverantör har komprometterats använder du \"Inaktivera\" för att genast stoppa inloggningar via den. Det krävs en giltig licens för att aktivera en leverantör igen.",
+  "Disable Provider": "Inaktivera leverantör",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "Ingen kommer att kunna logga in med den här leverantören förrän den aktiveras igen, och det kräver en giltig Enterprise-licens att aktivera den igen.",
+  "Disable": "Inaktivera",
+  "Disable Project Attachment": "Inaktivera projektkoppling",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "Den här leverantören kommer inte längre att etablera användare i det här projektet, eller ge åtkomst till det när leverantören är begränsad till kopplade projekt. Det krävs en giltig Enterprise-licens för att aktivera kopplingen igen.",
+  "Disable this provider": "Inaktivera den här leverantören",
+  "Stop every sign-in through this provider. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Stoppa alla inloggningar via den här leverantören. Dess konfiguration förblir oförändrad, och den kan aktiveras igen när Enterprise-licensen är giltig igen."
 }

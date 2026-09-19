@@ -834,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "Projekte, Benutzer, Überwachungen und Vorfälle in der gesamten Instanz.",
   "Valkey memory": "Valkey-Speicher",
   "Spot job backlogs and failures before they cause incidents.": "Erkennen Sie Auftragsrückstände und Fehler, bevor sie Vorfälle verursachen.",
-  "Track database disk and memory utilization before you run out.": "Verfolgen Sie die Datenträger- und Speichernutzung der Datenbank, bevor sie erschöpft sind."
+  "Track database disk and memory utilization before you run out.": "Verfolgen Sie die Datenträger- und Speichernutzung der Datenbank, bevor sie erschöpft sind.",
+  "You can still disable a provider.": "Sie können einen Anbieter weiterhin deaktivieren.",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "Ohne gültige Enterprise-Lizenz ist diese Konfiguration schreibgeschützt, aber das Deaktivieren eines Anbieters ist immer erlaubt, da es die Sicherheit nur erhöhen kann. Wenn ein Identitätsanbieter kompromittiert wurde, verwenden Sie „Deaktivieren“, um Anmeldungen darüber sofort zu stoppen. Um einen Anbieter wieder zu aktivieren, ist eine gültige Lizenz erforderlich.",
+  "Disable Provider": "Anbieter deaktivieren",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "Niemand kann sich mehr über diesen Anbieter anmelden, bis er wieder aktiviert wird – und dafür ist eine gültige Enterprise-Lizenz erforderlich.",
+  "Disable": "Deaktivieren",
+  "Disable Project Attachment": "Projektzuordnung deaktivieren",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "Dieser Anbieter legt in diesem Projekt keine Benutzer mehr an und gewährt keinen Zugriff mehr darauf, wenn er auf zugeordnete Projekte beschränkt ist. Um die Zuordnung wieder zu aktivieren, ist eine gültige Enterprise-Lizenz erforderlich.",
+  "Disable this provider": "Diesen Anbieter deaktivieren",
+  "Stop every sign-in through this provider. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Beenden Sie alle Anmeldungen über diesen Anbieter. Seine Konfiguration bleibt unverändert, und er kann wieder aktiviert werden, sobald die Enterprise-Lizenz wieder gültig ist."
 }

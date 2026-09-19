@@ -13,7 +13,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import DigestMethod from "Common/Types/SSO/DigestMethod";
 import SignatureMethod from "Common/Types/SSO/SignatureMethod";
 import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 /*
  * The license state helpers are shared with the Dashboard's identity
@@ -25,6 +25,12 @@ import {
   isEnterpriseConfigurationReadOnly,
 } from "../../../../Dashboard/SSO/License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../../../../Dashboard/SSO/License/UseEnterpriseLicenseMode";
+import ReadOnlyActionsNotice, {
+  ReadOnlyActionsKind,
+} from "../../../../Dashboard/SSO/TightenOnly/ReadOnlyActionsNotice";
+import useDisableProviderAction, {
+  DisableProviderAction,
+} from "../../../../Dashboard/SSO/TightenOnly/UseDisableProviderAction";
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -55,6 +61,25 @@ const Settings: FunctionComponent = (): ReactElement => {
   const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
+  /*
+   * The one change the server still accepts then: switching an enabled
+   * provider off ({ isEnabled: false } and nothing else), so a compromised
+   * identity provider can be shut out without waiting for a license.
+   */
+  const [tableRefreshToggle, setTableRefreshToggle] = useState<number>(0);
+
+  const disableAction: DisableProviderAction<GlobalSSO> =
+    useDisableProviderAction<GlobalSSO>({
+      modelType: GlobalSSO,
+      modelAPI: AdminModelAPI,
+      isReadOnly: isReadOnly,
+      onDisabled: () => {
+        setTableRefreshToggle((toggle: number) => {
+          return toggle + 1;
+        });
+      },
+    });
+
   return (
     <Page
       title={t("pages.settings.title")}
@@ -62,6 +87,10 @@ const Settings: FunctionComponent = (): ReactElement => {
       sideMenu={<DashboardSideMenu />}
     >
       <EnterpriseLicenseBanner mode={licenseMode} />
+      <ReadOnlyActionsNotice
+        mode={licenseMode}
+        kind={ReadOnlyActionsKind.Provider}
+      />
 
       <Banner
         openInNewTab={true}
@@ -88,6 +117,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         modelAPI={AdminModelAPI}
         noItemsMessage={"No Global SSO providers found."}
         showRefreshButton={true}
+        refreshToggle={tableRefreshToggle.toString()}
+        actionButtons={[disableAction.actionButton]}
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
           {
@@ -272,6 +303,8 @@ const Settings: FunctionComponent = (): ReactElement => {
           },
         ]}
       />
+
+      {disableAction.modal}
     </Page>
   );
 };

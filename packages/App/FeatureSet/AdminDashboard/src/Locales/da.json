@@ -834,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "Projekter, brugere, overvågninger og hændelser på tværs af instansen.",
   "Valkey memory": "Valkey-hukommelse",
   "Spot job backlogs and failures before they cause incidents.": "Opdag jobophobninger og fejl, før de forårsager hændelser.",
-  "Track database disk and memory utilization before you run out.": "Hold styr på databasens disk- og hukommelsesforbrug, før du løber tør."
+  "Track database disk and memory utilization before you run out.": "Hold styr på databasens disk- og hukommelsesforbrug, før du løber tør.",
+  "You can still disable a provider.": "Du kan stadig deaktivere en udbyder.",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "Uden en gyldig Enterprise-licens er denne konfiguration skrivebeskyttet, men det er altid tilladt at deaktivere en udbyder, fordi det kun kan stramme sikkerheden. Hvis en identitetsudbyder er kompromitteret, kan du bruge \"Deaktivér\" til straks at stoppe logins via den. Det kræver en gyldig licens at aktivere en udbyder igen.",
+  "Disable Provider": "Deaktivér udbyder",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "Ingen vil kunne logge ind med denne udbyder, før den aktiveres igen, og det kræver en gyldig Enterprise-licens at aktivere den igen.",
+  "Disable": "Deaktivér",
+  "Disable Project Attachment": "Deaktivér projekttilknytning",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "Denne udbyder vil ikke længere oprette brugere i dette projekt eller give adgang til det, når udbyderen er begrænset til tilknyttede projekter. Det kræver en gyldig Enterprise-licens at aktivere tilknytningen igen.",
+  "Disable this provider": "Deaktivér denne udbyder",
+  "Stop every sign-in through this provider. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Stop alle logins via denne udbyder. Dens konfiguration forbliver uændret, og den kan aktiveres igen, når Enterprise-licensen er gyldig igen."
 }

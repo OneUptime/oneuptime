@@ -834,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "Proyectos, usuarios, monitores e incidentes en toda la instancia.",
   "Valkey memory": "Memoria de Valkey",
   "Spot job backlogs and failures before they cause incidents.": "Detecta acumulaciones y fallos de tareas antes de que provoquen incidentes.",
-  "Track database disk and memory utilization before you run out.": "Supervisa el uso de disco y memoria de la base de datos antes de quedarte sin recursos."
+  "Track database disk and memory utilization before you run out.": "Supervisa el uso de disco y memoria de la base de datos antes de quedarte sin recursos.",
+  "You can still disable a provider.": "Todavía puedes desactivar un proveedor.",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "Sin una licencia Enterprise válida, esta configuración es de solo lectura, pero desactivar un proveedor siempre está permitido, porque solo puede reforzar la seguridad. Si un proveedor de identidad se ve comprometido, usa «Desactivar» para detener de inmediato los inicios de sesión a través de él. Para volver a activar un proveedor se necesita una licencia válida.",
+  "Disable Provider": "Desactivar proveedor",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "Nadie podrá iniciar sesión con este proveedor hasta que se vuelva a activar, y volver a activarlo requiere una licencia Enterprise válida.",
+  "Disable": "Desactivar",
+  "Disable Project Attachment": "Desactivar vinculación con el proyecto",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "Este proveedor dejará de aprovisionar usuarios en este proyecto y de dar acceso a él cuando esté restringido a los proyectos vinculados. Para volver a activar la vinculación se necesita una licencia Enterprise válida.",
+  "Disable this provider": "Desactivar este proveedor",
+  "Stop every sign-in through this provider. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Detén todos los inicios de sesión a través de este proveedor. Su configuración se mantiene tal cual y podrá volver a activarse cuando la licencia Enterprise vuelva a ser válida."
 }

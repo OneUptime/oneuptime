@@ -6264,5 +6264,12 @@
   "No on-call schedules yet": "Ingen vagtplaner endnu",
   "Create an on-call schedule and every rotation in this project will show up here, side by side.": "Opret en vagtplan, og alle rotationer i dette projekt vises her side om side.",
   "This team does not own any on-call schedules yet": "Dette team ejer endnu ingen vagtplaner",
-  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Tilføj dette team som ejer på fanen Ejere på en vagtplan, så vises dets rotationer her."
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Tilføj dette team som ejer på fanen Ejere på en vagtplan, så vises dets rotationer her.",
+  "You can still disable a provider.": "Du kan stadig deaktivere en udbyder.",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "Uden en gyldig Enterprise-licens er denne konfiguration skrivebeskyttet, men det er altid tilladt at deaktivere en udbyder, fordi det kun kan stramme sikkerheden. Hvis en identitetsudbyder er kompromitteret, kan du bruge \"Deaktivér\" til straks at stoppe logins via den. Det kræver en gyldig licens at aktivere en udbyder igen.",
+  "You can still reset a SCIM bearer token.": "Du kan stadig nulstille et SCIM-bearer-token.",
+  "Without a valid Enterprise license this configuration is read-only, but resetting a bearer token is always allowed, because it can only tighten security. If a token has leaked, use Reset Bearer Token to replace it, then give the new token to your identity provider.": "Uden en gyldig Enterprise-licens er denne konfiguration skrivebeskyttet, men det er altid tilladt at nulstille et bearer-token, fordi det kun kan stramme sikkerheden. Hvis et token er lækket, kan du erstatte det med \"Nulstil bearer-token\" og derefter give det nye token til din identitetsudbyder.",
+  "Disable Provider": "Deaktivér udbyder",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "Ingen vil kunne logge ind med denne udbyder, før den aktiveres igen, og det kræver en gyldig Enterprise-licens at aktivere den igen.",
+  "This browser cannot generate a secure bearer token. Please use a current browser and try again.": "Denne browser kan ikke generere et sikkert bearer-token. Brug en opdateret browser, og prøv igen."
 }

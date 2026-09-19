@@ -6264,5 +6264,12 @@
   "No on-call schedules yet": "オンコールスケジュールはまだありません",
   "Create an on-call schedule and every rotation in this project will show up here, side by side.": "オンコールスケジュールを作成すると、このプロジェクトのすべてのローテーションがここに並んで表示されます。",
   "This team does not own any on-call schedules yet": "このチームが所有するオンコールスケジュールはまだありません",
-  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "スケジュールの「所有者」タブでこのチームを所有者に追加すると、そのローテーションがここに表示されます。"
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "スケジュールの「所有者」タブでこのチームを所有者に追加すると、そのローテーションがここに表示されます。",
+  "You can still disable a provider.": "プロバイダーの無効化は引き続き行えます。",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "有効な Enterprise ライセンスがないため、この設定は読み取り専用ですが、プロバイダーの無効化はセキュリティを強化する操作に限られるため、いつでも行えます。ID プロバイダーが侵害された場合は、「無効にする」を使ってそのプロバイダー経由のサインインを直ちに停止してください。プロバイダーを再度有効にするには、有効なライセンスが必要です。",
+  "You can still reset a SCIM bearer token.": "SCIM のベアラートークンのリセットは引き続き行えます。",
+  "Without a valid Enterprise license this configuration is read-only, but resetting a bearer token is always allowed, because it can only tighten security. If a token has leaked, use Reset Bearer Token to replace it, then give the new token to your identity provider.": "有効な Enterprise ライセンスがないため、この設定は読み取り専用ですが、ベアラートークンのリセットはセキュリティを強化する操作に限られるため、いつでも行えます。トークンが漏洩した場合は、「ベアラートークンをリセット」で置き換えてから、新しいトークンを ID プロバイダーに設定してください。",
+  "Disable Provider": "プロバイダーを無効にする",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "再度有効にするまで、このプロバイダーでは誰もサインインできなくなります。再度有効にするには、有効な Enterprise ライセンスが必要です。",
+  "This browser cannot generate a secure bearer token. Please use a current browser and try again.": "このブラウザーでは安全なベアラートークンを生成できません。最新のブラウザーを使用して、もう一度お試しください。"
 }

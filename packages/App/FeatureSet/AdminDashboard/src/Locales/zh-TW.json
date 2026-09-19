@@ -834,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "整個執行個體中的專案、使用者、監測器與事件。",
   "Valkey memory": "Valkey 記憶體",
   "Spot job backlogs and failures before they cause incidents.": "在工作積壓與失敗造成事件之前及早發現。",
-  "Track database disk and memory utilization before you run out.": "在資源耗盡前追蹤資料庫磁碟與記憶體使用率。"
+  "Track database disk and memory utilization before you run out.": "在資源耗盡前追蹤資料庫磁碟與記憶體使用率。",
+  "You can still disable a provider.": "您仍然可以停用提供者。",
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.": "沒有有效的 Enterprise 授權時，此設定為唯讀，但一律可以停用提供者，因為這只會加強安全性。如果身分提供者遭到入侵，請使用「停用」立即阻止透過它登入。重新啟用提供者需要有效的授權。",
+  "Disable Provider": "停用提供者",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "在重新啟用之前，任何人都無法透過此提供者登入，而重新啟用需要有效的 Enterprise 授權。",
+  "Disable": "停用",
+  "Disable Project Attachment": "停用專案關聯",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "此提供者將不再為此專案佈建使用者；如果提供者僅限於關聯的專案，也將不再授予此專案的存取權。重新啟用關聯需要有效的 Enterprise 授權。",
+  "Disable this provider": "停用此提供者",
+  "Stop every sign-in through this provider. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "停止透過此提供者進行的所有登入。其設定將維持不變，待 Enterprise 授權重新生效後即可重新啟用。"
 }

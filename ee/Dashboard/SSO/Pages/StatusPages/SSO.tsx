@@ -28,6 +28,12 @@ import {
   isEnterpriseConfigurationReadOnly,
 } from "../../License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
+import ReadOnlyActionsNotice, {
+  ReadOnlyActionsKind,
+} from "../../TightenOnly/ReadOnlyActionsNotice";
+import useDisableProviderAction, {
+  DisableProviderAction,
+} from "../../TightenOnly/UseDisableProviderAction";
 import React, {
   Fragment,
   FunctionComponent,
@@ -53,9 +59,31 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
   const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
+  /*
+   * The one change the server still accepts then: switching an enabled
+   * provider off ({ isEnabled: false } and nothing else), so a compromised
+   * identity provider can be shut out without waiting for a license.
+   */
+  const [tableRefreshToggle, setTableRefreshToggle] = useState<number>(0);
+
+  const disableAction: DisableProviderAction<StatusPageSSO> =
+    useDisableProviderAction<StatusPageSSO>({
+      modelType: StatusPageSSO,
+      isReadOnly: isReadOnly,
+      onDisabled: () => {
+        setTableRefreshToggle((toggle: number) => {
+          return toggle + 1;
+        });
+      },
+    });
+
   return (
     <Fragment>
       <EnterpriseLicenseBanner mode={licenseMode} />
+      <ReadOnlyActionsNotice
+        mode={licenseMode}
+        kind={ReadOnlyActionsKind.Provider}
+      />
       <>
         <ModelTable<StatusPageSSO>
           modelType={StatusPageSSO}
@@ -214,6 +242,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             },
           ]}
           showRefreshButton={true}
+          refreshToggle={tableRefreshToggle.toString()}
           actionButtons={[
             {
               title: "View SSO Config",
@@ -226,6 +255,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                 onCompleteAction();
               },
             },
+            disableAction.actionButton,
           ]}
           filters={[
             {
@@ -365,6 +395,8 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             submitButtonType={ButtonStyleType.NORMAL}
           />
         )}
+
+        {disableAction.modal}
       </>
     </Fragment>
   );
