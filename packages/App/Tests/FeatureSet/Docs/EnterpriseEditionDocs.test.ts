@@ -30,6 +30,13 @@ import path from "path";
  * upgrade notes carry the edition split, and the chart says that production
  * use of the Enterprise Edition needs a subscription while the 14-day trial is
  * for evaluation.
+ *
+ * And what a lapse does: after the trial or the grace period SSO, OIDC, SCIM
+ * and audit logging stop (the owner's decision; they used to keep running),
+ * "Require SSO" stops being enforced so nobody is locked out, and everything
+ * resumes with a license. The page, the upgrade notes in every language and
+ * the Helm chart say so. LicenseLapseClaims.test.ts rejects the old promise
+ * wherever it could reappear.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -453,10 +460,12 @@ function helmEditionTexts(): Array<HelmEditionText> {
 
 /*
  * What is wrong with a description of the Enterprise Edition's licensing: it
- * must say production use needs a subscription and that the first 14 days are
- * an evaluation trial, and it must not describe the license only as a switch
- * for configuration, or call the unlicensed first 14 days a grace period
- * (the grace period is the 14 days after a license expires).
+ * must say production use needs a subscription, that the first 14 days are
+ * an evaluation trial, and that SSO, OIDC, SCIM and audit logging stop after
+ * it until a license is activated. It must not describe the license only as
+ * a switch for configuration, promise that those keep running, or call the
+ * unlicensed first 14 days a grace period (the grace period is the 14 days
+ * after a license expires).
  */
 function helmLicensingWordingProblems(text: string): Array<string> {
   const flat: string = normalized(text);
@@ -466,6 +475,9 @@ function helmLicensingWordingProblems(text: string): Array<string> {
     "Production use of the Enterprise Edition requires a subscription",
     `${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day trial`,
     "for evaluation",
+    "SSO, OIDC, SCIM and audit logging stop",
+    "until a license is activated",
+    "core monitoring is never affected",
   ]) {
     if (!flat.includes(required)) {
       problems.push(`missing: ${required}`);
@@ -476,6 +488,8 @@ function helmLicensingWordingProblems(text: string): Array<string> {
     /\bgrace period\b/i,
     /configuring them needs a valid license/i,
     /need a valid license to configure them/i,
+    /keeps? (?:running|working)/i,
+    /never stop/i,
   ]) {
     if (forbidden.test(flat)) {
       problems.push(`retired wording: ${forbidden.source}`);
@@ -677,16 +691,68 @@ describe("Enterprise Edition docs page", () => {
     }
   });
 
-  it("promises soft enforcement: lapsed licenses never weaken security or core monitoring", () => {
-    const page: string = readPage();
-
-    expect(page).toContain("**SSO, OIDC and SCIM keep working**");
-    expect(page).toContain("**Audit logging continues.**");
-    expect(page).toContain("**Core monitoring is never affected**");
-    expect(page).toContain(
-      "**Master admins can always sign in with their password.**",
+  it("says what stops when a license lapses, what never does, and that it all resumes", () => {
+    const section: string = normalized(
+      sectionBetween(
+        readPage(),
+        "### When a license expires or is missing",
+        "\n## ",
+      ),
     );
-    expect(page).toContain("Enterprise configuration becomes **read-only**");
+
+    for (const expected of [
+      // What stops, said up front and item by item.
+      "After that, **SSO, OIDC, SCIM and audit logging stop** until a license is activated",
+      "**SSO and OIDC sign-in stop**",
+      "the mobile apps",
+      '**"Require SSO for login" is not enforced**',
+      '"Forgot password"',
+      "**SCIM provisioning stops.**",
+      "SCIM team locks are lifted",
+      "**Audit logging stops recording.**",
+      "Enterprise configuration becomes **read-only**",
+      // What never stops.
+      "Losing a license never locks anyone out",
+      "**Core monitoring is never affected**",
+      "**Master admins can always sign in with their password.**",
+      "**Nothing is deleted.**",
+      // It all comes back, and an unreadable license state switches nothing off.
+      "**Everything resumes as soon as a license is activated**, without a restart",
+      "While it cannot read the license state",
+      "SSO enforcement, SCIM and audit logging stay on",
+    ]) {
+      expect({
+        expected: expected,
+        present: section.includes(expected),
+      }).toEqual({ expected: expected, present: true });
+    }
+
+    // The soft-enforcement promises this replaced.
+    expect(section).not.toContain("**SSO, OIDC and SCIM keep working**");
+    expect(section).not.toContain("**Audit logging continues.**");
+    expect(section).not.toContain("never weakens");
+  });
+
+  it("warns an install that enforces SSO before its license lapses", () => {
+    // The warning is a blockquote: drop its "> " markers before joining lines.
+    const page: string = normalized(readPage().replace(/^> ?/gm, ""));
+
+    expect(page).toContain(
+      "**On an install that enforces SSO, activate a license before the trial or grace period ends.**",
+    );
+    expect(page).toContain("SCIM no longer deprovisions the people you remove");
+    expect(page).toContain("remove those users first");
+  });
+
+  it("tells a new install to activate before the trial ends, and what stops if it does not", () => {
+    const licensing: string = normalized(
+      readPage().split("\n## Licensing\n")[1]!.split("\n### ")[0]!,
+    );
+
+    expect(licensing).toContain(
+      "Activate a license before the trial ends: after it, SSO, OIDC, SCIM and audit logging stop and enterprise configuration becomes read-only",
+    );
+    expect(licensing).toContain("(#when-a-license-expires-or-is-missing)");
   });
 
   it("explains a downgrade, including the SSO enforcement it relaxes", () => {
@@ -695,6 +761,10 @@ describe("Enterprise Edition docs page", () => {
     expect(page).toContain("## Switching from Enterprise to Community");
     expect(page).toContain('**"Require SSO for login" is not enforced**');
     expect(page).toContain("Switching back to the Enterprise");
+    // Switching back restores SSO only on a licensed (or trial / grace) install.
+    expect(normalized(page)).toContain(
+      "as long as the install has a valid license or is still in its trial or grace period",
+    );
     expect(page).toContain("review who has access");
   });
 
@@ -815,6 +885,41 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
       unresolvedDocsLinks(readContent("en", "installation/upgrading")),
     ).toEqual([]);
   });
+
+  it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s says what stops when an unlicensed install's trial ends",
+    (lang: string) => {
+      const section: string = normalized(
+        sectionBetween(
+          readContent(lang, "installation/upgrading"),
+          EDITION_SECTION_HEADING,
+          "\n## ",
+        ),
+      );
+
+      for (const expected of [
+        "**If you use SSO, OIDC, SCIM or audit logging, activate a license before the trial ends.**",
+        'After the trial, SSO and OIDC sign-in stop, "Require SSO for login" is no longer enforced (users sign in with their password), SCIM provisioning stops and audit logging stops recording.',
+        "Everything resumes, without a restart, as soon as you activate a license.",
+        "If the license expires, everything keeps working for a 14-day grace period",
+        "On the Enterprise Edition they refuse requests while the license is lapsed",
+      ]) {
+        expect({
+          lang: lang,
+          expected: expected,
+          present: section.includes(expected),
+        }).toEqual({
+          lang: lang,
+          expected: expected,
+          present: true,
+        });
+      }
+
+      expect(section).not.toContain(
+        "keep running with the configuration you have",
+      );
+    },
+  );
 });
 
 describe("Identity docs carry an edition note in every language", () => {
@@ -842,8 +947,60 @@ describe("Identity docs carry an edition note in every language", () => {
         expect(intro).toContain(PAGE_URL);
         expect(intro).toContain("**Scale**");
       }
+
+      /*
+       * And it says what a lapsed license does to the feature: after the
+       * 14-day trial or grace period SSO sign-in stops and "Require SSO" is
+       * not enforced, and SCIM requests are refused, until a license is
+       * activated. The setting keeps its English name in every language.
+       */
+      for (const page of [
+        "identity/sso",
+        "identity/scim",
+        "identity/global-sso",
+      ]) {
+        const intro: string = readContent(lang, page).split("\n## ")[0]!;
+        // Persian writes 14 as ۱۴.
+        const fourteen: RegExp = /14|۱۴/;
+        const scimTwice: RegExp = /SCIM[\s\S]*SCIM/;
+
+        expect({
+          page: page,
+          mentionsTrialAndGrace: fourteen.test(intro),
+          namesRequireSso:
+            page === "identity/scim" || intro.includes("Require SSO"),
+          namesScim: page !== "identity/scim" || scimTwice.test(intro),
+        }).toEqual({
+          page: page,
+          mentionsTrialAndGrace: true,
+          namesRequireSso: true,
+          namesScim: true,
+        });
+      }
     },
   );
+
+  it("says in English exactly what stops on each identity page", () => {
+    for (const [page, sentence] of [
+      [
+        "identity/sso",
+        'Without a valid license (after the 14-day trial, or 14 days after a license expires), SSO sign-in stops and "Require SSO" is not enforced until a license is activated.',
+      ],
+      [
+        "identity/scim",
+        "Without a valid license (after the 14-day trial, or 14 days after a license expires), SCIM requests are refused until a license is activated.",
+      ],
+      [
+        "identity/global-sso",
+        'Without a valid license (after the 14-day trial, or 14 days after a license expires), global SSO sign-in stops and instance-wide "Require SSO" is not enforced until a license is activated.',
+      ],
+    ] as Array<[string, string]>) {
+      expect({
+        page: page,
+        present: readContent("en", page).split("\n## ")[0]!.includes(sentence),
+      }).toEqual({ page: page, present: true });
+    }
+  });
 });
 
 describe("No docs text calls OneUptime 100% or fully open source", () => {
@@ -971,7 +1128,11 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
       `**${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day trial**`,
       "The trial is for evaluation: production use of the Enterprise Edition requires a subscription under the OneUptime Enterprise License",
       "enterprise configuration becomes read-only and the Health dashboards are locked",
-      "SSO, OIDC, SCIM and audit logging keep running",
+      // What stops after the trial, and the warning to act before it ends.
+      "**If you use SSO, OIDC, SCIM or audit logging, activate a license before the trial ends.**",
+      "SSO, OIDC, SCIM and audit logging stop",
+      '"Require SSO for login" is no longer enforced (users sign in with their password)',
+      "Everything resumes, without a restart, when a license is activated",
       // Community Edition installs with SSO, OIDC or SCIM configured.
       "**Community Edition with SSO, OIDC or SCIM configured:** set `image.type: enterprise-edition` before you upgrade to keep them.",
       '"Require SSO for login" is no longer enforced and SCIM provisioning stops',
@@ -980,6 +1141,8 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
     ]) {
       expect(entry).toContain(expected);
     }
+
+    expect(entry).not.toMatch(/keep running|never stop/);
   });
 
   it("links to the Enterprise Edition page and the upgrading guide, and every link resolves", () => {
@@ -1054,5 +1217,23 @@ describe("Helm chart licensing wording", () => {
         "They need a valid license: without one (after a 14-day grace period) enterprise configuration becomes read-only and the enterprise admin dashboards are locked.",
       ).length,
     ).toBeGreaterThan(0);
+  });
+
+  /*
+   * The chart's README said this until SSO, SCIM and audit logging began to
+   * stop with the license. Every other requirement it meets, so only the
+   * lapse checks can reject it.
+   */
+  it("rejects the wording that promised SSO, SCIM and audit logging never stop", () => {
+    const problems: Array<string> = helmLicensingWordingProblems(
+      "Production use of the Enterprise Edition requires a subscription under the OneUptime Enterprise License. An install with no license runs as a 14-day trial, which is for evaluation. After the trial (or 14 days after a license expires) enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything already configured keeps working — SSO, SCIM and audit logging never stop — and core monitoring is never affected.",
+    );
+
+    expect(problems).toEqual([
+      "missing: SSO, OIDC, SCIM and audit logging stop",
+      "missing: until a license is activated",
+      "retired wording: keeps? (?:running|working)",
+      "retired wording: never stop",
+    ]);
   });
 });

@@ -29,11 +29,17 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
     license gets a **14-day trial**, counted from its first start of this
     release. The trial is for evaluation: production use of the Enterprise
     Edition requires a subscription under the OneUptime Enterprise License
-    ([sales@oneuptime.com](mailto:sales@oneuptime.com)). After the trial,
+    ([sales@oneuptime.com](mailto:sales@oneuptime.com)). **If you use SSO,
+    OIDC, SCIM or audit logging, activate a license before the trial ends.**
+    After the trial, until a master admin activates a license from the edition
+    label in the Admin Dashboard header, SSO, OIDC, SCIM and audit logging
+    stop: SSO sign-in is refused, "Require SSO for login" is no longer enforced
+    (users sign in with their password), your identity provider's SCIM
+    requests are refused and audit logging stops recording. At the same time
     enterprise configuration becomes read-only and the Health dashboards are
-    locked until a master admin activates a license from the edition label in
-    the Admin Dashboard header. SSO, OIDC, SCIM and audit logging keep running
-    with the configuration you have, and core monitoring is never affected.
+    locked. Everything resumes, without a restart, when a license is
+    activated, and core monitoring is never affected. A license that expires
+    later gets 14 days before the same happens.
   - **Community Edition with SSO, OIDC or SCIM configured:** set
     `image.type: enterprise-edition` before you upgrade to keep them. If you
     stay on the Community Edition, SSO sign-in stops, "Require SSO for login"

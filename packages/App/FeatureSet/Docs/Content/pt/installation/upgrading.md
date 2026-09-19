@@ -46,7 +46,8 @@ editions.
   no longer enforced. Switch to the Enterprise image to keep them. Otherwise,
   read [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)
   before you upgrade. It explains how users sign in afterwards and who to
-  remove first.
+  remove first. To run the Community Edition, also set
+  `IS_ENTERPRISE_EDITION=false`.
 
 Your configuration is never deleted, and no migration is needed to switch
 editions in either direction.
@@ -56,13 +57,20 @@ editions in either direction.
 The Enterprise Edition now checks its license:
 
 - **An install with a license key** keeps working. It checks the license with
-  OneUptime when it starts and once a day.
+  OneUptime when it starts and once a day. If the license expires, everything
+  keeps working for a 14-day grace period, and after that the same happens as
+  for an install with no license.
 - **An install with no license**, for example one that ran the Enterprise
   Edition on `IS_ENTERPRISE_EDITION=true` alone, gets a 14-day trial from the
-  first start of this release. After that, enterprise configuration becomes
-  read-only and the enterprise Health dashboards are locked until you activate
-  a license. SSO, OIDC, SCIM and audit logging keep running with the
-  configuration you have. See
+  first start of this release. **If you use SSO, OIDC, SCIM or audit logging,
+  activate a license before the trial ends.** After the trial, SSO and OIDC
+  sign-in stop, "Require SSO for login" is no longer enforced (users sign in
+  with their password), SCIM provisioning stops and audit logging stops
+  recording. Enterprise configuration also becomes read-only and the
+  enterprise Health dashboards are locked. Everything resumes, without a
+  restart, as soon as you activate a license. The trial is for evaluation:
+  production use of the Enterprise Edition requires a OneUptime Enterprise
+  subscription. See
   [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing).
 - **Air-gapped installs** can activate with a signed license token instead of
   a key. See [Offline activation](/docs/self-hosted/enterprise#offline-activation-air-gapped-installs).
@@ -84,7 +92,9 @@ settings that used to show an upgrade prompt.
   `/api/enterprise-license/`. Only oneuptime.com uses them.
 - The SSO, OIDC and SCIM endpoints keep their exact paths on the Enterprise
   Edition, so identity provider configuration does not change. On the
-  Community Edition they return `404`.
+  Community Edition they return `404`. On the Enterprise Edition they refuse
+  requests while the license is lapsed (after the trial or grace period), and
+  answer again as soon as a license is activated.
 
 ## Atualização do OneUptime 12 → 13
 

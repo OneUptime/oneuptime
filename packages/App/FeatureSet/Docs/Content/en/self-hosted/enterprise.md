@@ -117,9 +117,11 @@ everything else is under the Apache License 2.0.
 A new Enterprise Edition install runs as a **14-day trial**, counted from the
 first time the install starts the Enterprise Edition. The trial is for
 evaluation: production use of the Enterprise Edition needs a subscription under
-the OneUptime Enterprise License. Activate a license before the trial ends to
-keep enterprise configuration editable. To get a license, contact
-[sales@oneuptime.com](mailto:sales@oneuptime.com).
+the OneUptime Enterprise License. Activate a license before the trial ends:
+after it, SSO, OIDC, SCIM and audit logging stop and enterprise configuration
+becomes read-only (see
+[When a license expires or is missing](#when-a-license-expires-or-is-missing)).
+To get a license, contact [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
 The license is managed from the **edition label**, which master admins see in
 the Admin Dashboard header and in the footer of the Dashboard. It shows the
@@ -193,29 +195,60 @@ an install activated offline.
 
 ### When a license expires or is missing
 
-Enforcement is soft. Losing a license never locks anyone out and never weakens
-a security control.
+Every enterprise feature keeps working during the 14-day trial, and for 14
+days after a license expires (the grace period). The edition label warns
+before either one ends. After that, **SSO, OIDC, SCIM and audit logging stop**
+until a license is activated, the same as on the Community Edition. Losing a
+license never locks anyone out: "Require SSO for login" stops being enforced
+at the same moment SSO sign-in stops, so users sign in with a password.
 
 | State | What happens |
 | --- | --- |
 | **Valid license** | Every enterprise feature works. New users cannot be added beyond the licensed number of seats. Existing users are never removed. |
 | **Trial or grace period** (the first 14 days of an unlicensed install, or 14 days after a license expires) | Every enterprise feature works, and the edition label shows a warning. During the grace period after an expiry, the seat limit still applies. |
-| **After the trial or grace period** (expired, missing or invalid license) | Enterprise configuration becomes **read-only**: you can view and delete it, but not create or change it. Two changes always work, so you can respond to an incident: disabling an SSO or OIDC provider (or a global provider's attachment to a project), and replacing a SCIM bearer token. The Enterprise settings pages offer them while everything else is read-only: **Disable** on an enabled provider, and **Reset Bearer Token** on a SCIM configuration, which shows the new token once. Through the API, send `isEnabled: false` on its own, or `bearerToken` on its own (at least 32 characters). Audit logging cannot be turned on or widened. The enterprise Health dashboards and the Query Console are locked. The seat limit is no longer enforced. |
+| **After the trial or grace period** (expired, missing or invalid license, or a license that does not include the feature) | SSO and OIDC sign-in, SCIM provisioning and audit logging **stop** (see below). Enterprise configuration becomes **read-only**: you can view and delete it, but not create or change it. Two changes always work, so you can respond to an incident: disabling an SSO or OIDC provider (or a global provider's attachment to a project), and replacing a SCIM bearer token. The Enterprise settings pages offer them while everything else is read-only: **Disable** on an enabled provider, and **Reset Bearer Token** on a SCIM configuration, which shows the new token once. Through the API, send `isEnabled: false` on its own, or `bearerToken` on its own (at least 32 characters). Audit logging cannot be turned on or widened. The enterprise Health dashboards and the Query Console are locked. The seat limit is no longer enforced. |
 
-What does **not** stop when a license lapses:
+What stops when a license lapses:
 
-- **SSO, OIDC and SCIM keep working** with the configuration you already have.
-  That includes "Require SSO for login" enforcement and SCIM deprovisioning, so
-  people removed at your identity provider stay locked out.
-- **Audit logging continues.**
+- **SSO and OIDC sign-in stop**, for projects, private status pages, the whole
+  instance (global SSO) and the mobile apps. SSO sign-in requests are refused,
+  and the sign-in pages offer no SSO providers.
+- **"Require SSO for login" is not enforced**, for projects, private status
+  pages and the whole instance, so nobody is locked out. Users sign in with
+  their password instead. Users who only ever signed in with SSO can set one
+  with "Forgot password".
+- **SCIM provisioning stops.** Your identity provider's SCIM requests are
+  refused, including deprovisioning, and SCIM team locks are lifted, so teams
+  managed by SCIM push groups can be edited by hand.
+- **Audit logging stops recording.** Audit logs recorded so far are kept.
+
+What does **not** stop:
+
 - **Core monitoring is never affected**: monitors, alerts, incidents, on-call,
   status pages and telemetry all keep working.
 - **Master admins can always sign in with their password.**
+- **Nothing is deleted.** SSO, OIDC and SCIM configuration, "Require SSO"
+  settings and audit logs stay as they are.
+
+**Everything resumes as soon as a license is activated**, without a restart:
+SSO sign-in, "Require SSO for login" enforcement, SCIM provisioning and audit
+logging come back with the configuration you have. OneUptime only switches
+them off when it knows the license has lapsed. While it cannot read the
+license state, for example for a moment while the server starts, SSO
+enforcement, SCIM and audit logging stay on.
+
+> **On an install that enforces SSO, activate a license before the trial or
+> grace period ends.** Once SSO enforcement stops, anyone who still has a
+> OneUptime account and can reach its email inbox can set a password and sign
+> in, even if they were removed at your identity provider, and SCIM no longer
+> deprovisions the people you remove there. If you let the license lapse,
+> remove those users first.
 
 ## Switching from Enterprise to Community
 
 Your configuration stays in the database. Switching back to the Enterprise
-image restores everything as it was, including SSO enforcement. On the
+image restores everything as it was, including SSO enforcement, as long as the
+install has a valid license or is still in its trial or grace period. On the
 Community image:
 
 - **SSO, OIDC and SCIM stop.** Their sign-in and provisioning endpoints no

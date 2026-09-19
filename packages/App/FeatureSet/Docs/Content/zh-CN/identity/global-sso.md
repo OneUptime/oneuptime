@@ -2,7 +2,7 @@
 
 Global SSO 让 OneUptime **实例管理员**（主管理员，master admin）只需**在实例级别配置一次** SAML 2.0 或 OpenID Connect (OIDC) 身份提供商，即可将其连接到服务器上的任何项目。它是按项目 SSO 的实例级对应方案：无需每个项目所有者各自配置自己的身份提供商，主管理员只需配置一个即可服务整个实例。
 
-Global SSO 是 **OneUptime Enterprise Edition** 功能，仅在运行 Enterprise Edition 构建版本的实例上可用。 关于如何运行企业版、许可证如何运作，以及社区版中 SSO 要求会怎样，请参阅 [Enterprise Edition](/docs/self-hosted/enterprise)。
+Global SSO 是 **OneUptime Enterprise Edition** 功能，仅在运行 Enterprise Edition 构建版本的实例上可用。 关于如何运行企业版、许可证如何运作，以及社区版中 SSO 要求会怎样，请参阅 [Enterprise Edition](/docs/self-hosted/enterprise)。没有有效的许可证时（14 天试用期结束后，或许可证过期 14 天后），在激活许可证之前，全局 SSO 登录将停止，且不会强制执行实例范围的“Require SSO”。
 
 ## Global SSO 与项目 SSO 对比
 
