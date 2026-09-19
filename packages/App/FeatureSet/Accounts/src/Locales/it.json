@@ -136,7 +136,7 @@
     "subtitle": "Accedi con il tuo provider SSO per accedere al tuo account.",
     "submitButton": "Accedi con SSO",
     "useUsernameInstead": "Usa invece nome utente e password.",
-    "enterpriseEditionRequired": "Il Single Sign-On (SSO) fa parte di OneUptime Enterprise Edition e non è disponibile su questo server. Accedi invece con la tua e-mail e la tua password.",
+    "enterpriseEditionRequired": "Il Single Sign-On (SSO) non è disponibile su questo server: richiede OneUptime Enterprise Edition con una licenza attiva. Accedi invece con la tua e-mail e la tua password.",
     "noAccountPrompt": "Non hai un account?",
     "registerLink": "Registrati.",
     "selectProjectTitle": "Seleziona progetto",

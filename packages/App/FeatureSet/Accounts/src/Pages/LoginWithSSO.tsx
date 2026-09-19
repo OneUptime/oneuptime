@@ -70,10 +70,12 @@ const LoginPage: () => JSX.Element = () => {
     [],
   );
   /*
-   * SSO login is part of the OneUptime Enterprise Edition. A Community
-   * Edition server does not serve the SSO routes at all (404), so instead of
-   * a confusing "no SSO configuration found" this page explains why and
-   * points back to email and password sign-in.
+   * SSO login is part of the OneUptime Enterprise Edition and runs only while
+   * its license is active. A Community Edition server does not serve the SSO
+   * routes at all (404), and an Enterprise Edition server whose license has
+   * lapsed (or does not include SSO) refuses them (402). Instead of a
+   * confusing "no SSO configuration found" this page explains why, in words
+   * that fit both servers, and points back to email and password sign-in.
    */
   const [isSsoUnavailable, setIsSsoUnavailable] = useState<boolean>(false);
 
@@ -333,7 +335,7 @@ const LoginPage: () => JSX.Element = () => {
             <p className="text-center text-sm text-gray-600">
               {t("sso.enterpriseEditionRequired", {
                 defaultValue:
-                  "Single sign-on (SSO) is part of the OneUptime Enterprise Edition and is not available on this server. Sign in with your email and password instead.",
+                  "Single sign-on (SSO) is not available on this server: it needs the OneUptime Enterprise Edition with an active license. Sign in with your email and password instead.",
               })}
             </p>
             <div className="actions text-center mt-4 hover:underline fw-semibold">

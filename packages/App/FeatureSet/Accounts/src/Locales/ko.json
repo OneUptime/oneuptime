@@ -136,7 +136,7 @@
     "subtitle": "계정에 액세스하려면 SSO 공급자로 로그인하세요.",
     "submitButton": "SSO로 로그인",
     "useUsernameInstead": "대신 사용자 이름과 비밀번호 사용.",
-    "enterpriseEditionRequired": "싱글 사인온(SSO)은 OneUptime Enterprise Edition의 기능이며 이 서버에서는 사용할 수 없습니다. 대신 이메일과 비밀번호로 로그인하세요.",
+    "enterpriseEditionRequired": "싱글 사인온(SSO)은 이 서버에서 사용할 수 없습니다. 활성 라이선스가 있는 OneUptime Enterprise Edition이 필요합니다. 대신 이메일과 비밀번호로 로그인하세요.",
     "noAccountPrompt": "계정이 없으신가요?",
     "registerLink": "등록.",
     "selectProjectTitle": "프로젝트 선택",

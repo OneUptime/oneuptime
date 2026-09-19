@@ -136,7 +136,7 @@
     "subtitle": "使用您的 SSO 提供者登入以存取您的帳號。",
     "submitButton": "使用 SSO 登入",
     "useUsernameInstead": "改用使用者名稱與密碼。",
-    "enterpriseEditionRequired": "單一登入（SSO）是 OneUptime Enterprise Edition 的功能，此伺服器不提供。請改用您的電子郵件與密碼登入。",
+    "enterpriseEditionRequired": "此伺服器不提供單一登入（SSO）：它需要具備有效授權的 OneUptime Enterprise Edition。請改用您的電子郵件與密碼登入。",
     "noAccountPrompt": "沒有帳號？",
     "registerLink": "註冊。",
     "selectProjectTitle": "選擇專案",

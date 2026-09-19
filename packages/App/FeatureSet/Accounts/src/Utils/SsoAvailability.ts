@@ -16,9 +16,12 @@ export const isSsoLoginOffered: () => boolean = (): boolean => {
 
 /*
  * The answers an SSO lookup gets from a server that has no SSO login: 404
- * when the Community Edition does not serve the route at all, 402 when an
- * enterprise feature is not available. Anything else (400 "no SSO config for
- * this email", 5xx) is a real answer from a server that does offer SSO.
+ * when the Community Edition does not serve the route at all, 402 when the
+ * Enterprise Edition's license has lapsed or does not include SSO (SSO is
+ * then off until a license is activated). isSsoLoginOffered() is true on the
+ * latter, so the SSO page can still be reached there, and what it says must
+ * fit both. Anything else (400 "no SSO config for this email", 5xx) is a real
+ * answer from a server that does offer SSO.
  */
 export const isSsoUnavailableStatusCode: (statusCode: number) => boolean = (
   statusCode: number,

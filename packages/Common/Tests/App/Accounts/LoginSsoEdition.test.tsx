@@ -39,8 +39,13 @@ import {
  *     the EFFECTIVE edition (env.js IS_ENTERPRISE_EDITION, true only when the
  *     enterprise code is loaded) is Enterprise, or billing is on;
  *   - the SSO page, reached directly on a Community Edition server, gets 404
- *     (or 402) from every provider lookup and explains that SSO is part of
- *     the Enterprise Edition, instead of "no SSO configuration found".
+ *     from every provider lookup, and on an Enterprise Edition server whose
+ *     license has lapsed (or does not include SSO) it gets 402 - SSO is off
+ *     there until a license is activated, and that server still offers the
+ *     link. Either way the page explains that SSO needs the Enterprise
+ *     Edition with an active license, instead of "no SSO configuration
+ *     found" - and never tells an Enterprise server that SSO is only part of
+ *     the Enterprise Edition, as it used to.
  *
  * Billing and the edition are pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true.
@@ -87,11 +92,84 @@ jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
 
 const USE_SSO_LINK: string = "Use single sign-on (SSO) instead";
 const ENTERPRISE_NOTICE: RegExp =
-  /Single sign-on \(SSO\) is part of the OneUptime Enterprise Edition/;
+  /Single sign-on \(SSO\) is not available on this server/;
 const USE_PASSWORD_LINK: string = "Use username and password instead.";
 const ENTERPRISE_NOTICE_KEY: string = "sso.enterpriseEditionRequired";
 const ENTERPRISE_NOTICE_TEXT: string =
+  "Single sign-on (SSO) is not available on this server: it needs the OneUptime Enterprise Edition with an active license. Sign in with your email and password instead.";
+/*
+ * The explanation before the license could stop SSO. It only fits the
+ * Community Edition: on an Enterprise server whose license lapsed it says the
+ * server is not what it is.
+ */
+const RETIRED_COMMUNITY_ONLY_NOTICE_TEXT: string =
   "Single sign-on (SSO) is part of the OneUptime Enterprise Edition and is not available on this server. Sign in with your email and password instead.";
+const LOGIN_WITH_SSO_SOURCE: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "App",
+  "FeatureSet",
+  "Accounts",
+  "src",
+  "Pages",
+  "LoginWithSSO.tsx",
+);
+
+/*
+ * What the explanation must say to fit both servers that show it: the
+ * Community Edition (no SSO routes) needs to hear about the Enterprise
+ * Edition, an Enterprise server with a lapsed license about the license. And
+ * it must not claim the server lacks the Enterprise Edition.
+ */
+interface NoticeRule {
+  problem: string;
+  pattern: RegExp;
+  // true: the text must match; false: it must not.
+  isRequired: boolean;
+}
+
+const NOTICE_RULES: Array<NoticeRule> = [
+  {
+    problem: "does not say SSO is unavailable here",
+    pattern: /\bnot available on this server\b/,
+    isRequired: true,
+  },
+  {
+    problem: "does not name the Enterprise Edition",
+    pattern: /\bOneUptime Enterprise Edition\b/,
+    isRequired: true,
+  },
+  {
+    problem: "does not mention the license",
+    pattern: /\bactive license\b/,
+    isRequired: true,
+  },
+  {
+    problem: "tells an Enterprise server it is not the Enterprise Edition",
+    pattern:
+      /\bis part of the OneUptime Enterprise Edition and is not available\b/,
+    isRequired: false,
+  },
+  {
+    problem: "does not point to password sign-in",
+    pattern: /\bemail and password\b/,
+    isRequired: true,
+  },
+];
+
+const noticeProblems: (text: string) => Array<string> = (
+  text: string,
+): Array<string> => {
+  return NOTICE_RULES.filter((rule: NoticeRule): boolean => {
+    return rule.pattern.test(text) !== rule.isRequired;
+  }).map((rule: NoticeRule): string => {
+    return rule.problem;
+  });
+};
+
 const ACCOUNTS_LOCALES_DIR: string = path.resolve(
   __dirname,
   "..",
@@ -377,6 +455,15 @@ describe("Accounts sign-in on the Community and Enterprise Editions", () => {
         expect([file, typeof value]).toEqual([file, "string"]);
         expect((value as string).trim()).not.toBe("");
         expect([file, value]).not.toEqual([file, ENTERPRISE_NOTICE_TEXT]);
+        expect([file, value]).not.toEqual([
+          file,
+          RETIRED_COMMUNITY_ONLY_NOTICE_TEXT,
+        ]);
+        // The product name stays in Latin script in every language.
+        expect([
+          file,
+          (value as string).includes("OneUptime Enterprise Edition"),
+        ]).toEqual([file, true]);
       }
     });
 
@@ -389,6 +476,68 @@ describe("Accounts sign-in on the Community and Enterprise Editions", () => {
       expect(
         await screen.findByTestId("sso-enterprise-edition-required"),
       ).toBeInTheDocument();
+    });
+
+    /*
+     * An Enterprise Edition server whose license has lapsed still offers the
+     * SSO link (isSsoLoginOffered follows the edition, not the license), and
+     * every SSO discovery route answers 402 until a license is activated.
+     */
+    test("an Enterprise server whose license lapsed (402 everywhere): the explanation fits it", async () => {
+      enterpriseEditionForTest = true;
+      const lapsed: LookupAnswer = {
+        status: 402,
+        data: {
+          message:
+            "Single sign-on is unavailable because this OneUptime installation's Enterprise license has lapsed or does not include it.",
+        },
+      };
+      globalSamlAnswer = lapsed;
+      globalOidcAnswer = lapsed;
+      emailSamlAnswer = lapsed;
+      emailOidcAnswer = lapsed;
+
+      expect(isSsoLoginOffered()).toBe(true);
+
+      await renderSso();
+
+      const notice: HTMLElement = await screen.findByTestId(
+        "sso-enterprise-edition-required",
+      );
+
+      expect(notice).toHaveTextContent(ENTERPRISE_NOTICE_TEXT);
+      expect(noticeProblems(notice.textContent || "")).toEqual([]);
+      expect(notice).not.toHaveTextContent(RETIRED_COMMUNITY_ONLY_NOTICE_TEXT);
+      expect(screen.queryByTestId("email")).not.toBeInTheDocument();
+    });
+
+    test("the English explanation fits both servers, and the page's defaultValue is the same text", () => {
+      expect(noticeProblems(english.sso.enterpriseEditionRequired)).toEqual([]);
+
+      const source: string = fs.readFileSync(LOGIN_WITH_SSO_SOURCE, "utf8");
+
+      expect(source).toContain(JSON.stringify(ENTERPRISE_NOTICE_TEXT));
+      expect(source).not.toContain(RETIRED_COMMUNITY_ONLY_NOTICE_TEXT);
+    });
+
+    test("the explanation check rejects the retired Community-only copy (negative control)", () => {
+      expect(noticeProblems(RETIRED_COMMUNITY_ONLY_NOTICE_TEXT)).toEqual([
+        "does not mention the license",
+        "tells an Enterprise server it is not the Enterprise Edition",
+      ]);
+      expect(
+        noticeProblems(
+          "Single sign-on (SSO) is not available on this server. Sign in with your email and password instead.",
+        ),
+      ).toEqual([
+        "does not name the Enterprise Edition",
+        "does not mention the license",
+      ]);
+      expect(
+        noticeProblems(
+          "Single sign-on (SSO) is not available on this server: it needs the OneUptime Enterprise Edition with an active license.",
+        ),
+      ).toEqual(["does not point to password sign-in"]);
     });
 
     test("when only the email lookups answer 404, submitting the email shows the explanation", async () => {
