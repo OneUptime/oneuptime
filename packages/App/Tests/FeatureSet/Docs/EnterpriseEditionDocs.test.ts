@@ -1003,6 +1003,63 @@ describe("Identity docs carry an edition note in every language", () => {
   });
 });
 
+/*
+ * The SLO audit-logs page tells a self-hosted reader that audit logs need the
+ * Enterprise Edition. It must also say that recording stops once the license
+ * lapses: "Enable Audit Logs" alone stays on while nothing is recorded. Only
+ * English and Persian have this page.
+ */
+describe("The SLO audit logs page says recording stops with the license", () => {
+  const SLO_AUDIT_LOGS_PAGE: string = "slo/feed-and-audit-logs";
+  const LAPSE_ANCHOR: string =
+    "/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing";
+
+  // The paragraph that says audit logs need the **Enterprise** plan or edition.
+  const turningOnSection: (lang: string) => string = (lang: string): string => {
+    const paragraph: string | undefined = readContent(lang, SLO_AUDIT_LOGS_PAGE)
+      .split("\n")
+      .find((line: string) => {
+        return line.includes("**Enterprise**");
+      });
+
+    expect(paragraph).toBeDefined();
+
+    return paragraph || "";
+  };
+
+  it.each(["en", "fa"])(
+    "%s: the Enterprise note links to what happens when a license lapses",
+    (lang: string) => {
+      const paragraph: string = turningOnSection(lang);
+
+      expect(paragraph).toContain(`](${LAPSE_ANCHOR})`);
+      // Persian writes 14 as ۱۴.
+      expect(paragraph).toMatch(/14|۱۴/);
+      expect(unresolvedDocsLinks(paragraph)).toEqual([]);
+    },
+  );
+
+  it("says in English that recording stops and resumes with a license", () => {
+    expect(turningOnSection("en")).toContain(
+      "On a self-hosted installation, audit logging stops recording once the 14-day trial or grace period is over without a valid license, and resumes as soon as a license is activated",
+    );
+  });
+
+  it("no other language has the page, so no translation is missing the note", () => {
+    const languagesWithPage: Array<string> =
+      SUPPORTED_DOCS_LANGUAGE_CODES.filter((lang: string) => {
+        try {
+          readContent(lang, SLO_AUDIT_LOGS_PAGE);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+
+    expect(languagesWithPage.sort()).toEqual(["en", "fa"]);
+  });
+});
+
 describe("No docs text calls OneUptime 100% or fully open source", () => {
   it.each(FORMERLY_PUBLISHED_DOCS_CLAIMS)("catches: %s", (sentence: string) => {
     expect(retiredDocsClaimsIn(sentence).length).toBeGreaterThan(0);
