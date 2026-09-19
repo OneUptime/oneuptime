@@ -19,6 +19,10 @@ import LicenseToken, {
   resolveTrustedLicenseKeys,
 } from "../../../Server/License/LicenseToken";
 import { TrustedLicenseKey } from "../../../Server/License/TrustedLicenseKeys";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import { claimsFor } from "./Helpers/LicenseTestKit";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -271,7 +275,8 @@ describe("GenerateLicenseSigningKey - what it prints", () => {
       now: new Date(),
       trustedKeys: [entry],
       localInstanceId: null,
-      graceDays: 14,
+      graceDays: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+      trialDays: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
       acceptUnverified: false,
     });
 

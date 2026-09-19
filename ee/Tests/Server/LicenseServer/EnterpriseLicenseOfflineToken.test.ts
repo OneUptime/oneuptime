@@ -94,6 +94,10 @@ import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import EnterpriseLicenseOfflineTokenAPI, {
@@ -418,7 +422,8 @@ describe("POST /enterprise-license/:enterpriseLicenseId/offline-token", () => {
           now: new Date(),
           trustedKeys: [TRUSTED],
           localInstanceId,
-          graceDays: 14,
+          graceDays: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+          trialDays: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
           acceptUnverified: false,
         });
       };

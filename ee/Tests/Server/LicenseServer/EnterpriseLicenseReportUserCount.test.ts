@@ -8,6 +8,10 @@ import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLi
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import { JSONObject } from "Common/Types/JSON";
 import EnterpriseLicenseSyncUtil, {
@@ -1971,7 +1975,8 @@ describe("the token when the license server holds a signing key", () => {
       now: new Date(),
       trustedKeys: [trusted],
       localInstanceId: "instance-1",
-      graceDays: 14,
+      graceDays: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+      trialDays: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
       acceptUnverified: false,
     });
   };

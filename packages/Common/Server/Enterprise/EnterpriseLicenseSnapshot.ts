@@ -50,9 +50,13 @@ export interface SeatUsage {
  *            which case graceEndsAt says when it ended. With no graceEndsAt
  *            the trial start is not known (see isTrialStartUnknown).
  *   valid    the license is current
- *   grace    expired no more than the grace period ago, OR an unlicensed
- *            Enterprise install still inside its first-seen grace window
- *            (see graceReason)
+ *   grace    expired no more than the grace period
+ *            (ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS) ago, OR an unlicensed
+ *            Enterprise install still inside its trial
+ *            (ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS from first seen). Both
+ *            share this status because both entitle everything until they
+ *            end; graceReason tells them apart, and graceEndsAt is the end of
+ *            whichever one it is.
  *   expired  expired longer ago than the grace period
  *   invalid  a token is stored but cannot be trusted: a bad signature from a
  *            trusted key, the wrong audience or issuer, bound to a different
@@ -95,14 +99,23 @@ export interface EnterpriseLicenseSnapshot {
 }
 
 /*
- * How long an expired license keeps working, and how long an unlicensed
- * Enterprise install is on trial (counted from
- * GlobalConfig.enterpriseEditionFirstSeenAt). Until it ends nothing changes;
- * after it, enterprise configuration becomes read-only and SSO, SCIM and
- * audit logging stop (EnterpriseEdition.isFeatureActive) until a license is
- * activated.
+ * ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS (30): how long an expired license
+ * keeps working, counted from its expiry - a verified license's signed
+ * expiry, or an unverified legacy license's stored expiry column.
+ *
+ * ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS (14): how long an Enterprise install
+ * that has no license is on trial, counted from
+ * GlobalConfig.enterpriseEditionFirstSeenAt.
+ *
+ * Until either ends nothing changes; after it, enterprise configuration
+ * becomes read-only and SSO, SCIM and audit logging stop
+ * (EnterpriseEdition.isFeatureActive) until a license is activated. They are
+ * defined in Common/Types so the browser copy derives the same numbers.
  */
-export const ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS: number = 14;
+export {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "../../Types/EnterpriseLicense/EnterpriseLicensePeriods";
 
 export class EnterpriseLicenseSnapshotUtil {
   /*

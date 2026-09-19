@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 /*
  * Generated with npm run generate-postgres-migration. GlobalConfig gains the
  * moment this installation first booted the Enterprise Edition; an unlicensed
- * Enterprise install gets its 14-day grace counted from it. Nullable with no
+ * Enterprise install gets its 14-day trial counted from it. Nullable with no
  * default: the enterprise module stamps it on its own first boot.
  */
 export class AddEnterpriseEditionFirstSeenAt1793900000000

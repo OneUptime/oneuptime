@@ -6,6 +6,7 @@ import EnterpriseFeature, {
 } from "../../../Server/Enterprise/EnterpriseFeature";
 import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
   EnterpriseLicenseSnapshot,
   EnterpriseLicenseSnapshotUtil,
   EnterpriseLicenseStatus,
@@ -73,8 +74,29 @@ describe("EnterpriseFeature", () => {
 });
 
 describe("EnterpriseLicenseSnapshotUtil", () => {
-  test("the grace period is fourteen days", () => {
-    expect(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS).toBe(14);
+  /*
+   * Two periods, two lengths (the owner's decision): 30 days of grace after a
+   * license expires, and a 14-day trial for an Enterprise install that never
+   * had a license.
+   */
+  test("the grace period after a license expires is thirty days", () => {
+    expect(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS).toBe(30);
+  });
+
+  test("the trial of an install with no license is fourteen days", () => {
+    expect(ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS).toBe(14);
+  });
+
+  test("the server reads the same constants the browser copy derives from", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    const periods: typeof import("../../../Types/EnterpriseLicense/EnterpriseLicensePeriods") = require("../../../Types/EnterpriseLicense/EnterpriseLicensePeriods");
+
+    expect(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS).toBe(
+      periods.ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+    );
+    expect(ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS).toBe(
+      periods.ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+    );
   });
 
   test.each([

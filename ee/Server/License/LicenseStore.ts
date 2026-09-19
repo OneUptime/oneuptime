@@ -7,6 +7,7 @@ import LicenseInputsUtil, {
   LICENSE_INPUTS_SELECT,
   LicenseInputs,
 } from "./LicenseInputs";
+import { LICENSE_TRIAL_PERIOD_IN_DAYS } from "./LicenseSettings";
 
 /*
  * Every read and write the license client makes to GlobalConfig.
@@ -29,7 +30,8 @@ export default class LicenseStore {
 
   /*
    * Records the first time this installation ran the Enterprise Edition, once.
-   * An unlicensed Enterprise install gets its grace period counted from here.
+   * An unlicensed Enterprise install gets its trial
+   * (LICENSE_TRIAL_PERIOD_IN_DAYS) counted from here.
    *
    * Never creates the row: on a brand-new installation the AddDefaultGlobalConfig
    * data migration does that, and it would fail on a row that already exists.
@@ -62,7 +64,7 @@ export default class LicenseStore {
     });
 
     logger.info(
-      `OneUptime Enterprise Edition: first run on this installation recorded at ${now.toISOString()}. Without a license, enterprise features stay available for a grace period counted from now.`,
+      `OneUptime Enterprise Edition: first run on this installation recorded at ${now.toISOString()}. Without a license, enterprise features stay available for a ${LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial counted from now.`,
     );
 
     return now;

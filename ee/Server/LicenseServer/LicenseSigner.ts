@@ -1,6 +1,9 @@
 import crypto, { KeyObject } from "crypto";
 import { ENTERPRISE_FEATURE_WILDCARD } from "Common/Server/Enterprise/EnterpriseFeature";
-import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger from "Common/Server/Utils/Logger";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -550,6 +553,7 @@ export default class LicenseSigner {
         trustedKeys: data.trustedKeys,
         localInstanceId: null,
         graceDays: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+        trialDays: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
         acceptUnverified: false,
       });
     } catch {

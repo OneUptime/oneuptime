@@ -17,7 +17,7 @@ import { describeIgnoredLicenseServerUrl } from "./LicenseServerUrl";
  *                 usage and the seat check (LicenseProvider);
  *   - init        loads the license before any router is mounted, recording
  *                 the first run of the Enterprise Edition on the way (the
- *                 unlicensed grace period counts from it), and refreshes an
+ *                 unlicensed trial counts from it), and refreshes an
  *                 unverified legacy license from oneuptime.com in the
  *                 background;
  *   - api         POST /global-config/license (activate online or offline) and

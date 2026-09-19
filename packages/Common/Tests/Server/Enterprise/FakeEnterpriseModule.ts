@@ -73,14 +73,16 @@ export const createLicenseSnapshotWithStatus: (
       return createLicenseSnapshot({
         status,
         graceReason: "expired",
+        // Two days into the 30-day grace period.
         expiresAt: new Date(now - 2 * DAY_IN_MS),
-        graceEndsAt: new Date(now + 12 * DAY_IN_MS),
+        graceEndsAt: new Date(now + 28 * DAY_IN_MS),
         ...(overrides || {}),
       });
     case "expired":
       return createLicenseSnapshot({
         status,
-        expiresAt: new Date(now - 30 * DAY_IN_MS),
+        // Past the 30-day grace period.
+        expiresAt: new Date(now - 45 * DAY_IN_MS),
         ...(overrides || {}),
       });
     case "invalid":
@@ -334,7 +336,7 @@ export const LICENSE_STATE_CASES: ReadonlyArray<LicenseStateCase> = [
     isUnknown: false,
   },
   {
-    label: "license expired less than 14 days ago (grace)",
+    label: "license expired less than 30 days ago (grace)",
     install: (): FakeEnterpriseModule => {
       return installFakeEnterpriseModule({
         snapshot: createLicenseSnapshotWithStatus("grace"),
@@ -373,7 +375,7 @@ export const LICENSE_STATE_CASES: ReadonlyArray<LicenseStateCase> = [
     isUnknown: false,
   },
   {
-    label: "license expired more than 14 days ago",
+    label: "license expired more than 30 days ago",
     install: (): FakeEnterpriseModule => {
       return installFakeEnterpriseModule({
         snapshot: createLicenseSnapshotWithStatus("expired"),

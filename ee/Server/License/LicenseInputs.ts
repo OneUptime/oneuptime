@@ -12,13 +12,15 @@ import { getTrustedLicenseKeys } from "./TrustedLicenseKeys";
 import {
   ACCEPT_UNVERIFIED_LEGACY_LICENSES,
   LICENSE_GRACE_PERIOD_IN_DAYS,
+  LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "./LicenseSettings";
 
 /*
  * Everything the license decision depends on, as read from the GlobalConfig
  * row. The license client caches THESE (not the verdict) and classifies them
  * against the current time on every read, so a license expires, enters grace
- * and leaves grace at the exact moment, however long the inputs were cached.
+ * and leaves grace (and an unlicensed install's trial ends) at the exact
+ * moment, however long the inputs were cached.
  */
 export interface LicenseInputs {
   /*
@@ -205,6 +207,7 @@ export default class LicenseInputsUtil {
       trustedKeys: getTrustedLicenseKeys(),
       localInstanceId: inputs.instanceId,
       graceDays: LICENSE_GRACE_PERIOD_IN_DAYS,
+      trialDays: LICENSE_TRIAL_PERIOD_IN_DAYS,
       acceptUnverified: ACCEPT_UNVERIFIED_LEGACY_LICENSES,
     });
   }

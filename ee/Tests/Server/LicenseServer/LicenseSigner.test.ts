@@ -9,6 +9,10 @@ import {
 import crypto from "crypto";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger from "Common/Server/Utils/Logger";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import LicenseToken, {
   classifyLicenseToken,
@@ -101,7 +105,8 @@ const classifyAsInstallation: (data: {
     trustedKeys: data.trustedKeys || [TRUSTED],
     localInstanceId:
       data.localInstanceId === undefined ? INSTANCE_ID : data.localInstanceId,
-    graceDays: 14,
+    graceDays: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+    trialDays: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
     acceptUnverified: true,
   });
 };
@@ -641,10 +646,17 @@ describe("the token /validate and /report-user-count hand out", () => {
           now: new Date(LICENSE_EXPIRES_AT.getTime() + 3 * DAY_IN_MS),
         }).status,
       ).toBe("grace");
+      // The 30-day grace period is inclusive of its last moment.
       expect(
         classifyAsInstallation({
           token,
           now: new Date(LICENSE_EXPIRES_AT.getTime() + 30 * DAY_IN_MS),
+        }).status,
+      ).toBe("grace");
+      expect(
+        classifyAsInstallation({
+          token,
+          now: new Date(LICENSE_EXPIRES_AT.getTime() + 30 * DAY_IN_MS + 1),
         }).status,
       ).toBe("expired");
     });

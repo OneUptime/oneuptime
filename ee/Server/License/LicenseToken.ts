@@ -615,7 +615,17 @@ export interface ClassifyLicenseTokenInput {
   now: Date;
   trustedKeys: ReadonlyArray<TrustedLicenseKey>;
   localInstanceId: string | null | undefined;
+  /*
+   * How long an expired license keeps working, counted from its expiry
+   * (ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS). Applies to verified licenses
+   * and to unverified legacy ones, whose expiry is the stored column.
+   */
   graceDays: number;
+  /*
+   * How long an install with no license is on trial, counted from
+   * enterpriseEditionFirstSeenAt (ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS).
+   */
+  trialDays: number;
   // AcceptUnverifiedLegacyLicenses: legacy HS256 and unknown-kid tokens.
   acceptUnverified: boolean;
 }
@@ -745,8 +755,13 @@ const classifyMissingToken: (
     };
   }
 
+  /*
+   * The end of the trial. The snapshot carries it as graceEndsAt, with
+   * graceReason "unlicensed" telling it apart from an expired license's
+   * grace period.
+   */
   const graceEndsAt: Date = new Date(
-    firstSeenAt.getTime() + input.graceDays * DAY_IN_MS,
+    firstSeenAt.getTime() + input.trialDays * DAY_IN_MS,
   );
 
   if (input.now.getTime() <= graceEndsAt.getTime()) {
@@ -759,7 +774,7 @@ const classifyMissingToken: (
       isEvaluation: false,
       features: "all",
       message:
-        "No OneUptime Enterprise license is installed. Enterprise features are available during a grace period after this installation first ran the Enterprise Edition.",
+        `No OneUptime Enterprise license is installed. Enterprise features are available during a ${input.trialDays}-day trial counted from when this installation first ran the Enterprise Edition.`,
       reason: "unlicensed-grace",
     };
   }
@@ -835,8 +850,9 @@ const classifyUnverified: (
  * Classifies the stored license into the snapshot the rest of the product
  * reads. Pure: everything it depends on is an argument.
  *
- *   no token                  -> missing, or grace ("unlicensed") within
- *                                graceDays of enterpriseEditionFirstSeenAt
+ *   no token                  -> missing, or grace ("unlicensed": the trial)
+ *                                within trialDays of
+ *                                enterpriseEditionFirstSeenAt (inclusive)
  *   EdDSA, trusted kid        -> signature, iss/aud and claim shape must hold,
  *                                else invalid; an instanceId claim must match
  *                                the local instance, else invalid; then valid /
@@ -845,7 +861,8 @@ const classifyUnverified: (
  *   EdDSA, unknown kid        -> unverified
  *   legacy HS256              -> unverified
  *   unverified                -> accepted only when acceptUnverified; expiry
- *                                from the stored column with the same grace
+ *                                from the stored column with the same
+ *                                graceDays
  *   anything else / malformed -> invalid
  */
 export const classifyLicenseToken: (

@@ -1,5 +1,6 @@
 import EnterpriseFeature from "./EnterpriseFeature";
 import {
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
   EnterpriseLicenseSnapshot,
   EnterpriseLicenseSnapshotUtil,
   SeatUsage,
@@ -102,9 +103,11 @@ export type EnterpriseFeatureStateListener = (
  *                         admin Health dashboards and the query console.
  *
  * "Lapsed" means what isFeatureAvailableSync treats as unavailable with
- * billing off: no license after the 14-day trial (counted from
+ * billing off: no license after the trial
+ * (ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS, counted from
  * GlobalConfig.enterpriseEditionFirstSeenAt), a license that expired more
- * than the 14-day grace period ago, an invalid license, or a license whose
+ * than the grace period (ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS, counted
+ * from its expiry) ago, an invalid license, or a license whose
  * feature list leaves the feature out. During the trial and the grace period
  * nothing stops. With billing on (OneUptime Cloud) both license questions
  * answer yes whenever ee is loaded: plan tiers gate the features there.
@@ -248,7 +251,7 @@ export default class EnterpriseEdition {
       if (!EnterpriseEdition.hasWarnedAboutUnknownTrialStart) {
         EnterpriseEdition.hasWarnedAboutUnknownTrialStart = true;
         logger.warn(
-          "EnterpriseEdition: no license is installed and the start of the 14-day trial has not been recorded yet, so it is not known whether the trial is over. Until it is recorded, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.",
+          `EnterpriseEdition: no license is installed and the start of the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial has not been recorded yet, so it is not known whether the trial is over. Until it is recorded, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.`,
         );
       }
 

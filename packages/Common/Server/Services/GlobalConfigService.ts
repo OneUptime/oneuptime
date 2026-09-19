@@ -20,7 +20,7 @@ import GlobalCache from "../Infrastructure/GlobalCache";
  * isRoot. A master admin reaches GlobalConfig through the generic CRUD API
  * too, and master admins bypass the (empty) column ACLs, so without this list
  * one PUT could forge a license expiry, raise the seat limit, restart the
- * unlicensed grace period or swap the instance id an instance-bound license
+ * unlicensed trial or swap the instance id an instance-bound license
  * is checked against.
  *
  * enterpriseLicenseNotificationEmail and enterpriseLicenseExpiryReminderDays

@@ -1,4 +1,7 @@
-import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 
 /*
  * The knobs of the license client, in one place.
@@ -8,7 +11,8 @@ import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "Common/Server/Enterpris
  * Whether licenses this build cannot verify offline are accepted: legacy HS256
  * tokens issued before signed licenses existed, and EdDSA tokens signed by a
  * key that is not in TrustedLicenseKeys. Such a license takes its expiry and
- * seat limit from the stored columns (with the same grace period).
+ * seat limit from the stored columns (with the same grace period after that
+ * expiry, LICENSE_GRACE_PERIOD_IN_DAYS).
  *
  * TRUE at merge, and it has to be: TrustedLicenseKeys ships empty, so every
  * license in the field is unverified until the key ceremony release. Turning
@@ -17,9 +21,16 @@ import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "Common/Server/Enterpris
  */
 export const ACCEPT_UNVERIFIED_LEGACY_LICENSES: boolean = true;
 
-// How long an expired license (or an unlicensed install) keeps working.
+// How long an expired license keeps working, counted from its expiry.
 export const LICENSE_GRACE_PERIOD_IN_DAYS: number =
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS;
+
+/*
+ * How long an Enterprise install with no license is on trial, counted from
+ * GlobalConfig.enterpriseEditionFirstSeenAt.
+ */
+export const LICENSE_TRIAL_PERIOD_IN_DAYS: number =
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS;
 
 /*
  * How long this process trusts the license INPUTS it read from GlobalConfig

@@ -8,6 +8,8 @@ import { LICENSE_SNAPSHOT_REUSE_IN_MS } from "../../../Server/License/LicenseSet
 import LicenseToken from "../../../Server/License/LicenseToken";
 import { setTrustedLicenseKeysForTests } from "../../../Server/License/TrustedLicenseKeys";
 import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
   EnterpriseLicenseSnapshot,
   SeatUsage,
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
@@ -40,9 +42,11 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *     unlicenses an installation;
  *   - before the first successful read, the synchronous answer is null and
  *     the asynchronous one is a fail-closed "missing";
- *   - the unlicensed grace counted from the first run of the Enterprise
- *     Edition, which is how installs that ran EE on the environment variable
- *     alone keep working through the upgrade;
+ *   - the unlicensed trial (14 days) counted from the first run of the
+ *     Enterprise Edition, which is how installs that ran EE on the
+ *     environment variable alone keep working through the upgrade, and the
+ *     30-day grace period after a license expires - two boundaries that a
+ *     reused snapshot never crosses;
  *   - the seat check, with billing pinned both ways.
  */
 
@@ -64,6 +68,11 @@ const SIGNING_KEY: KeyPair = generateEd25519();
 const TTL_IN_MS: number = 60 * 1000;
 const RETRY_IN_MS: number = 5 * 1000;
 const INSTANCE_ID: string = "5f8b7c6d5e4f3a2b1c0d9e8f";
+const MINUTE_IN_MS: number = 60 * 1000;
+
+// The owner's decision, spelled out so a change to either constant fails here.
+const GRACE_DAYS: number = 30;
+const TRIAL_DAYS: number = 14;
 
 interface ProviderHarness {
   provider: LicenseProvider;
@@ -433,7 +442,7 @@ describe("LicenseProvider - classifying against the current time", () => {
     const snapshot: EnterpriseLicenseSnapshot =
       await harness.provider.getSnapshot();
     const graceEndsAt: number =
-      (snapshot.expiresAt as Date).getTime() + 14 * DAY_IN_MS;
+      (snapshot.expiresAt as Date).getTime() + GRACE_DAYS * DAY_IN_MS;
 
     harness.clock.now = new Date(graceEndsAt);
     expect(harness.provider.getCachedSnapshot()?.status).toBe("grace");
@@ -473,7 +482,15 @@ describe("LicenseProvider - classifying against the current time", () => {
       true,
     );
 
+    // 21 days after the expiry: past a 14-day mark, still inside the grace.
     advance(harness, 20 * DAY_IN_MS);
+    await harness.provider.refresh();
+    expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
+      true,
+    );
+
+    // 31 days after the expiry: the grace period is over.
+    advance(harness, 10 * DAY_IN_MS);
     await harness.provider.refresh();
     expect(EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SSO)).toBe(
       false,
@@ -582,7 +599,7 @@ describe("LicenseProvider - reusing a computed snapshot", () => {
     expect(harness.provider.getCachedSnapshot()?.status).toBe("valid");
 
     harness.setInputs(
-      makeInputs({ token: signLicense(SIGNING_KEY, { daysFromNow: -30 }) }),
+      makeInputs({ token: signLicense(SIGNING_KEY, { daysFromNow: -45 }) }),
     );
     await harness.provider.refresh();
 
@@ -610,7 +627,7 @@ describe("LicenseProvider - reusing a computed snapshot", () => {
     await harness.provider.refresh();
     const startedAt: Date = harness.clock.now;
 
-    advance(harness, 30 * DAY_IN_MS);
+    advance(harness, 45 * DAY_IN_MS);
     expect(harness.provider.getCachedSnapshot()?.status).toBe("expired");
 
     // An NTP correction back to before the expiry, within a millisecond.
@@ -654,6 +671,157 @@ describe("LicenseProvider - reusing a computed snapshot", () => {
     ]);
     expect(second.expiresAt!.getTime()).toBeGreaterThan(Date.now());
     expect(harness.provider.getClassificationCount()).toBe(1);
+  });
+
+  /*
+   * A reused snapshot is only reused until the next moment its verdict can
+   * change. With a reuse cap far longer than either period, the only thing
+   * that can end reuse is that boundary - so these pin that the boundary is
+   * the 30-day grace and the 14-day trial, to the millisecond, and not the
+   * other period's length.
+   */
+  describe("never reuses a snapshot across the 30-day grace or the 14-day trial boundary", () => {
+    const LONG_REUSE_IN_MS: number = 365 * DAY_IN_MS;
+
+    it("uses the two constants the owner decided on", () => {
+      expect(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS).toBe(GRACE_DAYS);
+      expect(ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS).toBe(TRIAL_DAYS);
+    });
+
+    it("an expired license: reused through expiry + 29 days 23 hours 59 minutes, classified afresh just after expiry + 30 days", async () => {
+      const harness: ProviderHarness = createHarness(signedInputs(), {
+        snapshotReuseInMs: LONG_REUSE_IN_MS,
+      });
+      const expiresAt: number = (
+        (await harness.provider.getSnapshot()).expiresAt as Date
+      ).getTime();
+
+      harness.clock.now = new Date(expiresAt + 1);
+      expect(harness.provider.getCachedSnapshot()?.status).toBe("grace");
+      const classifiedInGrace: number =
+        harness.provider.getClassificationCount();
+
+      // Past where a 14-day grace would have ended: the same snapshot, still grace.
+      harness.clock.now = new Date(expiresAt + 14 * DAY_IN_MS + 1);
+      expect(harness.provider.getCachedSnapshot()?.status).toBe("grace");
+
+      harness.clock.now = new Date(
+        expiresAt + GRACE_DAYS * DAY_IN_MS - MINUTE_IN_MS,
+      );
+      expect(harness.provider.getCachedSnapshot()?.status).toBe("grace");
+
+      // The last millisecond of grace (inclusive).
+      harness.clock.now = new Date(expiresAt + GRACE_DAYS * DAY_IN_MS);
+      expect(harness.provider.getCachedSnapshot()?.status).toBe("grace");
+      expect(harness.provider.getClassificationCount()).toBe(classifiedInGrace);
+
+      harness.clock.now = new Date(expiresAt + GRACE_DAYS * DAY_IN_MS + 1);
+      const after: EnterpriseLicenseSnapshot | null =
+        harness.provider.getCachedSnapshot();
+      expect(after?.status).toBe("expired");
+      expect(after?.graceEndsAt?.getTime()).toBe(
+        expiresAt + GRACE_DAYS * DAY_IN_MS,
+      );
+      expect(harness.provider.getClassificationCount()).toBe(
+        classifiedInGrace + 1,
+      );
+    });
+
+    it("an unverified legacy license gets the same 30-day boundary", async () => {
+      const expiresAt: Date = new Date(Date.UTC(2026, 0, 1));
+      const harness: ProviderHarness = createHarness(
+        makeInputs({
+          token: legacyToken(),
+          storedColumns: { expiresAt, userLimit: 10 },
+        }),
+        { snapshotReuseInMs: LONG_REUSE_IN_MS },
+      );
+      harness.clock.now = new Date(expiresAt.getTime() + DAY_IN_MS);
+      expect((await harness.provider.getSnapshot()).status).toBe("grace");
+
+      harness.clock.now = new Date(
+        expiresAt.getTime() + GRACE_DAYS * DAY_IN_MS - MINUTE_IN_MS,
+      );
+      expect(harness.provider.getCachedSnapshot()).toMatchObject({
+        status: "grace",
+        verification: "unverified",
+      });
+
+      harness.clock.now = new Date(
+        expiresAt.getTime() + GRACE_DAYS * DAY_IN_MS + 1,
+      );
+      expect(harness.provider.getCachedSnapshot()?.status).toBe("expired");
+    });
+
+    it("an unlicensed install: reused through first seen + 13 days 23 hours 59 minutes, classified afresh just after first seen + 14 days", async () => {
+      const firstSeenAt: Date = new Date(Date.UTC(2026, 0, 1));
+      const harness: ProviderHarness = createHarness(
+        makeInputs({
+          licenseKey: null,
+          storedColumns: { enterpriseEditionFirstSeenAt: firstSeenAt },
+        }),
+        { snapshotReuseInMs: LONG_REUSE_IN_MS },
+      );
+      harness.clock.now = new Date(firstSeenAt.getTime() + DAY_IN_MS);
+      expect((await harness.provider.getSnapshot()).status).toBe("grace");
+      const classifiedInTrial: number =
+        harness.provider.getClassificationCount();
+
+      harness.clock.now = new Date(
+        firstSeenAt.getTime() + TRIAL_DAYS * DAY_IN_MS - MINUTE_IN_MS,
+      );
+      expect(harness.provider.getCachedSnapshot()?.status).toBe("grace");
+      expect(harness.provider.getClassificationCount()).toBe(classifiedInTrial);
+
+      harness.clock.now = new Date(
+        firstSeenAt.getTime() + TRIAL_DAYS * DAY_IN_MS + 1,
+      );
+      const after: EnterpriseLicenseSnapshot | null =
+        harness.provider.getCachedSnapshot();
+      expect(after?.status).toBe("missing");
+      expect(after?.graceEndsAt?.getTime()).toBe(
+        firstSeenAt.getTime() + TRIAL_DAYS * DAY_IN_MS,
+      );
+      expect(harness.provider.getClassificationCount()).toBe(
+        classifiedInTrial + 1,
+      );
+
+      // Not the 30 days an expired license gets: still lapsed at day 29.
+      harness.clock.now = new Date(firstSeenAt.getTime() + 29 * DAY_IN_MS);
+      expect(harness.provider.getCachedSnapshot()?.status).toBe("missing");
+    });
+
+    it("a real snapshot is reusable up to and including its last moment of grace or trial, never past it", () => {
+      const nowInMs: number = Date.UTC(2026, 0, 10);
+      const expiredAt: Date = new Date(nowInMs - DAY_IN_MS);
+      const grace: EnterpriseLicenseSnapshot = {
+        status: "grace",
+        verification: "unverified",
+        graceReason: "expired",
+        expiresAt: expiredAt,
+        graceEndsAt: new Date(expiredAt.getTime() + GRACE_DAYS * DAY_IN_MS),
+        userLimit: null,
+        isEvaluation: false,
+        features: "all",
+      };
+      const firstSeenAt: Date = new Date(nowInMs - DAY_IN_MS);
+      const trial: EnterpriseLicenseSnapshot = {
+        status: "grace",
+        verification: "none",
+        graceReason: "unlicensed",
+        graceEndsAt: new Date(firstSeenAt.getTime() + TRIAL_DAYS * DAY_IN_MS),
+        userLimit: null,
+        isEvaluation: false,
+        features: "all",
+      };
+
+      expect(
+        getSnapshotReusableUntilInMs(grace, nowInMs, LONG_REUSE_IN_MS),
+      ).toBe(expiredAt.getTime() + GRACE_DAYS * DAY_IN_MS + 1);
+      expect(
+        getSnapshotReusableUntilInMs(trial, nowInMs, LONG_REUSE_IN_MS),
+      ).toBe(firstSeenAt.getTime() + TRIAL_DAYS * DAY_IN_MS + 1);
+    });
   });
 
   describe("getSnapshotReusableUntilInMs", () => {
@@ -796,14 +964,14 @@ describe("LicenseProvider - a failed read keeps the last good license", () => {
     await harness.provider.getSnapshot();
     harness.failLoadsWith(new Error("connection reset"));
 
-    advance(harness, 30 * DAY_IN_MS);
+    advance(harness, 45 * DAY_IN_MS);
 
     expect((await harness.provider.getSnapshot()).status).toBe("expired");
   });
 });
 
-describe("LicenseProvider - the unlicensed grace period (first seen)", () => {
-  it("gives an unlicensed installation grace for 14 days from the first run", async () => {
+describe("LicenseProvider - the unlicensed trial (first seen)", () => {
+  it("gives an unlicensed installation a 14-day trial from the first run", async () => {
     const harness: ProviderHarness = createHarness(
       makeInputs({
         licenseKey: null,
@@ -824,9 +992,13 @@ describe("LicenseProvider - the unlicensed grace period (first seen)", () => {
     expect(snapshot.graceEndsAt?.getTime()).toBeGreaterThan(
       Date.now() + 10 * DAY_IN_MS,
     );
+    // The trial, not the longer grace period an expired license gets.
+    expect(snapshot.graceEndsAt?.getTime()).toBeLessThan(
+      Date.now() + 12 * DAY_IN_MS,
+    );
   });
 
-  it("ends the unlicensed grace exactly 14 days after the first run", async () => {
+  it("ends the unlicensed trial exactly 14 days after the first run", async () => {
     const firstSeenAt: Date = new Date();
     const harness: ProviderHarness = createHarness(
       makeInputs({
@@ -837,10 +1009,14 @@ describe("LicenseProvider - the unlicensed grace period (first seen)", () => {
     harness.clock.now = firstSeenAt;
     await harness.provider.getSnapshot();
 
-    harness.clock.now = new Date(firstSeenAt.getTime() + 14 * DAY_IN_MS);
+    harness.clock.now = new Date(
+      firstSeenAt.getTime() + TRIAL_DAYS * DAY_IN_MS,
+    );
     expect(harness.provider.getCachedSnapshot()?.status).toBe("grace");
 
-    harness.clock.now = new Date(firstSeenAt.getTime() + 14 * DAY_IN_MS + 1);
+    harness.clock.now = new Date(
+      firstSeenAt.getTime() + TRIAL_DAYS * DAY_IN_MS + 1,
+    );
     const after: EnterpriseLicenseSnapshot | null =
       harness.provider.getCachedSnapshot();
     expect(after?.status).toBe("missing");
@@ -858,7 +1034,7 @@ describe("LicenseProvider - the unlicensed grace period (first seen)", () => {
   it("stops applying once a license is installed", async () => {
     const harness: ProviderHarness = createHarness(
       makeInputs({
-        token: signLicense(SIGNING_KEY, { daysFromNow: -30 }),
+        token: signLicense(SIGNING_KEY, { daysFromNow: -45 }),
         storedColumns: {
           enterpriseEditionFirstSeenAt: new Date(Date.now() - DAY_IN_MS),
         },
@@ -957,7 +1133,7 @@ describe("LicenseProvider - seats", () => {
       makeInputs({
         token: legacyToken(),
         storedColumns: {
-          expiresAt: new Date(Date.now() - 30 * DAY_IN_MS),
+          expiresAt: new Date(Date.now() - 45 * DAY_IN_MS),
           userLimit: 10,
         },
       }),

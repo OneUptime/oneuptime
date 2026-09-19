@@ -3,6 +3,10 @@ import crypto, { KeyObject } from "crypto";
 import fs from "fs";
 import path from "path";
 import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import LicenseToken, {
   classifyLicenseToken,
   ClassifyLicenseTokenInput,
@@ -33,7 +37,16 @@ import {
  */
 
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
+const MINUTE_IN_MS: number = 60 * 1000;
 const NOW: Date = new Date("2026-09-18T12:00:00.000Z");
+
+/*
+ * The owner's decision, written out rather than read from the constants so a
+ * change to either constant fails here: an expired license gets 30 days of
+ * grace, and an install that never had a license gets a 14-day trial.
+ */
+const GRACE_DAYS: number = 30;
+const TRIAL_DAYS: number = 14;
 const NOW_IN_SECONDS: number = Math.floor(NOW.getTime() / 1000);
 const LOCAL_INSTANCE_ID: string = "11111111-2222-3333-4444-555555555555";
 
@@ -167,7 +180,8 @@ const classify: (
     now: NOW,
     trustedKeys: [TRUSTED],
     localInstanceId: LOCAL_INSTANCE_ID,
-    graceDays: 14,
+    graceDays: GRACE_DAYS,
+    trialDays: TRIAL_DAYS,
     acceptUnverified: true,
     ...(overrides || {}),
   });
@@ -878,7 +892,8 @@ describe("TrustedLicenseKeys", () => {
         now: NOW,
         trustedKeys: isolatedKeys.getTrustedLicenseKeys(),
         localInstanceId: LOCAL_INSTANCE_ID,
-        graceDays: 14,
+        graceDays: GRACE_DAYS,
+        trialDays: TRIAL_DAYS,
         acceptUnverified: true,
       });
     });
@@ -973,7 +988,7 @@ describe("classifyLicenseToken: no token", () => {
     },
   );
 
-  test("an unlicensed Enterprise install is in grace for 14 days from first seen", () => {
+  test("an unlicensed Enterprise install is on trial for 14 days from first seen, not for the 30-day grace", () => {
     const firstSeen: Date = new Date(NOW.getTime() - 3 * DAY_IN_MS);
     const result: LicenseTokenClassification = classify({
       token: null,
@@ -990,9 +1005,11 @@ describe("classifyLicenseToken: no token", () => {
     expect(result.graceEndsAt).toEqual(
       new Date(firstSeen.getTime() + 14 * DAY_IN_MS),
     );
+    expect(result.message).toContain("14-day trial");
+    expect(result.message).not.toContain("grace");
   });
 
-  test("the unlicensed grace includes its last millisecond and ends right after", () => {
+  test("the unlicensed trial includes its last millisecond and ends right after", () => {
     const lastMoment: LicenseTokenClassification = classify({
       token: null,
       storedColumns: {
@@ -1026,20 +1043,50 @@ describe("classifyLicenseToken: no token", () => {
     ).toBe("no-token");
   });
 
-  test("the grace length follows graceDays", () => {
+  test("an unlicensed install is still on trial at first seen + 13 days 23 hours 59 minutes", () => {
+    const firstSeen: Date = new Date(NOW.getTime() - 20 * DAY_IN_MS);
+    const at: (offsetInMs: number) => LicenseTokenClassification = (
+      offsetInMs: number,
+    ): LicenseTokenClassification => {
+      return classify({
+        token: null,
+        now: new Date(firstSeen.getTime() + offsetInMs),
+        storedColumns: { enterpriseEditionFirstSeenAt: firstSeen },
+      });
+    };
+
+    expect(at(14 * DAY_IN_MS - MINUTE_IN_MS)).toMatchObject({
+      status: "grace",
+      graceReason: "unlicensed",
+      reason: "unlicensed-grace",
+    });
+    // Inclusive of its last moment, like the grace period.
+    expect(at(14 * DAY_IN_MS).status).toBe("grace");
+    expect(at(14 * DAY_IN_MS + 1)).toMatchObject({
+      status: "missing",
+      reason: "unlicensed-grace-over",
+      features: [],
+    });
+    // Nowhere near the 30 days an expired license gets.
+    expect(at(29 * DAY_IN_MS).status).toBe("missing");
+  });
+
+  test("the trial length follows trialDays, and graceDays does not touch it", () => {
     const firstSeen: Date = new Date(NOW.getTime() - 20 * DAY_IN_MS);
 
     expect(
       classify({
         token: null,
-        graceDays: 30,
+        trialDays: 30,
+        graceDays: 14,
         storedColumns: { enterpriseEditionFirstSeenAt: firstSeen },
       }).status,
     ).toBe("grace");
     expect(
       classify({
         token: null,
-        graceDays: 14,
+        trialDays: 14,
+        graceDays: 30,
         storedColumns: { enterpriseEditionFirstSeenAt: firstSeen },
       }).status,
     ).toBe("missing");
@@ -1094,7 +1141,7 @@ describe("classifyLicenseToken: verified tokens", () => {
     ]);
   });
 
-  test("expiry: valid before exp, grace from exp through exp + 14 days, expired after", () => {
+  test("expiry: valid before exp, grace from exp through exp + 30 days, expired after", () => {
     const tokenExpiringAt: (expiresAt: Date) => string = (
       expiresAt: Date,
     ): string => {
@@ -1116,18 +1163,18 @@ describe("classifyLicenseToken: verified tokens", () => {
     });
     expect(atExpiry).toMatchObject({ status: "grace", graceReason: "expired" });
     expect(atExpiry.graceEndsAt).toEqual(
-      new Date(NOW.getTime() + 14 * DAY_IN_MS),
+      new Date(NOW.getTime() + 30 * DAY_IN_MS),
     );
 
     expect(
       classify({
-        token: tokenExpiringAt(new Date(NOW.getTime() - 14 * DAY_IN_MS)),
+        token: tokenExpiringAt(new Date(NOW.getTime() - 30 * DAY_IN_MS)),
       }).status,
     ).toBe("grace");
 
     const expired: LicenseTokenClassification = classify({
       token: tokenExpiringAt(
-        new Date(NOW.getTime() - 14 * DAY_IN_MS - oneSecond),
+        new Date(NOW.getTime() - 30 * DAY_IN_MS - oneSecond),
       ),
     });
     expect(expired.status).toBe("expired");
@@ -1136,17 +1183,68 @@ describe("classifyLicenseToken: verified tokens", () => {
     expect(expired.graceEndsAt).toEqual(new Date(NOW.getTime() - oneSecond));
   });
 
+  test("an expired license is still in grace at expiry + 29 days 23 hours 59 minutes, and expired just after expiry + 30 days", () => {
+    const expiresAt: Date = new Date(NOW.getTime() - 60 * DAY_IN_MS);
+    const token: string = LicenseToken.sign(
+      claimsFor({
+        iat: Math.floor(expiresAt.getTime() / 1000) - 365 * 24 * 60 * 60,
+        exp: Math.floor(expiresAt.getTime() / 1000),
+      }),
+      SIGNING_KEY.privateKey,
+    );
+    const at: (offsetInMs: number) => LicenseTokenClassification = (
+      offsetInMs: number,
+    ): LicenseTokenClassification => {
+      return classify({
+        token,
+        now: new Date(expiresAt.getTime() + offsetInMs),
+      });
+    };
+
+    expect(at(-1).status).toBe("valid");
+    expect(at(14 * DAY_IN_MS + 1)).toMatchObject({
+      status: "grace",
+      graceReason: "expired",
+    });
+    expect(at(30 * DAY_IN_MS - MINUTE_IN_MS)).toMatchObject({
+      status: "grace",
+      graceReason: "expired",
+    });
+    // judgeExpiry: in grace up to and including expiresAt + graceDays.
+    expect(at(30 * DAY_IN_MS).status).toBe("grace");
+
+    const justAfter: LicenseTokenClassification = at(30 * DAY_IN_MS + 1);
+    expect(justAfter.status).toBe("expired");
+    expect(justAfter.graceEndsAt).toEqual(
+      new Date(expiresAt.getTime() + 30 * DAY_IN_MS),
+    );
+  });
+
+  test("the grace length follows graceDays, and trialDays does not touch it", () => {
+    const token: string = LicenseToken.sign(
+      claimsFor({ exp: NOW_IN_SECONDS - (20 * DAY_IN_MS) / 1000 }),
+      SIGNING_KEY.privateKey,
+    );
+
+    expect(
+      classify({ token, graceDays: 30, trialDays: 14 }).status,
+    ).toBe("grace");
+    expect(
+      classify({ token, graceDays: 14, trialDays: 30 }).status,
+    ).toBe("expired");
+  });
+
   test("the same token moves valid -> grace -> expired as time passes", () => {
     const token: string = LicenseToken.sign(claimsFor(), SIGNING_KEY.privateKey);
 
     expect(
-      [0, 31, 45].map((days: number): string => {
+      [0, 31, 59, 61].map((days: number): string => {
         return classify({
           token,
           now: new Date(NOW.getTime() + days * DAY_IN_MS),
         }).status;
       }),
-    ).toEqual(["valid", "grace", "expired"]);
+    ).toEqual(["valid", "grace", "grace", "expired"]);
   });
 
   test("a license bound to this instance is valid", () => {
@@ -1410,7 +1508,7 @@ describe("classifyLicenseToken: unverified tokens", () => {
     expect(result.expiresAt).toEqual(futureColumns.expiresAt);
   });
 
-  test("unverified expiry uses the stored column with the same 14-day grace", () => {
+  test("unverified expiry uses the stored column with the same 30-day grace", () => {
     const at: (daysAgo: number) => LicenseTokenClassification = (
       daysAgo: number,
     ): LicenseTokenClassification => {
@@ -1428,7 +1526,37 @@ describe("classifyLicenseToken: unverified tokens", () => {
       verification: "unverified",
     });
     expect(at(14).status).toBe("grace");
-    expect(at(15).status).toBe("expired");
+    expect(at(15).status).toBe("grace");
+    expect(at(29).status).toBe("grace");
+    expect(at(30).status).toBe("grace");
+    expect(at(31).status).toBe("expired");
+  });
+
+  test("an unverified legacy license gets 30 days of grace, to the millisecond", () => {
+    const expiresAt: Date = new Date(NOW.getTime() - 60 * DAY_IN_MS);
+    const at: (offsetInMs: number) => LicenseTokenClassification = (
+      offsetInMs: number,
+    ): LicenseTokenClassification => {
+      return classify({
+        token: legacyToken(),
+        now: new Date(expiresAt.getTime() + offsetInMs),
+        storedColumns: { expiresAt },
+      });
+    };
+
+    expect(at(30 * DAY_IN_MS - MINUTE_IN_MS)).toMatchObject({
+      status: "grace",
+      graceReason: "expired",
+      verification: "unverified",
+    });
+    expect(at(30 * DAY_IN_MS).status).toBe("grace");
+    expect(at(30 * DAY_IN_MS + 1)).toMatchObject({
+      status: "expired",
+      verification: "unverified",
+    });
+    expect(at(30 * DAY_IN_MS + 1).graceEndsAt).toEqual(
+      new Date(expiresAt.getTime() + 30 * DAY_IN_MS),
+    );
   });
 
   test("an unverified token with no recorded expiry is invalid", () => {
@@ -1474,7 +1602,8 @@ describe("classifyLicenseToken is pure", () => {
       now: new Date(NOW.getTime()),
       trustedKeys: [TRUSTED],
       localInstanceId: LOCAL_INSTANCE_ID,
-      graceDays: 14,
+      graceDays: GRACE_DAYS,
+      trialDays: TRIAL_DAYS,
       acceptUnverified: true,
     };
     const snapshot: string = JSON.stringify(input);
@@ -1489,5 +1618,57 @@ describe("classifyLicenseToken is pure", () => {
     expect(classify({ trustedKeys: [TRUSTED] }).verification).toBe(
       "verified",
     );
+  });
+});
+
+describe("the grace period and the trial are two constants", () => {
+  test("30 days of grace after a license expires, a 14-day trial for an install with no license", () => {
+    expect(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS).toBe(GRACE_DAYS);
+    expect(ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS).toBe(TRIAL_DAYS);
+    expect(GRACE_DAYS).not.toBe(TRIAL_DAYS);
+  });
+
+  /*
+   * The negative control: the same moment, 20 days after both the expiry and
+   * the first run, lands in the grace period and after the trial. With the two
+   * periods swapped, both verdicts flip - so a caller that passed them the
+   * wrong way round could not pass the boundary tests above.
+   */
+  test("swapping graceDays and trialDays flips both verdicts", () => {
+    const expiredToken: string = LicenseToken.sign(
+      claimsFor({ exp: NOW_IN_SECONDS - (20 * DAY_IN_MS) / 1000 }),
+      SIGNING_KEY.privateKey,
+    );
+    const unlicensed: Partial<ClassifyLicenseTokenInput> = {
+      token: null,
+      storedColumns: {
+        enterpriseEditionFirstSeenAt: new Date(NOW.getTime() - 20 * DAY_IN_MS),
+      },
+    };
+    const verdicts: (periods: {
+      graceDays: number;
+      trialDays: number;
+    }) => Array<string> = (periods: {
+      graceDays: number;
+      trialDays: number;
+    }): Array<string> => {
+      return [
+        classify({ token: expiredToken, ...periods }).status,
+        classify({ ...unlicensed, ...periods }).status,
+      ];
+    };
+
+    expect(
+      verdicts({
+        graceDays: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+        trialDays: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+      }),
+    ).toEqual(["grace", "missing"]);
+    expect(
+      verdicts({
+        graceDays: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+        trialDays: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+      }),
+    ).toEqual(["expired", "grace"]);
   });
 });
