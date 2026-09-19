@@ -14,6 +14,21 @@ The one exception is `validate-collector-configs.sh`, which is deliberately not
 part of `npm test`: it runs the real collector binary over the agent configs and
 therefore needs docker and helm. See its section below.
 
+Two checks inside `npm test` use tools when they are there, and the "Ops Config
+Test" workflow provides both:
+
+- **gomplate.** `EnterpriseEditionBuild.test.js` checks its Dockerfile renderer
+  against gomplate for every `Dockerfile.tpl`. Without gomplate on PATH the
+  check is skipped with the reason logged, except when `CI` is set: then it
+  fails, because a parity check must not pass by skipping. The workflow
+  installs the release binary at the `GOMPLATE_VERSION` that
+  `Scripts/Install/configure.sh` pins.
+- **docker.** `RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1` turns on the real-Docker
+  check of what `COPY ./ee` ships through `.dockerignore` (it builds one tiny
+  image from `public.ecr.aws/docker/library/node:26-alpine3.24`). With the
+  variable set, a docker that does not answer `docker version` fails the test
+  instead of skipping it. The workflow sets the variable on the jest step.
+
 or from the repo root:
 
 ```sh
@@ -304,13 +319,27 @@ run, only after a merge), so the suite pins the machinery itself:
   `ONEUPTIME_EDITION=enterprise`, refuses bundles without the sentinels, and
   prunes ee's dev dependencies afterwards. Only the enterprise stage sets
   `ONEUPTIME_EDITION`. The development image never copies `ee/`.
+- **Every other image**: each `Dockerfile.tpl` in the repository (production
+  and development renders, with and without its optional `file.Exists`
+  blocks) is checked stage by stage with `Utils/DockerfileContext.js`, and
+  only the App's `enterprise-build` and `enterprise` stages may take anything
+  from `ee/`. Every image is built with the repository root as its context,
+  so `ee/` is always there to take. The check refuses a `COPY`/`ADD` of the
+  whole context (`.`, `./`, `/`), of any path with an `ee` segment, of a
+  pattern that matches `ee`, or of a variable, in the shell and JSON forms
+  with any flags. It also refuses `COPY --from`, `FROM` or `RUN --mount` from
+  a stage that holds `ee/`, and a `RUN --mount` bind of the context. Each of
+  those has a negative-control test.
 - **`.dockerignore` / `.gitignore`**: ee key material, build output and tests
   stay out of `COPY ./ee` and out of git. With
-  `RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1` a real `docker build` proves what
-  `COPY ./ee` ships through the real `.dockerignore`.
+  `RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1` (set in CI) a real `docker build`
+  proves what `COPY ./ee` ships through the real `.dockerignore`. It includes
+  a fixture for every `ee/**/*.<ext>` key pattern listed there.
 - **CI**: every core compile/test job deletes `ee/` before it installs
   anything (core is the Community Edition by construction); `compile-ee` and
-  `test.ee.yaml` install what ee needs and compile/test it; the Build workflow
+  `test.ee.yaml` install what ee needs and compile/test it, and `test.ee.yaml`
+  also runs App's two Enterprise boundary guards with `ee/` present (their
+  ee-direction checks skip without it); the Build workflow
   builds both App targets and checks each with
   `Scripts/GHA/check_app_image_edition.sh`; the release jobs that enable
   billing (the SaaS e2e jobs) run the `enterprise-` tags, the self-hosted e2e
@@ -326,8 +355,21 @@ run, only after a merge), so the suite pins the machinery itself:
 - **Helm**: both charts are annotated Apache-2.0, and the fictitious "hardened
   images" claim is gone.
 
-The renderer is cross-checked against gomplate itself wherever `gomplate` is on
-PATH.
+The renderer is cross-checked against gomplate itself, for every
+`Dockerfile.tpl` with and without an `SslCertificates` directory. A missing
+gomplate fails this check in CI and skips it elsewhere.
+
+### `EnterpriseSbomCoverage.test.js`
+
+`Scripts/GHA/generate_sboms.sh` scans the `enterprise-` tag only for the images
+in its hard-coded `ENTERPRISE_IMAGES`. Those should be exactly the images whose
+enterprise tag is a separate build: the ones whose Dockerfile has an
+`enterprise` stage, which `build_docker_images.sh` builds as a target. The
+suite reads the images and Dockerfiles from release.yml's
+`build_docker_images.sh --image ... --dockerfile ...` calls. It renders each
+template, finds the ones with an `enterprise` stage (using the same line test
+as `build_docker_images.sh`, cross-checked against the stage parser) and
+asserts that set equals `ENTERPRISE_IMAGES`, which bash reads from the script.
 
 ### `lint-app-dockerfile.sh`
 
@@ -345,8 +387,15 @@ cd Tests/Ops && npm run lint-app-dockerfile
 ## Utils
 
 `Utils/DockerfileTemplate.js` renders a `Dockerfile.tpl` for production or
-development (it understands only the one `if`/`else`/`end` block the templates
-use, and throws on anything else) and splits a Dockerfile into its stages.
+development and splits a Dockerfile into its stages. It understands only the
+one `if`/`else`/`end` block the templates use, plus, when the caller answers
+`file.Exists`, the optional `{{- if file.Exists "..." }}` blocks (with Go's
+whitespace trimming). It throws on anything else. It also finds every
+`Dockerfile.tpl` the way `configure.sh` does.
+
+`Utils/DockerfileContext.js` parses `COPY`/`ADD` (shell and JSON forms) and
+`RUN --mount`, and reports every way a stage can take `ee/` from the build
+context or from a stage that holds it.
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
 installed and these tests intentionally add no dependency; it exists so both

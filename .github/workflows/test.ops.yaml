@@ -29,15 +29,41 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
+      # EnterpriseEditionBuild.test.js checks its Dockerfile renderer against
+      # gomplate, which is what really renders every Dockerfile.tpl
+      # (Scripts/Install/configure.sh). With CI set that test fails, rather
+      # than skips, when gomplate is missing, so install the release binary at
+      # the version configure.sh pins (read from there, so the two cannot
+      # drift) and check it runs.
+      - name: Install gomplate
+        run: |
+          set -euo pipefail
+          GOMPLATE_VERSION="$(sed -n 's/^GOMPLATE_VERSION="\([0-9.]*\)"$/\1/p' Scripts/Install/configure.sh)"
+          test -n "$GOMPLATE_VERSION"
+          mkdir -p "$RUNNER_TEMP/gomplate-bin"
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors \
+            -o "$RUNNER_TEMP/gomplate-bin/gomplate" \
+            "https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-amd64"
+          chmod 755 "$RUNNER_TEMP/gomplate-bin/gomplate"
+          echo "$RUNNER_TEMP/gomplate-bin" >> "$GITHUB_PATH"
+          export PATH="$RUNNER_TEMP/gomplate-bin:$PATH"
+          gomplate --version | grep -F "$GOMPLATE_VERSION"
       # Static/structural tests over the ClickHouse config.d drop-ins, the
       # docker-compose mounts and the backup/restore scripts. No services are
-      # started, so this needs nothing beyond the package's own deps.
+      # started: beyond the package's own deps this needs only gomplate
+      # (installed above) and docker.
       #
       # The suite also cross-checks the compose ClickHouse drop-in against the
       # Helm values so the two deployment paths cannot silently diverge, which
       # is the check that only has value if it actually runs on every PR.
+      #
+      # RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS also runs the real-Docker check of
+      # what `COPY ./ee` ships through .dockerignore: it builds one tiny image,
+      # and fails rather than skips when docker is not usable.
       - run: cd Tests/Ops && npm install
       - run: cd Tests/Ops && npm run test
+        env:
+          RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"
       # The jest suite reads the collector configs with js-yaml and reasons
       # about them, which cannot see the Go-side class of error: a malformed
       # RE2 regex, an `output`/`default` naming an operator that does not

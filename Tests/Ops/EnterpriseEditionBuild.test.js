@@ -15,6 +15,9 @@
  *     the enterprise target installs ee/ the way ee/package.json expects,
  *     type-checks it, rebuilds only the two frontends with an Enterprise UI and
  *     refuses to ship bundles without the ee sentinel strings.
+ *   - Every Dockerfile.tpl is built with the repository root as its context,
+ *     so no stage of any of them, except the App's enterprise-build and
+ *     enterprise, may take anything from ee/ (Utils/DockerfileContext.js).
  *   - .dockerignore keeps key material, build output and tests out of COPY ./ee.
  *   - Core CI is the Community Edition by construction: every core job deletes
  *     ee/ before it installs anything. ee/ gets its own compile and test jobs.
@@ -43,7 +46,15 @@ const {
   parseStages,
   ancestry,
   instructions,
+  findTemplates,
 } = require("./Utils/DockerfileTemplate");
+const {
+  globMatches,
+  parseCopy,
+  parseRunMounts,
+  contextSourceProblem,
+  findEnterpriseLeaks,
+} = require("./Utils/DockerfileContext");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const EE_DIR = path.join(REPO_ROOT, "ee");
@@ -95,6 +106,56 @@ function ancestryInstructions(name) {
 
 const COPIES_EE = /^(?:COPY|ADD)\s+(?:--\S+\s+)*(?:\.\/)?ee(?:\/\S*)?\s/i;
 
+/*
+ * Every Dockerfile.tpl configure.sh renders, and the one stage pair that may
+ * hold ee/: the App's enterprise-build and the enterprise target built FROM
+ * it (production render only; the development image mounts ee/ instead).
+ */
+const ALL_TEMPLATES = findTemplates(REPO_ROOT);
+const APP_TEMPLATE = "packages/App/Dockerfile.tpl";
+const APP_ENTERPRISE_STAGES = ["enterprise-build", "enterprise"];
+
+/*
+ * gomplate's file.Exists, answered for rendering: true includes every
+ * optional block (the superset a leak check must see), false leaves them out.
+ */
+function renderTemplate(template, environment, optionalFilesExist) {
+  return render(
+    fs.readFileSync(path.join(REPO_ROOT, template), "utf8"),
+    environment,
+    {
+      fileExists: () => {
+        return optionalFilesExist;
+      },
+    },
+  );
+}
+
+function allowedEnterpriseStages(template, environment) {
+  return template === APP_TEMPLATE && environment === "production"
+    ? APP_ENTERPRISE_STAGES
+    : [];
+}
+
+/*
+ * gomplate is what really renders the templates (configure.sh), so the
+ * renderer is only trustworthy while it agrees with gomplate. The Ops
+ * workflow installs gomplate at the version configure.sh pins: in CI a
+ * missing gomplate fails the parity test, and anywhere else it is skipped
+ * with the reason logged, never passed.
+ */
+const GOMPLATE_PROBE = spawnSync("gomplate", ["--version"], {
+  encoding: "utf8",
+});
+const HAS_GOMPLATE = !GOMPLATE_PROBE.error && GOMPLATE_PROBE.status === 0;
+const IN_CI = Boolean(process.env["CI"]);
+
+if (!HAS_GOMPLATE && !IN_CI) {
+  console.log(
+    "gomplate parity check skipped: gomplate is not on PATH (CI installs it, see .github/workflows/test.ops.yaml).",
+  );
+}
+
 describe("the Dockerfile template renderer", () => {
   test("renders only the chosen branch", () => {
     const template = [
@@ -125,36 +186,172 @@ describe("the Dockerfile template renderer", () => {
     }).toThrow(DockerfileTemplateError);
   });
 
-  test("agrees with gomplate (skipped when gomplate is not on PATH)", () => {
-    const probe = spawnSync("gomplate", ["--version"], { encoding: "utf8" });
+  test("renders file.Exists blocks only when asked, with Go's whitespace trimming", () => {
+    const template = [
+      "FROM x",
+      "COPY ./packages/Common/SslCertificates /certs",
+      '{{- if file.Exists "SslCertificates" }}',
+      "COPY ./SslCertificates /certs",
+      "{{- end }}",
+      "",
+      "RUN true",
+      "",
+    ].join("\n");
+    const asked = [];
 
-    if (probe.error || probe.status !== 0) {
-      return;
-    }
+    const withFile = render(template, "production", {
+      fileExists: (relativePath) => {
+        asked.push(relativePath);
+        return true;
+      },
+    });
+    const withoutFile = render(template, "production", {
+      fileExists: () => {
+        return false;
+      },
+    });
 
-    const normalise = (text) => {
-      return text
-        .split("\n")
-        .map((line) => {
-          return line.replace(/\s+$/, "");
-        })
-        .join("\n")
-        .replace(/\n{2,}/g, "\n\n")
-        .trim();
-    };
-
-    for (const environment of ["production", "development"]) {
-      const result = spawnSync("gomplate", ["-f", APP_TEMPLATE_PATH], {
-        encoding: "utf8",
-        env: { ...process.env, ENVIRONMENT: environment },
-      });
-
-      expect(result.status).toBe(0);
-      expect(normalise(render(appTemplate, environment))).toBe(
-        normalise(result.stdout),
-      );
-    }
+    expect(asked).toEqual(["SslCertificates"]);
+    expect(withFile).toBe(
+      "FROM x\nCOPY ./packages/Common/SslCertificates /certs\nCOPY ./SslCertificates /certs\n\nRUN true\n",
+    );
+    expect(withoutFile).toBe(
+      "FROM x\nCOPY ./packages/Common/SslCertificates /certs\n\nRUN true\n",
+    );
+    // Without fileExists the block is refused, as before.
+    expect(() => {
+      return render(template, "production");
+    }).toThrow(DockerfileTemplateError);
   });
+
+  test.each([
+    [
+      "an else inside it",
+      '{{ if file.Exists "x" }}\nA\n{{ else }}\nB\n{{ end }}\n',
+    ],
+    ["no end", '{{- if file.Exists "x" }}\nCOPY ./x /x\n'],
+    [
+      "another action inside it",
+      '{{- if file.Exists "x" }}\n{{ .Env.FOO }}\n{{- end }}\n',
+    ],
+    ["any other function", '{{- if file.IsDir "x" }}\nA\n{{- end }}\n'],
+  ])("refuses a file.Exists block with %s", (_label, template) => {
+    expect(() => {
+      return render(template, "production", {
+        fileExists: () => {
+          return true;
+        },
+      });
+    }).toThrow(DockerfileTemplateError);
+  });
+
+  test("finds every Dockerfile.tpl configure.sh renders", () => {
+    expect(ALL_TEMPLATES).toContain(APP_TEMPLATE);
+    expect(ALL_TEMPLATES).toContain("packages/Probe/Dockerfile.tpl");
+    expect(ALL_TEMPLATES.length).toBeGreaterThanOrEqual(12);
+    expect(
+      ALL_TEMPLATES.filter((template) => {
+        return template.includes("node_modules");
+      }),
+    ).toEqual([]);
+  });
+
+  test.each(ALL_TEMPLATES)(
+    "renders %s for production and development, with and without the optional files",
+    (template) => {
+      for (const environment of ["production", "development"]) {
+        for (const optionalFilesExist of [true, false]) {
+          expect(
+            parseStages(
+              renderTemplate(template, environment, optionalFilesExist),
+            ).length,
+          ).toBeGreaterThan(0);
+        }
+      }
+    },
+  );
+
+  (HAS_GOMPLATE || IN_CI ? test : test.skip)(
+    "agrees with gomplate for every Dockerfile.tpl, with and without SslCertificates (required in CI)",
+    () => {
+      if (!HAS_GOMPLATE) {
+        throw new Error(
+          `CI is set but gomplate is not on PATH (${
+            GOMPLATE_PROBE.error
+              ? GOMPLATE_PROBE.error.message
+              : GOMPLATE_PROBE.stderr
+          }). test.ops.yaml installs it; this parity check must not pass by skipping.`,
+        );
+      }
+
+      const normalise = (text) => {
+        return text
+          .split("\n")
+          .map((line) => {
+            return line.replace(/\s+$/, "");
+          })
+          .join("\n")
+          .replace(/\n{2,}/g, "\n\n")
+          .trim();
+      };
+
+      /*
+       * gomplate answers file.Exists against the directory it runs in, so
+       * each template is rendered from an empty directory and from one with
+       * an SslCertificates directory, and the renderer is told the same.
+       */
+      for (const withCertificates of [false, true]) {
+        const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "gomplate-parity-"));
+
+        try {
+          if (withCertificates) {
+            fs.mkdirSync(path.join(cwd, "SslCertificates"));
+          }
+
+          for (const template of ALL_TEMPLATES) {
+            const templatePath = path.join(REPO_ROOT, template);
+
+            for (const environment of ["production", "development"]) {
+              const result = spawnSync("gomplate", ["-f", templatePath], {
+                cwd,
+                encoding: "utf8",
+                env: { ...process.env, ENVIRONMENT: environment },
+              });
+              const ours = render(
+                fs.readFileSync(templatePath, "utf8"),
+                environment,
+                {
+                  fileExists: (relativePath) => {
+                    return fs.existsSync(path.join(cwd, relativePath));
+                  },
+                },
+              );
+
+              expect({ template, environment, status: result.status }).toEqual({
+                template,
+                environment,
+                status: 0,
+              });
+              expect({
+                template,
+                environment,
+                withCertificates,
+                rendered: normalise(ours),
+              }).toEqual({
+                template,
+                environment,
+                withCertificates,
+                rendered: normalise(result.stdout),
+              });
+            }
+          }
+        } finally {
+          fs.rmSync(cwd, { recursive: true, force: true });
+        }
+      }
+    },
+    120000,
+  );
 });
 
 describe("packages/App/Dockerfile.tpl: the production build", () => {
@@ -411,6 +608,261 @@ describe("packages/App/Dockerfile.tpl: the development build", () => {
   });
 });
 
+/*
+ * Every image is built with the repository root as its context, so ee/ is in
+ * every build context: the tests above pin the App's community ancestry, and
+ * this block holds EVERY stage of EVERY Dockerfile.tpl (both renders, with
+ * and without the optional file.Exists blocks) to "takes nothing from ee/",
+ * except the App's enterprise-build and enterprise stages. See
+ * Utils/DockerfileContext.js for every way in it checks.
+ */
+describe("no image but the App's enterprise target can pick up ee/", () => {
+  const leaksOf = (dockerfile, allowed) => {
+    return findEnterpriseLeaks(parseStages(dockerfile), allowed || []);
+  };
+
+  const stageWith = (...lines) => {
+    return ["FROM public.ecr.aws/docker/library/node:26-alpine3.24", ...lines]
+      .join("\n")
+      .concat("\n");
+  };
+
+  describe("the leak finder's own machinery", () => {
+    test.each([
+      ["COPY . /usr/src/app"],
+      ["COPY ./ /usr/src"],
+      ["COPY --chown=1000:1000 . /usr/src/app"],
+      ["ADD . /x"],
+      ['COPY ["./ee", "/usr/src/ee"]'],
+      ['COPY --chown=1000:1000 [".", "/usr/src/app"]'],
+      ['COPY ["./packages/Common", "./ee/Server", "/usr/src/"]'],
+      ["COPY ./packages/Common ./ee /usr/src/"],
+      ["COPY ee /usr/src/ee"],
+      ["COPY ./ee/Server/Index.ts /usr/src/ee/Server/Index.ts"],
+      ["COPY ./ee/package*.json /usr/src/ee/"],
+      ["COPY / /usr/src/app"],
+      ["COPY packages/.. /usr/src/app"],
+      ["COPY ../ee /usr/src/ee"],
+      ["COPY * /usr/src/"],
+      ["COPY e? /usr/src/"],
+      ["COPY [e]e /usr/src/"],
+      ["COPY */Server /usr/src/Server"],
+      ["COPY EE /usr/src/ee"],
+      ['COPY "./ee" /usr/src/ee'],
+      ["COPY $SOURCE /usr/src/app"],
+      ["copy . /usr/src/app"],
+      ["COPY --link --chmod=755 . /usr/src/app"],
+      ["COPY --exclude=ee . /usr/src/app"],
+      ["ONBUILD COPY . /usr/src/app"],
+      ['COPY ["./ee", /usr/src/ee]'],
+      ["RUN --mount=type=bind,target=/context cp -r /context/ee /usr/src/ee"],
+      ["RUN --mount=target=/context cp -r /context/ee /usr/src/ee"],
+      ["RUN --mount=type=bind,source=ee,target=/ee cp -r /ee /usr/src/ee"],
+      [
+        "RUN --mount=type=cache,target=/tmp/npm --mount=type=bind,source=.,target=/src true",
+      ],
+    ])("refuses %s (negative control)", (line) => {
+      expect(leaksOf(stageWith(line))).toHaveLength(1);
+    });
+
+    test.each([
+      ["COPY ./packages/Common /usr/src/Common"],
+      ["COPY --chown=1000:1000 ./packages/App /usr/src/app"],
+      ["COPY ./packages/Common/package*.json /usr/src/Common/"],
+      ["COPY --chown=1000:1000 ./Tests ."],
+      ["COPY ./SslCertificates /usr/local/share/ca-certificates"],
+      ["COPY ./free /usr/src/free"],
+      ["COPY ./eel /usr/src/eel"],
+      ["COPY ./packages/Common/UI/Components/EE /usr/src/x"],
+      ["COPY e /usr/src/e"],
+      ["ADD https://example.com/archive.tgz /usr/src/"],
+      ["ADD git@github.com:OneUptime/oneuptime.git /usr/src/"],
+      ["COPY <<EOF /usr/src/app/config.json"],
+      ["RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline"],
+      ["RUN --mount=type=secret,id=npmrc cat /run/secrets/npmrc"],
+      [
+        "RUN --mount=type=bind,source=packages/Common,target=/common ls /common",
+      ],
+      ["RUN cp -r . /usr/src/app"],
+    ])("allows %s", (line) => {
+      expect(leaksOf(stageWith(line))).toEqual([]);
+    });
+
+    test("a --from copy reads its stage, not the context, unless that stage holds ee/", () => {
+      const dockerfile = [
+        "FROM node:26 AS builder",
+        "COPY ./packages/Common /usr/src/Common",
+        "FROM node:26 AS enterprise-build",
+        "COPY ./ee /usr/src/ee",
+        "FROM node:26 AS community",
+        // From a clean stage, even its root ("."), is fine...
+        "COPY --from=builder . /usr/src/app",
+        "COPY --from=node:26-alpine /usr/local/bin/node /usr/local/bin/node",
+        // ...from the stage that holds ee/, by name or by index, is not.
+        "COPY --from=enterprise-build /usr/src/ee /usr/src/ee",
+        "COPY --from=1 /usr/src/ee /usr/src/ee",
+        "RUN --mount=type=bind,from=enterprise-build,source=/usr/src/ee,target=/ee cp -r /ee /usr/src/ee",
+        "RUN --mount=type=cache,from=Enterprise-Build,source=/usr/src/ee,target=/ee true",
+        "",
+      ].join("\n");
+
+      expect(
+        leaksOf(dockerfile, ["enterprise-build"]).map((leak) => {
+          return `${leak.stage}: ${leak.instruction}`;
+        }),
+      ).toEqual([
+        "community: COPY --from=enterprise-build /usr/src/ee /usr/src/ee",
+        "community: COPY --from=1 /usr/src/ee /usr/src/ee",
+        "community: RUN --mount=type=bind,from=enterprise-build,source=/usr/src/ee,target=/ee cp -r /ee /usr/src/ee",
+        "community: RUN --mount=type=cache,from=Enterprise-Build,source=/usr/src/ee,target=/ee true",
+      ]);
+    });
+
+    test("a stage built FROM the allowed stage is a leak", () => {
+      const dockerfile = [
+        "FROM node:26 AS enterprise-build",
+        "COPY ./ee /usr/src/ee",
+        "FROM enterprise-build AS community",
+        "",
+      ].join("\n");
+
+      expect(leaksOf(dockerfile, ["enterprise-build"])).toEqual([
+        {
+          stage: "community",
+          instruction: "FROM enterprise-build",
+          problem: "is built FROM a stage that holds ee/",
+        },
+      ]);
+    });
+
+    test("names unnamed stages by index and says why", () => {
+      expect(
+        leaksOf(
+          "FROM node:26\nCOPY ./ee /usr/src/ee\nFROM node:26\nCOPY . /app\n",
+        ),
+      ).toEqual([
+        {
+          stage: "#0",
+          instruction: "COPY ./ee /usr/src/ee",
+          problem: "./ee: has an ee path segment",
+        },
+        {
+          stage: "#1",
+          instruction: "COPY . /app",
+          problem: ".: copies the whole build context, which includes ee/",
+        },
+      ]);
+    });
+
+    test("parses the shell and JSON forms of COPY and ADD", () => {
+      expect(parseCopy("COPY --chown=1000:1000 --link a b /dest/")).toEqual({
+        instruction: "COPY",
+        from: undefined,
+        sources: ["a", "b"],
+        destination: "/dest/",
+      });
+      expect(parseCopy('add --chmod=644 ["a b", "c", "/dest"]')).toEqual({
+        instruction: "ADD",
+        from: undefined,
+        sources: ["a b", "c"],
+        destination: "/dest",
+      });
+      expect(parseCopy("COPY --from=base /usr/src /usr/src").from).toBe("base");
+      // Malformed JSON is the shell form to Docker, and is checked both ways.
+      expect(parseCopy('COPY ["./ee", /usr/src/ee]')).toEqual({
+        instruction: "COPY",
+        from: undefined,
+        sources: ['["./ee",'],
+        alternativeSources: ["./ee"],
+        destination: "/usr/src/ee]",
+      });
+      expect(parseCopy("RUN cp . /x")).toBeNull();
+      expect(
+        parseRunMounts(
+          "RUN --mount=type=bind,source=ee,target=/ee --mount=type=cache,target=/c true",
+        ),
+      ).toEqual([
+        { type: "bind", source: "ee", target: "/ee" },
+        { type: "cache", target: "/c" },
+      ]);
+    });
+
+    test.each([
+      ["*", "ee", true],
+      ["e?", "ee", true],
+      ["?e", "ee", true],
+      ["[a-f]e", "ee", true],
+      ["[!e]e", "ee", false],
+      ["[^e]e", "ee", false],
+      ["e\\e", "ee", true],
+      ["e", "ee", false],
+      ["eee*", "ee", false],
+      ["p*", "ee", false],
+    ])("glob %s matches %s: %s", (pattern, name, expected) => {
+      expect(globMatches(pattern, name)).toBe(expected);
+    });
+
+    test.each([
+      [".", true],
+      ["./", true],
+      ["/", true],
+      ["packages/..", true],
+      ["./packages/../ee/Server", true],
+      ["$SOURCE", true],
+      ["./packages/App", false],
+      ["https://example.com/ee/archive.tgz", false],
+    ])("context source %s can reach ee/: %s", (source, expected) => {
+      expect(contextSourceProblem(source) !== null).toBe(expected);
+    });
+  });
+
+  test("the finder sees the App's real ee copies once the allowance is taken away", () => {
+    /*
+     * Guards the guard: were it blind to the real `COPY ./ee`, the scan
+     * below would pass no matter what the templates did.
+     */
+    expect(
+      leaksOf(renderTemplate(APP_TEMPLATE, "production", true)).map((leak) => {
+        return `${leak.stage}: ${leak.instruction}`;
+      }),
+    ).toEqual([
+      "enterprise-build: COPY ./ee/package*.json /usr/src/ee/",
+      "enterprise-build: COPY ./ee /usr/src/ee",
+    ]);
+  });
+
+  const renders = ALL_TEMPLATES.flatMap((template) => {
+    return ["production", "development"].flatMap((environment) => {
+      return [true, false].map((optionalFilesExist) => {
+        return [
+          `${template} (${environment}, optional files ${
+            optionalFilesExist ? "present" : "absent"
+          })`,
+          template,
+          environment,
+          optionalFilesExist,
+        ];
+      });
+    });
+  });
+
+  test("covers every template in both renders", () => {
+    expect(renders).toHaveLength(ALL_TEMPLATES.length * 4);
+  });
+
+  test.each(renders)(
+    "%s takes nothing from ee/",
+    (_label, template, environment, optionalFilesExist) => {
+      expect(
+        leaksOf(
+          renderTemplate(template, environment, optionalFilesExist),
+          allowedEnterpriseStages(template, environment),
+        ),
+      ).toEqual([]);
+    },
+  );
+});
+
 describe("the sentinel strings agree everywhere they are checked", () => {
   test("Scripts/GHA/check_app_image_edition.sh checks the same sentinels", () => {
     const check = read("Scripts/GHA/check_app_image_edition.sh");
@@ -601,6 +1053,42 @@ describe("the Enterprise Edition's own CI", () => {
     expect(ee).toBeLessThan(test);
     expect(steps.some(removesEnterprise)).toBe(false);
     expect(workflow.on).toHaveProperty("pull_request");
+  });
+
+  test("test.ee.yaml runs App's Enterprise boundary guards with ee/ present, after installing App", () => {
+    /*
+     * The guards' ee-direction checks skip without ee/, and the App Test job
+     * deletes ee/, so this step is the only place they run.
+     */
+    const steps = Object.values(
+      readYaml(".github/workflows/test.ee.yaml").jobs,
+    )[0].steps;
+    const indexOf = (predicate) => {
+      return steps.findIndex(predicate);
+    };
+    const app = indexOf((step) => {
+      return (
+        step["working-directory"] === "packages/App" &&
+        /^npm install$/.test(stepCommand(step))
+      );
+    });
+    const guards = indexOf((step) => {
+      return (
+        step["working-directory"] === "packages/App" &&
+        stepCommand(step).trim() ===
+          "node node_modules/.bin/jest Tests/EnterpriseImportGuard.test.ts Tests/EnterprisePluginResolution.test.ts --forceExit"
+      );
+    });
+
+    expect(app).toBeGreaterThan(-1);
+    expect(guards).toBeGreaterThan(app);
+    expect(steps.slice(0, guards).some(removesEnterprise)).toBe(false);
+    for (const guard of [
+      "packages/App/Tests/EnterpriseImportGuard.test.ts",
+      "packages/App/Tests/EnterprisePluginResolution.test.ts",
+    ]) {
+      expect(fs.existsSync(path.join(REPO_ROOT, guard))).toBe(true);
+    }
   });
 
   describeWhenEnterprisePresent("with ee/ in the checkout", () => {
@@ -1201,14 +1689,100 @@ describe("the Helm charts", () => {
 });
 
 /*
+ * The Ops workflow is where the checks that need tools run: gomplate for the
+ * renderer parity test, and docker for the .dockerignore runtime check below.
+ */
+describe("the Ops workflow runs the tool-backed checks", () => {
+  const steps = readYaml(".github/workflows/test.ops.yaml").jobs.test.steps;
+  const indexOf = (predicate) => {
+    return steps.findIndex(predicate);
+  };
+  const jest = indexOf((step) => {
+    return /cd Tests\/Ops && npm run test/.test(stepCommand(step));
+  });
+  const gomplate = indexOf((step) => {
+    return /gomplate --version/.test(stepCommand(step));
+  });
+
+  test("runs the jest suite with RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1", () => {
+    expect(jest).toBeGreaterThan(-1);
+    expect(steps[jest].env).toEqual(
+      expect.objectContaining({ RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1" }),
+    );
+  });
+
+  test("installs gomplate before the jest suite, from the release binary, and checks it runs", () => {
+    const install = stepCommand(steps[gomplate]).replace(/\\\n\s*/g, " ");
+
+    expect(gomplate).toBeGreaterThan(-1);
+    expect(gomplate).toBeLessThan(jest);
+    expect(install).toContain("set -euo pipefail");
+    expect(install).toMatch(
+      /curl -fsSL [^\n]*"https:\/\/github\.com\/hairyhenderson\/gomplate\/releases\/download\/v\$\{GOMPLATE_VERSION\}\/gomplate_linux-amd64"/,
+    );
+    expect(install).toContain(
+      'gomplate --version | grep -F "$GOMPLATE_VERSION"',
+    );
+  });
+
+  test("the gomplate it installs is the version Scripts/Install/configure.sh pins", () => {
+    /*
+     * The step reads the pin out of configure.sh rather than repeating it;
+     * run that line for real and compare.
+     */
+    const pinned = (read("Scripts/Install/configure.sh").match(
+      /^GOMPLATE_VERSION="(\d+\.\d+\.\d+)"$/m,
+    ) || [])[1];
+    const readsVersion = stepCommand(steps[gomplate])
+      .split("\n")
+      .map((line) => {
+        return line.trim();
+      })
+      .find((line) => {
+        return line.startsWith("GOMPLATE_VERSION=");
+      });
+
+    expect(pinned).toBeDefined();
+    expect(readsVersion).toBeDefined();
+
+    const result = spawnSync(
+      "bash",
+      [
+        "-c",
+        `set -euo pipefail\n${readsVersion}\nprintf '%s' "$GOMPLATE_VERSION"`,
+      ],
+      { cwd: REPO_ROOT, encoding: "utf8" },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe(pinned);
+  });
+});
+
+/*
  * .dockerignore semantics with real Docker (off by default: it builds a tiny
- * image). The static checks above pin the entries; this proves they exclude
- * what they are meant to from `COPY ./ee`, including a nested keys/ dir, while
- * the ee sources still go in.
+ * image; the Ops workflow turns it on). The static checks above pin the
+ * entries; this proves they exclude what they are meant to from `COPY ./ee`,
+ * including a nested keys/ dir, while the ee sources still go in. With the
+ * variable set, an unusable docker fails the test rather than skipping it.
  *
  *   RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1 npm test
  */
 const RUNTIME = process.env["RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS"] === "1";
+
+/*
+ * Every "ee/**" + "/*.<ext>" key-material pattern in .dockerignore, as its
+ * extension, so a pattern added there is proven by the runtime check below
+ * without touching it.
+ */
+function dockerignoredEnterpriseKeyExtensions() {
+  return read(".dockerignore")
+    .split("\n")
+    .map((line) => {
+      return (/^ee\/\*\*\/\*\.([A-Za-z0-9]+)$/.exec(line.trim()) || [])[1];
+    })
+    .filter(Boolean);
+}
 
 describe("COPY ./ee through the real .dockerignore", () => {
   test("is enabled with RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1 (reports why it is idle otherwise)", () => {
@@ -1220,9 +1794,23 @@ describe("COPY ./ee through the real .dockerignore", () => {
     expect(true).toBe(true);
   });
 
+  test("proves every ee key-material extension .dockerignore excludes (at least .pem)", () => {
+    expect(dockerignoredEnterpriseKeyExtensions()).toContain("pem");
+  });
+
   (RUNTIME ? test : test.skip)(
     "ships the ee sources and nothing else",
     () => {
+      const docker = spawnSync("docker", ["version"], { encoding: "utf8" });
+
+      if (docker.error || docker.status !== 0) {
+        throw new Error(
+          `RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1, but docker is not usable: ${
+            docker.error ? docker.error.message : docker.stderr.trim()
+          }`,
+        );
+      }
+
       const context = fs.mkdtempSync(
         path.join(os.tmpdir(), "ee-dockerignore-"),
       );
@@ -1251,6 +1839,10 @@ describe("COPY ./ee through the real .dockerignore", () => {
         write("ee/build/dist/Index.js", "out\n");
         write("ee/Tests/Server/A.test.ts", "test\n");
         write("ee/node_modules/openid-client/index.js", "module\n");
+        for (const extension of dockerignoredEnterpriseKeyExtensions()) {
+          write(`ee/stray-key.${extension}`, "key\n");
+          write(`ee/Server/License/stray-key.${extension}`, "key\n");
+        }
         write(
           "Dockerfile",
           'FROM public.ecr.aws/docker/library/node:26-alpine3.24\nCOPY ./ee /ee\nRUN cd / && find ee -type f | sort > /shipped.txt\nCMD ["cat", "/shipped.txt"]\n',
@@ -1260,7 +1852,10 @@ describe("COPY ./ee through the real .dockerignore", () => {
         const build = spawnSync("docker", ["build", "-q", "-t", tag, context], {
           encoding: "utf8",
         });
-        expect(build.status).toBe(0);
+        expect({ status: build.status, stderr: build.stderr }).toEqual({
+          status: 0,
+          stderr: expect.any(String),
+        });
 
         const shipped = spawnSync("docker", ["run", "--rm", tag], {
           encoding: "utf8",
