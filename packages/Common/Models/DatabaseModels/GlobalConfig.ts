@@ -951,9 +951,9 @@ export default class GlobalConfig extends GlobalConfigModel {
   /*
    * Set once, by the enterprise module, the first time this installation boots
    * the Enterprise Edition. An Enterprise install with no license at all gets
-   * a 14-day grace counted from here (the transition for installs that ran
-   * the Enterprise Edition on the IS_ENTERPRISE_EDITION variable alone; it
-   * doubles as a trial). Written only by the server itself (isRoot).
+   * a 14-day evaluation trial counted from here (also the transition for
+   * installs that ran the Enterprise Edition on the IS_ENTERPRISE_EDITION
+   * variable alone). Written only by the server itself (isRoot).
    */
   @ColumnAccessControl({
     create: [],
