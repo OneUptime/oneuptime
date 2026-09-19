@@ -22,7 +22,10 @@
  *     which requires ee/ to load) run the enterprise tags.
  *   - Nothing that deploys the images (compose, Helm) sets ONEUPTIME_EDITION,
  *     which would override the Enterprise image's own marker.
- *   - The dev loop mounts ee/ and installs its dependencies itself.
+ *   - The dev loop mounts ee/ and installs its dependencies itself. It builds
+ *     from source rather than running an image, so it alone passes
+ *     ONEUPTIME_EDITION through (default auto) to allow the Community Edition
+ *     from the same checkout.
  *
  * ContainerBootConfiguration.test.ts (packages/Common) covers the boot side of
  * each final stage (USER, TS_NODE_TRANSPILE_ONLY, CMD).
@@ -776,10 +779,14 @@ describe("nothing that deploys the images sets ONEUPTIME_EDITION", () => {
    * an empty one, would override the marker and let a broken Enterprise image
    * boot as the Community Edition.
    */
+  /*
+   * Scripts/Dev/docker-compose.dev.yml is not here: it builds the App from
+   * source (no image marker to override) and passes ONEUPTIME_EDITION through
+   * on purpose; "the dev loop" below pins exactly how.
+   */
   test.each([
     "docker-compose.yml",
     "docker-compose.base.yml",
-    "Scripts/Dev/docker-compose.dev.yml",
     "packages/E2E/docker-compose.e2e.yml",
     "packages/E2E/docker-compose.billing.yml",
     "packages/E2E/docker-compose.e2e-clickhouse.yml",
@@ -835,6 +842,39 @@ describe("the dev loop", () => {
 
     expect(volumes).toContain("./ee:/usr/src/ee:cached");
     expect(volumes).toContain("/usr/src/ee/node_modules/");
+  });
+
+  /*
+   * ee/README.md promises ONEUPTIME_EDITION=community runs the Community
+   * Edition from the same checkout, and the dev app always mounts ee/. So the
+   * dev app passes the variable through, defaulting to auto (never a
+   * hard-coded edition), and the extends merge keeps the base variables.
+   */
+  test("the dev app passes ONEUPTIME_EDITION through, defaulting to auto", () => {
+    const environment = devCompose.services.app.environment;
+
+    expect(environment).toEqual({
+      ONEUPTIME_EDITION: "${ONEUPTIME_EDITION:-auto}",
+    });
+    expect(devCompose.services.app.extends).toEqual({
+      file: "./docker-compose.base.yml",
+      service: "app",
+    });
+  });
+
+  test("no other dev service sets ONEUPTIME_EDITION", () => {
+    const others = Object.entries(devCompose.services).filter(
+      ([name, service]) => {
+        return (
+          name !== "app" &&
+          JSON.stringify(service.environment || {}).includes(
+            "ONEUPTIME_EDITION",
+          )
+        );
+      },
+    );
+
+    expect(others).toEqual([]);
   });
 
   test("no other dev service mounts ee/", () => {

@@ -149,6 +149,14 @@ services:
     extends:
       file: ./docker-compose.base.yml
       service: app
+    # Merged into the base app service's environment (extends keeps every
+    # common variable). The dev App is built from source with ee/ mounted, not
+    # from the Enterprise image, so there is no image marker to override:
+    # ONEUPTIME_EDITION=community (in config.env or the shell) runs the
+    # Community Edition from this checkout, and the default, auto, loads ee/
+    # when it is mounted. docker-compose.base.yml deliberately never sets it.
+    environment:
+      ONEUPTIME_EDITION: ${ONEUPTIME_EDITION:-auto}
     depends_on:
       <<: *common-depends-on
     ports:
