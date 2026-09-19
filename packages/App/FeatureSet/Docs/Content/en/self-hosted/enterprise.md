@@ -140,8 +140,10 @@ instead of a key:
 
 The install verifies the token itself, against the OneUptime signing keys
 built into your release. It never contacts OneUptime. A token issued for one
-instance ID is refused by every other install. To renew or add seats, activate
-a new token before the current one expires.
+instance ID is refused by every other install, and a token issued for no
+instance ID (such as the token an install activated online receives) is
+refused too. To renew or add seats, activate a new token before the current
+one expires.
 
 > **Offline activation needs a release that trusts OneUptime's license signing
 > key.** If your release does not include that key yet, activation fails with
@@ -185,7 +187,7 @@ a security control.
 | --- | --- |
 | **Valid license** | Every enterprise feature works. New users cannot be added beyond the licensed number of seats. Existing users are never removed. |
 | **Trial or grace period** (the first 14 days of an unlicensed install, or 14 days after a license expires) | Every enterprise feature works, and the edition label shows a warning. During the grace period after an expiry, the seat limit still applies. |
-| **After the trial or grace period** (expired, missing or invalid license) | Enterprise configuration becomes **read-only**: you can view and delete it, but not create or change it. The enterprise Health dashboards and the Query Console are locked. The seat limit is no longer enforced. |
+| **After the trial or grace period** (expired, missing or invalid license) | Enterprise configuration becomes **read-only**: you can view and delete it, but not create or change it. Two changes always work through the API, so you can respond to an incident: disabling an SSO or OIDC provider (`isEnabled: false` on its own), and replacing a SCIM bearer token (`bearerToken` on its own, at least 32 characters). Audit logging cannot be turned on or widened. The enterprise Health dashboards and the Query Console are locked. The seat limit is no longer enforced. |
 
 What does **not** stop when a license lapses:
 
@@ -216,7 +218,9 @@ Community image:
 - **Audit logging stops.** Audit logs recorded so far are kept, but the audit
   log pages show an upgrade prompt.
 - **Enterprise settings pages show an upgrade prompt.** Through the API you can
-  still read and delete enterprise configuration, but not create or change it.
+  still read and delete enterprise configuration, disable an SSO or OIDC
+  provider and reset a SCIM bearer token, but not create or change anything
+  else. Audit logging cannot be turned on.
 - **The enterprise Health dashboards, the Query Console, and the PostgreSQL and
   Valkey health alerts stop.** ClickHouse capacity monitoring and pruning,
   migration status and the support bundle keep working.
