@@ -292,7 +292,7 @@ describe("SSO enforcement is on if and only if the SSO login routes are served",
         projectEnforced,
         globalEnforced,
         reportedEnforced: EditionEnforcement.isSsoEnforced(),
-        reportedServed: EditionEnforcement.areSsoLoginRoutesServed(),
+        reportedServed: EditionEnforcement.areSsoRoutesServed(),
       }).toEqual({
         served: state.isLoaded,
         projectEnforced: state.isLoaded,

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import DatabaseConfig from "../DatabaseConfig";
 import { EncryptionSecret } from "../EnvironmentConfig";
 import CreateBy from "../Types/Database/CreateBy";
@@ -20,7 +21,6 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
 import HashedString from "../../Types/HashedString";
 import BadDataException from "../../Types/Exception/BadDataException";
-import ObjectID from "../../Types/ObjectID";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUser";
 
@@ -209,7 +209,8 @@ export class Service extends DatabaseService<Model> {
      * Same split as `/status-page-api/forgot-password`: the digest is
      * persisted, the raw token is only ever mailed.
      */
-    const token: string = ObjectID.generate().toString();
+    // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
+    const token: string = crypto.randomUUID();
     const hashedToken: string = await HashedString.hashValue(
       token,
       EncryptionSecret,

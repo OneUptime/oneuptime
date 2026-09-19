@@ -123,7 +123,7 @@ describe("EditionEnforcement", () => {
           expect(EditionEnforcement.areScimTeamLocksEnforced()).toBe(
             editionCase.isLoaded,
           );
-          expect(EditionEnforcement.areSsoLoginRoutesServed()).toBe(
+          expect(EditionEnforcement.areSsoRoutesServed()).toBe(
             editionCase.isLoaded,
           );
           expect(

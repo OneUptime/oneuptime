@@ -47,7 +47,7 @@ export default class ProjectOidcAPI extends BaseAPI<
            * rather than send the user to a 404.
            */
           const oidc: Array<ProjectOIDC> =
-            EditionEnforcement.areSsoLoginRoutesServed()
+            EditionEnforcement.areSsoRoutesServed()
               ? await this.service.findBy({
                   query: {
                     projectId: projectId,

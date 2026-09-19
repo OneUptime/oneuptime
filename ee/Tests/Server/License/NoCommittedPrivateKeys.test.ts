@@ -192,7 +192,7 @@ describe("the private-key detector itself", () => {
 
   it("finds a real RSA key", () => {
     const rsaPem: string = crypto
-      .generateKeyPairSync("rsa", { modulusLength: 1024 })
+      .generateKeyPairSync("rsa", { modulusLength: 2048 })
       .privateKey.export({ type: "pkcs1", format: "pem" })
       .toString();
 

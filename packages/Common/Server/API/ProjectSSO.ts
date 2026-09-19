@@ -46,25 +46,24 @@ export default class ProjectSsoAPI extends BaseAPI<
            * Community Edition serves no SAML login routes, so it lists none
            * rather than send the user to a 404.
            */
-          const sso: Array<ProjectSSO> =
-            EditionEnforcement.areSsoLoginRoutesServed()
-              ? await this.service.findBy({
-                  query: {
-                    projectId: projectId,
-                    isEnabled: true,
-                  },
-                  limit: LIMIT_PER_PROJECT,
-                  skip: 0,
-                  select: {
-                    name: true,
-                    description: true,
-                    _id: true,
-                  },
-                  props: {
-                    isRoot: true,
-                  },
-                })
-              : [];
+          const sso: Array<ProjectSSO> = EditionEnforcement.areSsoRoutesServed()
+            ? await this.service.findBy({
+                query: {
+                  projectId: projectId,
+                  isEnabled: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: {
+                  name: true,
+                  description: true,
+                  _id: true,
+                },
+                props: {
+                  isRoot: true,
+                },
+              })
+            : [];
 
           return Response.sendEntityArrayResponse(
             req,

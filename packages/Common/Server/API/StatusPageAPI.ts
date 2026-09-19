@@ -1051,7 +1051,7 @@ export default class StatusPageAPI extends BaseAPI<
            * reports none rather than send visitors to a 404.
            */
           const hasEnabledSSO: PositiveNumber =
-            EditionEnforcement.areSsoLoginRoutesServed()
+            EditionEnforcement.areSsoRoutesServed()
               ? await StatusPageSsoService.countBy({
                   query: {
                     isEnabled: true,
@@ -1263,7 +1263,7 @@ export default class StatusPageAPI extends BaseAPI<
            * Community Edition serves no status page SSO login routes.
            */
           const sso: Array<StatusPageSSO> =
-            EditionEnforcement.areSsoLoginRoutesServed()
+            EditionEnforcement.areSsoRoutesServed()
               ? await StatusPageSsoService.findBy({
                   query: {
                     statusPageId: objectId,
@@ -1310,7 +1310,7 @@ export default class StatusPageAPI extends BaseAPI<
            * Community Edition serves no status page OIDC login routes.
            */
           const oidc: Array<StatusPageOIDC> =
-            EditionEnforcement.areSsoLoginRoutesServed()
+            EditionEnforcement.areSsoRoutesServed()
               ? await StatusPageOidcService.findBy({
                   query: {
                     statusPageId: objectId,

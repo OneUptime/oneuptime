@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import CredentialGuard from "../Utils/CredentialGuard";
 import IdentityRateLimit, {
   IdentityRateLimitBucket,
@@ -641,7 +642,8 @@ router.post(
         });
 
       if (alreadySavedUser) {
-        const token: string = ObjectID.generate().toString();
+        // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
+        const token: string = crypto.randomUUID();
         const hashedToken: string = await HashedString.hashValue(
           token,
           EncryptionSecret,

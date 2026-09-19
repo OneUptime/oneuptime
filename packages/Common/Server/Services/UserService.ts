@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import DatabaseConfig from "../DatabaseConfig";
 import {
   EncryptionSecret,
@@ -1301,7 +1302,8 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    const token: string = ObjectID.generate().toString();
+    // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
+    const token: string = crypto.randomUUID();
 
     const hashedToken: string = await HashedString.hashValue(
       token,

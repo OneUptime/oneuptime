@@ -74,7 +74,7 @@ export default class EditionEnforcement {
    * (the lists a sign-in page offers) are empty when it does not, so no client
    * sends a user into a route that answers 404.
    */
-  public static areSsoLoginRoutesServed(): boolean {
+  public static areSsoRoutesServed(): boolean {
     return EnterpriseEdition.isLoaded();
   }
 

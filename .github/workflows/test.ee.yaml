@@ -11,6 +11,10 @@ on:
     branches:
       - master
 
+# Read-only: these jobs check out and test the code, nothing more.
+permissions:
+  contents: read
+
 jobs:
   # ee/'s own jest suites: the "server" and "ui" projects in ee/jest.config.js.
   # The Common and App test jobs remove ee/ before they run, so this is the only
