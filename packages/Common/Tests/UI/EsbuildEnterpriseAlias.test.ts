@@ -227,6 +227,20 @@ interface Layout {
  * packages/App/FeatureSet/<Frontend> + <repo>/ee; "container" mirrors
  * /usr/src/app/FeatureSet/<Frontend> + /usr/src/ee.
  */
+// Whether the temp directory tells "CaseProbe" and "caseprobe" apart.
+function isCaseSensitiveFileSystem(): boolean {
+  const directory: string = fs.mkdtempSync(
+    path.join(os.tmpdir(), "oneuptime-ee-case-"),
+  );
+
+  try {
+    fs.writeFileSync(path.join(directory, "CaseProbe"), "");
+    return !fs.existsSync(path.join(directory, "caseprobe"));
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+}
+
 function makeLayout(
   shape: "repository" | "container",
   options: { withEnterprise: boolean; frontend?: string; eeSubdir?: string },
@@ -374,15 +388,40 @@ describe("choosing the edition (resolveEnterpriseBuild)", () => {
 
   test("an ee/ directory without the plugin file is not the Enterprise Edition", () => {
     /*
-     * A leftover ee/node_modules after switching branches, or a lowercase
-     * index.tsx, must not count: "found" means the Index.tsx FILE.
+     * A leftover ee/node_modules after switching branches, or a directory
+     * that happens to be called Index.tsx, must not count: "found" means the
+     * Index.tsx FILE.
      */
     const layout: Layout = makeLayout("repository", { withEnterprise: false });
     fs.mkdirSync(path.join(layout.eeDir, "node_modules"), { recursive: true });
-    writeFile(path.join(layout.eeDir, "Dashboard", "index.tsx"), "");
     fs.mkdirSync(path.join(layout.eeDir, "Dashboard", "Index.tsx", "nested"), {
       recursive: true,
     });
+
+    const auto: ResolveResult = resolveInChild(
+      dashboardOptions(layout.frontendDir),
+    );
+    expect(auto.decision!.edition).toBe("community");
+
+    const enterprise: ResolveResult = resolveInChild(
+      dashboardOptions(layout.frontendDir),
+      { ONEUPTIME_EDITION: "enterprise" },
+    );
+    expect(enterprise.ok).toBe(false);
+  });
+
+  /*
+   * On a case-insensitive file system (macOS, Windows) a lowercase index.tsx
+   * IS Index.tsx, so this only means something where names are
+   * case-sensitive - the Linux build machines and the image.
+   */
+  const caseSensitiveTest: typeof test.skip = isCaseSensitiveFileSystem()
+    ? test
+    : test.skip;
+
+  caseSensitiveTest("a lowercase index.tsx is not the plugin file", () => {
+    const layout: Layout = makeLayout("repository", { withEnterprise: false });
+    writeFile(path.join(layout.eeDir, "Dashboard", "index.tsx"), "");
 
     const auto: ResolveResult = resolveInChild(
       dashboardOptions(layout.frontendDir),
