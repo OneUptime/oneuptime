@@ -44,6 +44,17 @@ jobs:
           curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors \
             -o "$RUNNER_TEMP/gomplate-bin/gomplate" \
             "https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-amd64"
+          # The binary runs in CI with the repository checked out, so verify
+          # it against a digest pinned here, not one fetched from the same
+          # release. Bumping GOMPLATE_VERSION in configure.sh fails this step
+          # until the matching digest is pinned too.
+          GOMPLATE_PINNED_VERSION="3.11.8"
+          GOMPLATE_LINUX_AMD64_SHA256="edd7e578094a08e97552d002e84cce576b4df61bb6e29724c2026dc9c9afbc38"
+          if [ "$GOMPLATE_VERSION" != "$GOMPLATE_PINNED_VERSION" ]; then
+            echo "configure.sh pins gomplate $GOMPLATE_VERSION but this step pins the sha256 of $GOMPLATE_PINNED_VERSION: update GOMPLATE_PINNED_VERSION and GOMPLATE_LINUX_AMD64_SHA256 together (checksums-v<version>_sha256.txt in the gomplate release)." >&2
+            exit 1
+          fi
+          echo "${GOMPLATE_LINUX_AMD64_SHA256}  $RUNNER_TEMP/gomplate-bin/gomplate" | sha256sum -c -
           chmod 755 "$RUNNER_TEMP/gomplate-bin/gomplate"
           echo "$RUNNER_TEMP/gomplate-bin" >> "$GITHUB_PATH"
           export PATH="$RUNNER_TEMP/gomplate-bin:$PATH"

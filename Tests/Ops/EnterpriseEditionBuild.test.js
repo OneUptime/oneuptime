@@ -1725,6 +1725,34 @@ describe("the Ops workflow runs the tool-backed checks", () => {
     );
   });
 
+  test("verifies the downloaded gomplate against a pinned sha256 before running it", () => {
+    const install = stepCommand(steps[gomplate]);
+    const pinnedVersion = (install.match(
+      /^\s*GOMPLATE_PINNED_VERSION="(\d+\.\d+\.\d+)"$/m,
+    ) || [])[1];
+    const configureVersion = (read("Scripts/Install/configure.sh").match(
+      /^GOMPLATE_VERSION="(\d+\.\d+\.\d+)"$/m,
+    ) || [])[1];
+
+    // The pinned digest belongs to the version configure.sh installs.
+    expect(pinnedVersion).toBe(configureVersion);
+    expect(install).toMatch(/GOMPLATE_LINUX_AMD64_SHA256="[0-9a-f]{64}"/);
+    expect(install).toContain(
+      '[ "$GOMPLATE_VERSION" != "$GOMPLATE_PINNED_VERSION" ]',
+    );
+
+    const verify = install.indexOf("sha256sum -c -");
+    const chmod = install.indexOf(
+      'chmod 755 "$RUNNER_TEMP/gomplate-bin/gomplate"',
+    );
+    const run = install.indexOf("gomplate --version");
+
+    expect(verify).toBeGreaterThan(-1);
+    // Checked before it is made executable, let alone run.
+    expect(verify).toBeLessThan(chmod);
+    expect(chmod).toBeLessThan(run);
+  });
+
   test("the gomplate it installs is the version Scripts/Install/configure.sh pins", () => {
     /*
      * The step reads the pin out of configure.sh rather than repeating it;
