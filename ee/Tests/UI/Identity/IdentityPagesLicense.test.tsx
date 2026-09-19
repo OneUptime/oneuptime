@@ -11,9 +11,11 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * create or change SSO / OIDC / SCIM configuration (402, master admins
  * included) while sign-in, provisioning, reads and deletes keep working. The
  * screens say so and stop offering what would fail: the read-only banner,
- * no "create" or "edit" on the provider table, no bearer-token reset - but
- * "delete" stays. In the grace period they warn and stay editable; with a
- * valid license, on OneUptime Cloud, or when the license cannot be read,
+ * no "create" or "edit" on the provider table - but "delete" stays, and so
+ * does "Reset Bearer Token", which the server accepts without a license (it
+ * only tightens security; ReadOnlyIncidentActions.test.tsx covers it and
+ * "Disable" in depth). In the grace period they warn and stay editable; with
+ * a valid license, on OneUptime Cloud, or when the license cannot be read,
  * they are exactly what they were before.
  *
  * The model tables and detail cards are replaced by stand-ins that print the
@@ -395,11 +397,20 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
       ).toHaveAttribute("data-editable", "true");
     }
 
+    /*
+     * Replacing a leaked SCIM bearer token is a tighten-only update the
+     * server accepts without a license, so the reset stays on offer.
+     */
     if (screenCase.hasTokenReset) {
-      expect(
-        providerTable(screenCase).getAttribute("data-actions"),
-      ).not.toContain("Reset Bearer Token");
+      expect(providerTable(screenCase).getAttribute("data-actions")).toContain(
+        "Reset Bearer Token",
+      );
     }
+
+    // And the screen says which changes are still possible, and why.
+    expect(
+      screen.getByTestId("enterprise-read-only-actions-notice"),
+    ).toBeInTheDocument();
   });
 
   test.each([
@@ -434,6 +445,9 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
     expect(
       screen.queryByTestId("enterprise-license-read-only-banner"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enterprise-read-only-actions-notice"),
+    ).not.toBeInTheDocument();
     expect(providerTable(screenCase)).toHaveAttribute(
       "data-createable",
       "true",
@@ -460,6 +474,9 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("enterprise-license-grace-banner"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enterprise-read-only-actions-notice"),
     ).not.toBeInTheDocument();
     expect(providerTable(screenCase)).toHaveAttribute(
       "data-createable",
