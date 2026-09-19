@@ -18,9 +18,17 @@ import ts from "typescript";
  *
  * eslint's no-restricted-imports (eslint.config.js) states the same rule, but
  * it sees only static import/export declarations in TypeScript files. This
- * test also catches require(), dynamic import(), import types,
- * jest.requireActual and .js files, and it runs in the App Test job rather
- * than only in lint.
+ * test also catches require() (and require.resolve, module.require and the
+ * require createRequire() returns), dynamic import(), import.meta.resolve,
+ * import types, jest.requireActual/requireMock/createMockFromModule and .js
+ * files, and it runs in the App Test job rather than only in lint. It also
+ * reads every tsconfig, jest.config.json and package.json under packages/,
+ * because configuration can point a build into ee/ without any import.
+ *
+ * The App Test job runs with ee/ deleted, so the checks that need ee/ (what
+ * ee/ imports, and the ee UI plugins' module-load reads) are gated on its
+ * presence and run in the Enterprise Edition Test workflow (test.ee.yaml),
+ * which runs this file with ee/ in the checkout.
  *
  * It also pins the rule that keeps the Enterprise bundle loadable: the
  * plugins are read inside render/function bodies only, never while a module
@@ -90,6 +98,63 @@ const PLUGIN_ENTRY_ALLOWANCES: ReadonlyArray<PluginEntryAllowance> = [
 const FRONTEND_SOURCE_DIRECTORIES: ReadonlyArray<string> = [
   path.join(APP_DIR, "FeatureSet", "Dashboard", "src"),
   path.join(APP_DIR, "FeatureSet", "AdminDashboard", "src"),
+];
+
+// The ee UI plugins, which read the same accessors as the frontends.
+const ENTERPRISE_UI_DIRECTORIES: ReadonlyArray<string> = [
+  path.join(EE_DIR, "Dashboard"),
+  path.join(EE_DIR, "AdminDashboard"),
+];
+
+// The configuration files that can point a build or a test run into ee/.
+const CONFIG_FILE_NAME: RegExp =
+  /^(?:tsconfig.*\.json|jest\.config\.json|package\.json)$/;
+const TSCONFIG_FILE_NAME: RegExp = /^tsconfig.*\.json$/;
+/*
+ * "@oneuptime/ee" and "@oneuptime/ee-*" anywhere in a config string, so the
+ * anchored jest key "^@oneuptime/ee-dashboard$" counts too.
+ */
+const CONFIG_EE_PACKAGE: RegExp = /@oneuptime\/ee(?![A-Za-z0-9_.])/;
+/*
+ * Splits a config string into path-like tokens: "cd ../../ee && npm test",
+ * "file:../../ee" and "<rootDir>/../../ee/X" each yield their ee path.
+ */
+const CONFIG_TOKEN_SEPARATORS: RegExp = /[\s"'`=,;:()[\]{}|&<>]+/;
+
+interface CommunityPluginStub {
+  specifier: string;
+  stub: string;
+}
+
+/*
+ * The only ee references configuration may hold: each plugin specifier
+ * mapped to its own frontend's Community stub (the mappings
+ * EnterprisePluginResolution.test.ts pins in the tsconfig paths and the jest
+ * moduleNameMapper).
+ */
+const COMMUNITY_PLUGIN_STUBS: ReadonlyArray<CommunityPluginStub> = [
+  {
+    specifier: "@oneuptime/ee-dashboard",
+    stub: path.join(
+      APP_DIR,
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Enterprise",
+      "CommunityPlugins.ts",
+    ),
+  },
+  {
+    specifier: "@oneuptime/ee-admin-dashboard",
+    stub: path.join(
+      APP_DIR,
+      "FeatureSet",
+      "AdminDashboard",
+      "src",
+      "Enterprise",
+      "CommunityPlugins.ts",
+    ),
+  },
 ];
 
 const PLUGIN_ACCESSORS: ReadonlyArray<string> = [
@@ -168,32 +233,160 @@ function parseSource(fileName: string, source: string): ts.SourceFile {
   );
 }
 
-function isRequireLikeCall(node: ts.CallExpression): boolean {
+/*
+ * jest helpers that load the real module: requireActual/requireMock return
+ * it, and createMockFromModule (genMockFromModule is its old name) loads it
+ * to generate the automock.
+ */
+const JEST_LOADING_HELPERS: ReadonlyArray<string> = [
+  "requireActual",
+  "requireMock",
+  "createMockFromModule",
+  "genMockFromModule",
+];
+
+// Peels (x), x as T, <T>x, x! and x satisfies T down to x.
+function unwrapExpression(expression: ts.Expression): ts.Expression {
+  let current: ts.Expression = expression;
+
+  while (
+    ts.isParenthesizedExpression(current) ||
+    ts.isAsExpression(current) ||
+    ts.isTypeAssertionExpression(current) ||
+    ts.isNonNullExpression(current) ||
+    ts.isSatisfiesExpression(current)
+  ) {
+    current = current.expression;
+  }
+
+  return current;
+}
+
+// createRequire(...) and module.createRequire(...): each returns a require.
+function isCreateRequireCall(node: ts.Expression): boolean {
+  const expression: ts.Expression = unwrapExpression(node);
+
+  if (!ts.isCallExpression(expression)) {
+    return false;
+  }
+
+  const callee: ts.Expression = unwrapExpression(expression.expression);
+
+  return (
+    (ts.isIdentifier(callee) && callee.text === "createRequire") ||
+    (ts.isPropertyAccessExpression(callee) &&
+      callee.name.text === "createRequire")
+  );
+}
+
+/*
+ * The names a file binds to a createRequire(...) result
+ * ("const load = createRequire(import.meta.url)", or a later assignment).
+ * Matched by name, not by scope: a guard may over-match a shadowed name, it
+ * must never miss a real one.
+ */
+function findRequireAliases(sourceFile: ts.SourceFile): Set<string> {
+  const aliases: Set<string> = new Set<string>();
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      isCreateRequireCall(node.initializer)
+    ) {
+      aliases.add(node.name.text);
+    } else if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isIdentifier(node.left) &&
+      isCreateRequireCall(node.right)
+    ) {
+      aliases.add(node.left.text);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return aliases;
+}
+
+// require, a createRequire alias, or a createRequire(...) call itself.
+function isRequireFunction(
+  expression: ts.Expression,
+  requireAliases: ReadonlySet<string>,
+): boolean {
+  const unwrapped: ts.Expression = unwrapExpression(expression);
+
+  if (ts.isIdentifier(unwrapped)) {
+    return unwrapped.text === "require" || requireAliases.has(unwrapped.text);
+  }
+
+  return isCreateRequireCall(unwrapped);
+}
+
+function isImportMeta(expression: ts.Expression): boolean {
+  return (
+    ts.isMetaProperty(expression) &&
+    expression.keywordToken === ts.SyntaxKind.ImportKeyword &&
+    expression.name.text === "meta"
+  );
+}
+
+/*
+ * A call whose first argument names a module that gets loaded (or resolved
+ * to be loaded): import(), require() and every require createRequire(...)
+ * hands out, require.resolve() on any of them, module.require(),
+ * import.meta.resolve() and the jest helpers above.
+ */
+function isRequireLikeCall(
+  node: ts.CallExpression,
+  requireAliases: ReadonlySet<string>,
+): boolean {
   if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
     return true;
   }
 
-  if (ts.isIdentifier(node.expression)) {
-    return node.expression.text === "require";
+  if (isRequireFunction(node.expression, requireAliases)) {
+    return true;
+  }
+
+  const callee: ts.Expression = unwrapExpression(node.expression);
+
+  if (!ts.isPropertyAccessExpression(callee)) {
+    return false;
+  }
+
+  const target: ts.Expression = unwrapExpression(callee.expression);
+  const member: string = callee.name.text;
+
+  if (member === "resolve") {
+    return isRequireFunction(target, requireAliases) || isImportMeta(target);
+  }
+
+  if (ts.isIdentifier(target) && target.text === "module") {
+    return member === "require";
   }
 
   return (
-    ts.isPropertyAccessExpression(node.expression) &&
-    ts.isIdentifier(node.expression.expression) &&
-    node.expression.expression.text === "jest" &&
-    (node.expression.name.text === "requireActual" ||
-      node.expression.name.text === "requireMock")
+    ts.isIdentifier(target) &&
+    target.text === "jest" &&
+    JEST_LOADING_HELPERS.includes(member)
   );
 }
 
 /*
  * Every module a file really loads: import / export-from declarations,
- * import-equals, import types, dynamic import(), require() and
- * jest.requireActual/requireMock. jest.mock is deliberately NOT a load - it
- * replaces a specifier, it does not pull the real module in.
+ * import-equals, import types, and every call isRequireLikeCall recognises.
+ * jest.mock is deliberately NOT a load - it replaces a specifier, it does not
+ * pull the real module in.
  */
 function readImportSpecifiers(fileName: string, source: string): Array<string> {
   const specifiers: Array<string> = [];
+  const sourceFile: ts.SourceFile = parseSource(fileName, source);
+  const requireAliases: Set<string> = findRequireAliases(sourceFile);
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (
@@ -214,7 +407,10 @@ function readImportSpecifiers(fileName: string, source: string): Array<string> {
       ts.isStringLiteralLike(node.argument.literal)
     ) {
       specifiers.push(node.argument.literal.text);
-    } else if (ts.isCallExpression(node) && isRequireLikeCall(node)) {
+    } else if (
+      ts.isCallExpression(node) &&
+      isRequireLikeCall(node, requireAliases)
+    ) {
       const firstArgument: ts.Expression | undefined = node.arguments[0];
 
       if (firstArgument && ts.isStringLiteralLike(firstArgument)) {
@@ -225,7 +421,7 @@ function readImportSpecifiers(fileName: string, source: string): Array<string> {
     ts.forEachChild(node, visit);
   };
 
-  visit(parseSource(fileName, source));
+  visit(sourceFile);
 
   return specifiers;
 }
@@ -367,6 +563,35 @@ interface CoreScanResult {
   violations: Array<string>;
 }
 
+interface PluginReadScanResult {
+  scannedFiles: number;
+  offenders: Array<string>;
+}
+
+// Every module-load plugin read in a directory, as "<file>:<line>:<accessor>".
+function scanPluginReads(directory: string): PluginReadScanResult {
+  const files: Array<string> = listSourceFiles(directory);
+  const offenders: Array<string> = [];
+
+  for (const filePath of files) {
+    const source: string = fs.readFileSync(filePath, "utf8");
+
+    if (
+      !PLUGIN_ACCESSORS.some((accessor: string): boolean => {
+        return source.includes(accessor);
+      })
+    ) {
+      continue;
+    }
+
+    for (const offender of findTopLevelPluginReads(filePath, source)) {
+      offenders.push(`${toRepositoryPath(filePath)}:${offender}`);
+    }
+  }
+
+  return { scannedFiles: files.length, offenders };
+}
+
 function scanCoreImports(files: Array<string>): CoreScanResult {
   const violations: Array<string> = [];
 
@@ -387,6 +612,249 @@ function scanCoreImports(files: Array<string>): CoreScanResult {
   }
 
   return { scannedFiles: files.length, violations };
+}
+
+function listConfigFiles(directory: string): Array<string> {
+  const found: Array<string> = [];
+
+  if (!fs.existsSync(directory)) {
+    return found;
+  }
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const fullPath: string = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      if (!SKIPPED_DIRECTORIES.has(entry.name)) {
+        found.push(...listConfigFiles(fullPath));
+      }
+
+      continue;
+    }
+
+    if (entry.isFile() && CONFIG_FILE_NAME.test(entry.name)) {
+      found.push(fullPath);
+    }
+  }
+
+  return found;
+}
+
+// A key or string value in a config file that names ee/ or an ee package.
+function isEnterpriseConfigText(text: string): boolean {
+  if (CONFIG_EE_PACKAGE.test(text)) {
+    return true;
+  }
+
+  return normalizeSpecifier(text)
+    .split(CONFIG_TOKEN_SEPARATORS)
+    .some((token: string): boolean => {
+      /*
+       * Only a path counts: a bare "ee" in prose is not a reference, and a
+       * bare "ee" path in packages/X resolves inside packages/X anyway.
+       */
+      return token.includes("/") && EE_PATH_SEGMENT.test(token);
+    });
+}
+
+interface ConfigReference {
+  location: Array<string>;
+  text: string;
+}
+
+/*
+ * Every key and string value of a parsed config that names ee/, with the
+ * location of the key it sits under.
+ */
+function findConfigEnterpriseReferences(
+  value: unknown,
+  location: Array<string> = [],
+): Array<ConfigReference> {
+  if (typeof value === "string") {
+    return isEnterpriseConfigText(value) ? [{ location, text: value }] : [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item: unknown, index: number) => {
+      return findConfigEnterpriseReferences(item, [...location, `${index}`]);
+    });
+  }
+
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>).flatMap(
+      ([key, child]: [string, unknown]) => {
+        const childLocation: Array<string> = [...location, key];
+        const references: Array<ConfigReference> = isEnterpriseConfigText(key)
+          ? [{ location: childLocation, text: key }]
+          : [];
+
+        return [
+          ...references,
+          ...findConfigEnterpriseReferences(child, childLocation),
+        ];
+      },
+    );
+  }
+
+  return [];
+}
+
+// tsconfig files are JSONC; TypeScript's parser reads them (and plain JSON).
+function parseConfigSource(filePath: string, source: string): unknown {
+  const parsed: { config?: unknown; error?: ts.Diagnostic } =
+    ts.parseConfigFileTextToJson(filePath, source);
+
+  if (parsed.error) {
+    throw new Error(
+      `${toRepositoryPath(filePath)} is not valid JSON: ${ts.flattenDiagnosticMessageText(
+        parsed.error.messageText,
+        "\n",
+      )}`,
+    );
+  }
+
+  return parsed.config;
+}
+
+function readConfigValue(config: unknown, location: Array<string>): unknown {
+  let current: unknown = config;
+
+  for (const key of location) {
+    if (!current || typeof current !== "object") {
+      return undefined;
+    }
+
+    current = (current as Record<string, unknown>)[key];
+  }
+
+  return current;
+}
+
+// The file a mapping target names, trying the extensions tsc and jest would.
+function resolveConfigTarget(absoluteTarget: string): string | null {
+  for (const candidate of [
+    absoluteTarget,
+    `${absoluteTarget}.ts`,
+    `${absoluteTarget}.tsx`,
+  ]) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function targetsOnlyStub(
+  value: unknown,
+  resolveTargetPath: (target: string) => string,
+  stub: string,
+): boolean {
+  const targets: Array<unknown> = Array.isArray(value) ? value : [value];
+
+  return (
+    targets.length > 0 &&
+    targets.every((target: unknown): boolean => {
+      return (
+        typeof target === "string" &&
+        resolveConfigTarget(resolveTargetPath(target)) === stub
+      );
+    })
+  );
+}
+
+/*
+ * Whether a config reference is one of the pinned stub mappings: the plugin
+ * specifier as a tsconfig compilerOptions.paths key, or anchored as a jest
+ * moduleNameMapper key, whose every target is that frontend's own
+ * CommunityPlugins.ts. Anything else - the right key pointed at ee/, one
+ * frontend's specifier pointed at the other's stub, a package.json entry -
+ * is a violation.
+ */
+function isAllowedConfigReference(
+  filePath: string,
+  config: unknown,
+  reference: ConfigReference,
+): boolean {
+  const configDirectory: string = path.dirname(filePath);
+  const fileName: string = path.basename(filePath);
+  const [section, table, key]: Array<string | undefined> = [
+    ...reference.location,
+  ];
+  const value: unknown = readConfigValue(config, reference.location);
+
+  return COMMUNITY_PLUGIN_STUBS.some((mapping: CommunityPluginStub) => {
+    if (
+      TSCONFIG_FILE_NAME.test(fileName) &&
+      reference.location.length === 3 &&
+      section === "compilerOptions" &&
+      table === "paths" &&
+      key === mapping.specifier &&
+      reference.text === mapping.specifier
+    ) {
+      return targetsOnlyStub(
+        value,
+        (target: string): string => {
+          return path.resolve(configDirectory, target);
+        },
+        mapping.stub,
+      );
+    }
+
+    const anchoredSpecifier: string = `^${mapping.specifier}$`;
+
+    if (
+      fileName === "jest.config.json" &&
+      reference.location.length === 2 &&
+      section === "moduleNameMapper" &&
+      table === anchoredSpecifier &&
+      reference.text === anchoredSpecifier
+    ) {
+      const rootDirectory: string = path.resolve(
+        configDirectory,
+        String(readConfigValue(config, ["rootDir"]) || "."),
+      );
+
+      return targetsOnlyStub(
+        value,
+        (target: string): string => {
+          return path.resolve(target.split("<rootDir>").join(rootDirectory));
+        },
+        mapping.stub,
+      );
+    }
+
+    return false;
+  });
+}
+
+interface ConfigScanResult {
+  allowed: Array<string>;
+  violations: Array<string>;
+}
+
+function describeConfigReference(
+  filePath: string,
+  reference: ConfigReference,
+): string {
+  return `${toRepositoryPath(filePath)}: ${reference.location.join(" > ")} -> ${reference.text}`;
+}
+
+function scanConfigSource(filePath: string, source: string): ConfigScanResult {
+  const config: unknown = parseConfigSource(filePath, source);
+  const result: ConfigScanResult = { allowed: [], violations: [] };
+
+  for (const reference of findConfigEnterpriseReferences(config)) {
+    const description: string = describeConfigReference(filePath, reference);
+
+    if (isAllowedConfigReference(filePath, config, reference)) {
+      result.allowed.push(description);
+    } else {
+      result.violations.push(description);
+    }
+  }
+
+  return result;
 }
 
 describe("the Enterprise import guard's own machinery", () => {
@@ -420,6 +888,96 @@ describe("the Enterprise import guard's own machinery", () => {
       "@oneuptime/ee-admin-dashboard",
     ]);
   });
+
+  test("also reads require.resolve, module.require, createRequire, import.meta.resolve and jest automocks", () => {
+    const specifiers: Array<string> = readImportSpecifiers(
+      "Fixture.ts",
+      [
+        'import { createRequire } from "module";',
+        'const resolved = require.resolve("../ee/Resolved");',
+        'const viaModule = module.require("../ee/ModuleRequire");',
+        "const load = createRequire(import.meta.url);",
+        'const loaded = load("@oneuptime/ee/Aliased");',
+        'const aliasResolved = load.resolve("../ee/AliasResolved");',
+        "let later;",
+        "later = module.createRequire(__filename);",
+        'later("../ee/Assigned");',
+        'const direct = createRequire(__filename)("../ee/Direct");',
+        'const directResolve = createRequire(__filename).resolve("../ee/DirectResolve");',
+        'const typed = (load as NodeRequire)("../ee/Typed");',
+        'const metaResolved = import.meta.resolve("../ee/MetaResolved");',
+        'const automock = jest.createMockFromModule("../ee/Automock");',
+        'const legacy = jest.genMockFromModule("../ee/LegacyAutomock");',
+        // None of these loads a module.
+        'const notALoad = other("../ee/Other");',
+        'const cached = require.cache["../ee/Cache"];',
+        'const lookup = require.resolve.paths("../ee/Paths");',
+        'const unrelated = something.require("../ee/SomethingRequire");',
+        'const unrelatedResolve = promise.resolve("../ee/PromiseResolve");',
+      ].join("\n"),
+    );
+
+    expect(specifiers).toEqual([
+      "module",
+      "../ee/Resolved",
+      "../ee/ModuleRequire",
+      "@oneuptime/ee/Aliased",
+      "../ee/AliasResolved",
+      "../ee/Assigned",
+      "../ee/Direct",
+      "../ee/DirectResolve",
+      "../ee/Typed",
+      "../ee/MetaResolved",
+      "../ee/Automock",
+      "../ee/LegacyAutomock",
+    ]);
+  });
+
+  test.each([
+    [
+      "require.resolve",
+      'export const at: string = require.resolve("../../ee/Server/Index");',
+    ],
+    [
+      "module.require",
+      'export const ee: unknown = module.require("../../ee/Server/Index");',
+    ],
+    [
+      "a createRequire alias",
+      'import { createRequire } from "module";\nconst load: NodeRequire = createRequire(__filename);\nexport const ee: unknown = load("../../ee/Server/Index");',
+    ],
+    [
+      "a createRequire(...) result called directly",
+      'import { createRequire } from "module";\nexport const ee: unknown = createRequire(__filename)("../../ee/Server/Index");',
+    ],
+    [
+      "import.meta.resolve",
+      'export const at: string = import.meta.resolve("../../ee/Server/Index");',
+    ],
+    [
+      "jest.createMockFromModule",
+      'export const ee: unknown = jest.createMockFromModule("../../ee/Server/Index");',
+    ],
+  ])(
+    "the scan reports a load through %s (negative control)",
+    (_form: string, source: string) => {
+      const root: string = fs.mkdtempSync(
+        path.join(os.tmpdir(), "oneuptime-ee-guard-load-"),
+      );
+
+      try {
+        const offender: string = path.join(root, "Offender.ts");
+
+        fs.writeFileSync(offender, `${source}\n`);
+
+        expect(scanCoreImports([offender]).violations).toEqual([
+          `${toRepositoryPath(offender)} -> ../../ee/Server/Index`,
+        ]);
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
 
   test("reads imports from JavaScript and JSX files too", () => {
     expect(
@@ -630,6 +1188,268 @@ describe("the Enterprise import guard's own machinery", () => {
   });
 });
 
+describe("the Enterprise config guard's own machinery", () => {
+  const dashboardTsconfig: string = path.join(
+    APP_DIR,
+    "FeatureSet",
+    "Dashboard",
+    "tsconfig.json",
+  );
+  const appJestConfig: string = path.join(APP_DIR, "jest.config.json");
+  const appPackageJson: string = path.join(APP_DIR, "package.json");
+
+  const scan: (filePath: string, config: unknown) => ConfigScanResult = (
+    filePath: string,
+    config: unknown,
+  ): ConfigScanResult => {
+    return scanConfigSource(filePath, JSON.stringify(config));
+  };
+
+  test.each([
+    ["../../ee", true],
+    ["../../../../ee/Dashboard/Index", true],
+    ["file:../../ee", true],
+    ["cd ../../ee && npm test", true],
+    ["<rootDir>/../../ee/Server/Index.ts", true],
+    ["../../ee/**/*.ts", true],
+    ["..\\..\\ee\\Server", true],
+    ["/usr/src/ee", true],
+    ["^@oneuptime/ee-dashboard$", true],
+    ["@oneuptime/ee", true],
+    ["@oneuptime/ee/Server/Index", true],
+    ["@oneuptime/ee-admin-dashboard", true],
+    ["@oneuptime/eel", false],
+    ["ee", false],
+    ["the ee edition", false],
+    ["./free/Thing", false],
+    ["../bee/Thing", false],
+    ["Common/UI/Components/EE/Thing", false],
+    ["https://github.com/OneUptime/oneuptime", false],
+    [
+      "<rootDir>/FeatureSet/Dashboard/src/Enterprise/CommunityPlugins.ts",
+      false,
+    ],
+  ])(
+    "classifies config text %s as an ee reference: %s",
+    (text: string, expected: boolean) => {
+      expect(isEnterpriseConfigText(text)).toBe(expected);
+    },
+  );
+
+  test("reads keys and string values, never comments", () => {
+    const config: unknown = parseConfigSource(
+      dashboardTsconfig,
+      [
+        "{",
+        "  // the Enterprise build points esbuild at ee/Dashboard/Index.tsx",
+        '  /* "@oneuptime/ee-dashboard" is the plugin */',
+        '  "compilerOptions": { "outDir": "../../../../ee/build" },',
+        '  "references": [{ "path": "../../../../ee" }],',
+        '  "files": ["src/Index.tsx"],',
+        '  "@oneuptime/ee": true',
+        "}",
+      ].join("\n"),
+    );
+
+    expect(findConfigEnterpriseReferences(config)).toEqual([
+      {
+        location: ["compilerOptions", "outDir"],
+        text: "../../../../ee/build",
+      },
+      { location: ["references", "0", "path"], text: "../../../../ee" },
+      { location: ["@oneuptime/ee"], text: "@oneuptime/ee" },
+    ]);
+  });
+
+  test("allows each plugin specifier mapped to its own Community stub", () => {
+    expect(
+      scan(dashboardTsconfig, {
+        compilerOptions: {
+          paths: {
+            "@oneuptime/ee-dashboard": ["./src/Enterprise/CommunityPlugins"],
+          },
+        },
+      }),
+    ).toEqual({
+      allowed: [
+        "packages/App/FeatureSet/Dashboard/tsconfig.json: compilerOptions > paths > @oneuptime/ee-dashboard -> @oneuptime/ee-dashboard",
+      ],
+      violations: [],
+    });
+
+    expect(
+      scan(appJestConfig, {
+        moduleNameMapper: {
+          "^@oneuptime/ee-dashboard$":
+            "<rootDir>/FeatureSet/Dashboard/src/Enterprise/CommunityPlugins.ts",
+          "^@oneuptime/ee-admin-dashboard$":
+            "<rootDir>/FeatureSet/AdminDashboard/src/Enterprise/CommunityPlugins.ts",
+        },
+      }).violations,
+    ).toEqual([]);
+  });
+
+  test.each([
+    [
+      "a tsconfig mapping the plugin specifier into ee/",
+      dashboardTsconfig,
+      {
+        compilerOptions: {
+          paths: {
+            "@oneuptime/ee-dashboard": ["../../../../ee/Dashboard/Index"],
+          },
+        },
+      },
+      2,
+    ],
+    [
+      "a tsconfig mapping one frontend's specifier to the other frontend's stub",
+      dashboardTsconfig,
+      {
+        compilerOptions: {
+          paths: {
+            "@oneuptime/ee-admin-dashboard": [
+              "./src/Enterprise/CommunityPlugins",
+            ],
+          },
+        },
+      },
+      1,
+    ],
+    [
+      "a tsconfig mapping the stub and ee/ side by side",
+      dashboardTsconfig,
+      {
+        compilerOptions: {
+          paths: {
+            "@oneuptime/ee-dashboard": [
+              "./src/Enterprise/CommunityPlugins",
+              "../../../../ee/Dashboard/Index",
+            ],
+          },
+        },
+      },
+      2,
+    ],
+    [
+      "a tsconfig project reference into ee/",
+      dashboardTsconfig,
+      { references: [{ path: "../../../../ee" }] },
+      1,
+    ],
+    [
+      "a tsconfig include of ee sources",
+      dashboardTsconfig,
+      { include: ["src/**/*", "../../../../ee/Dashboard/**/*"] },
+      1,
+    ],
+    [
+      "a jest mapper sending the plugin specifier into ee/",
+      appJestConfig,
+      {
+        moduleNameMapper: {
+          "^@oneuptime/ee-dashboard$": "<rootDir>/../../ee/Dashboard/Index.tsx",
+        },
+      },
+      2,
+    ],
+    [
+      "an unanchored jest mapper key, even to the stub",
+      appJestConfig,
+      {
+        moduleNameMapper: {
+          "@oneuptime/ee-dashboard":
+            "<rootDir>/FeatureSet/Dashboard/src/Enterprise/CommunityPlugins.ts",
+        },
+      },
+      1,
+    ],
+    [
+      "jest roots reaching into ee/",
+      appJestConfig,
+      { roots: ["<rootDir>", "<rootDir>/../../ee"] },
+      1,
+    ],
+    [
+      "a package.json dependency on the ee package",
+      appPackageJson,
+      { dependencies: { "@oneuptime/ee": "file:../../ee" } },
+      2,
+    ],
+    [
+      "a package.json script that runs inside ee/",
+      appPackageJson,
+      { scripts: { "test:ee": "cd ../../ee && npm test" } },
+      1,
+    ],
+    [
+      "a package.json jest block with the stub mapping (only jest.config.json may map)",
+      appPackageJson,
+      {
+        jest: {
+          moduleNameMapper: {
+            "^@oneuptime/ee-dashboard$":
+              "<rootDir>/FeatureSet/Dashboard/src/Enterprise/CommunityPlugins.ts",
+          },
+        },
+      },
+      1,
+    ],
+  ])(
+    "refuses %s (negative control)",
+    (_label: string, filePath: string, config: unknown, expected: number) => {
+      const result: ConfigScanResult = scan(filePath, config);
+
+      expect(result.allowed).toEqual([]);
+      expect(result.violations).toHaveLength(expected);
+    },
+  );
+
+  test("finds config files and skips node_modules and build", () => {
+    const root: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "oneuptime-ee-config-guard-"),
+    );
+
+    try {
+      const files: Array<string> = [
+        "package.json",
+        "tsconfig.json",
+        "tsconfig.build.json",
+        "jest.config.json",
+        "Nested/package.json",
+        "Nested/tsconfig.test.json",
+        "Nested/jest.config.js",
+        "Nested/config.json",
+        "node_modules/pkg/package.json",
+        "build/tsconfig.json",
+      ];
+
+      for (const file of files) {
+        const fullPath: string = path.join(root, file);
+        fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+        fs.writeFileSync(fullPath, "{}");
+      }
+
+      expect(
+        listConfigFiles(root)
+          .map((file: string): string => {
+            return path.relative(root, file).split(path.sep).join("/");
+          })
+          .sort(),
+      ).toEqual([
+        "Nested/package.json",
+        "Nested/tsconfig.test.json",
+        "jest.config.json",
+        "package.json",
+        "tsconfig.build.json",
+        "tsconfig.json",
+      ]);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("core never imports the Enterprise Edition", () => {
   const coreFiles: Array<string> = listSourceFiles(PACKAGES_DIR);
 
@@ -712,40 +1532,100 @@ describe("core never imports the Enterprise Edition", () => {
   });
 
   test("no frontend module reads the plugins while it is loading", () => {
-    const offenders: Array<string> = [];
+    /*
+     * The ee UI plugins are held to the same rule in the ee/ block below,
+     * which only runs where ee/ is present.
+     */
+    for (const directory of FRONTEND_SOURCE_DIRECTORIES) {
+      const result: PluginReadScanResult = scanPluginReads(directory);
 
-    const directories: Array<string> = [
-      ...FRONTEND_SOURCE_DIRECTORIES,
-      path.join(EE_DIR, "Dashboard"),
-      path.join(EE_DIR, "AdminDashboard"),
-    ];
-
-    for (const directory of directories) {
-      for (const filePath of listSourceFiles(directory)) {
-        const source: string = fs.readFileSync(filePath, "utf8");
-
-        if (
-          !PLUGIN_ACCESSORS.some((accessor: string): boolean => {
-            return source.includes(accessor);
-          })
-        ) {
-          continue;
-        }
-
-        for (const offender of findTopLevelPluginReads(filePath, source)) {
-          offenders.push(`${toRepositoryPath(filePath)}:${offender}`);
-        }
-      }
+      expect(result.scannedFiles).toBeGreaterThan(0);
+      expect(result.offenders).toEqual([]);
     }
+  });
 
-    expect(offenders).toEqual([]);
+  describe("configuration", () => {
+    const configFiles: Array<string> = listConfigFiles(PACKAGES_DIR);
+
+    const scanAll: () => ConfigScanResult = (): ConfigScanResult => {
+      const result: ConfigScanResult = { allowed: [], violations: [] };
+
+      for (const filePath of configFiles) {
+        const fileResult: ConfigScanResult = scanConfigSource(
+          filePath,
+          fs.readFileSync(filePath, "utf8"),
+        );
+
+        result.allowed.push(...fileResult.allowed);
+        result.violations.push(...fileResult.violations);
+      }
+
+      return result;
+    };
+
+    test("the scan covers every tsconfig, jest.config.json and package.json in packages/", () => {
+      const repositoryPaths: Array<string> = configFiles.map(toRepositoryPath);
+
+      expect(configFiles.length).toBeGreaterThan(20);
+
+      for (const expected of [
+        "packages/Common/package.json",
+        "packages/Common/tsconfig.json",
+        "packages/Common/jest.config.json",
+        "packages/App/package.json",
+        "packages/App/tsconfig.json",
+        "packages/App/jest.config.json",
+        "packages/App/FeatureSet/Dashboard/tsconfig.json",
+        "packages/App/FeatureSet/AdminDashboard/tsconfig.json",
+      ]) {
+        expect(repositoryPaths).toContain(expected);
+      }
+
+      expect(
+        repositoryPaths.filter((repositoryPath: string): boolean => {
+          return repositoryPath.includes("/node_modules/");
+        }),
+      ).toEqual([]);
+    });
+
+    test("no config file in packages/ points into ee/ or at an ee package, except the Community stub mappings", () => {
+      /*
+       * Each entry names the file, the key path and the text. The fix is
+       * never to widen the allowance: core configuration must build and test
+       * the Community Edition with ee/ absent.
+       */
+      expect(scanAll().violations).toEqual([]);
+    });
+
+    test("the Community stub mappings it allows are exactly the pinned ones", () => {
+      /*
+       * The allowance may only ever accept the ten entries
+       * EnterprisePluginResolution.test.ts pins. A new one here means a new
+       * config learned the plugin specifiers, which must be pinned there too.
+       */
+      expect(scanAll().allowed.sort()).toEqual(
+        [
+          "packages/App/FeatureSet/AdminDashboard/tsconfig.json: compilerOptions > paths > @oneuptime/ee-admin-dashboard -> @oneuptime/ee-admin-dashboard",
+          "packages/App/FeatureSet/Dashboard/tsconfig.json: compilerOptions > paths > @oneuptime/ee-dashboard -> @oneuptime/ee-dashboard",
+          "packages/App/jest.config.json: moduleNameMapper > ^@oneuptime/ee-admin-dashboard$ -> ^@oneuptime/ee-admin-dashboard$",
+          "packages/App/jest.config.json: moduleNameMapper > ^@oneuptime/ee-dashboard$ -> ^@oneuptime/ee-dashboard$",
+          "packages/App/tsconfig.json: compilerOptions > paths > @oneuptime/ee-admin-dashboard -> @oneuptime/ee-admin-dashboard",
+          "packages/App/tsconfig.json: compilerOptions > paths > @oneuptime/ee-dashboard -> @oneuptime/ee-dashboard",
+          "packages/Common/jest.config.json: moduleNameMapper > ^@oneuptime/ee-admin-dashboard$ -> ^@oneuptime/ee-admin-dashboard$",
+          "packages/Common/jest.config.json: moduleNameMapper > ^@oneuptime/ee-dashboard$ -> ^@oneuptime/ee-dashboard$",
+          "packages/Common/tsconfig.json: compilerOptions > paths > @oneuptime/ee-admin-dashboard -> @oneuptime/ee-admin-dashboard",
+          "packages/Common/tsconfig.json: compilerOptions > paths > @oneuptime/ee-dashboard -> @oneuptime/ee-dashboard",
+        ].sort(),
+      );
+    });
   });
 });
 
 /*
  * ee/ is removed before the core CI jobs run (core is Community by
  * construction), so this block only has something to check in a full
- * checkout. It reports as skipped rather than passing vacuously.
+ * checkout. It reports as skipped rather than passing vacuously, and the
+ * Enterprise Edition Test workflow (test.ee.yaml) runs it with ee/ present.
  */
 const describeWhenEnterprisePresent: typeof describe.skip = fs.existsSync(
   EE_DIR,
@@ -753,27 +1633,58 @@ const describeWhenEnterprisePresent: typeof describe.skip = fs.existsSync(
   ? describe
   : describe.skip;
 
-describeWhenEnterprisePresent(
-  "ee/ reaches core only through mapped specifiers",
-  () => {
-    test("no ee/ file imports a relative path into packages/", () => {
-      const offenders: Array<string> = [];
+describeWhenEnterprisePresent("ee/ keeps its side of the boundary", () => {
+  const enterpriseFiles: Array<string> = listSourceFiles(EE_DIR);
 
-      for (const filePath of listSourceFiles(EE_DIR)) {
-        const source: string = fs.readFileSync(filePath, "utf8");
+  test("the scan actually covers ee/", () => {
+    /*
+     * Guards the guard: an ee/ walk that matched nothing would leave the
+     * checks below passing on an empty list.
+     */
+    const repositoryPaths: Array<string> =
+      enterpriseFiles.map(toRepositoryPath);
 
-        if (!MAY_REFERENCE_PACKAGES.test(source)) {
-          continue;
-        }
+    expect(enterpriseFiles.length).toBeGreaterThan(50);
+    expect(repositoryPaths).toContain("ee/Server/Index.ts");
+    expect(repositoryPaths).toContain("ee/Dashboard/Index.tsx");
+    expect(repositoryPaths).toContain("ee/AdminDashboard/Index.tsx");
+  });
 
-        for (const specifier of readImportSpecifiers(filePath, source)) {
-          if (!isAllowedEnterpriseImport(specifier)) {
-            offenders.push(`${toRepositoryPath(filePath)} -> ${specifier}`);
-          }
-        }
+  test("no ee UI module reads the plugins while it is loading", () => {
+    for (const directory of ENTERPRISE_UI_DIRECTORIES) {
+      const result: PluginReadScanResult = scanPluginReads(directory);
+
+      expect({
+        directory: toRepositoryPath(directory),
+        hasFiles: result.scannedFiles > 0,
+        offenders: result.offenders,
+      }).toEqual({
+        directory: toRepositoryPath(directory),
+        hasFiles: true,
+        offenders: [],
+      });
+    }
+  });
+
+  test("no ee/ file imports a relative path into packages/", () => {
+    const offenders: Array<string> = [];
+
+    expect(enterpriseFiles.length).toBeGreaterThan(0);
+
+    for (const filePath of enterpriseFiles) {
+      const source: string = fs.readFileSync(filePath, "utf8");
+
+      if (!MAY_REFERENCE_PACKAGES.test(source)) {
+        continue;
       }
 
-      expect(offenders).toEqual([]);
-    });
-  },
-);
+      for (const specifier of readImportSpecifiers(filePath, source)) {
+        if (!isAllowedEnterpriseImport(specifier)) {
+          offenders.push(`${toRepositoryPath(filePath)} -> ${specifier}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});

@@ -48,6 +48,14 @@ jobs:
       - name: Install App
         working-directory: packages/App
         run: npm install
+      # App's two Enterprise boundary guards, with ee/ in the checkout. Their
+      # ee-direction checks (what ee/ imports, the ee UI plugins' module-load
+      # reads, the ee UI tsconfigs) skip when ee/ is absent, and the App Test
+      # job deletes ee/ before it runs, so this is where they run. They only
+      # read files: no config.env and no ee install needed.
+      - name: Run App's Enterprise boundary guards with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/EnterpriseImportGuard.test.ts Tests/EnterprisePluginResolution.test.ts --forceExit
       - name: Install ee
         working-directory: ee
         run: npm ci --ignore-scripts

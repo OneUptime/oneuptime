@@ -347,7 +347,8 @@ describe("eslint's Enterprise boundary names the real plugin doors", () => {
 /*
  * ee/ is removed before the core CI jobs run, so this block only has
  * something to check in a full checkout. It reports as skipped rather than
- * passing vacuously.
+ * passing vacuously, and the Enterprise Edition Test workflow (test.ee.yaml)
+ * runs it with ee/ present.
  */
 const describeWhenEnterprisePresent: typeof describe.skip = fs.existsSync(
   EE_DIR,
@@ -366,6 +367,10 @@ describeWhenEnterprisePresent(
           frontend.eeSubdirectory,
         );
         const tsconfigPath: string = path.join(eeFrontendDir, "tsconfig.json");
+
+        expect(fs.existsSync(path.join(eeFrontendDir, "Index.tsx"))).toBe(true);
+        expect(fs.existsSync(tsconfigPath)).toBe(true);
+
         const options: CompilerOptionsWithPaths =
           readTsconfigCompilerOptions(tsconfigPath);
 
