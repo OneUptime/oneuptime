@@ -213,6 +213,24 @@ describe("Edition retired claims catch what the split made false", () => {
     "OneUptime is Apache 2.0 and the whole platform self-hosts for free, without operating Mimir, Loki, and Tempo as separate systems.",
     "Self-host the Apache 2.0 platform on your own infrastructure with the full feature set",
     "OneUptime is open source under Apache 2.0 and can be self-hosted on your own infrastructure with the full feature set, so you pay only for the compute you run.",
+    // Comparison pages (Utils/ProductCompare.ts) and the pricing FAQ.
+    "Checkly is a SaaS-only product with no open-source or self-host option. OneUptime is Apache 2.0 licensed and fully self-hostable for free, so you can run it on your own infrastructure, audit every line, and keep telemetry data in your environment, or use the managed cloud with predictable pricing.",
+    "Yes. OneUptime is licensed under Apache 2.0 and can be fully self-hosted for free with complete data ownership, or used as a managed cloud service.",
+    "You get predictable, flat pricing instead of a spreadsheet full of usage meters, and you can self-host the entire stack under Apache 2.0.",
+    "Full platform available under a permissive license",
+    "Yes. OneUptime is open source under the Apache 2.0 license and can be fully self-hosted for free with complete data ownership.",
+    "Yes. OneUptime is licensed under the permissive Apache 2.0 license and can be fully self-hosted for free.",
+    "Run the full platform yourself under an open license.",
+    "Yes. OneUptime is Apache 2.0 licensed and fully self-hostable at no cost, just like Healthchecks.io's BSD-licensed code.",
+    "Yes. OneUptime is licensed under Apache 2.0, so you can read the source, contribute, and self-host the full platform for free with no seat or subscriber caps. Instatus is a closed, hosted-only service.",
+    "Yes. OneUptime is licensed under Apache 2.0 and is fully self-hostable at no license cost, just like Prometheus.",
+    "Yes. OneUptime is Apache 2.0 open source and fully self-hostable at no license cost, just like Nagios Core.",
+    "No. The software is open-source and free &mdash; self-host it for nothing, at any scale.",
+    // Comparison rows, as they render: the title over the description.
+    "Free self-hosting: Run the full platform on your own infra",
+    "Self-hostable for free: Run the full platform on your own infra.",
+    "Free to self-host: Run the full platform on your own infrastructure.",
+    "Free self-hosting: Run the full product on your own infrastructure at no license cost.",
   ];
 
   test.each(formerlyPublished)("catches: %s", (sentence: string) => {
@@ -235,6 +253,10 @@ describe("Edition retired claims catch what the split made false", () => {
     "SigNoz follows an open-core model - its core is permissively licensed.",
     "Sentry is source-available under the Functional Source License, not OSI open source at release.",
     "Open-core (ee module)",
+    "Apache 2.0 license, fully self-hosted",
+    "Free and open source, fully self-hosted",
+    "It is free to self-host and highly customizable, with powerful triggers, templates, and auto-discovery.",
+    "Grafana dashboards on top of Mimir, Loki, Tempo, and k6, with Grafana Cloud IRM bolted on for on-call and incidents.",
   ];
 
   test.each(competitorCopy)(
@@ -243,6 +265,44 @@ describe("Edition retired claims catch what the split made false", () => {
       for (const retired of RetiredEditionClaims) {
         expect(retired.pattern.test(sentence)).toBe(false);
       }
+    },
+  );
+
+  /*
+   * Accurate OneUptime copy, including the rewrites of the sentences above.
+   * The patterns have to leave all of it alone, or the next person to trip one
+   * will narrow the copy until it says nothing.
+   */
+  const accurateCopy: Array<string> = [
+    "OneUptime's Community Edition is Apache 2.0 licensed and free to self-host, so you can run it on your own infrastructure, audit every line, and keep telemetry data in your environment, or use the managed cloud with predictable pricing.",
+    "Yes. OneUptime's Community Edition is licensed under Apache 2.0, so you can read the source, contribute, and self-host it for free with no seat or subscriber caps.",
+    "You get predictable, flat pricing instead of a spreadsheet full of usage meters, and the Apache 2.0 Community Edition is free to self-host.",
+    "Core platform under Apache 2.0; enterprise modules separately licensed",
+    "Run the Apache 2.0 Community Edition yourself; enterprise modules are separately licensed.",
+    "Free to self-host: Run the Apache 2.0 Community Edition on your own infrastructure.",
+    "Self-hostable: Run the entire platform on your own infrastructure",
+    "No. The Apache 2.0 Community Edition is free to self-host, at any scale.",
+    "The entire platform's source code is public on GitHub.",
+    "One chart deploys the whole platform — ingress, API, workers, probes, and databases",
+    "OneUptime replaces the entire stack with one open-source platform where monitoring, on-call, incidents, and status pages already work together.",
+    "OneUptime replaces that whole stack, which lowers engineering time and third-party subscriptions even if you self-host it for free.",
+    "OneUptime delivers the entire stack in one platform, self-hosted free or on a predictable managed tier",
+    "Self-hosted OneUptime under Apache 2.0 with monitoring, status, on-call, and incidents built in",
+    "OneUptime is open source under Apache 2.0 and can be self-hosted for free, or run as managed cloud.",
+  ];
+
+  test.each(accurateCopy)(
+    "leaves accurate OneUptime copy alone: %s",
+    (sentence: string) => {
+      const caughtBy: Array<string> = RetiredEditionClaims.filter(
+        (retired: RetiredClaim) => {
+          return retired.pattern.test(sentence);
+        },
+      ).map((retired: RetiredClaim) => {
+        return retired.example;
+      });
+
+      expect(caughtBy).toEqual([]);
     },
   );
 
@@ -280,6 +340,15 @@ describe("Pages state the edition split accurately", () => {
     expect(readView("trust.ejs")).toContain(
       "The entire platform's source code is public on",
     );
+  });
+
+  test("the pricing FAQ says which edition is free to self-host", () => {
+    const contents: string = readView("pricing.ejs");
+
+    expect(contents).toContain(
+      "The Apache 2.0 Community Edition is free to self-host, at any scale.",
+    );
+    expect(contents).not.toContain("The software is open-source and free");
   });
 
   test("the demo FAQ names what the Enterprise Edition adds", () => {

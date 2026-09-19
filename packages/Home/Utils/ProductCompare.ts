@@ -3839,7 +3839,7 @@ const products: Dictionary<Product> = {
       {
         question: "Can I self-host or audit the code?",
         answer:
-          "Checkly is a SaaS-only product with no open-source or self-host option. OneUptime is Apache 2.0 licensed and fully self-hostable for free, so you can run it on your own infrastructure, audit every line, and keep telemetry data in your environment, or use the managed cloud with predictable pricing.",
+          "Checkly is a SaaS-only product with no open-source or self-host option. OneUptime's Community Edition is Apache 2.0 licensed and free to self-host, so you can run it on your own infrastructure, audit every line, and keep telemetry data in your environment, or use the managed cloud with predictable pricing.",
       },
     ],
   },
@@ -5662,7 +5662,8 @@ const products: Dictionary<Product> = {
           },
           {
             title: "Free self-hosting",
-            description: "Run the full platform on your own infra",
+            description:
+              "Run the Apache 2.0 Community Edition on your own infra",
             productColumn: "Enterprise only",
             oneuptimeColumn: "tick",
           },
@@ -5724,7 +5725,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is OneUptime open source and can I self-host it?",
         answer:
-          "Yes. OneUptime is licensed under Apache 2.0 and can be fully self-hosted for free with complete data ownership, or used as a managed cloud service. Squadcast is a closed-source SaaS product, now part of SolarWinds, with self-hosting reserved for Enterprise.",
+          "Yes. OneUptime's Community Edition is licensed under Apache 2.0 and is free to self-host with complete data ownership, or you can use OneUptime as a managed cloud service. Squadcast is a closed-source SaaS product, now part of SolarWinds, with self-hosting reserved for Enterprise.",
       },
       {
         question:
@@ -7309,7 +7310,7 @@ const products: Dictionary<Product> = {
     oneUptimeDescription:
       "OneUptime is an open-source, unified reliability platform that brings monitoring, status pages, on-call, incident management, and OpenTelemetry-native logs, metrics, and traces together in a single product. Everything is designed to work out of the box with predictable, flat pricing of $1 per active monitor per month and telemetry around $0.10/GB. You can use the generous free cloud tier or self-host the Community Edition for free.",
     description:
-      "Grafana Cloud is a powerful observability toolkit: Grafana dashboards on top of Mimir, Loki, Tempo, and k6, with Grafana Cloud IRM bolted on for on-call and incidents. The power comes with assembly: multiple usage meters, per-active-series metric billing, three-part logs and traces pricing, per-user IRM fees, and a steep setup and tuning curve. OneUptime takes a different approach, delivering monitoring, status pages, on-call, incident management, and OpenTelemetry telemetry as one cohesive product. You get predictable, flat pricing instead of a spreadsheet full of usage meters, and you can self-host the entire stack under Apache 2.0.",
+      "Grafana Cloud is a powerful observability toolkit: Grafana dashboards on top of Mimir, Loki, Tempo, and k6, with Grafana Cloud IRM bolted on for on-call and incidents. The power comes with assembly: multiple usage meters, per-active-series metric billing, three-part logs and traces pricing, per-user IRM fees, and a steep setup and tuning curve. OneUptime takes a different approach, delivering monitoring, status pages, on-call, incident management, and OpenTelemetry telemetry as one cohesive product. You get predictable, flat pricing instead of a spreadsheet full of usage meters, and the Apache 2.0 Community Edition is free to self-host.",
     descriptionLine2:
       "If you want great dashboards without gluing together five products and forecasting a dozen usage meters, OneUptime gives you the whole reliability workflow in one place for a fraction of the operational overhead.",
     migrationBenefits: [
@@ -7714,7 +7715,8 @@ const products: Dictionary<Product> = {
         data: [
           {
             title: "Open source (Apache 2.0)",
-            description: "Full platform available under a permissive license",
+            description:
+              "Core platform under Apache 2.0; enterprise modules separately licensed",
             productColumn: "Partial",
             oneuptimeColumn: "tick",
           },
@@ -8845,7 +8847,7 @@ const products: Dictionary<Product> = {
       {
         question: "Can I self-host OneUptime like I run Splunk on-premises?",
         answer:
-          "Yes. OneUptime is open source under the Apache 2.0 license and can be fully self-hosted for free with complete data ownership. Unlike Splunk's enterprise licensing, there are no per-host fees or annual contracts when you run it yourself, and you can also use the managed cloud if you prefer.",
+          "Yes. OneUptime's Community Edition is open source under the Apache 2.0 license and free to self-host with complete data ownership. Unlike Splunk's enterprise licensing, there are no per-host fees or annual contracts when you run it yourself, and you can also use the managed cloud if you prefer.",
       },
       {
         question: "Will migrating from Splunk mean losing observability depth?",
@@ -9810,7 +9812,8 @@ const products: Dictionary<Product> = {
           },
           {
             title: "Self-hostable for free",
-            description: "Run the full platform on your own infra.",
+            description:
+              "Run the Apache 2.0 Community Edition on your own infra.",
             productColumn: "Paid on-prem",
             oneuptimeColumn: "tick",
           },
@@ -10311,7 +10314,7 @@ const products: Dictionary<Product> = {
           {
             title: "Free self-hosting",
             description:
-              "Run the full product on your own infrastructure at no license cost.",
+              "Run the Apache 2.0 Community Edition on your own infrastructure at no license cost.",
             productColumn: "Core only",
             oneuptimeColumn: "tick",
           },
@@ -10369,7 +10372,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is OneUptime really open source?",
         answer:
-          "Yes. OneUptime is licensed under the permissive Apache 2.0 license and can be fully self-hosted for free. Elastic's core is now available under AGPLv3 and SSPL, but many observability features remain gated behind paid Elastic tiers, and AGPL is a more restrictive copyleft license than Apache 2.0.",
+          "Yes. OneUptime's Community Edition is licensed under the permissive Apache 2.0 license and is free to self-host. Elastic's core is now available under AGPLv3 and SSPL, but many observability features remain gated behind paid Elastic tiers, and AGPL is a more restrictive copyleft license than Apache 2.0.",
       },
       {
         question: "How hard is it to operate compared with Elastic?",
@@ -10815,7 +10818,7 @@ const products: Dictionary<Product> = {
           {
             title: "Open source and self-hostable",
             description:
-              "Run the full platform yourself under an open license.",
+              "Run the Apache 2.0 Community Edition yourself; enterprise modules are separately licensed.",
             productColumn: "",
             oneuptimeColumn: "tick",
           },
@@ -11902,7 +11905,7 @@ const products: Dictionary<Product> = {
         question:
           "Is OneUptime open source and self-hostable like Healthchecks.io?",
         answer:
-          "Yes. OneUptime is Apache 2.0 licensed and fully self-hostable at no cost, just like Healthchecks.io's BSD-licensed code. The difference is scope: OneUptime is a complete reliability platform rather than a single-purpose cron monitor.",
+          "Yes. OneUptime's Community Edition is Apache 2.0 licensed and free to self-host, just like Healthchecks.io's BSD-licensed code. The difference is scope: OneUptime is a complete reliability platform rather than a single-purpose cron monitor.",
       },
       {
         question: "How does pricing compare?",
@@ -12455,7 +12458,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is OneUptime really open source and self-hostable?",
         answer:
-          "Yes. OneUptime is licensed under Apache 2.0, so you can read the source, contribute, and self-host the full platform for free with no seat or subscriber caps. Instatus is a closed, hosted-only service.",
+          "Yes. OneUptime's Community Edition is licensed under Apache 2.0, so you can read the source, contribute, and self-host it for free with no seat or subscriber caps. Instatus is a closed, hosted-only service.",
       },
       {
         question: "How hard is it to migrate from Instatus to OneUptime?",
@@ -13455,7 +13458,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is OneUptime open source like Prometheus?",
         answer:
-          "Yes. OneUptime is licensed under Apache 2.0 and is fully self-hostable at no license cost, just like Prometheus. The difference is that OneUptime is an integrated reliability platform rather than a single component you assemble a larger stack around.",
+          "Yes. OneUptime's Community Edition is licensed under Apache 2.0 and can be self-hosted at no license cost, just like Prometheus. The difference is that OneUptime is an integrated reliability platform rather than a single component you assemble a larger stack around.",
       },
     ],
   },
@@ -13903,7 +13906,8 @@ const products: Dictionary<Product> = {
           },
           {
             title: "Free to self-host",
-            description: "Run the full platform on your own infrastructure.",
+            description:
+              "Run the Apache 2.0 Community Edition on your own infrastructure.",
             productColumn: "tick",
             oneuptimeColumn: "tick",
           },
@@ -14477,7 +14481,7 @@ const products: Dictionary<Product> = {
       {
         question: "Can I self-host OneUptime like Nagios Core?",
         answer:
-          "Yes. OneUptime is Apache 2.0 open source and fully self-hostable at no license cost, just like Nagios Core. The difference is that the self-hosted OneUptime includes status pages, on-call, and incident management out of the box, whereas Nagios would need extra products for the same coverage.",
+          "Yes. OneUptime's Community Edition is Apache 2.0 open source and can be self-hosted at no license cost, just like Nagios Core. The difference is that the self-hosted OneUptime includes status pages, on-call, and incident management out of the box, whereas Nagios would need extra products for the same coverage.",
       },
       {
         question: "Does Nagios have built-in status pages?",

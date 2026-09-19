@@ -446,6 +446,13 @@ describe("Retired claims", () => {
     expect(examples).toContain("the entire platform is Apache-2.0 open source");
     expect(examples).toContain("Hardened Enterprise Edition container images");
     expect(examples).toContain("the community edition is not feature-limited");
+    expect(examples).toContain("self-host the entire stack under Apache 2.0");
+    expect(examples).toContain("fully self-hostable for free");
+    expect(examples).toContain("self-host the full platform for free");
+    expect(examples).toContain("The software is open-source and free");
+    expect(examples).toContain(
+      "Free to self-host: Run the full platform on your own infrastructure.",
+    );
   });
 });
 

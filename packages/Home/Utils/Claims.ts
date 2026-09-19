@@ -1027,6 +1027,64 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
       "The Enterprise Edition adds enterprise features on top of the same core platform.",
     claimId: "deployment-enterprise-edition",
   },
+  {
+    pattern:
+      /\b(?:entire|whole|full)\s+(?:stack|platform)\b[^.]{0,60}\b(?:Apache|open\s+license|permissive\s+license)/i,
+    example: "self-host the entire stack under Apache 2.0",
+    reason:
+      "The enterprise modules in ee/ are part of the platform and are licensed under the OneUptime Enterprise License, not Apache 2.0 or any other open license.",
+    replacement:
+      "Core platform under Apache 2.0; enterprise modules separately licensed.",
+    claimId: "deployment-open-source",
+  },
+  {
+    pattern:
+      /\bfully\s+self-host(?:able|ed|ing)?(?:\s+it)?,?\s+(?:for\s+free|at\s+no\s+(?:license\s+)?cost)/i,
+    example: "fully self-hostable for free",
+    reason:
+      "Only the Community Edition is free to self-host. Production use of the Enterprise Edition needs a subscription under the OneUptime Enterprise License.",
+    replacement: "The Apache 2.0 Community Edition is free to self-host.",
+    claimId: "discount-self-host",
+  },
+  {
+    /*
+     * "Stack" only after a self-host verb: comparison pages also say that
+     * OneUptime replaces a competitor's "whole stack", which is fine.
+     */
+    pattern:
+      /\bself-host(?:s|ed|ing)?\s+the\s+(?:full|entire|whole|complete)\s+stack\b[^.]{0,40}\b(?:for\s+free|for\s+nothing|at\s+no\s+(?:license\s+)?cost)|\b(?:full|entire|whole|complete)\s+(?:platform|product)\b[^.]{0,30}\b(?:for\s+free|for\s+nothing|at\s+no\s+(?:license\s+)?cost)/i,
+    example: "self-host the full platform for free",
+    reason:
+      "The full platform includes the Enterprise Edition modules, which are not free to run in production.",
+    replacement: "Self-host the Apache 2.0 Community Edition for free.",
+    claimId: "discount-self-host",
+  },
+  {
+    pattern:
+      /\bthe\s+software\s+is\s+(?:open[- ]source\s+and\s+free|free\s+and\s+open[- ]source)\b/i,
+    example: "The software is open-source and free",
+    reason:
+      "Not all of the software is: the Enterprise Edition modules in ee/ are licensed under the OneUptime Enterprise License.",
+    replacement: "The Apache 2.0 Community Edition is free to self-host.",
+    claimId: "discount-self-host",
+  },
+  {
+    /*
+     * A comparison row renders its title and description together ("Free to
+     * self-host" over "Run the full platform on your own infrastructure"), so
+     * Tests/ProductCompare.test.ts joins them with ": " before scanning. The
+     * same wording on one line of a template is caught directly.
+     */
+    pattern:
+      /\b(?:free\s+(?:to\s+)?self-host\w*|self-host\w*\s+for\s+free|free\s+self-hosting)\W{1,4}run\s+the\s+(?:full|entire|whole|complete)\s+platform\b/i,
+    example:
+      "Free to self-host: Run the full platform on your own infrastructure.",
+    reason:
+      "Only the Community Edition is free to self-host, and it does not include the Enterprise Edition modules.",
+    replacement:
+      "Free to self-host: Run the Apache 2.0 Community Edition on your own infrastructure.",
+    claimId: "discount-self-host",
+  },
 ];
 
 export const RetiredClaims: Array<RetiredClaim> = [
