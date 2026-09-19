@@ -174,6 +174,15 @@ abstract class Navigation {
   }
 
   public static getCurrentRoute(): Route {
+    /*
+     * The router hands us its location once it has rendered. An API error can
+     * be handled before that (or outside a router altogether), and the address
+     * bar is the same answer then.
+     */
+    if (!this.location) {
+      return new Route(window.location.pathname);
+    }
+
     return new Route(this.location.pathname);
   }
 

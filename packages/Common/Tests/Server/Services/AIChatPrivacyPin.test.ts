@@ -24,7 +24,9 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import UserType from "../../../Types/UserType";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -107,9 +109,18 @@ const memberProps: (userId: ObjectID) => DatabaseCommonInteractionProps = (
  */
 const apiKeyProps: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,
+  userType: UserType.API,
   userTenantAccessPermission: {} as {
     [tenantId: string]: UserTenantAccessPermission;
   },
+} as unknown as DatabaseCommonInteractionProps;
+
+/*
+ * No credentials at all — what an expired dashboard session looks like. That
+ * caller must get a 401 (so the client refreshes and replays), not a 403/422.
+ */
+const anonymousProps: DatabaseCommonInteractionProps = {
+  tenantId: PROJECT_ID,
 } as unknown as DatabaseCommonInteractionProps;
 
 /*
@@ -447,6 +458,19 @@ describe("AI chat privacy pin — the personal-scope guarantee", () => {
           props: apiKeyProps,
         }),
       ).rejects.toThrow(NotAuthorizedException);
+    });
+
+    test("asks an anonymous caller to authenticate rather than reading unscoped", async () => {
+      await expect(pinnedFindQuery(table, {}, anonymousProps)).rejects.toThrow(
+        NotAuthenticatedException,
+      );
+
+      await expect(
+        table.service.countBy({
+          query: {},
+          props: anonymousProps,
+        }),
+      ).rejects.toThrow(NotAuthenticatedException);
     });
 
     test("leaves root and master-admin reads unpinned", async () => {

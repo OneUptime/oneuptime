@@ -513,12 +513,88 @@ describe("ProjectService project creation - subscription_started", () => {
       expect(spies.updateOneById).toHaveBeenCalled();
       expect(spies.emitInBackground).toHaveBeenCalled();
 
+      // The last write is the one carrying the subscription ids.
       const writeOrder: number =
-        spies.updateOneById.mock.invocationCallOrder[0]!;
+        spies.updateOneById.mock.invocationCallOrder[
+          spies.updateOneById.mock.invocationCallOrder.length - 1
+        ]!;
       const emitOrder: number =
         spies.emitInBackground.mock.invocationCallOrder[0]!;
 
       expect(emitOrder).toBeGreaterThan(writeOrder);
+    });
+
+    it("should record the billing customer on the project before subscribing it to a plan", async () => {
+      /*
+       * Subscribing reports metered usage for the project, and that path
+       * finds the project's billing customer on this row. When the customer
+       * id was only written after subscribing, a paid-plan project had no
+       * customer on record at that moment and creation failed with 402.
+       */
+      const spies: CreateSpies = setup();
+
+      await createProject(fakeProject());
+
+      const customerWriteIndex: number =
+        spies.updateOneById.mock.calls.findIndex((call: Array<unknown>) => {
+          const data: Record<string, unknown> = (
+            call[0] as { data: Record<string, unknown> }
+          ).data;
+          return (
+            data["paymentProviderCustomerId"] === "cus_created_123" &&
+            data["paymentProviderSubscriptionId"] === undefined
+          );
+        });
+
+      expect(customerWriteIndex).toBeGreaterThan(-1);
+      expect(
+        spies.updateOneById.mock.calls[customerWriteIndex]![0],
+      ).toMatchObject({
+        id: PROJECT_ID,
+        props: { isRoot: true },
+      });
+
+      const customerWriteOrder: number =
+        spies.updateOneById.mock.invocationCallOrder[customerWriteIndex]!;
+      const subscribeOrder: number =
+        spies.subscribeToPlan.mock.invocationCallOrder[0]!;
+
+      expect(spies.createCustomer.mock.invocationCallOrder[0]!).toBeLessThan(
+        customerWriteOrder,
+      );
+      expect(customerWriteOrder).toBeLessThan(subscribeOrder);
+    });
+
+    it("should keep the billing customer recorded when subscribing fails", async () => {
+      const spies: CreateSpies = setup();
+      spies.subscribeToPlan.mockRejectedValue(new Error("stripe is down"));
+
+      await expect(createProject(fakeProject())).rejects.toThrow(
+        "stripe is down",
+      );
+
+      expect(spies.updateOneById).toHaveBeenCalledTimes(1);
+      expect(spies.updateOneById.mock.calls[0]![0]).toMatchObject({
+        data: { paymentProviderCustomerId: "cus_created_123" },
+      });
+      expect(spies.emitInBackground).not.toHaveBeenCalled();
+    });
+
+    it("should still write the subscription ids once subscribed", async () => {
+      const spies: CreateSpies = setup();
+
+      await createProject(fakeProject());
+
+      expect(spies.updateOneById).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          id: PROJECT_ID,
+          data: expect.objectContaining({
+            paymentProviderCustomerId: "cus_created_123",
+            paymentProviderSubscriptionId: "sub_main_created",
+            paymentProviderMeteredSubscriptionId: "sub_metered_created",
+          }),
+        }),
+      );
     });
   });
 

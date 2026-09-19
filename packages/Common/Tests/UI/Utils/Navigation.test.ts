@@ -317,3 +317,36 @@ describe("Navigation internal route safety", () => {
     expect(window.location.hash).toBe("#forced");
   });
 });
+
+describe("Navigation current route", () => {
+  const clearRouterLocation: () => void = (): void => {
+    (Navigation as unknown as { location: unknown }).location = undefined;
+  };
+
+  afterEach(() => {
+    clearRouterLocation();
+    window.history.replaceState(null, "", "/");
+  });
+
+  test("reads the address bar before the router has provided a location", () => {
+    clearRouterLocation();
+    window.history.replaceState(null, "", "/status-page/abc/login?x=1");
+
+    expect(Navigation.getCurrentRoute().toString()).toBe(
+      "/status-page/abc/login",
+    );
+  });
+
+  test("prefers the router's location once it has been set", () => {
+    window.history.replaceState(null, "", "/from-the-address-bar");
+    Navigation.setLocation({
+      pathname: "/from-the-router",
+      search: "",
+      hash: "",
+      state: null,
+      key: "navigation-current-route",
+    });
+
+    expect(Navigation.getCurrentRoute().toString()).toBe("/from-the-router");
+  });
+});
