@@ -168,7 +168,14 @@
       "usageCardDescription": "Unikke brugere på tværs af alle kundens selv-hostede instanser, som deres installationer rapporterer dagligt.",
       "instancesCardTitle": "Instanser",
       "instancesCardDescription": "Selv-hostede instanser (staging, produktion osv.), der rapporterer på denne licens, og de hovedadministratorer, vi kan kontakte på hver enkelt.",
-      "noInstances": "Ingen instanser har endnu rapporteret på denne licens."
+      "noInstances": "Ingen instanser har endnu rapporteret på denne licens.",
+      "offlineTokenCardTitle": "Offline licenstoken",
+      "offlineTokenCardDescription": "Til en installation, der ikke kan nå oneuptime.com: download et signeret licenstoken, der er bundet til installationens instans-id. Kunden indsætter det i sit Admin Dashboard.",
+      "offlineTokenButton": "Download offline token",
+      "offlineTokenIssued": "Et offline licenstoken blev downloadet til instansen {{instanceId}}.",
+      "offlineTokenModalTitle": "Download offline licenstoken",
+      "offlineTokenModalDescription": "Angiv instans-id'et for kundens installation. Tokenet virker kun på den installation.",
+      "offlineTokenSubmitButton": "Download token"
     },
     "userView": {
       "title": "Bruger",

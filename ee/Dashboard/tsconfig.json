@@ -1,0 +1,81 @@
+{
+  /*
+   * Type-checks the Enterprise Dashboard UI against the core Dashboard it
+   * plugs into. It is also the "nearest tsconfig" eslint's projectService
+   * uses for these files.
+   *
+   * Run with the Dashboard's compiler, after installing the Dashboard:
+   *   ../../packages/App/FeatureSet/Dashboard/node_modules/.bin/tsc -p tsconfig.json
+   *
+   * The compiler flags match packages/App/FeatureSet/Dashboard/tsconfig.json.
+   * The module map is what differs: ee/ has no node_modules of its own, so
+   *   - "@oneuptime/ee-dashboard" is THIS plugin (the Dashboard's own tsconfig
+   *     maps it to the Community stub), so src/Enterprise/Plugins.ts is
+   *     checked against the real Enterprise object;
+   *   - "@oneuptime/dashboard/*" is the Dashboard's src, the only way ee code
+   *     reaches core Dashboard modules (esbuild aliases it the same way);
+   *   - "Common/*" is packages/Common;
+   *   - self-typed packages resolve from the Dashboard's node_modules. An
+   *     @types-backed one (react) needs no entry: typeRoots covers it.
+   */
+  "compilerOptions": {
+    "target": "es2017",
+    "jsx": "react",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "module": "es2022",
+    "moduleResolution": "node",
+    "paths": {
+      "@oneuptime/ee-dashboard": ["./Index"],
+      "@oneuptime/dashboard/*": ["../../packages/App/FeatureSet/Dashboard/src/*"],
+      "Common/*": ["../../packages/Common/*"],
+      "react-i18next": [
+        "../../packages/App/FeatureSet/Dashboard/node_modules/react-i18next"
+      ],
+      "i18next": ["../../packages/App/FeatureSet/Dashboard/node_modules/i18next"],
+      "react-router-dom": [
+        "../../packages/App/FeatureSet/Dashboard/node_modules/react-router-dom"
+      ],
+      "use-async-effect": [
+        "../../packages/App/FeatureSet/Dashboard/node_modules/use-async-effect"
+      ],
+      "reactflow": [
+        "../../packages/App/FeatureSet/Dashboard/node_modules/reactflow"
+      ],
+      "recharts": ["../../packages/App/FeatureSet/Dashboard/node_modules/recharts"],
+      "recharts/*": [
+        "../../packages/App/FeatureSet/Dashboard/node_modules/recharts/*"
+      ]
+    },
+    "typeRoots": ["../../packages/App/FeatureSet/Dashboard/node_modules/@types"],
+    "types": ["node"],
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../../packages/App/FeatureSet/Dashboard/index.d.ts",
+    "../../packages/App/FeatureSet/Dashboard/src/Enterprise/Plugins.ts"
+  ]
+}

@@ -57,6 +57,21 @@ kubernetes/values-saas-production.yaml
 /tls_key.pem
 /keys
 
+# The Enterprise image copies the whole ee/ directory (packages/App/Dockerfile.tpl,
+# enterprise-build stage), and the root-anchored /keys and /build above do not
+# reach inside it. Never ship license-signing key material or local build output,
+# and leave ee's tests out of the image. ee/node_modules is covered by
+# **/node_modules above. The key extensions are the ones an Ed25519 signing key
+# is usually saved with (PEM, raw .key, PKCS#8 .p8, DER).
+ee/**/*.pem
+ee/**/*.key
+ee/**/*.p8
+ee/**/*.der
+ee/keys
+ee/**/keys/
+ee/build
+ee/Tests
+
 temp_readme.md
 
 tests/coverage

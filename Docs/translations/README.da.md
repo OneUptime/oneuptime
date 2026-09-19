@@ -71,7 +71,7 @@ OneUptime samler overvågning, alarmering, hændelseshåndtering og observabilit
 | Loggly | **Loghåndtering** — indsaml, søg og alarmér på logs |
 | Sentry | **Fejlsporing** — undtagelser med fulde stack traces og kontekst |
 
-Det hele er **100 % open source (Apache 2.0)** og gratis at hoste selv.
+Det hele er **open source (Apache 2.0)** og gratis at hoste selv i Community Edition.
 
 ---
 
@@ -205,13 +205,16 @@ Indsæt copy-paste, **OpenTelemetry-baserede** agenter til at holde øje med alt
 |---|---|---|
 | **Bedst til** | Selv-hostere og små teams | Regulerede teams med behov for premium-support |
 | **Pris** | Gratis og open source | [Kontakt salg](mailto:sales@oneuptime.com) |
-| **Funktioner** | Fuldt funktionssæt | Fuldt funktionssæt + hærdede images, prioriteret support, brugerdefinerede funktioner og dataophold |
+| **Licens** | Apache 2.0 | Apache 2.0 samt [OneUptime Enterprise License](/ee/LICENSE) for mappen `ee/` |
+| **Funktioner** | Alt i pakken ovenfor — overvågning, statussider, hændelser, vagter, logs, traces, metrikker, fejlsporing, workflows og AI | Alt i Community + SAML- og OIDC-single sign-on, SCIM-provisionering, auditlogs, team-compliance og dashboards for instansens sundhed, med prioriteret support, brugerdefinerede funktioner og dataophold |
+
+Enterprise-funktionerne ligger i mappen [`ee/`](/ee) og leveres kun i Enterprise-imaget. Se [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) for den fulde sammenligning.
 
 ---
 
 ## 💡 Hvorfor OneUptime?
 
-Vores mission er enkel: **reducér nedetid og hjælp flere produkter med at få succes.** I stedet for at tape syv leverandører sammen får du én platform, der hjælper dig med at forstå, *hvorfor* ting går i stykker, reagere hurtigt på hændelser og skære ned på driftsslid — fuldt open source, så du ejer dine data og din stak.
+Vores mission er enkel: **reducér nedetid og hjælp flere produkter med at få succes.** I stedet for at tape syv leverandører sammen får du én platform, der hjælper dig med at forstå, *hvorfor* ting går i stykker, reagere hurtigt på hændelser og skære ned på driftsslid — med en open source-kerne (Apache 2.0), så du ejer dine data og din stak.
 
 ---
 
@@ -239,7 +242,7 @@ Hvis OneUptime er nyttigt for dig:
 
 ## 📄 Licens
 
-OneUptime er licenseret under [Apache License 2.0](/LICENSE).
+OneUptime er open source under [Apache License 2.0](/LICENSE), bortset fra mappen [`ee/`](/ee). Den mappe indeholder Enterprise Edition og er licenseret under [OneUptime Enterprise License](/ee/LICENSE). Community Edition-imaget indeholder ingen kode fra `ee/`.
 
 <div align="center">
   <sub>Lavet med ❤️ af <a href="https://oneuptime.com">OneUptime</a>-teamet og <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">bidragydere</a>.</sub>

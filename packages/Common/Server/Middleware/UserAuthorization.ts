@@ -41,6 +41,7 @@ import Permission, {
 } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 
 export default class UserMiddleware {
   /*
@@ -882,9 +883,18 @@ export default class UserMiddleware {
       (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
 
     /*
+     * SSO requirements are enforced whenever the Enterprise Edition is
+     * loaded, whatever its license says; only the Community Edition, which
+     * has no SSO login routes, relaxes them. Errors answer "enforce".
+     */
+    const isSsoEnforced: boolean = EditionEnforcement.isSsoEnforced();
+
+    /*
      * Resolve the SSO requirement and the tenant permission in parallel.
      * `getRequireSsoForLogin` is cached in-process for 60s, so this is
-     * usually free; the tenant permission lookup is the expensive call.
+     * usually free; the tenant permission lookup is the expensive call. It
+     * runs on the Community Edition too: it is also what turns an unknown
+     * project into TenantNotFoundException.
      */
     const [projectRequireSsoForLogin, tenantPermission]: [
       boolean,
@@ -909,8 +919,9 @@ export default class UserMiddleware {
      * can't lock them out — a project's own requireSsoForLogin still applies to
      * them. Only checked when the project doesn't already enforce SSO.
      */
-    let requireSsoForLogin: boolean = projectRequireSsoForLogin;
-    if (!requireSsoForLogin && !isMasterAdmin) {
+    let requireSsoForLogin: boolean =
+      isSsoEnforced && projectRequireSsoForLogin;
+    if (isSsoEnforced && !requireSsoForLogin && !isMasterAdmin) {
       requireSsoForLogin =
         await GlobalConfigService.getRequireSsoForLogin().catch(() => {
           return false;
@@ -958,14 +969,22 @@ export default class UserMiddleware {
       (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
 
     /*
+     * Same rule as the single-tenant path: SSO requirements are enforced
+     * whenever the Enterprise Edition is loaded and relaxed only on the
+     * Community Edition. Decided once for the whole fan-out.
+     */
+    const isSsoEnforced: boolean = EditionEnforcement.isSsoEnforced();
+
+    /*
      * Instance-wide "Require SSO for Login" forces SSO on every project. Master
      * admins are exempt. Resolved once (cached) rather than per project.
      */
-    const globalRequireSsoForLogin: boolean = isMasterAdmin
-      ? false
-      : await GlobalConfigService.getRequireSsoForLogin().catch(() => {
-          return false;
-        });
+    const globalRequireSsoForLogin: boolean =
+      isMasterAdmin || !isSsoEnforced
+        ? false
+        : await GlobalConfigService.getRequireSsoForLogin().catch(() => {
+            return false;
+          });
 
     /*
      * Resolve permissions for every project in parallel. A project's own
@@ -977,14 +996,15 @@ export default class UserMiddleware {
       permission: UserTenantAccessPermission | null;
     }> = await Promise.all(
       projectIds.map(async (projectId: ObjectID) => {
-        const projectRequireSsoForLogin: boolean =
-          await ProjectService.getRequireSsoForLogin(projectId).catch(() => {
-            /*
-             * Unknown/inaccessible project: do not enforce SSO here. Actual
-             * access is still gated by AccessTokenService below.
-             */
-            return false;
-          });
+        const projectRequireSsoForLogin: boolean = !isSsoEnforced
+          ? false
+          : await ProjectService.getRequireSsoForLogin(projectId).catch(() => {
+              /*
+               * Unknown/inaccessible project: do not enforce SSO here. Actual
+               * access is still gated by AccessTokenService below.
+               */
+              return false;
+            });
 
         const requireSsoForLogin: boolean =
           projectRequireSsoForLogin || globalRequireSsoForLogin;

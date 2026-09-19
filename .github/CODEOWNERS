@@ -1,0 +1,35 @@
+# Code owners for the paths whose license terms matter.
+#
+# GitHub requests a review from these owners on every pull request that
+# touches a matching path. When several patterns match a file, the LAST
+# matching pattern wins, so keep the most specific entries at the bottom.
+#
+# - ee/ is the OneUptime Enterprise Edition, licensed under ee/LICENSE rather
+#   than the Apache License 2.0 (see .github/CONTRIBUTING.md).
+# - The root LICENSE must stay the verbatim Apache License 2.0 text, so that
+#   GitHub keeps detecting the repository's license. NOTICE states the ee/
+#   carve-out instead.
+# - The build files decide whether ee/ ends up in the Community image, and the
+#   checks and tests below are what notice when it does, or when the licensing
+#   statements drift.
+#
+# Owners are the core maintainers listed in .github/MAINTAINERS.
+
+/ee/                                          @simlarsen @nawazdhandala
+/ee/LICENSE                                   @simlarsen @nawazdhandala
+/LICENSE                                      @simlarsen @nawazdhandala
+/NOTICE                                       @simlarsen @nawazdhandala
+/.github/CODEOWNERS                           @simlarsen @nawazdhandala
+
+# What goes into the Community and Enterprise images.
+/.dockerignore                                @simlarsen @nawazdhandala
+/packages/App/Dockerfile.tpl                  @simlarsen @nawazdhandala
+/packages/App/Utils/EnterpriseLoader.ts       @simlarsen @nawazdhandala
+/packages/Common/UI/esbuild-enterprise.js     @simlarsen @nawazdhandala
+/Scripts/GHA/build_docker_images.sh           @simlarsen @nawazdhandala
+
+# What checks it.
+/Scripts/GHA/check_app_image_edition.sh       @simlarsen @nawazdhandala
+/Tests/Ops/EnterpriseEditionBuild.test.js     @simlarsen @nawazdhandala
+/Tests/Ops/ReleaseImageEditionChecks.test.js  @simlarsen @nawazdhandala
+/Tests/Ops/RepositoryLicensing.test.js        @simlarsen @nawazdhandala

@@ -168,7 +168,14 @@
       "usageCardDescription": "Unieke gebruikers over alle zelf-gehoste instanties van de klant, zoals dagelijks gerapporteerd door hun installaties.",
       "instancesCardTitle": "Instanties",
       "instancesCardDescription": "Zelf-gehoste instanties (staging, productie, enz.) die rapporteren voor deze licentie, en de hoofdbeheerders die we per instantie kunnen benaderen.",
-      "noInstances": "Er hebben nog geen instanties gerapporteerd voor deze licentie."
+      "noInstances": "Er hebben nog geen instanties gerapporteerd voor deze licentie.",
+      "offlineTokenCardTitle": "Offline licentietoken",
+      "offlineTokenCardDescription": "Voor een installatie die oneuptime.com niet kan bereiken: download een ondertekend licentietoken dat gebonden is aan de instantie-ID van die installatie. De klant plakt het in zijn Admin Dashboard.",
+      "offlineTokenButton": "Offline token downloaden",
+      "offlineTokenIssued": "Er is een offline licentietoken gedownload voor instantie {{instanceId}}.",
+      "offlineTokenModalTitle": "Offline licentietoken downloaden",
+      "offlineTokenModalDescription": "Voer de instantie-ID van de installatie van de klant in. Het token werkt alleen op die installatie.",
+      "offlineTokenSubmitButton": "Token downloaden"
     },
     "userView": {
       "title": "Gebruiker",

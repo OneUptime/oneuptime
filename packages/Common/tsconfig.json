@@ -100,9 +100,22 @@
      * paths here are relative to this file). Setting baseUrl would change how
      * every bare specifier in Common resolves, which is a much larger blast
      * radius than this needs.
+     *
+     * "@oneuptime/ee-dashboard" and "@oneuptime/ee-admin-dashboard" are the
+     * Enterprise UI plugins, imported by the two frontends'
+     * src/Enterprise/Plugins.ts - which every Common test that renders an
+     * enterprise shell reaches. They are not packages at all: they map to the
+     * Community stubs here, exactly as in the frontends' own tsconfigs, and
+     * their jest twins map to the same files.
      */
     "paths": {
       "Common/*": ["./*"],
+      "@oneuptime/ee-dashboard": [
+        "../App/FeatureSet/Dashboard/src/Enterprise/CommunityPlugins"
+      ],
+      "@oneuptime/ee-admin-dashboard": [
+        "../App/FeatureSet/AdminDashboard/src/Enterprise/CommunityPlugins"
+      ],
       "react-router-dom": ["./node_modules/react-router-dom"],
       "react-i18next": ["./node_modules/react-i18next"],
       "i18next": ["./node_modules/i18next"],

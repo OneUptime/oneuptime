@@ -168,7 +168,14 @@
       "usageCardDescription": "Utenti unici su tutte le istanze self-hosted del cliente, come segnalato ogni giorno dalle loro installazioni.",
       "instancesCardTitle": "Istanze",
       "instancesCardDescription": "Istanze self-hosted (staging, produzione, ecc.) che inviano dati per questa licenza e gli amministratori principali che possiamo contattare per ciascuna.",
-      "noInstances": "Nessuna istanza ha ancora inviato dati per questa licenza."
+      "noInstances": "Nessuna istanza ha ancora inviato dati per questa licenza.",
+      "offlineTokenCardTitle": "Token di licenza offline",
+      "offlineTokenCardDescription": "Per un'installazione che non può raggiungere oneuptime.com: scarica un token di licenza firmato e legato all'ID istanza di quell'installazione. Il cliente lo incolla nella propria Dashboard di amministrazione.",
+      "offlineTokenButton": "Scarica token offline",
+      "offlineTokenIssued": "È stato scaricato un token di licenza offline per l'istanza {{instanceId}}.",
+      "offlineTokenModalTitle": "Scarica token di licenza offline",
+      "offlineTokenModalDescription": "Inserisci l'ID istanza dell'installazione del cliente. Il token funziona solo su quell'installazione.",
+      "offlineTokenSubmitButton": "Scarica token"
     },
     "userView": {
       "title": "Utente",

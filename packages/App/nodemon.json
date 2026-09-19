@@ -4,7 +4,8 @@
     "../Common/Server",
     "../Common/Types",
     "../Common/Utils",
-    "../Common/Models"
+    "../Common/Models",
+    "../ee/Server"
   ],
   "ext": "ts,tsx",
   "ignore": [

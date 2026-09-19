@@ -2,12 +2,44 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/GlobalConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import ObjectID from "../../Types/ObjectID";
-import { OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelegramVerificationToken from "../Utils/TelegramVerificationToken";
 import GlobalCache from "../Infrastructure/GlobalCache";
+
+/*
+ * The columns that hold this installation's license state and identity. They
+ * are written only by OneUptime itself - the license client (activation,
+ * refresh, the daily usage report), the first-boot stamp of the Enterprise
+ * Edition and the data migrations - and every one of those writes runs with
+ * isRoot. A master admin reaches GlobalConfig through the generic CRUD API
+ * too, and master admins bypass the (empty) column ACLs, so without this list
+ * one PUT could forge a license expiry, raise the seat limit, restart the
+ * unlicensed grace period or swap the instance id an instance-bound license
+ * is checked against.
+ *
+ * enterpriseLicenseNotificationEmail and enterpriseLicenseExpiryReminderDays
+ * are deliberately NOT here: they are settings the oneuptime.com admin edits
+ * from the Admin Dashboard.
+ */
+export const ROOT_ONLY_LICENSE_COLUMNS: ReadonlyArray<keyof Model> = [
+  "instanceId",
+  "enterpriseCompanyName",
+  "enterpriseLicenseKey",
+  "enterpriseLicenseExpiresAt",
+  "enterpriseLicenseToken",
+  "enterpriseLicenseIsEvaluation",
+  "enterpriseLicenseUserLimit",
+  "enterpriseLicenseCurrentUserCount",
+  "enterpriseLicenseUserCountUpdatedAt",
+  "enterpriseLicenseInstances",
+  "enterpriseEditionFirstSeenAt",
+];
 
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
   "global-config-security";
@@ -203,10 +235,57 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  /*
+   * Refuses any write to ROOT_ONLY_LICENSE_COLUMNS that does not come from
+   * OneUptime itself. An explicit null counts as a write: clearing the license
+   * token is as much a forgery as setting one.
+   */
+  public assertLicenseColumnsWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const writtenColumns: Array<string> = ROOT_ONLY_LICENSE_COLUMNS.filter(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown>)[column as string] !== undefined
+        );
+      },
+    ).map((column: keyof Model): string => {
+      return column as string;
+    });
+
+    if (writtenColumns.length === 0) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      `${writtenColumns.join(", ")} can only be changed by OneUptime itself. ` +
+        "Use the license dialog in the Admin Dashboard to activate or refresh the Enterprise license.",
+    );
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    this.assertLicenseColumnsWrittenByRootOnly(createBy.data, createBy.props);
+
+    return {
+      createBy,
+      carryForward: null,
+    };
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    this.assertLicenseColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
+
     if (updateBy.data.telegramWebhookSecretToken !== undefined) {
       const secret: unknown = updateBy.data.telegramWebhookSecretToken;
 

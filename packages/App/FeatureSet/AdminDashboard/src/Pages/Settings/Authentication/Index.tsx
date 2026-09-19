@@ -3,13 +3,26 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { BILLING_ENABLED, IS_ENTERPRISE_EDITION } from "Common/UI/Config";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+
+/*
+ * Whether this server can enforce "Require SSO for Login". SSO login is part
+ * of the OneUptime Enterprise Edition (the cloud, billing on, runs it too);
+ * IS_ENTERPRISE_EDITION in env.js is the EFFECTIVE edition, true only when the
+ * enterprise code is loaded. The Community Edition does not enforce the
+ * setting, so it is not offered there as if it did something.
+ */
+const isRequireSsoForLoginEnforceable: () => boolean = (): boolean => {
+  return IS_ENTERPRISE_EDITION || BILLING_ENABLED;
+};
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -74,45 +87,52 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
       />
 
-      <CardModelDetail
-        name="SSO Settings"
-        cardProps={{
-          title: "Single Sign-On (SSO)",
-          description:
-            "Control whether users must sign in with SSO across this server.",
-        }}
-        isEditable={true}
-        editButtonText={"Edit SSO Settings"}
-        formFields={[
-          {
-            field: {
-              requireSsoForLogin: true,
-            },
-            title: "Require SSO for Login",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
+      {isRequireSsoForLoginEnforceable() ? (
+        <CardModelDetail
+          name="SSO Settings"
+          cardProps={{
+            title: "Single Sign-On (SSO)",
             description:
-              "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.",
-          },
-        ]}
-        modelDetailProps={{
-          modelType: GlobalConfig,
-          id: "model-detail-sso-settings",
-          fields: [
+              "Control whether users must sign in with SSO across this server.",
+          }}
+          isEditable={true}
+          editButtonText={"Edit SSO Settings"}
+          formFields={[
             {
               field: {
                 requireSsoForLogin: true,
               },
-              fieldType: FieldType.Boolean,
               title: "Require SSO for Login",
-              placeholder: t("common.no"),
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
               description:
-                "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.",
+                "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.",
             },
-          ],
-          modelId: ObjectID.getZeroObjectID(),
-        }}
-      />
+          ]}
+          modelDetailProps={{
+            modelType: GlobalConfig,
+            id: "model-detail-sso-settings",
+            fields: [
+              {
+                field: {
+                  requireSsoForLogin: true,
+                },
+                fieldType: FieldType.Boolean,
+                title: "Require SSO for Login",
+                placeholder: t("common.no"),
+                description:
+                  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.",
+              },
+            ],
+            modelId: ObjectID.getZeroObjectID(),
+          }}
+        />
+      ) : (
+        <Card
+          title="Single Sign-On (SSO)"
+          description="Requiring SSO for login is part of the OneUptime Enterprise Edition. This server runs the Community Edition, where users sign in with their email and password, so this setting is not enforced here. A value saved earlier is kept and is enforced again if this server runs the Enterprise Edition."
+        />
+      )}
 
       <CardModelDetail
         name="Project Creation Settings"

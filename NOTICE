@@ -1,0 +1,11 @@
+OneUptime
+Copyright (c) 2026-present HackerBay, Inc. (doing business as OneUptime,
+"OneUptime")
+
+Portions of this software are licensed as follows:
+
+- All content in the "ee/" directory of this repository is licensed under the
+  OneUptime Enterprise License, in ee/LICENSE. It is not licensed under the
+  Apache License 2.0.
+- Third-party components keep the licenses their owners provide them under.
+- All other content is available under the Apache License 2.0, in LICENSE.

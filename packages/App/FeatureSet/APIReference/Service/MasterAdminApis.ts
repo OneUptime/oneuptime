@@ -23,10 +23,14 @@ export interface MasterAdminApiDocumentation {
    */
   key: string;
   /*
-   * True when the handler throws PaymentRequiredException unless
-   * IS_ENTERPRISE_EDITION is set. /migrations and /support-bundle are
-   * deliberately available on every edition so Community operators can debug an
-   * upgrade and raise a support request.
+   * True when the handler answers 402 (PaymentRequiredException) unless this
+   * is the OneUptime Enterprise Edition with a license that includes instance
+   * health - the EnterpriseEdition.assertFeatureAvailable(InstanceHealth) gate
+   * in App/API/AdminHealth.ts. /migrations and /support-bundle are deliberately
+   * available on every edition so Community operators can debug an upgrade and
+   * raise a support request, and so are /clickhouse-capacity and
+   * /instance-health-logs: ClickHouse capacity alerts and automatic pruning are
+   * Community features, and the instance log is their audit trail.
    */
   isEnterpriseEdition: boolean;
 }
@@ -40,7 +44,7 @@ export interface MasterAdminApiDocumentation {
  * /query/redis) are deliberately absent: they stay on the JWT-only middleware so
  * a leaked static key cannot execute arbitrary queries headlessly.
  */
-const MasterAdminApis: Array<MasterAdminApiDocumentation> = [
+export const MasterAdminApis: Array<MasterAdminApiDocumentation> = [
   { path: "/overview", key: "overview", isEnterpriseEdition: true },
   { path: "/queues", key: "queues", isEnterpriseEdition: true },
   {
@@ -51,7 +55,7 @@ const MasterAdminApis: Array<MasterAdminApiDocumentation> = [
   {
     path: "/clickhouse-capacity",
     key: "clickhouseCapacity",
-    isEnterpriseEdition: true,
+    isEnterpriseEdition: false,
   },
   {
     path: "/clickhouse-cluster",
@@ -72,7 +76,7 @@ const MasterAdminApis: Array<MasterAdminApiDocumentation> = [
   {
     path: "/instance-health-logs",
     key: "instanceHealthLogs",
-    isEnterpriseEdition: true,
+    isEnterpriseEdition: false,
   },
   { path: "/logs", key: "logs", isEnterpriseEdition: true },
   { path: "/migrations", key: "migrations", isEnterpriseEdition: false },

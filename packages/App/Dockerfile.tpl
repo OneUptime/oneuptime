@@ -2,12 +2,34 @@
 #
 # OneUptime-App Dockerfile
 #
+# The production branch (after the `else` below) builds BOTH editions of the
+# App image from this one file:
+#
+#   --target community    the Community Edition. Apache-2.0 code only: ee/ is
+#                         never copied in. It is the LAST stage, so it is also
+#                         what a plain `docker build` without --target produces.
+#   --target enterprise   the Enterprise Edition: the Community build plus the
+#                         ee/ directory (licensed under ee/LICENSE), with the
+#                         Dashboard and Admin Dashboard bundles rebuilt to
+#                         include the Enterprise UI.
+#
+# Stage graph:
+#
+#   base -> community-build -> enterprise-build -> enterprise
+#                           \-> community
+#
+# BuildKit builds only the stages the chosen target needs, so the community
+# target never evaluates `COPY ./ee` and builds from a context without ee/, and
+# the enterprise target reuses every cached community-build layer.
+# Scripts/GHA/build_docker_images.sh publishes both targets, and the Build
+# workflow (.github/workflows/build.yml) builds both on every pull request and
+# checks what each image contains.
 
 # Pull base image nodejs image.
 # Floating on the 26.x patch + alpine3.24 so each rebuild picks up the latest
 # Node and Alpine security patches without manual bumps. Lockfiles still keep
 # JS deps reproducible.
-FROM public.ecr.aws/docker/library/node:26-alpine3.24
+FROM public.ecr.aws/docker/library/node:26-alpine3.24 AS base
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -17,6 +39,12 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
 # /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
 RUN npm config set foreground-scripts true
+# ee/package.json depends on Common and App as file: packages. They must stay
+# symlinks to /usr/src/Common and /usr/src/app, or ee gets its own copy of
+# Common and a second EnterpriseEdition that core never reads. That is npm's
+# default today, but npm@latest below is unpinned and npm 9.0 briefly made
+# copying the default, so pin it.
+RUN npm config set install-links false --global
 
 # Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
 # brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
@@ -25,9 +53,9 @@ RUN npm install -g npm@latest
 
 
 
-# Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared
-# further down so the expensive npm ci / build layers stay cacheable across
-# commits and across the community + enterprise build passes.
+# Per-build args (GIT_SHA / APP_VERSION) are declared further down so the
+# expensive npm ci / build layers stay cacheable across commits and are shared
+# by the community and enterprise targets.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 LABEL org.opencontainers.image.title="OneUptime App"
@@ -108,9 +136,25 @@ WORKDIR /usr/src/app
 EXPOSE 3002
 
 {{ if eq .Env.ENVIRONMENT "development" }}
+# ee/ is never copied into the development image, so it builds without ee/.
+# Scripts/Dev/docker-compose.dev.yml bind-mounts ee/ at /usr/src/ee instead,
+# and scripts/dev.sh installs ee's own dependencies when it is there.
+#
+# ee/package.json links Common and App as file:../packages/{Common,App} (the
+# repository layout). These links recreate that layout in the container, so
+# ee's node_modules/{Common,App} resolve to /usr/src/Common and /usr/src/app:
+# the files the App runs, one module instance each.
+RUN mkdir -p /usr/src/packages \
+    && ln -s ../Common /usr/src/packages/Common \
+    && ln -s ../app /usr/src/packages/App
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
+# ---------------------------------------------------------------------------
+# community-build: the complete Community Edition build. Every heavy layer is
+# in this stage, so both targets share it.
+# ---------------------------------------------------------------------------
+FROM base AS community-build
 # Per-build version args. Declared here (not at the top) so the npm ci layers
 # above stay cacheable across commits. GIT_SHA/APP_VERSION must be set BEFORE
 # build-frontends:prod because the service worker bakes the version in at build
@@ -132,22 +176,101 @@ COPY --chown=1000:1000 ./packages/App/FeatureSet/AdminDashboard /usr/src/app/Fea
 COPY --chown=1000:1000 ./packages/App/FeatureSet/StatusPage /usr/src/app/FeatureSet/StatusPage
 COPY --chown=1000:1000 ./packages/App/FeatureSet/PublicDashboard /usr/src/app/FeatureSet/PublicDashboard
 COPY --chown=1000:1000 ./packages/App/FeatureSet/BrowserRecorder /usr/src/app/FeatureSet/BrowserRecorder
-# Bundle frontend source
+# Bundle frontend source. There is no ee/ in this stage, so the Dashboard and
+# Admin Dashboard bundle their Community stubs (Common/UI/esbuild-enterprise.js).
 RUN npm run build-frontends:prod
 # Bundle app source
 RUN npm run compile
-# IS_ENTERPRISE_EDITION only changes ENV/LABEL metadata and is read by no build
-# step, so declaring it last lets the community and enterprise passes share every
-# heavy cached layer above — only this final metadata layer differs.
-ARG IS_ENTERPRISE_EDITION=false
-ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# The license terms travel with both images: the Apache License 2.0 and the
+# NOTICE that carves ee/ out of it (the enterprise target adds ee/LICENSE with
+# ee/). Root-owned, so the node user can read them but not change them. Copied
+# after the Community build, so editing either file does not redo it.
+COPY ./LICENSE ./NOTICE /usr/src/
+
+# ---------------------------------------------------------------------------
+# enterprise-build: community-build plus ee/.
+# ---------------------------------------------------------------------------
+FROM community-build AS enterprise-build
+# ee/package.json links Common and App as file:../packages/{Common,App} (the
+# repository layout). Recreate that layout, so ee's node_modules/{Common,App}
+# resolve to /usr/src/Common and /usr/src/app: the files the App runs, one
+# module instance each.
+RUN mkdir -p /usr/src/packages \
+    && ln -s ../Common /usr/src/packages/Common \
+    && ln -s ../app /usr/src/packages/App
+WORKDIR /usr/src/ee
+COPY ./ee/package*.json /usr/src/ee/
+# --ignore-scripts: without it npm also runs the lifecycle scripts of the
+# linked Common and App packages, as root. ee's own dependencies need none.
+RUN --mount=type=cache,target=/tmp/npm npm ci --ignore-scripts --prefer-offline
+# .dockerignore keeps ee's tests, build output and any key material out.
+COPY ./ee /usr/src/ee
+# Type-check the ee server, as `npm run compile` does for core: production
+# boots transpile-only (TS_NODE_TRANSPILE_ONLY below), so this is the only type
+# check ee gets in the image. The ee UI is type-checked in CI (compile-ee), just
+# as the image never type-checks the frontends either.
+RUN ./node_modules/.bin/tsc -p tsconfig.json
+WORKDIR /usr/src/app
+# Rebuild ONLY the two frontends that have an Enterprise UI.
+# ONEUPTIME_EDITION=enterprise turns a missing ee plugin into a build error
+# instead of a quiet Community bundle, and puts the edition into the service
+# worker's cache version, so browsers drop Community assets after a switch.
+RUN ONEUPTIME_EDITION=enterprise bash scripts/frontend-run.sh FeatureSet/Dashboard build \
+    && ONEUPTIME_EDITION=enterprise bash scripts/frontend-run.sh FeatureSet/AdminDashboard build
+# esbuild also honours the frontends' tsconfig paths, which point the plugin
+# specifiers at the Community stubs, so a broken alias would fall back to the
+# Community UI without any error. Each ee plugin exports a sentinel string:
+# refuse to produce an Enterprise image whose bundles do not contain it.
+RUN grep -rqF ONEUPTIME_EE_DASHBOARD_PLUGIN_v1 FeatureSet/Dashboard/public/dist \
+    || { echo "The Dashboard bundle does not contain the Enterprise UI: ONEUPTIME_EE_DASHBOARD_PLUGIN_v1 is not in FeatureSet/Dashboard/public/dist." >&2; exit 1; }
+RUN grep -rqF ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1 FeatureSet/AdminDashboard/public/dist \
+    || { echo "The Admin Dashboard bundle does not contain the Enterprise UI: ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1 is not in FeatureSet/AdminDashboard/public/dist." >&2; exit 1; }
+# ee's devDependencies (typescript, jest, ts-jest, @types) were only needed for
+# the type-check above. The Common and App links are dependencies and stay.
+RUN npm --prefix /usr/src/ee prune --omit=dev --ignore-scripts
+
+# ---------------------------------------------------------------------------
+# enterprise: the Enterprise Edition image (--target enterprise).
+# ---------------------------------------------------------------------------
+FROM enterprise-build AS enterprise
+LABEL org.opencontainers.image.licenses="Apache-2.0 AND LicenseRef-OneUptime-Enterprise"
+LABEL com.oneuptime.edition="enterprise"
+# The Enterprise loader's image marker (packages/App/Utils/EnterpriseLoader.ts):
+# with ONEUPTIME_EDITION=enterprise ee/ MUST load, and the App refuses to boot
+# when it cannot, instead of silently running as the Community Edition.
+ENV ONEUPTIME_EDITION=enterprise
+# Informational and deprecated: no gate reads IS_ENTERPRISE_EDITION. What the
+# App actually loaded is the edition, and that is what env.js reports.
+ENV IS_ENTERPRISE_EDITION=true
 USER node
 # The full TypeScript type-check already ran at build time (`npm run compile`
-# above). Without this, ts-node/register redoes that entire check on every
-# container start before the HTTP listener binds — minutes of boot on every pod,
-# which is what turns a rolling update into a capacity hole and makes recovery
-# from a node failure just as slow. transpile-only strips types without
+# and the ee tsc above). Without this, ts-node/register redoes that entire check
+# on every container start before the HTTP listener binds -- minutes of boot on
+# every pod, which is what turns a rolling update into a capacity hole and makes
+# recovery from a node failure just as slow. transpile-only strips types without
 # re-checking them; type errors are caught at build and in CI, not at boot.
+ENV TS_NODE_TRANSPILE_ONLY=1
+#Run the app
+CMD [ "npm", "start" ]
+
+# ---------------------------------------------------------------------------
+# community: the Community Edition image (--target community, and the default
+# target). Keep this stage LAST, and never copy ee/ into it.
+# ---------------------------------------------------------------------------
+FROM community-build AS community
+# The Community bundles must not contain the Enterprise UI.
+RUN if grep -rlF -e ONEUPTIME_EE_DASHBOARD_PLUGIN_v1 -e ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1 FeatureSet/Dashboard/public/dist FeatureSet/AdminDashboard/public/dist; then \
+        echo "The Community Edition bundles listed above contain the Enterprise UI." >&2; \
+        exit 1; \
+    fi
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+LABEL com.oneuptime.edition="community"
+# ONEUPTIME_EDITION is deliberately NOT set here. It stays "auto", which finds
+# no ee/ in this image, and an operator can still set it to "community".
+# Informational and deprecated: no gate reads IS_ENTERPRISE_EDITION.
+ENV IS_ENTERPRISE_EDITION=false
+USER node
+# Types were checked at build time; see the enterprise stage above.
 ENV TS_NODE_TRANSPILE_ONLY=1
 #Run the app
 CMD [ "npm", "start" ]

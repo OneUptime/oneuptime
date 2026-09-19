@@ -1,0 +1,62 @@
+import GlobalOidcAPI from "./API/GlobalOIDC";
+import GlobalSsoAPI from "./API/GlobalSSO";
+import OidcAPI from "./API/OIDC";
+import SCIMAPI from "./API/SCIM";
+import SsoAPI from "./API/SSO";
+import StatusPageOidcAPI from "./API/StatusPageOIDC";
+import StatusPageSCIMAPI from "./API/StatusPageSCIM";
+import StatusPageSsoAPI from "./API/StatusPageSSO";
+import type { ExpressRouter } from "Common/Server/Utils/Express";
+import EnterpriseArea from "../Types/EnterpriseArea";
+
+/*
+ * Enterprise identity: SAML and OIDC single sign-on for projects, the whole
+ * instance and status pages, and SCIM provisioning (projects and status
+ * pages).
+ *
+ * Core mounts these routers at ["/api/identity", "/"], after its own
+ * authentication and reseller routers and before the status page
+ * authentication router (packages/App/FeatureSet/Identity/Index.ts) - the
+ * position the eight routers had when they lived in core.
+ *
+ * The route paths are part of every customer's identity provider setup: the
+ * SAML ACS URLs (/idp-login/..., /global-idp-login/...,
+ * /status-page-idp-login/...), the OIDC redirect URIs (/oidc-callback/...,
+ * /global-oidc-callback/..., /status-page-oidc-callback/...) and the SCIM base
+ * URLs (/scim/v2/..., /status-page-scim/v2/...) are pasted into Okta, Entra ID
+ * and the like. They must never change; Tests/Server/Identity/
+ * RoutePathsUnchanged.test.ts pins every (method, path) pair.
+ *
+ * These routes are served whenever the Enterprise Edition is loaded, whatever
+ * the license says: a lapsed license makes enterprise CONFIGURATION read-only,
+ * it never stops SSO sign-in or SCIM deprovisioning.
+ */
+
+export interface IdentityRouterEntry {
+  // The router's source file under ./API, for test and log messages.
+  name: string;
+  router: ExpressRouter;
+}
+
+// In mount order: the order core mounted them in before they moved to ee/.
+export const IDENTITY_ROUTERS: ReadonlyArray<IdentityRouterEntry> = [
+  { name: "SSO", router: SsoAPI },
+  { name: "OIDC", router: OidcAPI },
+  { name: "GlobalSSO", router: GlobalSsoAPI },
+  { name: "GlobalOIDC", router: GlobalOidcAPI },
+  { name: "SCIM", router: SCIMAPI },
+  { name: "StatusPageSCIM", router: StatusPageSCIMAPI },
+  { name: "StatusPageSSO", router: StatusPageSsoAPI },
+  { name: "StatusPageOIDC", router: StatusPageOidcAPI },
+];
+
+const IdentityArea: EnterpriseArea = {
+  name: "Identity",
+  getIdentityRouters: (): Array<ExpressRouter> => {
+    return IDENTITY_ROUTERS.map((entry: IdentityRouterEntry) => {
+      return entry.router;
+    });
+  },
+};
+
+export default IdentityArea;

@@ -1,21 +1,41 @@
-import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  EnterpriseRequiredPlan,
+  IDENTITY_REQUIRED_PLAN,
+  isEnterpriseFeatureEligible,
+} from "../../Enterprise/EnterpriseEligibility";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import { BILLING_ENABLED, IS_ENTERPRISE_EDITION } from "Common/UI/Config";
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import React, { FunctionComponent, ReactElement } from "react";
 
-export const isEnterpriseFeatureEligible: () => boolean = (): boolean => {
-  if (IS_ENTERPRISE_EDITION) {
-    return true;
-  }
-  if (BILLING_ENABLED) {
-    return ProjectUtil.getCurrentPlan() === PlanType.Enterprise;
-  }
-  return false;
-};
+/*
+ * Kept here under its original name: every enterprise page imports it from
+ * this file. The tier-aware logic itself lives in Enterprise/EnterpriseEligibility.
+ */
+export { isEnterpriseFeatureEligible };
+
+const PRICING_URL: string = "https://oneuptime.com/pricing";
+const ENTERPRISE_OVERVIEW_URL: string =
+  "https://oneuptime.com/enterprise/overview";
+const ENTERPRISE_DOCS_URL: string =
+  "https://oneuptime.com/docs/self-hosted/enterprise";
+
+/*
+ * Why the card is showing:
+ *   - Plan: OneUptime Cloud, and the project's plan is below the feature's
+ *     tier. The card sells the plan.
+ *   - Edition: a self-hosted Community Edition, or a build that does not
+ *     include the Enterprise screens. The card points at the Enterprise
+ *     Edition. Selling a plan upgrade here would be wrong - on the Cloud this
+ *     only happens when the plan is already sufficient.
+ */
+export enum EnterpriseUpgradeReason {
+  Plan = "plan",
+  Edition = "edition",
+}
 
 export interface Benefit {
   icon: IconProp;
@@ -29,26 +49,106 @@ export interface ComponentProps {
   featureName: string;
   featureDescription?: string | undefined;
   benefits: Array<Benefit>;
+  /*
+   * The Cloud plan the feature is sold at. Defaults to Scale, the tier of
+   * every SSO / OIDC / SCIM / compliance model; audit logs pass Enterprise.
+   */
+  requiredPlan?: EnterpriseRequiredPlan | undefined;
+  // Defaults to Plan on the Cloud and Edition when self-hosted.
+  reason?: EnterpriseUpgradeReason | undefined;
+  // Icon in the feature tile. Defaults to a shield.
+  featureIcon?: IconProp | undefined;
+  /*
+   * Replace the generated sentence under the feature name, for a feature
+   * whose name does not read well in "<name> is available on ...".
+   */
+  planPitchLine?: string | undefined;
+  editionPitchLine?: string | undefined;
 }
+
+export interface EnterpriseUpgradeCopy {
+  ctaTitle: string;
+  ctaIcon: IconProp;
+  ctaUrl: string;
+  badge: string;
+  pitchLine: string;
+  secondaryTitle: string;
+  secondaryIcon: IconProp;
+  secondaryUrl: string;
+}
+
+export interface EnterpriseUpgradeCopyInput {
+  featureName: string;
+  requiredPlan: EnterpriseRequiredPlan;
+  reason: EnterpriseUpgradeReason;
+  planPitchLine?: string | undefined;
+  editionPitchLine?: string | undefined;
+}
+
+export const getDefaultUpgradeReason: () => EnterpriseUpgradeReason =
+  (): EnterpriseUpgradeReason => {
+    return BILLING_ENABLED
+      ? EnterpriseUpgradeReason.Plan
+      : EnterpriseUpgradeReason.Edition;
+  };
+
+/*
+ * Every string the card shows, as a pure function of why it is showing and
+ * which plan the feature needs - so the wording can be tested without a DOM.
+ */
+export const getEnterpriseUpgradeCopy: (
+  input: EnterpriseUpgradeCopyInput,
+) => EnterpriseUpgradeCopy = (
+  input: EnterpriseUpgradeCopyInput,
+): EnterpriseUpgradeCopy => {
+  if (input.reason === EnterpriseUpgradeReason.Plan) {
+    /*
+     * Enterprise is the top plan; for any lower tier the feature is also
+     * included in every plan above it.
+     */
+    const planScope: string =
+      input.requiredPlan === PlanType.Enterprise
+        ? `the ${input.requiredPlan} plan`
+        : `the ${input.requiredPlan} plan and above`;
+
+    return {
+      ctaTitle: `Upgrade to ${input.requiredPlan}`,
+      ctaIcon: IconProp.Billing,
+      ctaUrl: PRICING_URL,
+      badge: input.requiredPlan,
+      pitchLine:
+        input.planPitchLine ||
+        `${input.featureName} is available on ${planScope}. Upgrade to enable it for this project.`,
+      secondaryTitle: "Compare plans",
+      secondaryIcon: IconProp.List,
+      secondaryUrl: PRICING_URL,
+    };
+  }
+
+  return {
+    ctaTitle: "Learn about Enterprise Edition",
+    ctaIcon: IconProp.Info,
+    ctaUrl: ENTERPRISE_OVERVIEW_URL,
+    badge: "Enterprise",
+    pitchLine:
+      input.editionPitchLine ||
+      `${input.featureName} is a OneUptime Enterprise Edition feature. Switch to the Enterprise Edition build to enable it.`,
+    secondaryTitle: "Read docs",
+    secondaryIcon: IconProp.Book,
+    secondaryUrl: ENTERPRISE_DOCS_URL,
+  };
+};
 
 const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const isCloud: boolean = useMemo(() => {
-    return BILLING_ENABLED;
-  }, []);
-
-  const ctaTitle: string = isCloud
-    ? "Upgrade to Enterprise"
-    : "Learn about Enterprise Edition";
-  const ctaIcon: IconProp = isCloud ? IconProp.Billing : IconProp.Info;
-  const ctaUrl: string = isCloud
-    ? "https://oneuptime.com/pricing"
-    : "https://oneuptime.com/enterprise/overview";
-
-  const pitchLine: string = isCloud
-    ? `${props.featureName} is available on the Enterprise plan. Upgrade to enable it for this project.`
-    : `${props.featureName} is a OneUptime Enterprise Edition feature. Switch to the Enterprise Edition build to enable it.`;
+  const copy: EnterpriseUpgradeCopy = getEnterpriseUpgradeCopy({
+    featureName: props.featureName,
+    requiredPlan: props.requiredPlan || IDENTITY_REQUIRED_PLAN,
+    reason: props.reason || getDefaultUpgradeReason(),
+    planPitchLine: props.planPitchLine,
+    editionPitchLine: props.editionPitchLine,
+  });
 
   return (
     <Card
@@ -56,11 +156,11 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
       description={props.description}
       rightElement={
         <Button
-          title={ctaTitle}
+          title={copy.ctaTitle}
           buttonStyle={ButtonStyleType.PRIMARY}
-          icon={ctaIcon}
+          icon={copy.ctaIcon}
           onClick={() => {
-            window.open(ctaUrl, "_blank");
+            window.open(copy.ctaUrl, "_blank");
           }}
         />
       }
@@ -70,7 +170,7 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
               <Icon
-                icon={IconProp.ShieldCheck}
+                icon={props.featureIcon || IconProp.ShieldCheck}
                 size={SizeProp.Large}
                 thick={ThickProp.Thick}
                 className="h-6 w-6"
@@ -88,7 +188,7 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
                     thick={ThickProp.Thick}
                     className="h-2.5 w-2.5"
                   />
-                  Enterprise
+                  {copy.badge}
                 </span>
               </div>
               {props.featureDescription ? (
@@ -99,7 +199,7 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
             </div>
           </div>
 
-          <p className="text-sm text-gray-700">{pitchLine}</p>
+          <p className="text-sm text-gray-700">{copy.pitchLine}</p>
 
           <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
             {props.benefits.map((benefit: Benefit) => {
@@ -131,35 +231,21 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <Button
-              title={ctaTitle}
+              title={copy.ctaTitle}
               buttonStyle={ButtonStyleType.PRIMARY}
-              icon={ctaIcon}
+              icon={copy.ctaIcon}
               onClick={() => {
-                window.open(ctaUrl, "_blank");
+                window.open(copy.ctaUrl, "_blank");
               }}
             />
-            {isCloud ? (
-              <Button
-                title="Compare plans"
-                buttonStyle={ButtonStyleType.OUTLINE}
-                icon={IconProp.List}
-                onClick={() => {
-                  window.open("https://oneuptime.com/pricing", "_blank");
-                }}
-              />
-            ) : (
-              <Button
-                title="Read docs"
-                buttonStyle={ButtonStyleType.OUTLINE}
-                icon={IconProp.Book}
-                onClick={() => {
-                  window.open(
-                    "https://oneuptime.com/docs/self-hosted/enterprise",
-                    "_blank",
-                  );
-                }}
-              />
-            )}
+            <Button
+              title={copy.secondaryTitle}
+              buttonStyle={ButtonStyleType.OUTLINE}
+              icon={copy.secondaryIcon}
+              onClick={() => {
+                window.open(copy.secondaryUrl, "_blank");
+              }}
+            />
           </div>
         </div>
       </div>

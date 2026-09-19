@@ -136,6 +136,7 @@
     "subtitle": "アカウントにアクセスするためにSSOプロバイダーでログインしてください。",
     "submitButton": "SSOでログイン",
     "useUsernameInstead": "代わりにユーザー名とパスワードを使用する。",
+    "enterpriseEditionRequired": "シングルサインオン（SSO）は OneUptime Enterprise Edition の機能であり、このサーバーでは利用できません。代わりにメールアドレスとパスワードでログインしてください。",
     "noAccountPrompt": "アカウントをお持ちでない方は",
     "registerLink": "登録。",
     "selectProjectTitle": "プロジェクトを選択",

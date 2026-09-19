@@ -136,6 +136,7 @@
     "subtitle": "Inicie sesión con su proveedor SSO para acceder a su cuenta.",
     "submitButton": "Iniciar sesión con SSO",
     "useUsernameInstead": "Usar nombre de usuario y contraseña en su lugar.",
+    "enterpriseEditionRequired": "El inicio de sesión único (SSO) forma parte de OneUptime Enterprise Edition y no está disponible en este servidor. Inicie sesión con su correo electrónico y contraseña en su lugar.",
     "noAccountPrompt": "¿No tiene una cuenta?",
     "registerLink": "Registrarse.",
     "selectProjectTitle": "Seleccionar proyecto",

@@ -71,7 +71,7 @@ OneUptime brings monitoring, alerting, incident response, and observability into
 | Loggly | **Log Management** — collect, search, and alert on logs |
 | Sentry | **Error Tracking** — exceptions with full stack traces and context |
 
-All of it is **100% open source (Apache 2.0)** and free to self-host.
+All of it is **open source (Apache 2.0)** and free to self-host in the Community Edition.
 
 ---
 
@@ -205,13 +205,16 @@ Drop in copy-paste, **OpenTelemetry-based** agents to watch everything your serv
 |---|---|---|
 | **Best for** | Self-hosters & small teams | Regulated teams needing premium support |
 | **Cost** | Free & open source | [Contact sales](mailto:sales@oneuptime.com) |
-| **Features** | Full feature set | Full feature set + hardened images, priority support, custom features & data residency |
+| **License** | Apache 2.0 | Apache 2.0, plus the [OneUptime Enterprise License](/ee/LICENSE) for the `ee/` directory |
+| **Features** | Everything in the box above — monitoring, status pages, incidents, on-call, logs, traces, metrics, error tracking, workflows & AI | Everything in Community + SAML & OIDC single sign-on, SCIM provisioning, audit logs, team compliance & instance health dashboards, with priority support, custom features & data residency |
+
+Enterprise features live in the [`ee/`](/ee) directory and ship only in the Enterprise image. See [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) for the full comparison.
 
 ---
 
 ## 💡 Why OneUptime?
 
-Our mission is simple: **reduce downtime and help more products succeed.** Instead of duct-taping seven vendors together, you get one platform that helps you understand *why* things break, respond to incidents fast, and cut operational toil — fully open source, so you own your data and your stack.
+Our mission is simple: **reduce downtime and help more products succeed.** Instead of duct-taping seven vendors together, you get one platform that helps you understand *why* things break, respond to incidents fast, and cut operational toil — open source at its core (Apache 2.0), so you own your data and your stack.
 
 ---
 
@@ -239,7 +242,7 @@ If OneUptime is useful to you:
 
 ## 📄 License
 
-OneUptime is licensed under the [Apache License 2.0](/LICENSE).
+OneUptime is open source under the [Apache License 2.0](/LICENSE), except for the [`ee/`](/ee) directory. That directory holds the Enterprise Edition and is licensed under the [OneUptime Enterprise License](/ee/LICENSE). The Community Edition image contains no code from `ee/`. The [`NOTICE`](/NOTICE) file states this split.
 
 <div align="center">
   <sub>Made with ❤️ by the <a href="https://oneuptime.com">OneUptime</a> team and <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">contributors</a>.</sub>

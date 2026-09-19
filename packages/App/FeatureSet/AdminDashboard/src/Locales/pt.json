@@ -168,7 +168,14 @@
       "usageCardDescription": "Usuários únicos em todas as instâncias auto-hospedadas do cliente, conforme informado diariamente pelas instalações deles.",
       "instancesCardTitle": "Instâncias",
       "instancesCardDescription": "Instâncias auto-hospedadas (staging, produção, etc.) que reportam para esta licença, e os administradores principais que podemos contatar em cada uma.",
-      "noInstances": "Nenhuma instância reportou para esta licença ainda."
+      "noInstances": "Nenhuma instância reportou para esta licença ainda.",
+      "offlineTokenCardTitle": "Token de licença offline",
+      "offlineTokenCardDescription": "Para uma instalação que não consegue acessar oneuptime.com: baixe um token de licença assinado e vinculado ao ID de instância dessa instalação. O cliente o cola no Painel de administração.",
+      "offlineTokenButton": "Baixar token offline",
+      "offlineTokenIssued": "Um token de licença offline foi baixado para a instância {{instanceId}}.",
+      "offlineTokenModalTitle": "Baixar token de licença offline",
+      "offlineTokenModalDescription": "Informe o ID de instância da instalação do cliente. O token funciona apenas nessa instalação.",
+      "offlineTokenSubmitButton": "Baixar token"
     },
     "userView": {
       "title": "Usuário",

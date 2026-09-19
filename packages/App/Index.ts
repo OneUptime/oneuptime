@@ -12,7 +12,13 @@ import WorkflowRoutes from "./FeatureSet/Workflow/Index";
 import RunbookRoutes from "./FeatureSet/Runbook/Index";
 import AppMetricsAPI from "./API/Metrics";
 import AdminHealthAPI from "./API/AdminHealth";
-import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import EnterpriseLoader from "./Utils/EnterpriseLoader";
+import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
+import CommunityEditionSsoReport from "Common/Server/Utils/CommunityEditionSsoReport";
+import Express, {
+  ExpressApplication,
+  ExpressRouter,
+} from "Common/Server/Utils/Express";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import {
   ClickhouseAppInstance,
@@ -146,12 +152,43 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
     });
 
+    /*
+     * Load the OneUptime Enterprise Edition module from ee/ when it is present
+     * (the Enterprise image); without it this process is the Community
+     * Edition. It runs before any router below is mounted, because the
+     * feature sets ask EnterpriseEdition which enterprise routers to mount and
+     * permission checks read the license snapshot this loads. It also applies
+     * the boot guards: billing without ee, and IS_ENTERPRISE_EDITION=true
+     * without ee (unless ONEUPTIME_EDITION=community), stop the boot.
+     * Tests/Utils/EnterpriseBootWiring.test.ts pins this order.
+     */
+    await EnterpriseLoader.load();
+
+    /*
+     * On the Community Edition, log once which SSO requirements and SCIM team
+     * locks left over from an Enterprise install are no longer enforced (the
+     * SSO login routes are part of ee/). Fire-and-forget; no-op on EE.
+     */
+    void CommunityEditionSsoReport.logRelaxedEnforcementOnce();
+
     // Initialize real-time functionalities
     await Realtime.init();
 
     // Expose app-level combined metrics endpoint for KEDA
     const expressApp: ExpressApplication = Express.getExpressApp();
     expressApp.use("/", AppMetricsAPI);
+
+    /*
+     * The enterprise admin-health routes (the query console) are mounted
+     * ahead of core's router, which answers the same paths with 402 on the
+     * Community Edition and serves everything else.
+     */
+    const enterpriseAdminHealthRouter: ExpressRouter | null =
+      EnterpriseEdition.getModule()?.getAdminHealthRouter() || null;
+
+    if (enterpriseAdminHealthRouter) {
+      expressApp.use("/api/admin/health", enterpriseAdminHealthRouter);
+    }
 
     // Admin OneUptime Health overview (master-admin only).
     expressApp.use("/api/admin/health", AdminHealthAPI);

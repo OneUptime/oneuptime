@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import DatabaseConfig from "../DatabaseConfig";
 import {
   EncryptionSecret,
@@ -59,7 +60,7 @@ import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Timezone from "../../Types/Timezone";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
-import EnterpriseLicenseSeatUtil from "../Utils/EnterpriseLicense/EnterpriseLicenseSeatUtil";
+import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 
 /*
  * Names the Redis mutex that serializes the first-Master-Admin election across
@@ -195,22 +196,13 @@ export class Service extends DatabaseService<Model> {
      *
      * No isRoot exemption on purpose — invitations create the invited user as
      * root, so exempting root would exempt invitations, which is the exact
-     * thing this is here to bound. It is a no-op on Community Edition and on
-     * oneuptime.com (see EnterpriseLicenseSeatUtil.isSeatLimitEnforceable),
-     * and it never counts the User table on a licence with no seat limit.
+     * thing this is here to bound. The limit itself belongs to the Enterprise
+     * license client (ee/Server/License): this is a no-op on the Community
+     * Edition, on oneuptime.com (billing enabled) and whenever the license is
+     * not valid or in grace, and it never counts the User table on a license
+     * with no seat limit.
      */
-    await EnterpriseLicenseSeatUtil.assertSeatAvailableForNewUser({
-      getLocalUserCount: async (): Promise<number> => {
-        const userCount: PositiveNumber = await this.countBy({
-          query: {},
-          props: {
-            isRoot: true,
-          },
-        });
-
-        return userCount.toNumber();
-      },
-    });
+    await EnterpriseEdition.assertSeatAvailableForNewUser();
 
     /*
      * clickIds / firstTouchAttribution are publicly creatable jsonb columns
@@ -1310,7 +1302,8 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    const token: string = ObjectID.generate().toString();
+    // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
+    const token: string = crypto.randomUUID();
 
     const hashedToken: string = await HashedString.hashValue(
       token,

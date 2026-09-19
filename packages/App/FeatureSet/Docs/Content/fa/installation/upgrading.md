@@ -8,6 +8,77 @@
 - تا وقتی یادداشت‌های انتشار را دنبال می‌کنید می‌توانید از نسخه‌های فرعی/وصله‌ای بجهید (برای نمونه، 8.1 → 8.4).
 - همیشه پیش از ارتقا پشتیبان بگیرید، و تأیید کنید که می‌توانید بازگردانی‌شان کنید.
 
+<!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the Community/Enterprise image split). -->
+
+## Community and Enterprise Edition images
+
+OneUptime now ships the app as two images. The **Community Edition** is open
+source under the Apache License 2.0. The **Enterprise Edition** adds the
+enterprise modules from the repository's `ee/` directory: SAML SSO, OIDC, SCIM,
+team compliance, audit logs and the enterprise Health dashboards in the Admin
+Dashboard. Before this change both editions ran the same code, and
+`IS_ENTERPRISE_EDITION` decided which features were switched on. Now the image
+decides, and the Community image does not contain the `ee/` directory.
+
+The [Enterprise Edition](/docs/self-hosted/enterprise) page has the full
+feature comparison, licensing details and what happens when you switch
+editions.
+
+### What to do before you upgrade
+
+- **Community Edition without SSO, OIDC or SCIM:** nothing. Upgrade as usual.
+- **Helm with `image.type: enterprise-edition`:** nothing. The chart already
+  pulls the `enterprise-` images, which now contain the enterprise modules.
+- **Docker Compose with `IS_ENTERPRISE_EDITION=true`:** switch to the
+  Enterprise image when you upgrade by setting `APP_TAG=enterprise-release`
+  (or `enterprise-<version>`) in `config.env`. `APP_TAG=release` is the
+  Community image, and `IS_ENTERPRISE_EDITION=true` no longer switches anything
+  on. The server logs a warning at startup if it is set on the Community image.
+- **Community image with SSO, OIDC or SCIM already configured:** SSO sign-in
+  and SCIM provisioning stop with this upgrade, and "Require SSO for login" is
+  no longer enforced. Switch to the Enterprise image to keep them. Otherwise,
+  read [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)
+  before you upgrade. It explains how users sign in afterwards and who to
+  remove first.
+
+Your configuration is never deleted, and no migration is needed to switch
+editions in either direction.
+
+### Licensing after the upgrade
+
+The Enterprise Edition now checks its license:
+
+- **An install with a license key** keeps working. It checks the license with
+  OneUptime when it starts and once a day.
+- **An install with no license**, for example one that ran the Enterprise
+  Edition on `IS_ENTERPRISE_EDITION=true` alone, gets a 14-day trial from the
+  first start of this release. After that, enterprise configuration becomes
+  read-only and the enterprise Health dashboards are locked until you activate
+  a license. SSO, OIDC, SCIM and audit logging keep running with the
+  configuration you have. See
+  [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing).
+- **Air-gapped installs** can activate with a signed license token instead of
+  a key. See [Offline activation](/docs/self-hosted/enterprise#offline-activation-air-gapped-installs).
+
+### OneUptime Cloud customers
+
+Nothing changes for you. OneUptime Cloud runs the Enterprise Edition, and your
+plan still decides which features you get: SSO, OIDC, SCIM and team
+compliance on the Scale plan and above, and audit logs on the Enterprise plan.
+Projects on the Scale plan now see the SSO, OIDC, SCIM and team compliance
+settings that used to show an upgrade prompt.
+
+### API and endpoint changes
+
+- `GET /api/global-config/license` returns the license key, the license token,
+  the instance list, the instance ID and version details only to master
+  admins. Other callers get the edition and the license status.
+- Self-hosted installs no longer serve the license-server endpoints under
+  `/api/enterprise-license/`. Only oneuptime.com uses them.
+- The SSO, OIDC and SCIM endpoints keep their exact paths on the Enterprise
+  Edition, so identity provider configuration does not change. On the
+  Community Edition they return `404`.
+
 ## ارتقا از OneUptime 12 → 13
 
 ‏OneUptime 13 به‌جای Redis‏ [Valkey](https://valkey.io) را به‌عنوان موتور همراهِ حافظه نهان و صف می‌گذارد. Redis 7.4 پروانه BSD را ترک کرد و بیشتر مشارکت‌کنندگان اصلی Redis به Valkey کوچیدند، که انشعابی از Redis 7.2 است و همان پروتکل سیمی را حرف می‌زند. هیچ‌چیزی بالای سوکت تغییر نکرد — و اگر ترجیح می‌دهید هنوز می‌توانید OneUptime را به یک Redis واقعی، یا به سرویسی مدیریت‌شده و سازگار با Redis، نشانه بگیرید.
@@ -231,7 +302,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 - **‏SSO / OIDC سراسری (در سطح نمونه)**
 - **تنظیم‌های انطباق تیم**
 
-**پس از ارتقا چه می‌بینید:** اگر هرکدام از این‌ها را روی ساخت Community Edition پیکربندی کرده بودید، ورود از راه آن‌ها پس از ارتقا غیرفعال می‌شود، و صفحه‌های تنظیم به‌جای فرم پیکربندی، درخواست ارتقا نشان می‌دهند. رکوردهای موجود ارائه‌دهنده شما **در پایگاه داده نگه داشته می‌شوند** — چیزی حذف نمی‌شود — صرفاً تا وقتی نمونه، Enterprise Edition را اجرا کند غیرفعال می‌مانند.
+**پس از ارتقا چه می‌بینید:** اگر هرکدام از این‌ها را روی ساخت Community Edition پیکربندی کرده بودید، صفحه‌های تنظیم به‌جای فرم پیکربندی، درخواست ارتقا نشان می‌دهند و پیکربندی دیگر قابل تغییر نیست. تا پیش از جدا شدن ایمیج‌های Community و Enterprise، ارائه‌دهنده‌هایی که از قبل پیکربندی کرده بودید روی ساخت Community می‌توانستند همچنان کاربران را وارد کنند، چون کد ورود هنوز در آن بود. ایمیج Community دیگر هیچ کدی برای SSO، ‏OIDC یا SCIM ندارد، پس با ارتقا به آن، ورود از راه آن‌ها متوقف می‌شود — [Community and Enterprise Edition images](#community-and-enterprise-edition-images) را ببینید. رکوردهای موجود ارائه‌دهنده شما **در پایگاه داده نگه داشته می‌شوند** — چیزی حذف نمی‌شود — و به‌محض اینکه نمونه، Enterprise Edition را اجرا کند دوباره کار می‌کنند.
 
 **در دسترس بودن:**
 

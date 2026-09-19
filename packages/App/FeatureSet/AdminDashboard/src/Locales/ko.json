@@ -168,7 +168,14 @@
       "usageCardDescription": "고객의 모든 셀프 호스팅 인스턴스에서 집계한 고유 사용자 수이며, 각 설치 환경에서 매일 보고합니다.",
       "instancesCardTitle": "인스턴스",
       "instancesCardDescription": "이 라이선스에 대해 보고하는 셀프 호스팅 인스턴스(스테이징, 프로덕션 등)와 각 인스턴스에서 연락할 수 있는 마스터 관리자입니다.",
-      "noInstances": "아직 이 라이선스에 대해 보고한 인스턴스가 없습니다."
+      "noInstances": "아직 이 라이선스에 대해 보고한 인스턴스가 없습니다.",
+      "offlineTokenCardTitle": "오프라인 라이선스 토큰",
+      "offlineTokenCardDescription": "oneuptime.com에 연결할 수 없는 설치의 경우: 해당 설치의 인스턴스 ID에 바인딩된 서명된 라이선스 토큰을 다운로드합니다. 고객은 이를 관리자 대시보드에 붙여넣습니다.",
+      "offlineTokenButton": "오프라인 토큰 다운로드",
+      "offlineTokenIssued": "인스턴스 {{instanceId}}의 오프라인 라이선스 토큰을 다운로드했습니다.",
+      "offlineTokenModalTitle": "오프라인 라이선스 토큰 다운로드",
+      "offlineTokenModalDescription": "고객 설치의 인스턴스 ID를 입력하세요. 토큰은 해당 설치에서만 작동합니다.",
+      "offlineTokenSubmitButton": "토큰 다운로드"
     },
     "userView": {
       "title": "사용자",

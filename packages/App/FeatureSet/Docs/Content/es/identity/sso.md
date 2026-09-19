@@ -2,6 +2,8 @@
 
 OneUptime admite el inicio de sesión único (SSO) basado en SAML 2.0 para la autenticación empresarial. SSO permite que los miembros de tu equipo inicien sesión en OneUptime usando las credenciales de la organización, lo que proporciona una gestión de acceso centralizada y mayor seguridad.
 
+> **Edición:** SSO forma parte de OneUptime Enterprise Edition. En OneUptime Cloud está disponible en el plan **Scale** y superiores. Las instalaciones autoalojadas necesitan la imagen de Enterprise Edition y una licencia. Consulta [Enterprise Edition](/docs/self-hosted/enterprise).
+
 ## Información general
 
 La integración SSO proporciona los siguientes beneficios:

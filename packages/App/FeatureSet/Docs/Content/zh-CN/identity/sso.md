@@ -2,6 +2,8 @@
 
 OneUptime 支持基于 SAML 2.0 的单点登录（SSO）进行企业认证。SSO 允许您的团队成员使用组织的身份提供商（IdP）登录 OneUptime，从而实现集中访问管理和增强的安全性。
 
+> **版本：** SSO 属于 OneUptime Enterprise Edition（企业版）功能。在 OneUptime Cloud 上，**Scale** 及以上套餐可用。自托管部署需要使用企业版镜像并拥有许可证。请参阅 [Enterprise Edition](/docs/self-hosted/enterprise)。
+
 ## 概述
 
 SSO 集成提供以下优势：

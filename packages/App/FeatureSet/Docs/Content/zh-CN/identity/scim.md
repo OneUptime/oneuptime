@@ -2,6 +2,8 @@
 
 OneUptime 支持 SCIM v2.0 协议，用于自动化用户配置和取消配置。SCIM 使身份提供商（IdP）（如 Azure AD、Okta 及其他企业身份系统）能够自动管理用户对 OneUptime 项目和状态页面的访问权限。
 
+> **版本：** SCIM 属于 OneUptime Enterprise Edition（企业版）功能。在 OneUptime Cloud 上，**Scale** 及以上套餐可用。自托管部署需要使用企业版镜像并拥有许可证。请参阅 [Enterprise Edition](/docs/self-hosted/enterprise)。
+
 ## 概述
 
 SCIM 集成提供以下优势：

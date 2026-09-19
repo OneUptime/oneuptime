@@ -136,6 +136,7 @@
     "subtitle": "Log in met uw SSO-provider om toegang te krijgen tot uw account.",
     "submitButton": "Inloggen met SSO",
     "useUsernameInstead": "Gebruik in plaats daarvan gebruikersnaam en wachtwoord.",
+    "enterpriseEditionRequired": "Eenmalige aanmelding (SSO) maakt deel uit van OneUptime Enterprise Edition en is niet beschikbaar op deze server. Log in plaats daarvan in met uw e-mailadres en wachtwoord.",
     "noAccountPrompt": "Hebt u geen account?",
     "registerLink": "Registreren.",
     "selectProjectTitle": "Project selecteren",

@@ -168,7 +168,14 @@
       "usageCardDescription": "Unique users across all of the customer's self-hosted instances, as reported daily by their installations.",
       "instancesCardTitle": "Instances",
       "instancesCardDescription": "Self-hosted instances (staging, production, etc.) reporting against this license, and the master admins we can contact on each.",
-      "noInstances": "No instances have reported against this license yet."
+      "noInstances": "No instances have reported against this license yet.",
+      "offlineTokenCardTitle": "Offline License Token",
+      "offlineTokenCardDescription": "For an installation that cannot reach oneuptime.com: download a signed license token bound to that installation's instance ID. The customer pastes it into their Admin Dashboard.",
+      "offlineTokenButton": "Download Offline Token",
+      "offlineTokenIssued": "An offline license token was downloaded for instance {{instanceId}}.",
+      "offlineTokenModalTitle": "Download Offline License Token",
+      "offlineTokenModalDescription": "Enter the instance ID of the customer's installation. The token works only on that installation.",
+      "offlineTokenSubmitButton": "Download Token"
     },
     "userView": {
       "title": "User",

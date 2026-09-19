@@ -27,12 +27,14 @@ and arch-specific npm binaries (@esbuild/linux-x64 vs @esbuild/linux-arm64) in
 every Node image — so an amd64-only SBOM ingested by an arm64 operator produces
 both false negatives and false positives.
 
-Only community tags are scanned. The enterprise images are built from the same
-Dockerfile in the same job and differ solely in ENV/LABEL metadata
-(IS_ENTERPRISE_EDITION) — no RUN step reads that build arg. Verified against the
-registry: for all 12 images on both architectures, :release and
-:enterprise-release resolve to identical platform-manifest digests and identical
-rootfs.diff_ids, so a second scan would emit a byte-equivalent duplicate.
+Community tags are scanned for every image, and the enterprise tag only for the
+images in ENTERPRISE_IMAGES below. Those are built from their Dockerfile's
+`enterprise` target (see build_docker_images.sh): the enterprise image is the
+community build plus ee/ and its own npm dependencies, with the Dashboard and
+Admin Dashboard bundles rebuilt, so its package set really differs. Every other
+image's enterprise tag is the same build with a different IS_ENTERPRISE_EDITION
+build arg, which no RUN step reads, so its layers match the community image's
+and a second scan would only duplicate the first.
 
 Required flags:
 	--version <version>   Version to scan (matches the pushed tag, e.g. 11.5)
@@ -123,6 +125,13 @@ SKIPPED_IMAGES=(
 	home
 )
 
+# Images whose enterprise- tag is a different build, not just different
+# metadata (see the usage text above), so it gets an SBOM of its own. Each must
+# also be in IMAGES; the check below enforces that.
+ENTERPRISE_IMAGES=(
+	app
+)
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RELEASE_WORKFLOW="${REPO_ROOT}/.github/workflows/release.yml"
 
@@ -163,6 +172,28 @@ if [[ -f "$RELEASE_WORKFLOW" ]]; then
 	echo "✅ Image list matches release.yml (${#IMAGES[@]} scanned, ${#SKIPPED_IMAGES[@]} skipped${SKIPPED_SUMMARY})"
 else
 	echo "⚠️  ${RELEASE_WORKFLOW} not found — skipping image list drift check"
+fi
+
+# An enterprise tag is only scanned for an image that is itself scanned, so a
+# typo here cannot quietly scan a tag nobody publishes.
+for enterprise_image in ${ENTERPRISE_IMAGES[@]+"${ENTERPRISE_IMAGES[@]}"}; do
+	if [[ " ${IMAGES[*]} " != *" ${enterprise_image} "* ]]; then
+		echo "❌ ENTERPRISE_IMAGES lists ${enterprise_image}, which is not in IMAGES" >&2
+		exit 1
+	fi
+done
+
+# What gets scanned: every image's community tag, plus the enterprise tag of the
+# ENTERPRISE_IMAGES. Each entry is "<image> <tag prefix>".
+SCAN_TARGETS=()
+for image in "${IMAGES[@]}"; do
+	SCAN_TARGETS+=("${image} ")
+done
+for image in ${ENTERPRISE_IMAGES[@]+"${ENTERPRISE_IMAGES[@]}"}; do
+	SCAN_TARGETS+=("${image} enterprise-")
+done
+if (( ${#ENTERPRISE_IMAGES[@]} > 0 )); then
+	echo "✅ Also scanning the enterprise tag of: ${ENTERPRISE_IMAGES[*]}"
 fi
 
 if ! command -v syft >/dev/null 2>&1; then
@@ -251,15 +282,23 @@ scan_image_via_docker() {
 	return "$status"
 }
 
-for image in "${IMAGES[@]}"; do
-	ref="${REGISTRY}/${image}:${SANITIZED_VERSION}"
+for target in "${SCAN_TARGETS[@]}"; do
+	image="${target%% *}"
+	tag_prefix="${target#* }"
+	tag="${tag_prefix}${SANITIZED_VERSION}"
+	ref="${REGISTRY}/${image}:${tag}"
+	# How a failure is named in the summary: "app", or "app:enterprise".
+	failure_name="${image}"
+	if [[ -n "$tag_prefix" ]]; then
+		failure_name="${image}:${tag_prefix%-}"
+	fi
 
 	for platform in "${PLATFORM_LIST[@]}"; do
 		platform="$(echo "$platform" | xargs)"  # trim whitespace
 		[[ -z "$platform" ]] && continue
 
 		platform_slug="${platform//\//-}"
-		out="${OUTPUT_DIR}/${image}-${SANITIZED_VERSION}-${platform_slug}.cdx.json"
+		out="${OUTPUT_DIR}/${image}-${tag}-${platform_slug}.cdx.json"
 
 		echo "📦 Scanning ${ref} (${platform})"
 
@@ -290,7 +329,7 @@ for image in "${IMAGES[@]}"; do
 		if [[ "$scanned" != "true" ]]; then
 			echo "❌ Failed to generate SBOM for ${ref} (${platform})" >&2
 			rm -f "$out"
-			FAILED+=("${image}/${platform}")
+			FAILED+=("${failure_name}/${platform}")
 			continue
 		fi
 
@@ -306,14 +345,14 @@ PY
 		)"; then
 			echo "❌ Could not parse SBOM for ${ref} (${platform})" >&2
 			rm -f "$out"
-			FAILED+=("${image}/${platform}")
+			FAILED+=("${failure_name}/${platform}")
 			continue
 		fi
 
 		if [[ "$component_count" -eq 0 ]]; then
 			echo "❌ SBOM for ${ref} (${platform}) contains zero components" >&2
 			rm -f "$out"
-			FAILED+=("${image}/${platform}")
+			FAILED+=("${failure_name}/${platform}")
 			continue
 		fi
 
@@ -328,5 +367,5 @@ if [[ ${#FAILED[@]} -gt 0 ]]; then
 fi
 
 echo ""
-echo "✅ Generated $(( ${#IMAGES[@]} * ${#PLATFORM_LIST[@]} )) CycloneDX SBOMs in ${OUTPUT_DIR} (${#IMAGES[@]} images × ${#PLATFORM_LIST[@]} platforms)"
+echo "✅ Generated $(( ${#SCAN_TARGETS[@]} * ${#PLATFORM_LIST[@]} )) CycloneDX SBOMs in ${OUTPUT_DIR} (${#SCAN_TARGETS[@]} image tags × ${#PLATFORM_LIST[@]} platforms)"
 ls -la "$OUTPUT_DIR"

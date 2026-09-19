@@ -168,7 +168,14 @@
       "usageCardDescription": "该客户所有自托管实例中的去重用户数，由其安装环境每天上报。",
       "instancesCardTitle": "实例",
       "instancesCardDescription": "针对此许可证上报数据的自托管实例（预发布、生产等），以及我们可以在每个实例上联系的主管理员。",
-      "noInstances": "尚无实例针对此许可证上报数据。"
+      "noInstances": "尚无实例针对此许可证上报数据。",
+      "offlineTokenCardTitle": "离线许可证令牌",
+      "offlineTokenCardDescription": "适用于无法访问 oneuptime.com 的安装：下载与该安装的实例 ID 绑定的已签名许可证令牌。客户将其粘贴到自己的管理仪表板中。",
+      "offlineTokenButton": "下载离线令牌",
+      "offlineTokenIssued": "已为实例 {{instanceId}} 下载离线许可证令牌。",
+      "offlineTokenModalTitle": "下载离线许可证令牌",
+      "offlineTokenModalDescription": "输入客户安装的实例 ID。该令牌仅在该安装上有效。",
+      "offlineTokenSubmitButton": "下载令牌"
     },
     "userView": {
       "title": "用户",
