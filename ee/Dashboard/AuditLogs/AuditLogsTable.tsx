@@ -19,6 +19,15 @@ import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import AuditLogChangesModal from "./AuditLogChangesModal";
 import {
+  AuditLogsStoppedCopy,
+  getAuditLogsStoppedCopy,
+} from "./AuditLogsLicenseNotice";
+import {
+  EnterpriseLicenseMode,
+  LicensedFeature,
+} from "../SSO/License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../SSO/License/UseEnterpriseLicenseMode";
+import {
   ResourceLink,
   ResourceMeta,
   getActorInitials,
@@ -48,6 +57,15 @@ import React, {
  *
  * The props are the contract's AuditLogsTableProps, so the shell and the body
  * cannot drift apart.
+ *
+ * Eligibility is not the license, though: once the trial or grace period is
+ * over without a valid Enterprise license (or with one that does not include
+ * audit logs), nothing is recorded, whatever the project's switch says. The
+ * table stays reachable so entries recorded so far can be read, and says in
+ * its header and its empty state that it is not recording - the same copy as
+ * Settings > Audit Logs (AuditLogsLicenseNotice). During the trial or grace
+ * period, on OneUptime Cloud and while the license state is unknown the
+ * server records as configured, so the table says nothing about the license.
  */
 export type ComponentProps = AuditLogsTableProps;
 
@@ -152,6 +170,14 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     changes: true,
   };
 
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
+    LicensedFeature.AuditLogs,
+  );
+
+  // Set when the license has stopped recording; it wins over the switch.
+  const licenseStoppedCopy: AuditLogsStoppedCopy | null =
+    getAuditLogsStoppedCopy(licenseMode);
+
   const isAuditLoggingOff: boolean = isAuditLoggingEnabled === false;
 
   const auditLogSettingsRoute: Route = RouteUtil.populateRouteParams(
@@ -163,6 +189,28 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
    * stays the page, and rows recorded before logging was turned off stay in
    * view.
    */
+  const licenseNotRecordingNotice: ReactElement | undefined =
+    licenseStoppedCopy ? (
+      <div
+        data-testid="audit-logging-license-notice"
+        role="status"
+        title={`${licenseStoppedCopy.title} ${licenseStoppedCopy.description}`}
+        className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-red-200 bg-red-50 py-1 pl-2 pr-3 text-xs text-red-800"
+      >
+        <Icon
+          icon={IconProp.ExclaimationCircle}
+          size={SizeProp.Small}
+          thick={ThickProp.Thick}
+          className="h-3.5 w-3.5 flex-shrink-0 text-red-600"
+        />
+        <span className="truncate">
+          {licenseMode === EnterpriseLicenseMode.NotIncluded
+            ? "Audit logging is not recording: not included in your Enterprise license"
+            : "Audit logging is not recording: Enterprise license required"}
+        </span>
+      </div>
+    ) : undefined;
+
   const auditLoggingOffNotice: ReactElement | undefined = isAuditLoggingOff ? (
     <div
       data-testid="audit-logging-disabled-notice"
@@ -186,7 +234,30 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     </div>
   ) : undefined;
 
-  const noItemsMessage: ReactElement = isAuditLoggingOff ? (
+  const licenseStoppedEmptyState: ReactElement | null = licenseStoppedCopy ? (
+    <div
+      data-testid="audit-logging-license-empty-state"
+      className="flex flex-col items-center justify-center py-10 text-center"
+    >
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600 mb-3">
+        <Icon
+          icon={IconProp.ClipboardDocumentList}
+          size={SizeProp.Large}
+          thick={ThickProp.Thick}
+        />
+      </div>
+      <div className="text-sm font-medium text-gray-900">
+        {licenseStoppedCopy.title}
+      </div>
+      <div className="text-xs text-gray-500 mt-1 max-w-sm">
+        {licenseStoppedCopy.description}
+      </div>
+    </div>
+  ) : null;
+
+  const noItemsMessage: ReactElement = licenseStoppedEmptyState ? (
+    licenseStoppedEmptyState
+  ) : isAuditLoggingOff ? (
     <div
       data-testid="audit-logging-disabled-empty-state"
       className="flex flex-col items-center justify-center py-10 text-center"
@@ -247,7 +318,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: props.title,
           description: props.description,
-          rightElement: auditLoggingOffNotice,
+          rightElement: licenseNotRecordingNotice || auditLoggingOffNotice,
         }}
         query={computedQuery}
         sortBy="createdAt"

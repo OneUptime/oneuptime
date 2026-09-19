@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
@@ -35,7 +42,52 @@ import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
  * AnalyticsModelTable is mocked to capture its props (the real one fetches on
  * mount); the card's right element and empty state it would render are
  * rendered by the mock so the notice can be found in the DOM.
+ *
+ * And the license: once the trial or grace period is over without a valid
+ * Enterprise license (or with a license that leaves audit logs out) nothing
+ * is recorded, whatever the switch says. The table stays reachable, so it
+ * must not keep saying that changes "will appear here automatically": its
+ * header and empty state say it is not recording, in the words Settings >
+ * Audit Logs uses. The trial, the grace period, OneUptime Cloud and an
+ * unknown license state change nothing - the server records then.
+ *
+ * Billing is pinned in every test: CI's config.env sets BILLING_ENABLED=true,
+ * which would skip the license request altogether.
  */
+
+let billingEnabledForTest: boolean = false;
+
+jest.mock("Common/UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "Common/UI/Config",
+  ) as Record<string, unknown>;
+
+  const mocked: Record<string, unknown> = { ...actual };
+
+  Object.defineProperty(mocked, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return billingEnabledForTest;
+    },
+  });
+
+  return mocked;
+});
+
+const mockLicenseFetch: MockFunction = getJestMockFunction();
+
+jest.mock("Common/UI/Utils/API/API", () => {
+  return {
+    __esModule: true,
+    default: {
+      fetch: (...args: Array<unknown>): unknown => {
+        return mockLicenseFetch(...args);
+      },
+      getFriendlyMessage: (): string => {
+        return "";
+      },
+    },
+  };
+});
 
 type CapturedColumn = {
   title: string;
@@ -88,6 +140,13 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
 import AuditLogsTable, {
   ComponentProps,
 } from "../../../Dashboard/AuditLogs/AuditLogsTable";
+import {
+  AUDIT_LOGS_LAPSED_DESCRIPTION,
+  AUDIT_LOGS_LAPSED_TITLE,
+  AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION,
+  AUDIT_LOGS_NOT_INCLUDED_TITLE,
+} from "../../../Dashboard/AuditLogs/AuditLogsLicenseNotice";
+import { JSONObject } from "Common/Types/JSON";
 import {
   RESOURCE_META,
   ResourceMeta,
@@ -153,19 +212,45 @@ const routeHref: RouteHrefFunction = (
   ).toString();
 };
 
-// Lets the settings read resolve and its state update land.
+/*
+ * Lets the settings read and the license read resolve and their state updates
+ * land. The license read is a few promises deep, so this waits for a whole
+ * macrotask rather than a fixed number of microtasks.
+ */
 type FlushFunction = () => Promise<void>;
 
 const flushSettingsRead: FlushFunction = async (): Promise<void> => {
   await act(async () => {
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
   });
 };
 
+const answerLicense: (payload: JSONObject) => void = (
+  payload: JSONObject,
+): void => {
+  mockLicenseFetch.mockResolvedValue({
+    isSuccess: (): boolean => {
+      return true;
+    },
+    data: payload,
+  });
+};
+
+// The ordinary empty state, which promises that changes are being recorded.
+const RECORDING_PROMISE: RegExp = /will appear here automatically/;
+
+const LICENSE_NOTICE_TEST_ID: string = "audit-logging-license-notice";
+const LICENSE_EMPTY_STATE_TEST_ID: string = "audit-logging-license-empty-state";
+
 beforeEach(() => {
   capturedTableProps = null;
+  billingEnabledForTest = false;
   getItemMock.mockReset();
+  mockLicenseFetch.mockReset();
+  // A valid license unless a test says otherwise.
+  answerLicense({ status: "valid", licenseValid: true });
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
 });
 
@@ -284,6 +369,180 @@ describe("the audit logging switch", () => {
     await flushSettingsRead();
 
     expect(getItemMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("the Enterprise license", () => {
+  test.each([
+    [
+      "expired, after the grace period",
+      { status: "expired", licenseValid: false },
+    ],
+    ["missing, after the trial", { status: "missing", licenseValid: false }],
+    ["invalid", { status: "invalid", licenseValid: false }],
+  ])(
+    "%s: the table says it is not recording, and never that changes will appear",
+    async (_name: string, payload: JSONObject) => {
+      answerLicense(payload);
+      getItemMock.mockResolvedValue(projectWith(true));
+
+      renderTable({ rootResourceId: SLO_ID });
+
+      const notice: HTMLElement = await screen.findByTestId(
+        LICENSE_NOTICE_TEST_ID,
+      );
+
+      expect(notice).toHaveTextContent(
+        "Audit logging is not recording: Enterprise license required",
+      );
+      expect(notice).toHaveAttribute(
+        "title",
+        `${AUDIT_LOGS_LAPSED_TITLE} ${AUDIT_LOGS_LAPSED_DESCRIPTION}`,
+      );
+      // In the card header, where the "logging is off" pill goes.
+      expect(capturedTableProps?.cardProps?.rightElement).toBeDefined();
+
+      const emptyState: HTMLElement = screen.getByTestId(
+        LICENSE_EMPTY_STATE_TEST_ID,
+      );
+
+      expect(emptyState).toHaveTextContent(AUDIT_LOGS_LAPSED_TITLE);
+      expect(emptyState).toHaveTextContent(AUDIT_LOGS_LAPSED_DESCRIPTION);
+      expect(screen.queryByText(RECORDING_PROMISE)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("No audit entries yet"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("audit-logging-disabled-notice"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("a valid license that leaves audit logs out: not recording, and says why", async () => {
+    answerLicense({
+      status: "valid",
+      licenseValid: true,
+      features: ["sso", "scim"],
+    });
+    getItemMock.mockResolvedValue(projectWith(true));
+
+    renderTable();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      LICENSE_NOTICE_TEST_ID,
+    );
+
+    expect(notice).toHaveTextContent(
+      "Audit logging is not recording: not included in your Enterprise license",
+    );
+
+    const emptyState: HTMLElement = screen.getByTestId(
+      LICENSE_EMPTY_STATE_TEST_ID,
+    );
+
+    expect(emptyState).toHaveTextContent(AUDIT_LOGS_NOT_INCLUDED_TITLE);
+    expect(emptyState).toHaveTextContent(AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION);
+    expect(screen.queryByText(RECORDING_PROMISE)).not.toBeInTheDocument();
+  });
+
+  /*
+   * The license stops recording whatever the switch says, so it wins: turning
+   * the switch on would not start recording.
+   */
+  test("lapsed and switched off: the license notice replaces the 'logging is off' one", async () => {
+    answerLicense({ status: "expired", licenseValid: false });
+    getItemMock.mockResolvedValue(projectWith(false));
+
+    renderTable({ rootResourceId: SLO_ID });
+
+    expect(
+      await screen.findByTestId(LICENSE_NOTICE_TEST_ID),
+    ).toBeInTheDocument();
+    await flushSettingsRead();
+
+    expect(
+      screen.queryByTestId("audit-logging-disabled-notice"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("audit-logging-disabled-empty-state"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId(LICENSE_EMPTY_STATE_TEST_ID)).toBeInTheDocument();
+  });
+
+  test("the table asks for the license once, as a screen about audit logs", async () => {
+    getItemMock.mockResolvedValue(projectWith(true));
+
+    renderTable();
+    await waitFor(() => {
+      expect(mockLicenseFetch).toHaveBeenCalledTimes(1);
+    });
+    await flushSettingsRead();
+
+    const options: { url: { toString: () => string } } = mockLicenseFetch.mock
+      .calls[0]![0] as { url: { toString: () => string } };
+
+    expect(options.url.toString()).toContain("/global-config/license");
+  });
+
+  test.each([
+    ["the trial or grace period", { status: "grace", licenseValid: true }],
+    ["a valid license", { status: "valid", licenseValid: true }],
+    [
+      "a valid license that includes audit logs",
+      { status: "valid", licenseValid: true, features: ["audit-logs"] },
+    ],
+  ])(
+    "%s: recording as configured, so nothing about the license",
+    async (_name: string, payload: JSONObject) => {
+      answerLicense(payload);
+      getItemMock.mockResolvedValue(projectWith(true));
+
+      renderTable();
+      await waitFor(() => {
+        expect(mockLicenseFetch).toHaveBeenCalled();
+      });
+      await flushSettingsRead();
+
+      expect(
+        screen.queryByTestId(LICENSE_NOTICE_TEST_ID),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId(LICENSE_EMPTY_STATE_TEST_ID),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText(RECORDING_PROMISE)).toBeInTheDocument();
+    },
+  );
+
+  // The server keeps recording while it cannot read the license.
+  test("the license cannot be read: nothing about the license", async () => {
+    mockLicenseFetch.mockRejectedValue(new Error("network down"));
+    getItemMock.mockResolvedValue(projectWith(true));
+
+    renderTable();
+    await waitFor(() => {
+      expect(mockLicenseFetch).toHaveBeenCalled();
+    });
+    await flushSettingsRead();
+
+    expect(
+      screen.queryByTestId(LICENSE_NOTICE_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("No audit entries yet")).toBeInTheDocument();
+  });
+
+  test("OneUptime Cloud (billing on): the plan decides, no license request", async () => {
+    billingEnabledForTest = true;
+    answerLicense({ status: "expired", licenseValid: false });
+    getItemMock.mockResolvedValue(projectWith(true));
+
+    renderTable();
+    await flushSettingsRead();
+
+    expect(mockLicenseFetch).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId(LICENSE_NOTICE_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(RECORDING_PROMISE)).toBeInTheDocument();
   });
 });
 
