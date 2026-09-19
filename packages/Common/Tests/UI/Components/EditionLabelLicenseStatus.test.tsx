@@ -311,6 +311,19 @@ describe("EditionLabel - an expired license in its grace period", () => {
     expect(screen.getByText("Grace period")).toBeInTheDocument();
   });
 
+  it("calls it a grace period, never a trial", async () => {
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-grace-notice",
+    );
+
+    expect(notice).toHaveTextContent(
+      "Without a valid license (after the 14-day grace period), enterprise configuration becomes read-only",
+    );
+    expect(notice).not.toHaveTextContent(/trial/i);
+  });
+
   it("does not call an expired license a trial", async () => {
     await openDialog();
 
@@ -389,6 +402,24 @@ describe("EditionLabel - an unlicensed installation's trial", () => {
     expect(notice).toHaveTextContent(
       "enterprise configuration becomes read-only",
     );
+  });
+
+  /*
+   * The first 14 days of an unlicensed install are its trial; only a license
+   * that lapsed has a grace period. The notice used to call both "the 14-day
+   * grace period".
+   */
+  it("calls the first 14 days a trial, not a grace period", async () => {
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-trial-notice",
+    );
+
+    expect(notice).toHaveTextContent(
+      "Without a valid license (after the 14-day trial), enterprise configuration becomes read-only",
+    );
+    expect(notice).not.toHaveTextContent(/grace/i);
   });
 
   it("shows no empty license details for a license that does not exist", async () => {

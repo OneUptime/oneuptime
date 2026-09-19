@@ -73,8 +73,16 @@ const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
  * dialog describes soft enforcement the same way (and truthfully: nothing that
  * is already configured stops, and core monitoring is never touched).
  */
-const SOFT_ENFORCEMENT_SUMMARY: string =
-  "Without a valid license (after the 14-day grace period), enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything you already configured keeps working — SSO, SCIM and audit logging never stop — and core monitoring is never affected.";
+const SOFT_ENFORCEMENT_CONSEQUENCES: string =
+  "enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything you already configured keeps working — SSO, SCIM and audit logging never stop — and core monitoring is never affected.";
+
+/*
+ * The two periods have different names: an unlicensed installation's first
+ * 14 days are its trial, and only a license that lapsed has a grace period.
+ */
+const TRIAL_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the 14-day trial), ${SOFT_ENFORCEMENT_CONSEQUENCES}`;
+
+const GRACE_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the 14-day grace period), ${SOFT_ENFORCEMENT_CONSEQUENCES}`;
 
 type LicenseStatus = "valid" | "grace" | "expired" | "missing" | "invalid";
 
@@ -473,7 +481,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     return endsAt.toLocaleDateString();
   }, [graceEndsAt]);
 
-  // Whole days left in the grace period, rounded up; never negative.
+  // Whole days left in the trial or the grace period, rounded up; never negative.
   const graceDaysLeft: number | null = useMemo(() => {
     if (!graceEndsAt) {
       return null;
@@ -1227,8 +1235,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   /*
    * What the license status means for this installation, in plain words.
-   * Every branch states soft enforcement the same way (SOFT_ENFORCEMENT_SUMMARY):
-   * configuration becomes read-only, nothing already configured stops.
+   * Every branch states soft enforcement the same way
+   * (SOFT_ENFORCEMENT_CONSEQUENCES): configuration becomes read-only, nothing
+   * already configured stops.
    */
   const licenseStatusNoticeElement: ReactElement | null = (() => {
     if (!showLicenseStatusNotices) {
@@ -1250,7 +1259,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           <p className="mt-1 text-xs leading-relaxed text-amber-800">
             {`No Enterprise license is installed. Enterprise features stay fully available${
               graceEndsAtText ? ` until ${graceEndsAtText}` : ""
-            }, counted from the first time this installation ran the Enterprise Edition. ${SOFT_ENFORCEMENT_SUMMARY}`}
+            }, counted from the first time this installation ran the Enterprise Edition. ${TRIAL_ENFORCEMENT_SUMMARY}`}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-amber-800">
             {canManageLicense
@@ -1278,7 +1287,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
               licenseExpiresAtText ? ` on ${licenseExpiresAtText}` : ""
             }. Enterprise configuration stays editable until the grace period ends${
               graceDaysLeftText ? ` (${graceDaysLeftText})` : ""
-            }. ${SOFT_ENFORCEMENT_SUMMARY}`}
+            }. ${GRACE_ENFORCEMENT_SUMMARY}`}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-amber-800">
             {canManageLicense

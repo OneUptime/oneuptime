@@ -964,7 +964,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.Date,
     title: "Enterprise Edition First Seen At",
     description:
-      "When this installation first booted the OneUptime Enterprise Edition. An unlicensed Enterprise installation gets a 14-day grace period counted from this moment.",
+      "When this installation first booted the OneUptime Enterprise Edition. An unlicensed Enterprise installation gets a 14-day trial counted from this moment.",
   })
   @Column({
     type: ColumnType.Date,
