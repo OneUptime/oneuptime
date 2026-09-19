@@ -4,6 +4,10 @@ import CommunityEditionSsoReport, {
 } from "../../../Server/Utils/CommunityEditionSsoReport";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "../../../Server/Enterprise/EnterpriseFeature";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "../../../Server/Enterprise/EnterpriseLicenseSnapshot";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -407,11 +411,15 @@ describe("CommunityEditionSsoReport", () => {
     /*
      * Running the Enterprise image is not enough on its own: an Enterprise
      * install enforces them only while its license (or trial, or grace)
-     * covers SSO and SCIM.
+     * covers SSO and SCIM. The trial and the grace period are different
+     * lengths, and the message names each with its own.
      */
     expect(message).toContain(
-      "enforced again when this server runs the Enterprise Edition image with a valid license (or during its 14-day trial or grace period)",
+      `enforced again when this server runs the Enterprise Edition image with a valid license (or during its ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial, or the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period after a license expires)`,
     );
+    expect(message).toContain("14-day trial");
+    expect(message).toContain("30-day grace period");
+    expect(message).not.toContain("14-day trial or grace period");
   });
 
   test("reads the stored settings as root, with bounded id lists", async () => {

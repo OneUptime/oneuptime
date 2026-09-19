@@ -1,5 +1,9 @@
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "../Enterprise/EnterpriseFeature";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "../Enterprise/EnterpriseLicenseSnapshot";
 import logger from "./Logger";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
@@ -11,8 +15,8 @@ import PaymentRequiredException from "../../Types/Exception/PaymentRequiredExcep
  * (EnterpriseEdition.isFeatureActive): SSO for the SSO requirements, the
  * SAML/OIDC sign-in routes and the provider listings, SCIM for the SCIM Push
  * Groups team locks. A feature is active when the Enterprise Edition is loaded
- * and, with billing off, its license covers the feature (valid, in grace, or
- * inside the 14-day trial).
+ * and, with billing off, its license covers the feature (valid, in the grace
+ * period after it expired, or - with no license - inside the trial).
  *
  * The controls are relaxed where they cannot work:
  *   - on the Community Edition, which has no SAML/OIDC sign-in routes and no
@@ -37,7 +41,7 @@ export default class EditionEnforcement {
   // Why guardSsoRequirementWrite refuses a write, on the Community Edition.
   public static readonly SSO_REQUIREMENT_UNCHANGEABLE_COMMUNITY_MESSAGE: string =
     'Single sign-on is part of the OneUptime Enterprise Edition and this server runs the Community Edition, so "Require SSO for login" shows as off, is not enforced and cannot be changed here. ' +
-    "A setting saved earlier is kept, and it is enforced again when this server runs the Enterprise Edition image with a valid license (or during its 14-day trial or grace period).";
+    `A setting saved earlier is kept, and it is enforced again when this server runs the Enterprise Edition image with a valid license (or during its ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial, or the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period after a license expires).`;
 
   /*
    * Why guardSsoRequirementWrite refuses a write, on an Enterprise install

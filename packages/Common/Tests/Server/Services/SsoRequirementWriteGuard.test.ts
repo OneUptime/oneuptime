@@ -372,7 +372,9 @@ describe("EditionEnforcement.guardSsoRequirementWrite", () => {
       ).toContain("Community Edition");
       expect(
         EditionEnforcement.SSO_REQUIREMENT_UNCHANGEABLE_COMMUNITY_MESSAGE,
-      ).toContain("with a valid license (or during its 14-day trial");
+      ).toContain(
+        "with a valid license (or during its 14-day trial, or the 30-day grace period after a license expires)",
+      );
     });
 
     test("neither message claims anything keeps working", () => {

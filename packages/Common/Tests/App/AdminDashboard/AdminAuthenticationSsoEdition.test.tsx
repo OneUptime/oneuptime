@@ -130,7 +130,7 @@ const CE_NOTICE: RegExp =
  * either - an admin turning it on must not believe it holds regardless.
  */
 const LAPSE_NOTE: RegExp =
-  /not enforced while the Enterprise license is missing or expired \(after the 14-day trial or grace period\), because SSO sign-in stops then too: users sign in with their password until a license is activated/;
+  /not enforced while the Enterprise license is missing or expired \(after the 14-day trial, or 30 days after a license expires\), because SSO sign-in stops then too: users sign in with their password until a license is activated/;
 
 // The toggle's description before the license could switch SSO off.
 const RETIRED_TOGGLE_DESCRIPTION: string =

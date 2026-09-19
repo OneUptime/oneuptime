@@ -10,6 +10,10 @@ import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { BILLING_ENABLED, IS_ENTERPRISE_EDITION } from "Common/UI/Config";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -110,8 +114,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               title: "Require SSO for Login",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
-              description:
-                "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this. On a self-hosted server this is not enforced while the Enterprise license is missing or expired (after the 14-day trial or grace period), because SSO sign-in stops then too: users sign in with their password until a license is activated.",
+              description: `When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this. On a self-hosted server this is not enforced while the Enterprise license is missing or expired (after the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial, or ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after a license expires), because SSO sign-in stops then too: users sign in with their password until a license is activated.`,
             },
           ]}
           modelDetailProps={{
