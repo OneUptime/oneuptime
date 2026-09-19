@@ -2,7 +2,7 @@
 
 OneUptime prend en charge l'authentification unique (SSO) basée sur SAML 2.0 pour l'authentification d'entreprise. Le SSO permet à vos membres d'équipe de se connecter à OneUptime en utilisant le fournisseur d'identité (IdP) de votre organisation, offrant une gestion centralisée des accès et une sécurité renforcée.
 
-> **Édition :** SSO fait partie de OneUptime Enterprise Edition. Sur OneUptime Cloud, il est disponible à partir du forfait **Scale**. Les installations auto-hébergées nécessitent l'image Enterprise Edition et une licence. Voir [Enterprise Edition](/docs/self-hosted/enterprise). Sans licence valide (après l'essai de 14 jours, ou 14 jours après l'expiration d'une licence), la connexion SSO s'arrête et « Require SSO » n'est plus appliqué jusqu'à l'activation d'une licence.
+> **Édition :** SSO fait partie de OneUptime Enterprise Edition. Sur OneUptime Cloud, il est disponible à partir du forfait **Scale**. Les installations auto-hébergées nécessitent l'image Enterprise Edition et une licence. Voir [Enterprise Edition](/docs/self-hosted/enterprise). Sans licence valide (après l'essai de 14 jours, ou 30 jours après l'expiration d'une licence), la connexion SSO s'arrête et « Require SSO » n'est plus appliqué jusqu'à l'activation d'une licence.
 
 ## Aperçu
 

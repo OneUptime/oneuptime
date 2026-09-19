@@ -195,7 +195,7 @@ an install activated offline.
 
 ### When a license expires or is missing
 
-Every enterprise feature keeps working during the 14-day trial, and for 14
+Every enterprise feature keeps working during the 14-day trial, and for 30
 days after a license expires (the grace period). The edition label warns
 before either one ends. After that, **SSO, OIDC, SCIM and audit logging stop**
 until a license is activated, the same as on the Community Edition. Losing a
@@ -205,7 +205,7 @@ at the same moment SSO sign-in stops, so users sign in with a password.
 | State | What happens |
 | --- | --- |
 | **Valid license** | Every enterprise feature works. New users cannot be added beyond the licensed number of seats. Existing users are never removed. |
-| **Trial or grace period** (the first 14 days of an unlicensed install, or 14 days after a license expires) | Every enterprise feature works, and the edition label shows a warning. During the grace period after an expiry, the seat limit still applies. |
+| **Trial or grace period** (the first 14 days of an unlicensed install, or 30 days after a license expires) | Every enterprise feature works, and the edition label shows a warning. During the grace period after an expiry, the seat limit still applies. |
 | **After the trial or grace period** (expired, missing or invalid license, or a license that does not include the feature) | SSO and OIDC sign-in, SCIM provisioning and audit logging **stop** (see below). Enterprise configuration becomes **read-only**: you can view and delete it, but not create or change it. Two changes always work, so you can respond to an incident: disabling an SSO or OIDC provider (or a global provider's attachment to a project), and replacing a SCIM bearer token. The Enterprise settings pages offer them while everything else is read-only: **Disable** on an enabled provider, and **Reset Bearer Token** on a SCIM configuration, which shows the new token once. Through the API, send `isEnabled: false` on its own, or `bearerToken` on its own (at least 32 characters). Audit logging cannot be turned on or widened. The enterprise Health dashboards and the Query Console are locked. The seat limit is no longer enforced. |
 
 What stops when a license lapses:

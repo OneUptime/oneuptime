@@ -39,7 +39,7 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
     enterprise configuration becomes read-only and the Health dashboards are
     locked. Everything resumes, without a restart, when a license is
     activated, and core monitoring is never affected. A license that expires
-    later gets 14 days before the same happens.
+    later gets a 30-day grace period before the same happens.
   - **Community Edition with SSO, OIDC or SCIM configured:** set
     `image.type: enterprise-edition` before you upgrade to keep them. If you
     stay on the Community Edition, SSO sign-in stops, "Require SSO for login"

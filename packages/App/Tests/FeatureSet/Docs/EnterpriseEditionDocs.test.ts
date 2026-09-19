@@ -7,7 +7,10 @@ import {
 import EnterpriseFeature, {
   ALL_ENTERPRISE_FEATURES,
 } from "Common/Server/Enterprise/EnterpriseFeature";
-import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -29,7 +32,9 @@ import path from "path";
  * OneUptime 100% (or fully) open source in any language, the Helm chart's
  * upgrade notes carry the edition split, and the chart says that production
  * use of the Enterprise Edition needs a subscription while the 14-day trial is
- * for evaluation.
+ * for evaluation. The trial (14 days, an install with no license) and the
+ * grace period (30 days after a license expires) are different lengths, and
+ * every page states each with the constant the license classifier uses.
  *
  * And what a lapse does: after the trial or the grace period SSO, OIDC, SCIM
  * and audit logging stop (the owner's decision; they used to keep running),
@@ -459,13 +464,59 @@ function helmEditionTexts(): Array<HelmEditionText> {
 }
 
 /*
+ * Every length an English licensing text states for the trial or the grace
+ * period, checked against the constants: "N-day trial" must be the trial,
+ * and "N days after a license expires" / "N-day grace period" the grace
+ * period. Used on the Helm texts and the Enterprise Edition page here;
+ * LicensePeriodClaims.test.ts scans every other licensing text the same way.
+ */
+/*
+ * The day counts a sentence states, in order, with Persian digits read as
+ * their values: "(after the 14-day trial, or 30 days after a license
+ * expires)" in any language gives [14, 30].
+ */
+function statedDayCounts(text: string): Array<number> {
+  const western: string = text.replace(/[۰-۹]/g, (digit: string) => {
+    return String(digit.charCodeAt(0) - "۰".charCodeAt(0));
+  });
+
+  return Array.from(
+    western.matchAll(/(?<![\d.])\d+(?![\d.])/g),
+    (match: RegExpMatchArray) => {
+      return Number(match[0]);
+    },
+  );
+}
+
+function licensePeriodLengthProblems(text: string): Array<string> {
+  const problems: Array<string> = [];
+
+  for (const match of text.matchAll(/\b(\d+)-day trial\b/g)) {
+    if (Number(match[1]) !== ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS) {
+      problems.push(`wrong trial length: ${match[0]}`);
+    }
+  }
+
+  for (const match of text.matchAll(
+    /\b(\d+)(?: days after a license expires|-day grace period)\b/g,
+  )) {
+    if (Number(match[1]) !== ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS) {
+      problems.push(`wrong grace length: ${match[0]}`);
+    }
+  }
+
+  return problems;
+}
+
+/*
  * What is wrong with a description of the Enterprise Edition's licensing: it
  * must say production use needs a subscription, that the first 14 days are
- * an evaluation trial, and that SSO, OIDC, SCIM and audit logging stop after
- * it until a license is activated. It must not describe the license only as
- * a switch for configuration, promise that those keep running, or call the
- * unlicensed first 14 days a grace period (the grace period is the 14 days
- * after a license expires).
+ * an evaluation trial, that the same happens 30 days after a license expires,
+ * and that SSO, OIDC, SCIM and audit logging stop after it until a license is
+ * activated. It must not describe the license only as a switch for
+ * configuration, promise that those keep running, call the unlicensed first
+ * 14 days a grace period (the grace period is the 30 days after a license
+ * expires), or state either period with another length.
  */
 function helmLicensingWordingProblems(text: string): Array<string> {
   const flat: string = normalized(text);
@@ -473,7 +524,8 @@ function helmLicensingWordingProblems(text: string): Array<string> {
 
   for (const required of [
     "Production use of the Enterprise Edition requires a subscription",
-    `${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day trial`,
+    `${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial`,
+    `${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after a license expires`,
     "for evaluation",
     "SSO, OIDC, SCIM and audit logging stop",
     "until a license is activated",
@@ -495,6 +547,8 @@ function helmLicensingWordingProblems(text: string): Array<string> {
       problems.push(`retired wording: ${forbidden.source}`);
     }
   }
+
+  problems.push(...licensePeriodLengthProblems(flat));
 
   return problems;
 }
@@ -621,12 +675,18 @@ describe("Enterprise Edition docs page", () => {
   });
 
   it("states the grace period and trial length the licensing code uses", () => {
-    const page: string = readPage();
-    const days: string = `${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day`;
-    const daysAfter: string = `${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after a license expires`;
+    const page: string = normalized(readPage());
 
-    expect(page).toContain(`**${days} trial**`);
-    expect(page).toContain(daysAfter);
+    expect(page).toContain(
+      `**${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial**`,
+    );
+    expect(page).toContain(
+      `Every enterprise feature keeps working during the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial, and for ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after a license expires (the grace period).`,
+    );
+    expect(page).toContain(
+      `(the first ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS} days of an unlicensed install, or ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after a license expires)`,
+    );
+    expect(licensePeriodLengthProblems(page)).toEqual([]);
   });
 
   it("names the Helm value the chart actually reads", () => {
@@ -774,7 +834,7 @@ describe("Enterprise Edition docs page", () => {
     );
 
     expect(licensing).toContain(
-      `**${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day trial**`,
+      `**${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial**`,
     );
     expect(licensing).toContain(
       "The trial is for evaluation: production use of the Enterprise Edition needs a subscription under the OneUptime Enterprise License.",
@@ -901,7 +961,8 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
         "**If you use SSO, OIDC, SCIM or audit logging, activate a license before the trial ends.**",
         'After the trial, SSO and OIDC sign-in stop, "Require SSO for login" is no longer enforced (users sign in with their password), SCIM provisioning stops and audit logging stops recording.',
         "Everything resumes, without a restart, as soon as you activate a license.",
-        "If the license expires, everything keeps working for a 14-day grace period",
+        `If the license expires, everything keeps working for a ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period`,
+        `gets a ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial from the first start of this release`,
         "On the Enterprise Edition they refuse requests while the license is lapsed",
       ]) {
         expect({
@@ -950,9 +1011,11 @@ describe("Identity docs carry an edition note in every language", () => {
 
       /*
        * And it says what a lapsed license does to the feature: after the
-       * 14-day trial or grace period SSO sign-in stops and "Require SSO" is
-       * not enforced, and SCIM requests are refused, until a license is
-       * activated. The setting keeps its English name in every language.
+       * 14-day trial, or 30 days after a license expires, SSO sign-in stops
+       * and "Require SSO" is not enforced, and SCIM requests are refused,
+       * until a license is activated. The setting keeps its English name in
+       * every language, and each language states the trial first and the
+       * grace period second, with the lengths the classifier uses.
        */
       for (const page of [
         "identity/sso",
@@ -960,19 +1023,32 @@ describe("Identity docs carry an edition note in every language", () => {
         "identity/global-sso",
       ]) {
         const intro: string = readContent(lang, page).split("\n## ")[0]!;
-        // Persian writes 14 as ۱۴.
-        const fourteen: RegExp = /14|۱۴/;
         const scimTwice: RegExp = /SCIM[\s\S]*SCIM/;
+
+        // The lapse sentence follows the link to the Enterprise Edition page.
+        const afterLink: string = intro
+          .split(`](${PAGE_URL})`)
+          .slice(1)
+          .join(" ");
 
         expect({
           page: page,
-          mentionsTrialAndGrace: fourteen.test(intro),
+          periods: statedDayCounts(afterLink),
+        }).toEqual({
+          page: page,
+          periods: [
+            ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+            ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+          ],
+        });
+
+        expect({
+          page: page,
           namesRequireSso:
             page === "identity/scim" || intro.includes("Require SSO"),
           namesScim: page !== "identity/scim" || scimTwice.test(intro),
         }).toEqual({
           page: page,
-          mentionsTrialAndGrace: true,
           namesRequireSso: true,
           namesScim: true,
         });
@@ -984,15 +1060,15 @@ describe("Identity docs carry an edition note in every language", () => {
     for (const [page, sentence] of [
       [
         "identity/sso",
-        'Without a valid license (after the 14-day trial, or 14 days after a license expires), SSO sign-in stops and "Require SSO" is not enforced until a license is activated.',
+        'Without a valid license (after the 14-day trial, or 30 days after a license expires), SSO sign-in stops and "Require SSO" is not enforced until a license is activated.',
       ],
       [
         "identity/scim",
-        "Without a valid license (after the 14-day trial, or 14 days after a license expires), SCIM requests are refused until a license is activated.",
+        "Without a valid license (after the 14-day trial, or 30 days after a license expires), SCIM requests are refused until a license is activated.",
       ],
       [
         "identity/global-sso",
-        'Without a valid license (after the 14-day trial, or 14 days after a license expires), global SSO sign-in stops and instance-wide "Require SSO" is not enforced until a license is activated.',
+        'Without a valid license (after the 14-day trial, or 30 days after a license expires), global SSO sign-in stops and instance-wide "Require SSO" is not enforced until a license is activated.',
       ],
     ] as Array<[string, string]>) {
       expect({
@@ -1033,15 +1109,18 @@ describe("The SLO audit logs page says recording stops with the license", () => 
       const paragraph: string = turningOnSection(lang);
 
       expect(paragraph).toContain(`](${LAPSE_ANCHOR})`);
-      // Persian writes 14 as ۱۴.
-      expect(paragraph).toMatch(/14|۱۴/);
+      // The trial, then the grace period after an expiry (Persian digits too).
+      expect(statedDayCounts(paragraph)).toEqual([
+        ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+        ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+      ]);
       expect(unresolvedDocsLinks(paragraph)).toEqual([]);
     },
   );
 
   it("says in English that recording stops and resumes with a license", () => {
     expect(turningOnSection("en")).toContain(
-      "On a self-hosted installation, audit logging stops recording once the 14-day trial or grace period is over without a valid license, and resumes as soon as a license is activated",
+      "On a self-hosted installation, audit logging stops recording without a valid license (after the 14-day trial, or 30 days after a license expires), and resumes as soon as a license is activated",
     );
   });
 
@@ -1182,8 +1261,10 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
       // Enterprise Edition installs: the enterprise- images now contain ee/.
       "The chart already pulls the `enterprise-` images, which now contain `ee/`.",
       // Unlicensed Enterprise Edition installs: the trial, then read-only.
-      `**${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day trial**`,
+      `**${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial**`,
       "The trial is for evaluation: production use of the Enterprise Edition requires a subscription under the OneUptime Enterprise License",
+      // A license that expires later: the grace period, not the trial's length.
+      `A license that expires later gets a ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period before the same happens.`,
       "enterprise configuration becomes read-only and the Health dashboards are locked",
       // What stops after the trial, and the warning to act before it ends.
       "**If you use SSO, OIDC, SCIM or audit logging, activate a license before the trial ends.**",
@@ -1287,10 +1368,12 @@ describe("Helm chart licensing wording", () => {
     );
 
     expect(problems).toEqual([
+      "missing: 30 days after a license expires",
       "missing: SSO, OIDC, SCIM and audit logging stop",
       "missing: until a license is activated",
       "retired wording: keeps? (?:running|working)",
       "retired wording: never stop",
+      "wrong grace length: 14 days after a license expires",
     ]);
   });
 });

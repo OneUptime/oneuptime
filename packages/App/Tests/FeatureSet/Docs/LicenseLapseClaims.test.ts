@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import fs from "fs";
 import path from "path";
 
@@ -11,7 +12,8 @@ import path from "path";
  * enforcement" (a lapsed license only made configuration read-only), and the
  * promise was written into the docs in 17 languages, the Helm chart,
  * config.example.env and the edition dialog. The owner then decided the
- * opposite: after the 14-day trial or grace period, SSO and OIDC sign-in stop
+ * opposite: after the 14-day trial (an install with no license) or the 30-day
+ * grace period (after a license expires), SSO and OIDC sign-in stop
  * (and "Require SSO" is no longer enforced, so users sign in with a
  * password), SCIM provisioning stops and audit logging stops recording - the
  * Community Edition's behaviour - until a license is activated. A sentence
@@ -109,10 +111,10 @@ const RETIRED_LAPSE_CLAIMS: Array<RetiredLapseClaim> = [
  * to get past the scan.
  */
 const ACCURATE_LAPSE_COPY: Array<string> = [
-  "Every enterprise feature keeps working during the 14-day trial, and for 14 days after a license expires (the grace period).",
+  "Every enterprise feature keeps working during the 14-day trial, and for 30 days after a license expires (the grace period).",
   "After that, **SSO, OIDC, SCIM and audit logging stop** until a license is activated, the same as on the Community Edition.",
   'After the trial, SSO and OIDC sign-in stop, "Require SSO for login" is no longer enforced (users sign in with their password), SCIM provisioning stops and audit logging stops recording.',
-  "If the license expires, everything keeps working for a 14-day grace period, and after that the same happens as for an install with no license.",
+  "If the license expires, everything keeps working for a 30-day grace period, and after that the same happens as for an install with no license.",
   "While it cannot read the license state, for example for a moment while the server starts, SSO enforcement, SCIM and audit logging stay on.",
   "While the license state cannot be read, SSO, SCIM and audit logging keep running.",
   "**Core monitoring is never affected**: monitors, alerts, incidents, on-call, status pages and telemetry all keep working.",
@@ -121,7 +123,7 @@ const ACCURATE_LAPSE_COPY: Array<string> = [
   "A valid license that includes them keeps single sign-on, SCIM provisioning and audit logging running, enterprise configuration editable and the enterprise admin dashboards unlocked.",
   'Losing a license never locks anyone out: "Require SSO for login" stops being enforced at the same moment SSO sign-in stops, so users sign in with a password.',
   "Everything resumes, without a restart, as soon as a license is activated, and core monitoring is never affected.",
-  "Your self-hosted OneUptime instances keep every enterprise feature for 14 days after the expiry date above (the grace period).",
+  "Your self-hosted OneUptime instances keep every enterprise feature for 30 days after the expiry date above (the grace period).",
 ];
 
 // An unreadable license state keeps things on - unless the sentence also talks about a lapse.
@@ -386,7 +388,7 @@ describe("the lapse is announced where people read about the license", () => {
     ).join(" ");
 
     expect(example).toContain(
-      "After the trial (or 14 days after a license expires), SSO, OIDC, SCIM and audit logging stop",
+      `After the trial (or ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after a license expires), SSO, OIDC, SCIM and audit logging stop`,
     );
     expect(example).toContain('"Require SSO" is no longer enforced');
     expect(example).toContain("until a license is activated");
@@ -403,7 +405,7 @@ describe("the lapse is announced where people read about the license", () => {
     ).join(" ");
 
     for (const expected of [
-      "keep every enterprise feature for 14 days after the expiry date above (the grace period)",
+      `keep every enterprise feature for ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after the expiry date above (the grace period)`,
       "When the grace period ends, until a renewed license is activated",
       "SSO and OIDC sign-in stop",
       "is no longer enforced, so your users sign in with their password",

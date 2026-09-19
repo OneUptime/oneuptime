@@ -2,7 +2,7 @@
 
 OneUptime 支援 SCIM v2.0 通訊協定，用於自動化的使用者佈建與解除佈建。SCIM 讓 Azure AD、Okta 等身分提供者（IdP）以及其他企業身分系統，能夠自動管理使用者對 OneUptime 專案與狀態頁面的存取權。
 
-> **版本：** SCIM 屬於 OneUptime Enterprise Edition（企業版）功能。在 OneUptime Cloud 上，**Scale** 以上方案可用。自架部署需要使用企業版映像並擁有授權。請參閱 [Enterprise Edition](/docs/self-hosted/enterprise)。沒有有效的授權時（14 天試用期結束後，或授權過期 14 天後），在啟用授權之前，SCIM 請求將被拒絕。
+> **版本：** SCIM 屬於 OneUptime Enterprise Edition（企業版）功能。在 OneUptime Cloud 上，**Scale** 以上方案可用。自架部署需要使用企業版映像並擁有授權。請參閱 [Enterprise Edition](/docs/self-hosted/enterprise)。沒有有效的授權時（14 天試用期結束後，或授權過期 30 天後），在啟用授權之前，SCIM 請求將被拒絕。
 
 ## 概觀
 

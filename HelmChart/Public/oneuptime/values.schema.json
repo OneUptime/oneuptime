@@ -1605,7 +1605,7 @@
                         "community-edition",
                         "enterprise-edition"
                     ],
-                    "description": "Which edition's images to run. community-edition runs the Apache-2.0 images; enterprise-edition runs the Enterprise Edition images (the same tags with an enterprise- prefix), which add the enterprise features under the OneUptime Enterprise License. Production use of the Enterprise Edition requires a subscription under that license; an install with no license runs as a 14-day trial, which is for evaluation. After the trial (or 14 days after a license expires), SSO, OIDC, SCIM and audit logging stop and enterprise configuration becomes read-only until a license is activated; core monitoring is never affected."
+                    "description": "Which edition's images to run. community-edition runs the Apache-2.0 images; enterprise-edition runs the Enterprise Edition images (the same tags with an enterprise- prefix), which add the enterprise features under the OneUptime Enterprise License. Production use of the Enterprise Edition requires a subscription under that license; an install with no license runs as a 14-day trial, which is for evaluation. After the trial (or 30 days after a license expires), SSO, OIDC, SCIM and audit logging stop and enterprise configuration becomes read-only until a license is activated; core monitoring is never affected."
                 },
                 "restartPolicy": {
                     "type": "string"

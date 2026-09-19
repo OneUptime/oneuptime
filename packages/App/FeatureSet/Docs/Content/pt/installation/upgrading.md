@@ -58,7 +58,7 @@ The Enterprise Edition now checks its license:
 
 - **An install with a license key** keeps working. It checks the license with
   OneUptime when it starts and once a day. If the license expires, everything
-  keeps working for a 14-day grace period, and after that the same happens as
+  keeps working for a 30-day grace period, and after that the same happens as
   for an install with no license.
 - **An install with no license**, for example one that ran the Enterprise
   Edition on `IS_ENTERPRISE_EDITION=true` alone, gets a 14-day trial from the

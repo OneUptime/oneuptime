@@ -2,7 +2,7 @@
 
 OneUptime 支援以 SAML 2.0 為基礎的單一登入（SSO），以進行企業驗證。SSO 讓您的團隊成員能夠使用貴組織的身分提供者（IdP）登入 OneUptime，提供集中式的存取管理與更高的安全性。
 
-> **版本：** SSO 屬於 OneUptime Enterprise Edition（企業版）功能。在 OneUptime Cloud 上，**Scale** 以上方案可用。自架部署需要使用企業版映像並擁有授權。請參閱 [Enterprise Edition](/docs/self-hosted/enterprise)。沒有有效的授權時（14 天試用期結束後，或授權過期 14 天後），在啟用授權之前，SSO 登入將停止，且不會強制執行「Require SSO」。
+> **版本：** SSO 屬於 OneUptime Enterprise Edition（企業版）功能。在 OneUptime Cloud 上，**Scale** 以上方案可用。自架部署需要使用企業版映像並擁有授權。請參閱 [Enterprise Edition](/docs/self-hosted/enterprise)。沒有有效的授權時（14 天試用期結束後，或授權過期 30 天後），在啟用授權之前，SSO 登入將停止，且不會強制執行「Require SSO」。
 
 ## 概觀
 

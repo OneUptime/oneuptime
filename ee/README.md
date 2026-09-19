@@ -158,13 +158,17 @@ load creates an import cycle that crashes the Enterprise bundle.
 
 With billing on (OneUptime Cloud) both license questions answer yes whenever
 `ee/` is loaded, and plan tiers gate the features. Self-hosted, a feature is
-active and available while the license covers it: valid, in the 14-day grace
+active and available while the license covers it: valid, in the 30-day grace
 period after it expired, or, with no license at all, inside the 14-day trial.
+The two lengths are `ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS` and
+`ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS`
+(`packages/Common/Types/EnterpriseLicense/EnterpriseLicensePeriods.ts`), which
+the license classifier takes as `graceDays` and `trialDays`.
 
 ### When the license lapses
 
 A self-hosted license has lapsed for a feature when the trial is over and no
-license is installed, when the license expired more than 14 days ago, when it
+license is installed, when the license expired more than 30 days ago, when it
 is invalid, or when its feature list leaves the feature out. That is exactly
 what `isFeatureAvailableSync` treats as unavailable. Then:
 
@@ -311,7 +315,7 @@ once no supported release trusts that key alone.
 also called "AcceptUnverifiedLegacyLicenses") is `true`. While it is on, legacy
 HS256 licenses and tokens signed by a key this build does not trust are
 accepted as "unverified", with their expiry and seat limit taken from the
-stored license columns and the same 14-day grace period. It has to stay on
+stored license columns and the same 30-day grace period. It has to stay on
 until the ceremony above has shipped: until then there is nothing else to
 accept.
 
