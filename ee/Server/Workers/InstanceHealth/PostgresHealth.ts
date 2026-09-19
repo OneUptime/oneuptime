@@ -1,7 +1,14 @@
 import PostgresAppInstance, {
   DatabaseSource,
-} from "../../Infrastructure/PostgresDatabase";
-import logger from "../Logger";
+} from "Common/Server/Infrastructure/PostgresDatabase";
+import logger from "Common/Server/Utils/Logger";
+
+/*
+ * The PostgreSQL probes behind the Enterprise instance-health job
+ * (EvaluatePostgresHealth.ts): database and WAL size, connection saturation,
+ * transaction-ID wraparound and replication slots. Only that job reads them,
+ * so they live in ee/ next to it rather than in core.
+ */
 
 /*
  * Postgres refuses all writes once transaction-ID age reaches 2^31. Utilization

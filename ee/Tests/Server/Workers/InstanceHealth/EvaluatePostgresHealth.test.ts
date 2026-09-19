@@ -14,7 +14,7 @@ import {
   PostgresHealthSnapshot,
   PostgresReplicationSlotSnapshot,
   POSTGRES_WRAPAROUND_CEILING,
-} from "Common/Server/Utils/InstanceHealth/PostgresHealth";
+} from "../../../../Server/Workers/InstanceHealth/PostgresHealth";
 import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -28,9 +28,9 @@ jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
-jest.mock("Common/Server/Utils/InstanceHealth/PostgresHealth", () => {
+jest.mock("../../../../Server/Workers/InstanceHealth/PostgresHealth", () => {
   const actual: Record<string, unknown> = jest.requireActual(
-    "Common/Server/Utils/InstanceHealth/PostgresHealth",
+    "../../../../Server/Workers/InstanceHealth/PostgresHealth",
   );
 
   return {

@@ -6,10 +6,6 @@ import { Host } from "Common/Server/EnvironmentConfig";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
-import {
-  getRedisHealthSnapshot,
-  RedisHealthSnapshot,
-} from "Common/Server/Utils/InstanceHealth/RedisHealth";
 import logger from "Common/Server/Utils/Logger";
 import OneUptimeDate from "Common/Types/Date";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -30,6 +26,7 @@ import {
   notApplicable,
   serializeForMetadata,
 } from "App/FeatureSet/Workers/Jobs/InstanceHealth/InstanceHealthNotification";
+import { getRedisHealthSnapshot, RedisHealthSnapshot } from "./RedisHealth";
 
 const JOB_NAME: string = "InstanceHealth:EvaluateRedisHealth";
 const LEASE_KEY: string = "oneuptime:instance-health:redis";

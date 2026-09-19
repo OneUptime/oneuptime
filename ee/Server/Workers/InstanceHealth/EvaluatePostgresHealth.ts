@@ -12,7 +12,7 @@ import {
   PostgresHealthSnapshot,
   PostgresReplicationSlotSnapshot,
   POSTGRES_WRAPAROUND_CEILING,
-} from "Common/Server/Utils/InstanceHealth/PostgresHealth";
+} from "./PostgresHealth";
 import logger from "Common/Server/Utils/Logger";
 import OneUptimeDate from "Common/Types/Date";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";

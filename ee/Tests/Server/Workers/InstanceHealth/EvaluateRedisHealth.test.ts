@@ -12,7 +12,7 @@ import CreateBy from "Common/Server/Types/Database/CreateBy";
 import {
   getRedisHealthSnapshot,
   RedisHealthSnapshot,
-} from "Common/Server/Utils/InstanceHealth/RedisHealth";
+} from "../../../../Server/Workers/InstanceHealth/RedisHealth";
 import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -27,11 +27,28 @@ jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
 });
 
 /*
- * Spread the real module rather than listing exports by hand: only the two
- * probe functions need stubbing, and an enumerated factory silently turns every
- * export it forgets into undefined, which surfaces as NaN or "undefined" buried
- * inside a message that substring assertions happily step over.
+ * Spread the real module rather than listing exports by hand: only the probe
+ * needs stubbing, and an enumerated factory silently turns every export it
+ * forgets into undefined, which surfaces as NaN or "undefined" buried inside a
+ * message that substring assertions happily step over.
+ *
+ * The job's probe is ee's own RedisHealth (the counter-delta snapshot). The
+ * read-only INFO view (getRedisInfoSnapshot) stayed in core for the admin
+ * health API, and it is stubbed there too so no test here can reach a real
+ * Redis through it.
  */
+jest.mock("../../../../Server/Workers/InstanceHealth/RedisHealth", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../../Server/Workers/InstanceHealth/RedisHealth",
+  );
+
+  return {
+    __esModule: true,
+    ...actual,
+    getRedisHealthSnapshot: jest.fn(),
+  };
+});
+
 jest.mock("Common/Server/Utils/InstanceHealth/RedisHealth", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "Common/Server/Utils/InstanceHealth/RedisHealth",
@@ -40,7 +57,6 @@ jest.mock("Common/Server/Utils/InstanceHealth/RedisHealth", () => {
   return {
     __esModule: true,
     ...actual,
-    getRedisHealthSnapshot: jest.fn(),
     getRedisInfoSnapshot: jest.fn(),
   };
 });

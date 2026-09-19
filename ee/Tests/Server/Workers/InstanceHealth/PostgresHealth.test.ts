@@ -1,10 +1,10 @@
-import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
+import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import {
   getPostgresHealthSnapshot,
   gigabytesToBytes,
   PostgresHealthSnapshot,
   POSTGRES_WRAPAROUND_CEILING,
-} from "../../../../Server/Utils/InstanceHealth/PostgresHealth";
+} from "../../../../Server/Workers/InstanceHealth/PostgresHealth";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
