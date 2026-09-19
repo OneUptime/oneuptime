@@ -145,6 +145,15 @@ export type ProjectBalanceColumnName =
  */
 export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
 
+/*
+ * The project columns that hold its SSO requirement: the ones onFindSuccess
+ * masks and onBeforeUpdate guards while SSO is not active.
+ */
+export const PROJECT_SSO_REQUIREMENT_COLUMNS: ReadonlyArray<string> = [
+  "requireSsoForLogin",
+  "requireSsoWithSsoProviderId",
+];
+
 // The project columns that decide what the audit log records and keeps.
 export interface ProjectAuditLogSettings {
   enableAuditLogs: boolean;
@@ -653,6 +662,17 @@ export class ProjectService extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     /*
+     * While SSO is not active this caller only ever read the requirement as
+     * off (see onFindSuccess), so a write of it must not switch the stored
+     * requirement off, or set one nobody could see. Drops or refuses it.
+     */
+    EditionEnforcement.guardSsoRequirementWrite({
+      props: updateBy.props,
+      data: updateBy.data as unknown as Record<string, unknown>,
+      columns: PROJECT_SSO_REQUIREMENT_COLUMNS,
+    });
+
+    /*
      * Any project field could have changed; invalidate the in-process cache
      * of the SSO flag. Cheap to refetch on the next request.
      */
@@ -784,9 +804,9 @@ export class ProjectService extends DatabaseService<Model> {
    * always be able to record less), a write that keeps a project's settings
    * as they are (the settings form sends every field), internal root writes,
    * and anything when billing is on, where the plan gates apply. Whether
-   * entries are recorded at all stays with EnterpriseEdition.isLoaded() (the
-   * recorder), never the license, so a lapsed license never stops logging
-   * that is already on.
+   * entries are recorded at all is decided per entry by the recorder
+   * (EnterpriseEdition.isFeatureActive(AuditLogs)): recording stops while a
+   * self-hosted license is lapsed and resumes when it is renewed.
    *
    * The current settings are loaded only when the write could widen them and
    * the license does not allow it.
@@ -2797,16 +2817,20 @@ These are no longer recorded against the project and have to be cancelled by han
   }
 
   /*
-   * On the Community Edition a project's SSO requirement is not enforced (the
-   * SSO login routes are part of the Enterprise Edition), so reads made for a
-   * caller report the EFFECTIVE value: not required, no required provider.
-   * Clients decide from these columns whether to start an SSO flow - the
-   * mobile app hides a project's on-call data behind an SSO login it cannot
-   * complete here, and its store builds cannot be patched.
+   * While SSO is not active a project's SSO requirement is not enforced: on
+   * the Community Edition (the SSO login routes are part of the Enterprise
+   * Edition), and on an Enterprise install whose license is lapsed or does
+   * not include SSO (the routes refuse). Reads made for a caller then report
+   * the EFFECTIVE value: not required, no required provider. Clients decide
+   * from these columns whether to start an SSO flow - the mobile app hides a
+   * project's on-call data behind an SSO login it cannot complete, and its
+   * store builds cannot be patched.
    *
    * Only the returned objects change. Internal (root) reads, and the stored
-   * row, keep the real value, so switching back to the Enterprise Edition
-   * restores enforcement exactly as configured.
+   * row, keep the real value, and onBeforeUpdate keeps a caller from writing
+   * the masked value back. So running the Enterprise Edition with a valid
+   * license (or in its trial or grace period) again restores enforcement
+   * exactly as configured.
    */
   @CaptureSpan()
   protected override async onFindSuccess(

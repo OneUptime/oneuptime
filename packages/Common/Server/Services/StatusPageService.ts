@@ -105,6 +105,14 @@ export {
   StatusPageReportRow,
 };
 
+/*
+ * The status page column that holds its SSO requirement: the one
+ * onFindSuccess masks and onBeforeUpdate guards while SSO is not active.
+ */
+export const STATUS_PAGE_SSO_REQUIREMENT_COLUMNS: ReadonlyArray<string> = [
+  "requireSsoForLogin",
+];
+
 export class Service extends DatabaseService<StatusPage> {
   /*
    * Caches the resolved status page URL per statusPageId. `getStatusPageURL`
@@ -270,12 +278,16 @@ export class Service extends DatabaseService<StatusPage> {
   }
 
   /*
-   * On the Community Edition a status page's SSO requirement is not enforced
-   * (status page SSO login is part of the Enterprise Edition), so reads made
-   * for a caller report the EFFECTIVE value: not required. Internal (root)
-   * reads and the stored row keep the real value, so switching back to the
-   * Enterprise Edition restores enforcement exactly as configured. The
-   * public master-page route reads as root and applies the same rule itself.
+   * While SSO is not active a status page's SSO requirement is not enforced:
+   * on the Community Edition (status page SSO login is part of the
+   * Enterprise Edition), and on an Enterprise install whose license is
+   * lapsed or does not include SSO (the SSO routes refuse). Reads made for a
+   * caller then report the EFFECTIVE value: not required. Internal (root)
+   * reads and the stored row keep the real value, and onBeforeUpdate keeps a
+   * caller from writing the masked value back, so running the Enterprise
+   * Edition with a valid license (or in its trial or grace period) again
+   * restores enforcement exactly as configured. The public master-page route
+   * reads as root and applies the same rule itself.
    */
   @CaptureSpan()
   protected override async onFindSuccess(
@@ -1018,6 +1030,17 @@ export class Service extends DatabaseService<StatusPage> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<StatusPage>,
   ): Promise<OnUpdate<StatusPage>> {
+    /*
+     * While SSO is not active this caller only ever read the requirement as
+     * off (see onFindSuccess), so a write of it must not switch the stored
+     * requirement off, or set one nobody could see. Drops or refuses it.
+     */
+    EditionEnforcement.guardSsoRequirementWrite({
+      props: updateBy.props,
+      data: updateBy.data as unknown as Record<string, unknown>,
+      columns: STATUS_PAGE_SSO_REQUIREMENT_COLUMNS,
+    });
+
     // is enabling SMS subscribers.
 
     if (updateBy.data.enableSmsSubscribers) {
