@@ -6,6 +6,9 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import AuditLogsLicenseNotice from "./AuditLogsLicenseNotice";
+import { EnterpriseLicenseMode } from "../SSO/License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../SSO/License/UseEnterpriseLicenseMode";
 
 /*
  * Settings > Audit Logs (OneUptime Enterprise): the project's recording switch,
@@ -16,12 +19,19 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * "SettingsAuditLogsSettings" key), or the audit log upsell card when the
  * project is not eligible or the build has no Enterprise plugin. The
  * eligibility check lives in that shell.
+ *
+ * Without a valid Enterprise license (after the trial or the grace period)
+ * audit logging stops recording, whatever the switch says; the notice above
+ * the card says so (AuditLogsLicenseNotice).
  */
 const AuditLogsSettings: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+
   return (
     <Fragment>
+      <AuditLogsLicenseNotice mode={licenseMode} />
       <CardModelDetail
         name="Audit Logs"
         cardProps={{
