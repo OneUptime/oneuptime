@@ -32,6 +32,11 @@ import * as tls from "tls";
 
 jest.setTimeout(30_000);
 
+// Addresses this machine does not have: the test proxy tunnels to a local server.
+const IPV4_TARGET: string = "10.20.30.40";
+const IPV6_TARGET: string = "2001:db8::10";
+const IP_TARGET_PORT: number = 8443;
+
 interface CertificateMaterial {
   workDir: string;
   caCertificate: string;
@@ -39,6 +44,25 @@ interface CertificateMaterial {
   serverKey: string;
   clientCertificate: string;
   clientKey: string;
+  // Names the IP-literal targets below, and nothing else.
+  targetAddressServerCertificate: string;
+  targetAddressServerKey: string;
+  /*
+   * Names only the proxy's side of the tunnel - 127.0.0.1, and localhost,
+   * the name tls.connect falls back to - never a target's.
+   */
+  proxyAddressServerCertificate: string;
+  proxyAddressServerKey: string;
+}
+
+interface IpTunnelObservation {
+  result: ResponseObservation | undefined;
+  error: NodeJS.ErrnoException | undefined;
+  connectAuthorities: Array<string>;
+  targetRequests: Array<{
+    path: string | undefined;
+    servername: string | false | null;
+  }>;
 }
 
 interface HttpObservation {
@@ -489,6 +513,130 @@ describe("HttpMonitorRequest pinned proxy integration", () => {
       ]);
     }
   });
+
+  /*
+   * A URL like https://10.0.0.5/ has no hostname to send as SNI: RFC 6066
+   * forbids an address there, and Node 26 throws ERR_INVALID_ARG_VALUE for one
+   * before a byte is sent, so every such check through a proxy failed.
+   */
+  test.each([
+    ["IPv4", IPV4_TARGET],
+    ["IPv6", IPV6_TARGET],
+  ])(
+    "reaches an %s-literal HTTPS target through the CONNECT tunnel without sending the address as SNI",
+    async (_family: string, targetAddress: string) => {
+      const guard: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(DataSourceEgressGuard, "assertUrlAllowed")
+        .mockImplementation(async (value: string) => {
+          return {
+            url: new globalThis.URL(value),
+            addresses: [
+              {
+                address: targetAddress,
+                family: net.isIPv6(targetAddress) ? 6 : 4,
+              },
+            ],
+          };
+        });
+      jest.spyOn(ProxyConfig, "getHttpProxyAgent").mockReturnValue(null);
+      jest
+        .spyOn(ProxyConfig, "getHttpsProxyAgent")
+        .mockReturnValue(new https.Agent() as never);
+
+      const urlHost: string = net.isIPv6(targetAddress)
+        ? `[${targetAddress}]`
+        : targetAddress;
+      const rawUrl: string = `https://${urlHost}:${IP_TARGET_PORT}/health`;
+      let prepared: PreparedHttpMonitorRequest | undefined;
+
+      const observation: IpTunnelObservation =
+        await requestIpTargetThroughProxy({
+          serverCertificate: certificates.targetAddressServerCertificate,
+          serverKey: certificates.targetAddressServerKey,
+          targetHost: targetAddress,
+          createAgent: async (proxyUrl: string): Promise<https.Agent> => {
+            jest
+              .spyOn(ProxyConfig, "getHttpsProxyUrl")
+              .mockReturnValue(proxyUrl);
+            prepared = await HttpMonitorRequest.prepare(rawUrl, {
+              tls: { allowSelfSignedCertificates: true },
+            });
+            return prepared.httpsAgent as https.Agent;
+          },
+        });
+
+      expect(guard).toHaveBeenCalledWith(rawUrl, expect.anything());
+      expect(prepared?.httpsAgent).toBeInstanceOf(PinnedHttpsProxyAgent);
+      expect(observation.error).toBeUndefined();
+      expect(observation.result).toEqual({
+        body: "ip-literal-https-target",
+        statusCode: 200,
+      });
+      expect(observation.connectAuthorities).toEqual([
+        `${urlHost}:${IP_TARGET_PORT}`,
+      ]);
+      // No SNI at all: the target never sees the address as a server name.
+      expect(observation.targetRequests).toEqual([
+        { path: "/health", servername: false },
+      ]);
+    },
+  );
+
+  test.each([
+    ["IPv4", IPV4_TARGET],
+    ["IPv6", IPV6_TARGET],
+  ])(
+    "verifies an %s-literal HTTPS target's certificate against that address",
+    async (_family: string, targetAddress: string) => {
+      const observation: IpTunnelObservation =
+        await requestIpTargetThroughProxy({
+          serverCertificate: certificates.targetAddressServerCertificate,
+          serverKey: certificates.targetAddressServerKey,
+          targetHost: targetAddress,
+          createAgent: async (proxyUrl: string): Promise<https.Agent> => {
+            return new PinnedHttpsProxyAgent(proxyUrl, targetAddress, {
+              ca: certificates.caCertificate,
+            }) as unknown as https.Agent;
+          },
+        });
+
+      expect(observation.error).toBeUndefined();
+      expect(observation.result).toEqual({
+        body: "ip-literal-https-target",
+        statusCode: 200,
+      });
+      expect(observation.targetRequests).toEqual([
+        { path: "/health", servername: false },
+      ]);
+    },
+  );
+
+  /*
+   * With no SNI and no host, tls.connect checks the certificate against the
+   * name the socket it was given was opened with - inside a CONNECT tunnel,
+   * the proxy's - or else "localhost". A certificate naming only those must
+   * still be refused for the target.
+   */
+  test("refuses an IP-literal HTTPS target whose certificate names only the proxy's side of the tunnel", async () => {
+    const observation: IpTunnelObservation = await requestIpTargetThroughProxy({
+      serverCertificate: certificates.proxyAddressServerCertificate,
+      serverKey: certificates.proxyAddressServerKey,
+      targetHost: IPV4_TARGET,
+      createAgent: async (proxyUrl: string): Promise<https.Agent> => {
+        return new PinnedHttpsProxyAgent(proxyUrl, IPV4_TARGET, {
+          ca: certificates.caCertificate,
+        }) as unknown as https.Agent;
+      },
+    });
+
+    expect(observation.result).toBeUndefined();
+    expect(observation.error?.code).toBe("ERR_TLS_CERT_ALTNAME_INVALID");
+    expect(observation.error?.message).toContain(IPV4_TARGET);
+    expect(observation.connectAuthorities).toEqual([
+      `${IPV4_TARGET}:${IP_TARGET_PORT}`,
+    ]);
+    expect(observation.targetRequests).toEqual([]);
+  });
 });
 
 function generateCertificateMaterial(): CertificateMaterial {
@@ -507,6 +655,12 @@ function generateCertificateMaterial(): CertificateMaterial {
       "CN = oneuptime-proxy-integration-test",
       "[v3_server]",
       "subjectAltName = DNS:intended-https-monitor.example.com",
+      "extendedKeyUsage = serverAuth",
+      "[v3_server_target_address]",
+      `subjectAltName = IP:${IPV4_TARGET}, IP:${IPV6_TARGET}`,
+      "extendedKeyUsage = serverAuth",
+      "[v3_server_proxy_address]",
+      "subjectAltName = DNS:localhost, IP:127.0.0.1",
       "extendedKeyUsage = serverAuth",
       "[v3_client]",
       "extendedKeyUsage = clientAuth",
@@ -535,14 +689,20 @@ function generateCertificateMaterial(): CertificateMaterial {
     "/CN=oneuptime-proxy-integration-ca",
   ]);
 
+  type CertificateExtension =
+    | "v3_server"
+    | "v3_server_target_address"
+    | "v3_server_proxy_address"
+    | "v3_client";
+
   const issueCertificate: (
     name: string,
     commonName: string,
-    extension: "v3_server" | "v3_client",
+    extension: CertificateExtension,
   ) => { certificatePath: string; keyPath: string } = (
     name: string,
     commonName: string,
-    extension: "v3_server" | "v3_client",
+    extension: CertificateExtension,
   ): { certificatePath: string; keyPath: string } => {
     const keyPath: string = path.join(workDir, `${name}.key`);
     const requestPath: string = path.join(workDir, `${name}.csr`);
@@ -590,6 +750,18 @@ function generateCertificateMaterial(): CertificateMaterial {
     "monitor-client",
     "v3_client",
   );
+  const targetAddressServer: { certificatePath: string; keyPath: string } =
+    issueCertificate(
+      "target-address-server",
+      "ip-literal-https-monitor",
+      "v3_server_target_address",
+    );
+  const proxyAddressServer: { certificatePath: string; keyPath: string } =
+    issueCertificate(
+      "proxy-address-server",
+      "proxy-address-only",
+      "v3_server_proxy_address",
+    );
 
   return {
     workDir,
@@ -598,7 +770,133 @@ function generateCertificateMaterial(): CertificateMaterial {
     serverKey: fs.readFileSync(server.keyPath, "utf8"),
     clientCertificate: fs.readFileSync(client.certificatePath, "utf8"),
     clientKey: fs.readFileSync(client.keyPath, "utf8"),
+    targetAddressServerCertificate: fs.readFileSync(
+      targetAddressServer.certificatePath,
+      "utf8",
+    ),
+    targetAddressServerKey: fs.readFileSync(
+      targetAddressServer.keyPath,
+      "utf8",
+    ),
+    proxyAddressServerCertificate: fs.readFileSync(
+      proxyAddressServer.certificatePath,
+      "utf8",
+    ),
+    proxyAddressServerKey: fs.readFileSync(proxyAddressServer.keyPath, "utf8"),
   };
+}
+
+/*
+ * Requests an HTTPS target named by an IP literal through a real CONNECT
+ * proxy. The proxy tunnels every CONNECT to one local TLS server presenting
+ * the given certificate, so the target can be an address this machine does
+ * not have.
+ */
+async function requestIpTargetThroughProxy(options: {
+  serverCertificate: string;
+  serverKey: string;
+  createAgent: (proxyUrl: string) => Promise<https.Agent>;
+  targetHost: string;
+}): Promise<IpTunnelObservation> {
+  const observation: IpTunnelObservation = {
+    result: undefined,
+    error: undefined,
+    connectAuthorities: [],
+    targetRequests: [],
+  };
+  const proxyUpstreamSockets: Set<net.Socket> = new Set<net.Socket>();
+
+  const target: TrackedServer<https.Server> = trackServer(
+    https.createServer(
+      { key: options.serverKey, cert: options.serverCertificate },
+      (request: http.IncomingMessage, response: http.ServerResponse): void => {
+        observation.targetRequests.push({
+          path: request.url,
+          servername: (request.socket as tls.TLSSocket).servername,
+        });
+        response.writeHead(200, { Connection: "close" });
+        response.end("ip-literal-https-target");
+      },
+    ),
+  );
+
+  let proxy: TrackedServer<http.Server> | undefined;
+  let requestAgent: https.Agent | undefined;
+
+  try {
+    const targetPort: number = await listen(target.server);
+
+    proxy = trackServer(
+      http.createServer(
+        (
+          _request: http.IncomingMessage,
+          response: http.ServerResponse,
+        ): void => {
+          response.writeHead(405, { Connection: "close" });
+          response.end("CONNECT required");
+        },
+      ),
+    );
+    proxy.server.on(
+      "connect",
+      (
+        request: http.IncomingMessage,
+        clientSocket: net.Socket,
+        head: Buffer,
+      ): void => {
+        observation.connectAuthorities.push(request.url || "");
+
+        const upstreamSocket: net.Socket = net.connect({
+          host: "127.0.0.1",
+          port: targetPort,
+        });
+        proxyUpstreamSockets.add(upstreamSocket);
+        upstreamSocket.once("close", (): void => {
+          proxyUpstreamSockets.delete(upstreamSocket);
+        });
+        upstreamSocket.once("connect", (): void => {
+          clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+          if (head.length > 0) {
+            upstreamSocket.write(head);
+          }
+          clientSocket.pipe(upstreamSocket);
+          upstreamSocket.pipe(clientSocket);
+        });
+        upstreamSocket.once("error", (): void => {
+          clientSocket.destroy();
+        });
+        clientSocket.once("error", (): void => {
+          upstreamSocket.destroy();
+        });
+      },
+    );
+    const proxyPort: number = await listen(proxy.server);
+
+    requestAgent = await options.createAgent(`http://127.0.0.1:${proxyPort}`);
+
+    try {
+      observation.result = await requestHttps({
+        hostname: options.targetHost,
+        port: IP_TARGET_PORT,
+        method: "GET",
+        path: "/health",
+        agent: requestAgent,
+      });
+    } catch (error) {
+      observation.error = error as NodeJS.ErrnoException;
+    }
+
+    return observation;
+  } finally {
+    requestAgent?.destroy();
+    for (const socket of proxyUpstreamSockets) {
+      socket.destroy();
+    }
+    await Promise.all([
+      proxy ? closeServer(proxy) : Promise.resolve(),
+      closeServer(target),
+    ]);
+  }
 }
 
 function trackServer<TServer extends net.Server>(

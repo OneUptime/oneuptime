@@ -745,142 +745,46 @@ describe("Pinned proxy agents", () => {
     socket.destroy();
   });
 
-  /*
-   * Node 26 throws "Setting the TLS ServerName to an IP address is not
-   * permitted" when servername is an IP literal, so a monitor on
-   * https://<IP> behind the pinning proxy must send no SNI at all - and still
-   * verify the certificate against that IP, not against the proxy the tunnel
-   * socket is connected to.
-   */
-  describe("PinnedHttpsProxyAgent on an IP target", () => {
-    const TARGET_IP: string = "10.23.45.67";
-
-    type ConnectedOptions = Record<string, unknown> & {
-      checkServerIdentity?: (
-        hostname: string,
-        certificate: tls.PeerCertificate,
-      ) => Error | undefined;
-    };
-
-    const connectThroughAgent: (
-      target: string,
-      tlsOptions: https.AgentOptions,
-    ) => Promise<ConnectedOptions> = async (
-      target: string,
-      tlsOptions: https.AgentOptions,
-    ): Promise<ConnectedOptions> => {
+  test.each([PUBLIC_IPV4.address, "2001:db8::10"])(
+    "PinnedHttpsProxyAgent sends no SNI for the IP-literal target %s and checks its certificate against that address",
+    async (targetAddress: string) => {
       const socket: net.Socket = new net.Socket();
       const parentConnect: ReturnType<typeof jest.spyOn> = jest
         .spyOn(HttpsProxyAgent.prototype, "connect")
         .mockResolvedValue(socket as never);
+      const checkServerIdentity: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(tls, "checkServerIdentity")
+        .mockReturnValue(undefined);
       const agent: PinnedHttpsProxyAgent = new PinnedHttpsProxyAgent(
         "http://proxy.example.com:3128",
-        target,
-        tlsOptions,
+        targetAddress,
+        {},
       );
+      const request: EventEmitter = new EventEmitter();
 
       await agent.connect(
-        new EventEmitter() as never,
+        request as never,
         {
-          host: target,
+          host: targetAddress,
           port: 443,
           secureEndpoint: true,
-          // What Node's https agent hands over for an IP host.
-          servername: target,
+          servername: "",
         } as never,
       );
 
-      const options: ConnectedOptions = parentConnect.mock
-        .calls[0]![1] as ConnectedOptions;
+      const targetOptions: tls.ConnectionOptions = parentConnect.mock
+        .calls[0]![1] as tls.ConnectionOptions;
+      expect(targetOptions.servername).toBe("");
 
-      parentConnect.mockRestore();
-      socket.destroy();
-
-      return options;
-    };
-
-    const certificateFor: (subjectAltName: string) => tls.PeerCertificate = (
-      subjectAltName: string,
-    ): tls.PeerCertificate => {
-      return {
-        subject: { CN: "internal" },
-        subjectaltname: subjectAltName,
-      } as unknown as tls.PeerCertificate;
-    };
-
-    // tls errors come from Node's realm, so compare codes, not constructors.
-    const codeOf: (error: Error | undefined) => string | undefined = (
-      error: Error | undefined,
-    ): string | undefined => {
-      return (error as NodeJS.ErrnoException | undefined)?.code;
-    };
-
-    test("sends no servername, so Node does not refuse the handshake", async () => {
-      const options: ConnectedOptions = await connectThroughAgent(TARGET_IP, {
-        rejectUnauthorized: true,
-      });
-
-      expect("servername" in options).toBe(false);
-      expect(options["host"]).toBe(TARGET_IP);
-      expect(options["rejectUnauthorized"]).toBe(true);
-    });
-
-    test("verifies the certificate against the target IP, not the proxy", async () => {
-      const options: ConnectedOptions = await connectThroughAgent(TARGET_IP, {
-        rejectUnauthorized: true,
-      });
-
-      expect(typeof options.checkServerIdentity).toBe("function");
-
-      // Whatever hostname tls hands in (the proxy), the target IP decides.
-      expect(
-        options.checkServerIdentity!(
-          "proxy.example.com",
-          certificateFor(`IP Address:${TARGET_IP}`),
-        ),
-      ).toBeUndefined();
-      expect(
-        codeOf(
-          options.checkServerIdentity!(
-            "proxy.example.com",
-            certificateFor("IP Address:10.99.99.99"),
-          ),
-        ),
-      ).toBe("ERR_TLS_CERT_ALTNAME_INVALID");
-      expect(
-        codeOf(
-          options.checkServerIdentity!(
-            TARGET_IP,
-            certificateFor("DNS:proxy.example.com"),
-          ),
-        ),
-      ).toBe("ERR_TLS_CERT_ALTNAME_INVALID");
-    });
-
-    test("an IPv6 target is treated the same way", async () => {
-      const options: ConnectedOptions = await connectThroughAgent("fd00::1", {
-        rejectUnauthorized: true,
-      });
-
-      expect("servername" in options).toBe(false);
-      expect(
-        options.checkServerIdentity!(
-          "proxy.example.com",
-          certificateFor("IP Address:FD00:0:0:0:0:0:0:1"),
-        ),
-      ).toBeUndefined();
-    });
-
-    test("a hostname target keeps its SNI and Node's default identity check", async () => {
-      const options: ConnectedOptions = await connectThroughAgent(
-        "secure.example.com",
-        { rejectUnauthorized: true },
+      const certificate: tls.PeerCertificate = {} as tls.PeerCertificate;
+      targetOptions.checkServerIdentity!("localhost", certificate);
+      expect(checkServerIdentity).toHaveBeenCalledWith(
+        targetAddress,
+        certificate,
       );
-
-      expect(options["servername"]).toBe("secure.example.com");
-      expect(options.checkServerIdentity).toBeUndefined();
-    });
-  });
+      socket.destroy();
+    },
+  );
 });
 
 describe("HttpMonitorRequest.getRedirectRequest", () => {
