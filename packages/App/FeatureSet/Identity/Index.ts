@@ -26,6 +26,8 @@ const IdentityFeatureSet: FeatureSet = {
      * the same paths and in the same position the core routers used to have,
      * so the ACS, redirect and SCIM URLs configured at customers' identity
      * providers keep working unchanged. The Community Edition mounts none.
+     * They are mounted once, but every route asks the license per request
+     * and refuses while its feature is not active (a lapsed license).
      */
     const enterpriseIdentityRouters: Array<ExpressRouter> =
       EnterpriseEdition.getModule()?.getIdentityRouters() || [];

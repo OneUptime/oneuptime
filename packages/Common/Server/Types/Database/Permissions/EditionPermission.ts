@@ -80,9 +80,10 @@ export default class EditionPermissions {
    * Only creating and updating them needs the license. Reading and deleting
    * are always allowed, so an install that dropped to the Community Edition,
    * or whose license lapsed, can still see what it has configured and remove
-   * it. What already exists keeps working either way: SSO, SCIM and audit
-   * logging are governed by whether the Enterprise Edition is loaded, never by
-   * the license (see EnterpriseEdition).
+   * it. Only configuration is gated here, and none of it is ever deleted.
+   * Whether what exists RUNS is decided at runtime by
+   * EnterpriseEdition.isFeatureActive: SSO, SCIM and audit logging stop while
+   * a self-hosted license is lapsed and resume when a license is activated.
    *
    * The one kind of update that needs no license either is a TIGHTEN-ONLY
    * update (see TIGHTEN_ONLY_UPDATES): every column it writes is on the

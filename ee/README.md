@@ -175,7 +175,12 @@ what `isFeatureAvailableSync` treats as unavailable. Then:
   (project, instance-wide and status page) is no longer enforced, because
   enforcing it with SSO switched off would lock every user out. Users sign in
   with their password; users who only ever signed in with SSO use password
-  reset.
+  reset. Reads made for a caller report a project's or status page's
+  requirement as off, and a caller's write can neither switch the stored
+  requirement off nor set one (`EditionEnforcement.guardSsoRequirementWrite`:
+  a write of the masked value is dropped, anything else is refused with a
+  402), so a settings form saved while SSO is stopped never loses the
+  requirement.
 - **SCIM stops.** Every SCIM endpoint (project and status page) answers 403
   with a SCIM error body naming the lapsed license, and the SCIM Push Groups
   team locks relax so teams can be managed in OneUptime.
@@ -189,7 +194,10 @@ and an info line when they resume, and the relaxed SSO requirements and SCIM
 locks are listed by `packages/Common/Server/Utils/CommunityEditionSsoReport.ts`.
 
 An **unknown** license state never locks anyone out or relaxes SSO: before the
-first license snapshot has loaded, or when reading the cached snapshot throws,
+first license snapshot has loaded, when reading the cached snapshot throws, or
+when no license is installed and the start of the trial has not been recorded
+yet (the first-run stamp could not be written, or the GlobalConfig row does
+not exist yet, so nobody can tell whether the trial is over),
 `isFeatureActive` answers "active" (keep enforcing, serving and recording) and
 warns once per process. The loader waits, bounded, for the first snapshot
 before any router is mounted, so this window is small. `isFeatureAvailable`
@@ -199,7 +207,10 @@ The identity routers are mounted once at boot, but the license changes at
 runtime, and an ee router may not have `router.use()` layers. So every
 identity route starts with a gate from `Server/Identity/Middleware/LicensedFeatureGate.ts`
 that asks per request. `Tests/Server/Identity/IdentityLicenseGates.test.ts`
-checks every route has the gate for its feature.
+checks every route has the gate for its feature. Because the license is asked
+on every such request, the license provider reuses a computed snapshot for at
+most a second (`LICENSE_SNAPSHOT_REUSE_IN_MS`), and never past an expiry, grace
+or trial boundary, so it does not verify a signed license on every request.
 
 The model-to-feature map lives in `EnterpriseEdition.getModelFeature()`.
 

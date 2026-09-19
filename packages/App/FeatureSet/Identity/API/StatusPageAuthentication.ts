@@ -607,10 +607,12 @@ router.post(
       }
 
       /*
-       * Enforced whenever the Enterprise Edition is loaded, whatever its
-       * license says. Only the Community Edition, which serves no status
-       * page SSO login routes, lets a leftover requirement fall back to
-       * email and password.
+       * Enforced while SSO is active (EditionEnforcement.isSsoRequired, which
+       * asks EnterpriseEdition.isFeatureActive(SSO)). Relaxed on the
+       * Community Edition and while the Enterprise license is lapsed, where
+       * the status page SSO routes do not exist or refuse, so a configured
+       * requirement falls back to email and password. An unknown license
+       * state enforces.
        */
       if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
         throw new BadDataException(
@@ -820,10 +822,12 @@ router.post(
       }
 
       /*
-       * Enforced whenever the Enterprise Edition is loaded, whatever its
-       * license says. Only the Community Edition, which serves no status
-       * page SSO login routes, lets a leftover requirement fall back to
-       * email and password.
+       * Enforced while SSO is active (EditionEnforcement.isSsoRequired, which
+       * asks EnterpriseEdition.isFeatureActive(SSO)). Relaxed on the
+       * Community Edition and while the Enterprise license is lapsed, where
+       * the status page SSO routes do not exist or refuse, so a configured
+       * requirement falls back to email and password. An unknown license
+       * state enforces.
        */
       if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
         throw new BadDataException(
@@ -945,10 +949,12 @@ router.post(
       }
 
       /*
-       * Enforced whenever the Enterprise Edition is loaded, whatever its
-       * license says. Only the Community Edition, which serves no status
-       * page SSO login routes, lets a leftover requirement fall back to
-       * email and password.
+       * Enforced while SSO is active (EditionEnforcement.isSsoRequired, which
+       * asks EnterpriseEdition.isFeatureActive(SSO)). Relaxed on the
+       * Community Edition and while the Enterprise license is lapsed, where
+       * the status page SSO routes do not exist or refuse, so a configured
+       * requirement falls back to email and password. An unknown license
+       * state enforces.
        */
       if (EditionEnforcement.isSsoRequired(statusPage.requireSsoForLogin)) {
         throw new BadDataException(

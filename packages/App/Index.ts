@@ -165,9 +165,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await EnterpriseLoader.load();
 
     /*
-     * On the Community Edition, log once which SSO requirements and SCIM team
-     * locks left over from an Enterprise install are no longer enforced (the
-     * SSO login routes are part of ee/). Fire-and-forget; no-op on EE.
+     * Community Edition: log once which SSO requirements and SCIM team locks
+     * left over from an Enterprise install are not enforced (the SSO login
+     * routes are part of ee/). Enterprise Edition: start watching the license,
+     * and log the same list whenever SSO or SCIM stops because the license
+     * lapsed. Fire-and-forget.
      */
     void CommunityEditionSsoReport.logRelaxedEnforcementOnce();
 

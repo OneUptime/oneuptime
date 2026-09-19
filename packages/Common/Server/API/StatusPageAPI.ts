@@ -1047,8 +1047,9 @@ export default class StatusPageAPI extends BaseAPI<
 
           /*
            * The status page app offers SSO sign-in when this is non-zero.
-           * The Community Edition serves no status page SSO routes, so it
-           * reports none rather than send visitors to a 404.
+           * While SSO is not active - the Community Edition serves no status
+           * page SSO routes, and on a lapsed Enterprise license they refuse -
+           * it reports none rather than send visitors into a dead end.
            */
           const hasEnabledSSO: PositiveNumber =
             EditionEnforcement.areSsoRoutesServed()
@@ -1091,10 +1092,12 @@ export default class StatusPageAPI extends BaseAPI<
 
           /*
            * The status page app forces SSO sign-in from this flag. Report
-           * the EFFECTIVE requirement: on the Community Edition it is not
-           * enforced (password sign-in works), so the page must not send
-           * visitors into an SSO flow that does not exist. The stored value
-           * is untouched and applies again on the Enterprise Edition.
+           * the EFFECTIVE requirement: while SSO is not active (the
+           * Community Edition, or a lapsed Enterprise license) it is not
+           * enforced and password sign-in works, so the page must not send
+           * visitors into an SSO flow that does not exist or refuses. The
+           * stored value is untouched and applies again as soon as SSO is
+           * active.
            */
           if (!EditionEnforcement.isSsoEnforced()) {
             item.requireSsoForLogin = false;
