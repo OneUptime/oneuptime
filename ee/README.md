@@ -35,7 +35,7 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 | Path | What it is |
 | --- | --- |
 | `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
-| `Server/Identity/` | SAML SSO, OIDC and SCIM for projects, status pages and the whole instance (global SSO). Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. |
+| `Server/Identity/` | SAML SSO, OIDC and SCIM for projects, status pages and the whole instance (global SSO). Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. Every route starts with a license gate (`Middleware/LicensedFeatureGate.ts`), so it refuses while its feature is not active. |
 | `Server/TeamCompliance/` | Team compliance settings and the compliance status route. |
 | `Server/AuditLog/` | The audit-log recorder behind `EnterpriseEdition.getAuditLogRecorder()`. |
 | `Server/License/` | The license client: signed-license format (`LicenseToken.ts`), trusted signing keys (`TrustedLicenseKeys.ts`), the license snapshot, activation, refresh, seats and the daily license sync, including the seat arithmetic (`EnterpriseLicenseSeats.ts`) and the license-response mapper (`EnterpriseLicenseSync.ts`). Only the `SeatUsage` type stays in core. |
@@ -136,21 +136,70 @@ Core reads plugins only inside render or function bodies, through
 `getDashboardPlugins()` / `getAdminDashboardPlugins()`. Reading them at module
 load creates an import cycle that crashes the Enterprise bundle.
 
-## Which check to use: loaded vs licensed
+## Which check to use: loaded, active or available
 
-`EnterpriseEdition` answers two different questions. Use the right one:
+`EnterpriseEdition` answers three different questions. Use the right one:
 
-- `EnterpriseEdition.isLoaded()`: is the enterprise code running in this
-  process? This governs runtime security behaviour: the SSO, OIDC and SCIM
-  protocol routes, SSO enforcement, SCIM team locks and audit-log recording. It
-  is **never** tied to the license, so a lapsed license never silently weakens a
-  security control.
+- `EnterpriseEdition.isLoaded()`: is the enterprise code present in this
+  process? It says nothing about the license. It decides which enterprise
+  routers and jobs exist and which edition operators are told they run.
+- `EnterpriseEdition.isFeatureActive(feature)`: does the feature's runtime
+  behaviour run right now? This governs SSO sign-in (SAML and OIDC, for
+  projects, status pages and the whole instance, including the mobile flows),
+  "Require SSO for login" enforcement and the SSO provider listings (`SSO`),
+  SCIM provisioning and the SCIM Push Groups team locks (`SCIM`), and
+  audit-log recording (`AuditLogs`). Core reads the first two through
+  `packages/Common/Server/Utils/EditionEnforcement.ts`.
 - `EnterpriseEdition.isFeatureAvailable(feature)` and
-  `isFeatureAvailableSync(feature)`: may the enterprise feature be configured
-  or used now? This governs creating and updating enterprise configuration, the
-  enterprise admin Health dashboards and the query console. With billing on
-  (OneUptime Cloud) the answer is always yes and plan gates apply as usual.
-  Otherwise the license must be valid or in its grace period.
+  `isFeatureAvailableSync(feature)`: may enterprise configuration be created
+  or changed now? This governs enterprise configuration writes (including the
+  tighten-only updates allowed without a license), the enterprise admin Health
+  dashboards and the query console. It fails closed.
+
+With billing on (OneUptime Cloud) both license questions answer yes whenever
+`ee/` is loaded, and plan tiers gate the features. Self-hosted, a feature is
+active and available while the license covers it: valid, in the 14-day grace
+period after it expired, or, with no license at all, inside the 14-day trial.
+
+### When the license lapses
+
+A self-hosted license has lapsed for a feature when the trial is over and no
+license is installed, when the license expired more than 14 days ago, when it
+is invalid, or when its feature list leaves the feature out. That is exactly
+what `isFeatureAvailableSync` treats as unavailable. Then:
+
+- **SSO stops**, the same as on the Community Edition. Every SSO route
+  refuses per request: browser flows show the Identity message page, logins
+  the mobile app started end on its failure deep link, and the JSON discovery
+  routes answer 402. Provider listings are empty, and "Require SSO for login"
+  (project, instance-wide and status page) is no longer enforced, because
+  enforcing it with SSO switched off would lock every user out. Users sign in
+  with their password; users who only ever signed in with SSO use password
+  reset.
+- **SCIM stops.** Every SCIM endpoint (project and status page) answers 403
+  with a SCIM error body naming the lapsed license, and the SCIM Push Groups
+  team locks relax so teams can be managed in OneUptime.
+- **Audit logging stops recording.**
+- Enterprise configuration becomes read-only (`isFeatureAvailable`). The
+  Health dashboards and team compliance keep their own rules.
+
+Nothing is deleted or changed. When a license is activated, everything resumes
+without a restart. `isFeatureActive` logs a warning once when features stop
+and an info line when they resume, and the relaxed SSO requirements and SCIM
+locks are listed by `packages/Common/Server/Utils/CommunityEditionSsoReport.ts`.
+
+An **unknown** license state never locks anyone out or relaxes SSO: before the
+first license snapshot has loaded, or when reading the cached snapshot throws,
+`isFeatureActive` answers "active" (keep enforcing, serving and recording) and
+warns once per process. The loader waits, bounded, for the first snapshot
+before any router is mounted, so this window is small. `isFeatureAvailable`
+fails closed instead.
+
+The identity routers are mounted once at boot, but the license changes at
+runtime, and an ee router may not have `router.use()` layers. So every
+identity route starts with a gate from `Server/Identity/Middleware/LicensedFeatureGate.ts`
+that asks per request. `Tests/Server/Identity/IdentityLicenseGates.test.ts`
+checks every route has the gate for its feature.
 
 The model-to-feature map lives in `EnterpriseEdition.getModelFeature()`.
 
@@ -194,8 +243,10 @@ frontend builds at another directory.
 
 An unlicensed Enterprise install gets a 14-day trial, counted from the first
 time it ran the Enterprise Edition (`GlobalConfig.enterpriseEditionFirstSeenAt`).
-After that, enterprise configuration becomes read-only until a license is
-activated. The trial is for evaluation. Production use needs a subscription.
+After that, enterprise configuration becomes read-only and SSO, SCIM and audit
+logging stop until a license is activated (see
+[When the license lapses](#when-the-license-lapses)). The trial is for
+evaluation. Production use needs a subscription.
 
 ## The license-signing key ceremony
 
@@ -263,9 +314,11 @@ Turn it off only in a separate, announced release, after:
 3. the date is published in the upgrade notes, with guidance for offline
    installs, which need a new signed token.
 
-Once it is off, an unverified license classifies as invalid. After the grace
-period, enterprise configuration becomes read-only on any install still
-holding one.
+Once it is off, an unverified license classifies as invalid, with no grace
+period. On any install still holding one, enterprise configuration becomes
+read-only and SSO, SCIM and audit logging stop (see
+[When the license lapses](#when-the-license-lapses)) until a signed license is
+activated. The upgrade notes must say so.
 
 ## oneuptime.com must run the Enterprise image
 
