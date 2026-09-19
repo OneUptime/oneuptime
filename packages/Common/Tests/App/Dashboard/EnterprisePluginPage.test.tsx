@@ -579,6 +579,7 @@ describe("the Community plugin door (what this jest config resolves)", () => {
         "StatusPageSCIM",
         "StatusPageSSO",
         "TeamCompliance",
+        "LicenseManager",
       ].sort(),
     );
     expect(new Set(DASHBOARD_ENTERPRISE_PLUGIN_KEYS).size).toBe(

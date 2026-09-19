@@ -75,6 +75,12 @@
   "include": [
     "./**/*.ts",
     "./**/*.tsx",
+    /*
+     * The license manager both frontends share (ee/Dashboard/License imports
+     * it), so the Dashboard's type check covers it too. The file only: the
+     * Admin Dashboard's License/Plugins.ts next to it is that frontend's own.
+     */
+    "../AdminDashboard/License/LicenseManager.tsx",
     "../../packages/App/FeatureSet/Dashboard/index.d.ts",
     "../../packages/App/FeatureSet/Dashboard/src/Enterprise/Plugins.ts"
   ]

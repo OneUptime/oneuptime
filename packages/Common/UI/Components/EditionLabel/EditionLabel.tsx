@@ -1,16 +1,19 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
-import Input from "../Input/Input";
-import TextArea from "../TextArea/TextArea";
 import Button, { ButtonStyleType } from "../Button/Button";
+import {
+  LicenseManagerComponent,
+  LicenseManagerDialogParts,
+  LicenseSnapshot,
+  SeatTone,
+} from "./LicenseManager";
 import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
@@ -28,13 +31,25 @@ import {
   IS_ENTERPRISE_EDITION,
   env,
 } from "../../Config";
-import Alert, { AlertType } from "../Alerts/Alert";
-import EnterpriseLicenseInstanceSummary from "../../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import VersionUtil from "../../../Utils/VersionUtil";
 import UserUtil from "../../Utils/User";
 
+/*
+ * The edition pill and its dialog. This component only READS the license
+ * (GET /global-config/license): the pill, the status notices and the version
+ * card. Activating, refreshing and replacing a license, and the seat usage and
+ * instance tables, are the Enterprise Edition's license manager (see
+ * ./LicenseManager.ts), which the Dashboard and the Admin Dashboard pass in.
+ */
 export interface ComponentProps {
   className?: string | undefined;
+  /*
+   * The Enterprise plugin's LicenseManager, read from the plugin door inside
+   * the caller's render (never at module load). Undefined in the Community
+   * Edition and on the login page: the dialog then shows the license status
+   * only.
+   */
+  licenseManager?: LicenseManagerComponent | undefined;
 }
 
 const ENTERPRISE_URL: string = "https://oneuptime.com/enterprise/demo";
@@ -49,7 +64,6 @@ const ENTERPRISE_URL: string = "https://oneuptime.com/enterprise/demo";
  */
 const UPGRADE_GUIDE_URL: string =
   "https://oneuptime.com/docs/installation/upgrading";
-const SALES_EMAIL: string = "sales@oneuptime.com";
 const SALES_MAILTO_URL: string = "mailto:sales@oneuptime.com";
 
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
@@ -82,8 +96,6 @@ const parseLicenseStatus: ParseLicenseStatusFunction = (
   return null;
 };
 
-type ActivationInputMode = "key" | "token";
-
 /*
  * Seat usage at or above this percent asks the admin to talk to OneUptime about
  * expanding. Matches CRITICAL_CAPACITY_PERCENT in
@@ -91,95 +103,21 @@ type ActivationInputMode = "key" | "token";
  */
 const SEAT_WARNING_PERCENT: number = 90;
 
-type SeatTone = "healthy" | "approaching" | "breached";
-
 type PillTone = "normal" | "warning" | "alerted";
-
-type ParseLicenseInstancesFunction = (
-  value: unknown,
-) => Array<EnterpriseLicenseInstanceSummary>;
-
-const parseLicenseInstances: ParseLicenseInstancesFunction = (
-  value: unknown,
-): Array<EnterpriseLicenseInstanceSummary> => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const instances: Array<EnterpriseLicenseInstanceSummary> = [];
-
-  for (const item of value) {
-    if (!item || typeof item !== "object") {
-      continue;
-    }
-
-    const instance: JSONObject = item as JSONObject;
-
-    instances.push({
-      instanceId:
-        typeof instance["instanceId"] === "string"
-          ? instance["instanceId"]
-          : "",
-      host:
-        typeof instance["host"] === "string" && instance["host"]
-          ? instance["host"]
-          : null,
-      userCount:
-        typeof instance["userCount"] === "number"
-          ? instance["userCount"]
-          : null,
-      isCountedTowardsUsage:
-        typeof instance["isCountedTowardsUsage"] === "boolean"
-          ? instance["isCountedTowardsUsage"]
-          : undefined,
-      lastReportedAt:
-        typeof instance["lastReportedAt"] === "string"
-          ? instance["lastReportedAt"]
-          : null,
-      version:
-        typeof instance["version"] === "string" && instance["version"]
-          ? instance["version"]
-          : null,
-    });
-  }
-
-  return instances;
-};
-
-type FormatInstanceReportedAtFunction = (
-  lastReportedAt: string | null,
-) => string;
-
-const formatInstanceReportedAt: FormatInstanceReportedAtFunction = (
-  lastReportedAt: string | null,
-): string => {
-  if (!lastReportedAt) {
-    return "No usage reported yet.";
-  }
-
-  const reportedAt: Date = OneUptimeDate.fromString(lastReportedAt);
-
-  if (Number.isNaN(reportedAt.getTime())) {
-    return "No usage reported yet.";
-  }
-
-  return `Last reported ${reportedAt.toLocaleString()}.`;
-};
 
 const EditionLabel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [globalConfig, setGlobalConfig] = useState<GlobalConfig | null>(null);
+  /*
+   * The last successful license GET, as the server sent it. Handed to the
+   * license manager, which reads its own fields (the instances, the
+   * activation mode) from it.
+   */
+  const [licensePayload, setLicensePayload] = useState<JSONObject | null>(null);
   const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
   const [configError, setConfigError] = useState<string>("");
-  const [licenseKeyInput, setLicenseKeyInput] = useState<string>("");
-  const [validationError, setValidationError] = useState<string>("");
-  const [successMessage, setSuccessMessage] = useState<string>("");
-  const [isValidating, setIsValidating] = useState<boolean>(false);
-  const [isRefreshingLicense, setIsRefreshingLicense] =
-    useState<boolean>(false);
-  const [isChangingLicense, setIsChangingLicense] = useState<boolean>(false);
   /*
    * The seat limit as this installation actually enforces it, rather than as
    * oneuptime.com last reported it. The server computes it from the live User
@@ -195,10 +133,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     null,
   );
   const [canAddMoreUsers, setCanAddMoreUsers] = useState<boolean>(true);
-  const [licenseInstances, setLicenseInstances] = useState<
-    Array<EnterpriseLicenseInstanceSummary>
-  >([]);
-  const [thisInstanceId, setThisInstanceId] = useState<string>("");
   /*
    * Version state comes from the server rather than APP_VERSION in the
    * browser bundle: the frontend env var is empty in every build that was
@@ -243,14 +177,19 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [graceEndsAt, setGraceEndsAt] = useState<string>("");
   // Why the license is not valid, when the server says (master admins only).
   const [licenseMessage, setLicenseMessage] = useState<string>("");
-  // "online" (a license key) or "offline" (a pasted signed token).
-  const [activationMode, setActivationMode] = useState<string>("");
-  // Which activation the input section offers: a license key, or a token.
-  const [activationInputMode, setActivationInputMode] =
-    useState<ActivationInputMode>("key");
-  const [licenseTokenInput, setLicenseTokenInput] = useState<string>("");
-  const licenseInputEditedRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
+
+  const isMasterAdmin: boolean = useMemo(() => {
+    return Boolean(UserUtil.isMasterAdmin());
+  }, []);
+
+  /*
+   * The Enterprise Edition's license manager, when the caller passed one (the
+   * Dashboard and the Admin Dashboard of the Enterprise image do). Never on
+   * the Community Edition, whatever the bundle holds: there is no license to
+   * manage there.
+   */
+  const LicenseManager: LicenseManagerComponent | undefined =
+    IS_ENTERPRISE_EDITION ? props.licenseManager : undefined;
 
   /*
    * Activating, replacing and refreshing the license are master-admin actions:
@@ -258,15 +197,15 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
    * enforces against, so being able to rewrite it is being able to raise the
    * ceiling on the whole installation. The server enforces this
    * (MasterAdminAuthorization on both POSTs, and it answers everybody else
-   * with the edition pill's fields only); hiding the controls here just stops
+   * with the edition pill's fields only); hiding the controls just stops
    * everyone else being offered a button that can only fail.
    *
-   * False for a signed-out visitor, which is what keeps the license key input
-   * off the login page where this same component renders the edition pill.
+   * It also takes a license manager to manage the license with. The login
+   * page (where a signed-out visitor sees the same pill) and a Community
+   * build pass none, and telling somebody to "add a license below" there
+   * would point at nothing.
    */
-  const canManageLicense: boolean = useMemo(() => {
-    return Boolean(UserUtil.isMasterAdmin());
-  }, []);
+  const canManageLicense: boolean = isMasterAdmin && Boolean(LicenseManager);
 
   /*
    * The server says it was asked for the Enterprise Edition
@@ -276,12 +215,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
    */
   const showEditionMismatchNotice: boolean =
     !IS_ENTERPRISE_EDITION &&
-    canManageLicense &&
+    isMasterAdmin &&
     env("ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED") === "true";
 
   /*
-   * Both the license GET and the two license POSTs answer with the same seat
-   * fields, so the three responses are unpacked in one place.
+   * The license GET and the license manager's writes answer with the same
+   * seat fields, so every response is unpacked in one place (the manager
+   * calls this through applySeatEnforcement).
    * isSeatLimitEnforced is what tells "this installation does not enforce a
    * seat limit" apart from "this build did not report one" - without it, an
    * older server's silence would read as a limit of zero.
@@ -373,18 +313,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           ] as number;
         }
 
-        if (payload["userCountUpdatedAt"]) {
-          configModel.enterpriseLicenseUserCountUpdatedAt =
-            OneUptimeDate.fromString(payload["userCountUpdatedAt"] as string);
-        }
-
         setGlobalConfig(configModel);
-        setLicenseInstances(parseLicenseInstances(payload["instances"]));
-        setThisInstanceId(
-          typeof payload["instanceId"] === "string"
-            ? payload["instanceId"]
-            : "",
-        );
+        setLicensePayload(payload);
         setServerLicenseValid(
           typeof payload["licenseValid"] === "boolean"
             ? payload["licenseValid"]
@@ -413,11 +343,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         setLicenseMessage(
           typeof payload["message"] === "string" ? payload["message"] : "",
         );
-        setActivationMode(
-          typeof payload["activationMode"] === "string"
-            ? payload["activationMode"]
-            : "",
-        );
 
         setCurrentVersion(
           typeof payload["currentVersion"] === "string"
@@ -442,13 +367,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         setIsUpdateAvailable(payload["isUpdateAvailable"] === true);
         setIsUpdateCheckDisabled(payload["isUpdateCheckDisabled"] === true);
         applySeatEnforcementPayload(payload);
-
-        if (!licenseInputEditedRef.current) {
-          setLicenseKeyInput(configModel.enterpriseLicenseKey || "");
-        }
       } catch (err) {
         setGlobalConfig(null);
-        setLicenseInstances([]);
+        setLicensePayload(null);
         setServerLicenseValid(null);
         setIsEvaluationLicense(false);
         setLicenseStatus(null);
@@ -456,7 +377,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         setGraceReason("");
         setGraceEndsAt("");
         setLicenseMessage("");
-        setActivationMode("");
         setCurrentVersion("");
         setLatestVersion("");
         setLatestVersionPublishedAt("");
@@ -719,22 +639,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     return currentUserCount;
   }, [isSeatLimitEnforced, enforcedSeatsInUse, currentUserCount]);
 
-  const userCountUpdatedAtText: string | null = useMemo(() => {
-    if (!globalConfig?.enterpriseLicenseUserCountUpdatedAt) {
-      return null;
-    }
-
-    const reportedAt: Date = OneUptimeDate.fromString(
-      globalConfig.enterpriseLicenseUserCountUpdatedAt,
-    );
-
-    if (Number.isNaN(reportedAt.getTime())) {
-      return null;
-    }
-
-    return reportedAt.toLocaleString();
-  }, [globalConfig?.enterpriseLicenseUserCountUpdatedAt]);
-
   const isUserLimitBreached: boolean = useMemo(() => {
     if (!licenseValid) {
       return false;
@@ -789,52 +693,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   }, [rawUserUsagePercent]);
 
   /*
-   * The displayed percent clamped to 0-100. Drives the bar width and
-   * aria-valuenow, so the fill can never overflow its track and aria-valuenow
-   * can never exceed aria-valuemax. Derived from the displayed percent rather
-   * than the raw ratio so the fill always agrees with the caption beneath it:
-   * 599/600 reads 99% and fills to 99%, not to a visually full 100%. The true
-   * figure for a breach goes in aria-valuetext.
-   */
-  const seatUsageBarPercent: number = useMemo(() => {
-    if (seatUsageDisplayPercent === null) {
-      return 0;
-    }
-
-    return Math.min(100, Math.max(0, seatUsageDisplayPercent));
-  }, [seatUsageDisplayPercent]);
-
-  const seatsRemaining: number | null = useMemo(() => {
-    if (typeof userLimit !== "number" || userLimit <= 0) {
-      return null;
-    }
-
-    if (typeof effectiveUserCount !== "number") {
-      return null;
-    }
-
-    return userLimit - effectiveUserCount;
-  }, [userLimit, effectiveUserCount]);
-
-  const seatsRemainingText: string = useMemo(() => {
-    if (typeof seatsRemaining !== "number") {
-      return "";
-    }
-
-    if (seatsRemaining > 0) {
-      return `${seatsRemaining.toLocaleString()} ${
-        seatsRemaining === 1 ? "seat" : "seats"
-      } remaining`;
-    }
-
-    if (seatsRemaining === 0) {
-      return "No seats remaining";
-    }
-
-    return `${Math.abs(seatsRemaining).toLocaleString()} over limit`;
-  }, [seatsRemaining]);
-
-  /*
    * Total and mutually exclusive. isUserLimitBreached is tested first, so
    * reaching the >= 90 test structurally guarantees the limit is not exceeded
    * and the amber nudge can never co-fire with the red breach.
@@ -875,93 +733,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     isSeatLimitEnforced,
     canAddMoreUsers,
     seatUsageDisplayPercent,
-  ]);
-
-  /*
-   * Copy containing apostrophes lives in string literals rather than JSX text,
-   * because react/no-unescaped-entities is enforced in this repo.
-   */
-  const seatAdvisoryTitle: string = useMemo(() => {
-    if (seatTone === "breached") {
-      const over: number = Math.abs(seatsRemaining || 0);
-
-      /*
-       * Reachable now that "every seat taken" is a breach in its own right:
-       * an installation sitting exactly on its limit is not "0 users over".
-       */
-      if (over === 0) {
-        return "Every licensed seat is in use";
-      }
-
-      return over === 1
-        ? "1 user over your licensed seats"
-        : `${over.toLocaleString()} users over your licensed seats`;
-    }
-
-    if (seatTone === "approaching") {
-      if (seatsRemaining === 0) {
-        return "Every licensed seat is in use";
-      }
-
-      return seatsRemaining === 1
-        ? "Only 1 seat left on your license"
-        : `Only ${(seatsRemaining || 0).toLocaleString()} seats left on your license`;
-    }
-
-    return "";
-  }, [seatTone, seatsRemaining]);
-
-  const seatAdvisoryBody: string = useMemo(() => {
-    const limitText: string = (userLimit || 0).toLocaleString();
-    const inUse: string = `${(effectiveUserCount || 0).toLocaleString()} of ${limitText}`;
-
-    if (seatTone === "breached") {
-      /*
-       * When the limit is being enforced this is no longer advice, it is a
-       * description of what the installation is already doing to invitations
-       * and signups - so it says so plainly rather than suggesting an upgrade
-       * as though adding people were still an option.
-       */
-      if (isSeatLimitEnforced && !canAddMoreUsers) {
-        return `This installation is using ${inUse} licensed seats. New users cannot be invited, signed up or provisioned until a seat is freed up or the license is expanded.`;
-      }
-
-      return `This installation is using ${inUse} licensed seats. Expand your license so it covers everyone on the platform.`;
-    }
-
-    if (seatTone === "approaching") {
-      return `You're using ${inUse} licensed seats. Anyone you add beyond ${limitText} puts this installation over its licensed limit — if more people are joining, it's worth talking to OneUptime about expanding now.`;
-    }
-
-    return "";
-  }, [
-    seatTone,
-    effectiveUserCount,
-    userLimit,
-    isSeatLimitEnforced,
-    canAddMoreUsers,
-  ]);
-
-  const seatUsageAriaValueText: string = useMemo(() => {
-    if (typeof seatUsageDisplayPercent !== "number") {
-      return "";
-    }
-
-    if (seatTone === "breached") {
-      return `${seatUsageDisplayPercent}% of licensed seats in use — ${seatAdvisoryTitle}`;
-    }
-
-    if (typeof seatsRemaining === "number") {
-      return `${seatUsageDisplayPercent}% of licensed seats in use — ${seatsRemainingText}`;
-    }
-
-    return `${seatUsageDisplayPercent}% of licensed seats in use`;
-  }, [
-    seatUsageDisplayPercent,
-    seatTone,
-    seatAdvisoryTitle,
-    seatsRemaining,
-    seatsRemainingText,
   ]);
 
   const editionName: string = useMemo(() => {
@@ -1134,35 +905,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     return "License, version, seat usage, and the instances covered by this key.";
   }, [isConfigLoading, licenseValid, isUnlicensedTrial, isExpiredGrace]);
 
-  /*
-   * The per-instance counts only exceed the unique total when someone actually
-   * appears on more than one instance, and the component cannot know whether
-   * they do — it receives per-instance counts and the unique total separately.
-   * So the summation is stated as a possibility, and is dropped entirely when
-   * there is no unique total to compare against. It names the unique user count
-   * rather than "the total above", which would be ambiguous next to a hero
-   * reading "119 / 120 seats".
-   */
-  const instanceOverlapText: string = useMemo(() => {
-    const countingRule: string = `Seats are counted uniquely across all ${licenseInstances.length} instances that share this license — the same person on multiple instances uses one seat.`;
-
-    if (typeof currentUserCount !== "number") {
-      return countingRule;
-    }
-
-    return `${countingRule} Per-instance counts can therefore add up to more than the ${currentUserCount.toLocaleString()} unique ${
-      currentUserCount === 1 ? "user" : "users"
-    } counted above.`;
-  }, [licenseInstances.length, currentUserCount]);
-
-  const licenseKeyHelperText: string = useMemo(() => {
-    if (isChangingLicense) {
-      return "Enter the new enterprise license key and validate it to replace the current one. Your existing license stays active until the new key is validated.";
-    }
-
-    return "You have installed Enterprise Edition of OneUptime. Validate your license key with OneUptime to activate it. Need a license key? Contact our sales team at";
-  }, [isChangingLicense]);
-
   const communityFeatures: Array<string> = useMemo(() => {
     return [
       "Full OneUptime platform with incident response, status pages, and workflow automation.",
@@ -1184,44 +926,18 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     ];
   }, []);
 
+  /*
+   * The license manager clears its own messages (and abandons a license
+   * change in progress) when the dialog opens or closes.
+   */
   const openDialog: () => void = () => {
     setIsDialogOpen(true);
-    setValidationError("");
-    setSuccessMessage("");
 
     void fetchGlobalConfig();
   };
 
   const closeDialog: () => void = () => {
     setIsDialogOpen(false);
-    setValidationError("");
-    setSuccessMessage("");
-    setIsChangingLicense(false);
-  };
-
-  const handleStartChangingLicense: () => void = () => {
-    setIsChangingLicense(true);
-    setValidationError("");
-    setSuccessMessage("");
-    setLicenseKeyInput("");
-    setLicenseTokenInput("");
-    setActivationInputMode(activationMode === "offline" ? "token" : "key");
-    licenseInputEditedRef.current = true;
-  };
-
-  const handleCancelChangingLicense: () => void = () => {
-    setIsChangingLicense(false);
-    setValidationError("");
-    setLicenseTokenInput("");
-    setActivationInputMode("key");
-    licenseInputEditedRef.current = false;
-    setLicenseKeyInput(globalConfig?.enterpriseLicenseKey || "");
-  };
-
-  const handleSwitchActivationInputMode: () => void = () => {
-    setActivationInputMode(activationInputMode === "key" ? "token" : "key");
-    setValidationError("");
-    setSuccessMessage("");
   };
 
   const handlePrimaryAction: () => void = () => {
@@ -1232,227 +948,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     closeDialog();
   };
 
-  type BuildSeatExpansionMailtoFunction = () => string;
-
-  const buildSeatExpansionMailto: BuildSeatExpansionMailtoFunction =
-    (): string => {
-      const subject: string =
-        seatTone === "breached"
-          ? "Expand OneUptime license - over seat limit"
-          : "Expand OneUptime license - nearly out of seats";
-
-      const body: string = [
-        "Hi OneUptime,",
-        "",
-        "We would like to expand the seat count on our enterprise license.",
-        "",
-        `Company: ${globalConfig?.enterpriseCompanyName || "Not specified"}`,
-        `Seats in use: ${(effectiveUserCount || 0).toLocaleString()} of ${(
-          userLimit || 0
-        ).toLocaleString()}`,
-        `Instances on this license: ${licenseInstances.length}`,
-      ].join("\n");
-
-      return `${SALES_MAILTO_URL}?subject=${encodeURIComponent(
-        subject,
-      )}&body=${encodeURIComponent(body)}`;
-    };
-
-  const handleRequestMoreSeats: () => void = () => {
-    if (typeof window !== "undefined") {
-      window.location.href = buildSeatExpansionMailto();
-    }
-  };
-
-  const runLicenseValidation: (
-    key: string,
-    setLoading: React.Dispatch<React.SetStateAction<boolean>>,
-  ) => Promise<void> = useCallback(
-    async (
-      key: string,
-      setLoading: React.Dispatch<React.SetStateAction<boolean>>,
-    ): Promise<void> => {
-      const trimmedKey: string = key.trim();
-
-      if (!trimmedKey) {
-        setValidationError("Please enter a license key before validating.");
-        setSuccessMessage("");
-        return;
-      }
-
-      setValidationError("");
-      setSuccessMessage("");
-      setLoading(true);
-
-      try {
-        const validationUrl: URL = URL.fromURL(APP_API_URL).addRoute(
-          new Route("/global-config/license"),
-        );
-
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.fetch<JSONObject>({
-            method: HTTPMethod.POST,
-            url: validationUrl,
-            data: {
-              licenseKey: trimmedKey,
-            },
-          });
-
-        if (!response.isSuccess()) {
-          throw response;
-        }
-
-        const payload: JSONObject = response.data as JSONObject;
-
-        licenseInputEditedRef.current = false;
-        setLicenseKeyInput((payload["licenseKey"] as string) || trimmedKey);
-        setSuccessMessage("License validated successfully.");
-        setIsChangingLicense(false);
-
-        await fetchGlobalConfig();
-      } catch (err) {
-        setValidationError(API.getFriendlyMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [fetchGlobalConfig],
-  );
-
-  /*
-   * Offline activation: a signed license token, for an installation that
-   * cannot reach oneuptime.com. The server accepts only a token signed by a
-   * key this OneUptime release trusts, and says so when it does not.
-   */
-  const runOfflineActivation: (token: string) => Promise<void> = useCallback(
-    async (token: string): Promise<void> => {
-      const trimmedToken: string = token.trim();
-
-      if (!trimmedToken) {
-        setValidationError("Please paste a license token before activating.");
-        setSuccessMessage("");
-        return;
-      }
-
-      setValidationError("");
-      setSuccessMessage("");
-      setIsValidating(true);
-
-      try {
-        const activationUrl: URL = URL.fromURL(APP_API_URL).addRoute(
-          new Route("/global-config/license"),
-        );
-
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.fetch<JSONObject>({
-            method: HTTPMethod.POST,
-            url: activationUrl,
-            data: {
-              licenseToken: trimmedToken,
-            },
-          });
-
-        if (!response.isSuccess()) {
-          throw response;
-        }
-
-        setLicenseTokenInput("");
-        setSuccessMessage("License activated offline.");
-        setIsChangingLicense(false);
-        setActivationInputMode("key");
-
-        await fetchGlobalConfig();
-      } catch (err) {
-        setValidationError(API.getFriendlyMessage(err));
-      } finally {
-        setIsValidating(false);
-      }
-    },
-    [fetchGlobalConfig],
-  );
-
-  const handleValidateClick: () => void = () => {
-    if (isValidating) {
-      return;
-    }
-
-    if (activationInputMode === "token") {
-      void runOfflineActivation(licenseTokenInput);
-      return;
-    }
-
-    void runLicenseValidation(licenseKeyInput, setIsValidating);
-  };
-
-  /*
-   * Re-ask oneuptime.com about the license this installation already holds.
-   *
-   * The seat limit and the expiry are changed on oneuptime.com, and the daily
-   * report job is what normally carries them here - so without this, an
-   * administrator who has just bought seats waits up to a day before the
-   * installation stops refusing invitations. Deliberately sends no key: the
-   * server refreshes the stored one.
-   */
-  const handleRefreshLicense: () => void = useCallback((): void => {
-    if (isRefreshingLicense) {
-      return;
-    }
-
-    const refresh: () => Promise<void> = async (): Promise<void> => {
-      setValidationError("");
-      setSuccessMessage("");
-      setIsRefreshingLicense(true);
-
-      try {
-        const refreshUrl: URL = URL.fromURL(APP_API_URL).addRoute(
-          new Route("/global-config/license/refresh"),
-        );
-
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.fetch<JSONObject>({
-            method: HTTPMethod.POST,
-            url: refreshUrl,
-          });
-
-        if (!response.isSuccess()) {
-          throw response;
-        }
-
-        applySeatEnforcementPayload(response.data as JSONObject);
-
-        setSuccessMessage("License refreshed from OneUptime.");
-
-        /*
-         * The POST already returned the new terms, but the modal renders from
-         * what the GET reports - re-reading keeps one source of truth for the
-         * whole dialog instead of two that can disagree.
-         */
-        await fetchGlobalConfig();
-      } catch (err) {
-        setValidationError(API.getFriendlyMessage(err));
-      } finally {
-        setIsRefreshingLicense(false);
-      }
-    };
-
-    void refresh();
-  }, [isRefreshingLicense, fetchGlobalConfig, applySeatEnforcementPayload]);
-
   const handleRetryFetch: () => void = () => {
     if (!isConfigLoading) {
       void fetchGlobalConfig();
     }
   };
-
-  /*
-   * The trial counts as "no license yet" here: an administrator trying the
-   * Enterprise Edition should be able to add the license from the same place
-   * as one whose license lapsed.
-   */
-  const showLicenseKeyInput: boolean =
-    IS_ENTERPRISE_EDITION &&
-    canManageLicense &&
-    (!licenseValid || isUnlicensedTrial || isChangingLicense);
 
   /*
    * Someone who cannot fix the license still needs to be told why the
@@ -1465,11 +965,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     !licenseValid &&
     !canManageLicense;
 
-  const shouldShowEnterpriseValidationButton: boolean = showLicenseKeyInput;
-
   /*
    * Collapses the !configError && !isConfigLoading && licenseValid chain that
-   * gates the stat strip, the seat card and the instances card.
+   * gates the stat strip here, and the license manager's seat card, instances
+   * card and footer actions.
    */
   const showLicenseDetails: boolean =
     IS_ENTERPRISE_EDITION &&
@@ -1477,12 +976,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     !isConfigLoading &&
     licenseValid &&
     !isUnlicensedTrial;
-
-  /*
-   * The seat and instance cards are built from figures the server gives a
-   * master admin only; anybody else would see an empty "unlimited" card.
-   */
-  const showSeatDetails: boolean = showLicenseDetails && canManageLicense;
 
   // Status notices describe the license, so they wait for it to load.
   const showLicenseStatusNotices: boolean =
@@ -1519,46 +1012,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const showVersionCard: boolean =
     !configError && !isConfigLoading && Boolean(currentVersion);
 
-  /*
-   * GlobalConfigAPI returns userLimit and currentUserCount to anonymous callers
-   * because the same route serves the signed-out login page, and gates only
-   * licenseKey, token, instances and instanceId on isAuthenticatedUser. Gate
-   * the sales ask on a field the server does redact, so a signed-out visitor is
-   * never shown an administrator-targeted CTA.
-   */
-  const canSeeLicenseAdmin: boolean = Boolean(
-    globalConfig?.enterpriseLicenseKey,
-  );
-
-  const modalSubmitButtonText: string | undefined = IS_ENTERPRISE_EDITION
-    ? shouldShowEnterpriseValidationButton
-      ? activationInputMode === "token"
-        ? "Activate License"
-        : "Validate License"
-      : undefined
-    : "Talk to Sales";
-
-  const modalOnSubmit: (() => void) | undefined = IS_ENTERPRISE_EDITION
-    ? shouldShowEnterpriseValidationButton
-      ? handleValidateClick
-      : undefined
-    : handlePrimaryAction;
-
-  const modalIsLoading: boolean =
-    IS_ENTERPRISE_EDITION && shouldShowEnterpriseValidationButton
-      ? isValidating
-      : false;
-
-  const modalDisableSubmitButton: boolean | undefined = IS_ENTERPRISE_EDITION
-    ? shouldShowEnterpriseValidationButton
-      ? !(
-          activationInputMode === "token" ? licenseTokenInput : licenseKeyInput
-        ).trim() ||
-        isValidating ||
-        isConfigLoading
-      : undefined
-    : false;
-
   const modalRightElement: ReactElement | undefined = showLicenseDetails ? (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
@@ -1587,47 +1040,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             : "License active"}
     </span>
   ) : undefined;
-
-  const modalLeftFooterElement: ReactElement | undefined =
-    showLicenseDetails && !isChangingLicense && canManageLicense ? (
-      <div className="flex flex-wrap items-center gap-2">
-        {/*
-         * The seat limit and the expiry are changed on oneuptime.com and reach
-         * this installation through the daily report job. This is the button
-         * for the administrator who has just bought seats and would rather not
-         * wait a day for the installation to stop refusing invitations.
-         */}
-        {/*
-         * An installation activated offline has no key to refresh with; a new
-         * token replaces the license instead.
-         */}
-        {activationMode !== "offline" && (
-          <Button
-            title="Refresh license"
-            icon={IconProp.Refresh}
-            buttonStyle={ButtonStyleType.NORMAL}
-            onClick={handleRefreshLicense}
-            isLoading={isRefreshingLicense}
-            disabled={isRefreshingLicense || isConfigLoading}
-            tooltip="Fetch the latest seat limit and expiry for this license from OneUptime."
-            dataTestId="refresh-enterprise-license"
-            className="!mt-0 md:!ml-0"
-          />
-        )}
-        <Button
-          title={
-            activationMode === "offline"
-              ? "Replace license"
-              : "Change license key"
-          }
-          icon={IconProp.Edit}
-          buttonStyle={ButtonStyleType.NORMAL}
-          onClick={handleStartChangingLicense}
-          disabled={isRefreshingLicense}
-          className="!mt-0 md:!ml-0"
-        />
-      </div>
-    ) : undefined;
 
   const pillClassName: string =
     pillTone === "alerted"
@@ -1935,6 +1347,273 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   })();
 
   /*
+   * What the license manager needs to know, all of it read from the license
+   * GET (see LicenseManager.ts).
+   */
+  const licenseSnapshot: LicenseSnapshot = {
+    payload: licensePayload,
+    isLoading: isConfigLoading,
+    loadError: configError,
+    canManageLicense: canManageLicense,
+    licenseValid: licenseValid,
+    isUnlicensedTrial: isUnlicensedTrial,
+    showLicenseDetails: showLicenseDetails,
+    companyName: globalConfig?.enterpriseCompanyName || "",
+    licenseKey: globalConfig?.enterpriseLicenseKey || "",
+    userLimit: userLimit,
+    currentUserCount: currentUserCount,
+    effectiveUserCount: effectiveUserCount,
+    isSeatLimitEnforced: isSeatLimitEnforced,
+    canAddMoreUsers: canAddMoreUsers,
+    seatTone: seatTone,
+    seatUsageDisplayPercent: seatUsageDisplayPercent,
+    currentVersion: currentVersion,
+    latestVersion: latestVersion,
+    hasComparableVersion: hasComparableVersion,
+  };
+
+  /*
+   * The dialog, with whatever the license manager adds to it: its messages,
+   * the seat usage and instance cards, the activation input and the footer
+   * actions. With no manager (the Community Edition, the login page) the
+   * parts are empty and the dialog shows the license status only.
+   */
+  const renderDialog: (parts: LicenseManagerDialogParts) => ReactElement = (
+    parts: LicenseManagerDialogParts,
+  ): ReactElement => {
+    if (!isDialogOpen) {
+      return <></>;
+    }
+
+    return (
+      <Modal
+        title={editionName}
+        description={modalDescription}
+        rightElement={modalRightElement}
+        submitButtonText={
+          IS_ENTERPRISE_EDITION ? parts.submitButtonText : "Talk to Sales"
+        }
+        closeButtonText="Close"
+        onClose={closeDialog}
+        onSubmit={IS_ENTERPRISE_EDITION ? parts.onSubmit : handlePrimaryAction}
+        modalWidth={ModalWidth.Medium}
+        isLoading={IS_ENTERPRISE_EDITION ? Boolean(parts.isSubmitting) : false}
+        disableSubmitButton={
+          IS_ENTERPRISE_EDITION ? parts.disableSubmitButton : false
+        }
+        isBodyLoading={IS_ENTERPRISE_EDITION ? isConfigLoading : false}
+        leftFooterElement={
+          IS_ENTERPRISE_EDITION ? parts.leftFooterElement : undefined
+        }
+      >
+        <div className="space-y-4 text-sm text-gray-600">
+          {IS_ENTERPRISE_EDITION ? (
+            <>
+              {parts.messages}
+
+              {configError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                  <div className="flex items-start gap-2.5">
+                    <Icon
+                      icon={IconProp.Alert}
+                      className="mt-0.5 h-4 w-4 shrink-0 text-red-600"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-red-900">
+                        Unable to load license details
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-red-800">
+                        {configError}
+                      </p>
+                      <div className="mt-3">
+                        <Button
+                          title="Try again"
+                          buttonStyle={ButtonStyleType.DANGER}
+                          onClick={handleRetryFetch}
+                          isLoading={isConfigLoading}
+                          className="!mt-0 md:!ml-0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {evaluationNoticeElement}
+
+              {licenseStatusNoticeElement}
+
+              {showLicenseDetails && (
+                <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-2">
+                  <div className="min-w-0 bg-white px-4 py-3">
+                    <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                      Licensed to
+                    </dt>
+                    <dd
+                      className="mt-1 truncate text-sm font-medium text-gray-900"
+                      title={globalConfig?.enterpriseCompanyName || undefined}
+                    >
+                      {globalConfig?.enterpriseCompanyName || "Not specified"}
+                    </dd>
+                  </div>
+                  <div className="bg-white px-4 py-3">
+                    <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                      Expires
+                    </dt>
+                    <dd className="mt-1 text-sm font-medium tabular-nums text-gray-900">
+                      {licenseExpiresAtText || "—"}
+                    </dd>
+                  </div>
+                </dl>
+              )}
+
+              {versionCardElement}
+
+              {parts.usage}
+
+              {showLicenseAdminRequiredNotice && (
+                <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+                  <h4 className="text-sm font-semibold text-amber-900">
+                    A master admin has to activate this license
+                  </h4>
+                  <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                    This installation does not have a valid enterprise license.
+                    Ask a master admin of this OneUptime installation to enter
+                    or refresh the license key from this dialog.
+                  </p>
+                </section>
+              )}
+
+              {parts.activation}
+
+              {showEnterpriseFeatureList && (
+                <section
+                  aria-labelledby="edition-features-heading"
+                  className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-white p-5"
+                >
+                  <h4
+                    id="edition-features-heading"
+                    className="text-sm font-semibold text-indigo-900"
+                  >
+                    What your license unlocks
+                  </h4>
+                  <p className="mt-0.5 text-xs text-indigo-700">
+                    {canManageLicense
+                      ? "A valid license keeps enterprise configuration (SSO, SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
+                      : "A master admin can add the license to keep enterprise configuration editable."}{" "}
+                    Nothing you already configured stops working without one.
+                  </p>
+                  <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {enterpriseFeatures.map(
+                      (feature: string, index: number) => {
+                        return (
+                          <li
+                            key={index}
+                            className="flex items-start gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2.5"
+                          >
+                            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-50">
+                              <Icon
+                                icon={IconProp.Check}
+                                className="h-3 w-3 text-indigo-600"
+                              />
+                            </span>
+                            <span className="text-xs leading-snug text-gray-700">
+                              {feature}
+                            </span>
+                          </li>
+                        );
+                      },
+                    )}
+                  </ul>
+                </section>
+              )}
+            </>
+          ) : (
+            <>
+              {showEditionMismatchNotice && (
+                <section
+                  role="alert"
+                  data-testid="enterprise-edition-image-mismatch"
+                  className="rounded-xl border border-amber-200 bg-amber-50 p-5"
+                >
+                  <h4 className="text-sm font-semibold text-amber-900">
+                    This is the Community Edition image
+                  </h4>
+                  <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                    IS_ENTERPRISE_EDITION is set but this is the Community
+                    Edition image — switch to the enterprise image (the
+                    enterprise-* image tags) to use Enterprise Edition features.
+                    Until then they are off; everything else keeps working.
+                  </p>
+                </section>
+              )}
+              {versionCardElement}
+              <p>
+                You are running the Community Edition of OneUptime. Here is a
+                quick comparison to help you decide if Enterprise is the right
+                fit for your team.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-gray-200 bg-white p-4">
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    Community Edition
+                  </h4>
+                  <ul className="mt-3 space-y-2 text-sm text-gray-600">
+                    {communityFeatures.map((feature: string, index: number) => {
+                      return (
+                        <li key={index} className="flex items-start gap-2">
+                          <Icon
+                            icon={IconProp.Check}
+                            className="mt-0.5 h-3 w-3 shrink-0 text-gray-400"
+                          />
+                          <span className="leading-snug">{feature}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="mt-3 text-xs text-gray-500">
+                    Best for small teams experimenting with reliability
+                    workflows.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-white p-4">
+                  <h4 className="text-sm font-semibold text-indigo-900">
+                    Enterprise Edition
+                  </h4>
+                  <ul className="mt-3 space-y-2 text-sm text-indigo-900">
+                    {enterpriseFeatures.map(
+                      (feature: string, index: number) => {
+                        return (
+                          <li key={index} className="flex items-start gap-2">
+                            <Icon
+                              icon={IconProp.Check}
+                              className="mt-0.5 h-3 w-3 shrink-0 text-indigo-600"
+                            />
+                            <span className="leading-snug">{feature}</span>
+                          </li>
+                        );
+                      },
+                    )}
+                  </ul>
+                  <p className="mt-3 text-xs text-indigo-700">
+                    Everything in Community plus white-glove onboarding,
+                    enterprise SLAs, and a partner dedicated to your reliability
+                    goals.
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                Ready to unlock enterprise capabilities? Click &quot;Talk to
+                Sales&quot; to start the conversation.
+              </p>
+            </>
+          )}
+        </div>
+      </Modal>
+    );
+  };
+
+  /*
    * Kept after every hook: oneuptime.com (billing enabled) bounds seats and
    * plans through subscriptions and shows no edition pill at all.
    */
@@ -1981,692 +1660,16 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         <span className={pillCtaTextClassName}>{ctaLabel}</span>
       </button>
 
-      {isDialogOpen && (
-        <Modal
-          title={editionName}
-          description={modalDescription}
-          rightElement={modalRightElement}
-          submitButtonText={modalSubmitButtonText}
-          closeButtonText="Close"
-          onClose={closeDialog}
-          onSubmit={modalOnSubmit}
-          modalWidth={ModalWidth.Medium}
-          isLoading={modalIsLoading}
-          disableSubmitButton={modalDisableSubmitButton}
-          isBodyLoading={IS_ENTERPRISE_EDITION ? isConfigLoading : false}
-          leftFooterElement={modalLeftFooterElement}
-        >
-          <div className="space-y-4 text-sm text-gray-600">
-            {IS_ENTERPRISE_EDITION ? (
-              <>
-                {!configError && successMessage && (
-                  <Alert type={AlertType.SUCCESS} title={successMessage} />
-                )}
-
-                {/*
-                 * A failed refresh has nowhere else to go: the license key
-                 * section carries its own copy of this alert, but that
-                 * section is not rendered at all while the license is valid,
-                 * which is exactly when refreshing is worth doing.
-                 */}
-                {!configError && validationError && !showLicenseKeyInput && (
-                  <Alert type={AlertType.DANGER} title={validationError} />
-                )}
-
-                {configError && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                    <div className="flex items-start gap-2.5">
-                      <Icon
-                        icon={IconProp.Alert}
-                        className="mt-0.5 h-4 w-4 shrink-0 text-red-600"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-red-900">
-                          Unable to load license details
-                        </p>
-                        <p className="mt-1 text-xs leading-relaxed text-red-800">
-                          {configError}
-                        </p>
-                        <div className="mt-3">
-                          <Button
-                            title="Try again"
-                            buttonStyle={ButtonStyleType.DANGER}
-                            onClick={handleRetryFetch}
-                            isLoading={isConfigLoading}
-                            className="!mt-0 md:!ml-0"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {evaluationNoticeElement}
-
-                {licenseStatusNoticeElement}
-
-                {showLicenseDetails && (
-                  <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-2">
-                    <div className="min-w-0 bg-white px-4 py-3">
-                      <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                        Licensed to
-                      </dt>
-                      <dd
-                        className="mt-1 truncate text-sm font-medium text-gray-900"
-                        title={globalConfig?.enterpriseCompanyName || undefined}
-                      >
-                        {globalConfig?.enterpriseCompanyName || "Not specified"}
-                      </dd>
-                    </div>
-                    <div className="bg-white px-4 py-3">
-                      <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                        Expires
-                      </dt>
-                      <dd className="mt-1 text-sm font-medium tabular-nums text-gray-900">
-                        {licenseExpiresAtText || "—"}
-                      </dd>
-                    </div>
-                  </dl>
-                )}
-
-                {versionCardElement}
-
-                {showSeatDetails && (
-                  <section
-                    aria-labelledby="edition-seats-heading"
-                    className="rounded-xl border border-gray-200 bg-white p-5"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <h4
-                          id="edition-seats-heading"
-                          className="text-sm font-semibold text-gray-900"
-                        >
-                          Licensed seats
-                        </h4>
-                        <p className="mt-0.5 text-xs text-gray-500">
-                          Unique users across every instance on this license.
-                        </p>
-                      </div>
-                      {seatTone !== "healthy" && (
-                        <span
-                          className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            seatTone === "breached"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {seatTone === "breached"
-                            ? "Limit exceeded"
-                            : "Nearly full"}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="mt-4 flex items-end justify-between gap-4">
-                      <p className="flex items-baseline gap-1.5">
-                        <span
-                          className={`text-3xl font-semibold leading-none tabular-nums ${
-                            typeof effectiveUserCount !== "number"
-                              ? "text-gray-300"
-                              : seatTone === "breached"
-                                ? "text-red-700"
-                                : "text-gray-900"
-                          }`}
-                        >
-                          {typeof effectiveUserCount === "number"
-                            ? effectiveUserCount.toLocaleString()
-                            : "—"}
-                        </span>
-                        <span className="text-sm tabular-nums text-gray-500">
-                          {" / "}
-                          {typeof userLimit === "number" && userLimit > 0
-                            ? `${userLimit.toLocaleString()} seats`
-                            : "unlimited"}
-                        </span>
-                      </p>
-                      {typeof seatsRemaining === "number" && (
-                        <p
-                          className={`text-xs font-medium tabular-nums ${
-                            seatTone === "breached"
-                              ? "text-red-700"
-                              : seatTone === "approaching"
-                                ? "text-amber-700"
-                                : "text-gray-500"
-                          }`}
-                        >
-                          {seatsRemainingText}
-                        </p>
-                      )}
-                    </div>
-
-                    {typeof seatUsageDisplayPercent === "number" && (
-                      <div className="mt-2.5">
-                        <div
-                          className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100"
-                          role="progressbar"
-                          aria-label="Licensed seat usage"
-                          aria-valuenow={seatUsageBarPercent}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-valuetext={seatUsageAriaValueText}
-                        >
-                          <div
-                            className={`h-full rounded-full transition-all duration-300 ease-out ${
-                              seatTone === "breached"
-                                ? "bg-red-500"
-                                : seatTone === "approaching"
-                                  ? "bg-amber-500"
-                                  : "bg-emerald-500"
-                            }`}
-                            style={{ width: `${seatUsageBarPercent}%` }}
-                          />
-                        </div>
-                        <p className="mt-1.5 text-xs tabular-nums text-gray-500">
-                          {seatUsageDisplayPercent}% of licensed seats in use
-                        </p>
-                      </div>
-                    )}
-
-                    {seatTone !== "healthy" && canSeeLicenseAdmin && (
-                      <div
-                        role={seatTone === "breached" ? "alert" : "status"}
-                        className={`mt-4 rounded-lg border p-3.5 ${
-                          seatTone === "breached"
-                            ? "border-red-200 bg-red-50"
-                            : "border-amber-200 bg-amber-50"
-                        }`}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          {/*
-                           * Colour comes from className only. Never add a type
-                           * prop here: Icon emits both the type colour and
-                           * className into one class attribute, so two colour
-                           * classes would land on one svg and Tailwind's
-                           * emission order would pick the winner.
-                           */}
-                          <Icon
-                            icon={
-                              seatTone === "breached"
-                                ? IconProp.Alert
-                                : IconProp.ExclaimationCircle
-                            }
-                            className={`mt-0.5 h-4 w-4 shrink-0 ${
-                              seatTone === "breached"
-                                ? "text-red-600"
-                                : "text-amber-600"
-                            }`}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <h5
-                              className={`text-sm font-semibold ${
-                                seatTone === "breached"
-                                  ? "text-red-900"
-                                  : "text-amber-900"
-                              }`}
-                            >
-                              {seatAdvisoryTitle}
-                            </h5>
-                            <p
-                              className={`mt-1 text-xs leading-relaxed ${
-                                seatTone === "breached"
-                                  ? "text-red-800"
-                                  : "text-amber-800"
-                              }`}
-                            >
-                              {seatAdvisoryBody}
-                            </p>
-                            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-                              <Button
-                                title={
-                                  seatTone === "breached"
-                                    ? "Expand your license"
-                                    : "Request more seats"
-                                }
-                                icon={IconProp.Email}
-                                buttonStyle={
-                                  seatTone === "breached"
-                                    ? ButtonStyleType.DANGER
-                                    : ButtonStyleType.PRIMARY
-                                }
-                                onClick={handleRequestMoreSeats}
-                                className="!mt-0 md:!ml-0"
-                              />
-                              <span
-                                className={`text-[11px] ${
-                                  seatTone === "breached"
-                                    ? "text-red-700"
-                                    : "text-amber-700"
-                                }`}
-                              >
-                                Or email{" "}
-                                <a
-                                  href={SALES_MAILTO_URL}
-                                  className={`font-medium underline ${
-                                    seatTone === "breached"
-                                      ? "text-red-800 hover:text-red-900"
-                                      : "text-amber-900 hover:text-amber-950"
-                                  }`}
-                                >
-                                  {SALES_EMAIL}
-                                </a>{" "}
-                                directly.
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="mt-4 border-t border-gray-100 pt-3">
-                      <p className="text-xs text-gray-500">
-                        {activationMode === "offline"
-                          ? "This installation was activated offline, so it does not report its user count to OneUptime."
-                          : userCountUpdatedAtText
-                            ? `Last reported to OneUptime on ${userCountUpdatedAtText}.`
-                            : "User count has not been reported to OneUptime yet. The first report will be sent within 24 hours."}
-                        {isSeatLimitEnforced && (
-                          <>
-                            {" "}
-                            This installation enforces the seat limit: users
-                            above it cannot be invited, signed up or
-                            provisioned.
-                          </>
-                        )}
-                        {/*
-                         * Only pointed at somebody who can actually press it.
-                         * The refresh button is master-admin only, so telling
-                         * everyone else to use it would be an instruction they
-                         * cannot follow.
-                         */}
-                        {isSeatLimitEnforced && canManageLicense && (
-                          <>
-                            {" "}
-                            Bought more seats? Use &quot;Refresh license&quot;
-                            below to apply the new limit without waiting for the
-                            next daily report.
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </section>
-                )}
-
-                {showSeatDetails && licenseInstances.length > 0 && (
-                  <section
-                    aria-labelledby="edition-instances-heading"
-                    className="rounded-xl border border-gray-200 bg-white p-5"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <h4
-                        id="edition-instances-heading"
-                        className="text-sm font-semibold text-gray-900"
-                      >
-                        Instances on this license
-                      </h4>
-                      <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">
-                        {licenseInstances.length}{" "}
-                        {licenseInstances.length === 1
-                          ? "instance"
-                          : "instances"}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                      Use the same license key on every instance you deploy
-                      (staging, production, and so on). Each instance reports
-                      its usage and the version it runs once a day.
-                    </p>
-                    {licenseInstances.length > 1 && (
-                      <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
-                        {instanceOverlapText}
-                      </p>
-                    )}
-                    <ul className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200">
-                      {licenseInstances.map(
-                        (
-                          instance: EnterpriseLicenseInstanceSummary,
-                          index: number,
-                        ) => {
-                          const isThisInstance: boolean =
-                            Boolean(thisInstanceId) &&
-                            instance.instanceId === thisInstanceId;
-
-                          /*
-                           * The list is a snapshot of what each instance last
-                           * reported, refreshed at most once a day. For the
-                           * instance serving this page the server just told us
-                           * what it is running right now, so prefer that —
-                           * otherwise this row contradicts the "This
-                           * installation" card above it for up to a day after
-                           * an upgrade. hasComparableVersion keeps a dev build
-                           * from rendering "vunknown".
-                           */
-                          const displayVersion: string | null =
-                            isThisInstance && hasComparableVersion
-                              ? currentVersion
-                              : instance.version;
-
-                          /*
-                           * Per-instance, so an admin can see which of their
-                           * deployments are lagging rather than only the one
-                           * they happen to be signed in to.
-                           */
-                          const isInstanceOutdated: boolean =
-                            VersionUtil.isUpdateAvailable({
-                              currentVersion: displayVersion,
-                              latestVersion: latestVersion,
-                            });
-
-                          return (
-                            <li
-                              key={instance.instanceId || index}
-                              className="flex items-center justify-between gap-4 bg-white px-3 py-2.5 transition-colors hover:bg-gray-50"
-                            >
-                              <div className="min-w-0 flex-1">
-                                {/*
-                                 * Wraps rather than squeezing: both pills are
-                                 * shrink-0, so without this a long hostname on
-                                 * a narrow modal absorbs all the overflow and
-                                 * truncates to a few characters.
-                                 */}
-                                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                                  <span
-                                    className="min-w-0 max-w-full truncate text-sm font-medium text-gray-900"
-                                    title={instance.host || "Unknown host"}
-                                  >
-                                    {instance.host || "Unknown host"}
-                                  </span>
-                                  {isThisInstance && (
-                                    <span className="shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-700">
-                                      This instance
-                                    </span>
-                                  )}
-                                  {displayVersion && (
-                                    <span
-                                      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${
-                                        isInstanceOutdated
-                                          ? "bg-amber-50 text-amber-800"
-                                          : "bg-gray-100 text-gray-600"
-                                      }`}
-                                      title={
-                                        isInstanceOutdated
-                                          ? `Running v${displayVersion}. OneUptime v${latestVersion} is available.`
-                                          : `Running v${displayVersion}.`
-                                      }
-                                    >
-                                      v{displayVersion}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="mt-0.5 truncate text-xs text-gray-500">
-                                  {formatInstanceReportedAt(
-                                    instance.lastReportedAt,
-                                  )}
-                                  {isInstanceOutdated
-                                    ? " Update available."
-                                    : ""}
-                                </p>
-                              </div>
-                              <div className="flex shrink-0 items-baseline justify-end gap-1">
-                                {typeof instance.userCount === "number" ? (
-                                  <>
-                                    <span className="text-sm font-medium tabular-nums text-gray-900">
-                                      {instance.userCount.toLocaleString()}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                      {instance.userCount === 1
-                                        ? "user"
-                                        : "users"}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="text-sm text-gray-400">
-                                    —
-                                  </span>
-                                )}
-                              </div>
-                            </li>
-                          );
-                        },
-                      )}
-                    </ul>
-                  </section>
-                )}
-
-                {showLicenseAdminRequiredNotice && (
-                  <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-                    <h4 className="text-sm font-semibold text-amber-900">
-                      A master admin has to activate this license
-                    </h4>
-                    <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                      This installation does not have a valid enterprise
-                      license. Ask a master admin of this OneUptime installation
-                      to enter or refresh the license key from this dialog.
-                    </p>
-                  </section>
-                )}
-
-                {!configError && showLicenseKeyInput && (
-                  <section className="rounded-xl border border-gray-200 bg-white p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <label
-                          htmlFor={
-                            activationInputMode === "token"
-                              ? "enterprise-license-token"
-                              : "enterprise-license-key"
-                          }
-                          className="text-sm font-semibold text-gray-900"
-                        >
-                          {activationInputMode === "token"
-                            ? "License token (offline activation)"
-                            : isChangingLicense
-                              ? "New license key"
-                              : "License key"}
-                        </label>
-                        <p className="mt-0.5 text-xs leading-relaxed text-gray-500">
-                          {activationInputMode === "token"
-                            ? "For an installation that cannot reach oneuptime.com. Paste the signed license token OneUptime issued for this installation. Only tokens signed by a key this OneUptime release trusts are accepted."
-                            : licenseKeyHelperText}
-                          {!isChangingLicense &&
-                            activationInputMode === "key" && (
-                              <>
-                                {" "}
-                                <a
-                                  href={SALES_MAILTO_URL}
-                                  className="font-medium text-indigo-600 hover:text-indigo-700"
-                                >
-                                  {SALES_EMAIL}
-                                </a>
-                                .
-                              </>
-                            )}
-                        </p>
-                      </div>
-                      {isChangingLicense && (
-                        <Button
-                          title="Cancel"
-                          buttonStyle={ButtonStyleType.NORMAL}
-                          onClick={handleCancelChangingLicense}
-                          className="!mt-0 shrink-0 md:!ml-0"
-                        />
-                      )}
-                    </div>
-                    <div className="mt-3">
-                      {activationInputMode === "token" ? (
-                        <TextArea
-                          id="enterprise-license-token"
-                          value={licenseTokenInput}
-                          onChange={(value: string) => {
-                            setLicenseTokenInput(value);
-                          }}
-                          placeholder="Paste the signed license token"
-                          disableSpellCheck={true}
-                          dataTestId="enterprise-license-token-input"
-                        />
-                      ) : (
-                        <Input
-                          id="enterprise-license-key"
-                          value={licenseKeyInput}
-                          onChange={(value: string) => {
-                            setLicenseKeyInput(value);
-                            licenseInputEditedRef.current = true;
-                          }}
-                          placeholder="Enter your enterprise license key"
-                          disableSpellCheck={true}
-                        />
-                      )}
-                    </div>
-                    <div className="mt-2">
-                      <button
-                        type="button"
-                        onClick={handleSwitchActivationInputMode}
-                        data-testid="switch-license-activation-mode"
-                        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
-                      >
-                        {activationInputMode === "token"
-                          ? "Use a license key instead"
-                          : "No internet access? Activate offline with a license token"}
-                      </button>
-                    </div>
-                    {validationError && (
-                      <div className="mt-3">
-                        <Alert
-                          type={AlertType.DANGER}
-                          title={validationError}
-                        />
-                      </div>
-                    )}
-                  </section>
-                )}
-
-                {showEnterpriseFeatureList && (
-                  <section
-                    aria-labelledby="edition-features-heading"
-                    className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-white p-5"
-                  >
-                    <h4
-                      id="edition-features-heading"
-                      className="text-sm font-semibold text-indigo-900"
-                    >
-                      What your license unlocks
-                    </h4>
-                    <p className="mt-0.5 text-xs text-indigo-700">
-                      {canManageLicense
-                        ? "A valid license keeps enterprise configuration (SSO, SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
-                        : "A master admin can add the license to keep enterprise configuration editable."}{" "}
-                      Nothing you already configured stops working without one.
-                    </p>
-                    <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {enterpriseFeatures.map(
-                        (feature: string, index: number) => {
-                          return (
-                            <li
-                              key={index}
-                              className="flex items-start gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2.5"
-                            >
-                              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-50">
-                                <Icon
-                                  icon={IconProp.Check}
-                                  className="h-3 w-3 text-indigo-600"
-                                />
-                              </span>
-                              <span className="text-xs leading-snug text-gray-700">
-                                {feature}
-                              </span>
-                            </li>
-                          );
-                        },
-                      )}
-                    </ul>
-                  </section>
-                )}
-              </>
-            ) : (
-              <>
-                {showEditionMismatchNotice && (
-                  <section
-                    role="alert"
-                    data-testid="enterprise-edition-image-mismatch"
-                    className="rounded-xl border border-amber-200 bg-amber-50 p-5"
-                  >
-                    <h4 className="text-sm font-semibold text-amber-900">
-                      This is the Community Edition image
-                    </h4>
-                    <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                      IS_ENTERPRISE_EDITION is set but this is the Community
-                      Edition image — switch to the enterprise image (the
-                      enterprise-* image tags) to use Enterprise Edition
-                      features. Until then they are off; everything else keeps
-                      working.
-                    </p>
-                  </section>
-                )}
-                {versionCardElement}
-                <p>
-                  You are running the Community Edition of OneUptime. Here is a
-                  quick comparison to help you decide if Enterprise is the right
-                  fit for your team.
-                </p>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-xl border border-gray-200 bg-white p-4">
-                    <h4 className="text-sm font-semibold text-gray-900">
-                      Community Edition
-                    </h4>
-                    <ul className="mt-3 space-y-2 text-sm text-gray-600">
-                      {communityFeatures.map(
-                        (feature: string, index: number) => {
-                          return (
-                            <li key={index} className="flex items-start gap-2">
-                              <Icon
-                                icon={IconProp.Check}
-                                className="mt-0.5 h-3 w-3 shrink-0 text-gray-400"
-                              />
-                              <span className="leading-snug">{feature}</span>
-                            </li>
-                          );
-                        },
-                      )}
-                    </ul>
-                    <p className="mt-3 text-xs text-gray-500">
-                      Best for small teams experimenting with reliability
-                      workflows.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-white p-4">
-                    <h4 className="text-sm font-semibold text-indigo-900">
-                      Enterprise Edition
-                    </h4>
-                    <ul className="mt-3 space-y-2 text-sm text-indigo-900">
-                      {enterpriseFeatures.map(
-                        (feature: string, index: number) => {
-                          return (
-                            <li key={index} className="flex items-start gap-2">
-                              <Icon
-                                icon={IconProp.Check}
-                                className="mt-0.5 h-3 w-3 shrink-0 text-indigo-600"
-                              />
-                              <span className="leading-snug">{feature}</span>
-                            </li>
-                          );
-                        },
-                      )}
-                    </ul>
-                    <p className="mt-3 text-xs text-indigo-700">
-                      Everything in Community plus white-glove onboarding,
-                      enterprise SLAs, and a partner dedicated to your
-                      reliability goals.
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500">
-                  Ready to unlock enterprise capabilities? Click &quot;Talk to
-                  Sales&quot; to start the conversation.
-                </p>
-              </>
-            )}
-          </div>
-        </Modal>
+      {LicenseManager ? (
+        <LicenseManager
+          license={licenseSnapshot}
+          isDialogOpen={isDialogOpen}
+          reloadLicense={fetchGlobalConfig}
+          applySeatEnforcement={applySeatEnforcementPayload}
+          renderDialog={renderDialog}
+        />
+      ) : (
+        renderDialog({})
       )}
     </>
   );

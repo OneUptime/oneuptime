@@ -1,3 +1,4 @@
+import { LicenseManagerComponent } from "Common/UI/Components/EditionLabel/LicenseManager";
 import { ComponentType, ExoticComponent } from "react";
 
 /*
@@ -75,6 +76,16 @@ export interface AdminDashboardEnterprisePlugins {
   // Enterprise license management (the OneUptime Cloud license server only).
   EnterpriseLicensesList?: EnterprisePluginComponent | undefined;
   EnterpriseLicenseView?: EnterprisePluginComponent | undefined;
+
+  /*
+   * License management (activation, refresh, seat usage, the instances on
+   * the license) in the edition dialog of the header's edition pill - on a
+   * self-hosted Enterprise install, unlike the license server screens above.
+   * The one key with props: Header passes it to EditionLabel, which keeps the
+   * read-only license status. Not a page and never lazy: see
+   * Common/UI/Components/EditionLabel/LicenseManager.ts.
+   */
+  LicenseManager?: LicenseManagerComponent | undefined;
 }
 
 // Names of the screens a plugin can provide (everything but the marker).
@@ -103,6 +114,7 @@ const PLUGIN_KEY_SET: Record<AdminDashboardEnterprisePluginKey, true> = {
   HealthClickhouseCluster: true,
   EnterpriseLicensesList: true,
   EnterpriseLicenseView: true,
+  LicenseManager: true,
 };
 
 export const ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS: ReadonlyArray<AdminDashboardEnterprisePluginKey> =

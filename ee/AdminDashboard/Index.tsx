@@ -1,6 +1,7 @@
 import EnterpriseLicensesPlugins from "./EnterpriseLicenses/Plugins";
 import GlobalSSOPlugins from "./GlobalSSO/Plugins";
 import HealthPlugins from "./Health/Plugins";
+import LicensePlugins from "./License/Plugins";
 import { AdminDashboardEnterprisePlugins } from "@oneuptime/admin-dashboard/Enterprise/EnterprisePlugins";
 
 /*
@@ -29,5 +30,6 @@ export default {
   ...GlobalSSOPlugins,
   ...HealthPlugins,
   ...EnterpriseLicensesPlugins,
+  ...LicensePlugins,
   buildMarker: ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_SENTINEL,
 } satisfies AdminDashboardEnterprisePlugins;

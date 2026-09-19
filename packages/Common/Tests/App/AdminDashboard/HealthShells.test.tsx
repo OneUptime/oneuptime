@@ -193,8 +193,17 @@ const makePlugin: (testId: string) => EnterprisePluginComponent = (
   return Plugin;
 };
 
-const installPlugin: (key: AdminDashboardEnterprisePluginKey) => string = (
-  key: AdminDashboardEnterprisePluginKey,
+/*
+ * The admin plugin keys that hold a page. LicenseManager is the one that does
+ * not: it is the edition dialog's license manager, with props of its own.
+ */
+type PagePluginKey = Exclude<
+  AdminDashboardEnterprisePluginKey,
+  "LicenseManager"
+>;
+
+const installPlugin: (key: PagePluginKey) => string = (
+  key: PagePluginKey,
 ): string => {
   const testId: string = `plugin-${key}`;
   plugins[key] = makePlugin(testId);
@@ -206,7 +215,7 @@ const apiGet: jest.Mock = API.get as unknown as jest.Mock;
 interface GatedPage {
   label: string;
   Page: FunctionComponent;
-  pluginKey: AdminDashboardEnterprisePluginKey;
+  pluginKey: PagePluginKey;
   featureName: string;
 }
 

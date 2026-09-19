@@ -1,5 +1,6 @@
 import PageComponentProps from "../Pages/PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
+import { LicenseManagerComponent } from "Common/UI/Components/EditionLabel/LicenseManager";
 import { ComponentType, ExoticComponent } from "react";
 
 /*
@@ -93,6 +94,14 @@ export interface DashboardEnterprisePlugins {
    * every resource page imports (same props, same export) and renders this.
    */
   AuditLogsTable?: EnterprisePluginComponent<AuditLogsTableProps> | undefined;
+
+  /*
+   * License management (activation, refresh, seat usage, the instances on
+   * the license) in the edition dialog of the footer's edition pill. Footer
+   * passes it to EditionLabel, which keeps the read-only license status. Not
+   * a page and never lazy: see Common/UI/Components/EditionLabel/LicenseManager.ts.
+   */
+  LicenseManager?: LicenseManagerComponent | undefined;
 }
 
 // Names of the screens a plugin can provide (everything but the marker).
@@ -116,6 +125,7 @@ const PLUGIN_KEY_SET: Record<DashboardEnterprisePluginKey, true> = {
   StatusPageSCIM: true,
   TeamCompliance: true,
   AuditLogsTable: true,
+  LicenseManager: true,
 };
 
 export const DASHBOARD_ENTERPRISE_PLUGIN_KEYS: ReadonlyArray<DashboardEnterprisePluginKey> =

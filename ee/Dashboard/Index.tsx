@@ -1,4 +1,5 @@
 import AuditLogsPlugins from "./AuditLogs/Plugins";
+import LicensePlugins from "./License/Plugins";
 import SSOPlugins from "./SSO/Plugins";
 import TeamCompliancePlugins from "./TeamCompliance/Plugins";
 import { DashboardEnterprisePlugins } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
@@ -29,5 +30,6 @@ export default {
   ...SSOPlugins,
   ...AuditLogsPlugins,
   ...TeamCompliancePlugins,
+  ...LicensePlugins,
   buildMarker: ONEUPTIME_EE_DASHBOARD_PLUGIN_SENTINEL,
 } satisfies DashboardEnterprisePlugins;
