@@ -221,6 +221,14 @@ export default class GlobalConfigAPI extends BaseAPI<
       isEvaluation: Boolean(snapshot?.isEvaluation),
       // The name older dialogs read; same value as isEvaluation.
       isEvaluationLicense: Boolean(snapshot?.isEvaluation),
+      /*
+       * Which enterprise features the license covers: "all", or the
+       * EnterpriseFeature values it lists (null on the Community Edition).
+       * A valid license that leaves a feature out stops that feature (see
+       * EnterpriseEdition.isFeatureActive), which licenseValid alone cannot
+       * tell a screen.
+       */
+      features: GlobalConfigAPI.toFeaturesResponse(snapshot),
     };
 
     if (data.audience !== "master-admin") {
@@ -294,6 +302,21 @@ export default class GlobalConfigAPI extends BaseAPI<
         snapshot ? data.seatUsage : null,
       ),
     };
+  }
+
+  // The license's features for a response: "all", a copy of the list, or null.
+  public static toFeaturesResponse(
+    snapshot: EnterpriseLicenseSnapshot | null,
+  ): "all" | Array<string> | null {
+    if (!snapshot) {
+      return null;
+    }
+
+    if (snapshot.features === "all") {
+      return "all";
+    }
+
+    return Array.isArray(snapshot.features) ? [...snapshot.features] : [];
   }
 
   /*

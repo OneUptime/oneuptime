@@ -7,6 +7,7 @@ import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import Response from "../../../Server/Utils/Response";
 import { AppVersion } from "../../../Server/EnvironmentConfig";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
+import EnterpriseFeature from "../../../Server/Enterprise/EnterpriseFeature";
 import {
   EnterpriseLicenseSnapshot,
   EnterpriseLicenseStatus,
@@ -152,6 +153,7 @@ const PUBLIC_KEYS: Array<string> = [
   "companyName",
   "edition",
   "expiresAt",
+  "features",
   "graceEndsAt",
   "graceReason",
   "isEvaluation",
@@ -930,6 +932,82 @@ describe("GlobalConfigAPI.buildLicenseResponse", () => {
         [...PUBLIC_KEYS, ...MASTER_ADMIN_ONLY_KEYS].sort(),
       );
     }
+  });
+
+  describe("features", () => {
+    const buildPublic: (
+      snapshot: EnterpriseLicenseSnapshot | null,
+      isEnterpriseEditionLoaded?: boolean,
+    ) => JSONObject = (
+      snapshot: EnterpriseLicenseSnapshot | null,
+      isEnterpriseEditionLoaded?: boolean,
+    ): JSONObject => {
+      return GlobalConfigAPI.buildLicenseResponse({
+        audience: "public",
+        isEnterpriseEditionLoaded: isEnterpriseEditionLoaded !== false,
+        snapshot,
+        config: null,
+        seatUsage: null,
+      });
+    };
+
+    it('is "all" for a license that covers everything', () => {
+      expect(buildPublic(createLicenseSnapshot())["features"]).toBe("all");
+    });
+
+    /*
+     * A valid license that leaves SSO out stops SSO (isFeatureActive), and
+     * licenseValid alone cannot tell a settings page that.
+     */
+    it("lists the features of a license that names them, so a page can tell one is left out", () => {
+      const body: JSONObject = buildPublic(
+        createLicenseSnapshot({
+          features: [EnterpriseFeature.SCIM, EnterpriseFeature.AuditLogs],
+        }),
+      );
+
+      expect(body["licenseValid"]).toBe(true);
+      expect(body["features"]).toEqual(["scim", "audit-logs"]);
+      expect(body["features"]).not.toContain(EnterpriseFeature.SSO);
+    });
+
+    it("is an empty list when the license entitles nothing", () => {
+      expect(
+        buildPublic(createLicenseSnapshotWithStatus("missing"))["features"],
+      ).toEqual([]);
+    });
+
+    it("is null on the Community Edition, whatever snapshot is handed in", () => {
+      expect(buildPublic(null)["features"]).toBeNull();
+      expect(
+        buildPublic(createLicenseSnapshot(), false)["features"],
+      ).toBeNull();
+    });
+
+    it("hands out a copy, never the snapshot's own list", () => {
+      const snapshot: EnterpriseLicenseSnapshot = createLicenseSnapshot({
+        features: [EnterpriseFeature.SSO],
+      });
+      const features: Array<string> = buildPublic(snapshot)[
+        "features"
+      ] as Array<string>;
+
+      features.push("mutated");
+
+      expect(snapshot.features).toEqual([EnterpriseFeature.SSO]);
+    });
+
+    it("is the same for a master admin", () => {
+      const body: JSONObject = GlobalConfigAPI.buildLicenseResponse({
+        audience: "master-admin",
+        isEnterpriseEditionLoaded: true,
+        snapshot: createLicenseSnapshot({ features: [EnterpriseFeature.SSO] }),
+        config: makeStoredConfig(),
+        seatUsage: ENFORCED_SEAT_USAGE,
+      });
+
+      expect(body["features"]).toEqual(["sso"]);
+    });
   });
 
   it("maps unenforced seat usage to the 'nothing to enforce' fields", () => {
