@@ -24,6 +24,10 @@ import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
 import logger from "Common/Server/Utils/Logger";
+import {
+  getLicenseExpiryReminderCopy,
+  LicenseExpiryReminderCopy,
+} from "../LicenseExpiryReminderCopy";
 
 type SendToAllRecipientsFunction = (data: {
   recipients: Array<string>;
@@ -269,45 +273,23 @@ RunCron(
             onlyShowDate: true,
           });
 
-        let subject: string;
-        let emailTitle: string;
-        let expiryStatus: string;
-        let expiryStatusMessage: string;
-
-        if (isExpired) {
-          const daysAgo: number = Math.abs(daysUntilExpiry);
-          const daysAgoText: string =
-            daysAgo === 0
-              ? "today"
-              : `${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`;
-
-          subject = `[Action Required] OneUptime Enterprise license for ${companyName} has expired`;
-          emailTitle = "Your OneUptime Enterprise license has expired";
-          expiryStatus = `Expired ${daysAgoText}`;
-          expiryStatusMessage = `Your OneUptime Enterprise license expired ${daysAgoText}. Please renew it to keep your self-hosted OneUptime instances running. Here are the details:`;
-        } else {
-          const daysLeftText: string =
-            daysUntilExpiry === 0
-              ? "today"
-              : `in ${daysUntilExpiry} day${daysUntilExpiry === 1 ? "" : "s"}`;
-
-          subject = `[Reminder] OneUptime Enterprise license for ${companyName} expires ${daysLeftText}`;
-          emailTitle = `Your OneUptime Enterprise license expires ${daysLeftText}`;
-          expiryStatus = `Expires ${daysLeftText}`;
-          expiryStatusMessage = `Your OneUptime Enterprise license expires ${daysLeftText}. Please renew it before then to keep your self-hosted OneUptime instances running. Here are the details:`;
-        }
+        const copy: LicenseExpiryReminderCopy = getLicenseExpiryReminderCopy({
+          companyName,
+          expiresAt: license.expiresAt,
+          now,
+        });
 
         await sendToAllRecipients({
           recipients,
-          subject,
+          subject: copy.subject,
           templateType: EmailTemplateType.EnterpriseLicenseExpiryReminder,
           vars: {
             companyName: companyName,
             licenseKey: maskedLicenseKey,
             expiresAt: expiresAtFormatted,
-            emailTitle: emailTitle,
-            expiryStatus: expiryStatus,
-            expiryStatusMessage: expiryStatusMessage,
+            emailTitle: copy.emailTitle,
+            expiryStatus: copy.expiryStatus,
+            expiryStatusMessage: copy.expiryStatusMessage,
           },
         });
       } catch (error) {

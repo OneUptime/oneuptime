@@ -132,6 +132,7 @@ interface MakeLicenseData {
   userCountSource?: EnterpriseLicenseUserCountSource | undefined;
   legacyUserCount?: number | undefined;
   legacyUserCountUpdatedAt?: Date | undefined;
+  expiresAt?: Date | undefined;
 }
 
 const makeLicense: (data: MakeLicenseData) => EnterpriseLicense = (
@@ -151,6 +152,7 @@ const makeLicense: (data: MakeLicenseData) => EnterpriseLicense = (
     userCountSource: data.userCountSource,
     legacyUserCount: data.legacyUserCount,
     legacyUserCountUpdatedAt: data.legacyUserCountUpdatedAt,
+    expiresAt: data.expiresAt,
   } as unknown as EnterpriseLicense;
 };
 
@@ -357,5 +359,100 @@ describe("EnterpriseLicense:SendLicenseNotificationEmails usage source", () => {
     await runTick();
 
     expect(mockMailService.sendMail).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("EnterpriseLicense:SendLicenseNotificationEmails expiry reminder", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+
+    mockGlobalConfigService.findOneById.mockResolvedValue({});
+    mockMailService.sendMail.mockResolvedValue({
+      isSuccess: (): boolean => {
+        return true;
+      },
+    });
+    mockEnterpriseLicenseInstanceService.findBy.mockResolvedValue([
+      makeInstance({}),
+    ]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const sendExpiryReminderFor: (
+    expiresAt: Date,
+  ) => Promise<Record<string, unknown>> = async (
+    expiresAt: Date,
+  ): Promise<Record<string, unknown>> => {
+    mockEnterpriseLicenseService.findBy.mockResolvedValue([
+      makeLicense({ currentUserCount: 1, userLimit: 10, expiresAt }),
+    ]);
+
+    await runTick();
+
+    const call: Array<unknown> | undefined =
+      mockMailService.sendMail.mock.calls.find((args: Array<unknown>) => {
+        return (
+          (args[0] as { templateType: EmailTemplateType }).templateType ===
+          EmailTemplateType.EnterpriseLicenseExpiryReminder
+        );
+      });
+
+    expect(call).toBeDefined();
+
+    return call![0] as Record<string, unknown>;
+  };
+
+  test("an expiring license: the instances keep running; single sign-on, SCIM and audit logging stop after the 30-day grace period", async () => {
+    const sent: Record<string, unknown> = await sendExpiryReminderFor(
+      OneUptimeDate.addRemoveDays(NOW, 10),
+    );
+    const message: string = (sent["vars"] as Record<string, string>)[
+      "expiryStatusMessage"
+    ]!;
+
+    expect(sent["subject"]).toBe(
+      "[Reminder] OneUptime Enterprise license for Acme Inc expires in 10 days",
+    );
+    expect(message).not.toContain("to keep your self-hosted OneUptime");
+    expect(message).toContain(
+      "Your self-hosted OneUptime instances keep running either way",
+    );
+    expect(message).toContain(
+      "single sign-on, SCIM provisioning and audit logging stop and enterprise configuration becomes read-only when the 30-day grace period after the expiry ends",
+    );
+  });
+
+  test("an expired license inside its grace period: says when the features stop", async () => {
+    const sent: Record<string, unknown> = await sendExpiryReminderFor(
+      OneUptimeDate.addRemoveDays(NOW, -5),
+    );
+    const vars: Record<string, string> = sent["vars"] as Record<string, string>;
+
+    expect(sent["subject"]).toBe(
+      "[Action Required] OneUptime Enterprise license for Acme Inc has expired",
+    );
+    expect(vars["expiryStatus"]).toBe("Expired 5 days ago");
+    expect(vars["expiryStatusMessage"]).not.toContain(
+      "to keep your self-hosted OneUptime",
+    );
+    expect(vars["expiryStatusMessage"]).toContain(
+      "every enterprise feature stays on until its 30-day grace period ends on",
+    );
+  });
+
+  test("an expired license past its grace period: says the features have stopped", async () => {
+    const sent: Record<string, unknown> = await sendExpiryReminderFor(
+      new Date(NOW.getTime() - 30 * 24 * 60 * 60 * 1000 - 60 * 60 * 1000),
+    );
+
+    expect(
+      (sent["vars"] as Record<string, string>)["expiryStatusMessage"],
+    ).toContain(
+      "single sign-on, SCIM provisioning and audit logging have stopped and enterprise configuration is read-only",
+    );
   });
 });
