@@ -1,5 +1,9 @@
 import { EnterpriseLicenseMode } from "../SSO/License/EnterpriseLicenseMode";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -43,8 +47,7 @@ export const AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION: string =
 export const AUDIT_LOGS_GRACE_TITLE: string =
   "No valid Enterprise license: audit logging stops when the trial or grace period ends.";
 
-export const AUDIT_LOGS_GRACE_DESCRIPTION: string =
-  "Audit logging records as configured during the 14-day trial or grace period. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.";
+export const AUDIT_LOGS_GRACE_DESCRIPTION: string = `Audit logging records as configured during the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial of an installation with no license, or the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.`;
 
 export interface AuditLogsStoppedCopy {
   title: string;

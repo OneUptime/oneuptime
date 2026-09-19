@@ -12,6 +12,10 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "../../../Types/EnterpriseLicense/EnterpriseLicensePeriods";
+import {
   LAPSED_STATE_PHRASES,
   LAPSE_WARNING_PHRASES,
   RETIRED_NOTICE_EXAMPLES,
@@ -283,7 +287,7 @@ describe("EditionLabel - an expired license in its grace period", () => {
         status: "grace",
         graceReason: "expired",
         graceEndsAt,
-        expiresAt: inDays(-9),
+        expiresAt: inDays(-25),
       }),
     );
   });
@@ -335,7 +339,7 @@ describe("EditionLabel - an expired license in its grace period", () => {
     );
 
     expect(notice).toHaveTextContent(
-      "Without a valid license (after the 14-day grace period), single sign-on (SAML and OIDC) stops",
+      "Without a valid license (after the 30-day grace period), single sign-on (SAML and OIDC) stops",
     );
     expect(notice).not.toHaveTextContent(/trial/i);
   });
@@ -355,7 +359,7 @@ describe("EditionLabel - an expired license in its grace period", () => {
         status: "grace",
         graceReason: "expired",
         graceEndsAt,
-        expiresAt: inDays(-9),
+        expiresAt: inDays(-25),
       }),
     );
 
@@ -863,7 +867,7 @@ describe("EditionLabel - without a license manager", () => {
         status: "grace",
         graceReason: "expired",
         graceEndsAt: inDays(5),
-        expiresAt: inDays(-9),
+        expiresAt: inDays(-25),
       }),
     );
 
@@ -1334,5 +1338,22 @@ describe("EditionLabel - the lapse copy and its checks", () => {
     expect(LICENSE_LAPSED_STATE).not.toMatch(/grace|trial/i);
     expect(TRIAL_ENFORCEMENT_SUMMARY).not.toMatch(/grace/i);
     expect(GRACE_ENFORCEMENT_SUMMARY).not.toMatch(/trial/i);
+  });
+
+  /*
+   * The trial is 14 days and the grace period after a license expires is 30.
+   * Each summary states its own length, derived from the constant the license
+   * classifier uses, so the two can never drift apart.
+   */
+  it("states a 14-day trial and a 30-day grace period, from the constants", () => {
+    expect(ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS).toBe(14);
+    expect(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS).toBe(30);
+    expect(TRIAL_ENFORCEMENT_SUMMARY).toContain(
+      `Without a valid license (after the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial),`,
+    );
+    expect(GRACE_ENFORCEMENT_SUMMARY).toContain(
+      `Without a valid license (after the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period),`,
+    );
+    expect(GRACE_ENFORCEMENT_SUMMARY).not.toContain("14-day");
   });
 });

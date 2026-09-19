@@ -18,6 +18,10 @@ import {
   EnterpriseLicenseMode,
   LicensedFeature,
 } from "../../../Dashboard/SSO/License/EnterpriseLicenseMode";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
 
 /*
  * The banner the identity screens (project, status page and global SSO,
@@ -58,7 +62,8 @@ const READ_ONLY_PHRASES: Array<string> = [
 ];
 
 const GRACE_PHRASES: Array<string> = [
-  "14-day trial or grace period",
+  "14-day trial of an installation with no license",
+  "30-day grace period after a license expires",
   "single sign-on stops",
   '"Require SSO" is no longer enforced',
   "members sign in with their password",
@@ -187,6 +192,22 @@ describe("EnterpriseLicenseBanner", () => {
     expect(
       screen.queryByTestId("enterprise-license-read-only-banner"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The trial and the grace period are different lengths. The banner used to
+   * say "the 14-day trial or grace period", which reads as a 14-day grace
+   * period; it now names each with the number the license classifier uses.
+   */
+  test("grace: states the trial and the grace period with their own lengths, from the constants", () => {
+    expect(GRACE_DESCRIPTION).toContain(
+      `${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial`,
+    );
+    expect(GRACE_DESCRIPTION).toContain(
+      `${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period`,
+    );
+    expect(GRACE_DESCRIPTION).not.toContain("14-day trial or grace period");
+    expect(GRACE_DESCRIPTION).not.toMatch(/14-day grace/);
   });
 
   test("not included, on a single sign-on screen: says the license leaves single sign-on out, and nothing about SCIM", () => {

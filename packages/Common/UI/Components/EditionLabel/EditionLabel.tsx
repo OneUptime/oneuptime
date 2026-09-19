@@ -32,6 +32,10 @@ import {
   env,
 } from "../../Config";
 import VersionUtil from "../../../Utils/VersionUtil";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "../../../Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import UserUtil from "../../Utils/User";
 
 /*
@@ -82,12 +86,15 @@ export const LICENSE_LAPSE_CONSEQUENCES: string =
   'single sign-on (SAML and OIDC) stops and "Require SSO" is no longer enforced, so users sign in with their password; SCIM provisioning stops; audit logging stops recording; enterprise configuration becomes read-only; and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.';
 
 /*
- * The two periods have different names: an unlicensed installation's first
- * 14 days are its trial, and only a license that lapsed has a grace period.
+ * The two periods have different names and different lengths: an unlicensed
+ * installation's first ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS days are its
+ * trial, and only a license that expired has a grace period
+ * (ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS days after its expiry). The
+ * numbers come from the constants the license classifier uses.
  */
-export const TRIAL_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the 14-day trial), ${LICENSE_LAPSE_CONSEQUENCES}`;
+export const TRIAL_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial), ${LICENSE_LAPSE_CONSEQUENCES}`;
 
-export const GRACE_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the 14-day grace period), ${LICENSE_LAPSE_CONSEQUENCES}`;
+export const GRACE_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period), ${LICENSE_LAPSE_CONSEQUENCES}`;
 
 /*
  * What has stopped once the license lapsed (expired past its grace period,

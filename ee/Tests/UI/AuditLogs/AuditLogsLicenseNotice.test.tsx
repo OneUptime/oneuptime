@@ -77,6 +77,10 @@ import AuditLogsLicenseNotice, {
 } from "../../../Dashboard/AuditLogs/AuditLogsLicenseNotice";
 import AuditLogsSettings from "../../../Dashboard/AuditLogs/AuditLogsSettings";
 import { EnterpriseLicenseMode } from "../../../Dashboard/SSO/License/EnterpriseLicenseMode";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -126,7 +130,8 @@ const settingsPageOnlyWordingIn: (text: string) => Array<string> = (
 
 const GRACE_PHRASES: Array<string> = [
   "audit logging stops when the trial or grace period ends",
-  "14-day trial or grace period",
+  "14-day trial of an installation with no license",
+  "30-day grace period after a license expires",
   "nothing more is recorded until an Enterprise license is activated",
   "Entries recorded so far are kept",
 ];
@@ -273,6 +278,20 @@ describe("AuditLogsLicenseNotice", () => {
         GRACE_PHRASES,
       ),
     ).toEqual([]);
+  });
+
+  // It used to say "the 14-day trial or grace period": the grace period is 30 days.
+  test("trial or grace period: states each with its own length, from the constants", () => {
+    expect(AUDIT_LOGS_GRACE_DESCRIPTION).toContain(
+      `${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial`,
+    );
+    expect(AUDIT_LOGS_GRACE_DESCRIPTION).toContain(
+      `${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period`,
+    );
+    expect(AUDIT_LOGS_GRACE_DESCRIPTION).not.toContain(
+      "14-day trial or grace period",
+    );
+    expect(AUDIT_LOGS_GRACE_DESCRIPTION).not.toMatch(/14-day grace/);
   });
 
   test.each([EnterpriseLicenseMode.Editable, EnterpriseLicenseMode.Unknown])(

@@ -1,5 +1,9 @@
 import { EnterpriseLicenseMode, LicensedFeature } from "./EnterpriseLicenseMode";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -12,7 +16,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * is locked out), and the identity provider's SCIM requests are refused - the Community Edition's behaviour - until a license
  * is activated, when everything resumes without a restart. Nothing configured
  * here is deleted. Before the lapse (the Grace mode, which covers both the
- * trial and the grace period) the banner warns about exactly that.
+ * trial and the grace period) the banner warns about exactly that. The two
+ * are different lengths (ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS for an
+ * installation with no license, ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS after
+ * a license expires), and the copy names each with its own.
  *
  * A license whose features leave single sign-on or SCIM out stops that one
  * the same way while the license is otherwise fine (NotIncluded). The banner
@@ -32,8 +39,7 @@ export const READ_ONLY_DESCRIPTION: string =
 export const GRACE_TITLE: string =
   "No valid Enterprise license: single sign-on and SCIM stop when the trial or grace period ends.";
 
-export const GRACE_DESCRIPTION: string =
-  'Everything here works during the 14-day trial or grace period, and you can still change this configuration. When it ends, single sign-on stops, "Require SSO" is no longer enforced (members sign in with their password), your identity provider\'s SCIM requests are refused and this configuration becomes read-only, until an Enterprise license is activated in the Admin Dashboard.';
+export const GRACE_DESCRIPTION: string = `Everything here works during the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial of an installation with no license, or the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period after a license expires, and you can still change this configuration. When it ends, single sign-on stops, "Require SSO" is no longer enforced (members sign in with their password), your identity provider's SCIM requests are refused and this configuration becomes read-only, until an Enterprise license is activated in the Admin Dashboard.`;
 
 export const NOT_INCLUDED_SSO_TITLE: string =
   "Your Enterprise license does not include single sign-on: single sign-on is off, and this configuration is read-only.";

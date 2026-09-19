@@ -268,6 +268,7 @@ describe("EditionLabel with the license manager - a valid license", () => {
 });
 
 describe("EditionLabel with the license manager - an expired license in its grace period", () => {
+  // 25 days into the 30-day grace period.
   const graceEndsAt: string = inDays(5);
 
   beforeEach(() => {
@@ -276,7 +277,7 @@ describe("EditionLabel with the license manager - an expired license in its grac
         status: "grace",
         graceReason: "expired",
         graceEndsAt,
-        expiresAt: inDays(-9),
+        expiresAt: inDays(-25),
       }),
     );
   });
@@ -305,6 +306,10 @@ describe("EditionLabel with the license manager - an expired license in its grac
     expect(notice).toHaveTextContent(
       "Every enterprise feature keeps working until the grace period ends",
     );
+    expect(notice).toHaveTextContent(
+      "Without a valid license (after the 30-day grace period)",
+    );
+    expect(notice).not.toHaveTextContent("14-day");
     // What stops when it ends: SSO, SCIM and audit logging, not just configuration.
     expect(lapseWarningProblems(notice.textContent)).toEqual([]);
   });
