@@ -1,13 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import AuditLogServiceInstance, {
+  AUDIT_LOG_CREATE_REFUSED_MESSAGE,
   AuditLogService,
 } from "../../../Server/Services/AuditLogService";
+import AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
+import ModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import logger from "../../../Server/Utils/Logger";
 import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import FakeEnterpriseModule, {
   createAuditLogRecorderSpy,
@@ -393,4 +401,194 @@ describe("what core's AuditLogService still is", () => {
       expect(methods).toContain(entryPoint);
     }
   });
+});
+
+/*
+ * The audit trail cannot be forged. Entries are written only by the
+ * Enterprise recorder, as root. The model grants create to nobody (a project
+ * owner or admin used to be able to POST /audit-log), and AuditLogService
+ * refuses every create that is not root, master admins' included.
+ */
+const auditEntry: () => AuditLog = (): AuditLog => {
+  const entry: AuditLog = new AuditLog();
+  entry.projectId = PROJECT_ID;
+  entry.resourceType = "Monitor";
+  entry.resourceId = MONITOR_ID;
+  entry.action = "Delete";
+  entry.changes = [];
+  return entry;
+};
+
+const projectMemberProps: (
+  permissions: Array<Permission>,
+) => DatabaseCommonInteractionProps = (
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps => {
+  return {
+    userId: PROPS.userId,
+    userType: UserType.User,
+    tenantId: PROJECT_ID,
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        projectId: PROJECT_ID,
+        _type: "UserTenantAccessPermission",
+        permissions: permissions.map((permission: Permission) => {
+          return {
+            _type: "UserPermission",
+            permission: permission,
+            labelIds: [],
+            isBlockPermission: false,
+          };
+        }),
+      } as UserTenantAccessPermission,
+    },
+  };
+};
+
+const NON_ROOT_CALLERS: Array<[string, DatabaseCommonInteractionProps]> = [
+  ["a project owner", projectMemberProps([Permission.ProjectOwner])],
+  ["a project admin", projectMemberProps([Permission.ProjectAdmin])],
+  [
+    "a master admin",
+    {
+      userId: PROPS.userId,
+      userType: UserType.MasterAdmin,
+      isMasterAdmin: true,
+    },
+  ],
+  [
+    "an API key",
+    {
+      userType: UserType.API,
+      tenantId: PROJECT_ID,
+      userTenantAccessPermission: projectMemberProps([Permission.ProjectOwner])
+        .userTenantAccessPermission!,
+    },
+  ],
+  ["a caller with no identity", {}],
+  [
+    "a project admin skipping hooks",
+    {
+      ...projectMemberProps([Permission.ProjectAdmin]),
+      ignoreHooks: true,
+    },
+  ],
+];
+
+describe("nobody but root creates audit log entries", () => {
+  let analyticsCreateMany: jest.SpyInstance;
+
+  beforeEach(() => {
+    // The real create path here; the ClickHouse insert underneath is stubbed.
+    insertSpy.mockRestore();
+    analyticsCreateMany = jest
+      .spyOn(AnalyticsDatabaseService.prototype, "createMany")
+      .mockImplementation((async (createBy: { items: Array<AuditLog> }) => {
+        return createBy.items;
+      }) as never);
+  });
+
+  test.each(NON_ROOT_CALLERS)(
+    "%s cannot create one",
+    async (_caller: string, props: DatabaseCommonInteractionProps) => {
+      await expect(
+        AuditLogServiceInstance.create({ data: auditEntry(), props }),
+      ).rejects.toThrow(
+        new NotAuthorizedException(AUDIT_LOG_CREATE_REFUSED_MESSAGE),
+      );
+      await expect(
+        AuditLogServiceInstance.createMany({ items: [auditEntry()], props }),
+      ).rejects.toThrow(NotAuthorizedException);
+
+      expect(analyticsCreateMany).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a root create - the recorder's - goes through", async () => {
+    const entry: AuditLog = auditEntry();
+
+    await expect(
+      AuditLogServiceInstance.create({ data: entry, props: { isRoot: true } }),
+    ).resolves.toBe(entry);
+
+    expect(analyticsCreateMany).toHaveBeenCalledTimes(1);
+    expect(analyticsCreateMany.mock.calls[0]![0]).toEqual({
+      items: [entry],
+      props: { isRoot: true },
+    });
+  });
+
+  test("a root create that skips hooks goes through too", async () => {
+    await expect(
+      AuditLogServiceInstance.createMany({
+        items: [auditEntry(), auditEntry()],
+        props: { isRoot: true, ignoreHooks: true },
+      }),
+    ).resolves.toHaveLength(2);
+  });
+
+  test("a fresh instance refuses the same way", async () => {
+    await expect(
+      new AuditLogService().create({
+        data: auditEntry(),
+        props: projectMemberProps([Permission.ProjectAdmin]),
+      }),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+});
+
+describe("the AuditLog model grants create to nobody", () => {
+  test("no create permission at table level", () => {
+    const model: AuditLog = new AuditLog();
+
+    expect(model.getCreatePermissions()).toEqual([]);
+    expect(model.getUpdatePermissions()).toEqual([]);
+    expect(model.getDeletePermissions()).toEqual([]);
+  });
+
+  test("no create permission on any column", () => {
+    const columns: Array<AnalyticsTableColumn> = new AuditLog().tableColumns;
+
+    expect(columns.length).toBeGreaterThan(10);
+
+    const creatable: Array<string> = columns
+      .filter((column: AnalyticsTableColumn): boolean => {
+        return (column.accessControl?.create || []).length > 0;
+      })
+      .map((column: AnalyticsTableColumn): string => {
+        return column.key;
+      });
+
+    expect(creatable).toEqual([]);
+  });
+
+  // Reading the trail is unchanged.
+  test("owners, admins, settings admins and audit readers can still read it", () => {
+    expect(new AuditLog().getReadPermissions()).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SettingsAdmin,
+      Permission.ReadAuditLog,
+    ]);
+  });
+
+  /*
+   * The permission layer on its own turns a project owner or admin away,
+   * before AuditLogService is even reached.
+   */
+  test.each([
+    ["a project owner", Permission.ProjectOwner],
+    ["a project admin", Permission.ProjectAdmin],
+  ])(
+    "the analytics create check refuses %s",
+    (_caller: string, permission: Permission) => {
+      expect(() => {
+        ModelPermission.checkCreatePermissions(
+          AuditLog,
+          auditEntry(),
+          projectMemberProps([permission]),
+        );
+      }).toThrow(NotAuthorizedException);
+    },
+  );
 });
