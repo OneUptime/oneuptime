@@ -11,8 +11,8 @@ x-common-variables: &common-variables
 
   NODE_ENV: ${ENVIRONMENT}
   BILLING_ENABLED: ${BILLING_ENABLED}
-  # Informational and deprecated (see config.example.env): the edition is the
-  # image APP_TAG pulls. Deliberately no ONEUPTIME_EDITION here: an empty value
+  # Deprecated (see config.example.env): the edition is the image APP_TAG
+  # pulls, and true on the Community image makes the App refuse to start. Deliberately no ONEUPTIME_EDITION here: an empty value
   # would override the ONEUPTIME_EDITION=enterprise the Enterprise image sets.
   IS_ENTERPRISE_EDITION: ${IS_ENTERPRISE_EDITION}
   BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}

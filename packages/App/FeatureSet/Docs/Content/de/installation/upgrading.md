@@ -33,7 +33,14 @@ editions.
   Enterprise image when you upgrade by setting `APP_TAG=enterprise-release`
   (or `enterprise-<version>`) in `config.env`. `APP_TAG=release` is the
   Community image, and `IS_ENTERPRISE_EDITION=true` no longer switches anything
-  on. The server logs a warning at startup if it is set on the Community image.
+  on. `npm run update` makes this change for you while
+  `IS_ENTERPRISE_EDITION=true` (`release` becomes `enterprise-release`, a
+  pinned `13.0.7` becomes `enterprise-13.0.7`) and prints what it changed.
+  The App now **refuses to start** when `IS_ENTERPRISE_EDITION=true` is set on
+  the Community image, instead of silently no longer enforcing "Require SSO",
+  SSO, SCIM and audit logging. The error says what to set:
+  `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
+  `IS_ENTERPRISE_EDITION=false` to run the Community Edition.
 - **Community image with SSO, OIDC or SCIM already configured:** SSO sign-in
   and SCIM provisioning stop with this upgrade, and "Require SSO for login" is
   no longer enforced. Switch to the Enterprise image to keep them. Otherwise,

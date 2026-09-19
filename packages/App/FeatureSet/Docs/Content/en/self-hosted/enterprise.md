@@ -81,18 +81,24 @@ Use `enterprise-<version>` to pin a release. Then pull the images and restart:
 npm run update
 ```
 
-Set `APP_TAG=release` to go back to the Community Edition.
+To go back to the Community Edition, set `APP_TAG=release` **and**
+`IS_ENTERPRISE_EDITION=false`. While `IS_ENTERPRISE_EDITION=true`,
+`npm run update` moves `APP_TAG` back to `enterprise-release`, and the
+Community image refuses to start.
 
 ### `IS_ENTERPRISE_EDITION` is deprecated
 
 The image you run decides the edition. `IS_ENTERPRISE_EDITION` no longer turns
-anything on or off, and it will be removed in a future release. You can leave
-it unset.
+enterprise features on, and it will be removed in a future release. You can
+leave it unset.
 
 Setting `IS_ENTERPRISE_EDITION=true` on the Community image does **not** enable
-enterprise features. The server logs a warning at startup, and master admins
-see an "Action needed" notice on the edition label, telling you to switch to
-the Enterprise image.
+enterprise features. The App **refuses to start** instead, so an upgrade that
+lands on the Community image can never silently stop enforcing "Require SSO",
+SSO, SCIM and audit logging. The error tells you what to set:
+`APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
+`IS_ENTERPRISE_EDITION=false` to run the Community Edition. With Helm this
+cannot happen: the chart derives the variable from `image.type`.
 
 `ONEUPTIME_EDITION=community` makes the Enterprise image run as the Community
 Edition. This is useful for trying a downgrade before you make it. The

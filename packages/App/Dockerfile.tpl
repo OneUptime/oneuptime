@@ -239,8 +239,9 @@ LABEL com.oneuptime.edition="enterprise"
 # with ONEUPTIME_EDITION=enterprise ee/ MUST load, and the App refuses to boot
 # when it cannot, instead of silently running as the Community Edition.
 ENV ONEUPTIME_EDITION=enterprise
-# Informational and deprecated: no gate reads IS_ENTERPRISE_EDITION. What the
-# App actually loaded is the edition, and that is what env.js reports.
+# Deprecated: the image, not this variable, picks the edition. It stays true
+# here to agree with the image; the boot guard only acts on true without ee/.
+# What the App actually loaded is the edition, and that is what env.js reports.
 ENV IS_ENTERPRISE_EDITION=true
 USER node
 # The full TypeScript type-check already ran at build time (`npm run compile`
@@ -267,7 +268,8 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL com.oneuptime.edition="community"
 # ONEUPTIME_EDITION is deliberately NOT set here. It stays "auto", which finds
 # no ee/ in this image, and an operator can still set it to "community".
-# Informational and deprecated: no gate reads IS_ENTERPRISE_EDITION.
+# Deprecated. false here: true on this image makes the App refuse to start
+# (packages/App/Utils/EnterpriseLoader.ts enforceBootGuards).
 ENV IS_ENTERPRISE_EDITION=false
 USER node
 # Types were checked at build time; see the enterprise stage above.

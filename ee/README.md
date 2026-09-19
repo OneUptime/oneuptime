@@ -154,7 +154,8 @@ The model-to-feature map lives in `EnterpriseEdition.getModelFeature()`.
 
 ## Working on `ee/`
 
-`ee/` has its own `package.json`, pinned to jest 28.1.3. It links
+`ee/` has its own `package.json`, on the same jest major as `packages/Common`
+(28 today; `Tests/Server/ModuleShape.test.ts` checks they match). It links
 `packages/Common` and `packages/App` with `file:` dependencies, so install those
 two packages first:
 
