@@ -99,15 +99,16 @@ async function handleRequest(request) {
   const pathname = url.pathname;
   
   try {
-    // Strategy 0: Network First for the runtime configuration (env.js).
+    // Strategy 0: Network only for the runtime configuration (env.js).
     // The server renders it per deployment - the edition, feature flags and
-    // host settings - so it must never be answered from the cache while the
-    // network is up: served cache-first (it ends in .js, so Strategy 2 below
-    // would take it) a browser keeps an old edition or configuration after an
-    // upgrade or a Community/Enterprise switch. The cached copy is only an
-    // offline fallback.
+    // host settings - and sends it with Cache-Control: no-store, so it is
+    // never written to a cache and never answered from one: served from a
+    // cache (it ends in .js, so Strategy 2 below would take it) a browser
+    // keeps an old edition or configuration after an upgrade or a
+    // Community/Enterprise switch. Offline, the request fails like any other
+    // network request (see the catch below).
     if (isRuntimeConfigRequest(pathname)) {
-      return await networkFirstWithFallback(request, DYNAMIC_CACHE);
+      return await fetch(request);
     }
 
     // Strategy 1: Network First for HTML pages (with fallback)
@@ -156,13 +157,32 @@ function isRuntimeConfigRequest(pathname) {
   return pathname === '/env.js' || pathname.endsWith('/env.js');
 }
 
+// Whether a network response may be written to a cache: a successful one the
+// server did not mark Cache-Control: no-store. no-store means "never keep a
+// copy" (env.js and other per-user or per-deployment answers), and a cache
+// the worker fills is a copy like any other.
+function isCacheableResponse(response) {
+  if (!response || !response.ok) {
+    return false;
+  }
+
+  const cacheControl =
+    (response.headers && response.headers.get('cache-control')) || '';
+
+  return !cacheControl
+    .split(',')
+    .some(function(directive) {
+      return directive.split('=')[0].trim().toLowerCase() === 'no-store';
+    });
+}
+
 // Caching Strategy 1: Network First with Fallback (for HTML)
 async function networkFirstWithFallback(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
     
-    if (networkResponse.ok) {
-      // Cache successful responses
+    if (isCacheableResponse(networkResponse)) {
+      // Cache successful responses the server lets us keep
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
@@ -204,7 +224,7 @@ async function cacheFirstWithUpdate(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
     
-    if (networkResponse.ok) {
+    if (isCacheableResponse(networkResponse)) {
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
@@ -221,7 +241,7 @@ async function updateCacheInBackground(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
     
-    if (networkResponse.ok) {
+    if (isCacheableResponse(networkResponse)) {
       const cache = await caches.open(cacheName);
       await cache.put(request, networkResponse);
       console.log('[ServiceWorker] Background cache update:', request.url);

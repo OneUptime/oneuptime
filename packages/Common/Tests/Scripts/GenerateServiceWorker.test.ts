@@ -5,6 +5,7 @@ import os from "os";
 import path from "path";
 import { URL } from "url";
 import vm from "vm";
+import { FRONTEND_ENVIRONMENT_CACHE_CONTROL } from "../../Server/Utils/FrontendEnvironment";
 
 /*
  * Common/Scripts/generate-service-worker.js turns the Dashboard's
@@ -19,9 +20,14 @@ import vm from "vm";
  *      frontend build decides it (Common/UI/esbuild-enterprise.js):
  *      ONEUPTIME_EDITION, else "is ee/<Frontend>/Index.tsx on disk".
  *
- *   2. env.js is never answered from the cache while the network is up. The
- *      server renders it per deployment (the edition among it), and as a .js
- *      path it used to fall into the cache-first static-asset strategy.
+ *   2. env.js is network-only: never written to a cache, never answered
+ *      from one. The server renders it per deployment (the edition among it)
+ *      and sends it Cache-Control: no-store; as a .js path it used to fall
+ *      into the cache-first static-asset strategy, and then into a
+ *      network-first one that still kept a copy.
+ *
+ *   3. More generally, no strategy writes a response the server marked
+ *      Cache-Control: no-store to a cache.
  *
  * The generator runs in a node subprocess, the way the build runs it. The
  * generated worker then runs for real in a vm context against fake caches and
@@ -201,14 +207,28 @@ interface FakeResponse {
   clone: () => FakeResponse;
 }
 
-function makeResponse(body: string, date: Date = new Date()): FakeResponse {
+// Response headers by lower-case name, as the fake server sends them.
+type FakeHeaders = Record<string, string>;
+
+function makeResponse(
+  body: string,
+  date: Date = new Date(),
+  headers: FakeHeaders = {},
+  status: number = 200,
+): FakeResponse {
   const response: FakeResponse = {
     body,
-    ok: true,
-    status: 200,
+    ok: status >= 200 && status < 300,
+    status,
     headers: {
       get: (name: string): string | null => {
-        return name.toLowerCase() === "date" ? date.toUTCString() : null;
+        const key: string = name.toLowerCase();
+
+        if (key in headers) {
+          return headers[key] as string;
+        }
+
+        return key === "date" ? date.toUTCString() : null;
       },
     },
     clone: (): FakeResponse => {
@@ -281,15 +301,26 @@ class FakeCaches {
 class FakeNetwork {
   public online: boolean = true;
   public readonly requests: Array<string> = [];
+  // What the fake server sends for a URL beyond a plain 200.
+  public readonly headersByUrl: Map<string, FakeHeaders> = new Map();
+  public readonly statusByUrl: Map<string, number> = new Map();
 
   public fetch(request: RequestKey): Promise<FakeResponse> {
-    this.requests.push(keyOf(request));
+    const url: string = keyOf(request);
+    this.requests.push(url);
 
     if (!this.online) {
       return Promise.reject(new Error("Failed to fetch"));
     }
 
-    return Promise.resolve(makeResponse(`network:${keyOf(request)}`));
+    return Promise.resolve(
+      makeResponse(
+        `network:${url}`,
+        new Date(),
+        this.headersByUrl.get(url) || {},
+        this.statusByUrl.get(url) || 200,
+      ),
+    );
   }
 }
 
@@ -371,14 +402,35 @@ async function seedCache(
   cacheName: string,
   url: string,
   body: string,
+  date: Date = new Date(),
 ): Promise<void> {
   const cache: {
     put: (request: RequestKey, response: FakeResponse) => Promise<void>;
   } = await worker.caches.open(cacheName);
-  await cache.put(url, makeResponse(body));
+  await cache.put(url, makeResponse(body, date));
+}
+
+// The names of the caches holding a copy of `url`.
+function cachesHolding(worker: RunningWorker, url: string): Array<string> {
+  return Array.from(worker.caches.stores.entries())
+    .filter((entry: [string, Map<string, FakeResponse>]) => {
+      return entry[1].has(url);
+    })
+    .map((entry: [string, Map<string, FakeResponse>]) => {
+      return entry[0];
+    });
+}
+
+// Lets the worker's un-awaited background cache refresh finish.
+function settle(): Promise<void> {
+  return new Promise<void>((resolve: () => void) => {
+    setTimeout(resolve, 20);
+  });
 }
 
 const ORIGIN: string = "https://oneuptime.example";
+// Older than the worker's 7-day static cache duration.
+const EIGHT_DAYS_AGO: Date = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
 
 describe("generate-service-worker.js", () => {
   afterAll(() => {
@@ -623,7 +675,32 @@ describe("generate-service-worker.js", () => {
       expect(worker.network.requests).toEqual([url]);
     });
 
-    test("falls back to the cached env.js only when offline", async () => {
+    test.each<[string, FakeHeaders]>([
+      [
+        "with the server's Cache-Control",
+        { "cache-control": FRONTEND_ENVIRONMENT_CACHE_CONTROL },
+      ],
+      // A proxy that strips the header must not make env.js cacheable.
+      ["with no Cache-Control at all", {}],
+    ])(
+      "never writes env.js to a cache (%s)",
+      async (_label: string, headers: FakeHeaders) => {
+        const worker: RunningWorker = startEnterpriseWorker().worker;
+        const url: string = `${ORIGIN}/dashboard/env.js`;
+        worker.network.headersByUrl.set(url, headers);
+
+        const first: FakeResponse = await fetchThroughWorker(worker, url);
+        const second: FakeResponse = await fetchThroughWorker(worker, url);
+        await settle();
+
+        expect(first.body).toBe(`network:${url}`);
+        expect(second.body).toBe(`network:${url}`);
+        expect(worker.network.requests).toEqual([url, url]);
+        expect(cachesHolding(worker, url)).toEqual([]);
+      },
+    );
+
+    test("offline, env.js is not answered from a copy an older worker cached", async () => {
       const started: StartedWorker = startEnterpriseWorker();
       const worker: RunningWorker = started.worker;
       const cacheVersion: string = started.cacheVersion;
@@ -638,7 +715,9 @@ describe("generate-service-worker.js", () => {
 
       const response: FakeResponse = await fetchThroughWorker(worker, url);
 
-      expect(response.body).toBe("last known env.js");
+      expect(response.body).not.toBe("last known env.js");
+      expect(response.status).toBe(503);
+      expect(worker.network.requests).toEqual([url]);
     });
 
     test("treats every frontend's env.js the same way", async () => {
@@ -651,6 +730,133 @@ describe("generate-service-worker.js", () => {
       expect((await fetchThroughWorker(worker, url)).body).toBe(
         `network:${url}`,
       );
+
+      const fresh: string = `${ORIGIN}/status-page/env.js`;
+      await fetchThroughWorker(worker, fresh);
+      await settle();
+
+      expect(cachesHolding(worker, fresh)).toEqual([]);
+    });
+
+    test("a page the server marks no-store is served but not cached (network first)", async () => {
+      const started: StartedWorker = startEnterpriseWorker();
+      const worker: RunningWorker = started.worker;
+      const cacheVersion: string = started.cacheVersion;
+      const noStore: string = `${ORIGIN}/dashboard/settings`;
+      const cacheable: string = `${ORIGIN}/dashboard/home`;
+      worker.network.headersByUrl.set(noStore, {
+        "cache-control": FRONTEND_ENVIRONMENT_CACHE_CONTROL,
+      });
+
+      expect((await fetchThroughWorker(worker, noStore)).body).toBe(
+        `network:${noStore}`,
+      );
+      await fetchThroughWorker(worker, cacheable);
+      await settle();
+
+      expect(cachesHolding(worker, noStore)).toEqual([]);
+      // Negative control: the same strategy still caches a normal page.
+      expect(cachesHolding(worker, cacheable)).toEqual([
+        `${cacheVersion}-dynamic`,
+      ]);
+    });
+
+    test("an asset the server marks no-store is served but not cached (cache first)", async () => {
+      const started: StartedWorker = startEnterpriseWorker();
+      const worker: RunningWorker = started.worker;
+      const cacheVersion: string = started.cacheVersion;
+      const noStore: string = `${ORIGIN}/dashboard/dist/Private.js`;
+      const cacheable: string = `${ORIGIN}/dashboard/dist/Index.js`;
+      worker.network.headersByUrl.set(noStore, { "cache-control": "no-store" });
+
+      expect((await fetchThroughWorker(worker, noStore)).body).toBe(
+        `network:${noStore}`,
+      );
+      await fetchThroughWorker(worker, cacheable);
+      await settle();
+
+      expect(cachesHolding(worker, noStore)).toEqual([]);
+      expect(cachesHolding(worker, cacheable)).toEqual([
+        `${cacheVersion}-static`,
+      ]);
+
+      // Not cached, so the next request goes to the network again.
+      await fetchThroughWorker(worker, noStore);
+      expect(
+        worker.network.requests.filter((url: string) => {
+          return url === noStore;
+        }),
+      ).toHaveLength(2);
+    });
+
+    test.each<[string, boolean]>([
+      ["no-store", false],
+      ["private, no-store", false],
+      ["private, max-age=0", true],
+    ])(
+      "the background refresh of a stale asset (Cache-Control %p) replaces the cached copy: %p",
+      async (cacheControl: string, replaced: boolean) => {
+        const started: StartedWorker = startEnterpriseWorker();
+        const worker: RunningWorker = started.worker;
+        const cacheVersion: string = started.cacheVersion;
+        const url: string = `${ORIGIN}/dashboard/dist/Index.js`;
+        await seedCache(
+          worker,
+          `${cacheVersion}-static`,
+          url,
+          "stale bundle",
+          EIGHT_DAYS_AGO,
+        );
+        worker.network.headersByUrl.set(url, {
+          "cache-control": cacheControl,
+        });
+
+        // Served from the cache at once; the refresh runs behind it.
+        expect((await fetchThroughWorker(worker, url)).body).toBe(
+          "stale bundle",
+        );
+        await settle();
+
+        expect(worker.network.requests).toEqual([url]);
+        expect(
+          worker.caches.stores.get(`${cacheVersion}-static`)?.get(url)?.body,
+        ).toBe(replaced ? `network:${url}` : "stale bundle");
+      },
+    );
+
+    test.each<[string, boolean]>([
+      [FRONTEND_ENVIRONMENT_CACHE_CONTROL, false],
+      ["no-store", false],
+      ["No-Store", false],
+      ["public, max-age=0,  NO-STORE ", false],
+      ["no-cache", true],
+      ["private, max-age=600", true],
+      ["max-age=60, must-revalidate", true],
+    ])(
+      "reads no-store as a Cache-Control directive: %p -> cached: %p",
+      async (cacheControl: string, cached: boolean) => {
+        const worker: RunningWorker = startEnterpriseWorker().worker;
+        const url: string = `${ORIGIN}/dashboard/incidents`;
+        worker.network.headersByUrl.set(url, {
+          "cache-control": cacheControl,
+        });
+
+        await fetchThroughWorker(worker, url);
+        await settle();
+
+        expect(cachesHolding(worker, url).length > 0).toBe(cached);
+      },
+    );
+
+    test("never caches an error response", async () => {
+      const worker: RunningWorker = startEnterpriseWorker().worker;
+      const url: string = `${ORIGIN}/dashboard/missing`;
+      worker.network.statusByUrl.set(url, 404);
+
+      expect((await fetchThroughWorker(worker, url)).status).toBe(404);
+      await settle();
+
+      expect(cachesHolding(worker, url)).toEqual([]);
     });
 
     test("still serves bundles cache-first (the cache version is what invalidates them)", async () => {
