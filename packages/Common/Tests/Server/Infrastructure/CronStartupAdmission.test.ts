@@ -31,7 +31,11 @@ jest.mock("../../../Server/Utils/Telemetry", () => {
         return false;
       },
       startActiveSpan: ({ fn }: { fn: (span: unknown) => void }): void => {
-        fn({ end: jest.fn(), recordException: jest.fn(), setStatus: jest.fn() });
+        fn({
+          end: jest.fn(),
+          recordException: jest.fn(),
+          setStatus: jest.fn(),
+        });
       },
     },
     __esModule: true,
@@ -115,24 +119,32 @@ describe("RunCron startup admission through the production Queue wrapper", () =>
     });
     mockQueue.add
       .mockReset()
-      .mockImplementation(async (name: string, _data: JSONObject, options: JobsOptions): Promise<Job> => {
-        if (options.repeat) {
-          return { repeatJobKey: "schedule-key" } as Job;
-        }
-        const id: string = options.jobId!;
-        const key: string | undefined = options.deduplication?.id;
-        const existingId: string | undefined = key ? deduplication.get(key) : undefined;
-        if (existingId) {
-          return { id: existingId } as Job;
-        }
-        if (!storedJobs.has(id)) {
-          storedJobs.set(id, { name, state: "waiting", options });
-          if (key) {
-            deduplication.set(key, id);
+      .mockImplementation(
+        async (
+          name: string,
+          _data: JSONObject,
+          options: JobsOptions,
+        ): Promise<Job> => {
+          if (options.repeat) {
+            return { repeatJobKey: "schedule-key" } as Job;
           }
-        }
-        return { id } as Job;
-      });
+          const id: string = options.jobId!;
+          const key: string | undefined = options.deduplication?.id;
+          const existingId: string | undefined = key
+            ? deduplication.get(key)
+            : undefined;
+          if (existingId) {
+            return { id: existingId } as Job;
+          }
+          if (!storedJobs.has(id)) {
+            storedJobs.set(id, { name, state: "waiting", options });
+            if (key) {
+              deduplication.set(key, id);
+            }
+          }
+          return { id } as Job;
+        },
+      );
   });
 
   afterEach(async () => {

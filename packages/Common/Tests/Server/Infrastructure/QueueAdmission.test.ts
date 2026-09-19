@@ -87,23 +87,31 @@ describe("Queue.addJob admission", () => {
     mockQueue.removeRepeatableByKey.mockReset().mockResolvedValue(true);
     mockQueue.add
       .mockReset()
-      .mockImplementation(async (name: string, data: JSONObject, opts: JobsOptions): Promise<Job> => {
-        const id: string = opts.jobId!;
-        if (!storedJobs.has(id)) {
-          storedJobs.set(id, data);
-        }
-        /*
-         * BullMQ Job.create returns a local Job with the submitted data, even
-         * when the add script returns an existing ID. It does not reload Redis.
-         */
-        return { id, name, data, opts } as Job;
-      });
+      .mockImplementation(
+        async (
+          name: string,
+          data: JSONObject,
+          opts: JobsOptions,
+        ): Promise<Job> => {
+          const id: string = opts.jobId!;
+          if (!storedJobs.has(id)) {
+            storedJobs.set(id, data);
+          }
+          /*
+           * BullMQ Job.create returns a local Job with the submitted data, even
+           * when the add script returns an existing ID. It does not reload Redis.
+           */
+          return { id, name, data, opts } as Job;
+        },
+      );
   });
 
   it("retains the admitted job when Redis rejects the next add with OOM", async () => {
     const oldData: JSONObject = { version: "admitted" };
     storedJobs.set("existing-job", oldData);
-    const oom: Error = new Error("OOM command not allowed when used memory > 'maxmemory'.");
+    const oom: Error = new Error(
+      "OOM command not allowed when used memory > 'maxmemory'.",
+    );
     mockQueue.add.mockRejectedValueOnce(oom);
 
     await expect(
@@ -123,9 +131,15 @@ describe("Queue.addJob admission", () => {
       const oldData: JSONObject = { version: "admitted" };
       const newData: JSONObject = { version: "submitted" };
       storedJobs.set("existing-job", oldData);
-      const result: Job = await Queue.addJob(QueueName.Worker, "existing:job", "Process", newData, {
-        skipExistenceCheck,
-      });
+      const result: Job = await Queue.addJob(
+        QueueName.Worker,
+        "existing:job",
+        "Process",
+        newData,
+        {
+          skipExistenceCheck,
+        },
+      );
 
       expect(storedJobs.get("existing-job")).toBe(oldData);
       expect(mockQueue.getJob).not.toHaveBeenCalled();
@@ -140,7 +154,9 @@ describe("Queue.addJob admission", () => {
   );
 
   it("returns BullMQ's submitted Job object, not a reload of duplicate stored data", async () => {
-    const { Job: BullJob }: { Job: typeof Job } = jest.requireActual("bullmq/dist/cjs/classes/job");
+    const { Job: BullJob }: { Job: typeof Job } = jest.requireActual(
+      "bullmq/dist/cjs/classes/job",
+    );
     const bullQueue: Parameters<typeof Job.create>[0] = {
       client: Promise.resolve({}),
       keys: {},
@@ -156,11 +172,18 @@ describe("Queue.addJob admission", () => {
     const oldData: JSONObject = { version: "stored" };
     const newData: JSONObject = { version: "submitted" };
     storedJobs.set("existing-job", oldData);
-    mockQueue.add.mockImplementation((name: string, data: JSONObject, opts: JobsOptions) => {
-      return BullJob.create(bullQueue, name, data, opts);
-    });
+    mockQueue.add.mockImplementation(
+      (name: string, data: JSONObject, opts: JobsOptions) => {
+        return BullJob.create(bullQueue, name, data, opts);
+      },
+    );
     try {
-      const result: Job = await Queue.addJob(QueueName.Worker, "existing-job", "Process", newData);
+      const result: Job = await Queue.addJob(
+        QueueName.Worker,
+        "existing-job",
+        "Process",
+        newData,
+      );
       expect(result).toBeInstanceOf(BullJob);
       expect(result.id).toBe("existing-job");
       expect(result.data).toBe(newData);
@@ -175,10 +198,9 @@ describe("Queue.addJob admission", () => {
     storedJobs.set("existing-job", { version: "active" });
     remove.mockRejectedValue(new Error("Job is locked by another worker"));
 
-    await expect(Queue.addJob(QueueName.Worker, "existing-job", "Process", {})).resolves.toHaveProperty(
-      "id",
-      "existing-job",
-    );
+    await expect(
+      Queue.addJob(QueueName.Worker, "existing-job", "Process", {}),
+    ).resolves.toHaveProperty("id", "existing-job");
     expect(remove).not.toHaveBeenCalled();
     expect(storedJobs.get("existing-job")).toEqual({ version: "active" });
   });
@@ -209,7 +231,13 @@ describe("Queue.addJob admission", () => {
     const rejected: Error = new Error("Connection is closed");
     mockQueue.add.mockRejectedValueOnce(rejected);
     await expect(
-      Queue.addJob(QueueName.Workflow, "existing-job", "Resume", {}, { delayInMs: 1000 }),
+      Queue.addJob(
+        QueueName.Workflow,
+        "existing-job",
+        "Resume",
+        {},
+        { delayInMs: 1000 },
+      ),
     ).rejects.toBe(rejected);
     expect(storedJobs.get("existing-job")).toEqual({ version: "delayed" });
     expect(mockQueue.add).toHaveBeenCalledTimes(1);
@@ -250,8 +278,18 @@ describe("Queue.addJob admission", () => {
         backoff: { type: "exponential", delay: 5000 },
       },
     );
-    await Queue.addJob(QueueName.Telemetry, "no-retry", "Process", {}, { attempts: 1 });
-    expect(mockQueue.add).toHaveBeenLastCalledWith("Process", {}, { jobId: "no-retry" });
+    await Queue.addJob(
+      QueueName.Telemetry,
+      "no-retry",
+      "Process",
+      {},
+      { attempts: 1 },
+    );
+    expect(mockQueue.add).toHaveBeenLastCalledWith(
+      "Process",
+      {},
+      { jobId: "no-retry" },
+    );
   });
 
   it.each([false, true])(
@@ -281,11 +319,16 @@ describe("Queue.addJob admission", () => {
        * Scope guard, NOT a safety claim: baseline removes definitions before
        * adding and remembers the attempted registration even if add rejects.
        */
-      expect(mockQueue.removeRepeatableByKey.mock.calls).toEqual([["matching:key"], ["previous:key"]]);
-      expect(mockQueue.removeRepeatableByKey.mock.invocationCallOrder[1]).toBeLessThan(
-        mockQueue.add.mock.invocationCallOrder[0]!,
+      expect(mockQueue.removeRepeatableByKey.mock.calls).toEqual([
+        ["matching:key"],
+        ["previous:key"],
+      ]);
+      expect(
+        mockQueue.removeRepeatableByKey.mock.invocationCallOrder[1],
+      ).toBeLessThan(mockQueue.add.mock.invocationCallOrder[0]!);
+      expect(mockQueue.getJob).toHaveBeenCalledTimes(
+        skipExistenceCheck ? 0 : 1,
       );
-      expect(mockQueue.getJob).toHaveBeenCalledTimes(skipExistenceCheck ? 0 : 1);
       expect(remove).toHaveBeenCalledTimes(skipExistenceCheck ? 0 : 1);
       mockQueue.add.mockClear();
       const client: { on: jest.Mock } = await mockQueue.client;

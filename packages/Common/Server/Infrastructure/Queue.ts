@@ -468,7 +468,10 @@ export default class Queue {
      * admitted work before an add that can fail. Repeatable lifecycle changes
      * are deliberately separate; preserve their existing replacement order.
      */
-    if ((options?.scheduleAt || options?.repeatableKey) && !options?.skipExistenceCheck) {
+    if (
+      (options?.scheduleAt || options?.repeatableKey) &&
+      !options?.skipExistenceCheck
+    ) {
       const job: Job | undefined = await queue.getJob(sanitizedJobId);
 
       if (job) {
