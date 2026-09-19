@@ -21,7 +21,7 @@ import * as path from "path";
  * this file to package.json differs between dev (ts-node) and the
  * compiled build/dist output, so try both locations.
  */
-function readCliVersion(): string {
+export function readCliVersion(): string {
   const candidates: Array<string> = [
     path.join(__dirname, "..", "package.json"),
     path.join(__dirname, "..", "..", "..", "package.json"),

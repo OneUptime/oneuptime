@@ -1,9 +1,29 @@
 import { Command, Option } from "commander";
 import { registerConfigCommands } from "../Commands/ConfigCommands";
 import { registerResourceCommands } from "../Commands/ResourceCommands";
-import { registerUtilityCommands } from "../Commands/UtilityCommands";
+import {
+  readCliVersion,
+  registerUtilityCommands,
+} from "../Commands/UtilityCommands";
+import { execFileSync } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
 
 describe("Index (CLI entry point)", () => {
+  it("reports the package version through --version", () => {
+    const packageDir: string = path.join(__dirname, "..");
+    const packageJson: { version: string } = JSON.parse(
+      fs.readFileSync(path.join(packageDir, "package.json"), "utf-8"),
+    ) as { version: string };
+    const output: string = execFileSync(
+      process.execPath,
+      ["--require", "ts-node/register", "Index.ts", "--version"],
+      { cwd: packageDir, encoding: "utf-8" },
+    );
+
+    expect(output.trim()).toBe(packageJson.version);
+  });
+
   it("should create a program with all command groups registered", () => {
     const program: Command = new Command();
     program
@@ -11,7 +31,7 @@ describe("Index (CLI entry point)", () => {
       .description(
         "OneUptime CLI - Manage your OneUptime resources from the command line",
       )
-      .version("1.0.0")
+      .version(readCliVersion())
       .option("--api-key <key>", "API key (overrides config)")
       .option("--url <url>", "OneUptime instance URL (overrides config)")
       .option("--context <name>", "Use a specific context")

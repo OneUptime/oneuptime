@@ -3,7 +3,10 @@
 import { Command } from "commander";
 import { registerConfigCommands } from "./Commands/ConfigCommands";
 import { registerResourceCommands } from "./Commands/ResourceCommands";
-import { registerUtilityCommands } from "./Commands/UtilityCommands";
+import {
+  readCliVersion,
+  registerUtilityCommands,
+} from "./Commands/UtilityCommands";
 
 const program: Command = new Command();
 
@@ -12,7 +15,7 @@ program
   .description(
     "OneUptime CLI - Manage your OneUptime resources from the command line",
   )
-  .version("1.0.0")
+  .version(readCliVersion())
   .option("--api-key <key>", "API key (overrides config)")
   .option("--url <url>", "OneUptime instance URL (overrides config)")
   .option("--context <name>", "Use a specific context")
