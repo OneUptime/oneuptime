@@ -57,6 +57,17 @@ const readJson: (filePath: string) => Record<string, unknown> = (
   >;
 };
 
+// The major version a version or range starts with: "^28.0.8" -> 28.
+const LEADING_MAJOR: RegExp = /^[\s^~>=v]*(\d+)/;
+
+const majorOf: (versionOrRange: string) => number | null = (
+  versionOrRange: string,
+): number | null => {
+  const match: RegExpExecArray | null = LEADING_MAJOR.exec(versionOrRange);
+
+  return match && match[1] ? Number(match[1]) : null;
+};
+
 const allRouters: () => Array<{
   source: string;
   router: ExpressRouter;
@@ -255,17 +266,80 @@ describe("ee/package.json", () => {
     expect(fs.existsSync(path.join(EE_DIR, "LICENSE"))).toBe(true);
   });
 
-  test("links Common and App from packages/ and pins jest 28", () => {
+  test("links Common and App from packages/", () => {
     const dependencies: Record<string, string> = packageJson[
       "dependencies"
-    ] as Record<string, string>;
-    const devDependencies: Record<string, string> = packageJson[
-      "devDependencies"
     ] as Record<string, string>;
 
     expect(dependencies["Common"]).toBe("file:../packages/Common");
     expect(dependencies["App"]).toBe("file:../packages/App");
-    expect(devDependencies["jest"]).toBe("28.1.3");
+  });
+
+  /*
+   * ee's ui jest project runs on packages/Common's test environment, setup
+   * file and transforms (jest.config.js derives them from Common's jest
+   * config), so ee's jest and ts-jest must stay on the major installed in
+   * packages/Common. Scripts/Dev/update-node-modules.sh bumps Common, App and
+   * ee together (ncu -u), so this follows Common rather than pinning a
+   * literal version that the next bump would break.
+   */
+  test.each(["jest", "ts-jest"])(
+    "declares and installs the %s major packages/Common has installed",
+    (name: string) => {
+      const devDependencies: Record<string, string> = packageJson[
+        "devDependencies"
+      ] as Record<string, string>;
+      const commonManifest: string = path.join(
+        REPOSITORY_ROOT,
+        "packages",
+        "Common",
+        "node_modules",
+        name,
+        "package.json",
+      );
+      const eeManifest: string = path.join(
+        EE_DIR,
+        "node_modules",
+        name,
+        "package.json",
+      );
+
+      // test.ee.yaml installs Common before ee; without it there is no answer.
+      expect({
+        commonManifest,
+        installed: fs.existsSync(commonManifest),
+      }).toEqual({ commonManifest, installed: true });
+      expect({ eeManifest, installed: fs.existsSync(eeManifest) }).toEqual({
+        eeManifest,
+        installed: true,
+      });
+
+      const commonMajor: number | null = majorOf(
+        String(readJson(commonManifest)["version"]),
+      );
+
+      expect(commonMajor).not.toBeNull();
+      expect({ name, declared: majorOf(devDependencies[name] || "") }).toEqual({
+        name,
+        declared: commonMajor,
+      });
+      expect({
+        name,
+        installed: majorOf(String(readJson(eeManifest)["version"])),
+      }).toEqual({ name, installed: commonMajor });
+    },
+  );
+
+  test.each([
+    ["28.1.3", 28],
+    ["^28.0.8", 28],
+    ["~29.1.0", 29],
+    [">=30.0.0 <31", 30],
+    ["v28.1.3", 28],
+    ["latest", null],
+    ["", null],
+  ])("reads the major of %s as %s", (range: string, major: number | null) => {
+    expect(majorOf(range)).toBe(major);
   });
 });
 
