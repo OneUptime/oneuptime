@@ -70,16 +70,18 @@ export default class BasePermission {
         props,
       );
 
-      if (!props.isMultiTenantRequest) {
-        // We will check for this permission in recursive function.
-
+      /*
+       * Only TenantPermission's per-project recursion returns an array of
+       * queries whose permissions have already been checked. The incoming
+       * query is copied into an ordinary object above, so a caller cannot
+       * supply this array. A multi-tenant request scoped to the current user
+       * (such as pending team invitations) still needs every check below.
+       */
+      if (!Array.isArray(query)) {
         // check model level permissions.
         TablePermission.checkTableLevelPermissions(modelType, props, type);
 
-        /*
-         * We will check for this permission in recursive function.
-         * check query permissions.
-         */
+        // check query permissions.
         QueryPermission.checkQueryPermission(modelType, query, props);
 
         query = await AccessControlPermission.addAccessControlIdsToQuery(

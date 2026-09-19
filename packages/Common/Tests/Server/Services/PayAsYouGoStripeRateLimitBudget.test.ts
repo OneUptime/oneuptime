@@ -248,7 +248,7 @@ describe("Stripe rate-limit budget for pay-as-you-go billing", () => {
     jest.restoreAllMocks();
   });
 
-  it("answers a card holder's pay-as-you-go allow check with zero subscription reads", async () => {
+  it("answers a paid plan's pay-as-you-go allow check without payment-provider reads", async () => {
     await expect(
       PayAsYouGoBillingService.canUsePayAsYouGo(projectId),
     ).resolves.toBe(true);
@@ -259,10 +259,7 @@ describe("Stripe rate-limit budget for pay-as-you-go billing", () => {
     ).resolves.toBe(true);
 
     expect(stripe.retrieveSubscription).not.toHaveBeenCalled();
-    expect(stripe.calls).toEqual([
-      "paymentMethods.list",
-      "paymentMethods.list",
-    ]);
+    expect(stripe.calls).toEqual([]);
   });
 
   it("creates a non-manual monitor on a card-holding Growth project with at most one subscription read", async () => {
@@ -306,8 +303,6 @@ describe("Stripe rate-limit budget for pay-as-you-go billing", () => {
       { quantity: 1 },
     );
     expect(stripe.calls).toEqual([
-      "paymentMethods.list", // admission, in onBeforeCreate
-      "paymentMethods.list", // the report's one live authorization
       "subscriptions.retrieve", // the metered subscription's items
       "subscriptionItems.createUsageRecord",
     ]);
@@ -367,8 +362,8 @@ describe("Stripe rate-limit budget for pay-as-you-go billing", () => {
     // Only the telemetry cutoff asks about an invoice agreement, and only once.
     expect(subscriptionReadsOf(stripe, SUBSCRIPTION_ID)).toBe(1);
 
-    // One live authorization per product report, shared by everything after it.
-    expect(callsTo(stripe, "paymentMethods.list")).toBe(billingPass.length);
+    // Paid plans authorize usage without reading payment methods.
+    expect(callsTo(stripe, "paymentMethods.list")).toBe(0);
 
     // Every usage write still reads the metered items it writes against.
     expect(subscriptionReadsOf(stripe, METERED_SUBSCRIPTION_ID)).toBe(

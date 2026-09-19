@@ -13,6 +13,9 @@ import { mockRouter } from "./Helpers";
 import { getJestSpyOn } from "../../Spy";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -336,20 +339,60 @@ afterEach(() => {
 
 describe("POST /user-webauthn/verify-registration", () => {
   describe("the route itself", () => {
-    test("is registered as a POST behind the user middleware", () => {
+    test("is registered as a POST behind the user middleware and the authentication guard", () => {
       /*
        * The handler takes the owning user from `userAuthorization`, which is
        * put on the request by this middleware and by nothing else. Without it
        * the id would be undefined for every caller, and asserted by IDENTITY
        * rather than by counting because swapping in a different middleware
-       * keeps the count at one.
+       * keeps the count the same.
+       *
+       * getUserMiddleware lets a request with NO session through as Public,
+       * so requireUserAuthentication follows it and answers that request with
+       * a 401. A key-enrolment dialog left open until the access-token cookie
+       * expired sends exactly that request, and only a 401 makes the browser
+       * client refresh the session and replay the registration.
        */
       const route: { middlewares: Array<unknown> } = mockRouter.match(
         "post",
         VERIFY_REGISTRATION_ROUTE,
       );
 
-      expect(route.middlewares).toEqual([UserMiddleware.getUserMiddleware]);
+      expect(route.middlewares).toEqual([
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+      ]);
+    });
+
+    test("answers a request with no session 401 before registering or minting anything", async () => {
+      const req: OneUptimeRequest = {
+        params: {},
+        query: {},
+        body: { credential: CREDENTIAL_FROM_THE_BROWSER, name: KEY_NAME },
+        headers: {},
+      } as unknown as OneUptimeRequest;
+
+      const res: OneUptimeResponse = {
+        status: jest.fn().mockReturnThis(),
+      } as unknown as OneUptimeResponse;
+
+      const next: jest.Mock = jest.fn();
+
+      await mockRouter.match("post", VERIFY_REGISTRATION_ROUTE).middlewares[1]!(
+        req,
+        res,
+        next as unknown as NextFunction,
+      );
+
+      expect(next).not.toHaveBeenCalled();
+
+      const error: Exception = asMock(Response.sendErrorResponse).mock
+        .calls[0]![2] as Exception;
+
+      expect(error).toBeInstanceOf(NotAuthenticatedException);
+      expect(error.code).toBe(ExceptionCode.NotAuthenticatedException);
+      expect(verifyRegistrationSpy).not.toHaveBeenCalled();
+      expect(mintSpy).not.toHaveBeenCalled();
     });
 
     test("carries no route parameter that could name a user", () => {

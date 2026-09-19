@@ -44,6 +44,7 @@ export default class UserAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/setup`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!IsBillingEnabled) {
@@ -121,6 +122,7 @@ export default class UserAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/set-default`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!IsBillingEnabled) {

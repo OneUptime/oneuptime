@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "Estes botões decidem quais notificações chegam até você, não quanto e-mail elas somam.",
   "Reduce routine emails or change email rollup in Email Preferences": "Reduzir e-mails de rotina ou alterar o agrupamento de e-mails nas preferências de e-mail",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Desative os e-mails sobre notas, ser adicionado como proprietário, novos monitores e páginas de status, itens adicionados a episódios e mudanças de participação em políticas de plantão.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Suas escolhas para criação de incidentes e alertas, mudanças de estado, lembretes, atribuições, saúde dos monitores e turnos de plantão permanecem como estão. Outros canais de notificação, os acionamentos de plantão e os e-mails de conta e cobrança não são afetados."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Suas escolhas para criação de incidentes e alertas, mudanças de estado, lembretes, atribuições, saúde dos monitores e turnos de plantão permanecem como estão. Outros canais de notificação, os acionamentos de plantão e os e-mails de conta e cobrança não são afetados.",
+  "Schedule Timeline": "Linha do tempo de plantões",
+  "Timeline View": "Visualização em linha do tempo",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "Todos os agendamentos de plantão deste projeto lado a lado: quem está de plantão, quem está cobrindo quem e onde não há ninguém.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "Quem está de plantão em cada agendamento desta equipe, semana a semana ou mês a mês.",
+  "No on-call schedules yet": "Ainda não há agendamentos de plantão",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "Crie um agendamento de plantão e cada rodízio deste projeto aparecerá aqui, lado a lado.",
+  "This team does not own any on-call schedules yet": "Esta equipe ainda não é proprietária de nenhum agendamento de plantão",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Adicione esta equipe como proprietária na aba Proprietários de um agendamento e seus rodízios aparecerão aqui."
 }

@@ -302,6 +302,48 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     });
                   }
                 },
+                /*
+                 * The form holds bare IDs here, and the generic summary
+                 * printed them raw — only `hosts`, since the other types
+                 * are hidden registrations. The read-only picker names every
+                 * type it was given.
+                 */
+                getSummaryElement: (item: FormValues<Alert>) => {
+                  const hasResources: boolean = [
+                    item.hosts,
+                    item.kubernetesClusters,
+                    item.dockerHosts,
+                    item.podmanHosts,
+                    item.services,
+                  ].some((resources: unknown): boolean => {
+                    return Array.isArray(resources) && resources.length > 0;
+                  });
+                  if (!hasResources) {
+                    return <p>No other resources affected by this alert.</p>;
+                  }
+                  return (
+                    <AffectedResourcesPicker
+                      readOnly={true}
+                      hosts={item.hosts as Array<Host>}
+                      kubernetesClusters={
+                        item.kubernetesClusters as Array<KubernetesCluster>
+                      }
+                      dockerHosts={item.dockerHosts as Array<DockerHost>}
+                      podmanHosts={item.podmanHosts as Array<PodmanHost>}
+                      services={item.services as Array<Service>}
+                      resourceTypes={[
+                        "Host",
+                        "KubernetesCluster",
+                        "DockerHost",
+                        "PodmanHost",
+                        "Service",
+                      ]}
+                      onChange={() => {
+                        // Read-only: nothing to change.
+                      }}
+                    />
+                  );
+                },
               },
               /*
                * Hidden registrations so ModelForm.getSelectFields includes

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { beforeAll, describe, expect, test } from "@jest/globals";
 import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
@@ -118,11 +118,21 @@ const httpGetJson: HttpGetJsonFunction = (data: {
 };
 
 describe("ANON ACCESS PROBE /microsoft-teams/chats", () => {
-  test("unauthenticated GET with only a tenantid header", async () => {
-    const MicrosoftTeamsAPI: any = (
-      await import("../../../Server/API/MicrosoftTeamsAPI")
-    ).default;
+  let MicrosoftTeamsAPI: any = undefined;
 
+  /*
+   * Loading MicrosoftTeamsAPI pulls in a large module graph. Done inside the
+   * test, that load counted against the probe's 30s budget and timed the test
+   * out on a busy machine even though the route answered correctly. The load
+   * gets its own, generous budget here so the test's timeout measures only the
+   * HTTP round trip it is about.
+   */
+  beforeAll(async () => {
+    MicrosoftTeamsAPI = (await import("../../../Server/API/MicrosoftTeamsAPI"))
+      .default;
+  }, 600000);
+
+  test("unauthenticated GET with only a tenantid header", async () => {
     const app: express.Express = express();
     app.use("/api", new MicrosoftTeamsAPI().getRouter());
 
@@ -148,9 +158,16 @@ describe("ANON ACCESS PROBE /microsoft-teams/chats", () => {
        * route must reject one carrying only a tenantid header. A 200 here would
        * mean the captured chat list leaks to anonymous callers - the exact
        * regression this probe guards against.
+       *
+       * Pinned to exactly 401 (it used to accept any 4xx, and was a 422). A
+       * request with only a tenantid header is what a signed-in user's browser
+       * sends once the access-token cookie has expired, and the dashboard
+       * refreshes the session and resends on a 401 and on nothing else.
        */
-      expect(result.status).toBeGreaterThanOrEqual(400);
-      expect(result.status).toBeLessThan(500);
+      expect(result.status).toBe(401);
+      expect((result.body as { message?: string }).message).toBe(
+        "Authentication required. Please log in to access this resource.",
+      );
 
       const serializedBody: string = JSON.stringify(result.body);
       expect(serializedBody).not.toContain("Jane Doe");

@@ -113,6 +113,7 @@ import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
+import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -457,6 +458,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * mutation over NULL pointers only, so it is idempotent.
    */
   new BackfillAuditLogRootResource(),
+  /*
+   * Google SecOps custom YARA-L rules carry their severity in the rule's
+   * meta labels (detection[].ruleLabels), which the normalizer did not
+   * read, so their detections were imported as Unknown. Re-grades those
+   * rows from the payload kept in their attributes, exactly as the fixed
+   * normalizer grades a new import. Async ON CLUSTER mutation over Unknown
+   * Google SecOps findings only, so it is idempotent.
+   */
+  new RepairGoogleSecOpsDetectionSeverity(),
 ];
 
 export default DataMigrations;

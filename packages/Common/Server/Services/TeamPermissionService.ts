@@ -2,6 +2,8 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import ModelPermission from "../Types/Database/Permissions/Index";
+import QueryHelper from "../Types/Database/QueryHelper";
 import AccessTokenService from "./AccessTokenService";
 import DatabaseService from "./DatabaseService";
 import TeamMemberService from "./TeamMemberService";
@@ -11,7 +13,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
@@ -112,6 +114,11 @@ export class Service extends DatabaseService<Model> {
         data.props,
         PermissionType.Allow,
       );
+    const callerBlocks: Array<UserPermission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        data.props,
+        PermissionType.Block,
+      );
 
     /*
      * ProjectOwner is the sole tenant-level delegation override. In
@@ -123,6 +130,12 @@ export class Service extends DatabaseService<Model> {
      */
     if (
       callerPermissions.some((permission: UserPermission) => {
+        return (
+          permission.permission === Permission.ProjectOwner &&
+          this.permissionCoversGrant(permission, PermissionScope.All, [])
+        );
+      }) &&
+      !callerBlocks.some((permission: UserPermission) => {
         return permission.permission === Permission.ProjectOwner;
       })
     ) {
@@ -142,7 +155,38 @@ export class Service extends DatabaseService<Model> {
         );
       });
 
-    if (!canDelegate) {
+    const matchingBlocks: Array<UserPermission> = callerBlocks.filter(
+      (permission: UserPermission) => {
+        return permission.permission === data.permission;
+      },
+    );
+    const targetHasLabelScope: boolean =
+      targetLabelIds.length > 0 &&
+      data.scope !== PermissionScope.All &&
+      data.scope !== PermissionScope.Owned;
+    const isBlocked: boolean = matchingBlocks.some(
+      (permission: UserPermission) => {
+        /*
+         * An unrestricted/Owned grant may include resources blocked from the
+         * caller. Ownership also cannot be transferred between principals.
+         */
+        if (
+          !targetHasLabelScope ||
+          permission.scope === PermissionScope.All ||
+          permission.scope === PermissionScope.Owned ||
+          permission.labelIds.length === 0
+        ) {
+          return true;
+        }
+        return permission.labelIds.some((blockedLabelId: ObjectID) => {
+          return targetLabelIds.some((labelId: ObjectID) => {
+            return labelId.toString() === blockedLabelId.toString();
+          });
+        });
+      },
+    );
+
+    if (!canDelegate || isBlocked) {
       throw new NotAuthorizedException(
         `You cannot grant ${data.permission} because your own access does not include that permission at an equal or broader scope.`,
       );
@@ -349,13 +393,33 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const teamPermissions: Array<Model> = await this.findBy({
+    updateBy.query = await ModelPermission.checkUpdateQueryPermissions(
+      Model,
+      updateBy.query,
+      updateBy.data,
+      updateBy.props,
+    );
+    const selectedPermissions: Array<Model> = await this.findAllBy({
       query: updateBy.query,
+      select: { _id: true },
+      skip: updateBy.skip,
+      limit: updateBy.limit,
+      props: { isRoot: true },
+    });
+    const selectedIds: Array<ObjectID> = selectedPermissions.map(
+      (row: Model) => {
+        return row.id!;
+      },
+    );
+    // Read complete labels independently of any relation filters in the query.
+    const teamPermissions: Array<Model> = await this.findAllBy({
+      query: { _id: QueryHelper.any(selectedIds) },
       select: {
         _id: true,
         teamId: true,
         projectId: true,
         permission: true,
+        isBlockPermission: true,
         labels: {
           _id: true,
         },
@@ -364,8 +428,6 @@ export class Service extends DatabaseService<Model> {
           isPermissionsEditable: true,
         },
       },
-      skip: 0,
-      limit: LIMIT_MAX,
       props: {
         isRoot: true,
       },
@@ -404,6 +466,16 @@ export class Service extends DatabaseService<Model> {
           ? (rawUpdateData.scope as PermissionScope)
           : permission.scope;
 
+      // Retargeting or narrowing a deny also removes its original restriction.
+      if (permission.isBlockPermission) {
+        this.assertCanGrantPermission({
+          permission: permission.permission!,
+          labelIds: this.getLabelIds(permission.labels),
+          scope: permission.scope,
+          props: updateBy.props,
+        });
+      }
+
       this.assertCanGrantPermission({
         permission: requestedPermission,
         labelIds: this.getLabelIds(requestedLabels),
@@ -413,24 +485,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (updateBy.data.labels && updateBy.data.labels.length > 0) {
-      const existingPermissions: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
-          _id: true,
-          labels: true,
-          isBlockPermission: true,
-          projectId: true,
-          teamId: true,
-          permission: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      for (const alreadySavedPermission of existingPermissions) {
+      for (const alreadySavedPermission of teamPermissions) {
         // check if the
 
         const isBlockPermission: boolean =
@@ -471,6 +526,8 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    updateBy.query = { ...updateBy.query, _id: QueryHelper.any(selectedIds) };
+    updateBy.skip = 0;
     return { updateBy, carryForward: teamPermissions };
   }
 
@@ -523,30 +580,67 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const teamPermissions: Array<Model> = await this.findBy({
+    // Scope the root lookup using the same delete authorization as the write.
+    deleteBy.query = await ModelPermission.checkDeleteQueryPermission(
+      Model,
+      deleteBy.query,
+      deleteBy.props,
+    );
+    const selectedPermissions: Array<Model> = await this.findAllBy({
       query: deleteBy.query,
+      select: { _id: true },
+      skip: deleteBy.skip,
+      limit: deleteBy.limit,
+      props: { isRoot: true },
+    });
+    const selectedIds: Array<ObjectID> = selectedPermissions.map(
+      (row: Model) => {
+        return row.id!;
+      },
+    );
+    const teamPermissions: Array<Model> = await this.findAllBy({
+      query: { _id: QueryHelper.any(selectedIds) },
       select: {
         _id: true,
         teamId: true,
         projectId: true,
+        permission: true,
+        isBlockPermission: true,
+        labels: { _id: true },
+        scope: true,
         team: {
           isPermissionsEditable: true,
         },
       },
-      skip: 0,
-      limit: LIMIT_MAX,
       props: {
         isRoot: true,
       },
     });
 
     for (const permission of teamPermissions) {
+      this.assertProjectMatchesTenant(permission.projectId!, deleteBy.props);
       if (!permission.team?.isPermissionsEditable) {
         throw new BadDataException(
           "Permissions for this team is not deleteable. You can create a new team and add permissions to that team instead.",
         );
       }
+
+      if (permission.isBlockPermission) {
+        this.assertCanGrantPermission({
+          permission: permission.permission!,
+          labelIds: this.getLabelIds(permission.labels),
+          scope: permission.scope,
+          props: deleteBy.props,
+        });
+      }
     }
+
+    // Keep the write restricted to the page whose authority was checked.
+    deleteBy.query = {
+      ...deleteBy.query,
+      _id: QueryHelper.any(selectedIds),
+    };
+    deleteBy.skip = 0;
 
     let teamMembers: Array<TeamMember> = [];
 

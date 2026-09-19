@@ -8,13 +8,18 @@ import OcsfSeverity, {
   OcsfSeverityId,
 } from "../../../Types/SecurityEvent/OcsfSeverity";
 import { ocsfCategoryForClassUid } from "../../../Types/SecurityEvent/OcsfEventClass";
-import SigmaRule, { SigmaLevel } from "../../../Types/SecurityEvent/SigmaRule";
+import SigmaRule, {
+  SIGMA_LEVEL_TO_OCSF_SEVERITY,
+  isSevereSigmaLevel,
+} from "../../../Types/SecurityEvent/SigmaRule";
 import {
   DETECTION_DISTINCT_COUNT_ATTRIBUTE,
   DETECTION_FINDING_CLASS_NAME,
   DETECTION_FINDING_CLASS_UID,
   DETECTION_GROUP_VALUE_ATTRIBUTE,
   DETECTION_MATCH_COUNT_ATTRIBUTE,
+  DETECTION_MAX_GROUPS_PER_EVALUATION,
+  DETECTION_MAX_LOOKBACK_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
   DETECTION_RULE_NAME_ATTRIBUTE,
   DETECTION_SIGMA_ID_ATTRIBUTE,
@@ -48,24 +53,6 @@ import SigmaClickhouseCompiler, {
 import { buildSecurityEventDbRow } from "./SecurityEventRow";
 
 const DETECTIONS_SERVICE_NAME: string = "OneUptime Detections";
-
-/*
- * Cap on how far back one evaluation may scan, whatever lastEvaluatedAt
- * says — a rule re-enabled after a month must not trigger a month-long
- * table scan.
- */
-const MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
-
-// One alert per distinct group value per cycle, at most.
-const MAX_GROUPS_PER_EVALUATION: number = 100;
-
-const SIGMA_LEVEL_TO_OCSF: Record<SigmaLevel, OcsfSeverity> = {
-  [SigmaLevel.Informational]: OcsfSeverity.Informational,
-  [SigmaLevel.Low]: OcsfSeverity.Low,
-  [SigmaLevel.Medium]: OcsfSeverity.Medium,
-  [SigmaLevel.High]: OcsfSeverity.High,
-  [SigmaLevel.Critical]: OcsfSeverity.Critical,
-};
 
 export interface DetectionRuleEvaluationResult {
   ruleId: string;
@@ -190,7 +177,7 @@ export default class DetectionRuleEvaluator {
 
     const earliestAllowed: Date = OneUptimeDate.addRemoveMinutes(
       endTime,
-      -MAX_LOOKBACK_IN_MINUTES,
+      -DETECTION_MAX_LOOKBACK_IN_MINUTES,
     );
 
     let startTime: Date = rule.lastEvaluatedAt
@@ -220,7 +207,7 @@ export default class DetectionRuleEvaluator {
         groupByExpression,
         distinctCountExpression,
         minMatchCount: matchCountThreshold,
-        maxGroups: MAX_GROUPS_PER_EVALUATION,
+        maxGroups: DETECTION_MAX_GROUPS_PER_EVALUATION,
       });
 
     /*
@@ -500,7 +487,7 @@ export default class DetectionRuleEvaluator {
     });
 
     const severityName: OcsfSeverity =
-      SIGMA_LEVEL_TO_OCSF[parsedRule.level] || OcsfSeverity.Medium;
+      SIGMA_LEVEL_TO_OCSF_SEVERITY[parsedRule.level] || OcsfSeverity.Medium;
 
     const { categoryUid, categoryName } = ocsfCategoryForClassUid(
       DETECTION_FINDING_CLASS_UID,
@@ -625,7 +612,7 @@ export default class DetectionRuleEvaluator {
       projectId: data.projectId,
       explicitSeverityId: data.rule.alertSeverityId,
       severityLabel: data.parsedRule.level,
-      isSevere: this.isSevereLevel(data.parsedRule.level),
+      isSevere: isSevereSigmaLevel(data.parsedRule.level),
     });
   }
 
@@ -647,11 +634,7 @@ export default class DetectionRuleEvaluator {
       projectId: data.projectId,
       explicitSeverityId: data.rule.incidentSeverityId,
       severityLabel: data.parsedRule.level,
-      isSevere: this.isSevereLevel(data.parsedRule.level),
+      isSevere: isSevereSigmaLevel(data.parsedRule.level),
     });
-  }
-
-  private static isSevereLevel(level: SigmaLevel): boolean {
-    return level === SigmaLevel.Critical || level === SigmaLevel.High;
   }
 }

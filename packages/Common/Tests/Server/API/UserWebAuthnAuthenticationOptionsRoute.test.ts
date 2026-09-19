@@ -281,20 +281,29 @@ describe("POST /user-webauthn/generate-authentication-options", () => {
       ["registration options", REGISTRATION_OPTIONS_ROUTE],
       ["verify registration", VERIFY_REGISTRATION_ROUTE],
     ])(
-      "%s stays behind the user middleware alone",
+      "%s stays behind the user middleware and its authentication guard alone",
       (_name: string, uri: string) => {
         /*
          * Both are authenticated, and neither carries an email in its body --
          * so the limiter's account key would collapse to the same value for
          * every caller and one user's enrolment attempts would throttle
          * everybody's.
+         *
+         * The second entry is requireUserAuthentication, not a limiter. It
+         * turns a request with no session (the access-token cookie expired
+         * while the enrolment dialog was open) into a 401 the browser client
+         * refreshes on. It is the only thing allowed after getUserMiddleware.
          */
         const route: { middlewares: Array<unknown> } = mockRouter.match(
           "post",
           uri,
         );
 
-        expect(route.middlewares).toEqual([UserMiddleware.getUserMiddleware]);
+        expect(route.middlewares).toEqual([
+          UserMiddleware.getUserMiddleware,
+          UserMiddleware.requireUserAuthentication,
+        ]);
+        expect(route.middlewares).not.toContain(mountedMiddleware);
       },
     );
   });

@@ -27,6 +27,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import StatusPageReportPeriodType from "Common/Types/StatusPage/StatusPageReportPeriodType";
@@ -214,7 +215,7 @@ const StatusPageReports: FunctionComponent<
             statusPageId: modelId.toString(),
             email: testEmail.email.toString(),
           },
-          headers: {},
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response instanceof HTTPErrorResponse) {

@@ -18,6 +18,9 @@ import {
   THREAT_INDICATOR_ID_ATTRIBUTE,
   THREAT_INDICATOR_TYPE_ATTRIBUTE,
   THREAT_INDICATOR_VALUE_ATTRIBUTE,
+  THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES,
+  THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES,
+  THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION,
   THREAT_INTEL_PRODUCT_NAME,
   THREAT_INTEL_SERVICE_NAME,
   THREAT_MATCH_COUNT_ATTRIBUTE,
@@ -64,14 +67,9 @@ import {
  * only moves forward.
  */
 
-// Cap on one evaluation's scan, whatever lastEvaluatedAt says.
-const MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
-
-// First-ever evaluation window for a feed.
-const DEFAULT_WINDOW_IN_MINUTES: number = 15;
-
 // One alert per distinct indicator value per cycle, at most.
-export const MAX_GROUPS_PER_EVALUATION: number = 100;
+export const MAX_GROUPS_PER_EVALUATION: number =
+  THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION;
 
 export interface ThreatIntelMatchResult {
   feedId: string;
@@ -157,12 +155,15 @@ export default class ThreatIntelMatcher {
 
     const earliestAllowed: Date = OneUptimeDate.addRemoveMinutes(
       endTime,
-      -MAX_LOOKBACK_IN_MINUTES,
+      -THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES,
     );
 
     let startTime: Date = feed.lastEvaluatedAt
       ? feed.lastEvaluatedAt
-      : OneUptimeDate.addRemoveMinutes(endTime, -DEFAULT_WINDOW_IN_MINUTES);
+      : OneUptimeDate.addRemoveMinutes(
+          endTime,
+          -THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES,
+        );
 
     if (OneUptimeDate.isBefore(startTime, earliestAllowed)) {
       startTime = earliestAllowed;

@@ -46,6 +46,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
     this.router.post(
       `/user-sms/verify`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       VerificationCodeRateLimit.getMiddleware(
         VerificationCodeRateLimitBucket.Verify,
       ),
@@ -124,6 +125,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
     this.router.post(
       `/user-sms/resend-verification-code`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       VerificationCodeRateLimit.getMiddleware(
         VerificationCodeRateLimitBucket.Resend,
       ),

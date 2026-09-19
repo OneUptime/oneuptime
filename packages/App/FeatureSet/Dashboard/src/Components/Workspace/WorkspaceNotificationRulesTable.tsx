@@ -23,7 +23,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
 import { ErrorFunction, PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";

@@ -12,7 +12,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";

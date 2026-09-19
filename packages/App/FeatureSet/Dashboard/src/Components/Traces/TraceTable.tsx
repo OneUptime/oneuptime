@@ -22,7 +22,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";

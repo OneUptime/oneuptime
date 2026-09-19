@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -47,7 +47,13 @@ type CapturedTableProps = {
   formFields?: Array<CapturedFormField>;
   actionButtons?: Array<CapturedActionButton>;
   createInitialValues?: Record<string, unknown>;
-  helpContent?: { markdown?: string | undefined } | undefined;
+  helpContent?:
+    | {
+        title?: string | undefined;
+        description?: string | undefined;
+        markdown?: string | undefined;
+      }
+    | undefined;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -57,7 +63,10 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     __esModule: true,
     default: (props: CapturedTableProps) => {
       capturedTableProps = props;
-      return null;
+      // A marker, so tests can check what the page renders around it.
+      return React.createElement("div", {
+        "data-testid": "detection-rules-table",
+      });
     },
   };
 });
@@ -67,6 +76,7 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Project from "../../../Models/DatabaseModels/Project";
+import Reseller from "../../../Models/DatabaseModels/Reseller";
 import ProjectUtil from "../../../UI/Utils/Project";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate, {
@@ -74,6 +84,8 @@ import PermissionGate, {
 } from "../../../UI/Utils/PermissionGate";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
+import DetectionRulesGuide from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
+import { guideToMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -240,6 +252,77 @@ describe("Detection Rules page", () => {
 
       expect(markdown).toContain("Distinct Count Field");
       expect(markdown).toContain("Match Count Threshold");
+    });
+  });
+
+  describe("how detection rules work", () => {
+    /*
+     * The page used to explain itself only behind the table header's
+     * small help (?) icon. It now leads with a visible card, and the
+     * help modal shows the same guide — one source, so the two cannot
+     * disagree.
+     */
+    test("the how-it-works card is shown above the rules table", () => {
+      renderPage();
+
+      const card: HTMLElement = screen.getByTestId(
+        `how-it-works-${DetectionRulesGuide.id}`,
+      );
+      const table: HTMLElement = screen.getByTestId("detection-rules-table");
+
+      expect(card).toHaveTextContent(DetectionRulesGuide.title);
+      expect(
+        card.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    test("the table's help (?) modal shows the same guide as the card", () => {
+      renderPage();
+
+      expect(capturedTableProps?.helpContent).toEqual({
+        title: DetectionRulesGuide.guideTitle,
+        description: DetectionRulesGuide.guideDescription,
+        markdown: guideToMarkdown(DetectionRulesGuide),
+      });
+    });
+
+    test("the help no longer tells customers to prefix attribute keys", () => {
+      /*
+       * The old help listed `attributes.<key>` as a field name, but the
+       * compiler looks attribute keys up exactly as written — the prefix
+       * made a rule silently match nothing.
+       */
+      renderPage();
+
+      expect(capturedTableProps?.helpContent?.markdown).not.toContain(
+        "`attributes.<key>`",
+      );
+    });
+
+    test("a reseller plan without telemetry sees neither the card nor the table", () => {
+      const project: Project = new Project();
+      project.id = PROJECT_ID;
+      const reseller: Reseller = new Reseller();
+      reseller.enableTelemetryFeatures = false;
+      project.reseller = reseller;
+
+      render(
+        <MemoryRouter>
+          <DetectionRulesPage
+            pageRoute={new Route("/dashboard/security-events/detection-rules")}
+            currentProject={project}
+            hasPaymentMethod={true}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByTestId(`how-it-works-${DetectionRulesGuide.id}`),
+      ).not.toBeInTheDocument();
+      expect(capturedTableProps).toBeNull();
+      expect(
+        screen.getByText(/did not include telemetry features/),
+      ).toBeInTheDocument();
     });
   });
 

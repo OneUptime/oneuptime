@@ -1,7 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import SecurityEventsTable from "../../Components/SecurityEvents/SecurityEventsTable";
+import SecurityEventsExplorer from "../../Components/SecurityEvents/SecurityEventsExplorer";
 
 const SecurityEventsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -15,7 +15,7 @@ const SecurityEventsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <SecurityEventsTable />;
+  return <SecurityEventsExplorer />;
 };
 
 export default SecurityEventsPage;

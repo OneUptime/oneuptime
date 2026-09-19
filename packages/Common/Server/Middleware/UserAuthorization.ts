@@ -496,6 +496,49 @@ export default class UserMiddleware {
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
+    return await UserMiddleware.resolveRequestUser(req, res, next, {
+      treatInvalidAccessTokenAsAnonymous: false,
+    });
+  }
+
+  /*
+   * getUserMiddleware for the anonymous surfaces: the public dashboard and
+   * public status page routes. Their handlers decide access themselves
+   * (DashboardService / StatusPageService.hasReadAccess: public flag, IP
+   * allowlist, master-password cookie, the page's own session cookie) and
+   * never read the caller's user identity.
+   *
+   * The one difference: an access token that is present but cannot be decoded
+   * makes the request anonymous (UserType.Public) instead of answering 401.
+   * The host-wide dashboard access-token cookie reaches these routes whenever
+   * the page is served from the dashboard's host (the preview routes), and it
+   * can stay in the browser after it stops decoding - an encryption-secret
+   * rotation, say. The public clients cannot refresh a dashboard session, so
+   * that 401 only ever meant "sent back to the login route": a reload loop on
+   * the preview route, and a password prompt for a master password the viewer
+   * already entered.
+   *
+   * A token that does decode is still resolved exactly as getUserMiddleware
+   * resolves it, and an API key is still validated. Never mount this on a
+   * route that needs to know who the caller is.
+   */
+  @CaptureSpan()
+  public static async getPublicRouteUserMiddleware(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    return await UserMiddleware.resolveRequestUser(req, res, next, {
+      treatInvalidAccessTokenAsAnonymous: true,
+    });
+  }
+
+  private static async resolveRequestUser(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+    options: { treatInvalidAccessTokenAsAnonymous: boolean },
+  ): Promise<void> {
     const tenantId: ObjectID | null = ProjectMiddleware.getProjectId(req);
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
@@ -529,6 +572,12 @@ export default class UserMiddleware {
     try {
       oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
     } catch (err) {
+      if (options.treatInvalidAccessTokenAsAnonymous) {
+        // decode() has already logged why the token was refused.
+        oneuptimeRequest.userType = UserType.Public;
+        return next();
+      }
+
       // if the token is invalid or expired, return 401 so clients can refresh the token.
       logger.error(err, getLogAttributesFromRequest(oneuptimeRequest));
       return Response.sendErrorResponse(
@@ -712,20 +761,30 @@ export default class UserMiddleware {
   ): Promise<void> {
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
-    if (
-      !oneuptimeRequest.userType ||
-      oneuptimeRequest.userType === UserType.Public
-    ) {
+    if (UserMiddleware.isAnonymousRequest(oneuptimeRequest)) {
       return Response.sendErrorResponse(
         req,
         res,
         new NotAuthenticatedException(
-          "Authentication required. Please log in to access this resource.",
+          UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
         ),
       );
     }
 
     return next();
+  }
+
+  // Same wording as CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE.
+  public static readonly AUTHENTICATION_REQUIRED_MESSAGE: string =
+    "Authentication required. Please log in to access this resource.";
+
+  /*
+   * The request-level twin of CommonAPI.isAnonymous: getUserMiddleware found
+   * no access token and no API key. Usually an expired session, since the
+   * access-token cookie expires with the JWT inside it.
+   */
+  public static isAnonymousRequest(req: OneUptimeRequest): boolean {
+    return !req.userType || req.userType === UserType.Public;
   }
 
   public static requirePermission(data: {
@@ -741,6 +800,21 @@ export default class UserMiddleware {
       next: NextFunction,
     ): Promise<void> => {
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+
+      /*
+       * An anonymous caller has no permissions to compare, and telling it so
+       * with a 422 would stop the browser client from refreshing an expired
+       * session. Ask who it is first.
+       */
+      if (UserMiddleware.isAnonymousRequest(oneuptimeRequest)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
+          ),
+        );
+      }
 
       // Master admins bypass permission checks
       if (oneuptimeRequest.userType === UserType.MasterAdmin) {

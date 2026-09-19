@@ -30,6 +30,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
+import { handleAuthenticatedLinkClick } from "Common/UI/Utils/OpenAuthenticatedUrl";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import {
@@ -338,9 +339,11 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
   });
 
   /*
-   * Plain anchor download (same idiom as attachment downloads): auth
-   * rides on the session cookie, and the tenant comes from the query
-   * param because an <a> tag cannot send custom headers.
+   * Anchor download (same idiom as attachment downloads): auth rides on
+   * the session cookie, and the tenant comes from the query param because
+   * an <a> tag cannot send custom headers. The cookie lapses with the
+   * 15-minute access token, so a click refreshes the session before the
+   * new tab loads (see handleAuthenticatedLinkClick).
    */
   const pprofDownloadUrl: string = URL.fromURL(APP_API_URL)
     .addRoute(`/telemetry/profiles/${props.profileId}/pprof`)
@@ -416,6 +419,9 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
             href={pprofDownloadUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(event: React.MouseEvent<HTMLAnchorElement>): void => {
+              handleAuthenticatedLinkClick(event, pprofDownloadUrl);
+            }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 ring-1 ring-gray-300 transition-colors"
           >
             <Icon icon={IconProp.Download} className="h-3.5 w-3.5" />

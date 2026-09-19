@@ -133,7 +133,11 @@ function person(id, name, email) {
 }
 
 const people = [
-  person("b0000000-0000-4000-8000-000000000001", "Jane Doe", "jane@example.com"),
+  person(
+    "b0000000-0000-4000-8000-000000000001",
+    "Jane Doe",
+    "jane@example.com",
+  ),
   person("b0000000-0000-4000-8000-000000000002", "Sam Lee", "sam@example.com"),
 ];
 
@@ -168,6 +172,14 @@ function rule(data) {
   record.refireSuppressionMinutes = data.refireSuppressionMinutes;
   record.shouldCreateAlert = data.shouldCreateAlert;
   record.shouldCreateIncident = data.shouldCreateIncident;
+  // Existing database rows have null templates when they use the backend
+  // fallback. Unlike missing create values, these must not be prefilled.
+  record.alertTitleTemplate = data.alertTitleTemplate ?? null;
+  record.alertDescriptionTemplate = data.alertDescriptionTemplate ?? null;
+  record.alertRemediationNotes = data.alertRemediationNotes ?? null;
+  record.incidentTitleTemplate = data.incidentTitleTemplate ?? null;
+  record.incidentDescriptionTemplate = data.incidentDescriptionTemplate ?? null;
+  record.incidentRemediationNotes = data.incidentRemediationNotes ?? null;
   record.alertSeverity = data.alertSeverity;
   record.alertSeverityId = data.alertSeverity && data.alertSeverity.id;
   record.incidentSeverity = data.incidentSeverity;
@@ -273,6 +285,14 @@ ModelAPI.getItem = async (options) => {
   if (tableName === "ServiceLevelObjective") {
     return slo;
   }
+  if (tableName === "ServiceLevelObjectiveBurnRateRule") {
+    const existing = rules.find((item) => item._id === options.id.toString());
+    // ModelForm turns relations into picker IDs while prefilling. Keep that
+    // conversion out of the stored record, just as a real API response would.
+    return existing
+      ? Object.assign(new ServiceLevelObjectiveBurnRateRule(), existing)
+      : null;
+  }
   return null;
 };
 
@@ -303,8 +323,52 @@ ModelAPI.getCount = async (options) => {
   return tableName === "ServiceLevelObjectiveBurnRateRule" ? rules.length : 0;
 };
 
-ModelAPI.create = async (options) => {
-  return options.model;
+ModelAPI.createOrUpdate = async (options) => {
+  const record = options.model;
+  const index = rules.findIndex((item) => item._id === record._id);
+
+  if (!record._id) {
+    record._id = `60000000-0000-4000-8000-${String(rules.length + 1).padStart(12, "0")}`;
+  }
+
+  // Resolve exactly the IDs the production form submits. This exercises the
+  // two independent owner, severity, label and on-call mappings on save.
+  const relations = {
+    alertSeverity: alertSeverities,
+    incidentSeverity: incidentSeverities,
+    onCallDutyPolicies: onCallPolicies,
+    incidentOnCallDutyPolicies: onCallPolicies,
+    alertLabels: labels,
+    incidentLabels: labels,
+    alertOwnerTeams: teams,
+    alertOwnerUsers: people,
+    incidentOwnerTeams: teams,
+    incidentOwnerUsers: people,
+  };
+
+  for (const [field, candidates] of Object.entries(relations)) {
+    const resolve = (value) => {
+      const id = (value._id || value).toString();
+      const related = candidates.find((item) => item._id === id);
+      if (!related) {
+        throw new Error(`Unknown ${field} relation: ${id}`);
+      }
+      return related;
+    };
+    if (Array.isArray(record[field])) {
+      record[field] = record[field].map(resolve);
+    } else if (record[field]) {
+      record[field] = resolve(record[field]);
+    }
+  }
+
+  if (index < 0) {
+    rules.push(record);
+  } else {
+    rules[index] = record;
+  }
+
+  return { data: record };
 };
 
 API.get = async () => ({ data: { data: [], count: 0 } });

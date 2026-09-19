@@ -759,18 +759,55 @@ describe("Pay as you go notices", () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it("renders nothing off the Free plan", () => {
-      setPlan(PlanType.Growth);
+    it("keeps a Free plan batch locked when no payment method is available", async () => {
+      const onChange: MockFunction = getJestMockFunction();
+      jest
+        .spyOn(BaseAPI, "get")
+        .mockResolvedValue({ data: { isAllowed: false } } as any);
 
-      const { container }: { container: HTMLElement } = render(
+      render(
         <MonitorBatchPayAsYouGoConsent
           monitorTypes={[MonitorType.Kubernetes]}
           value={false}
-          onChange={() => {}}
+          onChange={onChange as (value: boolean) => void}
         />,
       );
 
-      expect(container).toBeEmptyDOMElement();
+      expect(
+        await screen.findByText(/Add a payment method before using/),
+      ).toBeInTheDocument();
+      const consent: HTMLElement = screen.getByTestId(
+        "monitor-batch-pay-as-you-go-consent",
+      );
+      expect(consent).toBeDisabled();
+      await userEvent.click(consent);
+      expect(onChange).not.toHaveBeenCalled();
+      expect(BaseAPI.get).toHaveBeenCalledTimes(1);
     });
+
+    it.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+      "does not check or require a payment method for a %s plan batch",
+      (plan: PlanType) => {
+        setPlan(plan);
+        jest
+          .spyOn(BaseAPI, "get")
+          .mockResolvedValue({ data: { isAllowed: false } } as any);
+
+        const { container }: { container: HTMLElement } = render(
+          <MonitorBatchPayAsYouGoConsent
+            monitorTypes={[
+              MonitorType.Kubernetes,
+              MonitorType.Website,
+              MonitorType.Manual,
+            ]}
+            value={false}
+            onChange={() => {}}
+          />,
+        );
+
+        expect(container).toBeEmptyDOMElement();
+        expect(BaseAPI.get).not.toHaveBeenCalled();
+      },
+    );
   });
 });

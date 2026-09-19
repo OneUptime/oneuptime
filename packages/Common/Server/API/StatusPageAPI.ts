@@ -31,6 +31,7 @@ import StatusPageService, {
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
@@ -46,8 +47,10 @@ import {
 } from "../../Types/StatusPage/SearchEngineIndexing";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import CommonAPI from "./CommonAPI";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ArrayUtil from "../../Utils/Array";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
@@ -55,6 +58,7 @@ import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -196,13 +200,63 @@ export default class StatusPageAPI extends BaseAPI<
     this.overviewResponseInFlight.clear();
   }
 
+  /*
+   * Holding one of StatusPage's update roles is not the same as being allowed
+   * to update a given page: team block rows, label-restricted grants and
+   * Owned-scoped grants all narrow it. Apply the checks a CRUD update of this
+   * page would run - block and label rules against the loaded page, then the
+   * query narrowing (tenant, labels, Owned scope) - and require the page to
+   * survive them. `statusPage` must have been loaded with its labels.
+   */
+  private static async assertCanUpdateStatusPage(data: {
+    statusPage: StatusPage;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await ModelPermission.checkUpdatePermissionByModel({
+      modelType: StatusPage,
+      fetchModelWithAccessControlIds: async (): Promise<StatusPage> => {
+        return data.statusPage;
+      },
+      props: data.props,
+    });
+
+    const permittedQuery: Query<StatusPage> =
+      await ModelPermission.checkUpdateQueryPermissions(
+        StatusPage,
+        {
+          _id: data.statusPage.id!,
+          projectId: data.projectId,
+        },
+        {},
+        data.props,
+      );
+
+    const permittedStatusPage: StatusPage | null =
+      await StatusPageService.findOneBy({
+        query: permittedQuery,
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!permittedStatusPage) {
+      throw new NotAuthorizedException(
+        "You do not have permission to send this status page's report.",
+      );
+    }
+  }
+
   public constructor() {
     super(StatusPage, StatusPageService);
 
     // get title, description of the page.  This is used for SEO.
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/seo/:statusPageIdOrDomain`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         const statusPageIdOrDomain: string = req.params[
           "statusPageIdOrDomain"
@@ -430,7 +484,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/incident-public-note/attachment/:statusPageId/:incidentId/:noteId/:fileId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getIncidentPublicNoteAttachment(req, res);
@@ -444,7 +498,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/incident-episode-public-note/attachment/:statusPageId/:episodeId/:noteId/:fileId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getIncidentEpisodePublicNoteAttachment(req, res);
@@ -458,7 +512,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/incident/postmortem/attachment/:statusPageId/:incidentId/:fileId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getIncidentPostmortemAttachment(req, res);
@@ -472,7 +526,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/scheduled-maintenance-public-note/attachment/:statusPageId/:scheduledMaintenanceId/:noteId/:fileId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getScheduledMaintenancePublicNoteAttachment(req, res);
@@ -486,7 +540,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getStatusPageAnnouncementAttachment(req, res);
@@ -795,15 +849,73 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
+    /*
+     * Sends the status page's report to an address the caller chooses, so it
+     * is gated like editing the status page: an authenticated member of the
+     * project that owns it who could update this particular page.
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/test-email-report`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
+          /*
+           * This route acts on one page in one project, and the permission
+           * checks below must be evaluated for that single tenant, so the
+           * request is never treated as multi-tenant.
+           */
+          const props: DatabaseCommonInteractionProps = {
+            ...(await CommonAPI.getDatabaseCommonInteractionProps(req)),
+            isMultiTenantRequest: false,
+          };
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new StatusPage().getUpdatePermissions(),
+            errorMessage:
+              "You do not have permission to send this status page's report.",
+          });
+
+          if (
+            !req.body["statusPageId"] ||
+            !ObjectID.isValidUUID(req.body["statusPageId"].toString())
+          ) {
+            throw new BadDataException("A valid statusPageId is required.");
+          }
+
           const email: Email = new Email(req.body["email"] as string);
           const statusPageId: ObjectID = new ObjectID(
             req.body["statusPageId"].toString() as string,
           );
+
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneById({
+              id: statusPageId,
+              select: {
+                _id: true,
+                projectId: true,
+                labels: {
+                  _id: true,
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          CommonAPI.assertResourceBelongsToProject({
+            resourceProjectId: statusPage?.projectId,
+            projectId,
+          });
+
+          await StatusPageAPI.assertCanUpdateStatusPage({
+            statusPage: statusPage!,
+            projectId,
+            props,
+          });
 
           await StatusPageService.sendEmailReport({
             email: email,
@@ -819,7 +931,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!req.body["domain"]) {
@@ -863,7 +975,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/master-page/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const statusPageIdParam: string = req.params[
@@ -1046,7 +1158,7 @@ export default class StatusPageAPI extends BaseAPI<
       PublicDashboardRateLimit.getMiddleware(
         PublicDashboardRateLimitBucket.StatusPageMasterPassword,
       ),
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!req.params["statusPageId"]) {
@@ -1120,7 +1232,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/sso/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
@@ -1160,7 +1272,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/oidc/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
@@ -1203,7 +1315,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/resources/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const statusPageId: ObjectID = new ObjectID(
@@ -1254,7 +1366,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/uptime/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           // This reosurce ID can be of a status page resource OR a status page group.
@@ -1698,7 +1810,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       overviewApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       overviewHandler,
     );
 
@@ -1709,7 +1821,7 @@ export default class StatusPageAPI extends BaseAPI<
      */
     this.router.get(
       overviewApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       overviewHandler,
     );
 
@@ -1717,7 +1829,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/update-subscription/:statusPageId/:subscriberId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.subscribeToStatusPage(req);
@@ -1732,7 +1844,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/get-subscription/:statusPageId/:subscriberId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const subscriber: StatusPageSubscriber =
@@ -1754,7 +1866,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/subscribe/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.subscribeToStatusPage(req);
@@ -1770,7 +1882,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/manage-subscription/:statusPageId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.manageExistingSubscription(req);
@@ -1821,13 +1933,13 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       incidentsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       incidentsListHandler,
     );
 
     this.router.get(
       incidentsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       incidentsListHandler,
     );
 
@@ -1872,13 +1984,13 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       scheduledMaintenanceEventsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       scheduledMaintenanceEventsListHandler,
     );
 
     this.router.get(
       scheduledMaintenanceEventsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       scheduledMaintenanceEventsListHandler,
     );
 
@@ -1922,13 +2034,13 @@ export default class StatusPageAPI extends BaseAPI<
 
     this.router.post(
       announcementsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       announcementsListHandler,
     );
 
     this.router.get(
       announcementsListApiPath,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       announcementsListHandler,
     );
 
@@ -1936,7 +2048,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/incidents/:statusPageIdOrDomain/:incidentId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = await resolveStatusPageIdOrThrow(
@@ -1964,7 +2076,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/scheduled-maintenance-events/:statusPageIdOrDomain/:scheduledMaintenanceId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = await resolveStatusPageIdOrThrow(
@@ -1993,7 +2105,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/announcements/:statusPageIdOrDomain/:announcementId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = await resolveStatusPageIdOrThrow(
@@ -2023,7 +2135,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/episodes/:statusPageIdOrDomain`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = await resolveStatusPageIdOrThrow(
@@ -2047,7 +2159,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/episodes/:statusPageIdOrDomain/:episodeId`,
-      UserMiddleware.getUserMiddleware,
+      UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = await resolveStatusPageIdOrThrow(
@@ -3508,6 +3620,23 @@ export default class StatusPageAPI extends BaseAPI<
     return statusPageSubscriber;
   }
 
+  private serializeIncidentsForStatusPage(
+    incidents: Array<Incident>,
+  ): JSONArray {
+    return incidents.map((incident: Incident): JSONObject => {
+      const incidentJson: JSONObject = BaseModel.toJSON(incident, Incident);
+
+      // Enforce postmortem visibility before sending or caching status-page JSON.
+      if (incident.showPostmortemOnStatusPage !== true) {
+        delete incidentJson["postmortemNote"];
+        delete incidentJson["postmortemPostedAt"];
+        delete incidentJson["postmortemAttachments"];
+      }
+
+      return incidentJson;
+    });
+  }
+
   @CaptureSpan()
   public async getIncidents(
     statusPageId: ObjectID,
@@ -3771,7 +3900,7 @@ export default class StatusPageAPI extends BaseAPI<
         IncidentPublicNote,
       ),
       incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
-      incidents: BaseModel.toJSONArray(incidents, Incident),
+      incidents: this.serializeIncidentsForStatusPage(incidents),
       statusPageResources: BaseModel.toJSONArray(
         statusPageResources,
         StatusPageResource,
@@ -5374,7 +5503,7 @@ export default class StatusPageAPI extends BaseAPI<
         IncidentPublicNote,
       ),
 
-      activeIncidents: BaseModel.toJSONArray(activeIncidents, Incident),
+      activeIncidents: this.serializeIncidentsForStatusPage(activeIncidents),
 
       activeEpisodes: activeEpisodesJson,
       episodePublicNotes: BaseModel.toJSONArray(

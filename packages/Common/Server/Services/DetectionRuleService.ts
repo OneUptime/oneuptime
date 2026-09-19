@@ -5,6 +5,8 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
+  DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES,
+  DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES,
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
 } from "../../Types/SecurityEvent/DetectionFindingConstants";
@@ -52,10 +54,9 @@ export class Service extends DatabaseService<Model> {
   private validateEvaluationInterval(interval: number | undefined): void {
     this.validateIntegerInRange({
       value: interval,
-      min: 1,
-      max: 1440,
-      message:
-        "Evaluation interval must be a whole number of minutes between 1 and 1440.",
+      min: DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES,
+      max: DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES,
+      message: `Evaluation interval must be a whole number of minutes between ${DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES} and ${DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES}.`,
     });
   }
 

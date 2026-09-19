@@ -14,7 +14,7 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import API from "Common/Utils/API";
+import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";

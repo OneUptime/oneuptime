@@ -24,6 +24,19 @@ import Dictionary from "../../Types/Dictionary";
 import UserPermissionUtil from "./UserPermission/UserPermission";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
+// What became of one ListenToModelEvent request.
+export enum ListenToModelEventOutcome {
+  Joined = "Joined",
+  // No access token, or one that no longer decodes. The client was told.
+  AuthenticationRequired = "AuthenticationRequired",
+  // A valid session without access to this tenant or model.
+  NotAuthorized = "NotAuthorized",
+  // The request itself was malformed.
+  InvalidRequest = "InvalidRequest",
+  // Something failed while authorizing (for example the permission cache).
+  Failed = "Failed",
+}
+
 export default abstract class Realtime {
   private static socketServer: SocketServer | null = null;
 
@@ -45,37 +58,19 @@ export default abstract class Realtime {
       this.socketServer!.on("connection", (socket: Socket) => {
         logger.debug("New socket connection established");
 
-        socket.on(EventName.ListenToModalEvent, async (data: JSONObject) => {
-          logger.debug("Received ListenToModalEvent with data:");
-          logger.debug(data);
-
-          const socketLogAttributes: LogAttributes = {
-            projectId: data["tenantId"]?.toString(),
-          };
-
-          if (typeof data["eventType"] !== "string") {
-            logger.error("eventType is not a string", socketLogAttributes);
-            throw new BadDataException("eventType is not a string");
-          }
-          if (typeof data["modelType"] !== "string") {
-            logger.error("modelType is not a string", socketLogAttributes);
-            throw new BadDataException("modelType is not a string");
-          }
-          if (typeof data["modelName"] !== "string") {
-            logger.error("modelName is not a string", socketLogAttributes);
-            throw new BadDataException("modelName is not a string");
-          }
-          if (typeof data["tenantId"] !== "string") {
-            logger.error("tenantId is not a string", socketLogAttributes);
-            throw new BadDataException("tenantId is not a string");
-          }
-
-          await Realtime.listenToModelEvent(socket, {
-            eventType: data["eventType"] as ModelEventType,
-            modelType: data["modelType"] as DatabaseType,
-            modelName: data["modelName"] as string,
-            tenantId: data["tenantId"] as string,
-          });
+        /*
+         * socket.io calls a listener and throws away what it returns. An async
+         * listener that throws is therefore an unhandled rejection: nothing
+         * goes back to the client, and the subscription it asked for simply
+         * never happens. handleListenToModelEventRequest settles every outcome
+         * itself; the catch is a backstop, not the error handling.
+         */
+        socket.on(EventName.ListenToModalEvent, (data: JSONObject): void => {
+          Realtime.handleListenToModelEventRequest(socket, data).catch(
+            (err: unknown) => {
+              logger.error(err);
+            },
+          );
         });
       });
     }
@@ -83,11 +78,108 @@ export default abstract class Realtime {
     return this.socketServer;
   }
 
+  /*
+   * One ListenToModelEvent from a client, start to finish. Never throws: a
+   * malformed request, a missing or expired access token, a refused
+   * subscription and a failing permission lookup each end here as an outcome,
+   * so none of them can become an unhandled rejection in the socket listener.
+   */
+  @CaptureSpan()
+  public static async handleListenToModelEventRequest(
+    socket: Socket,
+    data: JSONObject,
+  ): Promise<ListenToModelEventOutcome> {
+    logger.debug("Received ListenToModalEvent with data:");
+    logger.debug(data);
+
+    let request: ListenToModelEventJSON;
+
+    try {
+      request = Realtime.parseListenToModelEventRequest(data);
+    } catch (err) {
+      logger.error(err);
+      return ListenToModelEventOutcome.InvalidRequest;
+    }
+
+    try {
+      return await Realtime.listenToModelEvent(socket, request);
+    } catch (err) {
+      // A permission-cache (Redis) failure, say. The room is not joined.
+      const failureLogAttributes: LogAttributes = {
+        projectId: request.tenantId,
+      };
+
+      logger.error(err, failureLogAttributes);
+      return ListenToModelEventOutcome.Failed;
+    }
+  }
+
+  private static parseListenToModelEventRequest(
+    data: JSONObject,
+  ): ListenToModelEventJSON {
+    if (!data || typeof data !== "object") {
+      logger.error("ListenToModelEvent data is not an object");
+      throw new BadDataException("ListenToModelEvent data is not an object");
+    }
+
+    const socketLogAttributes: LogAttributes = {
+      projectId: data["tenantId"]?.toString(),
+    };
+
+    if (typeof data["eventType"] !== "string") {
+      logger.error("eventType is not a string", socketLogAttributes);
+      throw new BadDataException("eventType is not a string");
+    }
+    if (typeof data["modelType"] !== "string") {
+      logger.error("modelType is not a string", socketLogAttributes);
+      throw new BadDataException("modelType is not a string");
+    }
+    if (typeof data["modelName"] !== "string") {
+      logger.error("modelName is not a string", socketLogAttributes);
+      throw new BadDataException("modelName is not a string");
+    }
+    if (typeof data["tenantId"] !== "string") {
+      logger.error("tenantId is not a string", socketLogAttributes);
+      throw new BadDataException("tenantId is not a string");
+    }
+
+    return {
+      eventType: data["eventType"] as ModelEventType,
+      modelType: data["modelType"] as DatabaseType,
+      modelName: data["modelName"] as string,
+      tenantId: data["tenantId"] as string,
+    };
+  }
+
+  /*
+   * The socket has no usable user session: tell the client, which refreshes
+   * its session and reconnects so the new handshake carries the new cookie.
+   * Dropping the request silently is what used to happen, and it left every
+   * subscription made after the access token expired dead (no live counters
+   * after switching project, no live logs) with nothing in the browser to
+   * show why.
+   */
+  private static rejectForMissingAuthentication(
+    socket: Socket,
+    data: ListenToModelEventJSON,
+    reason: string,
+    listenLogAttributes: LogAttributes,
+  ): ListenToModelEventOutcome {
+    logger.debug(
+      `${reason}, aborting joining room and asking the client to re-authenticate`,
+      listenLogAttributes,
+    );
+
+    socket.emit(EventName.AuthenticationRequired, data);
+
+    return ListenToModelEventOutcome.AuthenticationRequired;
+  }
+
   @CaptureSpan()
   public static async listenToModelEvent(
     socket: Socket,
     data: ListenToModelEventJSON,
-  ): Promise<void> {
+  ): Promise<ListenToModelEventOutcome> {
     const listenLogAttributes: LogAttributes = {
       projectId: data.tenantId?.toString(),
     };
@@ -116,31 +208,51 @@ export default abstract class Realtime {
       this.getAccessTokenFromSocket(socket);
 
     if (!userAccessToken) {
-      logger.debug(
-        "User access token not found in socket, aborting joining room",
+      return this.rejectForMissingAuthentication(
+        socket,
+        data,
+        "User access token not found in socket",
         listenLogAttributes,
       );
-      return;
     }
 
     logger.debug("Decoding user access token", listenLogAttributes);
-    const userAuthorizationData: JSONWebTokenData =
-      JSONWebToken.decode(userAccessToken);
 
-    if (!userAuthorizationData) {
-      logger.debug(
-        "User authorization data not found in socket, aborting joining room",
+    /*
+     * The token is the one the browser sent with the handshake, and it is not
+     * re-read for the life of the connection. Once it expires every decode
+     * throws, which is the normal state of a dashboard tab left open past the
+     * access token's lifetime, not an error in the request.
+     */
+    let userAuthorizationData: JSONWebTokenData;
+
+    try {
+      userAuthorizationData = JSONWebToken.decode(userAccessToken);
+    } catch {
+      return this.rejectForMissingAuthentication(
+        socket,
+        data,
+        "User access token in socket is invalid or expired",
         listenLogAttributes,
       );
-      return;
+    }
+
+    if (!userAuthorizationData) {
+      return this.rejectForMissingAuthentication(
+        socket,
+        data,
+        "User authorization data not found in socket",
+        listenLogAttributes,
+      );
     }
 
     if (!userAuthorizationData.userId) {
-      logger.debug(
-        "User ID not found in socket, aborting joining room",
+      return this.rejectForMissingAuthentication(
+        socket,
+        data,
+        "User ID not found in socket",
         listenLogAttributes,
       );
-      return;
     }
 
     logger.debug("Checking user access permissions", listenLogAttributes);
@@ -179,7 +291,7 @@ export default abstract class Realtime {
           "User does not have access to this tenant, aborting joining room",
           listenLogAttributes,
         );
-        return;
+        return ListenToModelEventOutcome.NotAuthorized;
       }
 
       logger.debug(
@@ -214,12 +326,16 @@ export default abstract class Realtime {
       }
     }
 
+    /*
+     * Authenticated but not allowed. The room is not joined and, as before,
+     * nothing is sent back: a fresh session would not change the answer.
+     */
     if (!hasAccess) {
       logger.debug(
         "User does not have access to this tenant, aborting joining room",
         listenLogAttributes,
       );
-      return;
+      return ListenToModelEventOutcome.NotAuthorized;
     }
 
     if (data.modelId) {
@@ -244,6 +360,8 @@ export default abstract class Realtime {
       // join the room.
       await socket.join(roomId);
     }
+
+    return ListenToModelEventOutcome.Joined;
   }
 
   @CaptureSpan()

@@ -13,6 +13,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const OnCallDutyPage: FunctionComponent<
@@ -43,6 +47,20 @@ const OnCallDutyPage: FunctionComponent<
           title: "On-Call Duty Schedules",
           description:
             "Here is a list of on-call-duty schedules for this project.",
+          buttons: [
+            {
+              title: "Timeline View",
+              icon: IconProp.ViewColumns,
+              buttonStyle: ButtonStyleType.OUTLINE,
+              onClick: () => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE] as Route,
+                  ),
+                );
+              },
+            },
+          ],
         }}
         noItemsMessage={"No on-call schedule found."}
         formFields={[

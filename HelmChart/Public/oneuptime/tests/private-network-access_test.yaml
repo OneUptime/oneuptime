@@ -212,3 +212,478 @@ tests:
           content:
             name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
             value: "true"
+
+  # ---------------------------------------------------------------------------
+  # Issue #3879: the chart's own probes are GLOBAL probes, and the switch must
+  # still reach them.
+  #
+  # Every probe this chart deploys gets REGISTER_PROBE_KEY, so it registers
+  # itself as a global probe. 13.0.0's probe honored
+  # PROBE_ALLOW_PRIVATE_NETWORK_MONITORS only when REGISTER_PROBE_KEY was
+  # absent, so `probes.<name>.allowPrivateNetworkMonitors: true` rendered
+  # correctly and was then dropped inside the pod: API, Website, External
+  # Status Page and Custom JavaScript Code monitors on internal targets broke on
+  # upgrade with no way back. The probe now honors it on a global probe unless
+  # the instance runs with BILLING_ENABLED=true (the hosted, open-signup
+  # product), so the chart's half of the contract is: render the operator's
+  # choice per probe, next to REGISTER_PROBE_KEY, and give the probe the
+  # BILLING_ENABLED it needs to make that one exception. The probe-side
+  # decision table lives in packages/Probe/Utils/PrivateNetworkMonitorPolicy.ts;
+  # NOTES.txt's notice is covered in probe-private-network-monitors_test.yaml.
+  # ---------------------------------------------------------------------------
+
+  # The exact combination 13.0.0 ignored: the opt-in and the global-probe
+  # registration key on the same container.
+  - it: renders the opt-in on a chart probe that also registers itself as a global probe
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: REGISTER_PROBE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-secrets
+                key: register-probe-key
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: BILLING_ENABLED
+            value: "false"
+
+  # However the registration key is supplied, the probe is global, and the
+  # opt-in has to survive alongside it.
+  - it: renders the opt-in next to an inline registerProbeKey
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      registerProbeKey: inline-register-probe-key
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: REGISTER_PROBE_KEY
+            value: inline-register-probe-key
+
+  - it: renders the opt-in next to a registerProbeKey read from an external Secret
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      externalSecrets.registerProbeKey.existingSecret.name: one-uptime
+      externalSecrets.registerProbeKey.existingSecret.passwordKey: register-probe-key
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: REGISTER_PROBE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: one-uptime
+                key: register-probe-key
+
+  # The probe compares against the exact string "true". A bare YAML boolean in
+  # an env value is also rejected by Kubernetes, so the quoting is load-bearing.
+  - it: renders the opt-in as the string "true", never a YAML boolean
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: true
+
+  # Kubernetes keeps the LAST of two env entries with the same name, so a
+  # second, stale copy could silently win over the operator's choice.
+  - it: renders the switch exactly once per probe container
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+          any: true
+          count: 1
+
+  # `probes.one.allowPrivateNetworkMonitors: null` removes the key from the
+  # merged values, which must land on the safe default rather than on an empty
+  # value the probe would read as unrecognized.
+  - it: falls back to off when the value is nulled out
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes.one.allowPrivateNetworkMonitors: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "false"
+
+  # Each chart probe is its own Deployment and its own grant: opening one must
+  # not open its siblings. The probe's Service shares the Deployment's
+  # metadata.name, so the Deployment is selected by its pod-template label
+  # (only a Deployment has a pod template), as the retry-limit suite does.
+  - it: gives each probe its own value when only the first opts in
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.one.allowPrivateNetworkMonitors: true
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-one
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "false"
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-two
+      # Both are global probes: the second one's "false" is a real choice made
+      # on a probe that could have been opened, not an artefact of a missing key.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: REGISTER_PROBE_KEY
+          any: true
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-two
+
+  - it: gives each probe its own value when only the second opts in
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "false"
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-one
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-two
+
+  - it: keeps an explicit false on one probe while its sibling opts in
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.one.allowPrivateNetworkMonitors: true
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-one
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "false"
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-two
+
+  - it: opens every probe that opts in
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.one.allowPrivateNetworkMonitors: true
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-one
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-two
+
+  # BILLING_ENABLED is how the probe tells a self-hosted instance, where the
+  # opt-in is honored, from the hosted product, where a global probe refuses
+  # it. Without it on the probe, every chart probe would look self-hosted.
+  - it: tells the probe billing is off by default
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: BILLING_ENABLED
+            value: "false"
+
+  - it: tells the probe billing is on when billing.enabled is set
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      billing.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: BILLING_ENABLED
+            value: "true"
+
+  # On a billing-enabled instance the chart still passes the operator's value
+  # through instead of quietly rewriting it: the probe is what refuses it, and
+  # it logs a warning at startup saying so. Rewriting it here would bring back
+  # the silent drop issue #3879 was about.
+  - it: passes the opt-in through unchanged on a billing-enabled instance so the probe can warn about it
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      billing.enabled: true
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: BILLING_ENABLED
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: REGISTER_PROBE_KEY
+          any: true
+
+  # Every probe on the instance must see the same billing setting, or one of
+  # them would decide the hosted-product exception differently.
+  - it: gives every probe the instance's billing setting
+    templates:
+      - templates/probe.yaml
+    set:
+      billing.enabled: true
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: BILLING_ENABLED
+            value: "true"
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-one
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: BILLING_ENABLED
+            value: "true"
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-two
+
+  # Opening a probe decides nothing about the API server's own egress.
+  - it: leaves the API server's webhook switch off when a probe opts in
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ALLOW_PRIVATE_NETWORK_WEBHOOKS
+            value: "false"
+
+  # The probe only honors the exact string "true", so anything else would
+  # deploy as "off" without a word. Reject it at install time instead, where
+  # the operator sees it. `set` passes these through as the typed values below.
+  - it: rejects a non-boolean string such as "yes"
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.one.allowPrivateNetworkMonitors: "yes"
+    asserts:
+      - failedTemplate:
+          errorPattern: "probes.one.allowPrivateNetworkMonitors: Invalid type. Expected: boolean, given: string"
+
+  # A quoted "true" would happen to work at the probe, but the schema has always
+  # asked for a boolean; keep one spelling so NOTES.txt and the probe agree.
+  - it: rejects the quoted string "true"
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.one.allowPrivateNetworkMonitors: "true"
+    asserts:
+      - failedTemplate:
+          errorPattern: "probes.one.allowPrivateNetworkMonitors: Invalid type. Expected: boolean, given: string"
+
+  - it: rejects a number such as 1
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.one.allowPrivateNetworkMonitors: 1
+    asserts:
+      - failedTemplate:
+          errorPattern: "probes.one.allowPrivateNetworkMonitors: Invalid type. Expected: boolean, given: integer"
+
+  # The schema's patternProperties covers operator-added probes too.
+  - it: rejects a non-boolean value on an operator-added probe
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.two.enabled: true
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: "yes"
+    asserts:
+      - failedTemplate:
+          errorPattern: "probes.two.allowPrivateNetworkMonitors: Invalid type. Expected: boolean, given: string"
+
+  # NOTES.txt lists the probes the opt-in applies to (see
+  # probe-private-network-monitors_test.yaml). The notice and the pod spec have
+  # to agree on which probes exist, so these two render both templates at once;
+  # they live here because that suite selects NOTES.txt alone. probe.yaml
+  # treats a probe with no `enabled` key as enabled, and so must the notice.
+  - it: lists a probe with no enabled key in the install notice, as probe.yaml deploys it
+    templates:
+      - templates/NOTES.txt
+      - templates/probe.yaml
+    set:
+      probes.two.name: Probe Two
+      probes.two.allowPrivateNetworkMonitors: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '(?m)^Private network monitoring is on for probes: two$'
+        template: templates/NOTES.txt
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+        template: templates/probe.yaml
+        documentSelector:
+          path: spec.template.metadata.labels.app
+          value: oneuptime-probe-two
+
+  - it: leaves a disabled probe out of the install notice, as probe.yaml does not deploy it
+    templates:
+      - templates/NOTES.txt
+      - templates/probe.yaml
+    set:
+      probes.one.enabled: false
+      probes.one.allowPrivateNetworkMonitors: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'Private network monitoring is on'
+        template: templates/NOTES.txt
+      # `any` makes this "no rendered document is that Deployment"; without it
+      # the negation passes as soon as one document (the Service) differs.
+      - containsDocument:
+          kind: Deployment
+          apiVersion: apps/v1
+          name: oneuptime-probe-one
+          any: true
+        not: true
+        template: templates/probe.yaml

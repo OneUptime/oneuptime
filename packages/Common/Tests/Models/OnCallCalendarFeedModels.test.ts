@@ -142,10 +142,10 @@ const SECRET_COLUMNS: Array<string> = [
   "tokenHash",
   "token",
   "previousTokenHash",
-  "previousTokenExpiresAt",
 ];
 
 const BOOKKEEPING_COLUMNS: Array<string> = [
+  "previousTokenExpiresAt",
   "tokenHint",
   "rotatedAt",
   "lastFetchedAt",
@@ -443,6 +443,28 @@ describe("On-call calendar feed token columns", () => {
 });
 
 describe("On-call calendar feed settings and bookkeeping", () => {
+  test.each(feedSpecs())(
+    "%s exposes the old link expiry as read-only status metadata",
+    (_name: string, spec: FeedSpec) => {
+      const model: BaseModel = new spec.modelType();
+      const metadata: TableColumnMetadata = model.getTableColumnMetadata(
+        "previousTokenExpiresAt",
+      );
+
+      expect(model.getColumnAccessControlFor("previousTokenExpiresAt")).toEqual(
+        {
+          create: [],
+          read: model.readRecordPermissions,
+          update: [],
+        },
+      );
+      expect(model.readRecordPermissions.length).toBeGreaterThan(0);
+      expect(metadata.computed).toBe(true);
+      expect(metadata.canReadOnRelationQuery).toBe(false);
+      expect(metadata.hideColumnInDocumentation).toBe(true);
+    },
+  );
+
   test.each(feedSpecs())(
     "%s lets its readers read and its editors update exactly the settings columns",
     (_name: string, spec: FeedSpec) => {

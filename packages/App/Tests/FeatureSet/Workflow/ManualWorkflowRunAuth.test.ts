@@ -12,6 +12,8 @@ import Response from "Common/Server/Utils/Response";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionCode from "Common/Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -251,6 +253,25 @@ function buildUserProps(data: {
   };
 }
 
+/*
+ * How a caller with no credentials at all is refused: 401 with the shared
+ * wording. Such a request is usually a dashboard tab whose access-token
+ * cookie expired with its JWT, and the browser client only refreshes the
+ * session and replays on a 401 - a 400 or 422 here would leave a signed-in
+ * user looking at an error instead of a Run that just works.
+ */
+function expectAuthenticationRequired(thrown: unknown): void {
+  expect(thrown).toBeInstanceOf(NotAuthenticatedException);
+  expect(thrown).not.toBeInstanceOf(NotAuthorizedException);
+  expect(thrown).not.toBeInstanceOf(BadDataException);
+  expect((thrown as NotAuthenticatedException).code).toBe(
+    ExceptionCode.NotAuthenticatedException,
+  );
+  expect((thrown as NotAuthenticatedException).message).toBe(
+    CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+  );
+}
+
 describe("GET/POST /workflow/manual/run/:workflowId requires an authorized member of the workflow's own project", () => {
   let callerProjectId: ObjectID;
   let otherProjectId: ObjectID;
@@ -337,7 +358,14 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
      * UserType.Public and calls next(), so it reaches the handler — the
      * handler has to be the thing that stops it.
      */
-    test("rejects the advisory's credential-less POST and never queues the workflow", async () => {
+    /*
+     * This used to surface as BadDataException ("Project ID is required",
+     * the advisory's request carries no tenantid header). Credentials are
+     * now checked before the tenant, so it is a 401: still refused, still
+     * nothing queued, but the status a signed-in user's expired session is
+     * refreshed on.
+     */
+    test("rejects the advisory's credential-less POST with 401 and never queues the workflow", async () => {
       mockProps({ userType: UserType.Public });
 
       const result: RouteCallResult = await callRunRoute({
@@ -346,12 +374,12 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
         body: { data: { anything: "attacker-controlled" } },
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expectAuthenticationRequired(result.thrownToNext);
       expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
       expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
     });
 
-    test("rejects the same credential-less call on the GET route", async () => {
+    test("rejects the same credential-less call on the GET route with 401", async () => {
       mockProps({ userType: UserType.Public });
 
       const result: RouteCallResult = await callRunRoute({
@@ -359,7 +387,7 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
         workflowId: workflowId.toString(),
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expectAuthenticationRequired(result.thrownToNext);
       expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
     });
 
@@ -379,7 +407,7 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
      * That sets tenantId on the request without granting any permission, so
      * the tenant check alone must not be mistaken for authentication.
      */
-    test("rejects a public caller that supplies a tenant header it has no permission for", async () => {
+    test("rejects a public caller that supplies a tenant header it has no permission for, with 401", async () => {
       mockProps({
         userType: UserType.Public,
         tenantId: callerProjectId,
@@ -392,7 +420,86 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
         workflowId: workflowId.toString(),
       });
 
+      expectAuthenticationRequired(result.thrownToNext);
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+    });
+
+    test("rejects the same public caller on the GET route with 401", async () => {
+      mockProps({
+        userType: UserType.Public,
+        tenantId: callerProjectId,
+        userId: undefined,
+        userTenantAccessPermission: undefined,
+      });
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "GET",
+        workflowId: workflowId.toString(),
+      });
+
+      expectAuthenticationRequired(result.thrownToNext);
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Even a tenant permission entry on the request does not make a caller
+     * with no user, no API key and no master-admin session anything but
+     * anonymous.
+     */
+    test("rejects a credential-less caller carrying a tenant permission entry with 401", async () => {
+      mockProps({
+        userType: UserType.Public,
+        tenantId: callerProjectId,
+        userId: undefined,
+        userTenantAccessPermission: editorProps().userTenantAccessPermission,
+      });
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expectAuthenticationRequired(result.thrownToNext);
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A project API key is a credential, so it is not anonymous and does not
+     * get the 401 - its client has no session to refresh. It is still
+     * refused, with 422: this route backs the dashboard's Run button and
+     * requires a logged-in member; automation triggers a workflow through
+     * its own secret-key webhook instead.
+     */
+    test("rejects a project API key with 422, not 401, and never queues the workflow", async () => {
+      const permissionMap: Dictionary<UserTenantAccessPermission> = {};
+      permissionMap[callerProjectId.toString()] = buildTenantPermission({
+        projectId: callerProjectId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps({
+        userType: UserType.API,
+        tenantId: callerProjectId,
+        userId: undefined,
+        userTenantAccessPermission: permissionMap,
+      });
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
       expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(result.thrownToNext).not.toBeInstanceOf(NotAuthenticatedException);
+      expect((result.thrownToNext as NotAuthorizedException).code).toBe(
+        ExceptionCode.NotAuthorizedException,
+      );
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
       expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
     });
 
@@ -780,7 +887,10 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
       });
 
       expect(result.nextCallCount).toBe(1);
+      // The error middleware turns this into a 401, which the client refreshes on.
+      expectAuthenticationRequired(result.thrownToNext);
       expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+      expect(Response.sendErrorResponse).not.toHaveBeenCalled();
     });
   });
 });

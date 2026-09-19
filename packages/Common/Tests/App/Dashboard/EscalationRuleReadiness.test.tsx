@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   cleanup,
   fireEvent,
@@ -93,6 +100,25 @@ jest.mock("react-i18next", () => {
   };
 });
 
+/*
+ * axios is a pass-through spy: every call still goes to the real axios, so
+ * nothing else in this file behaves differently. Only the lapsed-session
+ * regression below scripts it, to drive the REAL browser client (not the mock
+ * above) through a 401, a refresh and a replay.
+ */
+jest.mock("axios", () => {
+  const actualAxios: (...args: Array<unknown>) => unknown = jest.requireActual(
+    "axios",
+  ) as (...args: Array<unknown>) => unknown;
+
+  return Object.assign(
+    jest.fn((...args: Array<unknown>): unknown => {
+      return actualAxios(...args);
+    }),
+    actualAxios,
+  );
+});
+
 import EscalationRules from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRules";
 import {
   ResponderGroupRef,
@@ -125,9 +151,24 @@ import {
   parseReadinessSummary,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/ReadinessTypes";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPMethod from "../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { APP_API_URL, IDENTITY_URL } from "../../../UI/Config";
+import type RealBaseAPI from "../../../UI/Utils/API/API";
+import Navigation from "../../../UI/Utils/Navigation";
+import User from "../../../UI/Utils/User";
+import FakeAxiosServer, {
+  FakeTransport,
+  SentRequest,
+} from "../../UI/Utils/API/FakeAxiosServer";
+import axios from "axios";
+import fs from "fs";
+import type { SpyInstance } from "jest-mock";
+import path from "path";
 
 const USER_ALEX: string = "aaaaaaaa-1111-4111-8111-111111111111";
 const USER_SAM: string = "bbbbbbbb-2222-4222-8222-222222222222";
@@ -1621,6 +1662,240 @@ describe("Sending the reminder", () => {
     ]);
 
     expect(Object.keys(statuses).sort()).toEqual([USER_ALEX, USER_SAM].sort());
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * THE REMINDER AFTER THE SESSION LAPSED
+ * ---------------------------------------------------------------------------
+ *
+ * The customer's report, reproduced. The Dashboard was left open for more than
+ * fifteen minutes, so the browser had already dropped the access-token cookie
+ * (its maxAge is the JWT's lifetime) when "Send setup reminder" was pressed.
+ * The request reached the server with no credentials, and the reminder came
+ * back "You are not authorized to access this project's data." - a 422, which
+ * the browser client has no reason to treat as a lapsed session, so it never
+ * refreshed and the reminder was reported as failed.
+ *
+ * The server now answers a request with no credentials 401, and the client
+ * refreshes on a 401 and replays. These cases run requestSetupReminders
+ * through the REAL browser client rather than the API mock the rest of this
+ * file uses: the mock's post is pointed at the actual BaseAPI.post, and axios
+ * underneath it is scripted like a server.
+ */
+describe("Sending the reminder after the session lapsed", () => {
+  const SEND_URL: string = URL.fromString(APP_API_URL.toString())
+    .addRoute("/on-call-readiness/send-setup-reminder")
+    .toString();
+
+  const REFRESH_URL: string = URL.fromString(IDENTITY_URL.toString())
+    .addRoute("/refresh-token")
+    .toString();
+
+  const NO_CREDENTIALS_BODY: JSONObject = {
+    message: "Authentication required. Please log in to access this resource.",
+  };
+
+  const realBaseAPI: typeof RealBaseAPI = (
+    jest.requireActual("../../../UI/Utils/API/API") as {
+      default: typeof RealBaseAPI;
+    }
+  ).default;
+
+  const mockedAxios: FakeTransport = axios as unknown as FakeTransport;
+
+  let server: FakeAxiosServer;
+  let logoutSpy: SpyInstance<typeof User.logout>;
+  let navigateSpy: SpyInstance<typeof Navigation.navigate>;
+  let currentRouteSpy: SpyInstance<typeof Navigation.getCurrentRoute>;
+
+  beforeEach(() => {
+    server = new FakeAxiosServer(mockedAxios);
+
+    getCommonHeadersMock.mockReturnValue({ tenantid: PROJECT_ID.toString() });
+
+    postMock.mockImplementation((...args: Array<any>): Promise<unknown> => {
+      return realBaseAPI.post(args[0]);
+    });
+
+    logoutSpy = jest.spyOn(User, "logout").mockImplementation((): void => {});
+
+    navigateSpy = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+
+    currentRouteSpy = jest
+      .spyOn(Navigation, "getCurrentRoute")
+      .mockReturnValue(
+        new Route(`/dashboard/${PROJECT_ID.toString()}/on-call-duty`),
+      );
+  });
+
+  afterEach(() => {
+    logoutSpy.mockRestore();
+    navigateSpy.mockRestore();
+    currentRouteSpy.mockRestore();
+
+    // Back to the pass-through the rest of this file runs on.
+    const actualAxios: (...args: Array<unknown>) => unknown =
+      jest.requireActual("axios") as (...args: Array<unknown>) => unknown;
+
+    mockedAxios.mockImplementation(((...args: Array<unknown>): unknown => {
+      return actualAxios(...args);
+    }) as never);
+  });
+
+  type SentFunction = () => Array<string>;
+
+  const sentOnTheWire: SentFunction = (): Array<string> => {
+    return server.sent.map((request: SentRequest): string => {
+      return `${request.method.toUpperCase()} ${request.url}`;
+    });
+  };
+
+  test("a reminder refused 401 is refreshed, replayed, and reported as SENT", async () => {
+    server
+      .on(HTTPMethod.POST, SEND_URL, [
+        { status: 401, data: NO_CREDENTIALS_BODY },
+        {
+          status: 200,
+          data: {
+            sentCount: 1,
+            results: [
+              { userId: USER_ALEX, outcome: "Sent", message: "Emailed." },
+            ],
+          },
+        },
+      ])
+      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+
+    const statuses: SetupReminderStatuses = await requestSetupReminders([
+      USER_ALEX,
+    ]);
+
+    // Not the "failed" / "not authorized" state from the customer's screenshot.
+    expect(statuses).toEqual({
+      [USER_ALEX]: { state: "sent", message: "Emailed." },
+    });
+
+    expect(sentOnTheWire()).toEqual([
+      `POST ${SEND_URL}`,
+      `POST ${REFRESH_URL}`,
+      `POST ${SEND_URL}`,
+    ]);
+
+    // The replay is the same reminder, for the same project, sent once more.
+    const replay: SentRequest = server.sent[2]!;
+
+    expect(replay.data).toEqual({ userIds: [USER_ALEX] });
+    expect(replay.data).toEqual(server.sent[0]!.data);
+    expect(replay.headers["tenantid"]).toBe(PROJECT_ID.toString());
+
+    // The lapse is invisible: nobody is logged out, nothing navigates.
+    expect(logoutSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  test("a batch refused 401 is replayed as one batch, and each person is reported", async () => {
+    server
+      .on(HTTPMethod.POST, SEND_URL, [
+        { status: 401, data: NO_CREDENTIALS_BODY },
+        {
+          status: 200,
+          data: {
+            sentCount: 1,
+            results: [
+              { userId: USER_ALEX, outcome: "Sent", message: "Emailed." },
+              {
+                userId: USER_SAM,
+                outcome: "SkippedThrottled",
+                message: "Already reminded in the last 24 hours.",
+              },
+            ],
+          },
+        },
+      ])
+      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+
+    const statuses: SetupReminderStatuses = await requestSetupReminders([
+      USER_ALEX,
+      USER_SAM,
+    ]);
+
+    expect(statuses[USER_ALEX]).toEqual({ state: "sent", message: "Emailed." });
+    expect(statuses[USER_SAM]).toEqual({
+      state: "skipped",
+      message: "Already reminded in the last 24 hours.",
+    });
+    expect(server.requestsTo(HTTPMethod.POST, REFRESH_URL)).toHaveLength(1);
+    expect(server.requestsTo(HTTPMethod.POST, SEND_URL)).toHaveLength(2);
+  });
+
+  /*
+   * The symptom itself, kept as a contrast: had the server kept answering 422
+   * for a request with no credentials, the client could not have told it from
+   * a real permission refusal, and correctly would not have refreshed. The
+   * reminder stays failed. This is why the fix is a 401 on the server and not
+   * a wider net on the client.
+   */
+  test("the old 422 answer is terminal: no refresh, no replay, reported as failed", async () => {
+    server.on(HTTPMethod.POST, SEND_URL, [
+      {
+        status: 422,
+        data: {
+          message: "You are not authorized to access this project's data.",
+        },
+      },
+    ]);
+
+    const statuses: SetupReminderStatuses = await requestSetupReminders([
+      USER_ALEX,
+    ]);
+
+    expect(statuses[USER_ALEX]!.state).toBe("failed");
+    expect(sentOnTheWire()).toEqual([`POST ${SEND_URL}`]);
+    expect(logoutSpy).not.toHaveBeenCalled();
+  });
+
+  test("a session that cannot be refreshed reports the reminder as not sent and goes to login", async () => {
+    server
+      .on(HTTPMethod.POST, SEND_URL, [
+        { status: 401, data: NO_CREDENTIALS_BODY },
+      ])
+      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 401 }]);
+
+    const statuses: SetupReminderStatuses = await requestSetupReminders([
+      USER_ALEX,
+    ]);
+
+    // A 401 is refused before any mail is sent, so "not sent" is certain.
+    expect(statuses[USER_ALEX]!.state).toBe("failed");
+    // Never replayed: the reminder was not sent twice behind the reader's back.
+    expect(server.requestsTo(HTTPMethod.POST, SEND_URL)).toHaveLength(1);
+    expect(logoutSpy).toHaveBeenCalled();
+    expect(navigateSpy).toHaveBeenCalledWith(new Route("/accounts/login"), {
+      forceNavigate: true,
+    });
+  });
+
+  /*
+   * The mock at the top of this file stands in for the refresh-aware client,
+   * so every other test here would pass just the same if the reminder were
+   * sent through the bare Common/Utils/API - which has no refresh at all. Pin
+   * the import itself.
+   */
+  test("the reminder is sent through the refresh-aware client", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(source).toMatch(/import API from "Common\/UI\/Utils\/API\/API";/);
+    expect(source).not.toMatch(/from "Common\/Utils\/API"/);
   });
 });
 

@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "這些開關決定哪些通知會送達您，而不是它們會變成多少封郵件。",
   "Reduce routine emails or change email rollup in Email Preferences": "在郵件偏好設定中減少例行郵件或變更郵件合併",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "關閉有關備註、被加入為擁有者、新監控器和狀態頁、加入事件集的項目，以及待命政策成員變更的郵件。",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "您對事件和警示建立、狀態變更、提醒、指派、監控器健康狀況和待命輪班的選擇維持不變。其他通知管道、待命呼叫以及帳戶和帳單郵件均不受影響。"
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "您對事件和警示建立、狀態變更、提醒、指派、監控器健康狀況和待命輪班的選擇維持不變。其他通知管道、待命呼叫以及帳戶和帳單郵件均不受影響。",
+  "Schedule Timeline": "待命時間軸",
+  "Timeline View": "時間軸檢視",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "並排檢視此專案中的所有待命排程：誰在待命、誰在代替誰待命，以及哪裡無人待命。",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "按週或按月檢視此團隊擁有的每個排程由誰待命。",
+  "No on-call schedules yet": "尚無待命排程",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "建立待命排程後，此專案中的所有輪值都會在這裡並排顯示。",
+  "This team does not own any on-call schedules yet": "此團隊尚未擁有任何待命排程",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "在排程的「擁有者」分頁中將此團隊新增為擁有者，其輪值就會顯示在這裡。"
 }

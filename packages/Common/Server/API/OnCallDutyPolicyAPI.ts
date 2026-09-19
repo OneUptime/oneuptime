@@ -35,6 +35,13 @@ export default class OnCallDutyPolicyAPI extends BaseAPI<
           const databaseProps: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+          /*
+           * The header polls this on every dashboard page, so it is usually
+           * the first request to notice an expired session. It must answer
+           * 401 so the client refreshes, not "Invalid userId.".
+           */
+          CommonAPI.assertCredentialsPresent(databaseProps);
+
           const projectId: ObjectID = databaseProps.tenantId as ObjectID;
 
           const userId: ObjectID = databaseProps.userId as ObjectID;

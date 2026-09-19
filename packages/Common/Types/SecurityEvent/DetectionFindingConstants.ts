@@ -33,3 +33,17 @@ export const DETECTION_GROUP_VALUE_ATTRIBUTE: string =
   "oneuptime.detection.group_value";
 export const DETECTION_SIGMA_ID_ATTRIBUTE: string =
   "oneuptime.detection.sigma_id";
+
+// Save-time bounds for DetectionRule.evaluationIntervalInMinutes.
+export const DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES: number = 1;
+export const DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES: number = 1440;
+
+/*
+ * Cap on how far back one evaluation may scan, whatever lastEvaluatedAt
+ * says — a rule re-enabled after a month must not trigger a month-long
+ * table scan.
+ */
+export const DETECTION_MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
+
+// One alert per distinct group value per cycle, at most.
+export const DETECTION_MAX_GROUPS_PER_EVALUATION: number = 100;

@@ -16,6 +16,7 @@ import { JSONObject, ObjectType } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import API from "../../Utils/API";
 import { PUBLIC_DASHBOARD_API_URL } from "../../Utils/Config";
+import PublicDashboardWidgetContext from "../../Utils/WidgetContext";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -184,25 +185,14 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
     setError(null);
 
     /*
-     * Route the shared metric widgets to the public, dashboard-scoped
-     * endpoints under /public-dashboard-api. Without this they fall through
-     * to the private /api/metric* routes, which 401 for an anonymous viewer
-     * and redirect the page to /accounts/login (issue #2467). The injected
-     * `postJSON` uses the public dashboard's API client so any auth redirect
-     * lands on the master-password page, not /accounts/login.
+     * Route the shared widgets' reads to the public, dashboard-scoped
+     * endpoints under /public-dashboard-api, through this app's API client,
+     * so any auth redirect lands on the master-password page and never on
+     * /accounts/login (see PublicDashboardWidgetContext).
      */
-    setPublicDashboardContext({
-      dashboardId: props.dashboardId,
-      apiUrl: PUBLIC_DASHBOARD_API_URL,
-      postJSON: (route: string, data: JSONObject) => {
-        return API.post<JSONObject>({
-          url: URL.fromString(PUBLIC_DASHBOARD_API_URL.toString()).addRoute(
-            route,
-          ),
-          data,
-        });
-      },
-    });
+    setPublicDashboardContext(
+      PublicDashboardWidgetContext.build(props.dashboardId),
+    );
 
     try {
       await fetchDashboardViewConfig();

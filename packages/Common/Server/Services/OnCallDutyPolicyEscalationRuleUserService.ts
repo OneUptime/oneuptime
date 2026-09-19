@@ -1,7 +1,7 @@
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import OnCallDutyPolicyChildService from "./OnCallDutyPolicyChildService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
@@ -26,7 +26,7 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import logger, { LogAttributes } from "../Utils/Logger";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
     super(Model);
   }

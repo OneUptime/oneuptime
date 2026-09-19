@@ -20,6 +20,7 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/ai/recharge",
   UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       if (!IsBillingEnabled) {

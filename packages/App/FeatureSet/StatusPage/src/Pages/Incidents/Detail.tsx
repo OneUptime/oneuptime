@@ -338,6 +338,17 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
           incident.id!,
         ),
     isDetailItem: !isSummary,
+    /*
+     * A private page serves its attachments behind the reader's session,
+     * whose access cookie lapses while the page sits open, so a click
+     * refreshes the session before the file loads. Public pages keep plain
+     * links.
+     */
+    attachmentRefreshSession: StatusPageUtil.isPrivateStatusPage()
+      ? (): Promise<boolean> => {
+          return API.refreshSession();
+        }
+      : undefined,
     currentStatus: currentStateStatus,
     currentStatusColor: currentStatusColor,
     anotherStatusColor: incident.incidentSeverity?.color || undefined,
@@ -594,6 +605,17 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
           episode.id!,
         ),
     isDetailItem: !isSummary,
+    /*
+     * A private page serves its attachments behind the reader's session,
+     * whose access cookie lapses while the page sits open, so a click
+     * refreshes the session before the file loads. Public pages keep plain
+     * links.
+     */
+    attachmentRefreshSession: StatusPageUtil.isPrivateStatusPage()
+      ? (): Promise<boolean> => {
+          return API.refreshSession();
+        }
+      : undefined,
     currentStatus: currentStateStatus,
     currentStatusColor: currentStatusColor,
     anotherStatusColor: episode.incidentSeverity?.color || undefined,

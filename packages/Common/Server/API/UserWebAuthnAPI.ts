@@ -34,6 +34,7 @@ export default class UserWebAuthnAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/generate-registration-options`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const userId: ObjectID = (req as OneUptimeRequest).userAuthorization!
@@ -55,6 +56,7 @@ export default class UserWebAuthnAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/verify-registration`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const data: JSONObject = req.body;

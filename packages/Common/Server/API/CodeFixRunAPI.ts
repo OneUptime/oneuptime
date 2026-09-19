@@ -358,9 +358,7 @@ export default class CodeFixRunAPI {
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    if (!props.userId) {
-      throw new NotAuthorizedException("A logged-in user session is required.");
-    }
+    CommonAPI.assertAuthenticatedUser(props);
 
     if (!props.tenantId) {
       throw new BadDataException("Project ID is required (tenantid header).");

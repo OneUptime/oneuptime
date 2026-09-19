@@ -27,6 +27,11 @@ export function getOnCallDutyBreadcrumbs(
       "On-Call Duty",
       "Calendar Feeds",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE, [
+      "Project",
+      "On-Call Duty",
+      "Schedule Timeline",
+    ]),
     //slack connection
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK,

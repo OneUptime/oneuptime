@@ -2,6 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ApiKeyService from "./ApiKeyService";
 import DatabaseService from "./DatabaseService";
@@ -10,7 +11,7 @@ import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -493,8 +494,27 @@ export class Service extends DatabaseService<Model> {
      */
     this.clearCache();
 
-    const existingPermissions: Array<Model> = await this.findBy({
+    updateBy.query = await ModelPermission.checkUpdateQueryPermissions(
+      Model,
+      updateBy.query,
+      updateBy.data,
+      updateBy.props,
+    );
+    const selectedPermissions: Array<Model> = await this.findAllBy({
       query: updateBy.query,
+      select: { _id: true },
+      skip: updateBy.skip,
+      limit: updateBy.limit,
+      props: { isRoot: true },
+    });
+    const selectedIds: Array<ObjectID> = selectedPermissions.map(
+      (row: Model) => {
+        return row.id!;
+      },
+    );
+    // Reload by ID so a label filter cannot hide part of a saved block's scope.
+    const existingPermissions: Array<Model> = await this.findAllBy({
+      query: { _id: QueryHelper.any(selectedIds) },
       select: {
         _id: true,
         labels: true,
@@ -503,8 +523,6 @@ export class Service extends DatabaseService<Model> {
         apiKeyId: true,
         permission: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
       props: {
         isRoot: true,
       },
@@ -565,6 +583,15 @@ export class Service extends DatabaseService<Model> {
       }
 
       await this.assertApiKeyBelongsToProject(apiKeyId, projectId);
+      // Changing a block's permission or labels can restore its old scope.
+      if (existingPermission.isBlockPermission) {
+        this.assertCallerCanGrantPermission({
+          permission: existingPermission.permission!,
+          labels: existingPermission.labels,
+          projectId,
+          props: updateBy.props,
+        });
+      }
       this.assertCallerCanGrantPermission({
         permission,
         labels: isLabelsUpdateRequested
@@ -647,6 +674,8 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    updateBy.query = { ...updateBy.query, _id: QueryHelper.any(selectedIds) };
+    updateBy.skip = 0;
     return { updateBy, carryForward: null };
   }
 
@@ -655,6 +684,74 @@ export class Service extends DatabaseService<Model> {
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     this.clearCache();
+
+    if (!deleteBy.props.isRoot && !deleteBy.props.isMasterAdmin) {
+      // Hooks run before DatabaseService applies the delete ACL and tenant.
+      deleteBy.query = await ModelPermission.checkDeleteQueryPermission(
+        Model,
+        deleteBy.query,
+        deleteBy.props,
+      );
+      const selectedPermissions: Array<Model> = await this.findAllBy({
+        query: deleteBy.query,
+        select: { _id: true },
+        skip: deleteBy.skip,
+        limit: deleteBy.limit,
+        props: { isRoot: true },
+      });
+      const selectedIds: Array<ObjectID> = selectedPermissions.map(
+        (row: Model) => {
+          return row.id!;
+        },
+      );
+      // A relation filter may select a row, but must not trim its saved labels.
+      const permissions: Array<Model> = await this.findAllBy({
+        query: { _id: QueryHelper.any(selectedIds) },
+        select: {
+          _id: true,
+          projectId: true,
+          permission: true,
+          labels: { _id: true },
+          isBlockPermission: true,
+        },
+        props: { isRoot: true },
+      });
+
+      for (const permission of permissions) {
+        /*
+         * Revoking an allow cannot expand access. Removing a deny can expose
+         * an existing allow, so it requires authority over the entire deny.
+         */
+        if (permission.isBlockPermission) {
+          if (!permission.projectId || !permission.permission) {
+            throw new BadDataException("Invalid API Key permission");
+          }
+          if (
+            !deleteBy.props.tenantId ||
+            deleteBy.props.tenantId.toString() !==
+              permission.projectId.toString()
+          ) {
+            throw new BadDataException("Invalid API Key ID for this project");
+          }
+          this.assertCallerCanGrantPermission({
+            permission: permission.permission,
+            labels: permission.labels,
+            projectId: permission.projectId,
+            props: deleteBy.props,
+          });
+        }
+      }
+
+      /*
+       * Delete exactly the checked page, even when the query matches more
+       * than one batch. The original offset has already been applied.
+       */
+      deleteBy.query = {
+        ...deleteBy.query,
+        _id: QueryHelper.any(selectedIds),
+      };
+      deleteBy.skip = 0;
+    }
     return { deleteBy, carryForward: null };
   }
 

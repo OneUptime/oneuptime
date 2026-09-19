@@ -21,7 +21,10 @@ import ObjectID from "../../../Types/ObjectID";
  * selected: a blank picker over a live selection is how that selection gets
  * silently dropped on the next edit. So the picker lists only live SLOs and,
  * separately, looks up any selected SLO that list is missing, showing it marked
- * "(archived)". Every other entity type is untouched.
+ * "(archived)" - but only when it really is archived: a live SLO can be missing
+ * from the list just by sitting past its 1000-row cap. Only SLOs narrow the
+ * list; the by-id lookup itself is shared with every entity type (see
+ * EntityFilterDropdownUnlistedSelection.test.tsx).
  */
 
 interface ListArgs {
@@ -36,6 +39,7 @@ interface ListArgs {
 interface Row {
   _id: string;
   name: string;
+  isArchived?: boolean | undefined;
 }
 
 interface ListResultShape {
@@ -106,11 +110,20 @@ import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelOb
 const LIVE_SLO: Row = {
   _id: "0193c0de-7777-4aaa-8bbb-000000000101",
   name: "Checkout availability",
+  isArchived: false,
 };
 
 const ARCHIVED_SLO: Row = {
   _id: "0193c0de-7777-4aaa-8bbb-000000000102",
   name: "Legacy search latency",
+  isArchived: true,
+};
+
+// Live, but past the list's 1000-row cap in a project with many SLOs.
+const LIVE_SLO_PAST_CAP: Row = {
+  _id: "0193c0de-7777-4aaa-8bbb-000000000103",
+  name: "Zeta payments latency",
+  isArchived: false,
 };
 
 function listOf(rows: Array<Row>): Promise<ListResultShape> {
@@ -124,8 +137,8 @@ function listOf(rows: Array<Row>): Promise<ListResultShape> {
 
 /*
  * The server as the picker sees it: the pickable list returns only the live
- * SLO, and a lookup by id returns whichever SLOs were asked for, archived or
- * not.
+ * SLO within its cap, and a lookup by id returns whichever SLOs were asked
+ * for, archived or not - carrying isArchived only if the lookup selected it.
  */
 function serveSlos(args: ListArgs): Promise<ListResultShape> {
   const idFilter: unknown = args.query["_id"];
@@ -138,9 +151,15 @@ function serveSlos(args: ListArgs): Promise<ListResultShape> {
     );
 
     return listOf(
-      [LIVE_SLO, ARCHIVED_SLO].filter((row: Row): boolean => {
-        return ids.includes(row._id);
-      }),
+      [LIVE_SLO, ARCHIVED_SLO, LIVE_SLO_PAST_CAP]
+        .filter((row: Row): boolean => {
+          return ids.includes(row._id);
+        })
+        .map((row: Row): Row => {
+          return args.select["isArchived"]
+            ? row
+            : { _id: row._id, name: row.name };
+        }),
     );
   }
 
@@ -151,12 +170,14 @@ function renderPicker(options: {
   type: EntityFilterModelType;
   isMultiSelect?: boolean | undefined;
   value?: string | Array<string> | undefined;
+  placeholder?: string | undefined;
 }): void {
   render(
     <EntityFilterDropdown
       entityFilterModelType={options.type}
       isMultiSelect={Boolean(options.isMultiSelect)}
       value={options.value}
+      placeholder={options.placeholder}
       onChange={() => {
         return undefined;
       }}
@@ -228,6 +249,8 @@ describe("EntityFilterDropdown and archived SLOs", () => {
       ),
     ).toEqual([ARCHIVED_SLO._id]);
     expect(lookup.limit).toBe(1);
+    // Fetches isArchived, so the marker is earned rather than assumed.
+    expect(lookup.select).toEqual({ isArchived: true, _id: true, name: true });
   });
 
   test("in a multi-select, looks up only the selected SLOs the live list is missing", async () => {
@@ -304,6 +327,82 @@ describe("EntityFilterDropdown and archived SLOs", () => {
     await waitForOptions();
 
     expect(getListMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a live SLO past the list's row cap is shown by name, not marked archived", async () => {
+    renderPicker({
+      type: EntityFilterModelType.ServiceLevelObjective,
+      value: LIVE_SLO_PAST_CAP._id,
+      placeholder: "All SLOs",
+    });
+
+    expect(
+      await screen.findByText("Zeta payments latency"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/\(archived\)/)).not.toBeInTheDocument();
+    expect(screen.queryByText("All SLOs")).not.toBeInTheDocument();
+
+    expect(getListMock).toHaveBeenCalledTimes(2);
+    expect(
+      ((listCall(1).query["_id"] as Includes).values as Array<ObjectID>).map(
+        (id: ObjectID): string => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([LIVE_SLO_PAST_CAP._id]);
+  });
+
+  test("in a multi-select, marks only the archived one of two unlisted SLOs", async () => {
+    renderPicker({
+      type: EntityFilterModelType.ServiceLevelObjective,
+      isMultiSelect: true,
+      value: [LIVE_SLO._id, LIVE_SLO_PAST_CAP._id, ARCHIVED_SLO._id],
+    });
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Remove Legacy search latency (archived)",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remove Zeta payments latency" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remove Checkout availability" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Zeta payments latency (archived)"),
+    ).not.toBeInTheDocument();
+
+    expect(getListMock).toHaveBeenCalledTimes(2);
+    expect(
+      ((listCall(1).query["_id"] as Includes).values as Array<ObjectID>)
+        .map((id: ObjectID): string => {
+          return id.toString();
+        })
+        .sort(),
+    ).toEqual([ARCHIVED_SLO._id, LIVE_SLO_PAST_CAP._id].sort());
+  });
+
+  test("does not mark an SLO archived when the lookup cannot tell", async () => {
+    getListMock.mockImplementation((args: ListArgs) => {
+      if (args.query["_id"]) {
+        // e.g. the field came back unreadable: no isArchived on the row.
+        return listOf([{ _id: ARCHIVED_SLO._id, name: ARCHIVED_SLO.name }]);
+      }
+
+      return listOf([LIVE_SLO]);
+    });
+
+    renderPicker({
+      type: EntityFilterModelType.ServiceLevelObjective,
+      value: ARCHIVED_SLO._id,
+    });
+
+    expect(
+      await screen.findByText("Legacy search latency"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/\(archived\)/)).not.toBeInTheDocument();
   });
 
   test("a failed lookup of the stale selection leaves the picker working", async () => {

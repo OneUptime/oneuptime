@@ -10,6 +10,7 @@ import {
   PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES,
   PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS,
   PROBE_MONITOR_RETRY_LIMIT,
+  PROBE_PRIVATE_NETWORK_MONITOR_POLICY,
 } from "./Config";
 import AliveJob from "./Jobs/Alive";
 import FetchMonitorList from "./Jobs/Monitor/FetchList";
@@ -25,6 +26,7 @@ import MetricsAPI from "./API/Metrics";
 import IncomingRequestIngressAPI from "./API/IncomingRequestIngress";
 import ProbeApiDiagnostics from "./Utils/ProbeApiDiagnostics";
 import ProxyConfig from "./Utils/ProxyConfig";
+import PrivateNetworkMonitorPolicy from "./Utils/PrivateNetworkMonitorPolicy";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
@@ -80,6 +82,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         "Synthetic Chromium OS sandbox is disabled. Install a Playwright-compatible seccomp profile and set PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED=true for defense in depth.",
       );
     }
+
+    /*
+     * Say which private-network policy this probe is running under, every
+     * time. A monitor refusing an internal target is otherwise the first sign
+     * of it, and for a hostname target that refusal deliberately does not say
+     * why (OneUptime issue #3879).
+     */
+    PrivateNetworkMonitorPolicy.logStartupMessage(
+      PROBE_PRIVATE_NETWORK_MONITOR_POLICY,
+    );
 
     /*
      * Print the whole connectivity-relevant environment once, and start

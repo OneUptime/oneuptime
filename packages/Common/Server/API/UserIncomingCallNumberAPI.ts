@@ -47,6 +47,7 @@ export default class UserIncomingCallNumberAPI extends BaseAPI<
     this.router.post(
       `/user-incoming-call-number/verify`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       VerificationCodeRateLimit.getMiddleware(
         VerificationCodeRateLimitBucket.Verify,
       ),
@@ -107,6 +108,7 @@ export default class UserIncomingCallNumberAPI extends BaseAPI<
     this.router.post(
       `/user-incoming-call-number/resend-verification-code`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       VerificationCodeRateLimit.getMiddleware(
         VerificationCodeRateLimitBucket.Resend,
       ),

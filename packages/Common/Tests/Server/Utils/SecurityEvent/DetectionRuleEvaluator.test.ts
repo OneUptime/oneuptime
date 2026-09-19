@@ -45,6 +45,15 @@ import logger from "../../../../Server/Utils/Logger";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../Server/Utils/SecurityEvent/ConnectorErrorMessage";
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
+import {
+  DETECTION_MAX_GROUPS_PER_EVALUATION,
+  DETECTION_MAX_LOOKBACK_IN_MINUTES,
+} from "../../../../Types/SecurityEvent/DetectionFindingConstants";
+import {
+  SIGMA_DEFAULT_LEVEL,
+  SIGMA_LEVEL_TO_OCSF_SEVERITY,
+  SigmaLevel,
+} from "../../../../Types/SecurityEvent/SigmaRule";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
@@ -1141,6 +1150,139 @@ describe("DetectionRuleEvaluator", () => {
       expect(
         Object.prototype.hasOwnProperty.call(updateArg.data, "lastMatchAt"),
       ).toBe(false);
+    });
+  });
+
+  describe("evaluation window", () => {
+    /*
+     * The Detection Rules guide tells customers exactly which events a
+     * run sees: the first run looks back one interval, later runs resume
+     * where the previous one stopped, and a gap is caught up at most
+     * DETECTION_MAX_LOOKBACK_IN_MINUTES back. Pinned here so the guide
+     * and the engine cannot drift apart.
+     */
+    const NOW: Date = new Date("2026-09-18T12:00:00.000Z");
+
+    function freezeNow(): void {
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        NOW as never,
+      );
+    }
+
+    test("the first run looks back one evaluation interval", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ evaluationIntervalInMinutes: 10 }),
+      );
+
+      const args: FindDetectionMatchesData = findMatchesArg(spies);
+
+      expect(args.endTime.getTime()).toBe(NOW.getTime());
+      expect(args.startTime.getTime()).toBe(
+        OneUptimeDate.addRemoveMinutes(NOW, -10).getTime(),
+      );
+    });
+
+    test("a later run resumes exactly where the previous one stopped", async () => {
+      freezeNow();
+
+      const lastEvaluatedAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -37);
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ evaluationIntervalInMinutes: 10, lastEvaluatedAt }),
+      );
+
+      expect(findMatchesArg(spies).startTime.getTime()).toBe(
+        lastEvaluatedAt.getTime(),
+      );
+    });
+
+    test("a gap longer than the lookback cap is caught up only that far", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({
+          lastEvaluatedAt: OneUptimeDate.addRemoveMinutes(NOW, -3 * 24 * 60),
+        }),
+      );
+
+      expect(findMatchesArg(spies).startTime.getTime()).toBe(
+        OneUptimeDate.addRemoveMinutes(
+          NOW,
+          -DETECTION_MAX_LOOKBACK_IN_MINUTES,
+        ).getTime(),
+      );
+      expect(DETECTION_MAX_LOOKBACK_IN_MINUTES).toBe(24 * 60);
+    });
+
+    test("the next run starts where this one ended", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule());
+
+      const updateArg: { data: JSONObject } = spies.updateOneById.mock
+        .calls[0]?.[0] as { data: JSONObject };
+
+      expect((updateArg.data["lastEvaluatedAt"] as Date).getTime()).toBe(
+        findMatchesArg(spies).endTime.getTime(),
+      );
+    });
+
+    test("at most DETECTION_MAX_GROUPS_PER_EVALUATION groups are asked for", async () => {
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule());
+
+      expect(findMatchesArg(spies).maxGroups).toBe(
+        DETECTION_MAX_GROUPS_PER_EVALUATION,
+      );
+    });
+  });
+
+  describe("finding severity follows the Sigma level", () => {
+    test.each(Object.values(SigmaLevel))(
+      "a %s rule writes findings at the mapped OCSF severity",
+      async (level: SigmaLevel) => {
+        const spies: EvaluationSpies = installSpies({
+          groups: [buildGroup("alice", 1)],
+        });
+
+        await DetectionRuleEvaluator.evaluateRule(
+          buildRule({ level, shouldCreateAlert: false }),
+        );
+
+        const rows: Array<JSONObject> = spies.insertJsonRows.mock
+          .calls[0]?.[0] as Array<JSONObject>;
+
+        expect(rows[0]?.["severityName"]).toBe(
+          SIGMA_LEVEL_TO_OCSF_SEVERITY[level],
+        );
+      },
+    );
+
+    test("an unrecognized level writes findings at the default level's severity", async () => {
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 1)],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ level: "apocalyptic", shouldCreateAlert: false }),
+      );
+
+      const rows: Array<JSONObject> = spies.insertJsonRows.mock
+        .calls[0]?.[0] as Array<JSONObject>;
+
+      expect(rows[0]?.["severityName"]).toBe(
+        SIGMA_LEVEL_TO_OCSF_SEVERITY[SIGMA_DEFAULT_LEVEL],
+      );
     });
   });
 

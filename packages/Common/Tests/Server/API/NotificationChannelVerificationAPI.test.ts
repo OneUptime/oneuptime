@@ -3,6 +3,11 @@ import UserEmailAPI from "../../../Server/API/UserEmailAPI";
 import UserIncomingCallNumberAPI from "../../../Server/API/UserIncomingCallNumberAPI";
 import UserSmsAPI from "../../../Server/API/UserSmsAPI";
 import UserWhatsAppAPI from "../../../Server/API/UserWhatsAppAPI";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import VerificationCodeRateLimit, {
+  VerificationCodeRateLimitBucket,
+  VerificationCodeRateLimitOutcome,
+} from "../../../Server/Middleware/VerificationCodeRateLimit";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserIncomingCallNumberService from "../../../Server/Services/UserIncomingCallNumberService";
@@ -22,6 +27,9 @@ import {
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -517,27 +525,122 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
    * is asserted directly.
    */
   describe("rate limiting", () => {
+    /*
+     * The limiter each route was built with, by bucket, captured while the API
+     * class registers its routes. getMiddleware returns a fresh closure per
+     * call, so this is the only way to name "the limiter" by identity rather
+     * than by position.
+     */
+    let limiters: Map<VerificationCodeRateLimitBucket, unknown>;
+
+    beforeEach(() => {
+      limiters = new Map<VerificationCodeRateLimitBucket, unknown>();
+
+      const realGetMiddleware: typeof VerificationCodeRateLimit.getMiddleware =
+        VerificationCodeRateLimit.getMiddleware.bind(VerificationCodeRateLimit);
+
+      const capture: jest.SpyInstance = jest
+        .spyOn(VerificationCodeRateLimit, "getMiddleware")
+        .mockImplementation(((bucket: VerificationCodeRateLimitBucket) => {
+          const limiter: ReturnType<
+            typeof VerificationCodeRateLimit.getMiddleware
+          > = realGetMiddleware(bucket);
+          limiters.set(bucket, limiter);
+          return limiter;
+        }) as never);
+
+      mockRouter.routes.length = 0;
+      channel.build();
+
+      capture.mockRestore();
+    });
+
     it("registers a limiter in front of the verify handler", () => {
       expect(
-        mockRouter.match("post", channel.verifyPath).middlewares.length,
-      ).toBeGreaterThanOrEqual(2);
+        mockRouter.match("post", channel.verifyPath).middlewares,
+      ).toContain(limiters.get(VerificationCodeRateLimitBucket.Verify));
     });
 
     it("registers a limiter in front of the resend handler", () => {
       expect(
-        mockRouter.match("post", channel.resendPath).middlewares.length,
-      ).toBeGreaterThanOrEqual(2);
+        mockRouter.match("post", channel.resendPath).middlewares,
+      ).toContain(limiters.get(VerificationCodeRateLimitBucket.Resend));
     });
 
-    it("runs the limiter after user authorization, so it can key on the user", () => {
-      const middlewares: Array<unknown> = mockRouter.match(
-        "post",
-        channel.verifyPath,
-      ).middlewares;
+    /*
+     * The limiter keys on the user, so it has to run after the session is
+     * resolved. It also has to run after the session is REQUIRED: an expired
+     * session arrives here as an anonymous request (the access-token cookie
+     * expires with the token), and if the limiter ran first that request
+     * would spend the item and IP budgets before being refused - and be
+     * refused with a 429 or a handler 400, neither of which makes the browser
+     * client refresh the session. requireUserAuthentication answers it with a
+     * 401 first, so the budget is only ever spent by a known caller.
+     */
+    it.each([
+      ["verify", VerificationCodeRateLimitBucket.Verify],
+      ["resend", VerificationCodeRateLimitBucket.Resend],
+    ])(
+      "runs the %s limiter after user authorization and the authentication guard",
+      (_label: string, bucket: VerificationCodeRateLimitBucket) => {
+        const path: string =
+          bucket === VerificationCodeRateLimitBucket.Verify
+            ? channel.verifyPath
+            : channel.resendPath;
 
-      /* UserMiddleware.getUserMiddleware is registered first. */
-      expect(middlewares[0]).not.toBe(middlewares[1]);
-      expect(typeof middlewares[1]).toBe("function");
+        const middlewares: Array<unknown> = mockRouter.match(
+          "post",
+          path,
+        ).middlewares;
+
+        expect(limiters.get(bucket)).toBeDefined();
+        expect(middlewares).toHaveLength(3);
+        expect(middlewares[0]).toBe(UserMiddleware.getUserMiddleware);
+        expect(middlewares[1]).toBe(UserMiddleware.requireUserAuthentication);
+        expect(middlewares[2]).toBe(limiters.get(bucket));
+      },
+    );
+
+    it("never spends verification budget on a request with no session", async () => {
+      const consume: jest.SpyInstance = jest
+        .spyOn(VerificationCodeRateLimit, "consume")
+        .mockResolvedValue({
+          outcome: VerificationCodeRateLimitOutcome.Allowed,
+        } as never);
+
+      const anonymous: OneUptimeRequest = {
+        body: { itemId: ITEM_ID, code: CORRECT_CODE },
+        headers: {},
+      } as unknown as OneUptimeRequest;
+
+      const middlewares: ReturnType<typeof mockRouter.match>["middlewares"] =
+        mockRouter.match("post", channel.verifyPath).middlewares;
+
+      // Everything after getUserMiddleware, in order, stopping at a refusal.
+      for (let index: number = 1; index < middlewares.length; index++) {
+        const next: jest.Mock = jest.fn();
+
+        await middlewares[index]!(
+          anonymous,
+          mockResponse,
+          next as unknown as NextFunction,
+        );
+
+        if (next.mock.calls.length === 0) {
+          break;
+        }
+      }
+
+      expect(consume).not.toHaveBeenCalled();
+      expect(Response.sendErrorResponse).toHaveBeenCalledTimes(1);
+
+      const error: Exception = (
+        Response.sendErrorResponse as unknown as jest.Mock
+      ).mock.calls[0]![2] as Exception;
+
+      expect(error).toBeInstanceOf(NotAuthenticatedException);
+      expect(error.code).toBe(ExceptionCode.NotAuthenticatedException);
+      expect(store.current?.verificationFailedAttempts).toBe(0);
     });
   });
 });

@@ -91,8 +91,9 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
   private static readonly MAX_CONCURRENT_PER_MAILBOX: number = 3;
 
   /*
-   * Live count of in-flight sendMail requests, keyed by lowercased sender
-   * mailbox. Shared across all instances (the class is instantiated per send).
+   * Live count of in-flight sendMail requests, keyed by config and lowercased
+   * sender mailbox (see getMailboxGateKey). Shared across all instances (the
+   * class is instantiated per send).
    */
   private static readonly mailboxConcurrency: Map<string, number> = new Map();
 
@@ -145,13 +146,38 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
         : undefined;
 
     // Gate on the sender mailbox to stay under Graph's MailboxConcurrency limit.
-    await MicrosoftGraphMailProvider.acquireMailboxSlot(senderAddress);
+    const gateKey: string = MicrosoftGraphMailProvider.getMailboxGateKey(
+      emailServer,
+      senderAddress,
+    );
+
+    await MicrosoftGraphMailProvider.acquireMailboxSlot(gateKey);
 
     try {
       await this.sendWithRetry(mail, emailServer, senderAddress, deadlineAt);
     } finally {
-      MicrosoftGraphMailProvider.releaseMailboxSlot(senderAddress);
+      MicrosoftGraphMailProvider.releaseMailboxSlot(gateKey);
     }
+  }
+
+  /*
+   * The gate is keyed per config as well as per mailbox. The sender address
+   * is printed on every email, so with a gate keyed on the address alone,
+   * another project could configure the same From Email and fill this
+   * config's slots. For example, it could point its token URL at a server
+   * that never answers, so its sends hold their slots for the full timeout
+   * and this config's notifications stall. If two configs really do share a
+   * mailbox, Graph throttles them, and the Retry-After loop absorbs that.
+   * The ProjectSmtpConfig id is null for the operator's global settings.
+   */
+  private static getMailboxGateKey(
+    emailServer: EmailServer,
+    senderAddress: string,
+  ): string {
+    return JSON.stringify([
+      emailServer.id ? emailServer.id.toString() : null,
+      senderAddress.toLowerCase(),
+    ]);
   }
 
   /**
@@ -254,6 +280,7 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
     fetchTimeoutMs: number,
   ): Promise<void> {
     const accessToken: string = await SMTPOAuthService.getAccessToken({
+      configId: emailServer.id ? emailServer.id.toString() : undefined,
       clientId: emailServer.clientId!,
       clientSecret: emailServer.clientSecret!,
       tokenUrl: emailServer.tokenUrl!,
@@ -377,15 +404,14 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
   }
 
   /**
-   * Wait for a free concurrency slot for this mailbox, then reserve it.
+   * Wait for a free concurrency slot for this config's mailbox, then reserve
+   * it.
    *
    * The check-then-increment is atomic under Node's single-threaded model (no
    * await between the passing check and the increment), so concurrent callers
    * cannot both slip past the cap. Mirrors the SMTP TransporterPool semaphore.
    */
-  private static async acquireMailboxSlot(mailbox: string): Promise<void> {
-    const key: string = mailbox.toLowerCase();
-
+  private static async acquireMailboxSlot(key: string): Promise<void> {
     while (
       (this.mailboxConcurrency.get(key) || 0) >= this.MAX_CONCURRENT_PER_MAILBOX
     ) {
@@ -400,8 +426,7 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
     );
   }
 
-  private static releaseMailboxSlot(mailbox: string): void {
-    const key: string = mailbox.toLowerCase();
+  private static releaseMailboxSlot(key: string): void {
     const current: number = this.mailboxConcurrency.get(key) || 0;
     const next: number = Math.max(0, current - 1);
 

@@ -434,6 +434,34 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
     const actionButton: ReactElement | null = renderEventAction();
 
+    const isExistingAlert: boolean =
+      event.type === "alert-skipped" && Boolean(event.relatedAlertId);
+    const isExistingIncident: boolean =
+      event.type === "incident-skipped" && Boolean(event.relatedIncidentId);
+    const relatedCreatedAt: Date | undefined = isExistingAlert
+      ? event.relatedAlertCreatedAt
+      : isExistingIncident
+        ? event.relatedIncidentCreatedAt
+        : undefined;
+
+    let eventTimeLabel: string = "Action at";
+
+    switch (event.type) {
+      case "alert-created":
+      case "incident-created":
+        eventTimeLabel = "Created at";
+        break;
+      case "alert-resolved":
+      case "incident-resolved":
+        eventTimeLabel = "Resolved at";
+        break;
+      case "alert-skipped":
+      case "incident-skipped":
+        eventTimeLabel =
+          isExistingAlert || isExistingIncident ? "Checked at" : "Skipped at";
+        break;
+    }
+
     const eventNumberLabel: string | null = (() => {
       if (
         event.relatedIncidentNumber !== undefined &&
@@ -486,8 +514,17 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
           {decoratedMessage && (
             <div className="text-sm text-gray-600">{decoratedMessage}</div>
           )}
+          {relatedCreatedAt && (
+            <div className="text-xs text-gray-400">
+              {isExistingAlert ? "Alert" : "Incident"} created at{" "}
+              {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                relatedCreatedAt,
+              )}
+            </div>
+          )}
           {event.at && (
             <div className="text-xs text-gray-400">
+              {eventTimeLabel}{" "}
               {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                 event.at,
               )}

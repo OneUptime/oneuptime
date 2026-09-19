@@ -2,10 +2,13 @@ import TelemetryIngestionKeyService, {
   Service,
 } from "../../../Server/Services/TelemetryIngestionKeyService";
 import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
+import BillingService from "../../../Server/Services/BillingService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import TelemetryIngest, {
   TelemetryRequest,
 } from "../../../Server/Middleware/TelemetryIngest";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
+import Project from "../../../Models/DatabaseModels/Project";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import {
@@ -16,6 +19,9 @@ import {
 import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
 import * as EnvironmentConfig from "../../../Server/EnvironmentConfig";
 import {
@@ -99,6 +105,25 @@ function expectPaymentCheckedFor(project: ObjectID): void {
   for (const check of checks) {
     expect(check[1]?.allowStaleDenial).toBeFalsy();
   }
+}
+
+function useRealPaymentEligibility(plan: PlanType): void {
+  jest.mocked(PayAsYouGoBillingService.canUsePayAsYouGo).mockRestore();
+  PayAsYouGoBillingService.invalidate(projectId);
+  PayAsYouGoBillingService.invalidate(otherProjectId);
+  jest.spyOn(BillingService, "isBillingEnabled").mockReturnValue(true);
+  jest.spyOn(BillingService, "hasPaymentMethods").mockResolvedValue(false);
+  jest.spyOn(ProjectService, "findOneById").mockResolvedValue(
+    Object.assign(new Project(), {
+      paymentProviderPlanId: plan,
+      paymentProviderCustomerId: "cus_telemetry_project",
+    }),
+  );
+  jest
+    .spyOn(SubscriptionPlan, "getSubscriptionPlanById")
+    .mockReturnValue(
+      new SubscriptionPlan(plan, `${plan}_yearly`, plan, 0, 0, 0, 0),
+    );
 }
 
 beforeEach(() => {
@@ -351,5 +376,111 @@ describe("HTTP telemetry admission integrates key resolution and billing", () =>
       otherProjectId.toString(),
     );
     expect(TelemetryIngestionKeyService.markUsed).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("telemetry operations use the stored subscription plan for payment eligibility", () => {
+  describe.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+    "%s telemetry keys without a payment method",
+    (plan: PlanType) => {
+      test.each(Object.values(TelemetryIngestionKeyType))(
+        "allows creating a %s key",
+        async (keyType: TelemetryIngestionKeyType) => {
+          useRealPaymentEligibility(plan);
+          const input: CreateBy<TelemetryIngestionKey> = createInput();
+          input.data.keyType = keyType;
+          input.data.allowedOrigins = ["https://example.com"];
+
+          await expect(hooks.onBeforeCreate(input)).resolves.toBeDefined();
+
+          expect(ProjectService.findOneById).toHaveBeenCalledWith(
+            expect.objectContaining({ id: projectId }),
+          );
+          expect(BillingService.hasPaymentMethods).not.toHaveBeenCalled();
+        },
+      );
+
+      test("allows re-enabling a key using its stored project", async () => {
+        useRealPaymentEligibility(plan);
+        jest.spyOn(service, "findBy").mockResolvedValue([key(otherProjectId)]);
+
+        await expect(
+          hooks.onBeforeUpdate(updateInput({ isEnabled: true })),
+        ).resolves.toBeDefined();
+
+        expect(ProjectService.findOneById).toHaveBeenCalledWith(
+          expect.objectContaining({ id: otherProjectId }),
+        );
+        expect(BillingService.hasPaymentMethods).not.toHaveBeenCalled();
+      });
+    },
+  );
+
+  test("still requires a payment method to create or re-enable Free telemetry keys", async () => {
+    useRealPaymentEligibility(PlanType.Free);
+    jest.spyOn(service, "findBy").mockResolvedValue([key()]);
+
+    await expect(hooks.onBeforeCreate(createInput())).rejects.toBeInstanceOf(
+      PaymentRequiredException,
+    );
+    await expect(
+      hooks.onBeforeUpdate(updateInput({ isEnabled: true })),
+    ).rejects.toBeInstanceOf(PaymentRequiredException);
+
+    expect(BillingService.hasPaymentMethods).toHaveBeenCalledWith(
+      "cus_telemetry_project",
+    );
+  });
+
+  describe.each([
+    PlanType.Free,
+    PlanType.Growth,
+    PlanType.Scale,
+    PlanType.Enterprise,
+  ])("%s HTTP telemetry without a payment method", (plan: PlanType) => {
+    test.each(Object.values(TelemetryIngestSurface))(
+      "applies plan eligibility before the %s handler",
+      async (surface: TelemetryIngestSurface) => {
+        useRealPaymentEligibility(plan);
+        const existingKey: TelemetryIngestionKey = key();
+        jest
+          .spyOn(TelemetryIngestionKeyService, "findOneBy")
+          .mockResolvedValue(existingKey);
+        jest
+          .spyOn(TelemetryIngestionKeyService, "markUsed")
+          .mockResolvedValue(undefined);
+        const request: ExpressRequest = {
+          headers: { "x-oneuptime-token": existingKey.secretKey!.toString() },
+        } as unknown as ExpressRequest;
+        const next: NextFunction = jest.fn() as unknown as NextFunction;
+
+        await TelemetryIngest.forSurface(surface)(
+          request,
+          {} as ExpressResponse,
+          next,
+        );
+
+        expect(next).toHaveBeenCalledTimes(1);
+        if (plan === PlanType.Free) {
+          expect(next).toHaveBeenCalledWith(
+            expect.any(PaymentRequiredException),
+          );
+          expect((request as TelemetryRequest).projectId).toBeUndefined();
+          expect(TelemetryIngestionKeyService.markUsed).not.toHaveBeenCalled();
+          expect(BillingService.hasPaymentMethods).toHaveBeenCalledWith(
+            "cus_telemetry_project",
+          );
+        } else {
+          expect(next).toHaveBeenCalledWith();
+          expect((request as TelemetryRequest).projectId.toString()).toBe(
+            projectId.toString(),
+          );
+          expect(TelemetryIngestionKeyService.markUsed).toHaveBeenCalledTimes(
+            1,
+          );
+          expect(BillingService.hasPaymentMethods).not.toHaveBeenCalled();
+        }
+      },
+    );
   });
 });

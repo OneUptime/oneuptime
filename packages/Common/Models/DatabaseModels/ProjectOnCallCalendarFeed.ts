@@ -230,7 +230,7 @@ export default class ProjectOnCallCalendarFeed extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [],
+    read: readPermissions,
     update: [],
   })
   @TableColumn({

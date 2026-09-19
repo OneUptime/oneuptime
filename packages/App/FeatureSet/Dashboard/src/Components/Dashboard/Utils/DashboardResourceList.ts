@@ -7,6 +7,7 @@ import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import type BaseAPI from "Common/UI/Utils/API/API";
 
 /*
  * Resource-type identifiers understood by the public
@@ -41,6 +42,12 @@ export type DashboardResourceType =
 
 export interface DashboardResourceRequestOptions {
   overrideRequestUrl: URL;
+  /*
+   * Travels with the public URL: the public dashboard's client, so the
+   * endpoint's 401/403 go to its master-password/forbidden pages instead of
+   * the dashboard's refresh + logout + /accounts/login.
+   */
+  apiClient: typeof BaseAPI;
   additionalRequestBody?: JSONObject | undefined;
 }
 
@@ -66,6 +73,11 @@ export default class DashboardResourceList {
    * authenticated app, in which case the call proceeds normally. The server
    * ignores the client-sent select and enforces a fixed, safe one, and pins
    * the query to the dashboard's project.
+   *
+   * The options also carry the public dashboard's API client, which sends
+   * the request, so pass them through whole: a partial copy that keeps the
+   * URL but drops `apiClient` would send a public read through the
+   * dashboard client again.
    */
   public static getRequestOptions(
     resourceType: DashboardResourceType,
@@ -85,11 +97,12 @@ export default class DashboardResourceList {
     }
 
     if (!widgetContext) {
-      return { overrideRequestUrl: url };
+      return { overrideRequestUrl: url, apiClient: context.apiClient };
     }
 
     return {
       overrideRequestUrl: url,
+      apiClient: context.apiClient,
       additionalRequestBody: {
         componentId: widgetContext.componentId.toString(),
         variables: DashboardResourceList.getVariableSelections(

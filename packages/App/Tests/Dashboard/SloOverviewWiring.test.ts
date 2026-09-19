@@ -127,11 +127,9 @@ describe("SLO overview page composition", () => {
       "SloOverviewHero",
       "SloKpiStrip",
       "SloBudgetBurnDownCard",
-      "SloMonitorsSummaryCard",
       "SloFeed",
       "SloActiveBurnEventsCard",
       "SloBurnRateRulesSummaryCard",
-      "SloConfigurationSummaryCard",
       "SloOverviewGettingStartedCard",
       "CardModelDetail",
     ]) {
@@ -140,6 +138,22 @@ describe("SLO overview page composition", () => {
         mounted: INDEX_CODE.includes(`<${component}`),
       }).toEqual({ component, mounted: true });
     }
+  });
+
+  test("omits configuration and monitors cards while retaining the monitor count and setup flow", () => {
+    for (const component of [
+      "SloConfigurationSummaryCard",
+      "SloMonitorsSummaryCard",
+    ]) {
+      expect(INDEX_CODE).not.toContain(component);
+      expect(OVERVIEW_MODULES.has(component)).toBe(false);
+    }
+
+    // The concise monitor count and the new-SLO setup flow still belong here.
+    expect(INDEX_CODE).toMatch(
+      /<SloOverviewHero[^>]*monitorCount=\{monitorIds\.length\}/,
+    );
+    expect(INDEX_CODE).toContain("<SloOverviewGettingStartedCard");
   });
 
   test("keeps the notice banner's pinned props", () => {
@@ -161,11 +175,9 @@ describe("SLO overview page composition", () => {
       "xl:grid-cols-3",
       "xl:col-span-2",
       "<SloBudgetBurnDownCard",
-      "<SloMonitorsSummaryCard",
       "<SloFeed",
       "<SloActiveBurnEventsCard",
       "<SloBurnRateRulesSummaryCard",
-      "<SloConfigurationSummaryCard",
       "<CardModelDetail",
     ];
 
@@ -195,7 +207,7 @@ describe("SLO overview page composition", () => {
       /\{isGettingStarted \? \( <><\/> \) : \( <SloKpiStrip/,
     );
     expect(INDEX_CODE).toMatch(
-      /\{isGettingStarted \? \( <SloOverviewGettingStartedCard[^]*?\) : \( <Fragment> <SloBudgetBurnDownCard/,
+      /\{isGettingStarted \? \( <SloOverviewGettingStartedCard[^]*?\) : \( <SloBudgetBurnDownCard/,
     );
   });
 
@@ -236,9 +248,7 @@ describe("SLO overview data flow", () => {
         "SloBudgetBar",
         "SloBudgetBurnDownCard",
         "SloBurnRateRulesSummaryCard",
-        "SloConfigurationSummaryCard",
         "SloKpiStrip",
-        "SloMonitorsSummaryCard",
         "SloOverviewGettingStartedCard",
         "SloOverviewHero",
         "useSloHistorySeries",
@@ -288,12 +298,9 @@ describe("SLO overview data flow", () => {
     expect(INDEX_CODE).not.toContain("ModelAPI.");
   });
 
-  test("the burn-down refreshes on evaluation; monitors and open events on the poll", () => {
+  test("the burn-down refreshes on evaluation and open events on the poll", () => {
     expect(INDEX_CODE).toMatch(
       /<SloBudgetBurnDownCard sloId=\{modelId\} slo=\{slo\} refreshToken=\{ slo\.lastEvaluatedAt/,
-    );
-    expect(INDEX_CODE).toMatch(
-      /<SloMonitorsSummaryCard[^>]*refreshToken=\{data\.refreshCount\}/,
     );
     expect(INDEX_CODE).toMatch(
       /<SloActiveBurnEventsCard sloId=\{modelId\} refreshToken=\{data\.refreshCount\} \/>/,

@@ -2,7 +2,13 @@ import ModelPermission from "../../../../../Server/Types/Database/Permissions/In
 import CalendarFeedToken from "../../../../../Server/Utils/OnCall/CalendarFeedToken";
 import OnCallDutyPolicyScheduleCalendarFeed from "../../../../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "../../../../../Models/DatabaseModels/ProjectOnCallCalendarFeed";
+import UserOnCallCalendarFeed from "../../../../../Models/DatabaseModels/UserOnCallCalendarFeed";
+import Select from "../../../../../Server/Types/Database/Select";
+import { CheckReadPermissionType } from "../../../../../Server/Types/Database/Permissions/ReadPermission";
+import { FindOperator } from "typeorm";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, {
@@ -35,6 +41,7 @@ const userId: ObjectID = ObjectID.generate();
 
 function propsFor(
   permissions: Array<Permission>,
+  labelIds: Array<ObjectID> = [],
 ): DatabaseCommonInteractionProps {
   const tenantPermission: UserTenantAccessPermission = {
     projectId,
@@ -43,7 +50,7 @@ function propsFor(
       return {
         _type: "UserPermission",
         permission: permission,
-        labelIds: [],
+        labelIds,
         isBlockPermission: false,
       };
     }),
@@ -214,41 +221,291 @@ describe("shared calendar feeds: the real permission gate", () => {
   });
 
   /*
-   * "Any schedule reader may copy the link" is half the design, so it is
-   * pinned too: a reader must still be able to READ the row.
+   * Match the complete status projections in OnCallCalendarAPI. Selecting only
+   * a few settings missed the empty read ACL on previousTokenExpiresAt and
+   * allowed the shared-feed status endpoint to fail for every reader.
    */
-  describe("any reader may copy the link", () => {
-    for (const permission of [Permission.Viewer, Permission.OnCallViewer]) {
-      it(`a ${permission} may read the schedule feed's non-secret columns`, async () => {
-        await expect(
-          ModelPermission.checkReadQueryPermission(
-            OnCallDutyPolicyScheduleCalendarFeed,
-            { projectId: projectId },
-            { _id: true, isEnabled: true, tokenHint: true },
-            propsFor([permission]),
-          ),
-        ).resolves.toBeDefined();
+  const statusSelect: Select<ProjectOnCallCalendarFeed> = {
+    _id: true,
+    projectId: true,
+    isEnabled: true,
+    tokenHint: true,
+    rotatedAt: true,
+    previousTokenExpiresAt: true,
+    lastFetchedAt: true,
+    lastFetchedClient: true,
+    fetchCount: true,
+    lastRenderTruncated: true,
+    pastDays: true,
+    futureDays: true,
+  } as const;
+
+  const sharedStatusSelect: Select<ProjectOnCallCalendarFeed> = {
+    ...statusSelect,
+    includeCoverageGaps: true,
+    minimumGapMinutes: true,
+    rotateWhenMemberLeaves: true,
+  } as const;
+
+  const scheduleStatusSelect: Select<OnCallDutyPolicyScheduleCalendarFeed> = {
+    ...sharedStatusSelect,
+    onCallDutyPolicyScheduleId: true,
+  };
+
+  const personalStatusSelect: Select<UserOnCallCalendarFeed> = {
+    ...statusSelect,
+    userId: true,
+    includeCoveringShifts: true,
+  };
+
+  describe("any schedule reader may read the complete shared-feed status", () => {
+    for (const modelType of [
+      OnCallDutyPolicyScheduleCalendarFeed,
+      ProjectOnCallCalendarFeed,
+    ]) {
+      const select: Select<OnCallDutyPolicyScheduleCalendarFeed> =
+        modelType === OnCallDutyPolicyScheduleCalendarFeed
+          ? scheduleStatusSelect
+          : sharedStatusSelect;
+
+      describe(modelType.name, () => {
+        for (const permission of [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.OnCallAdmin,
+          Permission.OnCallMember,
+          Permission.OnCallViewer,
+          Permission.ReadProjectOnCallDutyPolicySchedule,
+        ]) {
+          it(`a ${permission} may read status including the previous token expiry`, async () => {
+            const result: CheckReadPermissionType<OnCallDutyPolicyScheduleCalendarFeed> =
+              await ModelPermission.checkReadQueryPermission(
+                modelType,
+                { projectId },
+                select,
+                propsFor([permission]),
+              );
+
+            expect(result.select).toEqual(select);
+          });
+        }
+
+        it("refuses status to a caller without schedule read permissions", async () => {
+          await expect(
+            ModelPermission.checkReadQueryPermission(
+              modelType,
+              { projectId },
+              select,
+              propsFor([]),
+            ),
+          ).rejects.toThrow(NotAuthorizedException);
+        });
+
+        it("does not use a role granted for a different project", async () => {
+          const otherProjectId: ObjectID = ObjectID.generate();
+          const props: DatabaseCommonInteractionProps = {
+            ...propsFor([Permission.ProjectOwner]),
+            tenantId: otherProjectId,
+          };
+
+          await expect(
+            ModelPermission.checkReadQueryPermission(
+              modelType,
+              { projectId: otherProjectId },
+              select,
+              props,
+            ),
+          ).rejects.toThrow(NotAuthorizedException);
+        });
+
+        it("keeps a status read scoped to the caller's project", async () => {
+          const result: CheckReadPermissionType<OnCallDutyPolicyScheduleCalendarFeed> =
+            await ModelPermission.checkReadQueryPermission(
+              modelType,
+              { projectId: ObjectID.generate() },
+              select,
+              propsFor([Permission.Viewer]),
+            );
+
+          expect(result.query.projectId).toBeInstanceOf(FindOperator);
+          expect(
+            Object.values(
+              (result.query.projectId as unknown as FindOperator<string>)
+                .objectLiteralParameters || {},
+            ),
+          ).toEqual([projectId.toString()]);
+        });
+
+        for (const permission of [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.OnCallMember,
+          Permission.EditProjectOnCallDutyPolicySchedule,
+        ]) {
+          it(`a ${permission} cannot change the server-managed expiry`, async () => {
+            const props: DatabaseCommonInteractionProps = propsFor([
+              permission,
+              Permission.ReadProjectOnCallDutyPolicySchedule,
+            ]);
+            await expect(
+              ModelPermission.checkUpdateQueryPermissions(
+                modelType,
+                { _id: feedId.toString(), projectId },
+                { isEnabled: true },
+                props,
+              ),
+            ).resolves.toBeDefined();
+            await expect(
+              ModelPermission.checkUpdateQueryPermissions(
+                modelType,
+                { _id: feedId.toString(), projectId },
+                { previousTokenExpiresAt: new Date("2026-10-01T00:00:00Z") },
+                props,
+              ),
+            ).rejects.toThrow(BadDataException);
+          });
+        }
       });
     }
 
-    it("nobody, however privileged, may select the token columns", async () => {
-      await expect(
-        ModelPermission.checkReadQueryPermission(
+    it("preserves schedule and label scope when reading the complete status", async () => {
+      const permittedLabelId: ObjectID = ObjectID.generate();
+      const result: CheckReadPermissionType<OnCallDutyPolicyScheduleCalendarFeed> =
+        await ModelPermission.checkReadQueryPermission(
           OnCallDutyPolicyScheduleCalendarFeed,
-          { projectId: projectId },
-          { _id: true, token: true },
-          propsFor([Permission.ProjectOwner, Permission.ProjectAdmin]),
-        ),
-      ).rejects.toThrow();
+          {
+            projectId,
+            onCallDutyPolicyScheduleId: scheduleId,
+            onCallDutyPolicySchedule: { _id: scheduleId.toString() },
+          },
+          scheduleStatusSelect,
+          propsFor(
+            [Permission.ReadProjectOnCallDutyPolicySchedule],
+            [permittedLabelId],
+          ),
+        );
 
+      expect(result.query.onCallDutyPolicySchedule).toEqual({
+        _id: scheduleId.toString(),
+        labels: [permittedLabelId],
+      });
+      expect(
+        Object.values(
+          (
+            result.query
+              .onCallDutyPolicyScheduleId as unknown as FindOperator<string>
+          ).objectLiteralParameters || {},
+        ),
+      ).toEqual([scheduleId.toString()]);
+      expect(result.select).toEqual(scheduleStatusSelect);
+    });
+  });
+
+  describe("personal feed status remains restricted to its owner", () => {
+    it("allows the current user's complete status and applies both user and project scope", async () => {
+      const result: CheckReadPermissionType<UserOnCallCalendarFeed> =
+        await ModelPermission.checkReadQueryPermission(
+          UserOnCallCalendarFeed,
+          {},
+          personalStatusSelect,
+          propsFor([Permission.CurrentUser]),
+        );
+
+      expect(result.select).toEqual(personalStatusSelect);
+      for (const [column, expectedId] of [
+        ["projectId", projectId],
+        ["userId", userId],
+      ] as const) {
+        expect(result.query[column]).toBeInstanceOf(FindOperator);
+        expect(
+          Object.values(
+            (result.query[column] as unknown as FindOperator<string>)
+              .objectLiteralParameters || {},
+          ),
+        ).toEqual([expectedId.toString()]);
+      }
+    });
+
+    it("refuses another user's status even when the caller is a project owner", async () => {
       await expect(
         ModelPermission.checkReadQueryPermission(
-          ProjectOnCallCalendarFeed,
-          { projectId: projectId },
-          { _id: true, tokenHash: true },
-          propsFor([Permission.ProjectOwner, Permission.ProjectAdmin]),
+          UserOnCallCalendarFeed,
+          { projectId, userId: ObjectID.generate() },
+          personalStatusSelect,
+          propsFor([Permission.CurrentUser, Permission.ProjectOwner]),
         ),
-      ).rejects.toThrow();
+      ).rejects.toThrow(NotAuthorizedException);
     });
+
+    it("refuses the current-user grant without a user session", async () => {
+      const props: DatabaseCommonInteractionProps = {
+        ...propsFor([Permission.CurrentUser]),
+        userId: undefined,
+      };
+      await expect(
+        ModelPermission.checkReadQueryPermission(
+          UserOnCallCalendarFeed,
+          { projectId },
+          personalStatusSelect,
+          props,
+        ),
+      ).rejects.toThrow(NotAuthenticatedException);
+    });
+
+    it("does not allow the owner to change the server-managed expiry", async () => {
+      const props: DatabaseCommonInteractionProps = propsFor([
+        Permission.CurrentUser,
+        Permission.ProjectOwner,
+      ]);
+      await expect(
+        ModelPermission.checkUpdateQueryPermissions(
+          UserOnCallCalendarFeed,
+          { _id: feedId.toString(), projectId, userId },
+          { isEnabled: true },
+          props,
+        ),
+      ).resolves.toBeDefined();
+      await expect(
+        ModelPermission.checkUpdateQueryPermissions(
+          UserOnCallCalendarFeed,
+          { _id: feedId.toString(), projectId, userId },
+          { previousTokenExpiresAt: new Date("2026-10-01T00:00:00Z") },
+          props,
+        ),
+      ).rejects.toThrow(BadDataException);
+    });
+  });
+
+  describe("making status readable never exposes token secrets", () => {
+    for (const modelType of [
+      OnCallDutyPolicyScheduleCalendarFeed,
+      ProjectOnCallCalendarFeed,
+      UserOnCallCalendarFeed,
+    ]) {
+      for (const secretColumn of [
+        "token",
+        "tokenHash",
+        "previousTokenHash",
+      ] as const) {
+        it(`${modelType.name}.${secretColumn} stays unreadable to owners and admins`, async () => {
+          await expect(
+            ModelPermission.checkReadQueryPermission(
+              modelType,
+              { projectId },
+              { _id: true, [secretColumn]: true },
+              propsFor([
+                Permission.CurrentUser,
+                Permission.ProjectOwner,
+                Permission.ProjectAdmin,
+              ]),
+            ),
+          ).rejects.toThrow(
+            `You do not have permissions to select on - ${secretColumn}.`,
+          );
+        });
+      }
+    }
   });
 });

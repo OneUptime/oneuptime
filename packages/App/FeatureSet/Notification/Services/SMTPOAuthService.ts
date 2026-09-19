@@ -6,6 +6,8 @@ import URL from "Common/Types/API/URL";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
+import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
+import { createHmac } from "crypto";
 
 interface OAuthTokenResponse {
   access_token: string;
@@ -19,6 +21,11 @@ interface CachedToken extends JSONObject {
 }
 
 export interface SMTPOAuthConfig {
+  /*
+   * The ProjectSmtpConfig the token is for, or undefined for the operator's
+   * global mail settings. Part of the token cache key.
+   */
+  configId?: string | undefined;
   clientId: string;
   clientSecret: string;
   tokenUrl: URL;
@@ -59,9 +66,68 @@ export default class SMTPOAuthService {
 
   /**
    * Generate a cache key for the given config.
+   *
+   * The token cache is one Redis namespace shared by every project, and
+   * getAccessToken returns a hit before any credential exchange. So the key
+   * has to cover everything that decides which token the provider would
+   * issue, including the secret. Token URL, client id and username are not
+   * secret: the tenant id is public, and the username is often the sender
+   * address printed on every email. With only those in the key, a project
+   * that copied them and gave any secret was handed another project's token.
+   * It could then send as any mailbox that token covers (Microsoft Graph), or
+   * point its SMTP host at a server it controls and read the token off the
+   * XOAUTH2 exchange.
+   *
+   * The ProjectSmtpConfig id keeps two configs apart even when their
+   * credentials match. The tuple is JSON-encoded, so a separator inside a
+   * tenant-supplied value cannot make two tuples encode the same. It is then
+   * HMAC'd with the instance secret, so Redis never holds the client secret
+   * or a plain hash of it that could be guessed against.
    */
   private static getCacheKey(config: SMTPOAuthConfig): string {
-    return `${config.tokenUrl.toString()}:${config.clientId}:${config.username || ""}`;
+    return createHmac("sha256", EncryptionSecret.toString())
+      .update(
+        JSON.stringify([
+          config.configId || null,
+          config.providerType,
+          config.tokenUrl.toString(),
+          config.clientId,
+          config.clientSecret,
+          config.scope,
+          config.username || null,
+        ]),
+      )
+      .digest("hex");
+  }
+
+  /**
+   * Reject a config that could never produce a token, before the cache is
+   * consulted, so a cache hit never skips these checks.
+   */
+  private static assertConfigIsUsable(config: SMTPOAuthConfig): void {
+    if (config.providerType !== OAuthProviderType.JWTBearer) {
+      return;
+    }
+
+    if (!config.username) {
+      // Missing field in the tenant's SMTP OAuth settings, not a defect.
+      throw new BadDataException(
+        "Username (subject) is required for JWT Bearer OAuth. " +
+          "This is typically the email address or user identifier to impersonate.",
+      ).asUserError();
+    }
+
+    // Validate that clientSecret looks like a private key
+    if (
+      !config.clientSecret.includes("-----BEGIN") ||
+      !config.clientSecret.includes("PRIVATE KEY")
+    ) {
+      // The tenant pasted something that is not a PEM private key.
+      throw new BadDataException(
+        "For JWT Bearer OAuth, the Client Secret must be a private key in PEM format. " +
+          "It should contain '-----BEGIN PRIVATE KEY-----' or '-----BEGIN RSA PRIVATE KEY-----'.",
+      ).asUserError();
+    }
   }
 
   /**
@@ -77,6 +143,8 @@ export default class SMTPOAuthService {
    * @returns The access token
    */
   public static async getAccessToken(config: SMTPOAuthConfig): Promise<string> {
+    this.assertConfigIsUsable(config);
+
     const cacheKey: string = this.getCacheKey(config);
 
     // Try to get cached token from Redis
@@ -178,26 +246,7 @@ export default class SMTPOAuthService {
   private static async fetchJWTBearerToken(
     config: SMTPOAuthConfig,
   ): Promise<string> {
-    if (!config.username) {
-      // Missing field in the tenant's SMTP OAuth settings, not a defect.
-      throw new BadDataException(
-        "Username (subject) is required for JWT Bearer OAuth. " +
-          "This is typically the email address or user identifier to impersonate.",
-      ).asUserError();
-    }
-
-    // Validate that clientSecret looks like a private key
-    if (
-      !config.clientSecret.includes("-----BEGIN") ||
-      !config.clientSecret.includes("PRIVATE KEY")
-    ) {
-      // The tenant pasted something that is not a PEM private key.
-      throw new BadDataException(
-        "For JWT Bearer OAuth, the Client Secret must be a private key in PEM format. " +
-          "It should contain '-----BEGIN PRIVATE KEY-----' or '-----BEGIN RSA PRIVATE KEY-----'.",
-      ).asUserError();
-    }
-
+    // getAccessToken has already run assertConfigIsUsable.
     try {
       logger.debug("Creating JWT for OAuth token request");
 

@@ -3,7 +3,13 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import React from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -30,6 +36,7 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 let isEnterpriseEdition: boolean = true;
 let billingEnabled: boolean = false;
 let isMasterAdmin: boolean = true;
+let isLoggedIn: boolean = true;
 
 /*
  * Object.defineProperty rather than getters in an object literal: this file is
@@ -64,6 +71,9 @@ jest.mock("../../../UI/Utils/User", () => {
     default: {
       isMasterAdmin: (): boolean => {
         return isMasterAdmin;
+      },
+      isLoggedIn: (): boolean => {
+        return isLoggedIn;
       },
     },
   };
@@ -159,12 +169,89 @@ const openDialog: OpenDialogFunction = async (): Promise<void> => {
   fireEvent.click(screen.getByRole("button", { name: /Enterprise Edition/i }));
 };
 
+/*
+ * The license GET also serves the login page, so on its own the server answers
+ * a caller with no session with the reduced anonymous payload and a 200. Inside
+ * a signed-in app that caller is this component with an expired session, and
+ * the reduced payload reads as "no license, no instances". Sending
+ * `signedIn=true` makes the server answer 401 instead, which the API client
+ * refreshes and replays. On the login page (nobody signed in) the flag must
+ * NOT be sent, or the page would get a 401 instead of the edition pill.
+ */
+describe("EditionLabel - telling the license route we expect to be signed in", () => {
+  type LicenseGetFunction = () => FetchCall;
+
+  const licenseGet: LicenseGetFunction = (): FetchCall => {
+    const call: FetchCall | undefined = fetchCalls.find(
+      (candidate: FetchCall): boolean => {
+        return (
+          candidate.method === "GET" &&
+          candidate.url.includes("/global-config/license")
+        );
+      },
+    );
+
+    expect(call).toBeDefined();
+
+    return call as FetchCall;
+  };
+
+  type RenderAndSettleFunction = () => Promise<void>;
+
+  /*
+   * Renders and waits for the license GET, then lets the response's state
+   * updates land inside act() so they do not spill past the end of the test.
+   */
+  const renderAndSettle: RenderAndSettleFunction = async (): Promise<void> => {
+    render(<EditionLabel />);
+
+    await waitFor(() => {
+      expect(fetchCalls.length).toBeGreaterThan(0);
+    });
+
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+  };
+
+  beforeEach(() => {
+    fetchCalls.length = 0;
+    isEnterpriseEdition = true;
+    billingEnabled = false;
+    isMasterAdmin = true;
+    isLoggedIn = true;
+    respond = (): HTTPResponse<JSONObject> => {
+      return new HTTPResponse<JSONObject>(200, licensePayload(), {});
+    };
+  });
+
+  it("adds signedIn=true to the license fetch when a user is logged in", async () => {
+    isLoggedIn = true;
+
+    await renderAndSettle();
+
+    expect(licenseGet().url).toContain("signedIn=true");
+  });
+
+  it("does not add signedIn to the license fetch when nobody is logged in", async () => {
+    isLoggedIn = false;
+
+    await renderAndSettle();
+
+    expect(licenseGet().url).toContain("/global-config/license");
+    expect(licenseGet().url).not.toContain("signedIn");
+  });
+});
+
 describe("EditionLabel - refreshing the license", () => {
   beforeEach(() => {
     fetchCalls.length = 0;
     isEnterpriseEdition = true;
     billingEnabled = false;
     isMasterAdmin = true;
+    isLoggedIn = true;
     respond = (): HTTPResponse<JSONObject> => {
       return new HTTPResponse<JSONObject>(200, licensePayload(), {});
     };
@@ -311,6 +398,7 @@ describe("EditionLabel - what an exhausted seat limit looks like", () => {
     isEnterpriseEdition = true;
     billingEnabled = false;
     isMasterAdmin = true;
+    isLoggedIn = true;
     respond = (): HTTPResponse<JSONObject> => {
       return new HTTPResponse<JSONObject>(200, licensePayload(), {});
     };

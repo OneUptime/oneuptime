@@ -6256,5 +6256,13 @@
   "These switches decide which notifications reach you, not how much email they add up to.": "Estos interruptores deciden qué notificaciones le llegan, no cuánto correo suman.",
   "Reduce routine emails or change email rollup in Email Preferences": "Reducir correos de rutina o cambiar el agrupamiento de correos en preferencias de correo",
   "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Desactive los correos sobre notas, ser añadido como propietario, nuevos monitores y páginas de estado, elementos añadidos a episodios y cambios de pertenencia a políticas de guardia.",
-  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Sus opciones para la creación de incidentes y alertas, cambios de estado, recordatorios, asignaciones, estado de los monitores y turnos de guardia se mantienen igual. Otros canales de notificación, los avisos de guardia y los correos de cuenta y facturación no se ven afectados."
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Sus opciones para la creación de incidentes y alertas, cambios de estado, recordatorios, asignaciones, estado de los monitores y turnos de guardia se mantienen igual. Otros canales de notificación, los avisos de guardia y los correos de cuenta y facturación no se ven afectados.",
+  "Schedule Timeline": "Línea de tiempo de guardias",
+  "Timeline View": "Vista de línea de tiempo",
+  "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.": "Todos los horarios de guardia de este proyecto, uno junto a otro: quién está de guardia, quién cubre a quién y dónde no hay nadie.",
+  "Who is on call on every schedule this team owns, week by week or month by month.": "Quién está de guardia en cada horario de este equipo, semana a semana o mes a mes.",
+  "No on-call schedules yet": "Todavía no hay horarios de guardia",
+  "Create an on-call schedule and every rotation in this project will show up here, side by side.": "Cree un horario de guardia y cada rotación de este proyecto aparecerá aquí, una junto a otra.",
+  "This team does not own any on-call schedules yet": "Este equipo todavía no es propietario de ningún horario de guardia",
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "Agregue este equipo como propietario en la pestaña Propietarios de un horario y sus rotaciones aparecerán aquí."
 }

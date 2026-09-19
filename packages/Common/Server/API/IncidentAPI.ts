@@ -58,6 +58,7 @@ export default class IncidentAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/generate-postmortem-from-ai/:incidentId`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.generatePostmortemFromAI(req, res);
@@ -73,6 +74,7 @@ export default class IncidentAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/generate-note-from-ai/:incidentId`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.generateNoteFromAI(req, res);
