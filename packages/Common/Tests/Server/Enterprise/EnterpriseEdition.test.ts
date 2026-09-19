@@ -501,6 +501,20 @@ describe("EnterpriseEdition unavailable messages", () => {
     );
   });
 
+  test("the license message points at the edition label, the only place a license is activated", () => {
+    /*
+     * The Admin Dashboard has no "Settings > License" page. Licenses are
+     * activated from the edition label in its header (the dialog the
+     * GlobalConfig license-column guard also names).
+     */
+    expect(EnterpriseEdition.LICENSE_REQUIRED_MESSAGE).toContain(
+      "edition label in the Admin Dashboard header",
+    );
+    expect(EnterpriseEdition.LICENSE_REQUIRED_MESSAGE).not.toMatch(
+      /Settings\s*(?:>|→|->)\s*License/i,
+    );
+  });
+
   test("the Community Edition message is used on CE even with billing on", async () => {
     setTestBillingEnabled(true);
 

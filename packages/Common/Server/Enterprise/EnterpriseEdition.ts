@@ -63,7 +63,7 @@ export default class EnterpriseEdition {
     "This OneUptime Enterprise feature needs a valid Enterprise license that includes it. " +
     "Enterprise configuration you already have keeps working and can still be viewed or deleted, " +
     "but it cannot be created or changed until a master admin adds or renews the license " +
-    "in the Admin Dashboard (Settings > License).";
+    "from the edition label in the Admin Dashboard header.";
 
   private static module: EnterpriseServerModule | null = null;
 
