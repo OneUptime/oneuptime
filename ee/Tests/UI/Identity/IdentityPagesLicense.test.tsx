@@ -20,6 +20,17 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * a valid license, on OneUptime Cloud, or when the license cannot be read,
  * they are exactly what they were before.
  *
+ * "Force SSO for Login" (project and status page SSO screens) lives on the
+ * core Project / StatusPage model. While single sign-on is off the server
+ * does not enforce it and reports it as No whatever is saved, so its card is
+ * not editable then (saving the reported No would overwrite the saved
+ * requirement) and says why it shows No.
+ *
+ * A valid license whose `features` leave the screen's feature out stops that
+ * feature too: the screen is read-only with a banner that names the feature
+ * (NotIncluded), while a screen about a feature the license does include is
+ * unchanged.
+ *
  * The model tables and detail cards are replaced by stand-ins that print the
  * props that matter, and the license request is answered per test. Billing
  * is pinned in every test: CI's config.env sets BILLING_ENABLED=true.
@@ -95,14 +106,38 @@ jest.mock("Common/UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
+interface MockDescribedField {
+  title?: string | undefined;
+  description?: string | undefined;
+}
+
 jest.mock("Common/UI/Components/ModelDetail/CardModelDetail", () => {
   return {
     __esModule: true,
-    default: (props: { name: string; isEditable?: boolean }): ReactElement => {
+    default: (props: {
+      name: string;
+      isEditable?: boolean;
+      formFields?: Array<MockDescribedField>;
+      modelDetailProps?: { fields?: Array<MockDescribedField> };
+    }): ReactElement => {
+      const describeFields: (
+        fields: Array<MockDescribedField> | undefined,
+      ) => string = (fields: Array<MockDescribedField> | undefined): string => {
+        return (fields || [])
+          .map((field: MockDescribedField) => {
+            return `${field.title || ""}: ${field.description || ""}`;
+          })
+          .join(" | ");
+      };
+
       return (
         <div
           data-testid={`card-model-detail-${props.name}`}
           data-editable={String(Boolean(props.isEditable))}
+          data-form-descriptions={describeFields(props.formFields)}
+          data-detail-descriptions={describeFields(
+            props.modelDetailProps?.fields,
+          )}
         />
       );
     },
@@ -172,6 +207,10 @@ import GlobalSSOListPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalSSO
 import GlobalSSOViewPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalSSO/View";
 import GlobalOIDCListPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalOIDC/Index";
 import GlobalOIDCViewPage from "../../../AdminDashboard/GlobalSSO/Pages/GlobalOIDC/View";
+import {
+  FORCE_SSO_NOT_ENFORCED_DESCRIPTION,
+  FORCE_SSO_NOT_INCLUDED_DESCRIPTION,
+} from "../../../Dashboard/SSO/License/ForceSsoSetting";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { JSONObject } from "Common/Types/JSON";
@@ -198,9 +237,11 @@ interface ScreenCase {
   providerTableDeleteable: boolean;
   // A detail card on the SAME provider model, edited in place.
   providerCard?: string | undefined;
-  // Card on a core model (Project / StatusPage): always editable.
+  // "Force SSO for Login" on a core model (Project / StatusPage).
   coreCard?: string | undefined;
   hasTokenReset: boolean;
+  // The license feature the screen is about.
+  feature: "sso" | "scim";
 }
 
 const renderDashboardPage: (
@@ -233,6 +274,7 @@ const SCREENS: Array<ScreenCase> = [
     providerTableDeleteable: true,
     coreCard: "SSO Settings",
     hasTokenReset: false,
+    feature: "sso",
   },
   {
     name: "Settings > OIDC",
@@ -242,6 +284,7 @@ const SCREENS: Array<ScreenCase> = [
     providerTableEditable: true,
     providerTableDeleteable: true,
     hasTokenReset: false,
+    feature: "sso",
   },
   {
     name: "Settings > SCIM",
@@ -251,6 +294,7 @@ const SCREENS: Array<ScreenCase> = [
     providerTableEditable: true,
     providerTableDeleteable: true,
     hasTokenReset: true,
+    feature: "scim",
   },
   {
     name: "Status page > SSO",
@@ -261,6 +305,7 @@ const SCREENS: Array<ScreenCase> = [
     providerTableDeleteable: true,
     coreCard: "SSO Settings",
     hasTokenReset: false,
+    feature: "sso",
   },
   {
     name: "Status page > OIDC",
@@ -270,6 +315,7 @@ const SCREENS: Array<ScreenCase> = [
     providerTableEditable: true,
     providerTableDeleteable: true,
     hasTokenReset: false,
+    feature: "sso",
   },
   {
     name: "Status page > SCIM",
@@ -279,6 +325,7 @@ const SCREENS: Array<ScreenCase> = [
     providerTableEditable: true,
     providerTableDeleteable: true,
     hasTokenReset: true,
+    feature: "scim",
   },
   {
     name: "Admin > Global SSO",
@@ -289,6 +336,7 @@ const SCREENS: Array<ScreenCase> = [
     providerTableEditable: false,
     providerTableDeleteable: false,
     hasTokenReset: false,
+    feature: "sso",
   },
   {
     name: "Admin > Global SSO > provider",
@@ -299,6 +347,7 @@ const SCREENS: Array<ScreenCase> = [
     providerTableDeleteable: true,
     providerCard: "Global SSO Configuration",
     hasTokenReset: false,
+    feature: "sso",
   },
   {
     name: "Admin > Global OIDC",
@@ -308,6 +357,7 @@ const SCREENS: Array<ScreenCase> = [
     providerTableEditable: false,
     providerTableDeleteable: false,
     hasTokenReset: false,
+    feature: "sso",
   },
   {
     name: "Admin > Global OIDC > provider",
@@ -318,6 +368,7 @@ const SCREENS: Array<ScreenCase> = [
     providerTableDeleteable: true,
     providerCard: "Global OIDC Configuration",
     hasTokenReset: false,
+    feature: "sso",
   },
 ];
 
@@ -350,6 +401,44 @@ const renderScreen: (screenCase: ScreenCase) => Promise<void> = async (
   await act(async () => {
     await Promise.resolve();
   });
+};
+
+const expectForceSsoLocked: (
+  screenCase: ScreenCase,
+  description: string,
+) => void = (screenCase: ScreenCase, description: string): void => {
+  const card: HTMLElement = screen.getByTestId(
+    `card-model-detail-${screenCase.coreCard}`,
+  );
+
+  expect(card).toHaveAttribute("data-editable", "false");
+  expect(card.getAttribute("data-detail-descriptions")).toBe(
+    `Force SSO for Login: ${description}`,
+  );
+  expect(card.getAttribute("data-form-descriptions")).toBe(
+    `Force SSO for Login: ${description}`,
+  );
+};
+
+// Editable, with its usual warning about testing SSO first.
+const expectForceSsoEditable: (screenCase: ScreenCase) => void = (
+  screenCase: ScreenCase,
+): void => {
+  const card: HTMLElement = screen.getByTestId(
+    `card-model-detail-${screenCase.coreCard}`,
+  );
+
+  expect(card).toHaveAttribute("data-editable", "true");
+
+  for (const attribute of [
+    "data-detail-descriptions",
+    "data-form-descriptions",
+  ]) {
+    expect(card.getAttribute(attribute)).toContain(
+      "Please test SSO before you",
+    );
+    expect(card.getAttribute(attribute)).not.toContain("Not enforced");
+  }
 };
 
 const providerTable: (screenCase: ScreenCase) => HTMLElement = (
@@ -396,11 +485,13 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
       ).toHaveAttribute("data-editable", "false");
     }
 
+    /*
+     * "Force SSO for login" is not enforced now and reads as No whatever is
+     * saved: not editable (saving the No would overwrite the saved
+     * requirement), and it says why it shows No.
+     */
     if (screenCase.coreCard) {
-      // "Force SSO for login" lives on the core Project / StatusPage model.
-      expect(
-        screen.getByTestId(`card-model-detail-${screenCase.coreCard}`),
-      ).toHaveAttribute("data-editable", "true");
+      expectForceSsoLocked(screenCase, FORCE_SSO_NOT_ENFORCED_DESCRIPTION);
     }
 
     /*
@@ -445,6 +536,11 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
 
     await renderScreen(screenCase);
 
+    // Single sign-on still runs, so "Force SSO for Login" is enforced as saved.
+    if (screenCase.coreCard) {
+      expectForceSsoEditable(screenCase);
+    }
+
     // The warning says what stops when the trial or grace period ends.
     expect(
       screen.getByTestId("enterprise-license-grace-banner"),
@@ -477,6 +573,10 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
     answerLicense({ status: "valid", licenseValid: true });
 
     await renderScreen(screenCase);
+
+    if (screenCase.coreCard) {
+      expectForceSsoEditable(screenCase);
+    }
 
     expect(
       screen.queryByTestId("enterprise-license-read-only-banner"),
@@ -518,6 +618,10 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
 
     await renderScreen(screenCase);
 
+    if (screenCase.coreCard) {
+      expectForceSsoEditable(screenCase);
+    }
+
     expect(
       screen.queryByTestId("enterprise-license-read-only-banner"),
     ).not.toBeInTheDocument();
@@ -541,7 +645,116 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
       "data-createable",
       "true",
     );
+
+    if (screenCase.coreCard) {
+      expectForceSsoEditable(screenCase);
+    }
   });
+
+  test("a valid license that leaves this screen's feature out: that feature is off and read-only, named in the banner", async () => {
+    const otherFeatures: Array<string> = ["sso", "scim", "audit-logs"].filter(
+      (feature: string) => {
+        return feature !== screenCase.feature;
+      },
+    );
+
+    answerLicense({
+      status: "valid",
+      licenseValid: true,
+      features: otherFeatures,
+    });
+
+    await renderScreen(screenCase);
+
+    const banner: HTMLElement = screen.getByTestId(
+      "enterprise-license-not-included-banner",
+    );
+
+    expect(banner).toHaveTextContent(
+      screenCase.feature === "scim"
+        ? "Your Enterprise license does not include SCIM"
+        : "Your Enterprise license does not include single sign-on",
+    );
+    expect(
+      screen.queryByTestId("enterprise-license-read-only-banner"),
+    ).not.toBeInTheDocument();
+    expect(providerTable(screenCase)).toHaveAttribute(
+      "data-createable",
+      "false",
+    );
+    expect(providerTable(screenCase)).toHaveAttribute("data-editable", "false");
+    expect(providerTable(screenCase)).toHaveAttribute(
+      "data-deleteable",
+      String(screenCase.providerTableDeleteable),
+    );
+
+    if (screenCase.providerCard) {
+      expect(
+        screen.getByTestId(`card-model-detail-${screenCase.providerCard}`),
+      ).toHaveAttribute("data-editable", "false");
+    }
+
+    if (screenCase.coreCard) {
+      expectForceSsoLocked(screenCase, FORCE_SSO_NOT_INCLUDED_DESCRIPTION);
+    }
+
+    if (screenCase.hasTokenReset) {
+      expect(providerTable(screenCase).getAttribute("data-actions")).toContain(
+        "Reset Bearer Token",
+      );
+    }
+
+    expect(
+      screen.getByTestId("enterprise-read-only-actions-notice"),
+    ).toBeInTheDocument();
+  });
+
+  test.each([
+    [
+      "only this screen's feature",
+      (feature: string): unknown => {
+        return [feature];
+      },
+    ],
+    [
+      "every feature",
+      (): unknown => {
+        return "all";
+      },
+    ],
+    [
+      "the wildcard",
+      (): unknown => {
+        return ["*"];
+      },
+    ],
+  ])(
+    "a valid license with %s: unchanged screen",
+    async (_name: string, features: (feature: string) => unknown) => {
+      answerLicense({
+        status: "valid",
+        licenseValid: true,
+        features: features(screenCase.feature) as JSONObject["features"],
+      });
+
+      await renderScreen(screenCase);
+
+      expect(
+        screen.queryByTestId("enterprise-license-not-included-banner"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("enterprise-read-only-actions-notice"),
+      ).not.toBeInTheDocument();
+      expect(providerTable(screenCase)).toHaveAttribute(
+        "data-createable",
+        "true",
+      );
+
+      if (screenCase.coreCard) {
+        expectForceSsoEditable(screenCase);
+      }
+    },
+  );
 
   test("renders its screen straight away: the upsell and eligibility check live in the core shell", async () => {
     answerLicense({ status: "valid" });

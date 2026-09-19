@@ -25,8 +25,10 @@ import Team from "Common/Models/DatabaseModels/Team";
 import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
 import {
   EnterpriseLicenseMode,
+  LicensedFeature,
   isEnterpriseConfigurationReadOnly,
 } from "../../License/EnterpriseLicenseMode";
+import { getForceSsoDescription } from "../../License/ForceSsoSetting";
 import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
 import ReadOnlyActionsNotice, {
   ReadOnlyActionsKind,
@@ -53,9 +55,16 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
    * the server refuses to create or change this configuration, and sign-in
    * through these providers is off until a license is activated; the banner
    * says both up front, and the page hides what would fail. Reads and
-   * deletes keep working.
+   * deletes keep working. A license that does not include single sign-on
+   * stops it the same way (NotIncluded).
+   *
+   * "Force SSO for Login" is not enforced then, and the server reports it as
+   * No whatever is saved, so its card is not editable either: saving the
+   * reported No would overwrite the saved requirement (ForceSsoSetting.ts).
    */
-  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
+    LicensedFeature.SSO,
+  );
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
   /*
@@ -78,7 +87,10 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <EnterpriseLicenseBanner mode={licenseMode} />
+      <EnterpriseLicenseBanner
+        mode={licenseMode}
+        feature={LicensedFeature.SSO}
+      />
       <ReadOnlyActionsNotice
         mode={licenseMode}
         kind={ReadOnlyActionsKind.Provider}
@@ -349,15 +361,17 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             title: "SSO Settings",
             description: "Configure settings for SSO.",
           }}
-          isEditable={true}
+          isEditable={!isReadOnly}
           formFields={[
             {
               field: {
                 requireSsoForLogin: true,
               },
               title: "Force SSO for Login",
-              description:
+              description: getForceSsoDescription(
+                licenseMode,
                 "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
+              ),
               fieldType: FormFieldSchemaType.Toggle,
             },
           ]}
@@ -371,8 +385,10 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                 },
                 fieldType: FieldType.Boolean,
                 title: "Force SSO for Login",
-                description:
+                description: getForceSsoDescription(
+                  licenseMode,
                   "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
+                ),
               },
             ],
             modelId: ProjectUtil.getCurrentProjectId()!,
