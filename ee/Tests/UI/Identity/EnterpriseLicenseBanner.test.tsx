@@ -5,10 +5,19 @@ import React from "react";
 import EnterpriseLicenseBanner, {
   GRACE_DESCRIPTION,
   GRACE_TITLE,
+  NOT_INCLUDED_DESCRIPTION,
+  NOT_INCLUDED_SCIM_DESCRIPTION,
+  NOT_INCLUDED_SCIM_TITLE,
+  NOT_INCLUDED_SSO_DESCRIPTION,
+  NOT_INCLUDED_SSO_TITLE,
+  NOT_INCLUDED_TITLE,
   READ_ONLY_DESCRIPTION,
   READ_ONLY_TITLE,
 } from "../../../Dashboard/SSO/License/EnterpriseLicenseBanner";
-import { EnterpriseLicenseMode } from "../../../Dashboard/SSO/License/EnterpriseLicenseMode";
+import {
+  EnterpriseLicenseMode,
+  LicensedFeature,
+} from "../../../Dashboard/SSO/License/EnterpriseLicenseMode";
 
 /*
  * The banner the identity screens (project, status page and global SSO,
@@ -24,6 +33,10 @@ import { EnterpriseLicenseMode } from "../../../Dashboard/SSO/License/Enterprise
  * exactly that. The banner used to promise that single sign-on and SCIM keep
  * working without a license; bannerCopyProblems() rejects that copy, and the
  * negative controls below prove it does.
+ *
+ * A license that leaves one of the two features out (NotIncluded) stops only
+ * that one: the banner names the screen's feature and must not claim the
+ * other one stopped too, nor blame a missing or expired license.
  */
 
 // The banner copy before the owner's decision, verbatim.
@@ -53,6 +66,54 @@ const GRACE_PHRASES: Array<string> = [
   "read-only",
   "until an Enterprise license is activated",
 ];
+
+const NOT_INCLUDED_SSO_PHRASES: Array<string> = [
+  "does not include single sign-on",
+  "single sign-on is off",
+  '"Require SSO" is not enforced',
+  "members sign in with their password",
+  '"Forgot password"',
+  "read-only",
+  "Nothing configured here is deleted",
+  "a license that includes single sign-on",
+];
+
+const NOT_INCLUDED_SCIM_PHRASES: Array<string> = [
+  "does not include SCIM",
+  "SCIM is off",
+  "SCIM requests are refused",
+  "deprovision",
+  "read-only",
+  "Nothing configured here is deleted",
+  "a license that includes SCIM",
+];
+
+// A not-included banner speaks for its own feature, and the license is not lapsed.
+const NOT_INCLUDED_SSO_WRONG_CLAIMS: Array<RegExp> = [
+  /\bSCIM\b/,
+  /Enterprise license required/i,
+  /\b(?:missing|expired)\b/i,
+];
+
+const NOT_INCLUDED_SCIM_WRONG_CLAIMS: Array<RegExp> = [
+  /single sign-on is off/i,
+  /Require SSO/i,
+  /Enterprise license required/i,
+  /\b(?:missing|expired)\b/i,
+];
+
+const wrongClaimsIn: (text: string, claims: Array<RegExp>) => Array<string> = (
+  text: string,
+  claims: Array<RegExp>,
+): Array<string> => {
+  return claims
+    .filter((claim: RegExp) => {
+      return claim.test(text);
+    })
+    .map((claim: RegExp) => {
+      return claim.source;
+    });
+};
 
 const RETIRED_CLAIMS: Array<RegExp> = [
   /keeps? working/i,
@@ -128,6 +189,61 @@ describe("EnterpriseLicenseBanner", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("not included, on a single sign-on screen: says the license leaves single sign-on out, and nothing about SCIM", () => {
+    render(
+      <EnterpriseLicenseBanner
+        mode={EnterpriseLicenseMode.NotIncluded}
+        feature={LicensedFeature.SSO}
+      />,
+    );
+
+    const banner: HTMLElement = screen.getByTestId(
+      "enterprise-license-not-included-banner",
+    );
+    const text: string = `${NOT_INCLUDED_SSO_TITLE} ${NOT_INCLUDED_SSO_DESCRIPTION}`;
+
+    expect(banner).toHaveTextContent(NOT_INCLUDED_SSO_TITLE);
+    expect(banner).toHaveTextContent(NOT_INCLUDED_SSO_DESCRIPTION);
+    expect(bannerCopyProblems(text, NOT_INCLUDED_SSO_PHRASES)).toEqual([]);
+    expect(wrongClaimsIn(text, NOT_INCLUDED_SSO_WRONG_CLAIMS)).toEqual([]);
+    expect(
+      screen.queryByTestId("enterprise-license-read-only-banner"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("not included, on a SCIM screen: says the license leaves SCIM out, and nothing about single sign-on", () => {
+    render(
+      <EnterpriseLicenseBanner
+        mode={EnterpriseLicenseMode.NotIncluded}
+        feature={LicensedFeature.SCIM}
+      />,
+    );
+
+    const banner: HTMLElement = screen.getByTestId(
+      "enterprise-license-not-included-banner",
+    );
+    const text: string = `${NOT_INCLUDED_SCIM_TITLE} ${NOT_INCLUDED_SCIM_DESCRIPTION}`;
+
+    expect(banner).toHaveTextContent(NOT_INCLUDED_SCIM_TITLE);
+    expect(banner).toHaveTextContent(NOT_INCLUDED_SCIM_DESCRIPTION);
+    expect(bannerCopyProblems(text, NOT_INCLUDED_SCIM_PHRASES)).toEqual([]);
+    expect(wrongClaimsIn(text, NOT_INCLUDED_SCIM_WRONG_CLAIMS)).toEqual([]);
+  });
+
+  test("not included, on a screen that named no feature: a generic notice that claims nothing specific", () => {
+    render(
+      <EnterpriseLicenseBanner mode={EnterpriseLicenseMode.NotIncluded} />,
+    );
+
+    const banner: HTMLElement = screen.getByTestId(
+      "enterprise-license-not-included-banner",
+    );
+
+    expect(banner).toHaveTextContent(NOT_INCLUDED_TITLE);
+    expect(banner).toHaveTextContent(NOT_INCLUDED_DESCRIPTION);
+    expect(banner).not.toHaveTextContent(/single sign-on|SCIM/);
+  });
+
   test.each([EnterpriseLicenseMode.Editable, EnterpriseLicenseMode.Unknown])(
     "%s: shows nothing",
     (mode: EnterpriseLicenseMode) => {
@@ -152,6 +268,63 @@ describe("EnterpriseLicenseBanner", () => {
 });
 
 describe("the banner copy checks (negative controls)", () => {
+  test("reject a not-included SSO banner that reuses the lapsed copy (it claims SCIM stopped and blames the license)", () => {
+    const lapsed: string = `${READ_ONLY_TITLE} ${READ_ONLY_DESCRIPTION}`;
+
+    expect(wrongClaimsIn(lapsed, NOT_INCLUDED_SSO_WRONG_CLAIMS)).toEqual([
+      "\\bSCIM\\b",
+      "Enterprise license required",
+    ]);
+    expect(bannerCopyProblems(lapsed, NOT_INCLUDED_SSO_PHRASES)).toContain(
+      "missing: does not include single sign-on",
+    );
+  });
+
+  test("reject a not-included SCIM banner that talks about single sign-on", () => {
+    const ssoCopy: string = `${NOT_INCLUDED_SSO_TITLE} ${NOT_INCLUDED_SSO_DESCRIPTION}`;
+
+    expect(wrongClaimsIn(ssoCopy, NOT_INCLUDED_SCIM_WRONG_CLAIMS)).toEqual([
+      "single sign-on is off",
+      "Require SSO",
+    ]);
+  });
+
+  test.each(
+    NOT_INCLUDED_SSO_PHRASES.map((phrase: string) => {
+      return [phrase];
+    }),
+  )(
+    "report a not-included SSO banner that leaves out: %s",
+    (phrase: string) => {
+      const text: string = `${NOT_INCLUDED_SSO_TITLE} ${NOT_INCLUDED_SSO_DESCRIPTION}`;
+
+      expect(
+        bannerCopyProblems(
+          text.split(phrase).join(""),
+          NOT_INCLUDED_SSO_PHRASES,
+        ),
+      ).toContain(`missing: ${phrase}`);
+    },
+  );
+
+  test.each(
+    NOT_INCLUDED_SCIM_PHRASES.map((phrase: string) => {
+      return [phrase];
+    }),
+  )(
+    "report a not-included SCIM banner that leaves out: %s",
+    (phrase: string) => {
+      const text: string = `${NOT_INCLUDED_SCIM_TITLE} ${NOT_INCLUDED_SCIM_DESCRIPTION}`;
+
+      expect(
+        bannerCopyProblems(
+          text.split(phrase).join(""),
+          NOT_INCLUDED_SCIM_PHRASES,
+        ),
+      ).toContain(`missing: ${phrase}`);
+    },
+  );
+
   test("reject the retired read-only copy that said SSO and SCIM keep working", () => {
     const problems: Array<string> = bannerCopyProblems(
       RETIRED_READ_ONLY_DESCRIPTION,

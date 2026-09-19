@@ -550,9 +550,16 @@ describe("EditionLabel with the license manager - no usable license", () => {
     // A master admin with the license manager is the one who can add it.
     expect(
       screen.getByText(
-        /A valid license keeps single sign-on, SCIM provisioning and audit logging running/,
+        /A valid license that includes them keeps single sign-on, SCIM provisioning and audit logging running/,
       ),
     ).toBeInTheDocument();
+    /*
+     * Not "a valid license keeps them running": a license whose features
+     * leave one out stops that one (EnterpriseLicenseSnapshotUtil.entitles).
+     */
+    expect(
+      screen.queryByText(/A valid license keeps single sign-on/),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText(/Nothing you already configured stops working/),
     ).not.toBeInTheDocument();

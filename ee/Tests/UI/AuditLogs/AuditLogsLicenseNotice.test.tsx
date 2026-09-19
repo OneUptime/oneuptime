@@ -13,7 +13,12 @@ import { JSONObject } from "Common/Types/JSON";
  * warns about it during the trial or grace period. With a valid license, on
  * OneUptime Cloud (the plan decides there) or when the license cannot be read
  * it says nothing: the server keeps recording while the license state is
- * unknown, so the page must not claim otherwise.
+ * unknown, so the page must not claim otherwise. A license whose features
+ * leave audit logs out stops recording the same way, and the page says that.
+ *
+ * The audit log table on every resource page shows the same copy
+ * (getAuditLogsStoppedCopy), so it must read right away from the settings
+ * too: it never points "below" or at "these settings".
  *
  * Billing is pinned in every test: CI's config.env sets BILLING_ENABLED=true.
  */
@@ -66,6 +71,9 @@ import AuditLogsLicenseNotice, {
   AUDIT_LOGS_GRACE_TITLE,
   AUDIT_LOGS_LAPSED_DESCRIPTION,
   AUDIT_LOGS_LAPSED_TITLE,
+  AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION,
+  AUDIT_LOGS_NOT_INCLUDED_TITLE,
+  getAuditLogsStoppedCopy,
 } from "../../../Dashboard/AuditLogs/AuditLogsLicenseNotice";
 import AuditLogsSettings from "../../../Dashboard/AuditLogs/AuditLogsSettings";
 import { EnterpriseLicenseMode } from "../../../Dashboard/SSO/License/EnterpriseLicenseMode";
@@ -86,10 +94,35 @@ const GRACE_NOTICE_TEST_ID: string = "audit-logs-license-grace-notice";
 // What the lapsed notice must say, and what it must never say.
 const LAPSED_PHRASES: Array<string> = [
   "audit logging is not recording",
-  "nothing is recorded in the audit log, whatever the settings below say",
+  "nothing is recorded in the audit log, whatever the Audit Logs settings say",
   "Entries recorded so far are kept",
-  "Recording resumes with these settings as soon as a license is activated",
+  "Recording resumes with the same settings as soon as a license is activated",
 ];
+
+const NOT_INCLUDED_PHRASES: Array<string> = [
+  "does not include audit logs",
+  "audit logging is not recording",
+  "nothing is recorded in the audit log, whatever the Audit Logs settings say",
+  "Entries recorded so far are kept",
+  "as soon as a license that includes audit logs is activated",
+];
+
+// Copy that only reads right on Settings > Audit Logs, not in the table.
+const SETTINGS_PAGE_ONLY_WORDING: Array<RegExp> = [
+  /\bbelow\b/i,
+  /\bthese settings\b/i,
+  /\babove\b/i,
+];
+
+const settingsPageOnlyWordingIn: (text: string) => Array<string> = (
+  text: string,
+): Array<string> => {
+  return SETTINGS_PAGE_ONLY_WORDING.filter((pattern: RegExp) => {
+    return pattern.test(text);
+  }).map((pattern: RegExp) => {
+    return pattern.source;
+  });
+};
 
 const GRACE_PHRASES: Array<string> = [
   "audit logging stops when the trial or grace period ends",
@@ -183,6 +216,50 @@ describe("AuditLogsLicenseNotice", () => {
     ).toEqual([]);
   });
 
+  test("not included: says the license leaves audit logs out, that nothing is lost, and what brings it back", () => {
+    render(<AuditLogsLicenseNotice mode={EnterpriseLicenseMode.NotIncluded} />);
+
+    const notice: HTMLElement = screen.getByTestId(LAPSED_NOTICE_TEST_ID);
+    const text: string = `${AUDIT_LOGS_NOT_INCLUDED_TITLE} ${AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION}`;
+
+    expect(notice).toHaveTextContent(AUDIT_LOGS_NOT_INCLUDED_TITLE);
+    expect(notice).toHaveTextContent(AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION);
+    expect(noticeCopyProblems(text, NOT_INCLUDED_PHRASES)).toEqual([]);
+    // The license is fine otherwise: no "license required", no lapse.
+    expect(text).not.toMatch(/Enterprise license required|missing|expired/i);
+  });
+
+  test("the copy the table shares reads right away from the settings", () => {
+    for (const mode of [
+      EnterpriseLicenseMode.ReadOnly,
+      EnterpriseLicenseMode.NotIncluded,
+    ]) {
+      const copy: { title: string; description: string } | null =
+        getAuditLogsStoppedCopy(mode);
+
+      expect(copy).not.toBeNull();
+      expect(
+        settingsPageOnlyWordingIn(`${copy!.title} ${copy!.description}`),
+      ).toEqual([]);
+    }
+
+    expect(getAuditLogsStoppedCopy(EnterpriseLicenseMode.ReadOnly)).toEqual({
+      title: AUDIT_LOGS_LAPSED_TITLE,
+      description: AUDIT_LOGS_LAPSED_DESCRIPTION,
+    });
+  });
+
+  test.each([
+    EnterpriseLicenseMode.Grace,
+    EnterpriseLicenseMode.Editable,
+    EnterpriseLicenseMode.Unknown,
+  ])(
+    "%s: the license has not stopped recording",
+    (mode: EnterpriseLicenseMode) => {
+      expect(getAuditLogsStoppedCopy(mode)).toBeNull();
+    },
+  );
+
   test("trial or grace period: warns that recording stops when it ends", () => {
     render(<AuditLogsLicenseNotice mode={EnterpriseLicenseMode.Grace} />);
 
@@ -209,6 +286,26 @@ describe("AuditLogsLicenseNotice", () => {
 });
 
 describe("the notice copy checks (negative controls)", () => {
+  test("reject the settings-page-only wording the table cannot use", () => {
+    expect(
+      settingsPageOnlyWordingIn(
+        "Without a valid Enterprise license nothing is recorded in the audit log, whatever the settings below say. Recording resumes with these settings as soon as a license is activated.",
+      ),
+    ).toEqual(["\\bbelow\\b", "\\bthese settings\\b"]);
+  });
+
+  test.each(
+    NOT_INCLUDED_PHRASES.map((phrase: string) => {
+      return [phrase];
+    }),
+  )("report a not-included notice that leaves out: %s", (phrase: string) => {
+    const text: string = `${AUDIT_LOGS_NOT_INCLUDED_TITLE} ${AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION}`;
+
+    expect(
+      noticeCopyProblems(text.split(phrase).join(""), NOT_INCLUDED_PHRASES),
+    ).toEqual([`missing: ${phrase}`]);
+  });
+
   test("reject a notice that says audit logging keeps recording without a license", () => {
     expect(
       noticeCopyProblems(
@@ -285,6 +382,42 @@ describe("Settings > Audit Logs against the license", () => {
     expect(await screen.findByTestId(GRACE_NOTICE_TEST_ID)).toBeInTheDocument();
     expect(screen.queryByTestId(LAPSED_NOTICE_TEST_ID)).not.toBeInTheDocument();
   });
+
+  test("a valid license that leaves audit logs out: says audit logging is not recording", async () => {
+    answerLicense({
+      status: "valid",
+      licenseValid: true,
+      features: ["sso", "scim"],
+    });
+
+    await renderSettings();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      LAPSED_NOTICE_TEST_ID,
+    );
+
+    expect(notice).toHaveTextContent(AUDIT_LOGS_NOT_INCLUDED_TITLE);
+    expect(screen.queryByTestId(GRACE_NOTICE_TEST_ID)).not.toBeInTheDocument();
+  });
+
+  test.each([
+    ["audit logs", ["audit-logs"]],
+    ["every feature", "all"],
+  ])(
+    "a valid license that includes %s: says nothing",
+    async (_name: string, features: string | Array<string>) => {
+      answerLicense({ status: "valid", licenseValid: true, features });
+
+      await renderSettings();
+
+      expect(
+        screen.queryByTestId(LAPSED_NOTICE_TEST_ID),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId(GRACE_NOTICE_TEST_ID),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   test("a valid license: says nothing", async () => {
     answerLicense({ status: "valid", licenseValid: true });

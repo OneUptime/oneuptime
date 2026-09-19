@@ -20,6 +20,7 @@ import Team from "Common/Models/DatabaseModels/Team";
 import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
 import {
   EnterpriseLicenseMode,
+  LicensedFeature,
   isEnterpriseConfigurationReadOnly,
 } from "../../License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
@@ -49,7 +50,9 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
    * says both up front, and the page hides what would fail. Reads and
    * deletes keep working.
    */
-  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
+    LicensedFeature.SSO,
+  );
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
   /*
@@ -72,7 +75,10 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <EnterpriseLicenseBanner mode={licenseMode} />
+      <EnterpriseLicenseBanner
+        mode={licenseMode}
+        feature={LicensedFeature.SSO}
+      />
       <ReadOnlyActionsNotice
         mode={licenseMode}
         kind={ReadOnlyActionsKind.Provider}

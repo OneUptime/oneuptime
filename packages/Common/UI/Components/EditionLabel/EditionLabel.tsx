@@ -1517,7 +1517,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </h4>
                   <p className="mt-0.5 text-xs text-indigo-700">
                     {canManageLicense
-                      ? "A valid license keeps single sign-on, SCIM provisioning and audit logging running, enterprise configuration (SSO, SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
+                      ? "A valid license that includes them keeps single sign-on, SCIM provisioning and audit logging running, enterprise configuration (SSO, SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
                       : "A master admin can add the license to keep single sign-on, SCIM provisioning and audit logging running and enterprise configuration editable."}{" "}
                     Core monitoring never depends on it.
                   </p>

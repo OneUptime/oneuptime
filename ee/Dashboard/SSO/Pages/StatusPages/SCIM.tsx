@@ -25,6 +25,7 @@ import StatusPageSCIMLogsTable from "../../Components/SCIMLogs/StatusPageSCIMLog
 import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
 import {
   EnterpriseLicenseMode,
+  LicensedFeature,
   isEnterpriseConfigurationReadOnly,
 } from "../../License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
@@ -63,7 +64,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
    * bearer token alone, which the server accepts without a license, so a
    * leaked token can be replaced before SCIM resumes.
    */
-  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
+    LicensedFeature.SCIM,
+  );
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
   const resetBearerToken: () => Promise<void> = async (): Promise<void> => {
@@ -94,7 +97,10 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <EnterpriseLicenseBanner mode={licenseMode} />
+      <EnterpriseLicenseBanner
+        mode={licenseMode}
+        feature={LicensedFeature.SCIM}
+      />
       <ReadOnlyActionsNotice
         mode={licenseMode}
         kind={ReadOnlyActionsKind.Scim}

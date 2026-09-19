@@ -118,7 +118,7 @@ const ACCURATE_LAPSE_COPY: Array<string> = [
   "**Core monitoring is never affected**: monitors, alerts, incidents, on-call, status pages and telemetry all keep working.",
   "ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it.",
   "**Master admins can always sign in with their password.**",
-  "A valid license keeps single sign-on, SCIM provisioning and audit logging running, enterprise configuration editable and the enterprise admin dashboards unlocked.",
+  "A valid license that includes them keeps single sign-on, SCIM provisioning and audit logging running, enterprise configuration editable and the enterprise admin dashboards unlocked.",
   'Losing a license never locks anyone out: "Require SSO for login" stops being enforced at the same moment SSO sign-in stops, so users sign in with a password.',
   "Everything resumes, without a restart, as soon as a license is activated, and core monitoring is never affected.",
   "Your self-hosted OneUptime instances keep every enterprise feature for 14 days after the expiry date above (the grace period).",

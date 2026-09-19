@@ -3,7 +3,8 @@ import { JSONObject } from "Common/Types/JSON";
 
 /*
  * The two updates the identity screens may send while the Enterprise license
- * makes configuration read-only (EnterpriseLicenseMode.ReadOnly).
+ * makes configuration read-only (EnterpriseLicenseMode.ReadOnly, or
+ * NotIncluded for a license that leaves the feature out).
  *
  * The server lets exactly these through without a license, because they can
  * only tighten security (TIGHTEN_ONLY_UPDATES in

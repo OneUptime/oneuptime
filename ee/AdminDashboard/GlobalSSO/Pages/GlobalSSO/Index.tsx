@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import EnterpriseLicenseBanner from "../../../../Dashboard/SSO/License/EnterpriseLicenseBanner";
 import {
   EnterpriseLicenseMode,
+  LicensedFeature,
   isEnterpriseConfigurationReadOnly,
 } from "../../../../Dashboard/SSO/License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../../../../Dashboard/SSO/License/UseEnterpriseLicenseMode";
@@ -59,7 +60,9 @@ const Settings: FunctionComponent = (): ReactElement => {
    * license is activated; the banner says both up front, and the page hides
    * what would fail. Reads and deletes keep working.
    */
-  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
+    LicensedFeature.SSO,
+  );
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
   /*
@@ -87,7 +90,10 @@ const Settings: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={breadcrumbLinks}
       sideMenu={<DashboardSideMenu />}
     >
-      <EnterpriseLicenseBanner mode={licenseMode} />
+      <EnterpriseLicenseBanner
+        mode={licenseMode}
+        feature={LicensedFeature.SSO}
+      />
       <ReadOnlyActionsNotice
         mode={licenseMode}
         kind={ReadOnlyActionsKind.Provider}
