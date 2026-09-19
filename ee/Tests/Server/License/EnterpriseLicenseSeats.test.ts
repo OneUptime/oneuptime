@@ -1,8 +1,8 @@
-import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import { SeatUsage } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import EnterpriseLicenseSeatsUtil, {
-  SeatUsage,
   SeatUsageInput,
-} from "../../Utils/EnterpriseLicense/EnterpriseLicenseSeats";
+} from "../../../Server/License/EnterpriseLicenseSeats";
 import { describe, expect, it } from "@jest/globals";
 
 /*

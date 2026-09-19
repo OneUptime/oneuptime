@@ -12,7 +12,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import { JSONObject } from "Common/Types/JSON";
 import EnterpriseLicenseSyncUtil, {
   EnterpriseLicenseSyncResult,
-} from "Common/Utils/EnterpriseLicense/EnterpriseLicenseSync";
+} from "../../../Server/License/EnterpriseLicenseSync";
 import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
 import EnterpriseLicenseUserCountSource from "Common/Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
 import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";

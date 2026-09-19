@@ -1,7 +1,46 @@
 import EnterpriseFeature from "./EnterpriseFeature";
-import type { SeatUsage } from "../../Utils/EnterpriseLicense/EnterpriseLicenseSeats";
 
-export type { SeatUsage };
+/*
+ * The seat usage of an Enterprise install, as
+ * EnterpriseEdition.getSeatUsage() returns it and the /global-config/license
+ * response carries it. Only the type lives in core: the arithmetic that
+ * computes it belongs to the Enterprise license client
+ * (ee/Server/License/EnterpriseLicenseSeats.ts).
+ */
+export interface SeatUsage {
+  /*
+   * False when the license carries no usable seat limit. Every other field is
+   * still filled in — a caller that wants to display usage can, it just must
+   * not block anything.
+   */
+  isEnforced: boolean;
+
+  // The limit actually being enforced, or null when there is none.
+  userLimit: number | null;
+
+  /*
+   * The best estimate of how many licensed seats are consumed right now,
+   * across every instance on this license, counting this installation's live
+   * users and the other instances' users from the last usage report.
+   */
+  seatsInUse: number;
+
+  // Null when there is no limit. Never negative — a breach reads as 0 free.
+  seatsRemaining: number | null;
+
+  /*
+   * The single question enforcement asks. True whenever there is no limit, so
+   * a caller can use this on its own without re-checking isEnforced.
+   */
+  hasSeatForNewUser: boolean;
+
+  /*
+   * How many of seatsInUse are users this installation has never seen. Zero
+   * whenever the topology is not known well enough to say, which is the
+   * conservative answer.
+   */
+  seatsUsedByOtherInstances: number;
+}
 
 /*
  * Where the license stands in time. Deliberately about time only; whether the

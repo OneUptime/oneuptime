@@ -1,11 +1,10 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
-import EnterpriseLicenseSeatsUtil, {
-  SeatUsage,
-} from "Common/Utils/EnterpriseLicense/EnterpriseLicenseSeats";
 import {
   EnterpriseLicenseSnapshot,
   EnterpriseLicenseSnapshotUtil,
+  SeatUsage,
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
+import EnterpriseLicenseSeatsUtil from "./EnterpriseLicenseSeats";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { LicenseInputs } from "./LicenseInputs";
 
@@ -35,9 +34,8 @@ export interface SeatCheckData {
  * This is the half that acts on it: it is the only thing standing between a
  * customer's license terms and an unbounded User table.
  *
- * The seat arithmetic lives in Common/Utils/EnterpriseLicense/EnterpriseLicenseSeats
- * as a pure function; everything here is about deciding whether the
- * installation enforces at all.
+ * The seat arithmetic lives in ./EnterpriseLicenseSeats as a pure function;
+ * everything here is about deciding whether the installation enforces at all.
  */
 export default class EnterpriseLicenseSeatUtil {
   /*

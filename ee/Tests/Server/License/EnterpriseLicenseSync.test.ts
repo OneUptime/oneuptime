@@ -1,7 +1,7 @@
 import EnterpriseLicenseSyncUtil, {
   EnterpriseLicenseSyncResult,
-} from "../../Utils/EnterpriseLicense/EnterpriseLicenseSync";
-import { JSONObject } from "../../Types/JSON";
+} from "../../../Server/License/EnterpriseLicenseSync";
+import { JSONObject } from "Common/Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -50,7 +50,7 @@ const keys: KeysFunction = (payload: JSONObject): Array<string> => {
 };
 
 /*
- * The exact body Common/Server/API/EnterpriseLicenseAPI.ts sends from
+ * The exact body Server/LicenseServer/EnterpriseLicenseAPI.ts sends from
  * /report-user-count for a healthy license. Kept in one place so the contract
  * test at the bottom and the happy-path tests cannot drift apart.
  */

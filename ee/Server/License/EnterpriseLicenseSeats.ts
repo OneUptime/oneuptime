@@ -1,10 +1,19 @@
-import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import { SeatUsage } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
+import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+
+/*
+ * The seat arithmetic of the Enterprise license client. Only
+ * EnterpriseLicenseSeatUtil (the enforcement half) calls it, so it lives in
+ * ee/ with the rest of the license client. The SeatUsage result type stays in
+ * core (Common/Server/Enterprise/EnterpriseLicenseSnapshot.ts), because
+ * EnterpriseEdition.getSeatUsage() and the /global-config/license response
+ * hand it to core code.
+ */
 
 /*
  * Everything the seat calculation needs, taken as plain values so this file
- * stays a pure function the tests can drive directly. The server reads these
- * off GlobalConfig; the browser reads them off the /global-config/license
- * response.
+ * stays a pure function the tests can drive directly. EnterpriseLicenseSeatUtil
+ * reads them off the license snapshot and the last usage report.
  */
 export interface SeatUsageInput {
   /*
@@ -37,41 +46,6 @@ export interface SeatUsageInput {
 
   // This installation's own instance id, so it can find itself in `instances`.
   thisInstanceId?: string | null | undefined;
-}
-
-export interface SeatUsage {
-  /*
-   * False when the license carries no usable seat limit. Every other field is
-   * still filled in — a caller that wants to display usage can, it just must
-   * not block anything.
-   */
-  isEnforced: boolean;
-
-  // The limit actually being enforced, or null when there is none.
-  userLimit: number | null;
-
-  /*
-   * The best estimate of how many licensed seats are consumed right now,
-   * across every instance on this license. See getSeatUsage for how it is
-   * derived and which way it is allowed to be wrong.
-   */
-  seatsInUse: number;
-
-  // Null when there is no limit. Never negative — a breach reads as 0 free.
-  seatsRemaining: number | null;
-
-  /*
-   * The single question enforcement asks. True whenever there is no limit, so
-   * a caller can use this on its own without re-checking isEnforced.
-   */
-  hasSeatForNewUser: boolean;
-
-  /*
-   * How many of seatsInUse are users this installation has never seen. Zero
-   * whenever the topology is not known well enough to say, which is the
-   * conservative answer — see getSeatUsage.
-   */
-  seatsUsedByOtherInstances: number;
 }
 
 export default class EnterpriseLicenseSeatsUtil {

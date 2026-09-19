@@ -1,7 +1,7 @@
-import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
-import PartialEntity from "../../Types/Database/PartialEntity";
-import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
-import { JSONObject } from "../../Types/JSON";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import PartialEntity from "Common/Types/Database/PartialEntity";
+import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import { JSONObject } from "Common/Types/JSON";
 
 export interface EnterpriseLicenseSyncResult {
   /*
@@ -22,7 +22,9 @@ export interface EnterpriseLicenseSyncResult {
 /*
  * Maps a license-server response (from /enterprise-license/validate or
  * /enterprise-license/report-user-count) onto the GlobalConfig columns a
- * self-hosted installation mirrors locally.
+ * self-hosted installation mirrors locally. Only the Enterprise license
+ * client's daily sync (Jobs/ReportUserCount.ts) calls it, so it lives in ee/
+ * with that job.
  *
  * Every field is three-state, and the distinction is the whole contract:
  *

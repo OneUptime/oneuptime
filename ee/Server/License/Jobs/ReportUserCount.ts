@@ -19,11 +19,11 @@ import Crypto from "Common/Utils/Crypto";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
-import EnterpriseLicenseSyncUtil, {
-  EnterpriseLicenseSyncResult,
-} from "Common/Utils/EnterpriseLicense/EnterpriseLicenseSync";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import logger from "Common/Server/Utils/Logger";
+import EnterpriseLicenseSyncUtil, {
+  EnterpriseLicenseSyncResult,
+} from "../EnterpriseLicenseSync";
 import LicenseInputsUtil, { LicenseInputs } from "../LicenseInputs";
 import licenseProvider from "../LicenseProvider";
 import LicenseRanking, { GuardedLicenseUpdate } from "../LicenseRanking";

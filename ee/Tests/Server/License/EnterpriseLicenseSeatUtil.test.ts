@@ -3,10 +3,10 @@ import { LicenseInputs } from "../../../Server/License/LicenseInputs";
 import {
   EnterpriseLicenseSnapshot,
   EnterpriseLicenseStatus,
+  SeatUsage,
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import { SeatUsage } from "Common/Utils/EnterpriseLicense/EnterpriseLicenseSeats";
 import {
   createLicenseSnapshot,
   createLicenseSnapshotWithStatus,
