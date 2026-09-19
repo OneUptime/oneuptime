@@ -13,19 +13,27 @@ import LicenseInputsUtil, { LicenseInputs } from "./LicenseInputs";
 import {
   LICENSE_INPUTS_CACHE_TTL_IN_MS,
   LICENSE_INPUTS_RETRY_AFTER_FAILURE_IN_MS,
+  LICENSE_SNAPSHOT_REUSE_IN_MS,
 } from "./LicenseSettings";
 import LicenseStore from "./LicenseStore";
 import { LicenseTokenClassification } from "./LicenseToken";
+import { getTrustedLicenseKeys, TrustedLicenseKey } from "./TrustedLicenseKeys";
 
 /*
  * The licensing half of the enterprise module: what core's EnterpriseEdition
  * facade asks whenever it needs to know whether this installation is licensed.
  *
- * It caches the license INPUTS read from GlobalConfig - never the verdict -
- * and classifies them against the current time on every read, so the moment a
- * license expires or its grace period ends is exact however long the inputs
- * were cached.
+ * It caches the license INPUTS read from GlobalConfig and classifies them
+ * against the current time, so the moment a license expires or its grace
+ * period ends is exact however long the inputs were cached.
  *
+ *   - The verdict is asked for on hot paths (EnterpriseEdition.isFeatureActive
+ *     runs on every tenant request, every audit entry and every identity
+ *     route), and classifying a signed license verifies its signature. So a
+ *     computed snapshot is reused for the same inputs and trusted keys until
+ *     the next moment its verdict can change (the license's expiry, or the end
+ *     of its grace period or trial), and for LICENSE_SNAPSHOT_REUSE_IN_MS at
+ *     most. Boundaries stay exact to the millisecond.
  *   - Inputs are trusted for LICENSE_INPUTS_CACHE_TTL_IN_MS. A license written
  *     by another process (the worker's daily report, an activation served by
  *     another replica) is seen here within that long; a write made by this
@@ -43,6 +51,8 @@ export interface LicenseProviderDependencies {
   isBillingEnabled: () => boolean;
   cacheTtlInMs: number;
   retryAfterFailureInMs: number;
+  // The longest a computed snapshot is reused (see getSnapshotReusableUntilInMs).
+  snapshotReuseInMs: number;
 }
 
 export const getDefaultLicenseProviderDependencies: () => LicenseProviderDependencies =
@@ -74,11 +84,89 @@ export const getDefaultLicenseProviderDependencies: () => LicenseProviderDepende
       },
       cacheTtlInMs: LICENSE_INPUTS_CACHE_TTL_IN_MS,
       retryAfterFailureInMs: LICENSE_INPUTS_RETRY_AFTER_FAILURE_IN_MS,
+      snapshotReuseInMs: LICENSE_SNAPSHOT_REUSE_IN_MS,
     };
   };
 
 const describeError: (err: unknown) => string = (err: unknown): string => {
   return err instanceof Error ? err.message : String(err);
+};
+
+// A snapshot computed from one set of inputs, reusable until validUntilInMs.
+interface ComputedSnapshot {
+  inputs: LicenseInputs;
+  trustedKeys: ReadonlyArray<TrustedLicenseKey>;
+  snapshot: EnterpriseLicenseSnapshot;
+  computedAtInMs: number;
+  validUntilInMs: number;
+}
+
+/*
+ * The first moment after `nowInMs` at which classifying the same inputs could
+ * give another verdict, capped at `maxReuseInMs` from now. The classification
+ * depends on time only through two dates the snapshot carries: a license is
+ * valid until expiresAt, and in grace (after expiry, or in the unlicensed
+ * trial) up to and including graceEndsAt.
+ */
+export const getSnapshotReusableUntilInMs: (
+  snapshot: EnterpriseLicenseSnapshot,
+  nowInMs: number,
+  maxReuseInMs: number,
+) => number = (
+  snapshot: EnterpriseLicenseSnapshot,
+  nowInMs: number,
+  maxReuseInMs: number,
+): number => {
+  let reusableUntilInMs: number = nowInMs + Math.max(0, maxReuseInMs);
+
+  const boundaries: Array<number> = [];
+
+  if (snapshot.expiresAt instanceof Date) {
+    boundaries.push(snapshot.expiresAt.getTime());
+  }
+
+  if (snapshot.graceEndsAt instanceof Date) {
+    boundaries.push(snapshot.graceEndsAt.getTime() + 1);
+  }
+
+  for (const boundary of boundaries) {
+    if (
+      Number.isFinite(boundary) &&
+      boundary > nowInMs &&
+      boundary < reusableUntilInMs
+    ) {
+      reusableUntilInMs = boundary;
+    }
+  }
+
+  return reusableUntilInMs;
+};
+
+/*
+ * A copy for one caller, so a caller that changes the object it was handed
+ * can never change what the next caller reads.
+ */
+const copySnapshot: (
+  snapshot: EnterpriseLicenseSnapshot,
+) => EnterpriseLicenseSnapshot = (
+  snapshot: EnterpriseLicenseSnapshot,
+): EnterpriseLicenseSnapshot => {
+  const copy: EnterpriseLicenseSnapshot = {
+    ...snapshot,
+    features: Array.isArray(snapshot.features)
+      ? [...snapshot.features]
+      : snapshot.features,
+  };
+
+  if (snapshot.expiresAt instanceof Date) {
+    copy.expiresAt = new Date(snapshot.expiresAt.getTime());
+  }
+
+  if (snapshot.graceEndsAt instanceof Date) {
+    copy.graceEndsAt = new Date(snapshot.graceEndsAt.getTime());
+  }
+
+  return copy;
 };
 
 export class LicenseProvider implements EnterpriseLicensingProvider {
@@ -98,6 +186,11 @@ export class LicenseProvider implements EnterpriseLicensingProvider {
 
   private lastFailedLoadAtInMs: number | null = null;
   private lastLoadError: string | null = null;
+
+  private computedSnapshot: ComputedSnapshot | null = null;
+
+  // How many times the inputs were classified (for tests).
+  private classificationCount: number = 0;
 
   public constructor(dependencies?: Partial<LicenseProviderDependencies>) {
     this.dependencies = {
@@ -235,10 +328,53 @@ export class LicenseProvider implements EnterpriseLicensingProvider {
     return this.lastLoadError;
   }
 
+  // How many times inputs have been classified into a snapshot (for tests).
+  public getClassificationCount(): number {
+    return this.classificationCount;
+  }
+
+  /*
+   * The snapshot of `inputs` now. Reuses the last one computed while it is
+   * for the same inputs object and the same trusted keys, the clock has not
+   * gone backwards, and no boundary (see getSnapshotReusableUntilInMs) has
+   * been reached. Every caller gets its own copy.
+   */
   private computeSnapshot(inputs: LicenseInputs): EnterpriseLicenseSnapshot {
-    return LicenseInputsUtil.toSnapshot(
-      LicenseInputsUtil.classify(inputs, this.dependencies.now()),
+    const now: Date = this.dependencies.now();
+    const nowInMs: number = now.getTime();
+    const trustedKeys: ReadonlyArray<TrustedLicenseKey> =
+      getTrustedLicenseKeys();
+    const computed: ComputedSnapshot | null = this.computedSnapshot;
+
+    if (
+      computed &&
+      computed.inputs === inputs &&
+      computed.trustedKeys === trustedKeys &&
+      nowInMs >= computed.computedAtInMs &&
+      nowInMs < computed.validUntilInMs
+    ) {
+      return copySnapshot(computed.snapshot);
+    }
+
+    this.classificationCount++;
+
+    const snapshot: EnterpriseLicenseSnapshot = LicenseInputsUtil.toSnapshot(
+      LicenseInputsUtil.classify(inputs, now),
     );
+
+    this.computedSnapshot = {
+      inputs,
+      trustedKeys,
+      snapshot,
+      computedAtInMs: nowInMs,
+      validUntilInMs: getSnapshotReusableUntilInMs(
+        snapshot,
+        nowInMs,
+        this.dependencies.snapshotReuseInMs,
+      ),
+    };
+
+    return copySnapshot(snapshot);
   }
 
   private nowInMs(): number {

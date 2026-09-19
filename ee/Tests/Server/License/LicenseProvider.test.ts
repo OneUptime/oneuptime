@@ -1,5 +1,11 @@
-import { LicenseProvider } from "../../../Server/License/LicenseProvider";
+import {
+  getSnapshotReusableUntilInMs,
+  LicenseProvider,
+  LicenseProviderDependencies,
+} from "../../../Server/License/LicenseProvider";
 import { LicenseInputs } from "../../../Server/License/LicenseInputs";
+import { LICENSE_SNAPSHOT_REUSE_IN_MS } from "../../../Server/License/LicenseSettings";
+import LicenseToken from "../../../Server/License/LicenseToken";
 import { setTrustedLicenseKeysForTests } from "../../../Server/License/TrustedLicenseKeys";
 import {
   EnterpriseLicenseSnapshot,
@@ -87,8 +93,12 @@ const makeInputs: (overrides?: Partial<LicenseInputs>) => LicenseInputs = (
   };
 };
 
-const createHarness: (initial: LicenseInputs) => ProviderHarness = (
+const createHarness: (
   initial: LicenseInputs,
+  dependencies?: Partial<LicenseProviderDependencies>,
+) => ProviderHarness = (
+  initial: LicenseInputs,
+  dependencies?: Partial<LicenseProviderDependencies>,
 ): ProviderHarness => {
   let current: LicenseInputs = initial;
   let failure: Error | null = null;
@@ -135,6 +145,7 @@ const createHarness: (initial: LicenseInputs) => ProviderHarness = (
     },
     cacheTtlInMs: TTL_IN_MS,
     retryAfterFailureInMs: RETRY_IN_MS,
+    ...(dependencies || {}),
   });
 
   return {
@@ -470,6 +481,266 @@ describe("LicenseProvider - classifying against the current time", () => {
     expect(
       await EnterpriseEdition.isFeatureAvailable(EnterpriseFeature.SSO),
     ).toBe(false);
+  });
+});
+
+/*
+ * isFeatureActive asks for the snapshot on every tenant request, every audit
+ * entry and every identity route, and classifying a signed license verifies
+ * its signature (about 0.2 ms of CPU each time). So the provider reuses a
+ * snapshot for the same inputs until the next moment its verdict can change,
+ * and for LICENSE_SNAPSHOT_REUSE_IN_MS at most - without giving up the exact
+ * expiry and grace boundaries pinned above.
+ */
+describe("LicenseProvider - reusing a computed snapshot", () => {
+  const signedInputs: () => LicenseInputs = (): LicenseInputs => {
+    return makeInputs({
+      token: signLicense(SIGNING_KEY, { instanceId: INSTANCE_ID }),
+    });
+  };
+
+  it("reuses at most for a second by default", () => {
+    expect(LICENSE_SNAPSHOT_REUSE_IN_MS).toBe(1000);
+  });
+
+  it("verifies a signed license once for many reads, not once per read", async () => {
+    const harness: ProviderHarness = createHarness(signedInputs());
+    await harness.provider.refresh();
+    const verify: jest.SpyInstance = jest.spyOn(LicenseToken, "verifySignature");
+
+    for (let index: number = 0; index < 50; index++) {
+      expect(harness.provider.getCachedSnapshot()?.status).toBe("valid");
+    }
+
+    expect(verify).toHaveBeenCalledTimes(1);
+    expect(harness.provider.getClassificationCount()).toBe(1);
+  });
+
+  it("negative control: with no reuse, every read verifies the signature again", async () => {
+    const harness: ProviderHarness = createHarness(signedInputs(), {
+      snapshotReuseInMs: 0,
+    });
+    await harness.provider.refresh();
+    const verify: jest.SpyInstance = jest.spyOn(LicenseToken, "verifySignature");
+
+    for (let index: number = 0; index < 50; index++) {
+      harness.provider.getCachedSnapshot();
+    }
+
+    expect(verify).toHaveBeenCalledTimes(50);
+    expect(harness.provider.getClassificationCount()).toBe(50);
+  });
+
+  it("classifies again once the reuse window has passed", async () => {
+    const harness: ProviderHarness = createHarness(signedInputs());
+    await harness.provider.refresh();
+    harness.provider.getCachedSnapshot();
+
+    advance(harness, LICENSE_SNAPSHOT_REUSE_IN_MS - 1);
+    harness.provider.getCachedSnapshot();
+    expect(harness.provider.getClassificationCount()).toBe(1);
+
+    advance(harness, 1);
+    harness.provider.getCachedSnapshot();
+    expect(harness.provider.getClassificationCount()).toBe(2);
+  });
+
+  it("still moves to grace at the exact millisecond the license expires, inside the window", async () => {
+    const harness: ProviderHarness = createHarness(signedInputs());
+    const expiresAt: Date = (await harness.provider.getSnapshot())
+      .expiresAt as Date;
+
+    harness.clock.now = new Date(expiresAt.getTime() - 1);
+    expect(harness.provider.getCachedSnapshot()?.status).toBe("valid");
+
+    // 1 ms later: well inside the reuse window, but past the boundary.
+    harness.clock.now = new Date(expiresAt.getTime());
+    expect(harness.provider.getCachedSnapshot()?.status).toBe("grace");
+  });
+
+  it("still leaves the unlicensed trial at the exact millisecond it ends, inside the window", async () => {
+    const firstSeenAt: Date = new Date();
+    const harness: ProviderHarness = createHarness(
+      makeInputs({
+        licenseKey: null,
+        storedColumns: { enterpriseEditionFirstSeenAt: firstSeenAt },
+      }),
+    );
+    const trialEndsAt: number = firstSeenAt.getTime() + 14 * DAY_IN_MS;
+    harness.clock.now = new Date(trialEndsAt);
+    await harness.provider.getSnapshot();
+
+    expect(harness.provider.getCachedSnapshot()?.status).toBe("grace");
+
+    harness.clock.now = new Date(trialEndsAt + 1);
+    expect(harness.provider.getCachedSnapshot()?.status).toBe("missing");
+  });
+
+  it("classifies afresh when new inputs are read", async () => {
+    const harness: ProviderHarness = createHarness(signedInputs());
+    await harness.provider.refresh();
+    expect(harness.provider.getCachedSnapshot()?.status).toBe("valid");
+
+    harness.setInputs(
+      makeInputs({ token: signLicense(SIGNING_KEY, { daysFromNow: -30 }) }),
+    );
+    await harness.provider.refresh();
+
+    expect(harness.provider.getCachedSnapshot()?.status).toBe("expired");
+  });
+
+  it("classifies afresh when the trusted keys change", async () => {
+    const harness: ProviderHarness = createHarness(signedInputs());
+    await harness.provider.refresh();
+    expect(harness.provider.getCachedSnapshot()?.verification).toBe(
+      "verified",
+    );
+
+    setTrustedLicenseKeysForTests([]);
+
+    expect(harness.provider.getCachedSnapshot()?.verification).toBe(
+      "unverified",
+    );
+  });
+
+  it("classifies afresh when the clock goes backwards", async () => {
+    const harness: ProviderHarness = createHarness(
+      makeInputs({ token: signLicense(SIGNING_KEY, { daysFromNow: 1 }) }),
+    );
+    await harness.provider.refresh();
+    const startedAt: Date = harness.clock.now;
+
+    advance(harness, 30 * DAY_IN_MS);
+    expect(harness.provider.getCachedSnapshot()?.status).toBe("expired");
+
+    // An NTP correction back to before the expiry, within a millisecond.
+    harness.clock.now = startedAt;
+    expect(harness.provider.getCachedSnapshot()?.status).toBe("valid");
+  });
+
+  it("hands every caller its own copy", async () => {
+    const harness: ProviderHarness = createHarness(
+      makeInputs({
+        token: signLicense(SIGNING_KEY, {
+          instanceId: INSTANCE_ID,
+          features: ["sso", "scim"],
+        }),
+      }),
+    );
+    await harness.provider.refresh();
+
+    // Computed here; the reads below reuse it.
+    const computed: EnterpriseLicenseSnapshot =
+      harness.provider.getCachedSnapshot()!;
+    computed.status = "expired";
+
+    const first: EnterpriseLicenseSnapshot =
+      harness.provider.getCachedSnapshot()!;
+    expect(first.status).toBe("valid");
+    first.status = "invalid";
+    (first.features as Array<EnterpriseFeature>).push(
+      EnterpriseFeature.AuditLogs,
+    );
+    first.expiresAt!.setTime(0);
+
+    const second: EnterpriseLicenseSnapshot =
+      harness.provider.getCachedSnapshot()!;
+
+    expect(second).not.toBe(first);
+    expect(second.status).toBe("valid");
+    expect(second.features).toEqual([
+      EnterpriseFeature.SSO,
+      EnterpriseFeature.SCIM,
+    ]);
+    expect(second.expiresAt!.getTime()).toBeGreaterThan(Date.now());
+    expect(harness.provider.getClassificationCount()).toBe(1);
+  });
+
+  describe("getSnapshotReusableUntilInMs", () => {
+    const NOW: number = Date.UTC(2026, 8, 1);
+
+    it("is the cap when no boundary is near", () => {
+      expect(
+        getSnapshotReusableUntilInMs(
+          {
+            status: "valid",
+            verification: "verified",
+            expiresAt: new Date(NOW + DAY_IN_MS),
+            userLimit: null,
+            isEvaluation: false,
+            features: "all",
+          },
+          NOW,
+          1000,
+        ),
+      ).toBe(NOW + 1000);
+    });
+
+    it("stops at the expiry of a valid license", () => {
+      expect(
+        getSnapshotReusableUntilInMs(
+          {
+            status: "valid",
+            verification: "verified",
+            expiresAt: new Date(NOW + 10),
+            userLimit: null,
+            isEvaluation: false,
+            features: "all",
+          },
+          NOW,
+          1000,
+        ),
+      ).toBe(NOW + 10);
+    });
+
+    it("stops just after the last millisecond of grace (grace includes graceEndsAt)", () => {
+      expect(
+        getSnapshotReusableUntilInMs(
+          {
+            status: "grace",
+            verification: "verified",
+            expiresAt: new Date(NOW - DAY_IN_MS),
+            graceEndsAt: new Date(NOW + 10),
+            userLimit: null,
+            isEvaluation: false,
+            features: "all",
+          },
+          NOW,
+          1000,
+        ),
+      ).toBe(NOW + 11);
+    });
+
+    it("ignores boundaries already passed and dates that are not dates", () => {
+      expect(
+        getSnapshotReusableUntilInMs(
+          {
+            status: "expired",
+            verification: "verified",
+            expiresAt: new Date(NOW - 30 * DAY_IN_MS),
+            graceEndsAt: new Date(Number.NaN),
+            userLimit: null,
+            isEvaluation: false,
+            features: "all",
+          },
+          NOW,
+          1000,
+        ),
+      ).toBe(NOW + 1000);
+    });
+
+    it("never reuses with a cap of zero or less", () => {
+      const snapshot: EnterpriseLicenseSnapshot = {
+        status: "missing",
+        verification: "none",
+        userLimit: null,
+        isEvaluation: false,
+        features: [],
+      };
+
+      expect(getSnapshotReusableUntilInMs(snapshot, NOW, 0)).toBe(NOW);
+      expect(getSnapshotReusableUntilInMs(snapshot, NOW, -5)).toBe(NOW);
+    });
   });
 });
 

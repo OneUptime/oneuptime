@@ -24,9 +24,10 @@ export const LICENSE_GRACE_PERIOD_IN_DAYS: number =
 /*
  * How long this process trusts the license INPUTS it read from GlobalConfig
  * (the token and the stored columns). The snapshot itself is recomputed from
- * them on every read, so expiry and grace boundaries are exact; the TTL only
- * bounds how long a license written by another process (a worker's daily
- * report, an activation served by another replica) takes to be seen here.
+ * them against the current time, so expiry and grace boundaries are exact;
+ * the TTL only bounds how long a license written by another process (a
+ * worker's daily report, an activation served by another replica) takes to
+ * be seen here.
  */
 export const LICENSE_INPUTS_CACHE_TTL_IN_MS: number = 60 * 1000;
 
@@ -36,3 +37,12 @@ export const LICENSE_INPUTS_CACHE_TTL_IN_MS: number = 60 * 1000;
  * permission check into another failing query.
  */
 export const LICENSE_INPUTS_RETRY_AFTER_FAILURE_IN_MS: number = 5 * 1000;
+
+/*
+ * The longest the license provider reuses a snapshot it computed from the
+ * same inputs, instead of classifying them again (which verifies a signed
+ * license's signature). It never reuses one past the license's expiry or the
+ * end of its grace period or trial, so those boundaries stay exact; this cap
+ * only limits how stale anything else could get.
+ */
+export const LICENSE_SNAPSHOT_REUSE_IN_MS: number = 1000;
