@@ -102,9 +102,11 @@ with anything other than `community`.
 ## Licensing
 
 A new Enterprise Edition install runs as a **14-day trial**, counted from the
-first time the install starts the Enterprise Edition. Activate a license before
-the trial ends to keep enterprise configuration editable. To get a license,
-contact [sales@oneuptime.com](mailto:sales@oneuptime.com).
+first time the install starts the Enterprise Edition. The trial is for
+evaluation: production use of the Enterprise Edition needs a subscription under
+the OneUptime Enterprise License. Activate a license before the trial ends to
+keep enterprise configuration editable. To get a license, contact
+[sales@oneuptime.com](mailto:sales@oneuptime.com).
 
 The license is managed from the **edition label**, which master admins see in
 the Admin Dashboard header and in the footer of the Dashboard. It shows the

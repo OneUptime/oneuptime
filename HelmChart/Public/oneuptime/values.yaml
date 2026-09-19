@@ -28,8 +28,10 @@ image:
   ## - enterprise-edition: the Enterprise Edition images, the same tags with an
   ##   "enterprise-" prefix. They add the enterprise features (SSO/SAML, OIDC,
   ##   SCIM, audit logs, team compliance, instance health dashboards), licensed
-  ##   under the OneUptime Enterprise License. They need a valid license: without
-  ##   one (after a 14-day grace period) enterprise configuration becomes
+  ##   under the OneUptime Enterprise License. Production use of the Enterprise
+  ##   Edition requires a subscription under that license. An install with no
+  ##   license runs as a 14-day trial, which is for evaluation. After the trial
+  ##   (or 14 days after a license expires) enterprise configuration becomes
   ##   read-only and the enterprise admin dashboards are locked. Everything
   ##   already configured keeps working (SSO, SCIM and audit logging never
   ##   stop), and core monitoring is never affected.

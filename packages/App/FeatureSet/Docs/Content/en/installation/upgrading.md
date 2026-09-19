@@ -16,7 +16,7 @@ enterprise modules from the repository's `ee/` directory: SAML SSO, OIDC, SCIM,
 team compliance, audit logs and the enterprise Health dashboards in the Admin
 Dashboard. Before this change both editions ran the same code, and
 `IS_ENTERPRISE_EDITION` decided which features were switched on. Now the image
-decides, and the Community image contains no enterprise code at all.
+decides, and the Community image does not contain the `ee/` directory.
 
 The [Enterprise Edition](/docs/self-hosted/enterprise) page has the full
 feature comparison, licensing details and what happens when you switch

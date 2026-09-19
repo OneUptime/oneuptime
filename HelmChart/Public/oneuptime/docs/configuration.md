@@ -146,7 +146,7 @@ runner:
 | `image.repository`    | Docker image repository.                                                                 | `oneuptime`          |
 | `image.tag`           | Docker image tag. Pin this in production (see [Production checklist](production-checklist.md)). | `release`     |
 | `image.pullPolicy`    | Image pull policy.                                                                        | `IfNotPresent`       |
-| `image.type`          | `community-edition` (the Apache-2.0 images) or `enterprise-edition` (the Enterprise Edition images: the same tags with an `enterprise-` prefix, adding the enterprise features under the OneUptime Enterprise License; configuring them needs a valid license). | `community-edition`  |
+| `image.type`          | `community-edition` (the Apache-2.0 images) or `enterprise-edition` (the Enterprise Edition images: the same tags with an `enterprise-` prefix, adding the enterprise features under the OneUptime Enterprise License). Production use of the Enterprise Edition requires a subscription under that license; an install with no license runs as a 14-day trial, which is for evaluation. | `community-edition`  |
 | `image.restartPolicy` | Image restart policy.                                                                     | `Always`             |
 
 ## Autoscaling & availability

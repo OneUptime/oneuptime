@@ -64,10 +64,13 @@ The docs are split into focused guides:
 Select the edition with `image.type` (`community-edition` or
 `enterprise-edition`) — see the [Configuration reference](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#images).
 `enterprise-edition` runs the Enterprise Edition images: the same tags with an
-`enterprise-` prefix. Without a valid license (after a 14-day grace period)
-enterprise configuration becomes read-only and the enterprise admin dashboards
-are locked. Everything already configured keeps working — SSO, SCIM and audit
-logging never stop — and core monitoring is never affected.
+`enterprise-` prefix. Production use of the Enterprise Edition requires a
+subscription under the OneUptime Enterprise License. An install with no
+license runs as a 14-day trial, which is for evaluation. After the trial (or
+14 days after a license expires) enterprise configuration becomes read-only and
+the enterprise admin dashboards are locked. Everything already configured keeps
+working — SSO, SCIM and audit logging never stop — and core monitoring is never
+affected.
 
 ## Uninstalling
 
