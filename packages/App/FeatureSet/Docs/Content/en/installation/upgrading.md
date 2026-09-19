@@ -31,13 +31,21 @@ editions.
   Enterprise image when you upgrade by setting `APP_TAG=enterprise-release`
   (or `enterprise-<version>`) in `config.env`. `APP_TAG=release` is the
   Community image, and `IS_ENTERPRISE_EDITION=true` no longer switches anything
-  on. The server logs a warning at startup if it is set on the Community image.
+  on. `npm run update` makes this change for you while
+  `IS_ENTERPRISE_EDITION=true` (`release` becomes `enterprise-release`, a
+  pinned `13.0.7` becomes `enterprise-13.0.7`) and prints what it changed.
+  The App now **refuses to start** when `IS_ENTERPRISE_EDITION=true` is set on
+  the Community image, instead of silently no longer enforcing "Require SSO",
+  SSO, SCIM and audit logging. The error says what to set:
+  `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
+  `IS_ENTERPRISE_EDITION=false` to run the Community Edition.
 - **Community image with SSO, OIDC or SCIM already configured:** SSO sign-in
   and SCIM provisioning stop with this upgrade, and "Require SSO for login" is
   no longer enforced. Switch to the Enterprise image to keep them. Otherwise,
   read [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)
   before you upgrade. It explains how users sign in afterwards and who to
-  remove first.
+  remove first. To run the Community Edition, also set
+  `IS_ENTERPRISE_EDITION=false`.
 
 Your configuration is never deleted, and no migration is needed to switch
 editions in either direction.
@@ -53,7 +61,8 @@ The Enterprise Edition now checks its license:
   first start of this release. After that, enterprise configuration becomes
   read-only and the enterprise Health dashboards are locked until you activate
   a license. SSO, OIDC, SCIM and audit logging keep running with the
-  configuration you have. See
+  configuration you have. The trial is for evaluation: production use of the
+  Enterprise Edition requires a OneUptime Enterprise subscription. See
   [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing).
 - **Air-gapped installs** can activate with a signed license token instead of
   a key. See [Offline activation](/docs/self-hosted/enterprise#offline-activation-air-gapped-installs).

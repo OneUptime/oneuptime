@@ -822,7 +822,7 @@ describe("nothing that deploys the images sets ONEUPTIME_EDITION", () => {
     expect(example).toMatch(/^APP_TAG=release$/m);
     expect(example).toContain("enterprise-release");
     expect(example).toMatch(/^IS_ENTERPRISE_EDITION=false$/m);
-    expect(example).toMatch(/DEPRECATED[^\n]*informational/);
+    expect(example).toMatch(/DEPRECATED[^\n]*picks the edition/);
     expect(example).not.toMatch(/^ONEUPTIME_EDITION=/m);
   });
 });

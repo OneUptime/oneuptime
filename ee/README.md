@@ -88,6 +88,18 @@ without `ee/` (see below). Runtime problems are only logged and the boot
 continues: `init()` throwing or hanging, or the first license load failing.
 The enterprise module must never take core monitoring down.
 
+The boot also stops when `IS_ENTERPRISE_EDITION=true` asks for the Enterprise
+Edition but `ee/` did not load, for example an old Enterprise `config.env` on
+the Community image (`APP_TAG=release`). Running on would silently stop
+enforcing "Require SSO", SSO, SCIM and audit logging. The error says what to
+set: `APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
+`IS_ENTERPRISE_EDITION=false` for the Community Edition. An explicit
+`ONEUPTIME_EDITION=community` only logs a warning. Both the guard and the
+admin UI's "requested but not loaded" notice use `isEnterpriseEditionRequested`
+in `packages/Common/Server/EnvironmentConfig.ts`. While
+`IS_ENTERPRISE_EDITION=true`, `npm run update` (`Scripts/Install/MergeEnvTemplate.js`)
+switches `APP_TAG` to its `enterprise-` tag and says so.
+
 `packages/App/Migrate.ts` does not run the loader. Migrations run with
 Community Edition defaults and record no audit-log rows.
 
