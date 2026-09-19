@@ -1458,6 +1458,24 @@ These are no longer recorded against the project and have to be cancelled by han
         id: createdItem.id!,
       });
 
+      /*
+       * Written down before subscribing. subscribeToPlan reports metered
+       * usage for this project while it runs, and that path looks the
+       * project's billing customer up from this row: a paid-plan project with
+       * no customer on record is refused with 402, which failed every
+       * paid-plan signup. It also keeps the Stripe customer findable if the
+       * subscription step fails.
+       */
+      await this.updateOneById({
+        id: createdItem.id!,
+        data: {
+          paymentProviderCustomerId: customerId,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
       const plan: SubscriptionPlan | undefined =
         SubscriptionPlan.getSubscriptionPlanById(
           createdItem.paymentProviderPlanId!,
