@@ -949,6 +949,30 @@ export default class GlobalConfig extends GlobalConfigModel {
   public enterpriseLicenseExpiryReminderDays?: number = undefined;
 
   /*
+   * Set once, by the enterprise module, the first time this installation boots
+   * the Enterprise Edition. An Enterprise install with no license at all gets
+   * a 14-day evaluation trial counted from here (also the transition for
+   * installs that ran the Enterprise Edition on the IS_ENTERPRISE_EDITION
+   * variable alone). Written only by the server itself (isRoot).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Enterprise Edition First Seen At",
+    description:
+      "When this installation first booted the OneUptime Enterprise Edition. An unlicensed Enterprise installation gets a 14-day trial counted from this moment.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public enterpriseEditionFirstSeenAt?: Date = undefined;
+
+  /*
    * The four latestRelease* columns cache the daily GitHub release check
    * (Workers/Jobs/InstanceUpdate/CheckForNewVersion). They are a cache, not
    * configuration: an air-gapped installation simply leaves them null and no

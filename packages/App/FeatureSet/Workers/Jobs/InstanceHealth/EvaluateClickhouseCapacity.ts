@@ -8,7 +8,6 @@ import {
   AdminDashboardClientURL,
   HomeClientUrl,
   Host,
-  IsEnterpriseEdition,
 } from "Common/Server/EnvironmentConfig";
 import {
   runWithInstanceHealthLease,
@@ -1158,11 +1157,14 @@ export async function evaluateClickhouseCapacity(): Promise<void> {
   });
 }
 
+/*
+ * Runs on every edition. ClickHouse capacity alerts and automatic pruning are
+ * Community Edition features: a self-hosted instance whose ClickHouse disk
+ * fills stops ingesting telemetry whatever edition it runs, so the safety net
+ * must not depend on the edition or a license. Both halves stay opt-in - the
+ * notification and pruning toggles in the global config default to off.
+ */
 export async function runEvaluateClickhouseCapacityWithLock(): Promise<void> {
-  if (!IsEnterpriseEdition) {
-    return;
-  }
-
   /*
    * This job used to carry its own copy of the advisory-lock helper. It was the
    * worst offender for the pattern described in InstanceHealthLock.ts: the

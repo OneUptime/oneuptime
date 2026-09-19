@@ -1,6 +1,7 @@
 {
   "name": "@oneuptime/dashboard",
   "version": "13.0.8",
+  "license": "Apache-2.0",
   "private": false,
   "repository": {
     "type": "git",

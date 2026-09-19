@@ -168,7 +168,14 @@
       "usageCardDescription": "کاربران یکتا در همه نمونه‌های خودمیزبان مشتری، طبق گزارش روزانه نصب‌های آن‌ها.",
       "instancesCardTitle": "نمونه‌ها",
       "instancesCardDescription": "نمونه‌های خودمیزبان (آزمایشی، عملیاتی و غیره) که تحت این مجوز گزارش می‌دهند، و مدیران ارشدی که در هر کدام می‌توانیم با آن‌ها تماس بگیریم.",
-      "noInstances": "هنوز هیچ نمونه‌ای تحت این مجوز گزارشی نداده است."
+      "noInstances": "هنوز هیچ نمونه‌ای تحت این مجوز گزارشی نداده است.",
+      "offlineTokenCardTitle": "توکن مجوز آفلاین",
+      "offlineTokenCardDescription": "برای نصبی که به oneuptime.com دسترسی ندارد: یک توکن مجوز امضاشده که به شناسه نمونهٔ آن نصب متصل است دانلود کنید. مشتری آن را در داشبورد مدیریت خود جای‌گذاری می‌کند.",
+      "offlineTokenButton": "دانلود توکن آفلاین",
+      "offlineTokenIssued": "یک توکن مجوز آفلاین برای نمونهٔ {{instanceId}} دانلود شد.",
+      "offlineTokenModalTitle": "دانلود توکن مجوز آفلاین",
+      "offlineTokenModalDescription": "شناسه نمونهٔ نصب مشتری را وارد کنید. این توکن فقط روی همان نصب کار می‌کند.",
+      "offlineTokenSubmitButton": "دانلود توکن"
     },
     "userView": {
       "title": "کاربر",
@@ -827,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "پروژه‌ها، کاربران، مانیتورها و حوادث در سراسر این نمونه.",
   "Valkey memory": "حافظه Valkey",
   "Spot job backlogs and failures before they cause incidents.": "انباشت و خطاهای کارها را پیش از آنکه به حادثه بینجامند تشخیص دهید.",
-  "Track database disk and memory utilization before you run out.": "مصرف دیسک و حافظه پایگاه داده را پیش از پر شدن رصد کنید."
+  "Track database disk and memory utilization before you run out.": "مصرف دیسک و حافظه پایگاه داده را پیش از پر شدن رصد کنید.",
+  "You can still disable a provider.": "همچنان می‌توانید یک ارائه‌دهنده را غیرفعال کنید.",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "بدون مجوز معتبر Enterprise این پیکربندی فقط‌خواندنی است و ورود از طریق این ارائه‌دهندگان خاموش است، اما غیرفعال کردن یک ارائه‌دهنده همیشه مجاز است، زیرا فقط می‌تواند امنیت را سخت‌گیرانه‌تر کند. به محض فعال شدن یک مجوز، ورود از طریق همه ارائه‌دهندگان فعال از سر گرفته می‌شود؛ بنابراین اگر یک ارائه‌دهنده هویت به خطر افتاده است، همین حالا از «غیرفعال کردن» استفاده کنید تا خاموش بماند. برای فعال کردن دوباره یک ارائه‌دهنده به مجوز معتبر نیاز است.",
+  "Disable Provider": "غیرفعال کردن ارائه‌دهنده",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "تا زمانی که این ارائه‌دهنده دوباره فعال نشود، هیچ‌کس نمی‌تواند با آن وارد شود و فعال کردن دوباره آن به مجوز معتبر Enterprise نیاز دارد.",
+  "Disable": "غیرفعال کردن",
+  "Disable Project Attachment": "غیرفعال کردن اتصال پروژه",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "این ارائه‌دهنده دیگر کاربری را در این پروژه ایجاد نمی‌کند و وقتی به پروژه‌های متصل محدود شده باشد، دسترسی به آن را نیز نمی‌دهد. برای فعال کردن دوباره این اتصال به مجوز معتبر Enterprise نیاز است.",
+  "Disable this provider": "غیرفعال کردن این ارائه‌دهنده",
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "تا زمانی که مجوز Enterprise وجود ندارد یا منقضی شده است، ورود از طریق این ارائه‌دهنده خاموش است و به محض فعال شدن یک مجوز از سر گرفته می‌شود. ارائه‌دهنده را غیرفعال کنید تا خاموش بماند. پیکربندی آن همان‌طور که هست باقی می‌ماند و وقتی مجوز Enterprise دوباره معتبر شد، می‌توان آن را دوباره فعال کرد."
 }

@@ -4,6 +4,7 @@ import {
   SERVICE_PROVIDER_LOGIN_OIDC_URL,
   SERVICE_PROVIDER_LOGIN_URL,
 } from "../Utils/ApiPaths";
+import { isSsoUnavailableStatusCode } from "../Utils/SsoAvailability";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
@@ -28,6 +29,29 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import StaticModelList from "Common/UI/Components/ModelList/StaticModelList";
 
+/*
+ * True when every one of the SSO lookups was refused the way a server without
+ * SSO login refuses it (see isSsoUnavailableStatusCode). A single refusal is
+ * not enough: the other lookup may still have found providers.
+ */
+const areAllLookupsUnavailable: (
+  results: Array<HTTPResponse<JSONArray> | HTTPErrorResponse>,
+) => boolean = (
+  results: Array<HTTPResponse<JSONArray> | HTTPErrorResponse>,
+): boolean => {
+  return (
+    results.length > 0 &&
+    results.every(
+      (result: HTTPResponse<JSONArray> | HTTPErrorResponse): boolean => {
+        return (
+          result instanceof HTTPErrorResponse &&
+          isSsoUnavailableStatusCode(result.statusCode)
+        );
+      },
+    )
+  );
+};
+
 const LoginPage: () => JSX.Element = () => {
   const { t } = useTranslation();
 
@@ -45,6 +69,15 @@ const LoginPage: () => JSX.Element = () => {
   const [globalOidcConfigs, setGlobalOidcConfigs] = useState<Array<GlobalOIDC>>(
     [],
   );
+  /*
+   * SSO login is part of the OneUptime Enterprise Edition and runs only while
+   * its license is active. A Community Edition server does not serve the SSO
+   * routes at all (404), and an Enterprise Edition server whose license has
+   * lapsed (or does not include SSO) refuses them (402). Instead of a
+   * confusing "no SSO configuration found" this page explains why, in words
+   * that fit both servers, and points back to email and password sign-in.
+   */
+  const [isSsoUnavailable, setIsSsoUnavailable] = useState<boolean>(false);
 
   /*
    * Global SSO / OIDC providers are NOT email-bound, so they are discovered up
@@ -67,6 +100,16 @@ const LoginPage: () => JSX.Element = () => {
           return e;
         }),
       ]);
+
+      if (
+        areAllLookupsUnavailable([
+          samlResult as HTTPResponse<JSONArray> | HTTPErrorResponse,
+          oidcResult as HTTPResponse<JSONArray> | HTTPErrorResponse,
+        ])
+      ) {
+        setIsSsoUnavailable(true);
+        return;
+      }
 
       if (
         !(samlResult instanceof HTTPErrorResponse) &&
@@ -130,6 +173,17 @@ const LoginPage: () => JSX.Element = () => {
           return e;
         }),
       ]);
+
+      if (
+        areAllLookupsUnavailable([
+          samlResult as HTTPResponse<JSONArray> | HTTPErrorResponse,
+          oidcResult as HTTPResponse<JSONArray> | HTTPErrorResponse,
+        ])
+      ) {
+        setIsSsoUnavailable(true);
+        setIsLoading(false);
+        return;
+      }
 
       let nextSaml: Array<ProjectSSO> = [];
       let nextOidc: Array<ProjectOIDC> = [];
@@ -257,6 +311,44 @@ const LoginPage: () => JSX.Element = () => {
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
+  }
+
+  if (isSsoUnavailable) {
+    return (
+      <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md mx-auto">
+          <img
+            className="mx-auto h-10 w-auto sm:h-12"
+            src={OneUptimeLogo}
+            alt="OneUptime"
+          />
+          <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
+            {t("sso.title")}
+          </h2>
+        </div>
+
+        <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
+          <div
+            className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10"
+            data-testid="sso-enterprise-edition-required"
+          >
+            <p className="text-center text-sm text-gray-600">
+              {t("sso.enterpriseEditionRequired", {
+                defaultValue:
+                  "Single sign-on (SSO) is not available on this server: it needs the OneUptime Enterprise Edition with an active license. Sign in with your email and password instead.",
+              })}
+            </p>
+            <div className="actions text-center mt-4 hover:underline fw-semibold">
+              <Link to={new Route("/accounts/login")}>
+                <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
+                  {t("sso.useUsernameInstead")}
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const hasAnyConfigs: boolean =

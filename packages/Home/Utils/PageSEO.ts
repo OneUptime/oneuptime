@@ -1275,7 +1275,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     title:
       "Self-Hosted OneUptime | Deployment, Architecture & Support | OneUptime",
     description:
-      "Run the full OneUptime platform on your own infrastructure. Deployment models, reference architecture, Kubernetes requirements, high availability and disaster recovery, upgrade responsibility, air-gapped operation, hardened images, data residency, and support boundaries.",
+      "Run the full OneUptime platform on your own infrastructure. Deployment models, reference architecture, Kubernetes requirements, high availability and disaster recovery, upgrade responsibility, air-gapped operation, the Enterprise Edition, data residency, and support boundaries.",
     canonicalPath: "/enterprise/self-hosted",
     twitterCard: "summary_large_image",
     pageType: "enterprise",
@@ -1297,7 +1297,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "High availability with CloudNativePG and Altinity ClickHouse operators",
         "Pod Disruption Budgets, HPA, and KEDA autoscaling",
         "Air-gapped operation with mirrored images and no outbound calls",
-        "Hardened Enterprise Edition container images",
+        "Enterprise Edition images with SSO, SCIM, and audit logs",
         "Customer-controlled data residency and encryption keys",
         "Documented upgrade responsibility and support boundaries",
       ],

@@ -9,6 +9,39 @@ import react from "eslint-plugin-react";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/*
+ * The Enterprise Edition boundary (ee/LICENSE). Core never depends on ee/:
+ * the Community image is built with ee/ absent, and core code is Apache-2.0.
+ * The one door is each frontend's src/Enterprise/Plugins.ts, which imports a
+ * bare plugin specifier that the build resolves (the Community stub, or the ee
+ * plugin in the Enterprise image - see packages/Common/UI/esbuild-enterprise.js).
+ *
+ * packages/App/Tests/EnterpriseImportGuard.test.ts enforces the same rules for
+ * what this rule cannot see: require(), dynamic import() and .js files.
+ */
+const ENTERPRISE_PLUGIN_ENTRY_FILES = [
+  "packages/App/FeatureSet/Dashboard/src/Enterprise/Plugins.ts",
+  "packages/App/FeatureSet/AdminDashboard/src/Enterprise/Plugins.ts",
+];
+
+const TYPESCRIPT_FILES = ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"];
+
+// A path segment that is exactly "ee": "../../ee/Dashboard", "/usr/src/ee".
+const EE_PATH_SEGMENT_PATTERN = {
+  regex: "(^|/)ee(/|$)",
+  caseSensitive: true,
+  message:
+    "Core code must not import from ee/ (Enterprise Edition). Only src/Enterprise/Plugins.ts may reach it, through the bare plugin specifier.",
+};
+
+// "@oneuptime/ee" (the ee package) and "@oneuptime/ee-*" (the UI plugins).
+const EE_PACKAGE_PATTERN = {
+  regex: "^@oneuptime/ee($|[-/])",
+  caseSensitive: true,
+  message:
+    "Core code must not import the Enterprise Edition. Only src/Enterprise/Plugins.ts may import its plugin specifier; everything else reads the plugins through getDashboardPlugins() / getAdminDashboardPlugins().",
+};
+
 export default tseslint.config(
   {
     ignores: [
@@ -248,6 +281,69 @@ export default tseslint.config(
     },
     linterOptions: {
       reportUnusedDisableDirectives: false, // Disable for performance
+    },
+  },
+  /*
+   * Enterprise Edition boundary, three disjoint file sets (a later config
+   * object REPLACES a rule's options for the files it matches, so they must
+   * not overlap).
+   */
+  {
+    // Core: no ee/ path and no ee package, at all.
+    files: TYPESCRIPT_FILES,
+    ignores: ["ee/**", ...ENTERPRISE_PLUGIN_ENTRY_FILES],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: [EE_PATH_SEGMENT_PATTERN, EE_PACKAGE_PATTERN] },
+      ],
+    },
+  },
+  {
+    /*
+     * The two plugin entry files: the bare "@oneuptime/ee-<frontend>"
+     * specifier only - never a path into ee/, never the ee package itself.
+     */
+    files: ENTERPRISE_PLUGIN_ENTRY_FILES,
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            EE_PATH_SEGMENT_PATTERN,
+            {
+              regex: "^@oneuptime/ee($|/)",
+              caseSensitive: true,
+              message:
+                "Import the Enterprise UI through its bare plugin specifier (@oneuptime/ee-dashboard or @oneuptime/ee-admin-dashboard) only.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    /*
+     * ee/ reaches core as Common/..., App/..., @oneuptime/dashboard/... and
+     * @oneuptime/admin-dashboard/... - the specifiers its build, tsconfigs
+     * and jest config map. A relative path into packages/ works on one
+     * checkout layout only (the image puts ee/ at /usr/src/ee).
+     */
+    files: ["ee/**/*.ts", "ee/**/*.tsx", "ee/**/*.mts", "ee/**/*.cts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(\\./)?(\\.\\./)+packages(/|$)",
+              caseSensitive: true,
+              message:
+                "ee/ must import core as Common/..., App/..., @oneuptime/dashboard/... or @oneuptime/admin-dashboard/..., never through a relative path into packages/.",
+            },
+          ],
+        },
+      ],
     },
   },
 );

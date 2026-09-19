@@ -15,7 +15,8 @@ import type {
  * The browser-side view of the readiness contract.
  *
  * These are type-only imports from the server service on purpose. The previous
- * surface of this kind (Components/Team/TeamComplianceStatusTable.tsx:25-45)
+ * surface of this kind (the team compliance status table, now
+ * ee/Dashboard/TeamCompliance/TeamComplianceStatusTable.tsx)
  * hand-copied its response interface and typed the fetch `any` end to end, so
  * the client shape had no compile-time link to the server shape and could drift
  * silently for as long as nobody happened to look at both files. Deriving the

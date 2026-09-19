@@ -1,11 +1,16 @@
 import UserService from "../../../Server/Services/UserService";
-import EnterpriseLicenseSeatUtil from "../../../Server/Utils/EnterpriseLicense/EnterpriseLicenseSeatUtil";
+import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import User from "../../../Models/DatabaseModels/User";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import FakeEnterpriseModule, {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -21,6 +26,11 @@ import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
  * else; a check on the invitation would have left signup and SSO as open doors
  * beside it.
  *
+ * The limit itself is the Enterprise license client's (ee/Server/License); core
+ * asks it through EnterpriseEdition.assertSeatAvailableForNewUser, which is a
+ * no-op on the Community Edition. What the license client decides (billing,
+ * license status, the live user count) is tested in ee/Tests/Server/License.
+ *
  * The single most important assertion in this file is the isRoot one. Team
  * invitations create the invited user with `props: { isRoot: true }`
  * (TeamMemberService.onBeforeCreate), so the usual "internal writes bypass
@@ -28,17 +38,20 @@ import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
  * asked for.
  */
 
-jest.mock(
-  "../../../Server/Utils/EnterpriseLicense/EnterpriseLicenseSeatUtil",
-  () => {
-    return {
-      __esModule: true,
-      default: {
-        assertSeatAvailableForNewUser: jest.fn(),
-      },
-    };
-  },
-);
+// CI's config.env sets BILLING_ENABLED=true; this suite pins it per test.
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../Enterprise/TestBillingFlag",
+    ) as typeof import("../Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
 
 type OnBeforeCreateFunction = (createBy: CreateBy<User>) => Promise<unknown>;
 
@@ -71,34 +84,50 @@ const makeCreateBy: MakeCreateByFunction = (
   } as unknown as CreateBy<User>;
 };
 
-type AssertSeatMockFunction = () => jest.Mock;
-
-const assertSeatMock: AssertSeatMockFunction = (): jest.Mock => {
-  return EnterpriseLicenseSeatUtil.assertSeatAvailableForNewUser as unknown as jest.Mock;
-};
-
 describe("UserService - the enterprise seat limit", () => {
+  let fake: FakeEnterpriseModule;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    assertSeatMock().mockResolvedValue(undefined);
+    setTestBillingEnabled(false);
+    fake = installFakeEnterpriseModule();
     UserService.countBy = jest.fn().mockResolvedValue(new PositiveNumber(7));
   });
 
   afterEach(() => {
+    uninstallEnterpriseModule();
+    setTestBillingEnabled(false);
     jest.restoreAllMocks();
   });
 
-  it("checks the seat limit before creating a user", async () => {
+  it("asks the Enterprise license client before creating a user", async () => {
+    const assertSpy: jest.SpyInstance = jest.spyOn(
+      EnterpriseEdition,
+      "assertSeatAvailableForNewUser",
+    );
+
     await onBeforeCreate(makeCreateBy());
 
-    expect(assertSeatMock()).toHaveBeenCalledTimes(1);
+    expect(assertSpy).toHaveBeenCalledTimes(1);
+    expect(assertSpy).toHaveBeenCalledWith();
+    expect(fake.licensing.seatChecks).toBe(1);
   });
 
   it("refuses the create when there is no seat for the new user", async () => {
-    assertSeatMock().mockRejectedValue(new BadDataException("No seats left"));
+    fake.licensing.seatError = new BadDataException("No seats left");
 
     await expect(onBeforeCreate(makeCreateBy())).rejects.toBeInstanceOf(
       BadDataException,
+    );
+  });
+
+  it("passes the license client's refusal through unchanged", async () => {
+    fake.licensing.seatError = new BadDataException(
+      "This OneUptime installation has reached the 10-user limit of its enterprise license.",
+    );
+
+    await expect(onBeforeCreate(makeCreateBy())).rejects.toThrow(
+      "reached the 10-user limit",
     );
   });
 
@@ -116,7 +145,21 @@ describe("UserService - the enterprise seat limit", () => {
     async (_label: string, props: Record<string, unknown>) => {
       await onBeforeCreate(makeCreateBy(props));
 
-      expect(assertSeatMock()).toHaveBeenCalledTimes(1);
+      expect(fake.licensing.seatChecks).toBe(1);
+    },
+  );
+
+  it.each([
+    ["a root write", { isRoot: true }],
+    ["a master admin", { isMasterAdmin: true }],
+  ])(
+    "refuses %s when the license is full",
+    async (_label: string, props: Record<string, unknown>) => {
+      fake.licensing.seatError = new BadDataException("No seats left");
+
+      await expect(onBeforeCreate(makeCreateBy(props))).rejects.toBeInstanceOf(
+        BadDataException,
+      );
     },
   );
 
@@ -126,7 +169,7 @@ describe("UserService - the enterprise seat limit", () => {
      * that, a rejected create would still have done work; more importantly the
      * ordering pins that nothing was inserted ahead of the check later on.
      */
-    assertSeatMock().mockRejectedValue(new BadDataException("No seats left"));
+    fake.licensing.seatError = new BadDataException("No seats left");
 
     const createBy: CreateBy<User> = makeCreateBy();
     (createBy.data as unknown as Record<string, unknown>)["clickIds"] = {
@@ -136,47 +179,42 @@ describe("UserService - the enterprise seat limit", () => {
     await expect(onBeforeCreate(createBy)).rejects.toBeInstanceOf(
       BadDataException,
     );
+    expect(
+      (createBy.data as unknown as Record<string, unknown>)["clickIds"],
+    ).toEqual({ gclid: "abc" });
   });
 
-  describe("the user count it enforces against", () => {
-    type GetLocalUserCountFunction = () => Promise<number>;
+  /*
+   * Counting users is the license client's business, and only when a limit
+   * applies. The create path of every user on the installation must not pay
+   * for a count in core.
+   */
+  it("does not count users itself", async () => {
+    await onBeforeCreate(makeCreateBy());
 
-    type CapturedCallbackFunction = () => GetLocalUserCountFunction;
+    expect(UserService.countBy).not.toHaveBeenCalled();
+  });
 
-    const capturedCallback: CapturedCallbackFunction =
-      (): GetLocalUserCountFunction => {
-        const call: Record<string, unknown> = assertSeatMock().mock
-          .calls[0]![0] as Record<string, unknown>;
-
-        return call["getLocalUserCount"] as GetLocalUserCountFunction;
-      };
-
-    it("counts every user on this installation, not just the caller's project", async () => {
-      await onBeforeCreate(makeCreateBy());
-
-      const count: number = await capturedCallback()();
-
-      expect(count).toBe(7);
-
-      const countCall: Record<string, unknown> = (
-        UserService.countBy as unknown as jest.Mock
-      ).mock.calls[0]![0] as Record<string, unknown>;
-
-      expect(countCall["query"]).toEqual({});
-      expect((countCall["props"] as Record<string, unknown>)["isRoot"]).toBe(
-        true,
-      );
+  describe("on the Community Edition", () => {
+    beforeEach(() => {
+      uninstallEnterpriseModule();
     });
 
-    /*
-     * The count is deliberately behind a callback rather than passed in: on
-     * Community Edition, and on a licence with no seat limit, it must never
-     * run at all. This is the create path of every user on the installation.
-     */
-    it("does not count users unless the seat check asks for it", async () => {
-      await onBeforeCreate(makeCreateBy());
-
+    it("has no seat limit at all", async () => {
+      await expect(onBeforeCreate(makeCreateBy())).resolves.toBeDefined();
       expect(UserService.countBy).not.toHaveBeenCalled();
+    });
+
+    it("has no seat limit for root writes either", async () => {
+      await expect(
+        onBeforeCreate(makeCreateBy({ isRoot: true })),
+      ).resolves.toBeDefined();
+    });
+
+    it("has no seat limit with billing on", async () => {
+      setTestBillingEnabled(true);
+
+      await expect(onBeforeCreate(makeCreateBy())).resolves.toBeDefined();
     });
   });
 });

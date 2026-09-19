@@ -2,7 +2,7 @@
 
 Global SSO를 사용하면 OneUptime **인스턴스 관리자**(마스터 관리자)가 단일 SAML 2.0 또는 OpenID Connect(OIDC) ID 공급자를 **인스턴스 수준에서 한 번만** 구성하고 이를 서버의 모든 프로젝트에 연결할 수 있습니다. 이는 프로젝트별 SSO에 대응하는 인스턴스 전체 기능입니다. 모든 프로젝트 소유자가 각자의 ID 공급자를 구성하는 대신, 마스터 관리자가 전체 인스턴스에 사용할 수 있는 하나를 설정합니다.
 
-Global SSO는 **OneUptime Enterprise Edition** 기능이며 Enterprise Edition 빌드를 실행하는 인스턴스에서만 사용할 수 있습니다.
+Global SSO는 **OneUptime Enterprise Edition** 기능이며 Enterprise Edition 빌드를 실행하는 인스턴스에서만 사용할 수 있습니다. 실행 방법, 라이선스 작동 방식, Community Edition에서 SSO 요구 사항이 어떻게 되는지는 [Enterprise Edition](/docs/self-hosted/enterprise)을 참고하세요. 유효한 라이선스가 없으면(14일 평가판 종료 후 또는 라이선스 만료 30일 후) 라이선스가 활성화될 때까지 전역 SSO 로그인이 중지되고 인스턴스 전체의 "Require SSO"가 적용되지 않습니다.
 
 ## Global SSO와 Project SSO 비교
 

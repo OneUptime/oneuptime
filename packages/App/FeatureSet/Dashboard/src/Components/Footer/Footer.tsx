@@ -13,6 +13,7 @@ import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
+import { getDashboardPlugins } from "../../Enterprise/Plugins";
 
 interface VersionInfo {
   version?: string;
@@ -65,7 +66,15 @@ const DashboardFooter: () => JSX.Element = () => {
         copyright={t("footer.copyright")}
         links={[
           {
-            content: <EditionLabel />,
+            /*
+             * The Enterprise plugin's license manager, read here in render
+             * (never at module load); the Community stub has none.
+             */
+            content: (
+              <EditionLabel
+                licenseManager={getDashboardPlugins().LicenseManager}
+              />
+            ),
           },
           {
             title: (
