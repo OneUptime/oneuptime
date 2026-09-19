@@ -60,6 +60,9 @@ kubernetes/values-saas-production.yaml
 # Enterprise Edition: license signing keys and build output must never be
 # committed (the whole ee/ directory ships inside the Enterprise image).
 ee/**/*.pem
+ee/**/*.key
+ee/**/*.p8
+ee/**/*.der
 ee/keys/
 ee/**/keys/
 ee/build/

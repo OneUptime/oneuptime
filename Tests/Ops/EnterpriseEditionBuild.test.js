@@ -898,6 +898,9 @@ describe(".dockerignore", () => {
 
   test.each([
     ["ee/**/*.pem", "license-signing keys anywhere under ee/"],
+    ["ee/**/*.key", "raw keys anywhere under ee/"],
+    ["ee/**/*.p8", "PKCS#8 keys anywhere under ee/"],
+    ["ee/**/*.der", "DER keys anywhere under ee/"],
     ["ee/keys", "the ee/keys directory"],
     ["ee/**/keys/", "any keys/ directory under ee/"],
     ["ee/build", "local ee build output"],
@@ -921,12 +924,17 @@ describe(".gitignore keeps ee key material out of the repository too", () => {
       return line.trim();
     });
 
-  test.each(["ee/**/*.pem", "ee/keys/", "ee/**/keys/", "ee/build/"])(
-    "ignores %s",
-    (pattern) => {
-      expect(entries).toContain(pattern);
-    },
-  );
+  test.each([
+    "ee/**/*.pem",
+    "ee/**/*.key",
+    "ee/**/*.p8",
+    "ee/**/*.der",
+    "ee/keys/",
+    "ee/**/keys/",
+    "ee/build/",
+  ])("ignores %s", (pattern) => {
+    expect(entries).toContain(pattern);
+  });
 });
 
 /*
