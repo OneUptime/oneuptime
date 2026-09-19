@@ -1068,8 +1068,10 @@ export const IsEnterpriseEdition: boolean =
  *               runs as the Community Edition)
  *
  * The effective edition is EnterpriseEdition.isLoaded(), decided at boot by
- * packages/App/Utils/EnterpriseLoader.ts. IS_ENTERPRISE_EDITION above is kept
- * only for compatibility and gates nothing.
+ * packages/App/Utils/EnterpriseLoader.ts. IS_ENTERPRISE_EDITION above turns
+ * nothing on: it only says the Enterprise Edition is expected (see
+ * isEnterpriseEditionRequested below), and the boot stops when it is expected
+ * but the enterprise module did not load.
  */
 export type OneUptimeEditionSetting = "auto" | "community" | "enterprise";
 
@@ -1103,6 +1105,32 @@ export const parseOneUptimeEdition: (
  */
 export const OneUptimeEdition: OneUptimeEditionSetting | null =
   parseOneUptimeEdition(process.env["ONEUPTIME_EDITION"]);
+
+/*
+ * Whether this install asks for the Enterprise Edition: IS_ENTERPRISE_EDITION
+ * is exactly "true", unless ONEUPTIME_EDITION=community explicitly chooses the
+ * Community Edition. The Enterprise image bakes IS_ENTERPRISE_EDITION=true, and
+ * ONEUPTIME_EDITION=community is the documented way to run that image as the
+ * Community Edition, so that combination is a deliberate choice, not a
+ * mismatch.
+ *
+ * This is the one definition behind both the App's boot guard
+ * (packages/App/Utils/EnterpriseLoader.ts: requested but not loaded stops the
+ * boot) and the frontends' ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED notice
+ * (Server/Utils/FrontendEnvironment.ts), so the two never disagree. It takes
+ * the environment as an argument, so a caller can read it when it needs to.
+ */
+export const isEnterpriseEditionRequested: (
+  environment: Record<string, string | undefined>,
+) => boolean = (environment: Record<string, string | undefined>): boolean => {
+  return (
+    environment["IS_ENTERPRISE_EDITION"] === "true" &&
+    parseOneUptimeEdition(environment["ONEUPTIME_EDITION"]) !== "community"
+  );
+};
+
+export const IsEnterpriseEditionRequested: boolean =
+  isEnterpriseEditionRequested(process.env);
 
 /*
  * Overrides where the loader looks for the ee/ directory (tests and fixtures).

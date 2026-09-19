@@ -8,7 +8,7 @@ import { EnterpriseLicenseSnapshot } from "Common/Server/Enterprise/EnterpriseLi
 import {
   AllowBillingWithoutEnterprise,
   IsBillingEnabled,
-  IsEnterpriseEdition,
+  IsEnterpriseEditionRequested,
   ONEUPTIME_EDITION_SETTINGS,
   OneUptimeEdition,
   OneUptimeEditionSetting,
@@ -31,6 +31,11 @@ import JobDictionary from "../FeatureSet/Workers/Utils/JobDictionary";
  *     its require() fails or it does not match the contract, an unrecognised
  *     ONEUPTIME_EDITION, ONEUPTIME_EDITION=enterprise with no ee, and billing
  *     (the hosted oneuptime.com) without ee;
+ *   - fail fast when the Enterprise Edition is requested
+ *     (IS_ENTERPRISE_EDITION=true) but ee is not loaded, unless
+ *     ONEUPTIME_EDITION=community explicitly chooses the Community Edition
+ *     (then only a warning). Starting anyway would silently stop enforcing
+ *     "Require SSO", SSO/SCIM and audit logging: a fail-open upgrade;
  *   - log and continue for anything at runtime: init() throwing or hanging,
  *     the first license load failing. Core monitoring must never be taken
  *     down by the enterprise module.
@@ -78,7 +83,10 @@ export interface EnterpriseLoaderOptions {
   isBillingEnabled?: boolean | undefined;
   // Defaults to ALLOW_BILLING_WITHOUT_ENTERPRISE.
   allowBillingWithoutEnterprise?: boolean | undefined;
-  // Defaults to the raw IS_ENTERPRISE_EDITION variable.
+  /*
+   * Defaults to EnvironmentConfig's IsEnterpriseEditionRequested:
+   * IS_ENTERPRISE_EDITION=true, unless ONEUPTIME_EDITION=community.
+   */
   isEnterpriseEditionRequested?: boolean | undefined;
 }
 
@@ -106,6 +114,8 @@ export interface EnterpriseBootGuardInput {
   isBillingEnabled: boolean;
   allowBillingWithoutEnterprise: boolean;
   isEnterpriseEditionRequested: boolean;
+  // The resolved ONEUPTIME_EDITION setting ("community" = chosen explicitly).
+  edition: OneUptimeEditionSetting;
 }
 
 // A boot-stopping problem with the enterprise module or its configuration.
@@ -299,7 +309,8 @@ export default class EnterpriseLoader {
       isEnterpriseEditionRequested:
         options.isEnterpriseEditionRequested !== undefined
           ? options.isEnterpriseEditionRequested
-          : IsEnterpriseEdition,
+          : IsEnterpriseEditionRequested,
+      edition,
     });
 
     return result;
@@ -310,8 +321,19 @@ export default class EnterpriseLoader {
    *   ALLOW_BILLING_WITHOUT_ENTERPRISE development escape hatch is set. Paid
    *   SSO and audit logging would silently stop, and the license server that
    *   self-hosted customers activate against would be gone.
-   * - IS_ENTERPRISE_EDITION=true without ee: a loud warning. The variable no
-   *   longer turns anything on; the Enterprise image does.
+   * - the Enterprise Edition requested (IS_ENTERPRISE_EDITION=true) without
+   *   ee: fatal. The variable no longer turns anything on; the image does.
+   *   Before the edition split a Docker Compose Enterprise install was
+   *   APP_TAG=release plus IS_ENTERPRISE_EDITION=true, and APP_TAG=release is
+   *   now the Community image. Starting it would silently stop enforcing
+   *   "Require SSO" (password sign-in accepted again), 404 the SSO and SCIM
+   *   routes (identity provider deprovisioning stops) and stop audit logging,
+   *   so the boot refuses and the error says exactly what to set.
+   *   An explicit ONEUPTIME_EDITION=community is the operator choosing the
+   *   Community Edition, so it only warns. isEnterpriseEditionRequested
+   *   already excludes that case when both values come from the environment;
+   *   the edition check keeps the guard right when a caller passes the
+   *   edition and the request separately.
    */
   public static enforceBootGuards(input: EnterpriseBootGuardInput): void {
     if (input.isBillingEnabled && !input.isLoaded) {
@@ -331,14 +353,33 @@ export default class EnterpriseLoader {
       );
     }
 
-    if (input.isEnterpriseEditionRequested && !input.isLoaded) {
-      logger.warn(
-        "IS_ENTERPRISE_EDITION=true, but this is the OneUptime Community Edition image, so no Enterprise " +
-          "features are available. Setting the variable no longer enables them: run the Enterprise " +
-          "Edition image (APP_TAG=enterprise-<version>) instead. SSO, SCIM and audit log settings " +
-          "you already have are kept, but not enforced, until then.",
-      );
+    if (!input.isEnterpriseEditionRequested || input.isLoaded) {
+      return;
     }
+
+    if (input.edition === "community") {
+      logger.warn(
+        "IS_ENTERPRISE_EDITION=true, but ONEUPTIME_EDITION=community: running the OneUptime Community " +
+          'Edition as configured. It does not enforce "Require SSO", does not serve SSO or SCIM, and ' +
+          "does not record audit logs; your SSO, SCIM and audit log settings are kept, not enforced. " +
+          "Set IS_ENTERPRISE_EDITION=false to confirm the Community Edition, or unset " +
+          "ONEUPTIME_EDITION on the Enterprise image to run the Enterprise Edition.",
+      );
+      return;
+    }
+
+    throw new EnterpriseLoaderError(
+      "IS_ENTERPRISE_EDITION=true, but the OneUptime Enterprise module is not loaded, so this process " +
+        "would run as the Community Edition (the Community image contains no enterprise code). Refusing " +
+        'to start: the Community Edition does not enforce "Require SSO" (password sign-in would be ' +
+        "accepted), does not serve SSO or SCIM (identity provider deprovisioning would stop) and does " +
+        "not record audit logs, so starting would silently switch those off. " +
+        "To keep the Enterprise Edition, run the Enterprise image: with Docker Compose set " +
+        "APP_TAG=enterprise-<version> (for example APP_TAG=enterprise-release) in config.env and run " +
+        '"npm run update"; with Helm set image.type: enterprise-edition. ' +
+        "To run the Community Edition, which does not enforce SSO, SCIM or audit logging, set " +
+        "IS_ENTERPRISE_EDITION=false (or ONEUPTIME_EDITION=community).",
+    );
   }
 
   /*

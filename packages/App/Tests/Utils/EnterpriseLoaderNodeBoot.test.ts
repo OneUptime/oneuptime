@@ -9,8 +9,10 @@ import path from "path";
  *   - a TypeScript `export default` entry is unwrapped and registered on the
  *     same EnterpriseEdition instance core reads;
  *   - a compiled .js CommonJS entry loads too;
- *   - ONEUPTIME_EDITION=enterprise with no module, and billing without ee,
- *     stop the boot with a non-zero exit and a readable reason.
+ *   - ONEUPTIME_EDITION=enterprise with no module, billing without ee, and
+ *     IS_ENTERPRISE_EDITION=true without ee (a pre-split Enterprise config on
+ *     the Community image) stop the boot with a non-zero exit and a readable
+ *     reason; an explicit ONEUPTIME_EDITION=community boots as Community.
  *
  * Uses the fixtures only, never the repository's ee/: core CI jobs run with
  * ee/ removed.
@@ -138,6 +140,38 @@ describe("EnterpriseLoader under real node + ts-node", () => {
     expect(run.status).toBe(3);
     expect(run.result).toBeNull();
     expect(run.failure).toContain("ONEUPTIME_EDITION=enterprise");
+  }, 180000);
+
+  test("IS_ENTERPRISE_EDITION=true without the enterprise module exits non-zero and says what to set", () => {
+    const run: ProbeRun = runProbe({
+      IS_ENTERPRISE_EDITION: "true",
+      ONEUPTIME_EE_DIR: path.join(FIXTURES_DIR, "DoesNotExist"),
+    });
+
+    expect(run.status).toBe(3);
+    expect(run.result).toBeNull();
+    expect(run.failure).toContain("IS_ENTERPRISE_EDITION=true");
+    expect(run.failure).toContain("APP_TAG=enterprise-<version>");
+    expect(run.failure).toContain("IS_ENTERPRISE_EDITION=false");
+  }, 180000);
+
+  test("IS_ENTERPRISE_EDITION=true with an explicit ONEUPTIME_EDITION=community boots as Community", () => {
+    const run: ProbeRun = runProbe({
+      IS_ENTERPRISE_EDITION: "true",
+      ONEUPTIME_EDITION: "community",
+      ONEUPTIME_EE_DIR: path.join(FIXTURES_DIR, "DefaultExport"),
+    });
+
+    expect({ status: run.status, failure: run.failure }).toEqual({
+      status: 0,
+      failure: null,
+    });
+    expect(run.result).toMatchObject({
+      outcome: "disabled",
+      edition: "community",
+      isLoaded: false,
+      version: null,
+    });
   }, 180000);
 
   test("billing without the enterprise module exits non-zero", () => {

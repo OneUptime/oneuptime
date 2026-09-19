@@ -16,6 +16,7 @@ import type {
   EnterpriseLoadResult,
 } from "../../Utils/EnterpriseLoader";
 import type EnterpriseEditionType from "Common/Server/Enterprise/EnterpriseEdition";
+import type { OneUptimeEditionSetting } from "Common/Server/EnvironmentConfig";
 import type JobDictionaryType from "../../FeatureSet/Workers/Utils/JobDictionary";
 import {
   getFixtureCalls,
@@ -28,9 +29,11 @@ import {
  * Every case gets a fresh module registry (jest.resetModules) so the loader,
  * EnterpriseEdition and JobDictionary all start empty, exactly like a new
  * process; the fixture the loader require()s is resolved through that same
- * registry, so it shares those singletons. Billing, the raw
- * IS_ENTERPRISE_EDITION flag and the edition are always passed explicitly:
- * CI's config.env sets BILLING_ENABLED=true, and nothing here may depend on it.
+ * registry, so it shares those singletons. Billing, the Enterprise Edition
+ * request (IS_ENTERPRISE_EDITION) and the edition are always passed
+ * explicitly: CI's config.env sets BILLING_ENABLED=true, and nothing here may
+ * depend on it. The one exception is the block that proves the environment
+ * defaults; it sets and restores process.env itself.
  */
 
 const APP_ROOT: string = path.resolve(__dirname, "../..");
@@ -679,70 +682,83 @@ describe("EnterpriseLoader boot guards", () => {
     expect(logs.error).not.toHaveBeenCalled();
   });
 
-  test("IS_ENTERPRISE_EDITION=true on the Community Edition warns loudly", async () => {
+  test("IS_ENTERPRISE_EDITION=true with ee loaded boots quietly", async () => {
     const { EnterpriseLoader, logs } = await loadFresh();
 
-    await EnterpriseLoader.load(
-      baseOptions({
-        edition: "community",
-        isEnterpriseEditionRequested: true,
-      }),
-    );
-
-    expect(loggedText(logs.warn)).toContain("IS_ENTERPRISE_EDITION=true");
-    expect(loggedText(logs.warn)).toContain("Enterprise Edition image");
-  });
-
-  test("IS_ENTERPRISE_EDITION=true with ee loaded does not warn", async () => {
-    const { EnterpriseLoader, logs } = await loadFresh();
-
-    await EnterpriseLoader.load(
-      baseOptions({
-        enterpriseDirectory: fixture("DefaultExport"),
-        isEnterpriseEditionRequested: true,
-      }),
-    );
+    await expect(
+      EnterpriseLoader.load(
+        baseOptions({
+          enterpriseDirectory: fixture("DefaultExport"),
+          isEnterpriseEditionRequested: true,
+        }),
+      ),
+    ).resolves.toMatchObject({ outcome: "loaded" });
 
     expect(logs.warn).not.toHaveBeenCalled();
+    expect(logs.error).not.toHaveBeenCalled();
   });
 
-  test("enforceBootGuards is a pure decision over its four inputs", async () => {
+  test("enforceBootGuards is a pure decision over its five inputs", async () => {
     const { EnterpriseLoader, logs } = await loadFresh();
+    const editions: Array<OneUptimeEditionSetting> = [
+      "auto",
+      "community",
+      "enterprise",
+    ];
+    let combinations: number = 0;
 
     for (const isLoaded of [false, true]) {
       for (const isBillingEnabled of [false, true]) {
         for (const allowBillingWithoutEnterprise of [false, true]) {
           for (const isEnterpriseEditionRequested of [false, true]) {
-            logs.warn.mockClear();
-            logs.error.mockClear();
+            for (const edition of editions) {
+              combinations++;
+              logs.warn.mockClear();
+              logs.error.mockClear();
 
-            const shouldThrow: boolean =
-              isBillingEnabled && !isLoaded && !allowBillingWithoutEnterprise;
-            const run: () => void = (): void => {
-              EnterpriseLoader.enforceBootGuards({
-                isLoaded,
-                isBillingEnabled,
-                allowBillingWithoutEnterprise,
-                isEnterpriseEditionRequested,
-              });
-            };
+              const billingIsFatal: boolean =
+                isBillingEnabled && !isLoaded && !allowBillingWithoutEnterprise;
+              const requestIsFatal: boolean =
+                isEnterpriseEditionRequested &&
+                !isLoaded &&
+                edition !== "community";
+              const run: () => void = (): void => {
+                EnterpriseLoader.enforceBootGuards({
+                  isLoaded,
+                  isBillingEnabled,
+                  allowBillingWithoutEnterprise,
+                  isEnterpriseEditionRequested,
+                  edition,
+                });
+              };
 
-            if (shouldThrow) {
-              expect(run).toThrow("BILLING_ENABLED=true");
-              continue;
+              if (billingIsFatal) {
+                // The billing guard runs first.
+                expect(run).toThrow("BILLING_ENABLED=true");
+                continue;
+              }
+
+              if (requestIsFatal) {
+                expect(run).toThrow("APP_TAG=enterprise-<version>");
+                continue;
+              }
+
+              expect(run).not.toThrow();
+              expect(logs.error.mock.calls.length > 0).toBe(
+                isBillingEnabled && !isLoaded,
+              );
+              expect(logs.warn.mock.calls.length > 0).toBe(
+                isEnterpriseEditionRequested &&
+                  !isLoaded &&
+                  edition === "community",
+              );
             }
-
-            expect(run).not.toThrow();
-            expect(logs.error.mock.calls.length > 0).toBe(
-              isBillingEnabled && !isLoaded,
-            );
-            expect(logs.warn.mock.calls.length > 0).toBe(
-              isEnterpriseEditionRequested && !isLoaded,
-            );
           }
         }
       }
     }
+
+    expect(combinations).toBe(48);
   });
 
   test("a missing ee/ under ONEUPTIME_EDITION=enterprise is reported before the billing guard", async () => {
@@ -758,6 +774,293 @@ describe("EnterpriseLoader boot guards", () => {
       ),
     ).rejects.toThrow("ONEUPTIME_EDITION=enterprise");
   });
+});
+
+/*
+ * IS_ENTERPRISE_EDITION=true asks for the Enterprise Edition. Before the
+ * edition split a Docker Compose Enterprise install was APP_TAG=release plus
+ * IS_ENTERPRISE_EDITION=true, and APP_TAG=release is now the Community image.
+ * Booting it anyway would silently stop enforcing "Require SSO", 404 the SSO
+ * and SCIM routes and stop audit logging, so the boot refuses - unless the
+ * operator explicitly chose the Community Edition.
+ */
+describe("EnterpriseLoader: the Enterprise Edition requested but not loaded", () => {
+  const loadError: (
+    fresh: FreshModules,
+    overrides: EnterpriseLoaderOptions,
+  ) => Promise<unknown> = async (
+    fresh: FreshModules,
+    overrides: EnterpriseLoaderOptions,
+  ): Promise<unknown> => {
+    return fresh.EnterpriseLoader.load(baseOptions(overrides)).then(
+      () => {
+        return null;
+      },
+      (err: unknown) => {
+        return err;
+      },
+    );
+  };
+
+  test("no ee/ under ONEUPTIME_EDITION=auto refuses to start, and says exactly how to fix it", async () => {
+    const fresh: FreshModules = await loadFresh();
+    const root: string = makeTemporaryDirectory();
+    const appRoot: string = path.join(root, "packages", "App");
+    fs.mkdirSync(appRoot, { recursive: true });
+
+    const error: unknown = await loadError(fresh, {
+      appRoot,
+      enterpriseDirectory: "",
+      isEnterpriseEditionRequested: true,
+    });
+
+    expect(error).toBeInstanceOf(fresh.loaderModule.EnterpriseLoaderError);
+
+    const message: string = (error as Error).message;
+
+    // What is wrong, and why it stops rather than warns.
+    expect(message).toContain("IS_ENTERPRISE_EDITION=true");
+    expect(message).toContain("not loaded");
+    expect(message).toContain('"Require SSO"');
+    expect(message).toContain("SSO or SCIM");
+    expect(message).toContain("audit logs");
+    // How to keep the Enterprise Edition.
+    expect(message).toContain("APP_TAG=enterprise-<version>");
+    expect(message).toContain("APP_TAG=enterprise-release");
+    expect(message).toContain("image.type: enterprise-edition");
+    // How to run the Community Edition instead.
+    expect(message).toContain("IS_ENTERPRISE_EDITION=false");
+    expect(message).toContain("ONEUPTIME_EDITION=community");
+    expect(message).toContain(
+      "Community Edition, which does not enforce SSO, SCIM or audit logging",
+    );
+
+    expect(fresh.EnterpriseEdition.isLoaded()).toBe(false);
+    expect(fresh.logs.warn).not.toHaveBeenCalled();
+  });
+
+  test("a set ONEUPTIME_EE_DIR that holds no module refuses to start too", async () => {
+    const fresh: FreshModules = await loadFresh();
+
+    const error: unknown = await loadError(fresh, {
+      enterpriseDirectory: path.join(FIXTURES_DIR, "DoesNotExist"),
+      isEnterpriseEditionRequested: true,
+    });
+
+    expect(error).toBeInstanceOf(fresh.loaderModule.EnterpriseLoaderError);
+    expect((error as Error).message).toContain("APP_TAG=enterprise-<version>");
+  });
+
+  test("an explicit ONEUPTIME_EDITION=community only warns, and says what is not enforced", async () => {
+    const fresh: FreshModules = await loadFresh();
+
+    const result: EnterpriseLoadResult = await fresh.EnterpriseLoader.load(
+      baseOptions({
+        edition: "community",
+        enterpriseDirectory: fixture("DefaultExport"),
+        isEnterpriseEditionRequested: true,
+      }),
+    );
+
+    expect(result.outcome).toBe("disabled");
+    expect(fresh.EnterpriseEdition.isLoaded()).toBe(false);
+
+    const warning: string = loggedText(fresh.logs.warn);
+
+    expect(fresh.logs.warn).toHaveBeenCalledTimes(1);
+    expect(warning).toContain("IS_ENTERPRISE_EDITION=true");
+    expect(warning).toContain("ONEUPTIME_EDITION=community");
+    expect(warning).toContain('does not enforce "Require SSO"');
+    expect(warning).toContain("does not record audit logs");
+    expect(warning).toContain("Set IS_ENTERPRISE_EDITION=false");
+    expect(fresh.logs.error).not.toHaveBeenCalled();
+  });
+
+  test.each(["auto", "enterprise"] as Array<OneUptimeEditionSetting>)(
+    "requested and loaded under ONEUPTIME_EDITION=%s boots quietly",
+    async (edition: OneUptimeEditionSetting) => {
+      const fresh: FreshModules = await loadFresh();
+
+      await expect(
+        fresh.EnterpriseLoader.load(
+          baseOptions({
+            edition,
+            enterpriseDirectory: fixture("DefaultExport"),
+            isEnterpriseEditionRequested: true,
+          }),
+        ),
+      ).resolves.toMatchObject({ outcome: "loaded" });
+
+      expect(fresh.logs.warn).not.toHaveBeenCalled();
+      expect(fresh.logs.error).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(["auto", "community"] as Array<OneUptimeEditionSetting>)(
+    "not requested and not loaded under ONEUPTIME_EDITION=%s is the plain Community Edition",
+    async (edition: OneUptimeEditionSetting) => {
+      const fresh: FreshModules = await loadFresh();
+
+      const result: EnterpriseLoadResult = await fresh.EnterpriseLoader.load(
+        baseOptions({
+          edition,
+          enterpriseDirectory: path.join(FIXTURES_DIR, "DoesNotExist"),
+          isEnterpriseEditionRequested: false,
+        }),
+      );
+
+      expect(["not-found", "disabled"]).toContain(result.outcome);
+      expect(loggedText(fresh.logs.warn)).not.toContain(
+        "IS_ENTERPRISE_EDITION",
+      );
+      expect(fresh.logs.error).not.toHaveBeenCalled();
+    },
+  );
+
+  test("ALLOW_BILLING_WITHOUT_ENTERPRISE relaxes the billing guard only, never this one", async () => {
+    const fresh: FreshModules = await loadFresh();
+
+    const error: unknown = await loadError(fresh, {
+      edition: "auto",
+      enterpriseDirectory: path.join(FIXTURES_DIR, "DoesNotExist"),
+      isBillingEnabled: true,
+      allowBillingWithoutEnterprise: true,
+      isEnterpriseEditionRequested: true,
+    });
+
+    expect(loggedText(fresh.logs.error)).toContain(
+      "Continuing because ALLOW_BILLING_WITHOUT_ENTERPRISE=true",
+    );
+    expect(error).toBeInstanceOf(fresh.loaderModule.EnterpriseLoaderError);
+    expect((error as Error).message).toContain("APP_TAG=enterprise-<version>");
+  });
+
+  test("billing without ee is still reported first", async () => {
+    const fresh: FreshModules = await loadFresh();
+
+    const error: unknown = await loadError(fresh, {
+      enterpriseDirectory: path.join(FIXTURES_DIR, "DoesNotExist"),
+      isBillingEnabled: true,
+      isEnterpriseEditionRequested: true,
+    });
+
+    expect((error as Error).message).toContain("BILLING_ENABLED=true");
+  });
+
+  test("a broken Enterprise image (ONEUPTIME_EDITION=enterprise, no ee/) is reported as such, not as this", async () => {
+    const fresh: FreshModules = await loadFresh();
+
+    const error: unknown = await loadError(fresh, {
+      edition: "enterprise",
+      enterpriseDirectory: path.join(FIXTURES_DIR, "DoesNotExist"),
+      isEnterpriseEditionRequested: true,
+    });
+
+    expect((error as Error).message).toContain(
+      "ONEUPTIME_EDITION=enterprise, but the OneUptime Enterprise module was not found",
+    );
+  });
+
+  test("a second load after ee loaded is not re-judged as missing", async () => {
+    const fresh: FreshModules = await loadFresh();
+
+    await fresh.EnterpriseLoader.load(
+      baseOptions({
+        enterpriseDirectory: fixture("DefaultExport"),
+        isEnterpriseEditionRequested: true,
+      }),
+    );
+
+    await expect(
+      fresh.EnterpriseLoader.load(
+        baseOptions({
+          enterpriseDirectory: path.join(FIXTURES_DIR, "DoesNotExist"),
+          isEnterpriseEditionRequested: true,
+        }),
+      ),
+    ).resolves.toMatchObject({ outcome: "already-loaded" });
+  });
+});
+
+/*
+ * With no options, App/Index.ts's call, the request comes from
+ * EnvironmentConfig's IsEnterpriseEditionRequested: the same definition the
+ * frontends' "requested but not loaded" notice uses. These set the real
+ * environment (and restore it), then import everything afresh so
+ * EnvironmentConfig re-reads it.
+ */
+describe("EnterpriseLoader: the request and the edition default to the environment", () => {
+  const originalEnvironment: NodeJS.ProcessEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...originalEnvironment };
+  });
+
+  interface EnvironmentCase {
+    isEnterpriseEdition: string | undefined;
+    edition: string | undefined;
+    fatal: boolean;
+  }
+
+  test.each([
+    { isEnterpriseEdition: "true", edition: undefined, fatal: true },
+    { isEnterpriseEdition: "true", edition: "auto", fatal: true },
+    { isEnterpriseEdition: "true", edition: "community", fatal: false },
+    { isEnterpriseEdition: "true", edition: "Community", fatal: false },
+    { isEnterpriseEdition: "false", edition: undefined, fatal: false },
+    { isEnterpriseEdition: undefined, edition: undefined, fatal: false },
+    { isEnterpriseEdition: "TRUE", edition: undefined, fatal: false },
+  ] as Array<EnvironmentCase>)(
+    "IS_ENTERPRISE_EDITION=$isEnterpriseEdition, ONEUPTIME_EDITION=$edition, no ee/: fatal=$fatal",
+    async (environmentCase: EnvironmentCase) => {
+      delete process.env["IS_ENTERPRISE_EDITION"];
+      delete process.env["ONEUPTIME_EDITION"];
+
+      if (environmentCase.isEnterpriseEdition !== undefined) {
+        process.env["IS_ENTERPRISE_EDITION"] =
+          environmentCase.isEnterpriseEdition;
+      }
+
+      if (environmentCase.edition !== undefined) {
+        process.env["ONEUPTIME_EDITION"] = environmentCase.edition;
+      }
+
+      const fresh: FreshModules = await loadFresh();
+      const config: typeof import("Common/Server/EnvironmentConfig") =
+        await import("Common/Server/EnvironmentConfig");
+
+      const error: unknown = await fresh.EnterpriseLoader.load({
+        enterpriseDirectory: path.join(FIXTURES_DIR, "DoesNotExist"),
+        isBillingEnabled: false,
+        allowBillingWithoutEnterprise: false,
+        initTimeoutInMs: 100,
+        licenseLoadTimeoutInMs: 100,
+      }).then(
+        () => {
+          return null;
+        },
+        (err: unknown) => {
+          return err;
+        },
+      );
+
+      // The loader's default is exactly the shared definition.
+      expect(config.IsEnterpriseEditionRequested).toBe(environmentCase.fatal);
+
+      if (environmentCase.fatal) {
+        expect(error).toBeInstanceOf(fresh.loaderModule.EnterpriseLoaderError);
+        expect((error as Error).message).toContain(
+          "APP_TAG=enterprise-<version>",
+        );
+      } else {
+        expect(error).toBeNull();
+        // The shared definition already excludes the explicit Community choice.
+        expect(loggedText(fresh.logs.warn)).not.toContain(
+          "IS_ENTERPRISE_EDITION=true",
+        );
+      }
+    },
+  );
 });
 
 describe("EnterpriseLoader worker jobs", () => {

@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, test, jest } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import type {
   ExpressRequest,
   ExpressResponse,
@@ -7,6 +9,7 @@ import type {
 const MANAGED_KEYS: Array<string> = [
   "HOST",
   "IS_ENTERPRISE_EDITION",
+  "ONEUPTIME_EDITION",
   "ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED",
   "PUBLIC_TEST_SETTING",
   "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
@@ -294,6 +297,155 @@ describe("frontend environment edition flags", () => {
     expect(result.window.process?.env?.["PUBLIC_TEST_SETTING"]).toBe("kept");
   });
 
+  /*
+   * "Requested" is EnvironmentConfig's isEnterpriseEditionRequested, the
+   * definition the App's boot guard uses too: an explicit
+   * ONEUPTIME_EDITION=community withdraws the request. The Enterprise image
+   * bakes IS_ENTERPRISE_EDITION=true, so without that exception an operator
+   * running it as the Community Edition on purpose (the documented way) would
+   * be told "this is the Community image, switch images".
+   */
+  interface RequestCase {
+    label: string;
+    isEnterpriseEdition: string | undefined;
+    edition: string | undefined;
+    enterpriseLoaded: boolean;
+    requestedButNotLoaded: string;
+  }
+
+  test.each([
+    {
+      label: "the Enterprise image run with ONEUPTIME_EDITION=community",
+      isEnterpriseEdition: "true",
+      edition: "community",
+      enterpriseLoaded: false,
+      requestedButNotLoaded: "false",
+    },
+    {
+      label: "ONEUPTIME_EDITION=community in any case and spacing",
+      isEnterpriseEdition: "true",
+      edition: "  Community \n",
+      enterpriseLoaded: false,
+      requestedButNotLoaded: "false",
+    },
+    {
+      label: "the Community image with a leftover IS_ENTERPRISE_EDITION=true",
+      isEnterpriseEdition: "true",
+      edition: undefined,
+      enterpriseLoaded: false,
+      requestedButNotLoaded: "true",
+    },
+    {
+      label:
+        "IS_ENTERPRISE_EDITION=true with an explicit ONEUPTIME_EDITION=auto",
+      isEnterpriseEdition: "true",
+      edition: "auto",
+      enterpriseLoaded: false,
+      requestedButNotLoaded: "true",
+    },
+    {
+      label: "IS_ENTERPRISE_EDITION=true with a blank ONEUPTIME_EDITION (auto)",
+      isEnterpriseEdition: "true",
+      edition: "   ",
+      enterpriseLoaded: false,
+      requestedButNotLoaded: "true",
+    },
+    {
+      label: "ONEUPTIME_EDITION=enterprise whose module did not load",
+      isEnterpriseEdition: "true",
+      edition: "enterprise",
+      enterpriseLoaded: false,
+      requestedButNotLoaded: "true",
+    },
+    {
+      label: "an unrecognised ONEUPTIME_EDITION does not withdraw the request",
+      isEnterpriseEdition: "true",
+      edition: "comunity",
+      enterpriseLoaded: false,
+      requestedButNotLoaded: "true",
+    },
+    {
+      label: "IS_ENTERPRISE_EDITION=TRUE is not a request (exactly true only)",
+      isEnterpriseEdition: "TRUE",
+      edition: undefined,
+      enterpriseLoaded: false,
+      requestedButNotLoaded: "false",
+    },
+    {
+      label: "the Enterprise image with ee loaded",
+      isEnterpriseEdition: "true",
+      edition: "enterprise",
+      enterpriseLoaded: true,
+      requestedButNotLoaded: "false",
+    },
+    {
+      label: "ONEUPTIME_EDITION=community without IS_ENTERPRISE_EDITION",
+      isEnterpriseEdition: undefined,
+      edition: "community",
+      enterpriseLoaded: false,
+      requestedButNotLoaded: "false",
+    },
+  ] as Array<RequestCase>)(
+    "$label: requested but not loaded = $requestedButNotLoaded",
+    async (requestCase: RequestCase) => {
+      const result: Awaited<ReturnType<typeof render>> = await render(
+        {
+          IS_ENTERPRISE_EDITION: requestCase.isEnterpriseEdition,
+          ONEUPTIME_EDITION: requestCase.edition,
+        },
+        {},
+        { enterpriseLoaded: requestCase.enterpriseLoaded },
+      );
+
+      expect(
+        result.window.process?.env?.[
+          "ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED"
+        ],
+      ).toBe(requestCase.requestedButNotLoaded);
+      expect(result.window.process?.env?.["IS_ENTERPRISE_EDITION"]).toBe(
+        requestCase.enterpriseLoaded ? "true" : "false",
+      );
+    },
+  );
+
+  test("the request is read on every call, not frozen at import", async () => {
+    await render({ IS_ENTERPRISE_EDITION: "true" });
+
+    const { getFrontendEnvironmentVariables } = await import(
+      "../../../Server/Utils/FrontendEnvironment"
+    );
+
+    expect(
+      getFrontendEnvironmentVariables()[
+        "ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED"
+      ],
+    ).toBe("true");
+
+    process.env["ONEUPTIME_EDITION"] = "community";
+
+    expect(
+      getFrontendEnvironmentVariables()[
+        "ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED"
+      ],
+    ).toBe("false");
+  });
+
+  test("uses EnvironmentConfig's shared definition, not a copy of it", () => {
+    const source: string = fs
+      .readFileSync(
+        path.join(__dirname, "../../../Server/Utils/FrontendEnvironment.ts"),
+        "utf8",
+      )
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+
+    expect(source).toMatch(
+      /isEnterpriseEditionRequested\(\s*process\.env,?\s*\)/,
+    );
+    expect(source).not.toMatch(/IS_ENTERPRISE_EDITION"\]\s*===/);
+    expect(source).not.toContain("ONEUPTIME_EDITION");
+  });
+
   test("the effective flags are the only edition values in the script", async () => {
     const result: Awaited<ReturnType<typeof render>> = await render(
       { IS_ENTERPRISE_EDITION: "true" },
@@ -303,5 +455,103 @@ describe("frontend environment edition flags", () => {
 
     expect(result.script.match(/IS_ENTERPRISE_EDITION/g)?.length).toBe(1);
     expect(result.script).toContain('"IS_ENTERPRISE_EDITION":"false"');
+  });
+});
+
+/*
+ * The shared definition itself (EnvironmentConfig), which the App's boot guard
+ * (packages/App/Utils/EnterpriseLoader.ts) also uses as its default.
+ */
+describe("isEnterpriseEditionRequested", () => {
+  type EnvironmentConfigModule =
+    typeof import("../../../Server/EnvironmentConfig");
+
+  const loadConfig: (
+    overrides: Record<string, string | undefined>,
+  ) => Promise<EnvironmentConfigModule> = async (
+    overrides: Record<string, string | undefined>,
+  ): Promise<EnvironmentConfigModule> => {
+    for (const key of MANAGED_KEYS) {
+      delete process.env[key];
+    }
+
+    for (const [key, value] of Object.entries(overrides)) {
+      if (typeof value === "undefined") {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+
+    jest.resetModules();
+
+    return await import("../../../Server/EnvironmentConfig");
+  };
+
+  interface DefinitionCase {
+    isEnterpriseEdition: string | undefined;
+    edition: string | undefined;
+    requested: boolean;
+  }
+
+  test.each([
+    { isEnterpriseEdition: "true", edition: undefined, requested: true },
+    { isEnterpriseEdition: "true", edition: "", requested: true },
+    { isEnterpriseEdition: "true", edition: "auto", requested: true },
+    { isEnterpriseEdition: "true", edition: "enterprise", requested: true },
+    { isEnterpriseEdition: "true", edition: "not-an-edition", requested: true },
+    { isEnterpriseEdition: "true", edition: "community", requested: false },
+    { isEnterpriseEdition: "true", edition: " COMMUNITY ", requested: false },
+    { isEnterpriseEdition: "false", edition: undefined, requested: false },
+    { isEnterpriseEdition: "false", edition: "enterprise", requested: false },
+    { isEnterpriseEdition: undefined, edition: undefined, requested: false },
+    { isEnterpriseEdition: "", edition: "auto", requested: false },
+    { isEnterpriseEdition: "TRUE", edition: undefined, requested: false },
+    { isEnterpriseEdition: " true", edition: undefined, requested: false },
+    { isEnterpriseEdition: "1", edition: undefined, requested: false },
+  ] as Array<DefinitionCase>)(
+    "IS_ENTERPRISE_EDITION=$isEnterpriseEdition, ONEUPTIME_EDITION=$edition -> $requested",
+    async (definitionCase: DefinitionCase) => {
+      const config: EnvironmentConfigModule = await loadConfig({
+        IS_ENTERPRISE_EDITION: definitionCase.isEnterpriseEdition,
+        ONEUPTIME_EDITION: definitionCase.edition,
+      });
+
+      expect(
+        config.isEnterpriseEditionRequested({
+          IS_ENTERPRISE_EDITION: definitionCase.isEnterpriseEdition,
+          ONEUPTIME_EDITION: definitionCase.edition,
+        }),
+      ).toBe(definitionCase.requested);
+      // The constant the loader defaults to is the same rule over process.env.
+      expect(config.IsEnterpriseEditionRequested).toBe(
+        definitionCase.requested,
+      );
+    },
+  );
+
+  test("reads only the environment it is given", async () => {
+    const config: EnvironmentConfigModule = await loadConfig({
+      IS_ENTERPRISE_EDITION: "true",
+    });
+
+    expect(config.IsEnterpriseEditionRequested).toBe(true);
+    expect(config.isEnterpriseEditionRequested({})).toBe(false);
+    expect(
+      config.isEnterpriseEditionRequested({
+        IS_ENTERPRISE_EDITION: "true",
+        ONEUPTIME_EDITION: "community",
+      }),
+    ).toBe(false);
+  });
+
+  test("leaves the raw IsEnterpriseEdition flag meaning what it always meant", async () => {
+    const config: EnvironmentConfigModule = await loadConfig({
+      IS_ENTERPRISE_EDITION: "true",
+      ONEUPTIME_EDITION: "community",
+    });
+
+    expect(config.IsEnterpriseEdition).toBe(true);
+    expect(config.IsEnterpriseEditionRequested).toBe(false);
   });
 });
