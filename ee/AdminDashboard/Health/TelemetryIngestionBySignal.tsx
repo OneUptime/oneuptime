@@ -22,6 +22,10 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import HealthLicenseRequired, {
+  HealthRequestError,
+  toHealthRequestError,
+} from "./HealthLicenseRequired";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -86,10 +90,10 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<HealthRequestError | null>(null);
 
   const loadIngestionRate: () => Promise<void> = async (): Promise<void> => {
-    setError("");
+    setError(null);
 
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -105,7 +109,7 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
 
       setData(response.data);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setError(toHealthRequestError(err));
     } finally {
       setIsInitialLoading(false);
       setIsRefreshing(false);
@@ -309,6 +313,11 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
     );
   };
 
+  // A 402 means the license, not the datastore: say so instead of the data.
+  if (error?.isLicenseRequired) {
+    return <HealthLicenseRequired />;
+  }
+
   return (
     <Card
       title="Telemetry ingestion rate"
@@ -330,7 +339,11 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
     >
       <div>
         {error ? (
-          <Alert type={AlertType.DANGER} title={error} className="mb-4" />
+          <Alert
+            type={AlertType.DANGER}
+            title={error.message}
+            className="mb-4"
+          />
         ) : (
           <></>
         )}

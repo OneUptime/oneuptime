@@ -19,6 +19,10 @@ import {
   MetricInfoWrap,
   MetricSectionHeading,
 } from "./HealthMetricTooltip";
+import HealthLicenseRequired, {
+  HealthRequestError,
+  toHealthRequestError,
+} from "./HealthLicenseRequired";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -266,11 +270,13 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
   const [activity, setActivity] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
-  const [activityError, setActivityError] = useState<string>("");
+  const [error, setError] = useState<HealthRequestError | null>(null);
+  const [activityError, setActivityError] = useState<HealthRequestError | null>(
+    null,
+  );
 
   const loadClusterHealth: () => Promise<void> = async (): Promise<void> => {
-    setError("");
+    setError(null);
 
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -286,12 +292,12 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
 
       setData(response.data);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setError(toHealthRequestError(err));
     }
   };
 
   const loadActivity: () => Promise<void> = async (): Promise<void> => {
-    setActivityError("");
+    setActivityError(null);
 
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -307,7 +313,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
 
       setActivity(response.data);
     } catch (err) {
-      setActivityError(API.getFriendlyMessage(err));
+      setActivityError(toHealthRequestError(err));
     }
   };
 
@@ -1246,6 +1252,11 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     );
   };
 
+  // A 402 means the license, not the datastore: say so instead of the data.
+  if (error?.isLicenseRequired || activityError?.isLicenseRequired) {
+    return <HealthLicenseRequired />;
+  }
+
   return (
     <>
       <Card
@@ -1263,7 +1274,11 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
       >
         <div>
           {error ? (
-            <Alert type={AlertType.DANGER} title={error} className="mb-4" />
+            <Alert
+              type={AlertType.DANGER}
+              title={error.message}
+              className="mb-4"
+            />
           ) : (
             <></>
           )}
@@ -1288,7 +1303,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           {activityError ? (
             <Alert
               type={AlertType.DANGER}
-              title={activityError}
+              title={activityError.message}
               className="mb-4"
             />
           ) : (
@@ -1306,7 +1321,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           {activityError ? (
             <Alert
               type={AlertType.DANGER}
-              title={activityError}
+              title={activityError.message}
               className="mb-4"
             />
           ) : (

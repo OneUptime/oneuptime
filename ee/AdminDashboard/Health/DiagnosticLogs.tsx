@@ -12,6 +12,10 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import HealthLicenseRequired, {
+  HealthRequestError,
+  toHealthRequestError,
+} from "./HealthLicenseRequired";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 type LogTab = "application" | "clickhouse" | "postgres" | "redis";
@@ -80,12 +84,12 @@ const SectionNote: FunctionComponent<{ text: string }> = (props: {
 const DiagnosticLogs: FunctionComponent = (): ReactElement => {
   const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<HealthRequestError | null>(null);
   const [data, setData] = useState<JSONObject | null>(null);
   const [activeTab, setActiveTab] = useState<LogTab>("application");
 
   const loadLogs: () => Promise<void> = async (): Promise<void> => {
-    setError("");
+    setError(null);
     setIsLoading(true);
 
     try {
@@ -103,7 +107,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
       setData(response.data);
       setHasLoaded(true);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setError(toHealthRequestError(err));
     } finally {
       setIsLoading(false);
     }
@@ -431,6 +435,11 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
     return renderApplication();
   };
 
+  // A 402 means the license, not the datastore: say so instead of the data.
+  if (error?.isLicenseRequired) {
+    return <HealthLicenseRequired />;
+  }
+
   return (
     <Card
       title="Diagnostic logs"
@@ -454,7 +463,11 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
     >
       <div>
         {error ? (
-          <Alert type={AlertType.DANGER} title={error} className="mb-4" />
+          <Alert
+            type={AlertType.DANGER}
+            title={error.message}
+            className="mb-4"
+          />
         ) : (
           <></>
         )}

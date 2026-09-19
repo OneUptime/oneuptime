@@ -14,6 +14,9 @@ import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import HealthLicenseRequired, {
+  isHealthLicenseRequiredError,
+} from "./HealthLicenseRequired";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -152,7 +155,16 @@ interface ErrorResult {
   executionTimeMs: number | null;
 }
 
-type ConsoleResult = TableResult | RedisResult | ErrorResult;
+// The console answered 402 because of the license (see HealthLicenseRequired).
+interface LicenseRequiredResult {
+  kind: "licenseRequired";
+}
+
+type ConsoleResult =
+  | TableResult
+  | RedisResult
+  | ErrorResult
+  | LicenseRequiredResult;
 
 // --- Helpers --------------------------------------------------------------
 
@@ -381,6 +393,11 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
 
       addToHistory(query);
     } catch (err) {
+      if (isHealthLicenseRequiredError(err)) {
+        setResult({ kind: "licenseRequired" });
+        return;
+      }
+
       setResult({
         kind: "error",
         error: API.getFriendlyMessage(err),
@@ -747,6 +764,10 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
           Run a query to see results here.
         </div>
       );
+    }
+
+    if (result.kind === "licenseRequired") {
+      return <HealthLicenseRequired />;
     }
 
     if (result.kind === "error") {

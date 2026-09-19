@@ -16,6 +16,10 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import HealthLicenseRequired, {
+  HealthRequestError,
+  toHealthRequestError,
+} from "./HealthLicenseRequired";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -104,14 +108,14 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
   props: FailedJobsModalProps,
 ): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<HealthRequestError | null>(null);
   const [failedJobs, setFailedJobs] = useState<JSONArray>([]);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set<string>(),
   );
 
   const loadFailedJobs: () => Promise<void> = async (): Promise<void> => {
-    setError("");
+    setError(null);
 
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -127,7 +131,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
 
       setFailedJobs((response.data["failedJobs"] || []) as JSONArray);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setError(toHealthRequestError(err));
     } finally {
       setIsLoading(false);
     }
@@ -266,8 +270,12 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
   };
 
   const renderBody: () => ReactElement = (): ReactElement => {
+    if (error?.isLicenseRequired) {
+      return <HealthLicenseRequired />;
+    }
+
     if (error) {
-      return <Alert type={AlertType.DANGER} title={error} />;
+      return <Alert type={AlertType.DANGER} title={error.message} />;
     }
 
     if (failedJobs.length === 0) {

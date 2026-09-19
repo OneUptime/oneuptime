@@ -7,6 +7,10 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import HealthLicenseRequired, {
+  HealthRequestError,
+  toHealthRequestError,
+} from "./HealthLicenseRequired";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -23,10 +27,10 @@ const HealthQueuesContent: FunctionComponent = (): ReactElement => {
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<HealthRequestError | null>(null);
 
   const loadQueues: () => Promise<void> = async (): Promise<void> => {
-    setError("");
+    setError(null);
 
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -42,7 +46,7 @@ const HealthQueuesContent: FunctionComponent = (): ReactElement => {
 
       setData(response.data);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setError(toHealthRequestError(err));
     } finally {
       setIsInitialLoading(false);
       setIsRefreshing(false);
@@ -61,10 +65,15 @@ const HealthQueuesContent: FunctionComponent = (): ReactElement => {
 
   const queues: JSONArray = (data?.["queues"] || []) as JSONArray;
 
+  // A 402 means the license, not the datastore: say so instead of the data.
+  if (error?.isLicenseRequired) {
+    return <HealthLicenseRequired />;
+  }
+
   return (
     <div>
       {error ? (
-        <Alert type={AlertType.DANGER} title={error} className="mb-5" />
+        <Alert type={AlertType.DANGER} title={error.message} className="mb-5" />
       ) : (
         <></>
       )}

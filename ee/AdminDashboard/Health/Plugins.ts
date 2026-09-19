@@ -13,9 +13,13 @@ import React from "react";
  * "@oneuptime/admin-dashboard/..." and "Common/..." only, and never import a
  * core shell that itself reads the plugins (see src/Enterprise/Plugins.ts).
  *
- * HealthInstanceLogs is deliberately not provided: the instance log is the
- * audit trail of ClickHouse capacity notifications and pruning, which are
- * Community features, so core renders it on every edition.
+ * The instance log is deliberately not part of the plugin (the contract has
+ * no key for it): it is the audit trail of ClickHouse capacity notifications
+ * and pruning, which are Community features, so core renders it on every
+ * edition.
+ *
+ * When the license lapses, the Health API answers 402 and each screen shows
+ * HealthLicenseRequired in place of its data.
  */
 type HealthPluginKeys =
   | "HealthOverview"

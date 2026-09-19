@@ -23,7 +23,10 @@ import React, { FunctionComponent, ReactElement, Suspense } from "react";
  * The admin dashboard is an instance-level surface with no project or plan, so
  * the default rule is the effective edition the server writes into env.js
  * (true only when the ee code is loaded). A lapsed license does not change it:
- * the ee screens stay reachable and show their own read-only banner.
+ * the ee screens stay reachable and explain the license themselves - the
+ * Global SSO / OIDC screens with a read-only banner above their
+ * configuration, the Health screens with a license-required notice in place
+ * of the data their API refuses (402).
  *
  * The plugin is usually React.lazy, so it renders inside Suspense and the ee
  * chunk downloads the first time the screen opens.

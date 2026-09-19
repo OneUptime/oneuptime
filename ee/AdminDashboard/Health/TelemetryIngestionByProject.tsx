@@ -32,6 +32,10 @@ import Input from "Common/UI/Components/Input/Input";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import HealthLicenseRequired, {
+  HealthRequestError,
+  toHealthRequestError,
+} from "./HealthLicenseRequired";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -182,7 +186,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<HealthRequestError | null>(null);
   const [searchText, setSearchText] = useState<string>("");
   const [sortColumn, setSortColumn] = useState<TelemetrySortColumn>(
     TelemetrySortColumn.Total,
@@ -193,7 +197,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
   );
 
   const loadIngestion: () => Promise<void> = async (): Promise<void> => {
-    setError("");
+    setError(null);
 
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -209,7 +213,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
 
       setData(response.data);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setError(toHealthRequestError(err));
     } finally {
       setIsInitialLoading(false);
       setIsRefreshing(false);
@@ -555,6 +559,11 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
     );
   };
 
+  // A 402 means the license, not the datastore: say so instead of the data.
+  if (error?.isLicenseRequired) {
+    return <HealthLicenseRequired />;
+  }
+
   return (
     <Card
       title="Ingestion by project"
@@ -576,7 +585,11 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
     >
       <div>
         {error ? (
-          <Alert type={AlertType.DANGER} title={error} className="mb-4" />
+          <Alert
+            type={AlertType.DANGER}
+            title={error.message}
+            className="mb-4"
+          />
         ) : (
           <></>
         )}
