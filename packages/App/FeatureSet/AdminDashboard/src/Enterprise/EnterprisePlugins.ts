@@ -55,11 +55,12 @@ export interface AdminDashboardEnterprisePlugins {
 
   /*
    * OneUptime Health. HealthOverview is what the landing page adds on top of
-   * the Community content (capacity and links to Migrations / Support).
+   * the Community content (capacity and links to Migrations / Support). The
+   * instance log has no key: it is Community content that core renders on
+   * every edition.
    */
   HealthOverview?: EnterprisePluginComponent | undefined;
   HealthQueues?: EnterprisePluginComponent | undefined;
-  HealthInstanceLogs?: EnterprisePluginComponent | undefined;
   HealthPostgres?: EnterprisePluginComponent | undefined;
   HealthRedis?: EnterprisePluginComponent | undefined;
   HealthLogs?: EnterprisePluginComponent | undefined;
@@ -94,7 +95,6 @@ const PLUGIN_KEY_SET: Record<AdminDashboardEnterprisePluginKey, true> = {
   GlobalOIDCView: true,
   HealthOverview: true,
   HealthQueues: true,
-  HealthInstanceLogs: true,
   HealthPostgres: true,
   HealthRedis: true,
   HealthLogs: true,

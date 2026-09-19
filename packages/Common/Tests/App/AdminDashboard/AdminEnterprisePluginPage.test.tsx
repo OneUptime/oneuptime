@@ -267,7 +267,6 @@ describe("the Community admin plugin door (what this jest config resolves)", () 
         "GlobalSSOList",
         "GlobalSSOView",
         "HealthClickhouseCluster",
-        "HealthInstanceLogs",
         "HealthLogs",
         "HealthOverview",
         "HealthPostgres",
@@ -279,6 +278,18 @@ describe("the Community admin plugin door (what this jest config resolves)", () 
     );
     expect(new Set(ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS).size).toBe(
       ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS.length,
+    );
+  });
+
+  /*
+   * The instance log is Community content (the audit trail of ClickHouse
+   * capacity notifications and pruning) that core renders on every edition.
+   * No core shell reads a plugin for it, so the contract has no key an ee
+   * plugin could fill in and have silently ignored.
+   */
+  test("has no key for the instance log", () => {
+    expect([...ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS]).not.toContain(
+      "HealthInstanceLogs",
     );
   });
 
