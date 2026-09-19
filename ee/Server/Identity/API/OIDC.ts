@@ -1,5 +1,7 @@
 import AuthenticationEmail from "App/FeatureSet/Identity/Utils/AuthenticationEmail";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
+import LicensedFeatureGate from "../Middleware/LicensedFeatureGate";
+import { isMobileSsoRequest } from "../Utils/MobileSso";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -31,6 +33,7 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
   extractDeviceInfo,
   getClientIp,
   headerValueToString,
@@ -59,11 +62,58 @@ const getOidcStateCookieName: (projectOidcId: ObjectID) => string = (
 };
 
 /*
+ * Whether the request belongs to a login the mobile app started: the
+ * `mobile=true` query parameter on the start route, or the isMobile flag in
+ * the signed state cookie on the callback. Used only to answer a refused
+ * login on the app's deep link.
+ */
+const isMobileProjectOidcRequest: (req: ExpressRequest) => boolean = (
+  req: ExpressRequest,
+): boolean => {
+  if (isMobileSsoRequest({ req })) {
+    return true;
+  }
+
+  const projectOidcId: string | undefined = req.params["projectOidcId"];
+
+  if (!projectOidcId) {
+    return false;
+  }
+
+  const stateCookieValue: string | undefined =
+    CookieUtil.getCookieFromExpressRequest(
+      req,
+      getOidcStateCookieName(new ObjectID(projectOidcId)),
+    );
+
+  if (!stateCookieValue) {
+    return false;
+  }
+
+  try {
+    return Boolean(
+      JSONWebToken.decodeJsonPayload(stateCookieValue)["isMobile"],
+    );
+  } catch {
+    return false;
+  }
+};
+
+/*
+ * Every route below starts with a license gate (see
+ * ../Middleware/LicensedFeatureGate.ts): while SSO is not active they refuse.
+ */
+const ssoPageGate: RequestHandler = LicensedFeatureGate.forSsoPage({
+  isMobileRequest: isMobileProjectOidcRequest,
+});
+
+/*
  * This route is used to get the OIDC config for the user.
  * when the user logs in from OneUptime and not from the IDP.
  */
 router.get(
   "/service-provider-login-oidc",
+  LicensedFeatureGate.forSsoJson,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -155,6 +205,7 @@ router.get(
 
 router.get(
   "/oidc/:projectId/:projectOidcId",
+  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -282,6 +333,7 @@ router.get(
 
 router.get(
   "/oidc-callback/:projectId/:projectOidcId",
+  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

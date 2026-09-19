@@ -1,5 +1,6 @@
 import AuthenticationEmail from "App/FeatureSet/Identity/Utils/AuthenticationEmail";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
+import LicensedFeatureGate from "../Middleware/LicensedFeatureGate";
 import {
   buildMobileSsoSuccessUrl,
   clearMobileSsoIntentCookie,
@@ -39,6 +40,7 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
   extractDeviceInfo,
   getClientIp,
   headerValueToString,
@@ -62,6 +64,23 @@ const MESSAGE_VIEW: string =
   "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
 
 /*
+ * Every route below starts with a license gate (see
+ * ../Middleware/LicensedFeatureGate.ts): while SSO is not active they refuse.
+ * A mobile login is recognised by every carrier this router uses:
+ * `mobile=true`, the SAML RelayState and the provider's mobile intent cookie.
+ */
+const ssoPageGate: RequestHandler = LicensedFeatureGate.forSsoPage({
+  isMobileRequest: (req: ExpressRequest): boolean => {
+    const globalSsoId: string | undefined = req.params["globalSsoId"];
+
+    return isMobileSsoRequest({
+      req,
+      providerId: globalSsoId ? new ObjectID(globalSsoId) : undefined,
+    });
+  },
+});
+
+/*
  * Service-provider initiated discovery for the login page. Returns the list of
  * enabled Global SSO providers so the Accounts UI can offer "Sign in with
  * <provider>". Global SSO is not bound to a specific email domain, so the
@@ -70,6 +89,7 @@ const MESSAGE_VIEW: string =
  */
 router.get(
   "/global-sso/service-provider-login",
+  LicensedFeatureGate.forSsoJson,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -104,6 +124,7 @@ router.get(
 // SP-initiated login: redirect the browser to the IdP.
 router.get(
   "/global-sso/:globalSsoId",
+  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -199,6 +220,7 @@ router.get(
 
 router.get(
   "/global-idp-login/:globalSsoId",
+  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -214,6 +236,7 @@ router.get(
 
 router.post(
   "/global-idp-login/:globalSsoId",
+  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

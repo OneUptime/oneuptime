@@ -1,4 +1,5 @@
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
+import LicensedFeatureGate from "../Middleware/LicensedFeatureGate";
 import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -18,6 +19,7 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
   extractDeviceInfo,
   getClientIp,
   headerValueToString,
@@ -33,9 +35,21 @@ import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 // Initialize Express router.
 const router: ExpressRouter = Express.getRouter();
 
+/*
+ * Every route below starts with a license gate (see
+ * ../Middleware/LicensedFeatureGate.ts): while SSO is not active they refuse.
+ * Status page sign-in has no mobile app flow.
+ */
+const ssoPageGate: RequestHandler = LicensedFeatureGate.forSsoPage({
+  isMobileRequest: (): boolean => {
+    return false;
+  },
+});
+
 // Define a GET route for SSO in a status page context.
 router.get(
   "/status-page-sso/:statusPageId/:statusPageSsoId",
+  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -118,6 +132,7 @@ router.get(
 
 router.post(
   "/status-page-idp-login/:statusPageId/:statusPageSsoId",
+  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

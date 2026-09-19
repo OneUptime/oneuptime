@@ -28,8 +28,34 @@ import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
+import FakeEnterpriseModule, {
+  createLicenseSnapshotWithStatus,
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 import { createServer, Server } from "http";
 import { AddressInfo } from "net";
+
+/*
+ * Every SCIM route starts with the license gate (IdentityLicenseGates.test.ts
+ * covers it), so this suite runs as a self-hosted Enterprise install whose
+ * license covers SCIM: billing pinned off (CI's config.env sets
+ * BILLING_ENABLED=true), and a fake enterprise module with a valid license.
+ */
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "Common/Tests/Server/Enterprise/TestBillingFlag",
+    ) as typeof import("Common/Tests/Server/Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
 
 jest.mock("../../../Server/Identity/Middleware/SCIMAuthorization", () => {
   return {
@@ -164,6 +190,7 @@ let privateUser: StatusPagePrivateUser;
 let projectUser: User;
 let httpServer: Server;
 let baseUrl: string;
+let enterpriseModule: FakeEnterpriseModule;
 
 interface HttpResult {
   status: number;
@@ -219,6 +246,11 @@ function expectProjectAccountRetained(): void {
 }
 
 beforeAll(async () => {
+  setTestBillingEnabled(false);
+  enterpriseModule = installFakeEnterpriseModule({
+    snapshot: createLicenseSnapshotWithStatus("valid"),
+  });
+
   const app: ExpressApplication = createExpressApp();
   app.use(ExpressJson({ type: ["application/json", "application/scim+json"] }));
   app.use(
@@ -255,6 +287,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  uninstallEnterpriseModule();
+
   if (httpServer) {
     await new Promise<void>(
       (resolve: () => void, reject: (error: Error) => void) => {
@@ -632,6 +666,59 @@ describe("Status Page SCIM Bulk PUT/PATCH", () => {
       }),
     );
   });
+});
+
+describe("while the license is lapsed, the real SCIM handlers never run", () => {
+  afterEach(() => {
+    enterpriseModule.setSnapshot(createLicenseSnapshotWithStatus("valid"));
+  });
+
+  test.each(["status-page", "project"] as const)(
+    "%s: a deactivation is refused with a SCIM error, changes nothing, and works again after renewal",
+    async (scope: "status-page" | "project") => {
+      const deactivate: JSONObject = patch({
+        op: "Replace",
+        path: "active",
+        value: false,
+      });
+
+      enterpriseModule.setSnapshot(createLicenseSnapshotWithStatus("expired"));
+
+      const refused: HttpResult = await send(
+        "PATCH",
+        userPath(scope),
+        deactivate,
+      );
+
+      expect(refused.status).toBe(403);
+      expect(refused.body["schemas"]).toEqual([
+        "urn:ietf:params:scim:api:messages:2.0:Error",
+      ]);
+      expect(privateUserService.findOneBy).not.toHaveBeenCalled();
+      expect(privateUserService.deleteOneById).not.toHaveBeenCalled();
+      expect(projectUserService.findOneById).not.toHaveBeenCalled();
+      expect(teamMemberService.deleteBy).not.toHaveBeenCalled();
+      expect(createStatusPageSCIMLog).not.toHaveBeenCalled();
+      expect(createProjectSCIMLog).not.toHaveBeenCalled();
+
+      // Renewed: the very same request is handled, with no restart.
+      enterpriseModule.setSnapshot(createLicenseSnapshotWithStatus("valid"));
+
+      const handled: HttpResult = await send(
+        "PATCH",
+        userPath(scope),
+        deactivate,
+      );
+
+      expect(handled.status).toBe(200);
+
+      if (scope === "status-page") {
+        expectPrivateUserDeleted();
+      } else {
+        expect(teamMemberService.deleteBy).toHaveBeenCalledTimes(1);
+      }
+    },
+  );
 });
 
 describe("Project SCIM user PATCH", () => {

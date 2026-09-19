@@ -4,11 +4,17 @@ import AuditLogRecorder, {
 import CoreAuditLogService from "Common/Server/Services/AuditLogService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import { EnterpriseLicenseStatus } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
-import {
+import FakeEnterpriseModule, {
+  createLicenseSnapshot,
   createLicenseSnapshotWithStatus,
+  FEATURES_WITHOUT_RUNTIME_FEATURES,
   installFakeEnterpriseModule,
+  LICENSE_STATE_CASES,
+  LicenseStateCase,
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
+import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
+import logger from "Common/Server/Utils/Logger";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 import FindBy from "Common/Server/Types/Database/FindBy";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
@@ -42,8 +48,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * the insert:
  *
  *   - eligibility: billing first (the Cloud records Enterprise-plan projects
- *     only), else the Enterprise Edition being loaded (never the license),
- *     then the project's switch and system events;
+ *     only), else audit logging being ACTIVE - the license covers audit logs
+ *     (valid, grace, trial) or its state is unknown; nothing is recorded while
+ *     the license is lapsed and recording resumes on renewal, with no
+ *     restart - then the project's switch and system events;
  *   - identity: resourceType is the model's singularName, and every entry
  *     carries the root resource it rolls up to (an SLO's burn-rate rules,
  *     monitor rules and owners roll up to the SLO);
@@ -491,7 +499,8 @@ describe("which changes are recorded", () => {
 
 /*
  * --------------------------------------------------------------------------- *
- * Who records at all: billing first, then the edition - never the license.
+ * Who records at all: billing first (the plan), then - self-hosted - whether
+ * audit logging is active (EnterpriseEdition.isFeatureActive(AuditLogs)).
  *
  * Each row runs twice: straight into the recorder, and through core's
  * AuditLogService delegate (what DatabaseService actually calls), which finds
@@ -529,28 +538,30 @@ const ELIGIBILITY_MATRIX: Array<EligibilityRow> = [
     recorded: true,
   },
   {
-    deployment: "self-hosted Enterprise Edition, license expired past grace",
+    deployment:
+      "self-hosted Enterprise Edition, license expired past grace (lapsed)",
     billing: false,
     loaded: true,
     license: "expired",
     enableAuditLogs: true,
-    recorded: true,
+    recorded: false,
   },
   {
-    deployment: "self-hosted Enterprise Edition, no license at all",
+    deployment:
+      "self-hosted Enterprise Edition, no license after the trial (lapsed)",
     billing: false,
     loaded: true,
     license: "missing",
     enableAuditLogs: true,
-    recorded: true,
+    recorded: false,
   },
   {
-    deployment: "self-hosted Enterprise Edition, license invalid",
+    deployment: "self-hosted Enterprise Edition, license invalid (lapsed)",
     billing: false,
     loaded: true,
     license: "invalid",
     enableAuditLogs: true,
-    recorded: true,
+    recorded: false,
   },
   {
     deployment: "self-hosted Enterprise Edition, project has audit logs off",
@@ -573,6 +584,17 @@ const ELIGIBILITY_MATRIX: Array<EligibilityRow> = [
     deployment: "Cloud (Enterprise Edition loaded), Enterprise plan",
     billing: true,
     loaded: true,
+    planName: PlanType.Enterprise,
+    enableAuditLogs: true,
+    recorded: true,
+  },
+  {
+    // The Cloud gates by plan: the license snapshot is irrelevant there.
+    deployment:
+      "Cloud (Enterprise Edition loaded), Enterprise plan, license snapshot expired",
+    billing: true,
+    loaded: true,
+    license: "expired",
     planName: PlanType.Enterprise,
     enableAuditLogs: true,
     recorded: true,
@@ -704,10 +726,14 @@ describe("who records audit logs", () => {
     expect(harness.inserted).toHaveLength(1);
   });
 
-  test("the license snapshot is never read to decide whether to record", async () => {
-    const fake: ReturnType<typeof installFakeEnterpriseModule> =
-      installFakeEnterpriseModule({ auditLogRecorder: harness.recorder });
-    fake.licensing.getCachedSnapshotError = new Error("must not be read");
+  test("an unreadable license snapshot keeps recording (an unknown state counts as active), and the async read is never used", async () => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      auditLogRecorder: harness.recorder,
+    });
+    fake.licensing.getCachedSnapshotError = new Error("unreadable");
     fake.licensing.getSnapshotError = new Error("must not be read");
 
     await harness.recorder.recordCreate({
@@ -717,6 +743,33 @@ describe("who records audit logs", () => {
     });
 
     expect(harness.inserted).toHaveLength(1);
+  });
+
+  test("the Cloud never reads the license to decide whether to record", async () => {
+    setTestBillingEnabled(true);
+    project = makeProject({
+      enableAuditLogs: true,
+      planName: PlanType.Enterprise,
+    });
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      auditLogRecorder: harness.recorder,
+    });
+    fake.licensing.getCachedSnapshotError = new Error("must not be read");
+    fake.licensing.getSnapshotError = new Error("must not be read");
+    const warn: jest.SpyInstance = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+
+    await harness.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+
+    expect(harness.inserted).toHaveLength(1);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   test("the billing flag is read at call time, not when the recorder was built", async () => {
@@ -758,6 +811,143 @@ describe("who records audit logs", () => {
     });
 
     expect(harness.findProject).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * --------------------------------------------------------------------------- *
+ * Self-hosted, recording follows the license at the moment of each write.
+ * ---------------------------------------------------------------------------
+ */
+describe("a lapsed license stops recording; a renewal resumes it", () => {
+  beforeEach(() => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "info").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  test.each(
+    LICENSE_STATE_CASES.map(
+      (licenseState: LicenseStateCase): [string, LicenseStateCase] => {
+        return [licenseState.label, licenseState];
+      },
+    ),
+  )(
+    "billing off, %s",
+    async (_label: string, licenseState: LicenseStateCase) => {
+      const fake: FakeEnterpriseModule = licenseState.install();
+      fake.auditLogRecorder = harness.recorder;
+
+      const data: {
+        model: ServiceLevelObjective;
+        createdItem: ServiceLevelObjective;
+        props: DatabaseCommonInteractionProps;
+      } = {
+        model: new ServiceLevelObjective(),
+        createdItem: makeSlo(),
+        props: USER_PROPS,
+      };
+
+      await harness.recorder.recordCreate(data);
+      await CoreAuditLogService.recordCreate(data);
+
+      expect(harness.inserted).toHaveLength(
+        licenseState.isActiveWithoutBilling ? 2 : 0,
+      );
+    },
+  );
+
+  test("records while licensed, nothing while lapsed, and resumes after renewal - same recorder, no restart", async () => {
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      auditLogRecorder: harness.recorder,
+      snapshot: createLicenseSnapshotWithStatus("valid"),
+    });
+
+    const create: () => Promise<void> = async (): Promise<void> => {
+      await CoreAuditLogService.recordCreate({
+        model: new ServiceLevelObjective(),
+        createdItem: makeSlo(),
+        props: USER_PROPS,
+      });
+    };
+
+    await create();
+    expect(harness.inserted).toHaveLength(1);
+
+    fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
+    await create();
+    await create();
+    expect(harness.inserted).toHaveLength(1);
+
+    fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
+    await create();
+    expect(harness.inserted).toHaveLength(2);
+  });
+
+  test("while lapsed nothing is recorded by any of the three record methods (each records while licensed)", async () => {
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      auditLogRecorder: harness.recorder,
+      snapshot: createLicenseSnapshotWithStatus("valid"),
+    });
+
+    const recordAllThree: () => Promise<void> = async (): Promise<void> => {
+      await harness.recorder.recordCreate({
+        model: new ServiceLevelObjective(),
+        createdItem: makeSlo(),
+        props: USER_PROPS,
+      });
+      await harness.recorder.recordUpdate({
+        model: new ServiceLevelObjective(),
+        before: makeSlo(),
+        updatedFields: { name: "A new name" },
+        itemId: SLO_ID,
+        props: USER_PROPS,
+      });
+      await harness.recorder.recordDelete({
+        model: new ServiceLevelObjective(),
+        deletedItem: makeSlo(),
+        itemId: SLO_ID,
+        props: USER_PROPS,
+      });
+    };
+
+    // The control: licensed, the same three calls record three entries.
+    await recordAllThree();
+    expect(harness.inserted).toHaveLength(3);
+
+    fake.setSnapshot(createLicenseSnapshotWithStatus("missing"));
+    await recordAllThree();
+    expect(harness.inserted).toHaveLength(3);
+  });
+
+  test("a license that leaves out audit logs records nothing; one that includes them records", async () => {
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      auditLogRecorder: harness.recorder,
+      snapshot: createLicenseSnapshot({
+        features: [...FEATURES_WITHOUT_RUNTIME_FEATURES],
+      }),
+    });
+
+    await harness.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+    expect(harness.inserted).toHaveLength(0);
+
+    fake.setSnapshot(
+      createLicenseSnapshot({ features: [EnterpriseFeature.AuditLogs] }),
+    );
+
+    await harness.recorder.recordCreate({
+      model: new ServiceLevelObjective(),
+      createdItem: makeSlo(),
+      props: USER_PROPS,
+    });
+    expect(harness.inserted).toHaveLength(1);
   });
 });
 

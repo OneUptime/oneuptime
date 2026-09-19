@@ -1,4 +1,5 @@
 import SCIMMiddleware from "../Middleware/SCIMAuthorization";
+import LicensedFeatureGate from "../Middleware/LicensedFeatureGate";
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
 import { createStatusPageSCIMLog } from "../Utils/SCIMLogger";
 import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
@@ -44,6 +45,7 @@ const router: ExpressRouter = Express.getRouter();
 // SCIM Service Provider Configuration - GET /status-page-scim/v2/ServiceProviderConfig
 router.get(
   "/status-page-scim/v2/:statusPageScimId/ServiceProviderConfig",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -73,6 +75,7 @@ router.get(
 // SCIM Schemas endpoint - GET /status-page-scim/v2/Schemas
 router.get(
   "/status-page-scim/v2/:statusPageScimId/Schemas",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -106,6 +109,7 @@ router.get(
 // SCIM ResourceTypes endpoint - GET /status-page-scim/v2/ResourceTypes
 router.get(
   "/status-page-scim/v2/:statusPageScimId/ResourceTypes",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -139,6 +143,7 @@ router.get(
 // SCIM Bulk Operations endpoint - POST /status-page-scim/v2/Bulk
 router.post(
   "/status-page-scim/v2/:statusPageScimId/Bulk",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -669,6 +674,7 @@ router.post(
 // Status Page Users endpoint - GET /status-page-scim/v2/Users
 router.get(
   "/status-page-scim/v2/:statusPageScimId/Users",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -898,6 +904,7 @@ router.get(
 // Get Individual Status Page User - GET /status-page-scim/v2/Users/{id}
 router.get(
   "/status-page-scim/v2/:statusPageScimId/Users/:userId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -1029,6 +1036,7 @@ router.get(
 // Create Status Page User - POST /status-page-scim/v2/Users
 router.post(
   "/status-page-scim/v2/:statusPageScimId/Users",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -1517,6 +1525,7 @@ const handleStatusPageUserUpdate: (
 // Update Status Page User - PUT /status-page-scim/v2/Users/{id}
 router.put(
   "/status-page-scim/v2/:statusPageScimId/Users/:userId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   handleStatusPageUserUpdate,
 );
@@ -1524,6 +1533,7 @@ router.put(
 // Update Status Page User - PATCH /status-page-scim/v2/Users/{id}
 router.patch(
   "/status-page-scim/v2/:statusPageScimId/Users/:userId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   handleStatusPageUserUpdate,
 );
@@ -1531,6 +1541,7 @@ router.patch(
 // Delete Status Page User - DELETE /status-page-scim/v2/Users/{id}
 router.delete(
   "/status-page-scim/v2/:statusPageScimId/Users/:userId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,

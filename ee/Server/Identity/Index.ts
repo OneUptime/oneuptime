@@ -27,9 +27,14 @@ import EnterpriseArea from "../Types/EnterpriseArea";
  * and the like. They must never change; Tests/Server/Identity/
  * RoutePathsUnchanged.test.ts pins every (method, path) pair.
  *
- * These routes are served whenever the Enterprise Edition is loaded, whatever
- * the license says: a lapsed license makes enterprise CONFIGURATION read-only,
- * it never stops SSO sign-in or SCIM deprovisioning.
+ * The routers are mounted whenever the Enterprise Edition is loaded, but each
+ * route answers only while its feature is active
+ * (EnterpriseEdition.isFeatureActive): when the license lapses, SSO sign-in
+ * and SCIM provisioning stop, exactly as on the Community Edition, and resume
+ * without a restart when a license is activated. The license changes at
+ * runtime and these routers are mounted once, so every route starts with a
+ * per-request gate (Middleware/LicensedFeatureGate.ts); Tests/Server/Identity/
+ * IdentityLicenseGates.test.ts checks every route has it.
  */
 
 export interface IdentityRouterEntry {

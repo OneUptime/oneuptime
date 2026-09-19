@@ -1,4 +1,5 @@
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
+import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
 import { AuditLogRecorder as AuditLogRecorderContract } from "Common/Server/Enterprise/EnterpriseServerModule";
 /*
  * IsBillingEnabled is read inside function bodies only: the compiled CommonJS
@@ -52,9 +53,13 @@ import OneUptimeDate from "Common/Types/Date";
  *     Checked on its own and before anything about the edition: the Cloud runs
  *     the Enterprise image, so "the Enterprise Edition is loaded" is always true
  *     there and would otherwise record for every plan.
- *   - Self-hosted: the Enterprise Edition must be loaded in this process. The
- *     license is deliberately NOT consulted - a lapsed license must never open
- *     a silent gap in the audit trail.
+ *   - Self-hosted: audit logging must be ACTIVE
+ *     (EnterpriseEdition.isFeatureActive(AuditLogs)): the Enterprise Edition
+ *     is loaded and the license covers audit logs (valid, in grace, or inside
+ *     the 14-day trial). While the license is lapsed nothing is recorded, as
+ *     on the Community Edition; recording resumes, without a restart, as soon
+ *     as a license is activated. An unknown license state counts as active,
+ *     so a license read error never drops entries.
  *   - Then, everywhere, the project's own settings: audit logging switched on,
  *     and system events only when the project stores them.
  */
@@ -416,17 +421,19 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
    * about IS_ENTERPRISE_EDITION) recorded for every plan there, Growth and
    * Scale included.
    *
-   * Self-hosted, the Enterprise Edition must be loaded - which it always is
-   * when this recorder is reached through core's AuditLogService, and the check
-   * keeps a recorder that was never registered from writing anything. The
-   * license is not consulted (see the file header).
+   * Self-hosted, audit logging must be active right now: the Enterprise
+   * Edition loaded (which it always is when this recorder is reached through
+   * core's AuditLogService; the check also keeps a recorder that was never
+   * registered from writing anything) and a license that covers audit logs.
+   * Asked per entry, so a lapse stops recording and a renewal resumes it at
+   * once (see the file header).
    */
   private isEditionEligible(settings: CachedProjectSettings): boolean {
     if (IsBillingEnabled) {
       return settings.planName === PlanType.Enterprise;
     }
 
-    return EnterpriseEdition.isLoaded();
+    return EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
   }
 
   private isSystemEvent(props: DatabaseCommonInteractionProps): boolean {

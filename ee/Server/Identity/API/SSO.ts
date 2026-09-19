@@ -1,5 +1,6 @@
 import AuthenticationEmail from "App/FeatureSet/Identity/Utils/AuthenticationEmail";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
+import LicensedFeatureGate from "../Middleware/LicensedFeatureGate";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -31,6 +32,7 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
   extractDeviceInfo,
   getClientIp,
   headerValueToString,
@@ -52,12 +54,21 @@ const router: ExpressRouter = Express.getRouter();
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
 /*
+ * Every route below starts with a license gate (see
+ * ../Middleware/LicensedFeatureGate.ts): while SSO is not active they refuse.
+ * The default mobile check covers this router's carriers: `mobile=true` on
+ * the start route and the SAML RelayState on the callback.
+ */
+const ssoPageGate: RequestHandler = LicensedFeatureGate.forSsoPage();
+
+/*
  * This route is used to get the SSO config for the user.
  * when the user logs in from OneUptime and not from the IDP.
  */
 
 router.get(
   "/service-provider-login",
+  LicensedFeatureGate.forSsoJson,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -178,6 +189,7 @@ router.get(
 
 router.get(
   "/sso/:projectId/:projectSsoId",
+  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -274,6 +286,7 @@ router.get(
 
 router.get(
   "/idp-login/:projectId/:projectSsoId",
+  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -289,6 +302,7 @@ router.get(
 
 router.post(
   "/idp-login/:projectId/:projectSsoId",
+  ssoPageGate,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

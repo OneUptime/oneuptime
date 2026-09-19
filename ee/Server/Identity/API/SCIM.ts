@@ -1,4 +1,5 @@
 import SCIMMiddleware from "../Middleware/SCIMAuthorization";
+import LicensedFeatureGate from "../Middleware/LicensedFeatureGate";
 import UserService from "Common/Server/Services/UserService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import TeamService from "Common/Server/Services/TeamService";
@@ -351,6 +352,7 @@ const formatTeamForSCIM: (
 // SCIM Service Provider Configuration - GET /scim/v2/ServiceProviderConfig
 router.get(
   "/scim/v2/:projectScimId/ServiceProviderConfig",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -385,6 +387,7 @@ router.get(
 // SCIM Schemas endpoint - GET /scim/v2/Schemas
 router.get(
   "/scim/v2/:projectScimId/Schemas",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -418,6 +421,7 @@ router.get(
 // SCIM ResourceTypes endpoint - GET /scim/v2/ResourceTypes
 router.get(
   "/scim/v2/:projectScimId/ResourceTypes",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -451,6 +455,7 @@ router.get(
 // SCIM Bulk Operations endpoint - POST /scim/v2/Bulk
 router.post(
   "/scim/v2/:projectScimId/Bulk",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -1360,6 +1365,7 @@ router.post(
 // Basic Users endpoint - GET /scim/v2/Users
 router.get(
   "/scim/v2/:projectScimId/Users",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -1697,6 +1703,7 @@ router.get(
 // Get Individual User - GET /scim/v2/Users/{id}
 router.get(
   "/scim/v2/:projectScimId/Users/:userId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -2139,6 +2146,7 @@ const handleUserUpdate: (
 // Update User - PUT /scim/v2/Users/{id}
 router.put(
   "/scim/v2/:projectScimId/Users/:userId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   handleUserUpdate,
 );
@@ -2146,6 +2154,7 @@ router.put(
 // Update User - PATCH /scim/v2/Users/{id}
 router.patch(
   "/scim/v2/:projectScimId/Users/:userId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   handleUserUpdate,
 );
@@ -2153,6 +2162,7 @@ router.patch(
 // Groups endpoint - GET /scim/v2/Groups
 router.get(
   "/scim/v2/:projectScimId/Groups",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -2322,6 +2332,7 @@ router.get(
 // Get Individual Group - GET /scim/v2/Groups/{id}
 router.get(
   "/scim/v2/:projectScimId/Groups/:groupId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -2455,6 +2466,7 @@ router.get(
 // Create Group - POST /scim/v2/Groups
 router.post(
   "/scim/v2/:projectScimId/Groups",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -2719,6 +2731,7 @@ router.post(
 // Update Group - PUT /scim/v2/Groups/{id}
 router.put(
   "/scim/v2/:projectScimId/Groups/:groupId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -2993,6 +3006,7 @@ router.put(
 // Delete Group - DELETE /scim/v2/Groups/{id}
 router.delete(
   "/scim/v2/:projectScimId/Groups/:groupId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -3153,6 +3167,7 @@ router.delete(
 // Update Group Memberships - PATCH /scim/v2/Groups/{id}
 router.patch(
   "/scim/v2/:projectScimId/Groups/:groupId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -3528,6 +3543,7 @@ router.patch(
 // Create User - POST /scim/v2/Users
 router.post(
   "/scim/v2/:projectScimId/Users",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,
@@ -3776,6 +3792,7 @@ router.post(
 // Delete User - DELETE /scim/v2/Users/{id}
 router.delete(
   "/scim/v2/:projectScimId/Users/:userId",
+  LicensedFeatureGate.forScim,
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (
     req: ExpressRequest,

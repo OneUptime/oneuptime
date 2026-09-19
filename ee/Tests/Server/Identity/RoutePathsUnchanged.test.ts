@@ -5,6 +5,7 @@ import IdentityArea, {
 } from "../../../Server/Identity/Index";
 import EnterpriseModule, { ENTERPRISE_AREAS } from "../../../Server/Index";
 import SCIMMiddleware from "../../../Server/Identity/Middleware/SCIMAuthorization";
+import LicensedFeatureGate from "../../../Server/Identity/Middleware/LicensedFeatureGate";
 import EnterpriseArea from "../../../Server/Types/EnterpriseArea";
 import { EnterpriseServerModuleShape } from "Common/Server/Enterprise/EnterpriseServerModule";
 import type { ExpressRouter } from "Common/Server/Utils/Express";
@@ -231,7 +232,7 @@ describe("ee identity routers", () => {
   );
 
   test.each(SCIM_ROUTER_NAMES)(
-    "every %s route runs the SCIM bearer-token check before its handler",
+    "every %s route runs the SCIM license gate, then the SCIM bearer-token check, before its handler",
     (name: string) => {
       const entry: IdentityRouterEntry = IDENTITY_ROUTERS.find(
         (candidate: IdentityRouterEntry) => {
@@ -245,13 +246,20 @@ describe("ee identity routers", () => {
 
       for (const layer of layers) {
         expect(layer.route).toBeDefined();
-        expect(layer.route!.stack.length).toBeGreaterThanOrEqual(2);
+        expect(layer.route!.stack.length).toBeGreaterThanOrEqual(3);
+        /*
+         * The license gate first (see IdentityLicenseGates.test.ts): while
+         * the license does not cover SCIM, every SCIM call is refused before
+         * the bearer token is even looked up.
+         */
         expect({
           path: layer.route!.path,
           firstHandler: layer.route!.stack[0]!.handle,
+          secondHandler: layer.route!.stack[1]!.handle,
         }).toEqual({
           path: layer.route!.path,
-          firstHandler: SCIMMiddleware.isAuthorizedSCIMRequest,
+          firstHandler: LicensedFeatureGate.forScim,
+          secondHandler: SCIMMiddleware.isAuthorizedSCIMRequest,
         });
       }
     },
