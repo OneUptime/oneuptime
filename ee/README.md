@@ -36,10 +36,10 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 | `Server/Identity/` | SAML SSO, OIDC and SCIM for projects, status pages and the whole instance (global SSO). Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. |
 | `Server/TeamCompliance/` | Team compliance settings and the compliance status route. |
 | `Server/AuditLog/` | The audit-log recorder behind `EnterpriseEdition.getAuditLogRecorder()`. |
-| `Server/License/` | The license client: signed-license format (`LicenseToken.ts`), trusted signing keys (`TrustedLicenseKeys.ts`), the license snapshot, activation, refresh, seats and the daily license sync. |
+| `Server/License/` | The license client: signed-license format (`LicenseToken.ts`), trusted signing keys (`TrustedLicenseKeys.ts`), the license snapshot, activation, refresh, seats and the daily license sync, including the seat arithmetic (`EnterpriseLicenseSeats.ts`) and the license-response mapper (`EnterpriseLicenseSync.ts`). Only the `SeatUsage` type stays in core. |
 | `Server/LicenseServer/` | The license server that oneuptime.com runs. Mounted only when billing is enabled. |
 | `Server/AdminHealth/` | The admin query console. |
-| `Server/Workers/` | Enterprise cron jobs (PostgreSQL and Valkey/Redis health evaluation). |
+| `Server/Workers/` | Enterprise cron jobs (PostgreSQL and Valkey/Redis health evaluation) and the probes they read: `InstanceHealth/PostgresHealth.ts` and the counter deltas in `InstanceHealth/RedisHealth.ts`. The Redis INFO read stays in core, because the admin health API uses it too. |
 | `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. |
 | `Scripts/` | Operator scripts, such as `GenerateLicenseSigningKey.ts`. |
 | `Tests/Server`, `Tests/UI` | The two jest projects in `jest.config.js`. |
