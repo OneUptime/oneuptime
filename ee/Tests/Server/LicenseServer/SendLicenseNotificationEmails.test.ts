@@ -110,7 +110,9 @@ import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import OneUptimeDate from "Common/Types/Date";
+import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import EnterpriseLicenseUserCountSource from "Common/Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
+import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
 
 const JOB_NAME: string = "EnterpriseLicense:SendLicenseNotificationEmails";
 const NOW: Date = new Date("2026-09-02T12:00:00.000Z");
@@ -454,5 +456,54 @@ describe("EnterpriseLicense:SendLicenseNotificationEmails expiry reminder", () =
     ).toContain(
       "single sign-on, SCIM provisioning and audit logging have stopped and enterprise configuration is read-only",
     );
+  });
+
+  /*
+   * The "the features have stopped" message is only true once the grace
+   * period has ended, so the expired-email window has to outlast the grace
+   * period: a cutoff equal to it would send that message for an hour or two
+   * and then go quiet.
+   */
+  test("the expired-email window outlasts the grace period, so the email that says the features stopped is actually sent", async () => {
+    expect(
+      EnterpriseLicenseUsageUtil.expiredNotificationCutoffDays,
+    ).toBeGreaterThan(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS);
+
+    const sent: Record<string, unknown> = await sendExpiryReminderFor(
+      OneUptimeDate.addRemoveDays(
+        NOW,
+        -(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS + 7),
+      ),
+    );
+
+    expect(
+      (sent["vars"] as Record<string, string>)["expiryStatusMessage"],
+    ).toContain(
+      "single sign-on, SCIM provisioning and audit logging have stopped and enterprise configuration is read-only",
+    );
+  });
+
+  test("an abandoned license stops being emailed once the window is over", async () => {
+    mockEnterpriseLicenseService.findBy.mockResolvedValue([
+      makeLicense({
+        currentUserCount: 1,
+        userLimit: 10,
+        expiresAt: OneUptimeDate.addRemoveDays(
+          NOW,
+          -(EnterpriseLicenseUsageUtil.expiredNotificationCutoffDays + 1),
+        ),
+      }),
+    ]);
+
+    await runTick();
+
+    expect(
+      mockMailService.sendMail.mock.calls.find((args: Array<unknown>) => {
+        return (
+          (args[0] as { templateType: EmailTemplateType }).templateType ===
+          EmailTemplateType.EnterpriseLicenseExpiryReminder
+        );
+      }),
+    ).toBeUndefined();
   });
 });
