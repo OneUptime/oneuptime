@@ -158,8 +158,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * Edition. It runs before any router below is mounted, because the
      * feature sets ask EnterpriseEdition which enterprise routers to mount and
      * permission checks read the license snapshot this loads. It also applies
-     * the boot guards: billing without ee stops the boot, and
-     * IS_ENTERPRISE_EDITION=true without ee logs a loud warning.
+     * the boot guards: billing without ee, and IS_ENTERPRISE_EDITION=true
+     * without ee (unless ONEUPTIME_EDITION=community), stop the boot.
+     * Tests/Utils/EnterpriseBootWiring.test.ts pins this order.
      */
     await EnterpriseLoader.load();
 
