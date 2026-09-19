@@ -9,7 +9,9 @@ import path from "path";
  * The screens call the health API by hand-typed paths, and core's page shells
  * render them by plugin key; neither half fails loudly when it drifts (a 404
  * shows as a generic error, a missing key as an upsell on the Enterprise
- * Edition). The core side of this wiring is pinned in
+ * Edition). Every path they call is served by the enterprise module's
+ * admin-health router (ee/Server/AdminHealth), and core keeps a 402 fallback
+ * for it. The core side of this wiring is pinned in
  * packages/App/Tests/AdminDashboard/TelemetryHealthPageWiring.test.ts.
  *
  * Source text is read rather than imported for the wiring pins (the screens
@@ -23,6 +25,14 @@ const REPOSITORY_ROOT: string = path.resolve(EE_DIR, "..");
 const CORE_HEALTH_API: string = path.join(
   REPOSITORY_ROOT,
   "packages/App/API/AdminHealth.ts",
+);
+const CORE_PLUGIN_CONTRACT: string = path.join(
+  REPOSITORY_ROOT,
+  "packages/App/FeatureSet/AdminDashboard/src/Enterprise/EnterprisePlugins.ts",
+);
+const EE_HEALTH_DASHBOARDS_API: string = path.join(
+  EE_DIR,
+  "Server/AdminHealth/HealthDashboards.ts",
 );
 const EE_QUERY_CONSOLE_API: string = path.join(
   EE_DIR,
@@ -95,6 +105,16 @@ describe("the Health plugin object", () => {
     expect(pluginsSource).not.toMatch(/HealthInstanceLogs:/);
   });
 
+  // No core shell reads a plugin for it, so the contract has no key for it.
+  test("core's plugin contract has no instance-log key to fill in", () => {
+    const contractSource: string = stripComments(
+      fs.readFileSync(CORE_PLUGIN_CONTRACT, "utf8"),
+    );
+
+    expect(contractSource).not.toContain("HealthInstanceLogs");
+    expect(contractSource).toContain("HealthOverview?:");
+  });
+
   test("is assembled into the Admin Dashboard plugin", () => {
     const indexSource: string = stripComments(
       fs.readFileSync(path.join(EE_DIR, "AdminDashboard", "Index.tsx"), "utf8"),
@@ -156,8 +176,20 @@ describe("every health API path a screen calls is served", () => {
   const coreApi: string = stripComments(
     fs.readFileSync(CORE_HEALTH_API, "utf8"),
   );
+  const dashboardsApi: string = stripComments(
+    fs.readFileSync(EE_HEALTH_DASHBOARDS_API, "utf8"),
+  );
   const consoleApi: string = stripComments(
     fs.readFileSync(EE_QUERY_CONSOLE_API, "utf8"),
+  );
+
+  // The list of paths core answers with a 402 when ee does not serve them.
+  const fallbackListAt: number = coreApi.indexOf(
+    "export const HEALTH_DASHBOARD_PATHS",
+  );
+  const coreFallbacks: string = coreApi.slice(
+    fallbackListAt,
+    coreApi.indexOf("];", fallbackListAt),
   );
 
   const calledPaths: Array<{ file: string; apiPath: string }> = [];
@@ -178,18 +210,27 @@ describe("every health API path a screen calls is served", () => {
       if (called.apiPath === "/query/") {
         // `/admin/health/query/${engine}`: served by the enterprise console.
         expect(consoleApi).toContain("`/query/${engine}`");
+        expect(coreApi).toContain('"/query/postgres"');
         return;
       }
 
-      if (called.apiPath === "/queues/") {
-        // `/admin/health/queues/${queueName}/failed-jobs`.
-        expect(coreApi).toContain('"/queues/:queueName/failed-jobs"');
-        return;
-      }
+      // `/admin/health/queues/${queueName}/failed-jobs`.
+      const routePath: string =
+        called.apiPath === "/queues/"
+          ? "/queues/:queueName/failed-jobs"
+          : called.apiPath;
 
-      expect(coreApi).toContain(`"${called.apiPath}"`);
+      // Served by the enterprise dashboards...
+      expect(dashboardsApi).toContain(`"${routePath}"`);
+      // ...with a 402 fallback in core for when they are not loaded.
+      expect(coreFallbacks).toContain(`"${routePath}"`);
     },
   );
+
+  test("core's fallback list was found (the pins above read it)", () => {
+    expect(fallbackListAt).toBeGreaterThan(-1);
+    expect(coreFallbacks).toContain('"/overview"');
+  });
 });
 
 describe("Telemetry", () => {

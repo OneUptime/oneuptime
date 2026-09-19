@@ -18,10 +18,13 @@ import nodePath from "path";
  *
  * Telemetry ingestion is an Enterprise Edition screen. Its content (the two
  * tabs and the components that call the API) ships in the enterprise plugin
- * under ee/, which the Community build does not contain, so this core suite
- * pins only what core owns: the route, the page shell that renders the plugin
- * or the upsell, the Health layout, and the server routes. The screen-side
- * pins live with the screens in ee/Tests/UI/Health.
+ * under ee/, and so do the two API routes that feed it
+ * (ee/Server/AdminHealth/HealthDashboards.ts). The Community build contains
+ * neither, so this core suite pins only what core owns: the route, the page
+ * shell that renders the plugin or the upsell, the Health layout, the 402
+ * fallbacks core keeps for the two API paths and the by-signal probe the
+ * support bundle shares with the dashboard. The screen-side pins live in
+ * ee/Tests/UI/Health and the route pins in ee/Tests/Server/AdminHealth.
  *
  * The page also exists because the ingestion card MOVED here off the ClickHouse
  * datastore page. A re-added copy there would not fail anything — it would just
@@ -100,6 +103,9 @@ const healthLayoutSource: string = readAdminSource(
   "Pages/Health/HealthPage.tsx",
 );
 const adminHealthApiSource: string = readAppSource("API/AdminHealth.ts");
+const adminHealthProbesSource: string = readAppSource(
+  "API/AdminHealthProbes.ts",
+);
 const appIndexSource: string = readAppSource("Index.ts");
 
 /*
@@ -404,58 +410,67 @@ describe("API wiring", () => {
     );
   });
 
-  test("the API registers both ingestion routes", () => {
-    expect(adminHealthApiSource).toContain('"/clickhouse-telemetry-ingestion"');
-    expect(adminHealthApiSource).toContain(
+  /*
+   * The ingestion routes are served by the enterprise module's router. It has
+   * to sit at the same prefix and AHEAD of core's, whose fallbacks would
+   * otherwise answer every request with a 402.
+   */
+  test("the enterprise health router is mounted at the same prefix, ahead of core's", () => {
+    const enterpriseMountAt: number = appIndexSource.indexOf(
+      `expressApp.use("${HEALTH_API_PREFIX}", enterpriseAdminHealthRouter)`,
+    );
+    const coreMountAt: number = appIndexSource.indexOf(
+      `expressApp.use("${HEALTH_API_PREFIX}", AdminHealthAPI)`,
+    );
+
+    expect(enterpriseMountAt).toBeGreaterThan(-1);
+    expect(enterpriseMountAt).toBeLessThan(coreMountAt);
+  });
+
+  /*
+   * The two routes themselves are Enterprise code. Core keeps a fallback for
+   * each path, so the Community Edition answers 402 (with a reason) instead
+   * of 404.
+   */
+  test("core keeps a fallback for both ingestion paths", () => {
+    const fallbacksAt: number = adminHealthApiSource.indexOf(
+      "export const HEALTH_DASHBOARD_PATHS",
+    );
+    const fallbackList: string = adminHealthApiSource.slice(
+      fallbacksAt,
+      adminHealthApiSource.indexOf("];", fallbacksAt),
+    );
+
+    expect(fallbacksAt).toBeGreaterThan(-1);
+    expect(fallbackList).toContain('"/clickhouse-telemetry-ingestion"');
+    expect(fallbackList).toContain(
       '"/clickhouse-telemetry-ingestion-by-project"',
     );
   });
 
-  /*
-   * Per-project ingestion names every tenant on the instance. It has to sit
-   * behind the same master-admin authorization as the rest of the health API —
-   * a route registered without the middleware is reachable by any logged-in
-   * user.
-   */
-  test("the by-project route is master-admin gated", () => {
-    expect(adminHealthApiSource).toMatch(
-      /"\/clickhouse-telemetry-ingestion-by-project",\s*MasterAdminAuthorization\.isAuthorizedMasterAdmin/,
+  // Nothing in core serves the per-project figures any more.
+  test("core no longer reads per-project ingestion", () => {
+    expect(adminHealthApiSource).not.toContain(
+      "getTelemetryIngestionByProject",
+    );
+    expect(adminHealthProbesSource).not.toContain(
+      "getTelemetryIngestionByProject",
     );
   });
 
   /*
-   * Same licensed gate as every other live dashboard route: the Enterprise
-   * Edition with a license that covers instance health (OneUptime Cloud
-   * always passes). Never the raw IS_ENTERPRISE_EDITION flag.
+   * The by-signal figures come from the shared probe, which the enterprise
+   * dashboard route reads too. Re-inlining the query is how the dashboard and
+   * the bundle start disagreeing about what counts as telemetry.
    */
-  test("both ingestion routes are license-gated", () => {
-    for (const route of [
-      '"/clickhouse-telemetry-ingestion"',
-      '"/clickhouse-telemetry-ingestion-by-project"',
-    ]) {
-      const routeAt: number = adminHealthApiSource.indexOf(route);
-      const handler: string = adminHealthApiSource.slice(
-        routeAt,
-        routeAt + 600,
-      );
-
-      expect(handler).toContain("EnterpriseEdition.assertFeatureAvailable(");
-      expect(handler).toContain("EnterpriseFeature.InstanceHealth");
-      expect(handler).not.toContain("IsEnterpriseEdition");
-    }
-  });
-
-  /*
-   * Both views read the same table list and the same event-time columns from the
-   * shared probe. Re-inlining either query is how the two tabs start disagreeing
-   * about what counts as telemetry.
-   */
-  test("both views are served from the one shared probe", () => {
-    expect(adminHealthApiSource).toContain(
+  test("the by-signal figures are read from the one shared probe", () => {
+    expect(adminHealthProbesSource).toContain(
       'from "Common/Server/Utils/InstanceHealth/TelemetryIngestion"',
     );
-    expect(adminHealthApiSource).toContain("getTelemetryIngestionBySignal()");
-    expect(adminHealthApiSource).toContain("getTelemetryIngestionByProject()");
+    expect(adminHealthProbesSource).toContain(
+      "getTelemetryIngestionBySignal()",
+    );
+    expect(adminHealthApiSource).toContain('from "./AdminHealthProbes"');
   });
 
   /*
@@ -465,42 +480,8 @@ describe("API wiring", () => {
    */
   test("the support bundle still carries the by-signal ingestion figures", () => {
     expect(adminHealthApiSource).toContain("clickhouseTelemetryIngestion,");
-  });
-});
-
-describe("project names", () => {
-  /*
-   * ClickHouse only knows tenants by id. Resolving names by listing every
-   * project and matching in memory would be a full table read on a large
-   * instance; the route resolves exactly the ids that reported ingestion.
-   */
-  test("names are resolved for the reporting projects only", () => {
-    const functionAt: number = adminHealthApiSource.indexOf(
-      "async function getClickhouseTelemetryIngestionByProject",
+    expect(adminHealthApiSource).toContain(
+      "getClickhouseTelemetryIngestion(),",
     );
-    const body: string = adminHealthApiSource.slice(
-      functionAt,
-      functionAt + 2500,
-    );
-
-    expect(functionAt).toBeGreaterThan(-1);
-    expect(body).toContain("QueryHelper.any(projectIds)");
-    expect(body).toContain("attachProjectNames(");
-  });
-
-  /*
-   * Names are a nicety; the volumes are the point. A Postgres hiccup has to
-   * leave the rows labelled by id rather than failing the whole page.
-   */
-  test("a name lookup failure does not fail the request", () => {
-    const functionAt: number = adminHealthApiSource.indexOf(
-      "async function getClickhouseTelemetryIngestionByProject",
-    );
-    const body: string = adminHealthApiSource.slice(
-      functionAt,
-      functionAt + 2500,
-    );
-
-    expect(body).toMatch(/catch \(err\)/);
   });
 });

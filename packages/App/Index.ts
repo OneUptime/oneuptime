@@ -179,9 +179,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     expressApp.use("/", AppMetricsAPI);
 
     /*
-     * The enterprise admin-health routes (the query console) are mounted
-     * ahead of core's router, which answers the same paths with 402 on the
-     * Community Edition and serves everything else.
+     * The enterprise admin-health routes (the live Health dashboards and the
+     * query console) are mounted ahead of core's router, which answers the
+     * same paths with 402 on the Community Edition and serves everything else.
      */
     const enterpriseAdminHealthRouter: ExpressRouter | null =
       EnterpriseEdition.getModule()?.getAdminHealthRouter() || null;

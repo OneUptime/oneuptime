@@ -32,8 +32,9 @@ import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
  * and scrubbing would defeat the purpose of a query console.
  *
  * Served by the enterprise module's admin-health router (see ./Index.ts),
- * mounted at /api/admin/health ahead of core's router, which answers these
- * three paths with 402 when this module is not loaded.
+ * next to the live Health dashboards (./HealthDashboards.ts), mounted at
+ * /api/admin/health ahead of core's router, which answers these three paths
+ * with 402 when this module is not loaded.
  * ---------------------------------------------------------------------------
  */
 
@@ -878,16 +879,15 @@ async function handleQueryRequest(
 }
 
 /*
- * The three console routes. Routes only - no router.use() layer - because this
- * router is mounted at /api/admin/health AHEAD of core's AdminHealth router: a
- * path-less middleware here would run for every core health request too.
+ * The three console routes. Routes only - no router.use() layer - because the
+ * router they are registered on is mounted at /api/admin/health AHEAD of
+ * core's AdminHealth router: a path-less middleware there would run for every
+ * core health request too.
  *
  * They stay on the JWT-only master-admin middleware (never the static master
  * API key), so a leaked key cannot run queries headlessly.
  */
-export function createQueryConsoleRouter(): ExpressRouter {
-  const router: ExpressRouter = Express.getRouter();
-
+export function registerQueryConsoleRoutes(router: ExpressRouter): void {
   for (const engine of QUERY_CONSOLE_ENGINES) {
     router.post(
       `/query/${engine}`,
@@ -901,6 +901,11 @@ export function createQueryConsoleRouter(): ExpressRouter {
       },
     );
   }
+}
 
+// A router serving the console alone.
+export function createQueryConsoleRouter(): ExpressRouter {
+  const router: ExpressRouter = Express.getRouter();
+  registerQueryConsoleRoutes(router);
   return router;
 }

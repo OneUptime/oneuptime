@@ -421,6 +421,16 @@ describe("the enterprise admin-health router", () => {
       .stack;
   };
 
+  /*
+   * The same router also serves the live Health dashboards, as GETs (see
+   * HealthDashboards.test.ts). The console is its POST routes.
+   */
+  const consoleLayers: () => Array<RouteLayer> = (): Array<RouteLayer> => {
+    return layers().filter((layer: RouteLayer): boolean => {
+      return Boolean(layer.route?.methods["post"]);
+    });
+  };
+
   test("is what the assembled enterprise module hands core, built once", () => {
     const router: ExpressRouter | null = getAdminHealthRouter();
 
@@ -450,7 +460,7 @@ describe("the enterprise admin-health router", () => {
 
   test("serves exactly the three console routes, as POSTs", () => {
     expect(
-      layers().map((layer: RouteLayer): string => {
+      consoleLayers().map((layer: RouteLayer): string => {
         return `${Object.keys(layer.route?.methods || {}).join(",")} ${layer.route?.path}`;
       }),
     ).toEqual([
@@ -465,14 +475,34 @@ describe("the enterprise admin-health router", () => {
     ]);
   });
 
-  test("never shadows a core read-only route", () => {
-    for (const layer of layers()) {
+  test("the console is POST only, and no GET route shares a console path", () => {
+    for (const layer of consoleLayers()) {
       expect(layer.route?.methods["get"]).toBeUndefined();
+    }
+
+    for (const layer of layers()) {
+      if (layer.route?.methods["get"]) {
+        expect(layer.route.path.startsWith("/query/")).toBe(false);
+      }
+    }
+  });
+
+  // Core serves these on every edition; the enterprise router must not shadow them.
+  test("never shadows a core Community route", () => {
+    for (const layer of layers()) {
+      expect([
+        "/clickhouse-capacity",
+        "/instance-health-logs",
+        "/migrations",
+        "/support-bundle",
+      ]).not.toContain(layer.route?.path);
     }
   });
 
   test("keeps every console route on the JWT-only master-admin middleware (never the master API key)", () => {
-    for (const layer of layers()) {
+    expect(consoleLayers()).toHaveLength(QUERY_CONSOLE_ENGINES.length);
+
+    for (const layer of consoleLayers()) {
       expect(layer.route?.stack[0]?.handle).toBe(
         MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       );

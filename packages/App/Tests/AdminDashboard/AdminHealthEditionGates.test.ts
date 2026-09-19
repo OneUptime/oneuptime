@@ -14,14 +14,16 @@ import { AddressInfo } from "net";
 import nodePath from "path";
 
 /*
- * Which OneUptime Health API answers on which edition.
+ * Which OneUptime Health API core answers, on which edition.
  *
- * The live dashboards are an Enterprise feature, gated on the LICENSE through
- * EnterpriseEdition.assertFeatureAvailable(InstanceHealth) - not on the raw
- * IS_ENTERPRISE_EDITION variable any more. ClickHouse capacity (and its audit
- * log), migrations and the support bundle answer on every edition. The query
- * console moved into the enterprise module; core only keeps 402 fallbacks for
- * its three paths.
+ * ClickHouse capacity (and its audit log), migrations and the support bundle
+ * answer on every edition. The live dashboards and the query console are
+ * Enterprise code: they live in the enterprise module (ee/Server/AdminHealth,
+ * tested in ee/Tests/Server/AdminHealth), and core only keeps 402 fallbacks
+ * for their paths - gated on the LICENSE through
+ * EnterpriseEdition.assertFeatureAvailable(InstanceHealth), never on the raw
+ * IS_ENTERPRISE_EDITION variable. This suite never needs ee/: CI runs it with
+ * ee/ deleted.
  *
  * Real HTTP through the real router. Master-admin authorization passes every
  * request (it is not what is under test), and the datastores are reported as
@@ -138,6 +140,10 @@ jest.mock("../../FeatureSet/APIReference/Utils/DataTypes", () => {
 });
 
 import AdminHealthRouter, {
+  getHealthDashboardMiddleware,
+  HEALTH_DASHBOARD_PATHS,
+  HEALTH_DASHBOARD_UNAVAILABLE_MESSAGE,
+  JWT_ONLY_HEALTH_DASHBOARD_PATHS,
   QUERY_CONSOLE_PATHS,
   QUERY_CONSOLE_UNAVAILABLE_MESSAGE,
 } from "../../API/AdminHealth";
@@ -151,14 +157,20 @@ import Queue from "Common/Server/Infrastructure/Queue";
 import Redis from "Common/Server/Infrastructure/Redis";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import InstanceHealthLogService from "Common/Server/Services/InstanceHealthLogService";
-import {
+import Express, {
   createExpressApp,
   ExpressApplication,
   ExpressJson,
   ExpressRequest,
   ExpressResponse,
+  ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import { getRedisInfoSnapshot } from "Common/Server/Utils/InstanceHealth/RedisHealth";
+import {
+  getTelemetryIngestionByProject,
+  getTelemetryIngestionBySignal,
+} from "Common/Server/Utils/InstanceHealth/TelemetryIngestion";
 import logger from "Common/Server/Utils/Logger";
 import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
@@ -171,7 +183,10 @@ import FakeEnterpriseModule, {
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 
-// The live dashboards: 402 unless the license covers instance health.
+/*
+ * The live dashboards, as requested. The enterprise module serves them; core
+ * answers each with a 402.
+ */
 const ENTERPRISE_ROUTES: Array<string> = [
   "/overview",
   "/queues",
@@ -368,8 +383,87 @@ type RouteLayer = {
   };
 };
 
+const layersOf: (router: ExpressRouter) => Array<RouteLayer> = (
+  router: ExpressRouter,
+): Array<RouteLayer> => {
+  return (router as unknown as { stack: Array<RouteLayer> }).stack;
+};
+
 const routeLayers: () => Array<RouteLayer> = (): Array<RouteLayer> => {
-  return (AdminHealthRouter as unknown as { stack: Array<RouteLayer> }).stack;
+  return layersOf(AdminHealthRouter);
+};
+
+/*
+ * Every problem with a router's live-dashboard fallbacks: a path without a
+ * GET route, a route on the wrong middleware, or a route with more in its
+ * stack than the middleware and the handler.
+ */
+const findFallbackProblems: (router: ExpressRouter) => Array<string> = (
+  router: ExpressRouter,
+): Array<string> => {
+  const problems: Array<string> = [];
+
+  for (const path of HEALTH_DASHBOARD_PATHS) {
+    const layer: RouteLayer | undefined = layersOf(router).find(
+      (candidate: RouteLayer): boolean => {
+        return (
+          candidate.route?.path === path &&
+          Boolean(candidate.route?.methods["get"])
+        );
+      },
+    );
+
+    if (!layer?.route) {
+      problems.push(`${path}: no GET route`);
+      continue;
+    }
+
+    const expected: unknown = JWT_ONLY_HEALTH_DASHBOARD_PATHS.includes(path)
+      ? MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware
+      : MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware;
+
+    if (layer.route.stack[0]?.handle !== expected) {
+      problems.push(`${path}: wrong middleware`);
+    }
+
+    if (layer.route.stack.length !== 2) {
+      problems.push(`${path}: ${layer.route.stack.length} handlers, not 2`);
+    }
+  }
+
+  return problems;
+};
+
+/*
+ * The enterprise-only probes and state that moved to ee/Server/AdminHealth.
+ * None of them may come back to the Apache-2.0 core.
+ */
+const ENTERPRISE_ONLY_MARKERS: Array<string> = [
+  "getHealthSummary",
+  "getClickhouseHealthSummary",
+  "getPostgresActivity",
+  "getClickhouseTelemetryIngestionByProject",
+  "getTelemetryIngestionByProject",
+  "attachProjectNames",
+  "ACTIVITY_QUERY_TEXT_LENGTH",
+  "pg_stat_statements",
+  "pg_stat_progress_vacuum",
+  "overviewCache",
+  "queuesCache",
+];
+
+const findEnterpriseOnlyMarkers: (source: string) => Array<string> = (
+  source: string,
+): Array<string> => {
+  const code: string = stripComments(source);
+
+  return ENTERPRISE_ONLY_MARKERS.filter((marker: string): boolean => {
+    return code.includes(marker);
+  });
+};
+
+const readApiSource: (file: string) => string = (file: string): string => {
+  return fs.readFileSync(nodePath.join(__dirname, "../../API", file), "utf8");
 };
 
 // Removes comments, so prose about a pattern cannot satisfy or break a check.
@@ -417,6 +511,11 @@ beforeEach(() => {
   setTestBillingEnabled(false);
   uninstallEnterpriseModule();
 
+  // The module mocks above keep their calls across tests unless cleared.
+  jest.mocked(getRedisInfoSnapshot).mockClear();
+  jest.mocked(getTelemetryIngestionBySignal).mockClear();
+  jest.mocked(getTelemetryIngestionByProject).mockClear();
+
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
@@ -446,7 +545,7 @@ afterEach(() => {
   process.env = { ...originalEnvironment };
 });
 
-describe("the live OneUptime Health dashboards are licensed", () => {
+describe("the live OneUptime Health dashboards are not part of core", () => {
   describe.each(LOCKED_STATES)(
     "on $label",
     (state: EditionState & { message: string }) => {
@@ -464,33 +563,204 @@ describe("the live OneUptime Health dashboards are licensed", () => {
     },
   );
 
+  /*
+   * Where the license allows the dashboards, the enterprise router answers
+   * first (ee/Tests/Server/AdminHealth covers that). A request that still
+   * reaches core means the module did not serve it, and says so.
+   */
   describe.each(OPEN_STATES)("on $label", (state: EditionState) => {
-    test.each(ENTERPRISE_ROUTES)("GET %s answers 200", async (path: string) => {
-      enter(state);
+    test.each(ENTERPRISE_ROUTES)(
+      "GET %s still answers 402 when a licensed Enterprise module left the request to core",
+      async (path: string) => {
+        enter(state);
 
-      const result: HttpResult = await get(path);
+        const result: HttpResult = await get(path);
 
-      expect(result.status).toBe(200);
-    });
-  });
-
-  test("the two edition messages are different, so an operator can tell the cases apart", () => {
-    expect(EnterpriseEdition.COMMUNITY_EDITION_MESSAGE).not.toBe(
-      EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,
+        expect(result.status).toBe(402);
+        expect(result.body["message"]).toBe(
+          HEALTH_DASHBOARD_UNAVAILABLE_MESSAGE,
+        );
+      },
     );
   });
 
-  test("a license lapsing locks the dashboards on the next request, without a restart", async () => {
+  test("the three messages are different, so an operator can tell the cases apart", () => {
+    const messages: Array<string> = [
+      EnterpriseEdition.COMMUNITY_EDITION_MESSAGE,
+      EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,
+      HEALTH_DASHBOARD_UNAVAILABLE_MESSAGE,
+    ];
+
+    expect(new Set(messages).size).toBe(messages.length);
+    expect(HEALTH_DASHBOARD_UNAVAILABLE_MESSAGE).toContain(
+      "did not serve this request",
+    );
+  });
+
+  test("the fallbacks read the license on every request, without a restart", async () => {
     setTestBillingEnabled(false);
     const fake: FakeEnterpriseModule = installFakeEnterpriseModule();
 
-    expect((await get("/postgres-cluster")).status).toBe(200);
+    expect((await get("/postgres-cluster")).body["message"]).toBe(
+      HEALTH_DASHBOARD_UNAVAILABLE_MESSAGE,
+    );
 
     fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
-    expect((await get("/postgres-cluster")).status).toBe(402);
+    expect((await get("/postgres-cluster")).body["message"]).toBe(
+      EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,
+    );
 
     fake.setSnapshot(createLicenseSnapshot());
-    expect((await get("/postgres-cluster")).status).toBe(200);
+    expect((await get("/postgres-cluster")).body["message"]).toBe(
+      HEALTH_DASHBOARD_UNAVAILABLE_MESSAGE,
+    );
+  });
+
+  test("the fallbacks cover exactly the moved dashboard paths", () => {
+    expect([...HEALTH_DASHBOARD_PATHS]).toEqual(
+      ENTERPRISE_ROUTES.map((path: string): string => {
+        return path.replace("/Worker/", "/:queueName/");
+      }),
+    );
+    expect([...JWT_ONLY_HEALTH_DASHBOARD_PATHS]).toEqual([
+      "/postgres-activity",
+    ]);
+  });
+
+  /*
+   * Same middleware as the enterprise route each one stands in for: live
+   * Postgres activity returns statement text, so it takes a master-admin
+   * session only, never the static master API key.
+   */
+  test("every moved path has a fallback on the right middleware", () => {
+    expect(findFallbackProblems(AdminHealthRouter)).toEqual([]);
+
+    for (const path of HEALTH_DASHBOARD_PATHS) {
+      expect({ path, middleware: getHealthDashboardMiddleware(path) }).toEqual({
+        path,
+        middleware:
+          path === "/postgres-activity"
+            ? MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware
+            : MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+      });
+    }
+  });
+
+  // Negative control: the check above does fail on a bad router.
+  test("the fallback check catches a missing path, a wrong middleware and an extra handler", () => {
+    const router: ExpressRouter = Express.getRouter();
+    const handler: () => void = (): void => {
+      return undefined;
+    };
+
+    for (const path of HEALTH_DASHBOARD_PATHS) {
+      if (path === "/logs") {
+        continue;
+      }
+
+      if (path === "/postgres-activity") {
+        router.get(
+          path,
+          MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+          handler,
+        );
+        continue;
+      }
+
+      if (path === "/redis") {
+        router.get(
+          path,
+          MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+          handler,
+          handler,
+        );
+        continue;
+      }
+
+      router.get(path, getHealthDashboardMiddleware(path), handler);
+    }
+
+    expect(findFallbackProblems(router).sort()).toEqual(
+      [
+        "/logs: no GET route",
+        "/postgres-activity: wrong middleware",
+        "/redis: 3 handlers, not 2",
+      ].sort(),
+    );
+  });
+
+  test("the fallbacks never reach a datastore, even when the license allows the dashboards", async () => {
+    installFakeEnterpriseModule();
+
+    for (const path of ENTERPRISE_ROUTES) {
+      expect((await get(path)).status).toBe(402);
+    }
+
+    expect(PostgresAppInstance.getDataSource).not.toHaveBeenCalled();
+    expect(ClickhouseAppInstance.getDataSource).not.toHaveBeenCalled();
+    expect(Redis.getClient).not.toHaveBeenCalled();
+    expect(Queue.getQueueStats).not.toHaveBeenCalled();
+    expect(Queue.getFailedJobsWithDetails).not.toHaveBeenCalled();
+    expect(getRedisInfoSnapshot).not.toHaveBeenCalled();
+    expect(getTelemetryIngestionBySignal).not.toHaveBeenCalled();
+    expect(getTelemetryIngestionByProject).not.toHaveBeenCalled();
+  });
+});
+
+describe("no enterprise-only code is left in core", () => {
+  test.each(["AdminHealth.ts", "AdminHealthProbes.ts"])(
+    "%s defines none of the enterprise-only probes",
+    (file: string) => {
+      expect({
+        file,
+        found: findEnterpriseOnlyMarkers(readApiSource(file)),
+      }).toEqual({ file, found: [] });
+    },
+  );
+
+  test("core's router registers no working handler for a moved path", () => {
+    const source: string = stripComments(readApiSource("AdminHealth.ts"));
+    const literalGetPaths: Array<string> = Array.from(
+      source.matchAll(/router\.get\(\s*"([^"]+)"/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(literalGetPaths.sort()).toEqual([...COMMUNITY_ROUTES].sort());
+  });
+
+  // Negative control: the marker check does fail on enterprise code.
+  test("the marker check catches a moved probe, but not prose about it", () => {
+    expect(
+      findEnterpriseOnlyMarkers(
+        "export async function getPostgresActivity(): Promise<JSONObject> {}",
+      ),
+    ).toEqual(["getPostgresActivity"]);
+    expect(
+      findEnterpriseOnlyMarkers(
+        "let overviewCache: JSONObject | null = null;\nconst sql: string = 'SELECT * FROM pg_stat_statements';",
+      ),
+    ).toEqual(["pg_stat_statements", "overviewCache"]);
+    expect(
+      findEnterpriseOnlyMarkers(
+        "/* getPostgresActivity moved to ee */\n// so did getHealthSummary\nconst x: number = 1;",
+      ),
+    ).toEqual([]);
+  });
+
+  /*
+   * The enterprise dashboards import the probes module, never the router: a
+   * probes module that grew routes or an edition gate would pull core's
+   * routing into ee, or gate the Community support bundle.
+   */
+  test("the probes module is neither a router nor edition-gated", () => {
+    const probes: string = stripComments(readApiSource("AdminHealthProbes.ts"));
+
+    expect(probes).not.toContain("Express");
+    expect(probes).not.toContain("router.");
+    expect(probes).not.toContain("EnterpriseEdition");
+    expect(probes).not.toContain("IsEnterpriseEdition");
+    expect(probes).not.toContain('from "./AdminHealth"');
   });
 });
 
@@ -610,6 +880,82 @@ describe("the query console is not part of core", () => {
     ]) {
       expect({ runner, found: source.includes(runner) }).toEqual({
         runner,
+        found: false,
+      });
+    }
+  });
+});
+
+describe("the support bundle keeps every probe it shares with the dashboards", () => {
+  /*
+   * The probes the enterprise dashboards also read moved to
+   * AdminHealthProbes.ts. The Community bundle must still carry every one of
+   * them, on every edition.
+   */
+  test.each([LOCKED_STATES[0] as EditionState, OPEN_STATES[0] as EditionState])(
+    "on $label",
+    async (state: EditionState) => {
+      enter(state);
+
+      const result: HttpResult = await get("/support-bundle");
+      const components: JSONObject = result.body["components"] as JSONObject;
+
+      expect(result.status).toBe(200);
+      expect(Object.keys(result.body).sort()).toEqual(
+        [
+          "clickhouse",
+          "clickhouseDiagnostics",
+          "clickhouseTelemetryIngestion",
+          "components",
+          "config",
+          "generatedAt",
+          "instance",
+          "logs",
+          "migrations",
+          "postgres",
+          "postgresClusterHealth",
+          "postgresDiagnostics",
+          "queueDiagnostics",
+          "runtime",
+        ].sort(),
+      );
+      expect(Object.keys(components).sort()).toEqual(
+        ["clickhouse", "postgres", "queues", "redis"].sort(),
+      );
+      expect(components["queues"]).toHaveLength(4);
+      expect(result.body["queueDiagnostics"]).toHaveLength(4);
+      expect(Object.keys(result.body["logs"] as JSONObject).sort()).toEqual(
+        [
+          "application",
+          "clickhouse",
+          "containerLogsNote",
+          "postgres",
+          "redis",
+        ].sort(),
+      );
+      expect(getTelemetryIngestionBySignal).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  /*
+   * Live Postgres activity returns statement text, which can embed customer
+   * data. It is an enterprise dashboard only and never part of the bundle
+   * operators share.
+   */
+  test("never carries live Postgres activity", async () => {
+    installFakeEnterpriseModule();
+
+    const result: HttpResult = await get("/support-bundle");
+    const serialized: string = JSON.stringify(result.body);
+
+    for (const key of [
+      "activeQueries",
+      "blockedSessions",
+      "topStatements",
+      "vacuumProgress",
+    ]) {
+      expect({ key, found: serialized.includes(`"${key}"`) }).toEqual({
+        key,
         found: false,
       });
     }
@@ -841,7 +1187,7 @@ describe("the core AdminHealth router", () => {
     ).toEqual([]);
   });
 
-  test("registers every live dashboard route it gates", () => {
+  test("registers a fallback for every live dashboard path, and every Community route", () => {
     const paths: Array<string> = routeLayers().map(
       (layer: RouteLayer): string => {
         return String(layer.route?.path);
@@ -858,16 +1204,11 @@ describe("the core AdminHealth router", () => {
   });
 
   test("never reads the raw IS_ENTERPRISE_EDITION flag", () => {
-    const source: string = stripComments(
-      fs.readFileSync(
-        nodePath.join(__dirname, "../../API/AdminHealth.ts"),
-        "utf8",
-      ),
-    );
+    const source: string = stripComments(readApiSource("AdminHealth.ts"));
 
     expect(source).not.toContain("IsEnterpriseEdition");
     expect(source).toContain(
-      "EnterpriseEdition.assertFeatureAvailable(\n        EnterpriseFeature.InstanceHealth,",
+      "EnterpriseEdition.assertFeatureAvailable(\n          EnterpriseFeature.InstanceHealth,",
     );
   });
 });
