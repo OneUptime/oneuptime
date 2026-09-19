@@ -235,7 +235,9 @@
     "sso": {
       "title": "SSOでログイン",
       "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
-      "noProviders": "SSOプロバイダーが構成または有効化されていません"
+      "noProviders": "SSOプロバイダーが構成または有効化されていません",
+      "notAvailable": "このステータスページではシングルサインオン（SSO）を利用できません。代わりにメールアドレスとパスワードでログインしてください。",
+      "backToLogin": "ログインに戻る"
     },
     "forgotPassword": {
       "title": "パスワードをお忘れですか",

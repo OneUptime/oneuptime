@@ -136,6 +136,7 @@
     "subtitle": "Войдите через своего поставщика SSO, чтобы получить доступ к вашей учетной записи.",
     "submitButton": "Войти через SSO",
     "useUsernameInstead": "Использовать имя пользователя и пароль вместо этого.",
+    "enterpriseEditionRequired": "Единый вход (SSO) входит в OneUptime Enterprise Edition и недоступен на этом сервере. Войдите, используя адрес электронной почты и пароль.",
     "noAccountPrompt": "Нет учетной записи?",
     "registerLink": "Зарегистрироваться.",
     "selectProjectTitle": "Выберите проект",

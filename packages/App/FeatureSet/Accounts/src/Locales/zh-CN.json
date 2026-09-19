@@ -136,6 +136,7 @@
     "subtitle": "使用您的 SSO 提供商登录以访问您的账户。",
     "submitButton": "使用 SSO 登录",
     "useUsernameInstead": "改用用户名和密码。",
+    "enterpriseEditionRequired": "单点登录（SSO）是 OneUptime Enterprise Edition 的功能，此服务器不提供。请改用您的电子邮件和密码登录。",
     "noAccountPrompt": "没有账户？",
     "registerLink": "注册。",
     "selectProjectTitle": "选择项目",

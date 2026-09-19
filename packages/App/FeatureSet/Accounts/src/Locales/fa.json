@@ -136,6 +136,7 @@
     "subtitle": "برای دسترسی به حساب خود با ارائه‌دهنده SSO وارد شوید.",
     "submitButton": "ورود با SSO",
     "useUsernameInstead": "به‌جای آن از نام کاربری و رمز عبور استفاده کنید.",
+    "enterpriseEditionRequired": "ورود یکپارچه (SSO) بخشی از OneUptime Enterprise Edition است و در این سرور در دسترس نیست. به‌جای آن با ایمیل و رمز عبور خود وارد شوید.",
     "noAccountPrompt": "حساب کاربری ندارید؟",
     "registerLink": "ثبت‌نام کنید.",
     "selectProjectTitle": "انتخاب پروژه",

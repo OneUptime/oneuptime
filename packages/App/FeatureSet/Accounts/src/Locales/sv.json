@@ -136,6 +136,7 @@
     "subtitle": "Logga in med din SSO-leverantör för att komma åt ditt konto.",
     "submitButton": "Logga in med SSO",
     "useUsernameInstead": "Använd användarnamn och lösenord istället.",
+    "enterpriseEditionRequired": "Single sign-on (SSO) ingår i OneUptime Enterprise Edition och är inte tillgängligt på den här servern. Logga in med din e-postadress och ditt lösenord istället.",
     "noAccountPrompt": "Har du inget konto?",
     "registerLink": "Registrera dig.",
     "selectProjectTitle": "Välj projekt",

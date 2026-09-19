@@ -9,6 +9,8 @@ import {
 } from "@jest/globals";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import fs from "fs";
+import path from "path";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import API from "../../../UI/Utils/API/API";
@@ -19,7 +21,9 @@ import LoginUtil from "../../../UI/Utils/Login";
 import Navigation from "../../../UI/Utils/Navigation";
 import UiAnalytics from "../../../UI/Utils/Analytics";
 import UserUtil from "../../../UI/Utils/User";
-import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
+import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
+import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
+import german from "../../../../App/FeatureSet/Accounts/src/Locales/de.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
 import {
@@ -40,6 +44,11 @@ import {
  *
  * Billing and the edition are pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true.
+ *
+ * The explanation is a real locale string (sso.enterpriseEditionRequired),
+ * not the English defaultValue the page passes as a safety net: the tests
+ * below check the key exists in every Accounts locale and that the page
+ * renders the locale's text, in English and in another language.
  */
 
 let billingEnabledForTest: boolean = false;
@@ -80,6 +89,21 @@ const USE_SSO_LINK: string = "Use single sign-on (SSO) instead";
 const ENTERPRISE_NOTICE: RegExp =
   /Single sign-on \(SSO\) is part of the OneUptime Enterprise Edition/;
 const USE_PASSWORD_LINK: string = "Use username and password instead.";
+const ENTERPRISE_NOTICE_KEY: string = "sso.enterpriseEditionRequired";
+const ENTERPRISE_NOTICE_TEXT: string =
+  "Single sign-on (SSO) is part of the OneUptime Enterprise Edition and is not available on this server. Sign in with your email and password instead.";
+const ACCOUNTS_LOCALES_DIR: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "App",
+  "FeatureSet",
+  "Accounts",
+  "src",
+  "Locales",
+);
 
 type LookupAnswer = { status: number; data: Array<JSONObject> | JSONObject };
 
@@ -190,11 +214,12 @@ describe("Accounts sign-in on the Community and Enterprise Editions", () => {
       );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup();
     jest.restoreAllMocks();
     billingEnabledForTest = false;
     enterpriseEditionForTest = false;
+    await i18n.changeLanguage("en");
   });
 
   describe("SsoAvailability", () => {
@@ -276,6 +301,83 @@ describe("Accounts sign-in on the Community and Enterprise Editions", () => {
       );
       // No email form to fill in for a lookup that cannot succeed.
       expect(screen.queryByTestId("email")).not.toBeInTheDocument();
+    });
+
+    test("the explanation is the only message: the notice and the way back, nothing else", async () => {
+      globalSamlAnswer = NOT_SERVED;
+      globalOidcAnswer = NOT_SERVED;
+
+      await renderSso();
+
+      const notice: HTMLElement = await screen.findByTestId(
+        "sso-enterprise-edition-required",
+      );
+
+      expect(notice.textContent).toBe(
+        `${ENTERPRISE_NOTICE_TEXT}${USE_PASSWORD_LINK}`,
+      );
+      expect(screen.getAllByText(ENTERPRISE_NOTICE)).toHaveLength(1);
+      expect(
+        screen.queryByText(/No SSO configuration found/),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(english.sso.subtitle)).not.toBeInTheDocument();
+    });
+
+    test("the explanation resolves from the Accounts locales, not from its defaultValue", async () => {
+      globalSamlAnswer = NOT_SERVED;
+      globalOidcAnswer = NOT_SERVED;
+
+      expect(i18n.exists(ENTERPRISE_NOTICE_KEY)).toBe(true);
+      expect(english.sso.enterpriseEditionRequired).toBe(
+        ENTERPRISE_NOTICE_TEXT,
+      );
+      // Without a defaultValue, a missing key would come back as the key.
+      expect(i18n.t(ENTERPRISE_NOTICE_KEY)).toBe(ENTERPRISE_NOTICE_TEXT);
+
+      await renderSso();
+
+      expect(
+        await screen.findByTestId("sso-enterprise-edition-required"),
+      ).toHaveTextContent(ENTERPRISE_NOTICE_TEXT);
+    });
+
+    test("the explanation is translated: German gets the German text", async () => {
+      globalSamlAnswer = NOT_SERVED;
+      globalOidcAnswer = NOT_SERVED;
+      await i18n.changeLanguage("de");
+
+      await renderSso();
+
+      const notice: HTMLElement = await screen.findByTestId(
+        "sso-enterprise-edition-required",
+      );
+
+      expect(notice).toHaveTextContent(german.sso.enterpriseEditionRequired);
+      expect(notice).not.toHaveTextContent(ENTERPRISE_NOTICE_TEXT);
+      expect(german.sso.enterpriseEditionRequired).not.toBe(
+        ENTERPRISE_NOTICE_TEXT,
+      );
+    });
+
+    test("every Accounts locale translates the explanation", () => {
+      const locales: Array<string> = fs
+        .readdirSync(ACCOUNTS_LOCALES_DIR)
+        .filter((file: string) => {
+          return file.endsWith(".json") && file !== "en.json";
+        });
+
+      expect(locales).toHaveLength(16);
+
+      for (const file of locales) {
+        const locale: { sso?: Record<string, unknown> } = JSON.parse(
+          fs.readFileSync(path.join(ACCOUNTS_LOCALES_DIR, file), "utf8"),
+        ) as { sso?: Record<string, unknown> };
+        const value: unknown = locale.sso?.["enterpriseEditionRequired"];
+
+        expect([file, typeof value]).toEqual([file, "string"]);
+        expect((value as string).trim()).not.toBe("");
+        expect([file, value]).not.toEqual([file, ENTERPRISE_NOTICE_TEXT]);
+      }
     });
 
     test("a 402 from the provider routes is explained the same way", async () => {

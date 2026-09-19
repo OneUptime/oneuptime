@@ -136,6 +136,7 @@
     "subtitle": "अपने खाते तक पहुंचने के लिए अपने SSO प्रदाता से लॉगिन करें।",
     "submitButton": "SSO से लॉगिन",
     "useUsernameInstead": "इसके बजाय उपयोगकर्ता नाम और पासवर्ड का उपयोग करें।",
+    "enterpriseEditionRequired": "सिंगल साइन-ऑन (SSO) OneUptime Enterprise Edition का हिस्सा है और इस सर्वर पर उपलब्ध नहीं है। इसके बजाय अपने ईमेल और पासवर्ड से लॉगिन करें।",
     "noAccountPrompt": "खाता नहीं है?",
     "registerLink": "पंजीकरण करें।",
     "selectProjectTitle": "प्रोजेक्ट चुनें",
