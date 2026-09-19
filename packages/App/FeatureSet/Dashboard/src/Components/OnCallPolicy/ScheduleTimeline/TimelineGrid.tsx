@@ -105,8 +105,7 @@ export interface ComponentProps {
 const TimelineGrid: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const dayAreaRef: RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
+  const dayAreaRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const dayAreaWidth: number | null = useElementWidth(dayAreaRef);
 
   // The probe builds an Intl.DateTimeFormat; once per grid, not per block.

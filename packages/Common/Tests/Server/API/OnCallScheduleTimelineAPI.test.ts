@@ -147,6 +147,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import UserType from "../../../Types/UserType";
 import {
   at,
   shift,
@@ -837,8 +838,33 @@ describe("GET /on-call-schedule-timeline: who may call it", () => {
 
     const result: HttpResult = await request(timelinePath());
 
-    expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
+    // No credentials means an expired session can refresh and retry.
+    expect(result.status).toBe(ExceptionCode.NotAuthenticatedException);
+    expect(JSON.parse(result.body).message).toBe(
+      CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE,
+    );
     expect(scheduleFindBy).not.toHaveBeenCalled();
+    expect(loadSchedules).not.toHaveBeenCalled();
+    expect(loadSegments).not.toHaveBeenCalled();
+    expect(tryAcquireRenderSlot).not.toHaveBeenCalled();
+  });
+
+  test("an authenticated API key without a user is still refused", async () => {
+    propsSpy.mockResolvedValue({
+      ...buildMemberProps({ projectId, userId: undefined }),
+      userType: UserType.API,
+    });
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
+    expect(JSON.parse(result.body).message).toBe(
+      "You are not authorized to access this project's data.",
+    );
+    expect(scheduleFindBy).not.toHaveBeenCalled();
+    expect(loadSchedules).not.toHaveBeenCalled();
+    expect(loadSegments).not.toHaveBeenCalled();
+    expect(tryAcquireRenderSlot).not.toHaveBeenCalled();
   });
 
   test("a request without a tenant is a 400", async () => {

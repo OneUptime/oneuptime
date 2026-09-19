@@ -27,6 +27,14 @@ interface RecordedSpy {
 
 const setUrl: SetUrlFunction = (url: string): void => {
   window.history.replaceState(window.history.state, "", url);
+  // The app also supplies React Router's location to Navigation.
+  Navigation.setLocation({
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+    state: null,
+    key: "test",
+  });
 };
 
 describe("public Status Page API authentication errors", () => {
