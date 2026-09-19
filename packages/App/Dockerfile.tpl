@@ -181,6 +181,11 @@ COPY --chown=1000:1000 ./packages/App/FeatureSet/BrowserRecorder /usr/src/app/Fe
 RUN npm run build-frontends:prod
 # Bundle app source
 RUN npm run compile
+# The license terms travel with both images: the Apache License 2.0 and the
+# NOTICE that carves ee/ out of it (the enterprise target adds ee/LICENSE with
+# ee/). Root-owned, so the node user can read them but not change them. Copied
+# after the Community build, so editing either file does not redo it.
+COPY ./LICENSE ./NOTICE /usr/src/
 
 # ---------------------------------------------------------------------------
 # enterprise-build: community-build plus ee/.

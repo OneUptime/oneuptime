@@ -242,7 +242,7 @@ If OneUptime is useful to you:
 
 ## 📄 License
 
-OneUptime is open source under the [Apache License 2.0](/LICENSE), except for the [`ee/`](/ee) directory. That directory holds the Enterprise Edition and is licensed under the [OneUptime Enterprise License](/ee/LICENSE). The Community Edition image contains no code from `ee/`.
+OneUptime is open source under the [Apache License 2.0](/LICENSE), except for the [`ee/`](/ee) directory. That directory holds the Enterprise Edition and is licensed under the [OneUptime Enterprise License](/ee/LICENSE). The Community Edition image contains no code from `ee/`. The [`NOTICE`](/NOTICE) file states this split.
 
 <div align="center">
   <sub>Made with ❤️ by the <a href="https://oneuptime.com">OneUptime</a> team and <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">contributors</a>.</sub>

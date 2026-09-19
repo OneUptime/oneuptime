@@ -9,12 +9,18 @@
  *
  *  - the root LICENSE stays the verbatim Apache License 2.0 text, so GitHub
  *    keeps detecting it (and the README's license badge keeps working). The
- *    carve-out for ee/ lives in the README, CONTRIBUTING and ee/ itself,
- *    never in the root LICENSE;
+ *    carve-out for ee/ lives in the root NOTICE, the README, CONTRIBUTING and
+ *    ee/ itself, never in the root LICENSE;
  *  - ee/LICENSE carries the terms the design settled on;
+ *  - both App images ship LICENSE and NOTICE, and the Enterprise image
+ *    ee/LICENSE, and Scripts/GHA/check_app_image_edition.sh looks for them
+ *    with the same wording the files use;
  *  - every package.json outside ee/ says Apache-2.0, ee/package.json points at
- *    its own LICENSE, and each package-lock.json root entry mirrors that;
- *  - CODEOWNERS routes ee/ and both LICENSE files to the core maintainers;
+ *    its own LICENSE, and each package-lock.json root entry mirrors that. The
+ *    root package is private, so it can never be published (with ee/ in it)
+ *    under an Apache-2.0 manifest;
+ *  - CODEOWNERS routes ee/, the license files and the files that decide what
+ *    each image contains to the core maintainers;
  *  - the README and its 16 translations state the license split and no longer
  *    call all of OneUptime "100% open source" or its Enterprise images
  *    "hardened".
@@ -22,6 +28,12 @@
 
 const fs = require("fs");
 const path = require("path");
+const {
+  render,
+  parseStages,
+  ancestry,
+  instructions,
+} = require("./Utils/DockerfileTemplate");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
@@ -121,7 +133,59 @@ function isInsideEe(relativeDirectory) {
   return relativeDirectory === "ee" || relativeDirectory.startsWith("ee/");
 }
 
+/**
+ * Every file under `directory` whose name `accept`s, skipping the same
+ * directories as the package scan. Symlinks are not followed.
+ */
+function findFiles(directory, accept, found = []) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      if (!SKIPPED_DIRECTORIES.has(entry.name)) {
+        findFiles(entryPath, accept, found);
+      }
+      continue;
+    }
+
+    if (entry.isFile() && accept(entry.name)) {
+      found.push(entryPath);
+    }
+  }
+
+  return found;
+}
+
+function normaliseWhitespace(text) {
+  return text.replace(/\s+/g, " ").trim();
+}
+
 const packageDirectories = findPackageDirectories(REPO_ROOT);
+
+/**
+ * The title ee/LICENSE opens with, and what Scripts/GHA/check_app_image_edition.sh
+ * looks for to tell an Enterprise License from any other LICENSE in an image.
+ */
+const ENTERPRISE_LICENSE_TITLE = "OneUptime Enterprise License";
+
+/**
+ * The statements NOTICE must make, whitespace-normalised. Returns the ones
+ * `text` is missing.
+ */
+const NOTICE_STATEMENTS = [
+  'All content in the "ee/" directory of this repository is licensed under the OneUptime Enterprise License, in ee/LICENSE.',
+  "It is not licensed under the Apache License 2.0.",
+  "Third-party components keep the licenses their owners provide them under.",
+  "All other content is available under the Apache License 2.0, in LICENSE.",
+];
+
+function missingNoticeStatements(text) {
+  const normalised = normaliseWhitespace(text);
+
+  return NOTICE_STATEMENTS.filter((statement) => {
+    return !normalised.includes(statement);
+  });
+}
 
 describe("root LICENSE", () => {
   const license = read("LICENSE");
@@ -193,6 +257,159 @@ describe("ee/LICENSE", () => {
 
   test("keeps the legal-review caveat out of the license text", () => {
     expect(license).not.toMatch(/pending|draft|legal review/i);
+  });
+});
+
+/*
+ * The root LICENSE has to stay verbatim Apache-2.0, so the ee/ carve-out that
+ * PostHog and Metabase put at the top of their LICENSE lives in NOTICE.
+ */
+describe("NOTICE", () => {
+  const notice = read("NOTICE");
+
+  test("opens with OneUptime and carries ee/LICENSE's copyright line", () => {
+    const eeCopyright = read("ee/LICENSE").split("\n\n")[1];
+
+    expect(notice.split("\n")[0]).toBe("OneUptime");
+    expect(eeCopyright.startsWith("Copyright (c) ")).toBe(true);
+    expect(normaliseWhitespace(notice)).toContain(
+      normaliseWhitespace(eeCopyright),
+    );
+  });
+
+  test("states that ee/ is under the Enterprise License and everything else Apache-2.0", () => {
+    expect(missingNoticeStatements(notice)).toEqual([]);
+  });
+
+  test("the statement check notices a missing carve-out (negative control)", () => {
+    expect(missingNoticeStatements(read("LICENSE"))).toEqual(NOTICE_STATEMENTS);
+    expect(
+      missingNoticeStatements(
+        notice.replace(/All content in the "ee\/" directory/, "All content"),
+      ),
+    ).toEqual([NOTICE_STATEMENTS[0]]);
+  });
+
+  test("points at license files that exist", () => {
+    expect(exists("LICENSE")).toBe(true);
+    expect(exists("ee/LICENSE")).toBe(true);
+  });
+
+  test("is a notice, not a second copy of either license", () => {
+    expect(notice).not.toContain("TERMS AND CONDITIONS");
+    expect(notice).not.toContain("may only be used in");
+    expect(notice.split("\n").length).toBeLessThan(20);
+  });
+});
+
+describe("the App images ship the license files", () => {
+  const productionDockerfile = render(
+    read("packages/App/Dockerfile.tpl"),
+    "production",
+  );
+  const stages = parseStages(productionDockerfile);
+  const check = read("Scripts/GHA/check_app_image_edition.sh");
+
+  function stageInstructions(name) {
+    const stage = stages.find((candidate) => {
+      return candidate.name === name;
+    });
+
+    if (!stage) {
+      throw new Error(`packages/App/Dockerfile.tpl has no stage ${name}`);
+    }
+
+    return instructions(stage.body);
+  }
+
+  function builtFrom(name) {
+    return ancestry(stages, name).map((stage) => {
+      return stage.name;
+    });
+  }
+
+  test("the shared Community build copies LICENSE and NOTICE to /usr/src, so both targets have them", () => {
+    expect(stageInstructions("community-build")).toContain(
+      "COPY ./LICENSE ./NOTICE /usr/src/",
+    );
+    expect(builtFrom("community")).toContain("community-build");
+    expect(builtFrom("enterprise")).toContain("community-build");
+  });
+
+  test("the Enterprise build copies ee/, and ee/LICENSE with it", () => {
+    expect(stageInstructions("enterprise-build")).toContain(
+      "COPY ./ee /usr/src/ee",
+    );
+  });
+
+  test(".dockerignore keeps LICENSE, NOTICE and ee/LICENSE in the build context", () => {
+    const excluded = read(".dockerignore")
+      .split("\n")
+      .map((line) => {
+        return line.trim();
+      })
+      .filter((line) => {
+        return (
+          line.length > 0 &&
+          !line.startsWith("#") &&
+          (/(^|\/)(LICENSE|NOTICE)$/.test(line) || /^\*+$/.test(line))
+        );
+      });
+
+    expect(excluded).toEqual([]);
+  });
+
+  test("Scripts/GHA/check_app_image_edition.sh looks for all three, with the wording the files use", () => {
+    expect(check).toContain('is_apache_license "$ROOT/usr/src/LICENSE"');
+    expect(check).toContain('grep -qF "Version 2.0, January 2004"');
+    expect(read("LICENSE")).toContain("Version 2.0, January 2004");
+
+    expect(check).toContain('states_the_license_split "$ROOT/usr/src/NOTICE"');
+    expect(check).toContain(`grep -qF '"ee/"'`);
+    expect(read("NOTICE")).toContain('"ee/"');
+    expect(read("NOTICE")).toContain(ENTERPRISE_LICENSE_TITLE);
+
+    expect(check).toContain('is_enterprise_license "$EE/LICENSE"');
+    expect(check).toContain(
+      `ENTERPRISE_LICENSE_TITLE="${ENTERPRISE_LICENSE_TITLE}"`,
+    );
+    expect(read("ee/LICENSE").split("\n")[0]).toContain(
+      ENTERPRISE_LICENSE_TITLE,
+    );
+  });
+});
+
+/*
+ * The image check finds ee/ copied anywhere in the Community image by two
+ * files only ee/ has. That only works while nothing outside ee/ has them.
+ */
+describe("the files that mark ee/ in an image", () => {
+  const check = read("Scripts/GHA/check_app_image_edition.sh");
+  const candidates = findFiles(REPO_ROOT, (name) => {
+    return name === "LICENSE" || name.startsWith("TrustedLicenseKeys.");
+  })
+    .filter((file) => {
+      return (
+        path.basename(file) !== "LICENSE" ||
+        fs
+          .readFileSync(file, "utf8")
+          .split("\n")[0]
+          .includes(ENTERPRISE_LICENSE_TITLE)
+      );
+    })
+    .map(relative)
+    .sort();
+
+  test("the check scans for the Enterprise License title and ee's TrustedLicenseKeys module", () => {
+    expect(check).toContain("-name LICENSE -o -name 'TrustedLicenseKeys.*'");
+    expect(exists("ee/Server/License/TrustedLicenseKeys.ts")).toBe(true);
+  });
+
+  test("exist in ee/ and nowhere else in the repository", () => {
+    expect(candidates).toEqual([
+      "ee/LICENSE",
+      "ee/Server/License/TrustedLicenseKeys.ts",
+    ]);
   });
 });
 
@@ -367,6 +584,13 @@ describe("package.json license fields", () => {
 
     expect(mismatched).toEqual([]);
   });
+
+  test("the root package is private, so it can never be published with ee/ under Apache-2.0", () => {
+    const manifest = JSON.parse(read("package.json"));
+
+    expect(manifest.private).toBe(true);
+    expect(manifest.license).toBe(APACHE_LICENSE_FIELD);
+  });
 });
 
 describe(".github/CODEOWNERS", () => {
@@ -386,12 +610,50 @@ describe(".github/CODEOWNERS", () => {
     return line ? line.split(/\s+/).slice(1) : null;
   }
 
-  test.each(["/ee/", "/ee/LICENSE", "/LICENSE", "/.github/CODEOWNERS"])(
-    "routes %s to both core maintainers",
-    (pattern) => {
-      expect(ownersOf(pattern)).toEqual(["@simlarsen", "@nawazdhandala"]);
-    },
-  );
+  function patterns() {
+    return codeOwners
+      .split("\n")
+      .map((line) => {
+        return line.trim();
+      })
+      .filter((line) => {
+        return line.length > 0 && !line.startsWith("#");
+      })
+      .map((line) => {
+        return line.split(/\s+/)[0];
+      });
+  }
+
+  test.each([
+    // The license terms.
+    "/ee/",
+    "/ee/LICENSE",
+    "/LICENSE",
+    "/NOTICE",
+    "/.github/CODEOWNERS",
+    // What decides whether ee/ goes into the Community image.
+    "/.dockerignore",
+    "/packages/App/Dockerfile.tpl",
+    "/packages/App/Utils/EnterpriseLoader.ts",
+    "/packages/Common/UI/esbuild-enterprise.js",
+    "/Scripts/GHA/build_docker_images.sh",
+    // What notices when it does, or when the licensing statements drift.
+    "/Scripts/GHA/check_app_image_edition.sh",
+    "/Tests/Ops/EnterpriseEditionBuild.test.js",
+    "/Tests/Ops/ReleaseImageEditionChecks.test.js",
+    "/Tests/Ops/RepositoryLicensing.test.js",
+  ])("routes %s to both core maintainers", (pattern) => {
+    expect(ownersOf(pattern)).toEqual(["@simlarsen", "@nawazdhandala"]);
+  });
+
+  test("every path it names exists, so a rename cannot leave a file unowned", () => {
+    const missing = patterns().filter((pattern) => {
+      return !pattern.includes("*") && !exists(pattern.replace(/^\/|\/$/g, ""));
+    });
+
+    expect(patterns().length).toBeGreaterThan(0);
+    expect(missing).toEqual([]);
+  });
 
   test("every owner is a core maintainer listed in MAINTAINERS", () => {
     const owners = new Set(
@@ -452,6 +714,17 @@ describe("README and its translations", () => {
     );
     expect(english).toContain("[OneUptime Enterprise License](/ee/LICENSE)");
     expect(english).toContain("| **License** | Apache 2.0 |");
+  });
+
+  test("the English License section points at NOTICE, on the line that states the split", () => {
+    const licenseLine = english.split("\n").find((line) => {
+      return line.startsWith("OneUptime is open source under the");
+    });
+
+    expect(licenseLine).toContain(
+      "The [`NOTICE`](/NOTICE) file states this split.",
+    );
+    expect(exists("NOTICE")).toBe(true);
   });
 
   test("the edition table lists what the Enterprise Edition adds", () => {
