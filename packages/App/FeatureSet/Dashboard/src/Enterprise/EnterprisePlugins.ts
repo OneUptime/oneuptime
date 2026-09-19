@@ -1,6 +1,6 @@
 import PageComponentProps from "../Pages/PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import { ComponentType, ExoticComponent, Ref } from "react";
+import { ComponentType, ExoticComponent } from "react";
 
 /*
  * The contract between the core Dashboard and the Enterprise Edition UI.
@@ -54,28 +54,6 @@ export interface AuditLogsTableProps {
   rootResourceId?: ObjectID | undefined;
 }
 
-// Props of the per-member compliance status table on a team.
-export interface TeamComplianceStatusTableProps {
-  teamId: ObjectID;
-}
-
-// Imperative handle of that table: the compliance page refreshes it on save.
-export interface TeamComplianceStatusTableRef {
-  refresh: () => void;
-}
-
-/*
- * The table's props as a plugin receives them, ref included. Spelled out
- * rather than as RefAttributes: since @types/react 18.3 RefAttributes also
- * allows legacy string refs, which React.lazy strips - so a lazy forwardRef
- * table would not fit a RefAttributes slot, while it fits this one under
- * every @types/react the frontends and Common install.
- */
-export type TeamComplianceStatusTablePluginProps =
-  TeamComplianceStatusTableProps & {
-    ref?: Ref<TeamComplianceStatusTableRef> | undefined;
-  };
-
 export interface DashboardEnterprisePlugins {
   /*
    * Set only by the Enterprise plugin, to a fixed sentinel string. The EE
@@ -103,12 +81,12 @@ export interface DashboardEnterprisePlugins {
   // Status page > SCIM for private status page users (includes its logs).
   StatusPageSCIM?: EnterprisePluginComponent<PageComponentProps> | undefined;
 
-  // Team > Compliance (rules and the member status table).
+  /*
+   * Team > Compliance (rules and the member status table). The status table
+   * is not a key of its own: only this page shows it, and ee's page imports
+   * it from ee/ directly.
+   */
   TeamCompliance?: EnterprisePluginComponent<PageComponentProps> | undefined;
-  // The member compliance status table on its own, for other team surfaces.
-  TeamComplianceStatusTable?:
-    | EnterprisePluginComponent<TeamComplianceStatusTablePluginProps>
-    | undefined;
 
   /*
    * Body of the shared audit log table. Core's AuditLogsTable stays the one
@@ -137,7 +115,6 @@ const PLUGIN_KEY_SET: Record<DashboardEnterprisePluginKey, true> = {
   StatusPageOIDC: true,
   StatusPageSCIM: true,
   TeamCompliance: true,
-  TeamComplianceStatusTable: true,
   AuditLogsTable: true,
 };
 

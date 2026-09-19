@@ -93,8 +93,6 @@ import {
   DASHBOARD_ENTERPRISE_PLUGIN_KEYS,
   DashboardEnterprisePlugins,
   EnterprisePluginComponent,
-  TeamComplianceStatusTableProps,
-  TeamComplianceStatusTableRef,
 } from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterprisePlugins";
 import {
   AUDIT_LOGS_REQUIRED_PLAN,
@@ -470,19 +468,35 @@ describe("EnterprisePluginPage", () => {
   test("forwards a ref through to the plugin, lazy or not", async () => {
     pinDeployment("self-hosted-enterprise");
 
+    /*
+     * No contract key takes a ref today (the member compliance status table,
+     * the one that did, is imported by ee's Compliance page directly), so the
+     * props and handle are this test's own: a future ref-taking plugin must
+     * still get the caller's ref.
+     */
+    interface FakeTableProps {
+      teamId: ObjectID;
+    }
+
+    interface FakeTableRef {
+      refresh: () => void;
+    }
+
+    /*
+     * Spelled out rather than as RefAttributes: since @types/react 18.3
+     * RefAttributes also allows legacy string refs, which React.lazy strips -
+     * so a lazy forwardRef table would not fit a RefAttributes slot.
+     */
+    type FakeTablePluginProps = FakeTableProps & {
+      ref?: React.Ref<FakeTableRef> | undefined;
+    };
+
     const refreshes: Array<string> = [];
 
     const FakeComplianceTable: React.ForwardRefExoticComponent<
-      TeamComplianceStatusTableProps &
-        React.RefAttributes<TeamComplianceStatusTableRef>
-    > = forwardRef<
-      TeamComplianceStatusTableRef,
-      TeamComplianceStatusTableProps
-    >(
-      (
-        props: TeamComplianceStatusTableProps,
-        ref: React.Ref<TeamComplianceStatusTableRef>,
-      ): ReactElement => {
+      FakeTableProps & React.RefAttributes<FakeTableRef>
+    > = forwardRef<FakeTableRef, FakeTableProps>(
+      (props: FakeTableProps, ref: React.Ref<FakeTableRef>): ReactElement => {
         useImperativeHandle(ref, () => {
           return {
             refresh: (): void => {
@@ -501,14 +515,11 @@ describe("EnterprisePluginPage", () => {
     );
 
     /*
-     * Typed as the contract's slot: a forwardRef table declared the way the
-     * real one is fits it both eagerly and behind React.lazy (a
-     * RefAttributes-typed slot would reject the lazy one under
-     * @types/react 18.3, which this package installs).
+     * Typed as a contract slot would be: a forwardRef table fits it both
+     * eagerly and behind React.lazy (a RefAttributes-typed slot would reject
+     * the lazy one under @types/react 18.3, which this package installs).
      */
-    const plugins: Array<
-      NonNullable<DashboardEnterprisePlugins["TeamComplianceStatusTable"]>
-    > = [
+    const plugins: Array<EnterprisePluginComponent<FakeTablePluginProps>> = [
       FakeComplianceTable,
       React.lazy(async (): Promise<{ default: typeof FakeComplianceTable }> => {
         return { default: FakeComplianceTable };
@@ -516,11 +527,11 @@ describe("EnterprisePluginPage", () => {
     ];
 
     for (const plugin of plugins) {
-      const tableRef: React.RefObject<TeamComplianceStatusTableRef> =
-        React.createRef<TeamComplianceStatusTableRef>();
+      const tableRef: React.RefObject<FakeTableRef> =
+        React.createRef<FakeTableRef>();
 
       const { unmount } = render(
-        <EnterprisePluginPage
+        <EnterprisePluginPage<FakeTablePluginProps>
           plugin={plugin}
           pluginProps={{ teamId, ref: tableRef }}
           requiredPlan={IDENTITY_REQUIRED_PLAN}
@@ -568,11 +579,14 @@ describe("the Community plugin door (what this jest config resolves)", () => {
         "StatusPageSCIM",
         "StatusPageSSO",
         "TeamCompliance",
-        "TeamComplianceStatusTable",
       ].sort(),
     );
     expect(new Set(DASHBOARD_ENTERPRISE_PLUGIN_KEYS).size).toBe(
       DASHBOARD_ENTERPRISE_PLUGIN_KEYS.length,
+    );
+    // The member status table is only ever rendered by ee's Compliance page.
+    expect(DASHBOARD_ENTERPRISE_PLUGIN_KEYS).not.toContain(
+      "TeamComplianceStatusTable",
     );
   });
 

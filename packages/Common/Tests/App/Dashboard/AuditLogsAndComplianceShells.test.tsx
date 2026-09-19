@@ -7,13 +7,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
+import { cleanup, render, screen } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
+import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The core shells of the audit-log and team-compliance screens.
@@ -25,11 +22,15 @@ import React, {
  * never change. A shell renders the Enterprise plugin when the project may use
  * the feature AND the bundle includes it, and the upsell card otherwise.
  *
+ * The member compliance status table has no shell and no plugin key: only the
+ * Compliance page shows it, and ee's page imports it from ee/ directly. The
+ * old shell (Components/Team/TeamComplianceStatusTable) and its key were
+ * unreachable, and are pinned here as gone.
+ *
  * Pinned here, for each shell:
  *   - which tier it asks for (audit logs: Enterprise; compliance: Scale), on
  *     the Cloud and self-hosted, CE and EE;
- *   - that the plugin gets the caller's props untouched (and the ref, for the
- *     status table);
+ *   - that the plugin gets the caller's props untouched;
  *   - that an ineligible project never renders (or downloads) the plugin;
  *   - that an eligible project on a Community bundle is pointed at the
  *     edition, never told to upgrade its plan;
@@ -118,13 +119,9 @@ import TeamViewCompliance, {
 import TeamViewSideMenu, {
   isTeamComplianceMenuItemVisible,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/View/SideMenu";
-import TeamComplianceStatusTable, {
-  ComponentProps as TeamComplianceStatusTableShellProps,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Team/TeamComplianceStatusTable";
 import {
   AuditLogsTableProps,
-  TeamComplianceStatusTableProps,
-  TeamComplianceStatusTableRef,
+  DASHBOARD_ENTERPRISE_PLUGIN_KEYS,
 } from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterprisePlugins";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { getDashboardPlugins } from "../../../../App/FeatureSet/Dashboard/src/Enterprise/Plugins";
@@ -141,7 +138,7 @@ import {
 } from "./SideMenuHarness";
 
 /*
- * Compile-time: the shells' props ARE the contract's props, both ways, so the
+ * Compile-time: the shell's props ARE the contract's props, both ways, so the
  * shell and the Enterprise body cannot drift apart without this file failing
  * to type-check.
  */
@@ -150,10 +147,22 @@ const AUDIT_LOGS_TABLE_PROPS_MATCH: Exactly<
   AuditLogsTableShellProps,
   AuditLogsTableProps
 > = true;
-const STATUS_TABLE_PROPS_MATCH: Exactly<
-  TeamComplianceStatusTableShellProps,
-  TeamComplianceStatusTableProps
-> = true;
+
+// Where the removed status-table shell used to live.
+const REMOVED_STATUS_TABLE_SHELL: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "App",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+  "Components",
+  "Team",
+  "TeamComplianceStatusTable.tsx",
+);
 
 type Deployment = "cloud" | "self-hosted-enterprise" | "self-hosted-community";
 
@@ -193,34 +202,6 @@ const recordingPlugin: (
   return Plugin;
 };
 
-let statusTableRefreshes: number = 0;
-
-const FakeStatusTable: React.ForwardRefExoticComponent<
-  TeamComplianceStatusTableProps &
-    React.RefAttributes<TeamComplianceStatusTableRef>
-> = forwardRef<TeamComplianceStatusTableRef, TeamComplianceStatusTableProps>(
-  (
-    props: TeamComplianceStatusTableProps,
-    ref: React.Ref<TeamComplianceStatusTableRef>,
-  ): ReactElement => {
-    useImperativeHandle(ref, () => {
-      return {
-        refresh: (): void => {
-          statusTableRefreshes += 1;
-        },
-      };
-    });
-
-    return (
-      <div data-testid="plugin-TeamComplianceStatusTable">
-        {props.teamId.toString()}
-      </div>
-    );
-  },
-);
-
-FakeStatusTable.displayName = "FakeStatusTable";
-
 let lazyLoads: number = 0;
 
 const lazyPlugin: (
@@ -243,7 +224,6 @@ const installPlugins: () => void = (): void => {
     AuditLogsTable: recordingPlugin("AuditLogsTable"),
     SettingsAuditLogsSettings: recordingPlugin("SettingsAuditLogsSettings"),
     TeamCompliance: recordingPlugin("TeamCompliance"),
-    TeamComplianceStatusTable: FakeStatusTable,
   };
 };
 
@@ -257,7 +237,6 @@ beforeEach(() => {
   pinDeployment("self-hosted-community");
   pluginsForTest = {};
   receivedProps = {};
-  statusTableRefreshes = 0;
   lazyLoads = 0;
 
   /*
@@ -276,9 +255,8 @@ afterEach(() => {
 });
 
 describe("the shell contract", () => {
-  test("the shells' props are exactly the contract's props", () => {
+  test("the shell's props are exactly the contract's props", () => {
     expect(AUDIT_LOGS_TABLE_PROPS_MATCH).toBe(true);
-    expect(STATUS_TABLE_PROPS_MATCH).toBe(true);
   });
 
   test("this jest config (a Community build) has no audit-log or compliance plugin", () => {
@@ -292,7 +270,16 @@ describe("the shell contract", () => {
     expect(plugins["AuditLogsTable"]).toBeUndefined();
     expect(plugins["SettingsAuditLogsSettings"]).toBeUndefined();
     expect(plugins["TeamCompliance"]).toBeUndefined();
-    expect(plugins["TeamComplianceStatusTable"]).toBeUndefined();
+  });
+
+  test("the member status table is not a plugin key, and core has no shell for it", () => {
+    expect(DASHBOARD_ENTERPRISE_PLUGIN_KEYS).toContain("TeamCompliance");
+    expect(DASHBOARD_ENTERPRISE_PLUGIN_KEYS).not.toContain(
+      "TeamComplianceStatusTable",
+    );
+    expect(fs.existsSync(REMOVED_STATUS_TABLE_SHELL)).toBe(false);
+    // Negative control: the path points where the shell really lived.
+    expect(fs.existsSync(path.dirname(REMOVED_STATUS_TABLE_SHELL))).toBe(true);
   });
 });
 
@@ -523,99 +510,6 @@ describe("Teams > View > Compliance", () => {
       "Enforce compliance rules on this team.",
     );
     expect(TEAM_COMPLIANCE_UPSELL.benefits).toHaveLength(4);
-  });
-});
-
-describe("TeamComplianceStatusTable", () => {
-  const TEAM_ID: ObjectID = new ObjectID(
-    "00000000-0000-4000-8000-000000000002",
-  );
-
-  test("hands the plugin the team and the caller's ref: refresh() reaches the Enterprise table", () => {
-    pinDeployment("cloud", PlanType.Scale);
-    installPlugins();
-
-    const tableRef: React.RefObject<TeamComplianceStatusTableRef> =
-      React.createRef<TeamComplianceStatusTableRef>();
-
-    render(<TeamComplianceStatusTable ref={tableRef} teamId={TEAM_ID} />);
-
-    expect(
-      screen.getByTestId("plugin-TeamComplianceStatusTable"),
-    ).toHaveTextContent(TEAM_ID.toString());
-
-    act(() => {
-      tableRef.current?.refresh();
-    });
-
-    expect(statusTableRefreshes).toBe(1);
-  });
-
-  test("forwards the ref through a lazy plugin too", async () => {
-    pinDeployment("self-hosted-enterprise");
-    pluginsForTest = {
-      TeamComplianceStatusTable: React.lazy(
-        async (): Promise<{ default: typeof FakeStatusTable }> => {
-          return { default: FakeStatusTable };
-        },
-      ),
-    };
-
-    const tableRef: React.RefObject<TeamComplianceStatusTableRef> =
-      React.createRef<TeamComplianceStatusTableRef>();
-
-    render(<TeamComplianceStatusTable ref={tableRef} teamId={TEAM_ID} />);
-
-    expect(
-      await screen.findByTestId("plugin-TeamComplianceStatusTable"),
-    ).toBeInTheDocument();
-
-    act(() => {
-      tableRef.current?.refresh();
-    });
-
-    expect(statusTableRefreshes).toBe(1);
-  });
-
-  test.each<[Deployment, PlanType | undefined]>([
-    ["self-hosted-community", undefined],
-    ["cloud", PlanType.Growth],
-  ])(
-    "renders nothing on %s (the page carries the upsell), and refresh() is a safe no-op",
-    (deployment: Deployment, plan: PlanType | undefined) => {
-      pinDeployment(deployment, plan);
-      installPlugins();
-
-      const tableRef: React.RefObject<TeamComplianceStatusTableRef> =
-        React.createRef<TeamComplianceStatusTableRef>();
-
-      const { container } = render(
-        <TeamComplianceStatusTable ref={tableRef} teamId={TEAM_ID} />,
-      );
-
-      expect(container).toBeEmptyDOMElement();
-      expect(tableRef.current).toBeNull();
-      expect(() => {
-        tableRef.current?.refresh();
-      }).not.toThrow();
-    },
-  );
-
-  test("renders nothing for an eligible project on a Community bundle", () => {
-    pinDeployment("self-hosted-enterprise");
-    pluginsForTest = null;
-
-    const { container } = render(
-      <TeamComplianceStatusTable teamId={TEAM_ID} />,
-    );
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  test("keeps its display name for React devtools and error messages", () => {
-    expect(TeamComplianceStatusTable.displayName).toBe(
-      "TeamComplianceStatusTable",
-    );
   });
 });
 

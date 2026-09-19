@@ -24,10 +24,8 @@ import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
  * the team compliance upsell card when the project is not eligible or the
  * build has no Enterprise plugin. The eligibility check lives in that shell.
  *
- * The status table is imported from this directory, never through core's
- * Components/Team/TeamComplianceStatusTable shell: the shell reads the
- * plugins, and importing it back from here would close the import cycle that
- * crashes the Enterprise bundle (see src/Enterprise/Plugins.ts).
+ * The member status table lives in this directory too and is imported from
+ * here: it is not a Dashboard plugin key, and core has no shell for it.
  */
 const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

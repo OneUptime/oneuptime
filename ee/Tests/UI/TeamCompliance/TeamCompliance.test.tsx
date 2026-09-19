@@ -8,8 +8,10 @@ import React, { ReactElement } from "react";
 /*
  * The team-compliance area of the Enterprise Dashboard plugin: the Compliance
  * page and the member status table, which moved to ee/ in the Community /
- * Enterprise split (core keeps shells at the old paths - see
+ * Enterprise split (core keeps a shell at the page's old path - see
  * packages/Common/Tests/App/Dashboard/AuditLogsAndComplianceShells.test.tsx).
+ * The status table is not a plugin key: only the Compliance page renders it,
+ * importing it from this directory.
  *
  * The status table's rendering tests moved here from
  * packages/Common/Tests/App/Dashboard/UserEmailCallSites.test.tsx with the
@@ -386,46 +388,56 @@ describe("the Compliance page", () => {
 });
 
 describe("the team-compliance plugin keys", () => {
-  test("the assembled Enterprise plugin carries both team-compliance screens", () => {
+  test("the assembled Enterprise plugin carries the Compliance page", () => {
     const plugins: DashboardEnterprisePlugins = EnterpriseDashboardPlugins;
 
     expect(plugins.TeamCompliance).toBe(TeamCompliancePlugins.TeamCompliance);
-    expect(plugins.TeamComplianceStatusTable).toBe(
-      TeamCompliancePlugins.TeamComplianceStatusTable,
-    );
   });
 
-  test("both are lazy", () => {
+  /*
+   * The status table used to have a key of its own, read only by a core
+   * shell nothing rendered. The key, that shell and this lazy entry are gone.
+   */
+  test("the area provides the Compliance page only, not the status table", () => {
+    expect(Object.keys(TeamCompliancePlugins)).toEqual(["TeamCompliance"]);
+    expect(
+      Object.keys(EnterpriseDashboardPlugins).includes(
+        "TeamComplianceStatusTable",
+      ),
+    ).toBe(false);
+  });
+
+  test("the Compliance page is lazy", () => {
     const lazyType: symbol = Symbol.for("react.lazy");
 
-    for (const plugin of [
-      TeamCompliancePlugins.TeamCompliance,
-      TeamCompliancePlugins.TeamComplianceStatusTable,
-    ]) {
-      expect((plugin as unknown as { $$typeof: symbol }).$$typeof).toBe(
-        lazyType,
-      );
-    }
+    expect(
+      (TeamCompliancePlugins.TeamCompliance as unknown as { $$typeof: symbol })
+        .$$typeof,
+    ).toBe(lazyType);
   });
 
-  test("the lazy status table still hands its caller the refresh handle", async () => {
-    const StatusTablePlugin: NonNullable<
-      DashboardEnterprisePlugins["TeamComplianceStatusTable"]
-    > = TeamCompliancePlugins.TeamComplianceStatusTable!;
+  test("the lazy Compliance page still refreshes its member table when a rule changes", async () => {
+    jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(TEAM_ID);
 
-    const tableRef: React.RefObject<TeamComplianceStatusTableRef> =
-      React.createRef<TeamComplianceStatusTableRef>();
+    const CompliancePlugin: NonNullable<
+      DashboardEnterprisePlugins["TeamCompliance"]
+    > = TeamCompliancePlugins.TeamCompliance!;
 
     render(
       <React.Suspense fallback={<div data-testid="loading" />}>
-        <StatusTablePlugin ref={tableRef} teamId={TEAM_ID} />
+        <CompliancePlugin
+          pageRoute={new Route("/dashboard/p/settings/teams/t/compliance")}
+          currentProject={null}
+          hasPaymentMethod={true}
+        />
       </React.Suspense>,
     );
 
     expect(await screen.findByText("Jane Doe")).toBeInTheDocument();
+    expect(apiGet).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      tableRef.current?.refresh();
+      await capturedModelTableProps?.onCreateSuccess?.({});
     });
 
     expect(apiGet).toHaveBeenCalledTimes(2);
@@ -459,13 +471,20 @@ describe("the team-compliance plugin keys", () => {
 });
 
 describe("the team-compliance screens' imports", () => {
-  test("the page takes the status table from ee/, never from core's shell", () => {
+  test("the page takes the status table from ee/, never from core", () => {
     const specifiers: Array<string> = importsOf("Compliance.tsx");
 
     expect(specifiers).toContain("./TeamComplianceStatusTable");
     expect(specifiers).not.toContain(
       "@oneuptime/dashboard/Components/Team/TeamComplianceStatusTable",
     );
+  });
+
+  test("the plugin entry lazy-loads the Compliance page, and not the status table", () => {
+    const specifiers: Array<string> = importsOf("Plugins.ts");
+
+    expect(specifiers).toContain("./Compliance");
+    expect(specifiers).not.toContain("./TeamComplianceStatusTable");
   });
 
   test.each(["Compliance.tsx", "TeamComplianceStatusTable.tsx", "Plugins.ts"])(

@@ -11,10 +11,7 @@ import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserElement from "@oneuptime/dashboard/Components/User/User";
-import {
-  TeamComplianceStatusTableProps,
-  TeamComplianceStatusTableRef,
-} from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
+import ObjectID from "Common/Types/ObjectID";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import React, {
@@ -48,16 +45,18 @@ export interface TeamComplianceStatus {
 }
 
 /*
- * The member compliance status table (OneUptime Enterprise), rendered by the
- * ee Compliance page and, through the Dashboard plugin's
- * "TeamComplianceStatusTable" key, by core's
- * Components/Team/TeamComplianceStatusTable shell for any other team surface.
- * Props and the imperative handle are the contract's types, so the shell and
- * this table cannot drift apart.
+ * The member compliance status table (OneUptime Enterprise). Only the ee
+ * Compliance page (./Compliance) renders it, so it is not part of the
+ * Dashboard plugin contract and its props and handle are declared here.
  */
-export type ComponentProps = TeamComplianceStatusTableProps;
+export interface ComponentProps {
+  teamId: ObjectID;
+}
 
-export type { TeamComplianceStatusTableRef };
+// Imperative handle: the Compliance page refreshes the table when a rule changes.
+export interface TeamComplianceStatusTableRef {
+  refresh: () => void;
+}
 
 const TeamComplianceStatusTable: React.ForwardRefExoticComponent<
   ComponentProps & React.RefAttributes<TeamComplianceStatusTableRef>
