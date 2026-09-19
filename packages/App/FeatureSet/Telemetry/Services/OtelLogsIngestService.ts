@@ -197,13 +197,23 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       }
 
       /*
-       * Respond first, then enqueue the raw bytes. Protobuf decode +
-       * JSON normalization now happens in the worker so the HTTP
-       * event loop isn't blocked on every ingest call.
+       * Acknowledge only after queue admission. Raw bytes still pass through
+       * unchanged; protobuf decode and normalization remain in the worker.
        */
-      Response.sendEmptySuccessResponse(req, res);
+      try {
+        await LogsQueueService.addLogIngestJob(req as TelemetryRequest);
+      } catch {
+        // Do not expose backend errors or payloads to the exporter.
+        return Response.sendCustomResponse(
+          req,
+          res,
+          503,
+          { message: "Telemetry queue unavailable. Please retry." },
+          {},
+        );
+      }
 
-      await LogsQueueService.addLogIngestJob(req as TelemetryRequest);
+      Response.sendEmptySuccessResponse(req, res);
 
       return;
     } catch (err) {
