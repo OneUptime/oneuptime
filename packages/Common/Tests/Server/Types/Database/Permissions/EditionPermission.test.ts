@@ -6,7 +6,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import EditionPermissions from "../../../../../Server/Types/Database/Permissions/EditionPermission";
+import EditionPermissions, {
+  MIN_ROTATED_SCIM_BEARER_TOKEN_LENGTH,
+} from "../../../../../Server/Types/Database/Permissions/EditionPermission";
+import BasePermission from "../../../../../Server/Types/Database/Permissions/BasePermission";
 import CreatePermission from "../../../../../Server/Types/Database/Permissions/CreatePermission";
 import DeletePermission from "../../../../../Server/Types/Database/Permissions/DeletePermission";
 import TablePermission from "../../../../../Server/Types/Database/Permissions/TablePermission";
@@ -72,6 +75,10 @@ import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
  *     model's feature, and refused with the license message otherwise.
  *   - an unknown snapshot (the first load has not finished, or reading it
  *     throws) refuses writes - fail closed.
+ *   - the exception: an update that only tightens security (disabling an
+ *     identity provider, rotating a SCIM bearer token) needs no license, in
+ *     either edition. It is judged on what the update writes, which only
+ *     UpdatePermission has; without the data an update gets the full check.
  *
  * Billing and the edition are pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true, so an unpinned suite would only test the cloud path
@@ -954,6 +961,11 @@ describe("EditionPermission wiring through the permission entry points", () => {
     });
   });
 
+  /*
+   * These use { isEnabled: true }: switching a provider ON is configuration.
+   * Switching one off is a tighten-only update, allowed without the license
+   * (see "tighten-only updates" below).
+   */
   describe("UpdatePermission: master admins are checked before their early return", () => {
     const query: Query<GlobalSSO> = { name: "Okta" } as Query<GlobalSSO>;
 
@@ -962,7 +974,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
         UpdatePermission.checkUpdatePermissions(
           GlobalSSO,
           query,
-          { isEnabled: false },
+          { isEnabled: true },
           { userId, isMasterAdmin: true },
         ),
       ).rejects.toThrow(
@@ -983,7 +995,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
           UpdatePermission.checkUpdatePermissions(
             GlobalSSO,
             query,
-            { isEnabled: false },
+            { isEnabled: true },
             { userId, isMasterAdmin: true },
           ),
         ).rejects.toThrow(
@@ -1005,7 +1017,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
           UpdatePermission.checkUpdatePermissions(
             GlobalSSO,
             query,
-            { isEnabled: false },
+            { isEnabled: true },
             { userId, isMasterAdmin: true },
           ),
         ).resolves.toBe(query);
@@ -1102,6 +1114,710 @@ describe("EditionPermission wiring through the permission entry points", () => {
           DatabaseRequestType.Create,
         );
       }).toThrow(NotAuthenticatedException);
+    });
+
+    /*
+     * TablePermission is not handed the update's data, so it cannot tell a
+     * tighten-only update from any other. It leaves updates to
+     * UpdatePermission, which is (see the next block).
+     */
+    test("updates are left to UpdatePermission: TablePermission does not ask the edition check", () => {
+      const editionCheck: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        EditionPermissions,
+        "checkEditionPermissions",
+      );
+
+      expect(() => {
+        TablePermission.checkTableLevelPermissions(
+          ProjectSSO,
+          buildUserProps([Permission.ProjectOwner]),
+          DatabaseRequestType.Update,
+        );
+      }).not.toThrow();
+      expect(editionCheck).not.toHaveBeenCalled();
+
+      expect(() => {
+        TablePermission.checkTableLevelPermissions(
+          ProjectSSO,
+          buildUserProps([Permission.ProjectOwner]),
+          DatabaseRequestType.Create,
+        );
+      }).toThrow(PaymentRequiredException);
+      expect(editionCheck).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("UpdatePermission: every caller's update is edition-checked with its data", () => {
+    const query: Query<ProjectSSO> = {
+      _id: "33333333-3333-4333-8333-333333333333",
+    } as Query<ProjectSSO>;
+
+    const ownerProps: () => DatabaseCommonInteractionProps =
+      (): DatabaseCommonInteractionProps => {
+        return buildUserProps([Permission.ProjectOwner]);
+      };
+
+    beforeEach(() => {
+      // What follows the edition check needs a database; it is not under test.
+      jest.spyOn(BasePermission, "checkPermissions").mockImplementation((async (
+        _modelType: unknown,
+        checkedQuery: Query<ProjectSSO>,
+      ) => {
+        return { query: checkedQuery };
+      }) as never);
+    });
+
+    test("a project owner's ordinary update is refused on the Community Edition", async () => {
+      await expect(
+        UpdatePermission.checkUpdatePermissions(
+          ProjectSSO,
+          query,
+          { name: "Okta (renamed)" },
+          ownerProps(),
+        ),
+      ).rejects.toThrow(
+        new PaymentRequiredException(
+          EnterpriseEdition.COMMUNITY_EDITION_MESSAGE,
+        ),
+      );
+    });
+
+    test.each(UNUSABLE_STATUSES)(
+      "a project owner cannot switch a provider on with a %s license",
+      async (status: EnterpriseLicenseStatus) => {
+        installFakeEnterpriseModule({
+          snapshot: createLicenseSnapshotWithStatus(status),
+        });
+
+        await expect(
+          UpdatePermission.checkUpdatePermissions(
+            ProjectSSO,
+            query,
+            { isEnabled: true },
+            ownerProps(),
+          ),
+        ).rejects.toThrow(
+          new PaymentRequiredException(
+            EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,
+          ),
+        );
+      },
+    );
+
+    test.each(UNUSABLE_STATUSES)(
+      "a project owner can switch a provider off with a %s license",
+      async (status: EnterpriseLicenseStatus) => {
+        installFakeEnterpriseModule({
+          snapshot: createLicenseSnapshotWithStatus(status),
+        });
+
+        await expect(
+          UpdatePermission.checkUpdatePermissions(
+            ProjectSSO,
+            query,
+            { isEnabled: false },
+            ownerProps(),
+          ),
+        ).resolves.toEqual(query);
+      },
+    );
+
+    test("a project owner can rotate a leaked SCIM bearer token with an expired license", async () => {
+      installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("expired"),
+      });
+
+      await expect(
+        UpdatePermission.checkUpdatePermissions(
+          ProjectSCIM,
+          query as unknown as Query<ProjectSCIM>,
+          { bearerToken: ObjectID.generate().toString() },
+          ownerProps(),
+        ),
+      ).resolves.toEqual(query);
+    });
+
+    test("a project owner cannot rotate the token and change anything else in one update", async () => {
+      installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("expired"),
+      });
+
+      await expect(
+        UpdatePermission.checkUpdatePermissions(
+          ProjectSCIM,
+          query as unknown as Query<ProjectSCIM>,
+          {
+            bearerToken: ObjectID.generate().toString(),
+            autoProvisionUsers: true,
+          },
+          ownerProps(),
+        ),
+      ).rejects.toThrow(PaymentRequiredException);
+    });
+
+    /*
+     * The allowance is about the license, never about who may write: a
+     * caller without update permission is still turned away.
+     */
+    test("switching a provider off still needs permission to update it", async () => {
+      installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("expired"),
+      });
+
+      await expect(
+        UpdatePermission.checkUpdatePermissions(
+          ProjectSSO,
+          query,
+          { isEnabled: false },
+          buildUserProps([Permission.ProjectMember]),
+        ),
+      ).rejects.toThrow(NotAuthorizedException);
+    });
+
+    test("a signed-out caller gets 'not logged in' before any edition answer", async () => {
+      await expect(
+        UpdatePermission.checkUpdatePermissions(
+          ProjectSSO,
+          query,
+          { name: "Okta (renamed)" },
+          {},
+        ),
+      ).rejects.toThrow(NotAuthenticatedException);
+    });
+
+    test("a master admin can switch a global provider off with an expired license, and on the Community Edition", async () => {
+      const globalQuery: Query<GlobalSSO> = {
+        name: "Okta",
+      } as Query<GlobalSSO>;
+
+      await expect(
+        UpdatePermission.checkUpdatePermissions(
+          GlobalSSO,
+          globalQuery,
+          { isEnabled: false },
+          { userId, isMasterAdmin: true },
+        ),
+      ).resolves.toBe(globalQuery);
+
+      installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("expired"),
+      });
+
+      await expect(
+        UpdatePermission.checkUpdatePermissions(
+          GlobalSSO,
+          globalQuery,
+          { isEnabled: false },
+          { userId, isMasterAdmin: true },
+        ),
+      ).resolves.toBe(globalQuery);
+      await expect(
+        UpdatePermission.checkUpdatePermissions(
+          GlobalOIDC,
+          globalQuery as unknown as Query<GlobalOIDC>,
+          { isEnabled: false, restrictToAttachedProjects: false },
+          { userId, isMasterAdmin: true },
+        ),
+      ).rejects.toThrow(PaymentRequiredException);
+    });
+
+    test("the data reaches the edition check unchanged", async () => {
+      installFakeEnterpriseModule();
+
+      const editionCheck: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        EditionPermissions,
+        "checkEditionPermissions",
+      );
+      const data: { isEnabled: boolean } = { isEnabled: false };
+
+      await UpdatePermission.checkUpdatePermissions(
+        ProjectSSO,
+        query,
+        data,
+        ownerProps(),
+      );
+
+      const calls: Array<Array<unknown>> = editionCheck.mock.calls as Array<
+        Array<unknown>
+      >;
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0]![2]).toBe(DatabaseRequestType.Update);
+      expect(calls[0]![3]).toBe(data);
+    });
+  });
+});
+
+/*
+ * Tighten-only updates: the incident-response moves (disable an identity
+ * provider, rotate a leaked SCIM bearer token) need no license. Everything
+ * else about enterprise configuration still does.
+ */
+const IDENTITY_PROVIDER_MODELS: ReadonlyArray<[string, ModelType]> = [
+  ["GlobalSSO", GlobalSSO],
+  ["GlobalOIDC", GlobalOIDC],
+  ["GlobalSSOProject", GlobalSSOProject],
+  ["GlobalOIDCProject", GlobalOIDCProject],
+  ["ProjectSSO", ProjectSSO],
+  ["ProjectOIDC", ProjectOIDC],
+  ["StatusPageSSO", StatusPageSSO],
+  ["StatusPageOIDC", StatusPageOIDC],
+];
+
+const SCIM_MODELS: ReadonlyArray<[string, ModelType]> = [
+  ["ProjectSCIM", ProjectSCIM],
+  ["StatusPageSCIM", StatusPageSCIM],
+];
+
+const newBearerToken: () => string = (): string => {
+  return ObjectID.generate().toString();
+};
+
+const runUpdateCheck: (input: {
+  modelType: ModelType;
+  caller: Caller;
+  data: unknown;
+}) => Outcome = (input: {
+  modelType: ModelType;
+  caller: Caller;
+  data: unknown;
+}): Outcome => {
+  try {
+    EditionPermissions.checkEditionPermissions(
+      input.modelType,
+      propsFor(input.caller),
+      DatabaseRequestType.Update,
+      input.data,
+    );
+
+    return "allowed";
+  } catch (err) {
+    if (!(err instanceof PaymentRequiredException)) {
+      throw err;
+    }
+
+    return err.message === EnterpriseEdition.COMMUNITY_EDITION_MESSAGE
+      ? "community"
+      : "license";
+  }
+};
+
+describe("EditionPermission: tighten-only updates", () => {
+  beforeEach(() => {
+    setTestBillingEnabled(false);
+    uninstallEnterpriseModule();
+  });
+
+  afterEach(() => {
+    uninstallEnterpriseModule();
+    setTestBillingEnabled(false);
+    jest.restoreAllMocks();
+  });
+
+  describe("isTightenOnlyUpdate", () => {
+    test.each(IDENTITY_PROVIDER_MODELS)(
+      "%s: only isEnabled=false is tighten-only",
+      (_name: string, modelType: ModelType) => {
+        const tableName: string = new modelType().tableName!;
+
+        expect(
+          EditionPermissions.isTightenOnlyUpdate(tableName, {
+            isEnabled: false,
+          }),
+        ).toBe(true);
+
+        for (const value of [true, "false", 0, null, "", {}]) {
+          expect(
+            EditionPermissions.isTightenOnlyUpdate(tableName, {
+              isEnabled: value,
+            }),
+          ).toBe(false);
+        }
+
+        // Another model's tighten-only column is not this model's.
+        expect(
+          EditionPermissions.isTightenOnlyUpdate(tableName, {
+            bearerToken: newBearerToken(),
+          }),
+        ).toBe(false);
+      },
+    );
+
+    test.each(SCIM_MODELS)(
+      "%s: only a new, long bearerToken is tighten-only",
+      (_name: string, modelType: ModelType) => {
+        const tableName: string = new modelType().tableName!;
+
+        expect(
+          EditionPermissions.isTightenOnlyUpdate(tableName, {
+            bearerToken: newBearerToken(),
+          }),
+        ).toBe(true);
+        expect(
+          EditionPermissions.isTightenOnlyUpdate(tableName, {
+            bearerToken: "a".repeat(MIN_ROTATED_SCIM_BEARER_TOKEN_LENGTH),
+          }),
+        ).toBe(true);
+
+        for (const value of [
+          "a".repeat(MIN_ROTATED_SCIM_BEARER_TOKEN_LENGTH - 1),
+          `  ${"a".repeat(MIN_ROTATED_SCIM_BEARER_TOKEN_LENGTH - 1)}  `,
+          "",
+          null,
+          12345,
+          { token: newBearerToken() },
+        ]) {
+          expect(
+            EditionPermissions.isTightenOnlyUpdate(tableName, {
+              bearerToken: value,
+            }),
+          ).toBe(false);
+        }
+
+        expect(
+          EditionPermissions.isTightenOnlyUpdate(tableName, {
+            isEnabled: false,
+          }),
+        ).toBe(false);
+      },
+    );
+
+    test("one more column makes it an ordinary update", () => {
+      expect(
+        EditionPermissions.isTightenOnlyUpdate("ProjectSSO", {
+          isEnabled: false,
+          name: "Okta",
+        }),
+      ).toBe(false);
+      expect(
+        EditionPermissions.isTightenOnlyUpdate("ProjectOIDC", {
+          isEnabled: false,
+          clientSecret: "new-secret",
+        }),
+      ).toBe(false);
+      expect(
+        EditionPermissions.isTightenOnlyUpdate("ProjectSCIM", {
+          bearerToken: newBearerToken(),
+          enablePushGroups: true,
+        }),
+      ).toBe(false);
+    });
+
+    test("columns set to undefined are not written, so they do not count", () => {
+      expect(
+        EditionPermissions.isTightenOnlyUpdate("ProjectSSO", {
+          isEnabled: false,
+          name: undefined,
+        }),
+      ).toBe(true);
+    });
+
+    test("an update that writes nothing, or is not an object of columns, is not tighten-only", () => {
+      for (const data of [
+        undefined,
+        null,
+        {},
+        { name: undefined },
+        [],
+        [{ isEnabled: false }],
+        "isEnabled=false",
+        false,
+      ]) {
+        expect(EditionPermissions.isTightenOnlyUpdate("ProjectSSO", data)).toBe(
+          false,
+        );
+      }
+    });
+
+    /*
+     * Object's own members are not rules: an update naming them must not be
+     * judged by Object.prototype.constructor or toString.
+     */
+    test("inherited object members are never treated as rules", () => {
+      for (const column of [
+        "constructor",
+        "toString",
+        "hasOwnProperty",
+        "__proto__",
+      ]) {
+        const data: Record<string, unknown> = JSON.parse(
+          `{"isEnabled": false, "${column}": false}`,
+        );
+
+        expect(EditionPermissions.isTightenOnlyUpdate("ProjectSSO", data)).toBe(
+          false,
+        );
+      }
+    });
+
+    test("team compliance has no tighten-only update: switching a rule off relaxes it", () => {
+      expect(
+        EditionPermissions.isTightenOnlyUpdate("TeamComplianceSetting", {
+          enabled: false,
+        }),
+      ).toBe(false);
+      expect(
+        EditionPermissions.isTightenOnlyUpdate("TeamComplianceSetting", {
+          isEnabled: false,
+        }),
+      ).toBe(false);
+    });
+
+    test("tables that are not listed have none", () => {
+      for (const tableName of ["Monitor", "Project", "", null, undefined]) {
+        expect(
+          EditionPermissions.isTightenOnlyUpdate(tableName, {
+            isEnabled: false,
+          }),
+        ).toBe(false);
+      }
+    });
+  });
+
+  describe("the list itself", () => {
+    test("covers exactly the identity provider and SCIM models", () => {
+      expect(
+        Array.from(EditionPermissions.getTightenOnlyColumns().keys()).sort(),
+      ).toEqual(
+        [...IDENTITY_PROVIDER_MODELS, ...SCIM_MODELS]
+          .map(([name]: [string, ModelType]): string => {
+            return name;
+          })
+          .sort(),
+      );
+    });
+
+    test("every listed table is an enterprise model, and every listed column is a real column of it", () => {
+      const byTableName: Map<string, ModelType> = new Map<string, ModelType>(
+        ENTERPRISE_MODELS.map(
+          ([, modelType]: [string, ModelType, EnterpriseFeature]): [
+            string,
+            ModelType,
+          ] => {
+            return [new modelType().tableName!, modelType];
+          },
+        ),
+      );
+
+      for (const [
+        tableName,
+        columns,
+      ] of EditionPermissions.getTightenOnlyColumns()) {
+        const modelType: ModelType | undefined = byTableName.get(tableName);
+
+        expect(modelType).toBeDefined();
+
+        const model: BaseModel = new modelType!();
+
+        expect(model.requiresEnterprise).toBe(true);
+        expect(columns.length).toBeGreaterThan(0);
+
+        for (const column of columns) {
+          expect(model.isTableColumn(column)).toBe(true);
+        }
+      }
+    });
+  });
+
+  describe("checkEditionPermissions with the update's data", () => {
+    const UNAVAILABLE_STATES: ReadonlyArray<[string, () => void]> = [
+      [
+        "the Community Edition",
+        (): void => {
+          uninstallEnterpriseModule();
+        },
+      ],
+      ...UNUSABLE_STATUSES.map(
+        (status: EnterpriseLicenseStatus): [string, () => void] => {
+          return [
+            `a ${status} license`,
+            (): void => {
+              installFakeEnterpriseModule({
+                snapshot: createLicenseSnapshotWithStatus(status),
+              });
+            },
+          ];
+        },
+      ),
+      [
+        "no license snapshot yet",
+        (): void => {
+          installFakeEnterpriseModule({ snapshot: null });
+        },
+      ],
+      [
+        "a license without SSO, SCIM or team compliance",
+        (): void => {
+          installFakeEnterpriseModule({
+            snapshot: createLicenseSnapshot({
+              features: [EnterpriseFeature.AuditLogs],
+            }),
+          });
+        },
+      ],
+    ];
+
+    test.each(UNAVAILABLE_STATES)(
+      "with %s, switching any identity provider off is allowed, for users and master admins",
+      (_state: string, install: () => void) => {
+        install();
+
+        for (const [, modelType] of IDENTITY_PROVIDER_MODELS) {
+          for (const caller of [
+            "regular user",
+            "master admin",
+          ] as Array<Caller>) {
+            expect(
+              runUpdateCheck({
+                modelType,
+                caller,
+                data: { isEnabled: false },
+              }),
+            ).toBe("allowed");
+          }
+        }
+      },
+    );
+
+    test.each(UNAVAILABLE_STATES)(
+      "with %s, rotating a SCIM bearer token is allowed",
+      (_state: string, install: () => void) => {
+        install();
+
+        for (const [, modelType] of SCIM_MODELS) {
+          expect(
+            runUpdateCheck({
+              modelType,
+              caller: "regular user",
+              data: { bearerToken: newBearerToken() },
+            }),
+          ).toBe("allowed");
+        }
+      },
+    );
+
+    test.each(UNAVAILABLE_STATES)(
+      "with %s, everything else is still refused",
+      (_state: string, install: () => void) => {
+        install();
+
+        const expected: Outcome = EnterpriseEdition.isLoaded()
+          ? "license"
+          : "community";
+
+        for (const [, modelType] of IDENTITY_PROVIDER_MODELS) {
+          for (const data of [
+            { isEnabled: true },
+            { isEnabled: false, name: "Okta" },
+            { name: "Okta" },
+            {},
+            undefined,
+          ]) {
+            expect(
+              runUpdateCheck({ modelType, caller: "regular user", data }),
+            ).toBe(expected);
+          }
+        }
+
+        for (const [, modelType] of SCIM_MODELS) {
+          for (const data of [
+            { bearerToken: "short" },
+            { bearerToken: newBearerToken(), autoDeprovisionUsers: false },
+            { autoProvisionUsers: false },
+          ]) {
+            expect(
+              runUpdateCheck({ modelType, caller: "master admin", data }),
+            ).toBe(expected);
+          }
+        }
+
+        expect(
+          runUpdateCheck({
+            modelType: TeamComplianceSetting,
+            caller: "regular user",
+            data: { enabled: false },
+          }),
+        ).toBe(expected);
+      },
+    );
+
+    // Tighten-only is about updates: a create is configuration, whatever it holds.
+    test("a create is never tighten-only", () => {
+      installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("expired"),
+      });
+
+      expect(() => {
+        EditionPermissions.checkEditionPermissions(
+          ProjectSSO,
+          propsFor("regular user"),
+          DatabaseRequestType.Create,
+          { isEnabled: false },
+        );
+      }).toThrow(
+        new PaymentRequiredException(
+          EnterpriseEdition.LICENSE_REQUIRED_MESSAGE,
+        ),
+      );
+    });
+
+    test("without the data an update gets the full check (fail closed)", () => {
+      installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("expired"),
+      });
+
+      expect(
+        runUpdateCheck({
+          modelType: ProjectSSO,
+          caller: "regular user",
+          data: undefined,
+        }),
+      ).toBe("license");
+    });
+
+    test("a usable license, billing and root writes are unaffected", () => {
+      installFakeEnterpriseModule();
+
+      expect(
+        runUpdateCheck({
+          modelType: ProjectSSO,
+          caller: "regular user",
+          data: { isEnabled: true, name: "Okta" },
+        }),
+      ).toBe("allowed");
+
+      uninstallEnterpriseModule();
+      setTestBillingEnabled(true);
+
+      expect(
+        runUpdateCheck({
+          modelType: ProjectSSO,
+          caller: "regular user",
+          data: { isEnabled: true },
+        }),
+      ).toBe("allowed");
+
+      setTestBillingEnabled(false);
+
+      expect(
+        runUpdateCheck({
+          modelType: ProjectSSO,
+          caller: "root",
+          data: { isEnabled: true },
+        }),
+      ).toBe("allowed");
+    });
+
+    test("ordinary models are unaffected by the data", () => {
+      for (const [, modelType] of ORDINARY_MODELS) {
+        expect(
+          runUpdateCheck({
+            modelType,
+            caller: "regular user",
+            data: { isEnabled: true },
+          }),
+        ).toBe("allowed");
+      }
     });
   });
 });

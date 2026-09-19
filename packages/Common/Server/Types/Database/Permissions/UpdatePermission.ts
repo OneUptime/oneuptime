@@ -37,16 +37,23 @@ export default class UpdatePermission {
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
     /*
+     * The edition check for updates runs here, the one permission entry
+     * point that sees what the update writes: an update that only tightens
+     * security (disabling an identity provider, rotating a SCIM token) needs
+     * no license, anything else does (see EditionPermission). TablePermission
+     * leaves updates to this method for that reason.
+     *
      * Master admins skip every table-level check below, but not the edition
      * check: changing enterprise configuration (global SSO/OIDC providers are
      * only ever edited by master admins) needs the license for them too.
-     * Everyone else gets the same check through TablePermission.
+     * Everyone else gets it right after the table-level check.
      */
     if (props.isMasterAdmin && !props.isRoot) {
       EditionPermissions.checkEditionPermissions(
         modelType,
         props,
         DatabaseRequestType.Update,
+        data,
       );
     }
 
@@ -59,6 +66,13 @@ export default class UpdatePermission {
       modelType,
       props,
       DatabaseRequestType.Update,
+    );
+
+    EditionPermissions.checkEditionPermissions(
+      modelType,
+      props,
+      DatabaseRequestType.Update,
+      data,
     );
 
     const checkBasePermission: CheckPermissionBaseInterface<TBaseModel> =

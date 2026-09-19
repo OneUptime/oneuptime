@@ -57,10 +57,17 @@ export default class TablePermission {
     BillingPermissions.checkBillingPermissions(modelType, props, type);
 
     /*
-     * 3rd CHECK: Is this a write to enterprise configuration that the edition
-     * or the license does not allow? (Reads and deletes always pass.)
+     * 3rd CHECK: Is this a create of enterprise configuration that the
+     * edition or the license does not allow? (Reads and deletes always pass.)
+     * Updates are checked by UpdatePermission.checkUpdatePermissions instead,
+     * which every update runs and which sees what the update writes: an
+     * update that only tightens security (disabling an identity provider,
+     * rotating a SCIM token) needs no license, and this check, which is not
+     * handed the data, could only refuse it.
      */
-    EditionPermissions.checkEditionPermissions(modelType, props, type);
+    if (type !== DatabaseRequestType.Update) {
+      EditionPermissions.checkEditionPermissions(modelType, props, type);
+    }
 
     // 4th CHECK: Does user have access to CRUD data on this model.
     const userPermissions: Array<UserPermission> =
