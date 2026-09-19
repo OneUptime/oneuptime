@@ -48,13 +48,18 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
+interface CardModelDetailFormField {
+  field: Record<string, boolean>;
+  description?: string | undefined;
+}
+
 interface CardModelDetailProps {
   name: string;
   cardProps: { title: string };
-  formFields: Array<{ field: Record<string, boolean> }>;
+  formFields: Array<CardModelDetailFormField>;
 }
 
-// Each settings card, reduced to its name and the columns its form edits.
+// Each settings card, reduced to its name, the columns its form edits and their descriptions.
 jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return {
     __esModule: true,
@@ -62,16 +67,17 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
       return (
         <section data-testid={`card-${props.name}`}>
           <h2>{props.cardProps.title}</h2>
-          {props.formFields.map(
-            (formField: { field: Record<string, boolean> }) => {
-              const column: string = Object.keys(formField.field)[0] || "";
-              return (
-                <span key={column} data-testid={`edits-${column}`}>
-                  {column}
+          {props.formFields.map((formField: CardModelDetailFormField) => {
+            const column: string = Object.keys(formField.field)[0] || "";
+            return (
+              <span key={column} data-testid={`edits-${column}`}>
+                {column}
+                <span data-testid={`describes-${column}`}>
+                  {formField.description || ""}
                 </span>
-              );
-            },
-          )}
+              </span>
+            );
+          })}
         </section>
       );
     },
@@ -118,6 +124,18 @@ import AuthenticationSettings from "../../../../App/FeatureSet/AdminDashboard/sr
 const CE_NOTICE: RegExp =
   /Requiring SSO for login is part of the OneUptime Enterprise Edition\. This server runs the Community Edition/;
 
+/*
+ * On a self-hosted Enterprise Edition whose license lapsed (after the trial or
+ * the grace period) SSO sign-in stops, so "Require SSO" is not enforced
+ * either - an admin turning it on must not believe it holds regardless.
+ */
+const LAPSE_NOTE: RegExp =
+  /not enforced while the Enterprise license is missing or expired \(after the 14-day trial or grace period\), because SSO sign-in stops then too: users sign in with their password until a license is activated/;
+
+// The toggle's description before the license could switch SSO off.
+const RETIRED_TOGGLE_DESCRIPTION: string =
+  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.";
+
 describe("Admin Dashboard authentication settings: Require SSO for Login", () => {
   beforeEach(() => {
     billingEnabledForTest = false;
@@ -163,6 +181,20 @@ describe("Admin Dashboard authentication settings: Require SSO for Login", () =>
       expect(screen.queryByText(CE_NOTICE)).not.toBeInTheDocument();
     },
   );
+
+  test("the toggle says it is not enforced once the Enterprise license lapses", () => {
+    enterpriseEditionForTest = true;
+
+    render(<AuthenticationSettings />);
+
+    expect(
+      screen.getByTestId("describes-requireSsoForLogin"),
+    ).toHaveTextContent(LAPSE_NOTE);
+  });
+
+  test("the lapse check rejects the description the toggle had before (negative control)", () => {
+    expect(LAPSE_NOTE.test(RETIRED_TOGGLE_DESCRIPTION)).toBe(false);
+  });
 
   test.each([
     [false, false],

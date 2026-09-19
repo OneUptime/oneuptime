@@ -9,7 +9,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * installation's Enterprise license is missing, expired past its grace period
  * or does not include instance health. The server's own message is written for
  * enterprise configuration in general, so the screens show this instead - what
- * is locked, how to unlock it, and what keeps working.
+ * is locked, how to unlock it, what else is off while the license is missing
+ * or expired (single sign-on, SCIM and audit logging), and what keeps working.
  *
  * On OneUptime Cloud (billing on) the license never locks these screens, and
  * the only 402 is the query console's Cloud refusal, which keeps its own
@@ -23,7 +24,7 @@ export const HEALTH_LICENSE_REQUIRED_TITLE: string =
   "Enterprise license required.";
 
 export const HEALTH_LICENSE_REQUIRED_DESCRIPTION: string =
-  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.";
+  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, single sign-on, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.";
 
 // A failed Health API request, as a screen keeps it in state.
 export interface HealthRequestError {

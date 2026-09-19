@@ -3,6 +3,10 @@ import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  lapsedStateProblems,
+  lapseWarningProblems,
+} from "Common/Tests/UI/Components/EditionLabelLapseCopy";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -32,8 +36,13 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   grace    either an expired license's grace period (renew) or an unlicensed
  *            installation's trial counted from its first run (add a license) -
  *            the two must never be confused;
- *   expired, missing, invalid - with soft enforcement described accurately:
- *            configuration becomes read-only, nothing configured stops;
+ *   expired, missing, invalid - with the lapse said plainly: single sign-on,
+ *            SCIM and audit logging are off, "Require SSO" is not enforced
+ *            (users sign in with their password), configuration is
+ *            read-only, and everything resumes when a license is added. The
+ *            trial and grace notices warn about exactly that beforehand
+ *            (Common/Tests/UI/Components/EditionLabelLapseCopy.ts, whose
+ *            checks the core suite proves against the retired copy);
  *   unverified legacy licenses, told apart for a master admin;
  *   offline activation with a pasted signed token;
  *   the Community Edition image running with IS_ENTERPRISE_EDITION set, told to
@@ -294,10 +303,10 @@ describe("EditionLabel with the license manager - an expired license in its grac
     );
     expect(notice).toHaveTextContent("5 days left");
     expect(notice).toHaveTextContent(
-      "enterprise configuration becomes read-only",
+      "Every enterprise feature keeps working until the grace period ends",
     );
-    expect(notice).toHaveTextContent("SSO, SCIM and audit logging never stop");
-    expect(notice).toHaveTextContent("core monitoring is never affected");
+    // What stops when it ends: SSO, SCIM and audit logging, not just configuration.
+    expect(lapseWarningProblems(notice.textContent)).toEqual([]);
   });
 
   it("still counts as licensed: details, seats and the refresh button stay", async () => {
@@ -386,9 +395,8 @@ describe("EditionLabel with the license manager - an unlicensed installation's t
     expect(notice).toHaveTextContent(
       new Date(graceEndsAt).toLocaleDateString(),
     );
-    expect(notice).toHaveTextContent(
-      "enterprise configuration becomes read-only",
-    );
+    // What stops when it ends: SSO, SCIM and audit logging, not just configuration.
+    expect(lapseWarningProblems(notice.textContent)).toEqual([]);
   });
 
   it("lets a master admin add the license during the trial", async () => {
@@ -496,14 +504,11 @@ describe("EditionLabel with the license manager - no usable license", () => {
 
       expect(notice).toHaveTextContent(noticeTitle);
       /*
-       * Soft enforcement, described accurately: nothing configured stops, and
-       * core monitoring is not touched.
+       * The lapse, said plainly: single sign-on, SCIM and audit logging are
+       * off, "Require SSO" is not enforced, configuration is read-only, it
+       * all resumes with a license, and core monitoring is not touched.
        */
-      expect(notice).toHaveTextContent("Enterprise configuration is read-only");
-      expect(notice).toHaveTextContent(
-        "SSO, SCIM and audit logging never stop",
-      );
-      expect(notice).toHaveTextContent("core monitoring is never affected");
+      expect(lapsedStateProblems(notice.textContent)).toEqual([]);
     },
   );
 
@@ -527,10 +532,12 @@ describe("EditionLabel with the license manager - no usable license", () => {
 
   /*
    * The old copy promised that validating a key would "turn these on
-   * immediately" - but nothing configured is ever turned off, and the list is
-   * services as much as features.
+   * immediately" - the list is services (support, indemnification) as much as
+   * features, so it still must not. It then said "Nothing you already
+   * configured stops working without one", which stopped being true when
+   * single sign-on, SCIM and audit logging began to stop with the license.
    */
-  it("no longer claims a key turns features on", async () => {
+  it("says what a license keeps running, and no longer that nothing stops without one", async () => {
     respondWith(adminPayload({ status: "missing", licenseValid: false }));
 
     await openDialog();
@@ -540,9 +547,15 @@ describe("EditionLabel with the license manager - no usable license", () => {
     expect(
       screen.queryByText(/turn these on immediately/),
     ).not.toBeInTheDocument();
+    // A master admin with the license manager is the one who can add it.
     expect(
-      screen.getByText(/Nothing you already configured stops working/),
+      screen.getByText(
+        /A valid license keeps single sign-on, SCIM provisioning and audit logging running/,
+      ),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Nothing you already configured stops working/),
+    ).not.toBeInTheDocument();
   });
 
   it("offers the license input to a master admin", async () => {

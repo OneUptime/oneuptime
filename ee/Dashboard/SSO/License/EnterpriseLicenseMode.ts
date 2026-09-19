@@ -11,13 +11,16 @@ import API from "Common/UI/Utils/API/API";
  * Whether this installation's Enterprise license lets people change the
  * enterprise identity configuration (SAML / OIDC providers, SCIM settings).
  *
- * The server is the authority: without a valid license (after the grace
- * period) it answers 402 to every create or update of these models. This only
- * lets the screens say so up front, and hide the buttons that would fail,
- * instead of letting someone fill in a whole form first.
+ * The server is the authority: without a valid license (after the trial or
+ * the grace period) it answers 402 to every create or update of these models,
+ * and it also stops SSO sign-in and refuses SCIM requests until a license is
+ * activated. This only lets the screens say so up front, and hide the buttons
+ * that would fail, instead of letting someone fill in a whole form first.
  *
- * It never gates anything that keeps working without a license - SSO sign-in,
- * SCIM provisioning and deprovisioning, reading and deleting configuration.
+ * It never gates reading or deleting configuration, or the two tighten-only
+ * changes the server accepts without a license (TightenOnlyUpdates.ts).
+ * Unknown - not loaded yet, or unreadable - never hides anything and never
+ * claims that sign-in or SCIM has stopped.
  *
  * Used by the Dashboard and the Admin Dashboard identity screens. It imports
  * only Common/..., so both frontends can bundle it.

@@ -17,7 +17,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 export const DISABLE_PROVIDER_CARD_TITLE: string = "Disable this provider";
 
 export const DISABLE_PROVIDER_CARD_DESCRIPTION: string =
-  "Stop every sign-in through this provider. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.";
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.";
 
 export const DISABLE_PROVIDER_BUTTON_TITLE: string = "Disable Provider";
 

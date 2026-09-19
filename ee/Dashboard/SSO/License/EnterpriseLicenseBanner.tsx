@@ -4,26 +4,31 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * What the identity screens show above their configuration when the
- * Enterprise license does not allow (or will soon stop allowing) changes.
+ * Enterprise license has lapsed, or is about to.
  *
- * The copy says what keeps working, because that is the question an admin
- * has at this point: SSO sign-in and SCIM provisioning never stop because of
- * the license, only changes to the configuration do.
+ * The copy says what stops, because that is what an admin has to know: once
+ * the trial or the grace period is over, single sign-on stops and "Require
+ * SSO" is no longer enforced (members sign in with their password, so nobody
+ * is locked out), and the identity provider's SCIM requests are refused - the Community Edition's behaviour - until a license
+ * is activated, when everything resumes without a restart. Nothing configured
+ * here is deleted. Before the lapse (the Grace mode, which covers both the
+ * trial and the grace period) the banner warns about exactly that.
  *
  * The strings are plain English, like the rest of these screens. Alert
  * translates them when a locale has an entry under the same English key.
  */
 
 export const READ_ONLY_TITLE: string =
-  "Enterprise license required: this configuration is read-only.";
+  "Enterprise license required: single sign-on and SCIM are off, and this configuration is read-only.";
 
 export const READ_ONLY_DESCRIPTION: string =
-  "Single sign-on and SCIM keep working as configured: members can still sign in, and your identity provider can still provision and deprovision users. To add or change providers, activate or renew the Enterprise license in the Admin Dashboard.";
+  'Without a valid Enterprise license, single sign-on is off and "Require SSO" is not enforced, so members sign in with their password (anyone who only ever used single sign-on can set one with "Forgot password"). Your identity provider\'s SCIM requests are refused, so it cannot provision or deprovision users until the license is back. Nothing configured here is deleted: activate or renew the Enterprise license in the Admin Dashboard and everything resumes as configured.';
 
-export const GRACE_TITLE: string = "Enterprise license grace period.";
+export const GRACE_TITLE: string =
+  "No valid Enterprise license: single sign-on and SCIM stop when the trial or grace period ends.";
 
 export const GRACE_DESCRIPTION: string =
-  "This installation does not have a valid Enterprise license. You can still change this configuration during the grace period; after it ends the configuration becomes read-only. Single sign-on and SCIM keep working either way.";
+  'Everything here works during the 14-day trial or grace period, and you can still change this configuration. When it ends, single sign-on stops, "Require SSO" is no longer enforced (members sign in with their password), your identity provider\'s SCIM requests are refused and this configuration becomes read-only, until an Enterprise license is activated in the Admin Dashboard.';
 
 export interface ComponentProps {
   mode: EnterpriseLicenseMode;

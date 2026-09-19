@@ -43,6 +43,46 @@ afterEach(() => {
 
 const HEX_TOKEN: RegExp = /^[0-9a-f]+$/;
 
+/*
+ * While the license is lapsed, sign-in through the providers is already off
+ * and SCIM requests are already refused; both come back the moment a license
+ * is activated. So Disable and Reset Bearer Token are about what happens
+ * then, and the notices must not promise that Disable "stops sign-ins right
+ * away" as if sign-in were still running. The copy they shipped with:
+ */
+const RETIRED_PROVIDER_ACTIONS_DESCRIPTION: string =
+  "Without a valid Enterprise license this configuration is read-only, but disabling a provider is always allowed, because it can only tighten security. If an identity provider is compromised, use Disable to stop sign-ins through it right away. Turning a provider back on needs a valid license.";
+
+const RETIRED_DISABLE_PROVIDER_CARD_DESCRIPTION: string =
+  "Stop every sign-in through this provider. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.";
+
+const SIGN_IN_IS_OFF: RegExp =
+  /sign-in through (?:these providers|this provider) is off/i;
+const RESUMES_WITH_A_LICENSE: RegExp = /as soon as a license is activated/;
+const STOPS_SIGN_IN_NOW: RegExp =
+  /stop (?:every sign-in|sign-ins through it right away)/i;
+const SCIM_IS_REFUSED: RegExp = /SCIM requests are refused/;
+const SCIM_RESUMES_WITH_A_LICENSE: RegExp =
+  /accepted again as soon as a license is activated/;
+
+// Says that sign-in is already off, and that it comes back with a license.
+const describesLapsedSignIn: (text: string) => boolean = (
+  text: string,
+): boolean => {
+  return (
+    SIGN_IN_IS_OFF.test(text) &&
+    RESUMES_WITH_A_LICENSE.test(text) &&
+    !STOPS_SIGN_IN_NOW.test(text)
+  );
+};
+
+// Says that SCIM requests are already refused, and are accepted again with a license.
+const describesLapsedScim: (text: string) => boolean = (
+  text: string,
+): boolean => {
+  return SCIM_IS_REFUSED.test(text) && SCIM_RESUMES_WITH_A_LICENSE.test(text);
+};
+
 describe("buildDisableProviderUpdate", () => {
   test("is exactly { isEnabled: false }: one column, the literal false", () => {
     const update: Record<string, unknown> = buildDisableProviderUpdate();
@@ -229,6 +269,9 @@ describe("ReadOnlyActionsNotice", () => {
     expect(PROVIDER_ACTIONS_DESCRIPTION).toContain("read-only");
     expect(PROVIDER_ACTIONS_DESCRIPTION).toContain("tighten security");
     expect(PROVIDER_ACTIONS_DESCRIPTION).toContain("Disable");
+    // Sign-in is already off while the license is lapsed; Disable keeps it off after.
+    expect(describesLapsedSignIn(PROVIDER_ACTIONS_DESCRIPTION)).toBe(true);
+    expect(PROVIDER_ACTIONS_DESCRIPTION).toContain("to keep it off");
     expect(notice).not.toHaveTextContent(SCIM_ACTIONS_TITLE);
   });
 
@@ -249,7 +292,28 @@ describe("ReadOnlyActionsNotice", () => {
     expect(SCIM_ACTIONS_DESCRIPTION).toContain("read-only");
     expect(SCIM_ACTIONS_DESCRIPTION).toContain("tighten security");
     expect(SCIM_ACTIONS_DESCRIPTION).toContain("Reset Bearer Token");
+    // SCIM is already refused while the license is lapsed; the reset matters before it resumes.
+    expect(describesLapsedScim(SCIM_ACTIONS_DESCRIPTION)).toBe(true);
     expect(notice).not.toHaveTextContent(PROVIDER_ACTIONS_TITLE);
+  });
+
+  test("the lapse checks reject the copy that treated sign-in and SCIM as still running (negative controls)", () => {
+    expect(describesLapsedSignIn(RETIRED_PROVIDER_ACTIONS_DESCRIPTION)).toBe(
+      false,
+    );
+    expect(
+      describesLapsedSignIn(RETIRED_DISABLE_PROVIDER_CARD_DESCRIPTION),
+    ).toBe(false);
+    expect(
+      describesLapsedSignIn(
+        `${PROVIDER_ACTIONS_DESCRIPTION} Use Disable to stop sign-ins through it right away.`,
+      ),
+    ).toBe(false);
+    expect(
+      describesLapsedScim(
+        "Without a valid Enterprise license this configuration is read-only, but resetting a bearer token is always allowed, because it can only tighten security. If a token has leaked, use Reset Bearer Token to replace it, then give the new token to your identity provider.",
+      ),
+    ).toBe(false);
   });
 
   test.each([
@@ -285,6 +349,8 @@ describe("DisableProviderCard", () => {
 
     expect(card).toHaveTextContent(DISABLE_PROVIDER_CARD_TITLE);
     expect(card).toHaveTextContent(DISABLE_PROVIDER_CARD_DESCRIPTION);
+    // Shown only while read-only: sign-in is already off, Disable keeps it off after.
+    expect(describesLapsedSignIn(DISABLE_PROVIDER_CARD_DESCRIPTION)).toBe(true);
     expect(onDisable).not.toHaveBeenCalled();
 
     fireEvent.click(

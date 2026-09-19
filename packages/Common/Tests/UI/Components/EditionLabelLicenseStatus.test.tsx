@@ -1,4 +1,9 @@
-import EditionLabel from "../../../UI/Components/EditionLabel/EditionLabel";
+import EditionLabel, {
+  GRACE_ENFORCEMENT_SUMMARY,
+  LICENSE_LAPSED_STATE,
+  LICENSE_LAPSE_CONSEQUENCES,
+  TRIAL_ENFORCEMENT_SUMMARY,
+} from "../../../UI/Components/EditionLabel/EditionLabel";
 import {
   LicenseManagerDialogParts,
   LicenseManagerProps,
@@ -6,6 +11,13 @@ import {
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
+import {
+  LAPSED_STATE_PHRASES,
+  LAPSE_WARNING_PHRASES,
+  RETIRED_NOTICE_EXAMPLES,
+  lapsedStateProblems,
+  lapseWarningProblems,
+} from "./EditionLabelLapseCopy";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -33,8 +45,12 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   grace    either an expired license's grace period (renew) or an unlicensed
  *            installation's trial counted from its first run (add a license) -
  *            the two must never be confused;
- *   expired, missing, invalid - with soft enforcement described accurately:
- *            configuration becomes read-only, nothing configured stops;
+ *   expired, missing, invalid - with the lapse said plainly: single sign-on,
+ *            SCIM and audit logging are off, "Require SSO" is not enforced
+ *            (users sign in with their password), configuration is
+ *            read-only, and everything resumes when a license is added. The
+ *            trial and grace notices warn about exactly that beforehand
+ *            (EditionLabelLapseCopy.ts);
  *   the Community Edition image running with IS_ENTERPRISE_EDITION set, told to
  *            a master admin;
  *   and what EditionLabel hands a license manager, and where its parts land.
@@ -294,10 +310,10 @@ describe("EditionLabel - an expired license in its grace period", () => {
     );
     expect(notice).toHaveTextContent("5 days left");
     expect(notice).toHaveTextContent(
-      "enterprise configuration becomes read-only",
+      "Every enterprise feature keeps working until the grace period ends",
     );
-    expect(notice).toHaveTextContent("SSO, SCIM and audit logging never stop");
-    expect(notice).toHaveTextContent("core monitoring is never affected");
+    // What stops when it ends: SSO, SCIM and audit logging, not just configuration.
+    expect(lapseWarningProblems(notice.textContent)).toEqual([]);
   });
 
   /*
@@ -319,7 +335,7 @@ describe("EditionLabel - an expired license in its grace period", () => {
     );
 
     expect(notice).toHaveTextContent(
-      "Without a valid license (after the 14-day grace period), enterprise configuration becomes read-only",
+      "Without a valid license (after the 14-day grace period), single sign-on (SAML and OIDC) stops",
     );
     expect(notice).not.toHaveTextContent(/trial/i);
   });
@@ -399,9 +415,8 @@ describe("EditionLabel - an unlicensed installation's trial", () => {
     expect(notice).toHaveTextContent(
       new Date(graceEndsAt).toLocaleDateString(),
     );
-    expect(notice).toHaveTextContent(
-      "enterprise configuration becomes read-only",
-    );
+    // What stops when it ends: SSO, SCIM and audit logging, not just configuration.
+    expect(lapseWarningProblems(notice.textContent)).toEqual([]);
   });
 
   /*
@@ -417,7 +432,7 @@ describe("EditionLabel - an unlicensed installation's trial", () => {
     );
 
     expect(notice).toHaveTextContent(
-      "Without a valid license (after the 14-day trial), enterprise configuration becomes read-only",
+      "Without a valid license (after the 14-day trial), single sign-on (SAML and OIDC) stops",
     );
     expect(notice).not.toHaveTextContent(/grace/i);
   });
@@ -519,14 +534,11 @@ describe("EditionLabel - no usable license", () => {
 
       expect(notice).toHaveTextContent(noticeTitle);
       /*
-       * Soft enforcement, described accurately: nothing configured stops, and
-       * core monitoring is not touched.
+       * The lapse, said plainly: single sign-on, SCIM and audit logging are
+       * off, "Require SSO" is not enforced, configuration is read-only, it
+       * all resumes with a license, and core monitoring is not touched.
        */
-      expect(notice).toHaveTextContent("Enterprise configuration is read-only");
-      expect(notice).toHaveTextContent(
-        "SSO, SCIM and audit logging never stop",
-      );
-      expect(notice).toHaveTextContent("core monitoring is never affected");
+      expect(lapsedStateProblems(notice.textContent)).toEqual([]);
     },
   );
 
@@ -550,10 +562,12 @@ describe("EditionLabel - no usable license", () => {
 
   /*
    * The old copy promised that validating a key would "turn these on
-   * immediately" - but nothing configured is ever turned off, and the list is
-   * services as much as features.
+   * immediately" - the list is services (support, indemnification) as much as
+   * features, so it still must not. It then said "Nothing you already
+   * configured stops working without one", which stopped being true when
+   * single sign-on, SCIM and audit logging began to stop with the license.
    */
-  it("no longer claims a key turns features on", async () => {
+  it("says what a license keeps running, and no longer that nothing stops without one", async () => {
     respondWith(adminPayload({ status: "missing", licenseValid: false }));
 
     await openDialog();
@@ -563,8 +577,26 @@ describe("EditionLabel - no usable license", () => {
     expect(
       screen.queryByText(/turn these on immediately/),
     ).not.toBeInTheDocument();
+    // Without a manager nobody here can add the license, so it names who can.
     expect(
-      screen.getByText(/Nothing you already configured stops working/),
+      screen.getByText(
+        /A master admin can add the license to keep single sign-on, SCIM provisioning and audit logging running/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Nothing you already configured stops working/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("asks for a license to turn single sign-on, SCIM and audit logging back on", async () => {
+    respondWith(adminPayload({ status: "expired", licenseValid: false }));
+
+    await openDialog();
+
+    expect(
+      await screen.findByText(
+        "Add a valid license to turn single sign-on, SCIM and audit logging back on and make enterprise configuration editable.",
+      ),
     ).toBeInTheDocument();
   });
 });
@@ -855,7 +887,7 @@ describe("EditionLabel - without a license manager", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /A master admin can add the license to keep enterprise configuration editable/,
+        /A master admin can add the license to keep single sign-on, SCIM provisioning and audit logging running and enterprise configuration editable/,
       ),
     ).toBeInTheDocument();
   });
@@ -1116,7 +1148,7 @@ describe("EditionLabel - with a license manager", () => {
     // With a manager to add it with, a master admin is pointed at it.
     expect(
       screen.getByText(
-        "Add a license below to keep enterprise configuration editable after the trial.",
+        "Add a license below before the trial ends to keep single sign-on, SCIM and audit logging running and enterprise configuration editable.",
       ),
     ).toBeInTheDocument();
   });
@@ -1228,5 +1260,79 @@ describe("EditionLabel - with a license manager", () => {
     expect(container).toBeEmptyDOMElement();
     expect(managerProps).toHaveLength(0);
     expect(fetchCalls).toHaveLength(0);
+  });
+});
+
+/*
+ * The lapse checks the notices above rely on (EditionLabelLapseCopy.ts), and
+ * the sentences EditionLabel builds its notices from. Each check has to fail
+ * on the copy that promised SSO, SCIM and audit logging never stop, and on
+ * copy that drops any single consequence - otherwise a passing notice test
+ * proves nothing.
+ */
+describe("EditionLabel - the lapse copy and its checks", () => {
+  it.each(RETIRED_NOTICE_EXAMPLES)(
+    "rejects the retired soft-enforcement copy: %s",
+    (retired: string) => {
+      expect(lapseWarningProblems(retired)).toContain("retired: never stop");
+      expect(lapsedStateProblems(retired)).toContain("retired: never stop");
+      expect(lapseWarningProblems(retired)).toContain(
+        "missing: single sign-on (SAML and OIDC) stops",
+      );
+      expect(lapsedStateProblems(retired)).toContain(
+        "missing: Single sign-on (SAML and OIDC) and SCIM provisioning are off",
+      );
+    },
+  );
+
+  it("accepts the sentences EditionLabel ships", () => {
+    expect(lapseWarningProblems(TRIAL_ENFORCEMENT_SUMMARY)).toEqual([]);
+    expect(lapseWarningProblems(GRACE_ENFORCEMENT_SUMMARY)).toEqual([]);
+    expect(lapsedStateProblems(LICENSE_LAPSED_STATE)).toEqual([]);
+  });
+
+  it.each(
+    LAPSE_WARNING_PHRASES.map((phrase: string) => {
+      return [phrase];
+    }),
+  )("reports a warning that leaves out: %s", (phrase: string) => {
+    const withoutPhrase: string = LICENSE_LAPSE_CONSEQUENCES.replace(
+      phrase,
+      "",
+    );
+
+    expect(withoutPhrase).not.toBe(LICENSE_LAPSE_CONSEQUENCES);
+    expect(lapseWarningProblems(withoutPhrase)).toEqual([`missing: ${phrase}`]);
+  });
+
+  it.each(
+    LAPSED_STATE_PHRASES.map((phrase: string) => {
+      return [phrase];
+    }),
+  )("reports a lapsed notice that leaves out: %s", (phrase: string) => {
+    const withoutPhrase: string = LICENSE_LAPSED_STATE.replace(phrase, "");
+
+    expect(withoutPhrase).not.toBe(LICENSE_LAPSED_STATE);
+    expect(lapsedStateProblems(withoutPhrase)).toEqual([`missing: ${phrase}`]);
+  });
+
+  it("reports shipped copy that also promises SSO keeps running", () => {
+    expect(
+      lapseWarningProblems(
+        `${TRIAL_ENFORCEMENT_SUMMARY} Everything you already configured keeps working.`,
+      ),
+    ).toEqual(["retired: already configured keeps working"]);
+    expect(
+      lapsedStateProblems(
+        `${LICENSE_LAPSED_STATE} SSO, SCIM and audit logging never stop.`,
+      ),
+    ).toEqual(["retired: never stop"]);
+  });
+
+  it("warns without calling the trial a grace period, or the grace period a trial", () => {
+    expect(LICENSE_LAPSE_CONSEQUENCES).not.toMatch(/grace|trial/i);
+    expect(LICENSE_LAPSED_STATE).not.toMatch(/grace|trial/i);
+    expect(TRIAL_ENFORCEMENT_SUMMARY).not.toMatch(/grace/i);
+    expect(GRACE_ENFORCEMENT_SUMMARY).not.toMatch(/trial/i);
   });
 });

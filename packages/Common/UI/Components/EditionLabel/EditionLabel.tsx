@@ -69,20 +69,32 @@ const SALES_MAILTO_URL: string = "mailto:sales@oneuptime.com";
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 
 /*
- * What happens without a license, in one sentence set, so every notice in the
- * dialog describes soft enforcement the same way (and truthfully: nothing that
- * is already configured stops, and core monitoring is never touched).
+ * What stops when the license lapses, in one sentence set, so every notice in
+ * the dialog says it the same way. It has to be said plainly and before it
+ * happens: after the trial or the grace period, single sign-on (SAML and
+ * OIDC) and SCIM provisioning stop, "Require SSO" is no longer enforced (so
+ * nobody is locked out: users sign in with their password), and audit logging
+ * stops recording - the Community Edition's behaviour - until a license is
+ * activated, when everything resumes without a restart. Core monitoring is
+ * never touched.
  */
-const SOFT_ENFORCEMENT_CONSEQUENCES: string =
-  "enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything you already configured keeps working — SSO, SCIM and audit logging never stop — and core monitoring is never affected.";
+export const LICENSE_LAPSE_CONSEQUENCES: string =
+  'single sign-on (SAML and OIDC) stops and "Require SSO" is no longer enforced, so users sign in with their password; SCIM provisioning stops; audit logging stops recording; enterprise configuration becomes read-only; and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.';
 
 /*
  * The two periods have different names: an unlicensed installation's first
  * 14 days are its trial, and only a license that lapsed has a grace period.
  */
-const TRIAL_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the 14-day trial), ${SOFT_ENFORCEMENT_CONSEQUENCES}`;
+export const TRIAL_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the 14-day trial), ${LICENSE_LAPSE_CONSEQUENCES}`;
 
-const GRACE_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the 14-day grace period), ${SOFT_ENFORCEMENT_CONSEQUENCES}`;
+export const GRACE_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the 14-day grace period), ${LICENSE_LAPSE_CONSEQUENCES}`;
+
+/*
+ * What has stopped once the license lapsed (expired past its grace period,
+ * missing after the trial, or invalid), after the reason the notice gives.
+ */
+export const LICENSE_LAPSED_STATE: string =
+  'Single sign-on (SAML and OIDC) and SCIM provisioning are off: "Require SSO" is not enforced, so users sign in with their password, and your identity provider\'s SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.';
 
 type LicenseStatus = "valid" | "grace" | "expired" | "missing" | "invalid";
 
@@ -907,7 +919,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
 
     if (!licenseValid) {
-      return "Add a valid license to keep enterprise configuration editable.";
+      return "Add a valid license to turn single sign-on, SCIM and audit logging back on and make enterprise configuration editable.";
     }
 
     return "License, version, seat usage, and the instances covered by this key.";
@@ -1235,9 +1247,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   /*
    * What the license status means for this installation, in plain words.
-   * Every branch states soft enforcement the same way
-   * (SOFT_ENFORCEMENT_CONSEQUENCES): configuration becomes read-only, nothing
-   * already configured stops.
+   * Before the lapse (the trial, the grace period) every branch warns what
+   * will stop and when (LICENSE_LAPSE_CONSEQUENCES); after it, what has
+   * stopped (LICENSE_LAPSED_STATE).
    */
   const licenseStatusNoticeElement: ReactElement | null = (() => {
     if (!showLicenseStatusNotices) {
@@ -1263,7 +1275,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           </p>
           <p className="mt-2 text-xs leading-relaxed text-amber-800">
             {canManageLicense
-              ? "Add a license below to keep enterprise configuration editable after the trial."
+              ? "Add a license below before the trial ends to keep single sign-on, SCIM and audit logging running and enterprise configuration editable."
               : "Ask a master admin of this installation to add a license."}
           </p>
         </section>
@@ -1285,7 +1297,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           <p className="mt-1 text-xs leading-relaxed text-amber-800">
             {`The Enterprise license expired${
               licenseExpiresAtText ? ` on ${licenseExpiresAtText}` : ""
-            }. Enterprise configuration stays editable until the grace period ends${
+            }. Every enterprise feature keeps working until the grace period ends${
               graceDaysLeftText ? ` (${graceDaysLeftText})` : ""
             }. ${GRACE_ENFORCEMENT_SUMMARY}`}
           </p>
@@ -1324,10 +1336,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         >
           <h4 className="text-sm font-semibold text-red-900">{title}</h4>
           <p className="mt-1 text-xs leading-relaxed text-red-800">
-            {reason} Enterprise configuration is read-only and the enterprise
-            admin dashboards are locked until a valid license is added.
-            Everything you already configured keeps working — SSO, SCIM and
-            audit logging never stop — and core monitoring is never affected.
+            {`${reason} ${LICENSE_LAPSED_STATE}`}
           </p>
         </section>
       );
@@ -1508,9 +1517,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </h4>
                   <p className="mt-0.5 text-xs text-indigo-700">
                     {canManageLicense
-                      ? "A valid license keeps enterprise configuration (SSO, SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
-                      : "A master admin can add the license to keep enterprise configuration editable."}{" "}
-                    Nothing you already configured stops working without one.
+                      ? "A valid license keeps single sign-on, SCIM provisioning and audit logging running, enterprise configuration (SSO, SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
+                      : "A master admin can add the license to keep single sign-on, SCIM provisioning and audit logging running and enterprise configuration editable."}{" "}
+                    Core monitoring never depends on it.
                   </p>
                   <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {enterpriseFeatures.map(

@@ -19,6 +19,11 @@ import { useTranslation } from "react-i18next";
  * IS_ENTERPRISE_EDITION in env.js is the EFFECTIVE edition, true only when the
  * enterprise code is loaded. The Community Edition does not enforce the
  * setting, so it is not offered there as if it did something.
+ *
+ * On a self-hosted Enterprise Edition it is not enforced either once the
+ * Enterprise license has lapsed (after the trial or the grace period): SSO
+ * sign-in stops then, and enforcing SSO would lock everybody out. The
+ * toggle's description says so.
  */
 const isRequireSsoForLoginEnforceable: () => boolean = (): boolean => {
   return IS_ENTERPRISE_EDITION || BILLING_ENABLED;
@@ -106,7 +111,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               description:
-                "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.",
+                "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this. On a self-hosted server this is not enforced while the Enterprise license is missing or expired (after the 14-day trial or grace period), because SSO sign-in stops then too: users sign in with their password until a license is activated.",
             },
           ]}
           modelDetailProps={{
@@ -121,7 +126,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                 title: "Require SSO for Login",
                 placeholder: t("common.no"),
                 description:
-                  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.",
+                  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt. Not enforced while the Enterprise license is missing or expired.",
               },
             ],
             modelId: ObjectID.getZeroObjectID(),

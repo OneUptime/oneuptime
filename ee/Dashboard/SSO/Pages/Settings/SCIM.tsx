@@ -53,11 +53,13 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
     useState<boolean>(false);
 
   /*
-   * Without a valid Enterprise license (after the grace period) the server
-   * refuses to create or change this configuration; say so up front and
-   * hide what would fail. Sign-in and deletes keep working, and so does
-   * "Reset Bearer Token": it writes the bearer token alone, which the server
-   * accepts without a license, so a leaked token can always be replaced.
+   * Without a valid Enterprise license (after the trial or the grace period)
+   * the server refuses to create or change this configuration, and refuses
+   * the identity provider's SCIM requests until a license is activated; the
+   * banner says both up front, and the page hides what would fail. Reads and
+   * deletes keep working, and so does "Reset Bearer Token": it writes the
+   * bearer token alone, which the server accepts without a license, so a
+   * leaked token can be replaced before SCIM resumes.
    */
   const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode();
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);

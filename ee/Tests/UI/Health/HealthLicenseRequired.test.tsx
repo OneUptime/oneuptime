@@ -291,6 +291,24 @@ describe("HealthLicenseRequired", () => {
     expect(HEALTH_LICENSE_REQUIRED_DESCRIPTION).toContain("Support Bundle");
   });
 
+  /*
+   * A missing or expired license stops more than these screens: single
+   * sign-on, SCIM and audit logging stop with it. The admin looking at this
+   * notice is the one who can fix that, so it says so - and "keep working"
+   * above is only about the screens that need no license.
+   */
+  test("says that single sign-on, SCIM and audit logging are off too, and come back with a license", () => {
+    expect(HEALTH_LICENSE_REQUIRED_DESCRIPTION).toContain(
+      "While the license is missing or expired, single sign-on, SCIM provisioning and audit logging are off too",
+    );
+    expect(HEALTH_LICENSE_REQUIRED_DESCRIPTION).toContain(
+      "as soon as a license is activated",
+    );
+    expect(HEALTH_LICENSE_REQUIRED_DESCRIPTION).not.toMatch(
+      /(?:SSO|single sign-on|SCIM|audit logging)[^.]*keeps? working/i,
+    );
+  });
+
   // The server's message is about enterprise configuration; this one is not.
   test("does not talk about configuration", () => {
     expect(HEALTH_LICENSE_REQUIRED_DESCRIPTION).not.toContain("configuration");

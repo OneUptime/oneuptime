@@ -24,9 +24,11 @@ import ProjectUtil from "Common/UI/Utils/Project";
  *     IS_ENTERPRISE_EDITION=true was set by hand.
  *
  * A lapsed license does NOT make a self-hosted feature ineligible: the ee
- * screens stay reachable and show their own read-only banner, because SSO,
- * SCIM and audit logging keep running and admins must still be able to see
- * them.
+ * screens stay reachable and show their own banner, because admins must
+ * still see what is configured (read-only), read the audit logs recorded so
+ * far, disable a compromised provider or replace a leaked SCIM token, and be
+ * told that SSO sign-in, SCIM and audit logging are off until a license is
+ * activated.
  */
 
 // The plans an enterprise feature can be sold at on OneUptime Cloud.

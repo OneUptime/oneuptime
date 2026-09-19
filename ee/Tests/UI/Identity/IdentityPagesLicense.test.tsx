@@ -7,10 +7,12 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * The ten Enterprise identity screens (six in the Dashboard, four in the
  * Admin Dashboard) against the license state.
  *
- * Without a valid license, after the grace period, the server refuses to
- * create or change SSO / OIDC / SCIM configuration (402, master admins
- * included) while sign-in, provisioning, reads and deletes keep working. The
- * screens say so and stop offering what would fail: the read-only banner,
+ * Without a valid license, after the trial or the grace period, the server
+ * refuses to create or change SSO / OIDC / SCIM configuration (402, master
+ * admins included), and SSO sign-in and SCIM provisioning stop until a
+ * license is activated; reads and deletes keep working. The screens say so
+ * and stop offering what would fail: the read-only banner (which says that
+ * sign-in and SCIM are off - EnterpriseLicenseBanner.test.tsx pins its copy),
  * no "create" or "edit" on the provider table - but "delete" stays, and so
  * does "Reset Bearer Token", which the server accepts without a license (it
  * only tightens security; ReadOnlyIncidentActions.test.tsx covers it and
@@ -371,9 +373,13 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
 
     await renderScreen(screenCase);
 
+    /*
+     * Every identity screen says that sign-in and SCIM are off, not only that
+     * nothing can change - SSO, SCIM and audit logging stop with the license.
+     */
     expect(
       screen.getByTestId("enterprise-license-read-only-banner"),
-    ).toBeInTheDocument();
+    ).toHaveTextContent("single sign-on and SCIM are off");
     expect(providerTable(screenCase)).toHaveAttribute(
       "data-createable",
       "false",
@@ -439,9 +445,12 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
 
     await renderScreen(screenCase);
 
+    // The warning says what stops when the trial or grace period ends.
     expect(
       screen.getByTestId("enterprise-license-grace-banner"),
-    ).toBeInTheDocument();
+    ).toHaveTextContent(
+      "single sign-on and SCIM stop when the trial or grace period ends",
+    );
     expect(
       screen.queryByTestId("enterprise-license-read-only-banner"),
     ).not.toBeInTheDocument();
