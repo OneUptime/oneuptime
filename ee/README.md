@@ -10,23 +10,25 @@ Everything in `ee/` is licensed under the
 [OneUptime Enterprise License](./LICENSE), **not** under the Apache License 2.0
 that covers the rest of the repository:
 
-- You may read, copy and modify this code for development and testing without
-  a subscription.
-- Running it in production requires a valid OneUptime Enterprise subscription
-  for the correct number of user seats.
-- Modifications and patches to `ee/` belong to OneUptime and may only be used
-  with a valid subscription.
-- You may not copy, distribute, sublicense or sell the code in `ee/`.
+- You may copy and modify this code for development and testing without a
+  subscription.
+- Running it in production requires agreeing to the
+  [OneUptime Terms of Service](https://oneuptime.com/legal/terms) (or another
+  agreement with OneUptime) and a valid OneUptime Enterprise license for the
+  correct number of user seats.
+- You may modify it and publish patches, but modifications and patches to
+  `ee/` belong to OneUptime and may only be used with a valid Enterprise
+  license.
+- Otherwise, you may not copy, merge, publish, distribute, sublicense or sell
+  the code in `ee/`.
 - Third-party components keep their own licenses.
 
-Content outside `ee/` stays Apache-2.0, and the root [`LICENSE`](../LICENSE)
-file is kept as the verbatim Apache License 2.0 text. Contributions to `ee/` are
+Content outside `ee/` stays Apache-2.0. The preamble of the root
+[`LICENSE`](../LICENSE) file sets out this split: `ee/` is under `ee/LICENSE`,
+third-party components keep their own licenses, and everything else is under
+the Apache License 2.0, whose unmodified text follows the preamble. The root
+[`NOTICE`](../NOTICE) file repeats the split. Contributions to `ee/` are
 covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions).
-
-> **Legal review pending.** The text of `ee/LICENSE` follows the widely used
-> PostHog / GitLab enterprise license template, adapted for OneUptime. It is
-> pending review by OneUptime's counsel, and the wording may change before the
-> first release that ships an Enterprise image built from this directory.
 
 ## What lives here
 

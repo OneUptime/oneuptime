@@ -6,9 +6,10 @@
 #
 # - ee/ is the OneUptime Enterprise Edition, licensed under ee/LICENSE rather
 #   than the Apache License 2.0 (see .github/CONTRIBUTING.md).
-# - The root LICENSE must stay the verbatim Apache License 2.0 text, so that
-#   GitHub keeps detecting the repository's license. NOTICE states the ee/
-#   carve-out instead.
+# - The root LICENSE is the Apache License 2.0 text, unmodified, after a
+#   preamble that carves ee/ out of it: ee/ is under ee/LICENSE, third-party
+#   components keep their own licenses, and everything else is Apache-2.0.
+#   NOTICE repeats that split.
 # - The build files decide whether ee/ ends up in the Community image, and the
 #   checks and tests below are what notice when it does, or when the licensing
 #   statements drift.

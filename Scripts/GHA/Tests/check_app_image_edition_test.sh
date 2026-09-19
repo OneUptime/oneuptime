@@ -233,8 +233,28 @@ make_community_tree() {
 	mkdir -p "${root}/usr/src/app/FeatureSet/Dashboard/public/dist" "${root}/usr/src/app/FeatureSet/AdminDashboard/public/dist" "${root}/usr/src/Common"
 	echo 'var p={}' > "${root}/usr/src/app/FeatureSet/Dashboard/public/dist/Index.js"
 	echo 'var p={}' > "${root}/usr/src/app/FeatureSet/AdminDashboard/public/dist/Index.js"
-	printf '%s\n' '' '                                 Apache License' '                           Version 2.0, January 2004' > "${root}/usr/src/LICENSE"
-	printf '%s\n' 'OneUptime' '' 'All content under the "ee/" directory is licensed under the OneUptime Enterprise License in ee/LICENSE.' > "${root}/usr/src/NOTICE"
+	# Shaped like the repository's LICENSE: a preamble that names ee/ and the
+	# Enterprise License, but not on its first line, then the Apache License.
+	printf '%s\n' \
+		'Copyright (c) HackerBay, Inc. (doing business as OneUptime, "OneUptime")' \
+		'' \
+		'Portions of this software are licensed as follows:' \
+		'' \
+		'* All content that resides under the "ee/" directory of this repository, if' \
+		'  that directory exists, is licensed under the license defined in "ee/LICENSE"' \
+		'  (the OneUptime Enterprise License).' \
+		'* Content outside of the above mentioned directories or restrictions above is' \
+		'  available under the "Apache License, Version 2.0" as defined below.' \
+		'' \
+		'                                 Apache License' \
+		'                           Version 2.0, January 2004' > "${root}/usr/src/LICENSE"
+	printf '%s\n' \
+		'OneUptime' \
+		'Copyright (c) HackerBay, Inc. (doing business as OneUptime, "OneUptime")' \
+		'' \
+		'* All content that resides under the "ee/" directory of this repository, if' \
+		'  that directory exists, is licensed under the license defined in "ee/LICENSE"' \
+		'  (the OneUptime Enterprise License).' > "${root}/usr/src/NOTICE"
 	# A dependency's own LICENSE, which the ee scan must leave alone.
 	mkdir -p "${root}/usr/src/app/node_modules/left-pad"
 	printf '%s\n' 'MIT License' > "${root}/usr/src/app/node_modules/left-pad/LICENSE"
@@ -250,7 +270,7 @@ make_enterprise_tree() {
 	mkdir -p "${root}/usr/src/ee/Server/License" "${root}/usr/src/ee/node_modules/openid-client" "${root}/usr/src/packages"
 	echo 'export default {};' > "${root}/usr/src/ee/Server/Index.ts"
 	echo 'export const TRUSTED_LICENSE_KEYS = [];' > "${root}/usr/src/ee/Server/License/TrustedLicenseKeys.ts"
-	printf '%s\n' 'OneUptime Enterprise License (the "Enterprise License")' '' 'Copyright (c) 2026-present HackerBay, Inc.' > "${root}/usr/src/ee/LICENSE"
+	printf '%s\n' 'The OneUptime Enterprise License (the "Enterprise License")' 'Copyright (c) 2026-present HackerBay, Inc. (doing business as OneUptime,' '"OneUptime")' > "${root}/usr/src/ee/LICENSE"
 	echo '{"name":"@oneuptime/ee","version":"13.0.7"}' > "${root}/usr/src/ee/package.json"
 	# What the stand-in loader requires: like the real module, ee reaches core
 	# through its own node_modules.
@@ -299,6 +319,7 @@ assert_eq 0 "$status" "a correct Community image passes"
 assert_contains "$output" "✅ ce is the community edition" "says so"
 assert_contains "$output" "✅ there is no /usr/src/ee" "checks the Community image has no ee/"
 assert_contains "$output" "✅ no Enterprise Edition file anywhere in the image" "scans the whole Community image for ee/"
+assert_not_contains "$output" "found: /usr/src/LICENSE" "does not take the root LICENSE, whose preamble names the Enterprise License, for ee's"
 assert_contains "$output" "✅ /usr/src/LICENSE is the Apache License 2.0" "checks the Community image ships the Apache LICENSE"
 assert_contains "$output" "✅ /usr/src/NOTICE says ee/ is under the OneUptime Enterprise License" "checks the Community image ships the NOTICE"
 assert_contains "$output" "✅ ONEUPTIME_EDITION is not set (auto)" "checks the Community image leaves ONEUPTIME_EDITION unset"
@@ -381,7 +402,7 @@ assert_contains "$output" "found: /opt/oneuptime/Server/License/TrustedLicenseKe
 good_community ce-other-licenses
 printf '%s\n' 'Apache License' > "${IMAGES_DIR}/ce-other-licenses/root/usr/src/app/LICENSE"
 mkdir -p "${IMAGES_DIR}/ce-other-licenses/root/usr/src/app/node_modules/vendored"
-printf '%s\n' 'OneUptime Enterprise License (the "Enterprise License")' > "${IMAGES_DIR}/ce-other-licenses/root/usr/src/app/node_modules/vendored/LICENSE"
+printf '%s\n' 'The OneUptime Enterprise License (the "Enterprise License")' > "${IMAGES_DIR}/ce-other-licenses/root/usr/src/app/node_modules/vendored/LICENSE"
 status=0
 output="$(run_check --image ce-other-licenses --edition community)" || status=$?
 assert_eq 0 "$status" "other LICENSE files, and anything inside node_modules, are not taken for ee/"
@@ -548,6 +569,7 @@ cp "${IMAGES_DIR}/ee-apache-license/root/usr/src/LICENSE" "${IMAGES_DIR}/ee-apac
 status=0
 output="$(run_check --image ee-apache-license --edition enterprise)" || status=$?
 assert_eq 1 "$status" "fails an Enterprise image whose ee/LICENSE is not the Enterprise License"
+assert_contains "$output" "❌ /usr/src/ee/LICENSE is the OneUptime Enterprise License" "a LICENSE that names the Enterprise License after its first line is not it"
 
 good_enterprise ee-no-notice
 rm "${IMAGES_DIR}/ee-no-notice/root/usr/src/NOTICE" "${IMAGES_DIR}/ee-no-notice/root/usr/src/LICENSE"

@@ -31,7 +31,7 @@
   <p>OneUptime vervangt een hele plank vol SaaS-tools door één platform dat je gratis zelf kunt hosten. Het vangt de storing op, waarschuwt de juiste persoon, werkt je statuspagina bij, vindt de oorzaak en opent zelfs de oplossings-PR.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -242,7 +242,7 @@ Als OneUptime nuttig voor je is:
 
 ## 📄 Licentie
 
-OneUptime is open source onder de [Apache License 2.0](/LICENSE), met uitzondering van de map [`ee/`](/ee). Die map bevat de Enterprise Edition en valt onder de [OneUptime Enterprise License](/ee/LICENSE). De image van de Community Edition bevat geen code uit `ee/`.
+OneUptime is open source onder de [Apache License 2.0](/LICENSE), met uitzondering van de map [`ee/`](/ee). Die map bevat de Enterprise Edition en valt onder de [OneUptime Enterprise License](/ee/LICENSE). De image van de Community Edition bevat geen code uit `ee/`. Het bestand [`LICENSE`](/LICENSE) in de hoofdmap van de repository legt deze verdeling vast.
 
 <div align="center">
   <sub>Gemaakt met ❤️ door het <a href="https://oneuptime.com">OneUptime</a>-team en <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">bijdragers</a>.</sub>

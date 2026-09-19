@@ -704,7 +704,8 @@ export const Claims: Array<Claim> = [
       "The core platform is Apache-2.0 licensed, and all of OneUptime, including the Enterprise Edition modules, is developed in public on GitHub.",
     qualifier:
       "Auditable by anyone. The Community Edition is free to run yourself for as long as you like; the enterprise modules in ee/ are licensed separately under the OneUptime Enterprise License.",
-    evidence: "The public repository, its Apache-2.0 LICENSE, and ee/LICENSE.",
+    evidence:
+      "The public repository, its root LICENSE (Apache-2.0 outside ee/), and ee/LICENSE.",
     sourceUrl: "https://github.com/OneUptime/oneuptime",
   },
 

@@ -31,7 +31,7 @@
   <p>A OneUptime substitui uma prateleira inteira de ferramentas SaaS por uma única plataforma que você pode auto-hospedar gratuitamente. Ela detecta a falha, aciona a pessoa certa, atualiza sua página de status, encontra a causa raiz e até abre o PR com a correção.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -242,7 +242,7 @@ Se a OneUptime for útil para você:
 
 ## 📄 Licença
 
-A OneUptime é open source sob a [Apache License 2.0](/LICENSE), exceto o diretório [`ee/`](/ee). Esse diretório contém a Enterprise Edition e é licenciado sob a [OneUptime Enterprise License](/ee/LICENSE). A imagem da Community Edition não contém nenhum código de `ee/`.
+A OneUptime é open source sob a [Apache License 2.0](/LICENSE), exceto o diretório [`ee/`](/ee). Esse diretório contém a Enterprise Edition e é licenciado sob a [OneUptime Enterprise License](/ee/LICENSE). A imagem da Community Edition não contém nenhum código de `ee/`. O arquivo [`LICENSE`](/LICENSE) na raiz do repositório define essa divisão.
 
 <div align="center">
   <sub>Feito com ❤️ pela equipe da <a href="https://oneuptime.com">OneUptime</a> e pelos <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">contribuidores</a>.</sub>

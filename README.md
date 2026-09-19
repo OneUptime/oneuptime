@@ -31,7 +31,7 @@
   <p>OneUptime replaces a whole shelf of SaaS tools with one platform you can self-host for free. It catches the outage, pages the right person, updates your status page, finds the root cause, and even opens the fix PR.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -242,7 +242,7 @@ If OneUptime is useful to you:
 
 ## 📄 License
 
-OneUptime is open source under the [Apache License 2.0](/LICENSE), except for the [`ee/`](/ee) directory. That directory holds the Enterprise Edition and is licensed under the [OneUptime Enterprise License](/ee/LICENSE). The Community Edition image contains no code from `ee/`. The [`NOTICE`](/NOTICE) file states this split.
+OneUptime is open source under the [Apache License 2.0](/LICENSE), except for the [`ee/`](/ee) directory. That directory holds the Enterprise Edition and is licensed under the [OneUptime Enterprise License](/ee/LICENSE). The Community Edition image contains no code from `ee/`. The root [`LICENSE`](/LICENSE) file sets out this split.
 
 <div align="center">
   <sub>Made with ❤️ by the <a href="https://oneuptime.com">OneUptime</a> team and <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">contributors</a>.</sub>

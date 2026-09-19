@@ -31,7 +31,7 @@
   <p>OneUptime reemplaza toda una estantería de herramientas SaaS con una sola plataforma que puedes alojar por tu cuenta de forma gratuita. Detecta la caída, avisa a la persona adecuada, actualiza tu página de estado, encuentra la causa raíz e incluso abre el PR con la solución.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -242,7 +242,7 @@ Si OneUptime te resulta útil:
 
 ## 📄 Licencia
 
-OneUptime es de código abierto bajo la [Apache License 2.0](/LICENSE), salvo el directorio [`ee/`](/ee). Ese directorio contiene la edición Empresarial y se distribuye bajo la [OneUptime Enterprise License](/ee/LICENSE). La imagen de la edición Comunidad no contiene código de `ee/`.
+OneUptime es de código abierto bajo la [Apache License 2.0](/LICENSE), salvo el directorio [`ee/`](/ee). Ese directorio contiene la edición Empresarial y se distribuye bajo la [OneUptime Enterprise License](/ee/LICENSE). La imagen de la edición Comunidad no contiene código de `ee/`. El archivo [`LICENSE`](/LICENSE) de la raíz del repositorio establece esta división.
 
 <div align="center">
   <sub>Hecho con ❤️ por el equipo de <a href="https://oneuptime.com">OneUptime</a> y los <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">colaboradores</a>.</sub>

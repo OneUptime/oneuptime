@@ -31,7 +31,7 @@
   <p>OneUptime 用一个可免费自托管的平台，取代一整排 SaaS 工具。它能捕捉故障、呼叫合适的人、更新你的状态页、定位根因，甚至提交修复的 PR。</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -242,7 +242,7 @@ helm install oneuptime oneuptime/oneuptime
 
 ## 📄 许可证
 
-OneUptime 基于 [Apache License 2.0](/LICENSE) 开源，[`ee/`](/ee) 目录除外。该目录包含企业版，采用 [OneUptime Enterprise License](/ee/LICENSE) 授权。社区版镜像不包含任何来自 `ee/` 的代码。
+OneUptime 基于 [Apache License 2.0](/LICENSE) 开源，[`ee/`](/ee) 目录除外。该目录包含企业版，采用 [OneUptime Enterprise License](/ee/LICENSE) 授权。社区版镜像不包含任何来自 `ee/` 的代码。仓库根目录下的 [`LICENSE`](/LICENSE) 文件规定了这一划分。
 
 <div align="center">
   <sub>由 <a href="https://oneuptime.com">OneUptime</a> 团队与<a href="https://github.com/OneUptime/oneuptime/graphs/contributors">贡献者们</a>用 ❤️ 打造。</sub>

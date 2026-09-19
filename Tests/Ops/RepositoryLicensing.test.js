@@ -7,11 +7,14 @@
  * Edition under ee/LICENSE. Several files have to agree on that, and nothing
  * else checks them:
  *
- *  - the root LICENSE stays the verbatim Apache License 2.0 text, so GitHub
- *    keeps detecting it (and the README's license badge keeps working). The
- *    carve-out for ee/ lives in the root NOTICE, the README, CONTRIBUTING and
- *    ee/ itself, never in the root LICENSE;
- *  - ee/LICENSE carries the terms the design settled on;
+ *  - the root LICENSE follows PostHog's: a preamble that carves ee/ out (ee/
+ *    is under ee/LICENSE, third-party components keep their own licenses,
+ *    everything else is Apache-2.0), then the Apache License 2.0 text,
+ *    unmodified. NOTICE repeats the preamble's split. With a preamble GitHub
+ *    no longer names the repository's license, so the READMEs show a static
+ *    license badge instead of the dynamic one;
+ *  - ee/LICENSE carries the final terms, and no document still says they are
+ *    pending legal review or that the root LICENSE is kept verbatim;
  *  - both App images ship LICENSE and NOTICE, and the Enterprise image
  *    ee/LICENSE, and Scripts/GHA/check_app_image_edition.sh looks for them
  *    with the same wording the files use;
@@ -26,6 +29,7 @@
  *    "hardened".
  */
 
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const {
@@ -70,6 +74,17 @@ const APACHE_LICENSE_FIELD = "Apache-2.0";
 
 const ENTERPRISE_DOCS_PAGE =
   "packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md";
+
+/**
+ * The README license badge. Static, because GitHub does not name a license
+ * for a LICENSE with a preamble (PostHog's shows as "Other"), so shields.io's
+ * dynamic github/license badge would read NOASSERTION, and it could not say
+ * "and ee/" anyway. It renders as "license: Apache 2.0 + Enterprise (ee/)".
+ */
+const LICENSE_BADGE =
+  '<a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>';
+
+const DYNAMIC_LICENSE_BADGE = "img.shields.io/github/license";
 
 /**
  * "Hardened images", as each README translation used to say it. The
@@ -160,6 +175,18 @@ function normaliseWhitespace(text) {
   return text.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * `text` with its one `from` replaced by `to`, for the negative controls.
+ * Throws when `from` is not there, so a control cannot pass vacuously.
+ */
+function edited(text, from, to) {
+  if (!text.includes(from)) {
+    throw new Error(`"${from}" is not in the text`);
+  }
+
+  return text.replace(from, to);
+}
+
 const packageDirectories = findPackageDirectories(REPO_ROOT);
 
 /**
@@ -168,15 +195,81 @@ const packageDirectories = findPackageDirectories(REPO_ROOT);
  */
 const ENTERPRISE_LICENSE_TITLE = "OneUptime Enterprise License";
 
+const ROOT_LICENSE_COPYRIGHT =
+  'Copyright (c) HackerBay, Inc. (doing business as OneUptime, "OneUptime")';
+
 /**
- * The statements NOTICE must make, whitespace-normalised. Returns the ones
- * `text` is missing.
+ * The preamble the root LICENSE opens with, exactly, up to and including the
+ * blank line before the Apache License text. It follows PostHog's root
+ * LICENSE, with the Apache License 2.0 where PostHog has MIT.
+ */
+const ROOT_LICENSE_PREAMBLE = [
+  ROOT_LICENSE_COPYRIGHT,
+  "",
+  "Portions of this software are licensed as follows:",
+  "",
+  '* All content that resides under the "ee/" directory of this repository, if',
+  '  that directory exists, is licensed under the license defined in "ee/LICENSE"',
+  "  (the OneUptime Enterprise License).",
+  "* All third party components incorporated into the OneUptime Software are",
+  "  licensed under the original license provided by the owner of the applicable",
+  "  component.",
+  "* Content outside of the above mentioned directories or restrictions above is",
+  '  available under the "Apache License, Version 2.0" as defined below.',
+  "",
+  "",
+].join("\n");
+
+/**
+ * sha256 of https://www.apache.org/licenses/LICENSE-2.0.txt, the Apache
+ * License 2.0 as the Apache Software Foundation publishes it.
+ */
+const APACHE_LICENSE_2_0_SHA256 =
+  "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30";
+
+function sha256(text) {
+  return crypto.createHash("sha256").update(text, "utf8").digest("hex");
+}
+
+function toLf(text) {
+  return text.replace(/\r\n/g, "\n");
+}
+
+/**
+ * What follows the preamble in `text`, or null when `text` does not open with
+ * the preamble exactly.
+ */
+function textAfterPreamble(text) {
+  const normalised = toLf(text);
+
+  if (!normalised.startsWith(ROOT_LICENSE_PREAMBLE)) {
+    return null;
+  }
+
+  return normalised.slice(ROOT_LICENSE_PREAMBLE.length);
+}
+
+/**
+ * Whether `text` is the Apache Software Foundation's Apache License 2.0 text,
+ * byte for byte, apart from blank lines at either end: the root LICENSE has
+ * never carried that file's leading blank line or its final newline.
+ */
+function isUnmodifiedApacheLicense(text) {
+  const trimmed = toLf(text).replace(/^\n+/, "").replace(/\n+$/, "");
+
+  return sha256(`\n${trimmed}\n`) === APACHE_LICENSE_2_0_SHA256;
+}
+
+/**
+ * The statements NOTICE must make, whitespace-normalised: the root LICENSE's
+ * preamble, except that the last one points at LICENSE instead of "below".
+ * Returns the ones `text` is missing.
  */
 const NOTICE_STATEMENTS = [
-  'All content in the "ee/" directory of this repository is licensed under the OneUptime Enterprise License, in ee/LICENSE.',
-  "It is not licensed under the Apache License 2.0.",
-  "Third-party components keep the licenses their owners provide them under.",
-  "All other content is available under the Apache License 2.0, in LICENSE.",
+  "Portions of this software are licensed as follows:",
+  'All content that resides under the "ee/" directory of this repository, if that directory exists, is licensed under the license defined in "ee/LICENSE" (the OneUptime Enterprise License).',
+  "All third party components incorporated into the OneUptime Software are licensed under the original license provided by the owner of the applicable component.",
+  'Content outside of the above mentioned directories or restrictions above is available under the "Apache License, Version 2.0" as defined in "LICENSE".',
 ];
 
 function missingNoticeStatements(text) {
@@ -187,107 +280,212 @@ function missingNoticeStatements(text) {
   });
 }
 
+// Printable ASCII and line breaks: no curly quotes or other lookalikes.
+const PLAIN_ASCII = /^[\x20-\x7E\n]*$/;
+
 describe("root LICENSE", () => {
   const license = read("LICENSE");
+  const apacheText = textAfterPreamble(license);
 
-  test("is the Apache License 2.0", () => {
-    expect(license).toContain("Apache License");
-    expect(license).toContain("Version 2.0, January 2004");
-    expect(license).toContain(
-      "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION",
+  test("opens with the preamble that carves ee/ out of the Apache License", () => {
+    expect(apacheText).not.toBeNull();
+    expect(license.split("\n")[0]).toBe(ROOT_LICENSE_COPYRIGHT);
+
+    // What the file itself says before the Apache License heading.
+    const preamble = normaliseWhitespace(
+      license.slice(0, license.indexOf("Apache License\n")),
     );
-    expect(license).toContain("END OF TERMS AND CONDITIONS");
+
+    expect(preamble.startsWith(ROOT_LICENSE_COPYRIGHT)).toBe(true);
+    expect(preamble).toContain(
+      "Portions of this software are licensed as follows:",
+    );
+    expect(preamble).toContain(
+      '* All content that resides under the "ee/" directory of this repository, if that directory exists, is licensed under the license defined in "ee/LICENSE" (the OneUptime Enterprise License).',
+    );
+    expect(preamble).toContain(
+      "* All third party components incorporated into the OneUptime Software are licensed under the original license provided by the owner of the applicable component.",
+    );
+    expect(preamble).toContain(
+      '* Content outside of the above mentioned directories or restrictions above is available under the "Apache License, Version 2.0" as defined below.',
+    );
   });
 
-  test("carries no edition carve-out, which would break GitHub's license detection", () => {
-    expect(license).not.toMatch(/\bee\//);
-    expect(license).not.toMatch(/Enterprise License/i);
-    expect(license).not.toMatch(/OneUptime Enterprise/i);
+  test("follows it with the Apache License 2.0, complete and unmodified", () => {
+    expect(isUnmodifiedApacheLicense(apacheText)).toBe(true);
+    expect(
+      apacheText.startsWith(
+        "                                 Apache License\n",
+      ),
+    ).toBe(true);
+    expect(apacheText).toContain("Version 2.0, January 2004");
+    expect(apacheText).toContain(
+      "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION",
+    );
+    expect(apacheText).toContain("END OF TERMS AND CONDITIONS");
+    expect(apacheText).toContain(
+      "APPENDIX: How to apply the Apache License to your work.",
+    );
+  });
+
+  test("does not open with the Enterprise License title, so nothing takes it for ee/LICENSE", () => {
+    expect(license.split("\n")[0]).not.toContain(ENTERPRISE_LICENSE_TITLE);
+  });
+
+  test("is plain ASCII", () => {
+    expect(license).toMatch(PLAIN_ASCII);
+  });
+
+  test("the preamble check fails on the bare Apache License and on an edited preamble (negative control)", () => {
+    expect(textAfterPreamble(apacheText)).toBeNull();
+    expect(
+      textAfterPreamble(
+        edited(
+          license,
+          'under the "ee/" directory',
+          'under the "src/" directory',
+        ),
+      ),
+    ).toBeNull();
+    expect(
+      textAfterPreamble(
+        edited(
+          license,
+          "* All third party components",
+          "* Everything else, including third party components,",
+        ),
+      ),
+    ).toBeNull();
+  });
+
+  test("the Apache check fails on an edited or extended Apache License (negative control)", () => {
+    expect(isUnmodifiedApacheLicense(license)).toBe(false);
+    expect(
+      isUnmodifiedApacheLicense(
+        edited(
+          apacheText,
+          "Version 2.0, January 2004",
+          "Version 2.0, January 2005",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      isUnmodifiedApacheLicense(
+        edited(
+          apacheText,
+          "grants to You a perpetual,",
+          "grants to You a perpetual ,",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      isUnmodifiedApacheLicense(`${apacheText}\n\nAdditional terms apply.`),
+    ).toBe(false);
   });
 });
 
 describe("ee/LICENSE", () => {
   const license = read("ee/LICENSE");
+  const text = normaliseWhitespace(license);
 
   test("is the OneUptime Enterprise License", () => {
     expect(license.split("\n")[0]).toBe(
-      'OneUptime Enterprise License (the "Enterprise License")',
+      'The OneUptime Enterprise License (the "Enterprise License")',
     );
-    expect(license).toContain("HackerBay, Inc. (doing business as OneUptime");
+    expect(text).toContain(
+      'Copyright (c) 2026-present HackerBay, Inc. (doing business as OneUptime, "OneUptime")',
+    );
   });
 
-  test("requires a subscription for the right number of seats in production", () => {
-    expect(license).toContain("may only be used in");
-    expect(license).toContain("production");
-    expect(license).toContain(
-      "valid OneUptime Enterprise subscription for the",
+  test("covers the ee/ directory only, and leaves the rest to the root LICENSE", () => {
+    expect(text).toContain(
+      'This software and associated documentation files in the "ee/" directory of this repository and its subdirectories (the "Software")',
     );
-    expect(license).toContain("correct number of user seats");
-    expect(license).toContain("https://oneuptime.com/legal/terms");
+    expect(text).toContain(
+      'Content outside the "ee/" directory is not covered by this Enterprise License; it is licensed as set out in the LICENSE file at the root of this repository.',
+    );
+  });
+
+  test("requires the Enterprise Terms and a license for the right number of seats in production", () => {
+    expect(text).toContain(
+      'may only be used in production, if you (and any entity that you represent) have agreed to, and are in compliance with, the OneUptime Terms of Service, available at https://oneuptime.com/legal/terms (the "Enterprise Terms"), or other agreement governing the use of the Software, as agreed by you and OneUptime,',
+    );
+    expect(text).toContain(
+      "and otherwise have a valid OneUptime Enterprise license for the correct number of user seats.",
+    );
   });
 
   test("allows development and testing without a subscription", () => {
-    expect(license).toContain(
-      "you may copy and modify the Software for\ndevelopment and testing purposes, without requiring a subscription",
+    expect(text).toContain(
+      "Notwithstanding the foregoing, you may copy and modify the Software for development and testing purposes, without requiring a subscription.",
     );
   });
 
-  test("lets you modify it, with modifications owned by OneUptime", () => {
-    expect(license).toContain("you are free to modify this Software");
-    expect(license).toContain(
-      "retain all right, title and interest in and to all such",
+  test("lets you modify it and publish patches, with modifications owned by OneUptime", () => {
+    expect(text).toContain(
+      "you are free to modify this Software and publish patches to the Software.",
+    );
+    expect(text).toContain(
+      "You agree that OneUptime and/or its licensors (as applicable) retain all right, title and interest in and to all such modifications and/or patches, and all such modifications and/or patches may only be used, copied, modified, displayed, distributed, or otherwise exploited with a valid OneUptime Enterprise license for the correct number of user seats.",
     );
   });
 
   test("forbids copying, distribution, sublicensing and selling", () => {
-    expect(license).toContain(
-      "it is forbidden to copy, merge, publish, distribute,\nsublicense, and/or sell the Software",
+    expect(text).toContain(
+      "You are not granted any other rights beyond what is expressly stated herein. Subject to the foregoing, it is forbidden to copy, merge, publish, distribute, sublicense, and/or sell the Software.",
     );
   });
 
-  test("leaves third-party components and everything outside ee/ alone", () => {
-    expect(license).toContain(
-      "those components are licensed under the original license",
+  test("disclaims warranties and leaves third-party components alone", () => {
+    expect(text).toContain(
+      'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,',
     );
-    expect(license).toContain(
-      'This Enterprise License applies only to the contents of the "ee" directory',
+    expect(text).toContain(
+      "For all third party components incorporated into the OneUptime Software, those components are licensed under the original license provided by the owner of the applicable component.",
     );
-    expect(license).toContain("Apache License, Version 2.0");
   });
 
-  test("keeps the legal-review caveat out of the license text", () => {
+  test("is final: no draft or legal-review caveat in the license text", () => {
     expect(license).not.toMatch(/pending|draft|legal review/i);
+  });
+
+  test("is plain ASCII, with straight quotes", () => {
+    expect(license).toMatch(PLAIN_ASCII);
+    // Negative control: PostHog's text uses curly quotes.
+    expect("the “Enterprise License”").not.toMatch(PLAIN_ASCII);
   });
 });
 
 /*
- * The root LICENSE has to stay verbatim Apache-2.0, so the ee/ carve-out that
- * PostHog and Metabase put at the top of their LICENSE lives in NOTICE.
+ * NOTICE is the notice Apache-2.0 section 4(d) has redistributors pass on,
+ * and both App images ship it. It repeats the root LICENSE's preamble.
  */
 describe("NOTICE", () => {
   const notice = read("NOTICE");
 
-  test("opens with OneUptime and carries ee/LICENSE's copyright line", () => {
-    const eeCopyright = read("ee/LICENSE").split("\n\n")[1];
-
+  test("opens with OneUptime and the root LICENSE's copyright line", () => {
     expect(notice.split("\n")[0]).toBe("OneUptime");
-    expect(eeCopyright.startsWith("Copyright (c) ")).toBe(true);
-    expect(normaliseWhitespace(notice)).toContain(
-      normaliseWhitespace(eeCopyright),
-    );
+    expect(notice.split("\n")[1]).toBe(ROOT_LICENSE_COPYRIGHT);
+    expect(read("LICENSE").split("\n")[0]).toBe(ROOT_LICENSE_COPYRIGHT);
   });
 
-  test("states that ee/ is under the Enterprise License and everything else Apache-2.0", () => {
+  test("states the split the root LICENSE's preamble does", () => {
     expect(missingNoticeStatements(notice)).toEqual([]);
+    // The preamble says the same, except that the Apache text is "below".
+    expect(missingNoticeStatements(ROOT_LICENSE_PREAMBLE)).toEqual([
+      NOTICE_STATEMENTS[3],
+    ]);
   });
 
   test("the statement check notices a missing carve-out (negative control)", () => {
-    expect(missingNoticeStatements(read("LICENSE"))).toEqual(NOTICE_STATEMENTS);
+    expect(missingNoticeStatements(read("ee/LICENSE"))).toEqual(
+      NOTICE_STATEMENTS,
+    );
     expect(
       missingNoticeStatements(
-        notice.replace(/All content in the "ee\/" directory/, "All content"),
+        edited(notice, 'resides under the "ee/" directory', "resides here"),
       ),
-    ).toEqual([NOTICE_STATEMENTS[0]]);
+    ).toEqual([NOTICE_STATEMENTS[1]]);
   });
 
   test("points at license files that exist", () => {
@@ -299,6 +497,10 @@ describe("NOTICE", () => {
     expect(notice).not.toContain("TERMS AND CONDITIONS");
     expect(notice).not.toContain("may only be used in");
     expect(notice.split("\n").length).toBeLessThan(20);
+  });
+
+  test("is plain ASCII", () => {
+    expect(notice).toMatch(PLAIN_ASCII);
   });
 });
 
@@ -413,12 +615,99 @@ describe("the files that mark ee/ in an image", () => {
   });
 });
 
+/*
+ * Before the license was final, the root LICENSE was kept as the bare Apache
+ * text so GitHub would keep detecting it, and ee/LICENSE was pending legal
+ * review. Nothing may still say so.
+ */
+const RETIRED_LICENSING_WORDING = [
+  /legal review/i,
+  /review by OneUptime's counsel/i,
+  /verbatim Apache/i,
+  /GitHub keeps detecting/i,
+];
+
+function retiredLicensingWording(text) {
+  return RETIRED_LICENSING_WORDING.filter((pattern) => {
+    return pattern.test(text);
+  }).map(String);
+}
+
+describe("retired licensing wording", () => {
+  const files = [
+    ...findFiles(REPO_ROOT, (name) => {
+      return name.endsWith(".md");
+    }),
+    ...[
+      "LICENSE",
+      "NOTICE",
+      "ee/LICENSE",
+      ".github/CODEOWNERS",
+      "packages/App/Dockerfile.tpl",
+      "Scripts/GHA/check_app_image_edition.sh",
+    ].map((file) => {
+      return path.join(REPO_ROOT, file);
+    }),
+  ];
+
+  test("the scan covers the READMEs, ee/README, CONTRIBUTING and the docs", () => {
+    const scanned = files.map(relative);
+
+    for (const expected of [
+      "README.md",
+      ...TRANSLATION_LANGUAGES.map((language) => {
+        return `Docs/translations/README.${language}.md`;
+      }),
+      "ee/README.md",
+      ".github/CONTRIBUTING.md",
+      ENTERPRISE_DOCS_PAGE,
+      "HelmChart/Public/oneuptime/README.md",
+    ]) {
+      expect(scanned).toContain(expected);
+    }
+  });
+
+  test("no document says the license is pending legal review, or that the root LICENSE is kept verbatim", () => {
+    const found = files.flatMap((file) => {
+      return retiredLicensingWording(fs.readFileSync(file, "utf8")).map(
+        (pattern) => {
+          return `${relative(file)}: ${pattern}`;
+        },
+      );
+    });
+
+    expect(found).toEqual([]);
+  });
+
+  test.each([
+    "> **Legal review pending.** The text of `ee/LICENSE` follows the widely used",
+    "It is pending review by OneUptime's counsel, and the wording may change",
+    "file is kept as the verbatim Apache License 2.0 text.",
+    "so that GitHub keeps detecting the repository's license.",
+  ])(
+    "the scan catches the wording that used to be published: %s",
+    (sentence) => {
+      expect(retiredLicensingWording(sentence)).not.toEqual([]);
+    },
+  );
+});
+
 describe("ee/README.md", () => {
   const readme = read("ee/README.md");
 
-  test("points at the license and flags that it is pending legal review", () => {
+  test("points at the license, and at the root LICENSE whose preamble sets out the split", () => {
+    const text = normaliseWhitespace(readme);
+
     expect(readme).toContain("[OneUptime Enterprise License](./LICENSE)");
-    expect(readme).toContain("**Legal review pending.**");
+    expect(text).toContain(
+      "The preamble of the root [`LICENSE`](../LICENSE) file sets out this split",
+    );
+    expect(text).toContain("https://oneuptime.com/legal/terms");
+  });
+
+  test("presents the license as final", () => {
+    expect(readme).not.toMatch(/legal review|counsel|pending/i);
+    expect(readme).not.toMatch(/verbatim/i);
   });
 
   test("documents the edition switches the loader and the builds read", () => {
@@ -655,6 +944,24 @@ describe(".github/CODEOWNERS", () => {
     expect(missing).toEqual([]);
   });
 
+  test("its header describes the root LICENSE as the preamble plus the Apache License", () => {
+    const header = normaliseWhitespace(
+      codeOwners
+        .split("\n")
+        .filter((line) => {
+          return line.startsWith("#");
+        })
+        .map((line) => {
+          return line.replace(/^#\s?/, "");
+        })
+        .join("\n"),
+    );
+
+    expect(header).toContain(
+      "The root LICENSE is the Apache License 2.0 text, unmodified, after a preamble that carves ee/ out of it",
+    );
+  });
+
   test("every owner is a core maintainer listed in MAINTAINERS", () => {
     const owners = new Set(
       codeOwners
@@ -676,6 +983,9 @@ describe(".github/CONTRIBUTING.md", () => {
 
   test("states which license covers a contribution, by location", () => {
     expect(contributing).toContain("## Licensing of contributions");
+    expect(normaliseWhitespace(contributing)).toContain(
+      "The preamble of the root [`LICENSE`](../LICENSE) file sets out the split:",
+    );
     expect(contributing).toContain(
       "**Everything outside the [`ee/`](../ee) directory** is licensed under the",
     );
@@ -716,15 +1026,14 @@ describe("README and its translations", () => {
     expect(english).toContain("| **License** | Apache 2.0 |");
   });
 
-  test("the English License section points at NOTICE, on the line that states the split", () => {
+  test("the English License section points at the root LICENSE, on the line that states the split", () => {
     const licenseLine = english.split("\n").find((line) => {
       return line.startsWith("OneUptime is open source under the");
     });
 
     expect(licenseLine).toContain(
-      "The [`NOTICE`](/NOTICE) file states this split.",
+      "The root [`LICENSE`](/LICENSE) file sets out this split.",
     );
-    expect(exists("NOTICE")).toBe(true);
   });
 
   test("the edition table lists what the Enterprise Edition adds", () => {
@@ -755,8 +1064,18 @@ describe("README and its translations", () => {
       expect(content.split("\n").length).toBe(english.split("\n").length);
       // The edition table's License row and the License section.
       expect(content.split("(/ee/LICENSE)").length - 1).toBe(2);
-      expect(content).toContain("(/LICENSE)");
+      // The License section: the Apache License, and the root LICENSE that
+      // sets out the split.
+      expect(content.split("(/LICENSE)").length - 1).toBe(2);
       expect(content).toContain(`(/${ENTERPRISE_DOCS_PAGE})`);
+    },
+  );
+
+  test.each(readmes)(
+    "%s shows the static license badge, not the dynamic one GitHub can no longer fill",
+    (_language, _file, content) => {
+      expect(content).toContain(LICENSE_BADGE);
+      expect(content).not.toContain(DYNAMIC_LICENSE_BADGE);
     },
   );
 

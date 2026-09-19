@@ -21,8 +21,11 @@ Image metadata (docker image inspect):
     that ee/ must load) and unset on the Community image
 
 Image contents (docker run as root, so every directory can be searched):
-  both        /usr/src/LICENSE is the Apache License 2.0, and /usr/src/NOTICE
-              says that ee/ is under the OneUptime Enterprise License
+  both        /usr/src/LICENSE is the repository's LICENSE: the Apache License
+              2.0, after a preamble that carves ee/ out of it. Its first line
+              is not the Enterprise License title, so the ee/ scan below does
+              not take it for ee/LICENSE. /usr/src/NOTICE says that ee/ is
+              under the OneUptime Enterprise License
   community   no /usr/src/ee and no /usr/src/packages; no Enterprise Edition
               file anywhere in the image, wherever ee/ was copied to (a LICENSE
               titled "OneUptime Enterprise License", or ee's TrustedLicenseKeys

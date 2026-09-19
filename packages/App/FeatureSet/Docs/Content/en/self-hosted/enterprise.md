@@ -107,6 +107,13 @@ with anything other than `community`.
 
 ## Licensing
 
+The repository's root
+[`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) file
+sets out which license covers what: everything in the `ee/` directory is under
+the [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE),
+third-party components keep the licenses their owners provide them under, and
+everything else is under the Apache License 2.0.
+
 A new Enterprise Edition install runs as a **14-day trial**, counted from the
 first time the install starts the Enterprise Edition. The trial is for
 evaluation: production use of the Enterprise Edition needs a subscription under

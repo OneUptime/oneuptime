@@ -26,11 +26,13 @@ Pull requests are the best way to propose changes to the codebase (we use [Githu
 ## Licensing of contributions
 
 OneUptime is developed in one repository with two licenses, and the license
-that covers your contribution depends on where the change lands:
+that covers your contribution depends on where the change lands. The preamble
+of the root [`LICENSE`](../LICENSE) file sets out the split:
 
 - **Everything outside the [`ee/`](../ee) directory** is licensed under the
-  [Apache License 2.0](../LICENSE). When you submit changes there, your
-  submissions are understood to be under that same license.
+  [Apache License 2.0](../LICENSE), whose text follows that preamble. When you
+  submit changes there, your submissions are understood to be under that same
+  license.
 - **The [`ee/`](../ee) directory** holds the OneUptime Enterprise Edition and is
   licensed under the [OneUptime Enterprise License](../ee/LICENSE), not Apache
   2.0. By submitting changes to `ee/`, you agree that your contribution is

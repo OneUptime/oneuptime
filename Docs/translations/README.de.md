@@ -31,7 +31,7 @@
   <p>OneUptime ersetzt ein ganzes Regal voller SaaS-Tools durch eine einzige Plattform, die Sie kostenlos selbst hosten können. Sie erkennt den Ausfall, alarmiert die richtige Person, aktualisiert Ihre Statusseite, findet die Grundursache und öffnet sogar den PR mit der Lösung.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -242,7 +242,7 @@ Wenn OneUptime für Sie nützlich ist:
 
 ## 📄 Lizenz
 
-OneUptime ist Open Source unter der [Apache License 2.0](/LICENSE), mit Ausnahme des Verzeichnisses [`ee/`](/ee). Dieses Verzeichnis enthält die Enterprise Edition und ist unter der [OneUptime Enterprise License](/ee/LICENSE) lizenziert. Das Image der Community Edition enthält keinen Code aus `ee/`.
+OneUptime ist Open Source unter der [Apache License 2.0](/LICENSE), mit Ausnahme des Verzeichnisses [`ee/`](/ee). Dieses Verzeichnis enthält die Enterprise Edition und ist unter der [OneUptime Enterprise License](/ee/LICENSE) lizenziert. Das Image der Community Edition enthält keinen Code aus `ee/`. Die Datei [`LICENSE`](/LICENSE) im Stammverzeichnis des Repositorys legt diese Aufteilung fest.
 
 <div align="center">
   <sub>Mit ❤️ erstellt vom <a href="https://oneuptime.com">OneUptime</a>-Team und <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">Mitwirkenden</a>.</sub>

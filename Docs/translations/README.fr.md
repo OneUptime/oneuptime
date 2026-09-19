@@ -31,7 +31,7 @@
   <p>OneUptime remplace toute une étagère d'outils SaaS par une seule plateforme que vous pouvez héberger vous-même gratuitement. Elle détecte la panne, alerte la bonne personne, met à jour votre page de statut, trouve la cause racine et ouvre même la PR de correction.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -242,7 +242,7 @@ Si OneUptime vous est utile :
 
 ## 📄 Licence
 
-OneUptime est open source sous la [licence Apache 2.0](/LICENSE), à l'exception du répertoire [`ee/`](/ee). Ce répertoire contient l'édition Enterprise et est distribué sous la [OneUptime Enterprise License](/ee/LICENSE). L'image de l'édition Community ne contient aucun code de `ee/`.
+OneUptime est open source sous la [licence Apache 2.0](/LICENSE), à l'exception du répertoire [`ee/`](/ee). Ce répertoire contient l'édition Enterprise et est distribué sous la [OneUptime Enterprise License](/ee/LICENSE). L'image de l'édition Community ne contient aucun code de `ee/`. Le fichier [`LICENSE`](/LICENSE) à la racine du dépôt établit cette répartition.
 
 <div align="center">
   <sub>Réalisé avec ❤️ par l'équipe <a href="https://oneuptime.com">OneUptime</a> et les <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">contributeurs</a>.</sub>

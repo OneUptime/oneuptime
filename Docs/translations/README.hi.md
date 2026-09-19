@@ -31,7 +31,7 @@
   <p>OneUptime SaaS टूल्स की एक पूरी शेल्फ़ को एक ऐसे प्लेटफ़ॉर्म से बदल देता है जिसे आप मुफ़्त में सेल्फ़-होस्ट कर सकते हैं। यह आउटेज को पकड़ता है, सही व्यक्ति को पेज करता है, आपके स्टेटस पेज को अपडेट करता है, मूल कारण ढूँढता है, और यहाँ तक कि फ़िक्स PR भी खोल देता है।</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -242,7 +242,7 @@ helm install oneuptime oneuptime/oneuptime
 
 ## 📄 लाइसेंस
 
-OneUptime [Apache License 2.0](/LICENSE) के तहत ओपन सोर्स है, सिवाय [`ee/`](/ee) डायरेक्टरी के। उस डायरेक्टरी में एंटरप्राइज़ एडिशन है और वह [OneUptime Enterprise License](/ee/LICENSE) के तहत लाइसेंस प्राप्त है। कम्युनिटी एडिशन इमेज में `ee/` का कोई कोड नहीं है।
+OneUptime [Apache License 2.0](/LICENSE) के तहत ओपन सोर्स है, सिवाय [`ee/`](/ee) डायरेक्टरी के। उस डायरेक्टरी में एंटरप्राइज़ एडिशन है और वह [OneUptime Enterprise License](/ee/LICENSE) के तहत लाइसेंस प्राप्त है। कम्युनिटी एडिशन इमेज में `ee/` का कोई कोड नहीं है। रिपॉज़िटरी के रूट में मौजूद [`LICENSE`](/LICENSE) फ़ाइल यह बँटवारा तय करती है।
 
 <div align="center">
   <sub><a href="https://oneuptime.com">OneUptime</a> टीम और <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">योगदानकर्ताओं</a> द्वारा ❤️ के साथ बनाया गया।</sub>

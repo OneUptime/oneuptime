@@ -31,7 +31,7 @@
   <p>OneUptime заменяет целую полку SaaS-инструментов одной платформой, которую можно развернуть у себя бесплатно. Она обнаруживает сбой, вызывает нужного человека, обновляет вашу страницу статуса, находит первопричину и даже открывает PR с исправлением.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -242,7 +242,7 @@ helm install oneuptime oneuptime/oneuptime
 
 ## 📄 Лицензия
 
-OneUptime — открытое ПО под лицензией [Apache License 2.0](/LICENSE), за исключением каталога [`ee/`](/ee). В этом каталоге находится редакция Enterprise, и он распространяется по лицензии [OneUptime Enterprise License](/ee/LICENSE). Образ редакции Community не содержит кода из `ee/`.
+OneUptime — открытое ПО под лицензией [Apache License 2.0](/LICENSE), за исключением каталога [`ee/`](/ee). В этом каталоге находится редакция Enterprise, и он распространяется по лицензии [OneUptime Enterprise License](/ee/LICENSE). Образ редакции Community не содержит кода из `ee/`. Это разделение закреплено в файле [`LICENSE`](/LICENSE) в корне репозитория.
 
 <div align="center">
   <sub>Сделано с ❤️ командой <a href="https://oneuptime.com">OneUptime</a> и <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">участниками</a>.</sub>

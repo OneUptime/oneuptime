@@ -31,7 +31,7 @@
   <p>OneUptime یک قفسه کامل از ابزارهای SaaS را با یک پلتفرم جایگزین می‌کند که می‌توانید رایگان خودمیزبانی‌اش کنید. قطعی را می‌گیرد، به فرد درست فراخوان می‌دهد، صفحه وضعیت شما را به‌روز می‌کند، علت ریشه‌ای را پیدا می‌کند و حتی PR اصلاحی را باز می‌کند.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -242,7 +242,7 @@ helm install oneuptime oneuptime/oneuptime
 
 ## 📄 مجوز
 
-OneUptime تحت [مجوز Apache نسخه ۲.۰](/LICENSE) متن‌باز است، به‌جز پوشه [`ee/`](/ee). این پوشه نسخه سازمانی (Enterprise Edition) را در بر دارد و تحت [OneUptime Enterprise License](/ee/LICENSE) منتشر شده است. ایمیج نسخه انجمنی هیچ کدی از `ee/` ندارد.
+OneUptime تحت [مجوز Apache نسخه ۲.۰](/LICENSE) متن‌باز است، به‌جز پوشه [`ee/`](/ee). این پوشه نسخه سازمانی (Enterprise Edition) را در بر دارد و تحت [OneUptime Enterprise License](/ee/LICENSE) منتشر شده است. ایمیج نسخه انجمنی هیچ کدی از `ee/` ندارد. فایل [`LICENSE`](/LICENSE) در ریشه مخزن این تقسیم را مشخص می‌کند.
 
 <div align="center">
   <sub>ساخته‌شده با ❤️ توسط تیم <a href="https://oneuptime.com">OneUptime</a> و <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">مشارکت‌کنندگان</a>.</sub>
