@@ -1,7 +1,6 @@
 import ProjectOidcAPI from "../../../Server/API/ProjectOIDC";
 import ProjectSsoAPI from "../../../Server/API/ProjectSSO";
 import StatusPageAPI from "../../../Server/API/StatusPageAPI";
-import { EnterpriseLicenseStatus } from "../../../Server/Enterprise/EnterpriseLicenseSnapshot";
 import ProjectOidcService from "../../../Server/Services/ProjectOidcService";
 import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import StatusPageDomainService from "../../../Server/Services/StatusPageDomainService";
@@ -24,14 +23,17 @@ import ProjectSSO from "../../../Models/DatabaseModels/ProjectSso";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageOIDC from "../../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSSO from "../../../Models/DatabaseModels/StatusPageSso";
-import {
+import FakeEnterpriseModule, {
+  createEditionStateCases,
   createLicenseSnapshotWithStatus,
+  EditionStateCase,
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
 import { mockRouter } from "./Helpers";
+import logger from "../../../Server/Utils/Logger";
 import {
   afterEach,
   beforeAll,
@@ -80,15 +82,19 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * The provider lists that sign-in pages offer, and the status page's own
  * "should I force SSO / offer SSO" flags.
  *
- * Design v2 section 0: the SAML/OIDC login routes are served only when the
- * Enterprise Edition is loaded - whatever its license says. So:
- *   - Enterprise Edition (any license state, any billing): providers are
- *     listed as configured, and a status page's SSO requirement is reported.
- *   - Community Edition: every list is empty and the status page reports no
- *     SSO, so no client sends a user into a route that answers 404. Nothing
- *     is even read from the provider tables.
+ * The SAML/OIDC login routes answer only while SSO is ACTIVE
+ * (EnterpriseEdition.isFeatureActive(SSO), through EditionEnforcement): the
+ * Enterprise Edition with billing on, or with a license that covers SSO
+ * (valid, grace, trial), or while the license state is unknown. So:
+ *   - SSO active: providers are listed as configured, and a status page's
+ *     SSO requirement is reported.
+ *   - SSO not active - the Community Edition, or an Enterprise install whose
+ *     license lapsed: every list is empty and the status page reports no SSO,
+ *     so no client sends a user into a route that answers 404 or refuses.
+ *     Nothing is even read from the provider tables.
  *
- * Billing and the edition are pinned in every test.
+ * Billing and the edition are pinned in every test. This suite runs without
+ * ee/: it uses the fake enterprise module only.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -108,46 +114,7 @@ const STATUS_PAGE_SSO_ROUTE: string = "/status-page/sso/:statusPageId";
 const STATUS_PAGE_OIDC_ROUTE: string = "/status-page/oidc/:statusPageId";
 const MASTER_PAGE_ROUTE: string = "/status-page/master-page/:statusPageId";
 
-const ENTERPRISE_STATUSES: ReadonlyArray<EnterpriseLicenseStatus> = [
-  "valid",
-  "grace",
-  "expired",
-  "missing",
-  "invalid",
-];
-
-type EditionCase = {
-  label: string;
-  billing: boolean;
-  install: () => void;
-  isLoaded: boolean;
-};
-
-const EDITION_CASES: Array<EditionCase> = [];
-
-for (const billing of [false, true]) {
-  EDITION_CASES.push({
-    label: `Community Edition, billing=${billing}`,
-    billing,
-    install: (): void => {
-      uninstallEnterpriseModule();
-    },
-    isLoaded: false,
-  });
-
-  for (const status of ENTERPRISE_STATUSES) {
-    EDITION_CASES.push({
-      label: `Enterprise Edition, ${status} license, billing=${billing}`,
-      billing,
-      install: (): void => {
-        installFakeEnterpriseModule({
-          snapshot: createLicenseSnapshotWithStatus(status),
-        });
-      },
-      isLoaded: true,
-    });
-  }
-}
+const EDITION_CASES: Array<EditionStateCase> = createEditionStateCases();
 
 const buildProjectSso: () => ProjectSSO = (): ProjectSSO => {
   const sso: ProjectSSO = new ProjectSSO();
@@ -282,25 +249,37 @@ describe("SSO provider listings and status page SSO flags, by edition", () => {
     }
   });
 
+  test("the cases include lapsed Enterprise licenses, not just the two editions", () => {
+    expect(
+      EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
+        return editionCase.isLoaded && !editionCase.isActive;
+      }).length,
+    ).toBeGreaterThanOrEqual(4);
+  });
+
   describe.each(
-    EDITION_CASES.map((editionCase: EditionCase): [string, EditionCase] => {
-      return [editionCase.label, editionCase];
-    }),
-  )("%s", (_label: string, editionCase: EditionCase) => {
+    EDITION_CASES.map(
+      (editionCase: EditionStateCase): [string, EditionStateCase] => {
+        return [editionCase.label, editionCase];
+      },
+    ),
+  )("%s", (_label: string, editionCase: EditionStateCase) => {
     beforeEach(() => {
-      setTestBillingEnabled(editionCase.billing);
-      editionCase.install();
+      editionCase.apply();
+      getJestSpyOn(logger, "warn").mockImplementation((): void => {
+        return undefined;
+      });
     });
 
-    test(`project SSO list ${editionCase.isLoaded ? "lists the enabled providers" : "is empty"}`, async () => {
+    test(`project SSO list ${editionCase.isActive ? "lists the enabled providers" : "is empty"}`, async () => {
       await invoke({
         route: PROJECT_SSO_ROUTE,
         params: { projectId: PROJECT_ID.toString() },
       });
 
-      expect(listedItems()).toHaveLength(editionCase.isLoaded ? 1 : 0);
+      expect(listedItems()).toHaveLength(editionCase.isActive ? 1 : 0);
 
-      if (editionCase.isLoaded) {
+      if (editionCase.isActive) {
         expect(projectSsoFind).toHaveBeenCalledWith(
           expect.objectContaining({
             query: { projectId: PROJECT_ID, isEnabled: true },
@@ -312,43 +291,43 @@ describe("SSO provider listings and status page SSO flags, by edition", () => {
       }
     });
 
-    test(`project OIDC list ${editionCase.isLoaded ? "lists the enabled providers" : "is empty"}`, async () => {
+    test(`project OIDC list ${editionCase.isActive ? "lists the enabled providers" : "is empty"}`, async () => {
       await invoke({
         route: PROJECT_OIDC_ROUTE,
         params: { projectId: PROJECT_ID.toString() },
       });
 
-      expect(listedItems()).toHaveLength(editionCase.isLoaded ? 1 : 0);
+      expect(listedItems()).toHaveLength(editionCase.isActive ? 1 : 0);
       expect(projectOidcFind).toHaveBeenCalledTimes(
-        editionCase.isLoaded ? 1 : 0,
+        editionCase.isActive ? 1 : 0,
       );
     });
 
-    test(`status page SSO list ${editionCase.isLoaded ? "lists the enabled providers" : "is empty"}`, async () => {
+    test(`status page SSO list ${editionCase.isActive ? "lists the enabled providers" : "is empty"}`, async () => {
       await invoke({
         route: STATUS_PAGE_SSO_ROUTE,
         params: { statusPageId: STATUS_PAGE_ID.toString() },
       });
 
-      expect(listedItems()).toHaveLength(editionCase.isLoaded ? 1 : 0);
+      expect(listedItems()).toHaveLength(editionCase.isActive ? 1 : 0);
       expect(statusPageSsoFind).toHaveBeenCalledTimes(
-        editionCase.isLoaded ? 1 : 0,
+        editionCase.isActive ? 1 : 0,
       );
     });
 
-    test(`status page OIDC list ${editionCase.isLoaded ? "lists the enabled providers" : "is empty"}`, async () => {
+    test(`status page OIDC list ${editionCase.isActive ? "lists the enabled providers" : "is empty"}`, async () => {
       await invoke({
         route: STATUS_PAGE_OIDC_ROUTE,
         params: { statusPageId: STATUS_PAGE_ID.toString() },
       });
 
-      expect(listedItems()).toHaveLength(editionCase.isLoaded ? 1 : 0);
+      expect(listedItems()).toHaveLength(editionCase.isActive ? 1 : 0);
       expect(statusPageOidcFind).toHaveBeenCalledTimes(
-        editionCase.isLoaded ? 1 : 0,
+        editionCase.isActive ? 1 : 0,
       );
     });
 
-    test(`master page ${editionCase.isLoaded ? "reports the stored SSO requirement and providers" : "reports no SSO (effective value) and leaves the stored value alone"}`, async () => {
+    test(`master page ${editionCase.isActive ? "reports the stored SSO requirement and providers" : "reports no SSO (effective value) and leaves the stored value alone"}`, async () => {
       const statusPage: StatusPage = new StatusPage();
       statusPage.id = STATUS_PAGE_ID;
       statusPage.pageTitle = "Customer Status";
@@ -375,11 +354,11 @@ describe("SSO provider listings and status page SSO flags, by edition", () => {
         .mock.calls[0]![2] as JSONObject;
 
       expect((payload["statusPage"] as JSONObject)["requireSsoForLogin"]).toBe(
-        editionCase.isLoaded,
+        editionCase.isActive,
       );
-      expect(payload["hasEnabledSSO"]).toBe(editionCase.isLoaded ? 2 : 0);
+      expect(payload["hasEnabledSSO"]).toBe(editionCase.isActive ? 2 : 0);
       expect(statusPageSsoCount).toHaveBeenCalledTimes(
-        editionCase.isLoaded ? 1 : 0,
+        editionCase.isActive ? 1 : 0,
       );
 
       // The stored requirement is still read, never written.
@@ -390,6 +369,38 @@ describe("SSO provider listings and status page SSO flags, by edition", () => {
         }),
       );
     });
+  });
+
+  test("the lists follow the license at request time: empty while lapsed, listed again after renewal", async () => {
+    getJestSpyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    getJestSpyOn(logger, "info").mockImplementation((): void => {
+      return undefined;
+    });
+
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshotWithStatus("expired"),
+    });
+
+    await invoke({
+      route: PROJECT_SSO_ROUTE,
+      params: { projectId: PROJECT_ID.toString() },
+    });
+
+    expect(listedItems()).toHaveLength(0);
+    expect(projectSsoFind).not.toHaveBeenCalled();
+
+    fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
+    (Response.sendEntityArrayResponse as jest.Mock).mockClear();
+
+    await invoke({
+      route: PROJECT_SSO_ROUTE,
+      params: { projectId: PROJECT_ID.toString() },
+    });
+
+    expect(listedItems()).toHaveLength(1);
+    expect(projectSsoFind).toHaveBeenCalledTimes(1);
   });
 
   test("the master page reports a page that does not require SSO the same way on both editions", async () => {

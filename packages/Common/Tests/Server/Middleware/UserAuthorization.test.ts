@@ -56,11 +56,12 @@ jest.mock("../../../Server/Services/TeamMemberService");
 jest.mock("../../../Types/HashedString");
 jest.mock("../../../Types/JSONFunctions");
 /*
- * SSO enforcement is an Enterprise Edition control (on whenever ee is loaded,
- * whatever the license says; relaxed only on the Community Edition). The
- * enforcement tests below install a fake enterprise module and pin billing so
- * they test the same thing locally and in CI, whose config.env sets
- * BILLING_ENABLED=true. The Community Edition cases live in
+ * SSO enforcement is an Enterprise Edition control (on while SSO is active:
+ * ee loaded and, with billing off, a license that covers SSO; relaxed on the
+ * Community Edition and while the license is lapsed). The enforcement tests
+ * below install a fake enterprise module with a valid license and pin billing
+ * so they test the same thing locally and in CI, whose config.env sets
+ * BILLING_ENABLED=true. The Community Edition and lapsed-license cases live in
  * UserAuthorizationEditionEnforcement.test.ts.
  */
 jest.mock("../../../Server/EnvironmentConfig", () => {

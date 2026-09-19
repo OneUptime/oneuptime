@@ -1,17 +1,19 @@
 import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
-import { EnterpriseLicenseStatus } from "../../../Server/Enterprise/EnterpriseLicenseSnapshot";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import { UserGlobalAccessPermission } from "../../../Types/Permission";
 import Project from "../../../Models/DatabaseModels/Project";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
-import {
+import FakeEnterpriseModule, {
+  createEditionStateCases,
   createLicenseSnapshotWithStatus,
+  EditionStateCase,
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
+import logger from "../../../Server/Utils/Logger";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
 import {
@@ -38,12 +40,13 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 });
 
 /*
- * On the Community Edition, SSO requirements are not enforced (the SSO login
- * routes are part of the Enterprise Edition). Clients decide from the stored
+ * While SSO is not active - the Community Edition, where the SSO login routes
+ * do not exist, or an Enterprise install whose license lapsed, where they
+ * refuse - SSO requirements are not enforced. Clients decide from the stored
  * columns whether to start an SSO flow - the mobile app hides a project's
  * on-call pages and schedules behind an SSO login when Project.requireSsoForLogin
  * is true, and app-store builds cannot be patched - so reads made for a caller
- * report the EFFECTIVE value instead (design v2 section 0, runtime review F4):
+ * report the EFFECTIVE value instead (EditionEnforcement.shouldMaskSsoRequirementOnRead):
  *
  *   Project.requireSsoForLogin          -> false
  *   Project.requireSsoWithSsoProviderId -> null
@@ -52,9 +55,11 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * and nothing else changes:
  *   - internal reads (root, and the ignoreHooks lookups the write path uses)
  *     see the stored value,
- *   - the Enterprise Edition (any license state) is never masked,
+ *   - while SSO is active (the Enterprise Edition with billing on, or a
+ *     license that covers SSO, or an unknown license state) nothing is masked,
  *   - the stored row is never written, so moving back to the Enterprise
- *     Edition restores enforcement exactly as configured.
+ *     Edition, or renewing the license, restores enforcement exactly as
+ *     configured, without a restart.
  *
  * These tests run the real DatabaseService read path; only the repository and
  * the read-permission check (not under test) are stubbed.
@@ -71,13 +76,11 @@ const PROVIDER_ID: ObjectID = new ObjectID(
 );
 const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 
-const ENTERPRISE_STATUSES: ReadonlyArray<EnterpriseLicenseStatus> = [
-  "valid",
-  "grace",
-  "expired",
-  "missing",
-  "invalid",
-];
+// Every Enterprise state (CE is covered by its own tests below).
+const ENTERPRISE_STATES: Array<EditionStateCase> =
+  createEditionStateCases().filter((state: EditionStateCase): boolean => {
+    return state.isLoaded;
+  });
 
 // What the database holds. Each read builds fresh entities from it.
 type StoredProjectRow = {
@@ -260,19 +263,46 @@ describe("SSO requirement columns are read as their effective value on the Commu
 
         expectProjectMasked(await readProject(masterAdminProps()));
       });
+    }
 
-      for (const status of ENTERPRISE_STATUSES) {
-        test(`Enterprise Edition (billing=${billing}, ${status} license): reads are never masked`, async () => {
-          setTestBillingEnabled(billing);
-          installFakeEnterpriseModule({
-            snapshot: createLicenseSnapshotWithStatus(status),
-          });
+    for (const state of ENTERPRISE_STATES) {
+      test(`${state.label}: reads are ${state.isActive ? "not masked (SSO active)" : "masked (license lapsed, SSO stopped)"}`, async () => {
+        state.apply();
 
+        if (state.isActive) {
           expectProjectRaw(await readProject(userProps()));
           expectProjectRaw(await readProject(masterAdminProps()));
-        });
-      }
+        } else {
+          expectProjectMasked(await readProject(userProps()));
+          expectProjectMasked(await readProject(masterAdminProps()));
+          expectProjectRaw(await readProject({ isRoot: true }));
+        }
+      });
     }
+
+    test("a lapse masks reads and a renewal unmasks them, with the stored row untouched", async () => {
+      getJestSpyOn(logger, "warn").mockImplementation((): void => {
+        return undefined;
+      });
+      getJestSpyOn(logger, "info").mockImplementation((): void => {
+        return undefined;
+      });
+
+      const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("valid"),
+      });
+
+      expectProjectRaw(await readProject(userProps()));
+
+      fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
+      expectProjectMasked(await readProject(userProps()));
+
+      fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
+      expectProjectRaw(await readProject(userProps()));
+
+      expect(projectRepositoryWrites).toEqual([]);
+      expect(storedProject.requireSsoForLogin).toBe(true);
+    });
 
     test("internal root reads see the stored value on the Community Edition", async () => {
       expectProjectRaw(await readProject({ isRoot: true }));
@@ -319,19 +349,16 @@ describe("SSO requirement columns are read as their effective value on the Commu
         expect(statusPage.requireSsoForLogin).toBe(false);
         expect(statusPage.name).toBe("Customer Status");
       });
+    }
 
-      for (const status of ENTERPRISE_STATUSES) {
-        test(`Enterprise Edition (billing=${billing}, ${status} license): reads are never masked`, async () => {
-          setTestBillingEnabled(billing);
-          installFakeEnterpriseModule({
-            snapshot: createLicenseSnapshotWithStatus(status),
-          });
+    for (const state of ENTERPRISE_STATES) {
+      test(`${state.label}: a caller's read is ${state.isActive ? "not masked" : "masked"}`, async () => {
+        state.apply();
 
-          expect((await readStatusPage(userProps())).requireSsoForLogin).toBe(
-            true,
-          );
-        });
-      }
+        expect((await readStatusPage(userProps())).requireSsoForLogin).toBe(
+          state.isActive,
+        );
+      });
     }
 
     test("internal root reads see the stored value on the Community Edition", async () => {

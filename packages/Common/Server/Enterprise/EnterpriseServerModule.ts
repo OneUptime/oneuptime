@@ -65,8 +65,10 @@ export interface EnterpriseLicensingProvider {
   getSnapshot(): Promise<EnterpriseLicenseSnapshot>;
 
   /*
-   * The synchronous twin for synchronous permission checks. Null until the
-   * first load finished; callers treat null as "not licensed" (fail closed).
+   * The synchronous twin for synchronous checks. Null until the first load
+   * finished. Configuration checks (isFeatureAvailableSync) treat null as "not
+   * licensed" (fail closed); runtime checks (isFeatureActive) treat it as
+   * active, so an unknown license state never locks anyone out.
    */
   getCachedSnapshot(): EnterpriseLicenseSnapshot | null;
 

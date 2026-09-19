@@ -883,9 +883,11 @@ export default class UserMiddleware {
       (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
 
     /*
-     * SSO requirements are enforced whenever the Enterprise Edition is
-     * loaded, whatever its license says; only the Community Edition, which
-     * has no SSO login routes, relaxes them. Errors answer "enforce".
+     * SSO requirements are enforced while SSO is active: the Enterprise
+     * Edition is loaded and its license covers SSO (or billing is on). The
+     * Community Edition, which has no SSO login routes, and an Enterprise
+     * install whose license lapsed, where those routes refuse, relax them.
+     * Errors and an unknown license state answer "enforce".
      */
     const isSsoEnforced: boolean = EditionEnforcement.isSsoEnforced();
 
@@ -970,8 +972,8 @@ export default class UserMiddleware {
 
     /*
      * Same rule as the single-tenant path: SSO requirements are enforced
-     * whenever the Enterprise Edition is loaded and relaxed only on the
-     * Community Edition. Decided once for the whole fan-out.
+     * while SSO is active and relaxed on the Community Edition and while the
+     * license does not cover SSO. Decided once for the whole fan-out.
      */
     const isSsoEnforced: boolean = EditionEnforcement.isSsoEnforced();
 

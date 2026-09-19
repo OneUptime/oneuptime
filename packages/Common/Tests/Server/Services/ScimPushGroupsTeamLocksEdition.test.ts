@@ -5,17 +5,19 @@ import TeamPermissionService from "../../../Server/Services/TeamPermissionServic
 import OnCallDutyPolicyTimeLogService from "../../../Server/Services/OnCallDutyPolicyTimeLogService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
-import { EnterpriseLicenseStatus } from "../../../Server/Enterprise/EnterpriseLicenseSnapshot";
 import Errors from "../../../Server/Utils/Errors";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
-import {
+import FakeEnterpriseModule, {
+  createEditionStateCases,
   createLicenseSnapshotWithStatus,
+  EditionStateCase,
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
+import logger from "../../../Server/Utils/Logger";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
 import {
@@ -49,12 +51,16 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * to create or delete teams, invite or remove members, and lifts the
  * "at least one member" guard (the IdP may empty a team).
  *
- * Design v2 section 0: the locks follow isLoaded(), never the license.
- *   - Enterprise Edition (any license state): locks ON - a lapsed license must
- *     not quietly hand team membership back to OneUptime while the IdP still
- *     pushes groups.
- *   - Community Edition: locks OFF - there is no SCIM endpoint there, so a
- *     leftover Push Groups setting would leave teams nobody can manage.
+ * The locks follow the RUNTIME state of SCIM
+ * (EnterpriseEdition.isFeatureActive(SCIM), through EditionEnforcement):
+ *   - SCIM active (the Enterprise Edition with billing on, or with a license
+ *     that covers SCIM - valid, grace, trial - or an unknown license state):
+ *     locks ON, the identity provider owns the teams.
+ *   - SCIM not active (the Community Edition, or an Enterprise install whose
+ *     license lapsed): locks OFF. No SCIM endpoint answers the identity
+ *     provider there, so a Push Groups setting left on would leave teams
+ *     nobody can manage.
+ * A license change applies to the next write, without a restart.
  *
  * Billing and the edition are pinned in every test.
  */
@@ -68,29 +74,33 @@ const INVITEE_ID: ObjectID = new ObjectID(
   "55555555-5555-4555-8555-555555555555",
 );
 
-const ENTERPRISE_STATUSES: ReadonlyArray<EnterpriseLicenseStatus> = [
-  "valid",
-  "grace",
-  "expired",
-  "missing",
-  "invalid",
-];
+const EDITION_CASES: Array<EditionStateCase> = createEditionStateCases();
 
-const BILLING_VALUES: ReadonlyArray<boolean> = [false, true];
-
-// [billing, license status] for every Enterprise Edition state.
-const ENTERPRISE_MATRIX: Array<[boolean, EnterpriseLicenseStatus]> =
-  BILLING_VALUES.flatMap(
-    (billing: boolean): Array<[boolean, EnterpriseLicenseStatus]> => {
-      return ENTERPRISE_STATUSES.map(
-        (
-          status: EnterpriseLicenseStatus,
-        ): [boolean, EnterpriseLicenseStatus] => {
-          return [billing, status];
-        },
-      );
+const toMatrix: (
+  cases: Array<EditionStateCase>,
+) => Array<[string, EditionStateCase]> = (
+  cases: Array<EditionStateCase>,
+): Array<[string, EditionStateCase]> => {
+  return cases.map(
+    (editionCase: EditionStateCase): [string, EditionStateCase] => {
+      return [editionCase.label, editionCase];
     },
   );
+};
+
+// Every state in which SCIM is active, so Push Groups locks the teams.
+const LOCKED_MATRIX: Array<[string, EditionStateCase]> = toMatrix(
+  EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
+    return editionCase.isActive;
+  }),
+);
+
+// The Community Edition and every lapsed Enterprise license: not locked.
+const UNLOCKED_MATRIX: Array<[string, EditionStateCase]> = toMatrix(
+  EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
+    return !editionCase.isActive;
+  }),
+);
 
 const userProps: () => Record<string, unknown> = (): Record<
   string,
@@ -133,6 +143,13 @@ describe("SCIM Push Groups team locks by edition", () => {
   beforeEach(() => {
     setTestBillingEnabled(false);
     uninstallEnterpriseModule();
+
+    getJestSpyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    getJestSpyOn(logger, "info").mockImplementation((): void => {
+      return undefined;
+    });
 
     // Push Groups is ON for the project in every test below.
     scimCount = getJestSpyOn(ProjectSCIMService, "countBy").mockResolvedValue(
@@ -187,13 +204,10 @@ describe("SCIM Push Groups team locks by edition", () => {
       ).mockResolvedValue(0);
     });
 
-    test.each(ENTERPRISE_MATRIX)(
-      "Enterprise Edition (billing=%p, %s license): creating a team is locked",
-      async (billing: boolean, status: EnterpriseLicenseStatus) => {
-        setTestBillingEnabled(billing);
-        installFakeEnterpriseModule({
-          snapshot: createLicenseSnapshotWithStatus(status),
-        });
+    test.each(LOCKED_MATRIX)(
+      "SCIM active (%s): creating a team is locked",
+      async (_label: string, editionCase: EditionStateCase) => {
+        editionCase.apply();
 
         await expect(createTeam(userProps())).rejects.toThrow(
           "Cannot create teams while SCIM Push Groups is enabled for this project",
@@ -201,13 +215,10 @@ describe("SCIM Push Groups team locks by edition", () => {
       },
     );
 
-    test.each(ENTERPRISE_MATRIX)(
-      "Enterprise Edition (billing=%p, %s license): deleting a team is locked before any member is removed",
-      async (billing: boolean, status: EnterpriseLicenseStatus) => {
-        setTestBillingEnabled(billing);
-        installFakeEnterpriseModule({
-          snapshot: createLicenseSnapshotWithStatus(status),
-        });
+    test.each(LOCKED_MATRIX)(
+      "SCIM active (%s): deleting a team is locked before any member is removed",
+      async (_label: string, editionCase: EditionStateCase) => {
+        editionCase.apply();
 
         await expect(deleteTeam(userProps())).rejects.toThrow(
           "Cannot delete teams while SCIM Push Groups is enabled for this project",
@@ -216,10 +227,10 @@ describe("SCIM Push Groups team locks by edition", () => {
       },
     );
 
-    test.each(BILLING_VALUES)(
-      "Community Edition (billing=%p): creating a team is not locked and SCIM is not consulted",
-      async (billing: boolean) => {
-        setTestBillingEnabled(billing);
+    test.each(UNLOCKED_MATRIX)(
+      "SCIM not active (%s): creating a team is not locked and SCIM is not consulted",
+      async (_label: string, editionCase: EditionStateCase) => {
+        editionCase.apply();
 
         await expect(createTeam(userProps())).resolves.toEqual(
           expect.objectContaining({ carryForward: null }),
@@ -228,10 +239,10 @@ describe("SCIM Push Groups team locks by edition", () => {
       },
     );
 
-    test.each(BILLING_VALUES)(
-      "Community Edition (billing=%p): deleting a team is not locked",
-      async (billing: boolean) => {
-        setTestBillingEnabled(billing);
+    test.each(UNLOCKED_MATRIX)(
+      "SCIM not active (%s): deleting a team is not locked",
+      async (_label: string, editionCase: EditionStateCase) => {
+        editionCase.apply();
 
         await expect(deleteTeam(userProps())).resolves.toEqual(
           expect.objectContaining({ carryForward: null }),
@@ -305,13 +316,10 @@ describe("SCIM Push Groups team locks by edition", () => {
       getJestSpyOn(ProjectService, "findOneById").mockResolvedValue(null);
     });
 
-    test.each(ENTERPRISE_MATRIX)(
-      "Enterprise Edition (billing=%p, %s license): inviting a member is locked",
-      async (billing: boolean, status: EnterpriseLicenseStatus) => {
-        setTestBillingEnabled(billing);
-        installFakeEnterpriseModule({
-          snapshot: createLicenseSnapshotWithStatus(status),
-        });
+    test.each(LOCKED_MATRIX)(
+      "SCIM active (%s): inviting a member is locked",
+      async (_label: string, editionCase: EditionStateCase) => {
+        editionCase.apply();
 
         await expect(inviteMember(userProps())).rejects.toThrow(
           "Cannot invite team members while SCIM Push Groups is enabled for this project",
@@ -319,13 +327,10 @@ describe("SCIM Push Groups team locks by edition", () => {
       },
     );
 
-    test.each(ENTERPRISE_MATRIX)(
-      "Enterprise Edition (billing=%p, %s license): removing a member is locked",
-      async (billing: boolean, status: EnterpriseLicenseStatus) => {
-        setTestBillingEnabled(billing);
-        installFakeEnterpriseModule({
-          snapshot: createLicenseSnapshotWithStatus(status),
-        });
+    test.each(LOCKED_MATRIX)(
+      "SCIM active (%s): removing a member is locked",
+      async (_label: string, editionCase: EditionStateCase) => {
+        editionCase.apply();
 
         await expect(removeMember(userProps())).rejects.toThrow(
           "Cannot delete team members while SCIM Push Groups is enabled for this project",
@@ -333,10 +338,10 @@ describe("SCIM Push Groups team locks by edition", () => {
       },
     );
 
-    test.each(BILLING_VALUES)(
-      "Community Edition (billing=%p): inviting a member is not locked",
-      async (billing: boolean) => {
-        setTestBillingEnabled(billing);
+    test.each(UNLOCKED_MATRIX)(
+      "SCIM not active (%s): inviting a member is not locked",
+      async (_label: string, editionCase: EditionStateCase) => {
+        editionCase.apply();
 
         await expect(inviteMember(userProps())).resolves.toEqual(
           expect.objectContaining({ carryForward: null }),
@@ -345,10 +350,10 @@ describe("SCIM Push Groups team locks by edition", () => {
       },
     );
 
-    test.each(BILLING_VALUES)(
-      "Community Edition (billing=%p): removing a member is not locked",
-      async (billing: boolean) => {
-        setTestBillingEnabled(billing);
+    test.each(UNLOCKED_MATRIX)(
+      "SCIM not active (%s): removing a member is not locked",
+      async (_label: string, editionCase: EditionStateCase) => {
+        editionCase.apply();
 
         await expect(removeMember(userProps())).resolves.toEqual(
           expect.objectContaining({ deleteBy: expect.anything() }),
@@ -368,12 +373,23 @@ describe("SCIM Push Groups team locks by edition", () => {
         );
       });
 
-      test("is lifted on the Enterprise Edition while Push Groups owns the team (the IdP may empty it)", async () => {
+      test("is lifted while SCIM is active and Push Groups owns the team (the IdP may empty it)", async () => {
+        installFakeEnterpriseModule({
+          snapshot: createLicenseSnapshotWithStatus("grace"),
+        });
+
+        await expect(removeMember({ isRoot: true })).resolves.toBeDefined();
+      });
+
+      test("applies again once the license lapsed, because no IdP manages the team any more", async () => {
         installFakeEnterpriseModule({
           snapshot: createLicenseSnapshotWithStatus("expired"),
         });
 
-        await expect(removeMember({ isRoot: true })).resolves.toBeDefined();
+        await expect(removeMember({ isRoot: true })).rejects.toThrow(
+          Errors.TeamMemberService.ONE_MEMBER_REQUIRED,
+        );
+        expect(scimCount).not.toHaveBeenCalled();
       });
 
       test("applies on the Community Edition, where no IdP manages the team", async () => {
@@ -388,6 +404,28 @@ describe("SCIM Push Groups team locks by edition", () => {
       installFakeEnterpriseModule();
 
       await expect(inviteMember({ isRoot: true })).resolves.toBeDefined();
+    });
+
+    test("the lock follows the license at write time: relaxed while lapsed, back after renewal", async () => {
+      const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("valid"),
+      });
+
+      await expect(inviteMember(userProps())).rejects.toThrow(
+        "Cannot invite team members while SCIM Push Groups is enabled for this project",
+      );
+
+      fake.setSnapshot(createLicenseSnapshotWithStatus("missing"));
+
+      await expect(inviteMember(userProps())).resolves.toEqual(
+        expect.objectContaining({ carryForward: null }),
+      );
+
+      fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
+
+      await expect(inviteMember(userProps())).rejects.toThrow(
+        "Cannot invite team members while SCIM Push Groups is enabled for this project",
+      );
     });
   });
 });

@@ -650,13 +650,19 @@ describe("EnterpriseEdition audit log recorder", () => {
     expect(EnterpriseEdition.getAuditLogRecorder()).toBe(recorder);
   });
 
-  test("the recorder does not depend on the license (a lapsed license keeps auditing)", () => {
+  test("the recorder is handed out whatever the license says (it decides per entry whether to record)", () => {
     const recorder: MockedAuditLogRecorder = createAuditLogRecorderSpy();
     installFakeEnterpriseModule({
       auditLogRecorder: recorder,
       snapshot: createLicenseSnapshotWithStatus("expired"),
     });
 
+    /*
+     * Handing it out keeps invalidateProjectSettings working while the license
+     * is lapsed. Whether an entry is recorded is the recorder's own
+     * isFeatureActive(AuditLogs) check (ee/Tests/Server/AuditLog/
+     * AuditLogRecorder.test.ts pins that it records nothing while lapsed).
+     */
     expect(EnterpriseEdition.getAuditLogRecorder()).toBe(recorder);
   });
 
@@ -676,25 +682,32 @@ describe("EnterpriseEdition audit log recorder", () => {
   });
 });
 
-describe("EnterpriseEdition SSO enforcement", () => {
-  test("the Community Edition does not enforce SSO (its SSO routes do not exist)", () => {
-    expect(EnterpriseEdition.shouldEnforceSso()).toBe(false);
-
-    setTestBillingEnabled(true);
-    expect(EnterpriseEdition.shouldEnforceSso()).toBe(false);
+describe("EnterpriseEdition runtime state (isFeatureActive)", () => {
+  /*
+   * The full matrix, the unknown-state rule and the lapse log live in
+   * EnterpriseFeatureActive.test.ts. The old shouldEnforceSso() ("enforce SSO
+   * whenever ee is loaded, whatever the license says") is gone on purpose:
+   * SSO enforcement now follows isFeatureActive(SSO), so it relaxes when the
+   * license lapses.
+   */
+  test("shouldEnforceSso no longer exists", () => {
+    expect(
+      (EnterpriseEdition as unknown as Record<string, unknown>)[
+        "shouldEnforceSso"
+      ],
+    ).toBeUndefined();
   });
 
-  test.each([...ALL_STATUSES, null] as Array<EnterpriseLicenseStatus | null>)(
-    "the Enterprise Edition enforces SSO whatever the license says (%s)",
-    (status: EnterpriseLicenseStatus | null) => {
-      for (const billing of [false, true]) {
-        setTestBillingEnabled(billing);
-        installFakeEnterpriseModule({
-          snapshot: status ? createLicenseSnapshotWithStatus(status) : null,
-        });
+  test.each(ALL_STATUSES)(
+    "billing off, %s license: SSO is active exactly when the license entitles it",
+    (status: EnterpriseLicenseStatus) => {
+      installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus(status),
+      });
 
-        expect(EnterpriseEdition.shouldEnforceSso()).toBe(true);
-      }
+      expect(EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO)).toBe(
+        status === "valid" || status === "grace",
+      );
     },
   );
 });

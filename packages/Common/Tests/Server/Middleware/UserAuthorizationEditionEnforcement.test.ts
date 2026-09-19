@@ -3,7 +3,6 @@ import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
-import { EnterpriseLicenseStatus } from "../../../Server/Enterprise/EnterpriseLicenseSnapshot";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
 import Dictionary from "../../../Types/Dictionary";
@@ -12,8 +11,10 @@ import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorization
 import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundException";
 import ObjectID from "../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../Types/Permission";
-import {
+import FakeEnterpriseModule, {
+  createEditionStateCases,
   createLicenseSnapshotWithStatus,
+  EditionStateCase,
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
@@ -69,74 +70,53 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 
 /*
  * Project, instance-wide and specific-provider SSO requirements are enforced
- * by UserMiddleware on every tenant request. Design v2 section 0:
+ * by UserMiddleware on every tenant request, while SSO is ACTIVE
+ * (EnterpriseEdition.isFeatureActive(SSO), through EditionEnforcement):
  *
- *   - Enterprise Edition loaded: ENFORCED, whatever the license says (valid,
- *     grace, expired, missing, invalid, not yet loaded) and whatever billing
- *     says. A lapsed license must never let a password through where SSO is
- *     required - that would let users removed at the identity provider back
- *     in.
- *   - Community Edition: RELAXED. The SSO login routes do not exist there, so
- *     enforcing a leftover requirement would lock every user out.
+ *   - ENFORCED: the Enterprise Edition with billing on (any license), or with
+ *     billing off while the license covers SSO (valid, grace, trial, accepted
+ *     unverified legacy) - and while the license state is UNKNOWN (not read
+ *     yet, unreadable), which must never relax SSO.
+ *   - RELAXED: the Community Edition, and an Enterprise install whose license
+ *     has lapsed (expired past grace, missing after the trial, invalid, or
+ *     without SSO). Their SSO login routes do not exist or refuse, so
+ *     enforcing a stored requirement would lock every user out; users sign
+ *     in with their password instead.
  *   - Error while deciding: ENFORCED.
+ *
+ * A license change applies to the next request, without a restart.
  *
  * Billing and the edition are pinned in every test (CI's config.env sets
  * BILLING_ENABLED=true).
  */
 
-const ALL_STATUSES: ReadonlyArray<EnterpriseLicenseStatus> = [
-  "missing",
-  "valid",
-  "grace",
-  "expired",
-  "invalid",
-];
+const EDITION_CASES: Array<EditionStateCase> = createEditionStateCases();
 
-type EnterpriseState = {
-  label: string;
-  install: () => void;
-};
-
-const ENTERPRISE_STATES: Array<EnterpriseState> = [
-  ...ALL_STATUSES.map((status: EnterpriseLicenseStatus): EnterpriseState => {
-    return {
-      label: `${status} license`,
-      install: (): void => {
-        installFakeEnterpriseModule({
-          snapshot: createLicenseSnapshotWithStatus(status),
-        });
-      },
-    };
-  }),
-  {
-    label: "license not loaded yet",
-    install: (): void => {
-      installFakeEnterpriseModule({ snapshot: null });
-    },
-  },
-  {
-    label: "license that entitles no feature",
-    install: (): void => {
-      installFakeEnterpriseModule({
-        snapshot: createLicenseSnapshotWithStatus("valid", { features: [] }),
-      });
-    },
-  },
-];
-
-const BILLING_VALUES: ReadonlyArray<boolean> = [false, true];
-
-// [label, billing, install] for every Enterprise Edition state x billing.
-const ENTERPRISE_MATRIX: Array<[string, boolean, () => void]> =
-  BILLING_VALUES.flatMap(
-    (billing: boolean): Array<[string, boolean, () => void]> => {
-      return ENTERPRISE_STATES.map(
-        (state: EnterpriseState): [string, boolean, () => void] => {
-          return [`billing=${billing}, ${state.label}`, billing, state.install];
-        },
-      );
+const toMatrix: (
+  cases: Array<EditionStateCase>,
+) => Array<[string, EditionStateCase]> = (
+  cases: Array<EditionStateCase>,
+): Array<[string, EditionStateCase]> => {
+  return cases.map(
+    (editionCase: EditionStateCase): [string, EditionStateCase] => {
+      return [editionCase.label, editionCase];
     },
   );
+};
+
+// Every state in which SSO requirements are enforced.
+const ENFORCED_MATRIX: Array<[string, EditionStateCase]> = toMatrix(
+  EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
+    return editionCase.isActive;
+  }),
+);
+
+// Every state in which they are relaxed: CE, and a lapsed Enterprise license.
+const RELAXED_MATRIX: Array<[string, EditionStateCase]> = toMatrix(
+  EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
+    return !editionCase.isActive;
+  }),
+);
 
 const projectId: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -221,13 +201,23 @@ describe("UserMiddleware SSO enforcement by edition", () => {
     jest.clearAllMocks();
   });
 
-  describe("Enterprise Edition: enforced whatever the license or billing says", () => {
-    describe.each(ENTERPRISE_MATRIX)(
+  test("both matrices are populated, and a lapsed Enterprise license is among the relaxed states", () => {
+    expect(ENFORCED_MATRIX.length).toBeGreaterThan(0);
+    expect(
+      RELAXED_MATRIX.filter(
+        ([, editionCase]: [string, EditionStateCase]): boolean => {
+          return editionCase.isLoaded;
+        },
+      ).length,
+    ).toBeGreaterThanOrEqual(4);
+  });
+
+  describe("SSO active: enforced", () => {
+    describe.each(ENFORCED_MATRIX)(
       "%s",
-      (_label: string, billing: boolean, install: () => void) => {
+      (_label: string, editionCase: EditionStateCase) => {
         beforeEach(() => {
-          setTestBillingEnabled(billing);
-          install();
+          editionCase.apply();
         });
 
         test("a project that requires SSO refuses a request without an SSO token", async () => {
@@ -324,80 +314,85 @@ describe("UserMiddleware SSO enforcement by edition", () => {
     );
   });
 
-  describe("Community Edition: relaxed, because there is no SSO login to satisfy it", () => {
-    describe.each(BILLING_VALUES)("billing=%p", (billing: boolean) => {
-      beforeEach(() => {
-        setTestBillingEnabled(billing);
-        uninstallEnterpriseModule();
-      });
-
-      test("a project that requires SSO still lets its members in", async () => {
-        projectRequireSso.mockResolvedValue(true);
-
-        await expect(resolveSingle()).resolves.toBe(tenantPermission);
-        expect(ssoSatisfied).not.toHaveBeenCalled();
-        expect(projectRequiredProvider).not.toHaveBeenCalled();
-      });
-
-      test("the instance-wide requirement is not even read", async () => {
-        globalRequireSso.mockResolvedValue(true);
-
-        await expect(resolveSingle()).resolves.toBe(tenantPermission);
-        expect(globalRequireSso).not.toHaveBeenCalled();
-        expect(ssoSatisfied).not.toHaveBeenCalled();
-      });
-
-      test("an unknown project is still refused as TenantNotFound (the project lookup still runs)", async () => {
-        projectRequireSso.mockRejectedValue(
-          new BadDataException("Project not found"),
-        );
-
-        await expect(resolveSingle()).rejects.toThrow(
-          new TenantNotFoundException("Invalid tenantId"),
-        );
-        expect(projectRequireSso).toHaveBeenCalledWith(projectId);
-      });
-
-      test("any other project lookup error still propagates", async () => {
-        projectRequireSso.mockRejectedValue(new Error("database down"));
-
-        await expect(resolveSingle()).rejects.toThrow("database down");
-      });
-
-      test("the user's real permission is what they get - relaxing SSO grants nothing extra", async () => {
-        projectRequireSso.mockResolvedValue(true);
-        tenantPermissionLookup.mockResolvedValue(null);
-
-        await expect(resolveSingle()).resolves.toBeNull();
-        expect(tenantPermissionLookup).toHaveBeenCalledWith(userId, projectId);
-      });
-
-      test("the multi-tenant path returns real permissions without reading any SSO requirement", async () => {
-        projectRequireSso.mockResolvedValue(true);
-        globalRequireSso.mockResolvedValue(true);
-
-        const result: Dictionary<UserTenantAccessPermission> | null =
-          await resolveMulti();
-
-        expect(result).toEqual({
-          [projectId.toString()]: tenantPermission,
-          [otherProjectId.toString()]: tenantPermission,
+  describe("SSO not active (Community Edition, lapsed license): relaxed, because there is no SSO login to satisfy it", () => {
+    describe.each(RELAXED_MATRIX)(
+      "%s",
+      (_label: string, editionCase: EditionStateCase) => {
+        beforeEach(() => {
+          editionCase.apply();
         });
-        expect(projectRequireSso).not.toHaveBeenCalled();
-        expect(globalRequireSso).not.toHaveBeenCalled();
-        expect(ssoSatisfied).not.toHaveBeenCalled();
-      });
-    });
+
+        test("a project that requires SSO still lets its members in", async () => {
+          projectRequireSso.mockResolvedValue(true);
+
+          await expect(resolveSingle()).resolves.toBe(tenantPermission);
+          expect(ssoSatisfied).not.toHaveBeenCalled();
+          expect(projectRequiredProvider).not.toHaveBeenCalled();
+        });
+
+        test("the instance-wide requirement is not even read", async () => {
+          globalRequireSso.mockResolvedValue(true);
+
+          await expect(resolveSingle()).resolves.toBe(tenantPermission);
+          expect(globalRequireSso).not.toHaveBeenCalled();
+          expect(ssoSatisfied).not.toHaveBeenCalled();
+        });
+
+        test("an unknown project is still refused as TenantNotFound (the project lookup still runs)", async () => {
+          projectRequireSso.mockRejectedValue(
+            new BadDataException("Project not found"),
+          );
+
+          await expect(resolveSingle()).rejects.toThrow(
+            new TenantNotFoundException("Invalid tenantId"),
+          );
+          expect(projectRequireSso).toHaveBeenCalledWith(projectId);
+        });
+
+        test("any other project lookup error still propagates", async () => {
+          projectRequireSso.mockRejectedValue(new Error("database down"));
+
+          await expect(resolveSingle()).rejects.toThrow("database down");
+        });
+
+        test("the user's real permission is what they get - relaxing SSO grants nothing extra", async () => {
+          projectRequireSso.mockResolvedValue(true);
+          tenantPermissionLookup.mockResolvedValue(null);
+
+          await expect(resolveSingle()).resolves.toBeNull();
+          expect(tenantPermissionLookup).toHaveBeenCalledWith(
+            userId,
+            projectId,
+          );
+        });
+
+        test("the multi-tenant path returns real permissions without reading any SSO requirement", async () => {
+          projectRequireSso.mockResolvedValue(true);
+          globalRequireSso.mockResolvedValue(true);
+
+          const result: Dictionary<UserTenantAccessPermission> | null =
+            await resolveMulti();
+
+          expect(result).toEqual({
+            [projectId.toString()]: tenantPermission,
+            [otherProjectId.toString()]: tenantPermission,
+          });
+          expect(projectRequireSso).not.toHaveBeenCalled();
+          expect(globalRequireSso).not.toHaveBeenCalled();
+          expect(ssoSatisfied).not.toHaveBeenCalled();
+        });
+      },
+    );
   });
 
   describe("switching editions changes enforcement with no restart and no data change", () => {
-    test("the same stored requirement is relaxed on CE and enforced again once ee is loaded", async () => {
+    test("the same stored requirement is relaxed on CE and enforced again once ee is loaded with a license", async () => {
       projectRequireSso.mockResolvedValue(true);
 
       await expect(resolveSingle()).resolves.toBe(tenantPermission);
 
       installFakeEnterpriseModule({
-        snapshot: createLicenseSnapshotWithStatus("expired"),
+        snapshot: createLicenseSnapshotWithStatus("valid"),
       });
 
       await expect(resolveSingle()).rejects.toThrow(
@@ -410,9 +405,87 @@ describe("UserMiddleware SSO enforcement by edition", () => {
     });
   });
 
+  describe("a license change applies to the next request, without a restart", () => {
+    test("an SSO-required project accepts a password session while the license is lapsed and enforces SSO again after renewal", async () => {
+      projectRequireSso.mockResolvedValue(true);
+
+      const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("valid"),
+      });
+
+      // Licensed: a password session (no SSO token) is refused.
+      await expect(resolveSingle()).rejects.toThrow(
+        new SsoAuthorizationException(),
+      );
+
+      // The license lapses: the same password session is let in.
+      fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
+
+      await expect(resolveSingle()).resolves.toBe(tenantPermission);
+      expect(tenantPermissionLookup).toHaveBeenLastCalledWith(
+        userId,
+        projectId,
+      );
+
+      // Renewed: refused again, with no restart and no data change.
+      fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
+
+      await expect(resolveSingle()).rejects.toThrow(
+        new SsoAuthorizationException(),
+      );
+    });
+
+    test("the instance-wide requirement and the multi-tenant path follow the license too", async () => {
+      globalRequireSso.mockResolvedValue(true);
+
+      const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("missing"),
+      });
+
+      await expect(resolveSingle()).resolves.toBe(tenantPermission);
+      expect(await resolveMulti()).toEqual({
+        [projectId.toString()]: tenantPermission,
+        [otherProjectId.toString()]: tenantPermission,
+      });
+
+      fake.setSnapshot(createLicenseSnapshotWithStatus("grace"));
+
+      await expect(resolveSingle()).rejects.toThrow(
+        new SsoAuthorizationException(),
+      );
+      expect(await resolveMulti()).toEqual({
+        [projectId.toString()]:
+          UserPermissionUtil.getDefaultUserTenantAccessPermission(projectId),
+        [otherProjectId.toString()]:
+          UserPermissionUtil.getDefaultUserTenantAccessPermission(
+            otherProjectId,
+          ),
+      });
+    });
+
+    test("an unknown license state keeps enforcing (never relaxes SSO)", async () => {
+      projectRequireSso.mockResolvedValue(true);
+
+      const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("valid"),
+      });
+      fake.setSnapshot(null);
+
+      await expect(resolveSingle()).rejects.toThrow(
+        new SsoAuthorizationException(),
+      );
+
+      fake.licensing.getCachedSnapshotError = new Error("unreadable");
+
+      await expect(resolveSingle()).rejects.toThrow(
+        new SsoAuthorizationException(),
+      );
+    });
+  });
+
   describe("an error while deciding answers 'enforce'", () => {
     test("single-tenant", async () => {
-      getJestSpyOn(EnterpriseEdition, "shouldEnforceSso").mockImplementation(
+      getJestSpyOn(EnterpriseEdition, "isFeatureActive").mockImplementation(
         (): boolean => {
           throw new Error("facade exploded");
         },
@@ -425,7 +498,7 @@ describe("UserMiddleware SSO enforcement by edition", () => {
     });
 
     test("multi-tenant", async () => {
-      getJestSpyOn(EnterpriseEdition, "shouldEnforceSso").mockImplementation(
+      getJestSpyOn(EnterpriseEdition, "isFeatureActive").mockImplementation(
         (): boolean => {
           throw new Error("facade exploded");
         },

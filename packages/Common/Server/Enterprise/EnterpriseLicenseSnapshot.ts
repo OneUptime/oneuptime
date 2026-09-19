@@ -93,9 +93,12 @@ export interface EnterpriseLicenseSnapshot {
 }
 
 /*
- * How long an expired license (or an unlicensed Enterprise install, counted
- * from GlobalConfig.enterpriseEditionFirstSeenAt) keeps enterprise
- * configuration writable. Security controls never depend on it.
+ * How long an expired license keeps working, and how long an unlicensed
+ * Enterprise install is on trial (counted from
+ * GlobalConfig.enterpriseEditionFirstSeenAt). Until it ends nothing changes;
+ * after it, enterprise configuration becomes read-only and SSO, SCIM and
+ * audit logging stop (EnterpriseEdition.isFeatureActive) until a license is
+ * activated.
  */
 export const ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS: number = 14;
 

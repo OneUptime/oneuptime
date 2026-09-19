@@ -1,4 +1,3 @@
-import { EnterpriseLicenseStatus } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
@@ -13,8 +12,10 @@ import Express, {
 import SsoAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
 import ObjectID from "Common/Types/ObjectID";
 import { UserTenantAccessPermission } from "Common/Types/Permission";
-import {
+import FakeEnterpriseModule, {
+  createEditionStateCases,
   createLicenseSnapshotWithStatus,
+  EditionStateCase,
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
@@ -30,9 +31,15 @@ import IdentityFeatureSet from "../../../FeatureSet/Identity/Index";
  * requirement). Serving the login routes without enforcing SSO lets a password through where an
  * owner required SSO - including for people already removed at the identity provider.
  *
- * Both halves are decided by one thing, whether the Enterprise Edition is loaded:
- *   - the Identity feature set mounts the enterprise module's identity routers (the SAML/OIDC
- *     login routes) exactly when a module is registered;
+ * Both halves are decided by one thing, whether SSO is ACTIVE
+ * (EnterpriseEdition.isFeatureActive(SSO)): the Enterprise Edition is loaded and, with billing
+ * off, its license covers SSO (or the license state is not known yet).
+ *   - "served" is two things. The Identity feature set MOUNTS the enterprise module's identity
+ *     routers whenever a module is registered (they are mounted once, at boot), and each of
+ *     those routes ANSWERS only while EditionEnforcement.areSsoRoutesServed() - the ee routes
+ *     start with a per-request license gate, pinned against this same method by
+ *     ee/Tests/Server/Identity/IdentityLicenseGates.test.ts. So a lapsed Enterprise license
+ *     keeps the routes mounted but refusing.
  *   - UserMiddleware enforces project and instance-wide SSO requirements exactly when
  *     EditionEnforcement.isSsoEnforced() says so.
  * This suite drives the REAL mount code and the REAL enforcement code through every edition,
@@ -147,59 +154,18 @@ const TENANT_PERMISSION: UserTenantAccessPermission = {
   permissions: [],
 } as unknown as UserTenantAccessPermission;
 
-const ENTERPRISE_STATUSES: ReadonlyArray<EnterpriseLicenseStatus> = [
-  "valid",
-  "grace",
-  "expired",
-  "missing",
-  "invalid",
-];
+const EDITION_STATES: Array<EditionStateCase> = createEditionStateCases();
 
-type EditionState = {
-  label: string;
-  billing: boolean;
-  install: () => void;
-  isLoaded: boolean;
-};
+// Applies the state, with the fake Enterprise identity router when ee is loaded.
+const applyState: (state: EditionStateCase) => void = (
+  state: EditionStateCase,
+): void => {
+  const fake: FakeEnterpriseModule | null = state.apply();
 
-const EDITION_STATES: Array<EditionState> = [];
-
-for (const billing of [false, true]) {
-  EDITION_STATES.push({
-    label: `Community Edition, billing=${billing}`,
-    billing,
-    install: (): void => {
-      uninstallEnterpriseModule();
-    },
-    isLoaded: false,
-  });
-
-  for (const status of ENTERPRISE_STATUSES) {
-    EDITION_STATES.push({
-      label: `Enterprise Edition, ${status} license, billing=${billing}`,
-      billing,
-      install: (): void => {
-        installFakeEnterpriseModule({
-          snapshot: createLicenseSnapshotWithStatus(status),
-          identityRouters: [buildEnterpriseIdentityRouter()],
-        });
-      },
-      isLoaded: true,
-    });
+  if (fake) {
+    fake.identityRouters = [buildEnterpriseIdentityRouter()];
   }
-
-  EDITION_STATES.push({
-    label: `Enterprise Edition, license not loaded yet, billing=${billing}`,
-    billing,
-    install: (): void => {
-      installFakeEnterpriseModule({
-        snapshot: null,
-        identityRouters: [buildEnterpriseIdentityRouter()],
-      });
-    },
-    isLoaded: true,
-  });
-}
+};
 
 // Mounts the Identity feature set and reports whether the SSO login routes are now served.
 const areSsoLoginRoutesMounted: () => Promise<boolean> =
@@ -278,30 +244,65 @@ describe("SSO enforcement is on if and only if the SSO login routes are served",
     jest.restoreAllMocks();
   });
 
+  it("the states include lapsed Enterprise licenses (mounted, but not answering)", () => {
+    expect(
+      EDITION_STATES.filter((state: EditionStateCase): boolean => {
+        return state.isLoaded && !state.isActive;
+      }).length,
+    ).toBeGreaterThanOrEqual(4);
+  });
+
   for (const state of EDITION_STATES) {
     it(state.label, async () => {
-      setTestBillingEnabled(state.billing);
-      state.install();
+      applyState(state);
 
-      const served: boolean = await areSsoLoginRoutesMounted();
+      const mountedNow: boolean = await areSsoLoginRoutesMounted();
+      const answering: boolean = EditionEnforcement.areSsoRoutesServed();
       const projectEnforced: boolean = await isProjectSsoEnforced();
       const globalEnforced: boolean = await isGlobalSsoEnforced();
 
       expect({
-        served,
+        mounted: mountedNow,
+        served: mountedNow && answering,
         projectEnforced,
         globalEnforced,
         reportedEnforced: EditionEnforcement.isSsoEnforced(),
-        reportedServed: EditionEnforcement.areSsoRoutesServed(),
       }).toEqual({
-        served: state.isLoaded,
-        projectEnforced: state.isLoaded,
-        globalEnforced: state.isLoaded,
-        reportedEnforced: state.isLoaded,
-        reportedServed: state.isLoaded,
+        mounted: state.isLoaded,
+        served: state.isActive,
+        projectEnforced: state.isActive,
+        globalEnforced: state.isActive,
+        reportedEnforced: state.isActive,
       });
     });
   }
+
+  it("a lapse and a renewal move both halves together, without re-mounting anything", async () => {
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshotWithStatus("valid"),
+      identityRouters: [buildEnterpriseIdentityRouter()],
+    });
+
+    expect(await areSsoLoginRoutesMounted()).toBe(true);
+
+    const halves: () => Promise<{
+      served: boolean;
+      enforced: boolean;
+    }> = async (): Promise<{ served: boolean; enforced: boolean }> => {
+      return {
+        served: EditionEnforcement.areSsoRoutesServed(),
+        enforced: await isProjectSsoEnforced(),
+      };
+    };
+
+    expect(await halves()).toEqual({ served: true, enforced: true });
+
+    fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
+    expect(await halves()).toEqual({ served: false, enforced: false });
+
+    fake.setSnapshot(createLicenseSnapshotWithStatus("grace"));
+    expect(await halves()).toEqual({ served: true, enforced: true });
+  });
 
   it("the enterprise identity routers are mounted at the same places the core ones are", async () => {
     installFakeEnterpriseModule({

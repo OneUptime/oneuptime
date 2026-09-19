@@ -40,8 +40,10 @@ import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
  *     project already has, root writes, and anything with billing on (the
  *     plan gates apply there).
  *
- * Recording itself is not touched here: it follows EnterpriseEdition.isLoaded()
- * (the recorder), never the license.
+ * Recording itself is not decided here: the ee recorder asks
+ * EnterpriseEdition.isFeatureActive(AuditLogs) for every entry, so it records
+ * nothing while the license is lapsed and resumes once it is renewed
+ * (ee/Tests/Server/AuditLog/AuditLogRecorder.test.ts).
  *
  * Billing and the edition are pinned in every test (CI's config.env sets
  * BILLING_ENABLED=true). This suite must pass with ee/ deleted: it uses only

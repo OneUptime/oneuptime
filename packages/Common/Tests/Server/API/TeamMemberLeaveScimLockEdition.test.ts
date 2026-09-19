@@ -1,7 +1,6 @@
 import TeamMemberAPI from "../../../Server/API/TeamMemberAPI";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
-import { EnterpriseLicenseStatus } from "../../../Server/Enterprise/EnterpriseLicenseSnapshot";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -12,11 +11,14 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
-import {
+import FakeEnterpriseModule, {
+  createEditionStateCases,
   createLicenseSnapshotWithStatus,
+  EditionStateCase,
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
+import logger from "../../../Server/Utils/Logger";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
 import { mockRouter } from "./Helpers";
@@ -67,9 +69,10 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 /*
  * POST /team-member/:id/leave lets a member leave a team. While SCIM Push
  * Groups owns the project's teams, only the identity provider may remove
- * members, so the route refuses - on the Enterprise Edition, whatever its
- * license says. The Community Edition has no SCIM endpoint, so there a
- * leftover Push Groups setting must not trap the member in the team.
+ * members, so the route refuses - while SCIM is active
+ * (EnterpriseEdition.isFeatureActive(SCIM)). The Community Edition has no
+ * SCIM endpoint, and an Enterprise install whose license lapsed answers none,
+ * so there a Push Groups setting left on must not trap the member in the team.
  */
 
 const ROUTE: string = "/team-member/:id/leave";
@@ -82,25 +85,31 @@ const MEMBERSHIP_ID: ObjectID = new ObjectID(
 );
 const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 
-const ENTERPRISE_STATUSES: ReadonlyArray<EnterpriseLicenseStatus> = [
-  "valid",
-  "grace",
-  "expired",
-  "missing",
-  "invalid",
-];
+const EDITION_CASES: Array<EditionStateCase> = createEditionStateCases();
 
-// [billing, license status] for every Enterprise Edition state.
-const ENTERPRISE_MATRIX: Array<[boolean, EnterpriseLicenseStatus]> = [
-  false,
-  true,
-].flatMap((billing: boolean): Array<[boolean, EnterpriseLicenseStatus]> => {
-  return ENTERPRISE_STATUSES.map(
-    (status: EnterpriseLicenseStatus): [boolean, EnterpriseLicenseStatus] => {
-      return [billing, status];
+const toMatrix: (
+  cases: Array<EditionStateCase>,
+) => Array<[string, EditionStateCase]> = (
+  cases: Array<EditionStateCase>,
+): Array<[string, EditionStateCase]> => {
+  return cases.map(
+    (editionCase: EditionStateCase): [string, EditionStateCase] => {
+      return [editionCase.label, editionCase];
     },
   );
-});
+};
+
+const LOCKED_MATRIX: Array<[string, EditionStateCase]> = toMatrix(
+  EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
+    return editionCase.isActive;
+  }),
+);
+
+const UNLOCKED_MATRIX: Array<[string, EditionStateCase]> = toMatrix(
+  EDITION_CASES.filter((editionCase: EditionStateCase): boolean => {
+    return !editionCase.isActive;
+  }),
+);
 
 let scimCount: SpyInstance;
 let deleteMembership: SpyInstance;
@@ -170,6 +179,13 @@ describe("POST /team-member/:id/leave and SCIM Push Groups, by edition", () => {
       TeamMemberService,
       "deleteOneById",
     ).mockResolvedValue(1);
+    getJestSpyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    getJestSpyOn(logger, "info").mockImplementation((): void => {
+      return undefined;
+    });
+
     // Push Groups is ON for the project.
     scimCount = getJestSpyOn(ProjectSCIMService, "countBy").mockResolvedValue(
       new PositiveNumber(1),
@@ -182,13 +198,10 @@ describe("POST /team-member/:id/leave and SCIM Push Groups, by edition", () => {
     jest.restoreAllMocks();
   });
 
-  test.each(ENTERPRISE_MATRIX)(
-    "Enterprise Edition (billing=%p, %s license): leaving is refused",
-    async (billing: boolean, status: EnterpriseLicenseStatus) => {
-      setTestBillingEnabled(billing);
-      installFakeEnterpriseModule({
-        snapshot: createLicenseSnapshotWithStatus(status),
-      });
+  test.each(LOCKED_MATRIX)(
+    "SCIM active (%s): leaving is refused",
+    async (_label: string, editionCase: EditionStateCase) => {
+      editionCase.apply();
 
       await leave();
 
@@ -201,10 +214,10 @@ describe("POST /team-member/:id/leave and SCIM Push Groups, by edition", () => {
     },
   );
 
-  test.each([false, true])(
-    "Community Edition (billing=%p): the member can leave",
-    async (billing: boolean) => {
-      setTestBillingEnabled(billing);
+  test.each(UNLOCKED_MATRIX)(
+    "SCIM not active (%s): the member can leave",
+    async (_label: string, editionCase: EditionStateCase) => {
+      editionCase.apply();
 
       await leave();
 
@@ -212,6 +225,21 @@ describe("POST /team-member/:id/leave and SCIM Push Groups, by edition", () => {
       expectLeft();
     },
   );
+
+  test("the lock follows the license at request time: a lapse lets the member leave, a renewal locks again", async () => {
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshotWithStatus("valid"),
+    });
+
+    await leave();
+    expectRefusedBecauseOfScim();
+
+    jest.clearAllMocks();
+    fake.setSnapshot(createLicenseSnapshotWithStatus("expired"));
+
+    await leave();
+    expectLeft();
+  });
 
   test("with Push Groups off the Enterprise Edition lets the member leave", async () => {
     installFakeEnterpriseModule();

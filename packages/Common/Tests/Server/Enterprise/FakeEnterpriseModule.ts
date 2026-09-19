@@ -12,6 +12,7 @@ import EnterpriseServerModule, {
   EnterpriseLicensingProvider,
 } from "../../../Server/Enterprise/EnterpriseServerModule";
 import type { ExpressRouter } from "../../../Server/Utils/Express";
+import { setTestBillingEnabled } from "./TestBillingFlag";
 
 /*
  * Test kit for anything that behaves differently per edition.
@@ -287,3 +288,195 @@ export const installFakeEnterpriseModuleWithFeatures: (
 export const uninstallEnterpriseModule: () => void = (): void => {
   EnterpriseEdition.resetForTests();
 };
+
+/*
+ * ---------------------------------------------------------------------------
+ * License states for the RUNTIME features (SSO, SCIM, audit logging), which
+ * follow EnterpriseEdition.isFeatureActive: with billing off they run while
+ * the license covers them and stop when it lapses; an UNKNOWN license state
+ * (not read yet, or unreadable) counts as active.
+ * ---------------------------------------------------------------------------
+ */
+export interface LicenseStateCase {
+  label: string;
+  // Registers a fresh fake enterprise module in this license state.
+  install: () => FakeEnterpriseModule;
+  // Whether SSO, SCIM and audit logging run in this state with billing off.
+  isActiveWithoutBilling: boolean;
+  /*
+   * The two unknown states: active for runtime checks, but unavailable for
+   * configuration checks (isFeatureAvailableSync fails closed).
+   */
+  isUnknown: boolean;
+}
+
+// A license that entitles everything except the three runtime features.
+export const FEATURES_WITHOUT_RUNTIME_FEATURES: Array<EnterpriseFeature> = [
+  EnterpriseFeature.TeamCompliance,
+  EnterpriseFeature.InstanceHealth,
+];
+
+export const LICENSE_STATE_CASES: ReadonlyArray<LicenseStateCase> = [
+  {
+    label: "valid license",
+    install: (): FakeEnterpriseModule => {
+      return installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("valid"),
+      });
+    },
+    isActiveWithoutBilling: true,
+    isUnknown: false,
+  },
+  {
+    label: "license expired less than 14 days ago (grace)",
+    install: (): FakeEnterpriseModule => {
+      return installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("grace"),
+      });
+    },
+    isActiveWithoutBilling: true,
+    isUnknown: false,
+  },
+  {
+    label: "no license, inside the 14-day trial",
+    install: (): FakeEnterpriseModule => {
+      return installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("grace", {
+          graceReason: "unlicensed",
+          verification: "none",
+          companyName: undefined,
+          expiresAt: undefined,
+          graceEndsAt: new Date(Date.now() + 5 * DAY_IN_MS),
+          features: "all",
+        }),
+      });
+    },
+    isActiveWithoutBilling: true,
+    isUnknown: false,
+  },
+  {
+    label: "unverified legacy license, accepted",
+    install: (): FakeEnterpriseModule => {
+      return installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("valid", {
+          verification: "unverified",
+        }),
+      });
+    },
+    isActiveWithoutBilling: true,
+    isUnknown: false,
+  },
+  {
+    label: "license expired more than 14 days ago",
+    install: (): FakeEnterpriseModule => {
+      return installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("expired"),
+      });
+    },
+    isActiveWithoutBilling: false,
+    isUnknown: false,
+  },
+  {
+    label: "no license after the trial",
+    install: (): FakeEnterpriseModule => {
+      return installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("missing", {
+          graceEndsAt: new Date(Date.now() - DAY_IN_MS),
+        }),
+      });
+    },
+    isActiveWithoutBilling: false,
+    isUnknown: false,
+  },
+  {
+    label: "invalid license",
+    install: (): FakeEnterpriseModule => {
+      return installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("invalid"),
+      });
+    },
+    isActiveWithoutBilling: false,
+    isUnknown: false,
+  },
+  {
+    label: "valid license without SSO, SCIM or audit logs",
+    install: (): FakeEnterpriseModule => {
+      return installFakeEnterpriseModule({
+        snapshot: createLicenseSnapshotWithStatus("valid", {
+          features: [...FEATURES_WITHOUT_RUNTIME_FEATURES],
+        }),
+      });
+    },
+    isActiveWithoutBilling: false,
+    isUnknown: false,
+  },
+  {
+    label: "license not read yet (unknown)",
+    install: (): FakeEnterpriseModule => {
+      return installFakeEnterpriseModule({ snapshot: null });
+    },
+    isActiveWithoutBilling: true,
+    isUnknown: true,
+  },
+  {
+    label: "license snapshot unreadable (unknown)",
+    install: (): FakeEnterpriseModule => {
+      const fake: FakeEnterpriseModule = installFakeEnterpriseModule();
+      fake.licensing.getCachedSnapshotError = new Error(
+        "the cached snapshot cannot be read",
+      );
+      return fake;
+    },
+    isActiveWithoutBilling: true,
+    isUnknown: true,
+  },
+];
+
+/*
+ * One deployment state: billing, edition and license together, with whether
+ * the runtime features run in it. apply() pins BOTH billing and the edition,
+ * so a suite that loops over these needs nothing else (it must still mock
+ * EnvironmentConfig with TestBillingFlag.withLiveBillingFlag).
+ */
+export interface EditionStateCase {
+  label: string;
+  billing: boolean;
+  isLoaded: boolean;
+  // Whether SSO, SCIM and audit logging run in this state.
+  isActive: boolean;
+  apply: () => FakeEnterpriseModule | null;
+}
+
+export const createEditionStateCases: () => Array<EditionStateCase> =
+  (): Array<EditionStateCase> => {
+    const cases: Array<EditionStateCase> = [];
+
+    for (const billing of [false, true]) {
+      cases.push({
+        label: `billing=${billing}, Community Edition`,
+        billing,
+        isLoaded: false,
+        isActive: false,
+        apply: (): null => {
+          setTestBillingEnabled(billing);
+          uninstallEnterpriseModule();
+          return null;
+        },
+      });
+
+      for (const licenseState of LICENSE_STATE_CASES) {
+        cases.push({
+          label: `billing=${billing}, Enterprise Edition, ${licenseState.label}`,
+          billing,
+          isLoaded: true,
+          isActive: billing || licenseState.isActiveWithoutBilling,
+          apply: (): FakeEnterpriseModule => {
+            setTestBillingEnabled(billing);
+            return licenseState.install();
+          },
+        });
+      }
+    }
+
+    return cases;
+  };

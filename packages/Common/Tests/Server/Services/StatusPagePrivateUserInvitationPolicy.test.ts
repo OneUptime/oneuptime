@@ -18,6 +18,7 @@ import {
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import logger from "../../../Server/Utils/Logger";
 import {
   afterEach,
   beforeEach,
@@ -29,8 +30,9 @@ import {
 
 /*
  * A status page's "require SSO" is an Enterprise Edition control: honoured
- * whenever ee is loaded (whatever the license says), relaxed on the Community
- * Edition, which has no status page SSO login. Billing and the edition are
+ * while SSO is active (EnterpriseEdition.isFeatureActive(SSO)), relaxed on the
+ * Community Edition and on an Enterprise install whose license lapsed, where
+ * status page SSO login does not exist or refuses. Billing and the edition are
  * pinned so the suite tests the same thing locally and in CI (whose
  * config.env sets BILLING_ENABLED=true).
  */
@@ -143,9 +145,24 @@ describe("StatusPagePrivateUserService invitation login policy", () => {
     },
   );
 
+  test("the requirement still holds on the Enterprise Edition during the grace period", async () => {
+    installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshotWithStatus("grace"),
+    });
+    statusPage.requireSsoForLogin = true;
+
+    await expect(service.completeCreation(user)).resolves.toBe(user);
+
+    expect(update).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
   test.each(["expired", "missing", "invalid"] as const)(
-    "the requirement still holds on the Enterprise Edition with a %s license",
+    "with a lapsed (%s) license a page that required SSO gets a usable password invitation, as on the Community Edition",
     async (status: "expired" | "missing" | "invalid") => {
+      getJestSpyOn(logger, "warn").mockImplementation((): void => {
+        return undefined;
+      });
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshotWithStatus(status),
       });
@@ -153,8 +170,15 @@ describe("StatusPagePrivateUserService invitation login policy", () => {
 
       await expect(service.completeCreation(user)).resolves.toBe(user);
 
-      expect(update).not.toHaveBeenCalled();
-      expect(sendMail).not.toHaveBeenCalled();
+      // Status page SSO refuses while the license is lapsed: without a password link the user could not sign in.
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateType: EmailTemplateType.StatusPageWelcomeEmail,
+        }),
+        expect.anything(),
+      );
     },
   );
 

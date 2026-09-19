@@ -1,4 +1,7 @@
-import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
+import EnterpriseEdition, {
+  EnterpriseFeatureStateChange,
+} from "../Enterprise/EnterpriseEdition";
+import EnterpriseFeature from "../Enterprise/EnterpriseFeature";
 import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectSCIMService from "../Services/ProjectSCIMService";
 import ProjectService from "../Services/ProjectService";
@@ -13,9 +16,10 @@ import StatusPage from "../../Models/DatabaseModels/StatusPage";
 export const MAX_IDS_LISTED_PER_KIND: number = 20;
 
 /*
- * The SSO requirements and SCIM team locks that a Community Edition process
- * finds configured - left over from an Enterprise Edition install - and does
- * not enforce (see EditionEnforcement).
+ * The SSO requirements and SCIM team locks that are configured but not
+ * enforced (see EditionEnforcement): left over from an Enterprise Edition
+ * install on a Community Edition process, or configured on an Enterprise
+ * install whose license has lapsed.
  */
 export interface RelaxedEnforcementSummary {
   instanceRequiresSso: boolean;
@@ -28,23 +32,50 @@ export interface RelaxedEnforcementSummary {
 }
 
 /*
- * Tells the operator of a Community Edition install which security settings
- * it is not enforcing. Moving from the Enterprise image to the Community one
- * keeps the database as it is, so a project that required SSO still says so -
- * but the SSO login routes are part of the Enterprise Edition, so the
- * requirement is relaxed rather than locking everyone out. That must not
- * happen silently: this logs it once per process at boot.
+ * Why the settings in a report are not enforced:
+ *
+ *   community        a Community Edition process, which has no SSO login and
+ *                    no SCIM endpoint at all;
+ *   lapsed-license   an Enterprise install whose license no longer covers SSO
+ *                    and/or SCIM (EnterpriseEdition.isFeatureActive). Only the
+ *                    relaxed half is reported.
+ */
+export type RelaxedEnforcementContext =
+  | { reason: "community" }
+  | { reason: "lapsed-license"; isSsoRelaxed: boolean; isScimRelaxed: boolean };
+
+const COMMUNITY_CONTEXT: RelaxedEnforcementContext = { reason: "community" };
+
+/*
+ * Tells the operator which configured security settings this server is not
+ * enforcing, so that never happens silently:
+ *
+ *   - Community Edition: moving from the Enterprise image to the Community
+ *     one keeps the database as it is, so a project that required SSO still
+ *     says so - but the SSO login routes are part of the Enterprise Edition,
+ *     so the requirement is relaxed rather than locking everyone out. Logged
+ *     once per process at boot.
+ *   - Enterprise Edition: when the license lapses, SSO and SCIM stop and the
+ *     same settings are relaxed until a license is activated. Logged each time
+ *     SSO or SCIM stops (EnterpriseEdition reports each change once),
+ *     including a license that has already lapsed at boot.
  */
 export default class CommunityEditionSsoReport {
   private static hasRun: boolean = false;
 
+  private static stopWatchingLicense: (() => void) | null = null;
+
   /*
-   * Logs the relaxed settings once per process, and only on the Community
-   * Edition. Never throws: a failed check is logged and boot carries on.
-   * Returns what it found (null when it did not run or the check failed).
+   * Called once at boot, after the enterprise loader. On the Community
+   * Edition it logs the relaxed settings once per process. On the Enterprise
+   * Edition it starts watching the license (once per process) and reports
+   * whenever SSO or SCIM stops. Never throws: a failed check is logged and
+   * boot carries on. Returns what the Community Edition report found (null
+   * when it did not run or the check failed).
    */
   public static async logRelaxedEnforcementOnce(): Promise<RelaxedEnforcementSummary | null> {
     if (EnterpriseEdition.isLoaded()) {
+      CommunityEditionSsoReport.watchLicenseOnce();
       return null;
     }
 
@@ -54,12 +85,24 @@ export default class CommunityEditionSsoReport {
 
     CommunityEditionSsoReport.hasRun = true;
 
+    return await CommunityEditionSsoReport.report(COMMUNITY_CONTEXT);
+  }
+
+  /*
+   * Collects and logs the relaxed settings. Never throws. Returns what it
+   * found (null when the check failed).
+   */
+  public static async report(
+    context: RelaxedEnforcementContext,
+  ): Promise<RelaxedEnforcementSummary | null> {
     try {
       const summary: RelaxedEnforcementSummary =
         await CommunityEditionSsoReport.collect();
 
-      const message: string | null =
-        CommunityEditionSsoReport.describe(summary);
+      const message: string | null = CommunityEditionSsoReport.describe(
+        summary,
+        context,
+      );
 
       if (message) {
         logger.warn(message);
@@ -68,11 +111,59 @@ export default class CommunityEditionSsoReport {
       return summary;
     } catch (err) {
       logger.error(
-        "Community Edition: could not check for SSO requirements and SCIM team locks left over from an Enterprise Edition install.",
+        context.reason === "community"
+          ? "Community Edition: could not check for SSO requirements and SCIM team locks left over from an Enterprise Edition install."
+          : "OneUptime Enterprise license lapsed: could not check which SSO requirements and SCIM team locks are no longer enforced.",
       );
       logger.error(err);
       return null;
     }
+  }
+
+  /*
+   * Watches the Enterprise license for SSO or SCIM stopping, once per
+   * process. The first look happens here, so a license that has already
+   * lapsed at boot is reported like a lapse at runtime.
+   */
+  private static watchLicenseOnce(): void {
+    if (CommunityEditionSsoReport.stopWatchingLicense) {
+      return;
+    }
+
+    CommunityEditionSsoReport.stopWatchingLicense =
+      EnterpriseEdition.onFeatureStateChange(
+        (change: EnterpriseFeatureStateChange): void => {
+          CommunityEditionSsoReport.onFeatureStateChange(change);
+        },
+      );
+
+    try {
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SSO);
+      EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
+    } catch (err) {
+      logger.error(err);
+    }
+  }
+
+  private static onFeatureStateChange(
+    change: EnterpriseFeatureStateChange,
+  ): void {
+    const isSsoRelaxed: boolean = change.stopped.includes(
+      EnterpriseFeature.SSO,
+    );
+    const isScimRelaxed: boolean = change.stopped.includes(
+      EnterpriseFeature.SCIM,
+    );
+
+    if (!isSsoRelaxed && !isScimRelaxed) {
+      return;
+    }
+
+    void CommunityEditionSsoReport.report({
+      reason: "lapsed-license",
+      isSsoRelaxed,
+      isScimRelaxed,
+    });
   }
 
   // Reads the stored (not the masked) settings. Root reads are never masked.
@@ -154,16 +245,24 @@ export default class CommunityEditionSsoReport {
   }
 
   // The log line, or null when nothing is relaxed.
-  public static describe(summary: RelaxedEnforcementSummary): string | null {
+  public static describe(
+    summary: RelaxedEnforcementSummary,
+    context: RelaxedEnforcementContext = COMMUNITY_CONTEXT,
+  ): string | null {
+    const isSsoRelaxed: boolean =
+      context.reason === "community" || context.isSsoRelaxed;
+    const isScimRelaxed: boolean =
+      context.reason === "community" || context.isScimRelaxed;
+
     const relaxed: Array<string> = [];
 
-    if (summary.instanceRequiresSso) {
+    if (isSsoRelaxed && summary.instanceRequiresSso) {
       relaxed.push(
         'the instance-wide "Require SSO for Login" setting (Admin Dashboard > Settings > Authentication)',
       );
     }
 
-    if (summary.projectsRequiringSso > 0) {
+    if (isSsoRelaxed && summary.projectsRequiringSso > 0) {
       relaxed.push(
         `${summary.projectsRequiringSso} project(s) that require SSO for login${CommunityEditionSsoReport.describeIds(
           summary.projectIdsRequiringSso,
@@ -172,7 +271,7 @@ export default class CommunityEditionSsoReport {
       );
     }
 
-    if (summary.statusPagesRequiringSso > 0) {
+    if (isSsoRelaxed && summary.statusPagesRequiringSso > 0) {
       relaxed.push(
         `${summary.statusPagesRequiringSso} private status page(s) that require SSO for login${CommunityEditionSsoReport.describeIds(
           summary.statusPageIdsRequiringSso,
@@ -181,7 +280,7 @@ export default class CommunityEditionSsoReport {
       );
     }
 
-    if (summary.scimConfigurationsWithPushGroups > 0) {
+    if (isScimRelaxed && summary.scimConfigurationsWithPushGroups > 0) {
       relaxed.push(
         `${summary.scimConfigurationsWithPushGroups} SCIM configuration(s) with Push Groups on, whose teams can be edited in OneUptime again${CommunityEditionSsoReport.describeIds(
           summary.projectIdsWithScimPushGroups,
@@ -195,6 +294,25 @@ export default class CommunityEditionSsoReport {
       return null;
     }
 
+    if (context.reason === "lapsed-license") {
+      const stopped: string =
+        isSsoRelaxed && isScimRelaxed
+          ? "SSO login and SCIM provisioning have"
+          : isSsoRelaxed
+            ? "SSO login has"
+            : "SCIM provisioning has";
+
+      return (
+        "OneUptime Enterprise license lapsed: this server has security settings that it no longer enforces, " +
+        `because ${stopped} stopped until a license that includes ${isSsoRelaxed && isScimRelaxed ? "them" : "it"} is activated. ` +
+        (isSsoRelaxed
+          ? "Users of these projects and status pages sign in with email and password instead (users who only ever signed in with SSO can reset their password). "
+          : "") +
+        `Not enforced: ${relaxed.join("; ")}. ` +
+        "The settings are kept unchanged and are enforced again as soon as a license is activated, without a restart."
+      );
+    }
+
     return (
       "Community Edition: this server has security settings from an Enterprise Edition install that it does not enforce, " +
       "because SSO login and SCIM provisioning are part of the OneUptime Enterprise Edition. " +
@@ -204,9 +322,14 @@ export default class CommunityEditionSsoReport {
     );
   }
 
-  // Test suites only: allow the next call to run again.
+  // Test suites only: allow the next call to run again and stop watching.
   public static resetForTests(): void {
     CommunityEditionSsoReport.hasRun = false;
+
+    if (CommunityEditionSsoReport.stopWatchingLicense) {
+      CommunityEditionSsoReport.stopWatchingLicense();
+      CommunityEditionSsoReport.stopWatchingLicense = null;
+    }
   }
 
   private static toIds(values: Array<string | undefined>): Array<string> {
