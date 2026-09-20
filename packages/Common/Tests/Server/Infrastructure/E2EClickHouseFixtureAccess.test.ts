@@ -68,9 +68,13 @@ const CLICKHOUSE_HTTP_CONTAINER_PORT: string = "8123";
  * The step that runs the suite:
  * `docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml up ... e2e`,
  * or `... -f packages/E2E/docker-compose.e2e.yml up ... e2e` for the release image.
+ *
+ * `run --rm e2e <command>` counts too: the enterprise e2e jobs run one named
+ * suite per phase, which needs `run` to override the image's default CMD. Those
+ * suites use the same fixtures, so they need the same published port.
  */
 const RUNS_E2E_SERVICE: RegExp =
-  /docker compose\s[^\n]*-f (?:Scripts\/Dev\/docker-compose\.dev|packages\/E2E\/docker-compose\.e2e)\.yml\s+up\b[^\n]*\se2e\b/;
+  /docker compose\s[^\n]*-f (?:Scripts\/Dev\/docker-compose\.dev|packages\/E2E\/docker-compose\.e2e)\.yml\s+(?:up|run)\b[^\n]*\se2e\b/;
 const UP_SUBCOMMAND: RegExp = /\sup(?:\s|$)/;
 const DOWN_SUBCOMMAND: RegExp = /\sdown(?:\s|$)/;
 const ROOT_COMPOSE_FILE_FLAG: RegExp = /-f docker-compose\.yml\s/;

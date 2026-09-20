@@ -12,11 +12,21 @@
  *
  *   release.yml        test-e2e-release-saas         enterprise-<version>       enterprise
  *                      test-e2e-release-self-hosted  <version>                  community
+ *                      test-e2e-release-enterprise   enterprise-<version>       enterprise
  *   test-release.yaml  test-e2e-test-saas            enterprise-<version>-test  enterprise
  *                      test-e2e-test-self-hosted     <version>-test             community
+ *                      test-e2e-test-enterprise      enterprise-<version>-test  enterprise
  *
- * In release.yml, push-release-tags waits for both e2e jobs, so a failed check
- * stops release / enterprise-release from moving onto a wrong image.
+ * In release.yml, push-release-tags waits for all three e2e jobs, so a failed
+ * check stops release / enterprise-release from moving onto a wrong image.
+ *
+ * The two enterprise jobs are the only ones that boot a self-hosted Enterprise
+ * stack - the enterprise image with billing OFF, where the license rather than
+ * the billing flag decides whether SSO, SCIM and audit logging run - and the
+ * only ones that run their suite in two phases against one stack: licensed,
+ * then with the trial backdated out from under it. The last describe in this
+ * file pins that shape, because a phase that quietly stopped running would
+ * leave the job green.
  *
  * The check's boot probe calls into code it only meets inside a real image,
  * so the second half of this suite pins what the probe relies on: the
@@ -74,6 +84,18 @@ const E2E_JOBS = [
     tag: `${VERSION}-test`,
     edition: "community",
   },
+  {
+    workflow: ".github/workflows/release.yml",
+    job: "test-e2e-release-enterprise",
+    tag: `enterprise-${VERSION}`,
+    edition: "enterprise",
+  },
+  {
+    workflow: ".github/workflows/test-release.yaml",
+    job: "test-e2e-test-enterprise",
+    tag: `enterprise-${VERSION}-test`,
+    edition: "enterprise",
+  },
 ];
 
 function stepsOf(workflow, job) {
@@ -111,9 +133,15 @@ function isStartStep(step) {
   return /docker compose [^\n]*\bup\b[^\n]*\s-d\b/.test(runOf(step));
 }
 
-// The step that runs the e2e suite.
+/*
+ * The step that runs the e2e suite. The SaaS and Community jobs run the image's
+ * default CMD with `up --exit-code-from e2e`; the enterprise jobs run one named
+ * suite per phase, which needs `run --rm e2e <command>` to override that CMD.
+ */
 function isE2eStep(step) {
-  return runOf(step).includes("--exit-code-from e2e");
+  const run = runOf(step);
+
+  return run.includes("--exit-code-from e2e") || /\brun --rm e2e\s/.test(run);
 }
 
 describe.each(E2E_JOBS)("$workflow $job", ({ workflow, job, tag, edition }) => {
@@ -194,14 +222,169 @@ describe.each(E2E_JOBS)("$workflow $job", ({ workflow, job, tag, edition }) => {
   });
 });
 
+/*
+ * The two-phase enterprise e2e jobs.
+ *
+ * These are the only jobs that boot a self-hosted Enterprise stack, and the
+ * only ones whose value comes from running their suite TWICE against that one
+ * stack: once while the install is inside its unlicensed 14-day trial, and once
+ * after the trial has been backdated out from under it. Everything between the
+ * phases is load-bearing and silent when it breaks:
+ *
+ *   - drop phase B and the job still passes, proving only that enterprise
+ *     features work when they are supposed to;
+ *   - drop the backdating step and phase B runs against a license that never
+ *     lapsed, so a suite asserting refusals fails for the wrong reason - or,
+ *     worse, is rewritten until it passes;
+ *   - drop the poll and phase B starts inside the 60s license-inputs cache
+ *     (ee/Server/License/LicenseSettings.ts), which is a flake, not a failure.
+ *
+ * There is deliberately no test hook or env var for faking a license state, so
+ * the backdated column IS the mechanism; these tests pin it rather than let it
+ * drift into one.
+ */
+const ENTERPRISE_E2E_JOBS = [
+  {
+    workflow: ".github/workflows/release.yml",
+    job: "test-e2e-release-enterprise",
+  },
+  {
+    workflow: ".github/workflows/test-release.yaml",
+    job: "test-e2e-test-enterprise",
+  },
+];
+
+const LICENSED_PHASE = "npm run test-enterprise-licensed";
+const LAPSED_PHASE = "npm run test-enterprise-lapsed";
+const LICENSE_ENDPOINT = "/api/global-config/license";
+const TRIAL_COLUMN = '"enterpriseEditionFirstSeenAt"';
+
+/*
+ * Like indexOfStep, but the failure names the phase AND the command it looked
+ * for, because "no e2e step" in a job with four of them says nothing.
+ */
+function requireStep(steps, predicate, missing) {
+  const index = steps.findIndex(predicate);
+
+  if (index === -1) {
+    throw new Error(missing);
+  }
+
+  return index;
+}
+
+function indexOfRun(steps, needle, what) {
+  return requireStep(
+    steps,
+    (step) => {
+      return runOf(step).includes(needle);
+    },
+    `${what}: no step in this job runs \`${needle}\``,
+  );
+}
+
+describe.each(ENTERPRISE_E2E_JOBS)("$workflow $job", ({ workflow, job }) => {
+  const steps = stepsOf(workflow, job);
+
+  test("runs the licensed suite, then the lapsed suite, against one booted stack", () => {
+    const licensed = indexOfRun(steps, LICENSED_PHASE, "phase A (licensed)");
+    const lapsed = indexOfRun(steps, LAPSED_PHASE, "phase B (lapsed)");
+
+    expect({ order: licensed < lapsed }).toEqual({ order: true });
+    expect({
+      stacksBooted: steps.filter(isStartStep).length,
+    }).toEqual({ stacksBooted: 1 });
+  });
+
+  test("runs each phase's suite by name, never the whole default suite", () => {
+    for (const phase of [LICENSED_PHASE, LAPSED_PHASE]) {
+      const index = indexOfRun(steps, phase, `the phase running ${phase}`);
+      const run = runOf(steps[index]);
+
+      // `run --rm` overrides the e2e image's CMD; `up` would run `npm test`.
+      expect({
+        phase,
+        overridesTheImageCommand: /\brun --rm e2e\s/.test(run),
+      }).toEqual({
+        phase,
+        overridesTheImageCommand: true,
+      });
+    }
+
+    expect(
+      steps.filter(isE2eStep).map((step) => {
+        return runOf(step).includes("--exit-code-from e2e");
+      }),
+    ).toEqual([false, false]);
+  });
+
+  test("expires the trial between the phases, by backdating the column the trial counts from", () => {
+    const licensed = indexOfRun(steps, LICENSED_PHASE, "phase A (licensed)");
+    const lapsed = indexOfRun(steps, LAPSED_PHASE, "phase B (lapsed)");
+    const expiry = indexOfRun(steps, TRIAL_COLUMN, "the trial-expiry step");
+    const run = runOf(steps[expiry]);
+
+    expect({ betweenThePhases: licensed < expiry && expiry < lapsed }).toEqual({
+      betweenThePhases: true,
+    });
+    expect(run).toContain("psql");
+    expect(run).toContain('UPDATE "GlobalConfig"');
+    // Past the 14-day trial (Common/Types/EnterpriseLicense/EnterpriseLicensePeriods.ts).
+    expect(run).toMatch(/INTERVAL '(\d+) days'/);
+    expect(Number(/INTERVAL '(\d+) days'/.exec(run)[1])).toBeGreaterThan(14);
+  });
+
+  test("fails loudly if backdating the trial updated no row", () => {
+    const run = runOf(
+      steps[indexOfRun(steps, TRIAL_COLUMN, "the trial-expiry step")],
+    );
+
+    /*
+     * No row means the App never stamped the column, so the install never
+     * started a trial - a bug in ee/Server/License/LicenseStore.ts, and a
+     * phase B that would otherwise run against a license that never lapsed.
+     */
+    expect(run).toContain("::error::");
+    expect(run).toContain("exit 1");
+  });
+
+  test("waits for the app to report the lapse before starting the lapsed phase", () => {
+    const expiry = indexOfRun(steps, TRIAL_COLUMN, "the trial-expiry step");
+    const lapsed = indexOfRun(steps, LAPSED_PHASE, "phase B (lapsed)");
+    const poll = requireStep(
+      steps,
+      (step) => {
+        const run = runOf(step);
+
+        return run.includes(LICENSE_ENDPOINT) && run.includes("while");
+      },
+      `the license poll: no step in this job loops on ${LICENSE_ENDPOINT}, so the lapsed phase would start inside the 60s license-inputs cache`,
+    );
+    const run = runOf(steps[poll]);
+
+    expect({
+      afterTheLapseAndBeforePhaseB: expiry < poll && poll < lapsed,
+    }).toEqual({
+      afterTheLapseAndBeforePhaseB: true,
+    });
+    // The two fields that say the license really lapsed, not just that it changed.
+    expect(run).toContain('"missing"');
+    expect(run).toContain("licenseValid");
+    // Bounded, and loud when the bound is reached.
+    expect(run).toMatch(/date \+%s\) \+ \d+ \)\)/);
+    expect(run).toContain("::error::");
+  });
+});
+
 describe("release.yml", () => {
   const jobs = readYaml(".github/workflows/release.yml").jobs;
 
-  test("moves release and enterprise-release only after both checked e2e jobs pass", () => {
+  test("moves release and enterprise-release only after every checked e2e job passes", () => {
     const needs = jobs["push-release-tags"].needs;
 
     expect(needs).toContain("test-e2e-release-saas");
     expect(needs).toContain("test-e2e-release-self-hosted");
+    expect(needs).toContain("test-e2e-release-enterprise");
     expect(jobs["push-release-tags"].strategy.matrix.image).toContain("app");
   });
 

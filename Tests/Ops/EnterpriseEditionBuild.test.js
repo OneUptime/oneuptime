@@ -1241,6 +1241,57 @@ describe("release workflows", () => {
     },
   );
 
+  /*
+   * The self-hosted ENTERPRISE e2e jobs: the enterprise image with billing
+   * OFF. That combination is the whole point of them - it is the only one in
+   * which the license, rather than the billing flag, decides whether SSO, SCIM
+   * and audit logging run. Turn billing on and EnterpriseEdition answers
+   * "OneUptime Cloud" to every check; move them to a Community tag and there is
+   * no ee/ to gate. Either mistake leaves a green job that proves nothing, so
+   * both are pinned here. (Their two-phase structure is pinned in
+   * ReleaseImageEditionChecks.test.js.)
+   */
+  const enterpriseE2eJobs = allJobs.filter(([, name]) => {
+    return /^test-e2e-(test|release)-enterprise$/.test(name);
+  });
+
+  test("there are enterprise e2e jobs, one per release workflow", () => {
+    expect(
+      enterpriseE2eJobs.map(([, name]) => {
+        return name;
+      }),
+    ).toEqual(["test-e2e-release-enterprise", "test-e2e-test-enterprise"]);
+  });
+
+  test.each(enterpriseE2eJobs)(
+    "%s runs the enterprise tags (the license only decides anything when ee/ is there)",
+    (_label, _name, job) => {
+      const exports = appTagExports(job);
+
+      expect(exports.length).toBeGreaterThan(0);
+      for (const line of exports) {
+        expect(line).toMatch(
+          /^(export APP_TAG|SANITIZED_VERSION)="?enterprise-/,
+        );
+      }
+    },
+  );
+
+  test.each(enterpriseE2eJobs)(
+    "%s keeps billing OFF (billing on makes every license check answer OneUptime Cloud)",
+    (_label, name, job) => {
+      expect({ job: name, enablesBilling: enablesBilling(job) }).toEqual({
+        job: name,
+        enablesBilling: false,
+      });
+
+      const commands = (job.steps || []).map(stepCommand).join("\n");
+
+      expect(commands).not.toMatch(/BILLING_ENABLED\s*=\s*true/);
+      expect(commands).not.toContain("docker-compose.billing.yml");
+    },
+  );
+
   const merges = releaseWorkflows.flatMap((workflow) => {
     return jobsOf(workflow).flatMap(([name, job]) => {
       return (job.steps || [])

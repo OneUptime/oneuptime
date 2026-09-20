@@ -263,6 +263,55 @@ logging stop until a license is activated (see
 [When the license lapses](#when-the-license-lapses)). The trial is for
 evaluation. Production use needs a subscription.
 
+### End-to-end CI for the Enterprise stack
+
+`ee/`'s own jest suites run in-process: they mount Express directly, fake the
+license and never build an image. Three CI jobs boot a whole stack from
+`docker-compose.yml` with published images instead, and only one of them is the
+self-hosted Enterprise Edition:
+
+| job (`test-release.yaml` on master, `release.yml` on a release) | App tag | billing | what it is |
+| --- | --- | --- | --- |
+| `test-e2e-{test,release}-saas` | `enterprise-<version>` | on | OneUptime Cloud. `EnterpriseEdition` answers "cloud" to every check, so the license decides nothing. |
+| `test-e2e-{test,release}-self-hosted` | `<version>` | off | Community Edition. No `ee/` in the image at all, so every enterprise route 404s. |
+| `test-e2e-{test,release}-enterprise` | `enterprise-<version>` | off | Self-hosted Enterprise. The **license** decides whether SSO, SCIM and audit logging run. |
+
+The enterprise job runs the suite twice against one booted stack:
+
+- **Phase A, licensed** (`npm run test-enterprise-licensed`). A fresh Enterprise
+  install is inside its unlicensed trial, so everything is on. This is what only
+  a booted stack can prove: the identity routes answer **through nginx** (jest
+  mounts Express directly and never exercises `location /identity` or its
+  rewrite), the **shipped UI bundles** really carry the ee plugins so the
+  dashboard renders the SSO/OIDC/SCIM and audit-log screens instead of the
+  upsell, and the audit recorder in the real image writes a real row to
+  ClickHouse.
+- **Phase B, lapsed** (`npm run test-enterprise-lapsed`). Same stack, same data,
+  lapsed license: the gates refuse with 402/403 rather than 404 — the routes are
+  still mounted, which is what tells "no `ee/`" apart from "`ee/` with a dead
+  license" — enterprise configuration becomes read-only, and password sign-in
+  still works.
+
+Between the phases the job makes the license lapse. There is deliberately **no
+test hook, env var or API** for faking a license state: a switch that could say
+"pretend this install is licensed" is a switch an unlicensed install could flip.
+So the job reaches the lapsed state the way a real install does, by letting the
+trial run out — it backdates `GlobalConfig.enterpriseEditionFirstSeenAt` with
+`psql` inside the compose `postgres` service. That is stable because
+[`Server/License/LicenseStore.ts`](Server/License/LicenseStore.ts) stamps the
+column **only when it is missing**, so a backdated value is never overwritten.
+The app notices without a restart, but not instantly: the license inputs are
+cached (`LICENSE_INPUTS_CACHE_TTL_IN_MS`) and the synchronous
+`getCachedSnapshot()` the gates use serves the old inputs while it reloads in the
+background. So the job then polls `GET /api/global-config/license` until it
+reports `status: "missing"` and `licenseValid: false` before starting phase B.
+
+`Tests/Ops/ReleaseImageEditionChecks.test.js` pins that shape — both phases, in
+order, with the expiry step between them and the poll after it — and
+`Tests/Ops/EnterpriseEditionBuild.test.js` pins that these jobs stay on an
+enterprise tag with billing off. A phase that quietly stopped running would
+otherwise leave the job green.
+
 ## The license-signing key ceremony
 
 Licenses are compact JWS tokens signed with Ed25519 (`Server/License/LicenseToken.ts`).
