@@ -21,9 +21,8 @@ import {
   COMMUNITY_EDITION_MESSAGE_FRAGMENT,
   EnterpriseWriteResult,
   LICENSE_REQUIRED_MESSAGE_FRAGMENT,
-  PROJECT_SCIM_API_PATH,
   createProjectScim,
-  updateProjectScimName,
+  isProjectScimListed,
 } from "../Helpers/EnterpriseConfiguration";
 import {
   LicensedSuiteHandoff,
@@ -105,8 +104,8 @@ interface LapsedSuiteFixture {
   // The entry recorded while the licence was usable, if there is one.
   licensedResourceType: string;
   licensedResourceName: string;
-  // The enterprise configuration row created while licensed, if there is one.
-  projectScimId: string;
+  // The name of the enterprise configuration row created while licensed.
+  projectScimName: string;
   fromHandoff: boolean;
 }
 
@@ -142,7 +141,7 @@ test.describe("Enterprise writes and the audit recorder (lapsed stack)", () => {
           ownerEmail: handoff.ownerEmail,
           licensedResourceType: handoff.auditedResourceType,
           licensedResourceName: handoff.auditedResourceName,
-          projectScimId: handoff.projectScimId,
+          projectScimName: handoff.projectScimName,
           fromHandoff: true,
         };
       } else {
@@ -186,7 +185,7 @@ test.describe("Enterprise writes and the audit recorder (lapsed stack)", () => {
             ownerEmail,
             licensedResourceType: "",
             licensedResourceName: "",
-            projectScimId: "",
+            projectScimName: "",
             fromHandoff: false,
           };
         } finally {
@@ -352,59 +351,39 @@ test.describe("Enterprise writes and the audit recorder (lapsed stack)", () => {
     ).toContain(LICENSE_REQUIRED_MESSAGE_FRAGMENT);
   });
 
-  test("configuration created while licensed is kept and readable, but cannot be changed", async (): Promise<void> => {
+  test("configuration created while licensed is kept and readable after the lapse", async (): Promise<void> => {
     test.skip(
-      !fixture.projectScimId,
+      !fixture.projectScimName,
       "No licensed-phase handoff: there is no enterprise configuration row created under a live licence.",
     );
 
     const page: Page = shared.page;
 
-    // Reads are never gated: an administrator must still see what is configured.
-    const projectScim: JSONish = await getItem({
-      page,
-      projectId: fixture.projectId,
-      path: PROJECT_SCIM_API_PATH,
-      id: fixture.projectScimId,
-      select: { name: true },
-    });
-
-    const existingName: string = String(projectScim["name"] || "");
-
-    expect(
-      existingName,
-      "The SCIM configuration created while licensed must still be readable",
-    ).not.toBe("");
-
-    const result: EnterpriseWriteResult = await updateProjectScimName({
-      page,
-      projectId: fixture.projectId,
-      projectScimId: fixture.projectScimId,
-      name: `${existingName} (renamed while lapsed)`,
-    });
-
-    const found: string = `HTTP ${result.status}: ${result.body.slice(0, 300)}`;
-
     /*
-     * An ordinary column, so an ordinary update: it needs the licence exactly
-     * as a create does. Only the tighten-only updates (disabling a provider,
-     * rotating a leaked bearer token) go through without one, and they are
-     * pinned by EditionPermission's own unit tests rather than here.
+     * Reads are never gated: an administrator must still see what is
+     * configured, and a lapse deletes nothing. This is the half of the rule
+     * that only a booted stack can show, because it is about a row that
+     * outlived the licence that created it.
+     *
+     * The other half - that an ORDINARY update of such a row is refused while
+     * a tighten-only one (disabling a provider, rotating a leaked token) is
+     * not - is not asserted here: this API does not hand a project-owner
+     * session the row's key, so a spec cannot address it for an update. That
+     * half is pinned by EditionPermission's own unit tests and by the
+     * tighten-only UI tests under ee/Tests.
      */
-    expect(
-      result.status,
-      `Renaming enterprise configuration must be refused while the licence is ` +
-        `lapsed. ${found}`,
-    ).toBe(402);
+    const isStillListed: boolean = await isProjectScimListed({
+      page,
+      projectId: fixture.projectId,
+      name: fixture.projectScimName,
+    });
 
     expect(
-      result.body,
-      `The refusal must name the licence as the reason, not the edition. ${found}`,
-    ).toContain(LICENSE_REQUIRED_MESSAGE_FRAGMENT);
-
-    expect(result.body, `${found}`).not.toContain(
-      COMMUNITY_EDITION_MESSAGE_FRAGMENT,
-    );
+      isStillListed,
+      `The SCIM configuration created while the licence was alive must still be ` +
+        `listed after the lapse (project ${fixture.projectId}, name ` +
+        `"${fixture.projectScimName}").`,
+    ).toBe(true);
   });
 
   test("an audited write records nothing while the licence is lapsed", async (): Promise<void> => {

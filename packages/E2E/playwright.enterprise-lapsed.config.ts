@@ -28,7 +28,14 @@ export default defineConfig({
   retries: 1,
   forbidOnly: Boolean(process.env["CI"]),
   reporter: [["list"]],
-  outputDir: "../../output/playwright/enterprise-lapsed/test-results",
+  /*
+   * Artifacts must land inside packages/E2E: in CI each phase is its own
+   * `docker compose run --rm e2e` container, whose only durable paths are the
+   * playwright-report/ and test-results/ bind mounts, and the job uploads
+   * ./packages/E2E on failure. An outputDir above the package would be
+   * discarded with the container, leaving a failed run with no trace to read.
+   */
+  outputDir: "./test-results/enterprise-lapsed",
   // A project's `use` wins over the top-level one, so the viewport goes here.
   projects: [
     {

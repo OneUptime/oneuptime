@@ -6,7 +6,12 @@ import {
   requestJson,
   toId,
 } from "../../Tests/Dashboard/Helpers/MonitorAlerting";
-import { Page } from "@playwright/test";
+import {
+  ApiResult,
+  sendWithRetry,
+} from "../../Tests/Dashboard/Helpers/ApiRequest";
+import { enterpriseUrl } from "./LicenseState";
+import { APIResponse, Page } from "@playwright/test";
 
 /*
  * Driving the audit-log recorder end to end on a real stack: turn recording on
@@ -110,6 +115,44 @@ export const setProjectAuditLogs: SetProjectAuditLogsFunction = async (data: {
     body: { data: { enableAuditLogs: data.enabled } },
   });
 };
+
+type TrySetProjectAuditLogsFunction = (data: {
+  page: Page;
+  projectId: string;
+  enabled: boolean;
+}) => Promise<{ status: number; body: string }>;
+
+/*
+ * The same PUT, but handing back the RAW outcome instead of throwing on a
+ * refusal - for the Community Edition, where turning the switch on is refused
+ * with 402: enableAuditLogs is gated by EditionPermission, so an image without
+ * ee/ will not even store the intent. Verified against a booted community
+ * stack, which is why the negative control asserts the refusal rather than
+ * "the switch is honoured and then ignored".
+ */
+export const trySetProjectAuditLogs: TrySetProjectAuditLogsFunction =
+  async (data: {
+    page: Page;
+    projectId: string;
+    enabled: boolean;
+  }): Promise<{ status: number; body: string }> => {
+    const url: string = enterpriseUrl(`/api/project/${data.projectId}`);
+
+    const result: ApiResult = await sendWithRetry({
+      send: (): Promise<APIResponse> => {
+        return data.page.request.put(url, {
+          headers: {
+            "content-type": "application/json",
+            tenantid: data.projectId,
+            projectid: data.projectId,
+          },
+          data: { data: { enableAuditLogs: data.enabled } },
+        });
+      },
+    });
+
+    return { status: result.status, body: result.text };
+  };
 
 type ReadProjectAuditLogSettingsFunction = (data: {
   page: Page;

@@ -14,6 +14,7 @@ import {
   EnterpriseWriteResult,
   LICENSE_REQUIRED_MESSAGE_FRAGMENT,
   createProjectScim,
+  isProjectScimListed,
 } from "../Helpers/EnterpriseConfiguration";
 import { writeLicensedSuiteHandoff } from "../Helpers/Handoff";
 import { assertLicensedEnterpriseStack } from "../Helpers/StackGuard";
@@ -62,7 +63,6 @@ test.describe("Audit recorder and enterprise writes (licensed stack)", () => {
   let ownerEmail: string = "";
   let auditedLabelName: string = "";
   let auditLogsEnabled: boolean = false;
-  let projectScimId: string = "";
   let projectScimName: string = "";
 
   test.beforeAll(
@@ -109,7 +109,6 @@ test.describe("Audit recorder and enterprise writes (licensed stack)", () => {
         auditLogsEnabled,
         auditedResourceType: LABEL_RESOURCE_TYPE,
         auditedResourceName: auditedLabelName,
-        projectScimId,
         projectScimName,
         completedAt: new Date().toISOString(),
       });
@@ -246,11 +245,20 @@ test.describe("Audit recorder and enterprise writes (licensed stack)", () => {
       `Creating enterprise configuration must succeed. ${found}`,
     ).toBe(200);
 
-    expect(
-      result.id,
-      `The created SCIM configuration must come back with an id. ${found}`,
-    ).not.toBe("");
+    /*
+     * Read it back rather than trusting the 200: the row has to be really
+     * there for the Lapsed phase to show that a lapse keeps it. By name,
+     * because this API does not hand a project-owner session the row's key.
+     */
+    const isListed: boolean = await isProjectScimListed({
+      page,
+      projectId,
+      name: projectScimName,
+    });
 
-    projectScimId = result.id;
+    expect(
+      isListed,
+      `The SCIM configuration created while licensed must be listed back. ${found}`,
+    ).toBe(true);
   });
 });

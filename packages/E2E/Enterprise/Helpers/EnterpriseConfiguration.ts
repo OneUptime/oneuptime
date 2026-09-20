@@ -2,6 +2,10 @@ import {
   ApiResult,
   sendWithRetry,
 } from "../../Tests/Dashboard/Helpers/ApiRequest";
+import {
+  JSONish,
+  listItems,
+} from "../../Tests/Dashboard/Helpers/MonitorAlerting";
 import { enterpriseUrl } from "./LicenseState";
 import { APIResponse, Page } from "@playwright/test";
 
@@ -44,7 +48,13 @@ export interface EnterpriseWriteResult {
   status: number;
   // The raw body, so a caller can assert which refusal it is.
   body: string;
-  // The created row's id, when the write was accepted.
+  /*
+   * The created row's id when the API echoes one. It is EMPTY for ProjectSCIM:
+   * verified against a booted stack, both the create response and a
+   * get-list that selects `_id` come back with the row's columns but no key
+   * for a project-owner session. So these suites address the row by the unique
+   * name they gave it (isProjectScimListed) and never by id.
+   */
   id: string;
 }
 
@@ -126,47 +136,40 @@ export const createProjectScim: CreateProjectScimFunction = async (data: {
   };
 };
 
-type UpdateProjectScimNameFunction = (data: {
+type IsProjectScimListedFunction = (data: {
   page: Page;
   projectId: string;
-  projectScimId: string;
   name: string;
-}) => Promise<EnterpriseWriteResult>;
+}) => Promise<boolean>;
 
 /*
- * An ORDINARY update of an enterprise configuration row: one column that is
- * not on the tighten-only list, so it needs the licence exactly as a create
- * does. Exported for the Lapsed suite, which asserts this is refused while a
- * rotation of the bearer token - which can only reduce what the configuration
- * allows - is still accepted.
+ * Whether this project still lists a SCIM configuration with that exact name.
+ *
+ * Reading enterprise configuration is never licence-gated - an administrator
+ * must be able to see what is configured, and nothing is ever deleted - so
+ * both suites use this: the Licensed one to show the row it created is really
+ * there, the Lapsed one to show the lapse kept it.
+ *
+ * By name, not by id, because the API does not hand a project-owner session
+ * the row's key (see EnterpriseWriteResult.id). Each run's name carries a
+ * random suffix, so it identifies one row.
  */
-export const updateProjectScimName: UpdateProjectScimNameFunction =
-  async (data: {
-    page: Page;
-    projectId: string;
-    projectScimId: string;
-    name: string;
-  }): Promise<EnterpriseWriteResult> => {
-    const url: string = enterpriseUrl(
-      `${PROJECT_SCIM_API_PATH}/${data.projectScimId}`,
-    );
+export const isProjectScimListed: IsProjectScimListedFunction = async (data: {
+  page: Page;
+  projectId: string;
+  name: string;
+}): Promise<boolean> => {
+  const rows: Array<JSONish> = await listItems({
+    page: data.page,
+    projectId: data.projectId,
+    path: PROJECT_SCIM_API_PATH,
+    query: { projectId: data.projectId },
+    select: {
+      name: true,
+    },
+  });
 
-    const result: ApiResult = await sendWithRetry({
-      send: (): Promise<APIResponse> => {
-        return data.page.request.put(url, {
-          headers: {
-            "content-type": "application/json",
-            tenantid: data.projectId,
-            projectid: data.projectId,
-          },
-          data: { data: { name: data.name } },
-        });
-      },
-    });
-
-    return {
-      status: result.status,
-      body: result.text,
-      id: data.projectScimId,
-    };
-  };
+  return rows.some((row: JSONish): boolean => {
+    return String(row["name"] || "") === data.name;
+  });
+};

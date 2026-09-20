@@ -13,9 +13,9 @@ import path from "path";
  *   - the project has audit logging ON and one recorded entry, so the Lapsed
  *     suite can show that a further audited write records NOTHING while the
  *     licence is dead, and that the existing trail is still readable;
- *   - the project has a ProjectSCIM row, so the Lapsed suite can show that
- *     changing it is refused (402) while disabling it - a tighten-only update -
- *     still goes through, and that it is still readable and deletable;
+ *   - the project has a ProjectSCIM row, so the Lapsed suite can show that a
+ *     lapse keeps existing configuration readable while refusing to create any
+ *     more of it;
  *   - the owner account exists with the shared signup password, so the Lapsed
  *     suite can show that a lapsed licence does NOT break password sign-in.
  *
@@ -26,10 +26,8 @@ import path from "path";
  * passphrase every spec uses, exported as E2E_SIGNUP_PASSWORD from
  * packages/E2E/Config.ts; read it from there.
  *
- * The file lives under the repository's ignored output/ directory, beside the
- * playwright artifacts of the other focused suites. A reader must treat its
- * absence as normal: a developer may run the Lapsed suite on its own, and then
- * it has to create whatever it needs itself.
+ * A reader must treat the file's absence as normal: a developer may run the
+ * Lapsed suite on its own, and then it has to create whatever it needs itself.
  */
 
 export interface LicensedSuiteHandoff {
@@ -43,23 +41,30 @@ export interface LicensedSuiteHandoff {
   auditedResourceType: string;
   auditedResourceName: string;
   /*
-   * The enterprise configuration row created while licensed. Empty when that
-   * test did not run.
+   * The name of the enterprise configuration row created while licensed, empty
+   * when that test did not run. A name and not an id: the CRUD API does not
+   * give a project-owner session this model's key, so both suites find the row
+   * by the unique name the licensed suite chose (isProjectScimListed).
    */
-  projectScimId: string;
   projectScimName: string;
   // When the Licensed suite finished, for a stale-file sanity check.
   completedAt: string;
 }
 
 /*
- * <repository root>/output/playwright/enterprise/. The other focused suites
- * write their artifacts under output/playwright/<suite>/ too, and the whole
- * directory is git-ignored.
+ * packages/E2E/test-results/enterprise/.
+ *
+ * It has to be this directory and not one of the tidier-looking siblings: in
+ * CI the two phases are two separate `docker compose run --rm e2e` containers,
+ * and the only paths that outlive a phase are the e2e service's two bind
+ * mounts, playwright-report/ and test-results/ (Scripts/Dev/docker-compose.dev.yml).
+ * A handoff written anywhere else is thrown away with the phase-A container,
+ * and every assertion that depends on it then skips itself - the suite stays
+ * green while quietly testing less than it claims to.
  */
 export const ENTERPRISE_OUTPUT_DIRECTORY: string = path.resolve(
   __dirname,
-  "../../../../output/playwright/enterprise",
+  "../../test-results/enterprise",
 );
 
 export const HANDOFF_FILE_PATH: string = path.join(

@@ -52,11 +52,111 @@ export interface StackFrontendEnvironment {
 
 /*
  * env.js is a script, not JSON: FrontendEnvironment.getFrontendEnvironmentScript
- * emits `window.process.env = {...};` after two guard blocks. Match that one
- * assignment rather than the whole file.
+ * emits guard blocks and then the real payload, so the file assigns
+ * window.process.env TWICE - first `window.process.env = {}` inside
+ * `if(!window.process.env){...}`, then `window.process.env = {"GIT_SHA":...};`.
+ * A lazy regex is not enough: the guard's assignment has no semicolon after
+ * its closing brace, so a match starting there runs past the real payload and
+ * consumes it. Walk every assignment instead, extract its object literal by
+ * counting braces, and take the last one that parses.
  */
-const ENVIRONMENT_ASSIGNMENT_PATTERN: RegExp =
-  /window\.process\.env\s*=\s*(\{[\s\S]*?\});/;
+const ENVIRONMENT_ASSIGNMENT_PATTERN: RegExp = /window\.process\.env\s*=\s*\{/g;
+
+type ExtractObjectFunction = (data: {
+  script: string;
+  openingBraceIndex: number;
+}) => string | null;
+
+/*
+ * The object literal that starts at openingBraceIndex, found by counting brace
+ * depth while skipping over string literals (a value may contain a brace or a
+ * quote). Returns null when the literal is never closed.
+ */
+const extractObjectLiteral: ExtractObjectFunction = (data: {
+  script: string;
+  openingBraceIndex: number;
+}): string | null => {
+  let depth: number = 0;
+  let isInString: boolean = false;
+  let isEscaped: boolean = false;
+
+  for (
+    let index: number = data.openingBraceIndex;
+    index < data.script.length;
+    index++
+  ) {
+    const character: string = data.script.charAt(index);
+
+    if (isInString) {
+      if (isEscaped) {
+        isEscaped = false;
+      } else if (character === "\\") {
+        isEscaped = true;
+      } else if (character === '"') {
+        isInString = false;
+      }
+
+      continue;
+    }
+
+    if (character === '"') {
+      isInString = true;
+      continue;
+    }
+
+    if (character === "{") {
+      depth++;
+      continue;
+    }
+
+    if (character === "}") {
+      depth--;
+
+      if (depth === 0) {
+        return data.script.slice(data.openingBraceIndex, index + 1);
+      }
+    }
+  }
+
+  return null;
+};
+
+type ParseEnvironmentFunction = (
+  script: string,
+) => Record<string, unknown> | null;
+
+export const parseFrontendEnvironmentScript: ParseEnvironmentFunction = (
+  script: string,
+): Record<string, unknown> | null => {
+  let parsed: Record<string, unknown> | null = null;
+
+  for (const match of script.matchAll(ENVIRONMENT_ASSIGNMENT_PATTERN)) {
+    if (match.index === undefined) {
+      continue;
+    }
+
+    const literal: string | null = extractObjectLiteral({
+      script: script,
+      openingBraceIndex: script.indexOf("{", match.index),
+    });
+
+    if (!literal) {
+      continue;
+    }
+
+    try {
+      /*
+       * The guard block's `window.process.env = {}` parses too, so keep going
+       * and let the last assignment - the real payload - win.
+       */
+      parsed = JSON.parse(literal) as Record<string, unknown>;
+    } catch {
+      continue;
+    }
+  }
+
+  return parsed;
+};
 
 type FetchFrontendEnvironmentFunction = (data?: {
   request?: APIRequestContext | undefined;
@@ -89,23 +189,17 @@ export const fetchStackFrontendEnvironment: FetchFrontendEnvironmentFunction =
         );
       }
 
-      const match: RegExpMatchArray | null = script.match(
-        ENVIRONMENT_ASSIGNMENT_PATTERN,
-      );
+      const parsed: Record<string, unknown> | null =
+        parseFrontendEnvironmentScript(script);
 
-      if (!match || !match[1]) {
+      if (!parsed) {
         throw new Error(
-          `GET ${endpoint} did not serve a window.process.env assignment. First 300 characters: ${script.slice(
+          `GET ${endpoint} did not serve a window.process.env assignment this can read. First 300 characters: ${script.slice(
             0,
             300,
           )}`,
         );
       }
-
-      const parsed: Record<string, unknown> = JSON.parse(match[1]) as Record<
-        string,
-        unknown
-      >;
 
       const values: Record<string, string> = {};
 

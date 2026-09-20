@@ -2,9 +2,11 @@ import { E2E_SIGNUP_PASSWORD } from "../../Config";
 import {
   AUDIT_LOG_POLL_INTERVAL_MS,
   AuditLogEntry,
+  ProjectAuditLogSettings,
   createAuditedLabel,
   listAuditLogEntries,
-  setProjectAuditLogs,
+  readProjectAuditLogSettings,
+  trySetProjectAuditLogs,
 } from "../../Enterprise/Helpers/AuditLogs";
 import {
   COMMUNITY_EDITION_MESSAGE_FRAGMENT,
@@ -381,29 +383,57 @@ test.describe("Community Edition: enterprise writes and audit logging", () => {
     ).not.toContain(LICENSE_REQUIRED_MESSAGE_FRAGMENT);
   });
 
-  test("audit logging can be switched on, but nothing is ever recorded", async (): Promise<void> => {
+  test("audit logging cannot even be switched on, and nothing is ever recorded", async (): Promise<void> => {
     const page: Page = shared.page;
     const projectId: string = shared.projectId;
 
     /*
-     * The project switch, the AuditLogV2 table and the read API are all core,
-     * so an owner can turn recording on here and read the (empty) trail. Only
-     * the RECORDER is enterprise - it is simply not in this image - which is
-     * why the switch is honoured by the API and then does nothing.
+     * The AuditLogV2 table and the read API are core, but the project's
+     * enableAuditLogs column is enterprise CONFIGURATION: EditionPermission
+     * refuses to store it without the module, so a Community image will not
+     * even accept the intent. Verified against a booted community stack - the
+     * PUT comes back 402 with the edition's message, not the licence's.
      */
-    await setProjectAuditLogs({ page, projectId, enabled: true });
+    const attempt: { status: number; body: string } =
+      await trySetProjectAuditLogs({ page, projectId, enabled: true });
 
-    const before: Array<AuditLogEntry> = await listAuditLogEntries({
-      page,
-      projectId,
-    });
+    const attemptFound: string = `HTTP ${attempt.status}: ${attempt.body.slice(
+      0,
+      300,
+    )}`;
 
     expect(
-      before.length,
-      `A Community project can have no audit entries at all, and this one ` +
-        `already has ${before.length}.`,
-    ).toBe(0);
+      attempt.status,
+      `Turning audit logging on must be refused on the Community Edition. ${attemptFound}`,
+    ).toBe(402);
 
+    expect(
+      attempt.body,
+      `The refusal must name the EDITION as the reason. ${attemptFound}`,
+    ).toContain(COMMUNITY_EDITION_MESSAGE_FRAGMENT);
+
+    expect(
+      attempt.body,
+      `A refusal for want of a LICENCE would mean this image is running an ` +
+        `enterprise module. ${attemptFound}`,
+    ).not.toContain(LICENSE_REQUIRED_MESSAGE_FRAGMENT);
+
+    const settings: ProjectAuditLogSettings = await readProjectAuditLogSettings(
+      {
+        page,
+        projectId,
+      },
+    );
+
+    expect(
+      settings.enableAuditLogs,
+      "The refused switch must not have been stored either",
+    ).toBe(false);
+
+    /*
+     * And with the switch off and no recorder in the image, an audited write
+     * leaves no trail. The write itself must succeed: Label is core.
+     */
     const labelId: string = await createAuditedLabel({
       page,
       projectId,

@@ -326,7 +326,7 @@ that a lapsed licence does not break password sign-in. Recreating that state
 after the lapse would prove less, because the point is that it was created
 while the licence was alive.
 
-The ids are written to `output/playwright/enterprise/licensed-handoff.json`
+The ids are written to `packages/E2E/test-results/enterprise/licensed-handoff.json`
 (git-ignored) by the licensed suite and read back with
 `readLicensedSuiteHandoff()` from `Enterprise/Helpers/Handoff.ts`. Its absence
 is not a failure: a lapsed spec run on its own creates whatever it needs.
@@ -353,16 +353,25 @@ licence surviving the lapse is part of what they assert:
 | --------------------------------------------------- | --------------------------- |
 | a further audited write records nothing             | the project (audit logs on) |
 | the trail recorded while licensed is still readable | the recorded entry          |
-| renaming enterprise configuration is refused        | the `ProjectSCIM` row       |
+| configuration made while licensed is still readable | the `ProjectSCIM` row       |
 | password sign-in still works                        | the owner account           |
 
 With no handoff file, `Lapsed/EnterpriseWritesAndAuditRecorder.spec.ts`
 registers its own owner and project (sign-up and project creation are core, so
 they still work with a dead licence) and turns audit logging on itself. Only
-the two assertions that need a row created **while licensed** are then skipped,
-with that as the reason. `Lapsed/DashboardLapseNotices.spec.ts` never uses the
+the assertions that need a row created **while licensed** are then skipped, with
+that as the reason. `Lapsed/DashboardLapseNotices.spec.ts` never uses the
 handoff: the notices are decided by the installation's licence, not by anything
 a project holds, so it registers a throwaway project and deletes it again.
+
+One assertion is deliberately absent: that an **ordinary update** of an
+enterprise configuration row is refused while a tighten-only one (disabling a
+provider, rotating a leaked token) is not. Neither the `ProjectSCIM` create
+response nor a `get-list` that selects `_id` hands a project-owner session the
+row's key, so a spec cannot address the row for a `PUT`. That half of the rule
+is pinned by `EditionPermission`'s unit tests and the tighten-only UI tests
+under `ee/Tests`, and these suites find their row by the unique name they gave
+it instead.
 
 The absence of a recorded entry is bounded by `AUDIT_LOG_ENTRY_TIMEOUT_MS` from
 `Enterprise/Helpers/AuditLogs.ts` — the same budget the licensed phase gives a
@@ -378,8 +387,9 @@ suites above prove an Enterprise one does — the identity routes answer 404 wit
 the App's catch-all body (not the lapsed stack's 402/403), the licence endpoint
 reports `edition` `community` with `features` `null`, `POST /global-config/license`
 does not exist at all, an enterprise configuration write is refused with the
-_Community Edition_ message rather than the licence one, and audit logging can
-be switched on while nothing is ever recorded.
+_Community Edition_ message rather than the licence one, and audit logging
+cannot even be switched on (`enableAuditLogs` is enterprise configuration, so
+the `PUT` is refused with that same message) and records nothing.
 
 It lives in `Tests/` rather than beside the enterprise suites because the
 community stack is booted by `test-e2e-test-self-hosted`, which runs the whole
