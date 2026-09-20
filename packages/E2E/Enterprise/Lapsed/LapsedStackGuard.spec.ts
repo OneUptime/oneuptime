@@ -84,4 +84,64 @@ test.describe("Enterprise licence has lapsed (lapsed stack)", () => {
      */
     expect(licenseState.features, `Found: ${found}`).not.toBe("all");
   });
+
+  test("the forced lapse leaves an Enterprise payload with nothing entitled", (): void => {
+    const found: string = describeEnterpriseLicenseState(licenseState);
+
+    /*
+     * The shape the documented lapse produces, pinned exactly rather than
+     * loosely as above, because this is the one the enterprise CI job creates:
+     * an installation that never held a licence, whose 14-day trial was forced
+     * to end by backdating GlobalConfig.enterpriseEditionFirstSeenAt (see
+     * packages/E2E/README.md). No token was ever stored, so the status is
+     * "missing" rather than the "expired" or "invalid" a real licence would
+     * leave behind - if this fails with one of those, the stack was lapsed
+     * some other way than the phase this suite is the second half of.
+     */
+    expect(
+      licenseState.status,
+      `The lapse this suite expects leaves the licence "missing". Found: ${found}`,
+    ).toBe("missing");
+
+    /*
+     * features is the field that tells a LAPSED ENTERPRISE stack from a
+     * COMMUNITY one, and neither licenseValid nor status can: an empty ARRAY
+     * means an enterprise module is loaded and its licence entitles nothing,
+     * while null means there is no licence to speak of because the image has
+     * no enterprise module at all (GlobalConfigAPI.toFeaturesResponse answers
+     * null only for a missing snapshot). The whole point of this phase is that
+     * the first is not the second, so the distinction is asserted on the type,
+     * not just on the emptiness.
+     */
+    expect(
+      Array.isArray(licenseState.features),
+      `An Enterprise stack must report its covered features as a list, even an ` +
+        `empty one. null is the Community Edition's answer, which would mean ` +
+        `the enterprise module is not loaded at all. Found: ${found}`,
+    ).toBe(true);
+
+    expect(licenseState.features, `Found: ${found}`).toEqual([]);
+
+    /*
+     * No token was ever stored, so there is nothing to have verified and no
+     * expiry to report. graceEndsAt is the trial's end, now in the past - the
+     * backdated date is exactly what put it there.
+     */
+    expect(licenseState.verification, `Found: ${found}`).toBe("none");
+    expect(licenseState.expiresAt, `Found: ${found}`).toBeNull();
+    expect(licenseState.graceReason, `Found: ${found}`).toBeNull();
+
+    expect(
+      licenseState.graceEndsAt,
+      `A trial that has ended still says when it ended. Found: ${found}`,
+    ).not.toBeNull();
+
+    expect(
+      Date.parse(licenseState.graceEndsAt!),
+      `The trial must be OVER: graceEndsAt ${String(
+        licenseState.graceEndsAt,
+      )} is still in the future, so the backdated ` +
+        `enterpriseEditionFirstSeenAt did not move it far enough back. Found: ${found}`,
+    ).toBeLessThan(Date.now());
+  });
 });
