@@ -331,6 +331,67 @@ The ids are written to `output/playwright/enterprise/licensed-handoff.json`
 `readLicensedSuiteHandoff()` from `Enterprise/Helpers/Handoff.ts`. Its absence
 is not a failure: a lapsed spec run on its own creates whatever it needs.
 
+### What the lapsed suite assumes
+
+Two different things, and they fail differently on purpose.
+
+**About the stack, which must be exactly right.** Every spec calls
+`assertLapsedEnterpriseStack()` in its `beforeAll`, which **fails** (never
+skips) unless billing is off, the edition is `enterprise` and the licence has
+turned unusable — polling up to four minutes for the last one, because the
+running app serves its previous licence inputs for up to a minute after the
+`UPDATE`. `Lapsed/LapsedStackGuard.spec.ts` then pins the exact payload the
+documented lapse produces: `status` `missing`, `licenseValid` false, `features`
+an **empty list** rather than the Community Edition's `null`, and a `graceEndsAt`
+that is already in the past.
+
+**About the fixtures, which it can do without.** The specs prefer what the
+licensed phase left on this same stack, because state created under a live
+licence surviving the lapse is part of what they assert:
+
+| Assertion                                           | Needs from the handoff      |
+| --------------------------------------------------- | --------------------------- |
+| a further audited write records nothing             | the project (audit logs on) |
+| the trail recorded while licensed is still readable | the recorded entry          |
+| renaming enterprise configuration is refused        | the `ProjectSCIM` row       |
+| password sign-in still works                        | the owner account           |
+
+With no handoff file, `Lapsed/EnterpriseWritesAndAuditRecorder.spec.ts`
+registers its own owner and project (sign-up and project creation are core, so
+they still work with a dead licence) and turns audit logging on itself. Only
+the two assertions that need a row created **while licensed** are then skipped,
+with that as the reason. `Lapsed/DashboardLapseNotices.spec.ts` never uses the
+handoff: the notices are decided by the installation's licence, not by anything
+a project holds, so it registers a throwaway project and deletes it again.
+
+The absence of a recorded entry is bounded by `AUDIT_LOG_ENTRY_TIMEOUT_MS` from
+`Enterprise/Helpers/AuditLogs.ts` — the same budget the licensed phase gives a
+recorded entry to appear. Waiting exactly that long means the negative outlasts
+the whole window the positive was allowed on this stack, and raising the
+constant tightens both at once.
+
+### The Community Edition negative control
+
+`Tests/App/CommunityEditionEnterpriseSurface.spec.ts` is the other half of the
+enterprise job: it asserts that the **Community** image serves none of what the
+suites above prove an Enterprise one does — the identity routes answer 404 with
+the App's catch-all body (not the lapsed stack's 402/403), the licence endpoint
+reports `edition` `community` with `features` `null`, `POST /global-config/license`
+does not exist at all, an enterprise configuration write is refused with the
+_Community Edition_ message rather than the licence one, and audit logging can
+be switched on while nothing is ever recorded.
+
+It lives in `Tests/` rather than beside the enterprise suites because the
+community stack is booted by `test-e2e-test-self-hosted`, which runs the whole
+`./Tests` tree and nothing else — a focused suite would never run there. That
+tree also runs on both enterprise stacks, so the spec detects the edition at
+runtime from `GET /api/global-config/license` and **skips** (the pattern
+`Tests/Dashboard/BillingPaidUsage.spec.ts` uses) when it is not `community`. It
+never reads `IS_ENTERPRISE_EDITION`, which is false inside the e2e container on
+every stack. It reuses the same `Enterprise/Helpers/` tables the enterprise
+suites read, asserting their `community` column, so the two cannot drift; keep
+them in step in one commit.
+
 ### Shared helpers
 
 `Enterprise/Helpers/` holds everything both suites share, so the licensed and
