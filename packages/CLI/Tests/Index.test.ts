@@ -1,26 +1,19 @@
 import { Command, Option } from "commander";
-import { registerConfigCommands } from "../Commands/ConfigCommands";
-import { registerResourceCommands } from "../Commands/ResourceCommands";
-import { registerUtilityCommands } from "../Commands/UtilityCommands";
+import { buildProgram } from "../Program";
+import * as fs from "fs";
+import * as path from "path";
 
 describe("Index (CLI entry point)", () => {
-  it("should create a program with all command groups registered", () => {
-    const program: Command = new Command();
-    program
-      .name("oneuptime")
-      .description(
-        "OneUptime CLI - Manage your OneUptime resources from the command line",
-      )
-      .version("1.0.0")
-      .option("--api-key <key>", "API key (overrides config)")
-      .option("--url <url>", "OneUptime instance URL (overrides config)")
-      .option("--context <name>", "Use a specific context")
-      .option("-o, --output <format>", "Output format: json, table, wide")
-      .option("--no-color", "Disable colored output");
+  it("reports the package version through --version", () => {
+    const packageJson: { version: string } = JSON.parse(
+      fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf-8"),
+    ) as { version: string };
 
-    registerConfigCommands(program);
-    registerUtilityCommands(program);
-    registerResourceCommands(program);
+    expect(buildProgram().version()).toBe(packageJson.version);
+  });
+
+  it("should create a program with all command groups registered", () => {
+    const program: Command = buildProgram();
 
     // Verify all expected commands are registered
     const commandNames: string[] = program.commands.map((c: Command) => {
@@ -37,23 +30,16 @@ describe("Index (CLI entry point)", () => {
   });
 
   it("should set correct program name and description", () => {
-    const program: Command = new Command();
-    program.name("oneuptime").description("OneUptime CLI");
+    const program: Command = buildProgram();
 
     expect(program.name()).toBe("oneuptime");
+    expect(program.description()).toBe(
+      "OneUptime CLI - Manage your OneUptime resources from the command line",
+    );
   });
 
   it("should define global options", () => {
-    const program: Command = new Command();
-    program
-      .option("--api-key <key>", "API key")
-      .option("--url <url>", "URL")
-      .option("--context <name>", "Context")
-      .option("-o, --output <format>", "Output format")
-      .option("--no-color", "Disable color");
-
-    // Parse with just the program name - verify options are registered
-    const options: readonly Option[] = program.options;
+    const options: readonly Option[] = buildProgram().options;
     const optionNames: (string | undefined)[] = options.map((o: Option) => {
       return o.long || o.short;
     });
