@@ -97,6 +97,7 @@ import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
@@ -195,7 +196,17 @@ export class Service extends DatabaseService<Model> {
         ) {
           const port: string = firstStep.data.monitorDestinationPort.toString();
           if (monitorDestination && port) {
-            monitorDestination = `${monitorDestination}:${port}`;
+            /*
+             * Bracketed when the host is an IPv6 literal. Plain
+             * concatenation there does not merely look odd: "2001:db8::1" +
+             * ":179" is "2001:db8::1:179", which is itself a valid IPv6
+             * address — a DIFFERENT host from the one being monitored, named
+             * in an alert somebody is about to act on.
+             */
+            monitorDestination = HostAddressUtil.formatHostAndPort({
+              host: monitorDestination,
+              port: port,
+            });
           }
         }
 
@@ -207,7 +218,10 @@ export class Service extends DatabaseService<Model> {
           monitorDestination = firstStep.data.snmpMonitor.hostname || "";
           const port: number = firstStep.data.snmpMonitor.port || 161;
           if (monitorDestination && port) {
-            monitorDestination = `${monitorDestination}:${port}`;
+            monitorDestination = HostAddressUtil.formatHostAndPort({
+              host: monitorDestination,
+              port: port,
+            });
           }
         }
 
@@ -239,7 +253,10 @@ export class Service extends DatabaseService<Model> {
             databaseName: string;
           } = firstStep.data.sqlMonitor;
           if (sql.host) {
-            monitorDestination = `${sql.host}:${sql.port}/${sql.databaseName}`;
+            monitorDestination = `${HostAddressUtil.formatHostAndPort({
+              host: sql.host,
+              port: sql.port,
+            })}/${sql.databaseName}`;
           }
         }
 
@@ -254,7 +271,10 @@ export class Service extends DatabaseService<Model> {
             databaseName: string;
           } = firstStep.data.databaseMonitor;
           if (database.host) {
-            monitorDestination = `${database.host}:${database.port}/${database.databaseName}`;
+            monitorDestination = `${HostAddressUtil.formatHostAndPort({
+              host: database.host,
+              port: database.port,
+            })}/${database.databaseName}`;
           }
         }
       }

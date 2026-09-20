@@ -17,8 +17,19 @@ import {
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
+import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import logger from "Common/Server/Utils/Logger";
 import ping from "ping";
+
+/*
+ * `timeout: false` is how the ping library is told there is to be no
+ * per-reply wait at all — see getPingConfig. @types/ping types the field as
+ * `number | undefined` because it only describes the happy path, and
+ * undefined means "fill in your default", which is NOT the same thing.
+ */
+export type PingProbeConfig = Omit<ping.PingConfig, "timeout"> & {
+  timeout?: number | false | undefined;
+};
 
 /*
  * Echo requests sent per check. Multiple packets turn a reachability probe
@@ -66,6 +77,40 @@ const PING_INFRA_FAILURE_MARKERS: Array<string> = [
 ];
 
 /*
+ * Substrings that mean the PROBE has no route to the address at all — the
+ * kernel refused before a packet went out — rather than that the target
+ * ignored the echo. The distinction is invisible in the result the library
+ * returns (`alive: false` either way, with the reason only in `output`), and
+ * it is the whole difference between "your BGP peer is down" and "the machine
+ * this probe runs on has no IPv6".
+ *
+ * That second case is the common one, because a probe container on a default
+ * Docker bridge has IPv4 egress and no IPv6 egress: `ping6 2001:518:2800:9::2`
+ * comes straight back with "connect: Network is unreachable" while every IPv4
+ * monitor beside it keeps working. Reporting that as a plain "no reply" is
+ * what makes an IPv6 monitor look like it cannot be made to work.
+ *
+ * Deliberately NOT here: "destination host unreachable" and "destination net
+ * unreachable". Those are ICMP errors a ROUTER sent back about the target,
+ * which is a real outage and belongs in the no-reply case.
+ */
+const PING_NO_ROUTE_MARKERS: Array<string> = [
+  "network is unreachable",
+  "no route to host",
+  "address family not supported",
+  "unreachable host",
+];
+
+// Substrings that mean the name never resolved, so nothing was pinged.
+const PING_NAME_RESOLUTION_MARKERS: Array<string> = [
+  "name or service not known",
+  "temporary failure in name resolution",
+  "nodename nor servname provided",
+  "unknown host",
+  "cannot resolve",
+];
+
+/*
  * The verdict of one device-reachability check. Never null: the caller
  * (the network-device poll job) reports every claimed device to the server,
  * and "no verdict" would leave the device on its previous one.
@@ -77,7 +122,11 @@ export interface DeviceReachabilityCheck {
   failureCause: string;
 }
 
-// TODO - make sure it works for the IPV6
+/*
+ * The result of one Ping-monitor check. IPv6 destinations go down the same
+ * path: getPingTarget below strips URL brackets and states the family, and
+ * getPingConfig keeps the per-platform ping6 quirks out of it.
+ */
 export interface PingResponse {
   isOnline: boolean;
   responseTimeInMS?: PositiveNumber | undefined;
@@ -215,7 +264,7 @@ export default class PingMonitor {
 
     try {
       const target: { hostAddress: string; isIPv6Target: boolean } =
-        this.getReachabilityTarget(data.host);
+        this.getPingTarget(data.host);
       hostAddress = target.hostAddress;
       isIPv6Target = target.isIPv6Target;
     } catch (err: unknown) {
@@ -227,7 +276,7 @@ export default class PingMonitor {
       };
     }
 
-    const config: ping.PingConfig = this.getReachabilityPingConfig({
+    const config: PingProbeConfig = this.getReachabilityPingConfig({
       isIPv6Target: isIPv6Target,
       packetCount: packetCount,
       timeoutInSeconds: timeoutInSeconds,
@@ -255,7 +304,7 @@ export default class PingMonitor {
          */
         const res: ping.PingResponse = await ping.promise.probe(hostAddress, {
           ...config,
-        });
+        } as ping.PingConfig);
 
         const stats: PingMonitorResponse = this.getPacketStatistics(
           res,
@@ -299,42 +348,59 @@ export default class PingMonitor {
   }
 
   /*
-   * The `ping` library config for one reachability probe. Exposed (rather
-   * than inlined) so the platform quirks below can be pinned in tests for
-   * every platform, not just the one the tests happen to run on.
+   * The `ping` library config for one probe, with every platform quirk in one
+   * place. Exposed (rather than inlined) so those quirks can be pinned in
+   * tests for every platform, not just the one the tests happen to run on.
    *
-   * The deadline caps the whole ping process: the last echo goes out at
-   * (packetCount - 1) seconds and may be held for the per-reply wait, so
-   * that bound plus a second of slack is when a silent host stops costing
-   * time. Without it a stalled resolver or a black-holed route could hold
-   * the process well past the reply wait.
+   * `useDeadline` caps the whole ping process: the last echo goes out at
+   * (packetCount - 1) seconds and may be held for the per-reply wait, so that
+   * bound plus a second of slack is when a silent host stops costing time.
+   * The device-reachability poll wants that bound because it runs across a
+   * fleet; the Ping MONITOR path does not set it, so that a monitor's IPv4
+   * argv is exactly what it has always been.
    */
-  public static getReachabilityPingConfig(data: {
+  public static getPingConfig(data: {
     isIPv6Target: boolean;
     packetCount: number;
     timeoutInSeconds: number;
     platform: NodeJS.Platform;
-  }): ping.PingConfig {
-    const config: ping.PingConfig = {
+    useDeadline: boolean;
+  }): PingProbeConfig {
+    const config: PingProbeConfig = {
       min_reply: data.packetCount, // maps to -c on Linux/macOS and -n on Windows
       v6: data.isIPv6Target,
     };
 
     /*
-     * macOS ping6 has neither a per-reply wait nor a deadline flag, and the
-     * library throws on `timeout` rather than dropping it — which would turn
-     * every IPv6 device polled from a macOS probe (a developer machine;
-     * production probes run in a Linux container) into a false Down. Such a
-     * probe runs on the packet count alone.
+     * macOS (and FreeBSD) ping6 has neither a per-reply wait nor a deadline
+     * flag, and the library THROWS on `timeout` for a v6 target rather than
+     * dropping it. Every IPv6 check from such a probe would otherwise die
+     * instantly with "There is no timeout option on ping6" and be reported as
+     * a real outage.
+     *
+     * `timeout: false` is what disables it. LEAVING IT OUT DOES NOT: the
+     * library fills unset keys from its own defaults first
+     * (lib/builder/mac.js fills timeout=2) and only then checks whether to
+     * throw, so an omitted timeout lands on the throw exactly like a set one.
+     * That is why this branch used to be a no-op — the config it returned
+     * looked right and still threw.
+     *
+     * A deadline is no good either: it maps to `-t` there, which is the
+     * traffic class on macOS ping6, not a deadline. The packet count is the
+     * only bound such a probe gets.
      */
-    if (data.isIPv6Target && data.platform === "darwin") {
+    if (
+      data.isIPv6Target &&
+      PingMonitor.isPingSixWithoutTimeout(data.platform)
+    ) {
+      config.timeout = false;
       return config;
     }
 
     config.timeout = data.timeoutInSeconds;
 
     // Windows ping has no deadline flag and the library throws on it.
-    if (data.platform !== "win32") {
+    if (data.useDeadline && data.platform !== "win32") {
       config.deadline = data.timeoutInSeconds + data.packetCount;
     }
 
@@ -342,20 +408,54 @@ export default class PingMonitor {
   }
 
   /*
-   * The address string ping gets, and whether it needs the IPv6 binary.
-   * Hostname.isValid accepts an unbracketed IPv6 literal, so a Hostname can
-   * carry one too; the library's own auto-detection covers that case, but
-   * being explicit means the config is the same whichever type arrived.
+   * Kept as the device-poll's own entry point: a deadline is right there and
+   * wrong for a monitor.
    */
-  private static getReachabilityTarget(host: Hostname | IPv4 | IPv6): {
+  public static getReachabilityPingConfig(data: {
+    isIPv6Target: boolean;
+    packetCount: number;
+    timeoutInSeconds: number;
+    platform: NodeJS.Platform;
+  }): PingProbeConfig {
+    return PingMonitor.getPingConfig({ ...data, useDeadline: true });
+  }
+
+  /*
+   * Platforms where the library shells out to a separate `ping6` that has no
+   * -W. These are exactly the platforms its own factory treats as "macOS"
+   * (lib/builder/factory.js isMacOS), because that is the builder whose
+   * timeout handling throws.
+   */
+  private static isPingSixWithoutTimeout(platform: NodeJS.Platform): boolean {
+    return platform === "darwin" || platform === "freebsd";
+  }
+
+  /*
+   * The address string ping gets, and whether it needs the IPv6 binary.
+   *
+   * Two things have to happen here and nowhere else. A Hostname or a URL can
+   * carry an IPv6 literal in its URL-authority spelling, "[2001:db8::1]", and
+   * the brackets are URL syntax rather than part of the address — handed to
+   * ping they become a hostname to resolve, and the check fails with
+   * "unknown host" against an address that is right there in the string. And
+   * the family has to be stated rather than left to the library's
+   * net.isIPv6() sniff, so a bracketed literal still reaches the v6 binary.
+   */
+  public static getPingTarget(host: Hostname | IPv4 | IPv6 | URL): {
     hostAddress: string;
     isIPv6Target: boolean;
   } {
+    let rawHost: string;
+
     if (host instanceof IP) {
-      return { hostAddress: host.toString(), isIPv6Target: host.isIPv6() };
+      rawHost = host.toString();
+    } else if (host instanceof URL) {
+      rawHost = host.hostname.hostname;
+    } else {
+      rawHost = host.hostname;
     }
 
-    const hostAddress: string = host.hostname;
+    const hostAddress: string = HostAddressUtil.stripBrackets(rawHost || "");
 
     if (!hostAddress) {
       throw new BadDataException("Ping target has no hostname");
@@ -363,7 +463,7 @@ export default class PingMonitor {
 
     return {
       hostAddress: hostAddress,
-      isIPv6Target: IP.isIP(hostAddress) && IP.fromString(hostAddress).isIPv6(),
+      isIPv6Target: HostAddressUtil.isIPv6(hostAddress),
     };
   }
 
@@ -380,10 +480,33 @@ export default class PingMonitor {
     const output: string = (res.output || "").trim();
     const lowerOutput: string = output.toLowerCase();
 
-    for (const marker of PING_INFRA_FAILURE_MARKERS) {
-      if (lowerOutput.includes(marker)) {
-        return `ICMP ping is not usable on this probe: ${output.substring(0, 200)}`;
-      }
+    const hasMarker: (markers: Array<string>) => boolean = (
+      markers: Array<string>,
+    ): boolean => {
+      return markers.some((marker: string) => {
+        return lowerOutput.includes(marker);
+      });
+    };
+
+    if (hasMarker(PING_INFRA_FAILURE_MARKERS)) {
+      return `ICMP ping is not usable on this probe: ${output.substring(0, 200)}`;
+    }
+
+    if (hasMarker(PING_NO_ROUTE_MARKERS)) {
+      /*
+       * The probe could not even send. Say which side that is, because the
+       * alternative reading — "the peer is down" — sends the operator to
+       * look at a router that is answering perfectly well.
+       */
+      const ipv6Hint: string = HostAddressUtil.isIPv6(hostAddress)
+        ? " This probe has no IPv6 route; a probe needs IPv6 connectivity to monitor an IPv6 destination."
+        : "";
+
+      return `This probe has no route to ${hostAddress}: ${output.substring(0, 200)}.${ipv6Hint}`;
+    }
+
+    if (hasMarker(PING_NAME_RESOLUTION_MARKERS)) {
+      return `This probe could not resolve ${hostAddress}: ${output.substring(0, 200)}`;
     }
 
     return `No ICMP echo reply from ${hostAddress} (${packetCount} sent)`;
@@ -450,7 +573,7 @@ export default class PingMonitor {
 
     try {
       const target: { hostAddress: string; isIPv6Target: boolean } =
-        this.getReachabilityTarget(data.host);
+        this.getPingTarget(data.host);
       hostAddress = target.hostAddress;
       isIPv6Target = target.isIPv6Target;
     } catch (err: unknown) {
@@ -461,7 +584,7 @@ export default class PingMonitor {
       };
     }
 
-    const config: ping.PingConfig = this.getReachabilityPingConfig({
+    const config: PingProbeConfig = this.getReachabilityPingConfig({
       isIPv6Target: isIPv6Target,
       packetCount: packetCount,
       timeoutInSeconds: timeoutInSeconds,
@@ -472,7 +595,7 @@ export default class PingMonitor {
       // A fresh copy: the library fills defaults into the object it is handed.
       const res: ping.PingResponse = await ping.promise.probe(hostAddress, {
         ...config,
-      });
+      } as ping.PingConfig);
 
       const stats: PingMonitorResponse = this.getPacketStatistics(
         res,
@@ -519,18 +642,19 @@ export default class PingMonitor {
       pingOptions.attempts = [];
     }
 
-    let hostAddress: string = "";
-    if (host instanceof Hostname) {
-      hostAddress = host.hostname;
-
-      if (host.port) {
-        throw new BadDataException("Port is not supported for ping monitor");
-      }
-    } else if (host instanceof URL) {
-      hostAddress = host.hostname.hostname;
-    } else {
-      hostAddress = host.toString();
+    if (host instanceof Hostname && host.port) {
+      throw new BadDataException("Port is not supported for ping monitor");
     }
+
+    /*
+     * Brackets stripped and the address family decided HERE rather than left
+     * to the library's own net.isIPv6() sniff of the string, so that an IPv6
+     * destination reaches the v6 binary whichever spelling it arrived in and
+     * whichever of the four accepted types carried it.
+     */
+    const target: { hostAddress: string; isIPv6Target: boolean } =
+      this.getPingTarget(host);
+    const hostAddress: string = target.hostAddress;
 
     logger.debug(
       `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress} - Retry: ${
@@ -540,10 +664,24 @@ export default class PingMonitor {
 
     const attemptedAt: Date = new Date();
     try {
-      const res: ping.PingResponse = await ping.promise.probe(hostAddress, {
-        timeout: Math.ceil((pingOptions?.timeout?.toNumber() || 5000) / 1000),
-        min_reply: PING_PACKET_COUNT, // maps to -c on Linux/macOS and -n on Windows
+      const config: PingProbeConfig = this.getPingConfig({
+        isIPv6Target: target.isIPv6Target,
+        packetCount: PING_PACKET_COUNT, // maps to -c on Linux/macOS and -n on Windows
+        timeoutInSeconds: Math.ceil(
+          (pingOptions?.timeout?.toNumber() || 5000) / 1000,
+        ),
+        platform: process.platform,
+        /*
+         * No deadline: the monitor path has never set one, and the IPv4 argv
+         * has to stay exactly what it has always been.
+         */
+        useDeadline: false,
       });
+
+      // A fresh copy: the library fills its defaults into the object it is handed.
+      const res: ping.PingResponse = await ping.promise.probe(hostAddress, {
+        ...config,
+      } as ping.PingConfig);
 
       logger.debug(
         `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress} success: `,
@@ -569,7 +707,11 @@ export default class PingMonitor {
          * Common/Server/Utils/Telemetry/ErrorClassResolver.ts.
          */
         throw new UnableToReachServer(
-          `Unable to reach host ${hostAddress}. Monitor ID: ${pingOptions?.monitorId?.toString()}`,
+          `Unable to reach host ${hostAddress}. ${this.describeDeadHost(
+            hostAddress,
+            PING_PACKET_COUNT,
+            res,
+          )} Monitor ID: ${pingOptions?.monitorId?.toString()}`,
         ).asUserError();
       }
 
