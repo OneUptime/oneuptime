@@ -31,7 +31,7 @@
   <p>OneUptime 用一個可免費自架的平台，取代整櫃的 SaaS 工具。它能捕捉服務中斷、呼叫對的人、更新你的狀態頁、找出根本原因，甚至開出修復用的 PR。</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -71,7 +71,7 @@ OneUptime 將監控、警示、事件回應與可觀測性整合到一個開源�
 | Loggly | **日誌管理** — 收集、搜尋日誌並設定警示 |
 | Sentry | **錯誤追蹤** — 具備完整堆疊追蹤與上下文的例外狀況 |
 
-以上一切皆為 **100% 開源（Apache 2.0）**，可免費自架。
+以上一切皆為 **開源（Apache 2.0）**，使用社群版即可免費自架。
 
 ---
 
@@ -205,13 +205,16 @@ helm install oneuptime oneuptime/oneuptime
 |---|---|---|
 | **最適合** | 自架者與小型團隊 | 需要進階支援的受監管團隊 |
 | **費用** | 免費且開源 | [聯絡銷售](mailto:sales@oneuptime.com) |
-| **功能** | 完整功能集 | 完整功能集 + 加固映像、優先支援、客製功能與資料落地 |
+| **授權** | Apache 2.0 | Apache 2.0，另外 `ee/` 目錄採用 [OneUptime Enterprise License](/ee/LICENSE) |
+| **功能** | 上方「盒子裡的一切」中的全部功能——監控、狀態頁、事件、值班、日誌、追蹤、指標、錯誤追蹤、工作流程與 AI | 社群版全部功能 + SAML 與 OIDC 單一登入、SCIM 使用者佈建、稽核日誌、團隊合規與執行個體健康儀表板，並提供優先支援、客製功能與資料落地 |
+
+企業版功能位於 [`ee/`](/ee) 目錄，只包含在企業版映像中。完整比較請參閱 [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md)。
 
 ---
 
 ## 💡 為什麼選擇 OneUptime？
 
-我們的使命很簡單：**減少停機時間，幫助更多產品邁向成功。** 你不必再用膠帶把七家廠商拼湊在一起，而是擁有一個平台，協助你理解事情*為何*出錯、迅速回應事件並削減營運雜務 — 完全開源，讓你完全掌握自己的資料與堆疊。
+我們的使命很簡單：**減少停機時間，幫助更多產品邁向成功。** 你不必再用膠帶把七家廠商拼湊在一起，而是擁有一個平台，協助你理解事情*為何*出錯、迅速回應事件並削減營運雜務 — 核心開源（Apache 2.0），讓你完全掌握自己的資料與堆疊。
 
 ---
 
@@ -239,7 +242,7 @@ helm install oneuptime oneuptime/oneuptime
 
 ## 📄 授權條款
 
-OneUptime 採用 [Apache License 2.0](/LICENSE) 授權。
+OneUptime 以 [Apache License 2.0](/LICENSE) 開源，[`ee/`](/ee) 目錄除外。該目錄包含企業版，採用 [OneUptime Enterprise License](/ee/LICENSE) 授權。社群版映像不包含任何來自 `ee/` 的程式碼。儲存庫根目錄下的 [`LICENSE`](/LICENSE) 檔案規定了這項劃分。
 
 <div align="center">
   <sub>由 <a href="https://oneuptime.com">OneUptime</a> 團隊與<a href="https://github.com/OneUptime/oneuptime/graphs/contributors">貢獻者</a>用 ❤️ 打造。</sub>

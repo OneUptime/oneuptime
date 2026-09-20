@@ -150,15 +150,22 @@ describe("SLO-family resource metadata", () => {
     expect(helpers).not.toMatch(/from "react"/);
   });
 
-  test("the table takes its metadata from the helper module, not a private copy", () => {
+  /*
+   * The table body is Enterprise code since the Community / Enterprise split
+   * (ee/Dashboard/AuditLogs/AuditLogsTable.tsx, which imports this helper
+   * module through "@oneuptime/dashboard/..." - pinned by
+   * ee/Tests/UI/AuditLogs/AuditLogsPlugins.test.tsx). Core keeps the shell
+   * every page imports, and the shell must not grow a copy of the metadata.
+   */
+  test("the core table shell keeps no private copy of the metadata", () => {
     const table: string = readCode(
       "Components",
       "AuditLogs",
       "AuditLogsTable.tsx",
     );
 
-    expect(table).toContain('from "./AuditLogsTableUtils"');
     expect(table).not.toContain("const RESOURCE_META");
+    expect(table).toContain("getDashboardPlugins().AuditLogsTable");
   });
 });
 

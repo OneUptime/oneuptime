@@ -59,8 +59,24 @@ interface ServiceImage {
    * we must not confuse with the production one.
    */
   productionStanza: string;
+  /*
+   * The whole Dockerfile as it renders for production: everything before the
+   * development branch plus the production stanza. Stages defined before the
+   * branch (a shared `base`) belong to the production build too.
+   */
+  productionDockerfile: string;
   // The `start` script the production CMD ultimately runs, if it runs one.
   startScript: string | null;
+}
+
+// One `FROM` stage of a Dockerfile.
+interface DockerfileStage {
+  // The `AS <name>`, lower-cased, or null for an unnamed stage.
+  name: string | null;
+  // What it is built FROM: an image or an earlier stage's name (lower-cased).
+  from: string;
+  // The instructions after the FROM line, up to the next FROM.
+  body: string;
 }
 
 // CMD forms that hand control to `npm start`.
@@ -79,6 +95,81 @@ const RUN_COMPILE_INSTRUCTION: RegExp = /^\s*RUN\s+npm\s+run\s+compile\s*$/m;
 // Captures the body of a tsconfig `"include": [ ... ]` array.
 const INCLUDE_ARRAY_BLOCK: RegExp = /"include"\s*:\s*\[([^\]]*)\]/;
 const QUOTED_STRING: RegExp = /"[^"]*"/g;
+
+// Where the development branch of a Dockerfile.tpl starts.
+const DEVELOPMENT_BRANCH_START: string =
+  '{{ if eq .Env.ENVIRONMENT "development" }}';
+// A FROM line: `FROM <image or stage> [AS <name>]`, case-insensitive like Docker.
+const FROM_INSTRUCTION: RegExp =
+  /^\s*FROM\s+(?:--\S+\s+)*(\S+)(?:\s+AS\s+(\S+))?\s*$/i;
+const USER_NODE_INSTRUCTION: RegExp = /^\s*USER\s+node\s*$/m;
+// Any COPY/ADD whose source is the ee/ directory (./ee, ee, ./ee/...).
+const COPIES_ENTERPRISE_DIRECTORY: RegExp =
+  /^\s*(?:COPY|ADD)\s+(?:--\S+\s+)*(?:\.\/)?ee(?:\/\S*)?\s/im;
+const SETS_ONEUPTIME_EDITION: RegExp = /^\s*ENV\s+ONEUPTIME_EDITION[=\s]/m;
+const SETS_ENTERPRISE_EDITION_MARKER: RegExp =
+  /^\s*ENV\s+ONEUPTIME_EDITION=enterprise\s*$/m;
+
+// The final stages the edition split builds (packages/App/Dockerfile.tpl).
+const EDITION_STAGE_NAMES: Array<string> = ["community", "enterprise"];
+
+// Splits a Dockerfile into its FROM stages, in order.
+const splitStages: (dockerfile: string) => Array<DockerfileStage> = (
+  dockerfile: string,
+): Array<DockerfileStage> => {
+  const stages: Array<DockerfileStage> = [];
+  let current: DockerfileStage | null = null;
+
+  for (const line of dockerfile.split("\n")) {
+    const from: RegExpMatchArray | null = line.match(FROM_INSTRUCTION);
+
+    if (from) {
+      current = {
+        from: (from[1] ?? "").toLowerCase(),
+        name: from[2] ? from[2].toLowerCase() : null,
+        body: "",
+      };
+      stages.push(current);
+      continue;
+    }
+
+    if (current) {
+      current.body += `${line}\n`;
+    }
+  }
+
+  return stages;
+};
+
+// The stage and every stage it is built FROM, nearest first.
+const stageAncestry: (
+  stages: Array<DockerfileStage>,
+  name: string,
+) => Array<DockerfileStage> = (
+  stages: Array<DockerfileStage>,
+  name: string,
+): Array<DockerfileStage> => {
+  const chain: Array<DockerfileStage> = [];
+  let next: string | null = name;
+
+  while (next !== null) {
+    const wanted: string = next;
+    const stage: DockerfileStage | undefined = stages.find(
+      (candidate: DockerfileStage) => {
+        return candidate.name === wanted;
+      },
+    );
+
+    if (!stage || chain.includes(stage)) {
+      break;
+    }
+
+    chain.push(stage);
+    next = stage.from;
+  }
+
+  return chain;
+};
 
 const listServiceImages: () => Array<ServiceImage> =
   (): Array<ServiceImage> => {
@@ -103,6 +194,13 @@ const listServiceImages: () => Array<ServiceImage> =
       const elseIndex: number = dockerfile.lastIndexOf("{{ else }}");
       const productionStanza: string =
         elseIndex === -1 ? dockerfile : dockerfile.slice(elseIndex);
+      const developmentIndex: number = dockerfile.indexOf(
+        DEVELOPMENT_BRANCH_START,
+      );
+      const productionDockerfile: string =
+        elseIndex === -1 || developmentIndex === -1
+          ? dockerfile
+          : dockerfile.slice(0, developmentIndex) + productionStanza;
 
       let startScript: string | null = null;
       const packageJsonPath: string = path.join(
@@ -120,6 +218,7 @@ const listServiceImages: () => Array<ServiceImage> =
       images.push({
         service: path.basename(directory),
         productionStanza,
+        productionDockerfile,
         startScript,
       });
     }
@@ -375,6 +474,196 @@ describe("Container boot configuration", () => {
             absolute: pattern.startsWith("/"),
           }).toEqual({ tsConfigPath, pattern, absolute: false });
         }
+      },
+    );
+  });
+
+  describe("images built as Community and Enterprise targets", () => {
+    /*
+     * The App builds both editions from one Dockerfile: `--target community`
+     * and `--target enterprise` (packages/App/Dockerfile.tpl). Docker does
+     * inherit USER, ENV and CMD from a parent stage, but that is exactly why
+     * the whole-stanza checks above cannot see a final stage that lost one of
+     * them: they match the instruction anywhere in the production branch. Each
+     * final stage is an image of its own, so each states its own boot
+     * configuration, and nothing the Community image is built from may copy
+     * ee/ in.
+     */
+    const stagesOf: (service: string) => Array<DockerfileStage> = (
+      service: string,
+    ): Array<DockerfileStage> => {
+      const image: ServiceImage | undefined = SERVICE_IMAGES.find(
+        (candidate: ServiceImage) => {
+          return candidate.service === service;
+        },
+      );
+
+      return image ? splitStages(image.productionDockerfile) : [];
+    };
+
+    const stageNamed: (
+      service: string,
+      name: string,
+    ) => DockerfileStage | undefined = (
+      service: string,
+      name: string,
+    ): DockerfileStage | undefined => {
+      return stagesOf(service).find((stage: DockerfileStage) => {
+        return stage.name === name;
+      });
+    };
+
+    const editionServices: Array<string> = SERVICE_IMAGES.filter(
+      (image: ServiceImage) => {
+        return splitStages(image.productionDockerfile).some(
+          (stage: DockerfileStage) => {
+            return (
+              stage.name !== null && EDITION_STAGE_NAMES.includes(stage.name)
+            );
+          },
+        );
+      },
+    ).map((image: ServiceImage) => {
+      return image.service;
+    });
+
+    const finalStages: Array<[string, string]> = editionServices.flatMap(
+      (service: string) => {
+        return EDITION_STAGE_NAMES.map((name: string): [string, string] => {
+          return [service, name];
+        });
+      },
+    );
+
+    test("the App is built this way, with exactly one stage per edition", () => {
+      expect(editionServices).toContain("App");
+
+      for (const name of EDITION_STAGE_NAMES) {
+        expect(
+          stagesOf("App").filter((stage: DockerfileStage) => {
+            return stage.name === name;
+          }),
+        ).toHaveLength(1);
+      }
+    });
+
+    test.each(editionServices)(
+      "%s: the community stage is last, so a build without --target is the Community Edition",
+      (service: string) => {
+        const stages: Array<DockerfileStage> = stagesOf(service);
+
+        expect(stages[stages.length - 1]?.name).toBe("community");
+      },
+    );
+
+    test.each(finalStages)(
+      "%s: the %s stage runs as the node user",
+      (service: string, name: string) => {
+        expect(stageNamed(service, name)?.body).toMatch(USER_NODE_INSTRUCTION);
+      },
+    );
+
+    test.each(finalStages)(
+      "%s: the %s stage sets TS_NODE_TRANSPILE_ONLY=1",
+      (service: string, name: string) => {
+        expect(stageNamed(service, name)?.body).toMatch(TRANSPILE_ONLY_ENV);
+      },
+    );
+
+    test.each(finalStages)(
+      "%s: the %s stage boots with CMD npm start",
+      (service: string, name: string) => {
+        const body: string = stageNamed(service, name)?.body ?? "";
+
+        expect(
+          CMD_NPM_START_EXEC_FORM.test(body) ||
+            CMD_NPM_START_SHELL_FORM.test(body),
+        ).toBe(true);
+      },
+    );
+
+    test.each(finalStages)(
+      "%s: the %s stage is type-checked at build time (npm run compile in its ancestry)",
+      (service: string, name: string) => {
+        const ancestry: Array<DockerfileStage> = stageAncestry(
+          stagesOf(service),
+          name,
+        );
+
+        expect(
+          ancestry.some((stage: DockerfileStage) => {
+            return RUN_COMPILE_INSTRUCTION.test(stage.body);
+          }),
+        ).toBe(true);
+      },
+    );
+
+    test.each(editionServices)(
+      "%s: nothing the community stage is built from copies ee/",
+      (service: string) => {
+        const ancestry: Array<DockerfileStage> = stageAncestry(
+          stagesOf(service),
+          "community",
+        );
+
+        expect(ancestry.length).toBeGreaterThan(1);
+        expect(
+          ancestry
+            .filter((stage: DockerfileStage) => {
+              return COPIES_ENTERPRISE_DIRECTORY.test(stage.body);
+            })
+            .map((stage: DockerfileStage) => {
+              return stage.name;
+            }),
+        ).toEqual([]);
+      },
+    );
+
+    test.each(editionServices)(
+      "%s: the enterprise stage's ancestry does copy ee/ (so the check above can fail)",
+      (service: string) => {
+        expect(
+          stageAncestry(stagesOf(service), "enterprise").some(
+            (stage: DockerfileStage) => {
+              return COPIES_ENTERPRISE_DIRECTORY.test(stage.body);
+            },
+          ),
+        ).toBe(true);
+      },
+    );
+
+    test.each(editionServices)(
+      "%s: the enterprise image is the community build plus ee/ (they share its layers)",
+      (service: string) => {
+        const communityParent: string | undefined = stageNamed(
+          service,
+          "community",
+        )?.from;
+        const enterpriseAncestry: Array<string | null> = stageAncestry(
+          stagesOf(service),
+          "enterprise",
+        ).map((stage: DockerfileStage) => {
+          return stage.name;
+        });
+
+        expect(communityParent).toBeDefined();
+        expect(enterpriseAncestry).toContain(communityParent);
+      },
+    );
+
+    test.each(editionServices)(
+      "%s: only the enterprise stage sets ONEUPTIME_EDITION, to enterprise",
+      (service: string) => {
+        expect(stageNamed(service, "enterprise")?.body).toMatch(
+          SETS_ENTERPRISE_EDITION_MARKER,
+        );
+        expect(
+          stageAncestry(stagesOf(service), "community").some(
+            (stage: DockerfileStage) => {
+              return SETS_ONEUPTIME_EDITION.test(stage.body);
+            },
+          ),
+        ).toBe(false);
       },
     );
   });

@@ -31,7 +31,7 @@
   <p>OneUptime یک قفسه کامل از ابزارهای SaaS را با یک پلتفرم جایگزین می‌کند که می‌توانید رایگان خودمیزبانی‌اش کنید. قطعی را می‌گیرد، به فرد درست فراخوان می‌دهد، صفحه وضعیت شما را به‌روز می‌کند، علت ریشه‌ای را پیدا می‌کند و حتی PR اصلاحی را باز می‌کند.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -71,7 +71,7 @@ OneUptime پایش، هشداردهی، پاسخ به حادثه و مشاهده
 | Loggly | **مدیریت لاگ** — جمع‌آوری، جستجو و هشدار روی لاگ‌ها |
 | Sentry | **ردیابی خطا** — استثناها با ردیابی پشته کامل و بافتار |
 
-همه این‌ها **۱۰۰٪ متن‌باز (Apache 2.0)** و برای خودمیزبانی رایگان است.
+همه این‌ها **متن‌باز (Apache 2.0)** و در نسخه انجمنی برای خودمیزبانی رایگان است.
 
 ---
 
@@ -205,13 +205,16 @@ helm install oneuptime oneuptime/oneuptime
 |---|---|---|
 | **مناسب برای** | خودمیزبان‌ها و تیم‌های کوچک | تیم‌های تحت مقررات که به پشتیبانی ویژه نیاز دارند |
 | **هزینه** | رایگان و متن‌باز | [تماس با فروش](mailto:sales@oneuptime.com) |
-| **قابلیت‌ها** | مجموعه کامل قابلیت‌ها | مجموعه کامل قابلیت‌ها + ایمیج‌های سخت‌شده، پشتیبانی اولویت‌دار، قابلیت‌های سفارشی و اقامت داده |
+| **مجوز** | Apache 2.0 | Apache 2.0، به‌علاوه [OneUptime Enterprise License](/ee/LICENSE) برای پوشه `ee/` |
+| **قابلیت‌ها** | همه موارد بخش بالا — پایش، صفحه‌های وضعیت، حوادث، آنکال، لاگ‌ها، ردیابی‌ها، سنجه‌ها، ردیابی خطا، گردش‌کارها و هوش مصنوعی | همه قابلیت‌های نسخه انجمنی + ورود یکپارچه SAML و OIDC، تأمین کاربر SCIM، گزارش‌های ممیزی، انطباق تیم و داشبوردهای سلامت نمونه، همراه با پشتیبانی اولویت‌دار، قابلیت‌های سفارشی و اقامت داده |
+
+قابلیت‌های سازمانی در پوشه [`ee/`](/ee) قرار دارند و فقط در ایمیج سازمانی عرضه می‌شوند. برای مقایسه کامل، [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) را ببینید.
 
 ---
 
 ## 💡 چرا OneUptime؟
 
-مأموریت ما ساده است: **کاهش زمان قطعی و کمک به موفقیت محصولات بیشتر.** به‌جای چسباندن هفت فروشنده به هم، یک پلتفرم دارید که کمک می‌کند بفهمید *چرا* چیزها خراب می‌شوند، سریع به حوادث پاسخ دهید و بار عملیاتی را کم کنید — کاملاً متن‌باز، تا داده‌ها و پشته خودتان در اختیار خودتان بماند.
+مأموریت ما ساده است: **کاهش زمان قطعی و کمک به موفقیت محصولات بیشتر.** به‌جای چسباندن هفت فروشنده به هم، یک پلتفرم دارید که کمک می‌کند بفهمید *چرا* چیزها خراب می‌شوند، سریع به حوادث پاسخ دهید و بار عملیاتی را کم کنید — با هسته‌ای متن‌باز (Apache 2.0)، تا داده‌ها و پشته خودتان در اختیار خودتان بماند.
 
 ---
 
@@ -239,7 +242,7 @@ helm install oneuptime oneuptime/oneuptime
 
 ## 📄 مجوز
 
-OneUptime تحت [مجوز Apache نسخه ۲.۰](/LICENSE) منتشر شده است.
+OneUptime تحت [مجوز Apache نسخه ۲.۰](/LICENSE) متن‌باز است، به‌جز پوشه [`ee/`](/ee). این پوشه نسخه سازمانی (Enterprise Edition) را در بر دارد و تحت [OneUptime Enterprise License](/ee/LICENSE) منتشر شده است. ایمیج نسخه انجمنی هیچ کدی از `ee/` ندارد. فایل [`LICENSE`](/LICENSE) در ریشه مخزن این تقسیم را مشخص می‌کند.
 
 <div align="center">
   <sub>ساخته‌شده با ❤️ توسط تیم <a href="https://oneuptime.com">OneUptime</a> و <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">مشارکت‌کنندگان</a>.</sub>

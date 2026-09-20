@@ -1,9 +1,12 @@
+import { RetiredClaim, RetiredEditionClaims } from "../Utils/Claims";
 import ProductCompare, {
   Category,
   FAQ,
   Item,
+  KeyDifference,
   PricingTier,
   Product,
+  UseCaseComparison,
   getProductCompareSlugs,
 } from "../Utils/ProductCompare";
 
@@ -155,4 +158,239 @@ describe("Every product is fully populated", () => {
       }
     },
   );
+});
+
+const FULLY_OPEN_SOURCE_CLAIM: RegExp = /OneUptime is fully open[- ]source/i;
+
+const WHOLE_PLATFORM_FREE_CLAIM: RegExp =
+  /self-host the (?:entire|whole) (?:Apache|OneUptime|platform)|(?:entire|whole) platform self-hosts/i;
+
+describe("Comparison copy matches the Community / Enterprise Edition split", () => {
+  /*
+   * OneUptime is open-core: SSO, SCIM and audit logs live in the separately
+   * licensed ee/ directory. The SigNoz page used to contrast "OneUptime is
+   * fully Apache 2.0 across the platform" with SigNoz's open-core ee module,
+   * which now describes OneUptime as well.
+   */
+  const signoz: Product = ProductCompare("signoz");
+
+  const findSignozRow: (title: string) => Item | undefined = (
+    title: string,
+  ): Item | undefined => {
+    for (const category of signoz.items as Array<Category>) {
+      const row: Item | undefined = category.data.find((item: Item) => {
+        return item.title === title;
+      });
+
+      if (row) {
+        return row;
+      }
+    }
+
+    return undefined;
+  };
+
+  test("the SigNoz license row describes OneUptime as open-core too", () => {
+    const row: Item | undefined = findSignozRow("Open Source License");
+
+    expect(row).toBeDefined();
+    expect(row!.productColumn).toBe("Open-core (ee module)");
+    expect(row!.oneuptimeColumn).toContain("Open-core");
+    expect(row!.oneuptimeColumn).toContain("Apache 2.0");
+  });
+
+  test("the SigNoz SSO row no longer implies OneUptime SSO is ungated", () => {
+    const row: Item | undefined = findSignozRow("SSO/SAML");
+
+    expect(row).toBeDefined();
+    expect(row!.oneuptimeColumn).not.toBe("tick");
+    expect(row!.oneuptimeColumn).toContain("Enterprise Edition");
+  });
+
+  test("the SigNoz page no longer sells OneUptime as a single permissive license", () => {
+    const text: string = [
+      ...signoz.keyDifferences.map((difference: KeyDifference) => {
+        return `${difference.title} ${difference.description}`;
+      }),
+      ...signoz.faq.map((faq: FAQ) => {
+        return faq.answer;
+      }),
+      ...(signoz.migrationBenefits || []),
+    ].join(" ");
+
+    expect(text).not.toMatch(/fully apache/i);
+    expect(text).not.toMatch(/single permissive license/i);
+    expect(text).not.toMatch(/stay fully open source/i);
+    expect(text).toContain("both follow an open-core model");
+  });
+
+  test.each(slugs)(
+    "%s does not say OneUptime is fully open source or free to self-host in full",
+    (slug: string) => {
+      const product: Product = ProductCompare(slug);
+      const oneUptimeCopy: string = [
+        product.oneUptimeDescription,
+        product.description,
+        product.descriptionLine2,
+        ...(product.migrationBenefits || []),
+        ...product.keyDifferences.map((difference: KeyDifference) => {
+          return difference.description;
+        }),
+        ...product.faq.map((faq: FAQ) => {
+          return faq.answer;
+        }),
+      ].join(" ");
+
+      expect(oneUptimeCopy).not.toMatch(FULLY_OPEN_SOURCE_CLAIM);
+      expect(oneUptimeCopy).not.toMatch(WHOLE_PLATFORM_FREE_CLAIM);
+    },
+  );
+});
+
+/*
+ * What a comparison page says about OneUptime, as it renders. A comparison
+ * row shows its title over its description, so the two are joined with ": "
+ * (the shape Utils/Claims.ts expects for a row): "Free to self-host" over "Run
+ * the full platform on your own infrastructure" is one claim, and neither line
+ * says it alone. Rows OneUptime does not tick, and the competitor-only fields
+ * (productDescription, competitorFocus, pricing tiers, hidden costs, the
+ * competitor side of a use case), are left out.
+ */
+type OneUptimeCopyFunction = (product: Product) => Array<string>;
+
+const oneUptimeCopyOf: OneUptimeCopyFunction = (
+  product: Product,
+): Array<string> => {
+  const rows: Array<string> = product.items.flatMap((category: Category) => {
+    return category.data
+      .filter((item: Item) => {
+        return item.oneuptimeColumn.trim().length > 0;
+      })
+      .map((item: Item) => {
+        return `${item.title}: ${item.description}`;
+      });
+  });
+
+  return [
+    product.tagline,
+    product.oneuptimeFocus,
+    product.oneUptimeDescription,
+    product.description,
+    product.descriptionLine2,
+    ...(product.migrationBenefits || []),
+    ...product.keyDifferences.map((difference: KeyDifference) => {
+      return `${difference.title}: ${difference.description}`;
+    }),
+    ...product.faq.map((faq: FAQ) => {
+      return faq.answer;
+    }),
+    ...(product.useCases || []).map((useCase: UseCaseComparison) => {
+      return `${useCase.oneuptimeSolution}: ${useCase.oneuptimeCost}`;
+    }),
+    ...rows,
+  ];
+};
+
+type RetiredEditionLanguageFunction = (copy: Array<string>) => Array<string>;
+
+const retiredEditionLanguageIn: RetiredEditionLanguageFunction = (
+  copy: Array<string>,
+): Array<string> => {
+  const found: Array<string> = [];
+
+  for (const text of copy) {
+    for (const retired of RetiredEditionClaims) {
+      if (retired.pattern.test(text)) {
+        found.push(`"${retired.example}" (${retired.replacement}) in: ${text}`);
+      }
+    }
+  }
+
+  return found;
+};
+
+describe("Comparison pages, as rendered, use no retired edition language", () => {
+  test.each(slugs)("%s", (slug: string) => {
+    const copy: Array<string> = oneUptimeCopyOf(ProductCompare(slug));
+
+    // The page has to carry copy for the scan to prove anything.
+    expect(copy.length).toBeGreaterThan(5);
+    expect(retiredEditionLanguageIn(copy)).toEqual([]);
+  });
+
+  test("a row whose title and description only together overclaim is caught", () => {
+    const planted: Product = {
+      ...ProductCompare(slugs[0]!),
+      items: [
+        {
+          name: "Platform & Pricing",
+          data: [
+            {
+              title: "Free to self-host",
+              description: "Run the full platform on your own infrastructure.",
+              productColumn: "",
+              oneuptimeColumn: "tick",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(retiredEditionLanguageIn(oneUptimeCopyOf(planted))).toHaveLength(1);
+
+    // Neither line overclaims on its own, which is why the rows are joined.
+    for (const line of [
+      "Free to self-host",
+      "Run the full platform on your own infrastructure.",
+    ]) {
+      expect(
+        RetiredEditionClaims.some((retired: RetiredClaim) => {
+          return retired.pattern.test(line);
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("a row OneUptime does not tick is not read as a claim about OneUptime", () => {
+    const planted: Product = {
+      ...ProductCompare(slugs[0]!),
+      items: [
+        {
+          name: "Platform & Pricing",
+          data: [
+            {
+              title: "Free to self-host",
+              description: "Run the full platform on your own infrastructure.",
+              productColumn: "tick",
+              oneuptimeColumn: "",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(retiredEditionLanguageIn(oneUptimeCopyOf(planted))).toEqual([]);
+  });
+
+  test("the accurate Community Edition row passes", () => {
+    const planted: Product = {
+      ...ProductCompare(slugs[0]!),
+      items: [
+        {
+          name: "Platform & Pricing",
+          data: [
+            {
+              title: "Free to self-host",
+              description:
+                "Run the Apache 2.0 Community Edition on your own infrastructure.",
+              productColumn: "",
+              oneuptimeColumn: "tick",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(retiredEditionLanguageIn(oneUptimeCopyOf(planted))).toEqual([]);
+  });
 });

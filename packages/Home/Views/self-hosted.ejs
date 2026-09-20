@@ -6,7 +6,7 @@
 <head>
   <title>Self-Hosted OneUptime | Deployment, Architecture & Support</title>
   <meta name="description"
-    content="Run the full OneUptime platform on your own infrastructure. Deployment models, reference architecture, Kubernetes requirements, high availability, air-gapped operation, hardened images, and support boundaries.">
+    content="Run the full OneUptime platform on your own infrastructure. Deployment models, reference architecture, Kubernetes requirements, high availability, air-gapped operation, the Enterprise Edition, and support boundaries.">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
   }) -%>
@@ -73,8 +73,8 @@
 
             <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-2xl mx-auto">
               Monitoring, incidents, on-call, status pages, logs, metrics, and traces &mdash; deployed on your
-              Kubernetes cluster, in your cloud or data centre, air-gapped if it has to be. Same product as our
-              cloud, no feature gates, no telemetry leaving your network.
+              Kubernetes cluster, in your cloud or data centre, air-gapped if it has to be. The same codebase as
+              our cloud, and no telemetry leaving your network.
             </p>
 
             <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
@@ -97,7 +97,7 @@
                   stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                 </svg>
-                <span>No feature gates</span>
+                <span>Open-source core</span>
               </div>
               <div class="flex items-center gap-2">
                 <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -111,7 +111,7 @@
                   stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                 </svg>
-                <span>Hardened enterprise images</span>
+                <span>Enterprise SSO, SCIM &amp; audit logs</span>
               </div>
               <div class="flex items-center gap-2">
                 <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -160,7 +160,7 @@
           <a href="#availability" class="hover:text-gray-900">HA &amp; DR</a>
           <a href="#upgrades" class="hover:text-gray-900">Upgrades</a>
           <a href="#air-gapped" class="hover:text-gray-900">Air-gapped</a>
-          <a href="#hardened-images" class="hover:text-gray-900">Hardened images</a>
+          <a href="#enterprise-edition" class="hover:text-gray-900">Enterprise Edition</a>
           <a href="#data-residency" class="hover:text-gray-900">Data residency</a>
           <a href="#support" class="hover:text-gray-900">Support boundaries</a>
         </nav>
@@ -500,17 +500,20 @@
       </div>
     </section>
 
-    <!-- =================================================== HARDENED IMAGES -->
-    <section id="hardened-images" class="bg-white py-20 sm:py-28">
+    <!-- ================================================ ENTERPRISE EDITION -->
+    <section id="enterprise-edition" class="bg-white py-20 sm:py-28">
+      <!-- Kept so links to the section's old #hardened-images anchor still land here. -->
+      <span id="hardened-images" aria-hidden="true"></span>
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Hardened images</p>
-            <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Enterprise Edition
-              hardening</h2>
+            <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Enterprise Edition</p>
+            <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">What the Enterprise
+              Edition adds</h2>
             <p class="mt-4 text-base leading-7 text-gray-600">
-              Community and Enterprise run the same product. What the Enterprise Edition changes is the container
-              image and what sits around it &mdash; selected with one chart value, and it requires a license.
+              The Community Edition is the core platform under Apache 2.0. The Enterprise Edition image adds the
+              enterprise modules from the repository's ee/ directory &mdash; selected with one chart value, and
+              licensed under the OneUptime Enterprise License, so production use requires a license.
             </p>
 
             <div class="mt-8 rounded-2xl bg-gray-900 p-5 shadow-lg">
@@ -531,7 +534,7 @@
           </div>
 
           <ul class="space-y-4">
-            <% selfHosted.hardenedImageFeatures.forEach(function(feature) { %>
+            <% selfHosted.enterpriseEditionFeatures.forEach(function(feature) { %>
             <li class="flex gap-3.5 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24"
                 stroke-width="1.5" stroke="currentColor">
@@ -543,6 +546,25 @@
             <% }); %>
           </ul>
         </div>
+
+        <div class="mt-16 max-w-3xl">
+          <h3 class="text-lg font-semibold text-gray-900">Security controls in both editions</h3>
+          <p class="mt-2 text-sm leading-6 text-gray-600">
+            These come from the Helm chart and the build pipeline, not from the edition you run.
+          </p>
+        </div>
+        <ul class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <% selfHosted.securityHardeningFeatures.forEach(function(feature) { %>
+          <li class="flex gap-3.5 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24"
+              stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+            </svg>
+            <span class="text-sm leading-6 text-gray-600"><%= feature %></span>
+          </li>
+          <% }); %>
+        </ul>
       </div>
     </section>
 
@@ -657,8 +679,8 @@
           <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">What support covers &mdash;
             and what it does not</h2>
           <p class="mt-4 text-base leading-7 text-gray-600">
-            Both editions are the same product. The difference is accountability, and we would rather be blunt about
-            it than have you find out at 3am.
+            The Enterprise Edition adds enterprise features and accountability on top of the same core platform, and
+            we would rather be blunt about the difference than have you find out at 3am.
           </p>
         </div>
 

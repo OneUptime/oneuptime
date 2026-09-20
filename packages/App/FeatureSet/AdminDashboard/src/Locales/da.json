@@ -168,7 +168,14 @@
       "usageCardDescription": "Unikke brugere på tværs af alle kundens selv-hostede instanser, som deres installationer rapporterer dagligt.",
       "instancesCardTitle": "Instanser",
       "instancesCardDescription": "Selv-hostede instanser (staging, produktion osv.), der rapporterer på denne licens, og de hovedadministratorer, vi kan kontakte på hver enkelt.",
-      "noInstances": "Ingen instanser har endnu rapporteret på denne licens."
+      "noInstances": "Ingen instanser har endnu rapporteret på denne licens.",
+      "offlineTokenCardTitle": "Offline licenstoken",
+      "offlineTokenCardDescription": "Til en installation, der ikke kan nå oneuptime.com: download et signeret licenstoken, der er bundet til installationens instans-id. Kunden indsætter det i sit Admin Dashboard.",
+      "offlineTokenButton": "Download offline token",
+      "offlineTokenIssued": "Et offline licenstoken blev downloadet til instansen {{instanceId}}.",
+      "offlineTokenModalTitle": "Download offline licenstoken",
+      "offlineTokenModalDescription": "Angiv instans-id'et for kundens installation. Tokenet virker kun på den installation.",
+      "offlineTokenSubmitButton": "Download token"
     },
     "userView": {
       "title": "Bruger",
@@ -827,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "Projekter, brugere, overvågninger og hændelser på tværs af instansen.",
   "Valkey memory": "Valkey-hukommelse",
   "Spot job backlogs and failures before they cause incidents.": "Opdag jobophobninger og fejl, før de forårsager hændelser.",
-  "Track database disk and memory utilization before you run out.": "Hold styr på databasens disk- og hukommelsesforbrug, før du løber tør."
+  "Track database disk and memory utilization before you run out.": "Hold styr på databasens disk- og hukommelsesforbrug, før du løber tør.",
+  "You can still disable a provider.": "Du kan stadig deaktivere en udbyder.",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "Uden en gyldig Enterprise-licens er denne konfiguration skrivebeskyttet, og logins via disse udbydere er slået fra, men det er altid tilladt at deaktivere en udbyder, fordi det kun kan stramme sikkerheden. Logins genoptages via alle aktiverede udbydere, så snart en licens aktiveres, så hvis en identitetsudbyder er kompromitteret, skal du bruge \"Deaktivér\" nu for at holde den slået fra. Det kræver en gyldig licens at aktivere en udbyder igen.",
+  "Disable Provider": "Deaktivér udbyder",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "Ingen vil kunne logge ind med denne udbyder, før den aktiveres igen, og det kræver en gyldig Enterprise-licens at aktivere den igen.",
+  "Disable": "Deaktivér",
+  "Disable Project Attachment": "Deaktivér projekttilknytning",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "Denne udbyder vil ikke længere oprette brugere i dette projekt eller give adgang til det, når udbyderen er begrænset til tilknyttede projekter. Det kræver en gyldig Enterprise-licens at aktivere tilknytningen igen.",
+  "Disable this provider": "Deaktivér denne udbyder",
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Logins via denne udbyder er slået fra, mens Enterprise-licensen mangler eller er udløbet, og genoptages, så snart en licens aktiveres. Deaktivér udbyderen for at holde den slået fra. Dens konfiguration forbliver uændret, og den kan aktiveres igen, når Enterprise-licensen er gyldig igen."
 }

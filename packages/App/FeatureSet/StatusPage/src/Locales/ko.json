@@ -235,7 +235,9 @@
     "sso": {
       "title": "SSO로 로그인",
       "loginPrompt": "{{statusPageName}}을(를) 보려면 로그인해주세요",
-      "noProviders": "구성되거나 활성화된 SSO 제공자가 없습니다"
+      "noProviders": "구성되거나 활성화된 SSO 제공자가 없습니다",
+      "notAvailable": "이 상태 페이지에서는 싱글 사인온(SSO)을 사용할 수 없습니다. 대신 이메일과 비밀번호로 로그인하세요.",
+      "backToLogin": "로그인으로 돌아가기"
     },
     "forgotPassword": {
       "title": "비밀번호 분실",

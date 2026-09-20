@@ -235,7 +235,9 @@
     "sso": {
       "title": "Entrar com SSO",
       "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
-      "noProviders": "Nenhum provedor SSO configurado ou habilitado"
+      "noProviders": "Nenhum provedor SSO configurado ou habilitado",
+      "notAvailable": "O login único (SSO) não está disponível para esta página de status. Em vez disso, faça login com seu e-mail e senha.",
+      "backToLogin": "Voltar para o login"
     },
     "forgotPassword": {
       "title": "Esqueceu a senha",

@@ -11,6 +11,14 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 
+/*
+ * Immutable audit trail. Nobody creates an entry through the API or as a
+ * project user: every entry is written by the Enterprise Edition's audit-log
+ * recorder, as root. So create is empty at table level and on every column,
+ * and AuditLogService refuses any create that is not root (a master admin's
+ * included, whom these lists do not bind). Update and delete are empty too;
+ * entries leave only through the retention TTL.
+ */
 export default class AuditLog extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -27,7 +35,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -46,7 +54,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -64,7 +72,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -82,7 +90,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -111,7 +119,7 @@ export default class AuditLog extends AnalyticsBaseModel {
             Permission.SettingsAdmin,
             Permission.ReadAuditLog,
           ],
-          create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+          create: [],
           update: [],
         },
       });
@@ -143,7 +151,7 @@ export default class AuditLog extends AnalyticsBaseModel {
             Permission.SettingsAdmin,
             Permission.ReadAuditLog,
           ],
-          create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+          create: [],
           update: [],
         },
       },
@@ -162,7 +170,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -180,7 +188,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -198,7 +206,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -216,7 +224,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -235,7 +243,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -254,7 +262,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -272,7 +280,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -293,7 +301,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
       },
     });
@@ -320,7 +328,7 @@ export default class AuditLog extends AnalyticsBaseModel {
           Permission.SettingsAdmin,
           Permission.ReadAuditLog,
         ],
-        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        create: [],
         update: [],
         delete: [],
       },

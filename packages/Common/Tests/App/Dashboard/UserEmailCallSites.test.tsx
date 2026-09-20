@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import {
   afterEach,
@@ -12,19 +12,18 @@ import {
 
 /*
  * UserElement can only show an email the caller actually asked the API for,
- * and an avatar it was given an id for. Two families of call sites failed one
- * of those and would have kept rendering a bare name after the component
- * change:
+ * and an avatar it was given an id for. The notification-log tables passed
+ * `selectMoreFields={{user: {name}}}`: BaseModelTable's getSelectFields
+ * ASSIGNS selectMoreFields over the select the columns built, rather than
+ * merging into it, so the narrower one won and only the name was ever fetched.
  *
- *   - the notification-log tables passed `selectMoreFields={{user: {name}}}`.
- *     BaseModelTable's getSelectFields ASSIGNS selectMoreFields over the
- *     select the columns built, rather than merging into it, so the narrower
- *     one won and only the name was ever fetched.
- *   - the team compliance table hand-builds its user object and left out the
- *     id, so the avatar route could not be built at all.
+ * That is invisible in a screenshot of a seeded dev project (short names, a
+ * default avatar) and silent in every other suite, so it is pinned here.
  *
- * Both are invisible in a screenshot of a seeded dev project (short names, a
- * default avatar) and silent in every other suite, so they are pinned here.
+ * The other call site this suite used to pin - the team compliance status
+ * table, which hand-builds its user object - is Enterprise Edition code since
+ * the Community / Enterprise split; its tests moved with it to
+ * ee/Tests/UI/TeamCompliance/TeamCompliance.test.tsx.
  */
 
 const BLANK_PROFILE_PIC: string = "data:image/svg+xml;base64,////YXZhdGFy";
@@ -84,16 +83,12 @@ import TelegramLogsTable from "../../../../App/FeatureSet/Dashboard/src/Componen
 import WebhookLogsTable from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationLogs/WebhookLogsTable";
 import WhatsAppLogsTable from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationLogs/WhatsAppLogsTable";
 import WorkspaceLogsTable from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationLogs/WorkspaceLogsTable";
-import TeamComplianceStatusTable from "../../../../App/FeatureSet/Dashboard/src/Components/Team/TeamComplianceStatusTable";
-import API from "../../../UI/Utils/API/API";
-import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import ObjectID from "../../../Types/ObjectID";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "00000000-0000-4000-8000-000000000001",
 );
-const TEAM_ID: ObjectID = new ObjectID("00000000-0000-4000-8000-000000000002");
 const USER_ID: string = "00000000-0000-4000-8000-000000000003";
 
 const NOTIFICATION_LOG_TABLES: Array<{
@@ -206,79 +201,4 @@ describe("notification log tables", () => {
       });
     },
   );
-});
-
-describe("team compliance status table", () => {
-  const complianceResponse: {
-    teamId: string;
-    teamName: string;
-    complianceSettings: Array<{ ruleType: string; enabled: boolean }>;
-    userComplianceStatuses: Array<{
-      userId: string;
-      userName: string;
-      userEmail: string;
-      isCompliant: boolean;
-      nonCompliantRules: Array<{ ruleType: string; reason: string }>;
-    }>;
-  } = {
-    teamId: TEAM_ID.toString(),
-    teamName: "On-Call",
-    complianceSettings: [
-      { ruleType: "HasNotificationEmailMethod", enabled: true },
-    ],
-    userComplianceStatuses: [
-      {
-        userId: USER_ID,
-        userName: "Jane Doe",
-        userEmail: "jane@acme.com",
-        isCompliant: false,
-        nonCompliantRules: [
-          {
-            ruleType: "HasNotificationEmailMethod",
-            reason: "No email notification method",
-          },
-        ],
-      },
-    ],
-  };
-
-  beforeEach(async () => {
-    jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
-    jest
-      .spyOn(API, "get")
-      .mockResolvedValue({ data: complianceResponse } as never);
-
-    render(<TeamComplianceStatusTable teamId={TEAM_ID} />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Jane Doe")).toBeInTheDocument();
-    });
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  test("shows the member's email beside their name", () => {
-    expect(screen.getByTestId("user-email")).toHaveTextContent("jane@acme.com");
-  });
-
-  /*
-   * The row is hand-built from the compliance payload. Without the id the
-   * avatar route cannot be built and every member falls back to the blank
-   * picture, which reads as "nobody has a photo" rather than as a bug.
-   */
-  test("builds the avatar from the member's own id", () => {
-    expect(screen.getAllByRole("img")[0]).toHaveAttribute(
-      "src",
-      `/api/user/profile-picture/${USER_ID}`,
-    );
-  });
-
-  test("still shows why the member is non-compliant", () => {
-    expect(screen.getByText("Non-Compliant")).toBeInTheDocument();
-    expect(
-      screen.getByText(/No email notification method/),
-    ).toBeInTheDocument();
-  });
 });

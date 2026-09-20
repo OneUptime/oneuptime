@@ -13,7 +13,9 @@
 {{> DetailBoxField title="Status:" text=expiryStatus }}
 {{> DetailBoxEnd this }}
 
-{{> InfoBlock info="When the license expires, your self-hosted OneUptime instances will no longer be able to validate it and enterprise features will stop working."}}
+{{> InfoBlock info="Your self-hosted OneUptime instances keep every enterprise feature for 30 days after the expiry date above (the grace period)."}}
+
+{{> InfoBlock info="When the grace period ends, until a renewed license is activated: SSO and OIDC sign-in stop and &quot;Require SSO&quot; is no longer enforced, so your users sign in with their password; SCIM provisioning stops, so your identity provider can no longer provision or deprovision users; audit logging stops recording; and enterprise configuration becomes read-only. Everything resumes as soon as the renewed license is activated. Monitoring, alerts, incidents, on-call and status pages are not affected."}}
 
 {{> InfoBlock info="To renew your license, reply to this email or write to sales@oneuptime.com and we will be happy to help."}}
 

@@ -235,7 +235,9 @@
     "sso": {
       "title": "通过 SSO 登录",
       "loginPrompt": "请登录以查看 {{statusPageName}}",
-      "noProviders": "未配置或启用 SSO 提供商"
+      "noProviders": "未配置或启用 SSO 提供商",
+      "notAvailable": "此状态页不支持单点登录（SSO）。请改用您的电子邮件和密码登录。",
+      "backToLogin": "返回登录"
     },
     "forgotPassword": {
       "title": "忘记密码",

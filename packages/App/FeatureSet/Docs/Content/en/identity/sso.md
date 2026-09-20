@@ -2,6 +2,8 @@
 
 OneUptime supports SAML 2.0 based Single Sign-On (SSO) for enterprise authentication. SSO allows your team members to log in to OneUptime using your organization's identity provider (IdP), providing centralized access management and enhanced security.
 
+> **Edition:** SSO is part of the OneUptime Enterprise Edition. On OneUptime Cloud it is available on the **Scale** plan and above. Self-hosted installations need the Enterprise Edition image and a license. See [Enterprise Edition](/docs/self-hosted/enterprise). Without a valid license (after the 14-day trial, or 30 days after a license expires), SSO sign-in stops and "Require SSO" is not enforced until a license is activated.
+
 ## Overview
 
 SSO integration provides the following benefits:

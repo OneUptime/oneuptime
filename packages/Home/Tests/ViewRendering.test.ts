@@ -97,7 +97,7 @@ describe("self-hosted.ejs", () => {
       "availability",
       "upgrades",
       "air-gapped",
-      "hardened-images",
+      "enterprise-edition",
       "data-residency",
       "responsibilities",
       "support",
@@ -193,6 +193,45 @@ describe("self-hosted.ejs", () => {
 
   test("states plainly that self-hosted uptime is the customer's", () => {
     expect(html).toContain("does not extend to infrastructure you operate");
+  });
+
+  test("keeps the old #hardened-images anchor landing on the Enterprise Edition section", () => {
+    const sectionStart: number = html.indexOf('id="enterprise-edition"');
+    const legacyAnchor: number = html.indexOf('id="hardened-images"');
+    const nextSection: number = html.indexOf('id="data-residency"');
+
+    expect(sectionStart).toBeGreaterThan(-1);
+    expect(legacyAnchor).toBeGreaterThan(sectionStart);
+    expect(legacyAnchor).toBeLessThan(nextSection);
+    expect(html).toContain('href="#enterprise-edition"');
+    expect(html).not.toContain('href="#hardened-images"');
+  });
+
+  test("renders what the Enterprise Edition adds and the controls both editions share", () => {
+    const content: ReturnType<typeof getSelfHostedContent> =
+      getSelfHostedContent();
+
+    expect(content.enterpriseEditionFeatures.length).toBeGreaterThan(0);
+    expect(content.securityHardeningFeatures.length).toBeGreaterThan(0);
+
+    for (const feature of [
+      ...content.enterpriseEditionFeatures,
+      ...content.securityHardeningFeatures,
+    ]) {
+      expect(html).toContain(escapeForHtml(feature));
+    }
+
+    expect(html).toContain("What the Enterprise");
+    expect(html).toContain("Security controls in both editions");
+    expect(html).toContain("OneUptime Enterprise License");
+  });
+
+  test("no longer claims the editions are identical or the images hardened", () => {
+    expect(html).not.toMatch(/no feature gates/i);
+    expect(html).not.toMatch(/hardened\s+(?:enterprise\s+)?images/i);
+    expect(html).not.toContain("Both editions are the same product");
+    expect(html).not.toContain("Community and Enterprise run the same product");
+    expect(html).toContain("Open-source core");
   });
 });
 

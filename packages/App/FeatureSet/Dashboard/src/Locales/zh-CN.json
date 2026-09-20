@@ -6264,5 +6264,12 @@
   "No on-call schedules yet": "还没有值班计划",
   "Create an on-call schedule and every rotation in this project will show up here, side by side.": "创建值班计划后，本项目中的所有轮值都会在这里并排显示。",
   "This team does not own any on-call schedules yet": "该团队还没有拥有任何值班计划",
-  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "在值班计划的“所有者”选项卡中将该团队添加为所有者，其轮值就会显示在这里。"
+  "Add this team as an owner on a schedule's Owners tab and its rotations will show up here.": "在值班计划的“所有者”选项卡中将该团队添加为所有者，其轮值就会显示在这里。",
+  "You can still disable a provider.": "您仍然可以禁用提供商。",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "没有有效的 Enterprise 许可证时，此配置为只读，通过这些提供商的登录也已关闭，但始终可以禁用提供商，因为这只会加强安全性。许可证一旦激活，通过所有已启用提供商的登录会立即恢复，因此如果身份提供商遭到入侵，请现在就使用“禁用”，使其保持关闭。重新启用提供商需要有效的许可证。",
+  "You can still reset a SCIM bearer token.": "您仍然可以重置 SCIM Bearer 令牌。",
+  "Without a valid Enterprise license this configuration is read-only and SCIM requests are refused, but resetting a bearer token is always allowed, because it can only tighten security. SCIM requests are accepted again as soon as a license is activated, so if a token has leaked, use Reset Bearer Token now to replace it, then give the new token to your identity provider.": "没有有效的 Enterprise 许可证时，此配置为只读，SCIM 请求也会被拒绝，但始终可以重置 Bearer 令牌，因为这只会加强安全性。许可证一旦激活，SCIM 请求会立即重新被接受，因此如果令牌已泄露，请现在就使用“重置 Bearer 令牌”替换它，然后将新令牌提供给您的身份提供商。",
+  "Disable Provider": "禁用提供商",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "在重新启用之前，任何人都无法通过此提供商登录，而重新启用需要有效的 Enterprise 许可证。",
+  "This browser cannot generate a secure bearer token. Please use a current browser and try again.": "此浏览器无法生成安全的 Bearer 令牌。请使用最新的浏览器后重试。"
 }

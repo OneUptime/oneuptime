@@ -923,6 +923,10 @@ DocsNav.push({
       title: "Architecture",
       url: "/docs/self-hosted/architecture",
     },
+    {
+      title: "Enterprise Edition",
+      url: "/docs/self-hosted/enterprise",
+    },
   ],
 });
 

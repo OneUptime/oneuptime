@@ -168,7 +168,14 @@
       "usageCardDescription": "ग्राहक के सभी सेल्फ-होस्टेड इंस्टेंस में अद्वितीय उपयोगकर्ता, जैसा कि उनके इंस्टॉलेशन प्रतिदिन रिपोर्ट करते हैं।",
       "instancesCardTitle": "इंस्टेंस",
       "instancesCardDescription": "इस लाइसेंस के लिए रिपोर्ट करने वाले सेल्फ-होस्टेड इंस्टेंस (स्टेजिंग, प्रोडक्शन आदि), और प्रत्येक पर वे मास्टर एडमिन जिनसे हम संपर्क कर सकते हैं।",
-      "noInstances": "इस लाइसेंस के लिए अभी तक किसी इंस्टेंस ने रिपोर्ट नहीं की है।"
+      "noInstances": "इस लाइसेंस के लिए अभी तक किसी इंस्टेंस ने रिपोर्ट नहीं की है।",
+      "offlineTokenCardTitle": "ऑफ़लाइन लाइसेंस टोकन",
+      "offlineTokenCardDescription": "ऐसे इंस्टॉलेशन के लिए जो oneuptime.com तक नहीं पहुँच सकता: उस इंस्टॉलेशन की इंस्टेंस आईडी से बंधा एक हस्ताक्षरित लाइसेंस टोकन डाउनलोड करें। ग्राहक इसे अपने एडमिन डैशबोर्ड में पेस्ट करता है।",
+      "offlineTokenButton": "ऑफ़लाइन टोकन डाउनलोड करें",
+      "offlineTokenIssued": "इंस्टेंस {{instanceId}} के लिए एक ऑफ़लाइन लाइसेंस टोकन डाउनलोड किया गया।",
+      "offlineTokenModalTitle": "ऑफ़लाइन लाइसेंस टोकन डाउनलोड करें",
+      "offlineTokenModalDescription": "ग्राहक के इंस्टॉलेशन की इंस्टेंस आईडी दर्ज करें। टोकन केवल उसी इंस्टॉलेशन पर काम करता है।",
+      "offlineTokenSubmitButton": "टोकन डाउनलोड करें"
     },
     "userView": {
       "title": "उपयोगकर्ता",
@@ -827,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "इंस्टेंस भर के प्रोजेक्ट, उपयोगकर्ता, मॉनिटर और घटनाएं।",
   "Valkey memory": "Valkey मेमोरी",
   "Spot job backlogs and failures before they cause incidents.": "जॉब बैकलॉग और विफलताओं को घटनाएं उत्पन्न करने से पहले पहचानें।",
-  "Track database disk and memory utilization before you run out.": "समाप्त होने से पहले डेटाबेस डिस्क और मेमोरी उपयोग को ट्रैक करें।"
+  "Track database disk and memory utilization before you run out.": "समाप्त होने से पहले डेटाबेस डिस्क और मेमोरी उपयोग को ट्रैक करें।",
+  "You can still disable a provider.": "आप अब भी किसी प्रदाता को अक्षम कर सकते हैं।",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "मान्य Enterprise लाइसेंस के बिना यह कॉन्फ़िगरेशन केवल-पठनीय है और इन प्रदाताओं के माध्यम से साइन-इन बंद है, लेकिन किसी प्रदाता को अक्षम करने की अनुमति हमेशा रहती है, क्योंकि इससे सुरक्षा केवल सख्त हो सकती है। लाइसेंस सक्रिय होते ही हर सक्षम प्रदाता के माध्यम से साइन-इन फिर से शुरू हो जाता है, इसलिए यदि कोई पहचान प्रदाता असुरक्षित हो गया है, तो उसे बंद रखने के लिए अभी \"अक्षम करें\" का उपयोग करें। किसी प्रदाता को फिर से चालू करने के लिए मान्य लाइसेंस आवश्यक है।",
+  "Disable Provider": "प्रदाता अक्षम करें",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "जब तक इसे फिर से चालू नहीं किया जाता, तब तक कोई भी इस प्रदाता से साइन इन नहीं कर पाएगा, और इसे फिर से चालू करने के लिए मान्य Enterprise लाइसेंस आवश्यक है।",
+  "Disable": "अक्षम करें",
+  "Disable Project Attachment": "प्रोजेक्ट अटैचमेंट अक्षम करें",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "यह प्रदाता अब इस प्रोजेक्ट में उपयोगकर्ताओं का प्रावधान नहीं करेगा, और जब प्रदाता केवल अटैच किए गए प्रोजेक्ट तक सीमित हो, तो इसकी पहुँच भी नहीं देगा। अटैचमेंट को फिर से चालू करने के लिए मान्य Enterprise लाइसेंस आवश्यक है।",
+  "Disable this provider": "इस प्रदाता को अक्षम करें",
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "जब तक Enterprise लाइसेंस मौजूद नहीं है या समाप्त हो चुका है, इस प्रदाता के माध्यम से साइन-इन बंद रहता है, और लाइसेंस सक्रिय होते ही फिर से शुरू हो जाता है। इसे बंद रखने के लिए प्रदाता को अक्षम करें। इसका कॉन्फ़िगरेशन जैसा है वैसा ही रहेगा, और Enterprise लाइसेंस के फिर से मान्य होने पर इसे फिर से चालू किया जा सकता है।"
 }

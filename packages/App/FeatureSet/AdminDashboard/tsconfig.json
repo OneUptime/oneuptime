@@ -36,7 +36,18 @@
     // "rootDir": "./",                                  /* Specify the root folder within your source files. */
     "moduleResolution": "node" /* Specify how TypeScript looks up a file from a given module specifier. */,
     // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
-    // "paths": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
+    /*
+     * "@oneuptime/ee-admin-dashboard" is the Enterprise admin UI plugin,
+     * imported only by src/Enterprise/Plugins.ts. The type checker always
+     * sees the Community stub; the Enterprise image build points esbuild at
+     * ee/AdminDashboard/Index.tsx instead (Common/UI/esbuild-enterprise.js),
+     * and ee/AdminDashboard/tsconfig.json type-checks the real plugin against
+     * the same interface. Paths without a baseUrl resolve relative to this
+     * file.
+     */
+    "paths": {
+      "@oneuptime/ee-admin-dashboard": ["./src/Enterprise/CommunityPlugins"]
+    },
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     "typeRoots": [
       "./node_modules/@types"

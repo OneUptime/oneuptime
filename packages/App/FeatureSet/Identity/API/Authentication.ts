@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import CredentialGuard from "../Utils/CredentialGuard";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -830,7 +831,8 @@ router.post(
       });
 
       if (alreadySavedUser && alreadySavedUser.password) {
-        const token: string = ObjectID.generate().toString();
+        // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
+        const token: string = crypto.randomUUID();
         const hashedToken: string = await HashedString.hashValue(
           token,
           EncryptionSecret,

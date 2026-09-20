@@ -18,6 +18,17 @@ export default class JobDictionary {
     throw new BadDataException("No job found with name: " + name);
   }
 
+  /*
+   * Whether a handler is registered under `name`. An own-property check, so
+   * inherited names such as "toString" never count as registered jobs.
+   */
+  public static has(name: string): boolean {
+    return (
+      Object.prototype.hasOwnProperty.call(this.dictionary, name) &&
+      typeof this.dictionary[name] === "function"
+    );
+  }
+
   public static setJobFunction(name: string, job: WorkerJobFunction): void {
     this.dictionary[name] = job;
   }

@@ -8,6 +8,10 @@ import {
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import Email from "Common/Types/Email";
 import HashedString from "Common/Types/HashedString";
@@ -338,6 +342,7 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.restoreAllMocks();
+  uninstallEnterpriseModule();
 });
 
 describe("Status page POST /login — per-user salt", () => {
@@ -493,6 +498,13 @@ describe("Status page POST /login — per-user salt", () => {
   });
 
   it("still refuses password login on an SSO-only status page", async () => {
+    /*
+     * A status page's SSO requirement is enforced whenever the Enterprise
+     * Edition is loaded; the Community Edition relaxes it (see
+     * StatusPageSsoEditionEnforcement.test.ts).
+     */
+    installFakeEnterpriseModule();
+
     statusPageFindOneById.mockResolvedValue({
       id: STATUS_PAGE_ID,
       _id: STATUS_PAGE_ID.toString(),
