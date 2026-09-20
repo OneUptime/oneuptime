@@ -12,8 +12,10 @@ import { describe, expect, test } from "@jest/globals";
  * consumer, which is why a monitor on a non-443 port could never connect —
  * see https://github.com/OneUptime/oneuptime/issues/3225.
  *
- * fromString() is NOT a substitute: it splits on the FIRST colon, which
- * mangles every IPv6 literal.
+ * fromString() used not to be a substitute: it split on the FIRST colon,
+ * which mangled every IPv6 literal. It now delegates IPv6 authorities here
+ * instead, so the two agree on addresses; they still differ on a DNS host,
+ * where fromString keeps its own splitting and its own userinfo handling.
  */
 describe("Hostname.fromAuthority", () => {
   describe("host and port", () => {
@@ -141,18 +143,26 @@ describe("Hostname.fromAuthority", () => {
   });
 
   describe("contrast with fromString", () => {
-    test("fromString rejects an IPv6 literal that fromAuthority handles", () => {
+    test("fromString now agrees with fromAuthority on an IPv6 literal", () => {
       /*
-       * Pinned deliberately: it documents WHY fromAuthority exists, and
-       * guards against someone 'simplifying' one into the other.
+       * This case used to be pinned the other way round: fromString split on
+       * the FIRST colon, so "[::1]:8443" became a host of "[" and the setter
+       * threw. Worse, the unbracketed spelling did NOT throw -- it returned
+       * host "2001" / port 518 for "2001:518:2800:9::2" and a monitor was
+       * saved pointing at a host nobody typed.
        *
-       * fromString splits on the FIRST colon, so "[::1]:8443" becomes a
-       * host of "[" - which the Hostname setter rejects outright.
+       * fromString delegates IPv6 authorities to fromAuthority now, so the
+       * two agree. Kept as a contrast test so a future 'simplification' that
+       * reintroduces the split fails here.
        */
       expect(Hostname.fromAuthority("[::1]:8443").hostname).toBe("[::1]");
-      expect(() => {
-        return Hostname.fromString("[::1]:8443");
-      }).toThrow();
+      expect(Hostname.fromString("[::1]:8443").hostname).toBe("[::1]");
+      expect(Hostname.fromString("[::1]:8443").port?.toNumber()).toBe(8443);
+
+      expect(Hostname.fromString("2001:518:2800:9::2").hostname).toBe(
+        "2001:518:2800:9::2",
+      );
+      expect(Hostname.fromString("2001:518:2800:9::2").port).toBeUndefined();
     });
 
     test("both agree on the simple host:port case", () => {

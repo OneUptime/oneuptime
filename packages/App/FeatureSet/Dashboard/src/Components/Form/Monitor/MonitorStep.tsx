@@ -2,12 +2,9 @@ import MonitorCriteriaElement from "./MonitorCriteria";
 import MonitorTemplateSyncFields from "./MonitorTemplateSyncFields";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
-import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import CodeType from "Common/Types/Code/CodeType";
 import Dictionary from "Common/Types/Dictionary";
-import Exception from "Common/Types/Exception/Exception";
-import IP from "Common/Types/IP/IP";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepLogMonitor, {
@@ -17,6 +14,9 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
+import MonitorDestinationUtil, {
+  ParsedMonitorDestination,
+} from "Common/Utils/Monitor/MonitorDestinationUtil";
 import Port from "Common/Types/Port";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -804,19 +804,26 @@ return {
                     destination: true,
                   });
 
-                  if (!monitorStep?.data?.monitorDestination?.toString()) {
-                    setErrors({
-                      ...errors,
-                      destination: "Destination is required",
+                  const parsed: ParsedMonitorDestination =
+                    MonitorDestinationUtil.parse({
+                      value: destinationInputValue,
+                      monitorType: props.monitorType,
                     });
-                  } else {
-                    setErrors({
-                      ...errors,
-                      destination: "",
-                    });
-                    setDestinationInputValue(
-                      monitorStep?.data?.monitorDestination?.toString(),
-                    );
+
+                  setErrors({
+                    ...errors,
+                    destination: parsed.error || "",
+                  });
+
+                  /*
+                   * Only a value that PARSED is echoed back into the field.
+                   * This used to rewrite the input from the step whenever the
+                   * step held anything at all, which put the previously saved
+                   * address back over what the operator had just typed and
+                   * cleared the error explaining why it had not been kept.
+                   */
+                  if (parsed.destination) {
+                    setDestinationInputValue(parsed.destination.toString());
                   }
                 }}
                 error={
@@ -825,54 +832,30 @@ return {
                     : undefined
                 }
                 onChange={(value: string) => {
-                  let destination: IP | URL | Hostname | undefined = undefined;
-
-                  try {
-                    if (props.monitorType === MonitorType.IP) {
-                      destination = IP.fromString(value);
-                    } else if (props.monitorType === MonitorType.Ping) {
-                      if (IP.isIP(value)) {
-                        destination = IP.fromString(value);
-                      } else {
-                        destination = Hostname.fromString(value);
-                      }
-                    } else if (props.monitorType === MonitorType.Port) {
-                      if (IP.isIP(value)) {
-                        destination = IP.fromString(value);
-                      } else {
-                        destination = Hostname.fromString(value);
-                      }
-                    } else if (props.monitorType === MonitorType.Website) {
-                      destination = URL.fromString(value);
-                    } else if (props.monitorType === MonitorType.API) {
-                      destination = URL.fromString(value);
-                    } else if (
-                      props.monitorType === MonitorType.SSLCertificate
-                    ) {
-                      destination = URL.fromString(value);
-                    }
-
-                    setErrors({
-                      ...errors,
-                      destination: "",
+                  const parsed: ParsedMonitorDestination =
+                    MonitorDestinationUtil.parse({
+                      value: value,
+                      monitorType: props.monitorType,
                     });
-                  } catch (err) {
-                    if (err instanceof Exception) {
-                      setErrors({
-                        ...errors,
-                        destination: err.message,
-                      });
-                    } else {
-                      setErrors({
-                        ...errors,
-                        destination: "Invalid Destination",
-                      });
-                    }
-                  }
 
-                  if (destination) {
-                    monitorStep.setMonitorDestination(destination);
-                  }
+                  setErrors({
+                    ...errors,
+                    destination: parsed.error || "",
+                  });
+
+                  /*
+                   * The step is written on EVERY keystroke, including the
+                   * ones that do not parse, where it is cleared.
+                   *
+                   * It used to be written only when a value parsed, and never
+                   * cleared — so a step kept whatever last parsed while the
+                   * field showed something else entirely. Editing a monitor's
+                   * address left the OLD one saved, and half-typed IPv6 made
+                   * that routine: "2001:518:2800:9::" parses (it is a real
+                   * address) one keystroke before the operator finishes
+                   * typing "2001:518:2800:9::2".
+                   */
+                  monitorStep.setMonitorDestination(parsed.destination);
 
                   setDestinationInputValue(value);
                   if (props.onChange) {

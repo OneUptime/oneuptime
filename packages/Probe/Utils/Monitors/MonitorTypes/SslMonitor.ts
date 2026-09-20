@@ -13,6 +13,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
+import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import ObjectUtil from "Common/Utils/ObjectUtil";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import { ClientRequest, IncomingMessage } from "http";
@@ -121,7 +122,14 @@ export default class SSLMonitor {
      * "example.com:8443".
      */
     const target: Hostname = Hostname.fromAuthority(url.hostname.toString());
-    const host: string = target.hostname;
+    /*
+     * fromAuthority hands back the host in its AUTHORITY spelling, so an IPv6
+     * literal still wears its brackets ("[2001:db8::1]"). Those are URL
+     * syntax. https.get does not strip them — it resolves "[2001:db8::1]" as
+     * a name and fails ENOTFOUND — so every IPv6 SSL monitor died on a DNS
+     * error for an address that never needed DNS.
+     */
+    const host: string = HostAddressUtil.stripBrackets(target.hostname);
     const port: number = target.port?.toNumber() || 443;
 
     logger.debug(

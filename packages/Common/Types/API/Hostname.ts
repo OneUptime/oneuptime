@@ -3,6 +3,8 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
 import Port from "../Port";
 import Typeof from "../Typeof";
+import HostAddressUtil from "../../Utils/HostAddressUtil";
+import IP from "../IP/IP";
 import { FindOperator } from "typeorm";
 
 /*
@@ -22,9 +24,25 @@ const HOST_REGEX: RegExp =
  */
 const USER_INFO_REGEX: RegExp = /^[^@/?#\s[\]]*$/;
 
-const IPV6_CHARS_REGEX: RegExp = /^[0-9a-fA-F:.]+$/;
-
 const PORT_REGEX: RegExp = /^\d{1,5}$/;
+
+/*
+ * The authority spellings of an IPv6 host: bracketed ("[::1]", "[::1]:8080")
+ * or bare. Two or more colons cannot be a "host:port", so every colon in a
+ * bare value belongs to the address itself.
+ *
+ * This only decides which SHAPE a value has. Whether what it holds is really
+ * an address is IP.isIP's job, and isValid below asks it -- the old code
+ * settled for a "[0-9a-fA-F:.]+" charset, which called "::::" and
+ * "1.2.3.4.5.6" valid hosts and then handed them to a socket.
+ */
+function isIPv6Authority(authority: string): boolean {
+  return authority.startsWith("[") || (authority.match(/:/g) || []).length > 1;
+}
+
+function isIPv6Address(value: string): boolean {
+  return Boolean(value) && IP.isIP(value) && new IP(value).isIPv6();
+}
 
 export default class Hostname extends DatabaseProperty {
   private _route: string = "";
@@ -104,15 +122,15 @@ export default class Hostname extends DatabaseProperty {
       /^\[([0-9a-fA-F:.]+)\](?::(\d{1,5}))?$/,
     );
     if (bracketedIpv6Match) {
-      return true;
+      return isIPv6Address(bracketedIpv6Match[1] as string);
     }
 
     /*
      * Unbracketed IPv6 literal. Two or more colons cannot be a "host:port",
      * so the colons must be part of the address itself.
      */
-    if ((authority.match(/:/g) || []).length > 1) {
-      return IPV6_CHARS_REGEX.test(authority);
+    if (isIPv6Authority(authority)) {
+      return isIPv6Address(authority);
     }
 
     const colonIndex: number = authority.indexOf(":");
@@ -158,28 +176,57 @@ export default class Hostname extends DatabaseProperty {
     throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
   }
 
+  /*
+   * The authority form. An IPv6 host is BRACKETED once a port is appended,
+   * because "2001:db8::1" + ":179" is not an ambiguous-looking string — it is
+   * "2001:db8::1:179", which net.isIP() accepts as a different, perfectly
+   * valid address. Anything that read this back (or showed it to an operator)
+   * was therefore pointed at a host nobody configured.
+   *
+   * Without a port the host is returned exactly as it is held, brackets and
+   * all. A bracketed value came from a URL authority and has to go back into
+   * one — dropping the brackets there would make URL.toString() emit
+   * "https://2001:db8::1/", which no URL parser accepts.
+   */
   public override toString(): string {
-    let hostname: string = this.hostname;
-
-    if (this.port) {
-      hostname += ":" + this.port.toString();
+    if (!this.port) {
+      return this.hostname;
     }
 
-    return hostname;
+    return HostAddressUtil.formatHostAndPort({
+      host: this.hostname,
+      port: this.port.toString(),
+    });
   }
 
+  /*
+   * Reads a stored host, which may carry a ":port".
+   *
+   * IPv6 literals are handed to fromAuthority instead of being split, because
+   * splitting on the first colon is meaningless for an address that is made
+   * of colons: "2001:518:2800:9::2" used to come back as host "2001" with
+   * port 518 — and because 518 is a legal port number NOTHING threw. A
+   * monitor saved from the dashboard therefore silently pointed at a host
+   * called "2001", and the address the operator typed was simply gone.
+   *
+   * DNS names and IPv4 literals keep the original behaviour exactly: neither
+   * can contain two colons, so neither can reach the new branch.
+   */
   public static fromString(hostname: string | Hostname): Hostname {
     if (hostname instanceof Hostname) {
       hostname = hostname.toString();
     }
 
-    if (hostname.includes(":")) {
-      return new Hostname(
-        hostname.split(":")[0] as string,
-        hostname.split(":")[1],
-      );
+    const value: string = (hostname || "").trim();
+
+    if (isIPv6Authority(value)) {
+      return Hostname.fromAuthority(value);
     }
-    return new Hostname(hostname);
+
+    if (value.includes(":")) {
+      return new Hostname(value.split(":")[0] as string, value.split(":")[1]);
+    }
+    return new Hostname(value);
   }
 
   /*

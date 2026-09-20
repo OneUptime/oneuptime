@@ -2,6 +2,7 @@ import OneUptimeDate from "Common/Types/Date";
 import PingMonitorResponse from "Common/Types/Monitor/PingMonitor/PingMonitorResponse";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import NetworkPathView from "./NetworkPathView";
@@ -43,10 +44,11 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
           className="w-full shadow-none border-2 border-gray-100 "
           title="Hostname or IP address"
           value={
-            (props.probeMonitorResponse.monitorDestination?.toString() || "") +
-              (props.probeMonitorResponse.monitorDestinationPort?.toString()
-                ? `:${props.probeMonitorResponse.monitorDestinationPort.toString()}`
-                : "") || "-"
+            HostAddressUtil.formatHostAndPort({
+              host:
+                props.probeMonitorResponse.monitorDestination?.toString() || "",
+              port: props.probeMonitorResponse.monitorDestinationPort?.toString(),
+            }) || "-"
           }
         />
       </div>
