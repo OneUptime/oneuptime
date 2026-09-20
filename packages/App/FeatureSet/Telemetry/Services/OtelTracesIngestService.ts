@@ -265,14 +265,23 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       }
 
       /*
-       * Send the 200 first, then enqueue the raw request bytes. The
-       * heavy protobuf decode + toJSON used to run here on the
-       * Express event loop, blocking all other requests (including
-       * dashboard reads). The worker now handles it.
+       * Acknowledge only after queue admission. Raw bytes still pass through
+       * unchanged; protobuf decode and normalization remain in the worker.
        */
-      Response.sendEmptySuccessResponse(req, res);
+      try {
+        await TracesQueueService.addTraceIngestJob(req as TelemetryRequest);
+      } catch {
+        // Do not expose backend errors or payloads to the exporter.
+        return Response.sendCustomResponse(
+          req,
+          res,
+          503,
+          { message: "Telemetry queue unavailable. Please retry." },
+          {},
+        );
+      }
 
-      await TracesQueueService.addTraceIngestJob(req as TelemetryRequest);
+      Response.sendEmptySuccessResponse(req, res);
 
       return;
     } catch (err) {
