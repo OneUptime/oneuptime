@@ -179,7 +179,6 @@ const readAuditField: ReadAuditFieldFunction = (
 type ListAuditLogEntriesFunction = (data: {
   page: Page;
   projectId: string;
-  limit?: number | undefined;
 }) => Promise<Array<AuditLogEntry>>;
 
 /*
@@ -187,11 +186,17 @@ type ListAuditLogEntriesFunction = (data: {
  * (Common/Server/API/BaseAnalyticsAPI.ts), which is what a project owner or
  * admin sees in the Dashboard. Creates through this API are refused for every
  * non-root caller, so a row here can only have come from the recorder.
+ *
+ * Deliberately no page size: unlike the ordinary CRUD list, the analytics one
+ * reads skip and limit from the QUERY STRING and takes only query/select/sort
+ * from the body, so a limit passed here would be silently ignored. The server
+ * default (10) is what comes back, sorted by createdAt descending - so the
+ * most recent audited write is always on this page, which is all any caller
+ * here needs.
  */
 export const listAuditLogEntries: ListAuditLogEntriesFunction = async (data: {
   page: Page;
   projectId: string;
-  limit?: number | undefined;
 }): Promise<Array<AuditLogEntry>> => {
   const rows: Array<JSONish> = await listItems({
     page: data.page,
@@ -208,7 +213,6 @@ export const listAuditLogEntries: ListAuditLogEntriesFunction = async (data: {
       userName: true,
       createdAt: true,
     },
-    limit: data.limit || 50,
   });
 
   return rows.map((row: JSONish): AuditLogEntry => {
