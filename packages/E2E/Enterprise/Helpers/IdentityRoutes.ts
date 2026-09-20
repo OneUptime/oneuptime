@@ -83,6 +83,15 @@ export interface IdentityProbeExpectation {
    * ran.
    */
   isEntityArray?: boolean | undefined;
+  /*
+   * True when the answer must be an RFC 7644 SCIM error body rather than the
+   * usual error envelope. It matters because an identity provider only shows
+   * its administrator a reason it can parse, and
+   * LicensedFeatureGate.sendRefusal bypasses Response.sendErrorResponse
+   * precisely so the refusal keeps the SCIM shape: `schemas`, `status` as a
+   * STRING, and `detail`.
+   */
+  isScimError?: boolean | undefined;
 }
 
 export interface IdentityProbe {
@@ -113,6 +122,7 @@ const SCIM_REFUSAL: IdentityProbeExpectation = {
   // Forbidden with a SCIM error body, from LicensedFeatureGate.forScim.
   status: 403,
   bodyContains: SCIM_UNAVAILABLE_MESSAGE_FRAGMENT,
+  isScimError: true,
 };
 
 export const IDENTITY_PROBES: ReadonlyArray<IdentityProbe> = [
@@ -187,3 +197,53 @@ export const identityProbeUrl: IdentityProbeUrlFunction = (data: {
 }): string => {
   return enterpriseUrl(`${data.prefix}${data.path}`);
 };
+
+/*
+ * The BROWSER half of the SSO surface, which refuses differently: a person is
+ * looking at it, so LicensedFeatureGate.forSsoPage renders the Identity
+ * message view with a 402 instead of answering JSON
+ * (ee/Server/Identity/Middleware/LicensedFeatureGate.ts, whose MESSAGE_VIEW is
+ * packages/App/FeatureSet/Identity/Views/Message.ejs). That is what somebody
+ * clicking "Sign in with SSO" sees once the licence has lapsed, and the reason
+ * a lapse does not look like an outage.
+ *
+ * Deliberately NOT part of IDENTITY_PROBES: this path is only deterministic
+ * while the gate refuses in front of it. On a licensed stack the route itself
+ * runs and its answer depends on the ProjectSSO row the ids name, so only the
+ * Lapsed suite probes it.
+ *
+ * The ids below exist on no stack, which does not matter here for the same
+ * reason: the gate is the route's first handler and answers before either id
+ * is read.
+ */
+export const NONEXISTENT_PROJECT_ID: string =
+  "00000000-0000-4000-8000-000000000001";
+
+export const NONEXISTENT_PROJECT_SSO_ID: string =
+  "00000000-0000-4000-8000-000000000002";
+
+// ee/Server/Identity/API/SSO.ts: GET /sso/:projectId/:projectSsoId.
+export const SSO_LOGIN_PAGE_PATH: string = `/sso/${NONEXISTENT_PROJECT_ID}/${NONEXISTENT_PROJECT_SSO_ID}`;
+
+/*
+ * The heading the message view renders, copied from LicensedFeatureGate's
+ * SSO_UNAVAILABLE_TITLE (core must not import from ee/). The message itself is
+ * SSO_UNAVAILABLE_MESSAGE_FRAGMENT above - the same text the JSON refusal
+ * carries, so one constant covers both halves.
+ */
+export const SSO_UNAVAILABLE_TITLE: string = "Single sign-on is unavailable.";
+
+/*
+ * The second half of SSO_UNAVAILABLE_MESSAGE, which is what a RENDERED answer
+ * is matched on. Two reasons:
+ *
+ *   - EJS's <%= %> escapes the apostrophe in "installation's" to &#39;, so the
+ *     first sentence does not appear verbatim in the HTML the way it does in
+ *     the JSON refusals. This sentence has no characters EJS rewrites.
+ *   - It is the half that matters to the person reading the page: a lapsed
+ *     licence stops single sign-on, it does not lock anyone out. The Lapsed
+ *     suite proves that claim twice - here in the copy, and by signing in with
+ *     a password.
+ */
+export const SSO_UNAVAILABLE_PAGE_ADVICE_FRAGMENT: string =
+  "Sign in with your password, or ask your administrator to renew the license.";

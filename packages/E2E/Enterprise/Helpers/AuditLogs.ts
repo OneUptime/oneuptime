@@ -53,6 +53,23 @@ export const LABEL_RESOURCE_TYPE: string = "Label";
 // Common/Types/AuditLog/AuditLogAction.ts.
 export const AUDIT_LOG_ACTION_CREATE: string = "Create";
 
+/*
+ * The whole budget an audited write is given to show up in the trail: the
+ * recorder's own work, the ClickHouse insert and the read behind it.
+ *
+ * Exported because the Lapsed suite's assertion is the NEGATIVE of the
+ * Licensed suite's - that a write performed while the licence is dead records
+ * nothing - and an absence is only meaningful against a deadline. Waiting THIS
+ * long before concluding that nothing was recorded means the negative outlasts
+ * the entire budget the positive was allowed on the same stack, so the two can
+ * never drift apart: raising this makes the licensed wait more patient and the
+ * lapsed absence more certain at the same time.
+ */
+export const AUDIT_LOG_ENTRY_TIMEOUT_MS: number = 90000;
+
+// How often the polls below re-read the trail.
+export const AUDIT_LOG_POLL_INTERVAL_MS: number = 3000;
+
 export interface AuditLogEntry {
   resourceType: string;
   resourceName: string;
@@ -283,8 +300,8 @@ export const waitForAuditLogEntry: WaitForAuditLogEntryFunction = async (data: {
   timeoutMs?: number | undefined;
   intervalMs?: number | undefined;
 }): Promise<AuditLogEntry> => {
-  const timeoutMs: number = data.timeoutMs ?? 90000;
-  const intervalMs: number = data.intervalMs ?? 3000;
+  const timeoutMs: number = data.timeoutMs ?? AUDIT_LOG_ENTRY_TIMEOUT_MS;
+  const intervalMs: number = data.intervalMs ?? AUDIT_LOG_POLL_INTERVAL_MS;
   const deadline: number = Date.now() + timeoutMs;
 
   let entries: Array<AuditLogEntry> = [];
