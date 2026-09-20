@@ -36,7 +36,23 @@
     // "rootDir": "./",                                  /* Specify the root folder within your source files. */
     "moduleResolution": "node" /* Specify how TypeScript looks up a file from a given module specifier. */,
     // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
-    // "paths": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
+    /*
+     * "@oneuptime/ee-dashboard" and "@oneuptime/ee-admin-dashboard" are the
+     * Enterprise UI plugins, imported by the two frontends'
+     * src/Enterprise/Plugins.ts. App tests import Dashboard and AdminDashboard
+     * sources, so this program reaches those files too. The specifiers are not
+     * packages: they map to the Community stubs, exactly as in the frontends'
+     * own tsconfigs, and their jest.config.json twins map to the same files.
+     * Paths without a baseUrl resolve relative to this file.
+     */
+    "paths": {
+      "@oneuptime/ee-dashboard": [
+        "./FeatureSet/Dashboard/src/Enterprise/CommunityPlugins"
+      ],
+      "@oneuptime/ee-admin-dashboard": [
+        "./FeatureSet/AdminDashboard/src/Enterprise/CommunityPlugins"
+      ]
+    },
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     "typeRoots": [
       "./node_modules/@types"

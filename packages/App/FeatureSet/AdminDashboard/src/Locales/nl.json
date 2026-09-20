@@ -168,7 +168,14 @@
       "usageCardDescription": "Unieke gebruikers over alle zelf-gehoste instanties van de klant, zoals dagelijks gerapporteerd door hun installaties.",
       "instancesCardTitle": "Instanties",
       "instancesCardDescription": "Zelf-gehoste instanties (staging, productie, enz.) die rapporteren voor deze licentie, en de hoofdbeheerders die we per instantie kunnen benaderen.",
-      "noInstances": "Er hebben nog geen instanties gerapporteerd voor deze licentie."
+      "noInstances": "Er hebben nog geen instanties gerapporteerd voor deze licentie.",
+      "offlineTokenCardTitle": "Offline licentietoken",
+      "offlineTokenCardDescription": "Voor een installatie die oneuptime.com niet kan bereiken: download een ondertekend licentietoken dat gebonden is aan de instantie-ID van die installatie. De klant plakt het in zijn Admin Dashboard.",
+      "offlineTokenButton": "Offline token downloaden",
+      "offlineTokenIssued": "Er is een offline licentietoken gedownload voor instantie {{instanceId}}.",
+      "offlineTokenModalTitle": "Offline licentietoken downloaden",
+      "offlineTokenModalDescription": "Voer de instantie-ID van de installatie van de klant in. Het token werkt alleen op die installatie.",
+      "offlineTokenSubmitButton": "Token downloaden"
     },
     "userView": {
       "title": "Gebruiker",
@@ -827,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "Projecten, gebruikers, monitoren en incidenten in de hele instantie.",
   "Valkey memory": "Valkey-geheugen",
   "Spot job backlogs and failures before they cause incidents.": "Spoor taakachterstanden en -fouten op voordat ze incidenten veroorzaken.",
-  "Track database disk and memory utilization before you run out.": "Houd het schijf- en geheugengebruik van de database bij voordat het opraakt."
+  "Track database disk and memory utilization before you run out.": "Houd het schijf- en geheugengebruik van de database bij voordat het opraakt.",
+  "You can still disable a provider.": "U kunt een provider nog steeds uitschakelen.",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "Zonder geldige Enterprise-licentie is deze configuratie alleen-lezen en staat aanmelden via deze providers uit, maar een provider uitschakelen is altijd toegestaan, omdat dit de beveiliging alleen kan aanscherpen. Zodra een licentie wordt geactiveerd, werkt aanmelden via elke ingeschakelde provider weer. Als een identity provider is gecompromitteerd, gebruik dan nu \"Uitschakelen\" zodat die uit blijft. Voor het opnieuw inschakelen van een provider is een geldige licentie nodig.",
+  "Disable Provider": "Provider uitschakelen",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "Niemand kan zich met deze provider aanmelden totdat deze weer wordt ingeschakeld, en daarvoor is een geldige Enterprise-licentie nodig.",
+  "Disable": "Uitschakelen",
+  "Disable Project Attachment": "Projectkoppeling uitschakelen",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "Deze provider richt geen gebruikers meer in voor dit project en geeft er geen toegang meer toe wanneer de provider beperkt is tot gekoppelde projecten. Voor het opnieuw inschakelen van de koppeling is een geldige Enterprise-licentie nodig.",
+  "Disable this provider": "Deze provider uitschakelen",
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Aanmelden via deze provider staat uit zolang de Enterprise-licentie ontbreekt of verlopen is, en werkt weer zodra een licentie wordt geactiveerd. Schakel de provider uit zodat die uit blijft. De configuratie blijft zoals die is, en de provider kan weer worden ingeschakeld zodra de Enterprise-licentie weer geldig is."
 }

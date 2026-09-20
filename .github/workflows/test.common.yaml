@@ -64,6 +64,10 @@ jobs:
       RUN_POSTGRES_MONITOR_DESCRIPTION_MIGRATION_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26

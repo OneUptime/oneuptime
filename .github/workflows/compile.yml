@@ -25,6 +25,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -44,6 +48,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -62,6 +70,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -81,6 +93,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -101,6 +117,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -121,6 +141,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       # Setup Go
       - uses: actions/setup-go@v5
       - name: Compile Infrastructure Agent
@@ -137,6 +161,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -157,6 +185,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -178,6 +210,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -206,6 +242,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -229,6 +269,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -253,6 +297,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -272,6 +320,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -294,6 +346,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -319,6 +375,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -338,6 +398,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -357,6 +421,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -376,6 +444,10 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # Core is the Community Edition by construction: it must build and pass
+      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -388,3 +460,31 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           command: cd packages/CLI && npm install && npm run compile && npm run dep-check
+
+  # The Enterprise Edition (ee/): the one compile job that keeps it. `npm run
+  # compile` type-checks the ee server against Common and App, and the ee
+  # Dashboard and Admin Dashboard plugins against the frontends, whose
+  # node_modules their tsconfigs take React, i18n and the self-typed packages
+  # from. So all four are installed first, then ee itself (npm ci: exactly the
+  # lockfile; --ignore-scripts: no lifecycle scripts of the linked Common/App).
+  compile-ee:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - run: cd packages/Common && npm install
+      - run: cd packages/App && npm install
+      - run: cd packages/App/FeatureSet/Dashboard && npm install
+      - run: cd packages/App/FeatureSet/AdminDashboard && npm install
+      - name: Compile ee
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd ee && npm ci --ignore-scripts && npm run compile && npm run dep-check

@@ -51,7 +51,7 @@ Changes to burn rate rules, monitor rules and owners are recorded against the ru
 
 ### Turning audit logs on
 
-Audit logs are an Enterprise feature: they need the **Enterprise** plan on OneUptime Cloud, or the Enterprise Edition on a self-hosted installation. On other plans, the SLO's **Audit Logs** page explains how to get it.
+Audit logs are an Enterprise feature: they need the **Enterprise** plan on OneUptime Cloud, or the Enterprise Edition on a self-hosted installation. On other plans, the SLO's **Audit Logs** page explains how to get it. On a self-hosted installation, audit logging stops recording without a valid license (after the 14-day trial, or 30 days after a license expires), and resumes as soon as a license is activated (see [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)). The **Audit Logs** pages say when it is not recording.
 
 They are also off by default for each project. To turn them on:
 

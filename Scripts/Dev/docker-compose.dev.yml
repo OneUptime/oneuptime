@@ -138,9 +138,25 @@ services:
       - ./packages/Common/package-lock.json:/usr/src/Common/package-lock.json:cached
       - ./packages/Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
       - ./packages/Common/jest.config.json:/usr/src/Common/jest.config.json:cached
+      # The Enterprise Edition (ee/). It is mounted rather than baked into the
+      # dev image, so the image builds without it, and the App finds it at
+      # /usr/src/ee exactly as in the Enterprise image. Its node_modules gets
+      # an anonymous volume like the ones above, and packages/App/scripts/dev.sh
+      # installs ee's dependencies into it on start. Without ee/ on the host the
+      # App simply runs as the Community Edition.
+      - ./ee:/usr/src/ee:cached
+      - /usr/src/ee/node_modules/
     extends:
       file: ./docker-compose.base.yml
       service: app
+    # Merged into the base app service's environment (extends keeps every
+    # common variable). The dev App is built from source with ee/ mounted, not
+    # from the Enterprise image, so there is no image marker to override:
+    # ONEUPTIME_EDITION=community (in config.env or the shell) runs the
+    # Community Edition from this checkout, and the default, auto, loads ee/
+    # when it is mounted. docker-compose.base.yml deliberately never sets it.
+    environment:
+      ONEUPTIME_EDITION: ${ONEUPTIME_EDITION:-auto}
     depends_on:
       <<: *common-depends-on
     ports:

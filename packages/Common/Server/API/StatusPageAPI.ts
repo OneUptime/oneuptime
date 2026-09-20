@@ -40,6 +40,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
@@ -1044,16 +1045,24 @@ export default class StatusPageAPI extends BaseAPI<
             select.footerHTML = true;
           }
 
+          /*
+           * The status page app offers SSO sign-in when this is non-zero.
+           * While SSO is not active - the Community Edition serves no status
+           * page SSO routes, and on a lapsed Enterprise license they refuse -
+           * it reports none rather than send visitors into a dead end.
+           */
           const hasEnabledSSO: PositiveNumber =
-            await StatusPageSsoService.countBy({
-              query: {
-                isEnabled: true,
-                statusPageId: objectId,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageSsoService.countBy({
+                  query: {
+                    isEnabled: true,
+                    statusPageId: objectId,
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : new PositiveNumber(0);
 
           const item: StatusPage | null = await this.service.findOneById({
             id: objectId,
@@ -1079,6 +1088,19 @@ export default class StatusPageAPI extends BaseAPI<
             delete item.customJavaScript;
             delete item.headerHTML;
             delete item.footerHTML;
+          }
+
+          /*
+           * The status page app forces SSO sign-in from this flag. Report
+           * the EFFECTIVE requirement: while SSO is not active (the
+           * Community Edition, or a lapsed Enterprise license) it is not
+           * enforced and password sign-in works, so the page must not send
+           * visitors into an SSO flow that does not exist or refuses. The
+           * stored value is untouched and applies again as soon as SSO is
+           * active.
+           */
+          if (!EditionEnforcement.isSsoEnforced()) {
+            item.requireSsoForLogin = false;
           }
 
           const footerLinks: Array<StatusPageFooterLink> =
@@ -1239,23 +1261,30 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageId"] as string,
           );
 
-          const sso: Array<StatusPageSSO> = await StatusPageSsoService.findBy({
-            query: {
-              statusPageId: objectId,
-              isEnabled: true,
-            },
-            select: {
-              signOnURL: true,
-              name: true,
-              description: true,
-              _id: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * Only list providers a visitor can actually sign in with: the
+           * Community Edition serves no status page SSO login routes.
+           */
+          const sso: Array<StatusPageSSO> =
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageSsoService.findBy({
+                  query: {
+                    statusPageId: objectId,
+                    isEnabled: true,
+                  },
+                  select: {
+                    signOnURL: true,
+                    name: true,
+                    description: true,
+                    _id: true,
+                  },
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : [];
 
           return Response.sendEntityArrayResponse(
             req,
@@ -1279,23 +1308,29 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageId"] as string,
           );
 
+          /*
+           * Only list providers a visitor can actually sign in with: the
+           * Community Edition serves no status page OIDC login routes.
+           */
           const oidc: Array<StatusPageOIDC> =
-            await StatusPageOidcService.findBy({
-              query: {
-                statusPageId: objectId,
-                isEnabled: true,
-              },
-              select: {
-                name: true,
-                description: true,
-                _id: true,
-              },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              props: {
-                isRoot: true,
-              },
-            });
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageOidcService.findBy({
+                  query: {
+                    statusPageId: objectId,
+                    isEnabled: true,
+                  },
+                  select: {
+                    name: true,
+                    description: true,
+                    _id: true,
+                  },
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : [];
 
           return Response.sendEntityArrayResponse(
             req,

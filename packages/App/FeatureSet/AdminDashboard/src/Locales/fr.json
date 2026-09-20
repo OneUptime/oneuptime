@@ -168,7 +168,14 @@
       "usageCardDescription": "Utilisateurs uniques sur l'ensemble des instances auto-hébergées du client, tels que signalés quotidiennement par leurs installations.",
       "instancesCardTitle": "Instances",
       "instancesCardDescription": "Instances auto-hébergées (préproduction, production, etc.) qui remontent des données pour cette licence, et les administrateurs principaux que nous pouvons contacter pour chacune.",
-      "noInstances": "Aucune instance n'a encore remonté de données pour cette licence."
+      "noInstances": "Aucune instance n'a encore remonté de données pour cette licence.",
+      "offlineTokenCardTitle": "Jeton de licence hors ligne",
+      "offlineTokenCardDescription": "Pour une installation qui ne peut pas joindre oneuptime.com : téléchargez un jeton de licence signé, lié à l'identifiant d'instance de cette installation. Le client le colle dans son tableau de bord d'administration.",
+      "offlineTokenButton": "Télécharger le jeton hors ligne",
+      "offlineTokenIssued": "Un jeton de licence hors ligne a été téléchargé pour l'instance {{instanceId}}.",
+      "offlineTokenModalTitle": "Télécharger le jeton de licence hors ligne",
+      "offlineTokenModalDescription": "Saisissez l'identifiant d'instance de l'installation du client. Le jeton ne fonctionne que sur cette installation.",
+      "offlineTokenSubmitButton": "Télécharger le jeton"
     },
     "userView": {
       "title": "Utilisateur",
@@ -827,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "Projets, utilisateurs, moniteurs et incidents à travers l'instance.",
   "Valkey memory": "Mémoire Valkey",
   "Spot job backlogs and failures before they cause incidents.": "Repérez les arriérés et les échecs de tâches avant qu'ils ne provoquent des incidents.",
-  "Track database disk and memory utilization before you run out.": "Suivez l'utilisation du disque et de la mémoire de la base de données avant d'arriver à saturation."
+  "Track database disk and memory utilization before you run out.": "Suivez l'utilisation du disque et de la mémoire de la base de données avant d'arriver à saturation.",
+  "You can still disable a provider.": "Vous pouvez toujours désactiver un fournisseur.",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "Sans licence Enterprise valide, cette configuration est en lecture seule et la connexion via ces fournisseurs est coupée, mais la désactivation d'un fournisseur est toujours autorisée, car elle ne peut que renforcer la sécurité. La connexion reprend via tous les fournisseurs activés dès qu'une licence est activée : si un fournisseur d'identité est compromis, utilisez donc « Désactiver » dès maintenant pour qu'il reste coupé. Pour réactiver un fournisseur, une licence valide est nécessaire.",
+  "Disable Provider": "Désactiver le fournisseur",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "Personne ne pourra se connecter avec ce fournisseur tant qu'il ne sera pas réactivé, et sa réactivation nécessite une licence Enterprise valide.",
+  "Disable": "Désactiver",
+  "Disable Project Attachment": "Désactiver le rattachement au projet",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "Ce fournisseur ne provisionnera plus d'utilisateurs dans ce projet et n'y donnera plus accès lorsqu'il est limité aux projets rattachés. Pour réactiver le rattachement, une licence Enterprise valide est nécessaire.",
+  "Disable this provider": "Désactiver ce fournisseur",
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "La connexion via ce fournisseur est coupée tant que la licence Enterprise est absente ou expirée, et reprend dès qu'une licence est activée. Désactivez le fournisseur pour qu'il reste coupé. Sa configuration reste inchangée, et il pourra être réactivé dès que la licence Enterprise sera de nouveau valide."
 }

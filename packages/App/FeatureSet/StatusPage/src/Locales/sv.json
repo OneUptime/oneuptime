@@ -235,7 +235,9 @@
     "sso": {
       "title": "Logga in med SSO",
       "loginPrompt": "Logga in för att se {{statusPageName}}",
-      "noProviders": "Inga SSO-leverantörer har konfigurerats eller aktiverats"
+      "noProviders": "Inga SSO-leverantörer har konfigurerats eller aktiverats",
+      "notAvailable": "Single sign-on (SSO) är inte tillgängligt för den här statussidan. Logga in med din e-postadress och ditt lösenord istället.",
+      "backToLogin": "Tillbaka till inloggningen"
     },
     "forgotPassword": {
       "title": "Glömt lösenord",

@@ -1,6 +1,7 @@
 import Help from "./Help";
 import Logo from "./Logo";
 import UserProfile from "./UserProfile";
+import { getAdminDashboardPlugins } from "../../Enterprise/Plugins";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
@@ -36,7 +37,14 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
              * menu below offers a master admin the same action, and log out
              * with it. Help and the profile button stay at every width.
              */}
-            <EditionLabel className="mr-3 hidden md:inline-flex" />
+            {/*
+             * The Enterprise plugin's license manager, read here in render
+             * (never at module load); the Community stub has none.
+             */}
+            <EditionLabel
+              className="mr-3 hidden md:inline-flex"
+              licenseManager={getAdminDashboardPlugins().LicenseManager}
+            />
             <div className="hidden items-center lg:flex">
               <Button
                 title={t("header.exitAdmin")}

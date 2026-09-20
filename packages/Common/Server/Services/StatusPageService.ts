@@ -1,9 +1,10 @@
 import DatabaseConfig from "../DatabaseConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CookieUtil from "../Utils/Cookie";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -103,6 +104,14 @@ export {
   StatusPageReportItem,
   StatusPageReportRow,
 };
+
+/*
+ * The status page column that holds its SSO requirement: the one
+ * onFindSuccess masks and onBeforeUpdate guards while SSO is not active.
+ */
+export const STATUS_PAGE_SSO_REQUIREMENT_COLUMNS: ReadonlyArray<string> = [
+  "requireSsoForLogin",
+];
 
 export class Service extends DatabaseService<StatusPage> {
   /*
@@ -266,6 +275,36 @@ export class Service extends DatabaseService<StatusPage> {
       return statusPage.subscriberEmailNotificationFooterText;
     }
     return this.getDefaultEmailFooterText();
+  }
+
+  /*
+   * While SSO is not active a status page's SSO requirement is not enforced:
+   * on the Community Edition (status page SSO login is part of the
+   * Enterprise Edition), and on an Enterprise install whose license is
+   * lapsed or does not include SSO (the SSO routes refuse). Reads made for a
+   * caller then report the EFFECTIVE value: not required. Internal (root)
+   * reads and the stored row keep the real value, and onBeforeUpdate keeps a
+   * caller from writing the masked value back, so running the Enterprise
+   * Edition with a valid license (or in its trial or grace period) again
+   * restores enforcement exactly as configured. The public master-page route
+   * reads as root and applies the same rule itself.
+   */
+  @CaptureSpan()
+  protected override async onFindSuccess(
+    onFind: OnFind<StatusPage>,
+    items: Array<StatusPage>,
+  ): Promise<OnFind<StatusPage>> {
+    if (
+      EditionEnforcement.shouldMaskSsoRequirementOnRead(onFind.findBy.props)
+    ) {
+      for (const item of items) {
+        if (item.requireSsoForLogin !== undefined) {
+          item.requireSsoForLogin = false;
+        }
+      }
+    }
+
+    return { ...onFind, carryForward: items };
   }
 
   @CaptureSpan()
@@ -991,6 +1030,17 @@ export class Service extends DatabaseService<StatusPage> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<StatusPage>,
   ): Promise<OnUpdate<StatusPage>> {
+    /*
+     * While SSO is not active this caller only ever read the requirement as
+     * off (see onFindSuccess), so a write of it must not switch the stored
+     * requirement off, or set one nobody could see. Drops or refuses it.
+     */
+    EditionEnforcement.guardSsoRequirementWrite({
+      props: updateBy.props,
+      data: updateBy.data as unknown as Record<string, unknown>,
+      columns: STATUS_PAGE_SSO_REQUIREMENT_COLUMNS,
+    });
+
     // is enabling SMS subscribers.
 
     if (updateBy.data.enableSmsSubscribers) {

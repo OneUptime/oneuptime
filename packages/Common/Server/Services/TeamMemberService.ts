@@ -8,6 +8,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 import Errors from "../Utils/Errors";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
@@ -89,8 +90,18 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     super(TeamMember);
   }
 
+  /*
+   * Whether SCIM Push Groups owns this project's team membership, which locks
+   * member invites and removals made from OneUptime and lifts the one-member
+   * guard. Never on the Community Edition: it serves no SCIM endpoint, so a
+   * leftover Push Groups setting there would leave teams nobody can manage.
+   */
   @CaptureSpan()
   private async isSCIMPushGroupsEnabled(projectId: ObjectID): Promise<boolean> {
+    if (!EditionEnforcement.areScimTeamLocksEnforced()) {
+      return false;
+    }
+
     const count: PositiveNumber = await ProjectSCIMService.countBy({
       query: {
         projectId: projectId,

@@ -1,0 +1,80 @@
+{
+  /*
+   * Type-checks the Enterprise Admin Dashboard UI against the core Admin
+   * Dashboard it plugs into. It is also the "nearest tsconfig" eslint's
+   * projectService uses for these files.
+   *
+   * Run with the Admin Dashboard's compiler, after installing it:
+   *   ../../packages/App/FeatureSet/AdminDashboard/node_modules/.bin/tsc -p tsconfig.json
+   *
+   * The compiler flags match
+   * packages/App/FeatureSet/AdminDashboard/tsconfig.json. The module map is
+   * what differs: ee/ has no node_modules of its own, so
+   *   - "@oneuptime/ee-admin-dashboard" is THIS plugin (the Admin Dashboard's
+   *     own tsconfig maps it to the Community stub), so
+   *     src/Enterprise/Plugins.ts is checked against the real Enterprise
+   *     object;
+   *   - "@oneuptime/admin-dashboard/*" is the Admin Dashboard's src, the only
+   *     way ee code reaches core admin modules (esbuild aliases it the same
+   *     way);
+   *   - "Common/*" is packages/Common;
+   *   - self-typed packages resolve from the Admin Dashboard's node_modules.
+   *     An @types-backed one (react) needs no entry: typeRoots covers it.
+   */
+  "compilerOptions": {
+    "target": "es2017",
+    "jsx": "react",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "module": "es2022",
+    "moduleResolution": "node",
+    "paths": {
+      "@oneuptime/ee-admin-dashboard": ["./Index"],
+      "@oneuptime/admin-dashboard/*": [
+        "../../packages/App/FeatureSet/AdminDashboard/src/*"
+      ],
+      "Common/*": ["../../packages/Common/*"],
+      "react-i18next": [
+        "../../packages/App/FeatureSet/AdminDashboard/node_modules/react-i18next"
+      ],
+      "i18next": [
+        "../../packages/App/FeatureSet/AdminDashboard/node_modules/i18next"
+      ],
+      "react-router-dom": [
+        "../../packages/App/FeatureSet/AdminDashboard/node_modules/react-router-dom"
+      ]
+    },
+    "typeRoots": [
+      "../../packages/App/FeatureSet/AdminDashboard/node_modules/@types"
+    ],
+    "types": ["node"],
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../../packages/App/FeatureSet/AdminDashboard/index.d.ts",
+    "../../packages/App/FeatureSet/AdminDashboard/src/Enterprise/Plugins.ts"
+  ]
+}

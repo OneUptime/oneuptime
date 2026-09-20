@@ -27,7 +27,7 @@ version: 0.6.3
 appVersion: "1.0.0"
 
 annotations:
-  artifacthub.io/license: MIT
+  artifacthub.io/license: Apache-2.0
   artifacthub.io/category: monitoring-logging
   artifacthub.io/prerelease: "false"
   artifacthub.io/links: |

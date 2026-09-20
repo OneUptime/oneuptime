@@ -11,6 +11,10 @@ on:
     branches:
       - master
 
+# Read-only: these jobs check out and test the code, nothing more.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -25,15 +29,52 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
+      # EnterpriseEditionBuild.test.js checks its Dockerfile renderer against
+      # gomplate, which is what really renders every Dockerfile.tpl
+      # (Scripts/Install/configure.sh). With CI set that test fails, rather
+      # than skips, when gomplate is missing, so install the release binary at
+      # the version configure.sh pins (read from there, so the two cannot
+      # drift) and check it runs.
+      - name: Install gomplate
+        run: |
+          set -euo pipefail
+          GOMPLATE_VERSION="$(sed -n 's/^GOMPLATE_VERSION="\([0-9.]*\)"$/\1/p' Scripts/Install/configure.sh)"
+          test -n "$GOMPLATE_VERSION"
+          mkdir -p "$RUNNER_TEMP/gomplate-bin"
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors \
+            -o "$RUNNER_TEMP/gomplate-bin/gomplate" \
+            "https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-amd64"
+          # The binary runs in CI with the repository checked out, so verify
+          # it against a digest pinned here, not one fetched from the same
+          # release. Bumping GOMPLATE_VERSION in configure.sh fails this step
+          # until the matching digest is pinned too.
+          GOMPLATE_PINNED_VERSION="3.11.8"
+          GOMPLATE_LINUX_AMD64_SHA256="edd7e578094a08e97552d002e84cce576b4df61bb6e29724c2026dc9c9afbc38"
+          if [ "$GOMPLATE_VERSION" != "$GOMPLATE_PINNED_VERSION" ]; then
+            echo "configure.sh pins gomplate $GOMPLATE_VERSION but this step pins the sha256 of $GOMPLATE_PINNED_VERSION: update GOMPLATE_PINNED_VERSION and GOMPLATE_LINUX_AMD64_SHA256 together (checksums-v<version>_sha256.txt in the gomplate release)." >&2
+            exit 1
+          fi
+          echo "${GOMPLATE_LINUX_AMD64_SHA256}  $RUNNER_TEMP/gomplate-bin/gomplate" | sha256sum -c -
+          chmod 755 "$RUNNER_TEMP/gomplate-bin/gomplate"
+          echo "$RUNNER_TEMP/gomplate-bin" >> "$GITHUB_PATH"
+          export PATH="$RUNNER_TEMP/gomplate-bin:$PATH"
+          gomplate --version | grep -F "$GOMPLATE_VERSION"
       # Static/structural tests over the ClickHouse config.d drop-ins, the
       # docker-compose mounts and the backup/restore scripts. No services are
-      # started, so this needs nothing beyond the package's own deps.
+      # started: beyond the package's own deps this needs only gomplate
+      # (installed above) and docker.
       #
       # The suite also cross-checks the compose ClickHouse drop-in against the
       # Helm values so the two deployment paths cannot silently diverge, which
       # is the check that only has value if it actually runs on every PR.
+      #
+      # RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS also runs the real-Docker check of
+      # what `COPY ./ee` ships through .dockerignore: it builds one tiny image,
+      # and fails rather than skips when docker is not usable.
       - run: cd Tests/Ops && npm install
       - run: cd Tests/Ops && npm run test
+        env:
+          RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"
       # The jest suite reads the collector configs with js-yaml and reasons
       # about them, which cannot see the Go-side class of error: a malformed
       # RE2 regex, an `output`/`default` naming an operator that does not
@@ -45,3 +86,9 @@ jobs:
       # Runs the pinned collector image over the four agent configs and over
       # both collector ConfigMaps rendered out of the kubernetes-agent chart.
       - run: bash Tests/Ops/validate-collector-configs.sh
+      # The App Dockerfile builds the Community and Enterprise editions as
+      # targets. BuildKit resolves each target's stage graph and runs its build
+      # checks over the production render (default, community, enterprise) and
+      # the development render, without building anything; the jest suite
+      # above pins what the stages contain.
+      - run: bash Tests/Ops/lint-app-dockerfile.sh
