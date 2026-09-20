@@ -115,17 +115,29 @@ npx playwright test -g "oneUptime link navigate to homepage"
 
 ## Test Structure
 
+`Tests/` is the default suite: `npm test` runs that whole tree, in every
+full-stack CI job, across both browsers. Every other top-level directory is a
+focused suite with its own `playwright.<name>.config.ts` and its own npm
+script, run by name and never by `npm test`.
+
 ```
 E2E/
-├── Tests/
+├── Tests/              # The default suite (npm test) - runs in every job
 │   ├── Accounts/       # Account-related tests (login, registration)
 │   ├── App/            # Main application tests
+│   ├── Dashboard/      # Dashboard tests, and the shared Helpers/ they use
 │   ├── Home/           # Homepage tests
 │   ├── IncomingRequestIngest/
 │   ├── ProbeIngest/
 │   ├── StatusPage/     # Status page tests
 │   ├── PublicDashboard/
 │   └── AdminDashboard/
+├── Enterprise/         # Enterprise Edition suites (see below)
+│   ├── Helpers/        # Shared by both phases
+│   ├── Licensed/       # Phase one: a usable Enterprise licence
+│   └── Lapsed/         # Phase two: the same stack, licence lapsed
+├── Alerts/, Discovery/, LabelRules/, SloBurnRate/, Topology/, ...
+│                       # Focused suites, each with its own config + script
 ├── Config.ts           # Environment configuration
 ├── playwright.config.ts # Playwright configuration
 └── package.json
@@ -144,7 +156,8 @@ npx playwright show-report
 The Playwright configuration (`playwright.config.ts`) includes:
 
 - **Timeout**: 240 seconds per test
-- **Retries**: 3 retries on failure
+- **Retries**: 2 retries on failure (see the comment in `playwright.config.ts`
+  for why it is not 3: at `workers: 1` each retry costs a full test timeout)
 - **Browsers**: Chromium and Firefox
 - **Tracing**: Enabled for debugging failed tests
 
@@ -205,3 +218,130 @@ The fixture renders the production components with the shared theme and bundled
 Tailwind. Desktop and mobile checks cover the pencil's proportions, label
 alignment, button sizes, and keyboard activation. Screenshots and failure traces
 are written to `output/playwright/pencil-button/test-results/` at the repository root.
+
+## Enterprise Edition suites
+
+Two focused suites cover what only a booted **self-hosted Enterprise** stack
+can show: that the published enterprise image, wired by the real
+`docker-compose.yml` with billing off, serves the enterprise identity routes
+through nginx, ships a Dashboard that renders the enterprise screens, records
+audit entries into ClickHouse, accepts enterprise configuration writes — and
+that all of it stops, in the right way, when the licence lapses.
+
+```bash
+cd packages/E2E
+npm run test-enterprise-licensed   # phase one: the licence is usable
+npm run test-enterprise-lapsed     # phase two: after the licence has lapsed
+```
+
+They are focused suites rather than part of `Tests/` on purpose. The default
+suite runs in all three full-stack jobs and in two browsers, and is already
+near the 90-minute ceiling its own config says must be read as a hang rather
+than raised; these specs apply to one stack only, so they run by name.
+
+### What they need
+
+| Requirement       | Value                                                                      |
+| ----------------- | -------------------------------------------------------------------------- |
+| Image             | an **enterprise** tag (`APP_TAG=enterprise-<version>-test`), not `release` |
+| `BILLING_ENABLED` | `false`, both on the stack and in the shell that runs the suite            |
+| `HOST`            | the booted stack's host, including its port (e.g. `localhost`)             |
+| `HTTP_PROTOCOL`   | `http` or `https`                                                          |
+| Licence           | none installed: a fresh install is inside its 14-day trial                 |
+
+No other environment variable is involved. In particular the suites do **not**
+read `IS_ENTERPRISE_EDITION`: `docker-compose.base.yml` passes that variable
+through and no job sets it, so inside the e2e container it is false even
+against an enterprise image. The edition is detected at runtime from
+`GET /api/global-config/license` instead.
+
+Every spec asserts its stack in a `beforeAll` hook and **fails** — never skips —
+when it is pointed at the wrong one, naming the stack it found and the stack it
+wanted. A suite that quietly skipped would turn the point of the job into a
+green tick.
+
+### Running them locally
+
+Against a stack you have already started (from the repository root, with an
+enterprise `APP_TAG` and `BILLING_ENABLED=false` in `config.env`):
+
+```bash
+cd packages/E2E
+HOST=localhost HTTP_PROTOCOL=http BILLING_ENABLED=false npm run test-enterprise-licensed
+```
+
+The licensed suite takes a few minutes; all but one of its specs assert over
+HTTP, and the one browser spec signs a fresh user up and opens the Dashboard's
+SSO, OIDC, SCIM and Audit Log settings screens.
+
+### Forcing the licence to lapse
+
+The lapsed suite needs a stack whose Enterprise licence is no longer usable.
+There is no test-only environment variable or API for this: the trial is
+counted from `GlobalConfig.enterpriseEditionFirstSeenAt`, which is stamped once
+and never rewritten, so backdating that column is the deterministic way to end
+it. Run this against the booted stack, from the repository root:
+
+```bash
+set -a; . ./config.env; set +a
+
+docker compose exec -T -e PGPASSWORD="$DATABASE_PASSWORD" postgres \
+  psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c \
+  "UPDATE \"GlobalConfig\" SET \"enterpriseEditionFirstSeenAt\" = NOW() - INTERVAL '30 days' WHERE \"_id\" = '00000000-0000-0000-0000-000000000000';"
+```
+
+`GlobalConfig` is a singleton row whose id is all zeroes. 30 days is
+comfortably past the 14-day trial, and the column is only ever stamped when it
+is empty, so a backdated value sticks. `DATABASE_USERNAME`, `DATABASE_NAME` and
+`DATABASE_PASSWORD` come from `config.env` (`postgres` and `oneuptimedb` by
+default).
+
+The app notices **without a restart**, but not instantly: the licence inputs
+are cached for 60 seconds and the snapshot the gates read is served
+synchronously while a reload runs behind it. So do not assert immediately after
+the `UPDATE` — poll `GET /api/global-config/license` until `licenseValid` turns
+false. The suite's stack guard does exactly that (up to four minutes), which is
+why the lapsed suite can be started as soon as the `UPDATE` returns:
+
+```bash
+cd packages/E2E
+HOST=localhost HTTP_PROTOCOL=http BILLING_ENABLED=false npm run test-enterprise-lapsed
+```
+
+### State the licensed suite leaves behind
+
+The two suites run against the **same** stack, in order, and the second one
+depends on what the first left there. `Enterprise/Licensed/
+AuditRecorderAndEnterpriseWrites.spec.ts` deliberately does **not** delete its
+project: it leaves
+
+- the project with **audit logging enabled** and one recorded entry,
+- a `ProjectSCIM` row created while the licence was usable,
+- the owner account, whose password is the shared `E2E_SIGNUP_PASSWORD` from
+  `Config.ts`,
+
+so the lapsed suite can show that a further audited write records nothing while
+the existing trail stays readable, that changing that SCIM row is refused, and
+that a lapsed licence does not break password sign-in. Recreating that state
+after the lapse would prove less, because the point is that it was created
+while the licence was alive.
+
+The ids are written to `output/playwright/enterprise/licensed-handoff.json`
+(git-ignored) by the licensed suite and read back with
+`readLicensedSuiteHandoff()` from `Enterprise/Helpers/Handoff.ts`. Its absence
+is not a failure: a lapsed spec run on its own creates whatever it needs.
+
+### Shared helpers
+
+`Enterprise/Helpers/` holds everything both suites share, so the licensed and
+lapsed expectations for a route or a write live side by side and cannot drift:
+
+| Helper                       | What it gives you                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `LicenseState.ts`            | reads `/api/global-config/license`; `waitForEnterpriseLicenseState` polls it              |
+| `StackGuard.ts`              | `assertLicensedEnterpriseStack()` / `assertLapsedEnterpriseStack()`                       |
+| `IdentityRoutes.ts`          | every unauthenticated identity probe, with its licensed, lapsed and community expectation |
+| `EnterpriseConfiguration.ts` | enterprise configuration writes, and the two 402 messages that tell the stacks apart      |
+| `AuditLogs.ts`               | the project switch, the audited write, and a bounded wait for the entry                   |
+| `FrontendEnvironment.ts`     | what the stack tells its own bundles: the effective edition, and whether billing is on    |
+| `Handoff.ts`                 | the licensed suite's leftovers, for the lapsed suite                                      |
