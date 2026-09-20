@@ -95,6 +95,28 @@ function call(): { request: Record<string, unknown>; metadata: grpc.Metadata } {
   return { request: { syntheticPayload: "must-not-be-logged" }, metadata };
 }
 
+/*
+ * Everything logger.error was handed, flattened to text.
+ *
+ * NOT JSON.stringify(mock.calls): an Error's `message` and `stack` are
+ * non-enumerable, so JSON.stringify(new Error("secret")) is "{}" and any
+ * assertion built on it passes no matter what was logged. These tests make
+ * claims in both directions - the payload must NEVER appear, the backend
+ * error MUST - so the serialization has to be able to see inside an Error.
+ */
+function loggedText(): string {
+  return (logger.error as jest.Mock).mock.calls
+    .flat()
+    .map((arg: unknown) => {
+      if (arg instanceof Error) {
+        return `${arg.name}: ${arg.message}\n${arg.stack ?? ""}`;
+      }
+
+      return typeof arg === "string" ? arg : JSON.stringify(arg);
+    })
+    .join("\n");
+}
+
 beforeAll(() => {
   /*
    * Capture the real registered Export closures, without binding any port.
@@ -235,14 +257,47 @@ describe.each(signals)(
         );
         expect(error.metadata).toBeInstanceOf(grpc.Metadata);
         expect(error.metadata.getMap()).toEqual({});
-        expect(
-          JSON.stringify((logger.error as jest.Mock).mock.calls),
-        ).not.toContain("private-payload-and-backend-error");
-        expect(
-          JSON.stringify((logger.error as jest.Mock).mock.calls),
-        ).not.toContain("must-not-be-logged");
+        /*
+         * The exporter is told nothing, so the server log is the only
+         * diagnostic an operator has: the backend error MUST be there.
+         * The request payload must not - it is customer telemetry, and
+         * this log line routinely lands in a third-party sink.
+         */
+        expect(loggedText()).toContain("private-payload-and-backend-error");
+        expect(loggedText()).not.toContain("must-not-be-logged");
       },
     );
+
+    test("keeps an auth-backend failure non-retryable and out of the queue", async () => {
+      /*
+       * handleExport's terminal catch also covers authenticateRequest. Only
+       * the enqueue maps to a retryable UNAVAILABLE: a Postgres or billing
+       * outage answered that way would have every exporter retry an
+       * already-degraded auth backend, uncached, on a port with no per-key
+       * rate limit. It stays a silent success, and the error stays logged.
+       */
+      (
+        TelemetryIngestionKeyService.getPolicyFromSecretKey as jest.Mock
+      ).mockRejectedValue(new Error("private-payload-and-backend-error"));
+      const callback: jest.Mock = jest.fn();
+      await new Promise<void>((resolve: () => void) => {
+        handlers.get(service)!(
+          call(),
+          (
+            error: grpc.ServiceError | null,
+            result?: Record<string, unknown>,
+          ) => {
+            callback(error, result);
+            resolve();
+          },
+        );
+      });
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith(null, {});
+      expect(queue).not.toHaveBeenCalled();
+      expect(loggedText()).toContain("private-payload-and-backend-error");
+      expect(loggedText()).not.toContain("must-not-be-logged");
+    });
 
     test.each(["disabled", "unauthenticated"])(
       "preserves intentional %s drop without queueing",
