@@ -111,8 +111,10 @@ for (const width of [1440, 1280, 1024, 390]) {
     expect(editBox.x + editBox.width).toBeLessThanOrEqual(
       detailsBox.x + detailsBox.width,
     );
-    // The shared mobile detail border has a negative margin; inspect the
-    // actual header/fields instead, so decoration is not treated as content.
+    /*
+     * The shared mobile detail border has a negative margin; inspect the
+     * actual header/fields instead, so decoration is not treated as content.
+     */
     const fittedRegions: Array<Locator> =
       width >= 768
         ? [details]
