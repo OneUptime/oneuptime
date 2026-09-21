@@ -384,6 +384,8 @@ import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerU
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
 import ServiceLevelObjectiveMonitorRuleService from "./ServiceLevelObjectiveMonitorRuleService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
+import ServiceLevelObjectiveOwnerRuleService from "./ServiceLevelObjectiveOwnerRuleService";
+import ServiceLevelObjectiveLabelRuleService from "./ServiceLevelObjectiveLabelRuleService";
 import SloHistoryService from "./SloHistoryService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
 import AlertReminderRuleService from "./AlertReminderRuleService";
@@ -818,6 +820,8 @@ const services: Array<BaseService> = [
   ServiceLevelObjectiveOwnerTeamService,
   ServiceLevelObjectiveMonitorRuleService,
   ServiceLevelObjectiveFeedService,
+  ServiceLevelObjectiveOwnerRuleService,
+  ServiceLevelObjectiveLabelRuleService,
   IncidentReminderRuleService,
   AlertReminderRuleService,
   ScheduledMaintenanceReminderRuleService,

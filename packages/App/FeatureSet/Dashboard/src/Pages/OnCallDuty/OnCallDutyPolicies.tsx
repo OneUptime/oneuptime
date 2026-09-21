@@ -88,7 +88,7 @@ const OnCallDutyPage: FunctionComponent<
         cardProps={{
           title: "On-Call Duty Policies",
           description:
-            "Here is a list of on-call-duty policies for this project.",
+            "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.",
         }}
         videoLink={URL.fromString("https://youtu.be/HzhKmCryYdc")}
         noItemsMessage={"No on-call policy found."}

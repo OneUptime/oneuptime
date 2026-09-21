@@ -111,9 +111,10 @@ describe("Markdown.slugify", () => {
  * Until this suite existed there was no coverage of convertToHTML at all,
  * for any content type — and the email renderer was a bare `new Renderer()`,
  * so marked's stock output went straight into the message. That mattered
- * most for the alert and incident root cause, which carries a
+ * most for the alert and incident root cause, which then carried a
  * GitHub-flavoured table of breaching samples: it arrived as a naked
  * <table> with no borders and no padding, every row running into the next.
+ * (Those samples are a list now; tables typed into markdown remain.)
  *
  * Two properties are load-bearing and easy to break:
  *
@@ -275,6 +276,187 @@ describe("Markdown.convertToHTML - email renderer", () => {
     await expect(
       Markdown.convertToHTML("", MarkdownContentType.Email),
     ).resolves.toBe("");
+  });
+});
+
+/*
+ * Lists in the email renderer.
+ *
+ * A platform monitor's root cause lists its affected resources as a
+ * numbered list with a bullet list of details nested under each item (see
+ * AffectedResourceList). Unstyled, Gmail and Apple Mail indent each level
+ * by 40px — close to a tenth of the card, twice over when nested — and
+ * Outlook ignores padding on <ul>/<ol> altogether. So lists carry inline
+ * styles that indent with margin-left and zero the padding.
+ */
+describe("Markdown.convertToHTML - email renderer lists", () => {
+  const AFFECTED_RESOURCES: string = [
+    "**Affected Resources** (2 total)",
+    "",
+    "1. **Pod** `checkout-7d9f` — **3**",
+    "   - Namespace: `payments`",
+    "   - Node: `gke-prod-pool-1`",
+    "2. **Pod** `ledger-0` — **2**",
+    "   - Namespace: `payments`",
+  ].join("\n");
+
+  test("ordered and bullet lists carry inline styles, not class names", async () => {
+    const html: string = await Markdown.convertToHTML(
+      AFFECTED_RESOURCES,
+      MarkdownContentType.Email,
+    );
+
+    expect(html).toContain(
+      '<ol style="margin:6px 0 12px 0;margin-left:32px;margin-inline-start:32px;margin-inline-end:0;padding:0;">',
+    );
+    expect(html).toContain(
+      '<ul style="margin:6px 0 12px 0;margin-left:24px;margin-inline-start:24px;margin-inline-end:0;padding:0;">',
+    );
+    expect(html).toContain('<li style="margin:0 0 4px;padding:0;">');
+    expect(html).not.toContain('class="');
+    expect(html).not.toMatch(/<(ol|ul|li)>/);
+  });
+
+  /*
+   * Outlook's Word engine ignores padding on lists but honours margin, so
+   * the indent must live in margin-left for the marker to have room.
+   */
+  test("the indent is a margin, with the padding zeroed for Outlook", async () => {
+    const html: string = await Markdown.convertToHTML(
+      "- one\n- two",
+      MarkdownContentType.Email,
+    );
+
+    expect(html).toMatch(/<ul style="[^"]*margin-left:24px;[^"]*padding:0;/);
+    expect(html).not.toContain("padding-left");
+    expect(html).not.toContain("40px");
+  });
+
+  /*
+   * A numbered marker is wider than a bullet: "100." needs about 30px at
+   * the card's 15px body size, so an ordered list gets the wider indent.
+   */
+  test("an ordered list is indented enough for a three-digit marker", async () => {
+    const html: string = await Markdown.convertToHTML(
+      "100. step\n101. step",
+      MarkdownContentType.Email,
+    );
+
+    expect(html).toContain('<ol start="100" style="');
+    expect(html).toContain("margin-left:32px;");
+  });
+
+  /*
+   * margin-left is physical: in right-to-left text the marker sits on the
+   * right, so the indent has to move there. The logical properties come
+   * AFTER margin-left so a client that understands them overrides it (the
+   * trailing margin-inline-end:0 cancels the left margin in RTL), and a
+   * client that does not simply keeps margin-left.
+   */
+  test("lists carry logical margins after the physical one, for right-to-left text", async () => {
+    const html: string = await Markdown.convertToHTML(
+      "1. one\n   - nested",
+      MarkdownContentType.Email,
+    );
+
+    expect(html).toMatch(
+      /<ol style="[^"]*margin-left:32px;margin-inline-start:32px;margin-inline-end:0;/,
+    );
+    expect(html).toMatch(
+      /<ul style="[^"]*margin-left:24px;margin-inline-start:24px;margin-inline-end:0;/,
+    );
+  });
+
+  test("each item's details are a list nested inside that item", async () => {
+    const html: string = await Markdown.convertToHTML(
+      AFFECTED_RESOURCES,
+      MarkdownContentType.Email,
+    );
+
+    expect(html).toMatch(
+      /<ol [^>]*><li [^>]*><strong>Pod<\/strong> <code[^>]*>checkout-7d9f<\/code> — <strong>3<\/strong><ul [^>]*><li [^>]*>Namespace: <code[^>]*>payments<\/code><\/li><li [^>]*>Node: <code[^>]*>gke-prod-pool-1<\/code><\/li><\/ul><\/li><li [^>]*><strong>Pod<\/strong> <code[^>]*>ledger-0<\/code>/,
+    );
+    expect((html.match(/<ol /g) || []).length).toBe(1);
+    expect((html.match(/<ul /g) || []).length).toBe(2);
+    expect((html.match(/<li /g) || []).length).toBe(5);
+  });
+
+  test("an ordered list that does not start at 1 keeps its start number", async () => {
+    const html: string = await Markdown.convertToHTML(
+      "3. third\n4. fourth",
+      MarkdownContentType.Email,
+    );
+
+    expect(html).toContain('<ol start="3" style="');
+  });
+
+  test("a list starting at 1 has no start attribute", async () => {
+    const html: string = await Markdown.convertToHTML(
+      "1. first\n2. second",
+      MarkdownContentType.Email,
+    );
+
+    expect(html).not.toContain("start=");
+  });
+
+  test("a bullet list never gets a start attribute", async () => {
+    const html: string = await Markdown.convertToHTML(
+      "- a\n- b",
+      MarkdownContentType.Email,
+    );
+
+    expect(html).not.toContain("start=");
+  });
+
+  test("task-list checkboxes still render inside their item", async () => {
+    const html: string = await Markdown.convertToHTML(
+      "- [x] done\n- [ ] todo",
+      MarkdownContentType.Email,
+    );
+
+    expect(html).toMatch(
+      /<li [^>]*><input checked="" disabled="" type="checkbox"> done<\/li>/,
+    );
+    expect(html).toMatch(
+      /<li [^>]*><input disabled="" type="checkbox"> todo<\/li>/,
+    );
+  });
+
+  test("raw HTML inside a list item is still escaped", async () => {
+    const html: string = await Markdown.convertToHTML(
+      '- <img src=x onerror="alert(1)">',
+      MarkdownContentType.Email,
+    );
+
+    expect(html).not.toContain('onerror="alert(1)"');
+    expect(html).toContain("&lt;img");
+  });
+
+  test("repeated list renders are identical", async () => {
+    const first: string = await Markdown.convertToHTML(
+      AFFECTED_RESOURCES,
+      MarkdownContentType.Email,
+    );
+    const second: string = await Markdown.convertToHTML(
+      AFFECTED_RESOURCES,
+      MarkdownContentType.Email,
+    );
+
+    expect(second).toBe(first);
+  });
+
+  /*
+   * The list styling belongs to the email renderer alone; the docs and
+   * blog renderers keep their own Tailwind classes.
+   */
+  test("the docs renderer does not pick up the email list styles", async () => {
+    const html: string = await Markdown.convertToHTML(
+      "- one\n- two",
+      MarkdownContentType.Docs,
+    );
+
+    expect(html).not.toContain("margin-inline-start");
+    expect(html).not.toContain("margin:6px 0 12px 0");
   });
 });
 

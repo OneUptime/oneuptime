@@ -157,9 +157,9 @@ describe("static rule criteria runtime coverage", () => {
     discoverStaticRuleForms();
   const inheritedRuleModelNames: Array<string> = getInheritedRuleModelNames();
 
-  test("all 62 static match-criteria forms route their 74 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(62);
-    expect(formsByModel.size).toBe(74);
+  test("all 64 static match-criteria forms route their 76 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(64);
+    expect(formsByModel.size).toBe(76);
     expect([...formsByModel.keys()].sort()).toEqual(inheritedRuleModelNames);
     expect(Object.keys(RULE_CRITERIA_FIELDS_BY_MODEL).sort()).toEqual(
       inheritedRuleModelNames,

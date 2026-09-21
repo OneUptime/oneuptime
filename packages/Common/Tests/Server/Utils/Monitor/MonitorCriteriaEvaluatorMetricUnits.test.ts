@@ -32,19 +32,25 @@ import { describe, expect, test } from "@jest/globals";
  * run it through Markdown.convertToHTML for the email body.
  *
  * Before this suite existed, nothing anywhere pinned the Breaching
- * Samples table or the "- Unit:" line, and both rendered raw digits with
- * the exporter's raw UCUM code glued on: a memory breach that the
- * dashboard drew as "1.07 GB" arrived in the inbox as "1073741824 By",
- * and a ratio metric's Value column read "0.06 1".
+ * Samples block (a table back then) or the "- Unit:" line, and both
+ * rendered raw digits with the exporter's raw UCUM code glued on: a memory
+ * breach that the dashboard drew as "1.07 GB" arrived in the inbox as
+ * "1073741824 By", and a ratio metric's Value column read "0.06 1".
  *
  * These tests pin:
- *   - the Value column at human scale, in the unit each row landed on,
- *   - component columns each in their OWN unit, with no unit in the header
- *     (auto-scaling means neighbouring rows disagree with any one header),
+ *   - each sample's value at human scale, in the unit that sample landed
+ *     on,
+ *   - formula components each in their OWN unit, labelled by alias alone
+ *     (auto-scaling means neighbouring samples disagree with any one
+ *     configured unit),
  *   - the "- Unit:" line spelled out, and dropped when there is no unit,
  *   - the formula guard: a formula expression is not a metric name,
- *   - that the table and the "Filter Conditions Met" sentence in the same
- *     email render the same sample identically.
+ *   - that the Breaching Samples list and the "Filter Conditions Met"
+ *     sentence in the same email render the same sample identically.
+ *
+ * The list's own shape — its markdown, and how it parses and renders in
+ * the email, Slack and plain text — is pinned in
+ * MonitorCriteriaEvaluatorBreachingSamples.test.ts.
  */
 
 type EvaluatorPrivate = {
@@ -115,33 +121,57 @@ function rootCause(ctx: MetricCriteriaContext): string {
   return context as string;
 }
 
-/** The one data row of the Breaching Samples table. */
-function sampleRow(context: string): string {
-  const row: string | undefined = context.split("\n").find((line: string) => {
-    return line.includes(BREACH_TIME_ISO);
+/*
+ * The Breaching Samples list item of the sample taken at BREACH_TIME: its
+ * first line ("1. `<timestamp>` — **<value>**"), the value on it, and the
+ * detail bullets nested under it.
+ */
+const LIST_ITEM_LINE: RegExp = /^\d+\. /;
+const DETAIL_LINE: RegExp = /^ {3,4}- /;
+
+function sampleItemLines(context: string): Array<string> {
+  const lines: Array<string> = context.split("\n");
+  const index: number = lines.findIndex((line: string) => {
+    return LIST_ITEM_LINE.test(line) && line.includes(BREACH_TIME_ISO);
   });
 
-  expect(row).toBeDefined();
-  return row as string;
+  expect(index).toBeGreaterThan(-1);
+
+  const itemLines: Array<string> = [lines[index] as string];
+
+  for (const line of lines.slice(index + 1)) {
+    if (!DETAIL_LINE.test(line)) {
+      break;
+    }
+
+    itemLines.push(line);
+  }
+
+  return itemLines;
 }
 
-/** The header row of the Breaching Samples table. */
-function headerRow(context: string): string {
-  const row: string | undefined = context.split("\n").find((line: string) => {
-    return line.startsWith("| Timestamp |");
-  });
-
-  expect(row).toBeDefined();
-  return row as string;
+function sampleItem(context: string): string {
+  return sampleItemLines(context)[0] as string;
 }
 
-describe("MonitorCriteriaEvaluator - Breaching Samples value column", () => {
+function sampleValue(context: string): string {
+  const match: RegExpMatchArray | null =
+    sampleItem(context).match(/ — \*\*(.*)\*\*$/);
+
+  expect(match).not.toBeNull();
+  return (match as RegExpMatchArray)[1] as string;
+}
+
+function sampleDetails(context: string): Array<string> {
+  return sampleItemLines(context).slice(1);
+}
+
+describe("MonitorCriteriaEvaluator - Breaching Samples values", () => {
   test("renders bytes at human scale instead of raw digits", () => {
     const context: string = rootCause(makeContext({ unit: "By" }));
 
-    expect(sampleRow(context)).toBe(
-      `| \`${BREACH_TIME_ISO}\` | \`k8s.pod.memory.usage\` | \`a\` | 1.07 GB |`,
-    );
+    expect(sampleItem(context)).toBe(`1. \`${BREACH_TIME_ISO}\` — **1.07 GB**`);
+    expect(sampleDetails(context)).toEqual([]);
     expect(context).not.toContain("1073741824");
   });
 
@@ -156,7 +186,7 @@ describe("MonitorCriteriaEvaluator - Breaching Samples value column", () => {
       }),
     );
 
-    expect(sampleRow(context)).toContain("| 1.5 sec |");
+    expect(sampleValue(context)).toBe("1.5 sec");
   });
 
   test("renders a value the user typed a GB threshold against in GB terms", () => {
@@ -175,10 +205,10 @@ describe("MonitorCriteriaEvaluator - Breaching Samples value column", () => {
       }),
     );
 
-    expect(sampleRow(context)).toContain("| 2.5 TB |");
+    expect(sampleValue(context)).toBe("2.5 TB");
   });
 
-  test("each row names the unit IT landed on", () => {
+  test("each sample names the unit IT landed on", () => {
     const context: string = rootCause(
       makeContext({
         unit: "By",
@@ -194,12 +224,12 @@ describe("MonitorCriteriaEvaluator - Breaching Samples value column", () => {
     );
 
     /*
-     * 922 KB and 1.26 MB in the same table. This is exactly why the unit
-     * rides each cell instead of the column header — no single header
-     * could describe both rows.
+     * 922 KB and 1.26 MB in the same list. This is exactly why the unit
+     * rides each value instead of a heading — no single unit could
+     * describe both samples.
      */
-    expect(context).toContain("| 922 KB |");
-    expect(context).toContain("| 1.26 MB |");
+    expect(context).toContain("1. `2026-08-14T10:29:00.000Z` — **922 KB**");
+    expect(context).toContain(`2. \`${BREACH_TIME_ISO}\` — **1.26 MB**`);
   });
 
   test("a ratio metric's fraction is shown as the percentage it means", () => {
@@ -213,9 +243,9 @@ describe("MonitorCriteriaEvaluator - Breaching Samples value column", () => {
       }),
     );
 
-    expect(sampleRow(context)).toContain("| 5.85% |");
+    expect(sampleValue(context)).toBe("5.85%");
     // The old rendering: a bare "0.06", which reads as 0.06%.
-    expect(context).not.toContain("| 0.06 |");
+    expect(context).not.toContain("**0.06**");
     expect(context).not.toContain("0.06 1");
   });
 
@@ -230,14 +260,14 @@ describe("MonitorCriteriaEvaluator - Breaching Samples value column", () => {
       }),
     );
 
-    expect(sampleRow(context)).toContain("| 512 |");
+    expect(sampleValue(context)).toBe("512");
     expect(context).not.toContain("{thread}");
   });
 
   /*
    * BACKWARD COMPATIBILITY. A metric with no unit must keep every digit —
    * a counter at 5000 is not "5K" in an alert, because the reader may be
-   * scanning the table for the exact value that crossed the threshold.
+   * scanning the list for the exact value that crossed the threshold.
    */
   test("a unitless value keeps its exact digits", () => {
     const context: string = rootCause(
@@ -250,7 +280,7 @@ describe("MonitorCriteriaEvaluator - Breaching Samples value column", () => {
       }),
     );
 
-    expect(sampleRow(context)).toContain("| 5000 |");
+    expect(sampleValue(context)).toBe("5000");
     expect(context).not.toContain("5K");
   });
 
@@ -264,7 +294,7 @@ describe("MonitorCriteriaEvaluator - Breaching Samples value column", () => {
       }),
     );
 
-    expect(sampleRow(context)).toContain("| 2.33 |");
+    expect(sampleValue(context)).toBe("2.33");
   });
 
   /*
@@ -282,11 +312,11 @@ describe("MonitorCriteriaEvaluator - Breaching Samples value column", () => {
       }),
     );
 
-    expect(sampleRow(context)).toContain("| Infinity |");
+    expect(sampleValue(context)).toBe("Infinity");
     expect(context).not.toContain("InfinityP");
   });
 
-  test("attribute columns are unaffected", () => {
+  test("attributes are listed under the sample, unaffected by the unit", () => {
     const context: string = rootCause(
       makeContext({
         unit: "By",
@@ -301,14 +331,12 @@ describe("MonitorCriteriaEvaluator - Breaching Samples value column", () => {
       }),
     );
 
-    expect(headerRow(context)).toBe(
-      "| Timestamp | Metric | Alias | Value | k8s.pod.name |",
-    );
-    expect(sampleRow(context)).toContain("| web-1 |");
+    expect(sampleItem(context)).toBe(`1. \`${BREACH_TIME_ISO}\` — **1.07 GB**`);
+    expect(sampleDetails(context)).toEqual(["   - `k8s.pod.name`: `web-1`"]);
   });
 });
 
-describe("MonitorCriteriaEvaluator - Breaching Samples component columns", () => {
+describe("MonitorCriteriaEvaluator - Breaching Samples formula components", () => {
   function formulaContext(): MetricCriteriaContext {
     return makeContext({
       metricName: "a + b",
@@ -344,27 +372,27 @@ describe("MonitorCriteriaEvaluator - Breaching Samples component columns", () =>
     });
   }
 
-  test("each component cell is formatted in its own unit", () => {
+  test("each component is formatted in its own unit", () => {
     const context: string = rootCause(formulaContext());
 
-    expect(sampleRow(context)).toBe(
-      `| \`${BREACH_TIME_ISO}\` | \`a + b\` | \`c\` | 1.07 GB | 537 MB | 1.5 sec |`,
-    );
+    expect(sampleItemLines(context)).toEqual([
+      `1. \`${BREACH_TIME_ISO}\` — **1.07 GB**`,
+      "   - `a`: 537 MB",
+      "   - `b`: 1.5 sec",
+    ]);
   });
 
   /*
-   * The header used to read "a (By)". Now that a cell says which scale it
-   * landed on, a header unit is a claim two rows of the same column can
-   * contradict — and the Components bullet list above the table still
-   * records the configured unit, so nothing is lost.
+   * The table header used to read "a (By)". Now that each value says which
+   * scale it landed on, a configured unit beside the alias is a claim two
+   * samples can contradict — and the Components bullet list above the
+   * samples still records the configured unit, so nothing is lost.
    */
-  test("component headers carry the alias only, not the configured unit", () => {
+  test("components are labelled by alias only, not the configured unit", () => {
     const context: string = rootCause(formulaContext());
 
-    expect(headerRow(context)).toBe(
-      "| Timestamp | Metric | Alias | Value | a | b |",
-    );
-    expect(context).not.toContain("| a (By) |");
+    expect(context).not.toContain("a (By)");
+    expect(context).not.toContain("`a (By)`");
   });
 
   test("the Components bullet list spells each component's unit out", () => {
@@ -376,14 +404,18 @@ describe("MonitorCriteriaEvaluator - Breaching Samples component columns", () =>
     );
   });
 
-  test("a component with no value for this sample still renders a dash", () => {
+  test("a component with no value for this sample is left out, not printed as a dash", () => {
     const ctx: MetricCriteriaContext = formulaContext();
     ctx.breachingSamples![0]!.componentValues = [
       { alias: "a", value: 536870912 },
       { alias: "b", value: null },
     ];
 
-    expect(sampleRow(rootCause(ctx))).toContain("| 537 MB | - |");
+    const context: string = rootCause(ctx);
+
+    expect(sampleDetails(context)).toEqual(["   - `a`: 537 MB"]);
+    expect(context).not.toContain("`b`:");
+    expect(context).not.toContain(": -");
   });
 });
 
@@ -438,7 +470,7 @@ describe("MonitorCriteriaEvaluator - formula names are not metric names", () => 
       }),
     );
 
-    expect(sampleRow(context)).toContain("| 0.42 |");
+    expect(sampleValue(context)).toBe("0.42");
     expect(context).not.toContain("42.00%");
     expect(context).not.toContain("- Unit:");
   });
@@ -470,7 +502,7 @@ describe("MonitorCriteriaEvaluator - formula names are not metric names", () => 
       }),
     );
 
-    expect(sampleRow(context)).toContain("| 0.42 |");
+    expect(sampleDetails(context)).toEqual(["   - `x`: 0.42"]);
     expect(context).not.toContain("42.00%");
   });
 
@@ -490,7 +522,7 @@ describe("MonitorCriteriaEvaluator - formula names are not metric names", () => 
       }),
     );
 
-    expect(sampleRow(context)).toContain("| 42.00% |");
+    expect(sampleValue(context)).toBe("42.00%");
   });
 });
 
@@ -500,20 +532,20 @@ describe("MonitorCriteriaEvaluator - formula names are not metric names", () => 
  * The unit-suppression rule was hand-rolled three separate times before
  * this change — in CompareCriteria's "Filter Conditions Met" sentence, in
  * MonitorCriteriaObservationBuilder, and nowhere at all in the Breaching
- * Samples table — with the result that a single evaluation read
- * differently in its own two halves: "0.31" in the sentence and "0.31 1"
- * in the table directly beneath it.
+ * Samples table (now a list) — with the result that a single evaluation
+ * read differently in its own two halves: "0.31" in the sentence and
+ * "0.31 1" in the table directly beneath it.
  *
  * Both sections of one email now go through MetricValueFormatter. These
  * tests assert the two strings are IDENTICAL rather than merely both
  * plausible, so a fourth copy of the rule cannot quietly appear.
  */
-describe("MonitorCriteriaEvaluator - the table and the sentence agree", () => {
+describe("MonitorCriteriaEvaluator - the Breaching Samples list and the sentence agree", () => {
   function bothRenderings(input: {
     value: number;
     unit: string | null;
     metricName: string;
-  }): { cell: string; sentence: string } {
+  }): { sampleValue: string; sentence: string } {
     const ctx: MetricCriteriaContext = makeContext({
       metricName: input.metricName,
       unit: input.unit,
@@ -522,14 +554,8 @@ describe("MonitorCriteriaEvaluator - the table and the sentence agree", () => {
       ],
     });
 
-    const row: string = sampleRow(rootCause(ctx));
-    const cells: Array<string> = row.split("|").map((cell: string) => {
-      return cell.trim();
-    });
-
     return {
-      // | ts | metric | alias | VALUE | → index 4 once the leading "" is counted.
-      cell: cells[4] as string,
+      sampleValue: sampleValue(rootCause(ctx)),
       sentence: CompareCriteria.getCompareMessage({
         values: input.value,
         threshold: input.value,
@@ -559,12 +585,12 @@ describe("MonitorCriteriaEvaluator - the table and the sentence agree", () => {
 
   for (const testCase of cases) {
     test(`${testCase.metricName} @ ${testCase.unit ?? "no unit"} reads the same in both`, () => {
-      const rendered: { cell: string; sentence: string } =
+      const rendered: { sampleValue: string; sentence: string } =
         bothRenderings(testCase);
 
-      expect(rendered.cell.length).toBeGreaterThan(0);
+      expect(rendered.sampleValue.length).toBeGreaterThan(0);
       expect(rendered.sentence).toBe(
-        `${testCase.metricName} was ${rendered.cell}. The condition requires the value to be above the ${rendered.cell} threshold.`,
+        `${testCase.metricName} was ${rendered.sampleValue}. The condition requires the value to be above the ${rendered.sampleValue} threshold.`,
       );
     });
   }

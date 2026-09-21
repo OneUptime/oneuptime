@@ -11,6 +11,32 @@ export function getSloBreadcrumbs(path: string): Array<Link> | undefined {
       "SLOs",
       "Archived",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLOS_SETTINGS_OWNER_RULES, [
+      "Project",
+      "SLOs",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "SLOs",
+      "Settings",
+      "Owner Rules",
+      "View Owner Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLOS_SETTINGS_LABEL_RULES, [
+      "Project",
+      "SLOs",
+      "Settings",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "SLOs",
+      "Settings",
+      "Label Rules",
+      "View Label Rule",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW, [
       "Project",
       "SLOs",
