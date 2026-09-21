@@ -11,7 +11,7 @@ import {
  * so the pages are read as text and only their INVARIANTS are pinned - what
  * would silently break the product if it drifted:
  *
- *   - Monitor Rules is a ModelTable over the rule model with the three legacy
+ *   - Monitor Rules is a RuleTable over the rule model with all four
  *     match fields on the "match-criteria" step (that is what makes ModelForm
  *     swap in the condition builder), scoped to this SLO and project.
  *   - Monitors lists exactly the SLO's monitor ids, writes through the pure
@@ -26,6 +26,8 @@ const DASHBOARD_SRC: string = path.join(APP_ROOT, "FeatureSet/Dashboard/src");
 const REPOSITORY_ROOT: string = path.join(APP_ROOT, "..");
 
 const MONITOR_RULES_PAGE: string = "Pages/Slo/View/MonitorRules.tsx";
+const MONITOR_RULE_FIELDS: string =
+  "Pages/Slo/View/SloMonitorRuleFormFields.ts";
 const MONITORS_PAGE: string = "Pages/Slo/View/Monitors.tsx";
 const HELPER_MODULE: string = "Pages/Slo/Utils/SloMonitorSource.ts";
 
@@ -62,6 +64,7 @@ function listSourceFiles(directory: string): Array<string> {
 
 describe("SLO Monitor Rules page", () => {
   const code: string = readCode(MONITOR_RULES_PAGE);
+  const formFields: string = readCode(MONITOR_RULE_FIELDS);
 
   /*
    * RuleTable renders a ModelTable with the same props (so the form still
@@ -96,13 +99,21 @@ describe("SLO Monitor Rules page", () => {
     expect(code).toContain('{ title: "Match Criteria", id: "match-criteria" }');
   });
 
-  test("puts all three legacy match fields on the match-criteria step, so ModelForm swaps in the builder", () => {
+  test("uses the shared SLO monitor rule form fields", () => {
+    expect(code).toContain(
+      'import getSloMonitorRuleFormFields from "./SloMonitorRuleFormFields";',
+    );
+    expect(code).toContain("formFields={getSloMonitorRuleFormFields()}");
+  });
+
+  test("puts all four match fields on the match-criteria step, so ModelForm swaps in the builder", () => {
     for (const field of [
       "monitorLabels",
+      "monitorType",
       "monitorNamePattern",
       "monitorDescriptionPattern",
     ]) {
-      expect(code).toMatch(
+      expect(formFields).toMatch(
         new RegExp(
           `field: \\{ ${field}: true \\},(?:(?!stepId:).)*?stepId: "match-criteria"`,
         ),
@@ -111,9 +122,49 @@ describe("SLO Monitor Rules page", () => {
   });
 
   test("labels are picked from the project's labels", () => {
-    expect(code).toMatch(
+    expect(formFields).toMatch(
       /field: \{ monitorLabels: true \},(?:(?!stepId:).)*?stepId: "match-criteria",(?:(?!field:).)*?dropdownModal: \{ type: Label,/,
     );
+  });
+
+  /*
+   * The condition builder labels each criterion option with its field's
+   * title, and the SLO E2E spec picks the option by that exact label. PR CI
+   * never runs E2E, so a renamed title (Monitor Name Pattern -> Monitor Name)
+   * would only surface as a timed-out click on master. Pin the link here.
+   */
+  test("every criterion the SLO E2E spec picks is a match-criteria field title", () => {
+    const spec: string = fs
+      .readFileSync(
+        path.join(REPOSITORY_ROOT, "E2E/Tests/Dashboard/Slo.spec.ts"),
+        "utf8",
+      )
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/(^|\s)\/\/.*$/gm, " ")
+      .replace(/\s+/g, " ");
+
+    const pickedCriteria: Array<string> = Array.from(
+      spec.matchAll(
+        /name: "Criteria for condition \d+",? \}\);(?:(?!getByRole\().)*getByRole\("option", \{ name: "([^"]+)", exact: true \}\)/g,
+      ),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(pickedCriteria.length).toBeGreaterThan(0);
+
+    for (const title of pickedCriteria) {
+      const escapedTitle: string = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      const matchCriteriaFieldPattern: RegExp = new RegExp(
+        `field: \\{ \\w+: true \\}, title: "${escapedTitle}", stepId: "match-criteria"`,
+      );
+
+      expect({
+        title: title,
+        isMatchCriteriaFieldTitle: matchCriteriaFieldPattern.test(formFields),
+      }).toEqual({ title: title, isMatchCriteriaFieldTitle: true });
+    }
   });
 
   test("its help has a Match Criteria section for the builder to rewrite", () => {

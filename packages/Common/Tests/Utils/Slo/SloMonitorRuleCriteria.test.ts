@@ -1,5 +1,6 @@
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import RuleCriteria, {
   RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
   RULE_CRITERIA_SCHEMA_VERSION,
@@ -383,5 +384,113 @@ describe("getSloMonitorRuleCriteriaKey", () => {
         monitorLabels: [{ _id: PRODUCTION_LABEL_ID }],
       }),
     );
+  });
+});
+
+describe("SLO monitor type criteria descriptions", () => {
+  test.each(["", "Invalid monitor type"])(
+    "describes an invalid legacy monitor type as matching no monitors: %p",
+    (monitorType: string) => {
+      expect(
+        describeSloMonitorRuleCriteria({
+          rule: {
+            monitorType: monitorType as MonitorType,
+            monitorNamePattern: ".*",
+          },
+        }),
+      ).toBe(SLO_MONITOR_RULE_INVALID_CRITERIA_DESCRIPTION);
+    },
+  );
+
+  test.each([
+    { operator: RuleCriteriaOperator.Equals, value: "Invalid monitor type" },
+    { operator: RuleCriteriaOperator.NotEquals, value: "" },
+    { operator: RuleCriteriaOperator.Contains, value: MonitorType.API },
+    { operator: RuleCriteriaOperator.HasAnyOf, value: [MonitorType.API] },
+  ])(
+    "describes invalid type criteria as matching no monitors: %p",
+    (filter: Pick<RuleCriteriaFilter, "operator" | "value">) => {
+      expect(
+        describeSloMonitorRuleCriteria({
+          rule: {
+            criteria: criteria(FilterCondition.Any, [
+              { field: "monitorType", ...filter },
+            ]),
+          },
+        }),
+      ).toBe(SLO_MONITOR_RULE_INVALID_CRITERIA_DESCRIPTION);
+    },
+  );
+
+  test.each([RuleCriteriaOperator.Equals, RuleCriteriaOperator.NotEquals])(
+    "describes configured monitor type %s without looking up labels",
+    (operator: RuleCriteriaOperator) => {
+      const rule: SloMonitorRuleCriteriaCarrier = {
+        criteria: criteria(FilterCondition.All, [
+          { field: "monitorType", operator, value: MonitorType.API },
+          {
+            field: "monitorNamePattern",
+            operator: RuleCriteriaOperator.DoesNotMatchPattern,
+            value: "^staging-",
+          },
+        ]),
+        monitorType: MonitorType.Website,
+      };
+      expect(describeSloMonitorRuleCriteria({ rule })).toBe(
+        `Type ${SLO_MONITOR_RULE_OPERATOR_PHRASES[operator]} "API" AND Name does not match pattern "^staging-"`,
+      );
+      expect(getSloMonitorRuleLabelIds(rule)).toEqual([]);
+    },
+  );
+
+  test("describes a legacy monitor type combined with other attributes", () => {
+    expect(
+      describeSloMonitorRuleCriteria({
+        rule: {
+          monitorType: MonitorType.Website,
+          monitorLabels: [{ _id: PRODUCTION_LABEL_ID, name: "Production" }],
+          monitorNamePattern: "^checkout-",
+        },
+      }),
+    ).toBe(
+      'Labels has any of "Production" AND Type is "Website" AND Name matches pattern "^checkout-"',
+    );
+  });
+
+  test("describes a type-only legacy rule as a configured condition", () => {
+    expect(
+      describeSloMonitorRuleCriteria({
+        rule: { monitorType: MonitorType.API },
+      }),
+    ).toBe('Type is "API"');
+  });
+
+  test("detects changes to legacy monitor types for audit and feed updates", () => {
+    const apiKey: string = getSloMonitorRuleCriteriaKey({
+      monitorType: MonitorType.API,
+    });
+    expect(apiKey).not.toBe(
+      getSloMonitorRuleCriteriaKey({ monitorType: MonitorType.Website }),
+    );
+    expect(apiKey).not.toBe(getSloMonitorRuleCriteriaKey({}));
+    expect(getSloMonitorRuleCriteriaKey({ monitorType: null })).toBe(
+      getSloMonitorRuleCriteriaKey({}),
+    );
+  });
+
+  test("ignores legacy monitor type shadows for configured rule identity", () => {
+    const configured: RuleCriteria = criteria(FilterCondition.All, [
+      {
+        field: "monitorType",
+        operator: RuleCriteriaOperator.Equals,
+        value: MonitorType.API,
+      },
+    ]);
+    expect(
+      getSloMonitorRuleCriteriaKey({
+        criteria: configured,
+        monitorType: MonitorType.Website,
+      }),
+    ).toBe(getSloMonitorRuleCriteriaKey({ criteria: configured }));
   });
 });

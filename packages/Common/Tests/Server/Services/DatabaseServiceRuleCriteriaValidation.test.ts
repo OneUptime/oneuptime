@@ -1,5 +1,7 @@
 import AlertReminderRule from "../../../Models/DatabaseModels/AlertReminderRule";
 import StatusPageMonitorRule from "../../../Models/DatabaseModels/StatusPageMonitorRule";
+import ServiceLevelObjectiveMonitorRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -519,4 +521,106 @@ describe("DatabaseService rule criteria validation", () => {
       'Rule criteria field "monitorLabels" requires valid resource IDs.',
     );
   });
+});
+
+describe("DatabaseService SLO monitor type criteria validation", () => {
+  const sloService: DatabaseService<ServiceLevelObjectiveMonitorRule> =
+    new DatabaseService<ServiceLevelObjectiveMonitorRule>(
+      ServiceLevelObjectiveMonitorRule,
+    );
+  const sanitizeSlo: SanitizeFunction = async (
+    data: unknown,
+    props: DatabaseCommonInteractionProps = { isRoot: true },
+    isUpdate: boolean = true,
+  ): Promise<JSONObject> => {
+    return (await (
+      sloService as unknown as { sanitizeCreateOrUpdate: SanitizeFunction }
+    ).sanitizeCreateOrUpdate(data, props, isUpdate)) as JSONObject;
+  };
+
+  it.each([true, false])(
+    "persists valid type criteria with a fail-closed compatibility shadow on update=%p",
+    async (isUpdate: boolean) => {
+      const criteria: JSONObject = criteriaFor({
+        field: "monitorType",
+        operator: RuleCriteriaOperator.Equals,
+        value: MonitorType.Docker,
+      });
+      const result: JSONObject = await sanitizeSlo(
+        {
+          criteria,
+          monitorType: MonitorType.API,
+          monitorNamePattern: ".*",
+          monitorLabels: ["11111111-1111-4111-8111-111111111111"],
+        },
+        { isRoot: true },
+        isUpdate,
+      );
+      expect(result).toMatchObject({
+        criteria,
+        monitorType: null,
+        monitorNamePattern: "(?!)",
+      });
+      expect(result["monitorLabels"]).toBeUndefined();
+    },
+  );
+
+  it.each(Object.values(MonitorType))(
+    "accepts equality and inequality for %s",
+    async (monitorType: MonitorType) => {
+      for (const operator of [
+        RuleCriteriaOperator.Equals,
+        RuleCriteriaOperator.NotEquals,
+      ]) {
+        await expect(
+          sanitizeSlo({
+            criteria: criteriaFor({
+              field: "monitorType",
+              operator,
+              value: monitorType,
+            }),
+          }),
+        ).resolves.toBeDefined();
+      }
+    },
+  );
+
+  it.each(["Unknown", "api", "API.*", 1, true])(
+    "rejects invalid type value %p",
+    async (value: string | number | boolean) => {
+      await expect(
+        sanitizeSlo({
+          criteria: criteriaFor({
+            field: "monitorType",
+            operator: RuleCriteriaOperator.NotEquals,
+            value,
+          }),
+        }),
+      ).rejects.toThrow("valid monitor type");
+    },
+  );
+
+  it.each([
+    RuleCriteriaOperator.Contains,
+    RuleCriteriaOperator.DoesNotContain,
+    RuleCriteriaOperator.StartsWith,
+    RuleCriteriaOperator.EndsWith,
+    RuleCriteriaOperator.MatchesPattern,
+    RuleCriteriaOperator.DoesNotMatchPattern,
+    RuleCriteriaOperator.HasAnyOf,
+    RuleCriteriaOperator.HasAllOf,
+    RuleCriteriaOperator.HasNoneOf,
+  ])(
+    "rejects unsupported type operator %s",
+    async (operator: RuleCriteriaOperator) => {
+      const value: string | Array<string> = operator.startsWith("Has")
+        ? [MonitorType.API]
+        : MonitorType.API;
+      await expect(
+        sanitizeSlo({
+          criteria: criteriaFor({ field: "monitorType", operator, value }),
+        }),
+      ).rejects.toThrow("only support Equals");
+    },
+  );
 });
