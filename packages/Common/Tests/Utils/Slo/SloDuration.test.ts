@@ -4,8 +4,6 @@ import {
   formatErrorBudgetRemainingOfTotal,
 } from "../../../Utils/Slo/SloDuration";
 
-const MINUS_SIGN: string = "−";
-
 describe("SloDuration", () => {
   describe("formatDurationCompact", () => {
     it("renders seconds under a minute", () => {
@@ -74,12 +72,40 @@ describe("SloDuration", () => {
 
     it("renders an exhausted-but-not-overspent budget as 0s left", () => {
       expect(formatErrorBudgetRemaining(0)).toBe("0s left");
+      expect(formatErrorBudgetRemaining(-0)).toBe("0s left");
     });
 
-    it("renders an overspent budget with a minus sign and over budget", () => {
+    it("states the overage as a positive duration with over budget", () => {
       expect(formatErrorBudgetRemaining(-750)).toBe(
-        `${MINUS_SIGN}12m 30s over budget`,
+        "12m 30s over budget",
       );
+    });
+
+    it("keeps a multi-day overage readable", () => {
+      expect(formatErrorBudgetRemaining(-346980)).toBe("4d 23m over budget");
+    });
+
+    it.each([0.001, 0.4, 0.999])(
+      "distinguishes a positive %ps remainder from an empty budget",
+      (seconds: number) => {
+        expect(formatErrorBudgetRemaining(seconds)).toBe("under 1s left");
+      },
+    );
+
+    it.each([-0.001, -0.4, -0.999])(
+      "preserves a %ps overage instead of rounding it to zero",
+      (seconds: number) => {
+        expect(formatErrorBudgetRemaining(seconds)).toBe(
+          "under 1s over budget",
+        );
+      },
+    );
+
+    it("uses seconds at the one-second boundary without rounding up", () => {
+      expect(formatErrorBudgetRemaining(1)).toBe("1s left");
+      expect(formatErrorBudgetRemaining(-1)).toBe("1s over budget");
+      expect(formatErrorBudgetRemaining(59.9)).toBe("59s left");
+      expect(formatErrorBudgetRemaining(-59.9)).toBe("59s over budget");
     });
 
     it("returns null when the SLO has not been evaluated", () => {
@@ -90,12 +116,18 @@ describe("SloDuration", () => {
     it("returns null for non-finite values", () => {
       expect(formatErrorBudgetRemaining(Number.NaN)).toBeNull();
       expect(formatErrorBudgetRemaining(Number.POSITIVE_INFINITY)).toBeNull();
+      expect(formatErrorBudgetRemaining(Number.NEGATIVE_INFINITY)).toBeNull();
     });
 
     it("rejects a numeric string rather than coercing it", () => {
       expect(
         formatErrorBudgetRemaining("2592" as unknown as number),
       ).toBeNull();
+    });
+
+    it("rejects booleans rather than treating them as zero or one", () => {
+      expect(formatErrorBudgetRemaining(false as unknown as number)).toBeNull();
+      expect(formatErrorBudgetRemaining(true as unknown as number)).toBeNull();
     });
   });
 
@@ -109,40 +141,101 @@ describe("SloDuration", () => {
       ).toBe("12m 30s left of 43m 12s");
     });
 
-    it("keeps the total visible when the budget is overspent", () => {
+    it("identifies the allowance separately from how far over budget it is", () => {
       expect(
         formatErrorBudgetRemainingOfTotal({
           remainingSeconds: -750,
           totalSeconds: 2592,
         }),
-      ).toBe(`${MINUS_SIGN}12m 30s over budget of 43m 12s`);
+      ).toBe("12m 30s over budget · 43m 12s allowed");
     });
 
-    it("omits the total when it is unknown", () => {
+    it("explains the reported multi-day overage against its small allowance", () => {
       expect(
         formatErrorBudgetRemainingOfTotal({
-          remainingSeconds: 750,
-          totalSeconds: null,
+          remainingSeconds: -346980,
+          totalSeconds: 347,
         }),
-      ).toBe("12m 30s left");
+      ).toBe("4d 23m over budget · 5m 47s allowed");
     });
 
-    it("omits a zero total — a brand-new SLO has no elapsed window yet", () => {
+    it("retains the allowance at exactly zero without claiming an overage", () => {
       expect(
         formatErrorBudgetRemainingOfTotal({
           remainingSeconds: 0,
-          totalSeconds: 0,
-        }),
-      ).toBe("0s left");
-    });
-
-    it("returns null when the SLO has not been evaluated", () => {
-      expect(
-        formatErrorBudgetRemainingOfTotal({
-          remainingSeconds: null,
           totalSeconds: 2592,
         }),
-      ).toBeNull();
+      ).toBe("0s left of 43m 12s");
     });
+
+    it.each([
+      [0.25, "under 1s left of under 1s"],
+      [-0.25, "under 1s over budget · under 1s allowed"],
+      [0, "0s left of under 1s"],
+    ])(
+      "does not round a subsecond allowance to zero for a %ps remainder",
+      (remainingSeconds: number, expected: string) => {
+        expect(
+          formatErrorBudgetRemainingOfTotal({
+            remainingSeconds,
+            totalSeconds: 0.5,
+          }),
+        ).toBe(expected);
+      },
+    );
+
+    it.each([
+      ["missing", undefined],
+      ["null", null],
+      ["zero", 0],
+      ["negative", -2592],
+      ["NaN", Number.NaN],
+      ["positive infinity", Number.POSITIVE_INFINITY],
+      ["negative infinity", Number.NEGATIVE_INFINITY],
+      ["numeric string", "2592" as unknown as number],
+      ["boolean", true as unknown as number],
+    ])(
+      "omits an unusable %s total while preserving the remaining or over-budget state",
+      (_label: string, totalSeconds: number | null | undefined) => {
+        expect(
+          formatErrorBudgetRemainingOfTotal({
+            remainingSeconds: 750,
+            totalSeconds,
+          }),
+        ).toBe("12m 30s left");
+        expect(
+          formatErrorBudgetRemainingOfTotal({
+            remainingSeconds: -750,
+            totalSeconds,
+          }),
+        ).toBe("12m 30s over budget");
+        expect(
+          formatErrorBudgetRemainingOfTotal({
+            remainingSeconds: 0,
+            totalSeconds,
+          }),
+        ).toBe("0s left");
+      },
+    );
+
+    it.each([
+      ["missing", undefined],
+      ["null", null],
+      ["NaN", Number.NaN],
+      ["positive infinity", Number.POSITIVE_INFINITY],
+      ["negative infinity", Number.NEGATIVE_INFINITY],
+      ["numeric string", "750" as unknown as number],
+      ["boolean", false as unknown as number],
+    ])(
+      "does not let a known total imply an evaluated budget when the remainder is %s",
+      (_label: string, remainingSeconds: number | null | undefined) => {
+        expect(
+          formatErrorBudgetRemainingOfTotal({
+            remainingSeconds,
+            totalSeconds: 2592,
+          }),
+        ).toBeNull();
+      },
+    );
   });
 });
