@@ -395,10 +395,19 @@ describe("LicenseRanking.guardUpdate - what is refused", () => {
     expect(update.enterpriseLicenseUserLimit).toBe(1);
   });
 
+  /*
+   * A current legacy license refused in favour of the verified one already
+   * installed. The expiry is part of the candidate on purpose: without it the
+   * returned license does not classify "valid" at all, and the two
+   * descriptions below would not be what an administrator is shown.
+   */
   it("explains a refusal in words an administrator can act on", () => {
     const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
       inputs: makeInputs({ token: signLicense(SIGNING_KEY) }),
-      update: { enterpriseLicenseToken: legacyToken() },
+      update: {
+        enterpriseLicenseToken: legacyToken(),
+        enterpriseLicenseExpiresAt: new Date(Date.now() + 30 * DAY_IN_MS),
+      },
       now: new Date(),
     });
 
@@ -476,5 +485,215 @@ describe("LicenseInputsUtil - the inputs behind the ranking", () => {
     expect(LicenseInputsUtil.classify(inputs, new Date()).status).toBe(
       "missing",
     );
+  });
+});
+
+/*
+ * The never-downgrade rule meeting a license the server sent with a token but
+ * no expiry (activation and refresh write enterpriseLicenseExpiresAt as null
+ * when the response carries no expiresAt - LicenseClient.mapValidationResponse).
+ *
+ * That candidate now classifies as the unlicensed trial rather than "invalid",
+ * so its rank moved from the bottom (invalid, 0) to the trial's (grace, 3, or
+ * missing, 1, once the trial is over). What must hold either way: it cannot
+ * displace a stored license that classifies better, and it can still replace
+ * one that classifies worse. If this regresses, one license-server response
+ * without an expiresAt could take a working license off every installation.
+ */
+describe("LicenseRanking.guardUpdate - a candidate with a token and no expiry", () => {
+  const TRIAL_DAYS: number = 14;
+
+  const firstSeen: (daysAgo: number) => Date = (daysAgo: number): Date => {
+    return new Date(Date.now() - daysAgo * DAY_IN_MS);
+  };
+
+  it("cannot displace a current license: the stored terms are kept", () => {
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs: makeInputs({
+        token: legacyToken("installed"),
+        storedColumns: {
+          ...legacyColumns(30),
+          enterpriseEditionFirstSeenAt: firstSeen(2),
+        },
+      }),
+      update: {
+        enterpriseLicenseToken: legacyToken("returned"),
+        enterpriseLicenseExpiresAt: null,
+      },
+      now: new Date(),
+    });
+
+    expect(guarded.downgrade).not.toBeNull();
+    expect(guarded.downgrade?.current.status).toBe("valid");
+    expect(guarded.downgrade?.candidate).toMatchObject({
+      status: "grace",
+      verification: "unverified",
+      reason: "unverified-without-expiry-unlicensed",
+    });
+
+    for (const column of LICENSE_TERM_COLUMNS) {
+      expect(guarded.update).not.toHaveProperty(column as string);
+    }
+  });
+
+  /*
+   * The ordinary installation: it has been running far longer than the trial,
+   * so a response without an expiry classifies "missing" and is refused - a
+   * license in its 30-day grace period is not swapped for a lapsed trial.
+   */
+  it("cannot displace a licensed grace period on an install older than the trial", () => {
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs: makeInputs({
+        token: legacyToken("installed"),
+        storedColumns: {
+          ...legacyColumns(-3),
+          enterpriseEditionFirstSeenAt: firstSeen(400),
+        },
+      }),
+      update: {
+        enterpriseLicenseToken: legacyToken("returned"),
+        enterpriseLicenseExpiresAt: null,
+      },
+      now: new Date(),
+    });
+
+    expect(guarded.downgrade).not.toBeNull();
+    expect(guarded.downgrade?.current.status).toBe("grace");
+    expect(guarded.downgrade?.candidate.status).toBe("missing");
+  });
+
+  it("cannot displace a verified license", () => {
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs: makeInputs({
+        token: signLicense(SIGNING_KEY),
+        storedColumns: { enterpriseEditionFirstSeenAt: firstSeen(2) },
+      }),
+      update: {
+        enterpriseLicenseToken: legacyToken("returned"),
+        enterpriseLicenseExpiresAt: null,
+      },
+      now: new Date(),
+    });
+
+    expect(guarded.downgrade).not.toBeNull();
+    expect(guarded.downgrade?.current.verification).toBe("verified");
+  });
+
+  /*
+   * The other direction: it outranks what it should outrank. A stored token
+   * that classifies invalid (garbage, or another instance's license) is worse
+   * than a trial, so the returned license is stored - which is the only way
+   * an installation in that state ever recovers through the daily sync.
+   */
+  it("replaces a stored token that classifies invalid", () => {
+    const returned: string = legacyToken("returned");
+
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs: makeInputs({
+        token: "garbage.garbage.garbage",
+        storedColumns: { enterpriseEditionFirstSeenAt: firstSeen(2) },
+      }),
+      update: {
+        enterpriseLicenseToken: returned,
+        enterpriseLicenseExpiresAt: null,
+      },
+      now: new Date(),
+    });
+
+    expect(guarded.downgrade).toBeNull();
+    expect(guarded.update.enterpriseLicenseToken).toBe(returned);
+  });
+
+  it("is accepted onto an unlicensed installation, inside or outside its trial", () => {
+    for (const daysSinceFirstRun of [2, 400]) {
+      const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+        inputs: makeInputs({
+          token: null,
+          storedColumns: {
+            enterpriseEditionFirstSeenAt: firstSeen(daysSinceFirstRun),
+          },
+        }),
+        update: {
+          enterpriseLicenseToken: legacyToken("returned"),
+          enterpriseLicenseExpiresAt: null,
+        },
+        now: new Date(),
+      });
+
+      // Equal status, better verification: a token IS installed now.
+      expect(guarded.downgrade).toBeNull();
+    }
+  });
+
+  it("is outranked by a real license the server sends later", () => {
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs: makeInputs({
+        token: legacyToken("installed"),
+        storedColumns: { enterpriseEditionFirstSeenAt: firstSeen(2) },
+      }),
+      update: {
+        enterpriseLicenseToken: legacyToken("returned"),
+        enterpriseLicenseExpiresAt: new Date(Date.now() + 365 * DAY_IN_MS),
+      },
+      now: new Date(),
+    });
+
+    expect(guarded.downgrade).toBeNull();
+    expect(
+      LicenseInputsUtil.classify(
+        LicenseInputsUtil.withUpdate(
+          makeInputs({
+            token: legacyToken("installed"),
+            storedColumns: { enterpriseEditionFirstSeenAt: firstSeen(2) },
+          }),
+          guarded.update,
+        ),
+        new Date(),
+      ),
+    ).toMatchObject({ status: "valid", reason: "unverified" });
+  });
+
+  /*
+   * Pinned because it is the one case the coarse rank cannot see: an install
+   * still inside its trial whose license expired days ago is grace/unverified
+   * either way, and equal ranks are accepted (that is how a renewal lands).
+   * The install stays fully entitled across the swap - only the date it would
+   * lapse on moves, from expiry + graceDays to first run + trialDays. The
+   * ranking has never compared dates (a verified renewal with an earlier
+   * expiry is accepted too); if that is ever wanted it is a deliberate change
+   * to LicenseRanking, not a side effect of this classification.
+   */
+  it("ties with a licensed grace period inside the trial window, and a tie is accepted", () => {
+    const inputs: LicenseInputs = makeInputs({
+      token: legacyToken("installed"),
+      storedColumns: {
+        ...legacyColumns(-3),
+        enterpriseEditionFirstSeenAt: firstSeen(TRIAL_DAYS - 2),
+      },
+    });
+    const update: PartialEntity<GlobalConfig> = {
+      enterpriseLicenseToken: legacyToken("returned"),
+      enterpriseLicenseExpiresAt: null,
+    };
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs,
+      update,
+      now: new Date(),
+    });
+
+    expect(guarded.downgrade).toBeNull();
+
+    const before: EnterpriseLicenseSnapshot = LicenseInputsUtil.classify(
+      inputs,
+      new Date(),
+    );
+    const after: EnterpriseLicenseSnapshot = LicenseInputsUtil.classify(
+      LicenseInputsUtil.withUpdate(inputs, guarded.update),
+      new Date(),
+    );
+
+    expect(LicenseRanking.compare(after, before)).toBe(0);
+    // Both usable: the installation keeps every enterprise feature.
+    expect([before.status, after.status]).toEqual(["grace", "grace"]);
   });
 });

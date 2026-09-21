@@ -1159,3 +1159,91 @@ describe("POST /global-config/license - the license server's own tokens, offline
     expect(store.licenseWrites()).toHaveLength(0);
   });
 });
+
+/*
+ * A license server that answers with a TOKEN and no expiresAt. Activation
+ * (LicenseClient.mapValidationResponse) writes every term it was sent and
+ * writes the expiry as null when none arrived, so this is the shortest path
+ * to an installation holding a token with no expiry beside it.
+ *
+ * That state used to classify "invalid": activation refused outright, and an
+ * installation that reached it some other way lost SSO, SCIM and audit
+ * logging at once. It is now the unlicensed trial - a countdown, with the
+ * reason and the message saying what is actually wrong.
+ */
+describe("a license-server response with a token and no expiry", () => {
+  const payloadWithoutExpiry: () => JSONObject = (): JSONObject => {
+    const payload: JSONObject = licenseServerPayload();
+    delete payload["expiresAt"];
+    return payload;
+  };
+
+  it("activates onto the trial instead of being refused, on an install inside its trial", async () => {
+    store.row!["enterpriseLicenseToken"] = null;
+    store.row!["enterpriseLicenseExpiresAt"] = null;
+    store.row!["enterpriseEditionFirstSeenAt"] = new Date(
+      Date.now() - 3 * DAY_IN_MS,
+    );
+    respondWith(payloadWithoutExpiry());
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: STORED_LICENSE_KEY,
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.body?.["status"]).toBe("grace");
+    expect(result.body?.["graceReason"]).toBe("unlicensed");
+    expect(result.body?.["licenseValid"]).toBe(true);
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(
+      legacyToken("from-server"),
+    );
+    expect(String(result.body?.["message"])).toContain(
+      "no expiry is recorded for it",
+    );
+  });
+
+  /*
+   * The same response on an installation older than the trial: it is stored
+   * (the license IS installed, it is the expiry that is missing) and the
+   * install reads as lapsed rather than invalid, with the message naming the
+   * problem. Before, activation threw "cannot use" and stored nothing.
+   */
+  it("is stored on an install past its trial, and reads as lapsed rather than invalid", async () => {
+    store.row!["enterpriseLicenseToken"] = null;
+    store.row!["enterpriseLicenseExpiresAt"] = null;
+    respondWith(payloadWithoutExpiry());
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: STORED_LICENSE_KEY,
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.body?.["status"]).toBe("missing");
+    expect(result.body?.["licenseValid"]).toBe(false);
+    expect(String(result.body?.["message"])).toContain(
+      "no expiry is recorded for it",
+    );
+  });
+
+  /*
+   * The never-downgrade rule doing its job on the same response: a refresh
+   * must not swap a working license for one with no expiry, whatever the
+   * new classification ranks as.
+   */
+  it("cannot replace a working license through a refresh", async () => {
+    const installed: string = store.row?.[
+      "enterpriseLicenseToken"
+    ] as string;
+    const expiresAt: Date = store.row?.[
+      "enterpriseLicenseExpiresAt"
+    ] as Date;
+    respondWith(payloadWithoutExpiry());
+
+    const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain("The installed license was kept.");
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(installed);
+    expect(store.row?.["enterpriseLicenseExpiresAt"]).toBe(expiresAt);
+  });
+});
