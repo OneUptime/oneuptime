@@ -55,3 +55,29 @@ describe("Icon chevrons", () => {
     expect(new Set(paths).size).toBe(paths.length);
   });
 });
+
+/*
+ * The feed's Filter & Sort control shows Newest first / Oldest first with
+ * these two, and the right-sizing card shows over- and under-provisioned
+ * containers with them. BarsArrowUp used to be a copy of BarsArrowDown's path,
+ * so both pairs read as the same thing.
+ */
+describe("Icon bars-and-arrow sort glyphs", () => {
+  it("draws the arrow pointing down for BarsArrowDown", () => {
+    expect(getIconPath(IconProp.BarsArrowDown)).toBe(
+      "M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21L21 17.25",
+    );
+  });
+
+  it("draws the arrow pointing up for BarsArrowUp", () => {
+    expect(getIconPath(IconProp.BarsArrowUp)).toBe(
+      "M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12",
+    );
+  });
+
+  it("does not draw the same glyph for both directions", () => {
+    expect(getIconPath(IconProp.BarsArrowUp)).not.toBe(
+      getIconPath(IconProp.BarsArrowDown),
+    );
+  });
+});

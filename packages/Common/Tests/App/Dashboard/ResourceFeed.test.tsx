@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 
@@ -65,6 +66,27 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * The real Icon draws an SVG that says nothing about which icon it is. This
+ * one names the icon, so the checklist's icons and the trigger's glyph can be
+ * read back off the page. Everything else the module exports (SizeProp,
+ * ThickProp, IconType) stays real - components across the feed read those at
+ * render time.
+ */
+jest.mock("../../../UI/Components/Icon/Icon", () => {
+  const actualIconModule: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Components/Icon/Icon",
+  ) as Record<string, unknown>;
+
+  return {
+    ...actualIconModule,
+    __esModule: true,
+    default: (props: { icon: string }): React.ReactElement => {
+      return <span data-icon={props.icon} aria-hidden="true" />;
+    },
+  };
+});
+
 import ResourceFeed, {
   GetResourceFeedIconFunction,
   getIconForEventType,
@@ -77,7 +99,16 @@ import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import { Green500 } from "../../../Types/BrandColors";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
+import {
+  DEFAULT_FEED_OPTIONS,
+  FEED_OPTIONS_TEXT,
+  FILTERED_FEED_NO_ITEMS_MESSAGE,
+  FeedOptions,
+  getFeedOptionsSummary,
+} from "../../../UI/Components/Feed/FeedOptions";
+import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptions";
 
 /*
  * One component serves all ten resource feeds, parameterised by the two
@@ -89,6 +120,13 @@ import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
  */
 
 const CLUSTER_ID: ObjectID = ObjectID.generate();
+
+const ALL_EVENT_TYPES: Array<string> = Object.values(
+  KubernetesClusterFeedEventType,
+);
+
+const NO_ITEMS_MESSAGE: string =
+  "No activity has been recorded for this Kubernetes cluster yet.";
 
 function feedItem(
   eventType: KubernetesClusterFeedEventType,
@@ -112,9 +150,10 @@ function getFeedElement(resourceId: ObjectID = CLUSTER_ID): React.ReactElement {
       resourceIdColumn="kubernetesClusterId"
       resourceId={resourceId}
       eventTypeColumn="kubernetesClusterFeedEventType"
+      eventTypes={ALL_EVENT_TYPES}
       title="Kubernetes Cluster Feed"
       description="Everything that has happened to this Kubernetes cluster."
-      noItemsMessage="No activity has been recorded for this Kubernetes cluster yet."
+      noItemsMessage={NO_ITEMS_MESSAGE}
     />
   );
 }
@@ -125,11 +164,130 @@ function renderFeed(
   return render(getFeedElement(resourceId));
 }
 
+const RESOURCE_ID_COLUMN: string = "kubernetesClusterId";
+
+const EVENT_TYPE_COLUMN: string = "kubernetesClusterFeedEventType";
+
+type GetQuery = (request: GetListRequest) => Record<string, unknown>;
+
+const getQuery: GetQuery = (
+  request: GetListRequest,
+): Record<string, unknown> => {
+  return request["query"] as Record<string, unknown>;
+};
+
+type GetRequestsFor = (resourceId: ObjectID) => Array<GetListRequest>;
+
+// Every request made so far for this cluster's feed, oldest first.
+const getRequestsFor: GetRequestsFor = (
+  resourceId: ObjectID,
+): Array<GetListRequest> => {
+  return mockGetListCalls.filter((request: GetListRequest) => {
+    return (
+      String(getQuery(request)[RESOURCE_ID_COLUMN]) === resourceId.toString()
+    );
+  });
+};
+
+type WaitForFeed = (requestCount: number) => Promise<void>;
+
+// The feed has asked the API `requestCount` times and drawn the last answer.
+const waitForFeed: WaitForFeed = async (
+  requestCount: number,
+): Promise<void> => {
+  await waitFor(() => {
+    expect(mockGetListCalls).toHaveLength(requestCount);
+    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+  });
+};
+
+type GetFilterAndSortButton = () => HTMLElement;
+
+/*
+ * Found the way a screen reader finds it: by its label. What the feed is
+ * showing is the button's description, not part of its name, so the name
+ * stays "Filter & Sort" whatever is chosen - and the count badge, which is
+ * aria-hidden, never joins it either.
+ */
+const getFilterAndSortButton: GetFilterAndSortButton = (): HTMLElement => {
+  return screen.getByRole("button", { name: "Filter & Sort" });
+};
+
+type OpenFilterAndSort = () => HTMLElement;
+
+// Presses Filter & Sort and returns the panel it opens.
+const openFilterAndSort: OpenFilterAndSort = (): HTMLElement => {
+  fireEvent.click(getFilterAndSortButton());
+
+  return screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.panelLabel });
+};
+
+type CloseFilterAndSort = () => void;
+
+// A press anywhere outside the panel - on the way to another page, say.
+const closeFilterAndSort: CloseFilterAndSort = (): void => {
+  fireEvent.mouseDown(document.body);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+};
+
+type GetExpectedSummary = (options: FeedOptions) => string;
+
+/*
+ * The sentence the trigger is described by, for this feed's event types.
+ * Built by the same function the button uses, so the wording can change
+ * without this suite noticing - what is pinned is that the description
+ * follows the feed's live order and filter, counted over this feed's own
+ * event types.
+ */
+const getExpectedSummary: GetExpectedSummary = (
+  options: FeedOptions,
+): string => {
+  return getFeedOptionsSummary({
+    options: options,
+    eventTypeCount: ALL_EVENT_TYPES.length,
+  });
+};
+
+type GetTriggerIcon = () => string | null;
+
+// The glyph in front of the trigger's label: a funnel, or the sort arrows.
+const getTriggerIcon: GetTriggerIcon = (): string | null => {
+  return (
+    getFilterAndSortButton()
+      .querySelector("[data-icon]")
+      ?.getAttribute("data-icon") || null
+  );
+};
+
+type GetStoredSortOrderKeys = () => Array<string>;
+
+/*
+ * Every remembered feed sort order in this browser, whichever feed wrote it.
+ * The prefix is whatever getSortOrderStorageKey puts in front of a feed's
+ * name, so it is read from there rather than copied.
+ */
+const getStoredSortOrderKeys: GetStoredSortOrderKeys = (): Array<string> => {
+  const prefix: string = getSortOrderStorageKey("");
+  const keys: Array<string> = [];
+
+  for (let index: number = 0; index < window.localStorage.length; index++) {
+    const key: string | null = window.localStorage.key(index);
+
+    if (key && key.startsWith(prefix)) {
+      keys.push(key);
+    }
+  }
+
+  return keys;
+};
+
 beforeEach(() => {
   mockGetListCalls.length = 0;
   mockGetListResponse = (): Promise<unknown> => {
     return Promise.resolve({ data: [], count: 0 });
   };
+  // The chosen sort order is remembered, so one test's choice must not leak.
+  window.localStorage.clear();
 });
 
 afterEach(() => {
@@ -725,9 +883,10 @@ describe("ResourceFeed - a feed's own icons", () => {
         resourceIdColumn="kubernetesClusterId"
         resourceId={CLUSTER_ID}
         eventTypeColumn="kubernetesClusterFeedEventType"
+        eventTypes={ALL_EVENT_TYPES}
         title="Kubernetes Cluster Feed"
         description="Everything that has happened to this Kubernetes cluster."
-        noItemsMessage="No activity has been recorded for this Kubernetes cluster yet."
+        noItemsMessage={NO_ITEMS_MESSAGE}
         getIcon={getIcon}
       />,
     );
@@ -743,5 +902,456 @@ describe("ResourceFeed - a feed's own icons", () => {
     expect(askedEventTypes).toContain(
       KubernetesClusterFeedEventType.OwnerUserAdded,
     );
+  });
+
+  test("gives the Filter & Sort checklist the same icons, one entry per event type", async () => {
+    const askedEventTypes: Array<string> = [];
+
+    /*
+     * One event type gets an icon of the feed's own that the shared rules
+     * would never pick for it, so its row can only show it if the checklist
+     * really goes through getIcon.
+     */
+    const ownIconEventType: string =
+      KubernetesClusterFeedEventType.OwnerUserAdded;
+    const ownIcon: IconProp = IconProp.Fire;
+
+    expect(getIconForEventType(ownIconEventType)).not.toBe(ownIcon);
+
+    const getIcon: GetResourceFeedIconFunction = (
+      eventType: string,
+    ): IconProp | undefined => {
+      askedEventTypes.push(eventType);
+      return eventType === ownIconEventType ? ownIcon : undefined;
+    };
+
+    render(
+      <ResourceFeed<KubernetesClusterFeed>
+        modelType={KubernetesClusterFeed}
+        resourceIdColumn="kubernetesClusterId"
+        resourceId={CLUSTER_ID}
+        eventTypeColumn="kubernetesClusterFeedEventType"
+        eventTypes={ALL_EVENT_TYPES}
+        title="Kubernetes Cluster Feed"
+        description="Everything that has happened to this Kubernetes cluster."
+        noItemsMessage={NO_ITEMS_MESSAGE}
+        getIcon={getIcon}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(NO_ITEMS_MESSAGE)).toBeInTheDocument();
+    });
+
+    // The feed is empty, so only the checklist can have asked.
+    for (const eventType of ALL_EVENT_TYPES) {
+      expect(askedEventTypes).toContain(eventType);
+    }
+
+    const panel: HTMLElement = openFilterAndSort();
+
+    /*
+     * Exactly one box per event type of this feed's own enum: none missing,
+     * none repeated, and nothing from another feed.
+     */
+    const checkboxTestIds: Array<string> = within(panel)
+      .getAllByRole("checkbox")
+      .map((checkbox: HTMLElement): string => {
+        return checkbox.getAttribute("data-testid") || "";
+      });
+
+    expect([...checkboxTestIds].sort()).toEqual(
+      ALL_EVENT_TYPES.map((eventType: string): string => {
+        return `feed-options-event-type-${eventType}`;
+      }).sort(),
+    );
+
+    type GetRowIcon = (eventType: string) => string | null;
+
+    const getRowIcon: GetRowIcon = (eventType: string): string | null => {
+      return (
+        within(panel)
+          .getByTestId(`feed-options-event-type-${eventType}`)
+          .closest("label")
+          ?.querySelector("[data-icon]")
+          ?.getAttribute("data-icon") || null
+      );
+    };
+
+    // The feed's own answer wins...
+    expect(getRowIcon(ownIconEventType)).toBe(ownIcon);
+
+    // ...and "no answer" falls back to the shared rules, row by row.
+    for (const eventType of ALL_EVENT_TYPES) {
+      if (eventType === ownIconEventType) {
+        continue;
+      }
+
+      expect(getRowIcon(eventType)).toBe(getIconForEventType(eventType));
+    }
+  });
+});
+
+/*
+ * Filter & Sort is applied by the API, not to the rows already loaded, and
+ * the event type filter is keyed by the same string column as the icon - so
+ * a typo there would filter on a column that does not exist.
+ */
+describe("ResourceFeed - Filter & Sort", () => {
+  test("puts Filter & Sort first in the header, and an untouched feed sends exactly the query it always sent", async () => {
+    renderFeed();
+
+    await waitFor(() => {
+      expect(mockGetListCalls.length).toBe(1);
+    });
+
+    expect(
+      Object.keys(mockGetListCalls[0]!["query"] as Record<string, unknown>),
+    ).toEqual(["kubernetesClusterId"]);
+
+    const optionsButton: HTMLElement = getFilterAndSortButton();
+    const refreshButton: HTMLElement = screen.getByRole("button", {
+      name: "Refresh",
+    });
+
+    expect(
+      optionsButton.compareDocumentPosition(refreshButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    /*
+     * The state behind the button is read out as its description - and shown
+     * as its tooltip - so the reader need not open it to know what the feed
+     * is showing.
+     */
+    const summary: string = getExpectedSummary(DEFAULT_FEED_OPTIONS);
+
+    expect(summary.length).toBeGreaterThan(0);
+    expect(optionsButton).toHaveAccessibleDescription(summary);
+    expect(optionsButton).toHaveAttribute("title", summary);
+
+    // An untouched feed: the funnel, no count, and nothing remembered.
+    expect(getTriggerIcon()).toBe(IconProp.Filter);
+    expect(screen.queryByTestId("feed-options-count")).not.toBeInTheDocument();
+    expect(getStoredSortOrderKeys()).toEqual([]);
+  });
+
+  test("filters on the feed's own event type column and says so when nothing matches", async () => {
+    renderFeed();
+
+    await waitFor(() => {
+      expect(screen.getByText(NO_ITEMS_MESSAGE)).toBeInTheDocument();
+    });
+
+    const panel: HTMLElement = openFilterAndSort();
+
+    fireEvent.click(
+      within(panel).getByTestId(
+        `feed-options-event-type-${KubernetesClusterFeedEventType.OwnerUserAdded}`,
+      ),
+    );
+
+    await waitFor(() => {
+      expect(mockGetListCalls).toHaveLength(2);
+    });
+
+    const request: GetListRequest = mockGetListCalls[1]!;
+    const query: Record<string, unknown> = request["query"] as Record<
+      string,
+      unknown
+    >;
+    const eventTypeFilter: unknown = query["kubernetesClusterFeedEventType"];
+
+    expect(query["kubernetesClusterId"]).toBe(CLUSTER_ID);
+    expect(eventTypeFilter).toBeInstanceOf(Includes);
+    expect((eventTypeFilter as Includes).values).toEqual([
+      KubernetesClusterFeedEventType.OwnerUserAdded,
+    ]);
+    expect(request["skip"]).toBe(0);
+    expect(request["limit"]).toBe(DEFAULT_LIMIT);
+
+    /*
+     * An empty filtered feed must not claim the cluster has no history at
+     * all.
+     */
+    expect(
+      await screen.findByText(FILTERED_FEED_NO_ITEMS_MESSAGE),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(NO_ITEMS_MESSAGE)).not.toBeInTheDocument();
+
+    /*
+     * The trigger keeps its name with a count on it, and its description now
+     * says the feed is narrowed - to one of this feed's event types.
+     */
+    const optionsButton: HTMLElement = getFilterAndSortButton();
+
+    expect(screen.getByTestId("feed-options-count")).toHaveTextContent(/^1$/);
+    expect(optionsButton).toHaveAccessibleDescription(
+      getExpectedSummary({
+        sortOrder: SortOrder.Descending,
+        eventTypes: [KubernetesClusterFeedEventType.OwnerUserAdded],
+      }),
+    );
+    expect(optionsButton).not.toHaveAccessibleDescription(
+      getExpectedSummary(DEFAULT_FEED_OPTIONS),
+    );
+  });
+
+  test("Oldest first re-reads the first window in ascending order, draws it exactly as the API returned it, and remembers it under this feed's key only", async () => {
+    // sort-entry-0 is the newest event, sort-entry-11 the oldest.
+    const newestFirst: Array<KubernetesClusterFeed> = Array.from(
+      { length: 12 },
+      (_value: unknown, index: number): KubernetesClusterFeed => {
+        return feedItem(
+          KubernetesClusterFeedEventType.KubernetesClusterUpdated,
+          `sort-entry-${index}`,
+          new Date(Date.UTC(2024, 0, 12 - index)),
+        );
+      },
+    );
+    const oldestFirst: Array<KubernetesClusterFeed> = [
+      ...newestFirst,
+    ].reverse();
+
+    /*
+     * The stub answers each order with its own rows, as the API would. The
+     * ascending window (entry-11 down to entry-2) is neither the newest window
+     * reversed nor anything a client-side sort by time would draw, so the
+     * page can only show it by showing the API's rows as they came.
+     */
+    mockGetListResponse = (request: GetListRequest): Promise<unknown> => {
+      const sort: Record<string, unknown> = request["sort"] as Record<
+        string,
+        unknown
+      >;
+      const rows: Array<KubernetesClusterFeed> =
+        sort["postedAt"] === SortOrder.Ascending ? oldestFirst : newestFirst;
+
+      return Promise.resolve({
+        data: rows.slice(0, request["limit"] as number),
+        count: rows.length,
+      });
+    };
+
+    type GetDrawnEntries = () => Array<string>;
+
+    const getDrawnEntries: GetDrawnEntries = (): Array<string> => {
+      return screen
+        .getAllByText(/sort-entry-/)
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        });
+    };
+
+    type GetMarkdown = (items: Array<KubernetesClusterFeed>) => Array<string>;
+
+    const getMarkdown: GetMarkdown = (
+      items: Array<KubernetesClusterFeed>,
+    ): Array<string> => {
+      return items.map((item: KubernetesClusterFeed): string => {
+        return item.feedInfoInMarkdown || "";
+      });
+    };
+
+    renderFeed();
+    await waitFor(() => {
+      expect(screen.getAllByText(/sort-entry-/)).toHaveLength(DEFAULT_LIMIT);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    await waitFor(() => {
+      expect(screen.getAllByText(/sort-entry-/)).toHaveLength(12);
+    });
+
+    // Nothing is remembered until the reader changes something.
+    expect(getStoredSortOrderKeys()).toEqual([]);
+
+    const panel: HTMLElement = openFilterAndSort();
+
+    fireEvent.click(
+      within(panel).getByTestId(`feed-options-sort-${SortOrder.Ascending}`),
+    );
+
+    await waitForFeed(3);
+
+    // Reversing the loaded rows would show the newest twelve upside down.
+    const request: GetListRequest = mockGetListCalls[2]!;
+
+    expect(request["sort"]).toEqual({
+      postedAt: SortOrder.Ascending,
+    });
+    expect(request["skip"]).toBe(0);
+    expect(request["limit"]).toBe(DEFAULT_LIMIT);
+    expect(Object.keys(getQuery(request))).toEqual([RESOURCE_ID_COLUMN]);
+
+    await waitFor(() => {
+      expect(getDrawnEntries()).toEqual(
+        getMarkdown(oldestFirst.slice(0, DEFAULT_LIMIT)),
+      );
+    });
+
+    /*
+     * The trigger says so without being opened: the sort glyph instead of the
+     * funnel, and a description that leads with the new order.
+     */
+    expect(getTriggerIcon()).toBe(IconProp.BarsArrowUp);
+    expect(getFilterAndSortButton()).toHaveAccessibleDescription(
+      getExpectedSummary({ sortOrder: SortOrder.Ascending, eventTypes: [] }),
+    );
+
+    /*
+     * Remembered under this feed's own key, and only there: another
+     * product's feed must not open oldest first because of this one.
+     */
+    const storageKey: string = getSortOrderStorageKey(EVENT_TYPE_COLUMN);
+
+    expect(window.localStorage.getItem(storageKey)).toBe(SortOrder.Ascending);
+    expect(
+      window.localStorage.getItem(
+        getSortOrderStorageKey("dockerHostFeedEventType"),
+      ),
+    ).toBeNull();
+    expect(getStoredSortOrderKeys()).toEqual([storageKey]);
+  });
+
+  test("drops the event type filter when the feed moves to another cluster, and keeps the sort order", async () => {
+    /*
+     * The dashboard moves between clusters without remounting the feed. The
+     * filter was chosen for one cluster's investigation, so the next cluster
+     * must start unfiltered - from its very first request, or the API is
+     * asked for the old cluster's filter and the reader briefly sees a feed
+     * with events missing. The sort order is a preference and stays.
+     */
+    const clusterA: ObjectID = CLUSTER_ID;
+    const clusterB: ObjectID = ObjectID.generate();
+    const tickedEventType: string =
+      KubernetesClusterFeedEventType.OwnerUserAdded;
+
+    type ExpectUnfilteredOldestFirst = (
+      request: GetListRequest,
+      resourceId: ObjectID,
+    ) => void;
+
+    const expectUnfilteredOldestFirst: ExpectUnfilteredOldestFirst = (
+      request: GetListRequest,
+      resourceId: ObjectID,
+    ): void => {
+      const query: Record<string, unknown> = getQuery(request);
+
+      expect(Object.keys(query)).toEqual([RESOURCE_ID_COLUMN]);
+      expect(String(query[RESOURCE_ID_COLUMN])).toBe(resourceId.toString());
+      expect(request["sort"]).toEqual({ postedAt: SortOrder.Ascending });
+      expect(request["skip"]).toBe(0);
+      expect(request["limit"]).toBe(DEFAULT_LIMIT);
+    };
+
+    type ExpectNothingTicked = () => void;
+
+    // Reopens the panel on the feed as it is now, and closes it again.
+    const expectNothingTicked: ExpectNothingTicked = (): void => {
+      const reopenedPanel: HTMLElement = openFilterAndSort();
+      const checkboxes: Array<HTMLElement> =
+        within(reopenedPanel).getAllByRole("checkbox");
+
+      expect(checkboxes).toHaveLength(ALL_EVENT_TYPES.length);
+
+      for (const checkbox of checkboxes) {
+        expect(checkbox).not.toBeChecked();
+      }
+
+      expect(
+        within(reopenedPanel).getByTestId(
+          `feed-options-sort-${SortOrder.Ascending}`,
+        ),
+      ).toHaveAttribute("aria-checked", "true");
+
+      closeFilterAndSort();
+    };
+
+    const view: ReturnType<typeof render> = renderFeed(clusterA);
+    await waitForFeed(1);
+
+    // On cluster A: oldest first, then only owners being added.
+    const panel: HTMLElement = openFilterAndSort();
+
+    fireEvent.click(
+      within(panel).getByTestId(`feed-options-sort-${SortOrder.Ascending}`),
+    );
+    await waitForFeed(2);
+
+    fireEvent.click(
+      within(
+        screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.panelLabel }),
+      ).getByTestId(`feed-options-event-type-${tickedEventType}`),
+    );
+    await waitForFeed(3);
+
+    const filteredRequest: GetListRequest = mockGetListCalls[2]!;
+    const eventTypeFilter: unknown =
+      getQuery(filteredRequest)[EVENT_TYPE_COLUMN];
+
+    expect(eventTypeFilter).toBeInstanceOf(Includes);
+    expect((eventTypeFilter as Includes).values).toEqual([tickedEventType]);
+    expect(filteredRequest["sort"]).toEqual({ postedAt: SortOrder.Ascending });
+    expect(screen.getByTestId("feed-options-count")).toHaveTextContent(/^1$/);
+
+    closeFilterAndSort();
+
+    // To cluster B.
+    view.rerender(getFeedElement(clusterB));
+    await waitForFeed(4);
+
+    const requestsForB: Array<GetListRequest> = getRequestsFor(clusterB);
+
+    /*
+     * One request for B, and it was already unfiltered - not a filtered one
+     * that a later reset then replaced.
+     */
+    expect(requestsForB).toHaveLength(1);
+    expectUnfilteredOldestFirst(requestsForB[0]!, clusterB);
+
+    // An empty unfiltered feed says the cluster has no history, not "no match".
+    expect(await screen.findByText(NO_ITEMS_MESSAGE)).toBeInTheDocument();
+    expect(
+      screen.queryByText(FILTERED_FEED_NO_ITEMS_MESSAGE),
+    ).not.toBeInTheDocument();
+
+    expect(screen.queryByTestId("feed-options-count")).not.toBeInTheDocument();
+    expect(getTriggerIcon()).toBe(IconProp.BarsArrowUp);
+    expect(getFilterAndSortButton()).toHaveAccessibleDescription(
+      getExpectedSummary({ sortOrder: SortOrder.Ascending, eventTypes: [] }),
+    );
+    expectNothingTicked();
+
+    // Nothing asked B for the old filter afterwards either.
+    expect(getRequestsFor(clusterB)).toHaveLength(1);
+
+    // The sort order is still remembered, for this feed only.
+    expect(getStoredSortOrderKeys()).toEqual([
+      getSortOrderStorageKey(EVENT_TYPE_COLUMN),
+    ]);
+    expect(
+      window.localStorage.getItem(getSortOrderStorageKey(EVENT_TYPE_COLUMN)),
+    ).toBe(SortOrder.Ascending);
+
+    // Back to cluster A: its old filter does not come back with it.
+    const requestCountBeforeReturn: number = mockGetListCalls.length;
+
+    view.rerender(getFeedElement(clusterA));
+    await waitForFeed(requestCountBeforeReturn + 1);
+
+    const requestsAfterReturn: Array<GetListRequest> = mockGetListCalls.slice(
+      requestCountBeforeReturn,
+    );
+
+    expect(requestsAfterReturn).toHaveLength(1);
+    expectUnfilteredOldestFirst(requestsAfterReturn[0]!, clusterA);
+
+    expect(await screen.findByText(NO_ITEMS_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByTestId("feed-options-count")).not.toBeInTheDocument();
+    expect(getFilterAndSortButton()).toHaveAccessibleDescription(
+      getExpectedSummary({ sortOrder: SortOrder.Ascending, eventTypes: [] }),
+    );
+    expectNothingTicked();
   });
 });

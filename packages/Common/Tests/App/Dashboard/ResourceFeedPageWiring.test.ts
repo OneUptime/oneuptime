@@ -227,4 +227,34 @@ describe("Resource feed pages", () => {
       expect(page).toContain("ResourceFeed");
     },
   );
+
+  test.each(FEED_PAGES)(
+    "$product's feed page offers its own model's event types to Filter & Sort",
+    (spec: FeedPageSpec) => {
+      const page: string = read(
+        "Pages",
+        spec.pagesDirectory,
+        "View",
+        "Feed.tsx",
+      );
+
+      /*
+       * The pages are near copies, so the realistic slip is pasting another
+       * product's enum: it compiles, and the checklist then offers event
+       * types this feed never records. The enum must be the one named after
+       * the page's own feed model. The SLO page takes its props from
+       * getSloResourceFeedProps, so its list lives there.
+       */
+      const modelMatch: RegExpMatchArray | null =
+        page.match(/<ResourceFeed<(\w+)>/);
+
+      expect(modelMatch).toBeTruthy();
+
+      const source: string = page.includes("getSloResourceFeedProps")
+        ? read("Components", "Slo", "SloFeed.tsx")
+        : page;
+
+      expect(source).toContain(`Object.values(${modelMatch![1]}EventType)`);
+    },
+  );
 });
