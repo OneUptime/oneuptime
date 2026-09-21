@@ -1093,8 +1093,25 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
   const isCodeFixRecommended: boolean =
     codeFixRecommendation === AIRunCodeFixRecommendation.Recommended;
-  const isVerdictLocked: boolean = isSavingVerdict || !analysisMarkdown;
+  /*
+   * A verdict judges the report on screen, so the rating row only exists
+   * beside one. While the report is still being prepared, or when the run
+   * finished without one, there is nothing to rate; the row used to stay
+   * there with both answers disabled. The header drops its verdict on the
+   * same terms (reportVerdict above).
+   */
+  const canRateInvestigation: boolean = isShowingReport;
+  // With a report on screen, the only lock left is a save in flight.
+  const isVerdictLocked: boolean = isSavingVerdict;
   const isConfirmed: boolean = humanVerdict === "Confirmed";
+  /*
+   * The framed box under a completed run holds one row per available
+   * decision, so it is only drawn when at least one row is: an empty frame
+   * would read as a control that failed to load.
+   */
+  const hasCompletedActions: boolean =
+    runStatus === AIRunStatus.Completed &&
+    (isCodeFixRecommended || canRateInvestigation);
   /*
    * Ask the feed whether it will draw anything rather than counting events:
    * several event types only close a step an earlier event opened, so a run
@@ -1328,16 +1345,20 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           The server-authored recommendation decides whether a completed
           investigation exposes the code-fix action. The human verdict remains
           independent: it records whether the analysis was correct even when
-          no pull request is applicable.
+          no pull request is applicable, and it is offered whenever there is
+          a report to judge.
         */}
-        {runStatus === AIRunStatus.Completed ? (
+        {hasCompletedActions ? (
           /*
            * One row per decision, each a question on the left and its answer
            * on the right. The question's text gives way first, and a column
            * too narrow for both stacks the control under it instead of
            * pushing it past the box.
            */
-          <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-gray-50/70">
+          <div
+            data-testid="investigation-actions"
+            className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-gray-50/70"
+          >
             {isCodeFixRecommended ? (
               <div className="px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
@@ -1436,105 +1457,111 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               The two choices sit in one segmented control so they read as a
               single question with two answers rather than two unrelated
               actions, and the prompt collapses to a pill once answered.
+              Without a report on screen there is nothing to judge, so the
+              row is left out rather than shown with both answers disabled.
             */}
-            <div className="px-4 py-4 sm:px-5">
-              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-                <div className="min-w-[12rem] flex-1">
-                  <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                    <Icon
-                      icon={IconProp.Star}
-                      className="h-4 w-4 text-gray-400"
-                    />
-                    Rate this investigation
-                  </h3>
-                  <p className="mt-1 text-xs leading-5 text-gray-500">
-                    Your verdict helps measure OneUptime AI&apos;s public
-                    accuracy.
-                  </p>
-                </div>
-
-                <div className="max-w-full">
-                  {humanVerdict && !isChangingVerdict ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${
-                          isConfirmed
-                            ? "bg-green-50 text-green-700 ring-green-200"
-                            : "bg-rose-50 text-rose-700 ring-rose-200"
-                        }`}
-                      >
-                        <Icon
-                          icon={isConfirmed ? IconProp.Check : IconProp.Close}
-                          className="h-3.5 w-3.5"
-                        />
-                        <span>
-                          You {isConfirmed ? "confirmed" : "rejected"} this
-                          analysis
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 underline-offset-2 hover:bg-gray-100 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                        onClick={() => {
-                          setIsChangingVerdict(true);
-                        }}
-                      >
-                        Change
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      role="group"
-                      aria-label="Rate this investigation"
-                      className="inline-flex items-center rounded-lg border border-gray-300 bg-white p-0.5 shadow-sm"
-                    >
-                      <button
-                        type="button"
-                        disabled={isVerdictLocked}
-                        className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-green-50 hover:text-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
-                        onClick={() => {
-                          submitVerdict("Confirmed").catch(() => {
-                            // handled inside submitVerdict
-                          });
-                        }}
-                      >
-                        <Icon icon={IconProp.Check} className="h-4 w-4" />
-                        Confirmed
-                      </button>
-                      <span
-                        aria-hidden="true"
-                        className="mx-0.5 h-5 w-px flex-shrink-0 bg-gray-200"
+            {canRateInvestigation ? (
+              <div className="px-4 py-4 sm:px-5">
+                <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+                  <div className="min-w-[12rem] flex-1">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <Icon
+                        icon={IconProp.Star}
+                        className="h-4 w-4 text-gray-400"
                       />
-                      <button
-                        type="button"
-                        disabled={isVerdictLocked}
-                        className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
-                        onClick={() => {
-                          submitVerdict("Rejected").catch(() => {
-                            // handled inside submitVerdict
-                          });
-                        }}
-                      >
-                        <Icon icon={IconProp.Close} className="h-4 w-4" />
-                        Rejected
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
+                      Rate this investigation
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                      Your verdict helps measure OneUptime AI&apos;s public
+                      accuracy.
+                    </p>
+                  </div>
 
-              {verdictError ? (
-                <div className="mt-3">
-                  <Alert
-                    type={AlertType.DANGER}
-                    strongTitle="Could not save your verdict"
-                    title={verdictError}
-                  />
+                  <div className="max-w-full">
+                    {humanVerdict && !isChangingVerdict ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${
+                            isConfirmed
+                              ? "bg-green-50 text-green-700 ring-green-200"
+                              : "bg-rose-50 text-rose-700 ring-rose-200"
+                          }`}
+                        >
+                          <Icon
+                            icon={isConfirmed ? IconProp.Check : IconProp.Close}
+                            className="h-3.5 w-3.5"
+                          />
+                          <span>
+                            You {isConfirmed ? "confirmed" : "rejected"} this
+                            analysis
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 underline-offset-2 hover:bg-gray-100 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          onClick={() => {
+                            setIsChangingVerdict(true);
+                          }}
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        role="group"
+                        aria-label="Rate this investigation"
+                        className="inline-flex items-center rounded-lg border border-gray-300 bg-white p-0.5 shadow-sm"
+                      >
+                        <button
+                          type="button"
+                          disabled={isVerdictLocked}
+                          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-green-50 hover:text-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                          onClick={() => {
+                            submitVerdict("Confirmed").catch(() => {
+                              // handled inside submitVerdict
+                            });
+                          }}
+                        >
+                          <Icon icon={IconProp.Check} className="h-4 w-4" />
+                          Confirmed
+                        </button>
+                        <span
+                          aria-hidden="true"
+                          className="mx-0.5 h-5 w-px flex-shrink-0 bg-gray-200"
+                        />
+                        <button
+                          type="button"
+                          disabled={isVerdictLocked}
+                          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                          onClick={() => {
+                            submitVerdict("Rejected").catch(() => {
+                              // handled inside submitVerdict
+                            });
+                          }}
+                        >
+                          <Icon icon={IconProp.Close} className="h-4 w-4" />
+                          Rejected
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <></>
-              )}
-            </div>
+
+                {verdictError ? (
+                  <div className="mt-3">
+                    <Alert
+                      type={AlertType.DANGER}
+                      strongTitle="Could not save your verdict"
+                      title={verdictError}
+                    />
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
           <></>

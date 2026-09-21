@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { DOCS_URL } from "Common/UI/Config";
 import IconProp from "Common/Types/Icon/IconProp";
 import HeaderIconDropdownButton from "Common/UI/Components/Header/HeaderIconDropdownButton";
 import IconDropdownItem from "Common/UI/Components/Header/IconDropdown/IconDropdownItem";
@@ -28,6 +29,21 @@ const Help: () => JSX.Element = (): ReactElement => {
     >
       <IconDropdownMenu>
         <IconDropdownRow>
+          {/*
+           * Documentation comes first: it is the one place that explains what
+           * each product is for, and it is served by this OneUptime instance
+           * (DOCS_URL), so it works for self-hosted installs without internet
+           * access too.
+           */}
+          <IconDropdownItem
+            title={t("help.documentation", "Documentation")}
+            icon={IconProp.Book}
+            openInNewTab={true}
+            url={URL.fromString(DOCS_URL.toString())}
+            onClick={() => {
+              setIsDropdownVisible(false);
+            }}
+          />
           {/*
            * "?" opens this dialog from anywhere, but only for people who
            * already know that. Help is where someone looks when they do not,

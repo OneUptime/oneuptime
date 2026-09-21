@@ -18,7 +18,9 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import UiAnalytics from "Common/UI/Utils/Analytics";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import HowOneUptimeWorks from "./HowOneUptimeWorks";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -132,6 +134,11 @@ const getCompleteKey: GetCompleteKeyFunction = (
 const GettingStarted: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const tx: (value: string) => string = (value: string): string => {
+    return translateString(value) ?? value;
+  };
+
   const [isDismissed, setIsDismissed] = useState<boolean>(
     Boolean(LocalStorage.getItem(getDismissKey(props.projectId))),
   );
@@ -244,7 +251,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
           <ProgressBar
             count={completedCount}
             totalCount={gettingStartedTasks.length}
-            suffix="steps completed"
+            suffix={tx("steps completed")}
             size={ProgressBarSize.Small}
           />
         </div>
@@ -295,15 +302,15 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                       isComplete ? "text-gray-500" : "text-gray-900"
                     }`}
                   >
-                    {task.title}
+                    {tx(task.title)}
                   </div>
                   <div className="mt-1 text-sm text-gray-500">
-                    {task.description}
+                    {tx(task.description)}
                   </div>
                 </div>
                 {isComplete ? (
                   <span className="mt-0.5 flex-shrink-0 text-xs font-medium text-emerald-600">
-                    Done
+                    {tx("Done")}
                   </span>
                 ) : (
                   <Icon
@@ -314,6 +321,14 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
               </div>
             );
           })}
+        </div>
+        {/*
+         * The checklist says what to do; this says how the pieces connect.
+         * It lives in the same card so it goes away with the checklist once
+         * the project is set up (or the user dismisses it).
+         */}
+        <div className="mt-6">
+          <HowOneUptimeWorks projectId={props.projectId.toString()} />
         </div>
       </div>
     </Card>

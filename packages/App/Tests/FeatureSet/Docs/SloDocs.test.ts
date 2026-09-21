@@ -59,6 +59,7 @@ const EXPECTED_PAGES: ReadonlyArray<ExpectedPage> = [
   { title: "Burn Rate Alerts and Incidents", page: BURN_RATE_ALERTS_PAGE },
   { title: "SLO Metrics and Dashboards", page: METRICS_PAGE },
   { title: "SLO Feed and Audit Logs", page: "slo/feed-and-audit-logs" },
+  { title: "Label and Owner Rules", page: "slo/label-and-owner-rules" },
 ];
 
 /*

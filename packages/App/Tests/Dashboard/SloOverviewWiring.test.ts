@@ -176,9 +176,9 @@ describe("SLO overview page composition", () => {
       "xl:col-span-2",
       "<SloBudgetBurnDownCard",
       "<SloFeed",
+      "<CardModelDetail",
       "<SloActiveBurnEventsCard",
       "<SloBurnRateRulesSummaryCard",
-      "<CardModelDetail",
     ];
 
     const positions: Array<number> = order.map((needle: string) => {

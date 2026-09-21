@@ -12,11 +12,13 @@ import React from "react";
 import SloNoticeBanner from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloNoticeBanner";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
+import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
+import Icon from "../../../UI/Components/Icon/Icon";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
@@ -46,6 +48,9 @@ const SETTINGS_PATH: string = `${OVERVIEW_PATH}/settings`;
 const MONITORS_PATH: string = `${OVERVIEW_PATH}/monitors`;
 const BANNER_TEST_ID: string = "slo-notice-banner";
 const SECONDS_PER_DAY: number = 24 * 60 * 60;
+const WAITING_TITLE: string = "Waiting for SLO evaluation";
+const WAITING_BODY: string =
+  "Monitors are attached. OneUptime evaluates this SLO every few minutes. Results will appear once monitor status data is available and the next evaluation completes.";
 
 type SloFields = Record<string, unknown>;
 
@@ -91,6 +96,13 @@ function serveSlo(fields: SloFields): ReturnType<typeof jest.spyOn> {
 
 async function findBanner(): Promise<HTMLElement> {
   return await screen.findByTestId(BANNER_TEST_ID);
+}
+
+function iconMarkup(icon: IconProp): string {
+  const { container, unmount } = render(<Icon icon={icon} />);
+  const markup: string = container.querySelector("svg")?.innerHTML || "";
+  unmount();
+  return markup;
 }
 
 async function expectNoBanner(
@@ -229,11 +241,141 @@ describe("SloNoticeBanner", () => {
     const banner: HTMLElement = await findBanner();
 
     expect(banner).toHaveAttribute("role", "alert");
+    expect(banner).toHaveClass("bg-amber-50", "border-amber-200");
     expect(screen.getByText("No monitors attached")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Attach monitors" }),
     ).toHaveAttribute("href", MONITORS_PATH);
   });
+
+  test("shows information when 16 monitors are attached but the stored evaluation status is still misconfigured", async () => {
+    const infoIcon: string = iconMarkup(IconProp.Info);
+    const warningIcon: string = iconMarkup(IconProp.Alert);
+    serveSlo({
+      sloStatus: SloStatus.Misconfigured,
+      lastEvaluatedAt: new Date("2026-09-21T10:00:00Z"),
+      monitors: Array.from({ length: 16 }, (_: unknown, index: number) => {
+        return makeMonitor(
+          `44444444-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+        );
+      }),
+    });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    const banner: HTMLElement = await findBanner();
+    const icon: SVGElement | null = banner.querySelector("svg");
+
+    expect(banner).toHaveAttribute("role", "status");
+    expect(banner).toHaveClass("bg-white", "border-gray-200");
+    expect(banner).not.toHaveClass("bg-amber-50", "border-amber-200");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText(WAITING_TITLE)).toHaveClass("text-gray-900");
+    expect(screen.getByText(WAITING_BODY)).toBeInTheDocument();
+    expect(icon).toHaveClass("text-blue-600");
+    expect(icon?.innerHTML).toBe(infoIcon);
+    expect(icon?.innerHTML).not.toBe(warningIcon);
+    expect(screen.getByRole("link", { name: "View monitors" })).toHaveAttribute(
+      "href",
+      MONITORS_PATH,
+    );
+    expect(screen.queryByText("This SLO cannot be evaluated")).toBeNull();
+    expect(screen.queryByText("Review monitors")).toBeNull();
+  });
+
+  test.each([null, undefined])(
+    "explains pending monitor data without a previous evaluation timestamp (%s)",
+    async (lastEvaluatedAt: null | undefined) => {
+      serveSlo({
+        sloStatus: SloStatus.Misconfigured,
+        lastEvaluatedAt: lastEvaluatedAt,
+      });
+
+      render(<SloNoticeBanner sloId={SLO_ID} />);
+
+      const banner: HTMLElement = await findBanner();
+
+      expect(banner).toHaveAttribute("role", "status");
+      expect(screen.getByText(WAITING_TITLE)).toBeInTheDocument();
+      expect(screen.getByText(WAITING_BODY)).toBeInTheDocument();
+      expect(screen.queryByText("Not evaluated yet")).toBeNull();
+      expect(screen.queryByText("This SLO cannot be evaluated")).toBeNull();
+    },
+  );
+
+  test.each([null, undefined])(
+    "uses the same informational state when the SLI type uses its default (%s)",
+    async (sliType: null | undefined) => {
+      serveSlo({ sloStatus: SloStatus.Misconfigured, sliType: sliType });
+
+      render(<SloNoticeBanner sloId={SLO_ID} />);
+
+      const banner: HTMLElement = await findBanner();
+
+      expect(banner).toHaveAttribute("role", "status");
+      expect(screen.getByText(WAITING_TITLE)).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: "View monitors" }),
+      ).toHaveAttribute("href", MONITORS_PATH);
+    },
+  );
+
+  test("keeps the evaluation information on the Monitors page without linking back to that page", async () => {
+    goTo(MONITORS_PATH);
+    serveSlo({ sloStatus: SloStatus.Misconfigured });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    const banner: HTMLElement = await findBanner();
+
+    expect(banner).toHaveAttribute("role", "status");
+    expect(screen.getByText(WAITING_TITLE)).toBeInTheDocument();
+    expect(screen.getByText(WAITING_BODY)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  test("still warns when attached monitors cannot make an unsupported SLI type evaluable", async () => {
+    serveSlo({ sloStatus: SloStatus.Misconfigured, sliType: SliType.Metric });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    const banner: HTMLElement = await findBanner();
+
+    expect(banner).toHaveAttribute("role", "alert");
+    expect(banner).toHaveClass("bg-amber-50", "border-amber-200");
+    expect(
+      screen.getByText("This SLO cannot be evaluated"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Only "Monitor Uptime" SLIs are supported/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(WAITING_TITLE)).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  test.each([0, 100, null])(
+    "still warns about an invalid target (%s) even with monitors attached",
+    async (targetPercentage: number | null) => {
+      serveSlo({
+        sloStatus: SloStatus.Misconfigured,
+        targetPercentage: targetPercentage,
+      });
+
+      render(<SloNoticeBanner sloId={SLO_ID} />);
+
+      const banner: HTMLElement = await findBanner();
+
+      expect(banner).toHaveAttribute("role", "alert");
+      expect(banner).toHaveClass("bg-amber-50", "border-amber-200");
+      expect(
+        screen.getByText("The target is out of range"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: "Edit objective" }),
+      ).toHaveAttribute("href", SETTINGS_PATH);
+      expect(screen.queryByText(WAITING_TITLE)).toBeNull();
+    },
+  );
 
   test("asks a brand-new SLO for monitors before its first evaluation", async () => {
     serveSlo({ sloStatus: null, lastEvaluatedAt: null, monitors: [] });
@@ -301,5 +443,49 @@ describe("SloNoticeBanner", () => {
       expect(screen.queryByTestId(BANNER_TEST_ID)).toBeNull();
     });
     expect(getItem).toHaveBeenCalledTimes(2);
+  });
+
+  test("changes from a missing-monitor warning to evaluation information after attaching monitors, then disappears after a healthy evaluation", async () => {
+    const getItem: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "getItem")
+      .mockResolvedValueOnce(
+        makeSlo({
+          ...MEASURING,
+          sloStatus: SloStatus.Misconfigured,
+          monitors: [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeSlo({ ...MEASURING, sloStatus: SloStatus.Misconfigured }),
+      )
+      .mockResolvedValueOnce(makeSlo(MEASURING));
+
+    const { rerender } = render(
+      <SloNoticeBanner sloId={SLO_ID} refreshToggle="0" />,
+    );
+
+    expect(await findBanner()).toHaveAttribute("role", "alert");
+    expect(screen.getByText("No monitors attached")).toBeInTheDocument();
+
+    rerender(<SloNoticeBanner sloId={SLO_ID} refreshToggle="1" />);
+
+    expect(await screen.findByText(WAITING_TITLE)).toBeInTheDocument();
+    expect(screen.getByTestId(BANNER_TEST_ID)).toHaveAttribute(
+      "role",
+      "status",
+    );
+    expect(screen.queryByText("No monitors attached")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("link", { name: "View monitors" })).toHaveAttribute(
+      "href",
+      MONITORS_PATH,
+    );
+
+    rerender(<SloNoticeBanner sloId={SLO_ID} refreshToggle="2" />);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId(BANNER_TEST_ID)).toBeNull();
+    });
+    expect(getItem).toHaveBeenCalledTimes(3);
   });
 });

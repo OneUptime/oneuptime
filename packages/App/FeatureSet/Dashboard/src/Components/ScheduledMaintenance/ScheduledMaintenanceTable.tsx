@@ -513,7 +513,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           title: props.title || "Scheduled Maintenance Events",
           description:
             props.description ||
-            "Here is a list of scheduled maintenance events for this project.",
+            "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.",
           buttons: cardbuttons,
         }}
         noItemsMessage={

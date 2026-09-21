@@ -6,7 +6,11 @@ import MetricMonitorResponse, {
   VMwareAffectedResource,
   CephAffectedResource,
   KubernetesAffectedResource,
+  DockerSwarmAffectedResource,
 } from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import Markdown, {
+  MarkdownContentType,
+} from "../../../../Server/Types/Markdown";
 import {
   getProxmoxAlertTemplateById,
   ProxmoxAlertTemplate,
@@ -40,12 +44,14 @@ import FilterCondition from "../../../../Types/Filter/FilterCondition";
  * the incident root-cause context. These tests drive the evaluator's
  * Proxmox/Ceph branches directly and lock in the render contract:
  *
- *   - Proxmox table is Resource / Type / Node / Value; Ceph table is
- *     Daemon / Pool / Host / Value,
+ *   - the breakdown is a ranked list, not a table: one numbered item per
+ *     resource titled "**Kind** `name` — **value**", with the rest of
+ *     its identity (a Proxmox guest's node, a Ceph daemon's pool and
+ *     host, a vSphere object's host and cluster) as nested bullets,
  *   - zero-value rows are dropped (supplementary context — the
  *     per-series criteria still alert on them), worst value first,
  *     top 10 with an "... and N more" suffix,
- *   - identity-less (cluster-wide) breakdowns render NO table and fall
+ *   - identity-less (cluster-wide) breakdowns render NO list and fall
  *     back to the metric summary,
  *   - the cluster context lines surface the monitor step's
  *     clusterIdentifier and resource filters (the pve.scope / pve.id /
@@ -78,6 +84,11 @@ type EvaluatorPrivate = {
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
   }) => Promise<string | null>;
+  buildDockerSwarmRootCauseContext: (input: {
+    dataToProcess: unknown;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }) => string | null;
   buildKubernetesRootCauseAnalysis: (input: {
     breakdown: {
       clusterName: string;
@@ -152,12 +163,12 @@ function metricResponse(
 }
 
 describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
-  test("renders the Resource/Type/Node/Value table: zero rows dropped, worst first", () => {
+  test("renders a ranked list of kind, name and node: zero rows dropped, worst first", () => {
     const affectedResources: Array<ProxmoxAffectedResource> = [
       /*
        * pve_cpu_usage_ratio is a [0, 1] ratio — the catalog says so and
        * pve-exporter reports it that way — so these are 42% and 97% of a
-       * node's CPU, and the table is expected to say exactly that.
+       * node's CPU, and the list is expected to say exactly that.
        */
       {
         resourceId: "qemu/100",
@@ -175,7 +186,7 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
         nodeName: "pve2",
         metricValue: 0.97,
       },
-      // Zero-value row — must be dropped from the table.
+      // Zero-value row — must be dropped from the list.
       {
         resourceId: "qemu/102",
         resourceName: "idle-vm",
@@ -205,7 +216,9 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
     expect(context).toContain("- Cluster: prod-cluster");
     expect(context).toContain("- Metric: CPU Usage (`pve_cpu_usage_ratio`)");
 
-    expect(context).toContain("| Resource | Type | Node | Value |");
+    // A list, not a table: no GFM table row survives anywhere.
+    expect(context).not.toContain("| --- |");
+    expect(context).not.toMatch(/^\|/m);
     // Worst (0.97) sorts above 0.42; the zero row is gone entirely.
     const dbIndex: number = context!.indexOf("`db-vm` (`qemu/101`)");
     const webIndex: number = context!.indexOf("`web-vm` (`qemu/100`)");
@@ -215,20 +228,26 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
     expect(context).toContain("**Affected Resources** (2 total)");
 
     /*
-     * The Value column is rendered in the unit the catalog declares for
-     * the metric — a "ratio" on a `_ratio`-suffixed metric is a fraction,
-     * so the reader gets "97.00%" rather than the bare "0.97" they would
-     * otherwise have to recognise as a percentage themselves.
+     * The value is rendered in the unit the catalog declares for the
+     * metric — a "ratio" on a `_ratio`-suffixed metric is a fraction, so
+     * the reader gets "97.00%" rather than the bare "0.97" they would
+     * otherwise have to recognise as a percentage themselves. A qemu
+     * guest is titled "Virtual Machine", and the node it runs on sits
+     * under it.
      */
     expect(context).toContain(
-      "| `db-vm` (`qemu/101`) | qemu | `pve2` | **97.00%** |",
-    );
-    expect(context).toContain(
-      "| `web-vm` (`qemu/100`) | qemu | `pve1` | **42.00%** |",
+      [
+        "**Affected Resources** (2 total)",
+        "",
+        "1. **Virtual Machine** `db-vm` (`qemu/101`) — **97.00%**",
+        "   - Node: `pve2`",
+        "2. **Virtual Machine** `web-vm` (`qemu/100`) — **42.00%**",
+        "   - Node: `pve1`",
+      ].join("\n"),
     );
   });
 
-  test("renders bytes in the Value column at human scale", () => {
+  test("renders byte values at human scale", () => {
     const context: string | null = Evaluator.buildProxmoxRootCauseContext({
       dataToProcess: metricResponse({
         proxmoxResourceBreakdown: {
@@ -257,12 +276,12 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
      * 3am should not have to divide by 2^30 in their head.
      */
     expect(context).toContain(
-      "| `db-vm` (`qemu/101`) | qemu | `pve2` | **8.59 GB** |",
+      "1. **Virtual Machine** `db-vm` (`qemu/101`) — **8.59 GB**",
     );
     expect(context).not.toContain("**8589934592**");
   });
 
-  test("caps the table at 10 rows, worst first, with an overflow suffix", () => {
+  test("caps the list at 10 items, worst first, with an overflow suffix", () => {
     const affectedResources: Array<ProxmoxAffectedResource> = [];
     for (let i: number = 1; i <= 12; i++) {
       affectedResources.push({
@@ -296,13 +315,18 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
     expect(context).toContain("**Affected Resources** (12 total)");
     expect(context).toContain("*... and 2 more affected resources*");
     // The worst rows survive the cap; the mildest two are cut.
-    expect(context).toContain("**12**");
-    expect(context).toContain("**3**");
-    expect(context).not.toContain("| `qemu/102` | qemu | - | **2** |");
-    expect(context).not.toContain("| `qemu/101` | qemu | - | **1** |");
+    expect(context).toContain("1. **Virtual Machine** `qemu/112` — **12**");
+    expect(context).toContain("10. **Virtual Machine** `qemu/103` — **3**");
+    expect(context).not.toContain("`qemu/102`");
+    expect(context).not.toContain("`qemu/101`");
+    expect(context).not.toContain("11. ");
+    // The summary is its own paragraph, not a continuation of item 10.
+    expect(context).toContain(
+      "10. **Virtual Machine** `qemu/103` — **3**\n\n*... and 2 more affected resources*",
+    );
   });
 
-  test("identity-less (cluster-wide) breakdowns render no table and fall back to the metric summary", () => {
+  test("identity-less (cluster-wide) breakdowns render no list and fall back to the metric summary", () => {
     const context: string | null = Evaluator.buildProxmoxRootCauseContext({
       dataToProcess: metricResponse({
         proxmoxResourceBreakdown: {
@@ -321,7 +345,8 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
       monitor: new Monitor(),
     });
 
-    expect(context).not.toContain("| Resource | Type | Node | Value |");
+    expect(context).not.toContain("**Affected Resources**");
+    expect(context).not.toContain("1. ");
     expect(context).toContain("**Metric Summary**");
     expect(context).toContain("- 2 metric data point(s) returned");
   });
@@ -356,12 +381,13 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
   /*
    * VMware twin of the Proxmox block. The differences are deliberate:
    * identity comes from the vcenter receiver's RESOURCE attributes
-   * (stored `resource.vcenter.*`), the table is
-   * Resource / Kind / Host / Cluster / Value, and utilization metrics
-   * are already 0–100 percentages (catalog unit "%") — never [0, 1]
-   * ratios — so the Value column must print them as-is and never ×100.
+   * (stored `resource.vcenter.*`), each item is titled by the vSphere
+   * object (VM, host, pool, ...) with its host and cluster beneath it,
+   * and utilization metrics are already 0–100 percentages (catalog unit
+   * "%") — never [0, 1] ratios — so the value must print as-is and never
+   * ×100.
    */
-  test("renders the Resource/Kind/Host/Cluster/Value table: zero rows dropped, worst first, % as-is", () => {
+  test("renders a ranked list of object, host and cluster: zero rows dropped, worst first, % as-is", () => {
     const affectedResources: Array<VMwareAffectedResource> = [
       {
         datacenterName: "DC1",
@@ -375,7 +401,7 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
         hostName: "esx-02",
         metricValue: 97.25,
       },
-      // Zero-value row — must be dropped from the table.
+      // Zero-value row — must be dropped from the list.
       {
         datacenterName: "DC1",
         clusterName: "prod-cluster",
@@ -405,7 +431,7 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
       "- Metric: Host CPU Utilization (`vcenter.host.cpu.utilization`)",
     );
 
-    expect(context).toContain("| Resource | Kind | Host | Cluster | Value |");
+    expect(context).not.toContain("| --- |");
     // Worst (97.25) sorts above 42.5; the zero row is gone entirely.
     const worstIndex: number = context!.indexOf("`esx-02`");
     const mildIndex: number = context!.indexOf("`esx-01`");
@@ -417,15 +443,18 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
     /*
      * The catalog declares "%" for the receiver's utilization metrics,
      * whose values are already percentages: 97.25 must read "97.25%",
-     * never "9725.00%". A host IS the resource, so its Host column is
-     * "-" and the Cluster column carries the cluster it belongs to.
+     * never "9725.00%". A host IS the resource, so there is no "Host:"
+     * detail repeating it — only the cluster it belongs to.
      */
     expect(context).toContain(
-      "| `esx-02` | Host | - | `prod-cluster` | **97.25%** |",
+      [
+        "1. **Host** `esx-02` — **97.25%**",
+        "   - Cluster: `prod-cluster`",
+        "2. **Host** `esx-01` — **42.50%**",
+        "   - Cluster: `prod-cluster`",
+      ].join("\n"),
     );
-    expect(context).toContain(
-      "| `esx-01` | Host | - | `prod-cluster` | **42.50%** |",
-    );
+    expect(context).not.toContain("- Host: `esx-0");
     expect(context).not.toContain("9725");
   });
 
@@ -451,11 +480,11 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
       monitor: new Monitor(),
     });
 
-    expect(context).toContain("| `esx-01` | Host | - | - | **0.42%** |");
+    expect(context).toContain("1. **Host** `esx-01` — **0.42%**");
     expect(context).not.toContain("42.00%");
   });
 
-  test("renders VM rows with their parent host and cluster, and bytes at human scale", () => {
+  test("renders VMs with their parent host and cluster, and bytes at human scale", () => {
     const context: string | null = Evaluator.buildVMwareRootCauseContext({
       dataToProcess: metricResponse({
         vmwareResourceBreakdown: {
@@ -490,22 +519,25 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
 
     /*
      * A VM row carries a resource pool AND a host, but it is still a
-     * VM: the Kind column must say so (VM check runs first), the Host
-     * column is the ESXi host running it, and the on-call engineer
-     * should not have to divide by 2^30 in their head.
+     * VM: the title must say so (VM check runs first), the Host detail
+     * is the ESXi host running it, and the on-call engineer should not
+     * have to divide by 2^30 in their head. A VM on a standalone ESXi
+     * host has no cluster, so it simply has no Cluster detail.
      */
     expect(context).toContain(
-      "| `db-01` | Virtual Machine | `esx-02` | `prod-cluster` | **8.59 GB** |",
-    );
-    // A VM on a standalone ESXi host has no cluster.
-    expect(context).toContain(
-      "| `lab-01` | Virtual Machine | `esx-standalone` | - | **1.07 GB** |",
+      [
+        "1. **Virtual Machine** `db-01` — **8.59 GB**",
+        "   - Host: `esx-02`",
+        "   - Cluster: `prod-cluster`",
+        "2. **Virtual Machine** `lab-01` — **1.07 GB**",
+        "   - Host: `esx-standalone`",
+      ].join("\n"),
     );
     expect(context).not.toContain("**8589934592**");
     expect(context).not.toContain("Resource Pool");
   });
 
-  test("renders datastore, cluster, datacenter and resource pool rows by their own identity", () => {
+  test("renders datastores, clusters, datacenters and resource pools by their own identity", () => {
     const context: string | null = Evaluator.buildVMwareRootCauseContext({
       dataToProcess: metricResponse({
         vmwareResourceBreakdown: {
@@ -543,15 +575,18 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
      * `{hosts}` is an annotation-only unit, so counts render as bare
      * integers. Each kind resolves by the most specific identity
      * attribute it carries: a datacenter-only row is a Datacenter, a
-     * cluster row shows no duplicate Cluster cell, a pool shows its
-     * name with the inventory path (pool names are only unique within
-     * a parent).
+     * cluster shows no duplicate Cluster detail, a pool shows its name
+     * with the inventory path (pool names are only unique within a
+     * parent).
      */
-    expect(context).toContain("| `DC1` | Datacenter | - | - | **4** |");
-    expect(context).toContain("| `prod-cluster` | Cluster | - | - | **3** |");
-    expect(context).toContain("| `vsan-ds-01` | Datastore | - | - | **2** |");
     expect(context).toContain(
-      "| `batch` (`/DC1/host/prod-cluster/Resources/batch`) | Resource Pool | - | `prod-cluster` | **1** |",
+      [
+        "1. **Datacenter** `DC1` — **4**",
+        "2. **Cluster** `prod-cluster` — **3**",
+        "3. **Datastore** `vsan-ds-01` — **2**",
+        "4. **Resource Pool** `batch` (`/DC1/host/prod-cluster/Resources/batch`) — **1**",
+        "   - Cluster: `prod-cluster`",
+      ].join("\n"),
     );
   });
 
@@ -573,12 +608,10 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
     });
 
     // Unit from the catalog ("ms"), not a bare, unit-less 85.
-    expect(context).toMatch(
-      /\| `esx-01` \| Host \| - \| - \| \*\*85(\.00)? ms\*\* \|/,
-    );
+    expect(context).toMatch(/1\. \*\*Host\*\* `esx-01` — \*\*85(\.00)? ms\*\*/);
   });
 
-  test("caps the table at 10 rows, worst first, with an overflow suffix", () => {
+  test("caps the list at 10 items, worst first, with an overflow suffix", () => {
     const affectedResources: Array<VMwareAffectedResource> = [];
     for (let i: number = 1; i <= 12; i++) {
       affectedResources.push({
@@ -605,13 +638,13 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
     expect(context).toContain("**Affected Resources** (12 total)");
     expect(context).toContain("*... and 2 more affected resources*");
     // The worst rows survive the cap; the mildest two are cut.
-    expect(context).toContain("`esx-12`");
-    expect(context).toContain("`esx-03`");
+    expect(context).toContain("1. **Host** `esx-12` — **12**");
+    expect(context).toContain("10. **Host** `esx-03` — **3**");
     expect(context).not.toContain("`esx-02`");
     expect(context).not.toContain("`esx-01`");
   });
 
-  test("identity-less breakdowns render no table and fall back to the metric summary", () => {
+  test("identity-less breakdowns render no list and fall back to the metric summary", () => {
     const context: string | null = Evaluator.buildVMwareRootCauseContext({
       dataToProcess: metricResponse({
         vmwareResourceBreakdown: {
@@ -630,9 +663,7 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
       monitor: new Monitor(),
     });
 
-    expect(context).not.toContain(
-      "| Resource | Kind | Host | Cluster | Value |",
-    );
+    expect(context).not.toContain("**Affected Resources**");
     expect(context).toContain("**Metric Summary**");
     expect(context).toContain("- 2 metric data point(s) returned");
   });
@@ -688,7 +719,7 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
 });
 
 describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
-  test("renders the Daemon/Pool/Host/Value table with pool name+id cells", () => {
+  test("renders a ranked list of daemons and pools with pool name+id", () => {
     const affectedResources: Array<CephAffectedResource> = [
       { daemon: "osd.3", hostname: "ceph-node-1", metricValue: 250 },
       { poolId: "2", poolName: "rbd", metricValue: 91 },
@@ -716,15 +747,20 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
       "- Metric: OSD Apply Latency (`ceph_osd_apply_latency_ms`)",
     );
 
-    expect(context).toContain("| Daemon | Pool | Host | Value |");
     /*
      * ceph_osd_apply_latency_ms carries the catalog unit "ms", so the
-     * Value column names it. 250 ms stays "250 ms" rather than scaling to
+     * value names it. 250 ms stays "250 ms" rather than scaling to
      * seconds — the ladder only moves a value when the magnitude asks
-     * for it.
+     * for it. A row with no daemon is titled by its pool.
      */
-    expect(context).toContain("| `osd.3` | - | `ceph-node-1` | **250 ms** |");
-    expect(context).toContain("| - | `rbd` (`2`) | - | **91 ms** |");
+    expect(context).toContain(
+      [
+        "1. **Daemon** `osd.3` — **250 ms**",
+        "   - Host: `ceph-node-1`",
+        "2. **Pool** `rbd` (`2`) — **91 ms**",
+      ].join("\n"),
+    );
+    expect(context).not.toContain("| --- |");
     expect(context).not.toContain("osd.5");
     expect(context).toContain("**Affected Resources** (2 total)");
 
@@ -736,14 +772,14 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
   });
 
   /*
-   * BACKWARD COMPATIBILITY for the platform tables.
+   * BACKWARD COMPATIBILITY for the platform breakdowns.
    *
    * A metric whose catalog unit is "count" or absent has no dimension to
-   * report, and its Value column must keep every digit — never a chart's
+   * report, and its value must keep every digit — never a chart's
    * abbreviated "1.2K", and never the noise "250 count". ceph_osd_up is
    * `unit: "count"`; ceph_health_status has no unit at all.
    */
-  test("a count metric keeps exact bare digits in the Value column", () => {
+  test("a count metric keeps exact bare digits in the value", () => {
     const context: string | null = Evaluator.buildCephRootCauseContext({
       dataToProcess: metricResponse({
         cephResourceBreakdown: {
@@ -760,16 +796,18 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
       monitor: new Monitor(),
     });
 
-    expect(context).toContain("| `osd.3` | - | `ceph-node-1` | **5000** |");
+    expect(context).toContain(
+      "1. **Daemon** `osd.3` — **5000**\n   - Host: `ceph-node-1`",
+    );
     expect(context).not.toContain("5K");
     expect(context).not.toContain("count");
   });
 
   /*
-   * ORDERING INVARIANT. The table sorts and filters on the RAW numeric
+   * ORDERING INVARIANT. The list sorts and filters on the RAW numeric
    * metricValue and only formats at render time. If a refactor ever sorted
    * the formatted strings instead, "1.07 GB" would sort below "900 KB" and
-   * the worst-first table would silently invert — putting the healthiest
+   * the worst-first list would silently invert — putting the healthiest
    * daemon at the top of an incident.
    */
   test("rows still sort worst-first on the raw value, not the formatted string", () => {
@@ -790,8 +828,8 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
       monitor: new Monitor(),
     });
 
-    expect(context).toContain("| `osd.bigger` | - | - | **1.07 GB** |");
-    expect(context).toContain("| `osd.smaller` | - | - | **922 KB** |");
+    expect(context).toContain("1. **Daemon** `osd.bigger` — **1.07 GB**");
+    expect(context).toContain("2. **Daemon** `osd.smaller` — **922 KB**");
 
     // "1.07 GB" < "922 KB" as strings — the raw numbers must drive this.
     const biggerIndex: number = context!.indexOf("`osd.bigger`");
@@ -800,7 +838,7 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
     expect(smallerIndex).toBeGreaterThan(biggerIndex);
   });
 
-  test("cluster-wide series (ceph_health_status) render no table", () => {
+  test("cluster-wide series (ceph_health_status) render no list", () => {
     const context: string | null = Evaluator.buildCephRootCauseContext({
       dataToProcess: metricResponse({
         cephResourceBreakdown: {
@@ -816,7 +854,7 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
     });
 
     expect(context).toContain("- Cluster: prod-cluster");
-    expect(context).not.toContain("| Daemon | Pool | Host | Value |");
+    expect(context).not.toContain("**Affected Resources**");
   });
 
   test("surfaces the worker's resource-filter mapping (ceph_daemon / pool_id) in the cluster context", () => {
@@ -845,16 +883,16 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
  * ceph_osd_up / ceph_osd_in / ceph_mon_quorum_status are 0/1 gauges and
  * the OSD Down / OSD Out / Quorum Degraded criteria fire on `< 1`, so the
  * ZERO rows are the down daemons — the filter dropped exactly the daemons
- * the incident was about and rendered a table of the HEALTHY ones, under
+ * the incident was about and rendered a list of the HEALTHY ones, under
  * an incident description that ends "Check the root cause for the affected
  * ceph_daemon label."
  *
  * The predicate now mirrors the criteria that matched, but ONLY inverts
  * for a criteria that fires when the metric FALLS. Every upward comparison
  * (`> 0` health checks, PG counts, latency, capacity ratios) and every
- * `= 0` RECOVERY criteria keeps the old `> 0`, worst-highest-first table
+ * `= 0` RECOVERY criteria keeps the old `> 0`, worst-highest-first list
  * byte for byte — the recovery case matters because deriving the predicate
- * from an `= 0` criteria would newly render an "Affected Resources" table
+ * from an `= 0` criteria would newly render an "Affected Resources" list
  * of every resource sitting at 0 on the all-clear.
  */
 describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", () => {
@@ -943,8 +981,9 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
       ],
     });
 
-    expect(context).toContain("| Daemon | Pool | Host | Value |");
-    expect(context).toContain("| `osd.3` | - | `ceph-node-1` | **0** |");
+    expect(context).toContain(
+      "1. **Daemon** `osd.3` — **0**\n   - Host: `ceph-node-1`",
+    );
     expect(context).not.toContain("osd.4");
     expect(context).not.toContain("osd.5");
     expect(context).toContain("**Affected Resources** (1 total)");
@@ -970,8 +1009,8 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
     });
 
     expect(context).toContain("**Affected Resources** (2 total)");
-    expect(context).toContain("`osd.1`");
-    expect(context).toContain("`osd.2`");
+    expect(context).toContain("1. **Daemon** `osd.1` — **0**");
+    expect(context).toContain("2. **Daemon** `osd.2` — **0**");
     expect(context).not.toContain("`osd.10`");
     expect(context).not.toContain("*... and");
   });
@@ -1019,8 +1058,13 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
       ],
     });
 
-    expect(context).toContain("| `osd.3` | - | `ceph-node-1` | **250 ms** |");
-    expect(context).toContain("| - | `rbd` (`2`) | - | **91 ms** |");
+    expect(context).toContain(
+      [
+        "1. **Daemon** `osd.3` — **250 ms**",
+        "   - Host: `ceph-node-1`",
+        "2. **Pool** `rbd` (`2`) — **91 ms**",
+      ].join("\n"),
+    );
     expect(context).not.toContain("osd.5");
     expect(context).toContain("**Affected Resources** (2 total)");
 
@@ -1030,7 +1074,7 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
     expect(poolIndex).toBeGreaterThan(osdIndex);
   });
 
-  test("an `= 0` recovery criteria does NOT turn the all-clear into a table of zeroes", () => {
+  test("an `= 0` recovery criteria does NOT turn the all-clear into a list of zeroes", () => {
     const context: string | null = cephContext({
       metricName: "ceph_pg_degraded",
       criteriaInstance: syntheticCriteria([
@@ -1046,7 +1090,7 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
       ],
     });
 
-    expect(context).not.toContain("| Daemon | Pool | Host | Value |");
+    expect(context).not.toContain("**Pool**");
     expect(context).not.toContain("**Affected Resources**");
   });
 
@@ -1059,7 +1103,7 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
       ],
     });
 
-    expect(context).toContain("| `osd.4` | - | - | **1** |");
+    expect(context).toContain("1. **Daemon** `osd.4` — **1**");
     expect(context).not.toContain("osd.3");
   });
 
@@ -1071,7 +1115,7 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
       ],
     });
 
-    expect(context).toContain("| `osd.4` | - | - | **1** |");
+    expect(context).toContain("1. **Daemon** `osd.4` — **1**");
     expect(context).not.toContain("osd.3");
   });
 
@@ -1090,7 +1134,7 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
       ],
     });
 
-    expect(context).toContain("| `osd.4` | - | - | **1** |");
+    expect(context).toContain("1. **Daemon** `osd.4` — **1**");
     expect(context).not.toContain("osd.3");
   });
 
@@ -1114,7 +1158,7 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
       ],
     });
 
-    expect(context).toContain("| `osd.4` | - | - | **1** |");
+    expect(context).toContain("1. **Daemon** `osd.4` — **1**");
     expect(context).not.toContain("osd.3");
   });
 
@@ -1142,7 +1186,7 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
       ],
     });
 
-    expect(context).toContain("| `osd.4` | - | - | **1** |");
+    expect(context).toContain("1. **Daemon** `osd.4` — **1**");
     expect(context).not.toContain("osd.3");
   });
 });
@@ -1164,7 +1208,7 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
  * evaluator as 1. It now also records the lowest sample, which is what a
  * fall criteria breached on.
  */
-describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => {
+describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predicate", () => {
   function kubernetesStep(templateId: string): MonitorStep {
     const template: KubernetesAlertTemplate | undefined =
       getKubernetesAlertTemplateById(templateId);
@@ -1277,8 +1321,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
       });
 
       expect(context).toContain("**Affected Resources** (1 total)");
-      expect(context).toContain("| Node | Value |");
-      expect(context).toContain("| `node-notready` | **0** |");
+      expect(context).toContain("1. **Node** `node-notready` — **0**");
       expect(context).toContain(
         "Node `node-notready` is reporting NotReady (value: 0).",
       );
@@ -1302,7 +1345,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
       });
 
       expect(context).toContain("**Affected Resources** (1 total)");
-      expect(context).toContain("| `node-flapping` | **0** |");
+      expect(context).toContain("1. **Node** `node-flapping` — **0**");
       expect(context).toContain(
         "Node `node-flapping` is reporting NotReady (value: 0).",
       );
@@ -1348,7 +1391,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
         ],
       });
 
-      expect(context).toContain("| `node-ok-1` | **1** |");
+      expect(context).toContain("1. **Node** `node-ok-1` — **1**");
       expect(context).not.toContain("node-notready");
     });
   });
@@ -1373,12 +1416,12 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
     });
 
     expect(context).toContain("**Affected Resources** (1 total)");
-    expect(context).toContain("| `etcd-cp-2` | **0** |");
+    expect(context).toContain("1. **Pod** `etcd-cp-2` — **0**");
     expect(context).toContain("Most affected pod: `etcd-cp-2`");
     expect(context).not.toContain("etcd-cp-1");
   });
 
-  test("an `= 0` RECOVERY criteria does NOT turn the all-clear into a table of zeroes", async () => {
+  test("an `= 0` RECOVERY criteria does NOT turn the all-clear into a list of zeroes", async () => {
     const replicaStep: MonitorStep = kubernetesStep(
       "k8s-deployment-replica-mismatch",
     );
@@ -1427,8 +1470,8 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
     });
 
     expect(context).toContain("**Affected Resources** (2 total)");
-    expect(context).toContain("| Deployment | `web` | **3** |");
-    expect(context).toContain("| Deployment | `api` | **5** |");
+    expect(context).toContain("1. **Deployment** `api` — **5**");
+    expect(context).toContain("2. **Deployment** `web` — **3**");
     expect(context).not.toContain("`ok`");
 
     // Still worst-HIGHEST-first for an upward comparison.
@@ -1493,7 +1536,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
       ],
     });
 
-    expect(context).toContain("| `node-pressured` | **1** |");
+    expect(context).toContain("1. **Node** `node-pressured` — **1**");
     expect(context).not.toContain("node-ok-1");
   });
 
@@ -1506,7 +1549,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
       ],
     });
 
-    expect(context).toContain("| `node-ok-1` | **1** |");
+    expect(context).toContain("1. **Node** `node-ok-1` — **1**");
     expect(context).not.toContain("node-notready");
   });
 });
@@ -1733,5 +1776,794 @@ describe("MonitorCriteriaEvaluator - Kubernetes root cause analysis scoping", ()
         "Deployment `web` has **3** unavailable replica(s).",
       );
     });
+  });
+});
+
+/*
+ * The Kubernetes "Affected Resources" block — the one the table-to-list
+ * change was made for. A pod-restart incident on a GKE cluster used to
+ * carry a six-column table (Namespace / Workload Type / Workload / Pod /
+ * Node / Value) that wrapped every identifier in the email card. Each
+ * resource is now one numbered item titled by the most specific object
+ * the series names, with the rest of its identity as nested bullets.
+ */
+describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => {
+  // The first line of a top-level list item: "1. ", "10. ", ...
+  const NUMBERED_ITEM: RegExp = /^\d+\. /;
+
+  async function kubernetesContext(input: {
+    affectedResources: Array<KubernetesAffectedResource>;
+    metricName?: string;
+    clusterName?: string;
+  }): Promise<string | null> {
+    return Evaluator.buildKubernetesRootCauseContext({
+      dataToProcess: metricResponse({
+        kubernetesResourceBreakdown: {
+          clusterName:
+            input.clusterName === undefined ? "prod-gke" : input.clusterName,
+          metricName: input.metricName || "k8s.container.restarts",
+          metricFriendlyName: "Container Restarts",
+          affectedResources: input.affectedResources,
+          attributes: {},
+        },
+      }),
+      monitorStep: new MonitorStep(),
+      // No projectId, so the restart branch never reaches for container logs.
+      monitor: new Monitor(),
+    });
+  }
+
+  function podRestart(
+    overrides: Partial<KubernetesAffectedResource>,
+  ): KubernetesAffectedResource {
+    return {
+      namespace: "default",
+      workloadType: "Deployment",
+      workloadName: "oneuptime-worker",
+      podName: "oneuptime-worker-6b67db69c9-gtcp6",
+      nodeName: "gke-prod-default-pool-662f6819-e9gq",
+      metricValue: 2,
+      ...overrides,
+    };
+  }
+
+  test("renders the screenshot's pod restarts as a ranked list, not a table", async () => {
+    const affectedResources: Array<KubernetesAffectedResource> = [
+      podRestart({ metricValue: 2 }),
+      podRestart({
+        workloadType: "Job",
+        workloadName: "oneuptime-migrate-267",
+        podName: "oneuptime-migrate-267-k64qm",
+        nodeName: "gke-prod-default-pool-662f6819-c6w3",
+        metricValue: 3,
+      }),
+      // kube-proxy is a static pod: no owning workload at all.
+      podRestart({
+        namespace: "kube-system",
+        workloadType: undefined,
+        workloadName: undefined,
+        podName: "kube-proxy-gke-prod-default-pool-662f6819-c6w3",
+        nodeName: "gke-prod-default-pool-662f6819-c6w3",
+        metricValue: 1,
+      }),
+    ];
+
+    const context: string | null = await kubernetesContext({
+      affectedResources,
+    });
+
+    expect(context).toContain("**Kubernetes Cluster Details**");
+    expect(context).toContain(
+      [
+        "**Affected Resources** (3 total)",
+        "",
+        "1. **Pod** `oneuptime-migrate-267-k64qm` — **3**",
+        "   - Namespace: `default`",
+        "   - Job: `oneuptime-migrate-267`",
+        "   - Node: `gke-prod-default-pool-662f6819-c6w3`",
+        "2. **Pod** `oneuptime-worker-6b67db69c9-gtcp6` — **2**",
+        "   - Namespace: `default`",
+        "   - Deployment: `oneuptime-worker`",
+        "   - Node: `gke-prod-default-pool-662f6819-e9gq`",
+        "3. **Pod** `kube-proxy-gke-prod-default-pool-662f6819-c6w3` — **1**",
+        "   - Namespace: `kube-system`",
+        "   - Node: `gke-prod-default-pool-662f6819-c6w3`",
+      ].join("\n"),
+    );
+
+    // None of the old table survives.
+    expect(context).not.toContain("| Namespace |");
+    expect(context).not.toContain("Workload Type");
+    expect(context).not.toContain("| --- |");
+    expect(context).not.toMatch(/^\|/m);
+    // A missing workload is left out, not printed as "-".
+    expect(context).not.toContain(": -");
+    expect(context).not.toContain("| - |");
+  });
+
+  test("caps the list at 10 with an '... and N more' summary, like the 83-pod incident", async () => {
+    const affectedResources: Array<KubernetesAffectedResource> = [];
+    for (let i: number = 1; i <= 83; i++) {
+      affectedResources.push(
+        podRestart({ podName: `worker-${i}`, metricValue: i }),
+      );
+    }
+
+    const context: string | null = await kubernetesContext({
+      affectedResources,
+    });
+
+    expect(context).toContain("**Affected Resources** (83 total)");
+    expect(context).toContain("1. **Pod** `worker-83` — **83**");
+    expect(context).toContain(
+      [
+        "10. **Pod** `worker-74` — **74**",
+        "    - Namespace: `default`",
+        "    - Deployment: `oneuptime-worker`",
+        "    - Node: `gke-prod-default-pool-662f6819-e9gq`",
+        "",
+        "*... and 73 more affected resources*",
+      ].join("\n"),
+    );
+    expect(context).not.toContain("11. ");
+    expect(context).not.toContain("`worker-73`");
+  });
+
+  test("a container-level series is titled by the container and its pod", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [
+        podRestart({ containerName: "app", podName: "checkout-7d9f" }),
+      ],
+    });
+
+    expect(context).toContain(
+      [
+        "1. **Container** `app` in pod `checkout-7d9f` — **2**",
+        "   - Namespace: `default`",
+        "   - Deployment: `oneuptime-worker`",
+        "   - Node: `gke-prod-default-pool-662f6819-e9gq`",
+      ].join("\n"),
+    );
+    // The pod is in the title, so it is not repeated as a bullet.
+    expect(context).not.toContain("- Pod:");
+  });
+
+  /*
+   * Every replica of a workload runs a container of the same name. Titled
+   * by the container alone, three crash-looping replicas would read
+   * "Container `checkout`" three times over.
+   */
+  test("replicas that share a container name still get distinct titles", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [
+        podRestart({
+          containerName: "checkout",
+          podName: "checkout-7d9f6c5b8-abcde",
+          metricValue: 5,
+        }),
+        podRestart({
+          containerName: "checkout",
+          podName: "checkout-7d9f6c5b8-fghij",
+          metricValue: 4,
+        }),
+        podRestart({
+          containerName: "checkout",
+          podName: "checkout-7d9f6c5b8-klmno",
+          metricValue: 3,
+        }),
+      ],
+    });
+
+    const titles: Array<string> = (context || "")
+      .split("\n")
+      .filter((line: string) => {
+        return NUMBERED_ITEM.test(line);
+      });
+
+    expect(titles).toEqual([
+      "1. **Container** `checkout` in pod `checkout-7d9f6c5b8-abcde` — **5**",
+      "2. **Container** `checkout` in pod `checkout-7d9f6c5b8-fghij` — **4**",
+      "3. **Container** `checkout` in pod `checkout-7d9f6c5b8-klmno` — **3**",
+    ]);
+    expect(new Set(titles).size).toBe(3);
+  });
+
+  test("a container without a pod is titled by the container alone", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [
+        { containerName: "app", namespace: "default", metricValue: 2 },
+      ],
+    });
+
+    expect(context).toContain(
+      "1. **Container** `app` — **2**\n   - Namespace: `default`",
+    );
+  });
+
+  test("a node-level series is titled by the node and has nothing to list under it", async () => {
+    const context: string | null = await kubernetesContext({
+      metricName: "k8s.node.memory.usage",
+      affectedResources: [
+        { nodeName: "gke-prod-pool-a", metricValue: 8589934592 },
+        { nodeName: "gke-prod-pool-b", metricValue: 1073741824 },
+      ],
+    });
+
+    expect(context).toContain(
+      [
+        "1. **Node** `gke-prod-pool-a` — **8.59 GB**",
+        "2. **Node** `gke-prod-pool-b` — **1.07 GB**",
+      ].join("\n"),
+    );
+    expect(context).not.toContain("- Node:");
+  });
+
+  test("a workload-level series is titled by its workload type and does not repeat it", async () => {
+    const context: string | null = await kubernetesContext({
+      metricName: "k8s.deployment.unavailable_replicas",
+      affectedResources: [
+        {
+          namespace: "payments",
+          workloadType: "StatefulSet",
+          workloadName: "ledger",
+          metricValue: 2,
+        },
+      ],
+    });
+
+    expect(context).toContain(
+      "1. **StatefulSet** `ledger` — **2**\n   - Namespace: `payments`",
+    );
+    expect(context).not.toContain("- StatefulSet:");
+  });
+
+  test("a workload name without a type falls back to the generic 'Workload' label", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [
+        podRestart({ workloadType: undefined, workloadName: "mystery" }),
+      ],
+    });
+
+    expect(context).toContain("   - Workload: `mystery`");
+  });
+
+  test("a workload-level series without a type is titled 'Workload'", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [
+        { namespace: "payments", workloadName: "ledger", metricValue: 1 },
+      ],
+    });
+
+    expect(context).toContain(
+      "1. **Workload** `ledger` — **1**\n   - Namespace: `payments`",
+    );
+  });
+
+  test("a namespace-level series is titled by the namespace", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [{ namespace: "payments", metricValue: 4 }],
+    });
+
+    expect(context).toContain("1. **Namespace** `payments` — **4**");
+    expect(context).not.toContain("- Namespace:");
+  });
+
+  test("a series with no Kubernetes identity is a cluster-level series and is titled by the cluster", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [{ metricValue: 5 }],
+    });
+
+    expect(context).toContain("1. **Cluster** `prod-gke` — **5**");
+  });
+
+  test("items of different shapes in one breakdown are each titled by their own kind", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [
+        podRestart({ containerName: "app", metricValue: 4 }),
+        podRestart({ metricValue: 3 }),
+        { nodeName: "gke-prod-pool-a", metricValue: 2 },
+        { metricValue: 1 },
+      ],
+    });
+
+    const titles: Array<string> = (context || "")
+      .split("\n")
+      .filter((line: string) => {
+        return NUMBERED_ITEM.test(line);
+      });
+
+    expect(titles).toEqual([
+      "1. **Container** `app` in pod `oneuptime-worker-6b67db69c9-gtcp6` — **4**",
+      "2. **Pod** `oneuptime-worker-6b67db69c9-gtcp6` — **3**",
+      "3. **Node** `gke-prod-pool-a` — **2**",
+      "4. **Cluster** `prod-gke` — **1**",
+    ]);
+  });
+
+  test("zero-value resources are dropped, and an all-zero breakdown renders no list", async () => {
+    const some: string | null = await kubernetesContext({
+      affectedResources: [
+        podRestart({ podName: "healthy", metricValue: 0 }),
+        podRestart({ podName: "crashing", metricValue: 7 }),
+      ],
+    });
+
+    expect(some).toContain("**Affected Resources** (1 total)");
+    expect(some).toContain("1. **Pod** `crashing` — **7**");
+    expect(some).not.toContain("healthy");
+
+    const none: string | null = await kubernetesContext({
+      affectedResources: [podRestart({ metricValue: 0 })],
+    });
+
+    expect(none).toContain("**Kubernetes Cluster Details**");
+    expect(none).not.toContain("**Affected Resources**");
+    expect(none).not.toContain("1. ");
+  });
+
+  test("the Root Cause Analysis still names the worst resource and follows the list as its own block", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [
+        podRestart({ containerName: "app", podName: "checkout-7d9f" }),
+      ],
+    });
+
+    expect(context).toContain(
+      "   - Node: `gke-prod-default-pool-662f6819-e9gq`\n\n\n**Root Cause Analysis**",
+    );
+    expect(context).toContain("kubectl logs checkout-7d9f -c app --previous");
+  });
+
+  test("a name containing a backtick cannot break out of its code span", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [podRestart({ podName: "odd`pod" })],
+    });
+
+    expect(context).toContain("1. **Pod** `` odd`pod `` — **2**");
+  });
+
+  test("the whole root cause renders to an email as nested lists, not a table", async () => {
+    const context: string | null = await kubernetesContext({
+      affectedResources: [
+        podRestart({ metricValue: 3 }),
+        podRestart({ podName: "second", metricValue: 2 }),
+      ],
+    });
+
+    const html: string = await Markdown.convertToHTML(
+      context!,
+      MarkdownContentType.Email,
+    );
+
+    expect(html).not.toContain("<table");
+    expect(html).not.toContain("<th");
+    expect((html.match(/<ol /g) || []).length).toBe(1);
+    // Cluster details list + one nested details list per resource.
+    expect((html.match(/<ul /g) || []).length).toBe(3);
+    expect(html).toMatch(
+      /<li style="[^"]+"><strong>Pod<\/strong> <code[^>]*>oneuptime-worker-6b67db69c9-gtcp6<\/code> — <strong>3<\/strong><ul style="[^"]+"><li style="[^"]+">Namespace: <code[^>]*>default<\/code><\/li>/,
+    );
+  });
+});
+
+describe("MonitorCriteriaEvaluator - Docker Swarm affected tasks list", () => {
+  function swarmContext(input: {
+    affectedResources: Array<DockerSwarmAffectedResource>;
+    metricResult?: Array<any>;
+  }): string | null {
+    return Evaluator.buildDockerSwarmRootCauseContext({
+      dataToProcess: metricResponse({
+        dockerSwarmResourceBreakdown: {
+          clusterName: "swarm-prod",
+          metricName: "container.pids.count",
+          metricFriendlyName: "Process Count",
+          affectedResources: input.affectedResources,
+          attributes: {},
+        },
+        metricResult: input.metricResult || [],
+      }),
+      monitorStep: new MonitorStep(),
+      monitor: new Monitor(),
+    });
+  }
+
+  test("renders each task with its service and node beneath it, worst first", () => {
+    const context: string | null = swarmContext({
+      affectedResources: [
+        {
+          containerName: "web.1.abc123",
+          serviceName: "web",
+          nodeName: "worker-1",
+          metricValue: 40,
+        },
+        {
+          containerName: "api.2.def456",
+          serviceName: "api",
+          nodeName: "worker-2",
+          metricValue: 90,
+        },
+        // Zero row dropped.
+        {
+          containerName: "idle.1.xyz",
+          serviceName: "idle",
+          nodeName: "worker-3",
+          metricValue: 0,
+        },
+      ],
+    });
+
+    expect(context).toContain("**Docker Swarm Cluster Details**");
+    expect(context).toContain(
+      [
+        "**Affected Tasks** (2 total)",
+        "",
+        "1. **Task** `api.2.def456` — **90**",
+        "   - Service: `api`",
+        "   - Node: `worker-2`",
+        "2. **Task** `web.1.abc123` — **40**",
+        "   - Service: `web`",
+        "   - Node: `worker-1`",
+      ].join("\n"),
+    );
+    expect(context).not.toContain("idle");
+    expect(context).not.toContain("Task / Container");
+    expect(context).not.toContain("| --- |");
+  });
+
+  test("a series without a task is titled by its service, then its node", () => {
+    const context: string | null = swarmContext({
+      affectedResources: [
+        { serviceName: "web", nodeName: "worker-1", metricValue: 2 },
+        { nodeName: "worker-2", metricValue: 1 },
+      ],
+    });
+
+    expect(context).toContain(
+      [
+        "1. **Service** `web` — **2**",
+        "   - Node: `worker-1`",
+        "2. **Node** `worker-2` — **1**",
+      ].join("\n"),
+    );
+  });
+
+  test("overflow is counted in tasks", () => {
+    const affectedResources: Array<DockerSwarmAffectedResource> = [];
+    for (let i: number = 1; i <= 13; i++) {
+      affectedResources.push({
+        containerName: `web.${i}.task`,
+        serviceName: "web",
+        metricValue: i,
+      });
+    }
+
+    const context: string | null = swarmContext({ affectedResources });
+
+    expect(context).toContain("**Affected Tasks** (13 total)");
+    expect(context).toContain("*... and 3 more affected tasks*");
+    expect(context).toContain("10. **Task** `web.4.task` — **4**");
+  });
+
+  test("a row with no identity inside an attributed breakdown is titled by the cluster", () => {
+    const context: string | null = swarmContext({
+      affectedResources: [
+        { containerName: "web.1", serviceName: "web", metricValue: 2 },
+        { metricValue: 1 },
+      ],
+    });
+
+    expect(context).toContain(
+      [
+        "1. **Task** `web.1` — **2**",
+        "   - Service: `web`",
+        "2. **Cluster** `swarm-prod` — **1**",
+      ].join("\n"),
+    );
+  });
+
+  test("an identity-less breakdown renders no list and falls back to the metric summary", () => {
+    const context: string | null = swarmContext({
+      affectedResources: [{ metricValue: 3 }],
+      metricResult: [{ data: [{}, {}] }],
+    });
+
+    expect(context).not.toContain("**Affected Tasks**");
+    expect(context).toContain("**Metric Summary**");
+  });
+});
+
+describe("MonitorCriteriaEvaluator - per-platform resource kinds in the list", () => {
+  function proxmoxContext(
+    affectedResources: Array<ProxmoxAffectedResource>,
+  ): string | null {
+    return Evaluator.buildProxmoxRootCauseContext({
+      dataToProcess: metricResponse({
+        proxmoxResourceBreakdown: {
+          clusterName: "prod-cluster",
+          metricName: "pve_replication_failed_syncs",
+          metricFriendlyName: "Failed Replication Syncs",
+          affectedResources,
+          attributes: {},
+        },
+      }),
+      monitorStep: proxmoxStep(),
+      monitor: new Monitor(),
+    });
+  }
+
+  test("Proxmox: each pve.type gets a readable kind, and a node does not list itself as its node", () => {
+    const context: string | null = proxmoxContext([
+      {
+        resourceId: "lxc/200",
+        resourceName: "cache",
+        resourceType: "lxc",
+        scope: "guest",
+        nodeName: "pve1",
+        metricValue: 5,
+      },
+      {
+        resourceId: "node/pve1",
+        resourceName: "pve1",
+        resourceType: "node",
+        scope: "node",
+        nodeName: "pve1",
+        metricValue: 4,
+      },
+      {
+        resourceId: "storage/pve1/local-lvm",
+        resourceName: "local-lvm",
+        resourceType: "storage",
+        scope: "storage",
+        nodeName: "pve1",
+        metricValue: 3,
+      },
+    ]);
+
+    expect(context).toContain(
+      [
+        "1. **Container** `cache` (`lxc/200`) — **5**",
+        "   - Node: `pve1`",
+        "2. **Node** `pve1` (`node/pve1`) — **4**",
+        "3. **Storage** `local-lvm` (`storage/pve1/local-lvm`) — **3**",
+        "   - Node: `pve1`",
+      ].join("\n"),
+    );
+  });
+
+  test("Proxmox: an unknown pve.type is shown as it arrived, and scope fills in when type is missing", () => {
+    const context: string | null = proxmoxContext([
+      { resourceId: "sdn/zone1", resourceType: "sdn", metricValue: 2 },
+      { resourceId: "qemu/300", scope: "guest", metricValue: 1 },
+    ]);
+
+    expect(context).toContain("1. **sdn** `sdn/zone1` — **2**");
+    expect(context).toContain("2. **Guest** `qemu/300` — **1**");
+  });
+
+  /*
+   * The agent's transform/pve-identity processor sets pve.scope=cluster
+   * and leaves pve.type unset on `cluster/*` series, so this is the one
+   * scope-only input that really arrives.
+   */
+  test("Proxmox: cluster/* series (scope only) are titled Cluster; no type or scope falls back to Resource", () => {
+    const context: string | null = proxmoxContext([
+      { resourceId: "cluster/prod", scope: "cluster", metricValue: 4 },
+      { resourceId: "node/pve3", scope: "node", metricValue: 3 },
+      { resourceId: "pool/backups", scope: "pool", metricValue: 2 },
+      { resourceId: "qemu/100", metricValue: 1 },
+    ]);
+
+    expect(context).toContain(
+      [
+        "1. **Cluster** `cluster/prod` — **4**",
+        "2. **Node** `node/pve3` — **3**",
+        "3. **pool** `pool/backups` — **2**",
+        "4. **Resource** `qemu/100` — **1**",
+      ].join("\n"),
+    );
+  });
+
+  test("Proxmox: a node-only row is titled by the node; a row with no identity by the cluster", () => {
+    const context: string | null = proxmoxContext([
+      { nodeName: "pve2", metricValue: 2 },
+      { metricValue: 1 },
+    ]);
+
+    expect(context).toContain(
+      "1. **Node** `pve2` — **2**\n2. **Cluster** `prod-cluster` — **1**",
+    );
+  });
+
+  test("VMware: a VM with no display name is named by its instance UUID", () => {
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse({
+        vmwareResourceBreakdown: {
+          vcenterName: "vcsa-prod",
+          metricName: "vcenter.vm.disk.usage",
+          metricFriendlyName: "VM Disk Usage",
+          affectedResources: [
+            {
+              datacenterName: "DC1",
+              hostName: "esx-01",
+              vmId: "5029abcd-1111-2222-3333-444455556666",
+              metricValue: 1073741824,
+            },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: vmwareStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).toContain(
+      "1. **Virtual Machine** `5029abcd-1111-2222-3333-444455556666` — **1.07 GB**\n   - Host: `esx-01`",
+    );
+  });
+
+  test("VMware: a pool on a standalone host lists its owner host; a row with no identity is the vCenter", () => {
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse({
+        vmwareResourceBreakdown: {
+          vcenterName: "vcsa-prod",
+          metricName: "vcenter.datacenter.vm.count",
+          metricFriendlyName: "Datacenter VM Count",
+          affectedResources: [
+            {
+              datacenterName: "DC1",
+              hostName: "esx-standalone",
+              resourcePoolName: "Resources",
+              resourcePoolPath: "/DC1/host/esx-standalone/Resources",
+              metricValue: 2,
+            },
+            { metricValue: 1 },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: vmwareStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).toContain(
+      [
+        "1. **Resource Pool** `Resources` (`/DC1/host/esx-standalone/Resources`) — **2**",
+        "   - Host: `esx-standalone`",
+        "2. **vCenter** `vcsa-prod` — **1**",
+      ].join("\n"),
+    );
+  });
+
+  /*
+   * The worker stores every Ceph series' `name` label as poolName. On
+   * ceph_health_detail that label is the health check — RECENT_CRASH,
+   * OSD_NEARFULL — not a pool, and there is no pool_id beside it.
+   */
+  test("Ceph: a ceph_health_detail series is titled as a health check, not a pool", () => {
+    const template: CephAlertTemplate | undefined =
+      getCephAlertTemplateById("ceph-daemon-crash");
+    if (!template) {
+      throw new Error("ceph-daemon-crash template missing");
+    }
+
+    const step: MonitorStep = template.getMonitorStep(templateArgs());
+
+    const context: string | null = Evaluator.buildCephRootCauseContext({
+      dataToProcess: metricResponse({
+        cephResourceBreakdown: {
+          clusterName: "prod-cluster",
+          metricName: "ceph_health_detail",
+          metricFriendlyName: "Health Detail",
+          affectedResources: [{ poolName: "RECENT_CRASH", metricValue: 1 }],
+          attributes: {},
+        },
+      }),
+      monitorStep: step,
+      monitor: new Monitor(),
+      criteriaInstance:
+        step.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray[0],
+    });
+
+    expect(context).toContain(
+      "**Affected Resources** (1 total)\n\n1. **Health Check** `RECENT_CRASH` — **1**",
+    );
+    expect(context).not.toContain("**Pool**");
+    expect(context).not.toContain("- Pool:");
+  });
+
+  test("Ceph: a name without a pool id on another metric is a generic resource, and a daemon keeps it as a detail", () => {
+    const context: string | null = Evaluator.buildCephRootCauseContext({
+      dataToProcess: metricResponse({
+        cephResourceBreakdown: {
+          clusterName: "prod-cluster",
+          metricName: "ceph_fs_metadata",
+          metricFriendlyName: "Filesystem Metadata",
+          affectedResources: [
+            { poolName: "cephfs", metricValue: 2 },
+            {
+              daemon: "mds.a",
+              poolName: "cephfs",
+              hostname: "ceph-node-1",
+              metricValue: 1,
+            },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: cephStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).toContain(
+      [
+        "1. **Resource** `cephfs` — **2**",
+        "2. **Daemon** `mds.a` — **1**",
+        "   - Name: `cephfs`",
+        "   - Host: `ceph-node-1`",
+      ].join("\n"),
+    );
+    expect(context).not.toContain("**Pool**");
+  });
+
+  test("Ceph: a pool id alone still makes a pool", () => {
+    const context: string | null = Evaluator.buildCephRootCauseContext({
+      dataToProcess: metricResponse({
+        cephResourceBreakdown: {
+          clusterName: "prod-cluster",
+          metricName: "ceph_pool_stored",
+          metricFriendlyName: "Pool Stored",
+          affectedResources: [{ poolId: "7", metricValue: 3 }],
+          attributes: {},
+        },
+      }),
+      monitorStep: cephStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).toContain("1. **Pool** `7` — **3 B**");
+  });
+
+  test("Ceph: a daemon lists its pool and host; a pool lists its host; a host and a cluster stand alone", () => {
+    const context: string | null = Evaluator.buildCephRootCauseContext({
+      dataToProcess: metricResponse({
+        cephResourceBreakdown: {
+          clusterName: "prod-cluster",
+          metricName: "ceph_osd_apply_latency_ms",
+          metricFriendlyName: "OSD Apply Latency",
+          affectedResources: [
+            {
+              daemon: "osd.7",
+              poolId: "2",
+              poolName: "rbd",
+              hostname: "ceph-node-1",
+              metricValue: 400,
+            },
+            {
+              poolId: "3",
+              poolName: "cephfs_data",
+              hostname: "ceph-node-2",
+              metricValue: 300,
+            },
+            { hostname: "ceph-node-3", metricValue: 200 },
+            { metricValue: 100 },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: cephStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).toContain(
+      [
+        "1. **Daemon** `osd.7` — **400 ms**",
+        "   - Pool: `rbd` (`2`)",
+        "   - Host: `ceph-node-1`",
+        "2. **Pool** `cephfs_data` (`3`) — **300 ms**",
+        "   - Host: `ceph-node-2`",
+        "3. **Host** `ceph-node-3` — **200 ms**",
+        "4. **Cluster** `prod-cluster` — **100 ms**",
+      ].join("\n"),
+    );
   });
 });

@@ -7,6 +7,8 @@
 #     assert_absent) and a closing summary (harness_report)
 #   * on-demand installs of helm / kubectl / kind / helm-unittest, so a suite
 #     runs on a bare CI runner as well as on a laptop that already has them
+#     (helm-unittest from a sha256-pinned tarball kept in a local cache, see
+#     harness_install_unittest_plugin)
 #   * a KinD cluster (harness_start_cluster) that is created once and shared
 #     with the other suites when run.sh is driving
 #
@@ -32,7 +34,14 @@ KEEP_CLUSTER="${KEEP_CLUSTER:-false}"
 HELM_TEST_RESULTS_DIR="${HELM_TEST_RESULTS_DIR:-}"
 
 KIND_VERSION="${KIND_VERSION:-v0.23.0}"
+# The one place the helm-unittest version is set. Its release tarballs are
+# pinned by sha256 in harness_unittest_sha256, and a version with no pins there
+# fails the helm-test job -- and the unit suite, wherever it has to install the
+# plugin -- instead of installing something unverified.
 HELM_UNITTEST_VERSION="${HELM_UNITTEST_VERSION:-v0.5.1}"
+# Where the verified helm-unittest tarball is kept between runs. The helm-test
+# CI job points it at a directory it persists with actions/cache.
+HELM_UNITTEST_CACHE_DIR="${HELM_UNITTEST_CACHE_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/oneuptime/helm-unittest}"
 
 PASSES=0
 FAILURES=0
@@ -100,14 +109,155 @@ harness_install_helm() {
     curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 }
 
-harness_install_unittest_plugin() {
-    local plugins
-    plugins="$(helm plugin list 2>/dev/null || true)"
-    if grep -q '^unittest' <<<"$plugins"; then
+# helm-unittest ships one tarball per platform: the `untt` binary beside a
+# plugin.yaml whose command is "$HELM_PLUGIN_DIR/untt". This used to be
+# `helm plugin install <repo> --version`, which clones the repository and then
+# runs the plugin's install hook -- a script that downloads that tarball and
+# its checksum file from GitHub's release CDN with a single, unretried curl.
+# The CDN answers 500/504 in bursts, and on 2026-09-21 one of them failed the
+# helm-test job.
+#
+# Now the tarball is pinned by sha256 below and fetched into
+# HELM_UNITTEST_CACHE_DIR by Scripts/GHA/fetch_pinned_artifact.sh, which uses a
+# copy that still matches the pin without touching the network, and otherwise
+# rides out a burst with exponential backoff. It is then unpacked straight into
+# helm's plugin directory -- the layout the hook would have produced. Hooks
+# only run on `helm plugin install/update`, never when helm loads a plugin, so
+# nothing else is downloaded. The helm-test job persists the cache directory
+# with actions/cache, so on a warm cache CI never asks GitHub for it.
+
+# This machine as helm-unittest's release names it: <os>-<arch>, with macOS as
+# "macos".
+harness_unittest_platform() {
+    local os
+    os="$(harness_os)"
+    if [ "$os" = "darwin" ]; then
+        os="macos"
+    fi
+    echo "${os}-$(harness_arch)"
+}
+
+# harness_unittest_sha256 <version> <platform>: the pinned sha256 of
+# helm-unittest-<platform>-<version without the v>.tgz, or nothing.
+#
+# Copied from helm-unittest-checksum.sha in the version's GitHub release, and
+# each one checked against a download of its tarball -- never read at run time
+# from the release it is meant to verify. CI runs on linux-amd64, so every
+# version listed must pin that; the others spare a laptop the CDN too. A
+# platform with no pin (Windows, 32-bit) falls back to `helm plugin install`.
+harness_unittest_sha256() {
+    case "$1/$2" in
+        v0.5.1/linux-amd64) echo "1b6cd770b19be4bfdca8f501b8b7292b27a771fffec0a072316125caf6c6b0e9" ;;
+        v0.5.1/linux-arm64) echo "cdd7a646a9160e7fa6444ebeb9148650e2e9bd44122dd16fb8dc5e893a12262a" ;;
+        v0.5.1/macos-amd64) echo "169266022ed5a5f50077b881d06bb3016477070018eaaa7d2f1999c056c6719c" ;;
+        v0.5.1/macos-arm64) echo "bb3e00fad119238ca4b8ddd659f3d43aa31e731f21d71ec162455d69e0e18e1f" ;;
+    esac
+}
+
+# Fails -- before anything is downloaded -- when HELM_UNITTEST_VERSION was
+# changed without pinning the new version's tarballs.
+harness_unittest_require_pins() {
+    if [ -n "$(harness_unittest_sha256 "$HELM_UNITTEST_VERSION" linux-amd64)" ]; then
         return 0
     fi
-    echo "Installing helm-unittest ${HELM_UNITTEST_VERSION}..."
-    helm plugin install https://github.com/helm-unittest/helm-unittest --version "$HELM_UNITTEST_VERSION"
+    local message="HELM_UNITTEST_VERSION is ${HELM_UNITTEST_VERSION}, but HelmChart/Tests/lib/harness.sh pins no helm-unittest tarball for that version. Add its digests to harness_unittest_sha256 in the same change (from helm-unittest-checksum.sha in the release, each checked against a download of the tarball)."
+    if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+        echo "::error title=helm-unittest pin is stale::${message}" >&2
+    fi
+    echo "$message" >&2
+    return 1
+}
+
+# Prints this machine's pin as key=value lines for $GITHUB_OUTPUT: the
+# helm-test CI job keys its actions/cache entry on them. Fails when there is no
+# pin for this machine -- CI must never take the unpinned fallback.
+harness_unittest_pin() {
+    harness_unittest_require_pins || return 1
+    local platform sha256
+    platform="$(harness_unittest_platform)"
+    sha256="$(harness_unittest_sha256 "$HELM_UNITTEST_VERSION" "$platform")"
+    if [ -z "$sha256" ]; then
+        echo "HelmChart/Tests/lib/harness.sh pins no helm-unittest ${HELM_UNITTEST_VERSION} tarball for ${platform}; add one to harness_unittest_sha256." >&2
+        return 1
+    fi
+    echo "version=${HELM_UNITTEST_VERSION}"
+    echo "platform=${platform}"
+    echo "sha256=${sha256}"
+    echo "dir=${HELM_UNITTEST_CACHE_DIR}"
+}
+
+# Puts the pinned tarball for this machine in HELM_UNITTEST_CACHE_DIR and prints
+# its path, or prints nothing when this platform has no pin. Needs no helm, so
+# the helm-test CI job also runs it as a step of its own, to fill its cache
+# before any suite gets the chance to fail.
+harness_fetch_unittest_plugin() {
+    harness_unittest_require_pins || return 1
+    local platform sha256 name
+    platform="$(harness_unittest_platform)"
+    sha256="$(harness_unittest_sha256 "$HELM_UNITTEST_VERSION" "$platform")"
+    if [ -z "$sha256" ]; then
+        return 0
+    fi
+    name="helm-unittest-${platform}-${HELM_UNITTEST_VERSION#v}.tgz"
+    # Its progress goes to stderr: stdout is for the path.
+    bash "${TESTS_DIR}/../../Scripts/GHA/fetch_pinned_artifact.sh" \
+        --name "$name" \
+        --sha256 "$sha256" \
+        --dest "$HELM_UNITTEST_CACHE_DIR" \
+        --source file "https://github.com/helm-unittest/helm-unittest/releases/download/${HELM_UNITTEST_VERSION}/${name}" \
+        >&2 || return 1
+    echo "${HELM_UNITTEST_CACHE_DIR}/${name}"
+}
+
+harness_install_unittest_plugin() {
+    local plugins installed
+    plugins="$(helm plugin list 2>/dev/null || true)"
+    installed="$(awk '$1 == "unittest" { print $2; exit }' <<<"$plugins")"
+    if [ -n "$installed" ]; then
+        if [ "$installed" != "${HELM_UNITTEST_VERSION#v}" ]; then
+            echo "Using the helm-unittest ${installed} already installed (the harness pins ${HELM_UNITTEST_VERSION})."
+        fi
+        return 0
+    fi
+
+    local plugins_dir tarball staging
+    plugins_dir="$(helm env HELM_PLUGINS)"
+    # HELM_PLUGINS can list several directories; the first one will do.
+    plugins_dir="${plugins_dir%%:*}"
+    # -L as well as -e: helm up to at least 3.12 installed a VCS plugin as a
+    # symlink into its cache, which dangles once that cache is cleared.
+    if [ -e "${plugins_dir}/helm-unittest" ] || [ -L "${plugins_dir}/helm-unittest" ]; then
+        echo "${plugins_dir}/helm-unittest exists, but helm does not list a unittest plugin. Remove it and run again." >&2
+        return 1
+    fi
+
+    tarball="$(harness_fetch_unittest_plugin)" || return 1
+    if [ -z "$tarball" ]; then
+        echo "No pinned helm-unittest for $(harness_unittest_platform); installing ${HELM_UNITTEST_VERSION} with \`helm plugin install\`, straight from GitHub..."
+        helm plugin install https://github.com/helm-unittest/helm-unittest --version "$HELM_UNITTEST_VERSION"
+        return 0
+    fi
+
+    echo "Installing helm-unittest ${HELM_UNITTEST_VERSION} from ${tarball}..."
+    mkdir -p "$plugins_dir"
+    # Unpacked a level deeper and then renamed into place: helm only loads
+    # <plugins>/*/plugin.yaml, so an interrupted unpack is never picked up.
+    staging="$(mktemp -d "${plugins_dir}/.helm-unittest-install.XXXXXX")"
+    mkdir "${staging}/helm-unittest"
+    if ! tar -xzf "$tarball" -C "${staging}/helm-unittest"; then
+        rm -rf "$staging"
+        return 1
+    fi
+    mv "${staging}/helm-unittest" "${plugins_dir}/helm-unittest"
+    rmdir "$staging"
+
+    plugins="$(helm plugin list 2>&1 || true)"
+    installed="$(awk '$1 == "unittest" { print $2; exit }' <<<"$plugins")"
+    if [ "$installed" != "${HELM_UNITTEST_VERSION#v}" ]; then
+        echo "Unpacked helm-unittest into ${plugins_dir}/helm-unittest, but helm lists unittest '${installed}' rather than ${HELM_UNITTEST_VERSION#v}:" >&2
+        echo "$plugins" >&2
+        return 1
+    fi
 }
 
 harness_install_kubectl() {
