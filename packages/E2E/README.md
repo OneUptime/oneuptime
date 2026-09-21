@@ -353,7 +353,7 @@ licence surviving the lapse is part of what they assert:
 | --------------------------------------------------- | --------------------------- |
 | a further audited write records nothing             | the project (audit logs on) |
 | the trail recorded while licensed is still readable | the recorded entry          |
-| configuration made while licensed is still readable | the `ProjectSCIM` row       |
+| configuration made while licensed is readable but unchangeable | the `ProjectSCIM` row |
 | password sign-in still works                        | the owner account           |
 
 With no handoff file, `Lapsed/EnterpriseWritesAndAuditRecorder.spec.ts`
@@ -364,14 +364,19 @@ that as the reason. `Lapsed/DashboardLapseNotices.spec.ts` never uses the
 handoff: the notices are decided by the installation's licence, not by anything
 a project holds, so it registers a throwaway project and deletes it again.
 
-One assertion is deliberately absent: that an **ordinary update** of an
-enterprise configuration row is refused while a tighten-only one (disabling a
-provider, rotating a leaked token) is not. Neither the `ProjectSCIM` create
-response nor a `get-list` that selects `_id` hands a project-owner session the
-row's key, so a spec cannot address the row for a `PUT`. That half of the rule
-is pinned by `EditionPermission`'s unit tests and the tighten-only UI tests
-under `ee/Tests`, and these suites find their row by the unique name they gave
-it instead.
+That suite addresses the row **both ways**: by the id the create response
+hands back, which is how it issues the `PUT` that must be refused with the
+licence message, and by the unique name it gave the row, which is how it shows
+the row is still listed where an administrator would look for it.
+
+For a while it could only do the second. A per-class column-metadata cache in
+`Common/Types/Database/TableColumn.ts` was built from whichever model instance
+asked first, and `BaseAPI.createItem` deleted `_id` off the instance it handed
+the service — so after one create, every serialized response for that model
+came back without a key, including a `get-list` that selected `_id`. The
+ordinary-update assertion was dropped rather than left permanently skipped. It
+is back, together with an explicit assertion that the create response carries
+an id: if that regresses, this suite fails instead of quietly testing less.
 
 The absence of a recorded entry is bounded by `AUDIT_LOG_ENTRY_TIMEOUT_MS` from
 `Enterprise/Helpers/AuditLogs.ts` — the same budget the licensed phase gives a
