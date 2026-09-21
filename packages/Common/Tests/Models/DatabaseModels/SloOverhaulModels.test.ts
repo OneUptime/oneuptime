@@ -444,6 +444,8 @@ describe("ServiceLevelObjectiveFeed", () => {
         "OwnerUserRemoved",
         "OwnerTeamAdded",
         "OwnerTeamRemoved",
+        "LabelRuleExecuted",
+        "OwnerRuleExecuted",
       ].sort(),
     );
 

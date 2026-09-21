@@ -66,6 +66,7 @@ import OneUptimeDate from "../../Types/Date";
 import IncidentService from "./IncidentService";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
+import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
@@ -800,6 +801,32 @@ export class Service extends DatabaseService<StatusPage> {
     }
 
     return false;
+  }
+
+  /**
+   * Per-monitor, per-day status durations for this status page's bars.
+   *
+   * This is what the uptime bars are painted from. It exists because the raw
+   * row fetch below is capped at LIMIT_MAX across EVERY monitor on the page,
+   * sorted newest-first - a bound that silently destroyed history. Measured
+   * on a real page: 254,550 rows matched the window, 10,000 came back, and
+   * three flapping monitors held 9,995 of those slots, starving the quiet
+   * monitors out entirely. See MonitorStatusTimelineService for the full
+   * account and for the traps in the SQL.
+   */
+  @CaptureSpan()
+  public async getUptimeDailyAggregateForStatusPage(data: {
+    monitorIds: Array<ObjectID>;
+    startDate: Date;
+    endDate: Date;
+    timezone?: string | undefined;
+  }): Promise<UptimeDailyAggregate> {
+    return await MonitorStatusTimelineService.getDailyUptimeAggregate({
+      monitorIds: data.monitorIds,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      timezone: data.timezone,
+    });
   }
 
   @CaptureSpan()

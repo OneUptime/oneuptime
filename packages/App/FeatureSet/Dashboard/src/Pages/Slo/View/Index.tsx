@@ -42,8 +42,8 @@ import React, {
  * Top to bottom: the notice banner for anything that stops measurement; the
  * hero with the verdict and what the SLO is; the four headline numbers; then
  * the incident overview's two-thirds / one-third grid — how the budget has
- * been spent and recent activity, beside open events and burn rate rules —
- * and finally the editable name, description and labels. Configuration lives
+ * been spent and recent activity, beside the editable name, description and
+ * labels, open events and burn rate rules. Configuration lives
  * on Settings, monitors on the Monitors and Monitor Rules pages, and detailed
  * history on Metrics.
  *
@@ -216,6 +216,69 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         </div>
 
         <div className="min-w-0">
+          <CardModelDetail<ServiceLevelObjective>
+            name="SLO Details"
+            cardProps={{
+              title: "SLO Details",
+              headerLayout: "stacked",
+              description:
+                "The name, description and labels this SLO is listed and searched by.",
+            }}
+            documentationLink={new Route("/docs/slo/error-budget")}
+            isEditable={true}
+            onSaveSuccess={() => {
+              // The hero shows the description and labels, so it must not keep the old ones.
+              data.refresh();
+            }}
+            /*
+             * Derived from the create form's own fields so a placeholder or
+             * description changed there changes here too. Everything else about
+             * the SLO is edited on the Settings, Monitors and Monitor Rules pages.
+             */
+            formFields={getSloDetailsFormFields()}
+            modelDetailProps={{
+              modelType: ServiceLevelObjective,
+              id: "slo-details",
+              modelId: modelId,
+              fields: [
+                {
+                  field: {
+                    name: true,
+                  },
+                  title: "Name",
+                  fieldType: FieldType.Text,
+                },
+                {
+                  field: {
+                    description: true,
+                  },
+                  title: "Description",
+                  fieldType: FieldType.LongText,
+                  placeholder: "No description",
+                },
+                {
+                  field: {
+                    labels: {
+                      name: true,
+                      color: true,
+                    },
+                  },
+                  title: "Labels",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ServiceLevelObjective): ReactElement => {
+                    const labels: Array<Label> =
+                      (item.labels as Array<Label> | undefined) || [];
+
+                    if (labels.length === 0) {
+                      return <span className="text-gray-400">No labels</span>;
+                    }
+
+                    return <LabelsElement labels={labels} />;
+                  },
+                },
+              ],
+            }}
+          />
           <SloActiveBurnEventsCard
             sloId={modelId}
             refreshToken={data.refreshCount}
@@ -228,69 +291,6 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
         </div>
       </div>
-
-      <CardModelDetail<ServiceLevelObjective>
-        name="SLO Details"
-        cardProps={{
-          title: "SLO Details",
-          description:
-            "The name, description and labels this SLO is listed and searched by.",
-        }}
-        documentationLink={new Route("/docs/slo/error-budget")}
-        isEditable={true}
-        onSaveSuccess={() => {
-          // The hero shows the description and labels, so it must not keep the old ones.
-          data.refresh();
-        }}
-        /*
-         * Derived from the create form's own fields so a placeholder or
-         * description changed there changes here too. Everything else about
-         * the SLO is edited on the Settings, Monitors and Monitor Rules pages.
-         */
-        formFields={getSloDetailsFormFields()}
-        modelDetailProps={{
-          modelType: ServiceLevelObjective,
-          id: "slo-details",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.LongText,
-              placeholder: "No description",
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                const labels: Array<Label> =
-                  (item.labels as Array<Label> | undefined) || [];
-
-                if (labels.length === 0) {
-                  return <span className="text-gray-400">No labels</span>;
-                }
-
-                return <LabelsElement labels={labels} />;
-              },
-            },
-          ],
-        }}
-      />
     </Fragment>
   );
 };

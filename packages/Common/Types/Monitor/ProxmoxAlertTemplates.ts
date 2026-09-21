@@ -897,7 +897,7 @@ const guestNotBackedUpTemplate: ProxmoxAlertTemplate = {
         /*
          * Cluster-level gauge from the backup-info collector — one
          * series, no `id` label, so no groupBy: one incident per
-         * cluster. Per-guest naming belongs to the breakdown table
+         * cluster. Per-guest naming belongs to the Affected Resources list
          * (pve_not_backed_up_info grouped by `id`), not the alert.
          */
         metricName: "pve_not_backed_up_total",

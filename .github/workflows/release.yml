@@ -238,6 +238,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -314,6 +319,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -403,6 +413,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -479,6 +494,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -557,6 +577,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -633,6 +658,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -711,6 +741,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -787,6 +822,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -867,6 +907,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -945,6 +990,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -1025,6 +1075,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
 
@@ -1103,6 +1158,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
@@ -1184,6 +1244,10 @@ jobs:
         # `npm publish` to abort with "Cannot find module 'sigstore'" while
         # generating provenance (auto-enabled under OIDC). See npm/cli#9722.
         run: npm install -g npm@11
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
       - name: Preinstall
         run: npm run prerun
       - name: Publish NPM Packages
@@ -1458,6 +1522,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
       - name: Preinstall and enable billing
         run: |
           set -euo pipefail
@@ -1695,6 +1763,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
       - name: Preinstall
         run: |
           set -euo pipefail
@@ -1862,6 +1934,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
       # Billing stays OFF here, deliberately: no Tests/Scripts/enable-billing-env-var.sh
       # and no Stripe configuration. This job exists to exercise the self-hosted
       # Enterprise path, and billing on would short-circuit every license check.

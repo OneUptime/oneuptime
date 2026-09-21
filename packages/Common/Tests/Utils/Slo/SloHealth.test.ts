@@ -58,7 +58,7 @@ const EVERY_NOTICE_INPUT: Array<{ name: string; data: SloNoticeData }> = [
     },
   },
   {
-    name: "generic misconfigured",
+    name: "waiting for evaluation with monitors attached",
     data: { ...MEASURING, sloStatus: SloStatus.Misconfigured },
   },
   { name: "paused", data: { ...MEASURING, sloStatus: SloStatus.Paused } },
@@ -431,17 +431,100 @@ describe("SloHealth", () => {
       expect(notice?.body).toContain(SliType.MonitorUptime);
     });
 
-    it("falls back to a generic reason for Misconfigured", () => {
-      const notice: SloNotice | null = getSloNotice({
-        isEnabled: true,
-        sloStatus: SloStatus.Misconfigured,
-        sliType: SliType.MonitorUptime,
-        monitorCount: 1,
-        targetPercentage: 99.9,
-        lastEvaluatedAt: new Date(),
+    describe("waiting for evaluation after monitors are attached", () => {
+      it.each([
+        { monitorCount: 1, lastEvaluatedAt: null },
+        { monitorCount: 16, lastEvaluatedAt: null },
+        { monitorCount: 1, lastEvaluatedAt: undefined },
+        { monitorCount: 16, lastEvaluatedAt: undefined },
+        {
+          monitorCount: 1,
+          lastEvaluatedAt: new Date("2026-09-21T12:00:00.000Z"),
+        },
+        {
+          monitorCount: 16,
+          lastEvaluatedAt: "2026-09-21T12:00:00.000Z",
+        },
+      ])(
+        "is informational with $monitorCount monitors and lastEvaluatedAt=$lastEvaluatedAt",
+        ({
+          monitorCount,
+          lastEvaluatedAt,
+        }: {
+          monitorCount: number;
+          lastEvaluatedAt: Date | string | null | undefined;
+        }) => {
+          const notice: SloNotice | null = getSloNotice({
+            ...MEASURING,
+            sloStatus: SloStatus.Misconfigured,
+            monitorCount,
+            lastEvaluatedAt,
+          });
+
+          expect(notice?.type).toBe(SloNoticeType.Info);
+          expect(notice?.title).toBe("Waiting for SLO evaluation");
+          expect(notice?.body).toContain("Monitors are attached");
+          expect(notice?.body).toContain("every few minutes");
+          expect(notice?.body).toContain(
+            "once monitor status data is available and the next evaluation completes",
+          );
+          expect(notice?.action).toEqual({
+            label: "View monitors",
+            target: SloNoticeActionTarget.Monitors,
+          });
+        },
+      );
+
+      it.each([undefined, null])(
+        "retains the default monitor-uptime behavior when sliType is %s",
+        (sliType: undefined | null) => {
+          expect(
+            getSloNotice({
+              ...MEASURING,
+              sloStatus: SloStatus.Misconfigured,
+              sliType,
+            })?.type,
+          ).toBe(SloNoticeType.Info);
+        },
+      );
+
+      it.each([0, -1, 100, 101, Number.NaN, Infinity, null, undefined])(
+        "still warns about target %s even with monitors attached",
+        (targetPercentage: number | null | undefined) => {
+          const notice: SloNotice | null = getSloNotice({
+            ...MEASURING,
+            sloStatus: SloStatus.Misconfigured,
+            monitorCount: 16,
+            targetPercentage,
+          });
+
+          expect(notice?.type).toBe(SloNoticeType.Warning);
+          expect(notice?.title).toBe("The target is out of range");
+          expect(notice?.action?.target).toBe(SloNoticeActionTarget.Settings);
+        },
+      );
+
+      it("still warns about an unsupported SLI with monitors attached", () => {
+        const notice: SloNotice | null = getSloNotice({
+          ...MEASURING,
+          sloStatus: SloStatus.Misconfigured,
+          sliType: SliType.Metric,
+          monitorCount: 16,
+        });
+
+        expect(notice?.type).toBe(SloNoticeType.Warning);
+        expect(notice?.title).toBe("This SLO cannot be evaluated");
+        expect(notice?.action).toBeUndefined();
       });
 
-      expect(notice?.title).toBe("This SLO cannot be evaluated");
+      it.each([SloStatus.Healthy, SloStatus.AtRisk, SloStatus.BudgetExhausted])(
+        "stops displaying the notice after evaluation reports %s",
+        (sloStatus: SloStatus) => {
+          expect(
+            getSloNotice({ ...MEASURING, sloStatus, monitorCount: 16 }),
+          ).toBeNull();
+        },
+      );
     });
 
     it("explains Paused", () => {

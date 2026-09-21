@@ -723,7 +723,7 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(onAnalysisAvailable).toHaveBeenCalledTimes(1);
   });
 
-  test("shows the no-report outcome and disables analysis-only actions", async () => {
+  test("shows the no-report outcome, disables the fix action and offers no rating", async () => {
     postMock.mockResolvedValue(
       completedResponse({
         analysisMarkdown: null,
@@ -757,8 +757,10 @@ describe("InvestigationPanel report lifecycle", () => {
       "0 telemetry queries",
     );
     expect(fixButton()).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Confirmed" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Rejected" })).toBeDisabled();
+    // There is no report to judge, so the rating row is left out entirely.
+    expect(screen.queryByText("Rate this investigation")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Confirmed" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Rejected" })).toBeNull();
   });
 
   test("shows a terminal failure without completed actions", async () => {
@@ -1371,6 +1373,595 @@ describe("InvestigationPanel verdict control", () => {
     expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
       "Investigation complete",
     );
+  });
+});
+
+/*
+ * A verdict judges the report on screen. The rating row used to render for
+ * every completed run and disable both answers whenever there was no report
+ * (still being prepared, finished without one, or dropped on a later poll),
+ * which asked a question nobody could answer. It is now left out in all of
+ * those states, the frame around the completed-run actions is not drawn
+ * empty, and the only time the answers are disabled is while a save is in
+ * flight.
+ */
+describe("InvestigationPanel rating availability", () => {
+  function ratingHeading(): HTMLElement | null {
+    return screen.queryByRole("heading", { name: "Rate this investigation" });
+  }
+
+  function ratingGroup(): HTMLElement | null {
+    return screen.queryByRole("group", { name: "Rate this investigation" });
+  }
+
+  function actionsFrame(): HTMLElement | null {
+    return screen.queryByTestId("investigation-actions");
+  }
+
+  function verdictAnswers(): Array<HTMLButtonElement> {
+    return screen.queryAllByRole("button", {
+      name: /^(Confirmed|Rejected)$/,
+    }) as Array<HTMLButtonElement>;
+  }
+
+  function disabledVerdictAnswers(): Array<string> {
+    return verdictAnswers()
+      .filter((button: HTMLButtonElement): boolean => {
+        return button.disabled;
+      })
+      .map((button: HTMLButtonElement): string => {
+        return (button.textContent || "").trim();
+      });
+  }
+
+  function expectNoRating(): void {
+    expect(ratingHeading()).toBeNull();
+    expect(screen.queryByText("Rate this investigation")).toBeNull();
+    expect(ratingGroup()).toBeNull();
+    expect(verdictAnswers()).toEqual([]);
+    expect(screen.queryByText(/You (confirmed|rejected) this/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change" })).toBeNull();
+    expect(screen.queryByText(/Your verdict helps measure/)).toBeNull();
+  }
+
+  function expectRatingOffered(): void {
+    expect(ratingHeading()).toBeVisible();
+    const group: HTMLElement | null = ratingGroup();
+    expect(group).not.toBeNull();
+    expect(
+      within(group!).getByRole("button", { name: "Confirmed" }),
+    ).toBeEnabled();
+    expect(
+      within(group!).getByRole("button", { name: "Rejected" }),
+    ).toBeEnabled();
+    expect(actionsFrame()).toContainElement(group);
+  }
+
+  function noReportResponse(
+    overrides: Partial<InvestigationPayloadOptions> = {},
+  ): ApiResponse {
+    return completedResponse({
+      analysisMarkdown: null,
+      isAnalysisPending: false,
+      codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+      ...overrides,
+    });
+  }
+
+  /*
+   * An API replica from before the report was published alongside the run
+   * sends neither `analysisMarkdown` nor `isAnalysisPending`, so the panel
+   * reads it as complete with nothing to show.
+   */
+  function legacyCompletedResponse(): ApiResponse {
+    return successfulResponse({
+      run: {
+        _id: RUN_ID,
+        status: AIRunStatus.Completed,
+        errorMessage: null,
+        toolCallCount: 1,
+        totalTokens: 10,
+        humanVerdict: null,
+        codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        completedAt: COMPLETED_AT,
+      },
+      events: [activityEvent],
+    });
+  }
+
+  test("offers no rating while the report is being prepared, then enabled answers once it lands", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: true,
+          codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }) as never,
+      );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByText("Preparing the final report")).toBeVisible();
+    expectNoRating();
+    // Nothing is decided yet, so no empty frame is drawn under the notice.
+    expect(actionsFrame()).toBeNull();
+    expect(fixButton()).toBeNull();
+
+    await tick(POLL_INTERVAL_MS);
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("investigation-markdown")).toHaveTextContent(
+      "The database connection pool was exhausted.",
+    );
+    expectRatingOffered();
+  });
+
+  test.each([
+    ["incident", INCIDENT_ID, "/ai-investigation/incident"],
+    ["alert", ALERT_ID, "/ai-investigation/alert"],
+  ] as Array<[InvestigationSubjectType, ObjectID, string]>)(
+    "offers no rating on an %s whose run finished without a report",
+    async (
+      subjectType: InvestigationSubjectType,
+      subjectId: ObjectID,
+      path: string,
+    ) => {
+      postMock.mockResolvedValue(noReportResponse() as never);
+
+      renderPanel({ subjectType, subjectId });
+      await flush();
+
+      expect(requestPath(0)).toContain(path);
+      expect(
+        screen.getByText("Investigation completed without a report"),
+      ).toBeVisible();
+      expect(
+        screen.getByText("No investigation report was published."),
+      ).toBeVisible();
+      expectNoRating();
+      expect(actionsFrame()).toBeNull();
+      // The run's own working is still there to read.
+      expect(detailsToggle()).toHaveTextContent("Investigation activity");
+    },
+  );
+
+  test("does not show a verdict stored on a run that has no report", async () => {
+    const onVerdictChange: MockFunction = getJestMockFunction();
+    postMock.mockResolvedValue(
+      noReportResponse({ humanVerdict: AIRunHumanVerdict.Confirmed }) as never,
+    );
+
+    renderPanel({ onVerdictChange });
+    await flush();
+
+    expectNoRating();
+    expect(actionsFrame()).toBeNull();
+    // The header leaves it out on the same terms.
+    expect(
+      onVerdictChange.mock.calls.filter((call: Array<unknown>): boolean => {
+        return call[0] !== null;
+      }),
+    ).toEqual([]);
+  });
+
+  test("keeps a Recommended fix action in its frame without a rating row beside it", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        analysisMarkdown: null,
+        isAnalysisPending: false,
+        codeFixRecommendation: AIRunCodeFixRecommendation.Recommended,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const frame: HTMLElement | null = actionsFrame();
+    expect(frame).not.toBeNull();
+    expect(
+      within(frame!).getByRole("heading", {
+        name: "Act on this investigation",
+      }),
+    ).toBeVisible();
+    expect(within(frame!).getAllByRole("heading")).toHaveLength(1);
+    expectNoRating();
+  });
+
+  test("an API replica that predates report publication offers no rating", async () => {
+    postMock.mockResolvedValue(legacyCompletedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
+      "Investigation complete",
+    );
+    expect(
+      screen.getByText("No investigation report was published."),
+    ).toBeVisible();
+    expectNoRating();
+    expect(actionsFrame()).toBeNull();
+  });
+
+  test("a whitespace-only report is no report to rate", async () => {
+    postMock.mockResolvedValue(
+      noReportResponse({ analysisMarkdown: "  \n\t \n  " }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.queryByTestId("investigation-markdown")).toBeNull();
+    expect(
+      screen.getByText("No investigation report was published."),
+    ).toBeVisible();
+    expectNoRating();
+    expect(actionsFrame()).toBeNull();
+  });
+
+  test.each(
+    Object.values(AIRunStatus).filter((status: AIRunStatus): boolean => {
+      return status !== AIRunStatus.Completed;
+    }),
+  )(
+    "offers no rating for a %s run, even when a report string comes with it",
+    async (status: AIRunStatus) => {
+      postMock.mockResolvedValue(
+        successfulResponse(
+          investigationPayload({
+            status,
+            analysisMarkdown: ANALYSIS,
+            humanVerdict: AIRunHumanVerdict.Rejected,
+            codeFixRecommendation: AIRunCodeFixRecommendation.Recommended,
+            events: [activityEvent],
+          }),
+        ) as never,
+      );
+
+      renderPanel();
+      await flush();
+
+      expect(screen.getByLabelText("Investigation status")).toBeVisible();
+      expectNoRating();
+      expect(actionsFrame()).toBeNull();
+      expect(fixButton()).toBeNull();
+    },
+  );
+
+  test("removes the rating when the report disappears and restores the stored verdict when it returns", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        noReportResponse({ humanVerdict: AIRunHumanVerdict.Rejected }) as never,
+      )
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+          humanVerdict: AIRunHumanVerdict.Rejected,
+        }) as never,
+      );
+
+    renderPanel();
+    await flush();
+    expectRatingOffered();
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByText("No investigation report was published."),
+    ).toBeVisible();
+    expectNoRating();
+    expect(actionsFrame()).toBeNull();
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(postMock).toHaveBeenCalledTimes(3);
+    expect(ratingHeading()).toBeVisible();
+    expect(screen.getByText(/You rejected this analysis/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Change" })).toBeVisible();
+  });
+
+  test("a report that disappears mid-save takes the row with it, and the saved verdict shows when it returns", async () => {
+    const save: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }) as never,
+      )
+      .mockReturnValueOnce(save.promise as never)
+      .mockResolvedValueOnce(noReportResponse() as never)
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+          humanVerdict: AIRunHumanVerdict.Confirmed,
+        }) as never,
+      );
+
+    renderPanel();
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
+    await flush();
+
+    expect(requestPath(1)).toContain("/ai-investigation/verdict");
+    expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(postMock).toHaveBeenCalledTimes(3);
+    expectNoRating();
+    expect(actionsFrame()).toBeNull();
+
+    await resolveDeferred(save, successfulResponse({}));
+
+    expectNoRating();
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(postMock).toHaveBeenCalledTimes(4);
+    expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("a failed save's error leaves with the row when the report disappears", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          500,
+          { message: "Verdict storage is unavailable." },
+          {},
+        ) as never,
+      )
+      .mockResolvedValueOnce(noReportResponse() as never);
+
+    renderPanel();
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+    await flush();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not save your verdict",
+    );
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(postMock).toHaveBeenCalledTimes(3);
+    expectNoRating();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText(/Verdict storage is unavailable/)).toBeNull();
+  });
+
+  test("drops the previous subject's rating when navigating to a subject without a report", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          humanVerdict: AIRunHumanVerdict.Confirmed,
+        }) as never,
+      )
+      .mockResolvedValueOnce(noReportResponse({ runId: NEXT_RUN_ID }) as never);
+
+    const view: ReturnType<typeof render> = renderPanel();
+    await flush();
+    expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
+
+    view.rerender(
+      <InvestigationPanel subjectType="alert" subjectId={ALERT_ID} />,
+    );
+    await flush();
+
+    expect(requestPath(1)).toContain("/ai-investigation/alert");
+    expect(
+      screen.getByText("No investigation report was published."),
+    ).toBeVisible();
+    expectNoRating();
+    expect(actionsFrame()).toBeNull();
+  });
+
+  test("a new run on the same subject hides the rating until its own report lands, then asks afresh", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+          humanVerdict: AIRunHumanVerdict.Confirmed,
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        completedResponse({
+          runId: NEXT_RUN_ID,
+          analysisMarkdown: null,
+          isAnalysisPending: true,
+          codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        completedResponse({
+          runId: NEXT_RUN_ID,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }) as never,
+      );
+
+    renderPanel();
+    await flush();
+    expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(screen.getByText("Preparing the final report")).toBeVisible();
+    expectNoRating();
+    expect(actionsFrame()).toBeNull();
+
+    await tick(POLL_INTERVAL_MS);
+
+    expect(postMock).toHaveBeenCalledTimes(3);
+    expectRatingOffered();
+    // The previous run's verdict is not carried onto the new report.
+    expect(screen.queryByText(/You confirmed this analysis/)).toBeNull();
+  });
+
+  /*
+   * The invariant behind the fix, across every completed-run shape: the
+   * row is either absent or offers two working answers. It never sits on
+   * the card with both disabled.
+   */
+  test.each([
+    {
+      label: "a report",
+      response: (): ApiResponse => {
+        return completedResponse();
+      },
+      offersRating: true,
+    },
+    {
+      label: "a report with no fix recommended",
+      response: (): ApiResponse => {
+        return completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        });
+      },
+      offersRating: true,
+    },
+    {
+      label: "a report whose recommendation is still pending",
+      response: (): ApiResponse => {
+        return completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+        });
+      },
+      offersRating: true,
+    },
+    {
+      label: "a report with a TL;DR and structured evidence",
+      response: (): ApiResponse => {
+        return completedResponse({
+          analysisTldr: TLDR,
+          evidence: [],
+          references: [],
+        });
+      },
+      offersRating: true,
+    },
+    {
+      label: "a report being prepared",
+      response: (): ApiResponse => {
+        return completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: true,
+        });
+      },
+      offersRating: false,
+    },
+    {
+      label: "a report being prepared with a stored verdict",
+      response: (): ApiResponse => {
+        return completedResponse({
+          analysisMarkdown: null,
+          isAnalysisPending: true,
+          humanVerdict: AIRunHumanVerdict.Rejected,
+        });
+      },
+      offersRating: false,
+    },
+    {
+      label: "no report and a Recommended fix",
+      response: (): ApiResponse => {
+        return completedResponse({ analysisMarkdown: null });
+      },
+      offersRating: false,
+    },
+    {
+      label: "no report and no fix",
+      response: (): ApiResponse => {
+        return noReportResponse();
+      },
+      offersRating: false,
+    },
+    {
+      label: "no report and no recorded steps",
+      response: (): ApiResponse => {
+        return noReportResponse({
+          events: [],
+          toolCallCount: 0,
+          totalTokens: 0,
+        });
+      },
+      offersRating: false,
+    },
+    {
+      label: "a whitespace-only report",
+      response: (): ApiResponse => {
+        return noReportResponse({ analysisMarkdown: " \n " });
+      },
+      offersRating: false,
+    },
+    {
+      label: "an API replica that predates report publication",
+      response: (): ApiResponse => {
+        return legacyCompletedResponse();
+      },
+      offersRating: false,
+    },
+  ])(
+    "for $label the rating is offered=$offersRating and never disabled at rest",
+    async (scenario: {
+      label: string;
+      response: () => ApiResponse;
+      offersRating: boolean;
+    }) => {
+      postMock.mockResolvedValue(scenario.response() as never);
+
+      renderPanel();
+      await flush();
+
+      expect(ratingHeading() !== null).toBe(scenario.offersRating);
+      expect(ratingGroup() !== null).toBe(scenario.offersRating);
+      expect(disabledVerdictAnswers()).toEqual([]);
+      /*
+       * The frame is drawn exactly when it holds a row: the rating, the
+       * fix action, or both.
+       */
+      expect(actionsFrame() !== null).toBe(
+        scenario.offersRating || fixButton() !== null,
+      );
+    },
+  );
+
+  test("the answers are disabled only while a save is in flight", async () => {
+    const save: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockReturnValueOnce(save.promise as never);
+
+    renderPanel();
+    await flush();
+    expect(disabledVerdictAnswers()).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+
+    expect(disabledVerdictAnswers()).toEqual(["Confirmed", "Rejected"]);
+
+    await resolveDeferred(save, successfulResponse({}));
+
+    expect(disabledVerdictAnswers()).toEqual([]);
+    expectRatingOffered();
   });
 });
 

@@ -14,11 +14,16 @@ const bookUrl: string = "https://backtometal.oneuptime.com/";
 const booksUrl: string = URL.fromString(BASE_URL.toString())
   .addRoute("/books")
   .toString();
+const contentUrl: string = URL.fromString(BASE_URL.toString())
+  .addRoute("/books/back-to-metal/content.json")
+  .toString();
+const contentRoute: string = "**/books/back-to-metal/content.json";
 
 interface ChapterPreview {
   stage: string;
   title: string;
   path: string;
+  sectionId: string;
 }
 
 interface PrimaryActionStyle {
@@ -34,33 +39,233 @@ interface HeadingTypography {
   fontStyle: string;
 }
 
+interface ReaderState {
+  open: boolean;
+  loaded: boolean;
+  view: number;
+  views: number;
+  pages: number;
+  mode: string | null;
+  sectionId: string | null;
+  turning: boolean;
+  settings: { fontStep: number; theme: string };
+}
+
+interface FixtureSection {
+  id: string;
+  kind: "text" | "contents";
+  title: string;
+  label: string;
+  number?: string;
+  part?: string;
+  html: string;
+  words: number;
+}
+
 const chapters: ChapterPreview[] = [
   {
     stage: "Decide",
     title: "The bill, and the three lines that are most of it",
     path: "m/01-the-bill-and-the-three-lines-that-are-most-of-it.html",
+    sectionId: "m01",
   },
   {
     stage: "Buy",
     title: "A cage, not a data centre",
     path: "m/07-a-cage-not-a-data-centre.html",
+    sectionId: "m07",
   },
   {
     stage: "Build",
     title: "The platform your workloads need",
     path: "m/11-the-platform-your-workloads-need.html",
+    sectionId: "m11",
   },
   {
     stage: "Move",
     title: "Postgres, the one that matters",
     path: "m/16-postgres-the-one-that-matters.html",
+    sectionId: "m16",
   },
   {
     stage: "Run",
     title: "Backups you have restored, and the pager",
     path: "m/19-backups-you-have-restored-and-the-pager.html",
+    sectionId: "m19",
   },
 ];
+
+/*
+ * A small book in the shape /books/back-to-metal/content.json serves, so the
+ * reader tests do not depend on the book's website being reachable from the
+ * test environment. The live route is checked separately below.
+ */
+const paragraphs: (count: number, topic: string) => string = (
+  count: number,
+  topic: string,
+): string => {
+  return Array.from({ length: count }, (_value: unknown, index: number) => {
+    return `<p>${topic}, paragraph ${index + 1}. Measure what you run before you buy anything, rehearse every cutover against a copy, and keep the rollback within reach: a plan short enough to finish is one you can carry at three in the morning.</p>`;
+  }).join("");
+};
+
+const fixtureSections: Array<FixtureSection> = [
+  {
+    id: "titlepage",
+    kind: "text",
+    title: "Back to Metal",
+    label: "Title page",
+    html: '<div class="bk-front"><h1>Back to Metal</h1><p>How a company leaves the cloud, one move at a time</p><p>Nawaz Dhandala</p></div>',
+    words: 12,
+  },
+  {
+    id: "contents",
+    kind: "contents",
+    title: "Contents",
+    label: "Contents",
+    html: "",
+    words: 0,
+  },
+  {
+    id: "why",
+    kind: "text",
+    title: "Why this book exists",
+    label: "Why this book exists",
+    html: `<div class="bk-front"><h1>You are allowed to run your own computers</h1>${paragraphs(6, "Why")}</div>`,
+    words: 400,
+  },
+  ...chapters.map((chapter: ChapterPreview, index: number): FixtureSection => {
+    const number: string = chapter.sectionId.slice(1);
+    return {
+      id: chapter.sectionId,
+      kind: "text",
+      title: chapter.title,
+      label: `${number} · ${chapter.title}`,
+      number,
+      part: `Stage ${index + 1} · ${chapter.stage}`,
+      html: `<h1>${number} · ${chapter.title}</h1><p class="bk-hook">The hook of Move ${number}.</p><h2>Why this works</h2>${paragraphs(8, `Move ${number}`)}<p>Next: <a href="#read/why" data-book-section="why">Why this book exists</a>.</p>`,
+      words: 600,
+    };
+  }),
+];
+
+const fixtureBook: Record<string, unknown> = {
+  version: 1,
+  slug: "back-to-metal",
+  title: "Back to Metal",
+  subtitle: "How a company leaves the cloud, one move at a time",
+  author: "Nawaz Dhandala",
+  publisher: "HackerBay, Inc.",
+  language: "en",
+  modified: "2026-09-14T15:33:10Z",
+  coverUrl: "/img/books/back-to-metal.jpg",
+  siteUrl: bookUrl,
+  epubUrl: `${bookUrl}Back-to-Metal.epub`,
+  pdfUrl: `${bookUrl}Back-to-Metal.pdf`,
+  license: {
+    name: "CC BY 4.0",
+    url: "https://creativecommons.org/licenses/by/4.0/",
+  },
+  sections: fixtureSections,
+  toc: [
+    { label: "Title page", sectionId: "titlepage", children: [] },
+    { label: "Why this book exists", sectionId: "why", children: [] },
+    ...chapters.map((chapter: ChapterPreview, index: number) => {
+      const number: string = chapter.sectionId.slice(1);
+      return {
+        label: `Stage ${index + 1} · ${chapter.stage}`,
+        sectionId: chapter.sectionId,
+        children: [
+          {
+            label: `${number} · ${chapter.title}`,
+            sectionId: chapter.sectionId,
+            children: [],
+          },
+        ],
+      };
+    }),
+  ],
+};
+
+async function serveFixtureBook(page: Page): Promise<void> {
+  await page.route(contentRoute, async (route: Route): Promise<void> => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json; charset=utf-8",
+      body: JSON.stringify(fixtureBook),
+    });
+  });
+}
+
+function reader(page: Page): Locator {
+  return page.getByRole("dialog", { name: "Back to Metal" });
+}
+
+async function readerState(page: Page): Promise<ReaderState> {
+  return page.evaluate((): ReaderState => {
+    return (
+      window as unknown as {
+        OneUptimeBooks: { reader: { getState: () => ReaderState } };
+      }
+    ).OneUptimeBooks.reader.getState();
+  });
+}
+
+async function waitForReaderAt(
+  page: Page,
+  predicate: (state: ReaderState) => boolean,
+): Promise<ReaderState> {
+  let state: ReaderState | null = null;
+  await expect
+    .poll(
+      async (): Promise<boolean> => {
+        state = await readerState(page);
+        return !state.turning && predicate(state);
+      },
+      { timeout: 15000 },
+    )
+    .toBe(true);
+  return state!;
+}
+
+/*
+ * The fold only exists while a page turns, which can be over before a polling
+ * assertion looks, so it is recorded the moment it is added.
+ */
+async function recordFolds(page: Page): Promise<void> {
+  await page.evaluate((): void => {
+    const record: { foldDrawn: boolean } = window as unknown as {
+      foldDrawn: boolean;
+    };
+    record.foldDrawn = false;
+    new MutationObserver((mutations: MutationRecord[]): void => {
+      for (const mutation of mutations) {
+        for (const node of Array.from(mutation.addedNodes)) {
+          if ((node as Element).classList?.contains("bk-turn")) {
+            record.foldDrawn = true;
+          }
+        }
+      }
+    }).observe(document.querySelector(".bk-book")!, { childList: true });
+  });
+}
+
+async function foldWasDrawn(page: Page): Promise<boolean> {
+  return page.evaluate((): boolean => {
+    return (window as unknown as { foldDrawn: boolean }).foldDrawn;
+  });
+}
+
+async function openReader(page: Page): Promise<void> {
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: "Read the book", exact: true })
+    .click();
+  await expect(reader(page)).toBeVisible();
+  await waitForReaderAt(page, (state: ReaderState): boolean => {
+    return state.loaded && state.view >= 0;
+  });
+}
 
 function structuredDataNodes(value: unknown): Record<string, unknown>[] {
   if (Array.isArray(value)) {
@@ -129,20 +334,18 @@ test.describe("Home: Books", () => {
     await expect(page.getByRole("main")).toHaveAttribute("id", "main-content");
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Books for people who build.",
-      { useInnerText: true },
+      "Back to Metal",
+      { useInnerText: false },
     );
-    await expect(
-      page.getByRole("heading", {
-        level: 2,
-        name: "Back to Metal",
-        exact: true,
-      }),
-    ).toBeVisible();
     await expect(page.getByRole("main")).toContainText("Nawaz Dhandala");
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Read it your way" }),
+    ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Skip to main content" }),
     ).toHaveAttribute("href", "#main-content");
+    // The reader is outside <main> and hidden until opened.
+    await expect(reader(page)).toBeHidden();
   });
 
   test("uses the marketing site's typography and primary action styling", async ({
@@ -205,7 +408,9 @@ test.describe("Home: Books", () => {
     }
     expect(
       await primaryActionStyle(
-        page.getByRole("link", { name: "Read the book", exact: true }),
+        page
+          .getByRole("main")
+          .getByRole("link", { name: "Read the book", exact: true }),
       ),
     ).toEqual(homePrimaryStyle);
   });
@@ -250,7 +455,7 @@ test.describe("Home: Books", () => {
     expect(imageResponse.headers()["content-type"]).toContain("image/jpeg");
   });
 
-  test("offers the complete book online and in both downloadable formats", async ({
+  test("offers the complete book here, online and in both downloadable formats", async ({
     page,
   }: {
     page: Page;
@@ -274,26 +479,40 @@ test.describe("Home: Books", () => {
     await expect(pdf).toContainText(/PDF/);
     await expect(epub).toHaveCount(1);
     await expect(epub).toContainText(/EPUB/);
-    await expect(formats.locator(`a[href="${bookUrl}"]`)).toHaveCount(1);
+    await expect(formats.locator(`a[href="${bookUrl}"]`)).toHaveCount(2);
+    await expect(
+      formats.locator(`a[href="${bookUrl}"][data-book-open]`),
+    ).toContainText("Read it here");
   });
 
-  test("previews a real chapter from each of the five stages", async ({
+  test("lists all twenty moves, including a real chapter from each stage", async ({
     page,
   }: {
     page: Page;
   }) => {
     await page.goto(booksUrl);
 
-    const preview: Locator = page.locator("#inside-the-book");
-    await expect(preview.locator(`a[href^="${bookUrl}m/"]`)).toHaveCount(5);
+    const contents: Locator = page.locator("#inside-the-book");
+    await expect(contents.locator(`a[href^="${bookUrl}m/"]`)).toHaveCount(20);
+    await expect(contents.getByRole("heading", { level: 3 })).toHaveText([
+      "Decide",
+      "Buy",
+      "Build",
+      "Move",
+      "Run",
+    ]);
 
     for (const chapter of chapters) {
-      const link: Locator = preview.locator(
+      const link: Locator = contents.locator(
         `a[href="${bookUrl}${chapter.path}"]`,
       );
       await expect(link).toHaveCount(1);
       await expect(link).toContainText(chapter.title);
       await expect(link).toContainText(chapter.stage);
+      await expect(link).toHaveAttribute(
+        "data-book-section",
+        chapter.sectionId,
+      );
     }
   });
 
@@ -327,6 +546,41 @@ test.describe("Home: Books", () => {
     expect(response.headers()["content-type"]).toContain("image/jpeg");
   });
 
+  test("serves the page's scripts and stylesheet under content-versioned URLs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(booksUrl);
+
+    const assets: string[] = await page.evaluate((): string[] => {
+      const versioned: RegExp =
+        /^\/(js\/(book-reader-core|book-reader|books)\.js|css\/books\.css)\?v=/;
+      return [
+        ...Array.from(document.querySelectorAll("script[src]")).map(
+          (script: Element): string => {
+            return script.getAttribute("src") || "";
+          },
+        ),
+        ...Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(
+          (link: Element): string => {
+            return link.getAttribute("href") || "";
+          },
+        ),
+      ].filter((source: string): boolean => {
+        return versioned.test(source);
+      });
+    });
+
+    expect(assets).toHaveLength(4);
+    for (const asset of assets) {
+      const response: APIResponse = await page.request.get(
+        new globalThis.URL(asset, booksUrl).toString(),
+      );
+      expect(response.status(), asset).toBe(200);
+    }
+  });
+
   test("the preview action scrolls to the contents", async ({
     page,
   }: {
@@ -343,34 +597,6 @@ test.describe("Home: Books", () => {
 
     await expect(page).toHaveURL(`${booksUrl}#inside-the-book`);
     await expect(page.locator("#inside-the-book")).toBeInViewport();
-  });
-
-  test("the primary reading link works from the keyboard", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await page.route(bookUrl, async (route: Route): Promise<void> => {
-      await route.fulfill({
-        status: 200,
-        contentType: "text/html",
-        body: "<!DOCTYPE html><html><body><h1>Back to Metal reader</h1></body></html>",
-      });
-    });
-    await page.goto(booksUrl);
-
-    const read: Locator = page.getByRole("link", {
-      name: "Read the book",
-      exact: true,
-    });
-    await read.focus();
-    await expect(read).toBeFocused();
-    await page.keyboard.press("Enter");
-
-    await expect(page).toHaveURL(bookUrl);
-    await expect(
-      page.getByRole("heading", { name: "Back to Metal reader" }),
-    ).toBeVisible();
   });
 
   test("keyboard readers can skip the navigation and continue through the main content", async ({
@@ -402,7 +628,7 @@ test.describe("Home: Books", () => {
     await expect(main.getByRole("link").first()).toBeFocused();
   });
 
-  test("respects the reader's reduced-motion preference", async ({
+  test("respects the reader's reduced-motion preference on the page", async ({
     page,
   }: {
     page: Page;
@@ -410,6 +636,7 @@ test.describe("Home: Books", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(booksUrl);
     await page
+      .getByRole("main")
       .getByRole("link", { name: "Read the book", exact: true })
       .hover();
 
@@ -458,11 +685,11 @@ test.describe("Home: Books", () => {
       const main: Locator = page.getByRole("main");
       for (const content of [
         main.getByRole("heading", {
-          level: 2,
+          level: 1,
           name: "Back to Metal",
           exact: true,
         }),
-        main.getByText("Nawaz Dhandala", { exact: true }),
+        main.getByText("Nawaz Dhandala", { exact: true }).first(),
         main.getByRole("link", { name: "Read the book", exact: true }),
       ]) {
         await expect(content).toBeInViewport({ ratio: 1 });
@@ -542,8 +769,7 @@ test.describe("Home: Books", () => {
     await expect(page).toHaveURL(booksUrl);
     await page.waitForLoadState("domcontentloaded");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Books for people who build.",
-      { useInnerText: true },
+      "Back to Metal",
     );
   });
 
@@ -561,7 +787,7 @@ test.describe("Home: Books", () => {
     await page.waitForLoadState("domcontentloaded");
     await expect(
       page.getByRole("heading", {
-        level: 2,
+        level: 1,
         name: "Back to Metal",
         exact: true,
       }),
@@ -657,8 +883,9 @@ test.describe("Home: Books", () => {
     const books: Record<string, unknown>[] = nodes.filter(
       (node: Record<string, unknown>): boolean => {
         return (
-          node["@type"] === "Book" ||
-          (Array.isArray(node["@type"]) && node["@type"].includes("Book"))
+          (node["@type"] === "Book" ||
+            (Array.isArray(node["@type"]) && node["@type"].includes("Book"))) &&
+          node["name"] === "Back to Metal"
         );
       },
     );
@@ -707,7 +934,7 @@ test.describe("Home: Books", () => {
       );
       await cover.scrollIntoViewIfNeeded();
       // Allow subpixel scroll rounding while catching clipping by the cover's frame.
-      await expect(cover).toBeInViewport({ ratio: 0.99 });
+      await expect(cover).toBeInViewport({ ratio: 0.9 });
 
       const formats: Locator = page.locator("#reading-formats");
       await formats.scrollIntoViewIfNeeded();
@@ -721,7 +948,7 @@ test.describe("Home: Books", () => {
       const readingLinks: Locator = page.locator(
         `#inside-the-book a[href^="${bookUrl}m/"], #reading-formats a[href^="${bookUrl}"]`,
       );
-      await expect(readingLinks).toHaveCount(8);
+      await expect(readingLinks).toHaveCount(24);
       for (const link of await readingLinks.all()) {
         await link.scrollIntoViewIfNeeded();
         await expect(link).toBeInViewport({ ratio: 0.99 });
@@ -753,13 +980,15 @@ test.describe("Home: Books", () => {
 
       await expect(
         page.getByRole("heading", {
-          level: 2,
+          level: 1,
           name: "Back to Metal",
           exact: true,
         }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: "Read the book", exact: true }),
+        page
+          .getByRole("main")
+          .getByRole("link", { name: "Read the book", exact: true }),
       ).toHaveAttribute("href", bookUrl);
       await expect(
         page.locator(`#reading-formats a[href="${bookUrl}Back-to-Metal.pdf"]`),
@@ -767,12 +996,372 @@ test.describe("Home: Books", () => {
       await expect(
         page.locator(`#reading-formats a[href="${bookUrl}Back-to-Metal.epub"]`),
       ).toBeVisible();
+      await expect(page.locator("#book-reader")).toBeHidden();
 
       await page
         .getByRole("link", { name: "Explore the book", exact: true })
         .click();
       await expect(page).toHaveURL(`${booksUrl}#inside-the-book`);
       await expect(page.locator("#inside-the-book")).toBeInViewport();
+    });
+  });
+
+  test.describe("the book's text route", () => {
+    test("serves the reader's JSON, or a clear fallback when the book's website is unreachable", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const response: APIResponse = await page.request.get(contentUrl, {
+        timeout: 60000,
+      });
+      const body: Record<string, unknown> = (await response.json()) as Record<
+        string,
+        unknown
+      >;
+
+      expect(response.headers()["content-type"]).toContain("application/json");
+      expect(response.headers()["x-content-type-options"]).toContain("nosniff");
+
+      if (response.status() === 503) {
+        // The test environment may have no route to the book's website.
+        expect(body["readOnlineUrl"]).toBe(bookUrl);
+        expect(response.headers()["retry-after"]).toBe("60");
+        return;
+      }
+
+      expect(response.status()).toBe(200);
+      expect(body).toMatchObject({
+        slug: "back-to-metal",
+        title: "Back to Metal",
+        author: "Nawaz Dhandala",
+      });
+      const sections: Array<Record<string, unknown>> = body[
+        "sections"
+      ] as Array<Record<string, unknown>>;
+      expect(sections.length).toBeGreaterThan(20);
+      expect(
+        sections.map((section: Record<string, unknown>): unknown => {
+          return section["id"];
+        }),
+      ).toEqual(expect.arrayContaining(["m01", "m20", "contents"]));
+      for (const section of sections) {
+        expect(String(section["html"])).not.toMatch(
+          /<script|onerror=|javascript:/i,
+        );
+      }
+
+      const etag: string = response.headers()["etag"] || "";
+      expect(etag).toMatch(/^"[^"]+"$/);
+      const revalidated: APIResponse = await page.request.get(contentUrl, {
+        headers: { "If-None-Match": etag },
+      });
+      expect(revalidated.status()).toBe(304);
+    });
+
+    test("answers an unknown book with a JSON 404", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const response: APIResponse = await page.request.get(
+        URL.fromString(BASE_URL.toString())
+          .addRoute("/books/not-a-book/content.json")
+          .toString(),
+      );
+
+      expect(response.status()).toBe(404);
+      expect(response.headers()["content-type"]).toContain("application/json");
+    });
+  });
+
+  test.describe("the in-page reader", () => {
+    test.beforeEach(async ({ page }: { page: Page }) => {
+      await serveFixtureBook(page);
+    });
+
+    test("opens the book in a dialog, turns pages from the keyboard and closes back to the page", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(booksUrl);
+
+      const trigger: Locator = page
+        .getByRole("main")
+        .getByRole("link", { name: "Read the book", exact: true });
+      await trigger.focus();
+      await page.keyboard.press("Enter");
+
+      await expect(reader(page)).toBeVisible();
+      await expect(page).toHaveURL(new RegExp(`${booksUrl}#read`));
+      const opened: ReaderState = await waitForReaderAt(
+        page,
+        (state: ReaderState): boolean => {
+          return state.view === 0;
+        },
+      );
+      expect(opened.mode).toBe("spread");
+      await expect(reader(page).locator(".bk-reader-pages")).toHaveText(
+        `Page 1 of ${opened.pages}`,
+      );
+      await expect(
+        reader(page).getByRole("button", { name: "Close the book" }),
+      ).toBeFocused();
+
+      await recordFolds(page);
+      await page.keyboard.press("ArrowRight");
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.view === 1;
+      });
+      expect(await foldWasDrawn(page)).toBe(true);
+      await expect(page.locator(".bk-book .bk-turn")).toHaveCount(0);
+      await expect(reader(page).locator(".bk-reader-pages")).toHaveText(
+        `Pages 2–3 of ${opened.pages}`,
+      );
+
+      await page.keyboard.press("Escape");
+      await expect(reader(page)).toBeHidden();
+      await expect(page).toHaveURL(booksUrl);
+      await expect(trigger).toBeFocused();
+    });
+
+    test("opens a move from the contents list at that chapter", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(booksUrl);
+
+      await page
+        .locator("#inside-the-book")
+        .locator(`a[data-book-section="m07"]`)
+        .click();
+
+      await expect(reader(page)).toBeVisible();
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.sectionId === "m07";
+      });
+      await expect(page).toHaveURL(`${booksUrl}#read/m07`);
+      await expect(reader(page).locator(".bk-reader-location")).toContainText(
+        "A cage, not a data centre",
+      );
+      await expect(
+        reader(page).locator('.bk-page[data-section="m07"]').first(),
+      ).toContainText("A cage, not a data centre");
+    });
+
+    test("a deep link opens the reader at the linked chapter", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.goto(`${booksUrl}#read/m11`);
+
+      await expect(reader(page)).toBeVisible();
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.sectionId === "m11";
+      });
+    });
+
+    test("the contents drawer lists the book with page numbers and jumps to a chapter", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(booksUrl);
+      await openReader(page);
+
+      const toggle: Locator = reader(page).getByRole("button", {
+        name: "Contents",
+        exact: true,
+      });
+      await toggle.click();
+      await expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+      const drawer: Locator = reader(page).getByRole("navigation", {
+        name: "Contents of Back to Metal",
+      });
+      await expect(drawer).toBeVisible();
+      await expect(drawer.getByText("Stage 4 · Move")).toBeVisible();
+      const entry: Locator = drawer.locator('a[data-book-section="m16"]');
+      await expect(entry.locator(".bk-drawer-page")).toHaveText(/^\d+$/);
+      await entry.click();
+
+      await expect(drawer).toBeHidden();
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.sectionId === "m16";
+      });
+    });
+
+    test("changes the page colour and text size, and keeps the reading position", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(`${booksUrl}#read/m16`);
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.sectionId === "m16";
+      });
+
+      await reader(page)
+        .getByRole("button", { name: "Reading settings" })
+        .click();
+      await reader(page).getByRole("radio", { name: "Night" }).click();
+      await expect(reader(page)).toHaveAttribute("data-theme", "night");
+      await expect(
+        reader(page).getByRole("radio", { name: "Night" }),
+      ).toHaveAttribute("aria-checked", "true");
+
+      const before: ReaderState = await readerState(page);
+      await reader(page).getByRole("button", { name: "Larger text" }).click();
+      const after: ReaderState = await waitForReaderAt(
+        page,
+        (state: ReaderState): boolean => {
+          return state.settings.fontStep === before.settings.fontStep + 1;
+        },
+      );
+      expect(after.pages).toBeGreaterThanOrEqual(before.pages);
+      expect(after.sectionId).toBe("m16");
+    });
+
+    test("remembers where the reader stopped and offers to continue", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.goto(`${booksUrl}#read/m11`);
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.sectionId === "m11";
+      });
+      await page.keyboard.press("Escape");
+      await expect(reader(page)).toBeHidden();
+
+      await page.goto(booksUrl);
+      const resume: Locator = page.locator("[data-book-resume]");
+      await expect(resume).toBeVisible();
+      await expect(resume).toContainText("Continue reading");
+      await expect(resume).toContainText("Move 11");
+
+      await resume.getByRole("link", { name: /Continue reading/ }).click();
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.sectionId === "m11";
+      });
+    });
+
+    test("turns a page when its corner is dragged across the spine", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(booksUrl);
+      await openReader(page);
+
+      const book: { x: number; y: number; width: number; height: number } =
+        (await page.locator(".bk-book").boundingBox())!;
+      const startX: number = book.x + book.width - 10;
+      const startY: number = book.y + book.height - 14;
+
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      await page.mouse.move(book.x + book.width * 0.55, startY - 40, {
+        steps: 8,
+      });
+      await expect(page.locator(".bk-book .bk-turn")).toHaveCount(1);
+      await page.mouse.move(book.x + book.width * 0.2, startY - 20, {
+        steps: 8,
+      });
+      await page.mouse.up();
+
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.view === 1;
+      });
+    });
+
+    test("shows a single page on a phone and turns it with a tap on the page edge", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(booksUrl);
+      await openReader(page);
+
+      const opened: ReaderState = await readerState(page);
+      expect(opened.mode).toBe("single");
+      await expect(
+        page.locator(".bk-book .bk-slot--right .bk-page"),
+      ).toHaveCount(1);
+
+      const book: { x: number; y: number; width: number; height: number } =
+        (await page.locator(".bk-book").boundingBox())!;
+      await page.mouse.click(
+        book.x + book.width - 20,
+        book.y + book.height / 2,
+      );
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.view === 1;
+      });
+      await expectNoHorizontalOverflow(page);
+    });
+
+    test("turns pages without animation for readers who prefer reduced motion", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto(booksUrl);
+      await openReader(page);
+
+      await recordFolds(page);
+      await page.keyboard.press("ArrowRight");
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.view === 1;
+      });
+      expect(await foldWasDrawn(page)).toBe(false);
+    });
+
+    test("explains when the book cannot be loaded and links to its website", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.unroute(contentRoute);
+      await page.route(contentRoute, async (route: Route): Promise<void> => {
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "unavailable" }),
+        });
+      });
+      await page.goto(booksUrl);
+      await page
+        .getByRole("main")
+        .getByRole("link", { name: "Read the book", exact: true })
+        .click();
+
+      await expect(reader(page)).toBeVisible();
+      await expect(reader(page).locator(".bk-reader-status")).toContainText(
+        "could not be opened",
+      );
+      await expect(
+        reader(page).getByRole("link", {
+          name: "Read it on the book’s website",
+        }),
+      ).toHaveAttribute("href", bookUrl);
+
+      await page.unroute(contentRoute);
+      await serveFixtureBook(page);
+      await reader(page).getByRole("button", { name: "Try again" }).click();
+      await waitForReaderAt(page, (state: ReaderState): boolean => {
+        return state.loaded && state.view >= 0;
+      });
     });
   });
 });

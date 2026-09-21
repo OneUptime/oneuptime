@@ -21,6 +21,11 @@ import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusService from "./MonitorStatusService";
 import ServerException from "../../Types/Exception/ServerException";
+import {
+  MonitorUptimeDailyAggregate,
+  UptimeDailyAggregate,
+  UptimeDayBucket,
+} from "../../Types/StatusPage/UptimeDailyAggregate";
 
 /*
  * Thrown by onBeforeCreate when the incoming status is the same as the status of
@@ -43,6 +48,285 @@ export const MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE: string =
 export class Service extends DatabaseService<MonitorStatusTimeline> {
   public constructor() {
     super(MonitorStatusTimeline);
+  }
+
+  /**
+   * Per-monitor, per-day status durations for the status-page uptime bars.
+   *
+   * WHY THIS EXISTS
+   *
+   * The bars used to be painted from raw rows fetched with a single
+   * `limit: LIMIT_MAX` (10,000) across EVERY monitor on the page, sorted
+   * `startsAt DESC`. Measured on a real status page: 254,550 rows matched the
+   * 60-day window and 10,000 came back. The oldest surviving row started four
+   * days before the request, so 56 of 60 bars were painted from data that had
+   * been silently dropped - and the uptime percentage was computed from the
+   * same 3.9%.
+   *
+   * The cap being GLOBAL across monitors is what makes it vicious. A quiet,
+   * healthy monitor's covering row has an OLD `startsAt`, so under
+   * `startsAt DESC` it sorts last and is cut first: on the page that reported
+   * this, three flapping monitors held 9,995 of the 10,000 slots. The
+   * healthier a monitor is, the more likely it is to lose its entire history
+   * to a noisy neighbour on the same page.
+   *
+   * Shipping more rows cannot fix it - 254,550 rows is ~105 MB of this
+   * codebase's typed JSON, into a response held in a 500-entry in-memory
+   * cache and then filtered per-bar on the client's main thread. So this
+   * returns DURATIONS. The result is O(monitors x days x statuses) and cannot
+   * be inflated by a flapping monitor.
+   *
+   * THE SQL, AND THE THREE TRAPS IN IT
+   *
+   * 1. An open row (`endsAt IS NULL`) is capped at the NEXT row's `startsAt`,
+   *    not at `now()`. `COALESCE(endsAt, now())` would overlap the successor
+   *    and double-count that span. This mirrors what
+   *    UptimeUtil.getMonitorEventsForId already does client-side.
+   *
+   * 2. Periods are split into days ARITHMETICALLY (`generate_series` over the
+   *    days a period touches) and then hash-aggregated, rather than joined
+   *    against a bucket grid. Both give the same answer; the join does not
+   *    scale. Joining emitted one row per timeline row - 255,486 on the
+   *    reporting page - which then had to be sorted for the GroupAggregate
+   *    and spilled 26 MB to disk, ~4.7s. Splitting first aggregates 255k rows
+   *    into ~450 with no sort: ~1.5s.
+   *
+   *    A period that lies inside one day yields exactly one segment, which is
+   *    the overwhelmingly common case - a flapping monitor's rows last well
+   *    under a second. Only a long-running period fans out, one segment per
+   *    day it spans.
+   *
+   * 3. Seconds are summed as `double precision` and NEVER rounded per group.
+   *    Rounding each (monitor, day, status) sum to a bigint loses up to half a
+   *    second per status, so a fully covered day with two statuses reported
+   *    86,399 of 86,400 seconds - a day that is complete looking one second
+   *    short. Coverage is compared with a tolerance by the client rather than
+   *    for exact equality.
+   *
+   * A trap that is worth recording even though this SQL no longer contains it:
+   * PostgreSQL's LEAST/GREATEST IGNORE NULLs, returning the smallest or
+   * largest NON-NULL argument. An earlier draft joined rows to buckets, and on
+   * an unmatched LEFT JOIN row `LEAST(NULL, bucketEnd) - GREATEST(NULL,
+   * bucketStart)` silently became a FULL DAY of coverage - reporting a monitor
+   * as up before it existed. It was caught against real data, not in review.
+   * Any future rewrite that reintroduces a row-to-bucket join must handle it.
+   *
+   * Day buckets are local calendar days converted to UTC instants, so a DST
+   * day is genuinely 23 or 25 hours - `daySeconds` is never hardcoded to
+   * 86400. The window's first and last buckets are clipped to the window, and
+   * the end is clamped to `now()` so a future day is never emitted and can
+   * never be reported as 100%.
+   */
+  @CaptureSpan()
+  public async getDailyUptimeAggregate(data: {
+    monitorIds: Array<ObjectID>;
+    startDate: Date;
+    endDate: Date;
+    timezone?: string | undefined;
+  }): Promise<UptimeDailyAggregate> {
+    const empty: UptimeDailyAggregate = {
+      monitors: [],
+      isComplete: true,
+      completeFrom: null,
+    };
+
+    if (data.monitorIds.length === 0) {
+      return empty;
+    }
+
+    /*
+     * The overlap predicate is preserved verbatim from the row fetch this
+     * replaces: a row counts if it started on or before the window ends and
+     * either ended on or after the window started or is still open. The
+     * inclusive `>=` is deliberate - a row ending exactly at startDate still
+     * overlaps - and a strict `>` is NOT interchangeable.
+     */
+    const sql: string = `
+      WITH params AS (
+        SELECT $2::timestamptz AS win_start,
+               LEAST($3::timestamptz, now()) AS eff_end,
+               $4::text AS tz
+      ),
+      mons AS (
+        SELECT UNNEST($1::uuid[]) AS monitor_id
+      ),
+      src AS (
+        SELECT t."monitorId" AS monitor_id,
+               t."monitorStatusId" AS status_id,
+               GREATEST(t."startsAt", p.win_start) AS s,
+               LEAST(
+                 COALESCE(
+                   t."endsAt",
+                   LEAD(t."startsAt") OVER (
+                     PARTITION BY t."monitorId" ORDER BY t."startsAt"
+                   ),
+                   p.eff_end
+                 ),
+                 p.eff_end
+               ) AS e
+        FROM "MonitorStatusTimeline" t
+        CROSS JOIN params p
+        WHERE t."monitorId" = ANY($1::uuid[])
+          AND t."deletedAt" IS NULL
+          AND t."startsAt" <= p.eff_end
+          AND (t."endsAt" >= p.win_start OR t."endsAt" IS NULL)
+      ),
+      split AS (
+        SELECT src.monitor_id,
+               src.status_id,
+               (gs AT TIME ZONE p.tz) AS day_start,
+               GREATEST(src.s, (gs AT TIME ZONE p.tz)) AS seg_start,
+               LEAST(src.e, ((gs + interval '1 day') AT TIME ZONE p.tz))
+                 AS seg_end
+        FROM src
+        CROSS JOIN params p,
+        LATERAL generate_series(
+          date_trunc('day', src.s AT TIME ZONE p.tz),
+          date_trunc('day', (src.e - interval '1 microsecond') AT TIME ZONE p.tz),
+          interval '1 day'
+        ) AS gs
+        WHERE src.e > src.s
+      ),
+      agg AS (
+        SELECT monitor_id,
+               day_start,
+               status_id,
+               SUM(EXTRACT(EPOCH FROM (seg_end - seg_start)))::double precision
+                 AS seconds
+        FROM split
+        WHERE seg_end > seg_start
+        GROUP BY monitor_id, day_start, status_id
+      ),
+      buckets AS (
+        SELECT (d AT TIME ZONE p.tz) AS day_start,
+               GREATEST((d AT TIME ZONE p.tz), p.win_start) AS bucket_start,
+               LEAST(((d + interval '1 day') AT TIME ZONE p.tz), p.eff_end)
+                 AS bucket_end
+        FROM params p,
+             generate_series(
+               date_trunc('day', p.win_start AT TIME ZONE p.tz),
+               date_trunc('day', p.eff_end AT TIME ZONE p.tz),
+               interval '1 day'
+             ) AS d
+      )
+      SELECT m.monitor_id AS "monitorId",
+             b.bucket_start AS "bucketStart",
+             b.bucket_end AS "bucketEnd",
+             EXTRACT(EPOCH FROM (b.bucket_end - b.bucket_start))::bigint
+               AS "daySeconds",
+             a.status_id AS "monitorStatusId",
+             COALESCE(a.seconds, 0)::double precision AS "seconds"
+      FROM mons m
+      CROSS JOIN buckets b
+      LEFT JOIN agg a ON a.monitor_id = m.monitor_id
+                     AND a.day_start = b.day_start
+      WHERE b.bucket_end > b.bucket_start
+      ORDER BY m.monitor_id, b.bucket_start
+    `;
+
+    const rows: Array<{
+      monitorId: string;
+      bucketStart: Date;
+      bucketEnd: Date;
+      daySeconds: string | number;
+      monitorStatusId: string | null;
+      seconds: string | number;
+    }> = await this.getRepository().manager.query(sql, [
+      data.monitorIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+      data.startDate,
+      data.endDate,
+      data.timezone || "UTC",
+    ]);
+
+    return Service.toUptimeDailyAggregate(rows);
+  }
+
+  /*
+   * Exported shape-only step, so the bucketing can be tested without a
+   * database. One row per (monitor, day, status); a day with no coverage
+   * comes back as a single row with a NULL status and zero seconds, which is
+   * what makes a no-data day distinguishable from a day spent up.
+   */
+  public static toUptimeDailyAggregate(
+    rows: Array<{
+      monitorId: string;
+      bucketStart: Date;
+      bucketEnd: Date;
+      daySeconds: string | number;
+      monitorStatusId: string | null;
+      seconds: string | number;
+    }>,
+  ): UptimeDailyAggregate {
+    const byMonitor: Map<string, Map<number, UptimeDayBucket>> = new Map();
+
+    for (const row of rows) {
+      let buckets: Map<number, UptimeDayBucket> | undefined = byMonitor.get(
+        row.monitorId,
+      );
+
+      if (!buckets) {
+        buckets = new Map<number, UptimeDayBucket>();
+        byMonitor.set(row.monitorId, buckets);
+      }
+
+      const bucketStart: Date = new Date(row.bucketStart);
+      const key: number = bucketStart.getTime();
+
+      let bucket: UptimeDayBucket | undefined = buckets.get(key);
+
+      if (!bucket) {
+        bucket = {
+          bucketStart: bucketStart,
+          bucketEnd: new Date(row.bucketEnd),
+          daySeconds: Number(row.daySeconds),
+          coveredSeconds: 0,
+          statusDurations: [],
+        };
+        buckets.set(key, bucket);
+      }
+
+      const seconds: number = Number(row.seconds);
+
+      /*
+       * A NULL status is the LEFT JOIN's "nothing overlapped this day" row.
+       * It must not become a status duration, and it contributes no coverage.
+       */
+      if (!row.monitorStatusId || seconds <= 0) {
+        continue;
+      }
+
+      bucket.coveredSeconds += seconds;
+      bucket.statusDurations.push({
+        monitorStatusId: new ObjectID(row.monitorStatusId),
+        seconds: seconds,
+      });
+    }
+
+    const monitors: Array<MonitorUptimeDailyAggregate> = [];
+
+    for (const [monitorId, buckets] of byMonitor) {
+      monitors.push({
+        monitorId: new ObjectID(monitorId),
+        buckets: Array.from(buckets.values()).sort(
+          (a: UptimeDayBucket, b: UptimeDayBucket) => {
+            return a.bucketStart.getTime() - b.bucketStart.getTime();
+          },
+        ),
+      });
+    }
+
+    /*
+     * There is no cap in this path, so the window is always fully covered.
+     * The fields exist so that a bound added later has to SHOW rather than be
+     * absorbed into a green bar - which is the failure this replaces.
+     */
+    return {
+      monitors: monitors,
+      isComplete: true,
+      completeFrom: null,
+    };
   }
 
   @CaptureSpan()

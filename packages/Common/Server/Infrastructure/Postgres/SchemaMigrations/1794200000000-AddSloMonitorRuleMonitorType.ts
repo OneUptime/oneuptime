@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddSloMonitorRuleMonitorType1794000000000
+export class AddSloMonitorRuleMonitorType1794200000000
   implements MigrationInterface
 {
-  public name: string = "AddSloMonitorRuleMonitorType1794000000000";
+  public name: string = "AddSloMonitorRuleMonitorType1794200000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
