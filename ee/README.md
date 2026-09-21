@@ -316,12 +316,16 @@ otherwise leave the job green.
 
 Licenses are compact JWS tokens signed with Ed25519 (`Server/License/LicenseToken.ts`).
 An install trusts only the public keys compiled into its own build
-(`Server/License/TrustedLicenseKeys.ts`). The list is **empty** until the first
-ceremony. Until then every license classifies as "unverified" and is accepted
-only because legacy acceptance is on (next section), so the signed format does
-not protect anything yet.
+(`Server/License/TrustedLicenseKeys.ts`).
 
-Do the steps in this order:
+**Step 1 of the ceremony has shipped:** the list holds the OneUptime Cloud
+signing key (`kid` `vvbOO2N2qmM6A7D1L5NK7NHaAEauC42jGJcqO6mdLmM`), so a release
+built from this commit onwards can verify a license signed with it. Licenses
+issued before the matching private key is set on oneuptime.com still classify as
+"unverified" and are accepted only because legacy acceptance is on (next
+section).
+
+The steps, in this order (1 and 2 are done; 3 and 4 are the deploy):
 
 1. **Generate the key pair** on a trusted machine, writing the private key
    outside the repository:

@@ -836,8 +836,21 @@ describe("TrustedLicenseKeys", () => {
     }
   });
 
-  test("ships empty until the key ceremony (update this test when the first key is added)", () => {
-    expect(getProductionTrustedLicenseKeys()).toEqual([]);
+  /*
+   * The ceremony has shipped its first key, so this is no longer "must be
+   * empty" but "must be exactly these". Trusting a key means every install
+   * running this build accepts licenses signed with the matching private key,
+   * so an addition has to be a deliberate, reviewed change to the list AND to
+   * this line - an extra entry that slipped in unreviewed fails here.
+   */
+  test("trusts exactly the key ids the ceremony has shipped", () => {
+    expect(
+      getProductionTrustedLicenseKeys().map(
+        (entry: TrustedLicenseKey): string => {
+          return entry.kid;
+        },
+      ),
+    ).toEqual(["vvbOO2N2qmM6A7D1L5NK7NHaAEauC42jGJcqO6mdLmM"]);
   });
 
   test("the key list module is pure data: it imports nothing and parses nothing at load", () => {
