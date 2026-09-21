@@ -184,7 +184,10 @@ for (const width of [1440, 390]) {
       dialog.getByRole("textbox", { name: "Name", exact: true }),
     ).toHaveValue("Checkout availability");
     await expect(
-      dialog.getByRole("textbox", { name: "Description (Optional)", exact: true }),
+      dialog.getByRole("textbox", {
+        name: "Description (Optional)",
+        exact: true,
+      }),
     ).toHaveValue(DESCRIPTION);
     await expect(
       dialog.getByRole("combobox", { name: "Labels (Optional)", exact: true }),

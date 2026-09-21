@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -38,9 +39,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * this catches a card left below the grid, duplicate cards, broken sidebar
  * headers, and edits that stop reaching the SLO or refreshing its summary.
  */
-const SLO_ID: ObjectID = new ObjectID(
-  "22222222-2222-4222-8222-222222222222",
-);
+const SLO_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const EDIT_LABEL: string = "Edit Service Level Objective";
 
@@ -252,9 +251,13 @@ const waitForDetails: WaitForDetailsFunction = async (): Promise<void> => {
 type OpenEditorFunction = () => Promise<HTMLElement>;
 
 const openEditor: OpenEditorFunction = async (): Promise<HTMLElement> => {
-  fireEvent.click(
-    await within(getDetailsCard()).findByRole("button", { name: EDIT_LABEL }),
+  const editButton: HTMLElement = await within(getDetailsCard()).findByRole(
+    "button",
+    { name: EDIT_LABEL },
   );
+  await act(async () => {
+    fireEvent.click(editButton);
+  });
   const dialog: HTMLElement = await screen.findByRole("dialog", {
     name: EDIT_LABEL,
   });
@@ -390,7 +393,9 @@ describe("SLO overview details sidebar", () => {
     );
     expect(header).toHaveAttribute("data-header-layout", "stacked");
     expect(actions).toHaveClass("flex-wrap");
-    expect(within(actions).getByRole("button", { name: EDIT_LABEL })).toBeEnabled();
+    expect(
+      within(actions).getByRole("button", { name: EDIT_LABEL }),
+    ).toBeEnabled();
     expect(
       within(actions).getByRole("button", { name: "View Documentation" }),
     ).toBeInTheDocument();
@@ -430,11 +435,12 @@ describe("SLO overview details sidebar", () => {
     await waitForDetails();
 
     const details: HTMLElement = getDetailsCard();
-    expect(within(details).getByText(storedSlo.description!)).toBeInTheDocument();
+    expect(
+      within(details).getByText(storedSlo.description!),
+    ).toBeInTheDocument();
     expect(within(details).getByText("Customer facing")).toBeInTheDocument();
-    const fields: HTMLElement = details.querySelector<HTMLElement>(
-      "#slo-details",
-    )!;
+    const fields: HTMLElement =
+      details.querySelector<HTMLElement>("#slo-details")!;
     expect(fields).toHaveClass("grid-cols-1", "sm:grid-cols-1");
     expect(
       Array.from(fields.querySelectorAll("label")).map(
@@ -479,8 +485,14 @@ describe("SLO overview details sidebar", () => {
 
   test("opens the same SLO's editor and refreshes details and overview after a successful save", async () => {
     createOrUpdateMock.mockImplementation(
-      (request: { model: ServiceLevelObjective }): Promise<{ data: object }> => {
-        storedSlo = Object.assign(new ServiceLevelObjective(), storedSlo, request.model);
+      (request: {
+        model: ServiceLevelObjective;
+      }): Promise<{ data: object }> => {
+        storedSlo = Object.assign(
+          new ServiceLevelObjective(),
+          storedSlo,
+          request.model,
+        );
         return Promise.resolve({ data: {} });
       },
     );
@@ -495,14 +507,19 @@ describe("SLO overview details sidebar", () => {
     expect(within(dialog).getByText("Labels")).toBeInTheDocument();
     expect(within(dialog).queryByText("Target (%)")).toBeNull();
 
-    fireEvent.change(within(dialog).getByDisplayValue("Checkout availability"), {
-      target: { value: "Payments availability" },
-    });
+    fireEvent.change(
+      within(dialog).getByDisplayValue("Checkout availability"),
+      {
+        target: { value: "Payments availability" },
+      },
+    );
     fireEvent.change(
       within(dialog).getByDisplayValue("Availability of the checkout API."),
       { target: { value: "Availability of the payments API." } },
     );
-    fireEvent.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Save Changes" }),
+    );
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).toBeNull();
@@ -539,16 +556,22 @@ describe("SLO overview details sidebar", () => {
   });
 
   test("a failed edit stays open without refreshing the overview", async () => {
-    createOrUpdateMock.mockRejectedValue(new Error("Changes could not be saved."));
+    createOrUpdateMock.mockRejectedValue(
+      new Error("Changes could not be saved."),
+    );
     renderPage();
     await waitForDetails();
     const dialog: HTMLElement = await openEditor();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Save Changes" }),
+    );
 
     await within(dialog).findByText("Changes could not be saved.");
     expect(screen.getByRole("dialog")).toBe(dialog);
     expect(refreshMock).not.toHaveBeenCalled();
-    expect(within(getDetailsCard()).getByText("Checkout availability")).toBeInTheDocument();
+    expect(
+      within(getDetailsCard()).getByText("Checkout availability"),
+    ).toBeInTheDocument();
   });
 
   test("moving the card preserves the permission gate on editing", async () => {
@@ -570,7 +593,8 @@ describe("SLO overview details sidebar", () => {
     (state: string) => {
       overviewData.slo = null;
       overviewData.hasLoaded = state !== "loading";
-      overviewData.error = state === "failed" ? "The SLO could not be loaded." : "";
+      overviewData.error =
+        state === "failed" ? "The SLO could not be loaded." : "";
 
       renderPage();
 
