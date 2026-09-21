@@ -33,14 +33,25 @@ import { describe, expect, jest, test } from "@jest/globals";
  * anyway. Each test uses a different model because the caches are per class
  * and per process: reusing one would leave a warm cache and pass vacuously.
  *
- * Three callers, because the accidental mitigation on the create path
- * (enforceTenantRelationMatchesScalar, which warms the cache from the
- * service's own healthy model) skipped exactly these:
- *   a) a project owner on a tenant-scoped model - the reported case
- *   b) an isRoot caller, which returns before that guard runs
- *   c) a REFUSED create on a model with no tenant column - proof that a
- *      request nobody was allowed to make cannot poison anything, since the
- *      columns are read ~20 lines before the create permission check
+ * Three callers, because of how the create path's accidental mitigation
+ * behaves. enforceTenantRelationMatchesScalar runs two lines before
+ * generateDefaultValues and warms the cache from the service's own healthy
+ * model, so it hides the bug for some callers and not others:
+ *   a) a project owner on a tenant-scoped model - COVERED by that mitigation,
+ *      so this case passes even with the fix reverted. It is here as the
+ *      shape of the reported incident and to keep it working, not as the
+ *      test that catches a regression: the live incident needed an earlier
+ *      poisoning create (b or c) to have happened in the same process first.
+ *   b) an isRoot caller, which returns before that guard runs - this one
+ *      fails without the fix
+ *   c) a REFUSED create on a model with no tenant column - also fails without
+ *      the fix, and proves that a request nobody was allowed to make cannot
+ *      poison anything, since the columns are read ~20 lines before the
+ *      create permission check
+ *
+ * The instance-independence invariant itself is pinned by
+ * Tests/Types/Database/CanonicalModelInstance.test.ts, which fails for every
+ * model if the fix regresses. These three are the end-to-end evidence.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -133,7 +144,7 @@ function payloadWithIdDeleted<T extends BaseModel>(
 }
 
 describe("create and read responses keep their _id", () => {
-  test("a project owner creating and then listing a tenant-scoped model (the reported case)", async () => {
+  test("a project owner creating and then listing a tenant-scoped model (the incident's shape; the create path's tenant guard already covered this one)", async () => {
     mockRepository(ProjectSCIMService, ProjectSCIM, { name: "listed scim" });
 
     const savedItem: ProjectSCIM = await ProjectSCIMService.create({

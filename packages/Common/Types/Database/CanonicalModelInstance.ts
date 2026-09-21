@@ -51,19 +51,27 @@ const beingConstructed: WeakSet<NoArgConstructor> = new WeakSet();
 
 /**
  * A frozen, shared instance of `target`'s class, safe to enumerate for
- * metadata. Returns `target` itself when no such instance can be made - a
- * class that needs constructor arguments, a class still being defined
- * (circular imports), a constructor that throws, or a plain object with no
- * useful constructor. Falling back rather than throwing is deliberate: a
- * metadata lookup must never be the reason a process fails to boot.
+ * metadata - or NULL when no such instance can be made: a class that needs
+ * constructor arguments, a class still being defined (circular imports), a
+ * constructor that throws, or a plain object with no useful constructor.
+ *
+ * Null, rather than falling back to `target`, because the two are NOT
+ * interchangeable and treating them as if they were is how this bug worked in
+ * the first place. A caller with no canonical instance may still answer from
+ * whatever instance it was handed - a metadata lookup must never be the reason
+ * a process fails to boot - but it must not then CACHE that answer for the
+ * class, because the instance it read may be a mutilated one and the cached
+ * answer would outlive it. Returning null forces each caller to make that
+ * decision in the open; the four caches in this directory all take the same
+ * route, and say so where they do it.
  */
-export default function getCanonicalModelInstance<T>(target: T): T {
+export default function getCanonicalModelInstance<T>(target: T): T | null {
   const modelClass: NoArgConstructor | undefined = (
     target as { constructor?: NoArgConstructor } | null | undefined
   )?.constructor;
 
   if (typeof modelClass !== "function") {
-    return target;
+    return null;
   }
 
   const cached: unknown = canonicalInstanceCache.get(modelClass);
@@ -73,7 +81,7 @@ export default function getCanonicalModelInstance<T>(target: T): T {
   }
 
   if (beingConstructed.has(modelClass)) {
-    return target;
+    return null;
   }
 
   let canonical: T;
@@ -83,7 +91,7 @@ export default function getCanonicalModelInstance<T>(target: T): T {
   try {
     canonical = Object.freeze(new modelClass()) as T;
   } catch {
-    return target;
+    return null;
   } finally {
     beingConstructed.delete(modelClass);
   }

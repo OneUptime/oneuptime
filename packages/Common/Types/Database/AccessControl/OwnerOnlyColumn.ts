@@ -82,7 +82,8 @@ export const getOwnerOnlyColumns: GetOwnerOnlyColumnsFunction = <
   target: T,
 ): Array<string> => {
   const columns: Array<string> = [];
-  const metadataSource: T = getCanonicalModelInstance(target);
+  // Nothing is cached here, so falling back to the caller's instance is safe.
+  const metadataSource: T = getCanonicalModelInstance(target) || target;
 
   for (const key of Object.keys(metadataSource)) {
     if (

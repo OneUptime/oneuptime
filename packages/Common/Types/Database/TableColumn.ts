@@ -122,7 +122,8 @@ export const getTableColumns: GetTableColumnsFunction = <T extends BaseModel>(
     tableColumnsCache.get(modelClass);
 
   if (!cached) {
-    const metadataSource: T = getCanonicalModelInstance(target);
+    const canonical: T | null = getCanonicalModelInstance(target);
+    const metadataSource: T = canonical || target;
     const dictonary: Dictionary<TableColumnMetadata> = {};
     const keys: Array<string> = Object.keys(metadataSource);
 
@@ -138,7 +139,15 @@ export const getTableColumns: GetTableColumnsFunction = <T extends BaseModel>(
     }
 
     cached = dictonary;
-    tableColumnsCache.set(modelClass, cached);
+
+    /*
+     * No canonical instance (see CanonicalModelInstance): answer from the
+     * instance we were handed, but do NOT cache it for the class - that
+     * instance may be a mutilated one, and a cached answer outlives it.
+     */
+    if (canonical) {
+      tableColumnsCache.set(modelClass, cached);
+    }
   }
 
   /*
