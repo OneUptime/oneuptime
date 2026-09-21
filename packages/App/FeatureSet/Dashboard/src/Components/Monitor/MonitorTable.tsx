@@ -822,7 +822,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: props.title || "Monitors",
           description:
-            props.description || "Here is a list of monitors for this project.",
+            props.description ||
+            "Monitors check your websites, APIs, servers and other resources on a schedule, and can open an incident or alert when a check fails.",
           buttons: cardbuttons,
         }}
         videoLink={props.videoLink}

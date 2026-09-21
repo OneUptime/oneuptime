@@ -5,6 +5,7 @@ import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import {
   getSliTypeText,
   getSloAtRiskText,
+  getSloBudgetRemainingText,
   getSloDowntimeStatusesText,
   getSloHeadline,
   getSloMonitorCountText,
@@ -77,6 +78,69 @@ describe("getSloTargetText", () => {
     expect(getSloTargetText(null)).toBeNull();
     expect(getSloTargetText(undefined)).toBeNull();
   });
+});
+
+describe("getSloBudgetRemainingText", () => {
+  test.each([-99882.8, -120, -0.001, -Number.MIN_VALUE, -Number.MAX_VALUE])(
+    "explains a %p%% remaining budget as exceeded, even if it rounds to zero",
+    (percentage: number) => {
+      expect(getSloBudgetRemainingText(percentage)).toBe("Budget exceeded");
+    },
+  );
+
+  test.each([0, -0])(
+    "distinguishes an exactly exhausted %p%% budget from an overage",
+    (percentage: number) => {
+      expect(getSloBudgetRemainingText(percentage)).toBe("No budget left");
+    },
+  );
+
+  test.each([Number.MIN_VALUE, 0.001, 0.049, 0.05, 0.0999])(
+    "keeps a small positive %p%% budget distinct from no budget left",
+    (percentage: number) => {
+      expect(getSloBudgetRemainingText(percentage)).toBe("<0.1%");
+    },
+  );
+
+  test.each([
+    [0.1, "0.1%"],
+    [0.14, "0.1%"],
+    [0.15, "0.2%"],
+    [15, "15%"],
+    [20, "20%"],
+    [62.5, "62.5%"],
+    [62.56, "62.6%"],
+    [100, "100%"],
+  ])(
+    "shows a positive %p%% remainder as %s without unnecessary decimal places",
+    (percentage: number, expected: string) => {
+      expect(getSloBudgetRemainingText(percentage)).toBe(expected);
+    },
+  );
+
+  test.each([100.01, 150, Number.MAX_VALUE])(
+    "never claims more than a full budget when the input is %p%%",
+    (percentage: number) => {
+      expect(getSloBudgetRemainingText(percentage)).toBe("100%");
+    },
+  );
+
+  test.each([
+    ["missing", undefined],
+    ["null", null],
+    ["NaN", Number.NaN],
+    ["positive infinity", Number.POSITIVE_INFINITY],
+    ["negative infinity", Number.NEGATIVE_INFINITY],
+    ["numeric string", "62.5" as unknown as number],
+    ["negative numeric string", "-99882.8" as unknown as number],
+    ["true", true as unknown as number],
+    ["false", false as unknown as number],
+  ])(
+    "makes no budget claim for %s data",
+    (_label: string, percentage: number | null | undefined) => {
+      expect(getSloBudgetRemainingText(percentage)).toBeNull();
+    },
+  );
 });
 
 describe("getSloMonitorCountText", () => {

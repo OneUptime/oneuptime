@@ -27,6 +27,8 @@ import DatabaseService from "./DatabaseService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService from "./ProjectService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveLabelRuleEngineService from "./ServiceLevelObjectiveLabelRuleEngineService";
+import ServiceLevelObjectiveOwnerRuleEngineService from "./ServiceLevelObjectiveOwnerRuleEngineService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
 import ServiceLevelObjectiveMonitorRuleService from "./ServiceLevelObjectiveMonitorRuleService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
@@ -285,6 +287,32 @@ export class Service extends DatabaseService<Model> {
         `Error applying the monitor rules for SLO ${createdItem.id?.toString()}: ${err}`,
         { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
+    }
+
+    /*
+     * Label rules first, so the labels they attach are persisted - and on
+     * createdItem - before owner rules run: an owner rule can then key on a
+     * rule-added label. Fire-and-forget, like every other resource's rules: a
+     * rule must never slow down or fail the create.
+     */
+    if (createdItem.projectId && createdItem.id) {
+      Promise.resolve()
+        .then(async () => {
+          await ServiceLevelObjectiveLabelRuleEngineService.applyRulesToServiceLevelObjective(
+            createdItem,
+          );
+        })
+        .then(async () => {
+          await ServiceLevelObjectiveOwnerRuleEngineService.applyRulesToServiceLevelObjective(
+            createdItem,
+          );
+        })
+        .catch((err: Error) => {
+          logger.error(
+            `Error applying the label and owner rules for SLO ${createdItem.id?.toString()}: ${err}`,
+            { projectId: createdItem.projectId?.toString() } as LogAttributes,
+          );
+        });
     }
 
     /*

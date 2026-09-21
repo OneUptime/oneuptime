@@ -92,7 +92,9 @@ export enum RuleRunType {
   ServerlessFunctionLabelRule = "ServerlessFunctionLabelRule",
   ServerlessFunctionOwnerRule = "ServerlessFunctionOwnerRule",
   ServiceLabelRule = "ServiceLabelRule",
+  ServiceLevelObjectiveLabelRule = "ServiceLevelObjectiveLabelRule",
   ServiceLevelObjectiveMonitorRule = "ServiceLevelObjectiveMonitorRule",
+  ServiceLevelObjectiveOwnerRule = "ServiceLevelObjectiveOwnerRule",
   ServiceOwnerRule = "ServiceOwnerRule",
   StatusPageLabelRule = "StatusPageLabelRule",
   StatusPageOwnerRule = "StatusPageOwnerRule",
@@ -316,11 +318,13 @@ export const RULE_RUN_TYPE_METADATA: Readonly<
     "serverless functions",
   ),
   [RuleRunType.ServiceLabelRule]: metadata(Labels, "service", "services"),
+  [RuleRunType.ServiceLevelObjectiveLabelRule]: metadata(Labels, "SLO", "SLOs"),
   [RuleRunType.ServiceLevelObjectiveMonitorRule]: metadata(
     RuleRunAction.SyncSloMonitors,
     "monitor",
     "monitors",
   ),
+  [RuleRunType.ServiceLevelObjectiveOwnerRule]: metadata(Owners, "SLO", "SLOs"),
   [RuleRunType.ServiceOwnerRule]: metadata(Owners, "service", "services"),
   [RuleRunType.StatusPageLabelRule]: metadata(
     Labels,

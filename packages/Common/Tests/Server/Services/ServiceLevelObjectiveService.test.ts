@@ -17,7 +17,9 @@ import IncidentStateTimelineService from "../../../Server/Services/IncidentState
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveLabelRuleEngineService from "../../../Server/Services/ServiceLevelObjectiveLabelRuleEngineService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "../../../Server/Services/ServiceLevelObjectiveMonitorRuleEngineService";
+import ServiceLevelObjectiveOwnerRuleEngineService from "../../../Server/Services/ServiceLevelObjectiveOwnerRuleEngineService";
 import ServiceLevelObjectiveOwnerTeamService from "../../../Server/Services/ServiceLevelObjectiveOwnerTeamService";
 import ServiceLevelObjectiveOwnerUserService from "../../../Server/Services/ServiceLevelObjectiveOwnerUserService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
@@ -2552,5 +2554,165 @@ describe("ServiceLevelObjectiveService - applying the monitor rules", () => {
     );
 
     expect(syncMonitorsForSloSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * SLO label and owner rules fire when an SLO is created, like every other
+ * resource's: label rules first, so an owner rule can key on a label a label
+ * rule just attached, and without holding up - or ever failing - the create.
+ */
+describe("ServiceLevelObjectiveService - applying the label and owner rules", () => {
+  let labelRulesSpy: jest.SpyInstance;
+  let ownerRulesSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
+
+  // The rules run off the request path; let them.
+  async function settle(): Promise<void> {
+    for (let i: number = 0; i < 10; i++) {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 0);
+      });
+    }
+  }
+
+  function createdSlo(): ServiceLevelObjective {
+    return makeSlo({
+      _id: SLO_ID.toString(),
+      id: SLO_ID,
+      projectId: PROJECT_ID,
+      targetPercentage: 99.9,
+    });
+  }
+
+  function onCreateSuccess(
+    createdItem: ServiceLevelObjective,
+  ): Promise<unknown> {
+    return callHook(
+      "onCreateSuccess",
+      {
+        createBy: makeCreateBy({
+          projectId: PROJECT_ID,
+          targetPercentage: 99.9,
+        }),
+        carryForward: null,
+      },
+      createdItem,
+    );
+  }
+
+  beforeEach(() => {
+    labelRulesSpy = jest
+      .spyOn(
+        ServiceLevelObjectiveLabelRuleEngineService,
+        "applyRulesToServiceLevelObjective",
+      )
+      .mockResolvedValue(undefined);
+    ownerRulesSpy = jest
+      .spyOn(
+        ServiceLevelObjectiveOwnerRuleEngineService,
+        "applyRulesToServiceLevelObjective",
+      )
+      .mockResolvedValue(undefined);
+    errorSpy = jest.spyOn(logger, "error").mockImplementation(() => {});
+
+    jest
+      .spyOn(
+        ServiceLevelObjectiveMonitorRuleEngineService,
+        "syncMonitorsForSlo",
+      )
+      .mockResolvedValue({ monitorIdsAdded: [], monitorIdsRemoved: [] });
+    jest
+      .spyOn(ServiceLevelObjectiveService, "updateOneById")
+      .mockResolvedValue(1);
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(makeSlo({ projectId: PROJECT_ID }));
+    jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
+      .mockResolvedValue(makeBurnRateRule(RULE_ID));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("applies the label rules, then the owner rules, to the SLO it created", async () => {
+    const createdItem: ServiceLevelObjective = createdSlo();
+
+    await onCreateSuccess(createdItem);
+    await settle();
+
+    expect(labelRulesSpy).toHaveBeenCalledTimes(1);
+    expect(labelRulesSpy).toHaveBeenCalledWith(createdItem);
+    expect(ownerRulesSpy).toHaveBeenCalledTimes(1);
+    expect(ownerRulesSpy).toHaveBeenCalledWith(createdItem);
+    expect(labelRulesSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      ownerRulesSpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  // So an owner rule sees the labels the label rules just attached.
+  it("starts the owner rules only once the label rules have finished", async () => {
+    let finishLabelRules: () => void = () => {};
+    labelRulesSpy.mockReturnValue(
+      new Promise<void>((resolve: () => void) => {
+        finishLabelRules = resolve;
+      }),
+    );
+
+    await onCreateSuccess(createdSlo());
+    await settle();
+
+    expect(labelRulesSpy).toHaveBeenCalledTimes(1);
+    expect(ownerRulesSpy).not.toHaveBeenCalled();
+
+    finishLabelRules();
+    await settle();
+
+    expect(ownerRulesSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not hold up the create while the rules run", async () => {
+    labelRulesSpy.mockReturnValue(
+      new Promise<void>(() => {
+        // Never settles.
+      }),
+    );
+    const createdItem: ServiceLevelObjective = createdSlo();
+
+    await expect(onCreateSuccess(createdItem)).resolves.toBe(createdItem);
+  });
+
+  it("never fails the create when the rules cannot be applied, and logs why", async () => {
+    labelRulesSpy.mockRejectedValue(new Error("database is down"));
+    const createdItem: ServiceLevelObjective = createdSlo();
+
+    await expect(onCreateSuccess(createdItem)).resolves.toBe(createdItem);
+    await settle();
+
+    const messages: Array<string> = errorSpy.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return String(call[0]);
+      },
+    );
+    expect(
+      messages.some((message: string): boolean => {
+        return (
+          message.includes("label and owner rules") &&
+          message.includes(SLO_ID.toString()) &&
+          message.includes("database is down")
+        );
+      }),
+    ).toBe(true);
+  });
+
+  it("applies no rules to an SLO that has no id", async () => {
+    await onCreateSuccess(makeSlo({ projectId: PROJECT_ID }));
+    await settle();
+
+    expect(labelRulesSpy).not.toHaveBeenCalled();
+    expect(ownerRulesSpy).not.toHaveBeenCalled();
   });
 });

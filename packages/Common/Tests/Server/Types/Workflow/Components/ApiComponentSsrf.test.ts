@@ -213,3 +213,52 @@ describe.each(apiComponents)(
     });
   },
 );
+
+/*
+ * sanitizeArgs validates the raw URL and then dispatches URL.fromString(url).
+ * That parse refused any first path segment containing a ":", so every API
+ * component call to the Telegram Bot API (the token is that segment) failed
+ * before a request was made, quoting the token in the error.
+ */
+describe.each(apiComponents)(
+  "API %s workflow component with a token in the first path segment",
+  (
+    _label: string,
+    apiMethodName: ApiMethodName,
+    createComponent: () => ComponentCode,
+  ) => {
+    const telegramUrl: string =
+      "https://api.telegram.org/bot8000000001:AAFakeFakeFakeFakeFakeFakeFake_-12345/sendMessage";
+
+    test("dispatches the Telegram Bot API URL unchanged", async () => {
+      getApiMock(apiMethodName).mockResolvedValue(
+        new HTTPResponse<JSONObject>(200, { ok: true }, {}),
+      );
+
+      const result: { returnValues: JSONObject } = await createComponent().run(
+        { url: telegramUrl },
+        makeOptions(),
+      );
+
+      const request: { url: { toString: () => string } } = getApiMock(
+        apiMethodName,
+      ).mock.calls[0]![0] as { url: { toString: () => string } };
+
+      expect(request.url.toString()).toBe(telegramUrl);
+      expect(result.returnValues["response-status"]).toBe(200);
+    });
+
+    test("still refuses an internal host behind the same path", async () => {
+      await expect(
+        createComponent().run(
+          {
+            url: "http://169.254.169.254/bot8000000001:AAFake/sendMessage",
+          },
+          makeOptions(),
+        ),
+      ).rejects.toThrow();
+
+      expect(getApiMock(apiMethodName)).not.toHaveBeenCalled();
+    });
+  },
+);

@@ -1,4 +1,8 @@
 import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
+import RootCauseList, {
+  RootCauseListDetail,
+  RootCauseListItem,
+} from "./RootCauseList";
 
 /*
  * The "Affected Resources" block of a platform monitor's root cause.
@@ -30,10 +34,8 @@ import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
  * and the rest of its identity sits underneath as labelled bullets. A
  * missing attribute is simply left out, where the table had to print "-".
  *
- * Plain markdown, deliberately: marked (email), react-markdown (dashboard),
- * slackify-markdown (Slack), the dashboard editor's WYSIWYG converters and
- * Markdown.convertToPlainText all understand a nested list, so nothing
- * downstream needs to know this block exists.
+ * The list itself is a RootCauseList, the shape the Breaching Samples block
+ * of a metric monitor's root cause uses too.
  */
 
 export interface AffectedResourceListDetail {
@@ -67,45 +69,35 @@ export default class AffectedResourceList {
     // The resources to show, already sorted worst first.
     entries: Array<AffectedResourceListEntry>;
   }): string {
-    const lines: Array<string> = [];
-
-    input.entries.forEach(
-      (entry: AffectedResourceListEntry, index: number): void => {
-        const marker: string = `${index + 1}.`;
-
-        /*
-         * A nested bullet belongs to its item only when it is indented to
-         * the item's content column, which is one past the marker — three
-         * spaces under "1.", four under "10.". A fixed three-space indent
-         * would push item 10's details out into a separate top-level list.
-         */
-        const indent: string = " ".repeat(marker.length + 1);
-
+    const items: Array<RootCauseListItem> = input.entries.map(
+      (entry: AffectedResourceListEntry): RootCauseListItem => {
         /*
          * The kind is bold so each item's first line stands out from the
          * detail bullets under it — the value at the end of the line is
          * bold too, so the eye lands on what it is and how bad it is.
          */
         const kind: string = escapeMarkdownInline(entry.kind).trim();
-        const title: string = [kind ? `**${kind}**` : "", entry.name.trim()]
-          .filter((part: string): boolean => {
-            return part.length > 0;
-          })
-          .join(" ");
 
-        lines.push(`${marker} ${title} — ${entry.value}`);
-
-        for (const detail of entry.details) {
-          if (!detail.value || detail.value.trim().length === 0) {
-            continue;
-          }
-
-          lines.push(
-            `${indent}- ${escapeMarkdownInline(detail.label)}: ${detail.value}`,
-          );
-        }
+        return {
+          title: [kind ? `**${kind}**` : "", entry.name.trim()]
+            .filter((part: string): boolean => {
+              return part.length > 0;
+            })
+            .join(" "),
+          value: entry.value,
+          details: entry.details.map(
+            (detail: AffectedResourceListDetail): RootCauseListDetail => {
+              return {
+                label: escapeMarkdownInline(detail.label),
+                value: detail.value,
+              };
+            },
+          ),
+        };
       },
     );
+
+    const lines: Array<string> = [RootCauseList.render(items)];
 
     const hiddenCount: number = input.totalCount - input.entries.length;
 
@@ -125,47 +117,13 @@ export default class AffectedResourceList {
   }
 
   /*
-   * A resource identifier as an inline code span.
-   *
-   * The identifiers come from telemetry attributes, and a VMware VM or a
-   * Proxmox guest can be named anything. Wrapping a name that contains a
-   * backtick in single backticks closes the span early and spills the rest
-   * of the name — and whatever markdown it contains — into the list. So the
-   * fence is always one backtick longer than the longest run inside the
-   * value, and padded with a space on each side when the value has any
-   * backticks at all (CommonMark strips exactly one from each side, so the
-   * padding never shows). Line breaks become spaces: a newline inside a
-   * list item would end the item.
+   * A resource identifier as an inline code span. The identifiers come from
+   * telemetry attributes, and a VMware VM or a Proxmox guest can be named
+   * anything — RootCauseList.code keeps a name with backticks or line breaks
+   * inside its span.
    */
   public static code(value: string | undefined | null): string {
-    if (value === undefined || value === null) {
-      return "";
-    }
-
-    const text: string = String(value)
-      .replace(/\s*[\r\n]+\s*/g, " ")
-      .trim();
-
-    if (text.length === 0) {
-      return "";
-    }
-
-    const backtickRuns: Array<string> = text.match(/`+/g) || [];
-
-    const longestRun: number = backtickRuns.reduce(
-      (longest: number, run: string): number => {
-        return Math.max(longest, run.length);
-      },
-      0,
-    );
-
-    if (longestRun === 0) {
-      return `\`${text}\``;
-    }
-
-    const fence: string = "`".repeat(longestRun + 1);
-
-    return `${fence} ${text} ${fence}`;
+    return RootCauseList.code(value);
   }
 
   /*

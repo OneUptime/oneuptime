@@ -32,6 +32,27 @@ const SloSideMenu: FunctionComponent = (): ReactElement => {
           icon={IconProp.Archive}
         />
       </SideMenuSection>
+
+      <SideMenuSection title="Settings">
+        <SideMenuItem
+          link={{
+            title: "Owner Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLOS_SETTINGS_OWNER_RULES] as Route,
+            ),
+          }}
+          icon={IconProp.User}
+        />
+        <SideMenuItem
+          link={{
+            title: "Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLOS_SETTINGS_LABEL_RULES] as Route,
+            ),
+          }}
+          icon={IconProp.Tag}
+        />
+      </SideMenuSection>
     </SideMenu>
   );
 };

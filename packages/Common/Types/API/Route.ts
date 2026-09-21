@@ -7,13 +7,30 @@ import { FindOperator } from "typeorm";
 export default class Route extends DatabaseProperty {
   private static readonly SCHEME_PREFIX: RegExp = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
+  /*
+   * True when the value, read on its own as a relative reference, would start
+   * with a scheme (RFC 3986 4.2): "javascript:alert(1)", but equally
+   * "bot123:ABC/sendMessage". Route refuses such values so a scheme can never
+   * reach a navigation sink; URL uses this to know when a path it parsed has
+   * to keep its leading "/".
+   */
+  public static hasSchemePrefix(route: string): boolean {
+    return Route.SCHEME_PREFIX.test(route);
+  }
+
   private static validateRoute(route: string): void {
-    if (Route.SCHEME_PREFIX.test(route)) {
+    if (Route.hasSchemePrefix(route)) {
       throw new BadDataException(`Invalid route: ${route}`);
     }
 
+    /*
+     * RFC 3986 path characters: unreserved (which includes "~"), sub-delims,
+     * ":" and "@", plus "/", "?", "#", "[", "]" and "%" for the rest of a
+     * path-and-query. "~" was missing, so "https://example.com/~user" could
+     * not be parsed at all.
+     */
     const matchRouteCharacters: RegExp =
-      /^[a-zA-Z_\d\-!#$%&'()*+,./:;=?@[\]]*$/;
+      /^[a-zA-Z_\d\-!#$%&'()*+,./:;=?@[\]~]*$/;
 
     if (route && !matchRouteCharacters.test(route)) {
       throw new BadDataException(`Invalid route: ${route}`);

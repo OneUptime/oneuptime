@@ -248,16 +248,17 @@ export const getSloNotice: GetSloNoticeFunction = (
     }
 
     /*
-     * What is left are the worker's two data guards: the attached monitors
-     * no longer exist, or none of them has reported a status yet. Both are
-     * answered on the Monitors page.
+     * Monitors may have been attached since the last evaluation, or the
+     * worker may still be waiting for their status data. A stored
+     * Misconfigured status alone does not mean the current setup is wrong.
+     * Keep the monitor link so users can check data that is still missing.
      */
     return {
-      type: SloNoticeType.Warning,
-      title: "This SLO cannot be evaluated",
-      body: "Check that its monitors still exist and have started reporting a status, then wait a few minutes for the next evaluation.",
+      type: SloNoticeType.Info,
+      title: "Waiting for SLO evaluation",
+      body: "Monitors are attached. OneUptime evaluates this SLO every few minutes. Results will appear once monitor status data is available and the next evaluation completes.",
       action: {
-        label: "Review monitors",
+        label: "View monitors",
         target: SloNoticeActionTarget.Monitors,
       },
     };

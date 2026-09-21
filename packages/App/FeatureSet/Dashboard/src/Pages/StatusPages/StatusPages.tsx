@@ -79,7 +79,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isViewable={true}
         cardProps={{
           title: "Status Pages",
-          description: "Here is a list of status pages for this project.",
+          description:
+            "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.",
         }}
         videoLink={URL.fromString("https://youtu.be/F6BNipy5VCk")}
         showViewIdButton={true}

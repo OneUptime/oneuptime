@@ -4,13 +4,17 @@ import SloViewLayout from "../Pages/Slo/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, SloRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import ServiceLevelObjectiveLabelRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
+import ServiceLevelObjectiveOwnerRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import Slos from "../Pages/Slo/Slos";
 import SlosArchived from "../Pages/Slo/Archived";
+import SloSettingsOwnerRules from "../Pages/Slo/Settings/OwnerRules";
+import SloSettingsLabelRules from "../Pages/Slo/Settings/LabelRules";
 import SloView from "../Pages/Slo/View/Index";
 import SloMonitors from "../Pages/Slo/View/Monitors";
 import SloMonitorRules from "../Pages/Slo/View/MonitorRules";
@@ -49,6 +53,54 @@ const SloRoutes: FunctionComponent<ComponentProps> = (
             <SlosArchived
               {...props}
               pageRoute={RouteMap[PageMap.SLOS_ARCHIVED] as Route}
+            />
+          }
+        />
+
+        {/*
+         * Project-wide rules, so list-layout pages like Archived: their
+         * static `settings` segment outranks the view's `:id` below.
+         */}
+        <PageRoute
+          path={SloRoutePath[PageMap.SLOS_SETTINGS_OWNER_RULES] || ""}
+          element={
+            <SloSettingsOwnerRules
+              {...props}
+              pageRoute={RouteMap[PageMap.SLOS_SETTINGS_OWNER_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={SloRoutePath[PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW] || ""}
+          element={
+            <SloSettingsOwnerRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW] as Route
+              }
+              ruleViewModelType={ServiceLevelObjectiveOwnerRule}
+            />
+          }
+        />
+
+        <PageRoute
+          path={SloRoutePath[PageMap.SLOS_SETTINGS_LABEL_RULES] || ""}
+          element={
+            <SloSettingsLabelRules
+              {...props}
+              pageRoute={RouteMap[PageMap.SLOS_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={SloRoutePath[PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW] || ""}
+          element={
+            <SloSettingsLabelRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW] as Route
+              }
+              ruleViewModelType={ServiceLevelObjectiveLabelRule}
             />
           }
         />

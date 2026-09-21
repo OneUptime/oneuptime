@@ -2018,6 +2018,18 @@ enum Permission {
   EditServiceLevelObjectiveOwnerTeam = "EditServiceLevelObjectiveOwnerTeam",
   ReadServiceLevelObjectiveOwnerTeam = "ReadServiceLevelObjectiveOwnerTeam",
 
+  // Service Level Objective Owner Rule Permissions
+  CreateServiceLevelObjectiveOwnerRule = "CreateServiceLevelObjectiveOwnerRule",
+  DeleteServiceLevelObjectiveOwnerRule = "DeleteServiceLevelObjectiveOwnerRule",
+  EditServiceLevelObjectiveOwnerRule = "EditServiceLevelObjectiveOwnerRule",
+  ReadServiceLevelObjectiveOwnerRule = "ReadServiceLevelObjectiveOwnerRule",
+
+  // Service Level Objective Label Rule Permissions
+  CreateServiceLevelObjectiveLabelRule = "CreateServiceLevelObjectiveLabelRule",
+  DeleteServiceLevelObjectiveLabelRule = "DeleteServiceLevelObjectiveLabelRule",
+  EditServiceLevelObjectiveLabelRule = "EditServiceLevelObjectiveLabelRule",
+  ReadServiceLevelObjectiveLabelRule = "ReadServiceLevelObjectiveLabelRule",
+
   /*
    * Wildcard permissions covering all models marked @OperationalResource().
    * These short-circuit table-level checks for that resource class. Scope on
@@ -16134,6 +16146,84 @@ export class PermissionHelper {
         permission: Permission.ReadServiceLevelObjectiveOwnerTeam,
         title: "Read SLO Team Owner",
         description: "Permission to read SLO Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Owner Rule Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveOwnerRule,
+        title: "Create SLO Owner Rule",
+        description:
+          "Permission to create SLO Owner Rules, which add owner users and teams to matching SLOs, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveOwnerRule,
+        title: "Delete SLO Owner Rule",
+        description: "Permission to delete SLO Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveOwnerRule,
+        title: "Edit SLO Owner Rule",
+        description: "Permission to edit SLO Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveOwnerRule,
+        title: "Read SLO Owner Rule",
+        description: "Permission to read SLO Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Label Rule Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveLabelRule,
+        title: "Create SLO Label Rule",
+        description:
+          "Permission to create SLO Label Rules, which attach labels to matching SLOs, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveLabelRule,
+        title: "Delete SLO Label Rule",
+        description: "Permission to delete SLO Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveLabelRule,
+        title: "Edit SLO Label Rule",
+        description: "Permission to edit SLO Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveLabelRule,
+        title: "Read SLO Label Rule",
+        description: "Permission to read SLO Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

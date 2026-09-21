@@ -25,6 +25,7 @@ import RunbookLabelRule from "../Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceLabelRule from "../Models/DatabaseModels/ScheduledMaintenanceLabelRule";
 import ServerlessFunctionLabelRule from "../Models/DatabaseModels/ServerlessFunctionLabelRule";
 import ServiceLabelRule from "../Models/DatabaseModels/ServiceLabelRule";
+import ServiceLevelObjectiveLabelRule from "../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import StatusPageLabelRule from "../Models/DatabaseModels/StatusPageLabelRule";
 import WorkflowLabelRule from "../Models/DatabaseModels/WorkflowLabelRule";
 import Select from "../Types/BaseDatabase/Select";
@@ -74,9 +75,21 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   ScheduledMaintenanceLabelRule,
   ServerlessFunctionLabelRule,
   ServiceLabelRule,
+  ServiceLevelObjectiveLabelRule,
   StatusPageLabelRule,
   WorkflowLabelRule,
 ];
+
+/*
+ * Rule types whose engines match patterns through RulePatternMatchUtil: a
+ * regex, with a '*' wildcard fallback, on the trimmed pattern. Every other
+ * label rule compiles its pattern as a plain regex, so a pattern moving
+ * between the two groups can change what it matches.
+ */
+const WILDCARD_PATTERN_RULE_TYPES: ReadonlySet<string> = new Set<string>([
+  "NetworkDeviceLabelRule",
+  "ServiceLevelObjectiveLabelRule",
+]);
 
 export interface ParsedLabelRuleImport {
   sourceResourceType: string;
@@ -759,13 +772,14 @@ export default class LabelRuleImportExport {
       );
     }
     if (validatePattern && column.endsWith("Pattern") && value) {
-      const valid: boolean =
-        resourceType === "NetworkDeviceLabelRule"
-          ? RulePatternMatchUtil.isSupportedPattern(value)
-          : RulePatternMatchUtil.isValidRegex(value);
+      const acceptsWildcards: boolean =
+        WILDCARD_PATTERN_RULE_TYPES.has(resourceType);
+      const valid: boolean = acceptsWildcards
+        ? RulePatternMatchUtil.isSupportedPattern(value)
+        : RulePatternMatchUtil.isValidRegex(value);
       if (!valid) {
         throw new BadDataException(
-          `${title} is not a valid ${resourceType === "NetworkDeviceLabelRule" ? "regular expression or wildcard pattern" : "regular expression"}.`,
+          `${title} is not a valid ${acceptsWildcards ? "regular expression or wildcard pattern" : "regular expression"}.`,
         );
       }
     }
@@ -776,13 +790,17 @@ export default class LabelRuleImportExport {
     source: string,
     destination: string,
   ): void {
+    // Two rule types that match patterns the same way can trade any pattern.
     if (
-      (source === "NetworkDeviceLabelRule" ||
-        destination === "NetworkDeviceLabelRule") &&
-      (pattern.includes("*") || pattern !== pattern.trim())
+      WILDCARD_PATTERN_RULE_TYPES.has(source) ===
+      WILDCARD_PATTERN_RULE_TYPES.has(destination)
     ) {
+      return;
+    }
+
+    if (pattern.includes("*") || pattern !== pattern.trim()) {
       throw new BadDataException(
-        "Network device patterns also use wildcard matching and trim surrounding whitespace. A pattern containing '*' or surrounding whitespace cannot be transferred between network devices and another rule type without changing its meaning. Edit this pattern for the destination before importing.",
+        "Network device and SLO patterns also use wildcard matching and trim surrounding whitespace. A pattern containing '*' or surrounding whitespace cannot be transferred between those rules and another rule type without changing its meaning. Edit this pattern for the destination before importing.",
       );
     }
   }

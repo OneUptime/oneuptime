@@ -25,6 +25,9 @@ const NEVER_MATCH_PATTERN: string = "(?!)";
 const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   // 1793100000000-SloProductOverhaul
   "ServiceLevelObjectiveMonitorRule",
+  // 1794100000000-AddSloLabelAndOwnerRules
+  "ServiceLevelObjectiveLabelRule",
+  "ServiceLevelObjectiveOwnerRule",
 ];
 
 type IsCoveredByMigrationFunction = (modelName: string) => boolean;
