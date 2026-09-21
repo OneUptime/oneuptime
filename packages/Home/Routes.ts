@@ -51,6 +51,10 @@ import { generateNostrWellKnown } from "./Utils/Nostr";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { redirectPreservingQuery } from "./Utils/Redirect";
+import { BackToMetal } from "./Utils/Books/BookCatalog";
+import { DefaultBookStore } from "./Utils/Books/BookStore";
+import { handleBookContent } from "./Utils/Books/BookContentRoute";
+import { getBookPageAssets } from "./Utils/StaticAssets";
 import {
   Claim,
   ClaimStatuses,
@@ -407,11 +411,20 @@ const HomeFeatureSet: FeatureSet = {
         "/books",
         res.locals["homeUrl"] as string,
       );
+
+      // Start loading the full text now, so the reader opens without waiting.
+      DefaultBookStore.warm(BackToMetal.slug);
+
       res.render(`${ViewsPath}/books.ejs`, {
         enableGoogleTagManager: GoogleTagManagerEnabled,
+        book: BackToMetal,
+        bookAssets: getBookPageAssets(),
         seo,
       });
     });
+
+    // The full text of a book, for the in-page reader on /books.
+    app.get("/books/:slug/content.json", handleBookContent);
 
     app.get(
       "/oss-friends",
