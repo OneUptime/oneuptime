@@ -135,12 +135,25 @@ export default class LicenseClient {
    *
    *   activate  an explicit administrator action: the returned license
    *             replaces the stored one, unless it is unusable here at all
-   *             ("invalid" - a bad signature, another instance's license),
-   *             in which case nothing is stored and the error says why.
-   *   refresh   the never-downgrade rule: a returned license that classifies
-   *             worse than the installed one is refused, the installed one is
-   *             kept (the usage figures are still updated), and the error says
-   *             so - the administrator pressed the button for a reason.
+   *             ("invalid" - a bad signature, another instance's license) or
+   *             it would downgrade the license this installation already
+   *             holds. Either way NOTHING is stored and the error says why.
+   *   refresh   the same never-downgrade rule, applied through
+   *             LicenseRanking.guardUpdate: the license terms are dropped from
+   *             the write, the installed ones are kept, the usage figures are
+   *             still stored, and the error says so.
+   *
+   * The two refuse the same writes and report them differently on purpose.
+   * A refresh is also a background job (Jobs/ReportUserCount runs the same
+   * guard daily), so it has to store the half of the answer that is always
+   * safe - the usage report - and carry on. An activation is one person
+   * pressing one button and reading one error: a half-applied activation would
+   * leave enterpriseLicenseKey (which is NOT a license-term column, so
+   * guardUpdate does not protect it) pointing at the license whose terms were
+   * just refused, and the usage figures beside it would describe that refused
+   * license too. "Either the license was replaced or nothing changed" is the
+   * only contract worth giving a human here, and it is the one activation
+   * already gave for an unusable license.
    */
   public static async validateWithLicenseServer(data: {
     licenseKey: string;
@@ -195,14 +208,57 @@ export default class LicenseClient {
     }
 
     if (data.mode === "activate") {
+      const candidateInputs: LicenseInputs = LicenseInputsUtil.withUpdate(
+        inputs,
+        update,
+      );
       const candidate: LicenseTokenClassification = LicenseInputsUtil.classify(
-        LicenseInputsUtil.withUpdate(inputs, update),
+        candidateInputs,
         now,
       );
 
       if (candidate.status === "invalid") {
         throw new BadDataException(
           `OneUptime returned a license this installation cannot use: ${candidate.message || "it is not valid"}. Nothing was changed.`,
+        );
+      }
+
+      /*
+       * The never-downgrade rule, on the path that used to skip it.
+       *
+       * "invalid" alone stopped being enough the moment a token with no
+       * recorded expiry stopped classifying that way: an answer that carries a
+       * token and forgets expiresAt now classifies as the unlicensed trial, so
+       * an administrator pressing Validate on a correctly licensed install
+       * would have overwritten a working license with one that cannot say
+       * whether it is current - losing single sign-on, SCIM and audit logging
+       * on the spot, and reporting 200. The same ranking the refresh path has
+       * always applied catches it, and catches everything else that would take
+       * this installation backwards.
+       *
+       * It is the ranking and not a special case for the missing expiry
+       * because an activation has no way to tell the difference: whatever the
+       * answer's shape, the question is only ever "does this leave the
+       * installation with less than it has now".
+       */
+      const current: LicenseTokenClassification = LicenseInputsUtil.classify(
+        inputs,
+        now,
+      );
+
+      if (
+        !LicenseRanking.mayReplace({
+          current,
+          candidate,
+          sameToken: inputs.token === candidateInputs.token,
+        })
+      ) {
+        throw new BadDataException(
+          `OneUptime returned a license that classifies as ${LicenseRanking.describe(candidate)}, ` +
+            `which is worse than the ${LicenseRanking.describe(current)} license this installation already holds` +
+            `${candidate.message ? ` (${candidate.message})` : ""}. ` +
+            "Activating it would have left this installation with less than it has now, " +
+            "so nothing was changed and the installed license was kept.",
         );
       }
 

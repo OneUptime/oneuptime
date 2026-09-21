@@ -113,6 +113,67 @@ const parseLicenseInstances: ParseLicenseInstancesFunction = (
   return instances;
 };
 
+/*
+ * What to tell a master admin after a license write the server ACCEPTED.
+ *
+ * A 200 means the license was stored, not that it licenses anything. The
+ * server deliberately stores a license it cannot date - a token with no expiry
+ * beside it - because a token is better than nothing and the daily sync may
+ * complete it (LicenseClient.validateWithLicenseServer refuses only a license
+ * this installation cannot use at all). But such an install is on the
+ * unlicensed trial, and past that trial single sign-on, SCIM and audit logging
+ * are OFF. A green "License validated successfully." there tells the admin who
+ * came to fix exactly that lapse that they have fixed it.
+ *
+ * Green only while the stored license is genuinely licensing this
+ * installation: status "valid", or a grace period that belongs to a LICENSE
+ * (graceReason anything but "unlicensed"). Otherwise the classification's own
+ * message - which says what is missing and what to do - is shown as a warning,
+ * with the license still stored.
+ *
+ * A response that says nothing about the status is treated as a success, as it
+ * always was: that is an older server or a build that does not report one, and
+ * inventing a warning out of silence would be its own lie.
+ */
+interface LicenseWriteOutcome {
+  isLicensed: boolean;
+  message: string;
+}
+
+const LICENSE_STORED_BUT_NOT_LICENSING: string =
+  "The license was stored, but this installation cannot confirm that it is current, so enterprise features are not being licensed by it. Refresh the license, or check it on oneuptime.com.";
+
+type DescribeLicenseWriteOutcomeFunction = (
+  payload: JSONObject,
+  successMessage: string,
+) => LicenseWriteOutcome;
+
+const describeLicenseWriteOutcome: DescribeLicenseWriteOutcomeFunction = (
+  payload: JSONObject,
+  successMessage: string,
+): LicenseWriteOutcome => {
+  const status: string =
+    typeof payload["status"] === "string" ? payload["status"] : "";
+  const graceReason: string =
+    typeof payload["graceReason"] === "string" ? payload["graceReason"] : "";
+
+  const isLicensed: boolean =
+    status === "" ||
+    status === "valid" ||
+    (status === "grace" && graceReason !== "unlicensed");
+
+  if (isLicensed) {
+    return { isLicensed: true, message: successMessage };
+  }
+
+  return {
+    isLicensed: false,
+    message:
+      (typeof payload["message"] === "string" && payload["message"]) ||
+      LICENSE_STORED_BUT_NOT_LICENSING,
+  };
+};
+
 type FormatInstanceReportedAtFunction = (
   lastReportedAt: string | null,
 ) => string;
@@ -166,6 +227,12 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
   const [licenseKeyInput, setLicenseKeyInput] = useState<string>("");
   const [validationError, setValidationError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
+  /*
+   * A write the server accepted that did not leave this installation licensed
+   * (see describeLicenseWriteOutcome). Its own state, not successMessage, so
+   * the alert can be a warning rather than a green tick.
+   */
+  const [licenseWarning, setLicenseWarning] = useState<string>("");
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [isRefreshingLicense, setIsRefreshingLicense] =
     useState<boolean>(false);
@@ -242,6 +309,7 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
   useLayoutEffect(() => {
     setValidationError("");
     setSuccessMessage("");
+    setLicenseWarning("");
 
     if (!props.isDialogOpen) {
       setIsChangingLicense(false);
@@ -480,11 +548,13 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
       if (!trimmedKey) {
         setValidationError("Please enter a license key before validating.");
         setSuccessMessage("");
+        setLicenseWarning("");
         return;
       }
 
       setValidationError("");
       setSuccessMessage("");
+      setLicenseWarning("");
       setLoading(true);
 
       try {
@@ -509,7 +579,17 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
 
         licenseInputEditedRef.current = false;
         setLicenseKeyInput((payload["licenseKey"] as string) || trimmedKey);
-        setSuccessMessage("License validated successfully.");
+        /*
+         * Stored, but not necessarily licensing anything: the server keeps a
+         * license it cannot date rather than refusing it outright.
+         */
+        const outcome: LicenseWriteOutcome = describeLicenseWriteOutcome(
+          payload,
+          "License validated successfully.",
+        );
+
+        setSuccessMessage(outcome.isLicensed ? outcome.message : "");
+        setLicenseWarning(outcome.isLicensed ? "" : outcome.message);
         setIsChangingLicense(false);
 
         await reloadLicense();
@@ -534,11 +614,13 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
       if (!trimmedToken) {
         setValidationError("Please paste a license token before activating.");
         setSuccessMessage("");
+        setLicenseWarning("");
         return;
       }
 
       setValidationError("");
       setSuccessMessage("");
+      setLicenseWarning("");
       setIsValidating(true);
 
       try {
@@ -560,7 +642,14 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
         }
 
         setLicenseTokenInput("");
-        setSuccessMessage("License activated offline.");
+
+        const outcome: LicenseWriteOutcome = describeLicenseWriteOutcome(
+          (response.data as JSONObject) || {},
+          "License activated offline.",
+        );
+
+        setSuccessMessage(outcome.isLicensed ? outcome.message : "");
+        setLicenseWarning(outcome.isLicensed ? "" : outcome.message);
         setIsChangingLicense(false);
         setActivationInputMode("key");
 
@@ -604,6 +693,7 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
     const refresh: () => Promise<void> = async (): Promise<void> => {
       setValidationError("");
       setSuccessMessage("");
+      setLicenseWarning("");
       setIsRefreshingLicense(true);
 
       try {
@@ -623,7 +713,13 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
 
         applySeatEnforcement(response.data as JSONObject);
 
-        setSuccessMessage("License refreshed from OneUptime.");
+        const outcome: LicenseWriteOutcome = describeLicenseWriteOutcome(
+          (response.data as JSONObject) || {},
+          "License refreshed from OneUptime.",
+        );
+
+        setSuccessMessage(outcome.isLicensed ? outcome.message : "");
+        setLicenseWarning(outcome.isLicensed ? "" : outcome.message);
 
         /*
          * The POST already returned the new terms, but the modal renders from
@@ -711,6 +807,20 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
     <>
                 {!configError && successMessage && (
                   <Alert type={AlertType.SUCCESS} title={successMessage} />
+                )}
+
+                {/*
+                 * The server stored the license and still says it is not
+                 * licensing this installation (describeLicenseWriteOutcome).
+                 * Same place as the success alert, because it answers the same
+                 * question - "did that work?" - and the answer is "not yet".
+                 */}
+                {!configError && licenseWarning && (
+                  <Alert
+                    type={AlertType.WARNING}
+                    title={licenseWarning}
+                    dataTestId="enterprise-license-stored-warning"
+                  />
                 )}
 
                 {/*

@@ -6,6 +6,7 @@ import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
 import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+  EnterpriseLicenseSnapshotUtil,
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import LicenseToken, {
   classifyLicenseToken,
@@ -1572,18 +1573,6 @@ describe("classifyLicenseToken: unverified tokens", () => {
     );
   });
 
-  test("an unverified token with no recorded expiry is invalid", () => {
-    for (const expiresAt of [null, undefined, new Date("nope")]) {
-      expect(
-        classify({ token: legacyToken(), storedColumns: { expiresAt } }),
-      ).toMatchObject({
-        status: "invalid",
-        verification: "unverified",
-        reason: "unverified-without-expiry",
-      });
-    }
-  });
-
   test("when unverified licenses are no longer accepted, they are invalid", () => {
     for (const token of [legacyToken(), untrustedToken]) {
       expect(
@@ -1604,6 +1593,532 @@ describe("classifyLicenseToken: unverified tokens", () => {
     expect(
       classify({ acceptUnverified: false }).verification,
     ).toBe("verified");
+  });
+});
+
+/*
+ * The regression this block exists for.
+ *
+ * An installation can hold a license TOKEN with no EXPIRY recorded beside it:
+ * EnterpriseLicenseSync writes the two columns under independent presence
+ * checks, and activation (LicenseClient.mapValidationResponse) writes the
+ * token next to a null expiry when the response carried no expiresAt. That
+ * state used to classify "invalid", which is not usable, so SSO, SCIM and
+ * audit logging stopped the moment such an install upgraded - no trial, no
+ * grace - for a customer whose paid license may be perfectly good.
+ *
+ * It is now treated exactly as an install with no license at all: the trial
+ * counted from enterpriseEditionFirstSeenAt, then the same lapse, so the
+ * outcome is a countdown instead of a cliff. If this regresses, an Enterprise
+ * install with a mis-mirrored license loses single sign-on on upgrade.
+ */
+describe("classifyLicenseToken: an unverified token with no recorded expiry", () => {
+  const FIRST_SEEN: Date = new Date(NOW.getTime() - 3 * DAY_IN_MS);
+  const UNKNOWN_KID_TOKEN: string = LicenseToken.sign(
+    claimsFor(),
+    OTHER_KEY.privateKey,
+  );
+
+  /*
+   * Every shape a stored expiry can be absent in. LicenseInputs normalises ""
+   * and an unparseable string to null before the classifier sees them, but
+   * the classifier must not depend on that: it is called directly from tests,
+   * from LicenseRanking and (through LicenseInputsUtil.withUpdate) on values
+   * that came straight off a license-server response.
+   */
+  const ABSENT_EXPIRIES: Array<[string, unknown]> = [
+    ["null", null],
+    ["undefined", undefined],
+    ["an empty string", ""],
+    ["an unparseable string", "the first of never"],
+    ["an invalid Date", new Date("nope")],
+  ];
+
+  const classifyWithoutExpiry: (
+    expiresAt: unknown,
+    overrides?: Partial<ClassifyLicenseTokenInput>,
+  ) => LicenseTokenClassification = (
+    expiresAt: unknown,
+    overrides?: Partial<ClassifyLicenseTokenInput>,
+  ): LicenseTokenClassification => {
+    return classify({
+      token: legacyToken(),
+      storedColumns: {
+        expiresAt: expiresAt as Date | null | undefined,
+        companyName: "Acme Inc",
+        userLimit: 25,
+        isEvaluation: true,
+        enterpriseEditionFirstSeenAt: FIRST_SEEN,
+      },
+      ...(overrides || {}),
+    });
+  };
+
+  /*
+   * Everything except what DESCRIBES the installed license, which an
+   * unlicensed install by definition has none of.
+   *
+   * verification, reason, message and kid are the diagnosis: they are meant to
+   * differ (a token IS installed here). companyName and isEvaluation are
+   * carried over from the stored columns for the same reason - they describe
+   * the license this installation holds, and blanking them would present a
+   * customer's evaluation license as a production one. Both are asserted
+   * explicitly by the callers instead.
+   *
+   * userLimit is NOT excluded: it is the number seats are refused against, it
+   * is deliberately dropped here, and it must keep matching an unlicensed
+   * install's null.
+   */
+  const comparableFields: (
+    classification: LicenseTokenClassification,
+  ) => Record<string, unknown> = (
+    classification: LicenseTokenClassification,
+  ): Record<string, unknown> => {
+    const fields: Record<string, unknown> = {
+      ...(classification as unknown as Record<string, unknown>),
+    };
+
+    delete fields["verification"];
+    delete fields["reason"];
+    delete fields["message"];
+    delete fields["kid"];
+    delete fields["companyName"];
+    delete fields["isEvaluation"];
+
+    return fields;
+  };
+
+  test.each(ABSENT_EXPIRIES)(
+    "with %s for an expiry it is the unlicensed trial, not a lock-out",
+    (_label: string, expiresAt: unknown) => {
+      const result: LicenseTokenClassification =
+        classifyWithoutExpiry(expiresAt);
+
+      expect(result).toMatchObject({
+        status: "grace",
+        verification: "unverified",
+        graceReason: "unlicensed",
+        features: "all",
+        reason: "unverified-without-expiry-unlicensed",
+        /*
+         * The seat limit is the trial's (none), not the stored column's: the
+         * expiry beside it is already known to be wrong, and enforcing seats
+         * out of the rest of that record would turn one missing column into
+         * "you cannot add users".
+         */
+        userLimit: null,
+        /*
+         * The company and the evaluation flag ARE the stored columns': they
+         * describe the license that is installed and gate nothing, and an
+         * evaluation license must not quietly present as a production one.
+         */
+        companyName: "Acme Inc",
+        isEvaluation: true,
+      });
+      expect(result.graceEndsAt).toEqual(
+        new Date(FIRST_SEEN.getTime() + TRIAL_DAYS * DAY_IN_MS),
+      );
+      expect(result.expiresAt).toBeUndefined();
+    },
+  );
+
+  test("the message names the problem and what a master admin can do about it", () => {
+    const message: string = String(classifyWithoutExpiry(null).message);
+
+    expect(message).toContain("no expiry is recorded for it");
+    expect(message).toContain("re-activate the license");
+    expect(message).toContain("daily license sync");
+    expect(message).toContain(`${TRIAL_DAYS}-day trial`);
+    // Not an expired license: nobody should be told to renew one.
+    expect(message).not.toContain("has expired");
+  });
+
+  /*
+   * The message has three forms, and the three say OPPOSITE things about
+   * whether enterprise features are working right now. Assert the clause that
+   * distinguishes each one, and that it does not carry another's: a test that
+   * only checks the words all three share (the problem, the remedy, the
+   * length of the trial) passes just as happily when the in-trial branch is
+   * deleted, or when the in-trial and post-trial bodies are swapped outright.
+   * Both of those survived a mutation sweep of this file.
+   */
+  describe("the three forms of that message", () => {
+    const IN_TRIAL: string = "Enterprise features stay available";
+    const PAST_TRIAL: string = "so Enterprise features have stopped";
+
+    const messageAt: (offsetInMs: number) => string = (
+      offsetInMs: number,
+    ): string => {
+      return String(
+        classifyWithoutExpiry(null, {
+          now: new Date(FIRST_SEEN.getTime() + offsetInMs),
+        }).message,
+      );
+    };
+
+    test("inside the trial it says features are still on, and not that they stopped", () => {
+      const message: string = messageAt(TRIAL_DAYS * DAY_IN_MS - DAY_IN_MS);
+
+      expect(message).toContain(IN_TRIAL);
+      expect(message).not.toContain(PAST_TRIAL);
+      expect(message).not.toContain("has ended");
+      // Named as the trial it is, counted from the install's first run.
+      expect(message).toContain(`under the ${TRIAL_DAYS}-day trial`);
+    });
+
+    test("past the trial it says the trial ended and features stopped, not that they stay", () => {
+      const message: string = messageAt(TRIAL_DAYS * DAY_IN_MS + DAY_IN_MS);
+
+      expect(message).toContain(PAST_TRIAL);
+      expect(message).toContain("has ended");
+      expect(message).not.toContain(IN_TRIAL);
+    });
+
+    /*
+     * No first-run stamp: whether the trial is over is UNKNOWN, so the message
+     * must claim neither. This is the state EnterpriseEdition fails open on.
+     */
+    test("with no first-run stamp it claims neither", () => {
+      const message: string = String(
+        classify({ token: legacyToken(), storedColumns: { expiresAt: null } })
+          .message,
+      );
+
+      expect(message).not.toContain(IN_TRIAL);
+      expect(message).not.toContain(PAST_TRIAL);
+      // Still the problem and the remedy, which every form carries.
+      expect(message).toContain("no expiry is recorded for it");
+      expect(message).toContain("re-activate the license");
+    });
+
+    // The three really are three, not one string reused.
+    test("are all different from one another", () => {
+      const inTrial: string = messageAt(TRIAL_DAYS * DAY_IN_MS - DAY_IN_MS);
+      const pastTrial: string = messageAt(TRIAL_DAYS * DAY_IN_MS + DAY_IN_MS);
+      const unknownStart: string = String(
+        classify({ token: legacyToken(), storedColumns: { expiresAt: null } })
+          .message,
+      );
+
+      expect(new Set([inTrial, pastTrial, unknownStart]).size).toBe(3);
+    });
+  });
+
+  test("an EdDSA token signed by an unknown key behaves the same way", () => {
+    const result: LicenseTokenClassification = classifyWithoutExpiry(null, {
+      token: UNKNOWN_KID_TOKEN,
+    });
+
+    expect(result).toMatchObject({
+      status: "grace",
+      verification: "unverified",
+      reason: "unverified-without-expiry-unlicensed",
+      kid: LicenseToken.computeKeyId(OTHER_KEY.publicKey),
+    });
+    expect(result.message).toContain("a key this build does not know");
+  });
+
+  test("the trial runs from first seen for trialDays, inclusive of its last moment", () => {
+    const at: (offsetInMs: number) => LicenseTokenClassification = (
+      offsetInMs: number,
+    ): LicenseTokenClassification => {
+      return classifyWithoutExpiry(null, {
+        now: new Date(FIRST_SEEN.getTime() + offsetInMs),
+      });
+    };
+
+    expect(
+      at(TRIAL_DAYS * DAY_IN_MS - DAY_IN_MS - MINUTE_IN_MS),
+    ).toMatchObject({
+      status: "grace",
+      graceReason: "unlicensed",
+      reason: "unverified-without-expiry-unlicensed",
+    });
+    expect(at(TRIAL_DAYS * DAY_IN_MS - MINUTE_IN_MS).status).toBe("grace");
+    // The same inclusive boundary classifyMissingToken uses.
+    expect(at(TRIAL_DAYS * DAY_IN_MS).status).toBe("grace");
+    expect(at(TRIAL_DAYS * DAY_IN_MS + 1)).toMatchObject({
+      status: "missing",
+      features: [],
+      reason: "unverified-without-expiry-unlicensed",
+    });
+    // It is the trial, not the 30 days of grace an expired license gets.
+    expect(at(GRACE_DAYS * DAY_IN_MS - DAY_IN_MS).status).toBe("missing");
+  });
+
+  test("after the trial it is field-for-field an unlicensed install, bar the diagnosis", () => {
+    const now: Date = new Date(
+      FIRST_SEEN.getTime() + TRIAL_DAYS * DAY_IN_MS + DAY_IN_MS,
+    );
+    const columns: ClassifyLicenseTokenInput["storedColumns"] = {
+      expiresAt: null,
+      companyName: "Acme Inc",
+      userLimit: 25,
+      isEvaluation: true,
+      enterpriseEditionFirstSeenAt: FIRST_SEEN,
+    };
+    const lapsed: LicenseTokenClassification = classify({
+      token: legacyToken(),
+      storedColumns: columns,
+      now,
+    });
+    const unlicensed: LicenseTokenClassification = classify({
+      token: null,
+      storedColumns: columns,
+      now,
+    });
+
+    expect(lapsed.status).toBe("missing");
+    expect(lapsed.features).toEqual([]);
+    expect(comparableFields(lapsed)).toEqual(comparableFields(unlicensed));
+    // Only the diagnosis differs, and it must.
+    expect(lapsed.verification).toBe("unverified");
+    expect(unlicensed.verification).toBe("none");
+    expect(lapsed.reason).toBe("unverified-without-expiry-unlicensed");
+    expect(unlicensed.reason).toBe("unlicensed-grace-over");
+
+    /*
+     * And the description of the license that IS installed, which the
+     * unlicensed install has nothing to say about.
+     */
+    expect(lapsed.companyName).toBe("Acme Inc");
+    expect(lapsed.isEvaluation).toBe(true);
+    expect(unlicensed.companyName).toBeUndefined();
+    expect(unlicensed.isEvaluation).toBe(false);
+    // The seat limit is dropped on both sides.
+    expect(lapsed.userLimit).toBeNull();
+    expect(unlicensed.userLimit).toBeNull();
+  });
+
+  test("during the trial it is field-for-field an unlicensed install, bar the diagnosis", () => {
+    const columns: ClassifyLicenseTokenInput["storedColumns"] = {
+      expiresAt: undefined,
+      enterpriseEditionFirstSeenAt: FIRST_SEEN,
+    };
+    const withToken: LicenseTokenClassification = classify({
+      token: legacyToken(),
+      storedColumns: columns,
+    });
+
+    expect(comparableFields(withToken)).toEqual(
+      comparableFields(classify({ token: null, storedColumns: columns })),
+    );
+
+    /*
+     * Nothing describes this license either - there are no columns to carry -
+     * so the two match on those as well, which is what makes the exclusions in
+     * comparableFields about the columns rather than about the state.
+     */
+    expect(withToken.companyName).toBeUndefined();
+    expect(withToken.isEvaluation).toBe(false);
+  });
+
+  /*
+   * The two states the brief insists stay apart: "the trial ended" carries a
+   * graceEndsAt, "the first-run stamp was never written" does not, and
+   * EnterpriseLicenseSnapshotUtil.isTrialStartUnknown reads exactly that
+   * difference to fail open. Collapsing them would turn a fail-open state
+   * into a lapse.
+   */
+  test("with no first-seen stamp it is the UNKNOWN trial-start state, not a lapse", () => {
+    const unknownStart: LicenseTokenClassification = classify({
+      token: legacyToken(),
+      storedColumns: { expiresAt: null },
+    });
+    const lapsed: LicenseTokenClassification = classifyWithoutExpiry(null, {
+      now: new Date(FIRST_SEEN.getTime() + (TRIAL_DAYS + 1) * DAY_IN_MS),
+    });
+
+    expect(unknownStart).toMatchObject({
+      status: "missing",
+      verification: "unverified",
+      reason: "unverified-without-expiry-unlicensed",
+      features: [],
+    });
+    expect(unknownStart.graceEndsAt).toBeUndefined();
+    expect(EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(unknownStart)).toBe(
+      true,
+    );
+
+    expect(lapsed.graceEndsAt).toBeDefined();
+    expect(EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(lapsed)).toBe(
+      false,
+    );
+  });
+
+  test("the whole trial is usable, and the lapse is not", () => {
+    expect(
+      EnterpriseLicenseSnapshotUtil.isUsable(classifyWithoutExpiry(null)),
+    ).toBe(true);
+    expect(
+      EnterpriseLicenseSnapshotUtil.isUsable(
+        classifyWithoutExpiry(null, {
+          now: new Date(FIRST_SEEN.getTime() + (TRIAL_DAYS + 1) * DAY_IN_MS),
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  /*
+   * The announced sunset of unverified licenses is NOT softened by any of
+   * this. If this regresses, turning the switch off would stop refusing the
+   * licenses it exists to refuse.
+   */
+  test.each(ABSENT_EXPIRIES)(
+    "with acceptUnverified off and %s for an expiry it is still invalid",
+    (_label: string, expiresAt: unknown) => {
+      for (const token of [legacyToken(), UNKNOWN_KID_TOKEN]) {
+        expect(
+          classifyWithoutExpiry(expiresAt, { token, acceptUnverified: false }),
+        ).toMatchObject({
+          status: "invalid",
+          verification: "unverified",
+          reason: "unverified-not-accepted",
+          features: [],
+        });
+      }
+    },
+  );
+
+  /*
+   * The neighbouring behaviours this must not have touched.
+   */
+  test("an unverified token WITH a stored expiry is unchanged: valid, 30 days of grace, then expired", () => {
+    const expiresAt: Date = new Date(NOW.getTime() - 60 * DAY_IN_MS);
+    const at: (offsetInMs: number) => LicenseTokenClassification = (
+      offsetInMs: number,
+    ): LicenseTokenClassification => {
+      return classify({
+        token: legacyToken(),
+        now: new Date(expiresAt.getTime() + offsetInMs),
+        storedColumns: {
+          expiresAt,
+          userLimit: 25,
+          enterpriseEditionFirstSeenAt: FIRST_SEEN,
+        },
+      });
+    };
+
+    expect(at(-1)).toMatchObject({
+      status: "valid",
+      verification: "unverified",
+      reason: "unverified",
+      userLimit: 25,
+    });
+    expect(at(0)).toMatchObject({ status: "grace", graceReason: "expired" });
+    expect(at(GRACE_DAYS * DAY_IN_MS).status).toBe("grace");
+    expect(at(GRACE_DAYS * DAY_IN_MS + 1)).toMatchObject({
+      status: "expired",
+      verification: "unverified",
+      reason: "unverified",
+    });
+    // Never the trial: a license with an expiry is judged by it.
+    expect(at(GRACE_DAYS * DAY_IN_MS + 1).graceReason).toBeUndefined();
+  });
+
+  test("a VERIFIED token takes its expiry from its claims, stored columns absent or not", () => {
+    const signed: string = LicenseToken.sign(
+      claimsFor({ userLimit: 7, companyName: "Signed Co" }),
+      SIGNING_KEY.privateKey,
+    );
+
+    expect(
+      classify({
+        token: signed,
+        storedColumns: {
+          expiresAt: null,
+          enterpriseEditionFirstSeenAt: new Date(
+            NOW.getTime() - 400 * DAY_IN_MS,
+          ),
+        },
+      }),
+    ).toMatchObject({
+      status: "valid",
+      verification: "verified",
+      reason: "verified",
+      userLimit: 7,
+      companyName: "Signed Co",
+    });
+  });
+
+  /*
+   * Pinned, not endorsed: a signed token whose claims carry no exp fails
+   * claim validation, so it is invalid/verified - it never reaches the stored
+   * columns and never falls back to the trial. If that ever changes it should
+   * be a decision, not a side effect.
+   */
+  test("a verified token whose claims carry no expiry stays bad-claims", () => {
+    const token: string = craftToken({
+      header: eddsaHeader(),
+      payload: {
+        ...(claimsFor() as unknown as Record<string, unknown>),
+        exp: undefined,
+      },
+    });
+
+    expect(
+      classify({
+        token,
+        storedColumns: { enterpriseEditionFirstSeenAt: FIRST_SEEN },
+      }),
+    ).toMatchObject({
+      status: "invalid",
+      verification: "verified",
+      reason: "bad-claims",
+      features: [],
+    });
+  });
+
+  test("a token bound to another instance is still invalid, expiry or no expiry", () => {
+    expect(
+      classifyWithoutExpiry(null, {
+        token: LicenseToken.sign(
+          claimsFor({ instanceId: "another-instance" }),
+          SIGNING_KEY.privateKey,
+        ),
+      }),
+    ).toMatchObject({
+      status: "invalid",
+      verification: "verified",
+      reason: "instance-mismatch",
+    });
+  });
+
+  test("garbage in the token column is still malformed, never the trial", () => {
+    for (const token of [
+      "x",
+      "not.a.token!",
+      " ",
+      // An EdDSA token whose signature is no longer canonical base64url.
+      `${UNKNOWN_KID_TOKEN}A`,
+    ]) {
+      expect(classifyWithoutExpiry(null, { token })).toMatchObject({
+        status: "invalid",
+        reason: "malformed",
+      });
+    }
+  });
+
+  test("the trial here follows trialDays, and graceDays does not touch it", () => {
+    const at: (
+      periods: { graceDays: number; trialDays: number },
+      offsetInDays: number,
+    ) => string = (
+      periods: { graceDays: number; trialDays: number },
+      offsetInDays: number,
+    ): string => {
+      return classifyWithoutExpiry(null, {
+        ...periods,
+        now: new Date(FIRST_SEEN.getTime() + offsetInDays * DAY_IN_MS),
+      }).status;
+    };
+
+    expect(at({ graceDays: GRACE_DAYS, trialDays: TRIAL_DAYS }, 20)).toBe(
+      "missing",
+    );
+    expect(at({ graceDays: TRIAL_DAYS, trialDays: GRACE_DAYS }, 20)).toBe(
+      "grace",
+    );
   });
 });
 

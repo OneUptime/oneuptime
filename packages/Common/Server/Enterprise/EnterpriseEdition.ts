@@ -251,7 +251,13 @@ export default class EnterpriseEdition {
       if (!EnterpriseEdition.hasWarnedAboutUnknownTrialStart) {
         EnterpriseEdition.hasWarnedAboutUnknownTrialStart = true;
         logger.warn(
-          `EnterpriseEdition: no license is installed and the start of the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial has not been recorded yet, so it is not known whether the trial is over. Until it is recorded, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.`,
+          /*
+           * Reachable both with no license at all and WITH one installed: a
+           * license whose expiry was never recorded falls back to this same
+           * trial (LicenseToken's classifyUnverifiedWithoutExpiry), so this
+           * must not assert that nothing is installed.
+           */
+          `EnterpriseEdition: there is no license this installation can date, and the start of the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial has not been recorded yet, so it is not known whether the trial is over. Until it is recorded, SSO, SCIM and audit logging keep running as if licensed. This warning is logged once per process.`,
         );
       }
 

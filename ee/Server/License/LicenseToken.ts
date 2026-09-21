@@ -637,7 +637,14 @@ export type LicenseClassificationReason =
   | "verified"
   | "unverified"
   | "unverified-not-accepted"
-  | "unverified-without-expiry"
+  /*
+   * A token this build cannot verify, with no expiry recorded beside it. The
+   * install is treated as an unlicensed one (trial, then lapse), and this
+   * code is its own so that state is never confused with a genuinely
+   * unlicensed install ("unlicensed-grace" / "unlicensed-grace-over") in a
+   * log or a dashboard. See classifyUnverifiedWithoutExpiry.
+   */
+  | "unverified-without-expiry-unlicensed"
   | "malformed"
   | "unsupported-algorithm"
   | "bad-signature"
@@ -791,6 +798,115 @@ const classifyMissingToken: (
   };
 };
 
+/*
+ * A token this build cannot verify, with no expiry recorded beside it.
+ *
+ * How an installation gets here: EnterpriseLicenseSync writes the token and
+ * the expiry under two INDEPENDENT presence checks, each deliberately
+ * conservative (a null expiry must never strip an installation of the expiry
+ * it has; a token is never cleared, because a license that has expired is
+ * legitimately issued none). Activation does the same thing more directly -
+ * LicenseClient.mapValidationResponse writes the token it was sent next to a
+ * null expiry when the response carries no expiresAt. Nothing reconciles the
+ * pair, so token-present/expiry-absent is a state a paying customer can be in.
+ *
+ * It used to classify "invalid", which is not usable
+ * (EnterpriseLicenseSnapshotUtil.isUsable accepts only "valid" and "grace"),
+ * so SSO, SCIM and audit logging stopped the moment such an install upgraded:
+ * no trial, no grace, no warning, for a customer whose license may be
+ * perfectly good. A missing expiry is this product's own bookkeeping failing,
+ * not an entitlement ending, so it must not be a cliff.
+ *
+ * It is therefore treated exactly as an install with no license at all: the
+ * trial counted from enterpriseEditionFirstSeenAt, then the same lapse. The
+ * arithmetic is classifyMissingToken's own rather than a second copy of it,
+ * so the two states cannot drift apart - a future change to the trial applies
+ * here by construction. Only the diagnosis differs, and deliberately:
+ *
+ *   verification  stays "unverified": a token IS installed, it just cannot be
+ *                 judged. "none" would claim there is no token at all.
+ *   reason        "unverified-without-expiry-unlicensed", its own code.
+ *   message       says what is wrong and what an admin can do about it, in
+ *                 three forms - inside the trial, after it, and with no
+ *                 first-run stamp at all (see below).
+ *   companyName   and isEvaluation come from the stored columns: they describe
+ *   isEvaluation  the license that IS installed (see the note at the return).
+ *
+ * All three states classifyMissingToken distinguishes are preserved: inside
+ * the trial (grace), after it (missing WITH graceEndsAt), and "the first-run
+ * stamp is not recorded yet" (missing with NO graceEndsAt), which
+ * EnterpriseLicenseSnapshotUtil.isTrialStartUnknown reads and
+ * EnterpriseEdition.isFeatureActive fails open on. Collapsing the last one
+ * into the others would turn a fail-open state into a lapse.
+ *
+ * Note what is NOT softened here: acceptUnverified === false (the announced
+ * sunset of unverified licenses) is judged before this, and still returns
+ * invalid. This is about an incomplete record, not about trusting a token
+ * this build has been told not to trust.
+ */
+const classifyUnverifiedWithoutExpiry: (
+  input: ClassifyLicenseTokenInput,
+  kid: string | null,
+  why: string,
+) => LicenseTokenClassification = (
+  input: ClassifyLicenseTokenInput,
+  kid: string | null,
+  why: string,
+): LicenseTokenClassification => {
+  const unlicensed: LicenseTokenClassification = classifyMissingToken(input);
+
+  const problem: string =
+    "A OneUptime Enterprise license is installed, but no expiry is recorded for it, " +
+    `so this installation cannot tell whether it is still current. ${why}`;
+  const remedy: string =
+    "A master admin can re-activate the license from the edition label in the Admin Dashboard, " +
+    "or leave the daily license sync to fetch its expiry from oneuptime.com.";
+
+  let message: string = `${problem} ${remedy}`;
+
+  if (unlicensed.status === "grace") {
+    message =
+      `${problem} Enterprise features stay available meanwhile, under the ${input.trialDays}-day trial ` +
+      `counted from when this installation first ran the Enterprise Edition. ${remedy}`;
+  } else if (unlicensed.graceEndsAt) {
+    message =
+      `${problem} The ${input.trialDays}-day trial counted from when this installation first ran the ` +
+      `Enterprise Edition has ended, so Enterprise features have stopped. ${remedy}`;
+  }
+
+  /*
+   * What is carried over from the stored columns, and what is deliberately
+   * left behind.
+   *
+   * companyName and isEvaluation are carried. They are descriptions of the
+   * license that IS installed and they gate nothing: companyName is the
+   * "Licensed to" line, isEvaluation the evaluation notice. Taking
+   * classifyMissingToken's blanks for them (no company, isEvaluation false)
+   * would have this state quietly present a customer's evaluation license as a
+   * production one, and strip the name of the company the license names, on the
+   * strength of a missing expiry.
+   *
+   * userLimit is NOT carried, and that is the one difference that matters. It
+   * is not a description: it is the number UserService refuses new users
+   * against. Enforcing a seat ceiling out of a record this product has already
+   * admitted is incomplete would turn one missing column into "you cannot add
+   * users", with nothing here able to corroborate the figure. Null means no
+   * limit, so the install under-enforces until the expiry is recovered - the
+   * same direction every other decision in this file resolves in, and the same
+   * direction as the trial this state falls back to (which has no limit
+   * either).
+   */
+  return {
+    ...unlicensed,
+    verification: "unverified",
+    companyName: input.storedColumns.companyName || undefined,
+    isEvaluation: input.storedColumns.isEvaluation === true,
+    message,
+    reason: "unverified-without-expiry-unlicensed",
+    kid: kid || undefined,
+  };
+};
+
 const classifyUnverified: (
   input: ClassifyLicenseTokenInput,
   kid: string | null,
@@ -812,12 +928,7 @@ const classifyUnverified: (
   const expiresAt: Date | null | undefined = input.storedColumns.expiresAt;
 
   if (!isValidDate(expiresAt)) {
-    return invalid(
-      "unverified-without-expiry",
-      "unverified",
-      `${why} No expiry is recorded for it.`,
-      kid,
-    );
+    return classifyUnverifiedWithoutExpiry(input, kid, why);
   }
 
   const verdict: ExpiryVerdict = judgeExpiry(
@@ -862,7 +973,10 @@ const classifyUnverified: (
  *   legacy HS256              -> unverified
  *   unverified                -> accepted only when acceptUnverified; expiry
  *                                from the stored column with the same
- *                                graceDays
+ *                                graceDays. With NO usable stored expiry it
+ *                                falls back to the unlicensed trial/lapse
+ *                                above rather than locking the install out
+ *                                (classifyUnverifiedWithoutExpiry)
  *   anything else / malformed -> invalid
  */
 export const classifyLicenseToken: (
