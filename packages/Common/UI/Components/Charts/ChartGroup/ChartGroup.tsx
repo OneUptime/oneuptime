@@ -346,7 +346,18 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                       </p>
                     )}
                   </div>
-                  {getChartContent(chart, index)}
+                  {/*
+                   * The plot takes whatever height the panel has left, so
+                   * without a floor the series controls under it (filter,
+                   * sort, one chip per series) squeezed it to a sliver in a
+                   * narrow column. With the floor the panel grows instead.
+                   */}
+                  <div
+                    data-testid="chart-group-plot"
+                    className="flex min-h-48 flex-1 flex-col"
+                  >
+                    {getChartContent(chart, index)}
+                  </div>
                   {chart.seriesControls ? (
                     <div className="mt-3">{chart.seriesControls}</div>
                   ) : null}

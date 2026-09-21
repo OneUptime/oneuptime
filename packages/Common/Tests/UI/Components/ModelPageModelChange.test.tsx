@@ -125,19 +125,27 @@ const ChildPage: (props: { incidentId: string }) => ReactElement = (props: {
   return <div data-testid="child-page">{`Body of ${props.incidentId}`}</div>;
 };
 
-type RenderLayoutFunction = (incidentId: string) => ReactElement;
+type RenderLayoutFunction = (
+  incidentId: string,
+  refreshToken?: number,
+) => ReactElement;
 
 /*
  * What a layout route renders: a fresh ObjectID built from the route params
- * on every render, a side menu, and the routed page as the child.
+ * on every render, a side menu, and the routed page as the child. A layout
+ * whose page can edit the header bumps refreshToken.
  */
-const layoutFor: RenderLayoutFunction = (incidentId: string): ReactElement => {
+const layoutFor: RenderLayoutFunction = (
+  incidentId: string,
+  refreshToken?: number,
+): ReactElement => {
   return (
     <ModelPage
       title="Incident"
       modelType={Incident}
       modelId={new ObjectID(incidentId)}
       modelNameField="title"
+      refreshToken={refreshToken}
       sideMenu={<nav data-testid="side-menu">{`Menu for ${incidentId}`}</nav>}
     >
       <ChildPage incidentId={incidentId} />
@@ -405,5 +413,236 @@ describe("ModelPage", () => {
 
     expect(document.title).toBe("OneUptime | Incident");
     expect(screen.queryByText(/Too late/)).toBeNull();
+  });
+});
+
+/*
+ * A page below the header can change what the header shows - the monitor
+ * overview edits the monitor's name and labels in place - so the layout bumps
+ * refreshToken to have the header read again. A refresh is not a model
+ * change: the page below must stay mounted through it, and a refresh that
+ * fails must not take the page away over a transient error, since the header
+ * already on screen is still right.
+ */
+describe("ModelPage - refreshing the header", () => {
+  test("a refreshToken bump re-reads the header and keeps children mounted", async () => {
+    const refresh: Deferred<Incident> = createDeferred<Incident>();
+
+    getItemMock
+      .mockResolvedValueOnce(
+        buildIncident(INCIDENT_A, "Checkout is slow", ["production"]) as never,
+      )
+      .mockReturnValueOnce(refresh.promise as never);
+
+    const view: RenderResult = render(layoutFor(INCIDENT_A, 0));
+    await flush();
+
+    expect(heading()).toHaveTextContent("Incident - Checkout is slow");
+
+    view.rerender(layoutFor(INCIDENT_A, 1));
+    await flush();
+
+    expect(requestedIds()).toEqual([INCIDENT_A, INCIDENT_A]);
+
+    // While the refresh is in flight the page and its header stay as they are.
+    expect(heading()).toHaveTextContent("Incident - Checkout is slow");
+    expect(screen.getByText("production")).toBeInTheDocument();
+    expect(screen.queryByTestId("bar-loader")).toBeNull();
+    expect(screen.getByTestId("child-page")).toBeInTheDocument();
+
+    await act(async () => {
+      refresh.resolve(
+        buildIncident(INCIDENT_A, "Checkout is fast", ["staging"]),
+      );
+    });
+    await flush();
+
+    expect(heading()).toHaveTextContent("Incident - Checkout is fast");
+    expect(screen.getByText("staging")).toBeInTheDocument();
+    expect(screen.queryByText("production")).toBeNull();
+    expect(document.title).toBe("OneUptime | Incident - Checkout is fast");
+
+    // Mounted once, and never shown the loader in between.
+    expect(childMounts).toEqual([INCIDENT_A]);
+  });
+
+  test("a re-render with the same refreshToken does not read again", async () => {
+    getItemMock.mockResolvedValue(
+      buildIncident(INCIDENT_A, "Checkout is slow", []) as never,
+    );
+
+    const view: RenderResult = render(layoutFor(INCIDENT_A, 3));
+    await flush();
+
+    view.rerender(layoutFor(INCIDENT_A, 3));
+    await flush();
+
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a failed refresh keeps the previous title and labels", async () => {
+    getItemMock
+      .mockResolvedValueOnce(
+        buildIncident(INCIDENT_A, "Checkout is slow", ["production"]) as never,
+      )
+      .mockRejectedValueOnce(new Error("Network blip") as never);
+
+    const view: RenderResult = render(layoutFor(INCIDENT_A, 0));
+    await flush();
+
+    view.rerender(layoutFor(INCIDENT_A, 1));
+    await flush();
+
+    expect(getItemMock).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText("Network blip")).toBeNull();
+    expect(heading()).toHaveTextContent("Incident - Checkout is slow");
+    expect(screen.getByText("production")).toBeInTheDocument();
+    expect(screen.getByTestId("child-page")).toBeInTheDocument();
+    expect(childMounts).toEqual([INCIDENT_A]);
+  });
+
+  test("a refresh that comes back empty keeps the previous header too", async () => {
+    getItemMock
+      .mockResolvedValueOnce(
+        buildIncident(INCIDENT_A, "Checkout is slow", ["production"]) as never,
+      )
+      .mockResolvedValueOnce(null as never);
+
+    const view: RenderResult = render(layoutFor(INCIDENT_A, 0));
+    await flush();
+
+    view.rerender(layoutFor(INCIDENT_A, 1));
+    await flush();
+
+    expect(getItemMock).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(/Cannot load incident/)).toBeNull();
+    expect(heading()).toHaveTextContent("Incident - Checkout is slow");
+    expect(screen.getByText("production")).toBeInTheDocument();
+    expect(screen.getByTestId("child-page")).toBeInTheDocument();
+  });
+
+  test("a later refresh that succeeds after a failed one still updates the header", async () => {
+    getItemMock
+      .mockResolvedValueOnce(
+        buildIncident(INCIDENT_A, "Checkout is slow", []) as never,
+      )
+      .mockRejectedValueOnce(new Error("Network blip") as never)
+      .mockResolvedValueOnce(
+        buildIncident(INCIDENT_A, "Checkout is fast", []) as never,
+      );
+
+    const view: RenderResult = render(layoutFor(INCIDENT_A, 0));
+    await flush();
+
+    view.rerender(layoutFor(INCIDENT_A, 1));
+    await flush();
+
+    view.rerender(layoutFor(INCIDENT_A, 2));
+    await flush();
+
+    expect(heading()).toHaveTextContent("Incident - Checkout is fast");
+    expect(childMounts).toEqual([INCIDENT_A]);
+  });
+
+  test("a page showing a load error recovers on the next refresh", async () => {
+    getItemMock
+      .mockRejectedValueOnce(new Error("Not allowed") as never)
+      .mockResolvedValueOnce(
+        buildIncident(INCIDENT_A, "Checkout is slow", []) as never,
+      );
+
+    const view: RenderResult = render(layoutFor(INCIDENT_A, 0));
+    await flush();
+
+    expect(screen.getByText("Not allowed")).toBeInTheDocument();
+    expect(screen.queryByTestId("child-page")).toBeNull();
+
+    view.rerender(layoutFor(INCIDENT_A, 1));
+    await flush();
+
+    expect(screen.queryByText("Not allowed")).toBeNull();
+    expect(heading()).toHaveTextContent("Incident - Checkout is slow");
+    expect(screen.getByTestId("child-page")).toBeInTheDocument();
+  });
+
+  test("a stale refresh after an id change is ignored", async () => {
+    const staleRefresh: Deferred<Incident> = createDeferred<Incident>();
+    const second: Deferred<Incident> = createDeferred<Incident>();
+
+    getItemMock
+      .mockResolvedValueOnce(
+        buildIncident(INCIDENT_A, "Checkout is slow", ["production"]) as never,
+      )
+      .mockReturnValueOnce(staleRefresh.promise as never)
+      .mockReturnValueOnce(second.promise as never);
+
+    const view: RenderResult = render(layoutFor(INCIDENT_A, 0));
+    await flush();
+
+    // Refresh A, then move to B while that refresh is still in flight.
+    view.rerender(layoutFor(INCIDENT_A, 1));
+    await flush();
+    view.rerender(layoutFor(INCIDENT_B, 1));
+    await flush();
+
+    expect(requestedIds()).toEqual([INCIDENT_A, INCIDENT_A, INCIDENT_B]);
+
+    await act(async () => {
+      staleRefresh.resolve(
+        buildIncident(INCIDENT_A, "Renamed while leaving", ["stale"]),
+      );
+    });
+    await flush();
+
+    // Still loading B: neither A's old nor its refreshed header comes back.
+    expect(heading()).toHaveTextContent(/^Incident$/);
+    expect(screen.queryByText(/Renamed while leaving/)).toBeNull();
+    expect(screen.queryByText("stale")).toBeNull();
+    expect(screen.queryByTestId("child-page")).toBeNull();
+
+    await act(async () => {
+      second.resolve(buildIncident(INCIDENT_B, "Payments failing", ["new"]));
+    });
+    await flush();
+
+    expect(heading()).toHaveTextContent("Incident - Payments failing");
+    expect(screen.getByText("new")).toBeInTheDocument();
+    expect(screen.getByTestId("child-page")).toHaveTextContent(
+      `Body of ${INCIDENT_B}`,
+    );
+  });
+
+  test("a refresh of the old model that fails after an id change shows no error on the new one", async () => {
+    const staleRefresh: Deferred<Incident> = createDeferred<Incident>();
+
+    getItemMock
+      .mockResolvedValueOnce(
+        buildIncident(INCIDENT_A, "Checkout is slow", []) as never,
+      )
+      .mockReturnValueOnce(staleRefresh.promise as never)
+      .mockResolvedValueOnce(
+        buildIncident(INCIDENT_B, "Payments failing", []) as never,
+      );
+
+    const view: RenderResult = render(layoutFor(INCIDENT_A, 0));
+    await flush();
+
+    view.rerender(layoutFor(INCIDENT_A, 1));
+    await flush();
+    view.rerender(layoutFor(INCIDENT_B, 1));
+    await flush();
+
+    expect(heading()).toHaveTextContent("Incident - Payments failing");
+
+    await act(async () => {
+      staleRefresh.reject(new Error("Timed out"));
+    });
+    await flush();
+
+    expect(screen.queryByText("Timed out")).toBeNull();
+    expect(heading()).toHaveTextContent("Incident - Payments failing");
+    expect(screen.getByTestId("child-page")).toHaveTextContent(
+      `Body of ${INCIDENT_B}`,
+    );
   });
 });

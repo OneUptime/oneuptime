@@ -346,8 +346,17 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    const lastMonitorStatus: MonitorStatusTimeline | null =
-      await MonitorStatusTimelineService.findOneBy({
+    /*
+     * Exactly one open row is the healthy shape, and only then is that row
+     * the monitor's current status. Two or more is the orphan case the
+     * KeepCurrentStateConsistent reconciler repairs first. The unsorted
+     * findOneBy this replaces took whichever open row the database happened
+     * to return, so an old orphan could be written back over the real
+     * current status. Two rows, newest first, is enough to tell one from
+     * several.
+     */
+    const openRows: Array<MonitorStatusTimeline> =
+      await MonitorStatusTimelineService.findBy({
         query: {
           monitorId: monitorId,
           endsAt: QueryHelper.isNull(),
@@ -357,14 +366,22 @@ export class Service extends DatabaseService<Model> {
           monitorStatusId: true,
           projectId: true,
         },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        limit: 2,
+        skip: 0,
         props: {
           isRoot: true,
         },
       });
 
-    if (!lastMonitorStatus) {
+    if (openRows.length !== 1) {
       return;
     }
+
+    const lastMonitorStatus: MonitorStatusTimeline = openRows[0]!;
+
     if (!lastMonitorStatus.monitorStatusId) {
       return;
     }

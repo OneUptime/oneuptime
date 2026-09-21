@@ -1,11 +1,20 @@
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React from "react";
 import { describe, expect, jest, test } from "@jest/globals";
 import DayUptimeGraph, {
+  BarChartRule,
+  DayReading,
   NO_DATA_BAR_COLOR,
   UptimeBarDaySummary,
 } from "../../../../UI/Components/Graphs/DayUptimeGraph";
+import { StatusDuration } from "../../../../UI/Components/Graphs/UptimeDaySummary";
 import { Green, Red } from "../../../../Types/BrandColors";
 import Color from "../../../../Types/Color";
 import ObjectID from "../../../../Types/ObjectID";
@@ -527,5 +536,401 @@ describe("DayUptimeGraph - the bars still draw what they always drew", () => {
 
     expect(className).toContain("focus-visible:outline-2");
     expect(className).toContain("focus-visible:outline-offset-[-2px]");
+  });
+});
+
+/*
+ * A day the server measured but whose timeline rows never reached the browser.
+ *
+ * The rows arrive under a fetch cap that silently drops history, so such a day
+ * has no events here while the server's reading says exactly how it was spent.
+ * It used to be painted the operator's default colour at 100% - a day spent
+ * entirely offline read as a perfect one. On a day with no events the reading
+ * now decides the percentage and the colour. A day that still has events keeps
+ * the event-derived reading, so a status page only changes on the days it was
+ * painting wrongly.
+ */
+describe("DayUptimeGraph - a day known only from the server's reading", () => {
+  const DEFAULT_COLOR: Color = new Color("#123456");
+  const OPERATIONAL_COLOR: Color = new Color("#00aa00");
+  const DEGRADED_COLOR: Color = new Color("#ff9900");
+  const OFFLINE_COLOR: Color = new Color("#cc0000");
+
+  function makeDuration(data: {
+    label: string;
+    seconds: number;
+    color: Color;
+    isDowntime: boolean;
+    priority?: number | undefined;
+  }): StatusDuration {
+    return {
+      label: data.label,
+      seconds: data.seconds,
+      color: data.color,
+      isDowntime: data.isDowntime,
+      priority: data.priority,
+    };
+  }
+
+  function operational(seconds: number, priority?: number): StatusDuration {
+    return makeDuration({
+      label: "Operational",
+      seconds: seconds,
+      color: OPERATIONAL_COLOR,
+      isDowntime: false,
+      priority: priority,
+    });
+  }
+
+  function degraded(
+    seconds: number,
+    priority: number | undefined,
+    isDowntime: boolean,
+  ): StatusDuration {
+    return makeDuration({
+      label: "Degraded",
+      seconds: seconds,
+      color: DEGRADED_COLOR,
+      isDowntime: isDowntime,
+      priority: priority,
+    });
+  }
+
+  function offline(seconds: number, priority?: number): StatusDuration {
+    return makeDuration({
+      label: "Offline",
+      seconds: seconds,
+      color: OFFLINE_COLOR,
+      isDowntime: true,
+      priority: priority,
+    });
+  }
+
+  /*
+   * The reading for the day `daysAgo` before the end of the window. Coverage
+   * defaults to the sum of the durations, which is what the server sends.
+   */
+  function readingFor(
+    daysAgo: number,
+    statusDurations: Array<StatusDuration>,
+    coveredSeconds?: number,
+  ): DayReading {
+    return {
+      dayStart: OneUptimeDate.getStartOfDay(
+        OneUptimeDate.getSomeDaysAgoFromDate(END_DATE, daysAgo),
+      ),
+      daySeconds: 86400,
+      coveredSeconds:
+        coveredSeconds ??
+        statusDurations.reduce((sum: number, duration: StatusDuration) => {
+          return sum + duration.seconds;
+        }, 0),
+      statusDurations: statusDurations,
+    };
+  }
+
+  // The window is ten days ending today, so the day `daysAgo` is this bar.
+  function barFor(daysAgo: number): HTMLElement {
+    return getBars()[9 - daysAgo] as HTMLElement;
+  }
+
+  function openDay(
+    onBarClick: OnBarClickMock,
+    daysAgo: number,
+  ): UptimeBarDaySummary {
+    fireEvent.click(barFor(daysAgo));
+
+    const calls: Array<Parameters<OnBarClickFunction>> = onBarClick.mock.calls;
+
+    return calls[calls.length - 1]?.[2] as UptimeBarDaySummary;
+  }
+
+  test("with a reading and no events, a half-down day reports 50% and paints the highest-priority status", () => {
+    const durations: Array<StatusDuration> = [
+      operational(43200, 1),
+      offline(43200, 3),
+    ];
+
+    const { onBarClick } = renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      downtimeEventStatusIds: [DOWN_STATUS_ID],
+      dayReadings: [readingFor(5, durations)],
+    });
+
+    expect(barFor(5)).toHaveStyle({
+      backgroundColor: OFFLINE_COLOR.toString(),
+    });
+
+    const label: string = barFor(5).getAttribute("aria-label") || "";
+
+    expect(label).toContain("50% uptime");
+    expect(label).not.toContain("no data");
+
+    const summary: UptimeBarDaySummary = openDay(onBarClick, 5);
+
+    expect(summary.uptimePercent).toBe(50);
+    expect(summary.hasEvents).toBe(true);
+    expect(summary.statusDurations).toEqual(durations);
+  });
+
+  test("the highest priority wins even over a status with more time or one counted as down", () => {
+    const { onBarClick } = renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      dayReadings: [
+        readingFor(5, [
+          operational(70000, 1),
+          degraded(600, 3, false),
+          offline(15800, 2),
+        ]),
+      ],
+    });
+
+    expect(barFor(5)).toHaveStyle({
+      backgroundColor: DEGRADED_COLOR.toString(),
+    });
+
+    // Only the Offline time is downtime: Degraded is not counted as down here.
+    expect(openDay(onBarClick, 5).uptimePercent).toBeCloseTo(
+      (70600 / 86400) * 100,
+      6,
+    );
+  });
+
+  interface TieOrder {
+    order: string;
+    isLongerFirst: boolean;
+  }
+
+  const TIE_ORDERS: Array<TieOrder> = [
+    { order: "the longer status listed second", isLongerFirst: false },
+    { order: "the longer status listed first", isLongerFirst: true },
+  ];
+
+  test.each(TIE_ORDERS)(
+    "ties in priority go to the status with more seconds ($order)",
+    (tieOrder: TieOrder) => {
+      const shorter: StatusDuration = degraded(1000, 2, true);
+      const longer: StatusDuration = offline(5000, 2);
+
+      renderGraph({
+        defaultBarColor: DEFAULT_COLOR,
+        dayReadings: [
+          readingFor(5, [
+            operational(80400, 1),
+            ...(tieOrder.isLongerFirst ? [longer, shorter] : [shorter, longer]),
+          ]),
+        ],
+      });
+
+      expect(barFor(5)).toHaveStyle({
+        backgroundColor: OFFLINE_COLOR.toString(),
+      });
+    },
+  );
+
+  test("a status the day spent no time in never paints the day", () => {
+    const { onBarClick } = renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      dayReadings: [readingFor(5, [offline(0, 3), operational(86400, 1)])],
+    });
+
+    expect(barFor(5)).toHaveStyle({
+      backgroundColor: OPERATIONAL_COLOR.toString(),
+    });
+    expect(openDay(onBarClick, 5).uptimePercent).toBe(100);
+  });
+
+  test("without any priorities, the downtime status the day spent longest in paints the day", () => {
+    const { onBarClick } = renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      dayReadings: [
+        readingFor(5, [
+          operational(40000),
+          degraded(6400, undefined, true),
+          offline(40000),
+        ]),
+      ],
+    });
+
+    expect(barFor(5)).toHaveStyle({
+      backgroundColor: OFFLINE_COLOR.toString(),
+    });
+    expect(openDay(onBarClick, 5).uptimePercent).toBeCloseTo(
+      (40000 / 86400) * 100,
+      6,
+    );
+  });
+
+  test("without priorities or downtime, the day keeps the operator's colour at 100%", () => {
+    const { onBarClick } = renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      dayReadings: [readingFor(5, [operational(86400)])],
+    });
+
+    expect(barFor(5)).toHaveStyle({
+      backgroundColor: DEFAULT_COLOR.toString(),
+    });
+    expect(openDay(onBarClick, 5).uptimePercent).toBe(100);
+  });
+
+  test("bar rules apply to the reading's percentage", () => {
+    const rules: Array<BarChartRule> = [
+      {
+        barColor: new Color("#00ff00"),
+        uptimePercentGreaterThanOrEqualTo: 99,
+      },
+      {
+        barColor: new Color("#ffff00"),
+        uptimePercentGreaterThanOrEqualTo: 40,
+      },
+    ];
+
+    renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      barColorRules: rules,
+      dayReadings: [
+        readingFor(5, [operational(43200, 1), offline(43200, 3)]),
+        readingFor(4, [operational(86400, 1)]),
+        readingFor(3, [operational(25920, 1), offline(60480, 3)]),
+      ],
+    });
+
+    // 50%: the second rule, not the Offline status's own colour.
+    expect(barFor(5)).toHaveStyle({ backgroundColor: "#ffff00" });
+
+    // 100%: the first rule, rather than the default colour a quiet day gets.
+    expect(barFor(4)).toHaveStyle({ backgroundColor: "#00ff00" });
+
+    // 30%: no rule matches, so the default colour, as on the events path.
+    expect(barFor(3)).toHaveStyle({
+      backgroundColor: DEFAULT_COLOR.toString(),
+    });
+    expect(barFor(3).getAttribute("aria-label")).toContain("30% uptime");
+  });
+
+  test("a reading with no durations keeps the default colour at 100%", () => {
+    const { onBarClick } = renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      dayReadings: [readingFor(5, [], 86400)],
+    });
+
+    expect(barFor(5)).toHaveStyle({
+      backgroundColor: DEFAULT_COLOR.toString(),
+    });
+
+    const summary: UptimeBarDaySummary = openDay(onBarClick, 5);
+
+    expect(summary.uptimePercent).toBe(100);
+    expect(summary.hasEvents).toBe(true);
+  });
+
+  test("a reading with durations but no coverage is still a day with no data", () => {
+    renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      dayReadings: [readingFor(5, [offline(3600, 3)], 0)],
+    });
+
+    expect(barFor(5)).toHaveStyle({
+      backgroundColor: NO_DATA_BAR_COLOR.toString(),
+    });
+    expect(barFor(5).getAttribute("aria-label")).toContain("no data");
+  });
+
+  test("the reading's downtime is taken over the seconds covered, not the whole day", () => {
+    const { onBarClick } = renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      dayReadings: [
+        readingFor(5, [operational(32400, 1), offline(10800, 3)], 43200),
+      ],
+    });
+
+    expect(openDay(onBarClick, 5).uptimePercent).toBe(75);
+    expect(barFor(5).getAttribute("aria-label")).toContain("75% uptime");
+  });
+
+  test("durations that overrun the coverage read as a fully down day, never below 0%", () => {
+    const { onBarClick } = renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      dayReadings: [readingFor(5, [offline(7200, 3)], 3600)],
+    });
+
+    expect(openDay(onBarClick, 5).uptimePercent).toBe(0);
+  });
+
+  test("a day with events is unchanged even when a reading exists", () => {
+    const events: Array<UptimeEvent> = [
+      makeEvent({
+        startDate: hourOfDay(5, 1),
+        endDate: hourOfDay(5, 23),
+        isDown: true,
+      }),
+    ];
+
+    interface BarLook {
+      label: string | null;
+      color: string;
+    }
+
+    const readBar: () => BarLook = (): BarLook => {
+      return {
+        label: barFor(5).getAttribute("aria-label"),
+        color: barFor(5).style.backgroundColor,
+      };
+    };
+
+    renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      events: events,
+      downtimeEventStatusIds: [DOWN_STATUS_ID],
+    });
+
+    const withoutReading: BarLook = readBar();
+
+    cleanup();
+
+    /*
+     * The reading disagrees with the events on purpose: it says the day was
+     * spent entirely operational. The events still decide the day.
+     */
+    const { onBarClick } = renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      events: events,
+      downtimeEventStatusIds: [DOWN_STATUS_ID],
+      dayReadings: [readingFor(5, [operational(86400, 1)])],
+    });
+
+    const withReading: BarLook = readBar();
+
+    expect(withReading).toEqual(withoutReading);
+    expect(barFor(5)).toHaveStyle({ backgroundColor: Red.toString() });
+    expect(withReading.label).toContain("0% uptime");
+    expect(openDay(onBarClick, 5).uptimePercent).toBe(0);
+  });
+
+  test("events on one day do not stop another day being painted from its reading", () => {
+    renderGraph({
+      defaultBarColor: DEFAULT_COLOR,
+      events: [
+        makeEvent({
+          startDate: hourOfDay(5, 1),
+          endDate: hourOfDay(5, 23),
+          isDown: false,
+        }),
+      ],
+      downtimeEventStatusIds: [DOWN_STATUS_ID],
+      dayReadings: [
+        readingFor(5, [operational(86400, 1)]),
+        readingFor(3, [operational(43200, 1), offline(43200, 3)]),
+      ],
+    });
+
+    // The day with its own events keeps the event colour.
+    expect(barFor(5)).toHaveStyle({ backgroundColor: Green.toString() });
+
+    // The day that lost its rows is painted from the server's reading.
+    expect(barFor(3)).toHaveStyle({
+      backgroundColor: OFFLINE_COLOR.toString(),
+    });
+    expect(barFor(3).getAttribute("aria-label")).toContain("50% uptime");
   });
 });

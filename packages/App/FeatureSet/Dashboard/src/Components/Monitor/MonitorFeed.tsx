@@ -18,7 +18,18 @@ import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 
 export interface ComponentProps {
   monitorId: ObjectID;
+  title?: string | undefined;
+  description?: string | undefined;
+  /*
+   * Bumped by the page when it knows the feed has changed (a status change,
+   * an edit), so the new item appears without pressing Refresh.
+   */
+  refreshToken?: number | undefined;
 }
+
+const DEFAULT_TITLE: string = "Monitor Feed";
+const DEFAULT_DESCRIPTION: string =
+  "This is the timeline and feed for this monitor. You can see all the updates and information about this monitor here.";
 
 const MonitorFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -112,7 +123,6 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
 
   const {
     feedItems,
-    isLoading,
     isLoadingMore,
     error,
     loadMoreError,
@@ -122,6 +132,7 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<MonitorFeed>({
     resourceKey: props.monitorId.toString(),
+    refreshToken: props.refreshToken,
     getItems: async (limit: number): Promise<ListResult<MonitorFeed>> => {
       return await ModelAPI.getList({
         modelType: MonitorFeed,
@@ -153,10 +164,8 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title={"Monitor Feed"}
-      description={
-        "This is the timeline and feed for this monitor. You can see all the updates and information about this monitor here."
-      }
+      title={props.title || DEFAULT_TITLE}
+      description={props.description || DEFAULT_DESCRIPTION}
       buttons={[
         {
           title: "Refresh",
@@ -169,9 +178,14 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
       ]}
     >
       <div>
-        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
+        {/*
+         * The loader is for a feed that has not loaded yet (first load, or
+         * another monitor). A refresh keeps the items on screen and swaps
+         * them when the new page arrives, so a poll never blanks the feed.
+         */}
+        {!isCurrentFeedLoaded && <ComponentLoader />}
         {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !isLoading && !error && (
+        {isCurrentFeedLoaded && !error && (
           <Feed
             items={feedItems}
             noItemsMessage="Looks like there are no items in this feed for this monitor."

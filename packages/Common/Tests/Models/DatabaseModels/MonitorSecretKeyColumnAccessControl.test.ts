@@ -172,8 +172,11 @@ describe("the rest of the monitor page still loads for a Viewer", () => {
    * Tightening the secret columns must not collaterally break the monitor view
    * for read-only users: an unreadable column in a select fails the WHOLE
    * request, so if any of these regressed, a Viewer would get an error screen
-   * instead of a monitor. These are the other columns
-   * Pages/Monitor/View/Index.tsx asks for.
+   * instead of a monitor. These are some of the other columns the overview
+   * reads. Its full Monitor select is MONITOR_OVERVIEW_BASE_SELECT in
+   * Components/Monitor/Overview/MonitorOverviewSelect.ts, and every key of it
+   * is checked for Viewer, MonitorViewer and ReadProjectMonitor by
+   * Tests/App/Dashboard/MonitorOverviewSelectReadable.test.ts.
    */
   const VIEWER_READABLE_COLUMNS: Array<string> = [
     "monitorType",

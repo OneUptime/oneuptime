@@ -26,6 +26,18 @@ import {
   UptimeDailyAggregate,
   UptimeDayBucket,
 } from "../../Types/StatusPage/UptimeDailyAggregate";
+import {
+  MONITOR_UPTIME_HISTORY_DAYS,
+  MONITOR_UPTIME_ROLLING_WINDOWS,
+  MonitorUptimeRollingWindow,
+  MonitorUptimeSummary,
+  MonitorUptimeSummaryStatus,
+  MonitorUptimeWindowKey,
+  MonitorUptimeWindowTotal,
+} from "../../Types/Monitor/MonitorUptimeSummary";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUtil";
+import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
 
 /*
  * Thrown by onBeforeCreate when the incoming status is the same as the status of
@@ -326,6 +338,188 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       monitors: monitors,
       isComplete: true,
       completeFrom: null,
+    };
+  }
+
+  /**
+   * The uptime history of ONE monitor for the monitor overview: 90 calendar
+   * day bars, rolling 24h / 7d / 30d windows, a 90d window, and the
+   * project's statuses so the page can tell downtime from uptime without a
+   * MonitorStatus request of its own.
+   *
+   * It reads as root and does no authorisation. The route in MonitorAPI
+   * decides who may see the monitor's history before calling this.
+   *
+   * WHY FOUR AGGREGATE CALLS
+   *
+   * getDailyUptimeAggregate clips its first bucket to the window start and
+   * its last to now, so the sum of daySeconds over one call is exactly that
+   * window. A rolling 24 hours starts in the middle of a day, which the
+   * midnight-aligned bars cannot express, so each rolling window is its own
+   * call and is summed from its own buckets. The 90d figure is summed from
+   * the bars instead of a fifth call, so it always agrees with the strip it
+   * sits next to.
+   *
+   * The time zone only moves where the day boundaries fall. The rolling
+   * windows are exact second counts ending at now, whatever the zone.
+   */
+  @CaptureSpan()
+  public async getMonitorUptimeSummary(data: {
+    monitorId: ObjectID;
+    projectId: ObjectID;
+    timezone: string;
+    now: Date;
+  }): Promise<MonitorUptimeSummary> {
+    const now: Date = data.now;
+
+    /*
+     * Calendar arithmetic in the caller's zone, then local midnight. Taking
+     * 89 x 24 hours instead would land on the wrong calendar day across a DST
+     * change and hand back 89 or 91 bars.
+     */
+    const barsStartDate: Date = OneUptimeDate.getStartOfDay(
+      OneUptimeDate.addRemoveDays(
+        now,
+        -(MONITOR_UPTIME_HISTORY_DAYS - 1),
+        data.timezone,
+      ),
+      data.timezone,
+    );
+
+    const rollingWindows: Array<{
+      window: MonitorUptimeRollingWindow;
+      startDate: Date;
+    }> = MONITOR_UPTIME_ROLLING_WINDOWS.map(
+      (
+        window: MonitorUptimeRollingWindow,
+      ): { window: MonitorUptimeRollingWindow; startDate: Date } => {
+        return {
+          window: window,
+          startDate: OneUptimeDate.addRemoveSeconds(now, -window.seconds),
+        };
+      },
+    );
+
+    const [barAggregate, rollingAggregates, statuses]: [
+      UptimeDailyAggregate,
+      Array<UptimeDailyAggregate>,
+      Array<MonitorStatus>,
+    ] = await Promise.all([
+      this.getDailyUptimeAggregate({
+        monitorIds: [data.monitorId],
+        startDate: barsStartDate,
+        endDate: now,
+        timezone: data.timezone,
+      }),
+      Promise.all(
+        rollingWindows.map(
+          (rolling: {
+            window: MonitorUptimeRollingWindow;
+            startDate: Date;
+          }): Promise<UptimeDailyAggregate> => {
+            return this.getDailyUptimeAggregate({
+              monitorIds: [data.monitorId],
+              startDate: rolling.startDate,
+              endDate: now,
+              timezone: data.timezone,
+            });
+          },
+        ),
+      ),
+      /*
+       * Root, scoped to the project, and limited to columns every one of
+       * which is canReadOnRelationQuery. The route has already proved the
+       * caller can read this monitor's timeline, and a timeline read
+       * exposes exactly these columns through its monitorStatus relation,
+       * so nothing is disclosed that the CRUD read would not show.
+       */
+      MonitorStatusService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+          color: true,
+          isOperationalState: true,
+          isOfflineState: true,
+          priority: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      }),
+    ]);
+
+    const barBuckets: Array<UptimeDayBucket> =
+      UptimeDailyAggregateUtil.getBucketsForMonitor(
+        barAggregate,
+        data.monitorId,
+      );
+
+    const windows: Array<MonitorUptimeWindowTotal> = rollingWindows.map(
+      (
+        rolling: { window: MonitorUptimeRollingWindow; startDate: Date },
+        index: number,
+      ): MonitorUptimeWindowTotal => {
+        return MonitorUptimeSummaryUtil.sumBuckets({
+          key: rolling.window.key,
+          buckets: UptimeDailyAggregateUtil.getBucketsForMonitor(
+            rollingAggregates[index],
+            data.monitorId,
+          ),
+          startDate: rolling.startDate,
+          endDate: now,
+        });
+      },
+    );
+
+    windows.push(
+      MonitorUptimeSummaryUtil.sumBuckets({
+        key: MonitorUptimeWindowKey.Last90Days,
+        buckets: barBuckets,
+        startDate: barsStartDate,
+        endDate: now,
+      }),
+    );
+
+    const summaryStatuses: Array<MonitorUptimeSummaryStatus> = [];
+
+    for (const status of statuses) {
+      if (!status.id) {
+        continue;
+      }
+
+      summaryStatuses.push({
+        id: status.id,
+        name: status.name || "",
+        color: status.color ? status.color.toString() : "",
+        isOperationalState: status.isOperationalState === true,
+        isOfflineState: status.isOfflineState === true,
+        priority:
+          typeof status.priority === "number" &&
+          Number.isFinite(status.priority)
+            ? status.priority
+            : null,
+      });
+    }
+
+    return {
+      monitorId: data.monitorId,
+      timezone: data.timezone,
+      generatedAt: now,
+      startDate: barsStartDate,
+      endDate: now,
+      buckets: barBuckets,
+      windows: windows,
+      isComplete: barAggregate.isComplete,
+      completeFrom: barAggregate.completeFrom,
+      statuses: summaryStatuses,
     };
   }
 

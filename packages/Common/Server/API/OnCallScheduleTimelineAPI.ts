@@ -5,8 +5,6 @@ import OnCallDutyPolicyScheduleOwnerTeamService from "../Services/OnCallDutyPoli
 import OnCallDutyPolicyScheduleService from "../Services/OnCallDutyPolicyScheduleService";
 import TeamMemberService from "../Services/TeamMemberService";
 import TeamService from "../Services/TeamService";
-import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
-import TablePermission from "../Types/Database/Permissions/TablePermission";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Express, {
   ExpressRequest,
@@ -470,31 +468,17 @@ async function loadRosterScheduleIds(data: {
 }
 
 /*
- * Throws unless the caller could read `modelType` through its CRUD endpoint.
- * That read has two halves and both are applied here: an Allow grant from the
- * model's read list (assertPermittedInProject), and no unlabelled team BLOCK
- * row on any permission in that list (checkTableLevelBlockPermissions) - a
- * block overrides every Allow the team holds. Master admins bypass both, as
- * they do in ReadPermission.
+ * Throws unless the caller could read `modelType` through its CRUD endpoint
+ * (an Allow grant from its read list and no team BLOCK on it). The rule
+ * lives in CommonAPI.assertCanReadTable so other custom routes share it;
+ * this export stays so the callers below and their tests are untouched.
  */
 export function assertCanReadTable(data: {
   modelType: DatabaseBaseModelType;
   props: DatabaseCommonInteractionProps;
   errorMessage?: string | undefined;
 }): void {
-  CommonAPI.assertPermittedInProject({
-    databaseProps: data.props,
-    allowedPermissions: new data.modelType().getReadPermissions(),
-    errorMessage: data.errorMessage,
-  });
-
-  if (!data.props.isMasterAdmin) {
-    TablePermission.checkTableLevelBlockPermissions(
-      data.modelType,
-      data.props,
-      DatabaseRequestType.Read,
-    );
-  }
+  CommonAPI.assertCanReadTable(data);
 }
 
 // Whether the caller could read user overrides through their CRUD endpoint.
