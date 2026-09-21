@@ -102,6 +102,39 @@ export const getSloTargetText: GetSloTargetTextFunction = (
   return target === null ? null : `Target ${target}`;
 };
 
+/**
+ * A budget below zero is exceeded, not a useful negative percentage left.
+ * Classify before rounding so even a small overage cannot read as 0%.
+ * The signed value remains available to calculations and history charts.
+ */
+export type GetSloBudgetRemainingTextFunction = (
+  percentage: number | undefined | null,
+) => string | null;
+
+export const getSloBudgetRemainingText: GetSloBudgetRemainingTextFunction = (
+  percentage: number | undefined | null,
+): string | null => {
+  const remaining: number | null = toFiniteNumber(percentage);
+
+  if (remaining === null) {
+    return null;
+  }
+
+  if (remaining < 0) {
+    return "Budget exceeded";
+  }
+
+  if (remaining === 0) {
+    return "No budget left";
+  }
+
+  if (remaining < 0.1) {
+    return "<0.1%";
+  }
+
+  return formatSloPercent(Math.min(remaining, 100), 1);
+};
+
 /** "No monitors" / "1 monitor" / "12 monitors". */
 export type GetSloMonitorCountTextFunction = (count: number) => string;
 

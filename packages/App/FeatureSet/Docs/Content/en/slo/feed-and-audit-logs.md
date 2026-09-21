@@ -25,6 +25,8 @@ The feed is on the SLO's **Feed** page, and its latest items are under **Recent 
 | **Monitor rule added / changed / removed**   | Someone creates, edits or deletes a monitor rule. A save that changes nothing meaningful is not posted.                                                                  |
 | **Monitors attached / detached**             | Monitors are added to or removed from the SLO, by hand or by a monitor rule. Long lists are shortened to the first few monitors "and N more".                            |
 | **Owner added / removed**                    | A user or team is added to or removed from the SLO's owners.                                                                                                             |
+| **Label rule applied**                       | A label rule attached labels to the SLO — when it was created, or when someone ran the rule. Names the rules that matched. See [Label and Owner Rules](/docs/slo/label-and-owner-rules). |
+| **Owner rule applied**                       | An owner rule added owners to the SLO. Names the rules that matched; each owner it added also gets its own **Owner added** item.                                         |
 
 A few details:
 
@@ -68,3 +70,4 @@ The project's full audit log, across every resource, is under **Project Settings
 - [SLOs Overview](/docs/slo/introduction) — every page an SLO has.
 - [Monitors and Monitor Rules](/docs/slo/monitor-rules) — what attaches and detaches monitors.
 - [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts) — what raises and resolves the alerts and incidents in the feed.
+- [Label and Owner Rules](/docs/slo/label-and-owner-rules) — what attaches labels and adds owners automatically.

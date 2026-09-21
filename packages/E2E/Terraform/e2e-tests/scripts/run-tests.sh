@@ -34,40 +34,25 @@ cp terraform-provider-oneuptime "$INSTALL_DIR/"
 # (Terraform prints "Skip terraform init when using provider development
 # overrides"), leaving the lock file empty and breaking subsequent tests.
 #
-# The provider is fetched from whichever registry the selected engine defaults
+# The provider is installed for whichever registry the selected engine defaults
 # to (registry.terraform.io or registry.opentofu.org), so the download is kept
 # per-engine and the copy into each test below stays host-agnostic.
+#
+# In CI it comes from the pinned local mirror the workflow passes in
+# TF_E2E_PROVIDER_MIRROR, with no registry access at all; locally, from the
+# registry. See tf_prepare_random_provider in lib.sh.
+#
+# The version every test that uses the provider runs against. The workflow's
+# RANDOM_PROVIDER_VERSION stages this version in its mirror and must equal it
+# (self-test.sh checks); it is assigned here, never taken from the
+# environment, so a mismatch fails the run rather than changing what is tested.
+RANDOM_PROVIDER_VERSION="3.8.0"
 echo ""
-echo "=== Downloading Random Provider ==="
+echo "=== Installing Random Provider ==="
 RANDOM_PROVIDER_DIR="/tmp/tf-random-provider-$TF_CLI"
-rm -rf "$RANDOM_PROVIDER_DIR"
-mkdir -p "$RANDOM_PROVIDER_DIR"
-cat > "$RANDOM_PROVIDER_DIR/main.tf" << 'TFEOF'
-terraform {
-  required_providers {
-    random = {
-      source  = "hashicorp/random"
-      version = "3.8.0"
-    }
-  }
-}
-TFEOF
-# Use an empty CLI config so the user's dev_overrides cannot interfere. It is a
-# real file rather than /dev/null because OpenTofu expects the path handed to
-# TF_CLI_CONFIG_FILE to be a regular *.tfrc file.
-: > "$RANDOM_PROVIDER_DIR/empty.tfrc"
-(
-    cd "$RANDOM_PROVIDER_DIR"
-    export TF_CLI_CONFIG_FILE="$RANDOM_PROVIDER_DIR/empty.tfrc"
-    terraform init -input=false -upgrade
-)
-
-if [ ! -s "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" ] || \
-   ! grep -q "hashicorp/random" "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl"; then
-    echo "ERROR: Failed to pre-download random provider — lock file missing or empty"
+if ! tf_prepare_random_provider "$RANDOM_PROVIDER_DIR" "$RANDOM_PROVIDER_VERSION" "${OS}_${ARCH}"; then
     exit 1
 fi
-echo "Random provider downloaded"
 
 # Write the dev_overrides CLI config to a harness-owned file and point the
 # engine at it. Both Terraform and OpenTofu honour TF_CLI_CONFIG_FILE, so one

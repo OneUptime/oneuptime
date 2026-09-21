@@ -15,9 +15,6 @@
  * DOM.
  */
 
-/** U+2212 MINUS SIGN — reads as a minus rather than a hyphen at tile sizes. */
-const MINUS_SIGN: string = "−";
-
 /**
  * Seconds per unit, largest first. Only the two most significant non-zero
  * units are rendered: "2d 5h" is what an on-call engineer needs, "2d 5h
@@ -97,6 +94,16 @@ export const formatDurationCompact: FormatDurationCompactFunction = (
   return parts.join(" ");
 };
 
+type FormatBudgetDurationFunction = (seconds: number) => string;
+
+const formatBudgetDuration: FormatBudgetDurationFunction = (
+  seconds: number,
+): string => {
+  return seconds !== 0 && Math.abs(seconds) < 1
+    ? "under 1s"
+    : formatDurationCompact(seconds);
+};
+
 /**
  * `errorBudgetRemainingSeconds` is SIGNED: negative means the budget is
  * overspent, and that overage is the single most useful number during a
@@ -121,10 +128,10 @@ export const formatErrorBudgetRemaining: FormatErrorBudgetRemainingFunction = (
   }
 
   if (numericSeconds < 0) {
-    return `${MINUS_SIGN}${formatDurationCompact(numericSeconds)} over budget`;
+    return `${formatBudgetDuration(numericSeconds)} over budget`;
   }
 
-  return `${formatDurationCompact(numericSeconds)} left`;
+  return `${formatBudgetDuration(numericSeconds)} left`;
 };
 
 /**
@@ -161,5 +168,14 @@ export const formatErrorBudgetRemainingOfTotal: FormatErrorBudgetRemainingOfTota
       return remainingText;
     }
 
-    return `${remainingText} of ${formatDurationCompact(totalSeconds)}`;
+    const totalText: string = formatBudgetDuration(totalSeconds);
+
+    if (
+      typeof data.remainingSeconds === "number" &&
+      data.remainingSeconds < 0
+    ) {
+      return `${remainingText} · ${totalText} allowed`;
+    }
+
+    return `${remainingText} of ${totalText}`;
   };

@@ -68,7 +68,31 @@ describe("Books route and metadata", () => {
     expect(routeBody).toContain(
       "enableGoogleTagManager: GoogleTagManagerEnabled",
     );
+    expect(routeBody).toContain("book: BackToMetal,");
+    expect(routeBody).toContain("bookAssets: getBookPageAssets(),");
     expect(routeBody).toMatch(/seo,\s*\}\)/);
+  });
+
+  test("starts loading the book's text when the page is viewed", () => {
+    const routeStart: number = routesSource.search(/app\.get\(\s*"\/books"/);
+    const nextRoute: number = routesSource.indexOf("app.get(", routeStart + 1);
+    const routeBody: string = routesSource.slice(routeStart, nextRoute);
+
+    expect(routeBody).toContain("DefaultBookStore.warm(BackToMetal.slug);");
+    expect(routeBody.indexOf("DefaultBookStore.warm")).toBeLessThan(
+      routeBody.indexOf("res.render"),
+    );
+  });
+
+  test("serves the reader's text from a JSON route that is not a sitemap page", () => {
+    expect(
+      registeredGetPaths.filter((routePath: string): boolean => {
+        return routePath.startsWith("/books");
+      }),
+    ).toEqual(["/books", "/books/:slug/content.json"]);
+    expect(routesSource).toMatch(
+      /app\.get\(\s*"\/books\/:slug\/content\.json",\s*handleBookContent\s*\)/,
+    );
   });
 
   test("uses explicit book metadata instead of the default page description", () => {
@@ -205,5 +229,10 @@ describe("Books sitemap integration", () => {
       `<loc>${HOME_URL}${getPageSEO("/books").canonicalPath}</loc>`,
     );
     expect(xml).not.toContain("https://backtometal.oneuptime.com");
+  });
+
+  test("leaves the reader's JSON route out of the sitemap", () => {
+    expect(xml).not.toContain("content.json");
+    expect(xml).not.toContain("/books/:slug");
   });
 });

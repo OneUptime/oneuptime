@@ -62,6 +62,8 @@ export enum ServiceLevelObjectiveFeedEventType {
   OwnerUserRemoved = "OwnerUserRemoved",
   OwnerTeamAdded = "OwnerTeamAdded",
   OwnerTeamRemoved = "OwnerTeamRemoved",
+  LabelRuleExecuted = "LabelRuleExecuted",
+  OwnerRuleExecuted = "OwnerRuleExecuted",
 }
 
 @EnableDocumentation()

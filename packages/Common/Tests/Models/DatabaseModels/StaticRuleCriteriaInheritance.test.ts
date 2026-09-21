@@ -86,6 +86,8 @@ const STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES: Array<string> = [
   "NetworkDeviceAutoImportRule",
   "NetworkSiteAssignmentRule",
   "ServiceLevelObjectiveMonitorRule",
+  "ServiceLevelObjectiveLabelRule",
+  "ServiceLevelObjectiveOwnerRule",
 ];
 
 const RELATION_ONLY_RULE_MODEL_NAMES: Array<string> = [
@@ -108,8 +110,8 @@ function getRegisteredModelType(modelName: string): ModelType {
 
 describe("static match-criteria rule model inheritance", () => {
   it("keeps the explicit model inventory complete and duplicate-free", () => {
-    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(74);
-    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(74);
+    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(76);
+    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(76);
   });
 
   it.each(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES)(

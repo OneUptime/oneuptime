@@ -623,7 +623,8 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           title: props.title || "Alerts",
           buttons: cardbuttons,
           description:
-            props.description || "Here is a list of alerts for this project.",
+            props.description ||
+            "Alerts flag problems for your team to look into before users are affected. Unlike incidents, they never appear on status pages.",
         }}
         noItemsMessage={props.noItemsMessage || "No alerts found."}
         showRefreshButton={true}

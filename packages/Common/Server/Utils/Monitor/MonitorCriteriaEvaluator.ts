@@ -30,6 +30,14 @@ import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMoni
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
+import AffectedResourceList, {
+  AffectedResourceListDetail,
+  AffectedResourceListEntry,
+} from "./AffectedResourceList";
+import RootCauseList, {
+  RootCauseListDetail,
+  RootCauseListItem,
+} from "./RootCauseList";
 import DataToProcess from "./DataToProcess";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
@@ -1552,9 +1560,7 @@ ${contextBlock}
           samples: breachingSamples,
           totalSamples: ctx.totalSamplesInWindow,
           unit: ctx.unit,
-          metricName: ctx.metricName,
           unitHeuristicMetricName: unitHeuristicMetricName,
-          alias: ctx.alias,
           components: ctx.components || [],
         })}`,
       );
@@ -1610,11 +1616,25 @@ ${contextBlock}
   }
 
   /**
-   * Build the **Breaching Samples** markdown section — a table of
-   * timestamps, values, and any group-by attributes. Caps the row count
-   * so a 30-minute window at 1-second granularity doesn't dump thousands
-   * of lines onto the root-cause page; the caller can always drill in
-   * via the metric explorer link.
+   * Build the **Breaching Samples** markdown section — a numbered list of
+   * the samples that breached, oldest first. Caps the list so a 30-minute
+   * window at 1-second granularity doesn't dump thousands of lines onto
+   * the root-cause page; the caller can always drill in via the metric
+   * explorer link.
+   *
+   *     1. `2026-08-14T10:30:00.000Z` — **1.07 GB**
+   *        - `a`: 537 MB
+   *        - `b`: 1.5 sec
+   *        - `k8s.pod.name`: `web-1`
+   *
+   * It used to be a table — Timestamp | Metric | Alias | Value, a column
+   * per formula component and one per attribute key — which grew wider
+   * with every attribute and read badly in the email card, in Slack and on
+   * the dashboard (see RootCauseList). Its Metric and Alias columns
+   * repeated the same two values on every row, the ones the Metric
+   * Details list directly above already states, so the list leaves them
+   * out; and a component or attribute a sample has no value for is left
+   * out rather than printed as "-".
    *
    * Timestamps are emitted as inline code wrapping ISO 8601 strings so
    * the client-side markdown viewer can localize them to the viewer's
@@ -1624,16 +1644,14 @@ ${contextBlock}
     samples: Array<MetricBreachingSample>;
     totalSamples?: number | undefined;
     unit: string | null;
-    metricName: string;
     /**
      * The metric name to reason about, or undefined for a formula.
      * See MonitorCriteriaEvaluator.metricNameForUnitHeuristics.
      */
     unitHeuristicMetricName: string | undefined;
-    alias: string;
     components: Array<MetricComponent>;
   }): string {
-    const MAX_ROWS: number = 20;
+    const MAX_SAMPLES_SHOWN: number = 20;
 
     // Sort chronologically and de-duplicate any accidental repeats
     const sorted: Array<MetricBreachingSample> = [...input.samples].sort(
@@ -1646,10 +1664,13 @@ ${contextBlock}
 
     const displayedSamples: Array<MetricBreachingSample> = sorted.slice(
       0,
-      MAX_ROWS,
+      MAX_SAMPLES_SHOWN,
     );
 
-    // Collect attribute keys that appear on any displayed sample
+    /*
+     * Collect attribute keys that appear on any displayed sample, so every
+     * item lists the attributes it has in the same order.
+     */
     const attrKeySet: Set<string> = new Set<string>();
     for (const s of displayedSamples) {
       for (const k of Object.keys(s.attributes || {})) {
@@ -1658,107 +1679,74 @@ ${contextBlock}
     }
     const attrKeys: Array<string> = Array.from(attrKeySet);
 
-    /*
-     * Escape pipe characters that could appear in the metric display
-     * name (formulas like "a | b" are unlikely but possible) so they
-     * don't break GitHub-flavored-markdown tables.
-     */
-    const escapeCell: (value: string) => string = (value: string): string => {
-      return value.replace(/\|/g, "\\|");
-    };
+    const items: Array<RootCauseListItem> = displayedSamples.map(
+      (s: MetricBreachingSample): RootCauseListItem => {
+        const details: Array<RootCauseListDetail> = [];
 
-    /*
-     * Column layout:
-     *   Timestamp | Metric | Alias | Value | <component_1> | ... | <attr_1> | ...
-     *
-     * The component columns let the reader see what each variable of a
-     * formula resolved to at the breach time — e.g. "when c = a + b
-     * breached 100, a was 55, b was 46". They are omitted for plain
-     * metric criteria.
-     */
-    const headerCells: Array<string> = [
-      "Timestamp",
-      "Metric",
-      "Alias",
-      "Value",
-    ];
-
-    /*
-     * The component columns carry no unit in their header any more. Each
-     * cell now names the unit it actually landed on, and auto-scaling
-     * means neighbouring rows can land on different ones — a header that
-     * read "a (By)" over cells reading "900 KB" and "1.2 MB" states a
-     * unit that neither row uses. The configured unit is not lost: the
-     * Components bullet list above the table still records it.
-     */
-    for (const component of input.components) {
-      headerCells.push(component.alias);
-    }
-
-    headerCells.push(...attrKeys);
-
-    const headerRow: string = `| ${headerCells.join(" | ")} |`;
-    const dividerRow: string = `| ${headerCells
-      .map(() => {
-        return "---";
-      })
-      .join(" | ")} |`;
-
-    const metricCell: string = `\`${escapeCell(input.metricName)}\``;
-    const aliasCell: string = input.alias
-      ? `\`${escapeCell(input.alias)}\``
-      : "-";
-
-    const dataRows: Array<string> = displayedSamples.map(
-      (s: MetricBreachingSample) => {
-        const timestampIso: string = new Date(s.timestamp).toISOString();
-        const cells: Array<string> = [
-          `\`${timestampIso}\``,
-          metricCell,
-          aliasCell,
-          MetricValueFormatter.format({
-            value: s.value,
-            unit: input.unit,
-            metricName: input.unitHeuristicMetricName,
-          }),
-        ];
-
+        /*
+         * What each variable of a formula resolved to at the breach time —
+         * e.g. "when c = a + b breached 100, a was 55, b was 46". Absent
+         * for plain metric criteria.
+         */
         for (const component of input.components) {
           const match: MetricComponentValue | undefined = (
             s.componentValues || []
           ).find((cv: MetricComponentValue) => {
             return cv.alias === component.alias;
           });
-          if (match && typeof match.value === "number") {
-            /*
-             * Each component keeps its OWN unit. Component values are
-             * indexed off the per-query series and never go through the
-             * sample→threshold-unit conversion the main Value column
-             * does, so they are in the component's legendUnit — mixing
-             * units across the row is deliberate, and is why every cell
-             * has to say which one it is in.
-             */
-            cells.push(
-              MetricValueFormatter.format({
-                value: match.value,
-                unit: component.unit,
-                metricName:
-                  MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
-                    metricName: component.name,
-                    isFormula: component.isFormula,
-                  }),
-              }),
-            );
-          } else {
-            cells.push("-");
+
+          if (!match || typeof match.value !== "number") {
+            continue;
           }
+
+          /*
+           * Each component keeps its OWN unit. Component values are
+           * indexed off the per-query series and never go through the
+           * sample→threshold-unit conversion the sample's value does, so
+           * they are in the component's legendUnit — which is why each
+           * one names the unit it is in. Its configured unit is in the
+           * Components list of the Metric Details above.
+           */
+          details.push({
+            label: RootCauseList.code(component.alias),
+            value: MetricValueFormatter.format({
+              value: match.value,
+              unit: component.unit,
+              metricName: MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                metricName: component.name,
+                isFormula: component.isFormula,
+              }),
+            }),
+          });
         }
 
+        /*
+         * The attributes identify the series the sample came from. Keys
+         * and values are telemetry, so both go in code spans:
+         * RootCauseList.code keeps whatever they contain inside the span.
+         */
         for (const k of attrKeys) {
           const v: unknown = (s.attributes as Record<string, unknown>)[k];
-          cells.push(v === undefined || v === null ? "-" : String(v));
+
+          if (v === undefined || v === null) {
+            continue;
+          }
+
+          details.push({
+            label: RootCauseList.code(k),
+            value: RootCauseList.code(String(v)),
+          });
         }
-        return `| ${cells.join(" | ")} |`;
+
+        return {
+          title: RootCauseList.code(new Date(s.timestamp).toISOString()),
+          value: `**${MetricValueFormatter.format({
+            value: s.value,
+            unit: input.unit,
+            metricName: input.unitHeuristicMetricName,
+          })}**`,
+          details: details,
+        };
       },
     );
 
@@ -1769,14 +1757,17 @@ ${contextBlock}
         totalSamples: input.totalSamples,
       }),
       "",
-      headerRow,
-      dividerRow,
-      ...dataRows,
+      RootCauseList.render(items),
     ];
 
     if (sorted.length > displayedSamples.length) {
+      /*
+       * The blank line matters: without it the note is a lazy
+       * continuation of the last item, not a paragraph of its own.
+       */
       lines.push(
-        `\n_Showing the first ${displayedSamples.length} of ${sorted.length} breaching samples._`,
+        "",
+        `_Showing the first ${displayedSamples.length} of ${sorted.length} breaching samples._`,
       );
     }
 
@@ -2018,7 +2009,7 @@ ${contextBlock}
   }
 
   /**
-   * The unit for a value in a per-platform "Affected Resources" table.
+   * The unit for a value in a per-platform "Affected Resources" list.
    *
    * These rows are NOT the same numbers as the criteria's breaching
    * samples: the worker collects them with a raw `MetricService.findBy`
@@ -2060,10 +2051,11 @@ ${contextBlock}
   }
 
   /**
-   * Render one cell of a platform breakdown table's Value column.
+   * Render the value of one resource in a platform "Affected Resources"
+   * list.
    *
-   * Bold, because that is how these tables have always drawn the value —
-   * it is the one number in the row a reader scans for.
+   * Bold, because that is how the breakdown has always drawn the value —
+   * it is the one number on the line a reader scans for.
    */
   private static formatPlatformResourceValue(input: {
     platform: "kubernetes" | "proxmox" | "vmware" | "dockerSwarm" | "ceph";
@@ -2078,6 +2070,89 @@ ${contextBlock}
       }),
       metricName: input.metricName,
     })}**`;
+  }
+
+  /*
+   * One Kubernetes resource as an "Affected Resources" list item.
+   *
+   * The item is titled by the most specific object the series names —
+   * container, then pod, then workload, then node, then namespace — because
+   * that is the thing that is actually breaching; everything above it in
+   * the hierarchy is listed underneath as context. A series with no
+   * Kubernetes identity at all is a cluster-level series, so it is titled
+   * by the cluster.
+   *
+   * A container is titled together with its pod. Every replica of a
+   * workload runs a container of the same name, so "Container `checkout`"
+   * alone would title three crash-looping replicas identically and leave
+   * the pod that tells them apart buried in the bullets.
+   */
+  private static getKubernetesAffectedResourceEntry(input: {
+    resource: KubernetesAffectedResource;
+    clusterName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: KubernetesAffectedResource = input.resource;
+
+    // "Deployment", "StatefulSet", ... — the worker only ever sets one of those.
+    const workloadLabel: string = resource.workloadType || "Workload";
+
+    let kind: string = "Cluster";
+    let name: string = AffectedResourceList.code(input.clusterName);
+
+    if (resource.containerName) {
+      kind = "Container";
+      name = resource.podName
+        ? `${AffectedResourceList.code(resource.containerName)} in pod ${AffectedResourceList.code(resource.podName)}`
+        : AffectedResourceList.code(resource.containerName);
+    } else if (resource.podName) {
+      kind = "Pod";
+      name = AffectedResourceList.code(resource.podName);
+    } else if (resource.workloadName) {
+      kind = workloadLabel;
+      name = AffectedResourceList.code(resource.workloadName);
+    } else if (resource.nodeName) {
+      kind = "Node";
+      name = AffectedResourceList.code(resource.nodeName);
+    } else if (resource.namespace) {
+      kind = "Namespace";
+      name = AffectedResourceList.code(resource.namespace);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    if (resource.namespace && kind !== "Namespace") {
+      details.push({
+        label: "Namespace",
+        value: AffectedResourceList.code(resource.namespace),
+      });
+    }
+
+    const titledByWorkload: boolean =
+      !resource.containerName &&
+      !resource.podName &&
+      Boolean(resource.workloadName);
+
+    if (resource.workloadName && !titledByWorkload) {
+      details.push({
+        label: workloadLabel,
+        value: AffectedResourceList.code(resource.workloadName),
+      });
+    }
+
+    if (resource.nodeName && kind !== "Node") {
+      details.push({
+        label: "Node",
+        value: AffectedResourceList.code(resource.nodeName),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
   }
 
   private static async buildKubernetesRootCauseContext(input: {
@@ -2116,8 +2191,6 @@ ${contextBlock}
 
     // Affected resources
     if (breakdown.affectedResources && breakdown.affectedResources.length > 0) {
-      const resourceLines: Array<string> = [];
-
       // Sort by metric value descending (worst first) and filter out zero-value resources
       const sortedResources: Array<KubernetesAffectedResource> = [
         ...breakdown.affectedResources,
@@ -2137,108 +2210,31 @@ ${contextBlock}
 
       // Show top 10 affected resources
       const resourcesToShow: Array<KubernetesAffectedResource> =
-        sortedResources.slice(0, 10);
-
-      // Determine which columns are present across all resources
-      const hasNamespace: boolean = resourcesToShow.some(
-        (r: KubernetesAffectedResource) => {
-          return r.namespace;
-        },
-      );
-      const hasWorkload: boolean = resourcesToShow.some(
-        (r: KubernetesAffectedResource) => {
-          return r.workloadType && r.workloadName;
-        },
-      );
-      const hasPod: boolean = resourcesToShow.some(
-        (r: KubernetesAffectedResource) => {
-          return r.podName;
-        },
-      );
-      const hasContainer: boolean = resourcesToShow.some(
-        (r: KubernetesAffectedResource) => {
-          return r.containerName;
-        },
-      );
-      const hasNode: boolean = resourcesToShow.some(
-        (r: KubernetesAffectedResource) => {
-          return r.nodeName;
-        },
-      );
-
-      // Build table header
-      const headerCells: Array<string> = [];
-      if (hasNamespace) {
-        headerCells.push("Namespace");
-      }
-      if (hasWorkload) {
-        headerCells.push("Workload Type");
-        headerCells.push("Workload");
-      }
-      if (hasPod) {
-        headerCells.push("Pod");
-      }
-      if (hasContainer) {
-        headerCells.push("Container");
-      }
-      if (hasNode) {
-        headerCells.push("Node");
-      }
-      headerCells.push("Value");
-
-      const headerRow: string = `| ${headerCells.join(" | ")} |`;
-      const separatorRow: string = `| ${headerCells
-        .map(() => {
-          return "---";
-        })
-        .join(" | ")} |`;
-
-      resourceLines.push(headerRow);
-      resourceLines.push(separatorRow);
-
-      for (const resource of resourcesToShow) {
-        const cells: Array<string> = [];
-
-        if (hasNamespace) {
-          cells.push(resource.namespace ? `\`${resource.namespace}\`` : "-");
-        }
-        if (hasWorkload) {
-          cells.push(resource.workloadType ? `${resource.workloadType}` : "-");
-          cells.push(
-            resource.workloadName ? `\`${resource.workloadName}\`` : "-",
-          );
-        }
-        if (hasPod) {
-          cells.push(resource.podName ? `\`${resource.podName}\`` : "-");
-        }
-        if (hasContainer) {
-          cells.push(
-            resource.containerName ? `\`${resource.containerName}\`` : "-",
-          );
-        }
-        if (hasNode) {
-          cells.push(resource.nodeName ? `\`${resource.nodeName}\`` : "-");
-        }
-
-        cells.push(
-          MonitorCriteriaEvaluator.formatPlatformResourceValue({
-            platform: "kubernetes",
-            metricName: breakdown.metricName,
-            value: resource.metricValue,
-          }),
-        );
-
-        resourceLines.push(`| ${cells.join(" | ")} |`);
-      }
-
-      if (sortedResources.length > 10) {
-        resourceLines.push(
-          `\n*... and ${sortedResources.length - 10} more affected resources*`,
-        );
-      }
+        sortedResources.slice(0, AffectedResourceList.MAX_ENTRIES);
 
       sections.push(
-        `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+        AffectedResourceList.render({
+          heading: "Affected Resources",
+          overflowNoun: "affected resources",
+          totalCount: sortedResources.length,
+          entries: resourcesToShow.map(
+            (
+              resource: KubernetesAffectedResource,
+            ): AffectedResourceListEntry => {
+              return MonitorCriteriaEvaluator.getKubernetesAffectedResourceEntry(
+                {
+                  resource: resource,
+                  clusterName: breakdown.clusterName,
+                  value: MonitorCriteriaEvaluator.formatPlatformResourceValue({
+                    platform: "kubernetes",
+                    metricName: breakdown.metricName,
+                    value: resource.metricValue,
+                  }),
+                },
+              );
+            },
+          ),
+        }),
       );
 
       // Add root cause analysis based on metric type
@@ -2509,6 +2505,92 @@ ${contextBlock}
     return sections.length > 0 ? sections.join("\n") : null;
   }
 
+  /*
+   * What a Proxmox resource is, from the `pve.type` / `pve.scope` the
+   * agent's transform/pve-identity processor derives from its `id`
+   * (node/…, qemu/…, lxc/…, storage/…, cluster/…). A value that processor
+   * does not produce is shown as it arrived rather than guessed at.
+   */
+  private static getProxmoxAffectedResourceKind(
+    resource: ProxmoxAffectedResource,
+  ): string {
+    switch (resource.resourceType) {
+      case "qemu":
+        return "Virtual Machine";
+      case "lxc":
+        return "Container";
+      case "node":
+        return "Node";
+      case "storage":
+        return "Storage";
+      default:
+        break;
+    }
+
+    switch (resource.scope) {
+      case "guest":
+        return "Guest";
+      case "node":
+        return "Node";
+      case "storage":
+        return "Storage";
+      case "cluster":
+        return "Cluster";
+      default:
+        break;
+    }
+
+    return resource.resourceType || resource.scope || "Resource";
+  }
+
+  /*
+   * One Proxmox resource as an "Affected Resources" list item: its kind,
+   * its name next to its `qemu/100`-style id, and the node it runs on.
+   */
+  private static getProxmoxAffectedResourceEntry(input: {
+    resource: ProxmoxAffectedResource;
+    clusterName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: ProxmoxAffectedResource = input.resource;
+
+    let kind: string =
+      MonitorCriteriaEvaluator.getProxmoxAffectedResourceKind(resource);
+    let name: string = AffectedResourceList.codeWithId({
+      name: resource.resourceName,
+      id: resource.resourceId,
+    });
+
+    if (!name && resource.nodeName) {
+      // A per-node series that carries no id of its own.
+      kind = "Node";
+      name = AffectedResourceList.code(resource.nodeName);
+    }
+
+    if (!name) {
+      // Nothing narrower than the cluster — a cluster-wide series.
+      kind = "Cluster";
+      name = AffectedResourceList.code(input.clusterName);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    // A node's own row would only repeat its name as "Node: …".
+    if (resource.nodeName && kind !== "Node") {
+      details.push({
+        label: "Node",
+        value: AffectedResourceList.code(resource.nodeName),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
   private static buildProxmoxRootCauseContext(input: {
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
@@ -2577,8 +2659,8 @@ ${contextBlock}
       );
     }
 
-    // Affected resources (Resource / Type / Node / Value)
-    let renderedBreakdownTable: boolean = false;
+    // Affected resources: a ranked list of kind, name and node
+    let renderedBreakdownList: boolean = false;
 
     if (breakdown && breakdown.affectedResources.length > 0) {
       /*
@@ -2586,7 +2668,7 @@ ${contextBlock}
        * first, top 10. Note that for availability metrics (pve_up)
        * zero-valued rows ARE the down resources — those still drive
        * alerting through the per-series criteria evaluation; this
-       * table is supplementary context only.
+       * list is supplementary context only.
        */
       const sortedResources: Array<ProxmoxAffectedResource> = [
         ...breakdown.affectedResources,
@@ -2599,7 +2681,7 @@ ${contextBlock}
         });
 
       /*
-       * Skip the table when no row carries any identity label
+       * Skip the list when no row carries any identity label
        * (cluster-wide series) — it would add nothing.
        */
       const hasIdentity: boolean = sortedResources.some(
@@ -2610,55 +2692,41 @@ ${contextBlock}
 
       if (sortedResources.length > 0 && hasIdentity) {
         const resourcesToShow: Array<ProxmoxAffectedResource> =
-          sortedResources.slice(0, 10);
-
-        const resourceLines: Array<string> = [];
-        resourceLines.push(`| Resource | Type | Node | Value |`);
-        resourceLines.push(`| --- | --- | --- | --- |`);
-
-        for (const resource of resourcesToShow) {
-          let resourceCell: string = "-";
-          if (resource.resourceName && resource.resourceId) {
-            resourceCell = `\`${resource.resourceName}\` (\`${resource.resourceId}\`)`;
-          } else if (resource.resourceId) {
-            resourceCell = `\`${resource.resourceId}\``;
-          } else if (resource.resourceName) {
-            resourceCell = `\`${resource.resourceName}\``;
-          }
-
-          const typeCell: string =
-            resource.resourceType || resource.scope || "-";
-          const nodeCell: string = resource.nodeName
-            ? `\`${resource.nodeName}\``
-            : "-";
-
-          resourceLines.push(
-            `| ${resourceCell} | ${typeCell} | ${nodeCell} | ${MonitorCriteriaEvaluator.formatPlatformResourceValue(
-              {
-                platform: "proxmox",
-                metricName: breakdown.metricName,
-                value: resource.metricValue,
-              },
-            )} |`,
-          );
-        }
-
-        if (sortedResources.length > 10) {
-          resourceLines.push(
-            `\n*... and ${sortedResources.length - 10} more affected resources*`,
-          );
-        }
+          sortedResources.slice(0, AffectedResourceList.MAX_ENTRIES);
 
         sections.push(
-          `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+          AffectedResourceList.render({
+            heading: "Affected Resources",
+            overflowNoun: "affected resources",
+            totalCount: sortedResources.length,
+            entries: resourcesToShow.map(
+              (
+                resource: ProxmoxAffectedResource,
+              ): AffectedResourceListEntry => {
+                return MonitorCriteriaEvaluator.getProxmoxAffectedResourceEntry(
+                  {
+                    resource: resource,
+                    clusterName: breakdown.clusterName,
+                    value: MonitorCriteriaEvaluator.formatPlatformResourceValue(
+                      {
+                        platform: "proxmox",
+                        metricName: breakdown.metricName,
+                        value: resource.metricValue,
+                      },
+                    ),
+                  },
+                );
+              },
+            ),
+          }),
         );
-        renderedBreakdownTable = true;
+        renderedBreakdownList = true;
       }
     }
 
-    // Metric results summary (fallback context when no table rendered)
+    // Metric results summary (fallback context when no list rendered)
     if (
-      !renderedBreakdownTable &&
+      !renderedBreakdownList &&
       metricResponse.metricResult &&
       metricResponse.metricResult.length > 0
     ) {
@@ -2684,8 +2752,8 @@ ${contextBlock}
    * Which vSphere object one VMware breakdown row describes, resolved
    * from the identity attributes the vcenter receiver stamped on it —
    * most specific first, in the same order the ingest inventory scan
-   * uses, so the Kind column here and the inventory's `kind` never
-   * disagree about the same series. A VM row carries its parent host
+   * uses, so the kind an Affected Resources item is titled with and the
+   * inventory's `kind` never disagree about the same series. A VM row carries its parent host
    * (and often a resource pool), so the VM check must run before the
    * host and pool checks.
    */
@@ -2717,6 +2785,98 @@ ${contextBlock}
     }
 
     return undefined;
+  }
+
+  /*
+   * One vSphere object as an "Affected Resources" list item, titled by
+   * the object itself, with the ESXi host and cluster it sits under
+   * listed beneath it.
+   */
+  private static getVMwareAffectedResourceEntry(input: {
+    resource: VMwareAffectedResource;
+    vcenterName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: VMwareAffectedResource = input.resource;
+
+    const kind: string | undefined =
+      MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(resource);
+
+    let name: string = "";
+    let showHost: boolean = false;
+
+    switch (kind) {
+      case "Virtual Machine":
+        /*
+         * The VM's display name, falling back to its instance UUID
+         * (`vcenter.vm.id`) when the receiver stamped no name. The Host
+         * detail is the ESXi host the VM is running on.
+         */
+        name = AffectedResourceList.code(resource.vmName || resource.vmId);
+        showHost = true;
+        break;
+      case "Resource Pool":
+        /*
+         * Pool names are only unique within a parent, so the inventory
+         * path is shown next to the name. The Host detail is the owner
+         * host for a pool on a standalone ESXi host (pools under a
+         * cluster show the cluster).
+         */
+        name = AffectedResourceList.codeWithId({
+          name: resource.resourcePoolName,
+          id: resource.resourcePoolPath,
+        });
+        showHost = true;
+        break;
+      case "Host":
+        // The host IS the resource; a "Host:" detail would repeat it.
+        name = AffectedResourceList.code(resource.hostName);
+        break;
+      case "Datastore":
+        name = AffectedResourceList.code(resource.datastoreName);
+        break;
+      case "Cluster":
+        name = AffectedResourceList.code(resource.clusterName);
+        break;
+      case "Datacenter":
+        name = AffectedResourceList.code(resource.datacenterName);
+        break;
+      default:
+        break;
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    if (showHost && resource.hostName) {
+      details.push({
+        label: "Host",
+        value: AffectedResourceList.code(resource.hostName),
+      });
+    }
+
+    if (kind !== "Cluster" && resource.clusterName) {
+      details.push({
+        label: "Cluster",
+        value: AffectedResourceList.code(resource.clusterName),
+      });
+    }
+
+    if (!kind || !name) {
+      // No vSphere identity on the series — it describes the vCenter as a whole.
+      return {
+        kind: "vCenter",
+        name: AffectedResourceList.code(input.vcenterName),
+        value: input.value,
+        details: details,
+      };
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
   }
 
   private static buildVMwareRootCauseContext(input: {
@@ -2802,18 +2962,18 @@ ${contextBlock}
       sections.push(`**vCenter Details**\n${vcenterDetails.join("\n")}`);
     }
 
-    // Affected resources (Resource / Kind / Host / Cluster / Value)
-    let renderedBreakdownTable: boolean = false;
+    // Affected resources: a ranked list of object, host and cluster
+    let renderedBreakdownList: boolean = false;
 
     if (breakdown && breakdown.affectedResources.length > 0) {
       /*
        * K8s/Proxmox-parity render: drop zero-value rows, worst (highest)
        * first, top 10. For count metrics filtered to an unhealthy state
        * (`vcenter.datacenter.host.count{status=red}`) the non-zero rows
-       * ARE the objects with a problem, so the table reads correctly;
+       * ARE the objects with a problem, so the list reads correctly;
        * a zero row means "nothing in that state" and adds nothing. The
        * per-series criteria evaluation is what actually alerts; this
-       * table is supplementary context only.
+       * list is supplementary context only.
        */
       const sortedResources: Array<VMwareAffectedResource> = [
         ...breakdown.affectedResources,
@@ -2826,7 +2986,7 @@ ${contextBlock}
         });
 
       /*
-       * Skip the table when no row carries any identity attribute — it
+       * Skip the list when no row carries any identity attribute — it
        * would add nothing. Every vcenter-receiver series carries at
        * least `vcenter.datacenter.name`, so this only trips on a
        * breakdown the worker could not attribute at all.
@@ -2841,96 +3001,35 @@ ${contextBlock}
 
       if (sortedResources.length > 0 && hasIdentity) {
         const resourcesToShow: Array<VMwareAffectedResource> =
-          sortedResources.slice(0, 10);
-
-        const resourceLines: Array<string> = [];
-        resourceLines.push(`| Resource | Kind | Host | Cluster | Value |`);
-        resourceLines.push(`| --- | --- | --- | --- | --- |`);
-
-        for (const resource of resourcesToShow) {
-          const kind: string | undefined =
-            MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(resource);
-
-          let resourceCell: string = "-";
-          let hostCell: string = "-";
-
-          switch (kind) {
-            case "Virtual Machine":
-              /*
-               * The VM's display name, falling back to its instance
-               * UUID (`vcenter.vm.id`) when the receiver stamped no
-               * name. The Host column carries the ESXi host the VM is
-               * running on.
-               */
-              resourceCell = resource.vmName
-                ? `\`${resource.vmName}\``
-                : `\`${resource.vmId}\``;
-              hostCell = resource.hostName ? `\`${resource.hostName}\`` : "-";
-              break;
-            case "Resource Pool":
-              /*
-               * Pool names are only unique within a parent, so the
-               * inventory path is shown next to the name. The Host
-               * column is the owner host for a pool on a standalone
-               * ESXi host (pools under a cluster show the cluster).
-               */
-              if (resource.resourcePoolName && resource.resourcePoolPath) {
-                resourceCell = `\`${resource.resourcePoolName}\` (\`${resource.resourcePoolPath}\`)`;
-              } else {
-                resourceCell = `\`${resource.resourcePoolPath || resource.resourcePoolName}\``;
-              }
-              hostCell = resource.hostName ? `\`${resource.hostName}\`` : "-";
-              break;
-            case "Host":
-              // The host IS the resource; repeating it in the Host column adds nothing.
-              resourceCell = `\`${resource.hostName}\``;
-              break;
-            case "Datastore":
-              resourceCell = `\`${resource.datastoreName}\``;
-              break;
-            case "Cluster":
-              resourceCell = `\`${resource.clusterName}\``;
-              break;
-            case "Datacenter":
-              resourceCell = `\`${resource.datacenterName}\``;
-              break;
-            default:
-              break;
-          }
-
-          const kindCell: string = kind || "-";
-          const clusterCell: string =
-            kind !== "Cluster" && resource.clusterName
-              ? `\`${resource.clusterName}\``
-              : "-";
-
-          resourceLines.push(
-            `| ${resourceCell} | ${kindCell} | ${hostCell} | ${clusterCell} | ${MonitorCriteriaEvaluator.formatPlatformResourceValue(
-              {
-                platform: "vmware",
-                metricName: breakdown.metricName,
-                value: resource.metricValue,
-              },
-            )} |`,
-          );
-        }
-
-        if (sortedResources.length > 10) {
-          resourceLines.push(
-            `\n*... and ${sortedResources.length - 10} more affected resources*`,
-          );
-        }
+          sortedResources.slice(0, AffectedResourceList.MAX_ENTRIES);
 
         sections.push(
-          `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+          AffectedResourceList.render({
+            heading: "Affected Resources",
+            overflowNoun: "affected resources",
+            totalCount: sortedResources.length,
+            entries: resourcesToShow.map(
+              (resource: VMwareAffectedResource): AffectedResourceListEntry => {
+                return MonitorCriteriaEvaluator.getVMwareAffectedResourceEntry({
+                  resource: resource,
+                  vcenterName: breakdown.vcenterName,
+                  value: MonitorCriteriaEvaluator.formatPlatformResourceValue({
+                    platform: "vmware",
+                    metricName: breakdown.metricName,
+                    value: resource.metricValue,
+                  }),
+                });
+              },
+            ),
+          }),
         );
-        renderedBreakdownTable = true;
+        renderedBreakdownList = true;
       }
     }
 
-    // Metric results summary (fallback context when no table rendered)
+    // Metric results summary (fallback context when no list rendered)
     if (
-      !renderedBreakdownTable &&
+      !renderedBreakdownList &&
       metricResponse.metricResult &&
       metricResponse.metricResult.length > 0
     ) {
@@ -2950,6 +3049,55 @@ ${contextBlock}
     }
 
     return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  /*
+   * One Docker Swarm task as an "Affected Tasks" list item, with the
+   * service it belongs to and the node it is scheduled on beneath it.
+   */
+  private static getDockerSwarmAffectedResourceEntry(input: {
+    resource: DockerSwarmAffectedResource;
+    clusterName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: DockerSwarmAffectedResource = input.resource;
+
+    let kind: string = "Cluster";
+    let name: string = AffectedResourceList.code(input.clusterName);
+
+    if (resource.containerName) {
+      kind = "Task";
+      name = AffectedResourceList.code(resource.containerName);
+    } else if (resource.serviceName) {
+      kind = "Service";
+      name = AffectedResourceList.code(resource.serviceName);
+    } else if (resource.nodeName) {
+      kind = "Node";
+      name = AffectedResourceList.code(resource.nodeName);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    if (resource.serviceName && kind !== "Service") {
+      details.push({
+        label: "Service",
+        value: AffectedResourceList.code(resource.serviceName),
+      });
+    }
+
+    if (resource.nodeName && kind !== "Node") {
+      details.push({
+        label: "Node",
+        value: AffectedResourceList.code(resource.nodeName),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
   }
 
   private static buildDockerSwarmRootCauseContext(input: {
@@ -3020,15 +3168,15 @@ ${contextBlock}
       );
     }
 
-    // Affected resources (Task / Service / Node / Value)
-    let renderedBreakdownTable: boolean = false;
+    // Affected tasks: a ranked list of task, service and node
+    let renderedBreakdownList: boolean = false;
 
     if (breakdown && breakdown.affectedResources.length > 0) {
       /*
        * K8s/Proxmox-parity render: drop zero-value rows, worst (highest)
        * first, top 10. For the task-down template the breaching rows ARE
        * the zero-uptime ones — those still drive alerting through the
-       * per-series criteria evaluation; this table is supplementary
+       * per-series criteria evaluation; this list is supplementary
        * context only.
        */
       const sortedResources: Array<DockerSwarmAffectedResource> = [
@@ -3044,7 +3192,7 @@ ${contextBlock}
         );
 
       /*
-       * Skip the table when no row carries any identity label
+       * Skip the list when no row carries any identity label
        * (cluster-wide series) — it would add nothing.
        */
       const hasIdentity: boolean = sortedResources.some(
@@ -3055,50 +3203,41 @@ ${contextBlock}
 
       if (sortedResources.length > 0 && hasIdentity) {
         const resourcesToShow: Array<DockerSwarmAffectedResource> =
-          sortedResources.slice(0, 10);
-
-        const resourceLines: Array<string> = [];
-        resourceLines.push(`| Task / Container | Service | Node | Value |`);
-        resourceLines.push(`| --- | --- | --- | --- |`);
-
-        for (const resource of resourcesToShow) {
-          const taskCell: string = resource.containerName
-            ? `\`${resource.containerName}\``
-            : "-";
-          const serviceCell: string = resource.serviceName
-            ? `\`${resource.serviceName}\``
-            : "-";
-          const nodeCell: string = resource.nodeName
-            ? `\`${resource.nodeName}\``
-            : "-";
-
-          resourceLines.push(
-            `| ${taskCell} | ${serviceCell} | ${nodeCell} | ${MonitorCriteriaEvaluator.formatPlatformResourceValue(
-              {
-                platform: "dockerSwarm",
-                metricName: breakdown.metricName,
-                value: resource.metricValue,
-              },
-            )} |`,
-          );
-        }
-
-        if (sortedResources.length > 10) {
-          resourceLines.push(
-            `\n*... and ${sortedResources.length - 10} more affected tasks*`,
-          );
-        }
+          sortedResources.slice(0, AffectedResourceList.MAX_ENTRIES);
 
         sections.push(
-          `\n\n**Affected Tasks** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+          AffectedResourceList.render({
+            heading: "Affected Tasks",
+            overflowNoun: "affected tasks",
+            totalCount: sortedResources.length,
+            entries: resourcesToShow.map(
+              (
+                resource: DockerSwarmAffectedResource,
+              ): AffectedResourceListEntry => {
+                return MonitorCriteriaEvaluator.getDockerSwarmAffectedResourceEntry(
+                  {
+                    resource: resource,
+                    clusterName: breakdown.clusterName,
+                    value: MonitorCriteriaEvaluator.formatPlatformResourceValue(
+                      {
+                        platform: "dockerSwarm",
+                        metricName: breakdown.metricName,
+                        value: resource.metricValue,
+                      },
+                    ),
+                  },
+                );
+              },
+            ),
+          }),
         );
-        renderedBreakdownTable = true;
+        renderedBreakdownList = true;
       }
     }
 
-    // Metric results summary (fallback context when no table rendered)
+    // Metric results summary (fallback context when no list rendered)
     if (
-      !renderedBreakdownTable &&
+      !renderedBreakdownList &&
       metricResponse.metricResult &&
       metricResponse.metricResult.length > 0
     ) {
@@ -3121,21 +3260,21 @@ ${contextBlock}
   }
 
   /*
-   * Which rows of the Ceph affected-resources table actually BREACHED.
+   * Which rows of the Ceph affected-resources list actually BREACHED.
    *
    * The blanket `metricValue > 0` below is right for every count- or
    * level-style criteria ("> 0 active health checks", "> 85 % used"), but
    * it is exactly backwards for the availability signals: the OSD Down /
    * OSD Out / Quorum Degraded criteria fire on `< 1` over ceph_osd_up /
    * ceph_osd_in / ceph_mon_quorum_status, so the ZERO rows are the down
-   * daemons. Dropping them rendered a table of the HEALTHY daemons under
+   * daemons. Dropping them rendered a list of the HEALTHY daemons under
    * an incident that tells the reader to "check the root cause for the
    * affected ceph_daemon label".
    *
    * Invert only for a criteria that fires when the metric FALLS.
    * Everything else — every `> 0` health check, PG count, latency and
    * capacity ratio, and every `= 0` recovery criteria — keeps the
-   * existing `> 0`, worst-highest-first table byte for byte.
+   * existing `> 0`, worst-highest-first list byte for byte.
    */
   private static getCephBreachPredicate(
     criteriaInstance?: MonitorCriteriaInstance | undefined,
@@ -3179,6 +3318,85 @@ ${contextBlock}
        * value worst, so "worst first" is ascending here.
        */
       worstIsLowest: true,
+    };
+  }
+
+  /*
+   * One Ceph daemon or pool as an "Affected Resources" list item, with
+   * the pool and host it belongs to beneath it.
+   */
+  private static getCephAffectedResourceEntry(input: {
+    resource: CephAffectedResource;
+    clusterName: string;
+    metricName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: CephAffectedResource = input.resource;
+
+    /*
+     * The worker stores every series' `name` label as poolName, but only
+     * ceph_pool_metadata's `name` is a pool — and that series always
+     * carries pool_id too. On ceph_health_detail, `name` is the health
+     * check (RECENT_CRASH, OSD_NEARFULL, ...), and titling it "Pool" told
+     * the reader a pool called OSD_NEARFULL was the problem. So a name is
+     * treated as a pool only when it arrives with a pool id.
+     */
+    const pool: string = resource.poolId
+      ? AffectedResourceList.codeWithId({
+          name: resource.poolName,
+          id: resource.poolId,
+        })
+      : "";
+
+    const otherName: string = resource.poolId
+      ? ""
+      : AffectedResourceList.code(resource.poolName);
+
+    const otherNameKind: string =
+      input.metricName === "ceph_health_detail" ? "Health Check" : "Resource";
+
+    let kind: string = "Cluster";
+    let name: string = AffectedResourceList.code(input.clusterName);
+
+    if (resource.daemon) {
+      kind = "Daemon";
+      name = AffectedResourceList.code(resource.daemon);
+    } else if (pool) {
+      kind = "Pool";
+      name = pool;
+    } else if (otherName) {
+      kind = otherNameKind;
+      name = otherName;
+    } else if (resource.hostname) {
+      kind = "Host";
+      name = AffectedResourceList.code(resource.hostname);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    if (pool && name !== pool) {
+      details.push({ label: "Pool", value: pool });
+    }
+
+    if (otherName && name !== otherName) {
+      details.push({
+        label: otherNameKind === "Resource" ? "Name" : otherNameKind,
+        value: otherName,
+      });
+    }
+
+    if (resource.hostname && kind !== "Host") {
+      details.push({
+        label: "Host",
+        value: AffectedResourceList.code(resource.hostname),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
     };
   }
 
@@ -3237,8 +3455,8 @@ ${contextBlock}
       sections.push(`**Ceph Cluster Details**\n${clusterDetails.join("\n")}`);
     }
 
-    // Affected resources (Daemon / Pool / Host / Value)
-    let renderedBreakdownTable: boolean = false;
+    // Affected resources: a ranked list of daemon, pool and host
+    let renderedBreakdownList: boolean = false;
 
     if (breakdown && breakdown.affectedResources.length > 0) {
       /*
@@ -3267,7 +3485,7 @@ ${contextBlock}
         });
 
       /*
-       * Skip the table when no row carries any identity label
+       * Skip the list when no row carries any identity label
        * (cluster-wide series like ceph_health_status) — it would add
        * nothing.
        */
@@ -3279,57 +3497,36 @@ ${contextBlock}
 
       if (sortedResources.length > 0 && hasIdentity) {
         const resourcesToShow: Array<CephAffectedResource> =
-          sortedResources.slice(0, 10);
-
-        const resourceLines: Array<string> = [];
-        resourceLines.push(`| Daemon | Pool | Host | Value |`);
-        resourceLines.push(`| --- | --- | --- | --- |`);
-
-        for (const resource of resourcesToShow) {
-          const daemonCell: string = resource.daemon
-            ? `\`${resource.daemon}\``
-            : "-";
-
-          let poolCell: string = "-";
-          if (resource.poolName && resource.poolId) {
-            poolCell = `\`${resource.poolName}\` (\`${resource.poolId}\`)`;
-          } else if (resource.poolName) {
-            poolCell = `\`${resource.poolName}\``;
-          } else if (resource.poolId) {
-            poolCell = `\`${resource.poolId}\``;
-          }
-
-          const hostCell: string = resource.hostname
-            ? `\`${resource.hostname}\``
-            : "-";
-
-          resourceLines.push(
-            `| ${daemonCell} | ${poolCell} | ${hostCell} | ${MonitorCriteriaEvaluator.formatPlatformResourceValue(
-              {
-                platform: "ceph",
-                metricName: breakdown.metricName,
-                value: resource.metricValue,
-              },
-            )} |`,
-          );
-        }
-
-        if (sortedResources.length > 10) {
-          resourceLines.push(
-            `\n*... and ${sortedResources.length - 10} more affected resources*`,
-          );
-        }
+          sortedResources.slice(0, AffectedResourceList.MAX_ENTRIES);
 
         sections.push(
-          `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+          AffectedResourceList.render({
+            heading: "Affected Resources",
+            overflowNoun: "affected resources",
+            totalCount: sortedResources.length,
+            entries: resourcesToShow.map(
+              (resource: CephAffectedResource): AffectedResourceListEntry => {
+                return MonitorCriteriaEvaluator.getCephAffectedResourceEntry({
+                  resource: resource,
+                  clusterName: breakdown.clusterName,
+                  metricName: breakdown.metricName,
+                  value: MonitorCriteriaEvaluator.formatPlatformResourceValue({
+                    platform: "ceph",
+                    metricName: breakdown.metricName,
+                    value: resource.metricValue,
+                  }),
+                });
+              },
+            ),
+          }),
         );
-        renderedBreakdownTable = true;
+        renderedBreakdownList = true;
       }
     }
 
-    // Metric results summary (fallback context when no table rendered)
+    // Metric results summary (fallback context when no list rendered)
     if (
-      !renderedBreakdownTable &&
+      !renderedBreakdownList &&
       metricResponse.metricResult &&
       metricResponse.metricResult.length > 0
     ) {

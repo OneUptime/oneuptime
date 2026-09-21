@@ -498,6 +498,12 @@ import ServiceLevelObjectiveMonitorRuleService, {
 import ServiceLevelObjectiveFeedService, {
   Service as ServiceLevelObjectiveFeedServiceType,
 } from "Common/Server/Services/ServiceLevelObjectiveFeedService";
+import ServiceLevelObjectiveOwnerRuleService, {
+  Service as ServiceLevelObjectiveOwnerRuleServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveOwnerRuleService";
+import ServiceLevelObjectiveLabelRuleService, {
+  Service as ServiceLevelObjectiveLabelRuleServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveLabelRuleService";
 import SloHistoryService, {
   SloHistoryService as SloHistoryServiceType,
 } from "Common/Server/Services/SloHistoryService";
@@ -1231,6 +1237,8 @@ import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/Service
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import ServiceLevelObjectiveFeed from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
+import ServiceLevelObjectiveOwnerRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerRule";
+import ServiceLevelObjectiveLabelRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
@@ -3067,6 +3075,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         ServiceLevelObjectiveFeed,
         ServiceLevelObjectiveFeedService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveOwnerRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveOwnerRule,
+        ServiceLevelObjectiveOwnerRuleServiceType
+      >(
+        ServiceLevelObjectiveOwnerRule,
+        ServiceLevelObjectiveOwnerRuleService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveLabelRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveLabelRule,
+        ServiceLevelObjectiveLabelRuleServiceType
+      >(
+        ServiceLevelObjectiveLabelRule,
+        ServiceLevelObjectiveLabelRuleService,
       ).getRouter(),
     );
 

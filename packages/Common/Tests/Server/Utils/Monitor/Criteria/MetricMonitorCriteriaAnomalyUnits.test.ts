@@ -49,7 +49,7 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  *   "container.memory.usage value 1073741824.000 By is 4.20σ above ..."
  *
  * The quantities in it are now rendered exactly as the Breaching Samples
- * table renders them. σ is NOT one of those quantities: it is a count of
+ * list renders them. σ is NOT one of those quantities: it is a count of
  * standard deviations, dimensionless by construction, and must stay a
  * bare number no matter what unit the metric carries.
  */

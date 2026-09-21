@@ -22,6 +22,11 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v4
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Preinstall 
         uses: nick-fields/retry@v3
         with:
@@ -45,6 +50,11 @@ jobs:
     steps:
       - name: Checkout 
         uses: actions/checkout@v4
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Preinstall 
         uses: nick-fields/retry@v3
@@ -89,6 +99,11 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v4
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Preinstall 
         uses: nick-fields/retry@v3
         with:
@@ -113,6 +128,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Preinstall
         uses: nick-fields/retry@v3
         with:
@@ -136,6 +156,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Preinstall
         uses: nick-fields/retry@v3
         with:
@@ -158,6 +183,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Preinstall
         uses: nick-fields/retry@v3

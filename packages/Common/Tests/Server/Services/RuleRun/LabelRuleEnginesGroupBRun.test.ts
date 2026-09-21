@@ -28,6 +28,10 @@ import ServiceFeedService from "../../../../Server/Services/ServiceFeedService";
 import ServiceLabelRuleEngineService from "../../../../Server/Services/ServiceLabelRuleEngineService";
 import ServiceLabelRuleService from "../../../../Server/Services/ServiceLabelRuleService";
 import ServiceService from "../../../../Server/Services/ServiceService";
+import ServiceLevelObjectiveFeedService from "../../../../Server/Services/ServiceLevelObjectiveFeedService";
+import ServiceLevelObjectiveLabelRuleEngineService from "../../../../Server/Services/ServiceLevelObjectiveLabelRuleEngineService";
+import ServiceLevelObjectiveLabelRuleService from "../../../../Server/Services/ServiceLevelObjectiveLabelRuleService";
+import ServiceLevelObjectiveService from "../../../../Server/Services/ServiceLevelObjectiveService";
 import StatusPageLabelRuleEngineService from "../../../../Server/Services/StatusPageLabelRuleEngineService";
 import StatusPageLabelRuleService from "../../../../Server/Services/StatusPageLabelRuleService";
 import StatusPageService from "../../../../Server/Services/StatusPageService";
@@ -61,6 +65,8 @@ import ServerlessFunction from "../../../../Models/DatabaseModels/ServerlessFunc
 import ServerlessFunctionLabelRule from "../../../../Models/DatabaseModels/ServerlessFunctionLabelRule";
 import Service from "../../../../Models/DatabaseModels/Service";
 import ServiceLabelRule from "../../../../Models/DatabaseModels/ServiceLabelRule";
+import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveLabelRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import StatusPageLabelRule from "../../../../Models/DatabaseModels/StatusPageLabelRule";
 import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
@@ -396,6 +402,47 @@ const cases: Array<LabelEngineCase> = [
         .mockResolvedValue(undefined);
     },
     feedResourceIdKey: "serviceId",
+  }),
+  labelEngineCase<ServiceLevelObjective, ServiceLevelObjectiveLabelRule>({
+    name: "ServiceLevelObjectiveLabelRuleEngineService",
+    engine: ServiceLevelObjectiveLabelRuleEngineService,
+    applyOnCreate: (resource: ServiceLevelObjective): Promise<void> => {
+      return ServiceLevelObjectiveLabelRuleEngineService.applyRulesToServiceLevelObjective(
+        resource,
+      );
+    },
+    ruleService:
+      ServiceLevelObjectiveLabelRuleService as unknown as RuleReadService,
+    resourceService: ServiceLevelObjectiveService as unknown as ResourceService,
+    resourceModel: ServiceLevelObjective,
+    textField: "name",
+    patternField: "serviceLevelObjectiveNamePattern",
+    labelMatchField: "serviceLevelObjectiveLabels",
+    matchesHandedResource: false,
+    syncsInMemoryLabels: true,
+    severity: null,
+    expectedRuleSelect: {
+      _id: true,
+      name: true,
+      criteria: true,
+      serviceLevelObjectiveLabels: { _id: true },
+      serviceLevelObjectiveNamePattern: true,
+      serviceLevelObjectiveDescriptionPattern: true,
+      labelsToAdd: { _id: true },
+    },
+    expectedResourceSelect: IDS_ONLY_RESOURCE_SELECT,
+    mockFeed: (): jest.SpyInstance => {
+      jest
+        .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
+        .mockResolvedValue(MARKDOWN_LINK);
+      return jest
+        .spyOn(
+          ServiceLevelObjectiveFeedService,
+          "createServiceLevelObjectiveFeedItem",
+        )
+        .mockResolvedValue(undefined);
+    },
+    feedResourceIdKey: "serviceLevelObjectiveId",
   }),
   labelEngineCase<StatusPage, StatusPageLabelRule>({
     name: "StatusPageLabelRuleEngineService",
@@ -797,7 +844,7 @@ describe("label rule engines (group B) - applying a rule to existing resources",
       cases.map((c: LabelEngineCase) => {
         return c.name;
       }),
-    ).toHaveLength(11);
+    ).toHaveLength(12);
   });
 
   describe.each(cases)("$name", (c: LabelEngineCase) => {
