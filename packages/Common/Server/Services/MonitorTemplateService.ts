@@ -10,6 +10,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
+import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -116,6 +117,18 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    /*
+     * A template's interval is copied onto every monitor it creates or syncs,
+     * so an unvalidated value here becomes many broken monitors later.
+     */
+    if (createBy.data.monitoringInterval !== undefined) {
+      (createBy.data as unknown as Record<string, unknown>)[
+        "monitoringInterval"
+      ] = MonitoringIntervalValidator.validateAndNormalize(
+        createBy.data.monitoringInterval,
+      );
+    }
+
     this.validateSyncFields(
       createBy.data.monitorSteps,
       createBy.data.monitorType,
@@ -132,6 +145,19 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * Ahead of the early return below: an update that touches only the
+     * interval must still be validated, and key presence is the test for the
+     * same reason it is in MonitorService.onBeforeUpdate.
+     */
+    if (Object.keys(updateBy.data || {}).includes("monitoringInterval")) {
+      (updateBy.data as unknown as Record<string, unknown>)[
+        "monitoringInterval"
+      ] = MonitoringIntervalValidator.validateAndNormalize(
+        updateBy.data.monitoringInterval as string | null | undefined,
+      );
+    }
+
     if (!updateBy.data.monitorSteps && !updateBy.data.monitorType) {
       return { updateBy, carryForward: null };
     }

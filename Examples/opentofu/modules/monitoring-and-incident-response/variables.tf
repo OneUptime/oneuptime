@@ -43,8 +43,8 @@ variable "monitors" {
 
 variable "monitoring_interval" {
   type        = string
-  default     = "Every 1 minute"
-  description = "Default probe interval for monitors that do not set their own monitoring_interval."
+  default     = "* * * * *"
+  description = "Default probe interval for monitors that do not set their own monitoring_interval. A 5-field cron expression - \"* * * * *\" is every minute, \"*/5 * * * *\" every five."
 }
 
 variable "label_color" {

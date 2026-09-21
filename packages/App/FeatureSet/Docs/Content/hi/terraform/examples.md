@@ -218,7 +218,7 @@ resource "oneuptime_monitor" "third_party" {
   name                = "Payment Provider (manual)"
   description         = "Tracked manually during vendor incidents"
   monitor_type        = "Manual"
-  monitoring_interval = "Every 5 minutes"
+  monitoring_interval = "*/5 * * * *"
 }
 ```
 

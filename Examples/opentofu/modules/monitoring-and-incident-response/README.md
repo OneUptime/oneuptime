@@ -51,7 +51,7 @@ If your project renamed them, override `operational_monitor_status_name`, `offli
 |------|------|---------|-------------|
 | `service_name` | `string` | — | **Required.** Names the label, on-call policy, and status page |
 | `monitors` | `map(object)` | — | **Required.** Endpoints to monitor, keyed by a short stable identifier |
-| `monitoring_interval` | `string` | `"Every 1 minute"` | Default probe interval |
+| `monitoring_interval` | `string` | `"* * * * *"` | Default probe interval |
 | `label_color` | `string` | `"#4287f5"` | Hex colour for the created label |
 | `operational_monitor_status_name` | `string` | `"Operational"` | Existing status meaning healthy |
 | `offline_monitor_status_name` | `string` | `"Offline"` | Existing status meaning down |

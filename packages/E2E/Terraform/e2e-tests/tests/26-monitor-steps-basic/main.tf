@@ -48,7 +48,7 @@ resource "oneuptime_monitor" "with_interval" {
   name                = "TF Monitor With Interval ${random_id.suffix.hex}"
   description         = "Monitor with custom monitoring interval"
   monitor_type        = "Manual"
-  monitoring_interval = "Every 5 minutes"
+  monitoring_interval = "*/5 * * * *"
 }
 
 # Test Case 4: Monitor with disable flag

@@ -490,7 +490,8 @@ export default class MonitorTemplate extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Monitoring Interval",
     description:
-      "Default monitoring interval for monitors created from this template",
+      'Default monitoring interval for monitors created from this template. A 5-field cron expression, not a label: "*/5 * * * *" is every five minutes.',
+    example: "*/5 * * * *",
   })
   @Column({
     nullable: true,
