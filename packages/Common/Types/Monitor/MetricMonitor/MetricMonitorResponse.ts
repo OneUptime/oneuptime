@@ -13,7 +13,16 @@ export interface KubernetesAffectedResource {
   containerName?: string | undefined;
   workloadType?: string | undefined;
   workloadName?: string | undefined;
+  /** Highest sample seen for this resource in the monitoring window. */
   metricValue: number;
+  /**
+   * Lowest sample seen for this resource in the monitoring window. A
+   * criteria that fires when the metric FALLS (node Ready = 0, etcd has
+   * leader = 0) breached on this value, not on `metricValue`: a node that
+   * was NotReady for one scrape and Ready for the rest has a highest of 1.
+   * Absent on breakdowns built before this field existed.
+   */
+  lowestMetricValue?: number | undefined;
 }
 
 export interface KubernetesResourceBreakdown {

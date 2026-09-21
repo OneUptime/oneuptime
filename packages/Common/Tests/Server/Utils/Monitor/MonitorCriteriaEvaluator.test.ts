@@ -19,6 +19,10 @@ import {
   getVMwareAlertTemplateById,
   VMwareAlertTemplate,
 } from "../../../../Types/Monitor/VMwareAlertTemplates";
+import {
+  getKubernetesAlertTemplateById,
+  KubernetesAlertTemplate,
+} from "../../../../Types/Monitor/KubernetesAlertTemplates";
 import ObjectID from "../../../../Types/ObjectID";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import {
@@ -68,6 +72,12 @@ type EvaluatorPrivate = {
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
   }) => string | null;
+  buildKubernetesRootCauseContext: (input: {
+    dataToProcess: unknown;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }) => Promise<string | null>;
   buildKubernetesRootCauseAnalysis: (input: {
     breakdown: {
       clusterName: string;
@@ -1106,6 +1116,398 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
 
     expect(context).toContain("| `osd.4` | - | - | **1** |");
     expect(context).not.toContain("osd.3");
+  });
+
+  test("an `= 0` criteria that opens an incident still keeps the `> 0` fallback (only Kubernetes opts in)", () => {
+    /*
+     * Kubernetes treats a FIRING `= 0` as a fall (node Ready = 0). Ceph
+     * must not: every Ceph `= 0` criteria is a recovery, and the shared
+     * predicate only inverts for it when the caller asks.
+     */
+    const firingEqualsZero: MonitorCriteriaInstance = syntheticCriteria([
+      {
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.EqualTo,
+        value: 0,
+      },
+    ]);
+    firingEqualsZero.data!.createIncidents = true;
+    firingEqualsZero.data!.createAlerts = true;
+
+    const context: string | null = cephContext({
+      criteriaInstance: firingEqualsZero,
+      affectedResources: [
+        { daemon: "osd.3", metricValue: 0 },
+        { daemon: "osd.4", metricValue: 1 },
+      ],
+    });
+
+    expect(context).toContain("| `osd.4` | - | - | **1** |");
+    expect(context).not.toContain("osd.3");
+  });
+});
+
+/*
+ * REGRESSION: the Kubernetes "Affected Resources" list named the HEALTHY
+ * resources for criteria that fire when the metric FALLS.
+ *
+ * buildKubernetesRootCauseContext filtered the breakdown with a hardcoded
+ * `metricValue > 0` and sorted highest first. k8s-node-not-ready fires on
+ * `k8s.node.condition_ready = 0` and k8s-etcd-no-leader on
+ * `etcd_server_has_leader = 0`, so the zero rows ARE the breach: the
+ * filter dropped the NotReady node, listed the Ready ones, and the Root
+ * Cause Analysis told the reader "Node `node-ok-1` is reporting NotReady
+ * (value: 1)" and to `kubectl describe node node-ok-1`.
+ *
+ * The worker also kept only the HIGHEST sample per resource, so a node
+ * that was NotReady for one scrape and Ready for the rest reached the
+ * evaluator as 1. It now also records the lowest sample, which is what a
+ * fall criteria breached on.
+ */
+describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => {
+  function kubernetesStep(templateId: string): MonitorStep {
+    const template: KubernetesAlertTemplate | undefined =
+      getKubernetesAlertTemplateById(templateId);
+    if (!template) {
+      throw new Error(`${templateId} template missing`);
+    }
+    return template.getMonitorStep(templateArgs());
+  }
+
+  function criteriaInstances(
+    monitorStep: MonitorStep,
+  ): Array<MonitorCriteriaInstance> {
+    return monitorStep.data!.monitorCriteria!.data!
+      .monitorCriteriaInstanceArray;
+  }
+
+  /** The template's FIRING criteria (the one that opens the incident). */
+  function firingCriteria(monitorStep: MonitorStep): MonitorCriteriaInstance {
+    const instance: MonitorCriteriaInstance | undefined =
+      criteriaInstances(monitorStep)[0];
+    if (!instance) {
+      throw new Error("firing criteria instance missing");
+    }
+    return instance;
+  }
+
+  /** The template's RECOVERY criteria. */
+  function recoveryCriteria(monitorStep: MonitorStep): MonitorCriteriaInstance {
+    const instances: Array<MonitorCriteriaInstance> =
+      criteriaInstances(monitorStep);
+    const instance: MonitorCriteriaInstance | undefined =
+      instances[instances.length - 1];
+    if (!instance) {
+      throw new Error("recovery criteria instance missing");
+    }
+    return instance;
+  }
+
+  function syntheticCriteria(input: {
+    filters: Array<CriteriaFilter>;
+    opensIncident: boolean;
+  }): MonitorCriteriaInstance {
+    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+    instance.data = {
+      monitorStatusId: undefined,
+      filterCondition: FilterCondition.Any,
+      filters: input.filters,
+      incidents: [],
+      alerts: [],
+      name: "synthetic",
+      description: "synthetic",
+      createIncidents: input.opensIncident,
+      createAlerts: input.opensIncident,
+      id: ObjectID.generate().toString(),
+    };
+    return instance;
+  }
+
+  async function kubernetesContext(input: {
+    metricName: string;
+    affectedResources: Array<KubernetesAffectedResource>;
+    monitorStep?: MonitorStep | undefined;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+  }): Promise<string | null> {
+    return Evaluator.buildKubernetesRootCauseContext({
+      dataToProcess: metricResponse({
+        kubernetesResourceBreakdown: {
+          clusterName: "prod-cluster",
+          metricName: input.metricName,
+          metricFriendlyName: "Friendly Name",
+          affectedResources: input.affectedResources,
+          attributes: {},
+        },
+      }),
+      monitorStep: input.monitorStep || kubernetesStep("k8s-node-not-ready"),
+      monitor: new Monitor(),
+      criteriaInstance: input.criteriaInstance,
+    });
+  }
+
+  describe("k8s-node-not-ready", () => {
+    const nodeNotReadyStep: MonitorStep = kubernetesStep("k8s-node-not-ready");
+
+    test("the real firing criteria is an incident-opening `= 0` on the metric value", () => {
+      /*
+       * Guards the fixture: if the template stops firing on `= 0`, the
+       * rest of this suite is testing nothing.
+       */
+      const criteria: MonitorCriteriaInstance =
+        firingCriteria(nodeNotReadyStep);
+      const filters: Array<CriteriaFilter> = criteria.data?.filters || [];
+
+      expect(filters.length).toBeGreaterThan(0);
+      expect(filters[0]!.checkOn).toBe(CheckOn.MetricValue);
+      expect(filters[0]!.filterType).toBe(FilterType.EqualTo);
+      expect(filters[0]!.value).toBe(0);
+      expect(criteria.data?.createIncidents).toBe(true);
+    });
+
+    test("lists only the NotReady node and the analysis names it", async () => {
+      const context: string | null = await kubernetesContext({
+        metricName: "k8s.node.condition_ready",
+        monitorStep: nodeNotReadyStep,
+        criteriaInstance: firingCriteria(nodeNotReadyStep),
+        affectedResources: [
+          // The NotReady node. The old `> 0` filter removed exactly this row.
+          { nodeName: "node-notready", metricValue: 0 },
+          { nodeName: "node-ok-1", metricValue: 1 },
+        ],
+      });
+
+      expect(context).toContain("**Affected Resources** (1 total)");
+      expect(context).toContain("| Node | Value |");
+      expect(context).toContain("| `node-notready` | **0** |");
+      expect(context).toContain(
+        "Node `node-notready` is reporting NotReady (value: 0).",
+      );
+      expect(context).toContain("kubectl describe node node-notready");
+      expect(context).not.toContain("node-ok-1");
+    });
+
+    test("a node that was NotReady for only part of the window is still listed", async () => {
+      /*
+       * The worker's highest sample for a flapping node is 1; its lowest
+       * is the 0 the Min-aggregated criteria actually fired on.
+       */
+      const context: string | null = await kubernetesContext({
+        metricName: "k8s.node.condition_ready",
+        monitorStep: nodeNotReadyStep,
+        criteriaInstance: firingCriteria(nodeNotReadyStep),
+        affectedResources: [
+          { nodeName: "node-ok-1", metricValue: 1, lowestMetricValue: 1 },
+          { nodeName: "node-flapping", metricValue: 1, lowestMetricValue: 0 },
+        ],
+      });
+
+      expect(context).toContain("**Affected Resources** (1 total)");
+      expect(context).toContain("| `node-flapping` | **0** |");
+      expect(context).toContain(
+        "Node `node-flapping` is reporting NotReady (value: 0).",
+      );
+      expect(context).not.toContain("node-ok-1");
+    });
+
+    test("every NotReady node survives the top-10 cap", async () => {
+      const affectedResources: Array<KubernetesAffectedResource> = [
+        { nodeName: "node-down-a", metricValue: 0 },
+        { nodeName: "node-down-b", metricValue: 0 },
+      ];
+
+      /*
+       * Twelve Ready nodes — enough to overflow the ten-row slice if the
+       * predicate ever stops filtering them out.
+       */
+      for (let i: number = 10; i < 22; i++) {
+        affectedResources.push({ nodeName: `node-ok-${i}`, metricValue: 1 });
+      }
+
+      const context: string | null = await kubernetesContext({
+        metricName: "k8s.node.condition_ready",
+        monitorStep: nodeNotReadyStep,
+        criteriaInstance: firingCriteria(nodeNotReadyStep),
+        affectedResources,
+      });
+
+      expect(context).toContain("**Affected Resources** (2 total)");
+      expect(context).toContain("`node-down-a`");
+      expect(context).toContain("`node-down-b`");
+      expect(context).not.toContain("node-ok-");
+      expect(context).not.toContain("*... and");
+    });
+
+    test("the recovery criteria (an upward comparison) keeps the `> 0` fallback", async () => {
+      const context: string | null = await kubernetesContext({
+        metricName: "k8s.node.condition_ready",
+        monitorStep: nodeNotReadyStep,
+        criteriaInstance: recoveryCriteria(nodeNotReadyStep),
+        affectedResources: [
+          { nodeName: "node-notready", metricValue: 0 },
+          { nodeName: "node-ok-1", metricValue: 1 },
+        ],
+      });
+
+      expect(context).toContain("| `node-ok-1` | **1** |");
+      expect(context).not.toContain("node-notready");
+    });
+  });
+
+  test("k8s-etcd-no-leader lists the leaderless member, not the healthy one", async () => {
+    const etcdStep: MonitorStep = kubernetesStep("k8s-etcd-no-leader");
+    const criteria: MonitorCriteriaInstance = firingCriteria(etcdStep);
+
+    // Fixture guard: the real criteria is an incident-opening `= 0`.
+    expect(criteria.data?.filters[0]!.filterType).toBe(FilterType.EqualTo);
+    expect(criteria.data?.filters[0]!.value).toBe(0);
+    expect(criteria.data?.createIncidents).toBe(true);
+
+    const context: string | null = await kubernetesContext({
+      metricName: "etcd_server_has_leader",
+      monitorStep: etcdStep,
+      criteriaInstance: criteria,
+      affectedResources: [
+        { podName: "etcd-cp-1", metricValue: 1 },
+        { podName: "etcd-cp-2", metricValue: 0 },
+      ],
+    });
+
+    expect(context).toContain("**Affected Resources** (1 total)");
+    expect(context).toContain("| `etcd-cp-2` | **0** |");
+    expect(context).toContain("Most affected pod: `etcd-cp-2`");
+    expect(context).not.toContain("etcd-cp-1");
+  });
+
+  test("an `= 0` RECOVERY criteria does NOT turn the all-clear into a table of zeroes", async () => {
+    const replicaStep: MonitorStep = kubernetesStep(
+      "k8s-deployment-replica-mismatch",
+    );
+    const criteria: MonitorCriteriaInstance = recoveryCriteria(replicaStep);
+
+    // Fixture guard: the real recovery is a non-incident `= 0`.
+    expect(criteria.data?.filters[0]!.filterType).toBe(FilterType.EqualTo);
+    expect(criteria.data?.filters[0]!.value).toBe(0);
+    expect(criteria.data?.createIncidents).toBe(false);
+    expect(criteria.data?.createAlerts).toBe(false);
+
+    const context: string | null = await kubernetesContext({
+      metricName: "k8s.deployment.unavailable_replicas",
+      monitorStep: replicaStep,
+      criteriaInstance: criteria,
+      affectedResources: [
+        { workloadType: "Deployment", workloadName: "web", metricValue: 0 },
+        { workloadType: "Deployment", workloadName: "api", metricValue: 0 },
+      ],
+    });
+
+    expect(context).toContain("**Kubernetes Cluster Details**");
+    expect(context).not.toContain("**Affected Resources**");
+    expect(context).not.toContain("**Root Cause Analysis**");
+  });
+
+  test("a `> 0` criteria renders exactly as the hardcoded filter did, on the highest sample", async () => {
+    const replicaStep: MonitorStep = kubernetesStep(
+      "k8s-deployment-replica-mismatch",
+    );
+
+    const context: string | null = await kubernetesContext({
+      metricName: "k8s.deployment.unavailable_replicas",
+      monitorStep: replicaStep,
+      criteriaInstance: firingCriteria(replicaStep),
+      affectedResources: [
+        {
+          workloadType: "Deployment",
+          workloadName: "web",
+          metricValue: 3,
+          lowestMetricValue: 0,
+        },
+        { workloadType: "Deployment", workloadName: "api", metricValue: 5 },
+        { workloadType: "Deployment", workloadName: "ok", metricValue: 0 },
+      ],
+    });
+
+    expect(context).toContain("**Affected Resources** (2 total)");
+    expect(context).toContain("| Deployment | `web` | **3** |");
+    expect(context).toContain("| Deployment | `api` | **5** |");
+    expect(context).not.toContain("`ok`");
+
+    // Still worst-HIGHEST-first for an upward comparison.
+    const apiIndex: number = context!.indexOf("`api`");
+    const webIndex: number = context!.indexOf("`web`");
+    expect(apiIndex).toBeGreaterThan(-1);
+    expect(webIndex).toBeGreaterThan(apiIndex);
+    expect(context).toContain(
+      "Deployment `api` has **5** unavailable replica(s).",
+    );
+  });
+
+  test("a `<` criteria keeps the breaching rows and sorts worst (lowest) first", async () => {
+    const context: string | null = await kubernetesContext({
+      metricName: "k8s.deployment.available",
+      criteriaInstance: syntheticCriteria({
+        opensIncident: true,
+        filters: [
+          {
+            checkOn: CheckOn.MetricValue,
+            filterType: FilterType.LessThan,
+            value: 2,
+          },
+        ],
+      }),
+      affectedResources: [
+        { workloadType: "Deployment", workloadName: "mild", metricValue: 1 },
+        { workloadType: "Deployment", workloadName: "fine", metricValue: 3 },
+        { workloadType: "Deployment", workloadName: "worst", metricValue: 0 },
+      ],
+    });
+
+    expect(context).toContain("**Affected Resources** (2 total)");
+    expect(context).not.toContain("`fine`");
+
+    const worstIndex: number = context!.indexOf("`worst`");
+    const mildIndex: number = context!.indexOf("`mild`");
+    expect(worstIndex).toBeGreaterThan(-1);
+    expect(mildIndex).toBeGreaterThan(worstIndex);
+  });
+
+  test("a firing equality ABOVE the floor keeps the `> 0` fallback", async () => {
+    /*
+     * `= 1` on a 0/1 pressure condition fires when the metric RISES, so
+     * it must not be read as a fall.
+     */
+    const context: string | null = await kubernetesContext({
+      metricName: "k8s.node.condition_memory_pressure",
+      criteriaInstance: syntheticCriteria({
+        opensIncident: true,
+        filters: [
+          {
+            checkOn: CheckOn.MetricValue,
+            filterType: FilterType.EqualTo,
+            value: 1,
+          },
+        ],
+      }),
+      affectedResources: [
+        { nodeName: "node-pressured", metricValue: 1, lowestMetricValue: 0 },
+        { nodeName: "node-ok-1", metricValue: 0 },
+      ],
+    });
+
+    expect(context).toContain("| `node-pressured` | **1** |");
+    expect(context).not.toContain("node-ok-1");
+  });
+
+  test("no criteriaInstance falls back to dropping zero rows", async () => {
+    const context: string | null = await kubernetesContext({
+      metricName: "k8s.node.condition_ready",
+      affectedResources: [
+        { nodeName: "node-notready", metricValue: 0 },
+        { nodeName: "node-ok-1", metricValue: 1 },
+      ],
+    });
+
+    expect(context).toContain("| `node-ok-1` | **1** |");
+    expect(context).not.toContain("node-notready");
   });
 });
 

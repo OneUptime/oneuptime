@@ -1732,10 +1732,17 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
               ? metric.value
               : Number(metric.value) || 0;
 
-          // Keep the highest value per resource
+          /*
+           * Keep both the highest and the lowest value per resource. The
+           * evaluator reads whichever one the matched criteria breached
+           * on: the highest for "> N" criteria, the lowest for criteria
+           * that fire when the metric falls. Keeping only the highest hid
+           * a node that was NotReady (0) at any sample behind its Ready
+           * (1) samples.
+           */
           const existing: KubernetesAffectedResource | undefined =
             affectedResourcesMap.get(resourceKey);
-          if (!existing || metricValue > existing.metricValue) {
+          if (!existing) {
             affectedResourcesMap.set(resourceKey, {
               podName: podName || undefined,
               namespace: namespace || undefined,
@@ -1744,7 +1751,14 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
               workloadType: workloadType || undefined,
               workloadName: workloadName || undefined,
               metricValue: metricValue,
+              lowestMetricValue: metricValue,
             });
+          } else {
+            existing.lowestMetricValue = Math.min(
+              existing.lowestMetricValue ?? existing.metricValue,
+              metricValue,
+            );
+            existing.metricValue = Math.max(existing.metricValue, metricValue);
           }
         }
 
