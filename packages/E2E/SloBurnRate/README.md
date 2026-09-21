@@ -1,7 +1,8 @@
-# SLO Burn Rate Rules fixture
+# SLO Burn Rate Rules and Overview fixture
 
 An offline harness for the real
-`packages/App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules.tsx` page. It bundles the
+`packages/App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules.tsx` page and
+the SLO overview with its production layout and side menu. It bundles the
 production component with esbuild, replaces only the `ModelAPI` / `API` data boundary
 with synthetic records, and serves it on `127.0.0.1:4213`. No Docker, no database, no
 sign-in — so it runs against a branch without touching a shared dev stack.
@@ -16,6 +17,14 @@ settings, prefilled templates and clearing them to use backend defaults,
 create/edit persistence, validation, the conditional step rail, and desktop and
 mobile modal layouts. It also saves rules with either configured output disabled
 and checks that re-enabling it restores its title, description and routing.
+
+`OverviewDetails.spec.ts` checks the Details card above open alerts and incidents
+at desktop widths (1440 and 1280), the single-column tablet/mobile layout (1024
+and 390), empty optional fields, edit/save/cancel, hero refresh after saving, and
+documentation access. It verifies the edit action stays inside the narrow sidebar
+and captures desktop and mobile overview screenshots. The overview route is the
+same URL without `/burn-rate-rules`; add `?details=empty` for blank description
+and labels.
 
 ## Run it
 
