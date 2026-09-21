@@ -30,6 +30,29 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
       APP_TAG: latest
+      # Terraform phones checkpoint-api.hashicorp.com for an update check on
+      # every command; nothing here wants that network call.
+      CHECKPOINT_DISABLE: 1
+      # The engines and the one registry provider the fixtures use, pinned by
+      # the sha256 of the file that gets installed: the terraform/tofu
+      # executable itself (so its release .zip and its .deb package verify
+      # against the same digest), and the provider .zip as each engine's
+      # registry serves it. The digests live here, never fetched from the
+      # release they verify. See "Restore pinned Terraform, OpenTofu and
+      # providers" below for how they are used.
+      TERRAFORM_VERSION: "1.9.8"
+      TERRAFORM_SHA256: "7386e89a97d0f24024955acc79ccf693b75b97f7c6383cb9d966e7d59aa5b223"
+      TOFU_VERSION: "1.12.5"
+      TOFU_SHA256: "36dae7ca1e4f1552a6faef27179dc16ef403203e956f31416c17b3d87a38c3f4"
+      # Must equal RANDOM_PROVIDER_VERSION in
+      # packages/E2E/Terraform/e2e-tests/scripts/run-tests.sh (the harness
+      # self-test fails when they differ). Terraform resolves hashicorp/random
+      # against registry.terraform.io and OpenTofu against
+      # registry.opentofu.org, which serve different builds, so each engine's
+      # copy has its own digest.
+      RANDOM_PROVIDER_VERSION: "3.8.0"
+      RANDOM_PROVIDER_TERRAFORM_REGISTRY_SHA256: "1c56852d094161997df5fd8a6cbca7c6c979b3f8c3c00fbcc374a59305d117b1"
+      RANDOM_PROVIDER_OPENTOFU_REGISTRY_SHA256: "cbb2aa867fd828fcb4125239e00862b9a3bc2f280e945c760224276b476f4c49"
 
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -152,46 +175,118 @@ jobs:
       # opentofu/setup-opentofu install are deliberately avoided: they replace
       # the binary with a script that buffers stdout for step outputs, which
       # breaks the runner's command substitution and `plan -detailed-exitcode`
-      # handling.
+      # handling. With the wrapper disabled those actions do nothing more than
+      # download the release and put it on PATH -- with no retry, which flaked
+      # on a transient `read ECONNRESET` -- so the binaries are installed by
+      # hand below.
       #
-      # The setup actions themselves are NOT used because they download the
-      # binary from an external host with no retry, and that download flakes on
-      # a transient `read ECONNRESET` (this job's most frequent red). Installing
-      # the binary by hand inside nick-fields/retry gives the download the same
-      # resilience the "Start OneUptime services" step already relies on. With
-      # the wrapper disabled the actions did nothing more than this download +
-      # PATH add, so this is a faithful, more durable replacement. The trailing
-      # `version` call makes a truncated/corrupt download fail the attempt and
-      # trigger a retry instead of surfacing later as a confusing error.
-      - name: Setup Terraform
-        uses: nick-fields/retry@v3
+      # Retrying that download was not enough. The OpenTofu release is a
+      # GitHub release asset, and GitHub's release CDN answers 500/504 in
+      # bursts that outlast any retry a step can afford: on 2026-09-21 it was
+      # degraded for 50+ minutes and "Setup OpenTofu" failed on master after
+      # three curl-with-retry attempts (~54s). OpenTofu's copy of
+      # hashicorp/random is served from the same CDN, and tofu's own 2-attempt
+      # (~11s) retry during run-tests.sh's `init` lost to it three times in two
+      # weeks. So this job no longer downloads any of them per run:
+      #
+      #   * Each binary and provider zip is pinned by sha256 in the job env and
+      #     kept in the Actions cache, keyed on those pins. On a hit nothing is
+      #     downloaded at all.
+      #   * On a miss (a pin bump, or an eviction)
+      #     Scripts/GHA/fetch_pinned_artifact.sh fetches each one: the release
+      #     first, then -- for the engines -- the same executable from the
+      #     vendor's package repository, which is not behind GitHub's CDN. It
+      #     backs off exponentially and goes round the sources again after 30s
+      #     and 90s, riding out a burst of several minutes, and installs
+      #     nothing that does not match its pin (a copy restored from the cache
+      #     included).
+      #   * The two random provider zips form a packed provider mirror that
+      #     run-tests.sh points both engines at (TF_E2E_PROVIDER_MIRROR), so
+      #     `init` for hashicorp/random does not reach a registry either.
+      #
+      # Caches written by master runs are visible to pull requests and to the
+      # `release` branch, so a release -- which calls this workflow as a gate
+      # -- restores the copies master already verified.
+      - name: Restore pinned Terraform, OpenTofu and providers from the Actions cache
+        id: pinned-tools-cache
+        uses: actions/cache/restore@v4
         with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            TERRAFORM_VERSION=1.9.8
-            TMP="$(mktemp -d)"
-            curl -fsSL --retry 3 --retry-all-errors -o "$TMP/terraform.zip" \
-              "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
-            unzip -o "$TMP/terraform.zip" -d "$TMP"
-            sudo install -m 0755 "$TMP/terraform" /usr/local/bin/terraform
-            rm -rf "$TMP"
-            terraform version
+          path: ${{ runner.temp }}/terraform-e2e-pinned
+          key: terraform-e2e-pinned-${{ runner.os }}-${{ runner.arch }}-terraform-${{ env.TERRAFORM_VERSION }}-${{ env.TERRAFORM_SHA256 }}-tofu-${{ env.TOFU_VERSION }}-${{ env.TOFU_SHA256 }}-random-${{ env.RANDOM_PROVIDER_VERSION }}-${{ env.RANDOM_PROVIDER_TERRAFORM_REGISTRY_SHA256 }}-${{ env.RANDOM_PROVIDER_OPENTOFU_REGISTRY_SHA256 }}
 
-      - name: Setup OpenTofu
-        uses: nick-fields/retry@v3
+      # Runs on a hit too: a restored copy is only used after it verifies
+      # against its pin, and one that does not is downloaded again.
+      - name: Verify pinned Terraform, OpenTofu and providers, or download them on a cache miss
+        env:
+          PINNED_DIR: ${{ runner.temp }}/terraform-e2e-pinned
+        run: |
+          set -euo pipefail
+          # Every pin above is a linux_amd64 build.
+          if [[ "${RUNNER_OS}/${RUNNER_ARCH}" != "Linux/X64" ]]; then
+            echo "::error title=No pinned Terraform/OpenTofu::this job pins linux_amd64 builds but runs on ${RUNNER_OS}/${RUNNER_ARCH}."
+            exit 1
+          fi
+          FETCH="${GITHUB_WORKSPACE}/Scripts/GHA/fetch_pinned_artifact.sh"
+
+          # HashiCorp's release archive, then the same executable from
+          # HashiCorp's apt repository.
+          bash "$FETCH" --name terraform --sha256 "$TERRAFORM_SHA256" --dest "${PINNED_DIR}/bin" --mode 0755 \
+            --source zip:terraform "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" \
+            --source deb:./usr/bin/terraform "https://apt.releases.hashicorp.com/pool/amd64/main/terraform_${TERRAFORM_VERSION}-1_amd64.deb"
+
+          # The GitHub release, then the same executable from OpenTofu's own
+          # package repository, which does not go through GitHub's CDN.
+          bash "$FETCH" --name tofu --sha256 "$TOFU_SHA256" --dest "${PINNED_DIR}/bin" --mode 0755 \
+            --source zip:tofu "https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_linux_amd64.zip" \
+            --source deb:./usr/bin/tofu "https://packages.opentofu.org/opentofu/tofu/any/pool/any/main/t/tofu/tofu_${TOFU_VERSION}_amd64.deb"
+
+          # hashicorp/random as each engine's registry serves it, laid out as a
+          # packed provider mirror:
+          #   <mirror>/<registry host>/hashicorp/random/terraform-provider-random_<version>_linux_amd64.zip
+          # registry.opentofu.org has no source off GitHub for this build, which
+          # is why the cache, not the download, is what the job relies on.
+          RANDOM_ZIP="terraform-provider-random_${RANDOM_PROVIDER_VERSION}_linux_amd64.zip"
+          bash "$FETCH" --name "$RANDOM_ZIP" --sha256 "$RANDOM_PROVIDER_TERRAFORM_REGISTRY_SHA256" \
+            --dest "${PINNED_DIR}/provider-mirror/registry.terraform.io/hashicorp/random" \
+            --source file "https://releases.hashicorp.com/terraform-provider-random/${RANDOM_PROVIDER_VERSION}/${RANDOM_ZIP}"
+          bash "$FETCH" --name "$RANDOM_ZIP" --sha256 "$RANDOM_PROVIDER_OPENTOFU_REGISTRY_SHA256" \
+            --dest "${PINNED_DIR}/provider-mirror/registry.opentofu.org/hashicorp/random" \
+            --source file "https://github.com/opentofu/terraform-provider-random/releases/download/v${RANDOM_PROVIDER_VERSION}/${RANDOM_ZIP}"
+
+      # Saved straight away rather than by actions/cache's post step, which
+      # only saves when the whole job succeeds: a run that fails later (a
+      # provider regression, a bring-up that gives up) would otherwise never
+      # fill the cache, and the next run would be back on the CDN.
+      - name: Save pinned Terraform, OpenTofu and providers to the Actions cache
+        if: steps.pinned-tools-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
         with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            TOFU_VERSION=1.12.5
-            TMP="$(mktemp -d)"
-            curl -fsSL --retry 3 --retry-all-errors -o "$TMP/tofu.zip" \
-              "https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_linux_amd64.zip"
-            unzip -o "$TMP/tofu.zip" -d "$TMP"
-            sudo install -m 0755 "$TMP/tofu" /usr/local/bin/tofu
-            rm -rf "$TMP"
-            tofu version
+          path: ${{ runner.temp }}/terraform-e2e-pinned
+          key: ${{ steps.pinned-tools-cache.outputs.cache-primary-key }}
+
+      # The real executables, not wrappers (see above). The version check
+      # makes sure these are what PATH resolves to.
+      - name: Install Terraform and OpenTofu
+        env:
+          PINNED_DIR: ${{ runner.temp }}/terraform-e2e-pinned
+        run: |
+          set -euo pipefail
+          sudo install -m 0755 "${PINNED_DIR}/bin/terraform" /usr/local/bin/terraform
+          sudo install -m 0755 "${PINNED_DIR}/bin/tofu" /usr/local/bin/tofu
+          check_version() { # binary expected-first-line
+            local output first
+            # Captured first rather than piped into head, which can SIGPIPE
+            # the binary under pipefail.
+            output="$("$1" version)"
+            echo "$output"
+            first="$(head -n 1 <<<"$output")"
+            if [[ "$first" != "$2" ]]; then
+              echo "::error title=Unexpected $1 on PATH::expected '$2', got '${first}' from $(command -v "$1")"
+              exit 1
+            fi
+          }
+          check_version terraform "Terraform v${TERRAFORM_VERSION}"
+          check_version tofu "OpenTofu v${TOFU_VERSION}"
 
       # Dependencies are installed and the provider is generated BEFORE the
       # OneUptime services stack starts: generation loads the whole codebase
@@ -214,6 +309,16 @@ jobs:
           go mod tidy
           go vet ./...
           go test ./...
+
+      # `npm run dev` runs `npm run prerun`, whose Scripts/Install/configure.sh
+      # renders the Dockerfile templates with gomplate and downloads gomplate
+      # from GitHub's release CDN whenever it is not on PATH -- the same CDN,
+      # with the same bursts, that failed other jobs' gomplate downloads on
+      # 2026-09-21. This puts the pinned, cached copy on PATH first, so
+      # configure.sh skips its download and the bring-up retry below is left
+      # to the flakes it exists for.
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       # Infra bring-up is the only step that legitimately flakes (image pulls,
       # slow service boot), so it is the only step that gets retried. The test
@@ -252,9 +357,13 @@ jobs:
           chmod +x ./packages/E2E/Terraform/e2e-tests/scripts/*.sh
           ./packages/E2E/Terraform/e2e-tests/scripts/setup-test-account.sh
 
+      # TF_E2E_PROVIDER_MIRROR makes run-tests.sh install hashicorp/random from
+      # the pinned mirror staged above instead of the registry; both engine
+      # runs need it.
       - name: Run Terraform E2E tests
         env:
           TF_CLI: terraform
+          TF_E2E_PROVIDER_MIRROR: ${{ runner.temp }}/terraform-e2e-pinned/provider-mirror
         run: ./packages/E2E/Terraform/e2e-tests/scripts/run-tests.sh
 
       # The identical fixtures, re-run against OpenTofu. This is the gate behind
@@ -273,6 +382,7 @@ jobs:
       - name: Run OpenTofu E2E tests
         env:
           TF_CLI: tofu
+          TF_E2E_PROVIDER_MIRROR: ${{ runner.temp }}/terraform-e2e-pinned/provider-mirror
         run: ./packages/E2E/Terraform/e2e-tests/scripts/run-tests.sh
 
       # Coverage ratchet: the suite must exercise at least as many provider
