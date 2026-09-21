@@ -1,3 +1,13 @@
+<%
+    const assets = typeof bookAssets !== 'undefined' && bookAssets ? bookAssets : {
+        css: '/css/books.css',
+        coreJs: '/js/book-reader-core.js',
+        readerJs: '/js/book-reader.js',
+        pageJs: '/js/books.js'
+    };
+    const baseUrl = homeUrl.replace(/\/$/, '');
+    const coverAlt = book.title + ' book cover by ' + book.author;
+-%>
 <!DOCTYPE html>
 <html lang="en" id="books">
 <head>
@@ -6,167 +16,226 @@
     }) -%>
     <title><%= seo.title %></title>
     <meta name="description" content="<%= seo.description %>">
-    <link rel="stylesheet" href="/css/books.css">
+    <link rel="stylesheet" href="<%= assets.css %>">
+    <link rel="preload" as="image" href="<%= book.coverPath %>" fetchpriority="high">
+    <%# The reader's serif loads without blocking the page; the reader waits for it before laying out pages. -%>
+    <link rel="stylesheet" media="print" onload="this.media='all'"
+        href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..700&display=swap">
     <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "Book",
-        "name": "Back to Metal",
-        "alternativeHeadline": "How a company leaves the cloud, one move at a time",
-        "author": { "@type": "Person", "name": "Nawaz Dhandala" },
-        "publisher": { "@type": "Organization", "name": "HackerBay, Inc." },
-        "url": "https://backtometal.oneuptime.com/",
-        "image": "<%= homeUrl.replace(/\/$/, '') %>/img/books/back-to-metal.jpg",
-        "inLanguage": "en",
-        "isAccessibleForFree": true,
-        "license": "https://creativecommons.org/licenses/by/4.0/"
-    }
+    <%- JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Book',
+        name: book.title,
+        alternativeHeadline: book.subtitle,
+        author: { '@type': 'Person', name: book.author },
+        publisher: { '@type': 'Organization', name: book.publisher },
+        url: book.siteUrl,
+        image: baseUrl + book.coverPath,
+        inLanguage: book.language,
+        isAccessibleForFree: true,
+        license: book.license.url,
+        bookFormat: 'https://schema.org/EBook',
+        workExample: [
+            { '@type': 'Book', bookFormat: 'https://schema.org/EBook', encodingFormat: 'application/pdf', url: book.pdfUrl },
+            { '@type': 'Book', bookFormat: 'https://schema.org/EBook', encodingFormat: 'application/epub+zip', url: book.epubUrl }
+        ]
+    }, null, 4).replace(/</g, '\\u003c') %>
     </script>
 </head>
-<body>
+<body class="books-body">
     <%- include('nav') -%>
 
     <main id="main-content" class="books-page" tabindex="-1">
-        <div class="books-container">
-            <section class="books-intro" aria-labelledby="books-heading">
-                <div>
-                    <p class="books-collection-badge"><span class="books-mark" aria-hidden="true"></span> Books from OneUptime</p>
-                    <h1 id="books-heading">Books for people<br> who <span>build.</span></h1>
-                </div>
-                <div class="books-intro-note">
-                    <p>Practical guides to building and running reliable infrastructure.
-                        Written by the people behind OneUptime.</p>
-                </div>
-            </section>
-
-            <article id="featured-book" class="books-feature" aria-labelledby="book-title">
-                <div class="books-feature-grid">
-                    <div class="books-feature-copy">
-                        <p class="books-feature-badge"><span aria-hidden="true"></span> Featured book</p>
-                        <h2 id="book-title">Back to <span>Metal</span></h2>
-                        <p class="books-subtitle">How a company leaves the cloud,<br class="books-desktop-break"> one move at a time</p>
-                        <p class="books-author">By <strong>Nawaz Dhandala</strong><span aria-hidden="true">·</span> From the makers of OneUptime</p>
-                        <p class="books-description">A practical guide to moving from AWS, Google Cloud, or Azure to dedicated servers you rent or own.</p>
-                        <div class="books-actions">
-                            <a href="https://backtometal.oneuptime.com/" class="books-button inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-[15px] font-medium text-white shadow-sm transition-all hover:bg-gray-800">Read the book <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg></span></a>
-                            <a href="#inside-the-book" class="books-text-link books-explore-link">Explore the book <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></span></a>
-                        </div>
-                        <p class="books-free-note"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m5 10 3 3 7-7"/></svg>Free to read. Open to everyone.</p>
-                        <dl class="books-facts">
-                            <div><dt>20</dt><dd>practical moves</dd></div>
-                            <div><dt>5</dt><dd>clear stages</dd></div>
-                            <div><dt>PDF &amp; EPUB</dt><dd>yours to keep</dd></div>
-                        </dl>
+        <section class="books-hero" aria-labelledby="book-title">
+            <div class="books-container books-hero-grid">
+                <div class="books-hero-copy">
+                    <p class="books-kicker">
+                        <span class="books-kicker-mark" aria-hidden="true"></span>
+                        <span>OneUptime Books</span>
+                        <span class="books-kicker-rule" aria-hidden="true"></span>
+                        <span class="books-kicker-number">No. <%= book.collectionNumber %></span>
+                    </p>
+                    <h1 id="book-title" class="books-title"><%= book.titleLead %> <span><%= book.titleAccent %></span></h1>
+                    <p class="books-subtitle"><%= book.subtitle %></p>
+                    <p class="books-byline">By <strong><%= book.author %></strong><span class="books-dot" aria-hidden="true"></span>From the makers of OneUptime</p>
+                    <p class="books-lede"><%= book.description %></p>
+                    <div class="books-actions">
+                        <a href="<%= book.siteUrl %>" data-book-open class="books-button inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-[15px] font-medium text-white shadow-sm transition-all hover:bg-gray-800">Read the book <span aria-hidden="true" class="books-button-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg></span></a>
+                        <a href="#inside-the-book" class="books-text-link books-explore-link">Explore the book <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></span></a>
                     </div>
-                    <div class="books-cover-stage">
-                        <div class="books-cover-label" aria-hidden="true"><span>The OneUptime library</span><span>No. 001</span></div>
-                        <div class="books-cover">
-                            <img src="/img/books/back-to-metal.jpg" alt="Back to Metal book cover by Nawaz Dhandala" width="1600" height="2560" fetchpriority="high">
-                        </div>
-                        <span class="books-cover-caption" aria-hidden="true">Free online. Available in PDF and EPUB.</span>
+                    <div class="books-resume" data-book-resume hidden>
+                        <a href="<%= book.siteUrl %>" data-book-open class="books-resume-link">
+                            <span class="books-resume-meter" aria-hidden="true"><span data-book-resume-progress></span></span>
+                            <span class="books-resume-text"><span class="books-resume-label">Continue reading</span> <span data-book-resume-label></span></span>
+                        </a>
+                        <a href="<%= book.siteUrl %>" data-book-open data-book-start class="books-resume-restart">Start from the beginning</a>
                     </div>
+                    <p class="books-free-note"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m5 10 3 3 7-7"/></svg>Free to read. Open to everyone.</p>
                 </div>
-            </article>
 
-            <section id="inside-the-book" class="books-inside" aria-labelledby="books-inside-heading">
+                <div class="books-hero-stage">
+                    <a href="<%= book.siteUrl %>" data-book-open data-book-object class="books-object" aria-label="Open <%= book.title %> and start reading">
+                        <span class="books-object-shadow" aria-hidden="true"></span>
+                        <span class="books-object-book">
+                            <span class="books-object-face books-object-back" aria-hidden="true"></span>
+                            <span class="books-object-face books-object-spine" aria-hidden="true">
+                                <span class="books-object-spine-title"><%= book.titleLead %> <em><%= book.titleAccent %></em></span>
+                                <span class="books-object-spine-author"><%= book.author %></span>
+                            </span>
+                            <span class="books-object-face books-object-edge books-object-edge--side" aria-hidden="true"></span>
+                            <span class="books-object-face books-object-edge books-object-edge--top" aria-hidden="true"></span>
+                            <span class="books-object-face books-object-edge books-object-edge--bottom" aria-hidden="true"></span>
+                            <span class="books-object-face books-object-firstpage" aria-hidden="true">
+                                <span class="books-object-firstpage-title"><%= book.title %></span>
+                                <span class="books-object-firstpage-subtitle"><%= book.subtitle %></span>
+                                <span class="books-object-firstpage-author"><%= book.author %></span>
+                            </span>
+                            <span class="books-object-face books-object-cover">
+                                <img data-book-cover src="<%= book.coverPath %>" alt="<%= coverAlt %>" width="<%= book.coverWidth %>" height="<%= book.coverHeight %>" fetchpriority="high" draggable="false">
+                                <span class="books-object-sheen" aria-hidden="true"></span>
+                                <span class="books-object-cover-inside" aria-hidden="true"></span>
+                            </span>
+                        </span>
+                    </a>
+                    <p class="books-object-caption" aria-hidden="true"><span class="books-object-caption-dot"></span>Open it. The pages turn.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="books-glance" aria-label="<%= book.title %> at a glance">
+            <dl class="books-container books-facts">
+                <% book.facts.forEach(function (fact) { -%>
+                <div class="books-fact">
+                    <dt><%= fact.value %></dt>
+                    <dd><%= fact.label %></dd>
+                </div>
+                <% }) -%>
+            </dl>
+        </section>
+
+        <section class="books-excerpt" aria-labelledby="books-excerpt-heading">
+            <div class="books-container books-excerpt-grid">
+                <div class="books-excerpt-aside">
+                    <p class="books-eyebrow">From the opening pages</p>
+                    <p class="books-excerpt-source"><%= book.excerpt.source.title %></p>
+                </div>
+                <figure class="books-excerpt-body">
+                    <h2 id="books-excerpt-heading" class="books-excerpt-heading">&ldquo;<%= book.excerpt.heading %>.&rdquo;</h2>
+                    <blockquote>
+                        <% book.excerpt.paragraphs.forEach(function (paragraph) { -%>
+                        <p><%= paragraph %></p>
+                        <% }) -%>
+                    </blockquote>
+                    <figcaption>
+                        <a href="<%= book.excerpt.source.webUrl %>" data-book-open data-book-section="<%= book.excerpt.source.sectionId %>" class="books-text-link">Keep reading &ldquo;<%= book.excerpt.source.title %>&rdquo; <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg></span></a>
+                    </figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <section id="inside-the-book" class="books-contents" aria-labelledby="books-contents-heading">
+            <div class="books-container">
                 <div class="books-section-heading">
                     <div>
-                        <p class="books-eyebrow">Inside Back to Metal</p>
-                        <h2 id="books-inside-heading">A path from cloud to metal.</h2>
+                        <p class="books-eyebrow">Inside <%= book.title %></p>
+                        <h2 id="books-contents-heading">Five stages. Twenty moves.</h2>
                     </div>
-                    <p>The economics. The hardware. The migration. The reality of running it all. Start with a chapter from each of the book’s five stages.</p>
-                    <span class="books-section-note">5 stages. 20 practical moves.</span>
+                    <p>The economics. The hardware. The migration. The reality of running it all. Every move is one job, with an estimated cutover, a stated risk and explicit limits on reversal. Open any of them to start reading there.</p>
                 </div>
-                <ol class="books-chapters">
-                    <li>
-                        <a href="https://backtometal.oneuptime.com/m/01-the-bill-and-the-three-lines-that-are-most-of-it.html">
-                            <span class="books-chapter-number" aria-hidden="true">01</span>
-                            <div class="books-chapter-body">
-                                <span class="books-chapter-stage">Decide <span aria-hidden="true">/</span> Move 01</span>
-                                <h3>The bill, and the three lines that are most of it</h3>
-                            </div>
-                            <p>Understand the bill before you change the infrastructure.</p>
-                            <span class="books-chapter-arrow" aria-hidden="true">↗</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://backtometal.oneuptime.com/m/07-a-cage-not-a-data-centre.html">
-                            <span class="books-chapter-number" aria-hidden="true">02</span>
-                            <div class="books-chapter-body">
-                                <span class="books-chapter-stage">Buy <span aria-hidden="true">/</span> Move 07</span>
-                                <h3>A cage, not a data centre</h3>
-                            </div>
-                            <p>Get to know the physical home of your next platform.</p>
-                            <span class="books-chapter-arrow" aria-hidden="true">↗</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://backtometal.oneuptime.com/m/11-the-platform-your-workloads-need.html">
-                            <span class="books-chapter-number" aria-hidden="true">03</span>
-                            <div class="books-chapter-body">
-                                <span class="books-chapter-stage">Build <span aria-hidden="true">/</span> Move 11</span>
-                                <h3>The platform your workloads need</h3>
-                            </div>
-                            <p>Shape a platform around the workloads you actually run.</p>
-                            <span class="books-chapter-arrow" aria-hidden="true">↗</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://backtometal.oneuptime.com/m/16-postgres-the-one-that-matters.html">
-                            <span class="books-chapter-number" aria-hidden="true">04</span>
-                            <div class="books-chapter-body">
-                                <span class="books-chapter-stage">Move <span aria-hidden="true">/</span> Move 16</span>
-                                <h3>Postgres, the one that matters</h3>
-                            </div>
-                            <p>Work through the cutover of your most important data.</p>
-                            <span class="books-chapter-arrow" aria-hidden="true">↗</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://backtometal.oneuptime.com/m/19-backups-you-have-restored-and-the-pager.html">
-                            <span class="books-chapter-number" aria-hidden="true">05</span>
-                            <div class="books-chapter-body">
-                                <span class="books-chapter-stage">Run <span aria-hidden="true">/</span> Move 19</span>
-                                <h3>Backups you have restored, and the pager</h3>
-                            </div>
-                            <p>Turn a successful migration into a platform you can operate.</p>
-                            <span class="books-chapter-arrow" aria-hidden="true">↗</span>
-                        </a>
-                    </li>
-                </ol>
-            </section>
 
-            <section id="reading-formats" class="books-formats" aria-labelledby="books-formats-heading">
-                <div class="books-formats-intro">
-                    <p class="books-eyebrow">Your next chapter</p>
-                    <h2 id="books-formats-heading">Read it your way</h2>
-                    <p>Read the complete book online, or download a free copy for your preferred device.</p>
+                <div class="books-prelude">
+                    <p class="books-prelude-label">Before the first move</p>
+                    <ul class="books-prelude-list">
+                        <% book.frontMatter.forEach(function (chapter) { -%>
+                        <li><a href="<%= chapter.webUrl %>" data-book-open data-book-section="<%= chapter.sectionId %>"><%= chapter.title %></a></li>
+                        <% }) -%>
+                    </ul>
                 </div>
-                <div class="books-format-links">
-                    <a href="https://backtometal.oneuptime.com/">
-                        <span class="books-format-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></svg></span>
-                        <span><strong>Read online</strong><span>The complete book, in your browser</span></span>
-                        <span aria-hidden="true">↗</span>
-                    </a>
-                    <a href="https://backtometal.oneuptime.com/Back-to-Metal.pdf">
-                        <span class="books-format-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h6"/></svg></span>
-                        <span><strong>Download PDF</strong><span>Save a copy for reading offline</span></span>
-                        <span aria-hidden="true">↓</span>
-                    </a>
-                    <a href="https://backtometal.oneuptime.com/Back-to-Metal.epub">
-                        <span class="books-format-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h5M11 18h2"/></svg></span>
-                        <span><strong>Download EPUB</strong><span>Take it with you on your e-reader</span></span>
-                        <span aria-hidden="true">↓</span>
-                    </a>
+
+                <ol class="books-stages">
+                    <% book.stages.forEach(function (stage) { -%>
+                    <li class="books-stage" style="--stage: <%= stage.number %>">
+                        <div class="books-stage-head">
+                            <p class="books-stage-number"><span>Stage <%= stage.number %></span><span class="books-stage-range" aria-hidden="true"><%= stage.moves[0].number %>&ndash;<%= stage.moves[stage.moves.length - 1].number %></span></p>
+                            <h3><%= stage.name %></h3>
+                            <p class="books-stage-summary"><%= stage.summary %></p>
+                            <p class="books-stage-done"><span>Done when</span> <%= stage.doneWhen %></p>
+                        </div>
+                        <ol class="books-moves">
+                            <% stage.moves.forEach(function (move) { -%>
+                            <li>
+                                <a href="<%= move.webUrl %>" data-book-open data-book-section="<%= move.sectionId %>" class="books-move">
+                                    <span class="books-move-number" aria-hidden="true"><%= move.number %></span>
+                                    <span class="books-move-body">
+                                        <span class="books-move-stage"><%= stage.name %> <span aria-hidden="true">/</span> Move <%= move.number %></span>
+                                        <span class="books-move-title"><%= move.title %></span>
+                                    </span>
+                                    <span class="books-move-cta" aria-hidden="true">Read <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg></span>
+                                </a>
+                            </li>
+                            <% }) -%>
+                        </ol>
+                    </li>
+                    <% }) -%>
+                </ol>
+
+                <div class="books-prelude books-prelude--after">
+                    <p class="books-prelude-label">After the last move</p>
+                    <ul class="books-prelude-list">
+                        <% book.backMatter.forEach(function (chapter) { -%>
+                        <li><a href="<%= chapter.webUrl %>" data-book-open data-book-section="<%= chapter.sectionId %>"><%= chapter.title %></a></li>
+                        <% }) -%>
+                    </ul>
                 </div>
-            </section>
-            <div class="books-colophon">
-                <p>Knowledge is better when it’s shared.</p>
-                <a href="https://backtometal.oneuptime.com/about.html" class="books-text-link">About the book &amp; its open license <span aria-hidden="true">↗</span></a>
             </div>
+        </section>
+
+        <section id="reading-formats" class="books-formats" aria-labelledby="books-formats-heading">
+            <div class="books-container">
+                <div class="books-formats-panel">
+                    <div class="books-formats-intro">
+                        <p class="books-eyebrow">Your next chapter</p>
+                        <h2 id="books-formats-heading">Read it your way</h2>
+                        <p>Turn the pages right here, read the complete book on its own website, or download a free copy for your preferred device.</p>
+                    </div>
+                    <div class="books-format-links">
+                        <a href="<%= book.siteUrl %>" data-book-open class="books-format books-format--here">
+                            <span class="books-format-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13"/></svg></span>
+                            <span class="books-format-text"><strong>Read it here</strong><span>Open the book on this page and turn its pages</span></span>
+                            <span class="books-format-arrow" aria-hidden="true">&rarr;</span>
+                        </a>
+                        <a href="<%= book.siteUrl %>" class="books-format">
+                            <span class="books-format-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></svg></span>
+                            <span class="books-format-text"><strong>Read online</strong><span>The complete book, on its own website</span></span>
+                            <span class="books-format-arrow" aria-hidden="true">&nearr;</span>
+                        </a>
+                        <a href="<%= book.pdfUrl %>" class="books-format">
+                            <span class="books-format-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h6"/></svg></span>
+                            <span class="books-format-text"><strong>Download PDF</strong><span>Save a copy for reading offline</span></span>
+                            <span class="books-format-arrow" aria-hidden="true">&darr;</span>
+                        </a>
+                        <a href="<%= book.epubUrl %>" class="books-format">
+                            <span class="books-format-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h5M11 18h2"/></svg></span>
+                            <span class="books-format-text"><strong>Download EPUB</strong><span>Take it with you on your e-reader</span></span>
+                            <span class="books-format-arrow" aria-hidden="true">&darr;</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="books-container books-colophon">
+            <p>Knowledge is better when it&rsquo;s shared. <%= book.title %> is free under <a href="<%= book.license.url %>" class="books-inline-link"><%= book.license.name %></a>, and its <a href="<%= book.sourceUrl %>" class="books-inline-link">source is on GitHub</a>.</p>
+            <a href="<%= book.aboutUrl %>" class="books-text-link">About the book &amp; its open license <span aria-hidden="true">&nearr;</span></a>
         </div>
     </main>
 
+    <%- include('Partials/books/reader', { book: book }) -%>
+
     <%- include('footer') -%>
+
+    <script src="<%= assets.coreJs %>" defer></script>
+    <script src="<%= assets.readerJs %>" defer></script>
+    <script src="<%= assets.pageJs %>" defer></script>
 </body>
 </html>
