@@ -1,4 +1,4 @@
-import React, { ReactElement } from "react";
+import React, { ReactElement, useCallback } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
@@ -6,7 +6,6 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
@@ -17,6 +16,15 @@ import User from "Common/Models/DatabaseModels/User";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedOptions, {
+  UseFeedOptionsResult,
+} from "Common/UI/Components/Feed/useFeedOptions";
+import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import {
+  GetFeedEventTypeIconFunction,
+  getFeedEventTypeQuery,
+  getFeedNoItemsMessage,
+} from "Common/UI/Components/Feed/FeedOptions";
 
 /*
  * Every infrastructure and catalog resource feed - Kubernetes clusters, Docker
@@ -24,9 +32,10 @@ import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
  * resources and catalog services - and the SLO feed store the same shape:
  * markdown, a colour, the acting user and a posted-at. Only the two column
  * names differ (the foreign key back to the resource, and the event type
- * column), so the whole feed page is one component parameterised by those two
- * names rather than eleven copies that drift apart. A feed whose events the
- * shared icon rules do not cover passes its own `getIcon`.
+ * column), along with the list of event types the Filter & Sort checklist
+ * offers, so the whole feed page is one component parameterised by those
+ * rather than eleven copies that drift apart. A feed whose events the shared
+ * icon rules do not cover passes its own `getIcon`.
  */
 export interface ResourceFeedModel extends BaseModel {
   feedInfoInMarkdown?: string | undefined;
@@ -43,6 +52,12 @@ export interface ComponentProps<TFeedModel extends ResourceFeedModel> {
   resourceId: ObjectID;
   /** Event type column on the feed table, e.g. "kubernetesClusterFeedEventType". */
   eventTypeColumn: string;
+  /**
+   * Every value of the feed model's event type enum, e.g.
+   * Object.values(KubernetesClusterFeedEventType) - the Filter & Sort
+   * checklist.
+   */
+  eventTypes: Array<string>;
   title: string;
   description: string;
   noItemsMessage: string;
@@ -153,6 +168,27 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
     };
   };
 
+  /*
+   * The checklist behind Filter & Sort shows each event type with the icon
+   * its items carry. Memoised so the checklist is not rebuilt on every render.
+   */
+  const getEventTypeIcon: GetFeedEventTypeIconFunction = useCallback(
+    (eventType: string): IconProp => {
+      return resolveResourceFeedIcon({
+        eventType: eventType,
+        getIcon: props.getIcon,
+      });
+    },
+    [props.getIcon],
+  );
+
+  const feedOptions: UseFeedOptionsResult = useFeedOptions({
+    eventTypes: props.eventTypes,
+    getEventTypeIcon: getEventTypeIcon,
+    storageKey: props.eventTypeColumn,
+    resetKey: props.resourceId.toString(),
+  });
+
   const {
     feedItems,
     isLoading,
@@ -165,6 +201,7 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
     loadMore,
   } = useFeedItems<TFeedModel>({
     resourceKey: props.resourceId.toString(),
+    viewKey: feedOptions.optionsKey,
     getItems: async (limit: number): Promise<ListResult<TFeedModel>> => {
       return await ModelAPI.getList<TFeedModel>({
         modelType: props.modelType,
@@ -175,6 +212,10 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
          */
         query: {
           [props.resourceIdColumn]: props.resourceId,
+          ...getFeedEventTypeQuery<TFeedModel>(
+            props.eventTypeColumn as Extract<keyof TFeedModel, string>,
+            feedOptions.options,
+          ),
         } as unknown as Query<TFeedModel>,
         select: {
           moreInformationInMarkdown: true,
@@ -191,7 +232,7 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
         } as unknown as Select<TFeedModel>,
         skip: 0,
         sort: {
-          postedAt: SortOrder.Descending,
+          postedAt: feedOptions.options.sortOrder,
         },
         limit,
       });
@@ -208,6 +249,12 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
       title={props.title}
       description={props.description}
       buttons={[
+        <FeedOptionsButton
+          key="resource-feed-options"
+          value={feedOptions.options}
+          eventTypeOptions={feedOptions.eventTypeOptions}
+          onChange={feedOptions.setOptions}
+        />,
         {
           title: "Refresh",
           buttonStyle: ButtonStyleType.ICON,
@@ -224,7 +271,10 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
         {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
-            noItemsMessage={props.noItemsMessage}
+            noItemsMessage={getFeedNoItemsMessage({
+              options: feedOptions.options,
+              noItemsMessage: props.noItemsMessage,
+            })}
             hasMore={hasMore}
             isLoadingMore={isLoadingMore}
             onMore={loadMore}

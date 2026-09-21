@@ -10,7 +10,6 @@ import ScheduledMaintenanceFeed, {
 } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -27,6 +26,14 @@ import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedOptions, {
+  UseFeedOptionsResult,
+} from "Common/UI/Components/Feed/useFeedOptions";
+import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import {
+  getFeedEventTypeQuery,
+  getFeedNoItemsMessage,
+} from "Common/UI/Components/Feed/FeedOptions";
 import RunbookPicker from "../Runbook/RunbookPicker";
 
 export interface ComponentProps {
@@ -41,7 +48,9 @@ export interface ComponentProps {
 /*
  * One icon per event type. A Record (rather than a chain of ifs) makes the
  * compiler flag a new event type that has no icon, instead of it quietly
- * falling back to a plain circle.
+ * falling back to a plain circle. It is shared by the feed items and the
+ * event type checklist behind the Filter & Sort button, so the two always
+ * match.
  */
 export const SCHEDULED_MAINTENANCE_FEED_ICONS: Record<
   ScheduledMaintenanceFeedEventType,
@@ -81,6 +90,15 @@ export const getScheduledMaintenanceFeedIcon: (
 
   // Rows written by a newer server can carry a type this build does not know.
   return SCHEDULED_MAINTENANCE_FEED_ICONS[eventType] || IconProp.Circle;
+};
+
+// The checklist hands over plain strings rather than the enum.
+export const getScheduledMaintenanceFeedEventIcon: (
+  eventType: string,
+) => IconProp = (eventType: string): IconProp => {
+  return getScheduledMaintenanceFeedIcon(
+    eventType as ScheduledMaintenanceFeedEventType,
+  );
 };
 
 const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
@@ -136,6 +154,13 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
       };
     };
 
+  const feedOptions: UseFeedOptionsResult = useFeedOptions({
+    eventTypes: Object.values(ScheduledMaintenanceFeedEventType),
+    getEventTypeIcon: getScheduledMaintenanceFeedEventIcon,
+    storageKey: "scheduled-maintenance",
+    resetKey: props.scheduledMaintenanceId.toString(),
+  });
+
   const {
     feedItems,
     isLoading,
@@ -149,6 +174,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<ScheduledMaintenanceFeed>({
     resourceKey: props.scheduledMaintenanceId.toString(),
+    viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
     getItems: async (
       limit: number,
@@ -157,6 +183,10 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         modelType: ScheduledMaintenanceFeed,
         query: {
           scheduledMaintenanceId: props.scheduledMaintenanceId!,
+          ...getFeedEventTypeQuery<ScheduledMaintenanceFeed>(
+            "scheduledMaintenanceFeedEventType",
+            feedOptions.options,
+          ),
         },
         select: {
           moreInformationInMarkdown: true,
@@ -173,7 +203,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         },
         skip: 0,
         sort: {
-          postedAt: SortOrder.Descending,
+          postedAt: feedOptions.options.sortOrder,
         },
         limit,
       });
@@ -188,6 +218,12 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         "This is the timeline and feed for this scheduled maintenance. You can see all the updates and information about this scheduled maintenance here."
       }
       buttons={[
+        <FeedOptionsButton
+          key="scheduled-maintenance-feed-options"
+          value={feedOptions.options}
+          eventTypeOptions={feedOptions.eventTypeOptions}
+          onChange={feedOptions.setOptions}
+        />,
         <MoreMenu
           key="scheduled-maintenance-feed-actions-menu"
           elementToBeShownInsteadOfButton={
@@ -242,7 +278,11 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
-            noItemsMessage="Looks like there are no items in this feed for this scheduled maintenance."
+            noItemsMessage={getFeedNoItemsMessage({
+              options: feedOptions.options,
+              noItemsMessage:
+                "Looks like there are no items in this feed for this scheduled maintenance.",
+            })}
             hasMore={hasMore}
             isLoadingMore={isLoadingMore}
             onMore={loadMore}

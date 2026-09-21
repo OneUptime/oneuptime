@@ -1,7 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import ResourceFeed from "../../../Components/ResourceFeed/ResourceFeed";
 import ObjectID from "Common/Types/ObjectID";
-import HostFeed from "Common/Models/DatabaseModels/HostFeed";
+import HostFeed, {
+  HostFeedEventType,
+} from "Common/Models/DatabaseModels/HostFeed";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -16,6 +18,7 @@ const HostFeedPage: FunctionComponent<
       resourceIdColumn="hostId"
       resourceId={modelId}
       eventTypeColumn="hostFeedEventType"
+      eventTypes={Object.values(HostFeedEventType)}
       title="Host Feed"
       description="Everything that has happened to this host - how and why it was created, who owns it, and every change since."
       noItemsMessage="No activity has been recorded for this host yet."

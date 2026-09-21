@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -105,6 +112,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptions";
 
 interface RenderedFeedItem {
   key: string;
@@ -204,6 +212,15 @@ async function chooseAction(text: string): Promise<void> {
   await flush();
 }
 
+/*
+ * The feed opens in the sort order the reader last chose, read from
+ * localStorage on mount, so one test's choice must not reorder the next
+ * test's requests.
+ */
+beforeEach(() => {
+  window.localStorage.clear();
+});
+
 afterEach(() => {
   cleanup();
   getListMock.mockReset();
@@ -277,6 +294,40 @@ describe("ScheduledMaintenanceFeedElement refresh", () => {
     expect(getListMock).toHaveBeenCalledTimes(2);
     expect(screen.getByText("Changed to Ongoing")).toBeInTheDocument();
     expect(lastRenderedItems()[0]!.icon).toBe(IconProp.ArrowCircleRight);
+  });
+
+  /*
+   * The refresh after a state change re-reads the view the reader is looking
+   * at. A reader who keeps this feed oldest first must not see it flip back
+   * to newest first because the page asked for a refresh.
+   */
+  test("a new refreshToken re-reads the feed in the reader's remembered order", async () => {
+    window.localStorage.setItem(
+      getSortOrderStorageKey("scheduled-maintenance"),
+      SortOrder.Ascending,
+    );
+    getListMock.mockResolvedValue(listResult([]) as never);
+
+    const view: RenderResult = renderFeed(0);
+    await flush();
+
+    view.rerender(
+      <ScheduledMaintenanceFeedElement
+        scheduledMaintenanceId={new ObjectID(EVENT_ID)}
+        refreshToken={1}
+      />,
+    );
+    await flush();
+
+    expect(getListMock).toHaveBeenCalledTimes(2);
+
+    for (const call of getListMock.mock.calls) {
+      const request: FeedListRequest = call[0] as FeedListRequest;
+
+      expect(request.sort).toEqual({ postedAt: SortOrder.Ascending });
+      expect(request.skip).toBe(0);
+      expect(request.limit).toBe(DEFAULT_LIMIT);
+    }
   });
 
   test("re-rendering with the same token, or a new ObjectID for the same event, does not refetch", async () => {
