@@ -45,4 +45,46 @@ export default class SecurityEventAttributeUtil {
       return typeof attribute === "string";
     });
   }
+
+  /*
+   * The values one attribute key has been seen with, for the search bar's
+   * `@key:<tab>` completion. Served by the same TelemetryAttributeService the
+   * log / trace / metric explorers complete against.
+   */
+  public static async getAttributeValues(
+    attributeKey: string,
+    searchText?: string | undefined,
+  ): Promise<Array<string>> {
+    if (!attributeKey) {
+      return [];
+    }
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          "/telemetry/security-events/get-attribute-values",
+        ),
+        data: {
+          attributeKey: attributeKey,
+          ...(searchText ? { searchText: searchText } : {}),
+        },
+        headers: {
+          ...AnalyticsModelAPI.getCommonHeaders(),
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    const values: unknown = response.data["values"];
+
+    if (!Array.isArray(values)) {
+      return [];
+    }
+
+    return values.filter((value: unknown): value is string => {
+      return typeof value === "string";
+    });
+  }
 }
