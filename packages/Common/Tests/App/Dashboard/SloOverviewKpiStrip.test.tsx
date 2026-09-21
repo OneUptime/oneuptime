@@ -651,7 +651,10 @@ describe("SloKpiStrip", () => {
           slo={buildSlo({
             errorBudgetRemainingPercentage: -10,
             errorBudgetRemainingSeconds: -750,
-            errorBudgetTotalSeconds: totalSeconds,
+            // exactOptionalPropertyTypes: "no total" is an absent key, not an explicit undefined.
+            ...(totalSeconds === undefined
+              ? {}
+              : { errorBudgetTotalSeconds: totalSeconds }),
             lastEvaluatedAt: NOW,
           })}
           lowestEnabledBurnRateThreshold={null}
