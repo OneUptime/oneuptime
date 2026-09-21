@@ -76,9 +76,7 @@ describe("SloDuration", () => {
     });
 
     it("states the overage as a positive duration with over budget", () => {
-      expect(formatErrorBudgetRemaining(-750)).toBe(
-        "12m 30s over budget",
-      );
+      expect(formatErrorBudgetRemaining(-750)).toBe("12m 30s over budget");
     });
 
     it("keeps a multi-day overage readable", () => {

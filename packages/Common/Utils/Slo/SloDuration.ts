@@ -170,7 +170,10 @@ export const formatErrorBudgetRemainingOfTotal: FormatErrorBudgetRemainingOfTota
 
     const totalText: string = formatBudgetDuration(totalSeconds);
 
-    if (typeof data.remainingSeconds === "number" && data.remainingSeconds < 0) {
+    if (
+      typeof data.remainingSeconds === "number" &&
+      data.remainingSeconds < 0
+    ) {
       return `${remainingText} · ${totalText} allowed`;
     }
 
