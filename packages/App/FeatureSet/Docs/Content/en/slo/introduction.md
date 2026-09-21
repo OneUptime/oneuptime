@@ -198,6 +198,8 @@ The tiles above the list count SLOs by status — **Healthy**, **At Risk**, **Bu
 
 Select SLOs in the list to change their labels or owners, archive them, or delete them in bulk.
 
+To label SLOs and assign their owners automatically, use the **Label Rules** and **Owner Rules** pages under **Settings** in the SLO list's side menu — see [Label and Owner Rules](/docs/slo/label-and-owner-rules).
+
 ## SLOs on alerts and incidents
 
 Every alert and incident a burn rate rule creates is linked to its SLO, so you can always get from the page to the objective behind it:
@@ -227,3 +229,4 @@ Both disappear once the window is full. Calendar-month SLOs never show them, bec
 - [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts) — paging your on-call team when the budget is burning too fast.
 - [SLO Metrics and Dashboards](/docs/slo/metrics) — the `oneuptime.slo.*` metrics, the Metrics page and the SLO dashboard template.
 - [SLO Feed and Audit Logs](/docs/slo/feed-and-audit-logs) — what the feed records, and who changed what.
+- [Label and Owner Rules](/docs/slo/label-and-owner-rules) — labelling SLOs and assigning their owners automatically.

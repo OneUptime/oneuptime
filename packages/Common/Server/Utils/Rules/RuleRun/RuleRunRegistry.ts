@@ -122,6 +122,11 @@ import ServerlessFunctionOwnerTeam from "../../../../Models/DatabaseModels/Serve
 import ServerlessFunctionOwnerUser from "../../../../Models/DatabaseModels/ServerlessFunctionOwnerUser";
 import Service from "../../../../Models/DatabaseModels/Service";
 import ServiceLabelRule from "../../../../Models/DatabaseModels/ServiceLabelRule";
+import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveLabelRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
+import ServiceLevelObjectiveOwnerRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerRule";
+import ServiceLevelObjectiveOwnerTeam from "../../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveOwnerUser from "../../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import ServiceOwnerRule from "../../../../Models/DatabaseModels/ServiceOwnerRule";
 import ServiceOwnerTeam from "../../../../Models/DatabaseModels/ServiceOwnerTeam";
 import ServiceOwnerUser from "../../../../Models/DatabaseModels/ServiceOwnerUser";
@@ -265,6 +270,11 @@ import ServerlessFunctionLabelRuleService from "../../../Services/ServerlessFunc
 import ServerlessFunctionOwnerRuleEngineService from "../../../Services/ServerlessFunctionOwnerRuleEngineService";
 import ServerlessFunctionOwnerRuleService from "../../../Services/ServerlessFunctionOwnerRuleService";
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
+import ServiceLevelObjectiveLabelRuleEngineService from "../../../Services/ServiceLevelObjectiveLabelRuleEngineService";
+import ServiceLevelObjectiveLabelRuleService from "../../../Services/ServiceLevelObjectiveLabelRuleService";
+import ServiceLevelObjectiveOwnerRuleEngineService from "../../../Services/ServiceLevelObjectiveOwnerRuleEngineService";
+import ServiceLevelObjectiveOwnerRuleService from "../../../Services/ServiceLevelObjectiveOwnerRuleService";
+import ServiceLevelObjectiveService from "../../../Services/ServiceLevelObjectiveService";
 import ServiceLabelRuleEngineService from "../../../Services/ServiceLabelRuleEngineService";
 import ServiceLabelRuleService from "../../../Services/ServiceLabelRuleService";
 import ServiceOwnerRuleEngineService from "../../../Services/ServiceOwnerRuleEngineService";
@@ -726,6 +736,24 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     ruleService: ServiceLabelRuleService,
     resourceService: ServiceService,
     engine: ServiceLabelRuleEngineService,
+  }),
+  [RuleRunType.ServiceLevelObjectiveLabelRule]: defineRuleRun({
+    ruleModelType: ServiceLevelObjectiveLabelRule,
+    resourceModelType: ServiceLevelObjective,
+    ruleService: ServiceLevelObjectiveLabelRuleService,
+    resourceService: ServiceLevelObjectiveService,
+    engine: ServiceLevelObjectiveLabelRuleEngineService,
+  }),
+  [RuleRunType.ServiceLevelObjectiveOwnerRule]: defineRuleRun({
+    ruleModelType: ServiceLevelObjectiveOwnerRule,
+    resourceModelType: ServiceLevelObjective,
+    ruleService: ServiceLevelObjectiveOwnerRuleService,
+    resourceService: ServiceLevelObjectiveService,
+    engine: ServiceLevelObjectiveOwnerRuleEngineService,
+    ownerModelTypes: [
+      ServiceLevelObjectiveOwnerUser,
+      ServiceLevelObjectiveOwnerTeam,
+    ],
   }),
   [RuleRunType.ServiceOwnerRule]: defineRuleRun({
     ruleModelType: ServiceOwnerRule,

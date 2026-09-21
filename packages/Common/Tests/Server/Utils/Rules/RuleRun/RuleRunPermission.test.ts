@@ -363,3 +363,157 @@ describe("RuleRunPermission.assertCanRun", () => {
     }).toThrow(new BadDataException("This rule cannot be run."));
   });
 });
+
+/*
+ * SLO label and owner rules walk every SLO in the project as root, so running
+ * one needs the rule's edit permission, EditServiceLevelObjective, and - for
+ * owner rules - create on both SLO owner tables. Read off the real models'
+ * @TableAccessControl, like everything above.
+ */
+describe("RuleRunPermission.assertCanRun - SLO label and owner rules", () => {
+  it("lets a caller who can edit the rule and every SLO run an SLO label rule", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.ServiceLevelObjectiveLabelRule,
+        propsWith({
+          permissions: [
+            Permission.EditServiceLevelObjectiveLabelRule,
+            Permission.EditServiceLevelObjective,
+          ],
+        }),
+      );
+    }).not.toThrow();
+  });
+
+  it("refuses a caller who can edit SLOs but not the rule", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.ServiceLevelObjectiveLabelRule,
+        propsWith({
+          permissions: [
+            Permission.EditServiceLevelObjective,
+            // Another SLO rule's permission is not this one's.
+            Permission.EditServiceLevelObjectiveMonitorRule,
+          ],
+        }),
+      );
+    }).toThrow(
+      "You do not have permission to edit this rule, which running it requires.",
+    );
+  });
+
+  it("refuses a rule author who cannot edit SLOs, naming them", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.ServiceLevelObjectiveLabelRule,
+        propsWith({
+          permissions: [Permission.EditServiceLevelObjectiveLabelRule],
+        }),
+      );
+    }).toThrow(
+      "You do not have permission to edit every SLO in this project, which running this rule does.",
+    );
+  });
+
+  it("does not let read access to the rule stand in for edit", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.ServiceLevelObjectiveOwnerRule,
+        propsWith({
+          permissions: [
+            Permission.ReadServiceLevelObjectiveOwnerRule,
+            Permission.EditServiceLevelObjective,
+            Permission.CreateServiceLevelObjectiveOwnerUser,
+            Permission.CreateServiceLevelObjectiveOwnerTeam,
+          ],
+        }),
+      );
+    }).toThrow(NotAuthorizedException);
+  });
+
+  it("requires create on both SLO owner tables for an SLO owner rule", () => {
+    const ruleAndSlo: Array<Permission> = [
+      Permission.EditServiceLevelObjectiveOwnerRule,
+      Permission.EditServiceLevelObjective,
+    ];
+
+    expect(() => {
+      assertCanRun(
+        RuleRunType.ServiceLevelObjectiveOwnerRule,
+        propsWith({ permissions: ruleAndSlo }),
+      );
+    }).toThrow(
+      "You do not have permission to add owners to SLOs, which running this rule does.",
+    );
+
+    expect(() => {
+      assertCanRun(
+        RuleRunType.ServiceLevelObjectiveOwnerRule,
+        propsWith({
+          permissions: [
+            ...ruleAndSlo,
+            Permission.CreateServiceLevelObjectiveOwnerUser,
+          ],
+        }),
+      );
+    }).toThrow(NotAuthorizedException);
+
+    expect(() => {
+      assertCanRun(
+        RuleRunType.ServiceLevelObjectiveOwnerRule,
+        propsWith({
+          permissions: [
+            ...ruleAndSlo,
+            Permission.CreateServiceLevelObjectiveOwnerUser,
+            Permission.CreateServiceLevelObjectiveOwnerTeam,
+          ],
+        }),
+      );
+    }).not.toThrow();
+  });
+
+  /*
+   * A run reaches every SLO, so an edit grant limited to the SLOs a user owns
+   * cannot authorize one.
+   */
+  it("does not count an Owned-scoped SLO edit grant", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.ServiceLevelObjectiveLabelRule,
+        propsWith({
+          permissions: [
+            Permission.EditServiceLevelObjectiveLabelRule,
+            Permission.EditServiceLevelObjective,
+          ],
+          scope: PermissionScope.Owned,
+        }),
+      );
+    }).toThrow(NotAuthorizedException);
+  });
+
+  it("honours a team's block list on SLOs, even over an admin grant", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.ServiceLevelObjectiveLabelRule,
+        propsWith({
+          permissions: [Permission.ProjectAdmin],
+          blockedPermissions: [Permission.EditServiceLevelObjective],
+        }),
+      );
+    }).toThrow(/permission block list/);
+  });
+
+  it("lets a project admin run both", () => {
+    for (const ruleType of [
+      RuleRunType.ServiceLevelObjectiveLabelRule,
+      RuleRunType.ServiceLevelObjectiveOwnerRule,
+    ]) {
+      expect(() => {
+        assertCanRun(
+          ruleType,
+          propsWith({ permissions: [Permission.ProjectAdmin] }),
+        );
+      }).not.toThrow();
+    }
+  });
+});
