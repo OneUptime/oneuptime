@@ -28,6 +28,8 @@ import StatusPageResourceService from "../Services/StatusPageResourceService";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "../Services/StatusPageService";
+import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
+import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
@@ -4434,6 +4436,7 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageResources: StatusPageResource[];
     monitorStatuses: MonitorStatus[];
     monitorStatusTimelines: MonitorStatusTimeline[];
+    uptimeDailyAggregate: UptimeDailyAggregate;
     monitorGroupCurrentStatuses: Dictionary<ObjectID>;
     statusPageGroups: StatusPageGroup[];
     statusPage: StatusPage;
@@ -4713,6 +4716,22 @@ export default class StatusPageAPI extends BaseAPI<
         endDate: endDateForMonitorTimeline,
       });
 
+    /*
+     * What the uptime bars are actually painted from.
+     *
+     * `monitorStatusTimelines` above stays in the response - it is documented
+     * public API and the E2E helpers read it for current status - but it must
+     * NOT drive the bars. It is capped at LIMIT_MAX across every monitor on
+     * the page and sorted newest-first, so on a page with churny monitors it
+     * returns a few recent days and silently drops the rest.
+     */
+    const uptimeDailyAggregate: UptimeDailyAggregate =
+      await StatusPageService.getUptimeDailyAggregateForStatusPage({
+        monitorIds: monitorsOnStatusPageForTimeline,
+        startDate: startDateForMonitorTimeline,
+        endDate: endDateForMonitorTimeline,
+      });
+
     // return everything.
 
     return {
@@ -4721,6 +4740,7 @@ export default class StatusPageAPI extends BaseAPI<
       monitorGroupCurrentStatuses,
       statusPageGroups: groups,
       monitorStatusTimelines,
+      uptimeDailyAggregate,
       statusPage,
       monitorsOnStatusPage,
       monitorsInGroup,
@@ -4754,6 +4774,7 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage,
       monitorsOnStatusPage,
       monitorStatusTimelines,
+      uptimeDailyAggregate,
       statusPageGroups,
       monitorsInGroup,
       startDateForMonitorTimeline: startDate,
@@ -5554,6 +5575,8 @@ export default class StatusPageAPI extends BaseAPI<
         monitorStatusTimelines,
         MonitorStatusTimeline,
       ),
+      uptimeDailyAggregate:
+        UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
       resourceGroups: BaseModel.toJSONArray(statusPageGroups, StatusPageGroup),
       monitorStatuses: BaseModel.toJSONArray(monitorStatuses, MonitorStatus),
       statusPageResources: BaseModel.toJSONArray(

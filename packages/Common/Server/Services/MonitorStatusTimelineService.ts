@@ -76,19 +76,40 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
    * returns DURATIONS. The result is O(monitors x days x statuses) and cannot
    * be inflated by a flapping monitor.
    *
-   * THE SQL, AND THE TWO TRAPS IN IT
+   * THE SQL, AND THE THREE TRAPS IN IT
    *
    * 1. An open row (`endsAt IS NULL`) is capped at the NEXT row's `startsAt`,
    *    not at `now()`. `COALESCE(endsAt, now())` would overlap the successor
    *    and double-count that span. This mirrors what
    *    UptimeUtil.getMonitorEventsForId already does client-side.
    *
-   * 2. PostgreSQL's LEAST/GREATEST IGNORE NULLs - they return the smallest or
-   *    largest NON-NULL argument. On an unmatched LEFT JOIN row,
-   *    `LEAST(NULL, bucketEnd) - GREATEST(NULL, bucketStart)` is therefore a
-   *    FULL DAY of coverage rather than none, which reports a monitor as up
-   *    before it existed. Hence the explicit `CASE WHEN src."monitorId" IS
-   *    NULL THEN 0`. This was caught against real data; it is not theoretical.
+   * 2. Periods are split into days ARITHMETICALLY (`generate_series` over the
+   *    days a period touches) and then hash-aggregated, rather than joined
+   *    against a bucket grid. Both give the same answer; the join does not
+   *    scale. Joining emitted one row per timeline row - 255,486 on the
+   *    reporting page - which then had to be sorted for the GroupAggregate
+   *    and spilled 26 MB to disk, ~4.7s. Splitting first aggregates 255k rows
+   *    into ~450 with no sort: ~1.5s.
+   *
+   *    A period that lies inside one day yields exactly one segment, which is
+   *    the overwhelmingly common case - a flapping monitor's rows last well
+   *    under a second. Only a long-running period fans out, one segment per
+   *    day it spans.
+   *
+   * 3. Seconds are summed as `double precision` and NEVER rounded per group.
+   *    Rounding each (monitor, day, status) sum to a bigint loses up to half a
+   *    second per status, so a fully covered day with two statuses reported
+   *    86,399 of 86,400 seconds - a day that is complete looking one second
+   *    short. Coverage is compared with a tolerance by the client rather than
+   *    for exact equality.
+   *
+   * A trap that is worth recording even though this SQL no longer contains it:
+   * PostgreSQL's LEAST/GREATEST IGNORE NULLs, returning the smallest or
+   * largest NON-NULL argument. An earlier draft joined rows to buckets, and on
+   * an unmatched LEFT JOIN row `LEAST(NULL, bucketEnd) - GREATEST(NULL,
+   * bucketStart)` silently became a FULL DAY of coverage - reporting a monitor
+   * as up before it existed. It was caught against real data, not in review.
+   * Any future rewrite that reintroduces a row-to-bucket join must handle it.
    *
    * Day buckets are local calendar days converted to UTC instants, so a DST
    * day is genuinely 23 or 25 hours - `daySeconds` is never hardcoded to
@@ -126,6 +147,9 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
                LEAST($3::timestamptz, now()) AS eff_end,
                $4::text AS tz
       ),
+      mons AS (
+        SELECT UNNEST($1::uuid[]) AS monitor_id
+      ),
       src AS (
         SELECT t."monitorId" AS monitor_id,
                t."monitorStatusId" AS status_id,
@@ -147,11 +171,35 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           AND t."startsAt" <= p.eff_end
           AND (t."endsAt" >= p.win_start OR t."endsAt" IS NULL)
       ),
-      mons AS (
-        SELECT UNNEST($1::uuid[]) AS monitor_id
+      split AS (
+        SELECT src.monitor_id,
+               src.status_id,
+               (gs AT TIME ZONE p.tz) AS day_start,
+               GREATEST(src.s, (gs AT TIME ZONE p.tz)) AS seg_start,
+               LEAST(src.e, ((gs + interval '1 day') AT TIME ZONE p.tz))
+                 AS seg_end
+        FROM src
+        CROSS JOIN params p,
+        LATERAL generate_series(
+          date_trunc('day', src.s AT TIME ZONE p.tz),
+          date_trunc('day', (src.e - interval '1 microsecond') AT TIME ZONE p.tz),
+          interval '1 day'
+        ) AS gs
+        WHERE src.e > src.s
+      ),
+      agg AS (
+        SELECT monitor_id,
+               day_start,
+               status_id,
+               SUM(EXTRACT(EPOCH FROM (seg_end - seg_start)))::double precision
+                 AS seconds
+        FROM split
+        WHERE seg_end > seg_start
+        GROUP BY monitor_id, day_start, status_id
       ),
       buckets AS (
-        SELECT GREATEST((d AT TIME ZONE p.tz), p.win_start) AS bucket_start,
+        SELECT (d AT TIME ZONE p.tz) AS day_start,
+               GREATEST((d AT TIME ZONE p.tz), p.win_start) AS bucket_start,
                LEAST(((d + interval '1 day') AT TIME ZONE p.tz), p.eff_end)
                  AS bucket_end
         FROM params p,
@@ -166,22 +214,13 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
              b.bucket_end AS "bucketEnd",
              EXTRACT(EPOCH FROM (b.bucket_end - b.bucket_start))::bigint
                AS "daySeconds",
-             src.status_id AS "monitorStatusId",
-             COALESCE(SUM(
-               CASE WHEN src.monitor_id IS NULL THEN 0
-                    ELSE EXTRACT(EPOCH FROM (
-                           LEAST(src.e, b.bucket_end)
-                           - GREATEST(src.s, b.bucket_start)
-                         ))
-               END
-             ), 0)::bigint AS "seconds"
+             a.status_id AS "monitorStatusId",
+             COALESCE(a.seconds, 0)::double precision AS "seconds"
       FROM mons m
       CROSS JOIN buckets b
-      LEFT JOIN src ON src.monitor_id = m.monitor_id
-                   AND src.s < b.bucket_end
-                   AND src.e > b.bucket_start
+      LEFT JOIN agg a ON a.monitor_id = m.monitor_id
+                     AND a.day_start = b.day_start
       WHERE b.bucket_end > b.bucket_start
-      GROUP BY m.monitor_id, b.bucket_start, b.bucket_end, src.status_id
       ORDER BY m.monitor_id, b.bucket_start
     `;
 

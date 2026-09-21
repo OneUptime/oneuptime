@@ -9,6 +9,7 @@ import UptimeBarDayModal from "Common/UI/Components/MonitorGraphs/UptimeBarDayMo
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import { UptimeDayBucket } from "Common/Types/StatusPage/UptimeDailyAggregate";
 import MonitorStatusTimelne from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
@@ -36,6 +37,13 @@ export interface ComponentProps {
   uptimePrecision?: UptimePrecision | undefined;
   statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule>;
   downtimeMonitorStatuses: Array<MonitorStatus>;
+  /*
+   * Server-measured per-day coverage for this resource's monitor. Without it
+   * the bars cannot tell a quiet day from one whose timeline rows the fetch
+   * cap dropped, and paint both with defaultBarColor.
+   */
+  uptimeBuckets?: Array<UptimeDayBucket> | undefined;
+  monitorStatuses?: Array<MonitorStatus> | undefined;
   defaultBarColor: Color;
   uptimeHistoryDays?: number | undefined;
   incidents?: Array<UptimeBarTooltipIncident> | undefined;
@@ -209,6 +217,8 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             barColorRules={props.statusPageHistoryChartBarColorRules}
             defaultBarColor={props.defaultBarColor}
             downtimeMonitorStatuses={props.downtimeMonitorStatuses}
+            uptimeBuckets={props.uptimeBuckets}
+            monitorStatuses={props.monitorStatuses}
             items={props.monitorStatusTimeline || []}
             startDate={props.startDate}
             endDate={props.endDate}

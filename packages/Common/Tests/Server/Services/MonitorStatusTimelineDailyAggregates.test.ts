@@ -73,10 +73,11 @@ function bucketsFor(
   result: UptimeDailyAggregate,
   monitorId: string,
 ): Array<UptimeDayBucket> {
-  const monitor: MonitorUptimeDailyAggregate | undefined =
-    result.monitors.find((m: MonitorUptimeDailyAggregate) => {
+  const monitor: MonitorUptimeDailyAggregate | undefined = result.monitors.find(
+    (m: MonitorUptimeDailyAggregate) => {
       return m.monitorId.toString() === monitorId;
-    });
+    },
+  );
 
   return monitor ? monitor.buckets : [];
 }
@@ -254,6 +255,26 @@ describe("MonitorStatusTimelineService.toUptimeDailyAggregate", () => {
       expect(typeof bucket.coveredSeconds).toBe("number");
       expect(typeof bucket.daySeconds).toBe("number");
       expect(bucket.coveredSeconds).toBe(5400);
+    });
+
+    test("fractional seconds are not rounded away per status group", () => {
+      /*
+       * Seconds come back as double precision on purpose. An earlier draft
+       * cast each (monitor, day, status) sum to a bigint, which loses up to
+       * half a second per status - so a fully covered day with two statuses
+       * reported 86,399 of 86,400 seconds and looked one second short of
+       * complete. Observed against real data, on a day with 21,914 flapping
+       * transitions.
+       */
+      const result: UptimeDailyAggregate = aggregate([
+        { ...row(MONITOR_A, "2026-07-01", STATUS_UP, 0), seconds: 86399.6 },
+        { ...row(MONITOR_A, "2026-07-01", STATUS_DOWN, 0), seconds: 0.4 },
+      ]);
+
+      const bucket: UptimeDayBucket = bucketsFor(result, MONITOR_A)[0]!;
+
+      expect(bucket.coveredSeconds).toBeCloseTo(86400, 5);
+      expect(bucket.statusDurations).toHaveLength(2);
     });
 
     test("an empty result set is complete, not incomplete", () => {
