@@ -1,4 +1,5 @@
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import getCanonicalModelInstance from "./CanonicalModelInstance";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import { ReflectionMetadataType } from "../Reflection";
@@ -99,9 +100,12 @@ type GetTableColumnsFunction = <T extends BaseModel>(
 ) => Dictionary<TableColumnMetadata>;
 
 /*
- * Per-class cache. Safe to key on the constructor because every decorated
- * column is initialised to `undefined` in the class body, so Object.keys()
- * is identical for every instance of a class (see OwnerOnlyColumn.ts).
+ * Per-class cache, keyed on the constructor and built from a canonical
+ * instance of that class - never from the instance that happened to ask
+ * first. A caller that had deleted a column off its own instance (BaseAPI's
+ * create path used to delete `_id`) would otherwise define the class's column
+ * list without that column for the whole process, and every response for that
+ * model would lose it. See CanonicalModelInstance.ts.
  */
 const tableColumnsCache: WeakMap<
   { new (): BaseModel },
@@ -118,13 +122,14 @@ export const getTableColumns: GetTableColumnsFunction = <T extends BaseModel>(
     tableColumnsCache.get(modelClass);
 
   if (!cached) {
+    const metadataSource: T = getCanonicalModelInstance(target);
     const dictonary: Dictionary<TableColumnMetadata> = {};
-    const keys: Array<string> = Object.keys(target);
+    const keys: Array<string> = Object.keys(metadataSource);
 
     for (const key of keys) {
       const metadata: TableColumnMetadata | undefined = Reflect.getMetadata(
         tableColumn,
-        target,
+        metadataSource,
         key,
       ) as TableColumnMetadata | undefined;
       if (metadata) {
