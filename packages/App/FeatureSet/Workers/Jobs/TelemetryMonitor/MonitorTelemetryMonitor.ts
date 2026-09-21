@@ -20,7 +20,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import CronTab from "Common/Server/Utils/CronTab";
+import { Service as MonitorProbeService } from "Common/Server/Services/MonitorProbeService";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "Common/Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
@@ -206,17 +206,25 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
         1,
       );
 
+      /*
+       * Same reading of the column as the probe scheduler uses, so a
+       * telemetry monitor storing a human cadence ("5m") is not quietly
+       * pinned to a 1-minute poll the way probe monitors were.
+       */
       if (telemetryMonitor.monitoringInterval) {
-        try {
-          nextPing = CronTab.getNextExecutionTime(
-            telemetryMonitor.monitoringInterval as string,
-          );
-        } catch (err) {
-          logger.error(err, {
-            service: "workers",
-            projectId: telemetryMonitor.projectId?.toString(),
-          });
-        }
+        nextPing = MonitorProbeService.resolveNextPingAt({
+          monitoringInterval: telemetryMonitor.monitoringInterval as string,
+          fallback: nextPing,
+          onUnreadable: () => {
+            logger.error(
+              `MonitorTelemetryMonitor: monitoringInterval "${telemetryMonitor.monitoringInterval}" cannot be read as a schedule; falling back to a 1-minute cadence.`,
+              {
+                service: "workers",
+                projectId: telemetryMonitor.projectId?.toString(),
+              },
+            );
+          },
+        });
       }
 
       /*

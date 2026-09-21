@@ -17,6 +17,7 @@ import MetricService from "../../../Services/MetricService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import CronTab from "../../CronTab";
+import MonitoringIntervalUtil from "../../../../Utils/Monitor/MonitoringIntervalUtil";
 import logger from "../../Logger";
 
 /**
@@ -488,8 +489,16 @@ export default class EvaluateOverTime {
     monitoringInterval?: string | undefined;
     sortedSampleTimes: Array<number>;
   }): number | null {
+    /*
+     * Through the normalizer first: a monitor storing "5m" has a perfectly
+     * well-defined cadence, and treating it as "cadence unknown" made
+     * over-time windows fall back to guessing from the data.
+     */
     const configuredIntervalInSeconds: number | null =
-      CronTab.getIntervalInSeconds(data.monitoringInterval);
+      CronTab.getIntervalInSeconds(
+        MonitoringIntervalUtil.toCronOrNull(data.monitoringInterval) ||
+          data.monitoringInterval,
+      );
 
     if (configuredIntervalInSeconds !== null) {
       return configuredIntervalInSeconds;

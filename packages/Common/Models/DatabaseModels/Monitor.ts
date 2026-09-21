@@ -1044,8 +1044,9 @@ export default class Monitor extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     title: "Monitoring Interval",
-    description: "How often would you like OneUptime to monitor this resource?",
-    example: "Every 5 minutes",
+    description:
+      "How often would you like OneUptime to monitor this resource? A 5-field cron expression, not a label: \"*/5 * * * *\" is every five minutes.",
+    example: "*/5 * * * *",
   })
   @Column({
     nullable: true,
