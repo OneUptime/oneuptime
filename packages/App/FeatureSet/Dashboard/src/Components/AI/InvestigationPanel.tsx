@@ -7,6 +7,10 @@ import InvestigationReportView from "./InvestigationReport/InvestigationReportVi
 import InvestigationNotStartedCard, {
   parseInvestigationNotStartedReason,
 } from "./InvestigationNotStartedCard";
+import ClusterAccessNotice, { parseClusterAccess } from "./ClusterAccessNotice";
+import { KubernetesClusterAiAccessStatus } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import { EvidenceFocusRequest } from "./InvestigationReport/InvestigationEvidenceList";
 import InvestigationRunDetails, {
   InvestigationRunUsage,
@@ -179,6 +183,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     Array<InvestigationEventReference>
   >([]);
   const [stats, setStats] = useState<InvestigationRunUsage | null>(null);
+  /*
+   * Which clusters this signal is about and whether OneUptime AI can reach
+   * them with kubectl — current configuration, so it can say "here is what
+   * is missing" even for a run that has long finished.
+   */
+  const [clusterAccess, setClusterAccess] = useState<
+    Array<KubernetesClusterAiAccessStatus>
+  >([]);
   /*
    * The latest citation chip a reader activated in the report. The run
    * details below it open on that query; a new request id repeats it.
@@ -434,6 +446,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           (runJson?.["totalTokens"] as number | undefined) || 0;
         const nextErrorMessage: string | null =
           (runJson?.["errorMessage"] as string | undefined) || null;
+        const nextClusterAccess: Array<KubernetesClusterAiAccessStatus> =
+          parseClusterAccess(data["clusterAccess"]);
         const nextSupportsSettledPolling: boolean =
           Object.prototype.hasOwnProperty.call(data, "analysisMarkdown") ||
           Object.prototype.hasOwnProperty.call(data, "isAnalysisPending") ||
@@ -554,6 +568,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           nextEvidence,
           nextReferences,
           nextNotInvestigatedReason,
+          nextClusterAccess,
         ]);
         if (signature !== signatureRef.current) {
           signatureRef.current = signature;
@@ -567,6 +582,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           setIsAnalysisPending(nextIsAnalysisPending);
           setEvidence(nextEvidence);
           setReferences(nextReferences);
+          setClusterAccess(nextClusterAccess);
           if (!isSavingVerdictRef.current) {
             setHumanVerdict(verdictFromServer);
           }
@@ -1103,6 +1119,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    */
   const hasActivity: boolean = hasRenderableActivity(events);
 
+  // Completed kubectl calls: shown next to "telemetry queries" in the usage line.
+  const clusterCommandCount: number = events.filter((event: AIRunEvent) => {
+    return (
+      event.eventType === AIRunEventType.ToolCallCompleted &&
+      event.toolName === RUN_KUBECTL_TOOL_NAME
+    );
+  }).length;
+
   const statusBadge: ReactElement = (
     <span
       aria-label="Investigation status"
@@ -1167,6 +1191,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
         {runStatus === AIRunStatus.Completed ? (
           <>
+            <ClusterAccessNotice
+              clusterAccess={clusterAccess}
+              isRunFinished={true}
+            />
             {analysisMarkdown && parsedReport ? (
               <InvestigationReportView
                 analysisMarkdown={analysisMarkdown}
@@ -1227,6 +1255,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               }
               events={events}
               usage={stats}
+              clusterCommandCount={clusterCommandCount}
               modelName={modelName}
               subjectType={subjectType}
               subjectId={subjectIdString}
@@ -1278,7 +1307,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                     ? "The steps this run completed before it stopped."
                     : isQueued
                       ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
-                      : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed."}
+                      : clusterAccess.some(
+                            (status: KubernetesClusterAiAccessStatus) => {
+                              return status.isInvestigationReady;
+                            },
+                          )
+                        ? "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed."
+                        : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed."}
                 </p>
               </div>
             </div>
@@ -1292,7 +1327,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
-            <div className="px-5 py-4">
+            <div className="space-y-4 px-5 py-4">
+              <ClusterAccessNotice
+                clusterAccess={clusterAccess}
+                isRunFinished={isFailed}
+              />
               {hasActivity ? (
                 <ChatActivityFeed
                   events={events}
@@ -1316,6 +1355,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             {!isActive && stats ? (
               <InvestigationUsageLine
                 usage={stats}
+                clusterCommandCount={clusterCommandCount}
                 className="border-t border-gray-200 bg-gray-50/70 px-5 py-3"
               />
             ) : (

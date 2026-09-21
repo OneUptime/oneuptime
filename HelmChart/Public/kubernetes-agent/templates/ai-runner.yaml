@@ -1,0 +1,282 @@
+{{- if .Values.aiAccess.enabled }}
+{{- /*
+OneUptime AI access: an in-cluster OneUptime Runner that runs kubectl on
+behalf of OneUptime AI.
+
+Its own ServiceAccount, on purpose. The collector's ServiceAccount is shared
+by every telemetry pod in this chart and is read-only by construction; the
+Runner's is the one identity in the cluster that may (with
+aiAccess.remediation.enabled) change things, so it gets exactly the verbs
+OneUptime AI's fix policy can use and nothing the collector has no business
+holding. What the Runner may actually run is decided by the cluster's AI page
+in OneUptime and re-checked by the Runner itself; RBAC is the outer bound.
+*/ -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: ai-runner
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: ai-runner
+rules:
+  # Read-only investigation: what `kubectl get / describe / logs / events /
+  # top / rollout status` need.
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - pods/status
+      - nodes
+      - nodes/status
+      - services
+      - endpoints
+      - namespaces
+      - events
+      - replicationcontrollers
+      - resourcequotas
+      - limitranges
+      - configmaps
+      - persistentvolumeclaims
+      - persistentvolumes
+      - serviceaccounts
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - deployments/status
+      - replicasets
+      - replicasets/status
+      - statefulsets
+      - statefulsets/status
+      - daemonsets
+      - daemonsets/status
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - jobs/status
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources:
+      - storageclasses
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["events.k8s.io"]
+    resources:
+      - events
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources:
+      - pods
+      - nodes
+    verbs: ["get", "list"]
+  # `kubectl auth can-i` (the AI page's access test lists what the Runner may do).
+  - apiGroups: ["authorization.k8s.io"]
+    resources:
+      - selfsubjectaccessreviews
+      - selfsubjectrulesreviews
+    verbs: ["create"]
+{{- if .Values.aiAccess.remediation.enabled }}
+  # Remediation: the write verbs OneUptime AI's fix policy can express.
+  # rollout restart/undo/pause/resume, scale, set image/env/resources and
+  # patch are PATCH/UPDATE on workloads and their scale subresource.
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - deployments/scale
+      - deployments/rollback
+      - statefulsets
+      - statefulsets/scale
+      - daemonsets
+      - replicasets
+      - replicasets/scale
+    verbs: ["patch", "update"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["patch", "update"]
+  # kubectl create job --from=cronjob/... (a human-approved, RiskyWrite command).
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+    verbs: ["create"]
+  # Deleting a NAMED pod or job so its controller recreates it. The policy
+  # never allows deleting namespaces, volumes, nodes, secrets or CRDs, and
+  # RBAC does not grant it either.
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs: ["delete"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+    verbs: ["delete"]
+  # cordon / uncordon / taint / label / annotate on nodes and pods.
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - pods
+    verbs: ["patch", "update"]
+  # kubectl drain evicts pods (a RiskyWrite command a human approves).
+  - apiGroups: [""]
+    resources:
+      - pods/eviction
+    verbs: ["create"]
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["patch", "update", "create"]
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: ai-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: ai-runner
+spec:
+  # The Runner registers with a server-issued key that is rotated on every
+  # registration. Two replicas would rotate each other's key on every
+  # restart; keep this at 1.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "kubernetes-agent.selectorLabels" . | nindent 6 }}
+      component: ai-runner
+  template:
+    metadata:
+      labels:
+        {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
+        component: ai-runner
+    spec:
+      serviceAccountName: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+      # Linux nodes only — the image is linux-only, and Windows pools
+      # (e.g. on AKS) are not tainted by default.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
+      # No privileged containers, no hostPath, no hostNetwork — GKE Autopilot
+      # compatible. The Runner only talks HTTPS to OneUptime and to the
+      # cluster's API server.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ai-runner
+          image: "{{ .Values.aiAccess.image.repository }}:{{ .Values.aiAccess.image.tag | default "release" }}"
+          imagePullPolicy: {{ .Values.aiAccess.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: ONEUPTIME_URL
+              value: {{ .Values.oneuptime.url | quote }}
+            # The same ingestion key the collector ships telemetry with. The
+            # Runner exchanges it for its own Runner identity at start-up.
+            - name: ONEUPTIME_INGESTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubernetes-agent.fullname" . }}
+                  key: api-key
+            - name: ONEUPTIME_KUBERNETES_CLUSTER_NAME
+              value: {{ include "kubernetes-agent.clusterName" . | quote }}
+            - name: ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION
+              value: {{ .Chart.Version | quote }}
+            # Matches the RBAC above. The Runner refuses any write locally when
+            # this is false, so RBAC and policy can never disagree silently.
+            - name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+              value: {{ .Values.aiAccess.remediation.enabled | quote }}
+            # This Runner exists to run kubectl for OneUptime AI. It never runs
+            # runbooks or clones repositories.
+            - name: ONEUPTIME_RUNNER_ENABLE_RUNBOOKS
+              value: "false"
+            - name: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES
+              value: "false"
+            - name: ONEUPTIME_RUNNER_NAME
+              value: "kubernetes-agent/{{ include "kubernetes-agent.clusterName" . }}"
+            # kubectl caches API discovery under HOME; the root filesystem is
+            # read-only, so both point at the writable scratch volume.
+            - name: HOME
+              value: /tmp
+            - name: KUBECACHEDIR
+              value: /tmp/kube-cache
+            - name: PORT
+              value: "3875"
+            {{- with .Values.aiAccess.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: health
+              containerPort: 3875
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /status/live
+              port: health
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /status/ready
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          volumeMounts:
+            - name: scratch
+              mountPath: /tmp
+          resources:
+            {{- toYaml .Values.aiAccess.resources | nindent 12 }}
+      volumes:
+        - name: scratch
+          emptyDir: {}
+{{- end }}

@@ -31,6 +31,42 @@ Incidents and alerts are configured independently, so you can give each signal t
 
 One further setting builds on top of investigations: **Enable Automatic Code Fixes** (off by default and configured independently on each signal type's AI settings page) lets an investigation that confidently identifies a repository code change open a fix pull request automatically — see **Automatic code fixes** below.
 
+## Cluster access — let OneUptime AI run kubectl
+
+Out of the box, an investigation can only use the telemetry your agents ship. For a Kubernetes signal that is often not enough: "pods stuck in Pending" is a scheduling problem you diagnose by describing the pod and reading its events, not by looking at a metric. OneUptime AI can do exactly that when a cluster gives it access — and, if you allow it, fix what it finds.
+
+Everything is configured on the cluster's **AI** page (Kubernetes → cluster → AI). The page is also the "what is missing" checklist: every reason OneUptime AI cannot (fully) use the cluster is listed there with the step that fixes it, and the same explanation appears on the incident's investigation panel when AI had to investigate with OneUptime data only.
+
+### One flag to connect a cluster
+
+If the cluster runs the [OneUptime Kubernetes agent](/docs/telemetry/kubernetes-agent), one extra flag installs a small in-cluster Runner that registers itself to the cluster — no Runner to create, no key to copy:
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reuse-values \
+  --set aiAccess.enabled=true
+```
+
+Within a minute the cluster's AI page shows the Runner as Connected and turns **Let AI investigate with kubectl** on. Add `--set aiAccess.remediation.enabled=true` to also grant the write RBAC fixes need; the cluster then starts in **ask for approval**.
+
+Any other Runner works too: bind it on the AI page together with a Kubernetes credential (API server URL + ServiceAccount token, under Project Settings → Runner Credentials) and turn on "Runs AI Remediation Commands" for that Runner.
+
+### What an investigation may run
+
+With access, an investigation runs **read-only** kubectl through the Runner — `get`, `describe`, `logs`, `events`, `top`, `rollout status`, `auth can-i` — and cites each command like any other evidence. Three independent checks keep it read-only: the policy that tiers every command, the server that refuses to enqueue anything else for an investigation, and the Runner, which re-checks the same policy before spawning kubectl. "Read-only — nothing in your systems was changed" stays literally true.
+
+### How fixes work
+
+**AI remediation** on the cluster's AI page has three settings:
+
+- **Off** — AI only investigates.
+- **Ask for approval** — after the root cause analysis, OneUptime AI diagnoses with kubectl and composes the smallest kubectl plan that addresses the cause, for example `kubectl rollout restart deployment/web -n web`. The plan appears on the incident with its rationale, expected effect and rollback; a human approves it with one click, and OneUptime runs exactly those commands. If the monitors do not recover, the rollback runs and OneUptime AI composes one more plan — again for approval — with the failed attempt in front of it, so it takes a different approach or says what a human should look at.
+- **Automatic** — safe changes run without a human: `rollout restart/undo/pause/resume`, `scale`, deleting a **named** pod or job, `cordon/uncordon`, `label/annotate`. Riskier changes (`patch`, `set image/env/resources`, `taint`, `drain`, deleting workloads, deleting by selector) still ask for approval unless you allowlist their exact shape on the AI page. Automatic mode also resolves the signal once verification confirms the monitors recovered, and it is circuit-broken to three automatic fixes per cluster per hour.
+
+Some commands **never** run, whatever the mode and even with human approval: `exec`, `attach`, `cp`, `port-forward`, `proxy`, `debug`, `run`, `edit`, `apply`, `replace`, any file input, `--all-namespaces` writes, `delete --all`, and deleting namespaces, nodes, volumes, secrets, CRDs or cluster roles. The in-cluster Runner's RBAC does not grant them either.
+
+Every command — investigation or fix — is recorded on the cluster's AI page under **Commands OneUptime AI ran on this cluster**, with its output and outcome.
+
 ## Quiet mode
 
 An investigation that cannot determine a cause posts its analysis to the timeline **without** pinging your Slack/Teams workspace or the on-call. A non-answer should never page anyone — the analysis is there when someone looks, but nobody is woken up for "inconclusive". Confident analyses notify the workspace normally.

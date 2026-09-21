@@ -1205,3 +1205,61 @@ serviceAccount:
   create: true
   name: ""
   annotations: {}
+
+# OneUptime AI access — let OneUptime AI run kubectl on this cluster.
+#
+# When an incident or alert is raised on this cluster, OneUptime AI
+# investigates it. Without this block it can only use the telemetry the
+# agent ships; with it, it also runs kubectl the way an on-call engineer
+# would (describe the failing pod, read its events, tail the crashing
+# container's logs, check node capacity) and, if you allow it, fixes the
+# problem too. The investigation and the fix both appear on the incident /
+# alert page with every command that ran.
+#
+# Enabling this deploys one small Deployment: the OneUptime Runner
+# (oneuptime/runner), which registers itself with the same ingestion key the
+# agent uses (oneuptime.apiKey) and binds itself to this cluster by name
+# (clusterName). No dashboard steps: after `helm upgrade` the cluster's AI
+# page in OneUptime shows "Connected".
+#
+# What it can do is decided in two places, and both must agree:
+#   * RBAC, here: aiAccess.enabled grants the Runner's ServiceAccount
+#     READ-ONLY verbs (get/list/watch, pods/log). aiAccess.remediation.enabled
+#     additionally grants the write verbs OneUptime AI's fixes use (rollout
+#     restart/undo, scale, delete a pod/job, cordon/uncordon, label/annotate,
+#     patch). It never grants exec, port-forward, or deletion of namespaces,
+#     volumes, nodes, secrets or CRDs.
+#   * Policy, in OneUptime: the cluster's AI page decides whether AI may
+#     investigate (read-only kubectl), and whether it may remediate — "ask
+#     for approval" (a human approves the exact kubectl plan with one click)
+#     or "automatic" (safe changes run on their own, riskier ones still ask).
+#     OneUptime AI never runs a command the policy refuses, whatever RBAC
+#     allows, and the Runner re-checks the same policy before running it.
+#
+# Read-only investigation only:
+#   --set aiAccess.enabled=true
+# Investigation + fixes (approval required by default):
+#   --set aiAccess.enabled=true --set aiAccess.remediation.enabled=true
+aiAccess:
+  enabled: false
+  remediation:
+    # Grant the Runner write RBAC so OneUptime AI can apply fixes. The
+    # cluster's AI page starts in "ask for approval" when this is on; switch
+    # it to "automatic" there if you want safe fixes applied without a human.
+    enabled: false
+  image:
+    repository: oneuptime/runner
+    # Leave empty to track `release` — the moving tag the release pipeline
+    # republishes for every OneUptime version. Pin a version to hold it.
+    tag: ""
+    pullPolicy: IfNotPresent
+  # The Runner idles between commands; a kubectl call is a short burst.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  # Extra environment for the Runner container (rarely needed).
+  extraEnv: []

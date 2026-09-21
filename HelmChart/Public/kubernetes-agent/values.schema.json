@@ -994,6 +994,66 @@
         }
       },
       "additionalProperties": false
+    },
+    "aiAccess": {
+      "type": "object",
+      "description": "OneUptime AI access: deploys an in-cluster OneUptime Runner that lets OneUptime AI run read-only kubectl during investigations and, with remediation.enabled, policy-tiered kubectl fixes.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Deploy the in-cluster Runner with read-only RBAC. It registers itself with oneuptime.apiKey and binds to clusterName."
+        },
+        "remediation": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Also grant the write RBAC OneUptime AI's fixes use (rollout restart/undo, scale, delete pod/job, cordon/uncordon, label/annotate, patch). Never exec, port-forward, or deleting namespaces/volumes/nodes/secrets/CRDs."
+            }
+          },
+          "additionalProperties": false
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"]
+            }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "extraEnv": {
+          "type": "array",
+          "description": "Extra environment variables for the Runner container, as Kubernetes EnvVar objects.",
+          "items": { "type": "object" }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

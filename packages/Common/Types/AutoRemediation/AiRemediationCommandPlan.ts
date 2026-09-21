@@ -1,5 +1,6 @@
 import RunbookStepType from "../Runbook/RunbookStepType";
 import { JSONObject } from "../JSON";
+import { KubectlCommandTier } from "../Kubernetes/KubernetesClusterAiAccess";
 
 /*
  * The AI-composed command plan stored on
@@ -11,14 +12,15 @@ import { JSONObject } from "../JSON";
  */
 
 /*
- * The only step types an AI remediation run may compose. Kubernetes stays
- * runbook-only: its structured restart/scale actions cannot express an
- * arbitrary command, which is the whole point of this lane, and operators
- * who want kubectl can expose it to a Bash command instead.
+ * The only step types an AI remediation run may compose. The structured
+ * Kubernetes step (restart/scale) stays runbook-only; AI reaches a cluster
+ * through the Kubectl step instead, whose argv is tiered by KubectlPolicy
+ * and which targets a Runner the cluster's AI page bound.
  */
 export const AI_COMMAND_STEP_TYPES: Array<RunbookStepType> = [
   RunbookStepType.Bash,
   RunbookStepType.SSH,
+  RunbookStepType.Kubectl,
 ];
 
 export enum AiRemediationCommandPolicyVerdict {
@@ -79,6 +81,14 @@ export interface AiRemediationCommand {
   runnerNameSnapshot: string;
   credentialId?: string | undefined;
   credentialNameSnapshot?: string | undefined;
+  /*
+   * Kubectl only: the cluster the command runs against and the tier
+   * KubectlPolicy assigned when the plan was composed. The tier is
+   * informational on the card; execution re-evaluates it.
+   */
+  kubernetesClusterId?: string | undefined;
+  kubernetesClusterNameSnapshot?: string | undefined;
+  kubectlTier?: KubectlCommandTier | undefined;
   command: string;
   timeoutInMs: number;
   // Why the AI wants to run this — shown verbatim on the approval card.
@@ -171,6 +181,21 @@ export class AiRemediationCommandPlanUtil {
         return null;
       }
 
+      if (
+        stepType === RunbookStepType.Kubectl &&
+        (typeof obj["kubernetesClusterId"] !== "string" ||
+          !obj["kubernetesClusterId"].trim())
+      ) {
+        return null;
+      }
+
+      const kubectlTierRaw: string = String(obj["kubectlTier"] || "");
+      const kubectlTier: KubectlCommandTier | undefined = Object.values(
+        KubectlCommandTier,
+      ).includes(kubectlTierRaw as KubectlCommandTier)
+        ? (kubectlTierRaw as KubectlCommandTier)
+        : undefined;
+
       const verdict: string = String(obj["policyVerdict"] || "");
       if (
         verdict !== AiRemediationCommandPolicyVerdict.AutoApproved &&
@@ -208,6 +233,15 @@ export class AiRemediationCommandPlanUtil {
           typeof obj["credentialNameSnapshot"] === "string"
             ? obj["credentialNameSnapshot"]
             : undefined,
+        kubernetesClusterId:
+          typeof obj["kubernetesClusterId"] === "string"
+            ? obj["kubernetesClusterId"]
+            : undefined,
+        kubernetesClusterNameSnapshot:
+          typeof obj["kubernetesClusterNameSnapshot"] === "string"
+            ? obj["kubernetesClusterNameSnapshot"]
+            : undefined,
+        kubectlTier,
         command: command,
         timeoutInMs: timeoutInMs,
         rationale: typeof obj["rationale"] === "string" ? obj["rationale"] : "",

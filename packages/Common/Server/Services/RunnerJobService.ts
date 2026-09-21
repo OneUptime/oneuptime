@@ -10,6 +10,10 @@ import RunbookStepType, {
 } from "../../Types/Runbook/RunbookStepType";
 import { AI_COMMAND_STEP_TYPES } from "../../Types/AutoRemediation/AiRemediationCommandPlan";
 import CommandPolicy from "../../Utils/AiRemediation/CommandPolicy";
+import KubectlPolicy, {
+  KubectlPolicyResult,
+} from "../../Utils/AiRemediation/KubectlPolicy";
+import { KubectlCommandTier } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import QueryHelper from "../Types/Database/QueryHelper";
 
 /*
@@ -18,6 +22,14 @@ import QueryHelper from "../Types/Database/QueryHelper";
  * approved plans, rollbacks) shares one brake.
  */
 export const MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 30;
+
+/*
+ * Separate, looser brake for READ-ONLY kubectl during investigations: a
+ * busy hour of alerts on a large cluster legitimately runs many describe /
+ * logs / events calls, and none of them can change anything. Still a
+ * ceiling, because every call spends Runner time and LLM budget.
+ */
+export const MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 240;
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
@@ -184,6 +196,16 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * kubectl has its own policy and its own payload shape (an argv, a
+     * cluster, an optional credential) — enqueueAiKubectlCommand owns it.
+     */
+    if (data.stepType === RunbookStepType.Kubectl) {
+      throw new BadDataException(
+        "Kubectl commands are enqueued through enqueueAiKubectlCommand.",
+      );
+    }
+
     const command: string = (data.command || "").trim();
     if (!command) {
       throw new BadDataException("An AI command job needs a command.");
@@ -252,6 +274,145 @@ export class Service extends DatabaseService<Model> {
         command: command,
       };
     }
+    row.timeoutInMs = data.timeoutInMs;
+    row.status = RunnerJobStatus.Pending;
+    row.claimDeadlineAt = claimDeadlineAt;
+
+    return this.create({ data: row, props: { isRoot: true } });
+  }
+
+  /*
+   * Enqueue ONE kubectl command OneUptime AI composed against a cluster.
+   *
+   * This is the server-side chokepoint between an LLM's output and a
+   * cluster's API server, so it re-runs the kubectl policy regardless of
+   * what the tool layer checked: Denied never enqueues, and an
+   * investigation-origin job must be Read tier — an investigation can never
+   * write, no matter which prompt produced the call. The Runner re-checks
+   * the same policy on the argv it receives.
+   *
+   * The command travels as an argv in the payload (never a shell line) plus
+   * the cluster and, for Runners outside the cluster, the credential id the
+   * ingress resolves at claim time. In-cluster Runners carry no credential:
+   * kubectl uses the pod's own ServiceAccount.
+   */
+  @CaptureSpan()
+  public async enqueueAiKubectlCommand(data: {
+    projectId: ObjectID;
+    /*
+     * Absent only for the dashboard's "test access" check, which runs a
+     * read command with no AI run behind it.
+     */
+    aiRunId?: ObjectID | undefined;
+    origin: RunnerJobOrigin.AiInvestigation | RunnerJobOrigin.AiRemediation;
+    autoRemediationSuggestionId?: ObjectID | undefined;
+    kubernetesClusterId: ObjectID;
+    stepId: string;
+    targetAgentId: ObjectID;
+    credentialId?: string | undefined;
+    command: string;
+    timeoutInMs: number;
+    claimTimeoutInMs?: number | undefined;
+  }): Promise<Model> {
+    if (!data.targetAgentId) {
+      throw new BadDataException(
+        "targetAgentId is required to dispatch a kubectl command to a Runner.",
+      );
+    }
+
+    if (!data.kubernetesClusterId) {
+      throw new BadDataException(
+        "kubernetesClusterId is required for a kubectl command.",
+      );
+    }
+
+    if (
+      data.origin !== RunnerJobOrigin.AiInvestigation &&
+      data.origin !== RunnerJobOrigin.AiRemediation
+    ) {
+      throw new BadDataException(
+        `A kubectl command job cannot have origin "${String(data.origin)}".`,
+      );
+    }
+
+    if (
+      data.origin === RunnerJobOrigin.AiRemediation &&
+      !data.autoRemediationSuggestionId
+    ) {
+      throw new BadDataException(
+        "A kubectl remediation job needs its auto-remediation suggestion.",
+      );
+    }
+
+    const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+      data.command,
+    );
+
+    if (policy.tier === KubectlCommandTier.Denied) {
+      throw new BadDataException(
+        `Denied by the kubectl command policy: ${policy.reason}.`,
+      );
+    }
+
+    if (
+      data.origin === RunnerJobOrigin.AiInvestigation &&
+      policy.tier !== KubectlCommandTier.Read
+    ) {
+      throw new BadDataException(
+        `An investigation may only run read-only kubectl commands; "${policy.displayCommand}" would change the cluster (${policy.tier}).`,
+      );
+    }
+
+    const hourlyCap: number =
+      data.origin === RunnerJobOrigin.AiInvestigation
+        ? MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR
+        : MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR;
+
+    const jobsInLastHour: number = (
+      await this.countBy({
+        query: {
+          projectId: data.projectId,
+          origin: data.origin,
+          createdAt: QueryHelper.greaterThan(OneUptimeDate.getSomeHoursAgo(1)),
+        },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    if (jobsInLastHour >= hourlyCap) {
+      throw new BadDataException(
+        data.origin === RunnerJobOrigin.AiInvestigation
+          ? `This project has run ${jobsInLastHour} AI investigation commands in the last hour, which is its limit (${hourlyCap}). No further cluster commands can run this hour.`
+          : `This project has run ${jobsInLastHour} AI remediation commands in the last hour, which is its limit (${hourlyCap}). No further AI commands can run this hour.`,
+      );
+    }
+
+    const claimDeadlineAt: Date = OneUptimeDate.addRemoveSeconds(
+      OneUptimeDate.getCurrentDate(),
+      Math.ceil((data.claimTimeoutInMs ?? DEFAULT_CLAIM_TIMEOUT_MS) / 1000),
+    );
+
+    const row: Model = new Model();
+    row.projectId = data.projectId;
+    row.origin = data.origin;
+    if (data.aiRunId) {
+      row.aiRunId = data.aiRunId;
+    }
+    if (data.autoRemediationSuggestionId) {
+      row.autoRemediationSuggestionId = data.autoRemediationSuggestionId;
+    }
+    row.kubernetesClusterId = data.kubernetesClusterId;
+    row.stepId = data.stepId;
+    row.stepType = RunbookStepType.Kubectl;
+    row.targetAgentId = data.targetAgentId;
+    row.script = "";
+    row.payload = {
+      args: policy.args,
+      displayCommand: policy.displayCommand,
+      tier: policy.tier,
+      kubernetesClusterId: data.kubernetesClusterId.toString(),
+      ...(data.credentialId ? { credentialId: data.credentialId } : {}),
+    };
     row.timeoutInMs = data.timeoutInMs;
     row.status = RunnerJobStatus.Pending;
     row.claimDeadlineAt = claimDeadlineAt;

@@ -4,16 +4,27 @@ import RunbookSecretsUtil from "../Utils/Secrets";
 import RunbookCredentialsUtil from "../Utils/Credentials";
 import RunnerService from "Common/Server/Services/RunnerService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
+import KubernetesClusterAiAccessService, {
+  RegisterKubernetesAgentRunnerResult,
+} from "Common/Server/Services/KubernetesClusterAiAccessService";
+import TelemetryIngest, {
+  TelemetryRequest,
+} from "Common/Server/Middleware/TelemetryIngest";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import ObjectID from "Common/Types/ObjectID";
-import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
+import RunnerJobOrigin, {
+  AI_COMMAND_JOB_ORIGINS,
+} from "Common/Types/Runbook/RunnerJobOrigin";
+import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import Version from "Common/Types/Version";
 import { JSONObject } from "Common/Types/JSON";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
 import Express, {
+  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -49,6 +60,77 @@ export default class RunnerIngressAPI {
       RunnerAuthorization.isAuthorizedAgent,
       this.submitJobResult,
     );
+
+    /*
+     * The in-cluster Runner the kubernetes-agent chart installs has no
+     * dashboard-issued id and key. It presents the project's telemetry
+     * ingestion key (the same one the agent ships telemetry with) and the
+     * cluster's name, and is handed a Runner identity bound to that cluster.
+     */
+    this.router.post(
+      `/register-kubernetes-agent`,
+      TelemetryIngest.forSurface(TelemetryIngestSurface.KubernetesAgentRunner),
+      this.registerKubernetesAgentRunner,
+    );
+  }
+
+  public async registerKubernetesAgentRunner(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const projectId: ObjectID | undefined = (req as TelemetryRequest)
+        .projectId;
+
+      if (!projectId) {
+        throw new BadDataException("Project could not be resolved.");
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+
+      const clusterName: unknown = body["clusterName"];
+      if (typeof clusterName !== "string" || !clusterName.trim()) {
+        throw new BadDataException("clusterName is required.");
+      }
+
+      const agentVersion: string | undefined =
+        typeof body["agentVersion"] === "string" && body["agentVersion"]
+          ? (body["agentVersion"] as string)
+          : undefined;
+
+      const result: RegisterKubernetesAgentRunnerResult =
+        await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+          projectId,
+          clusterIdentifier: clusterName.trim(),
+          agentVersion,
+          posture: {
+            allowWrites: body["allowWrites"] === true,
+            kubectlVersion:
+              typeof body["kubectlVersion"] === "string"
+                ? (body["kubectlVersion"] as string)
+                : undefined,
+            agentChartVersion:
+              typeof body["agentChartVersion"] === "string"
+                ? (body["agentChartVersion"] as string)
+                : undefined,
+          },
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        runnerId: result.runnerId.toString(),
+        runnerKey: result.runnerKey,
+        clusterId: result.clusterId.toString(),
+        isBoundToCluster: result.isBoundToCluster,
+        capabilities: {
+          canRunRunbooks: false,
+          canRunCodeFixTasks: false,
+          canRunAiCommands: true,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
   }
 
   public async heartbeat(
@@ -131,7 +213,8 @@ export default class RunnerIngressAPI {
         allowedOrigins.push(RunnerJobOrigin.Runbook);
       }
       if (agent.canRunAiCommands === true) {
-        allowedOrigins.push(RunnerJobOrigin.AiRemediation);
+        // Remediation commands and read-only investigation kubectl alike.
+        allowedOrigins.push(...AI_COMMAND_JOB_ORIGINS);
       }
 
       if (allowedOrigins.length === 0) {
@@ -172,7 +255,10 @@ export default class RunnerIngressAPI {
        * model.
        */
       let scriptToSend: string = job.script ?? "";
-      if (scriptToSend && job.origin !== RunnerJobOrigin.AiRemediation) {
+      if (
+        scriptToSend &&
+        !AI_COMMAND_JOB_ORIGINS.includes(job.origin || RunnerJobOrigin.Runbook)
+      ) {
         const secrets: Array<RunbookSecret> =
           await RunbookSecretsUtil.loadForAgent(agent.id);
         scriptToSend = RunbookSecretsUtil.populateInScript({
@@ -191,6 +277,38 @@ export default class RunnerIngressAPI {
       let credential: JSONObject | null = null;
       const payload: JSONObject = (job.payload as JSONObject) || {};
       const credentialId: unknown = payload["credentialId"];
+
+      /*
+       * A Kubectl job without a credential is meant for an in-cluster
+       * Runner, which uses its own ServiceAccount. Serve it only to a Runner
+       * that reported itself in-cluster: a plain Runner would otherwise run
+       * kubectl against whatever its host's kubeconfig points at.
+       */
+      if (
+        job.stepType === RunbookStepType.Kubectl &&
+        !(typeof credentialId === "string" && credentialId)
+      ) {
+        const kubernetesPosture: unknown = ((agent.hostInfo as
+          | JSONObject
+          | undefined) || {})["kubernetes"];
+        const isInCluster: boolean = Boolean(
+          kubernetesPosture &&
+            typeof kubernetesPosture === "object" &&
+            (kubernetesPosture as JSONObject)["inCluster"] === true,
+        );
+
+        if (!isInCluster) {
+          await RunnerJobService.submitResult({
+            jobId: job.id!,
+            agentId: agent.id,
+            success: false,
+            errorMessage:
+              "This kubectl command has no Kubernetes credential and this Runner is not the in-cluster Runner. Select a Kubernetes credential for this Runner on the cluster's AI page.",
+          });
+
+          return Response.sendJsonObjectResponse(req, res, { job: null });
+        }
+      }
 
       if (typeof credentialId === "string" && credentialId) {
         credential = await RunbookCredentialsUtil.resolveForJob({

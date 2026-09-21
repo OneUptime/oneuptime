@@ -559,7 +559,7 @@ export default class Runner extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Runs AI Remediation Commands",
     description:
-      "Whether AI auto-remediation may execute commands on this Runner. Off by default. Commands are policy-checked and either match an operator allowlist or require one-click human approval.",
+      "Whether OneUptime AI may run commands through this Runner: read-only kubectl while investigating a cluster it is bound to, and policy-checked remediation commands (Bash, SSH, kubectl) that either match an allowlist or wait for one-click human approval. Off by default; the in-cluster Runner installed by the Kubernetes agent chart turns it on.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

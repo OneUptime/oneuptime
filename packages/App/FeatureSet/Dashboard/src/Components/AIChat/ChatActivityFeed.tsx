@@ -55,6 +55,11 @@ const friendlyToolNames: { [key: string]: string } = {
   resolve_incident: "Resolving incident",
   acknowledge_alert: "Acknowledging alert",
   resolve_alert: "Resolving alert",
+  run_kubectl: "Running kubectl on the cluster",
+  list_cluster_access: "Checking cluster access",
+  list_command_targets: "Listing where commands may run",
+  execute_remediation_command: "Applying a fix",
+  propose_remediation_commands: "Proposing a fix for approval",
 };
 
 function friendlyToolName(toolName: string | undefined): string {

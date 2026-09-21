@@ -1,5 +1,7 @@
 import Label from "./Label";
 import Project from "./Project";
+import RunbookCredential from "./RunbookCredential";
+import Runner from "./Runner";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -20,6 +22,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
+import { KubernetesAiRemediationMode } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import {
   Column,
   Entity,
@@ -990,4 +993,338 @@ export default class KubernetesCluster extends BaseModel {
     nullable: true,
   })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
+
+  /*
+   * ---- OneUptime AI access -------------------------------------------
+   *
+   * The cluster's AI page binds one Runner that can reach the cluster and
+   * decides what OneUptime AI may do with it. The in-cluster Runner the
+   * kubernetes-agent chart installs (aiAccess.enabled=true) binds itself
+   * here on registration; an operator can instead bind any existing Runner
+   * plus a Kubernetes credential. Whether AI may investigate (read-only
+   * kubectl) and how it may remediate are separate switches so a project
+   * can let AI look without letting it touch.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "aiAccessRunnerId",
+    type: TableColumnType.Entity,
+    modelType: Runner,
+    title: "AI Access Runner",
+    description:
+      "The Runner OneUptime AI uses to run kubectl against this cluster — the in-cluster Runner installed by the Kubernetes agent chart, or any Runner holding a Kubernetes credential for this cluster.",
+  })
+  @ManyToOne(
+    () => {
+      return Runner;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "aiAccessRunnerId" })
+  public aiAccessRunner?: Runner = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "AI Access Runner ID",
+    description:
+      "ID of the Runner OneUptime AI uses to run kubectl against this cluster.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiAccessRunnerId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "aiAccessCredentialId",
+    type: TableColumnType.Entity,
+    modelType: RunbookCredential,
+    title: "AI Access Credential",
+    description:
+      "The Kubernetes credential the AI access Runner uses for this cluster. Leave empty for the in-cluster Runner, which uses its own ServiceAccount.",
+  })
+  @ManyToOne(
+    () => {
+      return RunbookCredential;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "aiAccessCredentialId" })
+  public aiAccessCredential?: RunbookCredential = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "AI Access Credential ID",
+    description:
+      "ID of the Kubernetes credential the AI access Runner uses for this cluster. Empty for the in-cluster Runner.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiAccessCredentialId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Let AI Investigate With kubectl",
+    description:
+      "When on, OneUptime AI runs read-only kubectl commands (get, describe, logs, events, top) on this cluster while investigating incidents and alerts linked to it. Nothing is ever changed by an investigation.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isAiInvestigationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "AI Remediation Mode",
+    description:
+      "Disabled: AI never changes this cluster. RequireApproval: AI composes a kubectl fix and a human approves it with one click. Automatic: AI applies safe fixes (rollout restart, scale, delete a pod, cordon) on its own and still asks before riskier changes.",
+    defaultValue: KubernetesAiRemediationMode.Disabled,
+    example: KubernetesAiRemediationMode.RequireApproval,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: KubernetesAiRemediationMode.Disabled,
+  })
+  public aiRemediationMode?: KubernetesAiRemediationMode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditKubernetesCluster,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "AI kubectl Allowlist",
+    description:
+      "Optional list of kubectl command patterns (with * wildcards) that Automatic mode may run without approval even though they are riskier changes, for example: kubectl set image deployment/web * -n web. Destructive commands never run regardless.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiKubectlCommandAllowlist?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Last Verified At",
+    description:
+      "When a kubectl command from OneUptime AI last succeeded on this cluster.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessLastVerifiedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "AI Access Last Error",
+    description:
+      "The most recent failure OneUptime AI hit while running kubectl on this cluster, kept until the next successful command.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public aiAccessLastError?: string = undefined;
 }

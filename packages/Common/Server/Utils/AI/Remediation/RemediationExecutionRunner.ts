@@ -21,6 +21,12 @@ import {
   AiRemediationPlanExecutionStatus,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import { Indigo500 } from "../../../../Types/BrandColors";
+import {
+  KubernetesAiRemediationMode,
+  KubernetesClusterAiAccessStatus,
+} from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
+import KubectlInvestigationToolkit from "../ClusterAccess/KubectlInvestigationToolkit";
 import AIRunService from "../../../Services/AIRunService";
 import AlertFeedService from "../../../Services/AlertFeedService";
 import AlertService from "../../../Services/AlertService";
@@ -35,7 +41,10 @@ import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
 import PostedRootCause from "../SRE/PostedRootCause";
 import { ConfidenceSignal } from "../SRE/ConfidenceSignal";
-import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
+import {
+  ObservabilityAssistantExtraTool,
+  ObservabilityAssistantResult,
+} from "../Chat/ObservabilityAssistant";
 import RemediationCommandToolkit, {
   MAX_AUTO_EXECUTED_COMMANDS_PER_RUN,
   RemediationCommandMode,
@@ -132,6 +141,46 @@ Write your final answer with exactly these markdown sections:
 **Risks** — what could go wrong if the plan runs.
 **Verification** — what should confirm recovery after the plan runs.`;
 
+const CLUSTER_FRAMING_RULES: string = `- Kubectl commands run through the cluster's own Runner. Compose them as one line starting with "kubectl", always with -n <namespace> for namespaced objects. Diagnose first with run_kubectl (describe the failing pod, read its events and logs, check node capacity and pending-pod reasons, check rollout history) — it is read-only and does not count as a remediation command.
+- Safe changes: kubectl rollout restart/undo/pause/resume, kubectl scale --replicas, deleting a NAMED pod or job, cordon/uncordon, label/annotate. Riskier changes (patch, set image/env/resources, taint, drain, deleting workloads, delete by selector) need a human. Destructive commands (deleting namespaces, volumes, nodes, secrets, CRDs; exec; apply; edit) are refused even with approval — never propose them.
+- A pod stuck in Pending is usually a scheduling problem (insufficient CPU/memory on nodes, a node selector/affinity/taint nobody satisfies, an unbound PVC, a missing image pull secret): describe the pod and read its Events before deciding. Deleting the pod rarely fixes scheduling; fixing capacity, the selector or the claim does.`;
+
+const CLUSTER_FULLAUTO_PERSONA: string = `You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer, and this is a REMEDIATION EXECUTION run on a Kubernetes cluster whose operator turned on Automatic remediation: diagnose the failure and FIX IT with kubectl.
+
+How to work:
+1. Diagnose first with run_kubectl and your read tools: confirm what is actually broken (the failing pod's describe output and events, node capacity, rollout history, container logs). If an investigation's root cause analysis is included below, start from it and verify it.
+2. Act minimally: execute the smallest safe change that addresses the diagnosed cause via execute_remediation_command with stepType Kubectl. One change at a time.
+3. Verify each action: after a change, run_kubectl to observe its effect (pod phase, rollout status, events) before deciding whether more is needed.
+4. Know your limits: only safe kubectl changes (and allowlisted ones) execute inline. If the right fix is riskier, do NOT hunt for a worse safe substitute — put the exact kubectl command in your final recommendations for a human.
+5. Always pass a rollbackCommand when the change has an undo (kubectl rollout undo, kubectl scale back to the previous count, kubectl uncordon) — it is what runs if the service has not recovered by the end of the verification window.
+${CLUSTER_FRAMING_RULES}
+${SHARED_FRAMING_RULES}
+
+Write your final answer with exactly these markdown sections:
+**Summary** — one or two sentences: what was wrong and what you did.
+**Diagnosis** — what you found on the cluster and in the telemetry, each factual claim cited [C#].
+**Actions taken** — every kubectl command you executed, in order, with its outcome. If you executed nothing, say so and why.
+**Verification** — what you observed after acting, and what the verification window should confirm.
+**Recommendations** — anything a human should still do (including riskier kubectl commands you could not run).`;
+
+const CLUSTER_SUGGEST_PERSONA: string = `You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer, and this is a REMEDIATION PLANNING run on a Kubernetes cluster: diagnose the failure with kubectl and compose a minimal kubectl plan that a human will approve with one click. NOTHING you propose executes until a human approves it.
+
+How to work:
+1. Diagnose with run_kubectl and your read tools (describe the failing pod, read its events and logs, check node capacity, rollout history). If an investigation's root cause analysis is included below, start from it and verify it against the cluster.
+2. Compose the SMALLEST plan that addresses the diagnosed cause and record it with propose_remediation_commands using stepType Kubectl and the cluster's kubernetesClusterId (at most once — a later call replaces the earlier plan). Do not propose diagnostic-only commands; propose the fix.
+3. Give every state-changing command a rollbackCommand when an undo exists (kubectl rollout undo, kubectl scale back, kubectl uncordon) — it runs if the service has not recovered after the plan.
+4. If a previous plan for this signal already ran and did not recover the service (listed below), do NOT propose the same commands again — propose a different approach, or propose nothing and explain what a human should look at.
+5. If you cannot diagnose the cause, or no safe plan exists, propose NOTHING and say why.
+${CLUSTER_FRAMING_RULES}
+${SHARED_FRAMING_RULES}
+
+Write your final answer with exactly these markdown sections:
+**Summary** — one or two sentences a responder reads in five seconds.
+**Diagnosis** — what you found on the cluster and in the telemetry, each factual claim cited [C#].
+**Proposed remediation** — why these kubectl commands fix the diagnosed cause (or why you proposed none).
+**Risks** — what could go wrong if the plan runs.
+**Verification** — what should confirm recovery after the plan runs.`;
+
 export default class RemediationExecutionRunner {
   /*
    * Execute a claimed RemediationExecution run. Called by
@@ -151,6 +200,8 @@ export default class RemediationExecutionRunner {
     let mode: RemediationCommandMode = "Suggest";
     let toolkit: RemediationCommandToolkit;
     let contextSummary: string;
+    let clusterTarget: KubernetesClusterAiAccessStatus | null = null;
+    let readToolkit: KubectlInvestigationToolkit | null = null;
 
     try {
       suggestion = await AutoRemediationSuggestionService.findOneById({
@@ -164,6 +215,7 @@ export default class RemediationExecutionRunner {
           incidentId: true,
           alertId: true,
           autoRemediationRuleId: true,
+          kubernetesClusterId: true,
           ruleNameSnapshot: true,
           verificationWindowMinutes: true,
         },
@@ -237,69 +289,163 @@ export default class RemediationExecutionRunner {
         return;
       }
 
-      const rule: AutoRemediationRule | null = suggestion.autoRemediationRuleId
-        ? await AutoRemediationRuleService.findOneById({
-            id: suggestion.autoRemediationRuleId,
-            select: {
-              _id: true,
-              isEnabled: true,
-              executionMode: true,
-              aiComposesCommands: true,
-              commandAllowlist: true,
-              commandRunners: { _id: true },
+      if (suggestion.kubernetesClusterId) {
+        /*
+         * Cluster-level remediation: the cluster's AI page plays the rule's
+         * part. Re-read its readiness now — an operator may have turned
+         * remediation off, or the Runner may have gone away, since the
+         * suggestion was created.
+         */
+        clusterTarget =
+          await KubernetesClusterAiAccessService.getStatusForCluster({
+            clusterId: suggestion.kubernetesClusterId,
+            projectId,
+          });
+
+        if (!clusterTarget || !clusterTarget.isRemediationReady) {
+          const firstGap: string | undefined = clusterTarget?.gaps.find(
+            (gap: { blocks: string }) => {
+              return gap.blocks !== "investigation";
             },
-            props: { isRoot: true },
-          })
-        : null;
+          )?.title;
 
-      if (
-        !rule ||
-        rule.isEnabled === false ||
-        rule.aiComposesCommands !== true
-      ) {
-        await this.settleNoneApplicable({
+          await this.settleNoneApplicable({
+            suggestion,
+            rationaleMarkdown: `OneUptime AI can no longer remediate cluster "${
+              clusterTarget?.clusterName || "(deleted)"
+            }"${firstGap ? `: ${firstGap}` : ""}. Nothing was run or proposed. Review the cluster's AI page.`,
+          });
+          await this.completeRunQuietly(aiRunId);
+          return;
+        }
+
+        mode = await this.resolveClusterMode({
           suggestion,
-          rationaleMarkdown:
-            "The auto-remediation rule behind this suggestion was deleted, disabled, or no longer composes commands — nothing was run or proposed.",
+          cluster: clusterTarget,
         });
-        await this.completeRunQuietly(aiRunId);
-        return;
+
+        toolkit = new RemediationCommandToolkit({
+          projectId,
+          aiRunId,
+          suggestionId,
+          mode,
+          allowlistPatterns: [],
+          // No host targets: this run is about one cluster.
+          allowedRunnerIds: [],
+          clusterTargets: [clusterTarget],
+        });
+
+        readToolkit = new KubectlInvestigationToolkit({
+          projectId,
+          aiRunId,
+          clusters: [clusterTarget],
+          readinessCheck: "remediation",
+        });
+
+        contextSummary = await this.buildExecutionContext({
+          suggestion,
+          mode,
+          allowlistPatterns: clusterTarget.kubectlAllowlist,
+          clusterTarget,
+        });
+      } else {
+        const rule: AutoRemediationRule | null =
+          suggestion.autoRemediationRuleId
+            ? await AutoRemediationRuleService.findOneById({
+                id: suggestion.autoRemediationRuleId,
+                select: {
+                  _id: true,
+                  isEnabled: true,
+                  executionMode: true,
+                  aiComposesCommands: true,
+                  commandAllowlist: true,
+                  commandRunners: { _id: true },
+                },
+                props: { isRoot: true },
+              })
+            : null;
+
+        if (
+          !rule ||
+          rule.isEnabled === false ||
+          rule.aiComposesCommands !== true
+        ) {
+          await this.settleNoneApplicable({
+            suggestion,
+            rationaleMarkdown:
+              "The auto-remediation rule behind this suggestion was deleted, disabled, or no longer composes commands — nothing was run or proposed.",
+          });
+          await this.completeRunQuietly(aiRunId);
+          return;
+        }
+
+        const allowlistPatterns: Array<string> = this.normalizeAllowlist(
+          rule.commandAllowlist,
+        );
+
+        const allowedRunnerIds: Array<string> | null =
+          rule.commandRunners && rule.commandRunners.length > 0
+            ? rule.commandRunners
+                .map((runner: Runner) => {
+                  return runner.id?.toString() || "";
+                })
+                .filter((id: string) => {
+                  return id !== "";
+                })
+            : null;
+
+        mode = await this.resolveMode({
+          rule,
+          allowlistPatterns,
+        });
+
+        /*
+         * Rule-driven runs may also reach the signal's clusters when their
+         * AI pages allow it — the cluster mode, not the rule, decides
+         * whether a kubectl change may auto-execute. Enrichment only.
+         */
+        let ruleClusterTargets: Array<KubernetesClusterAiAccessStatus> = [];
+        try {
+          ruleClusterTargets = (
+            await KubernetesClusterAiAccessService.getStatusesForSubject({
+              projectId,
+              incidentId: suggestion.incidentId,
+              alertId: suggestion.alertId,
+            })
+          ).filter((status: KubernetesClusterAiAccessStatus) => {
+            return status.isRemediationReady;
+          });
+        } catch (error) {
+          logger.error(
+            `AI remediation execution: could not resolve cluster targets for suggestion ${suggestionId.toString()}; continuing with host targets only: ${error}`,
+          );
+        }
+
+        toolkit = new RemediationCommandToolkit({
+          projectId,
+          aiRunId,
+          suggestionId,
+          mode,
+          allowlistPatterns,
+          allowedRunnerIds,
+          clusterTargets: ruleClusterTargets,
+        });
+
+        if (ruleClusterTargets.length > 0) {
+          readToolkit = new KubectlInvestigationToolkit({
+            projectId,
+            aiRunId,
+            clusters: ruleClusterTargets,
+            readinessCheck: "remediation",
+          });
+        }
+
+        contextSummary = await this.buildExecutionContext({
+          suggestion,
+          mode,
+          allowlistPatterns,
+        });
       }
-
-      const allowlistPatterns: Array<string> = this.normalizeAllowlist(
-        rule.commandAllowlist,
-      );
-
-      const allowedRunnerIds: Array<string> | null =
-        rule.commandRunners && rule.commandRunners.length > 0
-          ? rule.commandRunners
-              .map((runner: Runner) => {
-                return runner.id?.toString() || "";
-              })
-              .filter((id: string) => {
-                return id !== "";
-              })
-          : null;
-
-      mode = await this.resolveMode({
-        rule,
-        allowlistPatterns,
-      });
-
-      toolkit = new RemediationCommandToolkit({
-        projectId,
-        aiRunId,
-        suggestionId,
-        mode,
-        allowlistPatterns,
-        allowedRunnerIds,
-      });
-
-      contextSummary = await this.buildExecutionContext({
-        suggestion,
-        mode,
-        allowlistPatterns,
-      });
     } catch (error) {
       await AIInvestigationQueue.failOrRequeue({
         aiRunId,
@@ -314,6 +460,21 @@ export default class RemediationExecutionRunner {
 
     const resolvedMode: RemediationCommandMode = mode;
     const resolvedToolkit: RemediationCommandToolkit = toolkit;
+    const resolvedClusterTarget: KubernetesClusterAiAccessStatus | null =
+      clusterTarget;
+
+    const extraTools: Array<ObservabilityAssistantExtraTool> = [
+      ...resolvedToolkit.buildTools(),
+      ...(readToolkit ? readToolkit.buildTools() : []),
+    ];
+
+    const persona: string = resolvedClusterTarget
+      ? resolvedMode === "FullAuto"
+        ? CLUSTER_FULLAUTO_PERSONA
+        : CLUSTER_SUGGEST_PERSONA
+      : resolvedMode === "FullAuto"
+        ? FULLAUTO_PERSONA
+        : SUGGEST_PERSONA;
 
     await AIInvestigationEngine.executeRun({
       aiRunId,
@@ -324,13 +485,15 @@ export default class RemediationExecutionRunner {
         incidentId: suggestion!.incidentId,
         alertId: suggestion!.alertId,
         contextSummary,
-        personaOverride:
-          resolvedMode === "FullAuto" ? FULLAUTO_PERSONA : SUGGEST_PERSONA,
-        questionOverride:
-          resolvedMode === "FullAuto"
+        personaOverride: persona,
+        questionOverride: resolvedClusterTarget
+          ? resolvedMode === "FullAuto"
+            ? `A signal has been declared on Kubernetes cluster "${resolvedClusterTarget.clusterName}" and Automatic remediation is enabled for it. Diagnose with kubectl and remediate now.`
+            : `A signal has been declared on Kubernetes cluster "${resolvedClusterTarget.clusterName}". Diagnose it with kubectl and compose a kubectl plan for human approval.`
+          : resolvedMode === "FullAuto"
             ? "A new signal has been declared and FullAuto remediation is enabled for it. Diagnose and remediate now."
             : "A new signal has been declared. Diagnose it and compose a command plan for human approval.",
-        extraTools: resolvedToolkit.buildTools(),
+        extraTools,
         maxLlmCalls: MAX_LLM_CALLS,
         maxToolCalls: MAX_TOOL_CALLS,
         maxWallClockMs: MAX_WALL_CLOCK_MS,
@@ -398,7 +561,7 @@ export default class RemediationExecutionRunner {
 
     await this.postFeedItem({
       suggestion,
-      markdown: `⚡ **Auto Remediation Rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}": the AI command run was interrupted after executing ${
+      markdown: `⚡ **${this.describeSource(suggestion)}: the AI command run was interrupted after executing ${
         plan.commands.filter((command: AiRemediationCommand) => {
           return command.execution !== undefined;
         }).length
@@ -426,8 +589,7 @@ export default class RemediationExecutionRunner {
       MAX_RATIONALE_CHARS,
     );
 
-    const ruleName: string =
-      suggestion.ruleNameSnapshot || "Auto Remediation Rule";
+    const sourceLabel: string = this.describeSource(suggestion);
 
     if (data.mode === "FullAuto") {
       const executedCommands: Array<AiRemediationCommand> =
@@ -473,7 +635,7 @@ export default class RemediationExecutionRunner {
 
       await this.postFeedItem({
         suggestion,
-        markdown: `⚡ **Auto Remediation Rule "${ruleName}": AI executed ${executedCommands.length} allowlisted command(s).** Review the actions and reasoning on the suggestion; verification is watching the monitors and will roll back if the service does not recover.`,
+        markdown: `⚡ **${sourceLabel}: AI executed ${executedCommands.length} command(s).** Review the actions and reasoning on the suggestion; verification is watching the monitors and will roll back if the service does not recover.`,
         pingWorkspace: true,
       });
       return;
@@ -513,7 +675,7 @@ export default class RemediationExecutionRunner {
 
     await this.postFeedItem({
       suggestion,
-      markdown: `⚡ **Auto Remediation Rule "${ruleName}": AI composed a ${proposedPlan.commands.length}-command remediation plan.** Review the exact commands and reasoning, then approve with one click to run them.`,
+      markdown: `⚡ **${sourceLabel}: AI composed a ${proposedPlan.commands.length}-command remediation plan.** Review the exact commands and reasoning, then approve with one click to run them.`,
       pingWorkspace: true,
     });
   }
@@ -538,7 +700,7 @@ export default class RemediationExecutionRunner {
 
     await this.postFeedItem({
       suggestion: data.suggestion,
-      markdown: `⚡ **Auto Remediation Rule "${data.suggestion.ruleNameSnapshot || "Auto Remediation Rule"}": AI did not find a safe command remediation.** Nothing was run or proposed — see the reasoning on the suggestion.`,
+      markdown: `⚡ **${this.describeSource(data.suggestion)}: AI did not find a safe command remediation.** Nothing was run or proposed — see the reasoning on the suggestion.`,
       pingWorkspace: false,
     });
   }
@@ -672,6 +834,53 @@ export default class RemediationExecutionRunner {
   }
 
   /*
+   * Cluster mode: Automatic runs FullAuto unless the per-cluster hourly
+   * circuit breaker trips (same threshold as rules); RequireApproval, and
+   * every follow-up round, runs Suggest. Fail direction: Suggest.
+   */
+  private static async resolveClusterMode(data: {
+    suggestion: AutoRemediationSuggestion;
+    cluster: KubernetesClusterAiAccessStatus;
+  }): Promise<RemediationCommandMode> {
+    if (
+      data.suggestion.executionMode !== AutoRemediationExecutionMode.FullAuto ||
+      data.cluster.remediationMode !== KubernetesAiRemediationMode.Automatic
+    ) {
+      return "Suggest";
+    }
+
+    try {
+      const autoExecutedInWindow: number = (
+        await AutoRemediationSuggestionService.countBy({
+          query: {
+            kubernetesClusterId: new ObjectID(data.cluster.clusterId),
+            suggestionType: AutoRemediationSuggestionType.CommandPlan,
+            status: AutoRemediationSuggestionStatus.AutoExecuted,
+            createdAt: QueryHelper.greaterThan(
+              OneUptimeDate.getSomeHoursAgo(1),
+            ),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (autoExecutedInWindow >= MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR) {
+        logger.warn(
+          `RemediationExecutionRunner: cluster ${data.cluster.clusterId} hit its hourly Automatic circuit breaker (${autoExecutedInWindow} auto-executions); downgrading this run to Suggest.`,
+        );
+        return "Suggest";
+      }
+    } catch (error) {
+      logger.error(
+        `RemediationExecutionRunner: cluster circuit-breaker check failed; downgrading to Suggest: ${error}`,
+      );
+      return "Suggest";
+    }
+
+    return "FullAuto";
+  }
+
+  /*
    * ------------------------------------------------------------------
    * Context
    * ------------------------------------------------------------------
@@ -681,6 +890,7 @@ export default class RemediationExecutionRunner {
     suggestion: AutoRemediationSuggestion;
     mode: RemediationCommandMode;
     allowlistPatterns: Array<string>;
+    clusterTarget?: KubernetesClusterAiAccessStatus | undefined;
   }): Promise<string> {
     const lines: Array<string> = [];
 
@@ -776,26 +986,144 @@ export default class RemediationExecutionRunner {
       lines.push("</untrusted_context>");
     }
 
-    lines.push("");
-    lines.push(
-      `Matched auto-remediation rule: ${data.suggestion.ruleNameSnapshot || "N/A"}`,
-    );
-
-    if (data.mode === "FullAuto") {
+    if (data.clusterTarget) {
       lines.push("");
-      lines.push("# Commands you may auto-execute (the rule's allowlist)");
+      lines.push("# The cluster");
       lines.push(
-        "Only commands matching one of these operator-authored patterns (and free of shell chaining) will execute:",
+        `Kubernetes cluster "${data.clusterTarget.clusterName}" (kubernetesClusterId: ${data.clusterTarget.clusterId}), reached through Runner "${data.clusterTarget.runner?.name}"${
+          data.clusterTarget.accessMethod === "in_cluster"
+            ? " (in-cluster)"
+            : ""
+        }.`,
       );
-      for (const pattern of data.allowlistPatterns.slice(0, 50)) {
-        lines.push(`- \`${pattern}\``);
+      lines.push(
+        data.mode === "FullAuto"
+          ? "Remediation mode: Automatic — safe kubectl changes execute inline via execute_remediation_command; riskier ones must go to your recommendations."
+          : "Remediation mode: a human approves — record your plan with propose_remediation_commands.",
+      );
+      if (data.clusterTarget.kubectlAllowlist.length > 0) {
+        lines.push(
+          "Riskier kubectl commands matching these operator-authored patterns may also auto-execute:",
+        );
+        for (const pattern of data.clusterTarget.kubectlAllowlist.slice(
+          0,
+          50,
+        )) {
+          lines.push(`- \`${pattern}\``);
+        }
       }
+      if (data.mode === "FullAuto") {
+        lines.push(
+          `You may execute at most ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands in this run.`,
+        );
+      }
+
+      lines.push(...(await this.describePreviousRounds(data.suggestion)));
+    } else {
+      lines.push("");
       lines.push(
-        `You may execute at most ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands in this run.`,
+        `Matched auto-remediation rule: ${data.suggestion.ruleNameSnapshot || "N/A"}`,
       );
+
+      if (data.mode === "FullAuto") {
+        lines.push("");
+        lines.push("# Commands you may auto-execute (the rule's allowlist)");
+        lines.push(
+          "Only commands matching one of these operator-authored patterns (and free of shell chaining) will execute:",
+        );
+        for (const pattern of data.allowlistPatterns.slice(0, 50)) {
+          lines.push(`- \`${pattern}\``);
+        }
+        lines.push(
+          `You may execute at most ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands in this run.`,
+        );
+      }
     }
 
     return ToolResultSerializer.redact(lines.join("\n")).text;
+  }
+
+  /*
+   * Earlier cluster rounds on the same subject: what ran, what happened,
+   * and how verification judged it. This is what turns "ask again" into a
+   * genuinely different second plan rather than a repeat.
+   */
+  private static async describePreviousRounds(
+    suggestion: AutoRemediationSuggestion,
+  ): Promise<Array<string>> {
+    if (!suggestion.kubernetesClusterId) {
+      return [];
+    }
+
+    let previous: Array<AutoRemediationSuggestion> = [];
+
+    try {
+      previous = await AutoRemediationSuggestionService.findBy({
+        query: {
+          ...(suggestion.incidentId
+            ? { incidentId: suggestion.incidentId }
+            : { alertId: suggestion.alertId! }),
+          kubernetesClusterId: suggestion.kubernetesClusterId,
+          _id: QueryHelper.notEquals(suggestion.id!.toString()),
+        },
+        select: {
+          _id: true,
+          status: true,
+          commandPlan: true,
+          verificationStatus: true,
+          verificationNote: true,
+          createdAt: true,
+        },
+        limit: 5,
+        skip: 0,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      logger.error(
+        `AI remediation execution: could not read previous rounds for suggestion ${suggestion.id?.toString()}: ${error}`,
+      );
+      return [];
+    }
+
+    if (previous.length === 0) {
+      return [];
+    }
+
+    const lines: Array<string> = [
+      "",
+      "# Previous remediation attempts on this cluster for this signal",
+    ];
+    lines.push('<untrusted_context source="previous_attempts">');
+
+    for (const attempt of previous) {
+      const plan: AiRemediationCommandPlan | null =
+        AiRemediationCommandPlanUtil.parse(attempt.commandPlan);
+
+      lines.push(
+        `- Attempt (${attempt.status || "unknown"}; verification: ${
+          attempt.verificationStatus || "n/a"
+        }${attempt.verificationNote ? ` — ${redactAndCap(attempt.verificationNote, 300)}` : ""}):`,
+      );
+
+      for (const command of plan?.commands || []) {
+        lines.push(
+          `  - ${escapeUntrustedContext(redactAndCap(command.command, 300))} → ${
+            command.execution?.status || "not executed"
+          }${
+            command.execution?.errorMessage
+              ? ` (${escapeUntrustedContext(redactAndCap(command.execution.errorMessage, 200))})`
+              : ""
+          }`,
+        );
+      }
+    }
+
+    lines.push("</untrusted_context>");
+    lines.push(
+      "Do not repeat a plan that already failed to recover the service — take a different approach or propose nothing.",
+    );
+
+    return lines;
   }
 
   /*
@@ -803,6 +1131,14 @@ export default class RemediationExecutionRunner {
    * Small helpers
    * ------------------------------------------------------------------
    */
+
+  // "AI remediation for cluster X" reads as itself; rules keep their prefix.
+  private static describeSource(suggestion: AutoRemediationSuggestion): string {
+    if (suggestion.kubernetesClusterId) {
+      return suggestion.ruleNameSnapshot || "AI remediation for cluster";
+    }
+    return `Auto Remediation Rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}"`;
+  }
 
   private static async completeRunQuietly(aiRunId: ObjectID): Promise<void> {
     await AIRunService.attemptStatusTransition({

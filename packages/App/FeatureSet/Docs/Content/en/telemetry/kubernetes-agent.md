@@ -352,6 +352,41 @@ clusterName: prod
 
 Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated. Labels added manually in the OneUptime UI are never removed by the agent.
 
+## Give OneUptime AI kubectl access (AI investigations and fixes)
+
+When an incident or alert is raised on this cluster, OneUptime AI investigates it. With one extra flag it also gets a terminal: it runs read-only `kubectl` the way an on-call engineer would (describe the failing pod, read its events, tail the crashing container's logs, check node capacity) and cites every command on the incident page.
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set aiAccess.enabled=true
+```
+
+That deploys one small Deployment — the OneUptime Runner — with a **read-only** ServiceAccount. It registers itself with the same `oneuptime.apiKey` and `clusterName` the agent already uses, so there is nothing to set up in the dashboard: the cluster's **AI** page (Kubernetes → cluster → AI) shows it as Connected within a minute.
+
+To let OneUptime AI **fix** what it finds, also grant write access:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set aiAccess.enabled=true \
+  --set aiAccess.remediation.enabled=true
+```
+
+The cluster then starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. Switch the cluster to **automatic** on its AI page to let safe changes run on their own. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run and what is never allowed.
+
+| Value | Default | What it does |
+| --- | --- | --- |
+| `aiAccess.enabled` | `false` | Deploy the in-cluster Runner with read-only RBAC and register it to this cluster. |
+| `aiAccess.remediation.enabled` | `false` | Also grant the write verbs OneUptime AI's fixes use (rollout restart/undo, scale, delete a pod/job, cordon/uncordon, label/annotate, patch). Never exec, port-forward, or deleting namespaces/volumes/nodes/secrets/CRDs. |
+| `aiAccess.image.tag` | `release` | Pin the Runner image. |
+
+If the AI page still says the Runner is not connected after a couple of minutes, read its logs:
+
+```bash
+kubectl logs -n oneuptime-agent -l component=ai-runner --tail=100
+```
+
 ## Upgrading the Agent
 
 ```bash

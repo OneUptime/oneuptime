@@ -38,14 +38,41 @@ export const ONEUPTIME_BASE_URL: URL = URL.fromString(
 // Cluster-key mode auto-registers and derives its own id; project mode does not.
 export const IS_CLUSTER_SCOPED: boolean = HasClusterKey;
 
-if (!IS_CLUSTER_SCOPED && !process.env["ONEUPTIME_RUNNER_ID"]) {
+/*
+ * KUBERNETES-AGENT MODE: the Runner the kubernetes-agent Helm chart installs
+ * next to the OpenTelemetry collector (aiAccess.enabled=true). It has no
+ * dashboard-issued id and key; it presents the project's telemetry ingestion
+ * key (the same one the agent ships telemetry with) plus the cluster's name,
+ * and the server issues it a Runner identity bound to that cluster. That is
+ * what makes "give OneUptime AI kubectl access" a single helm flag.
+ */
+export const KUBERNETES_AGENT_CLUSTER_NAME: string | null =
+  process.env["ONEUPTIME_KUBERNETES_CLUSTER_NAME"] || null;
+
+export const KUBERNETES_AGENT_INGESTION_KEY: string | null =
+  process.env["ONEUPTIME_INGESTION_KEY"] || null;
+
+export const KUBERNETES_AGENT_CHART_VERSION: string | null =
+  process.env["ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION"] || null;
+
+export const IS_KUBERNETES_AGENT_MODE: boolean =
+  !IS_CLUSTER_SCOPED &&
+  !process.env["ONEUPTIME_RUNNER_ID"] &&
+  Boolean(KUBERNETES_AGENT_CLUSTER_NAME) &&
+  Boolean(KUBERNETES_AGENT_INGESTION_KEY);
+
+if (
+  !IS_CLUSTER_SCOPED &&
+  !IS_KUBERNETES_AGENT_MODE &&
+  !process.env["ONEUPTIME_RUNNER_ID"]
+) {
   logger.error(
-    "ONEUPTIME_RUNNER_ID is not set. Create a Runner in your OneUptime dashboard (Project Settings > Runners) and copy its id and key into this container.",
+    "ONEUPTIME_RUNNER_ID is not set. Create a Runner in your OneUptime dashboard (Project Settings > Runners) and copy its id and key into this container. (The Kubernetes agent's in-cluster Runner instead sets ONEUPTIME_INGESTION_KEY and ONEUPTIME_KUBERNETES_CLUSTER_NAME.)",
   );
   process.exit(1);
 }
 
-if (!process.env["ONEUPTIME_RUNNER_KEY"]) {
+if (!IS_KUBERNETES_AGENT_MODE && !process.env["ONEUPTIME_RUNNER_KEY"]) {
   logger.error(
     "ONEUPTIME_RUNNER_KEY is not set. Create a Runner in your OneUptime dashboard (Project Settings > Runners) and copy its id and key into this container.",
   );
@@ -60,7 +87,12 @@ export const RUNNER_ID: ObjectID | null = process.env["ONEUPTIME_RUNNER_ID"]
   ? new ObjectID(process.env["ONEUPTIME_RUNNER_ID"]!)
   : null;
 
-export const RUNNER_KEY: string = process.env["ONEUPTIME_RUNNER_KEY"]!;
+/*
+ * Empty in kubernetes-agent mode until registration issues one — read the
+ * live key through RunnerIdentity.getRunnerKey(), never this constant, on
+ * any path that mode can reach.
+ */
+export const RUNNER_KEY: string = process.env["ONEUPTIME_RUNNER_KEY"] || "";
 
 export const RUNNER_NAME: string | null =
   process.env["ONEUPTIME_RUNNER_NAME"] || null;
@@ -106,6 +138,16 @@ export const ENABLE_CODE_FIXES_OVERRIDE: boolean | null =
  */
 export const ENABLE_AI_COMMANDS_OVERRIDE: boolean | null =
   parseCapabilityOverride(process.env["ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS"]);
+
+/*
+ * Whether AI-composed kubectl WRITES may run from this host. Only "false"
+ * has an effect: an external Runner is bounded by its Kubernetes
+ * credential's RBAC, so writes are allowed unless the host refuses them. The
+ * kubernetes-agent chart sets it explicitly from aiAccess.remediation.enabled,
+ * matching the RBAC it granted the Runner's ServiceAccount.
+ */
+export const KUBECTL_ALLOW_WRITES_OVERRIDE: boolean | null =
+  parseCapabilityOverride(process.env["ONEUPTIME_KUBECTL_ALLOW_WRITES"]);
 
 /*
  * What a cluster-scoped Runner runs, where no dashboard row exists to consult.

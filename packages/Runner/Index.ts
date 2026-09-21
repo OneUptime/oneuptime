@@ -1,6 +1,8 @@
 import {
   ENABLE_CODE_FIXES_OVERRIDE,
   IS_CLUSTER_SCOPED,
+  IS_KUBERNETES_AGENT_MODE,
+  KUBERNETES_AGENT_CLUSTER_NAME,
   ONEUPTIME_BASE_URL,
   POLL_INTERVAL_MS,
   PORT,
@@ -62,7 +64,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     logger.info(
       `OneUptime Runner ${RUNNER_VERSION} starting | server=${ONEUPTIME_BASE_URL.toString()} | scope=${
-        IS_CLUSTER_SCOPED ? "cluster" : "project"
+        IS_CLUSTER_SCOPED
+          ? "cluster"
+          : IS_KUBERNETES_AGENT_MODE
+            ? `kubernetes-agent (cluster "${KUBERNETES_AGENT_CLUSTER_NAME}")`
+            : "project"
       } | poll=${POLL_INTERVAL_MS}ms`,
       { serviceName: APP_NAME } as LogAttributes,
     );
@@ -177,7 +183,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      */
     const startCodeFixLoop: boolean = IS_CLUSTER_SCOPED
       ? capabilities.canRunCodeFixTasks
-      : true;
+      : /*
+         * The Kubernetes agent's Runner exists to run kubectl for OneUptime
+         * AI. It never clones repositories (its root filesystem is
+         * read-only), so the code-fix loop is not started at all.
+         */
+        !IS_KUBERNETES_AGENT_MODE;
 
     if (startCodeFixLoop) {
       if (IS_CLUSTER_SCOPED) {

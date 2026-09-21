@@ -1,0 +1,307 @@
+# OneUptime AI access: the in-cluster Runner that lets OneUptime AI run
+# kubectl on this cluster. Off by default, so an install that never heard of
+# it renders exactly what it rendered before. On, it must:
+#
+#   * register with the SAME ingestion key the collector ships telemetry with
+#     and the SAME cluster name — that pairing is what binds the Runner to the
+#     cluster in OneUptime with no dashboard steps;
+#   * hold READ-ONLY RBAC unless aiAccess.remediation.enabled, and even then
+#     never exec, port-forward, or delete namespaces/volumes/nodes/secrets/CRDs;
+#   * tell the Runner what RBAC it got (ONEUPTIME_KUBECTL_ALLOW_WRITES) so the
+#     policy inside the Runner never disagrees with the cluster's RBAC.
+#
+# RBAC is asserted by rendering, not by reading the template: a verb that
+# creeps into the read-only role is exactly the kind of mistake that surfaces
+# as an AI change nobody approved, never as a failed deploy.
+suite: ai access runner
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/ai-runner.yaml
+tests:
+  - it: renders nothing by default
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: deploys the Runner with its own ServiceAccount, ClusterRole and binding when enabled
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 4
+      - documentIndex: 0
+        isKind:
+          of: ServiceAccount
+      - documentIndex: 0
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 1
+        isKind:
+          of: ClusterRole
+      - documentIndex: 2
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 2
+        equal:
+          path: subjects[0].name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 2
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 3
+        isKind:
+          of: Deployment
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.serviceAccountName
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 3
+        equal:
+          path: spec.replicas
+          value: 1
+
+  - it: registers with the collector's ingestion key and the cluster name
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    asserts:
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_URL
+            value: https://oneuptime.example.com
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_INGESTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-agent-kubernetes-agent
+                key: api-key
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBERNETES_CLUSTER_NAME
+            value: prod-us
+      # Never a dashboard-issued identity: that is the whole point.
+      - documentIndex: 3
+        notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_ID
+          any: true
+      # This Runner runs kubectl for OneUptime AI and nothing else.
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_ENABLE_RUNBOOKS
+            value: "false"
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES
+            value: "false"
+
+  - it: is read-only by default and tells the Runner so
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    asserts:
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "false"
+      # Every rule is get/list/watch (plus the create-only access reviews
+      # `kubectl auth can-i` needs): no patch, update, delete anywhere.
+      - documentIndex: 1
+        notMatchRegexRaw:
+          pattern: "(patch|update|delete|deletecollection)"
+      - documentIndex: 1
+        contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - pods
+              - pods/log
+              - pods/status
+              - nodes
+              - nodes/status
+              - services
+              - endpoints
+              - namespaces
+              - events
+              - replicationcontrollers
+              - resourcequotas
+              - limitranges
+              - configmaps
+              - persistentvolumeclaims
+              - persistentvolumes
+              - serviceaccounts
+            verbs: ["get", "list", "watch"]
+      - documentIndex: 1
+        contains:
+          path: rules
+          content:
+            apiGroups: ["authorization.k8s.io"]
+            resources:
+              - selfsubjectaccessreviews
+              - selfsubjectrulesreviews
+            verbs: ["create"]
+
+  - it: grants the fix verbs, and only those, with remediation enabled
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+    asserts:
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "true"
+      # rollout restart/undo, scale, set image, patch on workloads.
+      - documentIndex: 1
+        contains:
+          path: rules
+          content:
+            apiGroups: ["apps"]
+            resources:
+              - deployments
+              - deployments/scale
+              - deployments/rollback
+              - statefulsets
+              - statefulsets/scale
+              - daemonsets
+              - replicasets
+              - replicasets/scale
+            verbs: ["patch", "update"]
+      # delete a named pod so its controller recreates it.
+      - documentIndex: 1
+        contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - pods
+            verbs: ["delete"]
+      # cordon/uncordon/taint/label/annotate.
+      - documentIndex: 1
+        contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - nodes
+              - pods
+            verbs: ["patch", "update"]
+      # What it must NEVER be able to do, whatever the policy says.
+      - documentIndex: 1
+        notMatchRegexRaw:
+          pattern: "pods/exec"
+      - documentIndex: 1
+        notMatchRegexRaw:
+          pattern: "pods/portforward"
+      - documentIndex: 1
+        notMatchRegexRaw:
+          pattern: "secrets"
+      - documentIndex: 1
+        notMatchRegexRaw:
+          pattern: "customresourcedefinitions"
+      - documentIndex: 1
+        notMatchRegexRaw:
+          pattern: "deletecollection"
+      - documentIndex: 1
+        notMatchRegexRaw:
+          pattern: "\\*"
+
+  - it: never grants a delete verb to namespaces, nodes or volumes
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+    asserts:
+      # The only ""-group delete rules are pods; namespaces/nodes/PVs never
+      # appear alongside a delete verb.
+      - documentIndex: 1
+        notMatchRegexRaw:
+          pattern: "resources:\\s*\\n\\s*- namespaces\\s*\\n\\s*verbs:\\s*\\n?\\s*\\[?\"?(patch|update|delete)"
+      - documentIndex: 1
+        notMatchRegexRaw:
+          pattern: "persistentvolumes\\s*\\n\\s*verbs:\\s*\\n?\\s*\\[?\"?(patch|update|delete)"
+
+  - it: runs as a locked-down non-root pod with a writable scratch volume for kubectl
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    asserts:
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: scratch
+            mountPath: /tmp
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KUBECACHEDIR
+            value: /tmp/kube-cache
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime/runner:release
+
+  - it: pins the image tag when one is given
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.image.tag: 9.1.0
+    asserts:
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime/runner:9.1.0

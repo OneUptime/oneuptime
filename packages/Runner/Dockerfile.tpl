@@ -26,7 +26,7 @@ RUN npm install -g npm@latest
 ENV NODE_OPTIONS="--use-openssl-ca"
 
 LABEL org.opencontainers.image.title="OneUptime Runner"
-LABEL org.opencontainers.image.description="One self-hosted agent that executes runbook steps in your own infrastructure and, when enabled, opens AI code-fix pull requests in your repositories."
+LABEL org.opencontainers.image.description="One self-hosted agent that executes runbook steps in your own infrastructure, runs kubectl for OneUptime AI on the clusters it is given access to, and, when enabled, opens AI code-fix pull requests in your repositories."
 LABEL org.opencontainers.image.source="https://github.com/OneUptime/oneuptime"
 LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.vendor="OneUptime"
@@ -52,6 +52,31 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 SHELL ["/bin/bash", "-c"]
+
+# kubectl, for the AI cluster-access capability: OneUptime AI runs read-only
+# kubectl during investigations and policy-tiered kubectl fixes during
+# remediations through this Runner (in-cluster via the kubernetes-agent chart,
+# or wherever a Kubernetes credential is assigned). Pinned by version AND
+# sha256 per architecture so a rebuild can never pick up a different binary;
+# bump KUBECTL_VERSION and both digests together (dl.k8s.io publishes
+# kubectl.sha256 next to each binary).
+ARG TARGETARCH
+ARG KUBECTL_VERSION=v1.31.4
+ARG KUBECTL_SHA256_AMD64=298e19e9c6c17199011404278f0ff8168a7eca4217edad9097af577023a5620f
+ARG KUBECTL_SHA256_ARM64=b97e93c20e3be4b8c8fa1235a41b4d77d4f2022ed3d899230dbbbbd43d26f872
+RUN set -euo pipefail \
+  && arch="${TARGETARCH:-amd64}" \
+  && case "${arch}" in \
+       amd64) sha256="${KUBECTL_SHA256_AMD64}" ;; \
+       arm64) sha256="${KUBECTL_SHA256_ARM64}" ;; \
+       *) echo "unsupported TARGETARCH ${arch}" >&2; exit 1 ;; \
+     esac \
+  && curl -fsSL --retry 6 --retry-all-errors -o /tmp/kubectl \
+       "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${arch}/kubectl" \
+  && echo "${sha256}  /tmp/kubectl" | sha256sum -c - \
+  && install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl \
+  && rm -f /tmp/kubectl \
+  && kubectl version --client
 
 RUN mkdir -p /usr/src
 

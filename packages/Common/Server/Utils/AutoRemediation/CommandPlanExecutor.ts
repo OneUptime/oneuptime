@@ -17,11 +17,18 @@ import {
   AiRemediationRollbackStatus,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import CommandPolicy from "../../../Utils/AiRemediation/CommandPolicy";
+import KubectlPolicy, {
+  KubectlPolicyResult,
+} from "../../../Utils/AiRemediation/KubectlPolicy";
+import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
+import RunnerJobOrigin from "../../../Types/Runbook/RunnerJobOrigin";
 import { Green500, Red500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import AlertFeedService from "../../Services/AlertFeedService";
 import AutoRemediationSuggestionService from "../../Services/AutoRemediationSuggestionService";
 import IncidentFeedService from "../../Services/IncidentFeedService";
+import KubernetesClusterAiAccessService from "../../Services/KubernetesClusterAiAccessService";
 import RunnerJobService, {
   isTerminalAgentJobStatus,
 } from "../../Services/RunnerJobService";
@@ -248,8 +255,10 @@ export default class CommandPlanExecutor {
       for (const command of rollbackTargets) {
         const rollbackCommand: string = command.rollbackCommand as string;
 
-        const denyReason: string | null =
-          CommandPolicy.getDenyReason(rollbackCommand);
+        const denyReason: string | null = this.getDenyReason({
+          stepType: command.stepType,
+          command: rollbackCommand,
+        });
 
         if (denyReason) {
           command.rollbackExecution = {
@@ -268,17 +277,11 @@ export default class CommandPlanExecutor {
         await this.persistPlan(suggestion, plan);
 
         try {
-          const job: RunnerJob = await RunnerJobService.enqueueAiCommand({
-            projectId: suggestion.projectId!,
-            aiRunId: suggestion.aiRunId!,
-            autoRemediationSuggestionId: suggestion.id!,
+          const job: RunnerJob = await this.enqueue({
+            suggestion,
+            command,
+            commandText: rollbackCommand,
             stepId: `ai-rollback-${command.sequence}`,
-            stepType: command.stepType,
-            targetAgentId: new ObjectID(command.runnerId),
-            command: rollbackCommand,
-            credentialId: command.credentialId,
-            timeoutInMs: command.timeoutInMs,
-            claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
           });
 
           command.rollbackExecution.runnerJobId = job.id?.toString();
@@ -351,9 +354,10 @@ export default class CommandPlanExecutor {
      * Execution-time denylist re-check: the plan was validated when it was
      * composed, but the policy may have been tightened since.
      */
-    const denyReason: string | null = CommandPolicy.getDenyReason(
-      command.command,
-    );
+    const denyReason: string | null = this.getDenyReason({
+      stepType: command.stepType,
+      command: command.command,
+    });
 
     if (denyReason) {
       return {
@@ -370,17 +374,11 @@ export default class CommandPlanExecutor {
     };
 
     try {
-      const job: RunnerJob = await RunnerJobService.enqueueAiCommand({
-        projectId: suggestion.projectId!,
-        aiRunId: suggestion.aiRunId!,
-        autoRemediationSuggestionId: suggestion.id!,
+      const job: RunnerJob = await this.enqueue({
+        suggestion,
+        command,
+        commandText: command.command,
         stepId: `ai-approved-${command.sequence}`,
-        stepType: command.stepType,
-        targetAgentId: new ObjectID(command.runnerId),
-        command: command.command,
-        credentialId: command.credentialId,
-        timeoutInMs: command.timeoutInMs,
-        claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
       });
 
       state.runnerJobId = job.id?.toString();
@@ -416,7 +414,88 @@ export default class CommandPlanExecutor {
         error instanceof Error ? error.message : String(error);
     }
 
+    if (
+      command.stepType === RunbookStepType.Kubectl &&
+      command.kubernetesClusterId &&
+      ObjectID.isValidUUID(command.kubernetesClusterId)
+    ) {
+      await KubernetesClusterAiAccessService.recordCommandOutcome({
+        clusterId: new ObjectID(command.kubernetesClusterId),
+        succeeded:
+          state.status === AiRemediationCommandExecutionStatus.Succeeded,
+        errorMessage: state.errorMessage,
+      });
+    }
+
     return state;
+  }
+
+  /*
+   * One enqueue for both lanes. Bash/SSH go through enqueueAiCommand
+   * (script or SSH payload); Kubectl goes through enqueueAiKubectlCommand
+   * (argv + cluster + optional credential), whose policy is re-run there.
+   */
+  private static async enqueue(data: {
+    suggestion: AutoRemediationSuggestion;
+    command: AiRemediationCommand;
+    commandText: string;
+    stepId: string;
+  }): Promise<RunnerJob> {
+    const { suggestion, command } = data;
+
+    if (command.stepType === RunbookStepType.Kubectl) {
+      if (
+        !command.kubernetesClusterId ||
+        !ObjectID.isValidUUID(command.kubernetesClusterId)
+      ) {
+        throw new Error("The kubectl command names no cluster.");
+      }
+
+      return RunnerJobService.enqueueAiKubectlCommand({
+        projectId: suggestion.projectId!,
+        aiRunId: suggestion.aiRunId!,
+        origin: RunnerJobOrigin.AiRemediation,
+        autoRemediationSuggestionId: suggestion.id!,
+        kubernetesClusterId: new ObjectID(command.kubernetesClusterId),
+        stepId: data.stepId,
+        targetAgentId: new ObjectID(command.runnerId),
+        credentialId: command.credentialId,
+        command: data.commandText,
+        timeoutInMs: command.timeoutInMs,
+        claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
+      });
+    }
+
+    return RunnerJobService.enqueueAiCommand({
+      projectId: suggestion.projectId!,
+      aiRunId: suggestion.aiRunId!,
+      autoRemediationSuggestionId: suggestion.id!,
+      stepId: data.stepId,
+      stepType: command.stepType,
+      targetAgentId: new ObjectID(command.runnerId),
+      command: data.commandText,
+      credentialId: command.credentialId,
+      timeoutInMs: command.timeoutInMs,
+      claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
+    });
+  }
+
+  /*
+   * Execution-time policy floor per lane: the bash denylist for Bash/SSH,
+   * the Denied tier for Kubectl. Null when the command may run.
+   */
+  private static getDenyReason(data: {
+    stepType: RunbookStepType;
+    command: string;
+  }): string | null {
+    if (data.stepType === RunbookStepType.Kubectl) {
+      const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+        data.command,
+      );
+      return policy.tier === KubectlCommandTier.Denied ? policy.reason : null;
+    }
+
+    return CommandPolicy.getDenyReason(data.command);
   }
 
   /*

@@ -17,6 +17,10 @@ import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRem
 import AutoRemediationSuggestionType from "../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import {
+  KubernetesAiRemediationMode,
+  KubernetesClusterAiAccessStatus,
+} from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { Indigo500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
@@ -27,6 +31,7 @@ import AlertFeedService from "./AlertFeedService";
 import AutoRemediationRuleService from "./AutoRemediationRuleService";
 import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService";
 import IncidentFeedService from "./IncidentFeedService";
+import KubernetesClusterAiAccessService from "./KubernetesClusterAiAccessService";
 import LlmProviderService from "./LlmProviderService";
 import ProjectService from "./ProjectService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
@@ -61,6 +66,14 @@ export const MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR: number = 3;
  * normal either way.
  */
 export const DEFAULT_VERIFICATION_WINDOW_MINUTES: number = 15;
+
+/*
+ * - Cluster-level remediation (a cluster's AI page, no rule) may try at most
+ *   this many rounds per subject per cluster: the first plan, then one
+ *   follow-up when verification fails ("ask again for a new set of
+ *   commands"). Beyond that a human takes over.
+ */
+export const MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT: number = 2;
 
 type SubjectLinkage = {
   incidentId?: ObjectID | undefined;
@@ -194,6 +207,62 @@ class AutoRemediationRuleEngineServiceClass {
       return;
     }
 
+    const linkage: SubjectLinkage = {
+      incidentId: data.incident?.id || undefined,
+      alertId: data.alert?.id || undefined,
+    };
+
+    /*
+     * Per-subject cap + per-rule dedupe. A rule that already produced a
+     * suggestion on this subject never produces another (a dismissal is a
+     * human "no" — do not re-ask).
+     */
+    const existingSuggestions: Array<AutoRemediationSuggestion> =
+      await AutoRemediationSuggestionService.findBy({
+        query: linkage.incidentId
+          ? { incidentId: linkage.incidentId }
+          : { alertId: linkage.alertId! },
+        props: { isRoot: true },
+        select: {
+          _id: true,
+          autoRemediationRuleId: true,
+          kubernetesClusterId: true,
+        },
+        limit: MAX_SUGGESTIONS_PER_SUBJECT * 10,
+        skip: 0,
+      });
+
+    let remainingBudget: number =
+      MAX_SUGGESTIONS_PER_SUBJECT - existingSuggestions.length;
+
+    if (remainingBudget <= 0) {
+      logger.debug(
+        `AutoRemediationRuleEngine: suggestion cap reached for subject; skipping.`,
+        {
+          projectId: data.projectId.toString(),
+          incidentId: linkage.incidentId?.toString(),
+          alertId: linkage.alertId?.toString(),
+        } as LogAttributes,
+      );
+      return;
+    }
+
+    /*
+     * Cluster-level remediation first: an operator who set a mode on the
+     * cluster's AI page expressed a more specific intent than any project
+     * rule, and it needs no rule to fire.
+     */
+    remainingBudget -= await this.applyClusterLevelRemediation({
+      projectId: data.projectId,
+      linkage,
+      existingSuggestions,
+      budget: remainingBudget,
+    });
+
+    if (remainingBudget <= 0) {
+      return;
+    }
+
     const rules: Array<AutoRemediationRule> =
       await AutoRemediationRuleService.findBy({
         query: {
@@ -249,45 +318,6 @@ class AutoRemediationRuleEngineServiceClass {
     }
 
     if (matchedRules.length === 0) {
-      return;
-    }
-
-    const linkage: SubjectLinkage = {
-      incidentId: data.incident?.id || undefined,
-      alertId: data.alert?.id || undefined,
-    };
-
-    /*
-     * Per-subject cap + per-rule dedupe. A rule that already produced a
-     * suggestion on this subject never produces another (a dismissal is a
-     * human "no" — do not re-ask).
-     */
-    const existingSuggestions: Array<AutoRemediationSuggestion> =
-      await AutoRemediationSuggestionService.findBy({
-        query: linkage.incidentId
-          ? { incidentId: linkage.incidentId }
-          : { alertId: linkage.alertId! },
-        props: { isRoot: true },
-        select: {
-          _id: true,
-          autoRemediationRuleId: true,
-        },
-        limit: MAX_SUGGESTIONS_PER_SUBJECT * 10,
-        skip: 0,
-      });
-
-    let remainingBudget: number =
-      MAX_SUGGESTIONS_PER_SUBJECT - existingSuggestions.length;
-
-    if (remainingBudget <= 0) {
-      logger.debug(
-        `AutoRemediationRuleEngine: suggestion cap reached for subject; skipping ${matchedRules.length} matched rule(s).`,
-        {
-          projectId: data.projectId.toString(),
-          incidentId: linkage.incidentId?.toString(),
-          alertId: linkage.alertId?.toString(),
-        } as LogAttributes,
-      );
       return;
     }
 
@@ -530,6 +560,240 @@ class AutoRemediationRuleEngineServiceClass {
     }
 
     return consumed;
+  }
+
+  /*
+   * Cluster-level remediation: for every cluster this signal is about whose
+   * AI page enables remediation (and whose access is ready), start one AI
+   * command run with the cluster as its only target. Automatic clusters run
+   * FullAuto (safe kubectl without a human, riskier changes ask); clusters
+   * on "ask for approval" run Suggest. One suggestion per cluster per
+   * subject per round. Returns how much of the per-subject budget it used.
+   */
+  private async applyClusterLevelRemediation(data: {
+    projectId: ObjectID;
+    linkage: SubjectLinkage;
+    existingSuggestions: Array<AutoRemediationSuggestion>;
+    budget: number;
+  }): Promise<number> {
+    let consumed: number = 0;
+
+    let statuses: Array<KubernetesClusterAiAccessStatus> = [];
+
+    try {
+      statuses = await KubernetesClusterAiAccessService.getStatusesForSubject({
+        projectId: data.projectId,
+        incidentId: data.linkage.incidentId,
+        alertId: data.linkage.alertId,
+      });
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: could not resolve cluster access for the subject; skipping cluster-level remediation: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return 0;
+    }
+
+    for (const status of statuses) {
+      if (consumed >= data.budget) {
+        break;
+      }
+
+      if (!status.isRemediationReady) {
+        continue;
+      }
+
+      // One round per cluster per subject from the create hook.
+      const alreadyHasRound: boolean = data.existingSuggestions.some(
+        (suggestion: AutoRemediationSuggestion) => {
+          return (
+            suggestion.kubernetesClusterId?.toString() === status.clusterId
+          );
+        },
+      );
+
+      if (alreadyHasRound) {
+        continue;
+      }
+
+      const started: boolean = await this.startClusterCommandRun({
+        projectId: data.projectId,
+        cluster: status,
+        linkage: data.linkage,
+        round: 1,
+      });
+
+      if (started) {
+        consumed += 1;
+      }
+    }
+
+    return consumed;
+  }
+
+  /*
+   * A follow-up round after a cluster plan ran and verification failed: the
+   * operator asked to be asked again for a NEW set of commands. Always
+   * Suggest (a human approves the second attempt even on Automatic
+   * clusters), and capped by MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT.
+   * Called by the verifier; never throws.
+   */
+  @CaptureSpan()
+  public async startFollowUpClusterRemediation(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  }): Promise<boolean> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: data.projectId,
+        select: { enableAutoRemediation: true },
+        props: { isRoot: true },
+      });
+
+      if (!project || project.enableAutoRemediation === false) {
+        return false;
+      }
+
+      const linkage: SubjectLinkage = {
+        incidentId: data.incidentId,
+        alertId: data.alertId,
+      };
+
+      if (!linkage.incidentId && !linkage.alertId) {
+        return false;
+      }
+
+      const priorRounds: number = (
+        await AutoRemediationSuggestionService.countBy({
+          query: {
+            ...(linkage.incidentId
+              ? { incidentId: linkage.incidentId }
+              : { alertId: linkage.alertId! }),
+            kubernetesClusterId: data.kubernetesClusterId,
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (priorRounds >= MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT) {
+        logger.debug(
+          `AutoRemediationRuleEngine: cluster ${data.kubernetesClusterId.toString()} already used ${priorRounds} remediation round(s) on this subject; not asking again.`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        return false;
+      }
+
+      const status: KubernetesClusterAiAccessStatus | null =
+        await KubernetesClusterAiAccessService.getStatusForCluster({
+          clusterId: data.kubernetesClusterId,
+          projectId: data.projectId,
+        });
+
+      if (!status || !status.isRemediationReady) {
+        return false;
+      }
+
+      return await this.startClusterCommandRun({
+        projectId: data.projectId,
+        cluster: status,
+        linkage,
+        round: priorRounds + 1,
+      });
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: follow-up cluster remediation failed: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return false;
+    }
+  }
+
+  private async startClusterCommandRun(data: {
+    projectId: ObjectID;
+    cluster: KubernetesClusterAiAccessStatus;
+    linkage: SubjectLinkage;
+    round: number;
+  }): Promise<boolean> {
+    const { cluster } = data;
+
+    // Follow-up rounds always ask a human, whatever the cluster's mode.
+    const isAutomatic: boolean =
+      data.round === 1 &&
+      cluster.remediationMode === KubernetesAiRemediationMode.Automatic;
+
+    const suggestion: AutoRemediationSuggestion =
+      new AutoRemediationSuggestion();
+    suggestion.projectId = data.projectId;
+    suggestion.kubernetesClusterId = new ObjectID(cluster.clusterId);
+    suggestion.ruleNameSnapshot = `AI remediation for cluster "${cluster.clusterName}"${
+      data.round > 1 ? ` (round ${data.round})` : ""
+    }`;
+    suggestion.status = AutoRemediationSuggestionStatus.Planning;
+    suggestion.suggestionType = AutoRemediationSuggestionType.CommandPlan;
+    suggestion.executionMode = isAutomatic
+      ? AutoRemediationExecutionMode.FullAuto
+      : AutoRemediationExecutionMode.Suggest;
+    suggestion.verificationWindowMinutes = DEFAULT_VERIFICATION_WINDOW_MINUTES;
+    /*
+     * An Automatic cluster's operator asked for the loop to be closed:
+     * once the monitors recover the signal resolves itself. With a human
+     * approving, the human resolves.
+     */
+    suggestion.autoResolveOnRecovery = isAutomatic;
+    if (data.linkage.incidentId) {
+      suggestion.incidentId = data.linkage.incidentId;
+    }
+    if (data.linkage.alertId) {
+      suggestion.alertId = data.linkage.alertId;
+    }
+
+    const created: AutoRemediationSuggestion =
+      await AutoRemediationSuggestionService.create({
+        data: suggestion,
+        props: { isRoot: true },
+      });
+
+    const aiRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
+      projectId: data.projectId,
+      subjectIncidentId: data.linkage.incidentId,
+      subjectAlertId: data.linkage.alertId,
+      subjectAutoRemediationSuggestionId: created.id!,
+      remediationRunType: AIRunType.RemediationExecution,
+    });
+
+    if (!aiRunId) {
+      await AutoRemediationSuggestionService.updateOneById({
+        id: created.id!,
+        data: {
+          status: AutoRemediationSuggestionStatus.NoneApplicable,
+          rationaleMarkdown:
+            "The AI remediation run could not be started — the daily autonomous AI budget is exhausted or no run could be queued. Re-enable by raising the budget or waiting for the daily reset.",
+        },
+        props: { isRoot: true },
+      });
+      return false;
+    }
+
+    await AutoRemediationSuggestionService.updateOneById({
+      id: created.id!,
+      data: { aiRunId },
+      props: { isRoot: true },
+    });
+
+    await this.postFeedItem({
+      projectId: data.projectId,
+      linkage: data.linkage,
+      markdown: isAutomatic
+        ? `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe fixes on its own (riskier changes will ask for approval). Progress appears here.`
+        : data.round > 1
+          ? `⚡ **OneUptime AI is composing another kubectl fix for cluster "${cluster.clusterName}"** (round ${data.round}) — the previous plan did not recover the service. A new plan will appear here for approval.`
+          : `⚡ **OneUptime AI is composing a kubectl fix for cluster "${cluster.clusterName}".** Nothing runs until you approve the plan — it will appear here shortly.`,
+      pingWorkspace: false,
+    });
+
+    return true;
   }
 
   /*

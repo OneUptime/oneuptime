@@ -63,6 +63,9 @@ The agent is now collecting:
   - Raw cost metrics (node hourly cost, container allocation, PV and load balancer cost) for Metric Explorer and the Kubernetes Cost dashboard
 {{- end }}
 {{- end }}
+{{- if .Values.aiAccess.enabled }}
+  - OneUptime AI access: an in-cluster Runner that lets OneUptime AI run {{ if .Values.aiAccess.remediation.enabled }}kubectl to investigate AND fix incidents (fixes ask for approval by default — switch to automatic on the cluster's AI page){{ else }}read-only kubectl while investigating incidents and alerts (add --set aiAccess.remediation.enabled=true to let it fix them too){{ end }}
+{{- end }}
 {{- if .Values.preset }}
 
 Preset: {{ .Values.preset }}
@@ -84,6 +87,18 @@ To turn eBPF auto-instrumentation off:
 
 Your cluster should appear in OneUptime within a few minutes at:
   {{ .Values.oneuptime.url }}/dashboard/<project-id>/kubernetes
+{{- if .Values.aiAccess.enabled }}
+
+OneUptime AI access registers itself with the same key — within a minute the
+cluster's AI page (Kubernetes → <cluster> → AI) shows the Runner as Connected
+and lists what AI may do. If it does not, check the Runner's logs:
+  kubectl logs -n {{ .Release.Namespace }} -l component=ai-runner --tail=100
+{{- else }}
+
+To let OneUptime AI run kubectl on this cluster while it investigates (and,
+optionally, fix what it finds), upgrade with:
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set aiAccess.enabled=true
+{{- end }}
 
 If it stays "Disconnected" or no data shows up (most often a wrong/revoked
 ingestion key — which is silently dropped, so the collector logs look clean),

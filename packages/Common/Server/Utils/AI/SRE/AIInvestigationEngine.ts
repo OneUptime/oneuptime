@@ -161,6 +161,13 @@ export interface InvestigationRequest {
    */
   // Replaces INVESTIGATION_PERSONA as the appended system instructions.
   personaOverride?: string | undefined;
+  /*
+   * Appended to the persona (default or overridden). Used to tell an
+   * investigation which clusters it may inspect with kubectl, and which it
+   * cannot and why — deterministic text from the access service, never
+   * model output.
+   */
+  additionalInstructions?: string | undefined;
   // Replaces the "A new signal has just been declared..." user preamble.
   questionOverride?: string | undefined;
   /*
@@ -343,7 +350,11 @@ export default class AIInvestigationEngine {
           // System run — full read access to the project's telemetry.
           props: { isRoot: true },
           feature: request.feature,
-          systemInstructions: request.personaOverride ?? INVESTIGATION_PERSONA,
+          systemInstructions: `${request.personaOverride ?? INVESTIGATION_PERSONA}${
+            request.additionalInstructions
+              ? `\n\n${request.additionalInstructions}`
+              : ""
+          }`,
           question: `${
             request.questionOverride ??
             "A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis."

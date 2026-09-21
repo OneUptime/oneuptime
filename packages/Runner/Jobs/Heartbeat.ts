@@ -1,23 +1,45 @@
 import os from "os";
-import { HEARTBEAT_INTERVAL_MS, RUNNER_VERSION } from "../Config";
+import {
+  HEARTBEAT_INTERVAL_MS,
+  IS_KUBERNETES_AGENT_MODE,
+  RUNNER_VERSION,
+} from "../Config";
 import AgentClient, { HeartbeatResult } from "../Services/RunnerClient";
+import Register from "../Services/RegisterRunner";
 import RunnerCapabilities, {
   RunnerCapabilitySet,
 } from "../Utils/RunnerCapabilities";
+import KubernetesPosture from "../Utils/KubernetesPosture";
+import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 
-function getHostInfo(): {
-  hostname: string;
-  platform: string;
-  arch: string;
-  release: string;
-} {
-  return {
+/*
+ * Consecutive rejected heartbeats before a kubernetes-agent Runner
+ * re-registers. Its key is server-issued and rotated at registration, so a
+ * rejection most likely means the row was re-created or rotated behind it;
+ * re-registering with the ingestion key repairs that without a restart.
+ */
+const REREGISTER_AFTER_REJECTED_HEARTBEATS: number = 3;
+
+async function getHostInfo(): Promise<JSONObject> {
+  const info: JSONObject = {
     hostname: os.hostname(),
     platform: os.platform(),
     arch: os.arch(),
     release: os.release(),
   };
+
+  /*
+   * The Kubernetes posture rides on every heartbeat so the cluster's AI page
+   * reflects the container that is running now (in-cluster or not, writes
+   * allowed or not, which kubectl), not the one that registered last week.
+   */
+  if (IS_KUBERNETES_AGENT_MODE || KubernetesPosture.isInCluster()) {
+    info["kubernetes"] =
+      (await KubernetesPosture.build()) as unknown as JSONObject;
+  }
+
+  return info;
 }
 
 function describe(capabilities: RunnerCapabilitySet): string {
@@ -36,15 +58,37 @@ function describe(capabilities: RunnerCapabilitySet): string {
  * started and stopped, so adopting a change is just this assignment.
  */
 export default function startHeartbeat(): void {
+  let rejectedInARow: number = 0;
+
   const tick: () => void = (): void => {
     const before: RunnerCapabilitySet = RunnerCapabilities.resolve();
 
-    AgentClient.heartbeat({
-      agentVersion: RUNNER_VERSION,
-      hostInfo: getHostInfo(),
-    })
-      .then((result: HeartbeatResult) => {
-        if (!result.ok || !result.capabilities) {
+    getHostInfo()
+      .then((hostInfo: JSONObject) => {
+        return AgentClient.heartbeat({
+          agentVersion: RUNNER_VERSION,
+          hostInfo,
+        });
+      })
+      .then(async (result: HeartbeatResult) => {
+        if (!result.ok) {
+          rejectedInARow++;
+          if (
+            IS_KUBERNETES_AGENT_MODE &&
+            rejectedInARow >= REREGISTER_AFTER_REJECTED_HEARTBEATS
+          ) {
+            rejectedInARow = 0;
+            logger.warn(
+              "Heartbeats are being rejected — re-registering the Kubernetes agent Runner with the ingestion key.",
+            );
+            await Register.registerRunner();
+          }
+          return;
+        }
+
+        rejectedInARow = 0;
+
+        if (!result.capabilities) {
           return;
         }
 

@@ -58,6 +58,11 @@ export class Service extends DatabaseService<Model> {
         canRunRunbooks: true,
         canRunCodeFixTasks: true,
         canRunAiCommands: true,
+        /*
+         * The claim path reads the Kubernetes posture (in-cluster or not) to
+         * decide whether a credential-less kubectl job may be served.
+         */
+        hostInfo: true,
       },
       props: { isRoot: true },
     });

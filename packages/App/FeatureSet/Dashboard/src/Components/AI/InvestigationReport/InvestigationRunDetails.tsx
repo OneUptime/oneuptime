@@ -34,6 +34,8 @@ export interface UsageLineProps {
    * calls that failed and never became evidence.
    */
   queryCount?: number | undefined;
+  // Read-only kubectl commands the run made on linked clusters.
+  clusterCommandCount?: number | undefined;
   stepCount?: number | undefined;
   modelName?: string | undefined;
   // Queries run and steps taken. Defaults to true.
@@ -71,6 +73,17 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
         <Icon icon={IconProp.Database} className={USAGE_ICON_CLASS_NAME} />
         {queryCount.toLocaleString()} telemetry{" "}
         {queryCount === 1 ? "query" : "queries"}
+      </li>,
+    );
+  }
+
+  if (props.showCounts !== false && (props.clusterCommandCount || 0) > 0) {
+    const clusterCommandCount: number = props.clusterCommandCount || 0;
+    items.push(
+      <li key="clusterCommands" className={USAGE_ITEM_CLASS_NAME}>
+        <Icon icon={IconProp.Terminal} className={USAGE_ICON_CLASS_NAME} />
+        {clusterCommandCount.toLocaleString()} kubectl{" "}
+        {clusterCommandCount === 1 ? "command" : "commands"}
       </li>,
     );
   }
@@ -140,6 +153,7 @@ export interface ComponentProps {
   legacyEntries: Array<InvestigationEvidenceCheckedEntry>;
   events: Array<AIRunEvent>;
   usage: InvestigationRunUsage | null;
+  clusterCommandCount?: number | undefined;
   modelName?: string | undefined;
   subjectType: InvestigationReportSubjectType;
   subjectId: string;
@@ -409,6 +423,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
           <InvestigationUsageLine
             usage={props.usage}
             queryCount={evidenceCount > 0 ? evidenceCount : undefined}
+            clusterCommandCount={props.clusterCommandCount}
             stepCount={stepCount}
             showCost={false}
             className="mt-0.5"

@@ -1,4 +1,7 @@
 import {
+  IS_KUBERNETES_AGENT_MODE,
+  KUBERNETES_AGENT_CLUSTER_NAME,
+  KUBERNETES_AGENT_INGESTION_KEY,
   ONEUPTIME_BASE_URL,
   RUNNER_ID,
   RUNNER_INGEST_URL,
@@ -8,6 +11,8 @@ import {
   RUNNER_VERSION,
 } from "../Config";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
+import KubernetesPosture from "../Utils/KubernetesPosture";
+import { KubernetesRunnerPosture } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
@@ -97,7 +102,100 @@ export default class Register {
     return base;
   }
 
+  /*
+   * Kubernetes-agent mode: exchange the project's ingestion key + the
+   * cluster's name for a Runner identity bound to that cluster. The server
+   * rotates the key on every registration, so a restarted pod never reuses
+   * a credential it may have logged or lost.
+   */
+  private static async registerKubernetesAgentRunner(): Promise<void> {
+    const registrationUrl: URL = URL.fromString(
+      RUNNER_INGEST_URL.toString(),
+    ).addRoute("/register-kubernetes-agent");
+
+    const posture: KubernetesRunnerPosture = await KubernetesPosture.build();
+
+    logger.debug("Registering the Kubernetes agent Runner...", {
+      runnerName: RUNNER_NAME,
+      clusterName: KUBERNETES_AGENT_CLUSTER_NAME,
+    } as LogAttributes);
+
+    const result: HTTPResponse<JSONObject> = await API.post({
+      url: registrationUrl,
+      data: {
+        clusterName: KUBERNETES_AGENT_CLUSTER_NAME,
+        agentVersion: RUNNER_VERSION,
+        allowWrites: posture.allowWrites === true,
+        ...(posture.kubectlVersion
+          ? { kubectlVersion: posture.kubectlVersion }
+          : {}),
+        ...(posture.agentChartVersion
+          ? { agentChartVersion: posture.agentChartVersion }
+          : {}),
+      },
+      headers: {
+        "x-oneuptime-token": KUBERNETES_AGENT_INGESTION_KEY || "",
+      },
+    });
+
+    if (!result.isSuccess()) {
+      throw new Error(
+        result.statusCode === 401
+          ? `Failed to register the Kubernetes agent Runner: ${result.statusCode} from ${registrationUrl.toString()}. The server rejected the ingestion key — check oneuptime.apiKey on the Kubernetes agent chart (it must be a server telemetry ingestion key from Project Settings > Telemetry Ingestion Keys).`
+          : Register.describeRegistrationFailure({
+              statusCode: result.statusCode,
+              url: registrationUrl,
+            }),
+      );
+    }
+
+    const runnerId: unknown = result.data["runnerId"];
+    const runnerKey: unknown = result.data["runnerKey"];
+
+    if (typeof runnerId !== "string" || typeof runnerKey !== "string") {
+      throw new Error(
+        "The server's registration response carried no Runner identity.",
+      );
+    }
+
+    LocalCache.setString("RUNNER", "RUNNER_ID", runnerId);
+    LocalCache.setString("RUNNER", "RUNNER_KEY", runnerKey);
+
+    const capabilities: JSONObject | undefined = result.data["capabilities"] as
+      | JSONObject
+      | undefined;
+
+    RunnerCapabilities.setGrantedByServer({
+      canRunRunbooks: capabilities?.["canRunRunbooks"] === true,
+      canRunCodeFixTasks: capabilities?.["canRunCodeFixTasks"] === true,
+      canRunAiCommands: capabilities?.["canRunAiCommands"] !== false,
+    });
+
+    if (result.data["isBoundToCluster"] === false) {
+      logger.warn(
+        `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" is bound to a different Runner in the dashboard, so OneUptime AI will not use this in-cluster Runner until you select it on the cluster's AI page.`,
+        { runnerName: RUNNER_NAME } as LogAttributes,
+      );
+    }
+
+    if (!posture.kubectlVersion) {
+      logger.warn(
+        "kubectl was not found on this Runner — kubectl jobs will fail until it is available on the PATH.",
+        { runnerName: RUNNER_NAME } as LogAttributes,
+      );
+    }
+
+    logger.debug(`Kubernetes agent Runner registered as ${runnerId}.`, {
+      runnerName: RUNNER_NAME,
+    } as LogAttributes);
+  }
+
   private static async _registerRunner(): Promise<void> {
+    if (IS_KUBERNETES_AGENT_MODE) {
+      await Register.registerKubernetesAgentRunner();
+      return;
+    }
+
     if (HasClusterKey) {
       // Clustered mode: Auto-register and get ID from server
       const aiAgentRegistrationUrl: URL = URL.fromString(

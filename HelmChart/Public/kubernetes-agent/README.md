@@ -57,6 +57,36 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 
 If you try the default `standard` preset on a cluster that blocks hostPath, the install fails with a Pod Security error. Re-install with `--set preset=gke-autopilot` (or `eks-fargate`) and it works.
 
+## Give OneUptime AI kubectl access (AI investigations and fixes)
+
+When an incident or alert is raised on this cluster, OneUptime AI investigates it. With one extra flag it also gets a terminal: it runs read-only `kubectl` the way an on-call engineer would (describe the failing pod, read its events, tail the crashing container's logs, check node capacity) and cites every command on the incident page.
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reuse-values \
+  --set aiAccess.enabled=true
+```
+
+That deploys one small Deployment — the OneUptime Runner — with a **read-only** ServiceAccount. It registers itself with the same `oneuptime.apiKey` and `clusterName` the agent already uses, so there is nothing to configure in the dashboard: the cluster's **AI** page (Kubernetes → cluster → AI) shows it as Connected within a minute.
+
+To let OneUptime AI **fix** what it finds, also grant write access:
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reuse-values \
+  --set aiAccess.enabled=true \
+  --set aiAccess.remediation.enabled=true
+```
+
+The cluster then starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan (for example `kubectl rollout restart deployment/web -n web`) and a human approves it with one click on the incident. Switch the cluster to **automatic** on its AI page to let safe changes (rollout restart/undo, scale, deleting a named pod, cordon/uncordon, label/annotate) run on their own; riskier changes (patch, set image, drain, deleting workloads) still ask, and destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run — the RBAC here does not grant them and the Runner refuses them regardless of what it is told.
+
+| `aiAccess.*` | Default | What it does |
+| --- | --- | --- |
+| `enabled` | `false` | Deploy the in-cluster Runner with read-only RBAC and register it to this cluster. |
+| `remediation.enabled` | `false` | Also grant the write verbs OneUptime AI's fixes use; the Runner refuses writes locally when this is off. |
+| `image.repository` / `image.tag` | `oneuptime/runner` / `release` | The Runner image. |
+| `resources` | `50m` / `128Mi` → `500m` / `512Mi` | The Runner idles between commands. |
+
 ## Tuning resources (CPU & memory)
 
 Every component the agent ships has its own `resources` block in [`values.yaml`](./values.yaml) with conservative defaults — small enough to fit on a modest node, large enough to handle a few hundred pods. Tune them up for larger clusters or heavier workloads.

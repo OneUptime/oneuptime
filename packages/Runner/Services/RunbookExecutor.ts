@@ -3,12 +3,16 @@ import { JOB_HEARTBEAT_INTERVAL_MS, MAX_OUTPUT_BYTES } from "../Config";
 import AgentClient, { ClaimedJob } from "./RunnerClient";
 import SSHExecutor from "./SSHExecutor";
 import KubernetesExecutor from "./KubernetesExecutor";
+import KubectlExecutor from "./KubectlExecutor";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import logger from "Common/Server/Utils/Logger";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import CommandPolicy from "Common/Utils/AiRemediation/CommandPolicy";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import RunnerJobOrigin, {
+  AI_COMMAND_JOB_ORIGINS,
+} from "Common/Types/Runbook/RunnerJobOrigin";
 
 interface ExecResult {
   success: boolean;
@@ -156,7 +160,11 @@ async function runJob(job: ClaimedJob): Promise<ExecResult> {
    * (local env override) and the command denylist are re-checked HERE, where
    * no server compromise can skip them.
    */
-  if (job.origin === "AiRemediation") {
+  const isAiOrigin: boolean = AI_COMMAND_JOB_ORIGINS.includes(
+    (job.origin || "") as RunnerJobOrigin,
+  );
+
+  if (isAiOrigin) {
     if (!RunnerCapabilities.resolve().canRunAiCommands) {
       return {
         success: false,
@@ -166,9 +174,27 @@ async function runJob(job: ClaimedJob): Promise<ExecResult> {
       };
     }
 
+    /*
+     * An investigation is read-only by construction: the only thing it may
+     * ask a Runner to do is a Read-tier kubectl command, which
+     * KubectlExecutor re-checks on the argv. Everything else is refused
+     * before any executor is consulted.
+     */
+    if (
+      job.origin === RunnerJobOrigin.AiInvestigation &&
+      job.stepType !== RunbookStepType.Kubectl
+    ) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: `AI investigation jobs may only run read-only kubectl, not ${String(job.stepType)}.`,
+      };
+    }
+
     if (
       job.stepType !== RunbookStepType.Bash &&
-      job.stepType !== RunbookStepType.SSH
+      job.stepType !== RunbookStepType.SSH &&
+      job.stepType !== RunbookStepType.Kubectl
     ) {
       return {
         success: false,
@@ -177,19 +203,44 @@ async function runJob(job: ClaimedJob): Promise<ExecResult> {
       };
     }
 
-    const command: string =
-      job.stepType === RunbookStepType.Bash
-        ? job.script
-        : String(job.payload?.["command"] || "");
+    if (job.stepType !== RunbookStepType.Kubectl) {
+      const command: string =
+        job.stepType === RunbookStepType.Bash
+          ? job.script
+          : String(job.payload?.["command"] || "");
 
-    const denyReason: string | null = CommandPolicy.getDenyReason(command);
-    if (denyReason) {
+      const denyReason: string | null = CommandPolicy.getDenyReason(command);
+      if (denyReason) {
+        return {
+          success: false,
+          output: "",
+          errorMessage: `Refused by the Runner's command policy: ${denyReason}.`,
+        };
+      }
+    }
+  }
+
+  /*
+   * kubectl: an argv plus, for a Runner outside the cluster, the credential
+   * the server resolved. In-cluster, no credential arrives and kubectl uses
+   * the pod's own ServiceAccount — so unlike SSH/Kubernetes, a missing
+   * credential is not a refusal here; KubectlExecutor decides.
+   */
+  if (job.stepType === RunbookStepType.Kubectl) {
+    if (!job.payload) {
       return {
         success: false,
         output: "",
-        errorMessage: `Refused by the Runner's command policy: ${denyReason}.`,
+        errorMessage: "Kubectl step arrived without its instructions.",
       };
     }
+
+    return KubectlExecutor.execute({
+      payload: job.payload,
+      credential: job.credential,
+      timeoutInMs: job.timeoutInMs,
+      origin: job.origin,
+    });
   }
 
   if (job.stepType === RunbookStepType.JavaScript) {

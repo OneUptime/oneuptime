@@ -1,10 +1,15 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
-import { RUNNER_INGEST_URL, RUNNER_KEY } from "../Config";
+import { RUNNER_INGEST_URL } from "../Config";
 import RunnerIdentity from "../Utils/RunnerIdentity";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 
-export type ClaimedJobStepType = "Bash" | "JavaScript" | "SSH" | "Kubernetes";
+export type ClaimedJobStepType =
+  | "Bash"
+  | "JavaScript"
+  | "SSH"
+  | "Kubernetes"
+  | "Kubectl";
 
 export interface ClaimedJob {
   jobId: string;
@@ -14,9 +19,10 @@ export interface ClaimedJob {
    */
   runbookExecutionId?: string | undefined;
   /*
-   * "Runbook" (default when the server predates the field) or
-   * "AiRemediation". The executor re-checks the local AI-commands capability
-   * and command policy for AiRemediation jobs before running anything.
+   * "Runbook" (default when the server predates the field), "AiRemediation"
+   * or "AiInvestigation". The executor re-checks the local AI-commands
+   * capability and command policy for AI-origin jobs before running
+   * anything; an AiInvestigation job may only ever be read-only kubectl.
    */
   origin?: string | undefined;
   stepId: string;
@@ -43,13 +49,14 @@ const http: AxiosInstance = axios.create({
 
 /*
  * Identity comes from RunnerIdentity, not the raw config: in cluster scope
- * the id is assigned by the server during registration, so it is not known
+ * the id is assigned by the server during registration, and in
+ * kubernetes-agent mode both the id and the key are — so neither is known
  * at module-load time.
  */
 function authBody(extra: JSONObject = {}): JSONObject {
   return {
     agentId: RunnerIdentity.getRunnerId().toString(),
-    agentKey: RUNNER_KEY,
+    agentKey: RunnerIdentity.getRunnerKey(),
     ...extra,
   };
 }

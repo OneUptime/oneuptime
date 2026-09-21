@@ -35,6 +35,8 @@ import FixFromIncidentTaskTrigger from "../Utils/AI/SRE/FixFromIncidentTaskTrigg
 import FixPerformanceTaskTrigger from "../Utils/AI/SRE/FixPerformanceTaskTrigger";
 import TelemetryImprovementTaskTrigger from "../Utils/AI/SRE/TelemetryImprovementTaskTrigger";
 import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
+import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
+import { KubernetesClusterAiAccessStatus } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import { AnalyzableSpan } from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 import {
@@ -343,6 +345,15 @@ async function sendLatestInvestigation(
 
   const run: AIRun | undefined = runs[0];
 
+  /*
+   * Which clusters this signal is about and whether OneUptime AI can reach
+   * them — evaluated from CURRENT configuration so the panel can tell the
+   * reader "we investigated with OneUptime data only; here is what is
+   * missing and where to fix it". Enrichment: a failure yields no rows.
+   */
+  const clusterAccess: Array<KubernetesClusterAiAccessStatus> =
+    await getClusterAccessForPanel({ projectId: viewer.projectId, ...subject });
+
   if (!run) {
     Response.sendJsonObjectResponse(req, res, {
       run: null,
@@ -357,6 +368,7 @@ async function sendLatestInvestigation(
       isAnalysisPending: false,
       evidence: [],
       references: [],
+      clusterAccess: clusterAccess as unknown as JSONArray,
     });
     return;
   }
@@ -469,7 +481,23 @@ async function sendLatestInvestigation(
     isAnalysisPending,
     evidence: evidence as unknown as JSONArray,
     references: references as unknown as JSONArray,
+    clusterAccess: clusterAccess as unknown as JSONArray,
   });
+}
+
+async function getClusterAccessForPanel(data: {
+  projectId: ObjectID;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+}): Promise<Array<KubernetesClusterAiAccessStatus>> {
+  try {
+    return await KubernetesClusterAiAccessService.getStatusesForSubject(data);
+  } catch (error) {
+    logger.error(
+      `AI: could not resolve cluster access for the investigation panel: ${error}`,
+    );
+    return [];
+  }
 }
 
 router.post(

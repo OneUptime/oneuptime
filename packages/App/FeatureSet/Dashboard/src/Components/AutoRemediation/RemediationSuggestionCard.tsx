@@ -18,6 +18,8 @@ import {
 } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import { KubectlCommandTier } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
@@ -88,12 +90,68 @@ const STATUS_VISUAL: Record<AutoRemediationSuggestionStatus, StatusVisual> = {
 
 function StatusPill({
   status,
+  isCommandPlan,
 }: {
   status: AutoRemediationSuggestionStatus;
+  isCommandPlan?: boolean | undefined;
 }): ReactElement {
   const v: StatusVisual =
     STATUS_VISUAL[status] ||
     STATUS_VISUAL[AutoRemediationSuggestionStatus.Planning]!;
+  // A command plan is composed, not picked from runbooks.
+  const label: string =
+    isCommandPlan && status === AutoRemediationSuggestionStatus.Planning
+      ? "AI is composing a fix…"
+      : isCommandPlan &&
+          status === AutoRemediationSuggestionStatus.NoneApplicable
+        ? "No safe fix found"
+        : v.label;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
+    >
+      <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
+      {label}
+    </span>
+  );
+}
+
+interface TierVisual {
+  label: string;
+  badge: string;
+  dot: string;
+}
+
+/*
+ * The kubectl policy tier, in the reader's words: is this a look, a safe
+ * change, or something that needed a human to say yes.
+ */
+const TIER_VISUAL: Record<KubectlCommandTier, TierVisual> = {
+  [KubectlCommandTier.Read]: {
+    label: "read-only",
+    badge: "bg-sky-50 text-sky-700 ring-sky-200",
+    dot: "bg-sky-500",
+  },
+  [KubectlCommandTier.SafeWrite]: {
+    label: "safe change",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  [KubectlCommandTier.RiskyWrite]: {
+    label: "riskier change",
+    badge: "bg-amber-50 text-amber-700 ring-amber-200",
+    dot: "bg-amber-500",
+  },
+  [KubectlCommandTier.Denied]: {
+    label: "denied",
+    badge: "bg-rose-50 text-rose-700 ring-rose-200",
+    dot: "bg-rose-500",
+  },
+};
+
+function KubectlTierPill({ tier }: { tier: KubectlCommandTier }): ReactElement {
+  const v: TierVisual =
+    TIER_VISUAL[tier] || TIER_VISUAL[KubectlCommandTier.RiskyWrite]!;
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
@@ -163,7 +221,7 @@ interface VerdictVisual {
 const VERDICT_VISUAL: Record<AiRemediationCommandPolicyVerdict, VerdictVisual> =
   {
     [AiRemediationCommandPolicyVerdict.AutoApproved]: {
-      label: "allowlisted",
+      label: "auto-approved",
       badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
       dot: "bg-emerald-500",
     },
@@ -305,6 +363,7 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
             commandPlan: true,
             verificationStatus: true,
             verificationNote: true,
+            kubernetesClusterId: true,
             createdAt: true,
           },
           sort: {
@@ -437,8 +496,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title="Proposed Remediation"
-      description="Runbooks proposed or started by auto-remediation rules. Approving starts the runbook under your name."
+      title="Remediation"
+      description="Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name."
     >
       <div className="flex flex-col gap-4">
         {actionError ? (
@@ -472,9 +531,20 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
               (status === AutoRemediationSuggestionStatus.Planning
                 ? "Picking the best runbook…"
                 : "No runbook");
+            const isClusterFix: boolean = Boolean(
+              suggestion.kubernetesClusterId ||
+                plan?.commands.some((command: AiRemediationCommand) => {
+                  return command.stepType === RunbookStepType.Kubectl;
+                }),
+            );
             const title: string = isCommandPlan
-              ? "AI Command Plan"
+              ? isClusterFix
+                ? "AI kubectl fix"
+                : "AI Command Plan"
               : runbookTitle;
+            const sourceLabel: string = suggestion.kubernetesClusterId
+              ? suggestion.ruleNameSnapshot || "AI remediation for cluster"
+              : `Rule: ${suggestion.ruleNameSnapshot || "Unknown"}`;
 
             return (
               <div
@@ -486,12 +556,10 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                     <span className="text-sm font-medium text-gray-900">
                       {title}
                     </span>
-                    <span className="text-xs text-gray-500">
-                      Rule: {suggestion.ruleNameSnapshot || "Unknown"}
-                    </span>
+                    <span className="text-xs text-gray-500">{sourceLabel}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <StatusPill status={status} />
+                    <StatusPill status={status} isCommandPlan={isCommandPlan} />
                     {suggestion.verificationStatus ? (
                       <VerificationPill
                         status={
@@ -557,11 +625,23 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                                   {command.sequence}.
                                 </span>
                                 <span className="text-xs font-medium text-gray-900">
-                                  {command.runnerNameSnapshot}
+                                  {command.stepType === RunbookStepType.Kubectl
+                                    ? `cluster ${
+                                        command.kubernetesClusterNameSnapshot ||
+                                        "(unknown)"
+                                      }`
+                                    : command.runnerNameSnapshot}
                                 </span>
                                 <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
-                                  {command.stepType}
+                                  {command.stepType === RunbookStepType.Kubectl
+                                    ? "kubectl"
+                                    : command.stepType}
                                 </span>
+                                {command.kubectlTier ? (
+                                  <KubectlTierPill tier={command.kubectlTier} />
+                                ) : (
+                                  <></>
+                                )}
                                 <PolicyVerdictPill
                                   verdict={command.policyVerdict}
                                 />

@@ -38,6 +38,7 @@ import MonitorService from "../../Services/MonitorService";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import RunbookExecutionService from "../../Services/RunbookExecutionService";
 import CommandPlanExecutor from "./CommandPlanExecutor";
+import AutoRemediationRuleEngineService from "../../Services/AutoRemediationRuleEngineService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -104,6 +105,7 @@ export default class RemediationVerifier {
           autoResolveOnRecovery: true,
           ruleNameSnapshot: true,
           runbookNameSnapshot: true,
+          kubernetesClusterId: true,
         },
         limit: 100,
         skip: 0,
@@ -157,6 +159,23 @@ export default class RemediationVerifier {
             AutoRemediationSuggestionType.CommandPlan
         ) {
           await CommandPlanExecutor.executeRollback({ suggestion });
+
+          /*
+           * A cluster whose AI page enabled remediation asked to be asked
+           * again: after the rollback, OneUptime AI composes a NEW plan
+           * (always for approval) unless the round cap is spent. Never
+           * blocks verification — a failure here only means no retry.
+           */
+          if (suggestion.kubernetesClusterId && suggestion.projectId) {
+            await AutoRemediationRuleEngineService.startFollowUpClusterRemediation(
+              {
+                projectId: suggestion.projectId,
+                kubernetesClusterId: suggestion.kubernetesClusterId,
+                incidentId: suggestion.incidentId,
+                alertId: suggestion.alertId,
+              },
+            );
+          }
         }
       } catch (error) {
         logger.error(
