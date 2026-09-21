@@ -1231,10 +1231,11 @@ serviceAccount:
 #     volumes, nodes, secrets or CRDs.
 #   * Policy, in OneUptime: the cluster's AI page decides whether AI may
 #     investigate (read-only kubectl), and whether it may remediate — "ask
-#     for approval" (a human approves the exact kubectl plan with one click)
-#     or "automatic" (safe changes run on their own, riskier ones still ask).
-#     OneUptime AI never runs a command the policy refuses, whatever RBAC
-#     allows, and the Runner re-checks the same policy before running it.
+#     for approval" (a human approves the exact kubectl plan with one click),
+#     "automatic" (safe changes run on their own, riskier ones still ask) or
+#     "bypass approval" (every allowed change runs on its own, nobody is
+#     asked). OneUptime AI never runs a command the policy refuses, whatever
+#     RBAC allows, and the Runner re-checks the same policy before running it.
 #
 # Read-only investigation only:
 #   --set aiAccess.enabled=true

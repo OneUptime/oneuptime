@@ -373,7 +373,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set aiAccess.remediation.enabled=true
 ```
 
-The cluster then starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. Switch the cluster to **automatic** on its AI page to let safe changes run on their own. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run and what is never allowed.
+The cluster then starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. Switch the cluster to **automatic** on its AI page to let safe changes run on their own, or to **bypass approval** to let every allowed change run on its own without ever asking. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run and what is never allowed.
 
 | Value | Default | What it does |
 | --- | --- | --- |

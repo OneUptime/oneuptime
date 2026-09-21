@@ -77,6 +77,8 @@ const REMEDIATION_MODE_LABELS: Record<KubernetesAiRemediationMode, string> = {
     "Ask for approval — a human approves each kubectl plan",
   [KubernetesAiRemediationMode.Automatic]:
     "Automatic — safe fixes run on their own, riskier ones ask",
+  [KubernetesAiRemediationMode.BypassApproval]:
+    "Bypass approval — every allowed fix runs on its own, nobody is asked",
 };
 
 function parseStatus(value: unknown): KubernetesClusterAiAccessStatus | null {
@@ -278,9 +280,12 @@ const KubernetesClusterAI: FunctionComponent<
             : status.isRemediationReady
               ? `Remediation: ${
                   status.remediationMode ===
-                  KubernetesAiRemediationMode.Automatic
-                    ? "automatic"
-                    : "ask for approval"
+                  KubernetesAiRemediationMode.BypassApproval
+                    ? "bypass approval"
+                    : status.remediationMode ===
+                        KubernetesAiRemediationMode.Automatic
+                      ? "automatic"
+                      : "ask for approval"
                 }`
               : "Remediation: not ready"
         }
@@ -403,12 +408,15 @@ const KubernetesClusterAI: FunctionComponent<
                 Everything is in place. OneUptime AI will inspect this cluster
                 with kubectl during investigations
                 {status.remediationMode ===
-                KubernetesAiRemediationMode.Automatic
-                  ? " and apply safe fixes on its own."
+                KubernetesAiRemediationMode.BypassApproval
+                  ? " and apply fixes on its own without asking anyone."
                   : status.remediationMode ===
-                      KubernetesAiRemediationMode.RequireApproval
-                    ? " and propose kubectl fixes for your approval."
-                    : "."}
+                      KubernetesAiRemediationMode.Automatic
+                    ? " and apply safe fixes on its own."
+                    : status.remediationMode ===
+                        KubernetesAiRemediationMode.RequireApproval
+                      ? " and propose kubectl fixes for your approval."
+                      : "."}
               </p>
             </div>
           ) : (
@@ -512,7 +520,7 @@ const KubernetesClusterAI: FunctionComponent<
             field: { aiRemediationMode: true },
             title: "AI remediation",
             description:
-              "Ask for approval: AI composes the exact kubectl plan and a human approves it with one click. Automatic: safe changes (rollout restart/undo, scale, delete a named pod, cordon/uncordon, label/annotate) run on their own; riskier changes still ask; destructive commands never run.",
+              "Ask for approval: AI composes the exact kubectl plan and a human approves it with one click. Automatic: safe changes (rollout restart/undo, scale, delete a named pod, cordon/uncordon, label/annotate) run on their own; riskier changes still ask. Bypass approval: every allowed change, riskier ones included, runs on its own and nobody is ever asked. Destructive commands (deleting namespaces, volumes, nodes, secrets, CRDs; exec; apply) never run in any mode.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: false,
             dropdownOptions: [
@@ -535,13 +543,20 @@ const KubernetesClusterAI: FunctionComponent<
                     KubernetesAiRemediationMode.Automatic
                   ],
               },
+              {
+                value: KubernetesAiRemediationMode.BypassApproval,
+                label:
+                  REMEDIATION_MODE_LABELS[
+                    KubernetesAiRemediationMode.BypassApproval
+                  ],
+              },
             ],
           },
           {
             field: { aiKubectlCommandAllowlist: true },
-            title: "kubectl allowlist for Automatic mode",
+            title: "kubectl allowlist (Automatic mode)",
             description:
-              'Optional. Riskier kubectl commands matching one of these patterns (with * wildcards) also run without approval in Automatic mode, e.g. "kubectl set image deployment/web * -n web". Destructive commands never run regardless.',
+              'Optional. Riskier kubectl commands matching one of these patterns (with * wildcards) also run without approval in Automatic mode, e.g. "kubectl set image deployment/web * -n web". Not needed in Bypass approval mode, where every allowed command already runs on its own. Destructive commands never run regardless.',
             fieldType: FormFieldSchemaType.JSON,
             required: false,
             placeholder: '["kubectl set image deployment/web * -n web"]',
@@ -605,7 +620,7 @@ const KubernetesClusterAI: FunctionComponent<
             },
             {
               field: { aiKubectlCommandAllowlist: true },
-              title: "kubectl allowlist for Automatic mode",
+              title: "kubectl allowlist (Automatic mode)",
               fieldType: FieldType.JSON,
               placeholder: "None",
             },

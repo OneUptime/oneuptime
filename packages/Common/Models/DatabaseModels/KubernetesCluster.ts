@@ -1228,7 +1228,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.ShortText,
     title: "AI Remediation Mode",
     description:
-      "Disabled: AI never changes this cluster. RequireApproval: AI composes a kubectl fix and a human approves it with one click. Automatic: AI applies safe fixes (rollout restart, scale, delete a pod, cordon) on its own and still asks before riskier changes.",
+      "Disabled: AI never changes this cluster. RequireApproval: AI composes a kubectl fix and a human approves it with one click. Automatic: AI applies safe fixes (rollout restart, scale, delete a pod, cordon) on its own and still asks before riskier changes. BypassApproval: AI applies every allowed fix on its own and never asks; destructive commands still never run.",
     defaultValue: KubernetesAiRemediationMode.Disabled,
     example: KubernetesAiRemediationMode.RequireApproval,
   })

@@ -57,6 +57,44 @@ describe("ClusterAccessContext", () => {
     expect(section).toContain("a human approves any kubectl fix");
   });
 
+  it("describes every remediation mode, ready or not, so the model never guesses what it may change", () => {
+    const describe: (
+      mode: KubernetesAiRemediationMode,
+      isRemediationReady: boolean,
+    ) => string = (
+      mode: KubernetesAiRemediationMode,
+      isRemediationReady: boolean,
+    ): string => {
+      return ClusterAccessContext.buildContextSection([
+        status({ remediationMode: mode, isRemediationReady }),
+      ]);
+    };
+
+    expect(
+      describe(KubernetesAiRemediationMode.BypassApproval, true),
+    ).toContain(
+      "Bypass approval (every allowed kubectl fix runs without a human; nothing is ever asked)",
+    );
+    expect(
+      describe(KubernetesAiRemediationMode.BypassApproval, false),
+    ).toContain("Bypass approval, but not ready");
+
+    expect(describe(KubernetesAiRemediationMode.Automatic, true)).toContain(
+      "Automatic (safe kubectl fixes run without a human; riskier ones ask)",
+    );
+    expect(describe(KubernetesAiRemediationMode.Automatic, false)).toContain(
+      "Automatic, but not ready",
+    );
+
+    expect(
+      describe(KubernetesAiRemediationMode.RequireApproval, false),
+    ).toContain("requires approval, but not ready");
+
+    expect(describe(KubernetesAiRemediationMode.Disabled, false)).toContain(
+      "disabled — AI may only inspect",
+    );
+  });
+
   it("tells the model why a cluster is unreachable and to say so", () => {
     const section: string = ClusterAccessContext.buildContextSection([
       status({

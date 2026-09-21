@@ -37,7 +37,9 @@ export default class ClusterAccessContext {
           .map((status: KubernetesClusterAiAccessStatus) => {
             return `"${status.clusterName}"`;
           })
-          .join(", ")}. Use run_kubectl for READ-ONLY inspection — kubectl get/describe/events/logs/top/rollout status — the way an on-call engineer would open a terminal: describe the failing pod, read its recent events, check node capacity and pending-pod reasons, tail the crashing container's logs. Prefer direct cluster inspection over guessing from metrics when the two disagree. Every run_kubectl result is cited like any other tool result.`,
+          .join(
+            ", ",
+          )}. Use run_kubectl for READ-ONLY inspection — kubectl get/describe/events/logs/top/rollout status — the way an on-call engineer would open a terminal: describe the failing pod, read its recent events, check node capacity and pending-pod reasons, tail the crashing container's logs. Prefer direct cluster inspection over guessing from metrics when the two disagree. Every run_kubectl result is cited like any other tool result.`,
       );
     }
 
@@ -53,7 +55,9 @@ export default class ClusterAccessContext {
           .map((status: KubernetesClusterAiAccessStatus) => {
             return `"${status.clusterName}"`;
           })
-          .join(", ")}. Investigate with OneUptime's own telemetry (metrics, logs, events, traces) and say plainly in your report that you could not inspect the cluster directly. Do NOT invent kubectl output.`,
+          .join(
+            ", ",
+          )}. Investigate with OneUptime's own telemetry (metrics, logs, events, traces) and say plainly in your report that you could not inspect the cluster directly. Do NOT invent kubectl output.`,
       );
     }
 
@@ -132,6 +136,11 @@ export default class ClusterAccessContext {
   private static describeRemediationMode(
     status: KubernetesClusterAiAccessStatus,
   ): string {
+    if (status.remediationMode === KubernetesAiRemediationMode.BypassApproval) {
+      return status.isRemediationReady
+        ? "Bypass approval (every allowed kubectl fix runs without a human; nothing is ever asked)"
+        : "Bypass approval, but not ready";
+    }
     if (status.remediationMode === KubernetesAiRemediationMode.Automatic) {
       return status.isRemediationReady
         ? "Automatic (safe kubectl fixes run without a human; riskier ones ask)"

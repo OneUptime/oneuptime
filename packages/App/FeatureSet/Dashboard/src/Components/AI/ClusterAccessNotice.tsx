@@ -68,6 +68,9 @@ function describeRemediation(status: KubernetesClusterAiAccessStatus): string {
   if (!status.isRemediationReady) {
     return "fixes are not ready";
   }
+  if (status.remediationMode === KubernetesAiRemediationMode.BypassApproval) {
+    return "fixes run automatically, approvals bypassed";
+  }
   return status.remediationMode === KubernetesAiRemediationMode.Automatic
     ? "safe fixes run automatically"
     : "fixes ask for your approval";

@@ -40,8 +40,12 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - the cluster lane runs BEFORE rules and never depends on a rule
  *   matching; a rule read that returns nothing changes nothing;
  * - a failed access lookup skips the lane quietly;
- * - the follow-up round ("ask again") is always Suggest and stops at
- *   MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT.
+ * - the follow-up round ("ask again") is Suggest for Automatic and
+ *   RequireApproval clusters, FullAuto again for BypassApproval clusters,
+ *   and stops at MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT for all;
+ * - a BypassApproval cluster never asks: round 1 and the follow-up are
+ *   both FullAuto with auto-resolve, and the feed says approvals are
+ *   bypassed.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -230,6 +234,38 @@ describe("AutoRemediationRuleEngineService cluster-level remediation", () => {
     expect(AlertFeedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
   });
 
+  it("starts a FullAuto run with auto-resolve for a BypassApproval cluster and says approvals are bypassed", async () => {
+    mockBaseline({
+      statuses: [
+        readyCluster({
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+        }),
+      ],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    expect(createdSuggestions).toHaveLength(1);
+    expect(createdSuggestions[0]!.executionMode).toBe(
+      AutoRemediationExecutionMode.FullAuto,
+    );
+    expect(createdSuggestions[0]!.autoResolveOnRecovery).toBe(true);
+    expect(createdSuggestions[0]!.ruleNameSnapshot).toBe(
+      'AI remediation for cluster "prod-us"',
+    );
+    expect(enqueue).toHaveBeenCalledTimes(1);
+
+    const feed: jest.SpyInstance =
+      IncidentFeedService.createIncidentFeedItem as unknown as jest.SpyInstance;
+    expect(feed).toHaveBeenCalledTimes(1);
+    const markdown: string = (
+      feed.mock.calls[0]![0] as { feedInfoInMarkdown: string }
+    ).feedInfoInMarkdown;
+    expect(markdown).toContain("Approvals are bypassed");
+    expect(markdown).not.toContain("riskier changes will ask");
+    expect(markdown).not.toContain("for approval");
+  });
+
   it("skips a cluster that is not remediation-ready", async () => {
     mockBaseline({
       statuses: [readyCluster({ isRemediationReady: false })],
@@ -332,6 +368,63 @@ describe("AutoRemediationRuleEngineService.startFollowUpClusterRemediation", () 
     expect(createdSuggestions[0]!.autoResolveOnRecovery).toBe(false);
     expect(createdSuggestions[0]!.ruleNameSnapshot).toContain("round 2");
     expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs the follow-up round unattended again on a BypassApproval cluster", async () => {
+    jest
+      .spyOn(AutoRemediationSuggestionService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    getStatusForCluster.mockResolvedValue(
+      readyCluster({
+        remediationMode: KubernetesAiRemediationMode.BypassApproval,
+      }),
+    );
+
+    const started: boolean =
+      await AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+        incidentId: INCIDENT_ID,
+      });
+
+    expect(started).toBe(true);
+    expect(createdSuggestions).toHaveLength(1);
+    expect(createdSuggestions[0]!.executionMode).toBe(
+      AutoRemediationExecutionMode.FullAuto,
+    );
+    expect(createdSuggestions[0]!.autoResolveOnRecovery).toBe(true);
+    expect(createdSuggestions[0]!.ruleNameSnapshot).toContain("round 2");
+
+    const markdown: string = (
+      (
+        IncidentFeedService.createIncidentFeedItem as unknown as jest.SpyInstance
+      ).mock.calls[0]![0] as { feedInfoInMarkdown: string }
+    ).feedInfoInMarkdown;
+    expect(markdown).toContain("round 2");
+    expect(markdown).toContain("Approvals are bypassed");
+    expect(markdown).not.toContain("for approval");
+  });
+
+  it("still stops the BypassApproval follow-up at the round cap", async () => {
+    jest
+      .spyOn(AutoRemediationSuggestionService, "countBy")
+      .mockResolvedValue(
+        new PositiveNumber(MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT),
+      );
+    getStatusForCluster.mockResolvedValue(
+      readyCluster({
+        remediationMode: KubernetesAiRemediationMode.BypassApproval,
+      }),
+    );
+
+    expect(
+      await AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+        incidentId: INCIDENT_ID,
+      }),
+    ).toBe(false);
+    expect(createdSuggestions).toHaveLength(0);
   });
 
   it("stops asking once the round cap is spent", async () => {

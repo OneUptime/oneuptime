@@ -357,5 +357,116 @@ describe("KubectlPolicy", () => {
       expect(verdict.verdict).toBe(AiRemediationCommandPolicyVerdict.Denied);
       expect(verdict.reason).toContain("cannot run even with human approval");
     });
+
+    describe("bypassApproval", () => {
+      it("auto-approves RiskyWrite with no allowlist when approvals are bypassed", () => {
+        const verdict: KubectlAutoExecutionVerdict =
+          KubectlPolicy.evaluateForAutoExecution({
+            command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+            allowlistPatterns: [],
+            bypassApproval: true,
+          });
+        expect(verdict.verdict).toBe(
+          AiRemediationCommandPolicyVerdict.AutoApproved,
+        );
+        expect(verdict.tier).toBe(KubectlCommandTier.RiskyWrite);
+        expect(verdict.reason).toContain("bypasses approvals");
+      });
+
+      it("auto-approves every RiskyWrite shape: patch, drain, taint, delete by selector, delete a deployment", () => {
+        for (const command of [
+          'kubectl patch deployment web -n web -p \'{"spec":{"replicas":2}}\'',
+          "kubectl drain node-1 --ignore-daemonsets",
+          "kubectl taint nodes node-1 key=value:NoSchedule",
+          "kubectl delete pod -l app=web -n web",
+          "kubectl delete deployment web -n web",
+          "kubectl scale deployment --all --replicas=1 -n web",
+        ]) {
+          const verdict: KubectlAutoExecutionVerdict =
+            KubectlPolicy.evaluateForAutoExecution({
+              command,
+              allowlistPatterns: [],
+              bypassApproval: true,
+            });
+          expect(verdict.tier).toBe(KubectlCommandTier.RiskyWrite);
+          expect(verdict.verdict).toBe(
+            AiRemediationCommandPolicyVerdict.AutoApproved,
+          );
+        }
+      });
+
+      it("leaves Read and SafeWrite verdicts and reasons untouched", () => {
+        const withBypass: KubectlAutoExecutionVerdict =
+          KubectlPolicy.evaluateForAutoExecution({
+            command: "kubectl rollout restart deployment/web -n web",
+            allowlistPatterns: [],
+            bypassApproval: true,
+          });
+        const without: KubectlAutoExecutionVerdict =
+          KubectlPolicy.evaluateForAutoExecution({
+            command: "kubectl rollout restart deployment/web -n web",
+            allowlistPatterns: [],
+          });
+        expect(withBypass).toEqual(without);
+        expect(withBypass.verdict).toBe(
+          AiRemediationCommandPolicyVerdict.AutoApproved,
+        );
+      });
+
+      it("never lifts a Denied command, even with bypass AND a permissive allowlist", () => {
+        for (const command of [
+          "kubectl delete namespace web",
+          "kubectl delete pvc data-0 -n web",
+          "kubectl delete secret db -n web",
+          "kubectl exec web-1 -n web -- sh",
+          "kubectl apply -f manifest.yaml",
+          "kubectl delete pods --all -n web",
+          "kubectl rollout restart deployment --all-namespaces",
+          "kubectl get pods --kubeconfig /tmp/x",
+        ]) {
+          const verdict: KubectlAutoExecutionVerdict =
+            KubectlPolicy.evaluateForAutoExecution({
+              command,
+              allowlistPatterns: ["*"],
+              bypassApproval: true,
+            });
+          expect(verdict.verdict).toBe(
+            AiRemediationCommandPolicyVerdict.Denied,
+          );
+          expect(verdict.tier).toBe(KubectlCommandTier.Denied);
+        }
+      });
+
+      it("treats bypassApproval false or absent identically", () => {
+        const explicit: KubectlAutoExecutionVerdict =
+          KubectlPolicy.evaluateForAutoExecution({
+            command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+            allowlistPatterns: [],
+            bypassApproval: false,
+          });
+        const absent: KubectlAutoExecutionVerdict =
+          KubectlPolicy.evaluateForAutoExecution({
+            command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+            allowlistPatterns: [],
+          });
+        expect(explicit).toEqual(absent);
+        expect(explicit.verdict).toBe(
+          AiRemediationCommandPolicyVerdict.RequiresApproval,
+        );
+      });
+
+      it("prefers the bypass reason over the allowlist reason when both apply", () => {
+        const verdict: KubectlAutoExecutionVerdict =
+          KubectlPolicy.evaluateForAutoExecution({
+            command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+            allowlistPatterns: ["kubectl set image deployment/web * -n web"],
+            bypassApproval: true,
+          });
+        expect(verdict.verdict).toBe(
+          AiRemediationCommandPolicyVerdict.AutoApproved,
+        );
+        expect(verdict.reason).toContain("bypasses approvals");
+      });
+    });
   });
 });

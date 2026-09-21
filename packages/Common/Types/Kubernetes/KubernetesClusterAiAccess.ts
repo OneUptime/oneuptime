@@ -21,11 +21,29 @@
  *                  human. Riskier changes (patch, set image, drain, deleting
  *                  workloads) still ask for approval unless the cluster's
  *                  allowlist names them; destructive commands never run.
+ * BypassApproval:  AI never asks. Every change the policy allows — safe AND
+ *                  riskier — runs on its own, follow-up rounds included.
+ *                  Destructive commands (Denied tier) still never run, and
+ *                  the hourly per-cluster circuit breaker still applies.
  */
 export enum KubernetesAiRemediationMode {
   Disabled = "Disabled",
   RequireApproval = "RequireApproval",
   Automatic = "Automatic",
+  BypassApproval = "BypassApproval",
+}
+
+// The modes in which OneUptime AI executes changes without a human.
+export const UNATTENDED_REMEDIATION_MODES: Array<KubernetesAiRemediationMode> =
+  [
+    KubernetesAiRemediationMode.Automatic,
+    KubernetesAiRemediationMode.BypassApproval,
+  ];
+
+export function isUnattendedRemediationMode(
+  mode: KubernetesAiRemediationMode | undefined,
+): boolean {
+  return mode !== undefined && UNATTENDED_REMEDIATION_MODES.includes(mode);
 }
 
 /*

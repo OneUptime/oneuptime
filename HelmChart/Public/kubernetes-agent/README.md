@@ -78,7 +78,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --set aiAccess.remediation.enabled=true
 ```
 
-The cluster then starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan (for example `kubectl rollout restart deployment/web -n web`) and a human approves it with one click on the incident. Switch the cluster to **automatic** on its AI page to let safe changes (rollout restart/undo, scale, deleting a named pod, cordon/uncordon, label/annotate) run on their own; riskier changes (patch, set image, drain, deleting workloads) still ask, and destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run — the RBAC here does not grant them and the Runner refuses them regardless of what it is told.
+The cluster then starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan (for example `kubectl rollout restart deployment/web -n web`) and a human approves it with one click on the incident. Switch the cluster to **automatic** on its AI page to let safe changes (rollout restart/undo, scale, deleting a named pod, cordon/uncordon, label/annotate) run on their own while riskier changes (patch, set image, drain, deleting workloads) still ask — or to **bypass approval** to let every allowed change run on its own and never be asked. Destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run in any mode — the RBAC here does not grant them and the Runner refuses them regardless of what it is told.
 
 | `aiAccess.*` | Default | What it does |
 | --- | --- | --- |

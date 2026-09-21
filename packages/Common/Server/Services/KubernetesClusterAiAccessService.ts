@@ -366,7 +366,7 @@ class KubernetesClusterAiAccessServiceClass {
         description:
           "OneUptime AI will diagnose but never propose or apply a fix on this cluster.",
         nextStep:
-          'Set "AI remediation" to "Ask for approval" or "Automatic" on this cluster\'s AI page.',
+          'Set "AI remediation" to "Ask for approval", "Automatic" or "Bypass approval" on this cluster\'s AI page.',
         blocks: "remediation",
       });
     }
@@ -816,7 +816,8 @@ class KubernetesClusterAiAccessServiceClass {
   public normalizeRemediationMode(value: unknown): KubernetesAiRemediationMode {
     if (
       value === KubernetesAiRemediationMode.RequireApproval ||
-      value === KubernetesAiRemediationMode.Automatic
+      value === KubernetesAiRemediationMode.Automatic ||
+      value === KubernetesAiRemediationMode.BypassApproval
     ) {
       return value;
     }

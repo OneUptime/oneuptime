@@ -22,6 +22,7 @@ import {
   KubectlCommandTier,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  isUnattendedRemediationMode,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import CommandPolicy, {
   CommandPolicyResult,
@@ -268,9 +269,11 @@ export default class RemediationCommandToolkit {
           cluster.accessMethod === "in_cluster" ? " (in-cluster)" : ""
         }`,
         remediationMode:
-          cluster.remediationMode === KubernetesAiRemediationMode.Automatic
-            ? "Automatic: Read and SafeWrite kubectl (rollout restart/undo, scale, delete a named pod/job, cordon/uncordon, label/annotate) run without a human; RiskyWrite needs approval unless allowlisted"
-            : "RequireApproval: every kubectl change is proposed for one-click approval",
+          cluster.remediationMode === KubernetesAiRemediationMode.BypassApproval
+            ? "BypassApproval: every kubectl change the policy allows (Read, SafeWrite AND RiskyWrite) runs without a human; only Denied commands are refused"
+            : cluster.remediationMode === KubernetesAiRemediationMode.Automatic
+              ? "Automatic: Read and SafeWrite kubectl (rollout restart/undo, scale, delete a named pod/job, cordon/uncordon, label/annotate) run without a human; RiskyWrite needs approval unless allowlisted"
+              : "RequireApproval: every kubectl change is proposed for one-click approval",
         kubectlAllowlist:
           cluster.kubectlAllowlist.length > 0
             ? cluster.kubectlAllowlist.join(" | ")
@@ -589,14 +592,18 @@ export default class RemediationCommandToolkit {
         return "The cluster is no longer a valid target. Use list_command_targets.";
       }
 
-      if (cluster.remediationMode !== KubernetesAiRemediationMode.Automatic) {
+      if (!isUnattendedRemediationMode(cluster.remediationMode)) {
         return `Cluster "${cluster.clusterName}" requires human approval for every kubectl change, so nothing can execute inline in this run. Put the fix in your final recommendations.`;
       }
+
+      const bypassApproval: boolean =
+        cluster.remediationMode === KubernetesAiRemediationMode.BypassApproval;
 
       const verdict: KubectlAutoExecutionVerdict =
         KubectlPolicy.evaluateForAutoExecution({
           command: command.command,
           allowlistPatterns: cluster.kubectlAllowlist,
+          bypassApproval,
         });
 
       if (verdict.verdict !== AiRemediationCommandPolicyVerdict.AutoApproved) {
@@ -608,6 +615,7 @@ export default class RemediationCommandToolkit {
           KubectlPolicy.evaluateForAutoExecution({
             command: command.rollbackCommand,
             allowlistPatterns: cluster.kubectlAllowlist,
+            bypassApproval,
           });
 
         if (
@@ -1036,9 +1044,13 @@ export default class RemediationCommandToolkit {
       /*
        * A rollback runs unattended after verification fails, so it may
        * only ever be a safe change (or a read). A RiskyWrite undo is not an
-       * undo a human reviewed at that moment.
+       * undo a human reviewed at that moment — unless the cluster's operator
+       * chose to never be asked, in which case unattended is the point.
        */
-      if (rollbackPolicy.tier === KubectlCommandTier.RiskyWrite) {
+      if (
+        rollbackPolicy.tier === KubectlCommandTier.RiskyWrite &&
+        cluster.remediationMode !== KubernetesAiRemediationMode.BypassApproval
+      ) {
         return {
           errorText: `The rollbackCommand "${rollbackPolicy.displayCommand}" is a risky change (${rollbackPolicy.reason}) and rollbacks run unattended. Use a safe undo such as kubectl rollout undo or kubectl scale, or omit it.`,
         };

@@ -357,6 +357,65 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
     expect(status.isRemediationReady).toBe(false);
   });
 
+  it("is remediation-ready in BypassApproval mode with a write-capable Runner and reports the mode verbatim", async () => {
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(fakeRunner());
+
+    const status: KubernetesClusterAiAccessStatus =
+      await KubernetesClusterAiAccessService.getStatusForClusterModel({
+        cluster: fakeCluster({
+          aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
+        }),
+        gates: READY_GATES,
+      });
+
+    expect(status.gaps).toEqual([]);
+    expect(status.remediationMode).toBe(
+      KubernetesAiRemediationMode.BypassApproval,
+    );
+    expect(status.isRemediationReady).toBe(true);
+    expect(status.isInvestigationReady).toBe(true);
+  });
+
+  it("raises the read-only gap for a BypassApproval cluster whose Runner cannot write", async () => {
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+      fakeRunner({
+        hostInfo: { kubernetes: { inCluster: true, allowWrites: false } },
+      }),
+    );
+
+    const status: KubernetesClusterAiAccessStatus =
+      await KubernetesClusterAiAccessService.getStatusForClusterModel({
+        cluster: fakeCluster({
+          aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
+        }),
+        gates: READY_GATES,
+      });
+
+    expect(gapCodes(status)).toEqual(["remediation_write_access_missing"]);
+    expect(status.remediationMode).toBe(
+      KubernetesAiRemediationMode.BypassApproval,
+    );
+    expect(status.isRemediationReady).toBe(false);
+    expect(status.isInvestigationReady).toBe(true);
+  });
+
+  it("names every enabling mode in the remediation_disabled next step", async () => {
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(fakeRunner());
+
+    const status: KubernetesClusterAiAccessStatus =
+      await KubernetesClusterAiAccessService.getStatusForClusterModel({
+        cluster: fakeCluster({
+          aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+        }),
+        gates: READY_GATES,
+      });
+
+    expect(status.gaps[0]?.code).toBe("remediation_disabled");
+    expect(status.gaps[0]?.nextStep).toContain("Ask for approval");
+    expect(status.gaps[0]?.nextStep).toContain("Automatic");
+    expect(status.gaps[0]?.nextStep).toContain("Bypass approval");
+  });
+
   it("normalizes a JSON-string allowlist and an unknown mode fails closed to Disabled", async () => {
     jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(fakeRunner());
 
@@ -371,6 +430,37 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
 
     expect(status.remediationMode).toBe(KubernetesAiRemediationMode.Disabled);
     expect(status.kubectlAllowlist).toEqual(["kubectl set image *"]);
+  });
+});
+
+describe("KubernetesClusterAiAccessService.normalizeRemediationMode", () => {
+  it("accepts every declared mode verbatim", () => {
+    for (const mode of Object.values(KubernetesAiRemediationMode)) {
+      expect(
+        KubernetesClusterAiAccessService.normalizeRemediationMode(mode),
+      ).toBe(mode);
+    }
+  });
+
+  it("fails closed to Disabled for anything else, including case variants", () => {
+    for (const value of [
+      undefined,
+      null,
+      "",
+      "automatic",
+      "bypassapproval",
+      "Bypass",
+      "BYPASSAPPROVAL",
+      " BypassApproval",
+      42,
+      true,
+      {},
+      ["BypassApproval"],
+    ]) {
+      expect(
+        KubernetesClusterAiAccessService.normalizeRemediationMode(value),
+      ).toBe(KubernetesAiRemediationMode.Disabled);
+    }
   });
 });
 

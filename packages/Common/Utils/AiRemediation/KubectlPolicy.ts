@@ -753,6 +753,12 @@ export default class KubectlPolicy {
   public static evaluateForAutoExecution(data: {
     command: string;
     allowlistPatterns: Array<string>;
+    /*
+     * The cluster's operator chose to never be asked: RiskyWrite auto-approves
+     * too. Denied stays Denied — that tier is what "even with approval"
+     * means, and bypassing approval cannot grant more than approval would.
+     */
+    bypassApproval?: boolean | undefined;
   }): KubectlAutoExecutionVerdict {
     const result: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
       data.command,
@@ -774,6 +780,14 @@ export default class KubectlPolicy {
         verdict: AiRemediationCommandPolicyVerdict.AutoApproved,
         tier: result.tier,
         reason: result.reason,
+      };
+    }
+
+    if (data.bypassApproval === true) {
+      return {
+        verdict: AiRemediationCommandPolicyVerdict.AutoApproved,
+        tier: result.tier,
+        reason: `Riskier change (${result.reason}) allowed without approval: the cluster bypasses approvals.`,
       };
     }
 

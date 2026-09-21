@@ -40,6 +40,9 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - FullAuto executes Read/SafeWrite kubectl inline, refuses RiskyWrite
  *   unless the cluster allowlist names it, refuses Denied always, and
  *   refuses everything on a cluster that asks for approval;
+ * - on a BypassApproval cluster FullAuto executes RiskyWrite inline too
+ *   (no allowlist needed) and accepts a RiskyWrite rollback; Denied stays
+ *   refused whatever the mode or allowlist says;
  * - a rollback must itself be safe (Read/SafeWrite): it runs unattended;
  * - Suggest records kubectl commands on the plan with their tier and the
  *   verdict the card shows, in the canonical rendered form;
@@ -391,6 +394,224 @@ describe("RemediationCommandToolkit execute_remediation_command (Kubectl, FullAu
     expect(outcome.success).toBe(false);
     expect(outcome.textForLlm).toContain("kubernetesClusterId is required");
     expect(enqueueKubectl).not.toHaveBeenCalled();
+  });
+});
+
+describe("RemediationCommandToolkit execute_remediation_command (Kubectl, BypassApproval)", () => {
+  beforeEach(mockHappyPath);
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function bypassToolkit(
+    overrides: Partial<KubernetesClusterAiAccessStatus> = {},
+  ): RemediationCommandToolkit {
+    return buildToolkit({
+      clusterTargets: [
+        cluster({
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+          ...overrides,
+        }),
+      ],
+    });
+  }
+
+  it("lists the cluster as bypassing approvals", async () => {
+    const outcome: ToolCallOutcome = await getTool(
+      bypassToolkit(),
+      "list_command_targets",
+    ).execute({});
+
+    expect(outcome.result?.rowCount).toBe(1);
+    expect(outcome.textForLlm).toContain("BypassApproval");
+    expect(outcome.textForLlm).toContain("RiskyWrite");
+    expect(outcome.textForLlm).not.toContain("needs approval");
+  });
+
+  it("executes a RiskyWrite inline with an empty allowlist and records it as auto-approved", async () => {
+    const toolkit: RemediationCommandToolkit = bypassToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(
+      kubectlArgs({
+        command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+        rollbackCommand: undefined,
+      }),
+    );
+
+    expect(outcome.success).toBe(true);
+    expect(outcome.textForLlm).toContain("SUCCEEDED");
+    expect(enqueueKubectl).toHaveBeenCalledTimes(1);
+    expect(enqueueBash).not.toHaveBeenCalled();
+
+    const enqueueArgs: Record<string, unknown> = enqueueKubectl.mock
+      .calls[0]![0] as Record<string, unknown>;
+    expect(enqueueArgs["origin"]).toBe(RunnerJobOrigin.AiRemediation);
+    expect(enqueueArgs["command"]).toBe(
+      "kubectl set image deployment/web web=nginx:1.27 -n web",
+    );
+
+    const executed: Array<AiRemediationCommand> = toolkit.getExecutedCommands();
+    expect(executed).toHaveLength(1);
+    expect(executed[0]!.kubectlTier).toBe(KubectlCommandTier.RiskyWrite);
+    expect(executed[0]!.policyVerdict).toBe(
+      AiRemediationCommandPolicyVerdict.AutoApproved,
+    );
+    expect(executed[0]!.wasAutoExecuted).toBe(true);
+    expect(executed[0]!.execution?.status).toBe(
+      AiRemediationCommandExecutionStatus.Succeeded,
+    );
+  });
+
+  it("executes a RiskyWrite with a RiskyWrite rollback", async () => {
+    const toolkit: RemediationCommandToolkit = bypassToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(
+      kubectlArgs({
+        command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+        rollbackCommand:
+          "kubectl set image deployment/web web=nginx:1.26 -n web",
+      }),
+    );
+
+    expect(outcome.success).toBe(true);
+    expect(enqueueKubectl).toHaveBeenCalledTimes(1);
+    expect(toolkit.getExecutedCommands()[0]!.rollbackCommand).toBe(
+      "kubectl set image deployment/web web=nginx:1.26 -n web",
+    );
+  });
+
+  it("still executes SafeWrite exactly as an Automatic cluster would", async () => {
+    const toolkit: RemediationCommandToolkit = bypassToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(kubectlArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(toolkit.getExecutedCommands()[0]!.kubectlTier).toBe(
+      KubectlCommandTier.SafeWrite,
+    );
+  });
+
+  it("refuses Denied commands and Denied rollbacks even with bypass and a permissive allowlist", async () => {
+    const toolkit: RemediationCommandToolkit = bypassToolkit({
+      kubectlAllowlist: ["*"],
+    });
+
+    for (const command of [
+      "kubectl delete namespace web",
+      "kubectl delete secret db -n web",
+      "kubectl exec web-1 -n web -- sh",
+      "kubectl apply -f manifest.yaml",
+      "kubectl delete pods --all -n web",
+    ]) {
+      const outcome: ToolCallOutcome = await getTool(
+        toolkit,
+        "execute_remediation_command",
+      ).execute(kubectlArgs({ command, rollbackCommand: undefined }));
+
+      expect(outcome.success).toBe(false);
+      expect(outcome.textForLlm).toContain(
+        "Denied by the kubectl command policy",
+      );
+    }
+
+    const deniedRollback: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(kubectlArgs({ rollbackCommand: "kubectl delete ns web" }));
+    expect(deniedRollback.success).toBe(false);
+    expect(deniedRollback.textForLlm).toContain("rollbackCommand is denied");
+
+    expect(enqueueKubectl).not.toHaveBeenCalled();
+    expect(persistedPlans).toHaveLength(0);
+    expect(toolkit.getExecutedCommands()).toHaveLength(0);
+  });
+
+  it("keeps the RiskyWrite refusal on an Automatic cluster sitting next to a Bypass one", async () => {
+    const automaticId: string = "99999999-9999-4999-8999-999999999999";
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      clusterTargets: [
+        cluster({
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+        }),
+        cluster({
+          clusterId: automaticId,
+          clusterName: "staging",
+          remediationMode: KubernetesAiRemediationMode.Automatic,
+        }),
+      ],
+    });
+
+    const refused: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(
+      kubectlArgs({
+        kubernetesClusterId: automaticId,
+        command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+        rollbackCommand: undefined,
+      }),
+    );
+    expect(refused.success).toBe(false);
+    expect(refused.textForLlm).toContain("Requires human approval");
+
+    const allowed: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(
+      kubectlArgs({
+        command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+        rollbackCommand: undefined,
+      }),
+    );
+    expect(allowed.success).toBe(true);
+    expect(enqueueKubectl).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not execute anything in Suggest mode on a Bypass cluster (breaker-tripped run) and records RiskyWrite as auto-approved", async () => {
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      mode: "Suggest",
+      clusterTargets: [
+        cluster({
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+        }),
+      ],
+    });
+
+    expect(
+      toolkit.buildTools().map((tool: ObservabilityAssistantExtraTool) => {
+        return tool.definition.name;
+      }),
+    ).not.toContain("execute_remediation_command");
+
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "propose_remediation_commands",
+    ).execute({
+      commands: [
+        kubectlArgs({
+          command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+          rollbackCommand:
+            "kubectl set image deployment/web web=nginx:1.26 -n web",
+        }),
+      ],
+    });
+
+    expect(outcome.success).toBe(true);
+    expect(enqueueKubectl).not.toHaveBeenCalled();
+
+    const plan: AiRemediationCommandPlan | null = toolkit.getProposedPlan();
+    expect(plan?.commands).toHaveLength(1);
+    expect(plan!.commands[0]!.kubectlTier).toBe(KubectlCommandTier.RiskyWrite);
+    expect(plan!.commands[0]!.policyVerdict).toBe(
+      AiRemediationCommandPolicyVerdict.AutoApproved,
+    );
+    expect(plan!.commands[0]!.wasAutoExecuted).toBeFalsy();
   });
 });
 

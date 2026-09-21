@@ -633,10 +633,11 @@ class AutoRemediationRuleEngineServiceClass {
 
   /*
    * A follow-up round after a cluster plan ran and verification failed: the
-   * operator asked to be asked again for a NEW set of commands. Always
-   * Suggest (a human approves the second attempt even on Automatic
-   * clusters), and capped by MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT.
-   * Called by the verifier; never throws.
+   * operator asked to be asked again for a NEW set of commands. Suggest for
+   * RequireApproval and Automatic clusters (a human approves the second
+   * attempt), unattended again for BypassApproval clusters, and capped by
+   * MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT. Called by the verifier;
+   * never throws.
    */
   @CaptureSpan()
   public async startFollowUpClusterRemediation(data: {
@@ -718,10 +719,17 @@ class AutoRemediationRuleEngineServiceClass {
   }): Promise<boolean> {
     const { cluster } = data;
 
-    // Follow-up rounds always ask a human, whatever the cluster's mode.
+    /*
+     * Automatic clusters run their first round unattended and ask a human
+     * for the follow-up; a BypassApproval cluster never asks, follow-ups
+     * included — that is what its operator chose.
+     */
+    const isBypass: boolean =
+      cluster.remediationMode === KubernetesAiRemediationMode.BypassApproval;
     const isAutomatic: boolean =
-      data.round === 1 &&
-      cluster.remediationMode === KubernetesAiRemediationMode.Automatic;
+      isBypass ||
+      (data.round === 1 &&
+        cluster.remediationMode === KubernetesAiRemediationMode.Automatic);
 
     const suggestion: AutoRemediationSuggestion =
       new AutoRemediationSuggestion();
@@ -785,11 +793,15 @@ class AutoRemediationRuleEngineServiceClass {
     await this.postFeedItem({
       projectId: data.projectId,
       linkage: data.linkage,
-      markdown: isAutomatic
-        ? `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe fixes on its own (riskier changes will ask for approval). Progress appears here.`
-        : data.round > 1
-          ? `⚡ **OneUptime AI is composing another kubectl fix for cluster "${cluster.clusterName}"** (round ${data.round}) — the previous plan did not recover the service. A new plan will appear here for approval.`
-          : `⚡ **OneUptime AI is composing a kubectl fix for cluster "${cluster.clusterName}".** Nothing runs until you approve the plan — it will appear here shortly.`,
+      markdown: isBypass
+        ? data.round > 1
+          ? `⚡ **OneUptime AI is applying another kubectl fix on cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this cluster, so the new fix runs on its own. Progress appears here.`
+          : `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Approvals are bypassed for this cluster: AI is diagnosing with kubectl and will apply whatever fix the policy allows on its own, without asking. Progress appears here.`
+        : isAutomatic
+          ? `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe fixes on its own (riskier changes will ask for approval). Progress appears here.`
+          : data.round > 1
+            ? `⚡ **OneUptime AI is composing another kubectl fix for cluster "${cluster.clusterName}"** (round ${data.round}) — the previous plan did not recover the service. A new plan will appear here for approval.`
+            : `⚡ **OneUptime AI is composing a kubectl fix for cluster "${cluster.clusterName}".** Nothing runs until you approve the plan — it will appear here shortly.`,
       pingWorkspace: false,
     });
 

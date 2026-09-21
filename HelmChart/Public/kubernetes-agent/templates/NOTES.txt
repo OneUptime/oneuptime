@@ -64,7 +64,7 @@ The agent is now collecting:
 {{- end }}
 {{- end }}
 {{- if .Values.aiAccess.enabled }}
-  - OneUptime AI access: an in-cluster Runner that lets OneUptime AI run {{ if .Values.aiAccess.remediation.enabled }}kubectl to investigate AND fix incidents (fixes ask for approval by default — switch to automatic on the cluster's AI page){{ else }}read-only kubectl while investigating incidents and alerts (add --set aiAccess.remediation.enabled=true to let it fix them too){{ end }}
+  - OneUptime AI access: an in-cluster Runner that lets OneUptime AI run {{ if .Values.aiAccess.remediation.enabled }}kubectl to investigate AND fix incidents (fixes ask for approval by default — switch to automatic or bypass approval on the cluster's AI page){{ else }}read-only kubectl while investigating incidents and alerts (add --set aiAccess.remediation.enabled=true to let it fix them too){{ end }}
 {{- end }}
 {{- if .Values.preset }}
 
