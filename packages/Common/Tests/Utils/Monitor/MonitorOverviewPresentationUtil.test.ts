@@ -20,7 +20,6 @@ import MonitorOverviewFamilyUtil, {
 } from "../../../Utils/Monitor/MonitorOverviewFamily";
 import MonitorOverviewPresentationUtil, {
   MONITOR_LOG_MINIMUM_RETENTION_SECONDS,
-  MONITOR_LOG_RETENTION_HORIZON_SECONDS,
   MonitorOverviewFact,
   MonitorOverviewPresentation,
   MonitorOverviewPresentationInput,
@@ -2424,9 +2423,8 @@ describe("MonitorOverviewPresentationUtil telemetry evaluations", () => {
  * evaluated".
  */
 describe("MonitorOverviewPresentationUtil evaluation log retention", () => {
-  it("the log keeps rows for a day, and none for more than about two", () => {
+  it("an empty log is judged against the day every row is guaranteed to survive", () => {
     expect(MONITOR_LOG_MINIMUM_RETENTION_SECONDS).toBe(DAY);
-    expect(MONITOR_LOG_RETENTION_HORIZON_SECONDS).toBe(2 * DAY);
   });
 
   it("an old monitor evaluated every minute with nothing in the log's last day is overdue, not 'never evaluated'", () => {
@@ -2544,6 +2542,28 @@ describe("MonitorOverviewPresentationUtil evaluation log retention", () => {
         }),
       );
     };
+
+    /*
+     * Friday's rows expire through the weekend. An empty log then proves
+     * only that nothing ran in the last day, which is true of a weekend, so
+     * it is judged from a day ago and not from the two days a row can
+     * outlive its retention.
+     */
+    for (const weekend of [
+      "2026-09-19T20:00:00.000Z",
+      "2026-09-20T12:00:00.000Z",
+      "2026-09-20T23:00:00.000Z",
+    ]) {
+      const presentation: MonitorOverviewPresentation = businessHours(
+        new Date(weekend),
+      );
+
+      expect({ weekend, runState: presentation.runState }).toEqual({
+        weekend,
+        runState: MonitorOverviewRunState.Running,
+      });
+      expect(presentation.pulse.label).toBe("Last scheduled");
+    }
 
     const mondayMorning: MonitorOverviewPresentation = businessHours(
       new Date("2026-09-21T08:00:00.000Z"),

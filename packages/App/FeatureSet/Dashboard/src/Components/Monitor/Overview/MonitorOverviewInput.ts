@@ -299,6 +299,31 @@ export function toPresentationInput(data: {
   const serverResponse: ServerResponseLike | undefined =
     monitor.serverMonitorResponse as unknown as ServerResponseLike | undefined;
 
+  const judgedProbes: MonitorOverviewProbeSummary | null =
+    summarizeProbeSection({
+      monitor: monitor,
+      probes: data.probes,
+      now: judgedAt,
+    });
+
+  /*
+   * Held results are judged as of their read, but "is the next check still
+   * ahead" is a question about now: judged at the read time, a next ping
+   * that has passed since would still read as upcoming. So the next check
+   * comes from the commit; rows from a failed read then show no "next".
+   */
+  const probes: MonitorOverviewProbeSummary | null =
+    judgedProbes && judgedAt.getTime() < data.now.getTime()
+      ? {
+          ...judgedProbes,
+          nextCheckAt: summarizeProbeSection({
+            monitor: monitor,
+            probes: data.probes,
+            now: data.now,
+          })?.nextCheckAt,
+        }
+      : judgedProbes;
+
   return {
     now: judgedAt,
     /*
@@ -335,11 +360,7 @@ export function toPresentationInput(data: {
         monitor.isAllProbesDisconnectedFromThisMonitor,
       ),
     },
-    probes: summarizeProbeSection({
-      monitor: monitor,
-      probes: data.probes,
-      now: judgedAt,
-    }),
+    probes: probes,
     heartbeat: {
       lastReceivedAt: MonitorCheckScheduleUtil.parseDate(
         incomingRequest?.incomingRequestReceivedAt,

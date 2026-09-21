@@ -371,15 +371,16 @@ const DAY_SECONDS: number = 24 * 3600;
 export const MONITOR_LOG_MINIMUM_RETENTION_SECONDS: number = DAY_SECONDS;
 
 /*
- * And for about a day longer at the most: the TTL ("retentionDate DELETE",
- * ttl_only_drop_parts) drops a whole daily partition (toYYYYMMDD(time))
- * only once its newest row has expired as well. Two days after an
- * evaluation its row is gone, so an empty log is judged from there, as if
- * the monitor had started then: a schedule overdue since that point has
- * missed runs whose rows the log would still hold.
+ * A row can also outlive that by up to about a day: the TTL ("retentionDate
+ * DELETE", ttl_only_drop_parts) drops a whole daily partition
+ * (toYYYYMMDD(time)) only once its newest row has expired too. So a run
+ * between two days and one day ago may or may not still be in the log, and
+ * its absence proves nothing. An empty log is therefore judged from one day
+ * ago, the guaranteed retention: a schedule that was due after that point
+ * would still have its row, so Stale from there really means a missed run.
+ * Judging from the two-day maximum instead flagged gapped schedules
+ * (weekday business hours) as overdue every weekend.
  */
-export const MONITOR_LOG_RETENTION_HORIZON_SECONDS: number =
-  MONITOR_LOG_MINIMUM_RETENTION_SECONDS + DAY_SECONDS;
 
 // "3 hours", or "20 minutes" under an hour. Never "0 minutes".
 const describeUnderADay: (ms: number) => string = (ms: number): string => {
@@ -847,7 +848,7 @@ export default class MonitorOverviewPresentationUtil {
         const horizonStart: Date = new Date(
           Math.max(
             createdAt.getTime(),
-            input.now.getTime() - MONITOR_LOG_RETENTION_HORIZON_SECONDS * 1000,
+            input.now.getTime() - MONITOR_LOG_MINIMUM_RETENTION_SECONDS * 1000,
           ),
         );
 

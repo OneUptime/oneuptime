@@ -1942,6 +1942,23 @@ describe("Monitor overview page: the moment it is judged at", () => {
     ).toBeInTheDocument();
 
     /*
+     * Their next checks passed long ago. Judged at the read, they would
+     * still read as upcoming; whether a check is still ahead is a question
+     * about now, so neither the hero nor any probe row offers a "next".
+     */
+    const cadence: HTMLElement | null = screen.queryByTestId(
+      "monitor-overview-cadence",
+    );
+
+    if (cadence) {
+      expect(cadence).not.toHaveTextContent("next");
+    }
+
+    for (const row of within(probesCard).getAllByTestId("monitor-probe-row")) {
+      expect(row).not.toHaveTextContent("next");
+    }
+
+    /*
      * A read that works and brings back the same old result is judged at
      * the commit: that result is overdue, and now the page can say so.
      */
@@ -1961,6 +1978,7 @@ describe("Monitor overview page: the Summary card's last check", () => {
     telemetryMonitorSummary: {
       lastCheckedAt?: Date | undefined;
       nextCheckAt?: Date | undefined;
+      lastCheckedLabel?: string | undefined;
     };
   }
 
@@ -1998,6 +2016,7 @@ describe("Monitor overview page: the Summary card's last check", () => {
     expect(props.telemetryMonitorSummary.lastCheckedAt).toEqual(
       secondsAgo(14 * 60),
     );
+    expect(props.telemetryMonitorSummary.lastCheckedLabel).toBe("Evaluated At");
     expect(props.telemetryMonitorSummary.nextCheckAt).toEqual(secondsAgo(-20));
   });
 
@@ -2013,6 +2032,7 @@ describe("Monitor overview page: the Summary card's last check", () => {
       latestProps<TelemetrySummaryProps>("Summary");
 
     expect(props.telemetryMonitorSummary.lastCheckedAt).toEqual(secondsAgo(40));
+    expect(props.telemetryMonitorSummary.lastCheckedLabel).toBe("Scheduled At");
   });
 });
 

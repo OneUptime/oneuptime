@@ -338,7 +338,7 @@ export default class MonitorCheckScheduleUtil {
     const monthField: string = fields[3 + offset]!;
     const dayOfWeekField: string = fields[4 + offset]!;
 
-    if (dayOfWeekField !== "*" || dayOfMonthField === "*") {
+    if (dayOfMonthField === "*") {
       return false;
     }
 
@@ -354,14 +354,30 @@ export default class MonitorCheckScheduleUtil {
       names: MONTH_NAMES,
     });
 
-    if (!days || !months) {
+    if (!days || !months || days.length === 0 || months.length === 0) {
       return false;
     }
 
     const firstDay: number = Math.min(...days);
-    const hasNoDay: boolean = months.every((month: number) => {
-      return firstDay > (LONGEST_MONTH_DAYS[month - 1] ?? 31);
-    });
+    const distinctMonths: Array<number> = Array.from(new Set(months));
+
+    /*
+     * The scheduler parses with cron-parser, which refuses a single month
+     * that has no such day whatever the day of the week says ("0 0 30 2 1"
+     * throws "Invalid explicit day of month definition"), and then runs the
+     * monitor every minute. Over several months it ORs the day of the week
+     * in, as CronTab does, so there only a bare "*" leaves the day of the
+     * month to decide.
+     */
+    const isSingleMonthWithoutDay: boolean =
+      distinctMonths.length === 1 &&
+      firstDay > (LONGEST_MONTH_DAYS[distinctMonths[0]! - 1] ?? 31);
+    const isEveryMonthWithoutDay: boolean =
+      dayOfWeekField === "*" &&
+      distinctMonths.every((month: number) => {
+        return firstDay > (LONGEST_MONTH_DAYS[month - 1] ?? 31);
+      });
+    const hasNoDay: boolean = isSingleMonthWithoutDay || isEveryMonthWithoutDay;
 
     if (hasNoDay) {
       rememberScheduleWithoutRuns(cron);

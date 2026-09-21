@@ -113,9 +113,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
    *   server, so a browser clock minutes fast would read every check as late.
    * Probe results held after a failed read are judged as of that read
    * instead (getJudgedAt). Every health judgement on the page, the Probes
-   * card's included, uses presentationInput.now, so no card can disagree
-   * with the hero. The ticking relative times ("2 minutes ago") keep the
-   * reader's clock, like the rest of the dashboard.
+   * card's included, comes from presentationInput, so no card can disagree
+   * with the hero; only "is the next check still ahead" is asked of the
+   * commit. The ticking relative times ("2 minutes ago") keep the reader's
+   * clock, like the rest of the dashboard.
    */
   const now: Date = new Date(
     (data.lastLoadedAt || OneUptimeDate.getCurrentDate()).getTime() +
@@ -418,7 +419,13 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               monitorId={modelId}
               probes={data.probes}
               summary={presentationInput.probes}
-              now={presentationInput.now}
+              /*
+               * Row health comes from the summary. The card only asks
+               * whether a row's next check is still ahead, which is a
+               * question about the commit, not about when held results
+               * were read.
+               */
+              now={now}
               minimumProbeAgreement={presentationInput.minimumProbeAgreement}
             />
           ) : (

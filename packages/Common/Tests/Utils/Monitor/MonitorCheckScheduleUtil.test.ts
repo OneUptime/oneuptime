@@ -435,6 +435,13 @@ describe("MonitorCheckScheduleUtil schedules that never run", () => {
       "0 0 31 4,6,9,11 *",
       "0 0 30-31 feb *",
       "0 0 0 30 2 *",
+      /*
+       * One month without the day: the scheduler's cron-parser throws on
+       * these whatever the day of the week, and runs the monitor every
+       * minute.
+       */
+      "0 0 30 2 1",
+      "0 0 31 4 1-5",
     ]) {
       // Twice: the second read must be as cheap as the first.
       for (let read: number = 0; read < 2; read++) {
@@ -483,10 +490,13 @@ describe("MonitorCheckScheduleUtil schedules that never run", () => {
       }),
     ).toMatchObject({ runAt: new Date("2028-02-29T00:00:00.000Z") });
 
-    // A day of the week is ORed with the day of the month: Mondays in February.
+    /*
+     * Over several months a day of the week is ORed with the day of the
+     * month, by cron-parser as by CronTab: Mondays in February and April.
+     */
     expect(
       MonitorCheckScheduleUtil.getNextRunAfter({
-        monitoringInterval: "0 0 30 2 1",
+        monitoringInterval: "0 0 31 2,4 1",
         after: NOW,
       }),
     ).toMatchObject({ runAt: new Date("2027-02-01T00:00:00.000Z") });
