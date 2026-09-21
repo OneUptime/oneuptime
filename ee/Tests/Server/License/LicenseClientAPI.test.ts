@@ -1226,6 +1226,60 @@ describe("a license-server response with a token and no expiry", () => {
   });
 
   /*
+   * Activation answers 200 here on purpose - the license IS stored, and the
+   * daily sync may yet complete it - so the only thing standing between a
+   * master admin and a green "License validated successfully." while single
+   * sign-on stays off is what this body says. It has to carry the verdict AND
+   * the reason, for both sides of the trial.
+   */
+  it.each([
+    ["inside its trial", 3 * DAY_IN_MS, "grace", true],
+    ["past its trial", 400 * DAY_IN_MS, "missing", false],
+  ])(
+    "answers an activation %s with enough for the dialog to warn instead of celebrate",
+    async (
+      _label: string,
+      firstSeenAgo: number,
+      expectedStatus: string,
+      expectedLicenseValid: boolean,
+    ) => {
+      store.row!["enterpriseLicenseToken"] = null;
+      store.row!["enterpriseLicenseExpiresAt"] = null;
+      store.row!["enterpriseEditionFirstSeenAt"] = new Date(
+        Date.now() - firstSeenAgo,
+      );
+      respondWith(payloadWithoutExpiry());
+
+      const result: CallResult = await callRoute(LICENSE_ROUTE, {
+        licenseKey: STORED_LICENSE_KEY,
+      });
+
+      // Not a refusal: the token is stored either way.
+      expect(result.error).toBeNull();
+      expect(store.row?.["enterpriseLicenseToken"]).toBe(
+        legacyToken("from-server"),
+      );
+
+      expect(result.body?.["status"]).toBe(expectedStatus);
+      expect(result.body?.["licenseValid"]).toBe(expectedLicenseValid);
+      /*
+       * graceReason "unlicensed" is what tells the dialog that this "grace" is
+       * the trial and not a license's own grace period - without it, an
+       * activation inside the trial looks like a perfectly good license in
+       * grace and would still be reported as a success.
+       */
+      expect(result.body?.["graceReason"]).toBe(
+        expectedStatus === "grace" ? "unlicensed" : null,
+      );
+
+      const message: string = String(result.body?.["message"]);
+
+      expect(message).toContain("no expiry is recorded for it");
+      expect(message).toContain("re-activate the license");
+    },
+  );
+
+  /*
    * The never-downgrade rule doing its job on the same response: a refresh
    * must not swap a working license for one with no expiry, whatever the
    * new classification ranks as.

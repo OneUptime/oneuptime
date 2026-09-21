@@ -641,3 +641,205 @@ describe("the instances on the license", () => {
     expect(screen.queryByText("staging.acme.internal")).not.toBeInTheDocument();
   });
 });
+
+/*
+ * A write the server ACCEPTED that did not leave this installation licensed.
+ *
+ * Activation refuses only a license this installation cannot use at all
+ * ("invalid"). A license with no expiry recorded beside it is not that: it is
+ * stored on purpose, because a token is better than nothing and the daily sync
+ * may complete it. But past the trial, such an install has single sign-on,
+ * SCIM and audit logging OFF - and this dialog used to answer the master admin
+ * who had just pasted their key to fix that lapse with a green "License
+ * validated successfully."
+ *
+ * The response carries the classification (status, graceReason) and its
+ * message, so the dialog can say what actually happened.
+ */
+describe("a license that is stored but licenses nothing", () => {
+  const NO_EXPIRY_MESSAGE: string =
+    "A OneUptime Enterprise license is installed, but no expiry is recorded for it, so this installation cannot tell whether it is still current. " +
+    "The 14-day trial counted from when this installation first ran the Enterprise Edition has ended, so Enterprise features have stopped. " +
+    "A master admin can re-activate the license from the edition label in the Admin Dashboard, or leave the daily license sync to fetch its expiry from oneuptime.com.";
+
+  const validateWith: (payload: JSONObject) => Promise<void> = async (
+    payload: JSONObject,
+  ): Promise<void> => {
+    await openDialog();
+
+    fireEvent.click(await screen.findByText("Change license key"));
+    fireEvent.change(await keyInput(), { target: { value: "acme-key" } });
+
+    respondWith(payload);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Validate License" }));
+    });
+  };
+
+  it("warns instead of claiming success when the license lands past the trial", async () => {
+    await validateWith(
+      adminPayload({
+        status: "missing",
+        verification: "unverified",
+        licenseValid: false,
+        expiresAt: null,
+        message: NO_EXPIRY_MESSAGE,
+      }),
+    );
+
+    const warning: HTMLElement = await screen.findByTestId(
+      "enterprise-license-stored-warning",
+    );
+
+    expect(warning).toHaveTextContent("no expiry is recorded for it");
+    expect(warning).toHaveTextContent("Enterprise features have stopped");
+    expect(
+      screen.queryByText("License validated successfully."),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * Inside the trial the features are still on, but the license is still not
+   * the thing keeping them on - so this is a warning too, not a tick.
+   */
+  it("warns when the license lands on the unlicensed trial", async () => {
+    await validateWith(
+      adminPayload({
+        status: "grace",
+        graceReason: "unlicensed",
+        verification: "unverified",
+        licenseValid: true,
+        expiresAt: null,
+        graceEndsAt: new Date(Date.now() + 10 * DAY_IN_MS).toISOString(),
+        message: NO_EXPIRY_MESSAGE,
+      }),
+    );
+
+    expect(
+      await screen.findByTestId("enterprise-license-stored-warning"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("License validated successfully."),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The license IS stored - the warning is not a refusal dressed up as one.
+   * The POST went out, and the dialog re-read the license afterwards as it
+   * always does.
+   */
+  it("still stores the license: the write happened and the dialog re-read it", async () => {
+    await validateWith(
+      adminPayload({
+        status: "missing",
+        verification: "unverified",
+        licenseValid: false,
+        expiresAt: null,
+        message: NO_EXPIRY_MESSAGE,
+      }),
+    );
+
+    await screen.findByTestId("enterprise-license-stored-warning");
+
+    expect(postCalls()).toHaveLength(1);
+    expect((postCalls()[0] as FetchCall).data).toEqual({
+      licenseKey: "acme-key",
+    });
+  });
+
+  it("falls back to its own words when the server sends no message", async () => {
+    await validateWith(
+      adminPayload({
+        status: "missing",
+        verification: "unverified",
+        licenseValid: false,
+        expiresAt: null,
+        message: null,
+      }),
+    );
+
+    expect(
+      await screen.findByTestId("enterprise-license-stored-warning"),
+    ).toHaveTextContent("The license was stored, but this installation cannot");
+  });
+
+  // A license that really is valid is still a green tick.
+  it("still celebrates a license that licenses something", async () => {
+    await validateWith(adminPayload({ licenseKey: "acme-key" }));
+
+    expect(
+      await screen.findByText("License validated successfully."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enterprise-license-stored-warning"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * And so is a license in its own grace period: it expired, but it is a
+   * license, and the dialog's grace notice already explains it.
+   */
+  it("still celebrates a license in its own grace period", async () => {
+    await validateWith(
+      adminPayload({
+        status: "grace",
+        graceReason: "expired",
+        licenseValid: true,
+        expiresAt: new Date(Date.now() - 2 * DAY_IN_MS).toISOString(),
+        graceEndsAt: new Date(Date.now() + 28 * DAY_IN_MS).toISOString(),
+      }),
+    );
+
+    expect(
+      await screen.findByText("License validated successfully."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enterprise-license-stored-warning"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("warns the same way after a refresh, not only an activation", async () => {
+    await openDialog();
+
+    respondWith(
+      adminPayload({
+        status: "missing",
+        verification: "unverified",
+        licenseValid: false,
+        expiresAt: null,
+        message: NO_EXPIRY_MESSAGE,
+      }),
+    );
+
+    fireEvent.click(await screen.findByTestId("refresh-enterprise-license"));
+
+    expect(
+      await screen.findByTestId("enterprise-license-stored-warning"),
+    ).toHaveTextContent("no expiry is recorded for it");
+    expect(
+      screen.queryByText("License refreshed from OneUptime."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("clears the warning when the dialog is closed and reopened", async () => {
+    await validateWith(
+      adminPayload({
+        status: "missing",
+        verification: "unverified",
+        licenseValid: false,
+        expiresAt: null,
+        message: NO_EXPIRY_MESSAGE,
+      }),
+    );
+
+    await screen.findByTestId("enterprise-license-stored-warning");
+
+    closeDialog();
+    await reopenDialog();
+
+    expect(
+      screen.queryByTestId("enterprise-license-stored-warning"),
+    ).not.toBeInTheDocument();
+  });
+});
