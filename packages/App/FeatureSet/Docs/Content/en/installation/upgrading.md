@@ -199,6 +199,16 @@ either direction.
   this install, and it gets the same 30-day grace period after that expiry.
   Licenses issued from now on are signed and verified by the app itself. You do
   not need a new key for this upgrade.
+- **A key whose expiry this install never recorded** keeps working through the
+  trial rather than stopping. The license server writes the key and the expiry
+  date separately, so an install can hold a key it was never told an expiry
+  for. That install is treated exactly like one with no license: every
+  enterprise feature works during the 14-day trial counted from the first start
+  of the Enterprise Edition, and after the trial the same things stop as above.
+  The seat limit is not enforced while the license is in this state, because the
+  license record this install holds is already incomplete. A master admin
+  re-activating the license from the edition label, or the daily license sync
+  fetching the expiry from oneuptime.com, restores it without a restart.
 
 See
 [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)
