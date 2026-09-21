@@ -16,6 +16,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import React, {
@@ -360,6 +361,14 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                       : "",
                   ).toString(),
                 },
+                /*
+                 * A custom route, so this is a raw API.post rather than
+                 * ModelAPI - and BaseAPI.getHeaders() does not add a
+                 * `tenantid` header. ModelAPI.getCommonHeaders() is the only
+                 * thing in the codebase that does, so without it the request
+                 * arrives with no project scope at all.
+                 */
+                headers: ModelAPI.getCommonHeaders(),
               });
               if (response.isSuccess()) {
                 setIsCallSMSTestLoading(false);
@@ -448,6 +457,14 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                       : "",
                   ).toString(),
                 },
+                /*
+                 * A custom route, so this is a raw API.post rather than
+                 * ModelAPI - and BaseAPI.getHeaders() does not add a
+                 * `tenantid` header. ModelAPI.getCommonHeaders() is the only
+                 * thing in the codebase that does, so without it the request
+                 * arrives with no project scope at all.
+                 */
+                headers: ModelAPI.getCommonHeaders(),
               });
               if (response.isSuccess()) {
                 setIsCallSMSTestLoading(false);

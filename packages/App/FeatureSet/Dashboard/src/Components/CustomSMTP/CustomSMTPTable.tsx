@@ -18,6 +18,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
@@ -548,6 +549,17 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
                       : "",
                   ).toString(),
                 },
+                /*
+                 * `/smtp-config/test` is a custom route, so it is reached with
+                 * a raw API.post rather than ModelAPI - and BaseAPI.getHeaders()
+                 * does not add a `tenantid` header. ModelAPI.getCommonHeaders()
+                 * is the only thing in the codebase that does.
+                 *
+                 * Without it the server has no project to scope the request to,
+                 * and the route's CommonAPI.assertAuthenticatedProjectMember
+                 * guard answers every click with "Project ID is required".
+                 */
+                headers: ModelAPI.getCommonHeaders(),
               });
               if (response.isSuccess()) {
                 setIsSMTPTestLoading(false);
