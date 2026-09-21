@@ -408,6 +408,8 @@ import ServiceLevelObjectiveOwnerUser from "./ServiceLevelObjectiveOwnerUser";
 import ServiceLevelObjectiveOwnerTeam from "./ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveMonitorRule from "./ServiceLevelObjectiveMonitorRule";
 import ServiceLevelObjectiveFeed from "./ServiceLevelObjectiveFeed";
+import ServiceLevelObjectiveOwnerRule from "./ServiceLevelObjectiveOwnerRule";
+import ServiceLevelObjectiveLabelRule from "./ServiceLevelObjectiveLabelRule";
 import IncidentReminderRule from "./IncidentReminderRule";
 import AlertReminderRule from "./AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "./ScheduledMaintenanceReminderRule";
@@ -622,6 +624,8 @@ const AllModelTypes: Array<{
   ServiceLevelObjectiveOwnerTeam,
   ServiceLevelObjectiveMonitorRule,
   ServiceLevelObjectiveFeed,
+  ServiceLevelObjectiveOwnerRule,
+  ServiceLevelObjectiveLabelRule,
   IncidentReminderRule,
   AlertReminderRule,
   ScheduledMaintenanceReminderRule,

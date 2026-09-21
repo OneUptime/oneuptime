@@ -170,6 +170,11 @@ export const SloRoutePath: Dictionary<string> = {
    * SLO id.
    */
   [PageMap.SLOS_ARCHIVED]: `archived`,
+  // Also list-layout pages; the `settings` segment is never an SLO id either.
+  [PageMap.SLOS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.SLOS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.SLO_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SLO_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
   [PageMap.SLO_VIEW_MONITOR_RULES]: `${RouteParams.ModelID}/monitor-rules`,
@@ -3157,6 +3162,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SLOS_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/slos/${
       SloRoutePath[PageMap.SLOS_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.SLOS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.SLOS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW]
     }`,
   ),
 
