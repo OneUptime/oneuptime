@@ -71,10 +71,14 @@ const EDITION_SECTION_HEADING: string =
   "## Community and Enterprise Edition images";
 
 /*
- * The newest version section, in any language: "## Upgrading from OneUptime
- * 12 → 13", "## 从 OneUptime 12 升级到 13", ...
+ * A major-version section, in any language: "## Upgrading from OneUptime
+ * 13 → 14", "## 从 OneUptime 13 升级到 14", ... The two version numbers are
+ * captured so the assertion can check they are consecutive, rather than
+ * naming the release: this file is edited on every major bump otherwise, and
+ * the thing worth pinning is that the newest hop sits directly below the
+ * edition section, not which hop it is.
  */
-const UPGRADE_FROM_12_HEADING_PATTERN: RegExp = /^## .*12\D+13/;
+const VERSION_SECTION_HEADING_PATTERN: RegExp = /^## \D*(\d+)\D{1,24}(\d+)\b/;
 
 const DOCS_LINK_PATTERN: RegExp = /\]\((\/docs\/[^)\s]+)\)/g;
 
@@ -397,6 +401,14 @@ function sectionBetween(text: string, start: string, end: string): string {
 function readHelmChartFile(relativePath: string): string {
   return fs.readFileSync(path.join(HELM_CHART_DIR, relativePath), "utf8");
 }
+
+/*
+ * A released entry's title: "- **14.0.0 (2026-09-21)** — ...". An entry still
+ * waiting for a release is titled "- **Unreleased (after <version>)**" and
+ * does not match.
+ */
+const HELM_RELEASED_ENTRY_TITLE_PATTERN: RegExp =
+  /^- \*\*\d+\.\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)\*\*/;
 
 // The chart's upgrade-notes entries, newest first, one string per "- **" item.
 function helmUpgradeNoteEntries(): Array<string> {
@@ -891,7 +903,17 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
 
       // General guidance, then this section, then the version sections.
       expect(sectionHeadings[1]).toBe(EDITION_SECTION_HEADING);
-      expect(sectionHeadings[2]).toMatch(UPGRADE_FROM_12_HEADING_PATTERN);
+      expect(sectionHeadings[2]).toMatch(VERSION_SECTION_HEADING_PATTERN);
+
+      /*
+       * The version sections are newest first, so the one below the edition
+       * section is a hop between consecutive majors ("13 → 14"), not a jump.
+       */
+      const newestHop: RegExpMatchArray | null = sectionHeadings[2]!.match(
+        VERSION_SECTION_HEADING_PATTERN,
+      );
+
+      expect(Number(newestHop![2])).toBe(Number(newestHop![1]) + 1);
       expect(
         sectionHeadings.filter((heading: string) => {
           return heading === EDITION_SECTION_HEADING;
@@ -1231,7 +1253,7 @@ describe("The upgrade notes say what the Community image leaves out", () => {
 });
 
 describe("Helm chart upgrade notes for the Community / Enterprise split", () => {
-  it("has an Unreleased entry for the split as the newest entry", () => {
+  it("has the release entry for the split as the newest entry", () => {
     const entries: Array<string> = helmUpgradeNoteEntries();
 
     // The older entries are still there, so the split parsed the list.
@@ -1242,7 +1264,11 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
       }),
     ).toBe(true);
 
-    expect(entries[0]!.startsWith("- **Unreleased")).toBe(true);
+    /*
+     * The split shipped in 14.0.0, so the entry that was "Unreleased" while it
+     * sat on master now carries a released title, "- **<semver> (<date>)**".
+     */
+    expect(entries[0]).toMatch(HELM_RELEASED_ENTRY_TITLE_PATTERN);
     expect(entries[0]).toContain("`image.type: enterprise-edition`");
     expect(
       entries.filter((entry: string) => {

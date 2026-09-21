@@ -96,6 +96,101 @@ settings that used to show an upgrade prompt.
   requests while the license is lapsed (after the trial or grace period), and
   answer again as soon as a license is activated.
 
+## OneUptime 13 → 14 へのアップグレード
+
+OneUptime 14 はアプリケーションを 2 つのエディションに分割し、取得するイメージがどちらを実行するかを決めます。**Community Edition**（Apache-2.0、タグ `release` および `<version>`）にはリポジトリの `ee/` ディレクトリが含まれません。SAML SSO、OpenID Connect、SCIM プロビジョニング、チームのコンプライアンス設定、監査ログ、管理画面の **Health** ダッシュボード、**Query Console** はこのイメージには一切含まれていません。**Enterprise Edition**（タグ `enterprise-release` および `enterprise-<version>`）はこれらを含み、実行中に Enterprise ライセンスを確認します。OneUptime 13 はライセンスを確認したことがありませんでした。
+
+上の [Community and Enterprise Edition images](#community-and-enterprise-edition-images) がこの変更のリファレンスです。各エディションに何が含まれるか、デプロイ方法ごとに何を設定するか、ライセンスが何をするかが書かれています。この節はアップグレードそのものについて説明します。13 からアップグレードしてください。まだ 12 の場合は、先に 12 → 13 を実施します。
+
+どちらのエディションでも何も削除されません。SSO、OIDC、SCIM の設定、「Require SSO for login」の設定、これまでに記録された監査ログはデータベースに残ります。Community Edition はそれらを提供せず、強制もしないだけです。エディションの切り替えは、どちらの方向でもマイグレーションを必要としません。
+
+### 必要な作業
+
+1. **このインストールがどちらのエディションを実行するか決めます。** SAML SSO、OpenID Connect、SCIM プロビジョニング、チームのコンプライアンス設定、監査ログを使っている場合、または管理画面の **Health** ダッシュボードが必要な場合は Enterprise Edition です。そうでなければ決めることはありません。すでにお使いのものが Community Edition です。
+2. **Helm では values ファイルでエディションを指定します。** `image.type: enterprise-edition`（既定値は `community-edition`）。`image.tag` は変更しないでください。チャートが自分で `enterprise-` という接頭辞を付けるため、`image.tag: release` は `oneuptime/app:enterprise-release` を取得します。この値は新しいものではありません。すでに `enterprise-edition` で動かしているなら変更は不要で、これまで取得していたタグに今回から `ee/` が含まれます。
+3. **Docker Compose では `config.env` に `APP_TAG=enterprise-release`** を設定します（バージョンを固定する場合は `enterprise-<version>`）。`APP_TAG=release` は Community イメージです。13 のインストールが止まるのはこの点です。13 では Compose の Enterprise インストールは `APP_TAG=release` と `IS_ENTERPRISE_EDITION=true` の組み合わせでしたが、その組み合わせは今後 **起動を拒否** します。SSO 設定を強制しない Community Edition として黙って立ち上がることはありません。`IS_ENTERPRISE_EDITION=true` の間は `npm run update` が `APP_TAG` を書き換え（`release` は `enterprise-release` に、固定した `13.0.8` は `enterprise-13.0.8` に）、変更内容を表示します。イメージを手動で取得する場合は、先に自分で `APP_TAG` を設定してください。
+4. **Enterprise Edition ではライセンスを有効化します。** ライセンスのないインストールには 14 日間の試用期間があり、Enterprise Edition を初めて起動した時点から数えます。アップグレードの場合はアップグレードした日であり、OneUptime を最初にインストールした日ではありません。マスター管理者が管理画面ヘッダーのエディションラベルから有効化します。インターネットに接続しないインストールは署名済みトークンで有効化します。[Licensing](/docs/self-hosted/enterprise#licensing) を参照してください。
+5. **SSO の強制を設定したまま Community Edition を実行する場合は、アップグレードの前に誰がアクセスできるかを確認してください。** 「Require SSO for login」は強制されなくなり、パスワードによるサインインが再び受け付けられます。アカウントとそのメールボックスにアクセスできる人は誰でも「パスワードを忘れた場合」からパスワードを設定できます。SCIM のデプロビジョニングも停止するため、ID プロバイダー側で削除した人も含まれます。まずそのようなユーザーを削除してください: [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)。
+6. **Ping、Port、SSL モニターで IPv6 アドレスを監視している場合は、アップグレード後にそのモニターを保存し直してください。** 14 より前に保存した宛先は切り詰められて保存されている可能性があります（下記参照）。
+
+### エディション: 変わった点と変わらない点
+
+| | 13 まで | 14 から |
+| --- | --- | --- |
+| Enterprise のコード | すべてのイメージに含まれ、`IS_ENTERPRISE_EDITION=true` で有効化 | `ee/` にあり、`enterprise-` イメージのみに含まれる |
+| Helm での選択 | `image.type` | `image.type` — 変更なし。ただしイメージの中身が実際に異なる |
+| Compose での選択 | `IS_ENTERPRISE_EDITION=true` | `APP_TAG=enterprise-release` |
+| Enterprise ライセンス | 実行中に確認されなかった | 起動時と 1 日 1 回確認される |
+| SSO、OIDC、SCIM のエンドポイント | 両エディションで同じパス | Enterprise では同じパス、Community では `404` |
+| Enterprise の設定 | 保存され、強制される | どちらでも保存され、Enterprise で強制される |
+
+マイグレーションは 1 件実行されます。1 行だけのテーブル `GlobalConfig` に NULL 許容の列 `enterpriseEditionFirstSeenAt` を追加するもので、即座に完了します。ClickHouse のマイグレーションはなく、何も削除されず、エディションの切り替えはどちらの方向でもマイグレーションを必要としません。
+
+### Enterprise Edition におけるライセンスの時系列
+
+- **ライセンスのないインストール** は、Enterprise Edition の初回起動から数えて 14 日間の試用期間で動作します。その間はすべての Enterprise 機能が動作し、終了前にエディションラベルが警告します。試用は評価目的です。Enterprise Edition の本番利用には OneUptime Enterprise License に基づくサブスクリプションが必要です。
+- **期限切れになるライセンス** には、期限日から 30 日間の猶予期間があります。その間はすべての Enterprise 機能が動作し、エディションラベルが警告します。
+- **試用期間の後、またはその猶予期間の後**、ライセンスが有効化されるまでは次の状態になります。SSO と OIDC でのサインインは拒否され、「Require SSO for login」は強制されなくなり（ユーザーはパスワードでサインインします）、ID プロバイダーからの SCIM リクエストは拒否され、監査ログの記録が停止します。Enterprise の設定は読み取り専用になります。閲覧と削除、SSO または OIDC プロバイダーの無効化、SCIM ベアラートークンのリセットは引き続き可能で、これはインシデント対応に必要な操作です。Health ダッシュボードと Query Console はロックされます。
+- **何も削除されず、コアの監視は一切影響を受けません。** モニター、アラート、インシデント、オンコール、ステータスページ、テレメトリーはライセンスの対象外で、パスワードによるサインインはマスター管理者を含むすべてのユーザーで引き続き利用できます。ライセンスを有効化すると、SSO サインイン、SSO の強制、SCIM プロビジョニング、監査ログの記録が、すでにある設定のまま再開されます。再起動は不要です。
+- **すでにお持ちのライセンスキーは受け付けられます。** 「unverified」なライセンスとして扱われ、期限日とシート数はライセンスサーバーがこのインストールに通知済みの内容から取得され、その期限後も同じ 30 日間の猶予期間が適用されます。これ以降に発行されるライセンスは署名され、アプリケーション自身が検証します。このアップグレードのために新しいキーを取得する必要はありません。
+
+状態の一覧表は [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing) にあります。
+
+### Docker Compose: イメージタグを選ぶ
+
+```
+git checkout release # release ブランチにいることを確認してください。
+git pull
+npm run update
+```
+
+- **`IS_ENTERPRISE_EDITION=true` の間、`npm run update` は `APP_TAG` を** 同じリリースの Enterprise イメージへ移し、変更内容を表示します。コメントと引用符はそのまま保たれ、すでに `enterprise-` タグになっている `APP_TAG` はそのまま残り、2 回目の実行では何も変わりません。
+- **イメージを手動で取得すると、この処理は行われません。** その場合アプリケーションは起動時に終了し、何を設定すべきかを正確に示すエラーを出します。Enterprise Edition を維持するなら `APP_TAG=enterprise-<version>`、Community Edition を実行するなら `IS_ENTERPRISE_EDITION=false` です。
+- **意図して Community Edition に移る場合** は `APP_TAG=release` と `IS_ENTERPRISE_EDITION=false` を設定します。このインストールが SSO を強制している場合は、先に上記の項目 5 を読んでください。
+- このリリースのために `config.env` で他に変更すべき点はありません。
+
+### Helm: イメージタイプを選ぶ
+
+```
+helm repo update
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
+- **すでに `image.type: enterprise-edition` で動いているインストールは values の変更が不要です。** チャートは以前からタグに接頭辞を付けています。新しいのは `enterprise-` イメージに `ee/` が含まれることです。このリリース以降、上の時系列に従ってライセンスが適用されます。
+- **`image.tag: release` が既定値** なので、この浮動タグのままのチャートは次回のアップグレードで values を一切変えずに 14 に移ります。そのインストールが `community-edition` で SSO、OIDC、SCIM を設定している場合は、同じアップグレードで `image.type: enterprise-edition` を設定してください。
+- **`IS_ENTERPRISE_EDITION` は今もチャートが出力します。** `image.type` から導出されるため両者が矛盾することはありません。この変数は何も制御しません。Community イメージで `extraEnv` から `true` を強制しても、アプリケーションが起動を拒否するだけです。`ONEUPTIME_EDITION` をチャートから設定しないでください。
+- **チャートのプローブが再び `probes.<key>.allowPrivateNetworkMonitors` を尊重します**（[#3879](https://github.com/OneUptime/oneuptime/issues/3879)）。この値を設定しなければ何も変わりません（既定は `false` のままです）。チャートのプローブはグローバルプローブなので、設定するとインスタンス上の **すべてのプロジェクト** のモニターに適用されます。ループバック、リンクローカル、`169.254.169.254` は値に関係なくブロックされたままです。
+
+### 14 のその他の変更
+
+- **OTLP の取り込みは、キューが受け付けてから初めてバッチを確認応答します。** 13 は先に `200` を返してから投入していたため、キューが拒否したバッチは静かに失われていました。14 は `503` と `Telemetry queue unavailable. Please retry.` を返し、gRPC エンドポイントは `UNAVAILABLE` を返します。いずれも再試行可能で、エクスポーターは再送します。ログ、メトリクス、トレース、プロファイルが対象です。作業は不要ですが、これまでデータが消えていた場面でエクスポーターの再試行とキューの背圧が見えるようになります。取り込み容量を見積もっている場合は把握しておいてください。
+- **管理画面の Health ダッシュボードと Query Console は Enterprise Edition が必要になります。** PostgreSQL と Valkey のヘルスアラートも同様です。13 では `IS_ENTERPRISE_EDITION=true` だけで利用できたため、これらを使っていた Community のインストールには目に見える機能の減少です。ClickHouse の容量表示と自動削除、マイグレーションの状態、グローバルプローブ、サポートバンドルは両方のエディションにあります。
+- **プローブのプロキシ経由で IP アドレスに到達する HTTPS モニターが再び動作します。** プローブは IP を TLS のサーバー名として送っていましたが、IP は有効なサーバー名ではなく Node はこれを拒否するため、`PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` を設定したグローバルプローブから `https://<プライベート IP>` を監視するとハンドシェイクに失敗していました。プローブは IP を対象とする場合にサーバー名を送らず、証明書を IP 自体に対して検証します。ホスト名を対象とする場合は変わりません。
+- **`oneuptime` CLI が `--version` で実際のバージョンを報告します**（従来はプレースホルダーでした）。
+- 移動または制限されたエンドポイント（`GET /api/global-config/license` と、セルフホストのインストールが提供しなくなったライセンスサーバーのエンドポイントを含む）は、上の [API and endpoint changes](#api-and-endpoint-changes) に記載しています。
+
+### IPv6 モニター: Ping、Port、SSL
+
+前後に空白が付いた状態で貼り付けられた Ping または Port の宛先は、これまで切り詰められて保存されていました。looking glass やルーターの設定からアドレスをコピーするとこうなります。`2001:518:2800:9::2 ` はホスト `2001`、ポート `518` として保存されていました。どちらも正当な値なので何も失敗せず、エラーも表示されず、モニターは誰も入力していないホストを監視していました。IPv4 アドレスは分割するコロンがないため、まったく影響を受けませんでした。14 はこの解析を修正し、あわせて macOS と FreeBSD のプローブで IPv6 の Ping モニターが即座に恒久的に失敗し（本物の障害として報告され）ていた問題、IPv6 の SSL モニターが `ENOTFOUND` で失敗していた問題も修正します。
+
+すでに保存された宛先のためのマイグレーションはありません。**アップグレード後に Ping、Port、SSL の IPv6 モニターをそれぞれ開いて保存し直し**、表示される宛先を確認してください。macOS や FreeBSD のプローブで恒久的に失敗していたモニターは、以後は実際の状態を報告します。その結果、インシデントが解消することも、新たに発生することもあります。
+
+### エディションとライセンスの確認
+
+- **管理画面ヘッダーのエディションラベル** が実行中のエディションを示し、Enterprise Edition ではライセンスの状態も示します。
+- **Compose:** `docker compose images` で実行中のタグを一覧できます。Enterprise Edition では OneUptime のすべてのイメージに `enterprise-` の接頭辞が付きます。
+- **Helm:** `kubectl get pods -n <namespace> -o jsonpath='{..image}'` で Pod が実行しているイメージを表示できます。接頭辞の規則は同じです。
+- SSO、OIDC、SCIM のエンドポイントで 2 つのケースを区別できます。`404` はそのイメージに `ee/` が含まれない（Community Edition）ことを意味し、`402` または `403` は Enterprise Edition が動作しており、ライセンスに対処が必要であることを意味します。
+
+### 13 へのロールバック
+
+- 両方のエディション、両方のリリースが同じデータを読みます。スキーマの変更は 13 が無視する NULL 許容の列だけなので、イメージを戻すためにデータベース側の作業は不要です。
+- **Docker Compose:** `APP_TAG` を実行していた 13 のタグ（`13.0.8` または `enterprise-13.0.8`）に戻し、`npm run update` を実行します。13 では `IS_ENTERPRISE_EDITION=true` が Enterprise 機能を有効にするため、設定していた場合は戻してください。
+- **Helm:** `helm rollback my-oneuptime`、または `image.tag` を `13.0.8` に固定します。
+- 14 を実行しても Enterprise の設定には手が加わらないため、ロールバック後もそのまま残っています。
+
+> ヒント: Enterprise Edition では、試用期間の終わりではなくアップグレードした当日にライセンスを有効化してください。シングルサインオンの強制を維持するのは有効化であり、試用期間は最初にインストールした日ではなくこのアップグレードから数えられます。
+
 ## OneUptime 12 → 13 へのアップグレード
 
 OneUptime 13 では、同梱のキャッシュ／キューエンジンが Redis から [Valkey](https://valkey.io) に置き換わりました。Redis 7.4 が BSD ライセンスから離れ、当初からの Redis 開発者の多くが Valkey に移ったためです。Valkey は Redis 7.2 のフォークで、同じプロトコルを話します。ソケットより上の層は何も変わっておらず、希望すれば引き続き本物の Redis やマネージドの Redis 互換サービスを指定できます。

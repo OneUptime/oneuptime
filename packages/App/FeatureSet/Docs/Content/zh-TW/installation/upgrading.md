@@ -96,6 +96,101 @@ settings that used to show an upgrade prompt.
   requests while the license is lapsed (after the trial or grace period), and
   answer again as soon as a license is activated.
 
+## 從 OneUptime 13 升級到 14
+
+OneUptime 14 將應用程式拆成兩個版本，實際執行哪一個由你拉取的映像決定。**Community Edition**（Apache-2.0，標籤 `release` 與 `<version>`）不包含儲存庫中的 `ee/` 目錄：SAML SSO、OpenID Connect、SCIM 佈建、團隊合規設定、稽核日誌、管理後台的 **Health** 儀表板與 **Query Console** 完全不在該映像中。**Enterprise Edition**（標籤 `enterprise-release` 與 `enterprise-<version>`）包含這些功能，並在執行期間檢查 Enterprise 授權——OneUptime 13 從未檢查過。
+
+上方的 [Community and Enterprise Edition images](#community-and-enterprise-edition-images) 是本次變更的參考：各版本包含哪些功能、每種部署方式要設定什麼、授權的作用為何。本節說明升級本身。請從 13 升級；若仍在 12，請先完成 12 → 13。
+
+兩個版本都不會刪除任何資料。你的 SSO、OIDC 與 SCIM 設定、"Require SSO for login" 設定，以及至今記錄的稽核日誌都會留在資料庫中。Community Edition 只是不提供也不強制這些功能，而切換版本在任一方向都不需要遷移。
+
+### 你需要做的事
+
+1. **決定這套部署要執行哪個版本。** 若你使用 SAML SSO、OpenID Connect、SCIM 佈建、團隊合規設定或稽核日誌，或需要管理後台的 **Health** 儀表板，那就是 Enterprise Edition。否則沒有什麼要決定：你現在用的就是 Community Edition。
+2. **使用 Helm 時，在 values 檔案中指定版本：** `image.type: enterprise-edition`（預設值為 `community-edition`）。不要改 `image.tag`——Chart 會自行加上 `enterprise-` 前綴，因此 `image.tag: release` 會拉取 `oneuptime/app:enterprise-release`。這個值並非新增：若你已經執行 `enterprise-edition`，就無需變動，你原本拉取的標籤現在包含 `ee/`。
+3. **使用 Docker Compose 時，在 `config.env` 中設定 `APP_TAG=enterprise-release`**（若要固定版本則用 `enterprise-<version>`）。`APP_TAG=release` 是 Community 映像。13 的部署就是卡在這一點：在 13 中，Compose 的 Enterprise 部署是 `APP_TAG=release` 加上 `IS_ENTERPRISE_EDITION=true`，而這個組合現在會**拒絕啟動**，不會以 Community Edition 悄悄啟動並且不再強制你的 SSO 設定。只要 `IS_ENTERPRISE_EDITION=true`，`npm run update` 就會替你改寫 `APP_TAG`（`release` 變成 `enterprise-release`，固定的 `13.0.8` 變成 `enterprise-13.0.8`），並印出所做的變更。若你手動拉取映像，請先自行設定 `APP_TAG`。
+4. **在 Enterprise Edition 上啟用授權。** 沒有授權的部署可獲得 14 天試用期，從它首次啟動 Enterprise Edition 起算——對升級而言就是升級當天，而不是你最初安裝 OneUptime 的那天。主管理員可從管理後台頁首的版本標籤啟用；離線部署則以簽章權杖啟用。請參閱 [Licensing](/docs/self-hosted/enterprise#licensing)。
+5. **若這套部署將在已設定強制 SSO 的情況下執行 Community Edition，請在升級前檢視誰還有存取權。** "Require SSO for login" 不再被強制，密碼登入會重新被接受，任何仍持有帳號且能存取其信箱的人都能透過「忘記密碼」設定密碼——包含你在身分提供者端已移除的人，因為 SCIM 的解除佈建也會停止。請先移除這些使用者：[Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community)。
+6. **若你以 Ping、Port 或 SSL 監視器監控 IPv6 位址，升級後請重新儲存這些監視器。** 14 之前儲存的目標位址可能被截斷儲存——請見下文。
+
+### 版本：哪些變了，哪些沒變
+
+| | 13 以前 | 14 起 |
+| --- | --- | --- |
+| Enterprise 程式碼 | 存在於每個映像；由 `IS_ENTERPRISE_EDITION=true` 開啟 | 位於 `ee/`，僅存在於 `enterprise-` 映像 |
+| Helm 的選擇方式 | `image.type` | `image.type` — 未變，但映像內容確實不同了 |
+| Compose 的選擇方式 | `IS_ENTERPRISE_EDITION=true` | `APP_TAG=enterprise-release` |
+| Enterprise 授權 | 執行期間從不檢查 | 啟動時與每日各檢查一次 |
+| SSO、OIDC 與 SCIM 端點 | 兩個版本路徑相同 | Enterprise 路徑相同；Community 回傳 `404` |
+| 你的 Enterprise 設定 | 已儲存、被強制 | 兩個版本都儲存，在 Enterprise 上被強制 |
+
+會執行一次遷移：在只有一列資料的 `GlobalConfig` 資料表新增可為空的欄位 `enterpriseEditionFirstSeenAt`，瞬間完成。沒有 ClickHouse 遷移，不刪除任何內容，切換版本在任一方向都不需要遷移。
+
+### Enterprise Edition 的授權時間軸
+
+- **沒有授權的部署** 以 14 天試用期執行，從首次啟動 Enterprise Edition 起算。期間所有 Enterprise 功能都可使用，版本標籤會在結束前提出警告。試用僅供評估：在生產環境使用 Enterprise Edition 需要依 OneUptime Enterprise License 的訂閱。
+- **即將到期的授權** 自到期日起獲得 30 天寬限期，期間所有 Enterprise 功能都可使用，版本標籤會提出警告。
+- **試用期之後，或該寬限期之後**，在啟用授權之前：SSO 與 OIDC 登入會被拒絕，"Require SSO for login" 不再被強制（使用者改以密碼登入），身分提供者的 SCIM 請求會被拒絕，稽核日誌停止記錄。Enterprise 設定變成唯讀——你仍可檢視與刪除設定、停用某個 SSO 或 OIDC 提供者、重設 SCIM Bearer 權杖，這正是事件處理所需的操作——Health 儀表板與 Query Console 會被鎖定。
+- **不會刪除任何內容，核心監控也從不受影響。** 監視器、警示、事件、值班、狀態頁與遙測都不在授權管轄範圍內，密碼登入對所有使用者（包含主管理員）始終可用。啟用授權後，SSO 登入、SSO 強制、SCIM 佈建與稽核日誌記錄會以你既有的設定恢復，且不需要重新啟動。
+- **你已持有的授權金鑰仍會被接受**，視為 "unverified" 授權：到期日與席次上限取自授權伺服器先前告知這套部署的值，到期後同樣享有 30 天寬限期。從現在起簽發的授權都經過簽章，由應用程式自行驗證。本次升級不需要新的金鑰。
+
+完整的狀態表請見 [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)。
+
+### Docker Compose：選擇映像標籤
+
+```
+git checkout release # 請確認你在 release 分支上。
+git pull
+npm run update
+```
+
+- **只要 `IS_ENTERPRISE_EDITION=true`，`npm run update` 就會把 `APP_TAG`** 換成同一發行版的 Enterprise 映像，並印出所做的變更。你的註解與引號會保留，已經是 `enterprise-` 標籤的 `APP_TAG` 不會被改動，再執行一次也不會有任何變化。
+- **手動拉取映像會跳過這一步**，此時應用程式會在啟動時結束，並給出明確說明該設定什麼的錯誤：要保留 Enterprise Edition 就設 `APP_TAG=enterprise-<version>`，要執行 Community Edition 就設 `IS_ENTERPRISE_EDITION=false`。
+- **若要刻意切換到 Community Edition**，請設定 `APP_TAG=release` 與 `IS_ENTERPRISE_EDITION=false`。若這套部署強制 SSO，請先閱讀上面的第 5 點。
+- 本次發行版不需要在 `config.env` 中變更其他內容。
+
+### Helm：選擇映像類型
+
+```
+helm repo update
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
+- **已經執行 `image.type: enterprise-edition` 的部署不需要變更任何值。** Chart 很早就會為標籤加上前綴；新的是 `enterprise-` 映像裡包含 `ee/`。自本次發行版起，依上方時間軸對它們檢查授權。
+- **`image.tag: release` 是預設值**，因此停留在這個浮動標籤的 Chart 會在下次升級時自動進入 14，完全不需要變更值。若該部署在 `community-edition` 上設定了 SSO、OIDC 或 SCIM，請在同一次升級中設定 `image.type: enterprise-edition`。
+- **`IS_ENTERPRISE_EDITION` 仍由 Chart 輸出**，它由 `image.type` 推導而來，因此兩者不可能互相矛盾。這個變數不控制任何功能。在 Community 映像上以 `extraEnv` 強行設為 `true`，只會讓應用程式拒絕啟動。切勿透過 Chart 設定 `ONEUPTIME_EDITION`。
+- **Chart 部署的探針重新遵守 `probes.<key>.allowPrivateNetworkMonitors`**（[#3879](https://github.com/OneUptime/oneuptime/issues/3879)）。不設定該值時不會有任何變化——它仍預設為 `false`——而由於 Chart 的探針是全域探針，一旦設定就會作用於實例上**所有專案**的監視器。無論該值為何，回送位址、連結本機位址與 `169.254.169.254` 一律仍被封鎖。
+
+### 14 的其他變更
+
+- **OTLP 擷取只在佇列接受之後才確認一批資料。** 13 會先回傳 `200`，之後才入列，因此被佇列拒絕的資料會無聲遺失。14 改為回傳 `503` 與 `Telemetry queue unavailable. Please retry.`，gRPC 端點則回傳 `UNAVAILABLE`；兩者都可重試，匯出器會重送。日誌、指標、追蹤與效能剖析皆適用。不需要任何操作，但匯出器的重試與佇列背壓現在會顯現出來，而以往資料是直接消失的——若你要估算擷取容量，這點值得知道。
+- **管理後台的 Health 儀表板與 Query Console 需要 Enterprise Edition**，PostgreSQL 與 Valkey 的健康警示也一樣。在 13 上只要 `IS_ENTERPRISE_EDITION=true` 就能使用，因此對用過這些頁面的 Community 部署來說，這是可見的功能減少。ClickHouse 容量檢視與自動清理、遷移狀態、全域探針與支援包在兩個版本中都有。
+- **透過探針代理連到 IP 位址的 HTTPS 監視器又能正常運作了。** 探針原本把 IP 當作 TLS 伺服器名稱送出，但 IP 不是合法的伺服器名稱，Node 會直接拒絕，因此從設定了 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` 的全域探針監控 `https://<私有 IP>` 會在交握階段失敗。現在目標是 IP 時，探針不再送出伺服器名稱，並直接以該 IP 驗證憑證。目標為主機名稱時行為不變。
+- **`oneuptime` CLI 在 `--version` 會報告真實版本號**，不再是預留字串。
+- 哪些端點移動或收緊了，包含 `GET /api/global-config/license` 以及自架部署不再提供的授權伺服器端點，請見上方的 [API and endpoint changes](#api-and-endpoint-changes)。
+
+### IPv6 監視器：Ping、Port 與 SSL
+
+貼上時前後帶有空白的 Ping 或 Port 目標——從 looking glass 或路由器設定複製位址就會這樣——過去會被截斷儲存：`2001:518:2800:9::2 ` 變成主機 `2001`、通訊埠 `518`。兩半都合法，所以不會失敗，也不會顯示任何錯誤；監視器只是在監看一個沒人輸入過的主機。IPv4 位址從未受影響，因為沒有冒號可供切分。14 修正了這個解析，同時修正了 IPv6 Ping 監視器在 macOS 與 FreeBSD 探針上立即且持續失敗（並被回報為真實故障），以及 IPv6 SSL 監視器以 `ENOTFOUND` 失敗的問題。
+
+已儲存的目標沒有任何遷移，因此請在**升級後逐一開啟 Ping、Port 與 SSL 的 IPv6 監視器並重新儲存**，同時核對顯示的目標位址。請預期那些在 macOS 或 FreeBSD 探針上持續失敗的監視器將開始如實回報，這可能讓事件恢復，也可能新增事件。
+
+### 檢查版本與授權
+
+- **管理後台頁首的版本標籤** 會顯示正在執行的版本，在 Enterprise Edition 上還會顯示授權狀態。
+- **Compose：** `docker compose images` 會列出正在執行的標籤——在 Enterprise Edition 上，每個 OneUptime 映像都帶有 `enterprise-` 前綴。
+- **Helm：** `kubectl get pods -n <namespace> -o jsonpath='{..image}'` 會印出各 Pod 執行的映像；同樣適用前綴規則。
+- SSO、OIDC 與 SCIM 端點可用來分辨兩種情況：`404` 表示該映像不含 `ee/`（Community Edition），而 `402` 或 `403` 表示 Enterprise Edition 正在執行，但授權需要處理。
+
+### 回復到 13
+
+- 兩個版本、兩個發行版讀取相同的資料，唯一的結構變更是一個 13 會忽略的可為空欄位，因此回復映像不需要任何資料庫作業。
+- **Docker Compose：** 把 `APP_TAG` 改回你原本執行的 13 標籤（`13.0.8` 或 `enterprise-13.0.8`），再執行 `npm run update`。在 13 上是 `IS_ENTERPRISE_EDITION=true` 開啟 Enterprise 功能，若你原本有設定，請加回去。
+- **Helm：** 執行 `helm rollback my-oneuptime`，或把 `image.tag` 固定為 `13.0.8`。
+- 執行 14 不會變動你的 Enterprise 設定，所以回復後設定仍保持原樣。
+
+> 提示：在 Enterprise Edition 上，請在升級當天啟用授權，而不是等到試用期結束。維持單一登入強制生效的正是啟用動作，而試用期是從本次升級起算，不是從你最初安裝的日期起算。
+
 ## 從 OneUptime 12 升級到 13
 
 OneUptime 13 將內建的快取與佇列引擎由 Redis 換成 [Valkey](https://valkey.io)。Redis 7.4 已離開 BSD 授權，多數早期的 Redis 貢獻者轉而投入 Valkey，它是 Redis 7.2 的分支，使用相同的通訊協定。通訊端之上的一切都沒有改變，若你偏好如此，仍可讓 OneUptime 指向真正的 Redis 或代管的 Redis 相容服務。
