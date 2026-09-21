@@ -15,6 +15,7 @@ import RequestFailedDetails, {
   RequestFailedPhase,
 } from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
+import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import logger from "Common/Server/Utils/Logger";
 import net from "net";
 import Register from "../../../Services/Register";
@@ -211,22 +212,32 @@ export default class PortMonitor {
       pingOptions.attempts = [];
     }
 
-    let hostAddress: string = "";
+    let rawHostAddress: string = "";
     if (host instanceof Hostname) {
-      hostAddress = host.hostname;
+      rawHostAddress = host.hostname;
 
       if (host.port) {
         port = host.port;
       }
     } else if (host instanceof URL) {
-      hostAddress = host.hostname.hostname;
+      rawHostAddress = host.hostname.hostname;
 
       if (host.hostname.port) {
         port = host.hostname.port;
       }
     } else {
-      hostAddress = host.toString();
+      rawHostAddress = host.toString();
     }
+
+    /*
+     * A Hostname or a URL can carry an IPv6 literal in its URL-authority
+     * spelling, "[2001:db8::1]". Those brackets are URL syntax, not part of
+     * the address, and socket.connect does not strip them — it treats the
+     * whole thing as a name to resolve and comes back ENOTFOUND, so an
+     * address that needed no DNS at all fails as a DNS error. An IPv4 host
+     * never carries brackets, which is why this only ever broke IPv6.
+     */
+    const hostAddress: string = HostAddressUtil.stripBrackets(rawHostAddress);
 
     if (!port) {
       /*

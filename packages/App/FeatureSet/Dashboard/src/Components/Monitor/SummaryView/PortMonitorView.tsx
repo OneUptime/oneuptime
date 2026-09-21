@@ -1,6 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import NetworkPathView from "./NetworkPathView";
@@ -41,8 +42,10 @@ const PortMonitorView: FunctionComponent<ComponentProps> = (
           className="w-full shadow-none border-2 border-gray-100 "
           title="Hostname or IP address"
           value={
-            `${destination}${destinationPort ? `:${destinationPort}` : ""}` ||
-            "-"
+            HostAddressUtil.formatHostAndPort({
+              host: destination,
+              port: destinationPort,
+            }) || "-"
           }
         />
       </div>

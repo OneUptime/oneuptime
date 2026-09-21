@@ -2,6 +2,8 @@
 
 OneUptime ondersteunt SAML 2.0-gebaseerde Single Sign-On (SSO) voor enterprise-authenticatie. SSO stelt uw teamleden in staat in te loggen bij OneUptime met de inloggegevens van uw organisatie's identiteitsprovider (IdP), wat gecentraliseerd toegangsbeheer en verbeterde beveiliging biedt.
 
+> **Editie:** SSO maakt deel uit van OneUptime Enterprise Edition. In OneUptime Cloud is het beschikbaar vanaf het **Scale**-abonnement. Zelfgehoste installaties hebben de Enterprise Edition-image en een licentie nodig. Zie [Enterprise Edition](/docs/self-hosted/enterprise). Zonder geldige licentie (na de proefperiode van 14 dagen, of 30 dagen nadat een licentie is verlopen) stopt aanmelden met SSO en wordt "Require SSO" niet afgedwongen totdat een licentie wordt geactiveerd.
+
 ## Overzicht
 
 SSO-integratie biedt de volgende voordelen:

@@ -125,6 +125,59 @@ export function parseLegacyTableTimeFilter(
   }
 }
 
+/*
+ * The attribute filters a legacy table-filter link carries.
+ *
+ * Before the events page was an explorer, "view the events this connection
+ * imported" was written as a column filter on the model table -
+ * `{"attributes": {"oneuptime.security.connection.id": "<id>"}}` under the
+ * table's own URL param. Those links are in run histories and in people's
+ * notes, so the explorer reads them back into its own facet chips rather
+ * than silently opening an unfiltered list that looks like the right answer.
+ *
+ * Returns one entry per attribute key, in the `attributes.<key>` facet
+ * grammar. Non-string values are dropped: a chip holds one literal, and an
+ * operator object stringified into one would filter for nothing.
+ */
+export function parseLegacyTableAttributeFilters(
+  search: string,
+): Array<[string, string]> {
+  const raw: string | null = new URLSearchParams(search).get(
+    TableFilterUrlState.getParamName(SECURITY_EVENTS_TABLE_ID, "filter"),
+  );
+
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const filter: JSONObject = JSONFunctions.deserialize(
+      JSONFunctions.parseJSONObject(raw),
+    );
+    const attributes: unknown = filter["attributes"];
+
+    if (!attributes || typeof attributes !== "object") {
+      return [];
+    }
+
+    const pairs: Array<[string, string]> = [];
+
+    for (const [key, value] of Object.entries(
+      attributes as Record<string, unknown>,
+    )) {
+      if (!key || typeof value !== "string" || value.length === 0) {
+        continue;
+      }
+
+      pairs.push([`attributes.${key}`, value]);
+    }
+
+    return pairs;
+  } catch {
+    return [];
+  }
+}
+
 export function readSecurityEventsTimeRange(
   search: string,
 ): RangeStartAndEndDateTime {

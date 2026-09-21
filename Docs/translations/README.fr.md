@@ -31,7 +31,7 @@
   <p>OneUptime remplace toute une étagère d'outils SaaS par une seule plateforme que vous pouvez héberger vous-même gratuitement. Elle détecte la panne, alerte la bonne personne, met à jour votre page de statut, trouve la cause racine et ouvre même la PR de correction.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -71,7 +71,7 @@ OneUptime réunit la surveillance, les alertes, la réponse aux incidents et l'o
 | Loggly | **Gestion des logs** — collecter, rechercher et alerter sur les logs |
 | Sentry | **Suivi des erreurs** — exceptions avec traces d'appels complètes et contexte |
 
-Le tout est **100 % open source (Apache 2.0)** et gratuit à héberger soi-même.
+Le tout est **open source (Apache 2.0)** et gratuit à héberger soi-même avec l'édition Community.
 
 ---
 
@@ -205,13 +205,16 @@ Déployez des agents **basés sur OpenTelemetry** en copier-coller pour surveill
 |---|---|---|
 | **Idéal pour** | Auto-hébergeurs et petites équipes | Équipes réglementées nécessitant un support premium |
 | **Coût** | Gratuit et open source | [Contacter le service commercial](mailto:sales@oneuptime.com) |
-| **Fonctionnalités** | Ensemble complet de fonctionnalités | Ensemble complet de fonctionnalités + images renforcées, support prioritaire, fonctionnalités sur mesure et résidence des données |
+| **Licence** | Apache 2.0 | Apache 2.0, plus la [OneUptime Enterprise License](/ee/LICENSE) pour le répertoire `ee/` |
+| **Fonctionnalités** | Tout ce qui est inclus ci-dessus — monitoring, pages de statut, incidents, astreintes, logs, traces, métriques, suivi des erreurs, workflows et IA | Tout Community + authentification unique SAML et OIDC, provisionnement SCIM, journaux d'audit, conformité des équipes et tableaux de bord de santé de l'instance, avec support prioritaire, fonctionnalités sur mesure et résidence des données |
+
+Les fonctionnalités Enterprise se trouvent dans le répertoire [`ee/`](/ee) et ne sont livrées que dans l'image Enterprise. Consultez [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) pour la comparaison complète.
 
 ---
 
 ## 💡 Pourquoi OneUptime ?
 
-Notre mission est simple : **réduire les temps d'arrêt et aider davantage de produits à réussir.** Au lieu de bricoler ensemble sept fournisseurs, vous obtenez une seule plateforme qui vous aide à comprendre *pourquoi* les choses cassent, à répondre rapidement aux incidents et à réduire la corvée opérationnelle — entièrement open source, pour que vous soyez propriétaire de vos données et de votre stack.
+Notre mission est simple : **réduire les temps d'arrêt et aider davantage de produits à réussir.** Au lieu de bricoler ensemble sept fournisseurs, vous obtenez une seule plateforme qui vous aide à comprendre *pourquoi* les choses cassent, à répondre rapidement aux incidents et à réduire la corvée opérationnelle — avec un cœur open source (Apache 2.0), pour que vous soyez propriétaire de vos données et de votre stack.
 
 ---
 
@@ -239,7 +242,7 @@ Si OneUptime vous est utile :
 
 ## 📄 Licence
 
-OneUptime est distribué sous la [licence Apache 2.0](/LICENSE).
+OneUptime est open source sous la [licence Apache 2.0](/LICENSE), à l'exception du répertoire [`ee/`](/ee). Ce répertoire contient l'édition Enterprise et est distribué sous la [OneUptime Enterprise License](/ee/LICENSE). L'image de l'édition Community ne contient aucun code de `ee/`. Le fichier [`LICENSE`](/LICENSE) à la racine du dépôt établit cette répartition.
 
 <div align="center">
   <sub>Réalisé avec ❤️ par l'équipe <a href="https://oneuptime.com">OneUptime</a> et les <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">contributeurs</a>.</sub>

@@ -235,7 +235,9 @@
     "sso": {
       "title": "Inloggen met SSO",
       "loginPrompt": "Log alstublieft in om {{statusPageName}} te bekijken",
-      "noProviders": "Geen SSO-providers geconfigureerd of ingeschakeld"
+      "noProviders": "Geen SSO-providers geconfigureerd of ingeschakeld",
+      "notAvailable": "Eenmalige aanmelding (SSO) is niet beschikbaar voor deze statuspagina. Log in plaats daarvan in met uw e-mailadres en wachtwoord.",
+      "backToLogin": "Terug naar inloggen"
     },
     "forgotPassword": {
       "title": "Wachtwoord vergeten",

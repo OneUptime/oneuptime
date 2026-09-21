@@ -28,7 +28,48 @@ jobs:
       - name: Install Helm
         run: |
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      # The unit suite needs the helm-unittest plugin, which used to come from
+      # `helm plugin install`: its install hook downloads the plugin from
+      # GitHub's release CDN with a single unretried curl, and a burst of 500/504s
+      # from that CDN failed this job on 2026-09-21. The harness now installs
+      # the release tarball whose sha256 HelmChart/Tests/lib/harness.sh pins,
+      # from HELM_UNITTEST_CACHE_DIR. These steps keep that directory in the
+      # Actions cache, keyed on the pin, so the CDN is only asked when the pin
+      # changes or the entry was evicted -- and then with exponential backoff
+      # (Scripts/GHA/fetch_pinned_artifact.sh). The cache is filled by a step of
+      # its own, before the suites run, because actions/cache's post step only
+      # saves when the whole job passes.
+      - name: Resolve the pinned helm-unittest
+        id: helm-unittest
+        env:
+          HELM_UNITTEST_CACHE_DIR: ${{ runner.temp }}/helm-unittest
+        run: |
+          source ./HelmChart/Tests/lib/harness.sh
+          harness_unittest_pin >>"$GITHUB_OUTPUT"
+      - name: Restore helm-unittest from the Actions cache
+        id: helm-unittest-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ steps.helm-unittest.outputs.dir }}
+          key: helm-unittest-${{ steps.helm-unittest.outputs.version }}-${{ steps.helm-unittest.outputs.platform }}-${{ steps.helm-unittest.outputs.sha256 }}
+      # Runs on a hit too: a restored tarball is only used once it matches the
+      # pin, and one that does not is downloaded again.
+      - name: Verify helm-unittest, or download it on a cache miss
+        env:
+          HELM_UNITTEST_CACHE_DIR: ${{ steps.helm-unittest.outputs.dir }}
+        run: |
+          source ./HelmChart/Tests/lib/harness.sh
+          harness_fetch_unittest_plugin
+      # Two runs missing at once both try to save; the loser only logs a warning.
+      - name: Save helm-unittest to the Actions cache
+        if: steps.helm-unittest-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ steps.helm-unittest.outputs.dir }}
+          key: ${{ steps.helm-unittest-cache.outputs.cache-primary-key }}
       - name: Run Helm Chart tests
+        env:
+          HELM_UNITTEST_CACHE_DIR: ${{ steps.helm-unittest.outputs.dir }}
         run: bash ./HelmChart/Tests/run.sh
       - name: Show how to run these locally
         if: ${{ failure() }}

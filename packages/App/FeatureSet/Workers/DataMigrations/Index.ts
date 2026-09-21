@@ -1,3 +1,4 @@
+import NormalizeMonitoringInterval from "./NormalizeMonitoringInterval";
 import AddAggregationTemporalityToMetric from "./AddAggregationTemporalityToMetric";
 import AddAttributeColumnToSpanAndLog from "./AddAttributesColumnToSpanAndLog";
 import AddDefaultGlobalConfig from "./AddDefaultGlobalConfig";
@@ -467,6 +468,18 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Google SecOps findings only, so it is idempotent.
    */
   new RepairGoogleSecOpsDetectionSeverity(),
+  /*
+   * monitoringInterval was never validated, so rows accumulated holding a
+   * human cadence ("5m", "Every 5 minutes") instead of a cron expression.
+   * cron-parser threw on those and the claim query silently fell back to a
+   * 1-minute schedule, so a monitor asking for 5 minutes was probed 4x more
+   * often than requested. The scheduler now reads those values correctly on
+   * its own; this rewrites the COLUMN so the stored value matches what the
+   * dashboard shows and a future read path cannot reintroduce the bug.
+   * Skips NULL/blank (legitimate - Manual monitors) and leaves genuinely
+   * unreadable values alone, naming them in a log instead.
+   */
+  new NormalizeMonitoringInterval(),
 ];
 
 export default DataMigrations;

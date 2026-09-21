@@ -235,7 +235,9 @@
     "sso": {
       "title": "Iniciar sesión con SSO",
       "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
-      "noProviders": "No hay proveedores SSO configurados o habilitados"
+      "noProviders": "No hay proveedores SSO configurados o habilitados",
+      "notAvailable": "El inicio de sesión único (SSO) no está disponible para esta página de estado. Inicie sesión con su correo electrónico y contraseña en su lugar.",
+      "backToLogin": "Volver a iniciar sesión"
     },
     "forgotPassword": {
       "title": "Contraseña olvidada",

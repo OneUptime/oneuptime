@@ -69,10 +69,6 @@ describe("Status Page authentication handoff", () => {
     "Overview",
     "Overview.tsx",
   );
-  const callbacks: Array<[string, string]> = [
-    ["SAML", readCode("Identity", "API", "StatusPageSSO.ts")],
-    ["OIDC", readCode("Identity", "API", "StatusPageOIDC.ts")],
-  ];
 
   it("contains no client-side JWT decoder", () => {
     expect(
@@ -129,17 +125,11 @@ describe("Status Page authentication handoff", () => {
     expect(loginUtil).not.toContain("token:");
   });
 
-  it.each(callbacks)(
-    "%s callback emits a short-lived login code rather than an access token",
-    (_name: string, callback: string) => {
-      expect(callback).toContain("createLoginCodeSession");
-      expect(callback).toContain("loginCode: sessionMetadata.refreshToken");
-      expect(callback).not.toContain("token: token");
-      expect(callback).not.toContain("setStatusPagePrivateUserCookie");
-      expect(callback).not.toContain('getQueryStringByName("redirectUrl")');
-      expect(callback).toContain("Response.setNoCacheHeaders(res)");
-    },
-  );
+  /*
+   * The SAML and OIDC status page callbacks are Enterprise Edition code; the
+   * same checks on them live in
+   * ee/Tests/Server/Identity/StatusPageLoginCodeHandoff.test.ts.
+   */
 
   it("revalidates the stored post-login redirect at its final consumer", () => {
     const validation: number = overview.indexOf(

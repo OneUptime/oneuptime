@@ -39,6 +39,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
   MonitorTypeHelper,
@@ -97,6 +98,7 @@ import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
@@ -195,7 +197,17 @@ export class Service extends DatabaseService<Model> {
         ) {
           const port: string = firstStep.data.monitorDestinationPort.toString();
           if (monitorDestination && port) {
-            monitorDestination = `${monitorDestination}:${port}`;
+            /*
+             * Bracketed when the host is an IPv6 literal. Plain
+             * concatenation there does not merely look odd: "2001:db8::1" +
+             * ":179" is "2001:db8::1:179", which is itself a valid IPv6
+             * address — a DIFFERENT host from the one being monitored, named
+             * in an alert somebody is about to act on.
+             */
+            monitorDestination = HostAddressUtil.formatHostAndPort({
+              host: monitorDestination,
+              port: port,
+            });
           }
         }
 
@@ -207,7 +219,10 @@ export class Service extends DatabaseService<Model> {
           monitorDestination = firstStep.data.snmpMonitor.hostname || "";
           const port: number = firstStep.data.snmpMonitor.port || 161;
           if (monitorDestination && port) {
-            monitorDestination = `${monitorDestination}:${port}`;
+            monitorDestination = HostAddressUtil.formatHostAndPort({
+              host: monitorDestination,
+              port: port,
+            });
           }
         }
 
@@ -239,7 +254,10 @@ export class Service extends DatabaseService<Model> {
             databaseName: string;
           } = firstStep.data.sqlMonitor;
           if (sql.host) {
-            monitorDestination = `${sql.host}:${sql.port}/${sql.databaseName}`;
+            monitorDestination = `${HostAddressUtil.formatHostAndPort({
+              host: sql.host,
+              port: sql.port,
+            })}/${sql.databaseName}`;
           }
         }
 
@@ -254,7 +272,10 @@ export class Service extends DatabaseService<Model> {
             databaseName: string;
           } = firstStep.data.databaseMonitor;
           if (database.host) {
-            monitorDestination = `${database.host}:${database.port}/${database.databaseName}`;
+            monitorDestination = `${HostAddressUtil.formatHostAndPort({
+              host: database.host,
+              port: database.port,
+            })}/${database.databaseName}`;
           }
         }
       }
@@ -604,6 +625,21 @@ export class Service extends DatabaseService<Model> {
       resolveReferenceId(updateBy.data.currentMonitorStatus);
 
     const updateDataKeys: Array<string> = Object.keys(updateBy.data || {});
+
+    /*
+     * Key presence, never truthiness or the stored value: renaming one of
+     * the monitors that already holds a broken interval sends only {name},
+     * and gating on the stored value would make those monitors un-editable
+     * — punishing the customer for our validation gap.
+     */
+    if (updateDataKeys.includes("monitoringInterval")) {
+      (updateBy.data as unknown as Record<string, unknown>)[
+        "monitoringInterval"
+      ] = MonitoringIntervalValidator.validateAndNormalize(
+        updateBy.data.monitoringInterval as string | null | undefined,
+      );
+    }
+
     const isMonitorStepsWritten: boolean =
       updateDataKeys.includes("monitorSteps");
     const isMonitorTemplateWritten: boolean = RelationIdUtil.isWritten(
@@ -1357,6 +1393,22 @@ export class Service extends DatabaseService<Model> {
 
     if (!createBy.props.tenantId) {
       throw new BadDataException("ProjectId required to create monitor.");
+    }
+
+    /*
+     * Canonicalize the monitoring interval before anything is persisted.
+     *
+     * Gated on key presence, not truthiness: createBy.data is a model
+     * INSTANCE whose columns are all declared `= undefined`, and null is a
+     * meaningful value here ("no schedule"), so a truthiness test would skip
+     * exactly the writes that need checking.
+     */
+    if (createBy.data.monitoringInterval !== undefined) {
+      (createBy.data as unknown as Record<string, unknown>)[
+        "monitoringInterval"
+      ] = MonitoringIntervalValidator.validateAndNormalize(
+        createBy.data.monitoringInterval,
+      );
     }
 
     /*

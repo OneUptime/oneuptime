@@ -1,0 +1,955 @@
+import LicenseManager from "../../../AdminDashboard/License/LicenseManager";
+import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  lapsedStateProblems,
+  lapseWarningProblems,
+} from "Common/Tests/UI/Components/EditionLabelLapseCopy";
+import "@testing-library/jest-dom";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import React from "react";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+
+/*
+ * The edition dialog of the Enterprise Edition: core's EditionLabel with this
+ * license manager (ee/AdminDashboard/License/LicenseManager), which is what
+ * the Dashboard and the Admin Dashboard render in the Enterprise image.
+ *
+ * Every test and assertion of the suite that covered the dialog before its
+ * license management moved out of core
+ * (packages/Common/Tests/UI/Components/EditionLabelLicenseStatus.test.tsx)
+ * runs here unchanged, so the split cannot have changed what a master admin
+ * sees or sends. The core suite keeps the part that holds without ee/.
+ *
+ * What the edition pill and dialog say about the license, now that the
+ * Enterprise license client reports a status rather than a yes/no:
+ *
+ *   valid    as before;
+ *   grace    either an expired license's grace period (renew) or an unlicensed
+ *            installation's trial counted from its first run (add a license) -
+ *            the two must never be confused;
+ *   expired, missing, invalid - with the lapse said plainly: single sign-on,
+ *            SCIM and audit logging are off, "Require SSO" is not enforced
+ *            (users sign in with their password), configuration is
+ *            read-only, and everything resumes when a license is added. The
+ *            trial and grace notices warn about exactly that beforehand
+ *            (Common/Tests/UI/Components/EditionLabelLapseCopy.ts, whose
+ *            checks the core suite proves against the retired copy);
+ *   unverified legacy licenses, told apart for a master admin;
+ *   offline activation with a pasted signed token;
+ *   the Community Edition image running with IS_ENTERPRISE_EDITION set, told to
+ *            a master admin.
+ */
+
+let isEnterpriseEdition: boolean = true;
+let billingEnabled: boolean = false;
+let isMasterAdmin: boolean = true;
+
+jest.mock("Common/UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "Common/UI/Config",
+  ) as Record<string, unknown>;
+
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  Object.defineProperty(mockedConfig, "IS_ENTERPRISE_EDITION", {
+    get: (): boolean => {
+      return isEnterpriseEdition;
+    },
+  });
+
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return billingEnabled;
+    },
+  });
+
+  return mockedConfig;
+});
+
+jest.mock("Common/UI/Utils/User", () => {
+  return {
+    __esModule: true,
+    default: {
+      isMasterAdmin: (): boolean => {
+        return isMasterAdmin;
+      },
+      /*
+       * EditionLabel asks whether anybody is signed in before it fetches the
+       * license, to add `signedIn=true` (see EditionLabelLicenseRefresh).
+       * These are signed-in dashboard screens.
+       */
+      isLoggedIn: (): boolean => {
+        return true;
+      },
+    },
+  };
+});
+
+interface FetchCall {
+  method: string;
+  url: string;
+  data: JSONObject | undefined;
+}
+
+const fetchCalls: Array<FetchCall> = [];
+
+type FetchResponder = (
+  call: FetchCall,
+) => HTTPResponse<JSONObject> | HTTPErrorResponse;
+
+let respond: FetchResponder;
+
+jest.mock("Common/UI/Utils/API/API", () => {
+  return {
+    __esModule: true,
+    default: {
+      fetch: (options: {
+        method: { toString: () => string };
+        url: { toString: () => string };
+        data?: JSONObject | undefined;
+      }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+        const call: FetchCall = {
+          method: options.method.toString(),
+          url: options.url.toString(),
+          data: options.data,
+        };
+
+        fetchCalls.push(call);
+
+        return Promise.resolve(respond(call));
+      },
+      getFriendlyMessage: (err: unknown): string => {
+        if (err instanceof HTTPErrorResponse) {
+          return err.message;
+        }
+
+        return String(err);
+      },
+    },
+  };
+});
+
+const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
+const MISMATCH_FLAG: string = "ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED";
+
+const inDays: (days: number) => string = (days: number): string => {
+  return new Date(Date.now() + days * DAY_IN_MS).toISOString();
+};
+
+type PayloadFunction = (overrides?: Record<string, unknown>) => JSONObject;
+
+// What GET /global-config/license gives a master admin for a valid license.
+const adminPayload: PayloadFunction = (
+  overrides?: Record<string, unknown>,
+): JSONObject => {
+  return {
+    edition: "enterprise",
+    status: "valid",
+    verification: "verified",
+    graceReason: null,
+    graceEndsAt: null,
+    licenseValid: true,
+    companyName: "Acme Inc",
+    expiresAt: inDays(200),
+    isEvaluation: false,
+    isEvaluationLicense: false,
+    message: null,
+    licenseKey: "acme-license-key",
+    token: "signed.license.token",
+    activationMode: "online",
+    userLimit: 50,
+    currentUserCount: 10,
+    userCountUpdatedAt: "2026-01-01T00:00:00.000Z",
+    instances: [],
+    instanceId: "instance-1",
+    currentVersion: "13.0.0",
+    latestVersion: "13.0.0",
+    latestVersionPublishedAt: null,
+    latestVersionCheckedAt: null,
+    isUpdateAvailable: false,
+    isUpdateCheckDisabled: false,
+    isSeatLimitEnforced: true,
+    seatsInUse: 10,
+    seatsRemaining: 40,
+    canAddMoreUsers: true,
+    ...(overrides || {}),
+  };
+};
+
+// What anybody else gets.
+const publicPayload: PayloadFunction = (
+  overrides?: Record<string, unknown>,
+): JSONObject => {
+  return {
+    edition: "enterprise",
+    status: "valid",
+    verification: "verified",
+    graceReason: null,
+    graceEndsAt: null,
+    licenseValid: true,
+    companyName: "Acme Inc",
+    expiresAt: inDays(200),
+    isEvaluation: false,
+    isEvaluationLicense: false,
+    ...(overrides || {}),
+  };
+};
+
+const respondWith: (payload: JSONObject) => void = (
+  payload: JSONObject,
+): void => {
+  respond = (): HTTPResponse<JSONObject> => {
+    return new HTTPResponse<JSONObject>(200, payload, {});
+  };
+};
+
+const renderPill: () => Promise<void> = async (): Promise<void> => {
+  render(<EditionLabel licenseManager={LicenseManager} />);
+
+  await waitFor(() => {
+    expect(fetchCalls.length).toBeGreaterThan(0);
+  });
+};
+
+const openDialog: () => Promise<void> = async (): Promise<void> => {
+  await renderPill();
+  fireEvent.click(screen.getByRole("button", { name: /Enterprise Edition/i }));
+};
+
+const pill: () => HTMLElement = (): HTMLElement => {
+  return screen.getByRole("button", { name: /Edition/ });
+};
+
+beforeEach(() => {
+  fetchCalls.length = 0;
+  isEnterpriseEdition = true;
+  billingEnabled = false;
+  isMasterAdmin = true;
+  delete process.env[MISMATCH_FLAG];
+  respondWith(adminPayload());
+});
+
+afterEach(() => {
+  delete process.env[MISMATCH_FLAG];
+});
+
+describe("EditionLabel with the license manager - a valid license", () => {
+  it("reads plainly as the Enterprise Edition", async () => {
+    await renderPill();
+
+    await waitFor(() => {
+      expect(pill()).toHaveAccessibleName("Enterprise Edition, View details");
+    });
+  });
+
+  it("shows no status notice", async () => {
+    await openDialog();
+
+    expect(await screen.findByText("Licensed to")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enterprise-license-required-notice"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enterprise-license-grace-notice"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("enterprise-license-trial-notice"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("EditionLabel with the license manager - an expired license in its grace period", () => {
+  // 25 days into the 30-day grace period.
+  const graceEndsAt: string = inDays(5);
+
+  beforeEach(() => {
+    respondWith(
+      adminPayload({
+        status: "grace",
+        graceReason: "expired",
+        graceEndsAt,
+        expiresAt: inDays(-25),
+      }),
+    );
+  });
+
+  it("says the license expired and asks for a renewal on the pill", async () => {
+    await renderPill();
+
+    await waitFor(() => {
+      expect(pill()).toHaveAccessibleName(
+        "Enterprise Edition (License Expired, Grace Period), Renew license",
+      );
+    });
+  });
+
+  it("tells when the grace period ends, and what happens then", async () => {
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-grace-notice",
+    );
+
+    expect(notice).toHaveTextContent(
+      new Date(graceEndsAt).toLocaleDateString(),
+    );
+    expect(notice).toHaveTextContent("5 days left");
+    expect(notice).toHaveTextContent(
+      "Every enterprise feature keeps working until the grace period ends",
+    );
+    expect(notice).toHaveTextContent(
+      "Without a valid license (after the 30-day grace period)",
+    );
+    expect(notice).not.toHaveTextContent("14-day");
+    // What stops when it ends: SSO, SCIM and audit logging, not just configuration.
+    expect(lapseWarningProblems(notice.textContent)).toEqual([]);
+  });
+
+  it("still counts as licensed: details, seats and the refresh button stay", async () => {
+    await openDialog();
+
+    expect(await screen.findByText("Licensed to")).toBeInTheDocument();
+    expect(screen.getByText("Licensed seats")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("refresh-enterprise-license"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Grace period")).toBeInTheDocument();
+  });
+
+  it("does not call an expired license a trial", async () => {
+    await openDialog();
+
+    await screen.findByTestId("enterprise-license-grace-notice");
+
+    expect(screen.queryByText(/trial/i)).not.toBeInTheDocument();
+  });
+
+  it("asks somebody who is not a master admin to find one", async () => {
+    isMasterAdmin = false;
+    respondWith(
+      publicPayload({
+        status: "grace",
+        graceReason: "expired",
+        graceEndsAt,
+        expiresAt: inDays(-9),
+      }),
+    );
+
+    await openDialog();
+
+    expect(
+      await screen.findByText(
+        "Ask a master admin of this installation to renew the license.",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("EditionLabel with the license manager - an unlicensed installation's trial", () => {
+  const graceEndsAt: string = inDays(10);
+
+  beforeEach(() => {
+    respondWith(
+      adminPayload({
+        status: "grace",
+        graceReason: "unlicensed",
+        verification: "none",
+        graceEndsAt,
+        licenseValid: true,
+        companyName: null,
+        expiresAt: null,
+        licenseKey: null,
+        token: null,
+        activationMode: null,
+        userLimit: null,
+        isSeatLimitEnforced: false,
+        seatsInUse: null,
+        seatsRemaining: null,
+      }),
+    );
+  });
+
+  it("shows the days left on the pill", async () => {
+    await renderPill();
+
+    await waitFor(() => {
+      expect(pill()).toHaveAccessibleName(
+        "Enterprise Edition (Trial, 10 days left), Add license",
+      );
+    });
+  });
+
+  it("explains the trial and what happens after it", async () => {
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-trial-notice",
+    );
+
+    expect(notice).toHaveTextContent("Enterprise Edition trial: 10 days left");
+    expect(notice).toHaveTextContent("No Enterprise license is installed");
+    expect(notice).toHaveTextContent(
+      new Date(graceEndsAt).toLocaleDateString(),
+    );
+    // What stops when it ends: SSO, SCIM and audit logging, not just configuration.
+    expect(lapseWarningProblems(notice.textContent)).toEqual([]);
+  });
+
+  it("lets a master admin add the license during the trial", async () => {
+    await openDialog();
+
+    expect(
+      await screen.findByPlaceholderText("Enter your enterprise license key"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows no empty license details for a license that does not exist", async () => {
+    await openDialog();
+
+    await screen.findByTestId("enterprise-license-trial-notice");
+
+    expect(screen.queryByText("Licensed to")).not.toBeInTheDocument();
+    expect(screen.queryByText("Licensed seats")).not.toBeInTheDocument();
+    expect(screen.queryByText(/renew/i)).not.toBeInTheDocument();
+  });
+
+  it("says one day, not one days", async () => {
+    respondWith(
+      adminPayload({
+        status: "grace",
+        graceReason: "unlicensed",
+        verification: "none",
+        graceEndsAt: new Date(Date.now() + DAY_IN_MS / 2).toISOString(),
+      }),
+    );
+
+    await renderPill();
+
+    await waitFor(() => {
+      expect(pill()).toHaveAccessibleName(
+        "Enterprise Edition (Trial, 1 day left), Add license",
+      );
+    });
+  });
+
+  it("points somebody who is not a master admin at one", async () => {
+    isMasterAdmin = false;
+    respondWith(
+      publicPayload({
+        status: "grace",
+        graceReason: "unlicensed",
+        verification: "none",
+        graceEndsAt,
+        companyName: null,
+        expiresAt: null,
+      }),
+    );
+
+    await openDialog();
+
+    expect(
+      await screen.findByText(
+        "Ask a master admin of this installation to add a license.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText("Enter your enterprise license key"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("EditionLabel with the license manager - no usable license", () => {
+  it.each([
+    [
+      "expired",
+      "Enterprise Edition (License Expired), Renew license",
+      "License expired",
+    ],
+    [
+      "missing",
+      "Enterprise Edition (License Required), Validate license",
+      "No valid license",
+    ],
+    [
+      "invalid",
+      "Enterprise Edition (License Invalid), Fix license",
+      "License not valid",
+    ],
+  ])(
+    "a %s license reads as such on the pill and in the dialog",
+    async (status: string, pillName: string, noticeTitle: string) => {
+      respondWith(
+        adminPayload({
+          status,
+          licenseValid: false,
+          verification: status === "missing" ? "none" : "verified",
+        }),
+      );
+
+      await renderPill();
+
+      await waitFor(() => {
+        expect(pill()).toHaveAccessibleName(pillName);
+      });
+
+      fireEvent.click(pill());
+
+      const notice: HTMLElement = await screen.findByTestId(
+        "enterprise-license-required-notice",
+      );
+
+      expect(notice).toHaveTextContent(noticeTitle);
+      /*
+       * The lapse, said plainly: single sign-on, SCIM and audit logging are
+       * off, "Require SSO" is not enforced, configuration is read-only, it
+       * all resumes with a license, and core monitoring is not touched.
+       */
+      expect(lapsedStateProblems(notice.textContent)).toEqual([]);
+    },
+  );
+
+  it("shows a master admin why the license is not valid", async () => {
+    respondWith(
+      adminPayload({
+        status: "invalid",
+        licenseValid: false,
+        message: "The license is bound to a different OneUptime instance.",
+      }),
+    );
+
+    await openDialog();
+
+    expect(
+      await screen.findByTestId("enterprise-license-required-notice"),
+    ).toHaveTextContent(
+      "The license is bound to a different OneUptime instance.",
+    );
+  });
+
+  /*
+   * The old copy promised that validating a key would "turn these on
+   * immediately" - the list is services (support, indemnification) as much as
+   * features, so it still must not. It then said "Nothing you already
+   * configured stops working without one", which stopped being true when
+   * single sign-on, SCIM and audit logging began to stop with the license.
+   */
+  it("says what a license keeps running, and no longer that nothing stops without one", async () => {
+    respondWith(adminPayload({ status: "missing", licenseValid: false }));
+
+    await openDialog();
+
+    await screen.findByText("What your license unlocks");
+
+    expect(
+      screen.queryByText(/turn these on immediately/),
+    ).not.toBeInTheDocument();
+    // A master admin with the license manager is the one who can add it.
+    expect(
+      screen.getByText(
+        /A valid license that includes them keeps single sign-on, SCIM provisioning and audit logging running/,
+      ),
+    ).toBeInTheDocument();
+    /*
+     * Not "a valid license keeps them running": a license whose features
+     * leave one out stops that one (EnterpriseLicenseSnapshotUtil.entitles).
+     */
+    expect(
+      screen.queryByText(/A valid license keeps single sign-on/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Nothing you already configured stops working/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers the license input to a master admin", async () => {
+    respondWith(adminPayload({ status: "expired", licenseValid: false }));
+
+    await openDialog();
+
+    expect(
+      await screen.findByPlaceholderText("Enter your enterprise license key"),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("EditionLabel with the license manager - an unverified legacy license", () => {
+  it("tells a master admin it cannot be verified offline", async () => {
+    respondWith(adminPayload({ verification: "unverified" }));
+
+    await openDialog();
+
+    expect(
+      await screen.findByTestId("enterprise-license-unverified-notice"),
+    ).toHaveTextContent("cannot verify it offline");
+  });
+
+  it("does not trouble anybody else with it", async () => {
+    isMasterAdmin = false;
+    respondWith(publicPayload({ verification: "unverified" }));
+
+    await openDialog();
+
+    await screen.findByText("Licensed to");
+
+    expect(
+      screen.queryByTestId("enterprise-license-unverified-notice"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("still reads as a valid license", async () => {
+    respondWith(adminPayload({ verification: "unverified" }));
+
+    await renderPill();
+
+    await waitFor(() => {
+      expect(pill()).toHaveAccessibleName("Enterprise Edition, View details");
+    });
+  });
+});
+
+describe("EditionLabel with the license manager - offline activation", () => {
+  beforeEach(() => {
+    respondWith(adminPayload({ status: "missing", licenseValid: false }));
+  });
+
+  const switchToToken: () => Promise<void> = async (): Promise<void> => {
+    fireEvent.click(
+      await screen.findByTestId("switch-license-activation-mode"),
+    );
+  };
+
+  it("offers a master admin a way to paste a signed token instead of a key", async () => {
+    await openDialog();
+
+    await switchToToken();
+
+    expect(
+      screen.getByTestId("enterprise-license-token-input"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText("Enter your enterprise license key"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Activate License" }),
+    ).toBeInTheDocument();
+  });
+
+  it("sends the pasted token, and no key, to the activation route", async () => {
+    await openDialog();
+    await switchToToken();
+
+    fireEvent.change(screen.getByTestId("enterprise-license-token-input"), {
+      target: { value: "  header.payload.signature \n" },
+    });
+
+    respondWith(adminPayload());
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Activate License" }));
+    });
+
+    await waitFor(() => {
+      expect(
+        fetchCalls.some((call: FetchCall): boolean => {
+          return call.method === "POST";
+        }),
+      ).toBe(true);
+    });
+
+    const post: FetchCall = fetchCalls.find((call: FetchCall): boolean => {
+      return call.method === "POST";
+    }) as FetchCall;
+
+    expect(post.url).toContain("/global-config/license");
+    expect(post.url).not.toContain("/refresh");
+    expect(post.data).toEqual({ licenseToken: "header.payload.signature" });
+    expect(
+      await screen.findByText("License activated offline."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the server's refusal of a token this build does not trust", async () => {
+    await openDialog();
+    await switchToToken();
+
+    fireEvent.change(screen.getByTestId("enterprise-license-token-input"), {
+      target: { value: "header.payload.signature" },
+    });
+
+    respond = (
+      call: FetchCall,
+    ): HTTPResponse<JSONObject> | HTTPErrorResponse => {
+      if (call.method === "POST") {
+        return new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "This build does not trust the key that signed this token, so it cannot be activated offline.",
+          },
+          {},
+        );
+      }
+
+      return new HTTPResponse<JSONObject>(
+        200,
+        adminPayload({ status: "missing", licenseValid: false }),
+        {},
+      );
+    };
+
+    fireEvent.click(screen.getByRole("button", { name: "Activate License" }));
+
+    expect(
+      await screen.findByText(/does not trust the key that signed this token/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("License activated offline."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the activate button disabled until a token is pasted", async () => {
+    await openDialog();
+    await switchToToken();
+
+    expect(
+      screen.getByRole("button", { name: "Activate License" }),
+    ).toBeDisabled();
+  });
+
+  it("switches back to the license key", async () => {
+    await openDialog();
+    await switchToToken();
+
+    fireEvent.click(screen.getByText("Use a license key instead"));
+
+    expect(
+      screen.getByPlaceholderText("Enter your enterprise license key"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Validate License" }),
+    ).toBeInTheDocument();
+  });
+
+  it("is never offered to somebody who is not a master admin", async () => {
+    isMasterAdmin = false;
+    respondWith(publicPayload({ status: "missing", licenseValid: false }));
+
+    await openDialog();
+
+    await screen.findByText("A master admin has to activate this license");
+
+    expect(
+      screen.queryByTestId("switch-license-activation-mode"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("EditionLabel with the license manager - the Community Edition", () => {
+  beforeEach(() => {
+    isEnterpriseEdition = false;
+    respondWith(
+      adminPayload({
+        edition: "community",
+        status: null,
+        verification: null,
+        licenseValid: false,
+        licenseKey: null,
+        token: null,
+      }),
+    );
+  });
+
+  it("does not ask about a license on page load", async () => {
+    render(<EditionLabel licenseManager={LicenseManager} />);
+
+    expect(
+      screen.getByRole("button", {
+        name: "Community Edition, Learn more",
+      }),
+    ).toBeInTheDocument();
+    expect(fetchCalls).toHaveLength(0);
+  });
+
+  it("keeps the comparison and the version card", async () => {
+    render(<EditionLabel licenseManager={LicenseManager} />);
+    fireEvent.click(screen.getByRole("button", { name: /Community Edition/ }));
+
+    expect(
+      await screen.findByText(/You are running the Community Edition/),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("This installation")).toBeInTheDocument();
+    expect(screen.getByText("v13.0.0")).toBeInTheDocument();
+  });
+
+  /*
+   * A leftover IS_ENTERPRISE_EDITION=true on the Community image: the server
+   * tells the frontend through env.js. Only a master admin can switch the
+   * image, so only a master admin is told.
+   */
+  it("tells a master admin to switch to the enterprise image", async () => {
+    process.env[MISMATCH_FLAG] = "true";
+
+    render(<EditionLabel licenseManager={LicenseManager} />);
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Community Edition, Action needed",
+    });
+
+    fireEvent.click(button);
+
+    expect(
+      await screen.findByTestId("enterprise-edition-image-mismatch"),
+    ).toHaveTextContent(
+      "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image",
+    );
+  });
+
+  it("does not tell anybody else", async () => {
+    process.env[MISMATCH_FLAG] = "true";
+    isMasterAdmin = false;
+
+    render(<EditionLabel licenseManager={LicenseManager} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Community Edition, Learn more" }),
+    );
+
+    await screen.findByText(/You are running the Community Edition/);
+
+    expect(
+      screen.queryByTestId("enterprise-edition-image-mismatch"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says nothing about the image when it was not asked for", async () => {
+    render(<EditionLabel licenseManager={LicenseManager} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Community Edition, Learn more" }),
+    );
+
+    await screen.findByText(/You are running the Community Edition/);
+
+    expect(
+      screen.queryByTestId("enterprise-edition-image-mismatch"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("EditionLabel with the license manager - oneuptime.com", () => {
+  it("renders nothing and asks nothing with billing enabled", async () => {
+    billingEnabled = true;
+
+    const { container } = render(<EditionLabel licenseManager={LicenseManager} />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container).toBeEmptyDOMElement();
+    expect(fetchCalls).toHaveLength(0);
+  });
+
+  /*
+   * Every hook runs whatever the edition: the early return for billing sits
+   * after them, so a re-render that changes the answer cannot change the
+   * number of hooks React sees.
+   */
+  it("keeps React's hook order when the billing answer changes between renders", async () => {
+    billingEnabled = true;
+
+    const { rerender, container } = render(<EditionLabel licenseManager={LicenseManager} />);
+
+    billingEnabled = false;
+    rerender(<EditionLabel licenseManager={LicenseManager} />);
+
+    await waitFor(() => {
+      expect(container).not.toBeEmptyDOMElement();
+    });
+  });
+});
+
+/*
+ * The same trial notice, in the dialog that CAN do something about it.
+ *
+ * An install holding a license whose expiry was never recorded is put on the
+ * unlicensed trial by the license client, so it lands in this notice - which
+ * opens "No Enterprise license is installed." and points the master admin at
+ * adding one. Neither is true here, and the explanation the license client
+ * sent with it used to be rendered nowhere at all.
+ */
+describe("EditionLabel with the license manager - a license with no recorded expiry", () => {
+  const NO_EXPIRY_MESSAGE: string =
+    "A OneUptime Enterprise license is installed, but no expiry is recorded for it, so this installation cannot tell whether it is still current. " +
+    "Enterprise features stay available meanwhile, under the 14-day trial counted from when this installation first ran the Enterprise Edition. " +
+    "A master admin can re-activate the license from the edition label in the Admin Dashboard, or leave the daily license sync to fetch its expiry from oneuptime.com.";
+
+  beforeEach(() => {
+    respondWith(
+      adminPayload({
+        status: "grace",
+        graceReason: "unlicensed",
+        // A token IS installed; it is the expiry beside it that is missing.
+        verification: "unverified",
+        graceEndsAt: inDays(10),
+        expiresAt: null,
+        message: NO_EXPIRY_MESSAGE,
+        userLimit: null,
+        isSeatLimitEnforced: false,
+        seatsInUse: null,
+        seatsRemaining: null,
+      }),
+    );
+  });
+
+  it("tells the master admin to re-activate the license, not to add one", async () => {
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-trial-notice",
+    );
+
+    expect(notice).not.toHaveTextContent("No Enterprise license is installed");
+    expect(notice).toHaveTextContent("Re-activate the license below");
+    expect(notice).not.toHaveTextContent("Add a license below");
+  });
+
+  it("renders the license client's own explanation", async () => {
+    await openDialog();
+
+    expect(
+      await screen.findByTestId("enterprise-license-status-message"),
+    ).toHaveTextContent("no expiry is recorded for it");
+  });
+
+  /*
+   * And it is still a trial: the countdown, and what stops when it ends, are
+   * unchanged - the install really is running on the trial clock.
+   */
+  it("still counts down the trial and says what stops when it ends", async () => {
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-trial-notice",
+    );
+
+    expect(notice).toHaveTextContent("Enterprise Edition trial: 10 days left");
+    expect(lapseWarningProblems(notice.textContent)).toEqual([]);
+  });
+
+  // The key input is offered, because re-activating is what fixes this.
+  it("offers the master admin the activation input", async () => {
+    await openDialog();
+
+    expect(
+      await screen.findByPlaceholderText("Enter your enterprise license key"),
+    ).toBeInTheDocument();
+  });
+});

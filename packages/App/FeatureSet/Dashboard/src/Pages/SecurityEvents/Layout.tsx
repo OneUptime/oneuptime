@@ -1,7 +1,8 @@
 import { getSecurityEventsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import { RouteUtil } from "../../Utils/RouteMap";
+import { getActiveSecurityEventsTab } from "../../Utils/SecurityEventsNavigation";
 import PageComponentProps from "../PageComponentProps";
-import SideMenu from "./SideMenu";
+import SecurityEventsNavTabs from "../../Components/SecurityEvents/SecurityEventsNavTabs";
 import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -16,7 +17,9 @@ const SecurityEventsLayout: FunctionComponent<
     <Page
       title="Security Events"
       breadcrumbLinks={getSecurityEventsBreadcrumbs(path)}
-      sideMenu={<SideMenu />}
+      headerRight={
+        <SecurityEventsNavTabs active={getActiveSecurityEventsTab(path)} />
+      }
     >
       <Outlet />
     </Page>

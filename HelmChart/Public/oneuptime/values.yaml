@@ -22,10 +22,24 @@ image:
   pullPolicy: Always
   tag: release
 
-  ## Type of OneUptime image to use.
+  ## Which edition of the OneUptime images to run.
   ## Possible values: community-edition, enterprise-edition
-  ## Enterprise edition images are hardened for more security and compliance, but you need a valid license to use them.
-  ## Please contact sales@oneuptime.com for more information.
+  ## - community-edition: the Apache-2.0 images (tags as given in image.tag).
+  ## - enterprise-edition: the Enterprise Edition images, the same tags with an
+  ##   "enterprise-" prefix. They add the enterprise features (SSO/SAML, OIDC,
+  ##   SCIM, audit logs, team compliance, instance health dashboards), licensed
+  ##   under the OneUptime Enterprise License. Production use of the Enterprise
+  ##   Edition requires a subscription under that license. An install with no
+  ##   license, or one holding a license whose expiry was never recorded, runs
+  ##   as a 14-day trial, which is for evaluation. After the trial (or 30 days
+  ##   after a license expires), until a license is activated, SSO,
+  ##   OIDC, SCIM and audit logging stop: SSO sign-in is refused and "Require
+  ##   SSO" is no longer enforced (users sign in with their password), SCIM
+  ##   requests are refused and audit logging stops recording. Enterprise
+  ##   configuration becomes read-only and the enterprise admin dashboards are
+  ##   locked too. Everything resumes, without a restart, as soon as a license
+  ##   is activated, and core monitoring is never affected.
+  ## Please contact sales@oneuptime.com for a license.
   type: community-edition
   
   restartPolicy: Always

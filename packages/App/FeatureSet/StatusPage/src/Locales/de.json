@@ -235,7 +235,9 @@
     "sso": {
       "title": "Mit SSO anmelden",
       "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
-      "noProviders": "Keine SSO-Anbieter konfiguriert oder aktiviert"
+      "noProviders": "Keine SSO-Anbieter konfiguriert oder aktiviert",
+      "notAvailable": "Single Sign-On (SSO) ist für diese Statusseite nicht verfügbar. Melden Sie sich stattdessen mit Ihrer E-Mail-Adresse und Ihrem Passwort an.",
+      "backToLogin": "Zurück zur Anmeldung"
     },
     "forgotPassword": {
       "title": "Passwort vergessen",

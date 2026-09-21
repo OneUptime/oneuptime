@@ -16,6 +16,10 @@ import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
 import HashedString from "Common/Types/HashedString";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 const mockRouter: MockIdentityRouter = createMockIdentityRouter();
@@ -433,6 +437,7 @@ describe("Status page invite mints a redeemable, hashed reset token", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    uninstallEnterpriseModule();
   });
 
   it("stores only a hash of the invite token, never the link's own token", async () => {
@@ -537,6 +542,13 @@ describe("Status page invite mints a redeemable, hashed reset token", () => {
   });
 
   it("does not mint or mail a password link for a provisioned user when the page requires SSO", async () => {
+    /*
+     * A status page's SSO requirement is enforced whenever the Enterprise
+     * Edition is loaded; the Community Edition relaxes it (see
+     * StatusPageSsoEditionEnforcement.test.ts).
+     */
+    installFakeEnterpriseModule();
+
     statusPageFindOneById.mockResolvedValue({
       id: new ObjectID(STATUS_PAGE_ID),
       _id: STATUS_PAGE_ID,

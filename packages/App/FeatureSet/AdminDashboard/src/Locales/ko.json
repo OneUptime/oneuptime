@@ -168,7 +168,14 @@
       "usageCardDescription": "고객의 모든 셀프 호스팅 인스턴스에서 집계한 고유 사용자 수이며, 각 설치 환경에서 매일 보고합니다.",
       "instancesCardTitle": "인스턴스",
       "instancesCardDescription": "이 라이선스에 대해 보고하는 셀프 호스팅 인스턴스(스테이징, 프로덕션 등)와 각 인스턴스에서 연락할 수 있는 마스터 관리자입니다.",
-      "noInstances": "아직 이 라이선스에 대해 보고한 인스턴스가 없습니다."
+      "noInstances": "아직 이 라이선스에 대해 보고한 인스턴스가 없습니다.",
+      "offlineTokenCardTitle": "오프라인 라이선스 토큰",
+      "offlineTokenCardDescription": "oneuptime.com에 연결할 수 없는 설치의 경우: 해당 설치의 인스턴스 ID에 바인딩된 서명된 라이선스 토큰을 다운로드합니다. 고객은 이를 관리자 대시보드에 붙여넣습니다.",
+      "offlineTokenButton": "오프라인 토큰 다운로드",
+      "offlineTokenIssued": "인스턴스 {{instanceId}}의 오프라인 라이선스 토큰을 다운로드했습니다.",
+      "offlineTokenModalTitle": "오프라인 라이선스 토큰 다운로드",
+      "offlineTokenModalDescription": "고객 설치의 인스턴스 ID를 입력하세요. 토큰은 해당 설치에서만 작동합니다.",
+      "offlineTokenSubmitButton": "토큰 다운로드"
     },
     "userView": {
       "title": "사용자",
@@ -827,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "인스턴스 전체의 프로젝트, 사용자, 모니터 및 인시던트.",
   "Valkey memory": "Valkey 메모리",
   "Spot job backlogs and failures before they cause incidents.": "작업 백로그와 실패가 인시던트를 유발하기 전에 발견합니다.",
-  "Track database disk and memory utilization before you run out.": "리소스가 부족해지기 전에 데이터베이스 디스크 및 메모리 사용률을 추적합니다."
+  "Track database disk and memory utilization before you run out.": "리소스가 부족해지기 전에 데이터베이스 디스크 및 메모리 사용률을 추적합니다.",
+  "You can still disable a provider.": "공급자는 계속 비활성화할 수 있습니다.",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "유효한 Enterprise 라이선스가 없으면 이 구성은 읽기 전용이고 이 공급자들을 통한 로그인은 꺼져 있지만, 공급자 비활성화는 보안을 강화하기만 하므로 항상 허용됩니다. 라이선스가 활성화되면 활성화된 모든 공급자를 통한 로그인이 즉시 재개되므로, ID 공급자가 손상된 경우 지금 \"비활성화\"를 사용하여 꺼진 상태로 유지하세요. 공급자를 다시 활성화하려면 유효한 라이선스가 필요합니다.",
+  "Disable Provider": "공급자 비활성화",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "다시 활성화할 때까지 아무도 이 공급자로 로그인할 수 없으며, 다시 활성화하려면 유효한 Enterprise 라이선스가 필요합니다.",
+  "Disable": "비활성화",
+  "Disable Project Attachment": "프로젝트 연결 비활성화",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "이 공급자는 더 이상 이 프로젝트에 사용자를 프로비저닝하지 않으며, 연결된 프로젝트로 제한된 경우 이 프로젝트에 대한 액세스도 허용하지 않습니다. 연결을 다시 활성화하려면 유효한 Enterprise 라이선스가 필요합니다.",
+  "Disable this provider": "이 공급자 비활성화",
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Enterprise 라이선스가 없거나 만료된 동안에는 이 공급자를 통한 로그인이 꺼져 있으며, 라이선스가 활성화되면 즉시 재개됩니다. 꺼진 상태로 유지하려면 공급자를 비활성화하세요. 구성은 그대로 유지되며, Enterprise 라이선스가 다시 유효해지면 다시 활성화할 수 있습니다."
 }

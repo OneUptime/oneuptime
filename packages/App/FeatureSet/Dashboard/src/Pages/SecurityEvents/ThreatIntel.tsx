@@ -39,12 +39,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SecurityEventsHowItWorksCard from "../../Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard";
 import ThreatIntelGuide from "../../Components/SecurityEvents/HowItWorks/ThreatIntelGuide";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -88,7 +83,13 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
   );
 
   return (
-    <Fragment>
+    /*
+     * The page's own vertical rhythm. `Page` only wraps its children in
+     * `space-y-6` on the side-menu branch, and this product moved its
+     * destinations into header tabs — so without this the How-it-works card
+     * and the table under it sit flush against each other.
+     */
+    <div className="space-y-6">
       <SecurityEventsHowItWorksCard guide={ThreatIntelGuide} />
 
       <ModelTable<ThreatIntelFeed>
@@ -750,7 +751,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           }}
         />
       )}
-    </Fragment>
+    </div>
   );
 };
 

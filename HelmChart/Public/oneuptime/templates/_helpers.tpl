@@ -165,6 +165,14 @@ its userlist at startup.
   {{- $provisionSSL = default false $.Values.ssl.provision -}}
 {{- end }}
 
+{{- /*
+IS_ENTERPRISE_EDITION is deprecated and never turns anything on. It is derived
+from image.type, so it always agrees with the image (true on a Community image
+would make the App refuse to start). What the App runs is decided by the image (image.type picks the
+enterprise- tags, and the Enterprise image carries ONEUPTIME_EDITION=enterprise
+itself), so the chart must never set ONEUPTIME_EDITION: an empty or wrong value
+here would override the image's own marker.
+*/}}
 - name: IS_ENTERPRISE_EDITION
   value: {{ (ternary "true" "false" $isEnterpriseEdition) | squote }}
 - name: MICROSOFT_TEAMS_APP_CLIENT_ID

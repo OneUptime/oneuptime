@@ -17,6 +17,18 @@ missing (helm, helm-unittest, kubectl, kind), and gives the cluster-backed
 suites one shared KinD cluster that it deletes at the end. A failing suite does
 not stop the others, so one run tells you everything that is broken.
 
+When helm-unittest is missing, the harness installs it without
+`helm plugin install`, whose install hook downloads the plugin from GitHub's
+release CDN with no retry (that remains the fallback on a platform with no
+pin). It takes the release tarball whose sha256 is pinned in
+[`Tests/lib/harness.sh`](Tests/lib/harness.sh), keeps it in
+`${XDG_CACHE_HOME:-~/.cache}/oneuptime/helm-unittest` (or
+`HELM_UNITTEST_CACHE_DIR`), and unpacks it into helm's plugin directory, so
+only the first run downloads anything; CI keeps that directory in the Actions
+cache. To bump `HELM_UNITTEST_VERSION`, add the new version's digests to
+`harness_unittest_sha256` in the same change — the helm-test job fails until
+you do, and so does the unit suite anywhere it has to install the plugin.
+
 | Suite               | Needs a cluster | What it covers                                                                       |
 | ------------------- | --------------- | ------------------------------------------------------------------------------------ |
 | `lint`              | no              | `helm lint` over the `oneuptime` and `kubernetes-agent` charts                        |

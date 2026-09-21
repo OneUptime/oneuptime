@@ -10,15 +10,22 @@ usage() {
 	cat <<'EOF'
 Usage: build_docker_images.sh --image <name> --version <version> --dockerfile <path> [options]
 
-Builds the image twice — once as community (IS_ENTERPRISE_EDITION=false), once
-as enterprise (IS_ENTERPRISE_EDITION=true) — and pushes each under its own tag
-set. The two passes run on the same buildx builder within a single job, so the
-enterprise pass still reuses the community pass's local layer cache where inputs
-are unchanged: downstream RUN steps in our Dockerfiles don't read
-$IS_ENTERPRISE_EDITION, so only the ENV/LABEL metadata differs between the two
-final images. No remote (GHA) cache is used — it caused intermittent build
-failures when GitHub evicted a cache blob still referenced by the manifest
-(BlobNotFound on import).
+Builds the image twice — once as the community edition, once as the enterprise
+edition — and pushes each under its own tag set (enterprise tags carry an
+"enterprise-" prefix). How the two editions differ depends on the Dockerfile:
+
+  - A Dockerfile with an `AS enterprise` stage (the App) is built with
+    --target community and then --target enterprise. The enterprise target is
+    the community build plus ee/, so the two images really differ.
+  - Any other Dockerfile is built twice with the IS_ENTERPRISE_EDITION build
+    arg set to false and then true. No RUN step reads it, so only the ENV/LABEL
+    metadata differs between the two final images.
+
+Either way both passes are labelled com.oneuptime.edition=<edition>. They run
+on the same buildx builder within a single job, so the enterprise pass reuses
+the community pass's local layer cache where inputs are unchanged. No remote
+(GHA) cache is used — it caused intermittent build failures when GitHub evicted
+a cache blob still referenced by the manifest (BlobNotFound on import).
 
 Required flags:
 	--image <name>        Image name without registry prefix (example: mcp)
@@ -115,11 +122,39 @@ fi
 
 SANITIZED_VERSION="${VERSION//+/-}"
 
+if [[ ! -f "$DOCKERFILE" ]]; then
+	echo "Dockerfile not found: ${DOCKERFILE} (run 'npm run prerun' to render the Dockerfile.tpl files first)" >&2
+	exit 1
+fi
+
+# A Dockerfile whose editions are real build targets (see packages/App/
+# Dockerfile.tpl): a stage named exactly "enterprise". Matched on the FROM line,
+# case-insensitively like Docker itself, so a comment that mentions the stage or
+# a stage merely named "enterprise-build" does not count.
+USES_EDITION_TARGETS=false
+if grep -qiE '^[[:space:]]*FROM[[:space:]].*[[:space:]]AS[[:space:]]+enterprise[[:space:]]*$' "$DOCKERFILE"; then
+	USES_EDITION_TARGETS=true
+fi
+
 build_variant() {
 	local variant_prefix="$1"       # "" for community, "enterprise-" for enterprise
-	local enterprise_flag="$2"      # "false" or "true" — baked into ENV IS_ENTERPRISE_EDITION
+	local edition="$2"              # "community" or "enterprise"
 	shift 2
 	local extras=("$@")             # Remaining args are extra tag suffixes
+
+	# Target mode builds the edition's own stage; the Dockerfile sets the
+	# edition ENV itself. Build-arg mode bakes the flag in through
+	# IS_ENTERPRISE_EDITION instead.
+	local -a edition_args
+	if [[ "$USES_EDITION_TARGETS" == "true" ]]; then
+		edition_args=(--target "$edition")
+	else
+		local enterprise_flag="false"
+		if [[ "$edition" == "enterprise" ]]; then
+			enterprise_flag="true"
+		fi
+		edition_args=(--build-arg "IS_ENTERPRISE_EDITION=${enterprise_flag}")
+	fi
 
 	local -a tag_args
 	tag_args=(
@@ -140,7 +175,7 @@ build_variant() {
 	# so `docker buildx imagetools inspect <ref> --format '{{json .SBOM}}'` answers
 	# "which packages are in this image?" without pulling it. The SBOM is SPDX 2.3.
 	# mode=max records the full build steps and build args — all of ours (GIT_SHA,
-	# APP_VERSION, IS_ENTERPRISE_EDITION) are non-secret; registry creds arrive via
+	# APP_VERSION, IS_ENTERPRISE_EDITION, the target) are non-secret; registry creds arrive via
 	# `docker login`, never as build args, so nothing sensitive is embedded.
 	# Side effect: this turns each pushed tag into an OCI index, so registry UIs
 	# list an extra "unknown/unknown" entry per image — that's the attestation.
@@ -156,14 +191,19 @@ build_variant() {
 		--sbom=true \
 		--provenance=mode=max \
 		"${tag_args[@]}" \
+		"${edition_args[@]}" \
+		--label "com.oneuptime.edition=${edition}" \
 		--build-arg "GIT_SHA=${GIT_SHA}" \
 		--build-arg "APP_VERSION=${VERSION}" \
-		--build-arg "IS_ENTERPRISE_EDITION=${enterprise_flag}" \
 		"$CONTEXT"
 }
 
-echo "🚀 Building docker images for ${IMAGE} (${VERSION}) [${PLATFORMS}]"
-build_variant "" "false" "${EXTRA_TAGS[@]+"${EXTRA_TAGS[@]}"}"
+if [[ "$USES_EDITION_TARGETS" == "true" ]]; then
+	echo "🚀 Building docker images for ${IMAGE} (${VERSION}) [${PLATFORMS}] from the community and enterprise targets of ${DOCKERFILE}"
+else
+	echo "🚀 Building docker images for ${IMAGE} (${VERSION}) [${PLATFORMS}]"
+fi
+build_variant "" "community" "${EXTRA_TAGS[@]+"${EXTRA_TAGS[@]}"}"
 echo "✅ Pushed community image for ${IMAGE}:${SANITIZED_VERSION}${ARCH_SUFFIX}"
-build_variant "enterprise-" "true" "${EXTRA_ENTERPRISE_TAGS[@]+"${EXTRA_ENTERPRISE_TAGS[@]}"}"
+build_variant "enterprise-" "enterprise" "${EXTRA_ENTERPRISE_TAGS[@]+"${EXTRA_ENTERPRISE_TAGS[@]}"}"
 echo "✅ Pushed enterprise image for ${IMAGE}:enterprise-${SANITIZED_VERSION}${ARCH_SUFFIX}"

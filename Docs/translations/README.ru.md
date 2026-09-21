@@ -31,7 +31,7 @@
   <p>OneUptime заменяет целую полку SaaS-инструментов одной платформой, которую можно развернуть у себя бесплатно. Она обнаруживает сбой, вызывает нужного человека, обновляет вашу страницу статуса, находит первопричину и даже открывает PR с исправлением.</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -71,7 +71,7 @@ OneUptime объединяет мониторинг, оповещения, ре�
 | Loggly | **Управление логами** — сбор, поиск и оповещения по логам |
 | Sentry | **Отслеживание ошибок** — исключения с полными стеками вызовов и контекстом |
 
-Всё это **на 100% открытый исходный код (Apache 2.0)** и бесплатно для самостоятельного развёртывания.
+Всё это **открытый исходный код (Apache 2.0)** и бесплатно для самостоятельного развёртывания в редакции Community.
 
 ---
 
@@ -205,13 +205,16 @@ helm install oneuptime oneuptime/oneuptime
 |---|---|---|
 | **Лучше всего для** | Тех, кто разворачивает у себя, и небольших команд | Регулируемых команд, которым нужна премиум-поддержка |
 | **Стоимость** | Бесплатно и с открытым исходным кодом | [Связаться с отделом продаж](mailto:sales@oneuptime.com) |
-| **Возможности** | Полный набор возможностей | Полный набор возможностей + защищённые образы, приоритетная поддержка, индивидуальные функции и резидентность данных |
+| **Лицензия** | Apache 2.0 | Apache 2.0, а для каталога `ee/` — [OneUptime Enterprise License](/ee/LICENSE) |
+| **Возможности** | Всё из раздела «Всё в комплекте» выше — мониторинг, страницы статуса, инциденты, дежурства, логи, трейсы, метрики, отслеживание ошибок, рабочие процессы и ИИ | Всё из Community + единый вход SAML и OIDC, провижининг SCIM, журналы аудита, соответствие требованиям для команд и панели состояния экземпляра, а также приоритетная поддержка, индивидуальные функции и резидентность данных |
+
+Функции Enterprise находятся в каталоге [`ee/`](/ee) и поставляются только в образе Enterprise. Полное сравнение — в разделе [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md).
 
 ---
 
 ## 💡 Почему OneUptime?
 
-Наша миссия проста: **сократить простои и помочь большему числу продуктов добиться успеха.** Вместо того чтобы скотчем скреплять семь вендоров, вы получаете одну платформу, которая помогает понять, *почему* всё ломается, быстро реагировать на инциденты и снижать операционную рутину — полностью открытый исходный код, так что вы владеете своими данными и своим стеком.
+Наша миссия проста: **сократить простои и помочь большему числу продуктов добиться успеха.** Вместо того чтобы скотчем скреплять семь вендоров, вы получаете одну платформу, которая помогает понять, *почему* всё ломается, быстро реагировать на инциденты и снижать операционную рутину — с открытым ядром (Apache 2.0), так что вы владеете своими данными и своим стеком.
 
 ---
 
@@ -239,7 +242,7 @@ helm install oneuptime oneuptime/oneuptime
 
 ## 📄 Лицензия
 
-OneUptime распространяется по лицензии [Apache License 2.0](/LICENSE).
+OneUptime — открытое ПО под лицензией [Apache License 2.0](/LICENSE), за исключением каталога [`ee/`](/ee). В этом каталоге находится редакция Enterprise, и он распространяется по лицензии [OneUptime Enterprise License](/ee/LICENSE). Образ редакции Community не содержит кода из `ee/`. Это разделение закреплено в файле [`LICENSE`](/LICENSE) в корне репозитория.
 
 <div align="center">
   <sub>Сделано с ❤️ командой <a href="https://oneuptime.com">OneUptime</a> и <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">участниками</a>.</sub>

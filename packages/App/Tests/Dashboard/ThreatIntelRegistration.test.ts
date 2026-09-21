@@ -169,19 +169,20 @@ describe("registry wiring", () => {
         "App/FeatureSet/Dashboard/src/Routes/SecurityEventsRoutes.tsx",
       ),
     ).toContain("SecurityEventsThreatIntelPage");
-    const sideMenu: string = readSquashed(
-      "App/FeatureSet/Dashboard/src/Pages/SecurityEvents/SideMenu.tsx",
+    const navTabs: string = readSquashed(
+      "App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsNavTabs.tsx",
     );
-    expect(sideMenu).toContain('title: "Detection & Alerting"');
-    expect(sideMenu).toContain('title: "Threat Intel"');
-    expect(sideMenu).toContain(
+    expect(navTabs).toContain('label: "Threat Intel"');
+    expect(navTabs).toContain(
       "RouteMap[PageMap.SECURITY_EVENTS_THREAT_INTEL] as Route",
     );
     expect(
       readSquashed(
         "App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout.tsx",
       ),
-    ).toContain("sideMenu={<SideMenu />}");
+    ).toContain(
+      "<SecurityEventsNavTabs active={getActiveSecurityEventsTab(path)} />",
+    );
   });
 
   test("both event-producing paths enrich BEFORE row building", () => {

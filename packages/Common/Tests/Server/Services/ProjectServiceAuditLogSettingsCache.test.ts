@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
- * AuditLogService caches each project's audit settings (enabled, retention,
- * system events, plan) for a minute. Nothing ever invalidated that cache, so
+ * The audit-log recorder (Enterprise Edition, behind core's AuditLogService)
+ * caches each project's audit settings (enabled, retention, system events,
+ * plan) for a minute. Nothing ever invalidated that cache, so
  * for up to a minute after an admin turned audit logging on, the process that
  * saved the setting went on recording nothing - exactly when someone is
  * watching the empty audit page to check that it works. ProjectService now
@@ -34,10 +35,14 @@ jest.mock(
 
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import ProjectService from "../../../Server/Services/ProjectService";
-import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Project from "../../../Models/DatabaseModels/Project";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
-import UserType from "../../../Types/UserType";
+import {
+  createAuditLogRecorderSpy,
+  installFakeEnterpriseModule,
+  MockedAuditLogRecorder,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
 
 type HookCallable = {
   onUpdateSuccess: (
@@ -65,9 +70,11 @@ const updateProject: UpdateProjectFunction = async (
 
 beforeEach(() => {
   jest.clearAllMocks();
+  uninstallEnterpriseModule();
 });
 
 afterEach(() => {
+  uninstallEnterpriseModule();
   jest.restoreAllMocks();
 });
 
@@ -135,42 +142,31 @@ describe("ProjectService invalidates the audit log settings cache", () => {
     expect(invalidate).toHaveBeenCalledTimes(1);
   });
 
-  test("the next audit write in this process reads the new setting", async () => {
+  /*
+   * The cache itself lives in the Enterprise audit-log recorder (ee/), so
+   * "the next write reads the new setting" is pinned there, end to end
+   * (ee/Tests/Server/AuditLog/AuditLogSettingsInvalidation.test.ts). What
+   * core owns is that the invalidation reaches whichever recorder is
+   * registered, and is harmless when none is.
+   */
+  test("the invalidation reaches the Enterprise audit-log recorder", async () => {
+    const recorder: MockedAuditLogRecorder = createAuditLogRecorderSpy();
+    installFakeEnterpriseModule({ auditLogRecorder: recorder });
+
     const projectId: ObjectID = ObjectID.generate();
-    const project: Project = new Project();
-    project._id = projectId.toString();
-    project.enableAuditLogs = true;
-
-    const findProject: jest.SpyInstance = jest
-      .spyOn(ProjectService, "findOneById")
-      .mockResolvedValue(project as never);
-    jest.spyOn(AuditLogService, "create").mockResolvedValue(undefined as never);
-
-    const monitor: Monitor = new Monitor();
-    monitor._id = ObjectID.generate().toString();
-    monitor.name = "Checkout API";
-
-    type RecordFunction = () => Promise<void>;
-
-    const recordMonitorCreate: RecordFunction = async (): Promise<void> => {
-      await AuditLogService.recordCreate({
-        model: new Monitor(),
-        createdItem: monitor,
-        // An API-key actor needs no user lookup.
-        props: { tenantId: projectId, userType: UserType.API },
-      });
-    };
-
-    await recordMonitorCreate();
-    await recordMonitorCreate();
-
-    // Cached: the second write did not read the project again.
-    expect(findProject).toHaveBeenCalledTimes(1);
 
     await updateProject({ enableAuditLogs: false }, [projectId]);
-    await recordMonitorCreate();
 
-    expect(findProject).toHaveBeenCalledTimes(2);
+    expect(recorder.invalidateProjectSettings).toHaveBeenCalledTimes(1);
+    expect(recorder.invalidateProjectSettings).toHaveBeenCalledWith(projectId);
+  });
+
+  test("on the Community Edition there is no cache to drop, and the update still succeeds", async () => {
+    uninstallEnterpriseModule();
+
+    await expect(
+      updateProject({ enableAuditLogs: true }, [ObjectID.generate()]),
+    ).resolves.toBeUndefined();
   });
 
   test("a failure to invalidate never fails the project update", async () => {

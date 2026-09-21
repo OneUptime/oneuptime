@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { describe, expect, jest, test } from "@jest/globals";
 import DayUptimeGraph, {
+  NO_DATA_BAR_COLOR,
   UptimeBarDaySummary,
 } from "../../../../UI/Components/Graphs/DayUptimeGraph";
 import { Green, Red } from "../../../../Types/BrandColors";
@@ -454,10 +455,56 @@ describe("DayUptimeGraph - opening a day", () => {
 });
 
 describe("DayUptimeGraph - the bars still draw what they always drew", () => {
-  test("a day with no events uses the default bar colour", () => {
+  /*
+   * This test used to assert the opposite: that a day with no events took the
+   * status page's defaultBarColor. That was the bug.
+   *
+   * "No events" was true both for a quiet, healthy day and for a day whose
+   * timeline rows the fetch cap had silently thrown away - and defaultBarColor
+   * is green on 4,642 of the status pages in production. So the page painted
+   * days it had no data for as uptime, and a real outage older than the cap
+   * rendered as a good day.
+   *
+   * The operator's colour is now reserved for days we actually measured.
+   */
+  test("a day with no data is NOT painted with the operator's default colour", () => {
     renderGraph({ defaultBarColor: new Color("#123456") });
 
-    expect(getBars()[0]).toHaveStyle({ backgroundColor: "#123456" });
+    expect(getBars()[0]).not.toHaveStyle({ backgroundColor: "#123456" });
+  });
+
+  test("a day with no data uses the fixed no-data colour", () => {
+    renderGraph({ defaultBarColor: new Color("#123456") });
+
+    expect(getBars()[0]).toHaveStyle({
+      backgroundColor: NO_DATA_BAR_COLOR.toString(),
+    });
+  });
+
+  test("a measured day with no events of its own still uses the default colour", () => {
+    /*
+     * The other half of the separation: an ordinary quiet day is still the
+     * operator's colour. Only days nobody measured are taken away from them.
+     */
+    const dayStart: Date = OneUptimeDate.getStartOfDay(
+      OneUptimeDate.getCurrentDate(),
+    );
+
+    renderGraph({
+      defaultBarColor: new Color("#123456"),
+      dayReadings: [
+        {
+          dayStart: dayStart,
+          daySeconds: 86400,
+          coveredSeconds: 86400,
+          statusDurations: [],
+        },
+      ],
+    });
+
+    const bars: Array<HTMLElement> = getBars();
+
+    expect(bars[bars.length - 1]).toHaveStyle({ backgroundColor: "#123456" });
   });
 
   test("the strip no longer clips its own focus ring", () => {

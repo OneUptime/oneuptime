@@ -168,7 +168,14 @@
       "usageCardDescription": "お客様のすべてのセルフホスト型インスタンスにおけるユニークユーザー数です。各インストールから毎日報告されます。",
       "instancesCardTitle": "インスタンス",
       "instancesCardDescription": "このライセンスに対して報告しているセルフホスト型インスタンス（ステージング、本番など）と、各インスタンスで連絡可能なマスター管理者です。",
-      "noInstances": "このライセンスに対して報告したインスタンスはまだありません。"
+      "noInstances": "このライセンスに対して報告したインスタンスはまだありません。",
+      "offlineTokenCardTitle": "オフラインライセンストークン",
+      "offlineTokenCardDescription": "oneuptime.com に接続できないインストール向け: そのインストールのインスタンス ID に紐づいた署名済みライセンストークンをダウンロードします。お客様はそれを管理ダッシュボードに貼り付けます。",
+      "offlineTokenButton": "オフライントークンをダウンロード",
+      "offlineTokenIssued": "インスタンス {{instanceId}} のオフラインライセンストークンをダウンロードしました。",
+      "offlineTokenModalTitle": "オフラインライセンストークンをダウンロード",
+      "offlineTokenModalDescription": "お客様のインストールのインスタンス ID を入力してください。トークンはそのインストールでのみ有効です。",
+      "offlineTokenSubmitButton": "トークンをダウンロード"
     },
     "userView": {
       "title": "ユーザー",
@@ -827,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "インスタンス全体のプロジェクト、ユーザー、モニター、インシデント。",
   "Valkey memory": "Valkey メモリ",
   "Spot job backlogs and failures before they cause incidents.": "ジョブのバックログや失敗がインシデントを引き起こす前に発見します。",
-  "Track database disk and memory utilization before you run out.": "枯渇する前にデータベースのディスクとメモリの使用率を追跡します。"
+  "Track database disk and memory utilization before you run out.": "枯渇する前にデータベースのディスクとメモリの使用率を追跡します。",
+  "You can still disable a provider.": "プロバイダーの無効化は引き続き行えます。",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "有効な Enterprise ライセンスがないため、この設定は読み取り専用で、これらのプロバイダー経由のサインインは停止していますが、プロバイダーの無効化はセキュリティを強化する操作に限られるため、いつでも行えます。ライセンスが有効化されると、有効なすべてのプロバイダー経由のサインインがすぐに再開されます。ID プロバイダーが侵害された場合は、今のうちに「無効にする」を使って停止したままにしてください。プロバイダーを再度有効にするには、有効なライセンスが必要です。",
+  "Disable Provider": "プロバイダーを無効にする",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "再度有効にするまで、このプロバイダーでは誰もサインインできなくなります。再度有効にするには、有効な Enterprise ライセンスが必要です。",
+  "Disable": "無効にする",
+  "Disable Project Attachment": "プロジェクトの関連付けを無効にする",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "このプロバイダーはこのプロジェクトへのユーザーのプロビジョニングを停止し、関連付けられたプロジェクトに制限されている場合はこのプロジェクトへのアクセスも許可しなくなります。関連付けを再度有効にするには、有効な Enterprise ライセンスが必要です。",
+  "Disable this provider": "このプロバイダーを無効にする",
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Enterprise ライセンスがないか期限切れの間、このプロバイダー経由のサインインは停止しており、ライセンスが有効化されるとすぐに再開されます。停止したままにするには、プロバイダーを無効にしてください。設定はそのまま保持され、Enterprise ライセンスが再び有効になれば、再度有効にできます。"
 }

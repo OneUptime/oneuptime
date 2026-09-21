@@ -614,14 +614,14 @@
 
             <!-- Tab Navigation -->
             <div class="border-b border-gray-200">
-              <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+              <nav class="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
                 <button onclick="switchPayAsYouGoTab('monitoring')" id="tab-monitoring"
                   class="payg-tab payg-tab-active whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
                   Monitoring
                 </button>
-                <button onclick="switchPayAsYouGoTab('sms-call')" id="tab-sms-call"
+                <button onclick="switchPayAsYouGoTab('notifications')" id="tab-notifications"
                   class="payg-tab whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-                  SMS & Call
+                  Notifications
                 </button>
                 <button onclick="switchPayAsYouGoTab('telemetry')" id="tab-telemetry"
                   class="payg-tab whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
@@ -694,12 +694,12 @@
               </div>
             </div>
 
-            <!-- SMS & Call Tab Content -->
-            <div id="content-sms-call" class="payg-content pt-8 hidden">
+            <!-- Notifications Tab Content -->
+            <div id="content-notifications" class="payg-content pt-8 hidden">
               <div class="lg:flex">
                 <div class="lg:flex-auto">
-                  <h4 class="text-xl font-semibold tracking-tight text-gray-900">SMS & Call Alerts</h4>
-                  <p class="mt-4 text-base leading-7 text-gray-600">Get instant alerts via SMS and phone calls when your monitors detect issues. Email alerts are free and always will be.</p>
+                  <h4 class="text-xl font-semibold tracking-tight text-gray-900">Notifications</h4>
+                  <p class="mt-4 text-base leading-7 text-gray-600">Get instant alerts via SMS, WhatsApp, and phone calls when your monitors detect issues. Push notifications, app alerts, email, and webhooks are free.</p>
                   <div class="mt-6 flex items-center gap-x-4">
                     <h5 class="flex-none text-sm font-semibold leading-6 text-gray-600">What's included</h5>
                     <div class="h-px flex-auto bg-gray-100"></div>
@@ -721,13 +721,37 @@
                       <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                       </svg>
+                      WhatsApp notifications
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
                       Worldwide coverage
                     </li>
                     <li class="flex gap-x-3">
                       <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                       </svg>
-                      Email alerts always free
+                      Push notifications are free
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      App alerts are free
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Email alerts are free
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Webhooks are free
                     </li>
                   </ul>
                 </div>
@@ -739,6 +763,13 @@
                         <span class="text-4xl font-bold tracking-tight text-gray-900">$0.10</span>
                       </p>
                       <p class="mt-2 text-sm text-gray-600 text-center">per SMS sent</p>
+                    </div>
+                    <div class="mb-6 pb-6 border-b border-gray-200">
+                      <p class="text-base font-semibold text-gray-600 text-center">WhatsApp Pricing</p>
+                      <p class="mt-4 flex items-baseline justify-center gap-x-2">
+                        <span class="text-4xl font-bold tracking-tight text-gray-900">$0.10</span>
+                      </p>
+                      <p class="mt-2 text-sm text-gray-600 text-center">per message sent</p>
                     </div>
                     <div>
                       <p class="text-base font-semibold text-gray-600 text-center">Call Pricing</p>
@@ -1628,7 +1659,7 @@
                   </div>
                 </dt>
                 <dd class="mt-2 pr-12" id="faq-0">
-                  <p class="text-base leading-7 text-gray-600">No. The software is open-source and free &mdash; self-host it for nothing, at any scale. On our SaaS service everyone pays the same published price. You pay, we keep the lights on.</p>
+                  <p class="text-base leading-7 text-gray-600">No. The Apache 2.0 Community Edition is free to self-host, at any scale. On our SaaS service everyone pays the same published price. You pay, we keep the lights on.</p>
                 </dd>
               </div>
 

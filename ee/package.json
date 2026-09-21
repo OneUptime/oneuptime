@@ -1,0 +1,33 @@
+{
+  "name": "@oneuptime/ee",
+  "version": "14.0.0",
+  "description": "OneUptime Enterprise Edition modules. Licensed under ee/LICENSE, not Apache-2.0.",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime"
+  },
+  "main": "Server/Index.ts",
+  "scripts": {
+    "compile": "tsc -p tsconfig.json && tsc -p Dashboard/tsconfig.json && tsc -p AdminDashboard/tsconfig.json && tsc -p Tests/UI/tsconfig.json",
+    "generate-license-signing-key": "node ../packages/App/node_modules/.bin/ts-node --transpile-only Scripts/GenerateLicenseSigningKey.ts",
+    "test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd ee && NODE_OPTIONS=--max-old-space-size=4096 node node_modules/.bin/jest --forceExit --passWithNoTests",
+    "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"
+  },
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+  "license": "SEE LICENSE IN LICENSE",
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.10",
+    "App": "file:../packages/App",
+    "Common": "file:../packages/Common",
+    "openid-client": "^5.7.1",
+    "xml-crypto": "^6.1.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^26.1.1",
+    "jest": "28.1.3",
+    "ts-jest": "^28.0.8",
+    "typescript": "^5.9.3"
+  }
+}

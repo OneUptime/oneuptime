@@ -85,10 +85,10 @@ const setupGuideSource: string = readDashboardSource(
   "SecurityEvents",
   "SecurityEventsSetupGuide.tsx",
 );
-const sideMenuSource: string = readDashboardSource(
-  "Pages",
+const navTabsSource: string = readDashboardSource(
+  "Components",
   "SecurityEvents",
-  "SideMenu.tsx",
+  "SecurityEventsNavTabs.tsx",
 );
 const layoutSource: string = readDashboardSource(
   "Pages",
@@ -99,15 +99,10 @@ const routesSource: string = readDashboardSource(
   "Routes",
   "SecurityEventsRoutes.tsx",
 );
-const eventsTableSource: string = readDashboardSource(
+const eventsViewerSource: string = readDashboardSource(
   "Components",
   "SecurityEvents",
-  "SecurityEventsTable.tsx",
-);
-const eventsExplorerSource: string = readDashboardSource(
-  "Components",
-  "SecurityEvents",
-  "SecurityEventsExplorer.tsx",
+  "SecurityEventsViewer.tsx",
 );
 const eventsEmptyStateSource: string = readDashboardSource(
   "Components",
@@ -234,17 +229,22 @@ describe("Security events setup guide wiring", () => {
     expect(routesSource).toContain("<SecurityEventsDocumentationPage");
   });
 
-  test("the setup guide is in the Help side-menu section", () => {
-    expect(sideMenuSource).toContain('title: "Help"');
-    expect(sideMenuSource).toContain('title: "Setup Guide"');
-    expect(sideMenuSource).toContain(
+  test("the setup guide is one of the Security Events header tabs", () => {
+    expect(navTabsSource).toContain('label: "Setup Guide"');
+    expect(navTabsSource).toContain(
       "RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION] as Route",
     );
   });
 
-  test("the layout renders the Security Events side menu", () => {
-    expect(layoutSource).toContain('import SideMenu from "./SideMenu"');
-    expect(layoutSource).toContain("sideMenu={<SideMenu />}");
+  test("the layout renders the Security Events tabs in the page header", () => {
+    expect(layoutSource).toContain(
+      'import SecurityEventsNavTabs from "../../Components/SecurityEvents/SecurityEventsNavTabs"',
+    );
+    expect(layoutSource).toContain(
+      "<SecurityEventsNavTabs active={getActiveSecurityEventsTab(path)} />",
+    );
+    // The destinations moved into the header; nothing renders a side menu.
+    expect(layoutSource).not.toContain("sideMenu=");
   });
 
   test("the setup guide has a breadcrumb trail", () => {
@@ -268,15 +268,12 @@ describe("Security events setup guide wiring", () => {
   /*
    * The empty state is its own component (rendered and clicked through in
    * Common/Tests/App/Dashboard/SecurityEventsEmptyState.test.tsx); this pins
-   * that the table still falls back to it, that the page still shows it for a
-   * project that has never received an event (SecurityEventsExplorer.test.tsx
-   * drives that), and that it still names both pages.
+   * that the events explorer still falls back to it for a project that has
+   * never received an event (SecurityEventsViewer.test.tsx drives that), and
+   * that it still names both pages.
    */
-  test("the empty events table points at the setup guide and at Connections", () => {
-    expect(eventsTableSource).toContain(
-      "noItemsMessage={props.noItemsMessage || <SecurityEventsEmptyState />}",
-    );
-    expect(eventsExplorerSource).toContain("<SecurityEventsEmptyState />");
+  test("the empty events list points at the setup guide and at Connections", () => {
+    expect(eventsViewerSource).toContain("<SecurityEventsEmptyState />");
     expect(eventsEmptyStateSource).toContain(
       "navigateTo(PageMap.SECURITY_EVENTS_DOCUMENTATION);",
     );

@@ -591,16 +591,36 @@ describe("EvaluateOverTime", () => {
     });
 
     /*
-     * A monitoringInterval that is not a cron (the label form this repo's
-     * own Terraform examples write) must not be trusted as a cadence - the
-     * samples themselves are the only evidence left.
+     * A cadence LABEL is not a cron, but it is not unreadable either: "Every
+     * 5 minutes" is what this repo's own Terraform examples used to write, and
+     * 1fd4dc1542 taught the evaluator to read it through
+     * MonitoringIntervalUtil rather than shrugging and guessing from the data.
+     * A monitor that says five minutes is covered by one sample in a
+     * five-minute window, so this evaluates instead of reporting a gap.
      */
-    test("an unparseable schedule falls back to the sampled cadence", async () => {
+    test("a cadence label is read as a schedule, not treated as unknown", async () => {
       mockSamples([sample({ value: 404, minutesAgo: 0 })]);
 
       const result: OverTimeEvaluation = await evaluate({
         criteriaFilter: criteria(),
         monitoringInterval: "Every 5 minutes",
+      });
+
+      expect(result.status).toBe(OverTimeEvaluationStatus.Evaluated);
+    });
+
+    /*
+     * The original point of the case above, which still stands for a value
+     * NOTHING can read: neither the label grammar nor cron-parser makes sense
+     * of it, so it must not be trusted as a cadence - the samples themselves
+     * are the only evidence left, and one of them does not cover the window.
+     */
+    test("a schedule nothing can read falls back to the sampled cadence", async () => {
+      mockSamples([sample({ value: 404, minutesAgo: 0 })]);
+
+      const result: OverTimeEvaluation = await evaluate({
+        criteriaFilter: criteria(),
+        monitoringInterval: "whenever it feels like it",
       });
 
       expect(result.status).toBe(OverTimeEvaluationStatus.InsufficientData);

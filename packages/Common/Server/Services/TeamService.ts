@@ -14,6 +14,7 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamMemberService from "./TeamMemberService";
 import ProjectSCIMService from "./ProjectSCIMService";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -58,6 +59,15 @@ export class Service extends DatabaseService<Model> {
     action: "create" | "delete";
   }): Promise<void> {
     if (!data.projectIds || data.projectIds.length === 0) {
+      return;
+    }
+
+    /*
+     * The lock exists because the identity provider owns the teams while
+     * Push Groups is on. The Community Edition serves no SCIM endpoint, so
+     * nothing could manage them there: a leftover lock is not enforced.
+     */
+    if (!EditionEnforcement.areScimTeamLocksEnforced()) {
       return;
     }
 

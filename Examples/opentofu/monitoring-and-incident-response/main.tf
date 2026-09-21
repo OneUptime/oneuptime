@@ -39,7 +39,7 @@ module "storefront" {
     homepage = {
       url                 = "https://example.com"
       display_name        = "Storefront homepage"
-      monitoring_interval = "Every 1 minute"
+      monitoring_interval = "* * * * *"
     }
 
     checkout = {
@@ -62,7 +62,7 @@ module "internal_tools" {
   service_name          = "internal-tools"
   create_status_page    = false
   create_on_call_policy = false
-  monitoring_interval   = "Every 5 minutes"
+  monitoring_interval   = "*/5 * * * *"
   label_color           = "#8e44ad"
 
   monitors = {

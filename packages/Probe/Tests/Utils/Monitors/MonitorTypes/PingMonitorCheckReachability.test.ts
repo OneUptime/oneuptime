@@ -20,6 +20,7 @@ import PingMonitor, {
   DEVICE_REACHABILITY_PACKET_COUNT,
   DEVICE_REACHABILITY_RETRIES,
   DeviceReachabilityCheck,
+  PingProbeConfig,
 } from "../../../../Utils/Monitors/MonitorTypes/PingMonitor";
 
 /*
@@ -429,7 +430,19 @@ describe("getReachabilityPingConfig — per-platform shape", () => {
     ).toEqual({ min_reply: 2, v6: false, timeout: 5, deadline: 7 });
   });
 
-  test("macOS IPv6: neither wait nor deadline (ping6 has no such flags and the library throws)", () => {
+  test("macOS IPv6 DISABLES the wait rather than omitting it, and sets no deadline", () => {
+    /*
+     * `timeout: false`, not an absent key. This assertion used to read
+     * `{min_reply: 2, v6: true}` and it was wrong in the one way a
+     * config-shape test cannot notice: the library fills unset keys from its
+     * OWN defaults before it decides whether to throw (lib/builder/mac.js
+     * fills timeout=2), so an omitted timeout reached the throw exactly like
+     * a set one and every IPv6 check from a macOS probe died with "There is
+     * no timeout option on ping6". The test passed throughout.
+     *
+     * The library-level test below is the one that would have caught it, and
+     * is why it exists.
+     */
     expect(
       PingMonitor.getReachabilityPingConfig({
         isIPv6Target: true,
@@ -437,6 +450,118 @@ describe("getReachabilityPingConfig — per-platform shape", () => {
         timeoutInSeconds: 5,
         platform: "darwin",
       }),
-    ).toEqual({ min_reply: 2, v6: true });
+    ).toEqual({ min_reply: 2, v6: true, timeout: false });
+  });
+
+  test("FreeBSD IPv6 is treated like macOS: the library uses the same builder", () => {
+    expect(
+      PingMonitor.getReachabilityPingConfig({
+        isIPv6Target: true,
+        packetCount: 2,
+        timeoutInSeconds: 5,
+        platform: "freebsd",
+      }),
+    ).toEqual({ min_reply: 2, v6: true, timeout: false });
+  });
+});
+
+/*
+ * The config assertions above describe what we INTEND to hand the library.
+ * These assert what the library then does with it — which is where the macOS
+ * IPv6 regression actually lived, invisible to every shape assertion.
+ *
+ * The real argument builder is used (no spy); nothing is executed.
+ */
+describe("the ping library accepts the config we build, on every platform", () => {
+  interface ArgumentBuilder {
+    getCommandArguments: (
+      target: string,
+      config: PingProbeConfig,
+    ) => Array<string>;
+  }
+
+  interface BuilderFactory {
+    createBuilder: (platform: string) => ArgumentBuilder;
+    getExecutablePath: (platform: string, v6: boolean) => string;
+  }
+
+  /*
+   * The library ships no types for its internals, and jest.requireActual is
+   * how the rest of this suite reaches into `ping` anyway.
+   */
+  const builderFactory: BuilderFactory = jest.requireActual(
+    "ping/lib/builder/factory",
+  ) as BuilderFactory;
+
+  const platforms: Array<NodeJS.Platform> = ["linux", "darwin", "win32"];
+
+  for (const platform of platforms) {
+    for (const isIPv6Target of [false, true]) {
+      test(`${platform} ${isIPv6Target ? "IPv6" : "IPv4"} builds an argv instead of throwing`, () => {
+        const config: PingProbeConfig = PingMonitor.getReachabilityPingConfig({
+          isIPv6Target: isIPv6Target,
+          packetCount: 2,
+          timeoutInSeconds: 5,
+          platform: platform,
+        });
+
+        expect(() => {
+          return builderFactory
+            .createBuilder(platform)
+            .getCommandArguments("2001:518:2800:9::2", { ...config });
+        }).not.toThrow();
+      });
+    }
+  }
+
+  test("macOS IPv6 really does produce a ping6 argv with no -W", () => {
+    const config: PingProbeConfig = PingMonitor.getReachabilityPingConfig({
+      isIPv6Target: true,
+      packetCount: 2,
+      timeoutInSeconds: 5,
+      platform: "darwin",
+    });
+
+    const argv: Array<string> = builderFactory
+      .createBuilder("darwin")
+      .getCommandArguments("2001:518:2800:9::2", { ...config });
+
+    expect(argv).not.toContain("-W");
+    expect(argv).toContain("-c");
+    expect(argv[argv.length - 1]).toBe("2001:518:2800:9::2");
+    expect(builderFactory.getExecutablePath("darwin", true)).toBe(
+      "/sbin/ping6",
+    );
+  });
+
+  test("macOS IPv4 still gets its -W, in the milliseconds the mac builder wants", () => {
+    const config: PingProbeConfig = PingMonitor.getReachabilityPingConfig({
+      isIPv6Target: false,
+      packetCount: 2,
+      timeoutInSeconds: 5,
+      platform: "darwin",
+    });
+
+    const argv: Array<string> = builderFactory
+      .createBuilder("darwin")
+      .getCommandArguments("192.0.2.1", { ...config });
+
+    expect(argv[argv.indexOf("-W") + 1]).toBe("5000");
+  });
+
+  test("linux IPv6 gets -W in seconds and the ping6 binary", () => {
+    const config: PingProbeConfig = PingMonitor.getReachabilityPingConfig({
+      isIPv6Target: true,
+      packetCount: 2,
+      timeoutInSeconds: 5,
+      platform: "linux",
+    });
+
+    const argv: Array<string> = builderFactory
+      .createBuilder("linux")
+      .getCommandArguments("2001:518:2800:9::2", { ...config });
+
+    expect(argv[argv.indexOf("-W") + 1]).toBe("5");
+    expect(builderFactory.getExecutablePath("linux", true)).toBe("ping6");
   });
 });

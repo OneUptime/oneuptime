@@ -28,6 +28,8 @@ import StatusPageResourceService from "../Services/StatusPageResourceService";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "../Services/StatusPageService";
+import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
+import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
@@ -40,6 +42,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
@@ -1044,16 +1047,24 @@ export default class StatusPageAPI extends BaseAPI<
             select.footerHTML = true;
           }
 
+          /*
+           * The status page app offers SSO sign-in when this is non-zero.
+           * While SSO is not active - the Community Edition serves no status
+           * page SSO routes, and on a lapsed Enterprise license they refuse -
+           * it reports none rather than send visitors into a dead end.
+           */
           const hasEnabledSSO: PositiveNumber =
-            await StatusPageSsoService.countBy({
-              query: {
-                isEnabled: true,
-                statusPageId: objectId,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageSsoService.countBy({
+                  query: {
+                    isEnabled: true,
+                    statusPageId: objectId,
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : new PositiveNumber(0);
 
           const item: StatusPage | null = await this.service.findOneById({
             id: objectId,
@@ -1079,6 +1090,19 @@ export default class StatusPageAPI extends BaseAPI<
             delete item.customJavaScript;
             delete item.headerHTML;
             delete item.footerHTML;
+          }
+
+          /*
+           * The status page app forces SSO sign-in from this flag. Report
+           * the EFFECTIVE requirement: while SSO is not active (the
+           * Community Edition, or a lapsed Enterprise license) it is not
+           * enforced and password sign-in works, so the page must not send
+           * visitors into an SSO flow that does not exist or refuses. The
+           * stored value is untouched and applies again as soon as SSO is
+           * active.
+           */
+          if (!EditionEnforcement.isSsoEnforced()) {
+            item.requireSsoForLogin = false;
           }
 
           const footerLinks: Array<StatusPageFooterLink> =
@@ -1239,23 +1263,30 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageId"] as string,
           );
 
-          const sso: Array<StatusPageSSO> = await StatusPageSsoService.findBy({
-            query: {
-              statusPageId: objectId,
-              isEnabled: true,
-            },
-            select: {
-              signOnURL: true,
-              name: true,
-              description: true,
-              _id: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * Only list providers a visitor can actually sign in with: the
+           * Community Edition serves no status page SSO login routes.
+           */
+          const sso: Array<StatusPageSSO> =
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageSsoService.findBy({
+                  query: {
+                    statusPageId: objectId,
+                    isEnabled: true,
+                  },
+                  select: {
+                    signOnURL: true,
+                    name: true,
+                    description: true,
+                    _id: true,
+                  },
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : [];
 
           return Response.sendEntityArrayResponse(
             req,
@@ -1279,23 +1310,29 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageId"] as string,
           );
 
+          /*
+           * Only list providers a visitor can actually sign in with: the
+           * Community Edition serves no status page OIDC login routes.
+           */
           const oidc: Array<StatusPageOIDC> =
-            await StatusPageOidcService.findBy({
-              query: {
-                statusPageId: objectId,
-                isEnabled: true,
-              },
-              select: {
-                name: true,
-                description: true,
-                _id: true,
-              },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              props: {
-                isRoot: true,
-              },
-            });
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageOidcService.findBy({
+                  query: {
+                    statusPageId: objectId,
+                    isEnabled: true,
+                  },
+                  select: {
+                    name: true,
+                    description: true,
+                    _id: true,
+                  },
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : [];
 
           return Response.sendEntityArrayResponse(
             req,
@@ -4399,6 +4436,7 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageResources: StatusPageResource[];
     monitorStatuses: MonitorStatus[];
     monitorStatusTimelines: MonitorStatusTimeline[];
+    uptimeDailyAggregate: UptimeDailyAggregate;
     monitorGroupCurrentStatuses: Dictionary<ObjectID>;
     statusPageGroups: StatusPageGroup[];
     statusPage: StatusPage;
@@ -4678,6 +4716,22 @@ export default class StatusPageAPI extends BaseAPI<
         endDate: endDateForMonitorTimeline,
       });
 
+    /*
+     * What the uptime bars are actually painted from.
+     *
+     * `monitorStatusTimelines` above stays in the response - it is documented
+     * public API and the E2E helpers read it for current status - but it must
+     * NOT drive the bars. It is capped at LIMIT_MAX across every monitor on
+     * the page and sorted newest-first, so on a page with churny monitors it
+     * returns a few recent days and silently drops the rest.
+     */
+    const uptimeDailyAggregate: UptimeDailyAggregate =
+      await StatusPageService.getUptimeDailyAggregateForStatusPage({
+        monitorIds: monitorsOnStatusPageForTimeline,
+        startDate: startDateForMonitorTimeline,
+        endDate: endDateForMonitorTimeline,
+      });
+
     // return everything.
 
     return {
@@ -4686,6 +4740,7 @@ export default class StatusPageAPI extends BaseAPI<
       monitorGroupCurrentStatuses,
       statusPageGroups: groups,
       monitorStatusTimelines,
+      uptimeDailyAggregate,
       statusPage,
       monitorsOnStatusPage,
       monitorsInGroup,
@@ -4719,6 +4774,7 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage,
       monitorsOnStatusPage,
       monitorStatusTimelines,
+      uptimeDailyAggregate,
       statusPageGroups,
       monitorsInGroup,
       startDateForMonitorTimeline: startDate,
@@ -5519,6 +5575,8 @@ export default class StatusPageAPI extends BaseAPI<
         monitorStatusTimelines,
         MonitorStatusTimeline,
       ),
+      uptimeDailyAggregate:
+        UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
       resourceGroups: BaseModel.toJSONArray(statusPageGroups, StatusPageGroup),
       monitorStatuses: BaseModel.toJSONArray(monitorStatuses, MonitorStatus),
       statusPageResources: BaseModel.toJSONArray(

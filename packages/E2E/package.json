@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "13.0.8",
+  "version": "14.0.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -27,7 +27,9 @@
     "test-incoming-call-policies-ui": "playwright test --config playwright.incoming-call-policies.config.ts",
     "test-exception-detail-ui": "playwright test --config playwright.exception-detail-ui.config.ts",
     "test-trace-detail-ui": "playwright test --config playwright.trace-detail-ui.config.ts",
-    "test-event-overview-ui": "playwright test --config playwright.event-overview-ui.config.ts"
+    "test-event-overview-ui": "playwright test --config playwright.event-overview-ui.config.ts",
+    "test-enterprise-licensed": "playwright test --config playwright.enterprise-licensed.config.ts",
+    "test-enterprise-lapsed": "playwright test --config playwright.enterprise-lapsed.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

@@ -13,12 +13,64 @@ import MonitorService from "./MonitorService";
 import ProbeService from "./ProbeService";
 import { MonitorTypeHelper } from "../../Types/Monitor/MonitorType";
 import CronTab from "../Utils/CronTab";
-import logger, { LogAttributes } from "../Utils/Logger";
+import logger, { EXTERNAL_FAULT, LogAttributes } from "../Utils/Logger";
 import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
+import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 
 export class Service extends DatabaseService<MonitorProbe> {
   public constructor() {
     super(MonitorProbe);
+  }
+
+  /**
+   * The next time a monitor with this interval is due, or `fallback`.
+   *
+   * Exported on the class (and covered directly by tests) because both
+   * scheduling paths — the batch claim query and the single-monitor refresh
+   * after an edit — have to agree about what a stored interval means. They
+   * did not before: the claim query swallowed a parse failure silently and
+   * fell back to one minute, so a monitor asking for five minutes was probed
+   * four times more often than requested, indefinitely and invisibly.
+   *
+   * Order is load-bearing. cron-parser gets the RAW value first, so the
+   * thousands of rows that were always valid take a byte-identical path and
+   * anything the parser understands but our grammar does not ("@hourly") is
+   * still honoured. Only when that fails do we try to read the value as a
+   * human cadence ("5m", "Every 5 minutes"), which is what makes those rows
+   * schedule correctly on deploy — before the data migration has run, and
+   * for any row that later arrives through a hook-free write or a restore.
+   */
+  public static resolveNextPingAt(data: {
+    monitoringInterval: string | null | undefined;
+    fallback: Date;
+    onUnreadable?: (() => void) | undefined;
+  }): Date {
+    if (!data.monitoringInterval) {
+      return data.fallback;
+    }
+
+    try {
+      return CronTab.getNextExecutionTime(data.monitoringInterval);
+    } catch {
+      // Not a cron expression. Try to read it as a human cadence instead.
+    }
+
+    const normalizedCron: string | null =
+      MonitoringIntervalValidator.normalizeForRead(data.monitoringInterval);
+
+    if (normalizedCron) {
+      try {
+        return CronTab.getNextExecutionTime(normalizedCron);
+      } catch {
+        // Normalizer produced something cron-parser rejects. Report it.
+      }
+    }
+
+    if (data.onUnreadable) {
+      data.onUnreadable();
+    }
+
+    return data.fallback;
   }
 
   public async pruneStaleLastMonitoringLogEntries(data: {
@@ -103,20 +155,28 @@ export class Service extends DatabaseService<MonitorProbe> {
         continue;
       }
 
-      let nextPing: Date = OneUptimeDate.addRemoveMinutes(
-        OneUptimeDate.getCurrentDate(),
-        1,
-      );
-
-      try {
-        nextPing = CronTab.getNextExecutionTime(
-          monitorProbe?.monitor?.monitoringInterval as string,
-        );
-      } catch (err) {
-        logger.error(err, {
-          monitorId: data.monitorId?.toString(),
-        } as LogAttributes);
-      }
+      /*
+       * The falsy guard matters: a Manual monitor (and every other row with
+       * no interval) reaches here with undefined, and the old unguarded call
+       * handed that straight to cron-parser, which threw and logged an error
+       * for a perfectly ordinary row on every single interval edit.
+       */
+      const nextPing: Date = Service.resolveNextPingAt({
+        monitoringInterval: monitorProbe?.monitor?.monitoringInterval,
+        fallback: OneUptimeDate.addRemoveMinutes(
+          OneUptimeDate.getCurrentDate(),
+          1,
+        ),
+        onUnreadable: () => {
+          logger.error(
+            `updateNextPingAtForMonitor: monitoringInterval "${monitorProbe?.monitor?.monitoringInterval}" cannot be read as a schedule; falling back to a 1-minute cadence.`,
+            {
+              ...EXTERNAL_FAULT,
+              monitorId: data.monitorId?.toString(),
+            } as LogAttributes,
+          );
+        },
+      });
 
       if (nextPing && monitorProbe.id) {
         await this.updateOneById({
@@ -223,6 +283,17 @@ export class Service extends DatabaseService<MonitorProbe> {
         const nextPingDates: Array<Date> = [];
         const caseFragments: Array<string> = [];
 
+        /*
+         * Rows whose interval neither cron-parser nor the normalizer could
+         * read. Collected and logged ONCE per batch below rather than per
+         * row: this loop runs for every claimed monitor, every minute, on
+         * every probe-ingest instance, so a per-row log line would flood.
+         */
+        const unreadableIntervals: Array<{
+          monitorProbeId: string;
+          monitoringInterval: string;
+        }> = [];
+
         for (let i: number = 0; i < selectedRows.length; i++) {
           const row: { _id: string; monitoringInterval: string | null } =
             selectedRows[i]!;
@@ -230,16 +301,41 @@ export class Service extends DatabaseService<MonitorProbe> {
 
           let nextPing: Date = defaultNextPing;
           if (row.monitoringInterval) {
-            try {
-              nextPing = CronTab.getNextExecutionTime(row.monitoringInterval);
-            } catch {
-              // fall back to default 1 minute
-            }
+            nextPing = Service.resolveNextPingAt({
+              monitoringInterval: row.monitoringInterval,
+              fallback: defaultNextPing,
+              onUnreadable: () => {
+                unreadableIntervals.push({
+                  monitorProbeId: row._id,
+                  monitoringInterval: row.monitoringInterval as string,
+                });
+              },
+            });
           }
 
           nextPingDates.push(nextPing);
           caseFragments.push(
             `WHEN '${row._id}'::uuid THEN $${i + 3}::timestamptz`,
+          );
+        }
+
+        /*
+         * One aggregated line per batch, at error level with EXTERNAL_FAULT.
+         *
+         * Not debug: LOG_LEVEL=ERROR is what ships, so a debug or warn line
+         * here is deleted from stdout on exactly the installs where an
+         * operator would go looking. This condition used to be swallowed by
+         * a bare `catch {}`, which is why a monitor storing "5m" was probed
+         * every minute instead of every five for as long as the row existed,
+         * with nothing anywhere to grep for. EXTERNAL_FAULT marks it as
+         * tenant data rather than our own failure, so it does not page us.
+         */
+        if (unreadableIntervals.length > 0) {
+          logger.error(
+            `claimMonitorProbesForProbing: ${unreadableIntervals.length} monitor(s) have a monitoringInterval that cannot be read as a schedule and are falling back to a 1-minute cadence. Fix the stored value - "*/5 * * * *" means every 5 minutes. Offenders: ${JSON.stringify(
+              unreadableIntervals.slice(0, 20),
+            )}`,
+            EXTERNAL_FAULT,
           );
         }
 

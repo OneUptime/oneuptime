@@ -1,16 +1,12 @@
 import AuthenticationAPI from "./API/Authentication";
 import ResellerAPI from "./API/Reseller";
-import SsoAPI from "./API/SSO";
-import OidcAPI from "./API/OIDC";
-import GlobalSsoAPI from "./API/GlobalSSO";
-import GlobalOidcAPI from "./API/GlobalOIDC";
-import SCIMAPI from "./API/SCIM";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
-import StatusPageSsoAPI from "./API/StatusPageSSO";
-import StatusPageOidcAPI from "./API/StatusPageOIDC";
-import StatusPageSCIMAPI from "./API/StatusPageSCIM";
+import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import FeatureSet from "Common/Server/Types/FeatureSet";
-import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import Express, {
+  ExpressApplication,
+  ExpressRouter,
+} from "Common/Server/Utils/Express";
 import "ejs";
 
 const IdentityFeatureSet: FeatureSet = {
@@ -23,21 +19,22 @@ const IdentityFeatureSet: FeatureSet = {
 
     app.use([`/${APP_NAME}`, "/"], ResellerAPI);
 
-    app.use([`/${APP_NAME}`, "/"], SsoAPI);
+    /*
+     * Enterprise identity protocols - SAML and OIDC single sign-on for
+     * projects, the whole instance and status pages, and SCIM provisioning -
+     * are served by the Enterprise Edition module (ee/). They are mounted at
+     * the same paths and in the same position the core routers used to have,
+     * so the ACS, redirect and SCIM URLs configured at customers' identity
+     * providers keep working unchanged. The Community Edition mounts none.
+     * They are mounted once, but every route asks the license per request
+     * and refuses while its feature is not active (a lapsed license).
+     */
+    const enterpriseIdentityRouters: Array<ExpressRouter> =
+      EnterpriseEdition.getModule()?.getIdentityRouters() || [];
 
-    app.use([`/${APP_NAME}`, "/"], OidcAPI);
-
-    app.use([`/${APP_NAME}`, "/"], GlobalSsoAPI);
-
-    app.use([`/${APP_NAME}`, "/"], GlobalOidcAPI);
-
-    app.use([`/${APP_NAME}`, "/"], SCIMAPI);
-
-    app.use([`/${APP_NAME}`, "/"], StatusPageSCIMAPI);
-
-    app.use([`/${APP_NAME}`, "/"], StatusPageSsoAPI);
-
-    app.use([`/${APP_NAME}`, "/"], StatusPageOidcAPI);
+    for (const enterpriseIdentityRouter of enterpriseIdentityRouters) {
+      app.use([`/${APP_NAME}`, "/"], enterpriseIdentityRouter);
+    }
 
     app.use(
       [`/${APP_NAME}/status-page`, "/status-page"],

@@ -15,7 +15,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import React, { ReactElement } from "react";
+import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -29,31 +29,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * one line, and an outline button pinned to the left edge.
  */
 
-type CapturedTableProps = {
-  id?: string;
-  noItemsMessage?: ReactElement;
-  showRefreshButton?: boolean;
-  query?: Record<string, unknown>;
-};
-
-let capturedTableProps: CapturedTableProps | null = null;
 const navigateMock: MockFunction = getJestMockFunction();
-
-jest.mock("../../../UI/Components/ModelTable/AnalyticsModelTable", () => {
-  return {
-    __esModule: true,
-    default: (props: CapturedTableProps): ReactElement => {
-      capturedTableProps = props;
-      const react: typeof React = jest.requireActual("react") as typeof React;
-
-      return react.createElement(
-        "div",
-        { "data-testid": "security-events-analytics-table" },
-        props.noItemsMessage || null,
-      );
-    },
-  };
-});
 
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
@@ -78,7 +54,6 @@ jest.mock("../../../UI/Utils/Navigation", () => {
 import SecurityEventsEmptyState, {
   SECURITY_EVENTS_EMPTY_STATE_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsEmptyState";
-import SecurityEventsTable from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsTable";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -114,7 +89,6 @@ function navigatedTo(): Array<string> {
 }
 
 beforeEach((): void => {
-  capturedTableProps = null;
   navigateMock.mockReset();
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
 });
@@ -247,61 +221,5 @@ describe("SecurityEventsEmptyState", () => {
     renderEmptyState();
 
     expect(navigateMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("SecurityEventsTable empty state wiring", () => {
-  test("hands the table the Security Events empty state by default", () => {
-    render(
-      <MemoryRouter>
-        <SecurityEventsTable query={{ projectId: PROJECT_ID }} />
-      </MemoryRouter>,
-    );
-
-    expect(capturedTableProps).not.toBeNull();
-    expect(capturedTableProps?.id).toBe("security-events-table");
-    expect(capturedTableProps?.query).toEqual({ projectId: PROJECT_ID });
-    /*
-     * The page's Refresh re-reads a relative window from now and recounts
-     * the volume chart; the table's own could only re-list its old window.
-     */
-    expect(capturedTableProps?.showRefreshButton).toBe(false);
-    expect(capturedTableProps?.noItemsMessage?.type).toBe(
-      SecurityEventsEmptyState,
-    );
-
-    const table: HTMLElement = screen.getByTestId(
-      "security-events-analytics-table",
-    );
-    expect(
-      within(table).getByRole("heading", { name: "No security events yet" }),
-    ).toBeInTheDocument();
-    expect(
-      within(table).getByRole("button", { name: "Read the setup guide" }),
-    ).toBeInTheDocument();
-    expect(
-      within(table).getByRole("button", {
-        name: "Connect a security product",
-      }),
-    ).toBeInTheDocument();
-  });
-
-  test("a page that knows events exist can swap in its own message", () => {
-    render(
-      <MemoryRouter>
-        <SecurityEventsTable
-          query={{ projectId: PROJECT_ID }}
-          noItemsMessage={<p>Nothing in this window</p>}
-        />
-      </MemoryRouter>,
-    );
-
-    const table: HTMLElement = screen.getByTestId(
-      "security-events-analytics-table",
-    );
-    expect(within(table).getByText("Nothing in this window")).toBeVisible();
-    expect(
-      within(table).queryByRole("heading", { name: "No security events yet" }),
-    ).toBeNull();
   });
 });
