@@ -2866,7 +2866,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     /*
      * Fetch raw metrics to extract per-object vSphere context. Best
      * effort: a failure here is logged and the evaluation carries on
-     * without the breakdown table — it must never fail the monitor.
+     * without the Affected Resources list — it must never fail the monitor.
      */
     try {
       const rawMetrics: Array<Metric> = await MetricService.findBy({
@@ -3458,7 +3458,7 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
            * bare key returned undefined for every row, which collapsed the
            * whole "Affected Tasks" breakdown into one anonymous entry
            * keyed "|||" and made MonitorCriteriaEvaluator suppress the
-           * table entirely (hasIdentity was false).
+           * Affected Tasks list entirely (hasIdentity was false).
            */
           const containerName: string | undefined = metricAttrs[
             "resource.container.name"

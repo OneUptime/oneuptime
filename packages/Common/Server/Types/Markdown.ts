@@ -208,6 +208,47 @@ export default class Markdown {
     };
 
     /*
+     * Lists. A platform monitor's root cause lists its affected resources
+     * as a numbered list with a bullet list of details nested under each
+     * item, and the cluster and metric details above it are bullets too.
+     *
+     * Left to the client, Gmail and Apple Mail indent every list level by
+     * 40px — close to a tenth of the card, twice over for a nested list —
+     * and Outlook's Word engine ignores padding on <ul>/<ol> and picks its
+     * own margins. So the indent is a margin-left, which Outlook honours,
+     * with padding zeroed: 24px holds a bullet, and 32px holds a numbered
+     * marker up to three digits ("100."). The vertical margins give each
+     * item's nested details a little air above and a gap below that
+     * separates it from the next item.
+     *
+     * margin-left is a physical side, so it is followed by the logical
+     * margin-inline-start / -end: a client that understands them moves
+     * the indent to the marker side in right-to-left text, and one that
+     * does not keeps the margin-left.
+     */
+    renderer.list = function (
+      body: string,
+      ordered: boolean,
+      start: number | "",
+    ): string {
+      const tag: string = ordered ? "ol" : "ul";
+      const startAttribute: string =
+        ordered && start !== "" && start !== 1 ? ` start="${start}"` : "";
+      const indent: string = ordered ? "32px" : "24px";
+
+      return (
+        `<${tag}${startAttribute} style="margin:6px 0 12px 0;` +
+        `margin-left:${indent};margin-inline-start:${indent};` +
+        `margin-inline-end:0;padding:0;">` +
+        `${body}</${tag}>`
+      );
+    };
+
+    renderer.listitem = function (text: string): string {
+      return `<li style="margin:0 0 4px;padding:0;">${text}</li>`;
+    };
+
+    /*
      * The root cause backticks metric names, aliases and timestamps. Left
      * bare they were indistinguishable from the prose around them.
      *
