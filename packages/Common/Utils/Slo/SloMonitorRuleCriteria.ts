@@ -1,10 +1,15 @@
 import FilterCondition from "../../Types/Filter/FilterCondition";
 import ObjectID from "../../Types/ObjectID";
+import MonitorType from "../../Types/Monitor/MonitorType";
 import RuleCriteria, {
   RuleCriteriaFilter,
   RuleCriteriaOperator,
 } from "../../Types/Rules/RuleCriteria";
 import { isValidRuleCriteria } from "../Rules/RuleCriteriaMatcher";
+import {
+  getMonitorTypeCriteriaValidationError,
+  isMonitorTypeCriteriaValue,
+} from "../Rules/MonitorTypeRuleCriteria";
 
 /*
  * Plain-English descriptions of what an SLO monitor rule matches, for the
@@ -33,6 +38,7 @@ export const SLO_MONITOR_RULE_CRITERIA_FIELD_TITLES: Readonly<
   Record<string, string>
 > = {
   monitorLabels: "Labels",
+  monitorType: "Type",
   monitorNamePattern: "Name",
   monitorDescriptionPattern: "Description",
 };
@@ -78,6 +84,7 @@ export interface SloMonitorRuleLabelReference {
 export interface SloMonitorRuleCriteriaCarrier {
   criteria?: RuleCriteria | null | undefined;
   monitorLabels?: Array<SloMonitorRuleLabelReference> | undefined;
+  monitorType?: MonitorType | null | undefined;
   monitorNamePattern?: string | null | undefined;
   monitorDescriptionPattern?: string | null | undefined;
 }
@@ -247,7 +254,15 @@ export const describeSloMonitorRuleCriteria: DescribeSloMonitorRuleCriteriaFunct
     }
 
     if (hasConfiguredCriteria(rule)) {
-      if (!isValidRuleCriteria(rule.criteria)) {
+      if (
+        !isValidRuleCriteria(rule.criteria) ||
+        rule.criteria.filters.some((filter: RuleCriteriaFilter): boolean => {
+          return (
+            filter.field === "monitorType" &&
+            getMonitorTypeCriteriaValidationError(filter) !== null
+          );
+        })
+      ) {
         return SLO_MONITOR_RULE_INVALID_CRITERIA_DESCRIPTION;
       }
 
@@ -267,6 +282,14 @@ export const describeSloMonitorRuleCriteria: DescribeSloMonitorRuleCriteriaFunct
         .join(connector);
     }
 
+    if (
+      rule.monitorType !== undefined &&
+      rule.monitorType !== null &&
+      !isMonitorTypeCriteriaValue(rule.monitorType)
+    ) {
+      return SLO_MONITOR_RULE_INVALID_CRITERIA_DESCRIPTION;
+    }
+
     const parts: Array<string> = [];
 
     const legacyLabelIds: Array<string> = getSloMonitorRuleLabelIds(rule);
@@ -276,6 +299,14 @@ export const describeSloMonitorRuleCriteria: DescribeSloMonitorRuleCriteriaFunct
         `${SLO_MONITOR_RULE_CRITERIA_FIELD_TITLES["monitorLabels"]} ${
           SLO_MONITOR_RULE_OPERATOR_PHRASES[RuleCriteriaOperator.HasAnyOf]
         } ${describeLabels({ labelIds: legacyLabelIds, labelNameById })}`,
+      );
+    }
+
+    if (rule.monitorType) {
+      parts.push(
+        `${SLO_MONITOR_RULE_CRITERIA_FIELD_TITLES["monitorType"]} ${
+          SLO_MONITOR_RULE_OPERATOR_PHRASES[RuleCriteriaOperator.Equals]
+        } ${quote(rule.monitorType)}`,
       );
     }
 
@@ -358,6 +389,7 @@ export const getSloMonitorRuleCriteriaKey: GetSloMonitorRuleCriteriaKeyFunction 
           return id.toLowerCase();
         })
         .sort(),
+      monitorType: rule.monitorType || "",
       name: rule.monitorNamePattern || "",
       description: rule.monitorDescriptionPattern || "",
     })}`;

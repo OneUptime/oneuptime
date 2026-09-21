@@ -382,6 +382,7 @@ export const QuerySlosTool: ObservabilityTool = {
                     _id: true,
                     name: true,
                   },
+                  monitorType: true,
                   monitorNamePattern: true,
                   monitorDescriptionPattern: true,
                   criteria: true,

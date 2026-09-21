@@ -57,6 +57,43 @@ function extractMatchFields(source: string): Set<string> {
   return fields;
 }
 
+function extractFormMatchFields(data: {
+  filePath: string;
+  source: string;
+  formSource: string;
+}): Set<string> {
+  const fields: Set<string> = extractMatchFields(data.formSource);
+  const helperPattern: RegExp = /formFields=\{([A-Za-z][A-Za-z0-9]*)\(\)\}/g;
+
+  for (const helperMatch of data.formSource.matchAll(helperPattern)) {
+    const importMatch: RegExpMatchArray | null = data.source.match(
+      new RegExp(`import\\s+${helperMatch[1]}\\s+from\\s+["'](\\.[^"']+)["']`),
+    );
+    expect(importMatch).not.toBeNull();
+
+    const helperPath: string = path.resolve(
+      path.dirname(data.filePath),
+      importMatch![1]!,
+    );
+    const resolvedPath: string | undefined = [".ts", ".tsx"]
+      .map((extension: string): string => {
+        return `${helperPath}${extension}`;
+      })
+      .find((candidate: string): boolean => {
+        return fs.existsSync(candidate);
+      });
+    expect(resolvedPath).toBeDefined();
+
+    for (const field of extractMatchFields(
+      fs.readFileSync(resolvedPath!, "utf8"),
+    )) {
+      fields.add(field);
+    }
+  }
+
+  return fields;
+}
+
 function discoverStaticRuleForms(): {
   formFiles: Array<string>;
   formsByModel: Map<string, FormCoverage>;
@@ -92,9 +129,11 @@ function discoverStaticRuleForms(): {
       const modelName: string = match[1]!;
       const sourceStart: number = match.index!;
       const sourceEnd: number = nextMatch?.index || source.length;
-      const fields: Set<string> = extractMatchFields(
-        source.slice(sourceStart, sourceEnd),
-      );
+      const fields: Set<string> = extractFormMatchFields({
+        filePath: filePath,
+        source: source,
+        formSource: source.slice(sourceStart, sourceEnd),
+      });
 
       expect(fields.size).toBeGreaterThan(0);
       expect(formsByModel.has(modelName)).toBe(false);

@@ -226,6 +226,7 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
       "description",
       "isEnabled",
       "monitorLabels",
+      "monitorType",
       "monitorNamePattern",
       "monitorDescriptionPattern",
       "createdByUserId",
@@ -235,11 +236,12 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
     }
   });
 
-  test("registers exactly the three legacy match fields for criteria", () => {
+  test("registers every monitor match field for criteria", () => {
     expect(
       RULE_CRITERIA_FIELDS_BY_MODEL["ServiceLevelObjectiveMonitorRule"],
     ).toEqual([
       "monitorLabels",
+      "monitorType",
       "monitorNamePattern",
       "monitorDescriptionPattern",
     ]);
@@ -283,6 +285,7 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
   test("lets the match criteria be edited on a saved rule", () => {
     for (const column of [
       "monitorLabels",
+      "monitorType",
       "monitorNamePattern",
       "monitorDescriptionPattern",
       "isEnabled",
@@ -311,6 +314,17 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
       joinColumn: "serviceLevelObjectiveMonitorRuleId",
       inverseJoinColumn: "labelId",
     });
+  });
+
+  test("stores an optional monitor type with the monitor enum metadata", () => {
+    const metadata: TableColumnMetadata =
+      model.getTableColumnMetadata("monitorType");
+    expect(metadata.type).toBe(TableColumnType.MonitorType);
+    expect(metadata.required).toBe(false);
+    expect(metadata.title).toBe("Monitor Type");
+    expect(
+      columnArgs(ServiceLevelObjectiveMonitorRule, "monitorType")?.options,
+    ).toMatchObject({ nullable: true, length: 100 });
   });
 
   test("keeps both patterns nullable, so a label-only rule is valid", () => {

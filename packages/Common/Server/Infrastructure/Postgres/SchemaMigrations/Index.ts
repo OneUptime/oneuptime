@@ -1,3 +1,4 @@
+import { AddSloMonitorRuleMonitorType1794000000000 } from "./1794000000000-AddSloMonitorRuleMonitorType";
 import { AddAIInvestigationDecision1793700000000 } from "./1793700000000-AddAIInvestigationDecision";
 import { RemoveMonitorDescriptionLengthLimit1793800000000 } from "./1793800000000-RemoveMonitorDescriptionLengthLimit";
 import { AddEnterpriseEditionFirstSeenAt1793900000000 } from "./1793900000000-AddEnterpriseEditionFirstSeenAt";
@@ -1202,4 +1203,5 @@ export default [
   AddAIInvestigationDecision1793700000000,
   RemoveMonitorDescriptionLengthLimit1793800000000,
   AddEnterpriseEditionFirstSeenAt1793900000000,
+  AddSloMonitorRuleMonitorType1794000000000,
 ];
