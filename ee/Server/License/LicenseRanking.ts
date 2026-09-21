@@ -24,7 +24,8 @@ import { LicenseTokenClassification } from "./LicenseToken";
  *
  *   status first:        valid > grace > expired > missing > invalid
  *   then verification:   verified > unverified > none
- *   then, while BOTH sides are usable, the date entitlement actually ends on:
+ *   then, while BOTH sides are usable AND the two dates measure the same
+ *   thing, the date entitlement actually ends on:
  *                        later > earlier
  *
  * Status comes first because it is what the product acts on: a current legacy
@@ -57,6 +58,31 @@ import { LicenseTokenClassification } from "./LicenseToken";
  * expiresAt. If either side has no date the ranks stay equal, exactly as
  * before - there is nothing to compare, and refusing on ignorance would be the
  * downgrade this rule exists to prevent.
+ *
+ * When the date is NOT compared, and why it must not be.
+ *
+ * Comparing the dates of two DIFFERENT licenses says nothing about a mistake.
+ * A different token is a different license, deliberately issued, and a real
+ * plan change may legitimately end sooner: an evaluation running to next
+ * summer converted to a paid year, an annual plan moved to monthly. Refusing
+ * those kept the evaluation token and its flag installed, left the seat limit
+ * stale, and made every later refresh throw at the administrator who had just
+ * bought the new plan. Status still refuses a genuinely expired or invalid
+ * license, because status outranks everything.
+ *
+ * So the tie-break runs only where the two dates are comparable measures of
+ * entitlement (see mayReplace):
+ *
+ *   - the token is UNCHANGED: the same license restated. A shorter or dropped
+ *     term here is not a plan change, it is this product's own bookkeeping
+ *     going backwards - a sync glitch, a response that forgot expiresAt, a
+ *     bare column edit - which is what the tie-break was added for.
+ *   - or the candidate's end date is the INSTALLATION's rather than a
+ *     license's: an install with nothing usable to go on falls back to the
+ *     unlicensed trial (graceReason "unlicensed"), which ends at first run +
+ *     trialDays. That date describes the install, not anything that was
+ *     bought, so it must never quietly shorten a real licensed term - whatever
+ *     token it happens to arrive with.
  */
 
 const STATUS_RANK: Record<EnterpriseLicenseStatus, number> = {
@@ -92,6 +118,19 @@ export interface LicenseDowngrade {
   candidate: LicenseTokenClassification;
 }
 
+export interface LicenseRankingOptions {
+  /*
+   * Whether an otherwise equal rank is broken on the date the entitlement
+   * actually ends. True is the full order described at the top of this file;
+   * false stops at status and verification, for two licenses whose end dates
+   * are not comparable measures of the same entitlement. mayReplace decides
+   * which of the two applies to a license-server answer.
+   */
+  compareEffectiveEnd: boolean;
+}
+
+const FULL_ORDER: LicenseRankingOptions = { compareEffectiveEnd: true };
+
 export interface GuardedLicenseUpdate {
   // What is safe to write: `update` minus the license terms when they were refused.
   update: PartialEntity<GlobalConfig>;
@@ -100,10 +139,15 @@ export interface GuardedLicenseUpdate {
 }
 
 export default class LicenseRanking {
-  // Positive when `a` is better than `b`, negative when worse, 0 when equal.
+  /*
+   * Positive when `a` is better than `b`, negative when worse, 0 when equal.
+   * Defaults to the full order; pass compareEffectiveEnd false to stop at
+   * status and verification.
+   */
   public static compare(
     a: EnterpriseLicenseSnapshot,
     b: EnterpriseLicenseSnapshot,
+    options: LicenseRankingOptions = FULL_ORDER,
   ): number {
     const statusDifference: number =
       STATUS_RANK[a.status] - STATUS_RANK[b.status];
@@ -123,9 +167,12 @@ export default class LicenseRanking {
      * Same status, same verification: the one that lapses later is worth more.
      * Only while both are usable - between two lapsed licenses the date is
      * bookkeeping, not entitlement, and refusing a fresher record of a dead
-     * license would keep an install from ever recording the truth.
+     * license would keep an install from ever recording the truth. And only
+     * where the caller says the two dates measure the same entitlement at all
+     * (see "When the date is NOT compared" above).
      */
     if (
+      !options.compareEffectiveEnd ||
       !EnterpriseLicenseSnapshotUtil.isUsable(a) ||
       !EnterpriseLicenseSnapshotUtil.isUsable(b)
     ) {
@@ -145,8 +192,49 @@ export default class LicenseRanking {
   public static isAtLeastAsGood(
     candidate: EnterpriseLicenseSnapshot,
     current: EnterpriseLicenseSnapshot,
+    options: LicenseRankingOptions = FULL_ORDER,
   ): boolean {
-    return LicenseRanking.compare(candidate, current) >= 0;
+    return LicenseRanking.compare(candidate, current, options) >= 0;
+  }
+
+  /*
+   * Whether a license the license server returned may replace the installed
+   * one: the never-downgrade rule as both writers apply it (a refresh through
+   * guardUpdate, and an activation through LicenseClient).
+   *
+   * `sameToken` is what decides whether the effective-end tie-break is a
+   * meaningful comparison - see "When the date is NOT compared" at the top of
+   * this file. A candidate that falls back to the installation's own trial
+   * (graceReason "unlicensed") carries no license term to compare, so its date
+   * is always judged, however the token changed.
+   */
+  public static mayReplace(data: {
+    current: EnterpriseLicenseSnapshot;
+    candidate: EnterpriseLicenseSnapshot;
+    sameToken: boolean;
+  }): boolean {
+    return LicenseRanking.isAtLeastAsGood(data.candidate, data.current, {
+      compareEffectiveEnd:
+        data.sameToken ||
+        LicenseRanking.endsWithTheInstallationsTrial(data.candidate),
+    });
+  }
+
+  /*
+   * Whether a snapshot's effective end date is about this INSTALLATION rather
+   * than about a license. An install with no usable license falls back to the
+   * unlicensed trial, which ends at first run + trialDays and says nothing
+   * about what was bought; every other end date - an expiry, or the grace
+   * period that follows one - is the license's own.
+   *
+   * Only a usable snapshot ever reaches the date comparison, and the only
+   * usable trial state is "grace" with graceReason "unlicensed" (a lapsed
+   * trial is "missing", which compare() rejects before this matters).
+   */
+  private static endsWithTheInstallationsTrial(
+    snapshot: EnterpriseLicenseSnapshot,
+  ): boolean {
+    return snapshot.graceReason === "unlicensed";
   }
 
   public static describe(snapshot: EnterpriseLicenseSnapshot): string {
@@ -201,14 +289,22 @@ export default class LicenseRanking {
    * being classified: there is nothing to judge, and classifying verifies a
    * signature for no reason.
    *
-   * Note what this costs: the expiry and seat limit of an unverified license
-   * no longer follow the license server unconditionally. They still follow it
-   * in every direction that does not make the license classify worse (a
-   * renewal, a seat change, a shorter term that is still current), which is
-   * every legitimate change; what is refused now is a bare column edit that
-   * would lapse a license which is working today. For a legacy license the
-   * server is the only authority on those columns, but it is not an authority
-   * on taking the installation down by accident.
+   * Note what this costs, stated for the unverified license that nearly every
+   * installation in the field actually holds (TrustedLicenseKeys shipped empty
+   * until very recently, so almost nothing verifies). Its expiry and seat
+   * limit no longer follow the license server unconditionally:
+   *
+   *   accepted   a renewal, a seat change, a company-name change, and - under
+   *              a DIFFERENT token - a real plan change that ends sooner than
+   *              the license it replaces, as long as it is still current.
+   *   refused    the SAME token with its term dropped or moved earlier, and
+   *              any answer that would take the installation to a worse status
+   *              or a worse verification.
+   *
+   * So a shorter term is followed when a new license comes with it, and
+   * refused when it arrives as a bare edit to the license already installed.
+   * For a legacy license the server is the only authority on those columns,
+   * but it is not an authority on taking the installation down by accident.
    *
    * A refused update keeps the stored token and every license-term column,
    * and still writes the rest (the usage report: user count, instances).
@@ -240,7 +336,13 @@ export default class LicenseRanking {
       data.now,
     );
 
-    if (LicenseRanking.isAtLeastAsGood(candidate, current)) {
+    if (
+      LicenseRanking.mayReplace({
+        current,
+        candidate,
+        sameToken: data.inputs.token === candidateInputs.token,
+      })
+    ) {
       return { update: data.update, downgrade: null };
     }
 

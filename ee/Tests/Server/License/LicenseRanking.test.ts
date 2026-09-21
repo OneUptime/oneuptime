@@ -569,14 +569,15 @@ describe("LicenseRanking.guardUpdate - the same token, different terms", () => {
   });
 
   /*
-   * A shorter term that is still current. The customer agreed to it, the
-   * license still classifies "valid", and the date tie-break never runs
-   * because the terms are only ranked once the status or verification ties -
-   * which they do here, at "valid (unverified)" on both sides... so the date
-   * DOES decide, and an earlier-but-still-valid date is a smaller
-   * entitlement. It is refused, and that is the conservative half of this
-   * rule: a shortening that is real reaches the installation the next time
-   * the license server sends a token to go with it.
+   * A shorter term on the SAME token. Nothing here says a new license was
+   * issued: it is the license already installed, restated with less time on
+   * it, which is what a sync glitch or a bare column edit looks like. Status
+   * and verification tie at "valid (unverified)", so the date decides, and an
+   * earlier date is a smaller entitlement. Refused.
+   *
+   * A real shortening arrives with a new token, and that case is accepted -
+   * see "a different token" below. This is the half of the rule that has to
+   * stay conservative, because it is the half with no evidence.
    */
   it("refuses an earlier expiry even while it would still be current", () => {
     const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
@@ -706,6 +707,204 @@ describe("LicenseRanking.guardUpdate - the same token, different terms", () => {
 
     expect(guarded.downgrade).toBeNull();
     expect(guarded.update).toBe(update);
+  });
+});
+
+/*
+ * A DIFFERENT token whose term ends sooner: the other half of the case above,
+ * and the opposite mistake.
+ *
+ * A different token is a different license, deliberately issued. A plan change
+ * legitimately ends sooner - an evaluation running to next summer converted to
+ * a paid year, an annual plan moved to monthly - and the date tie-break was
+ * refusing every one of them. The installation kept the evaluation token and
+ * its flag, enforced the old seat limit, and threw at the administrator on
+ * every refresh until the stored expiry finally lapsed.
+ *
+ * So for a new token the date is not compared, and status and verification are
+ * left to do what they always did: a license that is genuinely expired,
+ * unsigned where a signed one is installed, or unreadable is still refused.
+ */
+describe("LicenseRanking.guardUpdate - a different token, a shorter term", () => {
+  const now: Date = new Date();
+
+  const installed: (
+    storedColumns?: LicenseInputs["storedColumns"],
+  ) => LicenseInputs = (
+    storedColumns?: LicenseInputs["storedColumns"],
+  ): LicenseInputs => {
+    return makeInputs({
+      token: legacyToken("installed"),
+      storedColumns: storedColumns || {
+        ...legacyColumns(300),
+        enterpriseEditionFirstSeenAt: new Date(
+          now.getTime() - 400 * DAY_IN_MS,
+        ),
+      },
+    });
+  };
+
+  // The evaluation-to-paid conversion, in the direction that was refused.
+  it("accepts an evaluation license turning into a paid one that ends sooner", () => {
+    const inputs: LicenseInputs = installed({
+      ...legacyColumns(300),
+      isEvaluation: true,
+      enterpriseEditionFirstSeenAt: new Date(now.getTime() - 400 * DAY_IN_MS),
+    });
+    const paidEndsAt: Date = new Date(now.getTime() + 90 * DAY_IN_MS);
+
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs,
+      update: {
+        enterpriseLicenseToken: legacyToken("paid"),
+        enterpriseLicenseExpiresAt: paidEndsAt,
+        enterpriseLicenseIsEvaluation: false,
+        enterpriseLicenseUserLimit: 500,
+        enterpriseCompanyName: "Acme Inc",
+      },
+      now,
+    });
+
+    expect(guarded.downgrade).toBeNull();
+
+    // The new terms are actually written, not merely not-refused.
+    const after: LicenseInputs = LicenseInputsUtil.withUpdate(
+      inputs,
+      guarded.update,
+    );
+
+    expect(after.token).toBe(legacyToken("paid"));
+    expect(after.storedColumns.expiresAt).toEqual(paidEndsAt);
+    expect(LicenseInputsUtil.classify(after, now)).toMatchObject({
+      status: "valid",
+      isEvaluation: false,
+      userLimit: 500,
+    });
+  });
+
+  it("accepts an annual license moved to a monthly one", () => {
+    const monthlyEndsAt: Date = new Date(now.getTime() + 30 * DAY_IN_MS);
+    const inputs: LicenseInputs = installed();
+
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs,
+      update: {
+        enterpriseLicenseToken: legacyToken("monthly"),
+        enterpriseLicenseExpiresAt: monthlyEndsAt,
+      },
+      now,
+    });
+
+    expect(guarded.downgrade).toBeNull();
+    expect(
+      LicenseInputsUtil.classify(
+        LicenseInputsUtil.withUpdate(inputs, guarded.update),
+        now,
+      ),
+    ).toMatchObject({ status: "valid", expiresAt: monthlyEndsAt });
+  });
+
+  /*
+   * The limit of the concession: a new token buys no leniency on STATUS. A
+   * license that has already run out past its grace cannot replace one that
+   * is working, however new its token is.
+   */
+  it("still refuses a different token whose term has already expired", () => {
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs: installed(),
+      update: {
+        enterpriseLicenseToken: legacyToken("expired"),
+        enterpriseLicenseExpiresAt: new Date(
+          now.getTime() - (LICENSE_GRACE_PERIOD_IN_DAYS + 5) * DAY_IN_MS,
+        ),
+      },
+      now,
+    });
+
+    expect(guarded.downgrade).not.toBeNull();
+    expect(guarded.downgrade?.current.status).toBe("valid");
+    expect(guarded.downgrade?.candidate.status).toBe("expired");
+
+    for (const column of LICENSE_TERM_COLUMNS) {
+      expect(guarded.update).not.toHaveProperty(column as string);
+    }
+  });
+
+  /*
+   * And no leniency on VERIFICATION either: the signing-key-paired-wrongly
+   * failure the whole rule exists for arrives with a new token every time.
+   */
+  it("still refuses a different unsigned token in place of a signed one", () => {
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs: makeInputs({ token: signLicense(SIGNING_KEY) }),
+      update: {
+        enterpriseLicenseToken: legacyToken("unsigned"),
+        enterpriseLicenseExpiresAt: new Date(now.getTime() + 10 * DAY_IN_MS),
+      },
+      now,
+    });
+
+    expect(guarded.downgrade).not.toBeNull();
+    expect(guarded.downgrade?.candidate.verification).toBe("unverified");
+  });
+
+  /*
+   * The distinction, as one pair. The same update, the only difference being
+   * whether the token came with it: a new license shortening its own term is
+   * a plan change, the installed license shortening itself is a mistake.
+   */
+  it("turns on the token and nothing else", () => {
+    const shorter: Date = new Date(now.getTime() + 10 * DAY_IN_MS);
+    const sameToken: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs: installed(),
+      update: {
+        enterpriseLicenseToken: legacyToken("installed"),
+        enterpriseLicenseExpiresAt: shorter,
+      },
+      now,
+    });
+    const newToken: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs: installed(),
+      update: {
+        enterpriseLicenseToken: legacyToken("replacement"),
+        enterpriseLicenseExpiresAt: shorter,
+      },
+      now,
+    });
+
+    expect({
+      sameToken: sameToken.downgrade !== null,
+      newToken: newToken.downgrade !== null,
+    }).toEqual({ sameToken: true, newToken: false });
+  });
+
+  /*
+   * A new token that records NO term at all is not a plan change: its end date
+   * is the installation's trial, not anything that was bought, so it is judged
+   * on the date however new the token is. This is the same protection as
+   * "refuses a no-expiry token that would end a licensed grace period sooner"
+   * below, stated here because it is the exception to the rule this block is
+   * about.
+   */
+  it("does not extend the concession to a new token with no term at all", () => {
+    const guarded: GuardedLicenseUpdate = LicenseRanking.guardUpdate({
+      inputs: installed({
+        ...legacyColumns(-3),
+        enterpriseEditionFirstSeenAt: new Date(
+          now.getTime() - (LICENSE_TRIAL_PERIOD_IN_DAYS - 2) * DAY_IN_MS,
+        ),
+      }),
+      update: {
+        enterpriseLicenseToken: legacyToken("no-term"),
+        enterpriseLicenseExpiresAt: null,
+      },
+      now,
+    });
+
+    expect(guarded.downgrade).not.toBeNull();
+    expect(guarded.downgrade?.candidate.reason).toBe(
+      "unverified-without-expiry-unlicensed",
+    );
   });
 });
 
