@@ -1004,7 +1004,7 @@ export default class MetricMonitorCriteria {
     const sigmaAbs: number = Math.abs(firstBreach.sigma);
 
     /*
-     * Same rendering as the breaching-samples table and the comparison
+     * Same rendering as the breaching-samples list and the comparison
      * sentence — an anomaly on a memory metric reads "1.07 GB", not
      * "1073741824.000 By". σ is a count of standard deviations, not a
      * quantity in the metric's unit, so it stays a bare number; the

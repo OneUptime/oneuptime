@@ -34,6 +34,10 @@ import AffectedResourceList, {
   AffectedResourceListDetail,
   AffectedResourceListEntry,
 } from "./AffectedResourceList";
+import RootCauseList, {
+  RootCauseListDetail,
+  RootCauseListItem,
+} from "./RootCauseList";
 import DataToProcess from "./DataToProcess";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
@@ -1556,9 +1560,7 @@ ${contextBlock}
           samples: breachingSamples,
           totalSamples: ctx.totalSamplesInWindow,
           unit: ctx.unit,
-          metricName: ctx.metricName,
           unitHeuristicMetricName: unitHeuristicMetricName,
-          alias: ctx.alias,
           components: ctx.components || [],
         })}`,
       );
@@ -1614,11 +1616,25 @@ ${contextBlock}
   }
 
   /**
-   * Build the **Breaching Samples** markdown section — a table of
-   * timestamps, values, and any group-by attributes. Caps the row count
-   * so a 30-minute window at 1-second granularity doesn't dump thousands
-   * of lines onto the root-cause page; the caller can always drill in
-   * via the metric explorer link.
+   * Build the **Breaching Samples** markdown section — a numbered list of
+   * the samples that breached, oldest first. Caps the list so a 30-minute
+   * window at 1-second granularity doesn't dump thousands of lines onto
+   * the root-cause page; the caller can always drill in via the metric
+   * explorer link.
+   *
+   *     1. `2026-08-14T10:30:00.000Z` — **1.07 GB**
+   *        - `a`: 537 MB
+   *        - `b`: 1.5 sec
+   *        - `k8s.pod.name`: `web-1`
+   *
+   * It used to be a table — Timestamp | Metric | Alias | Value, a column
+   * per formula component and one per attribute key — which grew wider
+   * with every attribute and read badly in the email card, in Slack and on
+   * the dashboard (see RootCauseList). Its Metric and Alias columns
+   * repeated the same two values on every row, the ones the Metric
+   * Details list directly above already states, so the list leaves them
+   * out; and a component or attribute a sample has no value for is left
+   * out rather than printed as "-".
    *
    * Timestamps are emitted as inline code wrapping ISO 8601 strings so
    * the client-side markdown viewer can localize them to the viewer's
@@ -1628,16 +1644,14 @@ ${contextBlock}
     samples: Array<MetricBreachingSample>;
     totalSamples?: number | undefined;
     unit: string | null;
-    metricName: string;
     /**
      * The metric name to reason about, or undefined for a formula.
      * See MonitorCriteriaEvaluator.metricNameForUnitHeuristics.
      */
     unitHeuristicMetricName: string | undefined;
-    alias: string;
     components: Array<MetricComponent>;
   }): string {
-    const MAX_ROWS: number = 20;
+    const MAX_SAMPLES_SHOWN: number = 20;
 
     // Sort chronologically and de-duplicate any accidental repeats
     const sorted: Array<MetricBreachingSample> = [...input.samples].sort(
@@ -1650,10 +1664,13 @@ ${contextBlock}
 
     const displayedSamples: Array<MetricBreachingSample> = sorted.slice(
       0,
-      MAX_ROWS,
+      MAX_SAMPLES_SHOWN,
     );
 
-    // Collect attribute keys that appear on any displayed sample
+    /*
+     * Collect attribute keys that appear on any displayed sample, so every
+     * item lists the attributes it has in the same order.
+     */
     const attrKeySet: Set<string> = new Set<string>();
     for (const s of displayedSamples) {
       for (const k of Object.keys(s.attributes || {})) {
@@ -1662,107 +1679,74 @@ ${contextBlock}
     }
     const attrKeys: Array<string> = Array.from(attrKeySet);
 
-    /*
-     * Escape pipe characters that could appear in the metric display
-     * name (formulas like "a | b" are unlikely but possible) so they
-     * don't break GitHub-flavored-markdown tables.
-     */
-    const escapeCell: (value: string) => string = (value: string): string => {
-      return value.replace(/\|/g, "\\|");
-    };
+    const items: Array<RootCauseListItem> = displayedSamples.map(
+      (s: MetricBreachingSample): RootCauseListItem => {
+        const details: Array<RootCauseListDetail> = [];
 
-    /*
-     * Column layout:
-     *   Timestamp | Metric | Alias | Value | <component_1> | ... | <attr_1> | ...
-     *
-     * The component columns let the reader see what each variable of a
-     * formula resolved to at the breach time — e.g. "when c = a + b
-     * breached 100, a was 55, b was 46". They are omitted for plain
-     * metric criteria.
-     */
-    const headerCells: Array<string> = [
-      "Timestamp",
-      "Metric",
-      "Alias",
-      "Value",
-    ];
-
-    /*
-     * The component columns carry no unit in their header any more. Each
-     * cell now names the unit it actually landed on, and auto-scaling
-     * means neighbouring rows can land on different ones — a header that
-     * read "a (By)" over cells reading "900 KB" and "1.2 MB" states a
-     * unit that neither row uses. The configured unit is not lost: the
-     * Components bullet list above the table still records it.
-     */
-    for (const component of input.components) {
-      headerCells.push(component.alias);
-    }
-
-    headerCells.push(...attrKeys);
-
-    const headerRow: string = `| ${headerCells.join(" | ")} |`;
-    const dividerRow: string = `| ${headerCells
-      .map(() => {
-        return "---";
-      })
-      .join(" | ")} |`;
-
-    const metricCell: string = `\`${escapeCell(input.metricName)}\``;
-    const aliasCell: string = input.alias
-      ? `\`${escapeCell(input.alias)}\``
-      : "-";
-
-    const dataRows: Array<string> = displayedSamples.map(
-      (s: MetricBreachingSample) => {
-        const timestampIso: string = new Date(s.timestamp).toISOString();
-        const cells: Array<string> = [
-          `\`${timestampIso}\``,
-          metricCell,
-          aliasCell,
-          MetricValueFormatter.format({
-            value: s.value,
-            unit: input.unit,
-            metricName: input.unitHeuristicMetricName,
-          }),
-        ];
-
+        /*
+         * What each variable of a formula resolved to at the breach time —
+         * e.g. "when c = a + b breached 100, a was 55, b was 46". Absent
+         * for plain metric criteria.
+         */
         for (const component of input.components) {
           const match: MetricComponentValue | undefined = (
             s.componentValues || []
           ).find((cv: MetricComponentValue) => {
             return cv.alias === component.alias;
           });
-          if (match && typeof match.value === "number") {
-            /*
-             * Each component keeps its OWN unit. Component values are
-             * indexed off the per-query series and never go through the
-             * sample→threshold-unit conversion the main Value column
-             * does, so they are in the component's legendUnit — mixing
-             * units across the row is deliberate, and is why every cell
-             * has to say which one it is in.
-             */
-            cells.push(
-              MetricValueFormatter.format({
-                value: match.value,
-                unit: component.unit,
-                metricName:
-                  MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
-                    metricName: component.name,
-                    isFormula: component.isFormula,
-                  }),
-              }),
-            );
-          } else {
-            cells.push("-");
+
+          if (!match || typeof match.value !== "number") {
+            continue;
           }
+
+          /*
+           * Each component keeps its OWN unit. Component values are
+           * indexed off the per-query series and never go through the
+           * sample→threshold-unit conversion the sample's value does, so
+           * they are in the component's legendUnit — which is why each
+           * one names the unit it is in. Its configured unit is in the
+           * Components list of the Metric Details above.
+           */
+          details.push({
+            label: RootCauseList.code(component.alias),
+            value: MetricValueFormatter.format({
+              value: match.value,
+              unit: component.unit,
+              metricName: MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                metricName: component.name,
+                isFormula: component.isFormula,
+              }),
+            }),
+          });
         }
 
+        /*
+         * The attributes identify the series the sample came from. Keys
+         * and values are telemetry, so both go in code spans:
+         * RootCauseList.code keeps whatever they contain inside the span.
+         */
         for (const k of attrKeys) {
           const v: unknown = (s.attributes as Record<string, unknown>)[k];
-          cells.push(v === undefined || v === null ? "-" : String(v));
+
+          if (v === undefined || v === null) {
+            continue;
+          }
+
+          details.push({
+            label: RootCauseList.code(k),
+            value: RootCauseList.code(String(v)),
+          });
         }
-        return `| ${cells.join(" | ")} |`;
+
+        return {
+          title: RootCauseList.code(new Date(s.timestamp).toISOString()),
+          value: `**${MetricValueFormatter.format({
+            value: s.value,
+            unit: input.unit,
+            metricName: input.unitHeuristicMetricName,
+          })}**`,
+          details: details,
+        };
       },
     );
 
@@ -1773,14 +1757,17 @@ ${contextBlock}
         totalSamples: input.totalSamples,
       }),
       "",
-      headerRow,
-      dividerRow,
-      ...dataRows,
+      RootCauseList.render(items),
     ];
 
     if (sorted.length > displayedSamples.length) {
+      /*
+       * The blank line matters: without it the note is a lazy
+       * continuation of the last item, not a paragraph of its own.
+       */
       lines.push(
-        `\n_Showing the first ${displayedSamples.length} of ${sorted.length} breaching samples._`,
+        "",
+        `_Showing the first ${displayedSamples.length} of ${sorted.length} breaching samples._`,
       );
     }
 
