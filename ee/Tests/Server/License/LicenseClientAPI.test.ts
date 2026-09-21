@@ -11,6 +11,7 @@ import LicenseSigner, {
   LicenseTokenSubject,
 } from "../../../Server/LicenseServer/LicenseSigner";
 import { EnterpriseServerModuleShape } from "Common/Server/Enterprise/EnterpriseServerModule";
+import { EnterpriseLicenseSnapshotUtil } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import UserService from "Common/Server/Services/UserService";
@@ -56,7 +57,9 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *     instance: one bound to another instance is refused, and so is one
  *     bound to none (the token an online installation receives, which the GET
  *     shows its master admins);
- *   - a refresh never downgrades the installed license;
+ *   - NEITHER write downgrades the installed license: a refresh keeps the
+ *     installed terms and stores the usage figures, an activation refuses
+ *     outright and stores nothing;
  *   - every write lands as root with hooks off, and the license cache of this
  *     process sees it at once.
  */
@@ -454,9 +457,6 @@ describe("POST /global-config/license - activating a key online", () => {
   });
 
   it("lets an administrator replace the installed license on purpose", async () => {
-    store.row!["enterpriseLicenseToken"] = signLicense(SIGNING_KEY);
-    await licenseProvider.refresh();
-
     const result: CallResult = await callRoute(LICENSE_ROUTE, {
       licenseKey: "another-license",
     });
@@ -465,6 +465,62 @@ describe("POST /global-config/license - activating a key online", () => {
     expect(store.row?.["enterpriseLicenseToken"]).toBe(
       legacyToken("from-server"),
     );
+    expect(store.row?.["enterpriseLicenseKey"]).toBe(STORED_LICENSE_KEY);
+  });
+
+  /*
+   * A deliberate replacement that ends SOONER than the license installed. A
+   * plan change is allowed to: it comes with its own token, so it is a new
+   * license and not the installed one quietly losing time (the pair is pinned
+   * in LicenseRanking.test.ts, "a different token, a shorter term").
+   */
+  it("lets an administrator activate a shorter license than the one installed", async () => {
+    const endsSooner: string = new Date(
+      Date.now() + 10 * DAY_IN_MS,
+    ).toISOString();
+    respondWith(
+      licenseServerPayload({
+        token: legacyToken("shorter"),
+        expiresAt: endsSooner,
+      }),
+    );
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: "a-shorter-plan",
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.body?.["status"]).toBe("valid");
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(legacyToken("shorter"));
+    expect(
+      (store.row?.["enterpriseLicenseExpiresAt"] as Date).toISOString(),
+    ).toBe(endsSooner);
+  });
+
+  /*
+   * What "on purpose" does not stretch to. A signed license replaced by an
+   * unsigned one is indistinguishable from the license server mis-signing -
+   * the failure the never-downgrade rule exists for - and it arrives at an
+   * administrator who only asked for their license to be checked. The refresh
+   * path has always refused it; the activate path did not, and this is what
+   * that asymmetry cost.
+   */
+  it("refuses an activation that would downgrade the installed license, and changes nothing", async () => {
+    const installed: string = signLicense(SIGNING_KEY);
+    store.row!["enterpriseLicenseToken"] = installed;
+    await licenseProvider.refresh();
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: "another-license",
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(result.error?.message).toContain("valid (unverified)");
+    expect(result.error?.message).toContain("valid (verified)");
+    expect(result.error?.message).toContain("nothing was changed");
+    expect(store.licenseWrites()).toHaveLength(0);
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(installed);
+    expect(store.row?.["enterpriseLicenseKey"]).toBe(STORED_LICENSE_KEY);
   });
 
   it("makes the new license visible to this process's permission checks at once", async () => {
@@ -733,7 +789,18 @@ describe("the seat enforcement the response reports", () => {
     expect(UserService.countBy).not.toHaveBeenCalled();
   });
 
+  /*
+   * Activated onto an installation that has no license at all: an expired one
+   * outranks nothing, so it lands. (It could not be activated OVER the working
+   * license the default row holds - the never-downgrade rule refuses that, and
+   * "refuses an activation that would downgrade the installed license" pins
+   * it. What matters here is the seat answer for an expired license.)
+   */
   it("says the limit is not enforced once the license expired past its grace", async () => {
+    store.row!["enterpriseLicenseToken"] = null;
+    store.row!["enterpriseLicenseExpiresAt"] = null;
+    await licenseProvider.refresh();
+
     respondWith(
       licenseServerPayload({
         expiresAt: new Date(Date.now() - 60 * DAY_IN_MS).toISOString(),
@@ -744,6 +811,7 @@ describe("the seat enforcement the response reports", () => {
       licenseKey: STORED_LICENSE_KEY,
     });
 
+    expect(result.error).toBeNull();
     expect(result.body?.["status"]).toBe("expired");
     expect(result.body?.["licenseValid"]).toBe(false);
     expect(result.body?.["isSeatLimitEnforced"]).toBe(false);
@@ -1171,16 +1239,27 @@ describe("POST /global-config/license - the license server's own tokens, offline
  * logging at once. It is now the unlicensed trial - a countdown, with the
  * reason and the message saying what is actually wrong.
  */
-describe("a license-server response with a token and no expiry", () => {
-  const payloadWithoutExpiry: () => JSONObject = (): JSONObject => {
-    const payload: JSONObject = licenseServerPayload();
-    delete payload["expiresAt"];
-    return payload;
-  };
+const payloadWithoutExpiry: () => JSONObject = (): JSONObject => {
+  const payload: JSONObject = licenseServerPayload();
+  delete payload["expiresAt"];
+  return payload;
+};
 
-  it("activates onto the trial instead of being refused, on an install inside its trial", async () => {
+/*
+ * On an installation that holds NO license, so there is nothing the response
+ * could take away. Every case here needs that, and it is the state the whole
+ * group is about, so it is established once, here, by name - not repeated at
+ * the top of each case where it silently doubled as "and therefore activation
+ * over a working license is never exercised". That case is the group below.
+ */
+describe("a license-server response with a token and no expiry, on an unlicensed install", () => {
+  beforeEach(async () => {
     store.row!["enterpriseLicenseToken"] = null;
     store.row!["enterpriseLicenseExpiresAt"] = null;
+    await licenseProvider.refresh();
+  });
+
+  it("activates onto the trial instead of being refused, on an install inside its trial", async () => {
     store.row!["enterpriseEditionFirstSeenAt"] = new Date(
       Date.now() - 3 * DAY_IN_MS,
     );
@@ -1209,8 +1288,6 @@ describe("a license-server response with a token and no expiry", () => {
    * problem. Before, activation threw "cannot use" and stored nothing.
    */
   it("is stored on an install past its trial, and reads as lapsed rather than invalid", async () => {
-    store.row!["enterpriseLicenseToken"] = null;
-    store.row!["enterpriseLicenseExpiresAt"] = null;
     respondWith(payloadWithoutExpiry());
 
     const result: CallResult = await callRoute(LICENSE_ROUTE, {
@@ -1243,8 +1320,6 @@ describe("a license-server response with a token and no expiry", () => {
       expectedStatus: string,
       expectedLicenseValid: boolean,
     ) => {
-      store.row!["enterpriseLicenseToken"] = null;
-      store.row!["enterpriseLicenseExpiresAt"] = null;
       store.row!["enterpriseEditionFirstSeenAt"] = new Date(
         Date.now() - firstSeenAgo,
       );
@@ -1278,26 +1353,120 @@ describe("a license-server response with a token and no expiry", () => {
       expect(message).toContain("re-activate the license");
     },
   );
+});
+
+/*
+ * The same response arriving at an installation that IS correctly licensed -
+ * the default stored row, untouched: a legacy token with an expiry 100 days
+ * out, on an install 400 days old.
+ *
+ * This is the case the group above could not reach, because every one of its
+ * cases cleared the stored license first. Activation only refused a candidate
+ * that classified "invalid", and a token with no expiry deliberately stopped
+ * classifying that way, so a master admin who pressed Validate on a working
+ * install had its license overwritten with a lapsed trial: single sign-on,
+ * SCIM and audit logging off at once, answered 200, and the only hint was a
+ * warning saying the license "cannot be confirmed" rather than that a working
+ * one had just been replaced. The refresh path refused the identical response
+ * throughout.
+ */
+describe("a license-server response with a token and no expiry, over a working license", () => {
+  const installedToken: () => string = (): string => {
+    return store.row?.["enterpriseLicenseToken"] as string;
+  };
+
+  const installedExpiry: () => Date = (): Date => {
+    return store.row?.["enterpriseLicenseExpiresAt"] as Date;
+  };
+
+  it("is refused by an activation, and the stored license survives untouched", async () => {
+    const token: string = installedToken();
+    const expiresAt: Date = installedExpiry();
+    respondWith(payloadWithoutExpiry());
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: STORED_LICENSE_KEY,
+    });
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(store.licenseWrites()).toHaveLength(0);
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(token);
+    expect(store.row?.["enterpriseLicenseExpiresAt"]).toBe(expiresAt);
+    expect(store.row?.["enterpriseLicenseKey"]).toBe(STORED_LICENSE_KEY);
+  });
 
   /*
-   * The never-downgrade rule doing its job on the same response: a refresh
-   * must not swap a working license for one with no expiry, whatever the
-   * new classification ranks as.
+   * A refusal an administrator can act on. It has to say that the license was
+   * kept (so nobody re-presses the button), and it has to name the CAUSE - the
+   * expiry the answer did not carry - or it reads as "OneUptime says no" with
+   * nothing to do about it.
    */
-  it("cannot replace a working license through a refresh", async () => {
-    const installed: string = store.row?.[
-      "enterpriseLicenseToken"
-    ] as string;
-    const expiresAt: Date = store.row?.[
-      "enterpriseLicenseExpiresAt"
-    ] as Date;
+  it("tells the administrator what was refused and why", async () => {
+    respondWith(payloadWithoutExpiry());
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: STORED_LICENSE_KEY,
+    });
+
+    const message: string = String(result.error?.message);
+
+    expect(message).toContain("missing (unverified)");
+    expect(message).toContain("valid (unverified)");
+    expect(message).toContain("no expiry is recorded for it");
+    expect(message).toContain(
+      "nothing was changed and the installed license was kept",
+    );
+  });
+
+  // The install is still fully licensed afterwards, not merely still stored.
+  it("leaves single sign-on, SCIM and audit logging running", async () => {
+    respondWith(payloadWithoutExpiry());
+
+    await callRoute(LICENSE_ROUTE, { licenseKey: STORED_LICENSE_KEY });
+
+    expect(licenseProvider.getCachedSnapshot()?.status).toBe("valid");
+    expect(
+      EnterpriseLicenseSnapshotUtil.isUsable(
+        licenseProvider.getCachedSnapshot(),
+      ),
+    ).toBe(true);
+  });
+
+  /*
+   * The same response, still refused on the path that always refused it. Round
+   * two's behaviour, unchanged: the terms are kept but the usage figures are
+   * still written, which is the difference between the two paths.
+   */
+  it("cannot replace a working license through a refresh either", async () => {
+    const token: string = installedToken();
+    const expiresAt: Date = installedExpiry();
     respondWith(payloadWithoutExpiry());
 
     const result: CallResult = await callRoute(LICENSE_REFRESH_ROUTE);
 
     expect(result.error).toBeInstanceOf(BadDataException);
     expect(result.error?.message).toContain("The installed license was kept.");
-    expect(store.row?.["enterpriseLicenseToken"]).toBe(installed);
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(token);
     expect(store.row?.["enterpriseLicenseExpiresAt"]).toBe(expiresAt);
+    expect(store.row?.["enterpriseLicenseCurrentUserCount"]).toBe(42);
+  });
+
+  /*
+   * The negative control for all of the above: the very same activation, with
+   * an expiresAt in the response, lands. So it is the missing expiry that is
+   * refused and not the activation itself.
+   */
+  it("accepts the identical activation once the response carries an expiry", async () => {
+    respondWith(licenseServerPayload());
+
+    const result: CallResult = await callRoute(LICENSE_ROUTE, {
+      licenseKey: STORED_LICENSE_KEY,
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.body?.["status"]).toBe("valid");
+    expect(store.row?.["enterpriseLicenseToken"]).toBe(
+      legacyToken("from-server"),
+    );
   });
 });
