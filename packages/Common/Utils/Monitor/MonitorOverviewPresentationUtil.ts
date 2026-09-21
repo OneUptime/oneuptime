@@ -195,7 +195,10 @@ export interface MonitorOverviewPresentationInput {
   latestEvaluationAt?: Date | undefined;
   /*
    * The evaluation log's section status. Without it, a latestEvaluationAt
-   * counts as loaded and its absence as unknown.
+   * counts as loaded and its absence as unknown. A loaded log with no time
+   * only covers what the log still keeps (see
+   * MONITOR_LOG_MINIMUM_RETENTION_SECONDS), so it means "never evaluated"
+   * only for a monitor younger than that.
    */
   evaluationStatus?: MonitorOverviewEvaluationStatus | undefined;
   minimumProbeAgreement?: number | undefined;
@@ -247,6 +250,36 @@ type MonitorOverviewHeroParts = Pick<
   | "callToAction"
 >;
 
+/*
+ * What the evaluation log says about a monitor's evaluations: "evaluated"
+ * (it has a row); "never" (it is empty, and would still hold any
+ * evaluation the monitor has had); "expired" (it is empty, but the monitor
+ * is older than the log keeps rows, so it says nothing before the last
+ * day); "unread" (loading, failed or forbidden).
+ */
+type MonitorOverviewEvaluationLog =
+  | "evaluated"
+  | "never"
+  | "expired"
+  | "unread";
+
+/*
+ * Telemetry and infrastructure: the time the pulse shows and freshness is
+ * judged from, and what that time is.
+ */
+interface MonitorOverviewTelemetryTiming {
+  lastAt: Date | undefined;
+  // The scheduler's stamp, which only says an evaluation was queued.
+  isScheduledTime: boolean;
+  /*
+   * Overdue because the log has nothing from the last day, although the
+   * schedule should have left a row there. When the last evaluation ran is
+   * unknown, but that is not "never".
+   */
+  isMissingFromLog: boolean;
+  freshness: MonitorCheckFreshnessResult;
+}
+
 // Everything build() and getRunState() both need, worked out once.
 interface MonitorOverviewContext {
   family: MonitorOverviewFamily;
@@ -263,12 +296,9 @@ interface MonitorOverviewContext {
   isNotChecking: boolean;
   // Null when the input neither says nor implies how the log loaded.
   evaluationStatus: MonitorOverviewEvaluationStatus | null;
-  /*
-   * Telemetry and infrastructure: when an evaluation last completed, once
-   * the evaluation log is loaded. Until then, the scheduler's stamp, which
-   * only says an evaluation was queued.
-   */
-  telemetryLastAt: Date | undefined;
+  evaluationLog: MonitorOverviewEvaluationLog;
+  // Null for the families the telemetry worker does not evaluate.
+  telemetry: MonitorOverviewTelemetryTiming | null;
   freshness: MonitorCheckFreshnessResult;
   runState: MonitorOverviewRunState;
   /*
@@ -301,6 +331,12 @@ const PAUSED_EXPLANATION: Record<
 const MANUAL_EXPLANATION: string =
   "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or scheduled maintenance event changes it.";
 
+/*
+ * What an empty evaluation log says once the monitor is older than the
+ * log keeps rows (MONITOR_LOG_MINIMUM_RETENTION_SECONDS): not "never".
+ */
+const NOT_EVALUATED_IN_LOG_TEXT: string = "Not evaluated in the last day";
+
 const pluralize: (count: number, singular: string, plural: string) => string = (
   count: number,
   singular: string,
@@ -322,6 +358,28 @@ const secondsSince: (now: Date, then: Date) => number = (
 
 const HOUR_MS: number = 3600 * 1000;
 const DAY_MS: number = 24 * HOUR_MS;
+const DAY_SECONDS: number = 24 * 3600;
+
+/*
+ * The evaluation log (MonitorLog) keeps each row for at least
+ * MonitorLogUtil.DEFAULT_RETENTION_DAYS, one day, unless an admin has
+ * raised GlobalConfig.monitorLogRetentionInDays. So an empty log proves
+ * only that nothing was evaluated in the last day and, for a monitor
+ * younger than that, that nothing ever was. The copy that says "in the
+ * last day" follows this.
+ */
+export const MONITOR_LOG_MINIMUM_RETENTION_SECONDS: number = DAY_SECONDS;
+
+/*
+ * And for about a day longer at the most: the TTL ("retentionDate DELETE",
+ * ttl_only_drop_parts) drops a whole daily partition (toYYYYMMDD(time))
+ * only once its newest row has expired as well. Two days after an
+ * evaluation its row is gone, so an empty log is judged from there, as if
+ * the monitor had started then: a schedule overdue since that point has
+ * missed runs whose rows the log would still hold.
+ */
+export const MONITOR_LOG_RETENTION_HORIZON_SECONDS: number =
+  MONITOR_LOG_MINIMUM_RETENTION_SECONDS + DAY_SECONDS;
 
 // "3 hours", or "20 minutes" under an hour. Never "0 minutes".
 const describeUnderADay: (ms: number) => string = (ms: number): string => {
@@ -582,19 +640,31 @@ export default class MonitorOverviewPresentationUtil {
 
     const evaluationStatus: MonitorOverviewEvaluationStatus | null =
       MonitorOverviewPresentationUtil.getEvaluationStatus(input);
-    const isEvaluationLoaded: boolean = evaluationStatus === "loaded";
-    const telemetryLastAt: Date | undefined = isEvaluationLoaded
-      ? input.latestEvaluationAt
-      : input.telemetry.lastScheduledAt || input.telemetry.lastEvaluatedAt;
-
-    const freshness: MonitorCheckFreshnessResult =
-      MonitorOverviewPresentationUtil.getFreshness({
+    const evaluationLog: MonitorOverviewEvaluationLog =
+      MonitorOverviewPresentationUtil.readEvaluationLog({
         input: input,
         family: family,
-        cadenceSeconds: cadenceSeconds,
-        isScheduled: !isPaused && !isNotChecking,
-        telemetryLastAt: telemetryLastAt,
+        evaluationStatus: evaluationStatus,
       });
+    const isScheduled: boolean = !isPaused && !isNotChecking;
+    const telemetry: MonitorOverviewTelemetryTiming | null =
+      MonitorOverviewPresentationUtil.isTelemetryFamily(family)
+        ? MonitorOverviewPresentationUtil.getTelemetryTiming({
+            input: input,
+            evaluationLog: evaluationLog,
+            cadenceSeconds: cadenceSeconds,
+            isScheduled: isScheduled,
+          })
+        : null;
+
+    const freshness: MonitorCheckFreshnessResult = telemetry
+      ? telemetry.freshness
+      : MonitorOverviewPresentationUtil.getFreshness({
+          input: input,
+          family: family,
+          cadenceSeconds: cadenceSeconds,
+          isScheduled: isScheduled,
+        });
 
     let runState: MonitorOverviewRunState = MonitorOverviewRunState.Running;
 
@@ -614,8 +684,8 @@ export default class MonitorOverviewPresentationUtil {
         input: input,
         family: family,
         freshness: freshness.freshness,
-        isEvaluationLoaded: isEvaluationLoaded,
-        telemetryLastAt: telemetryLastAt,
+        evaluationLog: evaluationLog,
+        telemetry: telemetry,
       })
     ) {
       runState = MonitorOverviewRunState.AwaitingFirstData;
@@ -636,7 +706,8 @@ export default class MonitorOverviewPresentationUtil {
       isAllProbesDisconnected: isAllProbesDisconnected,
       isNotChecking: isNotChecking,
       evaluationStatus: evaluationStatus,
-      telemetryLastAt: telemetryLastAt,
+      evaluationLog: evaluationLog,
+      telemetry: telemetry,
       freshness: freshness,
       runState: runState,
       hasPushVerdict:
@@ -660,6 +731,152 @@ export default class MonitorOverviewPresentationUtil {
     }
 
     return input.latestEvaluationAt ? "loaded" : null;
+  }
+
+  private static isTelemetryFamily(family: MonitorOverviewFamily): boolean {
+    return (
+      family === MonitorOverviewFamily.TelemetrySignal ||
+      family === MonitorOverviewFamily.Infrastructure
+    );
+  }
+
+  /*
+   * An empty log means "never evaluated" only while it would still hold
+   * every evaluation the monitor could have had. Past that, its rows may
+   * simply have expired.
+   */
+  private static readEvaluationLog(data: {
+    input: MonitorOverviewPresentationInput;
+    family: MonitorOverviewFamily;
+    evaluationStatus: MonitorOverviewEvaluationStatus | null;
+  }): MonitorOverviewEvaluationLog {
+    const input: MonitorOverviewPresentationInput = data.input;
+
+    if (data.evaluationStatus !== "loaded") {
+      return "unread";
+    }
+
+    if (input.latestEvaluationAt) {
+      return "evaluated";
+    }
+
+    const isYoungerThanLog: boolean =
+      !input.createdAt ||
+      input.now.getTime() - input.createdAt.getTime() <
+        MONITOR_LOG_MINIMUM_RETENTION_SECONDS * 1000;
+    /*
+     * The telemetry worker stamps a monitor each time it queues an
+     * evaluation, so one it has never stamped has never been evaluated,
+     * however old it is.
+     */
+    const isNeverQueued: boolean =
+      MonitorOverviewPresentationUtil.isTelemetryFamily(data.family) &&
+      !input.telemetry.lastScheduledAt &&
+      !input.telemetry.lastEvaluatedAt;
+
+    return isYoungerThanLog || isNeverQueued ? "never" : "expired";
+  }
+
+  /*
+   * With a row in the evaluation log, its time. Without the log, the
+   * scheduler's stamp, named for what it is. With a log that is empty only
+   * because its rows expired, the log still says nothing was evaluated in
+   * the last day: that is overdue when the schedule should have left a row
+   * there, and otherwise (a weekly schedule, say) expected, so the stamp is
+   * all there is, as without the log.
+   */
+  private static getTelemetryTiming(data: {
+    input: MonitorOverviewPresentationInput;
+    evaluationLog: MonitorOverviewEvaluationLog;
+    cadenceSeconds: number;
+    isScheduled: boolean;
+  }): MonitorOverviewTelemetryTiming {
+    const input: MonitorOverviewPresentationInput = data.input;
+    const scheduledAt: Date | undefined =
+      input.telemetry.lastScheduledAt || input.telemetry.lastEvaluatedAt;
+
+    const judge: (
+      lastResultAt: Date | undefined,
+      createdAt: Date | undefined,
+    ) => MonitorCheckFreshnessResult = (
+      lastResultAt: Date | undefined,
+      createdAt: Date | undefined,
+    ): MonitorCheckFreshnessResult => {
+      return MonitorCheckScheduleUtil.getCheckFreshness({
+        isScheduled: data.isScheduled,
+        isKnown: true,
+        lastResultAt: lastResultAt,
+        nextCheckAt: input.telemetry.nextEvaluationAt,
+        cadenceSeconds: data.cadenceSeconds,
+        createdAt: createdAt,
+        now: input.now,
+        monitoringInterval: input.monitoringInterval,
+      });
+    };
+
+    const fromScheduler: () => MonitorOverviewTelemetryTiming =
+      (): MonitorOverviewTelemetryTiming => {
+        return {
+          lastAt: scheduledAt,
+          isScheduledTime: true,
+          isMissingFromLog: false,
+          freshness: judge(scheduledAt, input.createdAt),
+        };
+      };
+
+    switch (data.evaluationLog) {
+      case "evaluated":
+        return {
+          lastAt: input.latestEvaluationAt,
+          isScheduledTime: false,
+          isMissingFromLog: false,
+          freshness: judge(input.latestEvaluationAt, input.createdAt),
+        };
+
+      case "never":
+        return {
+          lastAt: undefined,
+          isScheduledTime: false,
+          isMissingFromLog: false,
+          freshness: judge(undefined, input.createdAt),
+        };
+
+      case "expired": {
+        // The log only reads as expired for a monitor with a creation time.
+        const createdAt: Date = input.createdAt || input.now;
+        const horizonStart: Date = new Date(
+          Math.max(
+            createdAt.getTime(),
+            input.now.getTime() - MONITOR_LOG_RETENTION_HORIZON_SECONDS * 1000,
+          ),
+        );
+
+        if (
+          judge(undefined, horizonStart).freshness !==
+          MonitorCheckFreshness.Stale
+        ) {
+          return fromScheduler();
+        }
+
+        /*
+         * How long ago the last evaluation ran, and so how late the next
+         * one is, is unknown: the log only says it was before the last day.
+         */
+        return {
+          lastAt: undefined,
+          isScheduledTime: false,
+          isMissingFromLog: true,
+          freshness: {
+            freshness: MonitorCheckFreshness.Stale,
+            overdueSeconds: null,
+            resultAgeSeconds: null,
+          },
+        };
+      }
+
+      default:
+        return fromScheduler();
+    }
   }
 
   /*
@@ -736,15 +953,15 @@ export default class MonitorOverviewPresentationUtil {
 
   /*
    * Freshness is only judged for the families that run on a schedule we can
-   * see: probe checks and the worker-evaluated telemetry and infrastructure
-   * monitors. Push-based monitors decide "missing" in their own criteria.
+   * see: probe checks here, and the worker-evaluated telemetry and
+   * infrastructure monitors in getTelemetryTiming. Push-based monitors
+   * decide "missing" in their own criteria.
    */
   private static getFreshness(data: {
     input: MonitorOverviewPresentationInput;
     family: MonitorOverviewFamily;
     cadenceSeconds: number;
     isScheduled: boolean;
-    telemetryLastAt: Date | undefined;
   }): MonitorCheckFreshnessResult {
     const input: MonitorOverviewPresentationInput = data.input;
 
@@ -767,22 +984,6 @@ export default class MonitorOverviewPresentationUtil {
       });
     }
 
-    if (
-      data.family === MonitorOverviewFamily.TelemetrySignal ||
-      data.family === MonitorOverviewFamily.Infrastructure
-    ) {
-      return MonitorCheckScheduleUtil.getCheckFreshness({
-        isScheduled: data.isScheduled,
-        isKnown: true,
-        lastResultAt: data.telemetryLastAt,
-        nextCheckAt: input.telemetry.nextEvaluationAt,
-        cadenceSeconds: data.cadenceSeconds,
-        createdAt: input.createdAt,
-        now: input.now,
-        monitoringInterval: input.monitoringInterval,
-      });
-    }
-
     return MonitorCheckScheduleUtil.getCheckFreshness({
       isScheduled: false,
       isKnown: true,
@@ -798,8 +999,8 @@ export default class MonitorOverviewPresentationUtil {
     input: MonitorOverviewPresentationInput;
     family: MonitorOverviewFamily;
     freshness: MonitorCheckFreshness;
-    isEvaluationLoaded: boolean;
-    telemetryLastAt: Date | undefined;
+    evaluationLog: MonitorOverviewEvaluationLog;
+    telemetry: MonitorOverviewTelemetryTiming | null;
   }): boolean {
     const input: MonitorOverviewPresentationInput = data.input;
 
@@ -819,21 +1020,27 @@ export default class MonitorOverviewPresentationUtil {
       case MonitorOverviewFamily.TelemetrySignal:
       case MonitorOverviewFamily.Infrastructure:
         /*
-         * With the evaluation log, "waiting" ends at the first completed
-         * evaluation and, like a probe check, lasts only while the monitor
-         * is young: past that, no evaluation is overdue (6b). Without it,
-         * the scheduler's stamp is all there is.
+         * Without the evaluation log, the scheduler's stamp is all there
+         * is. With it, "waiting" needs a log that says nothing was ever
+         * evaluated, and, like a probe check, lasts only while the monitor
+         * is young: past that, no evaluation is overdue (6b).
          */
-        return data.isEvaluationLoaded
-          ? data.freshness === MonitorCheckFreshness.AwaitingFirstResult
-          : !data.telemetryLastAt;
+        if (data.evaluationLog === "unread") {
+          return !data.telemetry?.lastAt;
+        }
+
+        return (
+          data.evaluationLog === "never" &&
+          data.freshness === MonitorCheckFreshness.AwaitingFirstResult
+        );
       case MonitorOverviewFamily.NetworkDevice:
         /*
          * A device is evaluated on its polls and traps, which leave no
-         * trace on the monitor row: only a loaded, empty log says none has
-         * been evaluated yet.
+         * trace on the monitor row: only an empty log that would still hold
+         * every evaluation says none has happened yet. For an older
+         * monitor, it says only that none happened in the last day.
          */
-        return data.isEvaluationLoaded && !input.latestEvaluationAt;
+        return data.evaluationLog === "never";
       default:
         // Manual monitors are never evaluated.
         return false;
@@ -998,13 +1205,29 @@ export default class MonitorOverviewPresentationUtil {
         };
       }
 
-      default:
-        return {
+      default: {
+        const running: MonitorOverviewHeroParts = {
           tone: statusTone,
           badge: statusBadge,
           secondaryBadges: [],
           headline: statusHeadline,
         };
+
+        /*
+         * A device's polling interval is not known here, so a quiet log is
+         * not called overdue, but the status is not presented as fresh
+         * either.
+         */
+        if (
+          context.family === MonitorOverviewFamily.NetworkDevice &&
+          context.evaluationLog === "expired"
+        ) {
+          running.explanation =
+            "No poll or trap from this device has been evaluated in the last day, so the status shown is the last one recorded.";
+        }
+
+        return running;
+      }
     }
   }
 
@@ -1167,7 +1390,8 @@ export default class MonitorOverviewPresentationUtil {
   private static isNeverReported(context: MonitorOverviewContext): boolean {
     return (
       context.runState === MonitorOverviewRunState.Overdue &&
-      context.freshness.resultAgeSeconds === null
+      context.freshness.resultAgeSeconds === null &&
+      !context.telemetry?.isMissingFromLog
     );
   }
 
@@ -1185,6 +1409,10 @@ export default class MonitorOverviewPresentationUtil {
     const isProbeCheck: boolean =
       context.family === MonitorOverviewFamily.ProbeCheck;
     const resultAgeSeconds: number | null = context.freshness.resultAgeSeconds;
+
+    if (context.telemetry?.isMissingFromLog) {
+      return `No evaluation recorded in the last day, but this monitor is evaluated ${context.intervalPhrase}.`;
+    }
 
     if (resultAgeSeconds === null) {
       const createdAgo: string = input.createdAt
@@ -1265,16 +1493,25 @@ export default class MonitorOverviewPresentationUtil {
       case MonitorOverviewFamily.Infrastructure: {
         const nextAt: Date | undefined = input.telemetry.nextEvaluationAt;
         /*
-         * Until the evaluation log is read, the only time is the worker's
-         * stamp, which it writes when it queues an evaluation: it is named
-         * for what it is.
+         * Without a time from the evaluation log, the only time is the
+         * worker's stamp, which it writes when it queues an evaluation: it
+         * is named for what it is.
          */
-        const isEvaluated: boolean = context.evaluationStatus === "loaded";
+        const isScheduledTime: boolean = Boolean(
+          context.telemetry?.isScheduledTime,
+        );
+        let emptyText: string = "Not evaluated yet";
+
+        if (isScheduledTime) {
+          emptyText = "Not scheduled yet";
+        } else if (context.evaluationLog === "expired") {
+          emptyText = NOT_EVALUATED_IN_LOG_TEXT;
+        }
 
         return {
-          label: isEvaluated ? "Last evaluated" : "Last scheduled",
-          at: context.telemetryLastAt,
-          emptyText: isEvaluated ? "Not evaluated yet" : "Not scheduled yet",
+          label: isScheduledTime ? "Last scheduled" : "Last evaluated",
+          at: context.telemetry?.lastAt,
+          emptyText: emptyText,
           cadenceText: isScheduled ? context.intervalText : undefined,
           nextAt:
             isScheduled && isFutureOf(nextAt, input.now) ? nextAt : undefined,
@@ -1283,7 +1520,15 @@ export default class MonitorOverviewPresentationUtil {
         };
       }
 
-      case MonitorOverviewFamily.NetworkDevice:
+      case MonitorOverviewFamily.NetworkDevice: {
+        let emptyText: string = "Not evaluated yet";
+
+        if (context.evaluationStatus === "loading") {
+          emptyText = "Loading…";
+        } else if (context.evaluationLog === "expired") {
+          emptyText = NOT_EVALUATED_IN_LOG_TEXT;
+        }
+
         // The time only comes from the evaluation log, so it follows its read.
         return {
           label: "Last evaluated",
@@ -1291,14 +1536,12 @@ export default class MonitorOverviewPresentationUtil {
             context.evaluationStatus === "loaded"
               ? input.latestEvaluationAt
               : undefined,
-          emptyText:
-            context.evaluationStatus === "loading"
-              ? "Loading…"
-              : "Not evaluated yet",
+          emptyText: emptyText,
           isUnavailable:
             context.evaluationStatus === "error" ||
             context.evaluationStatus === "forbidden",
         };
+      }
 
       default:
         return {

@@ -185,6 +185,13 @@ export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {
               now: OneUptimeDate.getCurrentDate(),
             });
 
+          /*
+           * The page takes its clock offset from this response's
+           * generatedAt, so a copy replayed from a cache (the dashboard's
+           * service worker, a proxy) would skew it. Never store it.
+           */
+          Response.setNoCacheHeaders(res);
+
           return Response.sendJsonObjectResponse(
             req,
             res,

@@ -7,7 +7,6 @@ import { PROBE_HEALTH_TEXT_CLASS } from "./MonitorOverviewTones";
 import { MonitorOverviewProbeData } from "./MonitorOverviewTypes";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Route from "Common/Types/API/Route";
-import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
@@ -23,6 +22,13 @@ export interface ComponentProps {
   probes: OverviewSection<MonitorOverviewProbeData>;
   // Null when the probes could not be read.
   summary: MonitorOverviewProbeSummary | null;
+  /*
+   * The moment the summary was judged at (the presentation input's now, on
+   * the server's clock). Whether a probe's next check is still ahead is
+   * decided against it, never the browser's clock, so the card and the
+   * hero cannot disagree about it.
+   */
+  now: Date;
   minimumProbeAgreement?: number | undefined;
 }
 
@@ -246,7 +252,7 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
       );
     }
 
-    const now: Date = OneUptimeDate.getCurrentDate();
+    const now: Date = props.now;
     const agreementText: string | null = getProbeAgreementText({
       rows: rows,
       minimumProbeAgreement: props.minimumProbeAgreement,

@@ -77,6 +77,7 @@ jest.mock("../../../Server/Utils/Response", () => {
       return args;
     }),
     sendEmptySuccessResponse: jest.fn(),
+    setNoCacheHeaders: jest.fn(),
     sendEntityResponse: jest.fn().mockImplementation((...args: []) => {
       return args;
     }),
@@ -360,6 +361,12 @@ describe("GET /monitor/uptime-summary/:monitorId", () => {
 
     expect(sendArgs[0]).toBe(result.req);
     expect(sendArgs[1]).toBe(result.res);
+
+    /*
+     * The page reads its clock offset from generatedAt, so a cached copy
+     * must never be replayed.
+     */
+    expect(Response.setNoCacheHeaders).toHaveBeenCalledWith(result.res);
 
     const body: JSONObject = sendArgs[2] as JSONObject;
 

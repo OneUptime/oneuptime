@@ -12,6 +12,7 @@ import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSu
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import CronTab from "../../../Utils/CronTab";
 import MonitorOverviewProbeUtil, {
   MonitorAttachedProbes,
   MonitorEvaluationByProbe,
@@ -19,7 +20,8 @@ import MonitorOverviewProbeUtil, {
   MonitorOverviewProbeRow,
   MonitorOverviewProbeSummary,
 } from "../../../Utils/Monitor/MonitorOverviewProbeUtil";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
+import type { MockInstance } from "jest-mock";
 
 /*
  * The behaviour that used to live inline in the monitor overview page (and
@@ -1174,6 +1176,34 @@ describe("MonitorOverviewProbeUtil.summarizeProbes", () => {
         PROBE_A,
       ),
     ).toBe(MonitorOverviewProbeHealth.Late);
+  });
+
+  /*
+   * Every probe row asks for the schedule's next run. For the 30th of
+   * February, CronTab would take over a second per row to find none.
+   */
+  it("a schedule that never runs judges every probe on the cadence, without CronTab's search", () => {
+    const search: MockInstance<typeof CronTab.getNextExecutionTimes> =
+      jest.spyOn(CronTab, "getNextExecutionTimes");
+
+    try {
+      const summary: MonitorOverviewProbeSummary = summarize(
+        [
+          reportingRow({ probeId: PROBE_A, ageSeconds: 30 }),
+          reportingRow({ probeId: PROBE_B, ageSeconds: 30, isOnline: false }),
+          // Due one 5-minute cadence after it, and later than the grace.
+          reportingRow({ probeId: PROBE_C, ageSeconds: 1200 }),
+        ],
+        { monitoringInterval: "0 0 30 2 *" },
+      );
+
+      expect(healthOf(summary, PROBE_A)).toBe(MonitorOverviewProbeHealth.Up);
+      expect(healthOf(summary, PROBE_B)).toBe(MonitorOverviewProbeHealth.Down);
+      expect(healthOf(summary, PROBE_C)).toBe(MonitorOverviewProbeHealth.Late);
+      expect(search).not.toHaveBeenCalled();
+    } finally {
+      search.mockRestore();
+    }
   });
 
   it("counts the reporting probes that are up and down", () => {

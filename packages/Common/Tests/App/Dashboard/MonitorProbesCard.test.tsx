@@ -164,6 +164,7 @@ const renderCard: (props: Partial<ComponentProps>) => void = (
         monitorId={MONITOR_ID}
         probes={props.probes || loaded([])}
         summary={props.summary === undefined ? null : props.summary}
+        now={props.now || NOW}
         minimumProbeAgreement={props.minimumProbeAgreement}
       />
     </MemoryRouter>,
@@ -339,6 +340,45 @@ describe("MonitorProbesCard", () => {
     const row: HTMLElement = screen.getByTestId("monitor-probe-row");
     expect(row).toHaveTextContent("Checked 10 minutes ago");
     expect(row).not.toHaveTextContent("next");
+  });
+
+  test("whether a next check is still ahead is judged at the summary's now, not the browser's clock", () => {
+    // The browser's clock is ten minutes slow; the summary was judged at NOW.
+    jest.setSystemTime(minutesAgo(10));
+
+    const rows: Array<MonitorProbe> = [
+      monitorProbe({
+        name: "London",
+        result: { monitoredAt: minutesAgo(3), isOnline: true },
+        // Two minutes past on the server's clock, eight ahead on the browser's.
+        nextPingAt: minutesAgo(2),
+      }),
+      monitorProbe({
+        name: "Oregon",
+        result: { monitoredAt: minutesAgo(1), isOnline: true },
+        nextPingAt: minutesAgo(-4),
+      }),
+    ];
+
+    renderCard({ probes: loaded(rows), summary: summarize(rows), now: NOW });
+
+    const rowFor: (name: string) => HTMLElement = (
+      name: string,
+    ): HTMLElement => {
+      return screen
+        .getAllByTestId("monitor-probe-row")
+        .find((row: HTMLElement) => {
+          return (
+            within(row).getByTestId("probe-name").textContent?.trim() === name
+          );
+        })!;
+    };
+    const london: HTMLElement = rowFor("London");
+    const oregon: HTMLElement = rowFor("Oregon");
+
+    // The hero would not promise London's next check either.
+    expect(london).not.toHaveTextContent("next");
+    expect(oregon).toHaveTextContent("next");
   });
 
   test("a down probe shows why, clamped, with the full text on hover", () => {

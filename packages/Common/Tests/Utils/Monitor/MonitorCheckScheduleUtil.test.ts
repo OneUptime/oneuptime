@@ -1,10 +1,12 @@
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import CronTab from "../../../Utils/CronTab";
 import MonitorCheckScheduleUtil, {
   MonitorCheckFreshness,
   MonitorCheckFreshnessResult,
 } from "../../../Utils/Monitor/MonitorCheckScheduleUtil";
-import { describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { MockInstance } from "jest-mock";
 
 /*
  * "Last checked 20 minutes ago" is only alarming if the monitor was meant to
@@ -407,6 +409,152 @@ describe("MonitorCheckScheduleUtil schedules with gaps", () => {
         now: NOW,
       }),
     ).toEqual({ lateSeconds: -60, graceSeconds: 300 });
+  });
+});
+
+/*
+ * CronTab accepts a day no allowed month has, like the 30th of February,
+ * and then walks a million-step search (over a second) before it finds no
+ * run. The overview asks for a next run once per probe and again for
+ * freshness on every render, so such a schedule must never reach that
+ * search, and must read as the every-minute schedule the scheduler gives
+ * it.
+ */
+describe("MonitorCheckScheduleUtil schedules that never run", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("never searches for the 30th of February, and falls back to every minute", () => {
+    const search: MockInstance<typeof CronTab.getNextExecutionTimes> =
+      jest.spyOn(CronTab, "getNextExecutionTimes");
+
+    for (const impossible of [
+      "0 0 30 2 *",
+      "0 0 31 4 *",
+      "0 0 31 4,6,9,11 *",
+      "0 0 30-31 feb *",
+      "0 0 0 30 2 *",
+    ]) {
+      // Twice: the second read must be as cheap as the first.
+      for (let read: number = 0; read < 2; read++) {
+        expect({
+          impossible: impossible,
+          nextRun: MonitorCheckScheduleUtil.getNextRunAfter({
+            monitoringInterval: impossible,
+            after: NOW,
+          }),
+          cadence: MonitorCheckScheduleUtil.getCadenceSeconds({
+            monitoringInterval: impossible,
+            from: NOW,
+          }),
+          resolved: MonitorCheckScheduleUtil.resolveCadenceSeconds({
+            monitoringInterval: impossible,
+            from: NOW,
+          }),
+          description: MonitorCheckScheduleUtil.describeInterval(impossible),
+          // The uniform-cadence path: due one (fallback) cadence after it.
+          lateness: MonitorCheckScheduleUtil.getResultLateness({
+            lastResultAt: secondsAgo(30),
+            monitoringInterval: impossible,
+            cadenceSeconds: 60,
+            now: NOW,
+          }),
+        }).toEqual({
+          impossible: impossible,
+          nextRun: null,
+          cadence: null,
+          resolved: 60,
+          description: "Every minute",
+          lateness: { lateSeconds: -30, graceSeconds: 300 },
+        });
+      }
+    }
+
+    expect(search).not.toHaveBeenCalled();
+  });
+
+  it("still finds the runs of schedules that only look impossible", () => {
+    // The 29th of February comes round in 2028.
+    expect(
+      MonitorCheckScheduleUtil.getNextRunAfter({
+        monitoringInterval: "0 0 29 2 *",
+        after: NOW,
+      }),
+    ).toMatchObject({ runAt: new Date("2028-02-29T00:00:00.000Z") });
+
+    // A day of the week is ORed with the day of the month: Mondays in February.
+    expect(
+      MonitorCheckScheduleUtil.getNextRunAfter({
+        monitoringInterval: "0 0 30 2 1",
+        after: NOW,
+      }),
+    ).toMatchObject({ runAt: new Date("2027-02-01T00:00:00.000Z") });
+
+    // January has a 31st, even if February does not.
+    expect(
+      MonitorCheckScheduleUtil.getNextRunAfter({
+        monitoringInterval: "0 0 31 1-2 *",
+        after: NOW,
+      }),
+    ).toMatchObject({ runAt: new Date("2027-01-31T00:00:00.000Z") });
+
+    expect(MonitorCheckScheduleUtil.describeInterval("0 0 29 2 *")).not.toBe(
+      "Every minute",
+    );
+  });
+
+  it("remembers a schedule CronTab found no run for, and does not search it again", () => {
+    // A schedule the day-field check cannot see through, standing in for one.
+    const search: MockInstance<typeof CronTab.getNextExecutionTimes> = jest
+      .spyOn(CronTab, "getNextExecutionTimes")
+      .mockReturnValue([]);
+    const cron: string = "13 3 * * *";
+
+    expect(
+      MonitorCheckScheduleUtil.getNextRunAfter({
+        monitoringInterval: cron,
+        after: NOW,
+      }),
+    ).toBeNull();
+    expect(search).toHaveBeenCalledTimes(1);
+
+    expect(
+      MonitorCheckScheduleUtil.getNextRunAfter({
+        monitoringInterval: cron,
+        after: secondsAgo(3600),
+      }),
+    ).toBeNull();
+    expect(
+      MonitorCheckScheduleUtil.getCadenceSeconds({
+        monitoringInterval: cron,
+        from: NOW,
+      }),
+    ).toBeNull();
+    expect(MonitorCheckScheduleUtil.describeInterval(cron)).toBe(
+      "Every minute",
+    );
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it("an Invalid Date is never handed to CronTab, whose month search would not end", () => {
+    const search: MockInstance<typeof CronTab.getNextExecutionTimes> = jest
+      .spyOn(CronTab, "getNextExecutionTimes")
+      .mockReturnValue([]);
+
+    expect(
+      MonitorCheckScheduleUtil.getNextRunAfter({
+        monitoringInterval: "*/5 * * * *",
+        after: new Date(Number.NaN),
+      }),
+    ).toBeNull();
+    expect(
+      MonitorCheckScheduleUtil.getCadenceSeconds({
+        monitoringInterval: "*/5 * * * *",
+        from: new Date(Number.NaN),
+      }),
+    ).toBeNull();
+    expect(search).not.toHaveBeenCalled();
   });
 });
 

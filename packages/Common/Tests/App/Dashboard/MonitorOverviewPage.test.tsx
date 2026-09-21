@@ -295,6 +295,8 @@ interface ProbeSpec {
   name: string;
   isEnabled: boolean;
   monitoredAt?: Date;
+  // Omitted: 20 s from now.
+  nextPingAt?: Date;
 }
 
 interface FakeServer {
@@ -305,6 +307,14 @@ interface FakeServer {
   statusRows: Array<MonitorStatusTimeline>;
   logs: Array<MonitorLog>;
   openIncidentCount: number;
+  // Every probe read (light or full) fails with this, when set.
+  probeFailure: Error | null;
+  /*
+   * Whether each uptime summary is stamped with the server's time when it
+   * is sent. Off: every summary says NOW, which is what the clock tests
+   * measure a skewed browser against.
+   */
+  isUptimeStampedLive: boolean;
 }
 
 interface ListRequest {
@@ -412,7 +422,7 @@ function buildProbeRow(spec: ProbeSpec, isFull: boolean): MonitorProbe {
   row.probeId = new ObjectID(spec.probeId);
   row.isEnabled = spec.isEnabled;
   row.lastPingAt = secondsAgo(40);
-  row.nextPingAt = secondsAgo(-20);
+  row.nextPingAt = spec.nextPingAt || secondsAgo(-20);
 
   const probe: Probe = new Probe();
   probe._id = spec.probeId;
@@ -746,6 +756,8 @@ beforeEach(() => {
       }),
     ],
     openIncidentCount: 0,
+    probeFailure: null,
+    isUptimeStampedLive: false,
   };
 
   jest
@@ -804,6 +816,10 @@ beforeEach(() => {
 
     if (request.modelType === MonitorProbe) {
       const isFull: boolean = Boolean(request.select["lastMonitoringLog"]);
+
+      if (server.probeFailure) {
+        return rejectWith(server.probeFailure);
+      }
 
       return Promise.resolve(
         listOf(
@@ -864,7 +880,10 @@ beforeEach(() => {
       return Promise.resolve(
         new HTTPResponse<JSONObject>(
           200,
-          MonitorUptimeSummaryUtil.toJSON(buildUptimeSummary(monitorId)),
+          MonitorUptimeSummaryUtil.toJSON({
+            ...buildUptimeSummary(monitorId),
+            generatedAt: server.isUptimeStampedLive ? new Date() : NOW,
+          }),
           {},
         ),
       );
@@ -1837,6 +1856,163 @@ describe("Monitor overview page: the moment it is judged at", () => {
     expect(screen.queryByText("Checks overdue")).toBeNull();
 
     await releaseMonitorRead(MONITOR_A);
+  });
+
+  test("the Probes card judges a next check on the same clock as the hero", async () => {
+    // The browser's clock is ten minutes slow.
+    jest.setSystemTime(secondsAgo(10 * 60));
+    server.probes = [
+      {
+        probeId: PROBE_FRANKFURT,
+        name: "Frankfurt",
+        isEnabled: true,
+        monitoredAt: secondsAgo(30),
+        // Due two minutes ago on the server's clock; eight minutes away on the browser's.
+        nextPingAt: secondsAgo(120),
+      },
+    ];
+
+    await renderPage();
+
+    const probesCard: HTMLElement = heading("Probes").closest(
+      '[data-testid="card"]',
+    ) as HTMLElement;
+    const row: HTMLElement =
+      within(probesCard).getByTestId("monitor-probe-row");
+
+    // The hero promises no next check for a run that is past, and nor does the card.
+    expect(row).toHaveTextContent("Checked");
+    expect(row).not.toHaveTextContent("next");
+    expect(within(probesCard).queryByText("Late")).toBeNull();
+  });
+
+  test("an uptime summary replayed from a cache does not wind the page's clock back", async () => {
+    await renderPage();
+
+    /*
+     * The probes stop reporting. Every uptime reload (each fifth poll) comes
+     * back with the summary stamped at the first load, as the service
+     * worker's cache would answer it: taken at face value, each would put
+     * the server's clock minutes behind and hide the overdue checks.
+     */
+    for (let tick: number = 0; tick < 12; tick++) {
+      await act(async () => {
+        jest.advanceTimersByTime(MONITOR_OVERVIEW_REFRESH_INTERVAL_MS);
+      });
+      await flush();
+    }
+
+    expect(apiGetUrls("/monitor/uptime-summary/")).toHaveLength(3);
+    expect(screen.getByText("Checks overdue")).toBeInTheDocument();
+  });
+
+  test("probe results the page cannot re-read are judged as of their read, never 'Checks overdue'", async () => {
+    // The clocks agree all along, so every reload measures no offset.
+    server.isUptimeStampedLive = true;
+
+    await renderPage();
+
+    expect(screen.queryByText("Checks overdue")).toBeNull();
+
+    // Every probe read fails from here on; the Monitor row keeps refreshing.
+    server.probeFailure = new Error("Probe results timed out.");
+
+    for (let tick: number = 0; tick < 12; tick++) {
+      await act(async () => {
+        jest.advanceTimersByTime(MONITOR_OVERVIEW_REFRESH_INTERVAL_MS);
+      });
+      await flush();
+    }
+
+    expect(itemRequests()).toHaveLength(13);
+
+    // Twelve minutes on, the result read at the first load is still not "late".
+    expect(screen.queryByText("Checks overdue")).toBeNull();
+
+    const probesCard: HTMLElement = heading("Probes").closest(
+      '[data-testid="card"]',
+    ) as HTMLElement;
+
+    expect(within(probesCard).queryByText("Late")).toBeNull();
+    // The card says why the results are old.
+    expect(
+      within(probesCard).getByText(
+        "Couldn't refresh probes. Probe results timed out.",
+      ),
+    ).toBeInTheDocument();
+
+    /*
+     * A read that works and brings back the same old result is judged at
+     * the commit: that result is overdue, and now the page can say so.
+     */
+    server.probeFailure = null;
+
+    await act(async () => {
+      jest.advanceTimersByTime(MONITOR_OVERVIEW_REFRESH_INTERVAL_MS);
+    });
+    await flush();
+
+    expect(screen.getByText("Checks overdue")).toBeInTheDocument();
+  });
+});
+
+describe("Monitor overview page: the Summary card's last check", () => {
+  interface TelemetrySummaryProps {
+    telemetryMonitorSummary: {
+      lastCheckedAt?: Date | undefined;
+      nextCheckAt?: Date | undefined;
+    };
+  }
+
+  // The worker stamped a run 40 s ago; the newest evaluation is 14 minutes old.
+  const setUpStalledKubernetes: () => void = (): void => {
+    setUpServer({
+      id: MONITOR_A,
+      type: MonitorType.Kubernetes,
+      statusId: OPERATIONAL_ID,
+      overrides: {
+        telemetryMonitorLastMonitorAt: secondsAgo(40),
+        telemetryMonitorNextMonitorAt: secondsAgo(-20),
+      },
+    });
+    server.probes = [];
+    server.logs = [
+      buildLog({
+        probeId: PROBE_FRANKFURT,
+        time: secondsAgo(14 * 60),
+        summary: buildEvaluation("Pods are running"),
+      }),
+    ];
+  };
+
+  test("a telemetry monitor's is the newest evaluation, as in the hero, not the scheduler's stamp", async () => {
+    setUpStalledKubernetes();
+
+    await renderPage();
+
+    expect(screen.getByText("Checks overdue")).toBeInTheDocument();
+
+    const props: TelemetrySummaryProps =
+      latestProps<TelemetrySummaryProps>("Summary");
+
+    expect(props.telemetryMonitorSummary.lastCheckedAt).toEqual(
+      secondsAgo(14 * 60),
+    );
+    expect(props.telemetryMonitorSummary.nextCheckAt).toEqual(secondsAgo(-20));
+  });
+
+  test("until the evaluation log can be read, it is the scheduler's stamp", async () => {
+    setUpStalledKubernetes();
+    analyticsGetListSpy.mockImplementation((): Promise<unknown> => {
+      return rejectWith(new Error("Logs are unavailable."));
+    });
+
+    await renderPage();
+
+    const props: TelemetrySummaryProps =
+      latestProps<TelemetrySummaryProps>("Summary");
+
+    expect(props.telemetryMonitorSummary.lastCheckedAt).toEqual(secondsAgo(40));
   });
 });
 

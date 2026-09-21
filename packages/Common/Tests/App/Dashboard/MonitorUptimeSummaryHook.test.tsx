@@ -2,6 +2,8 @@
 
 import { act, cleanup, renderHook } from "@testing-library/react";
 import useMonitorUptimeSummary, {
+  MONITOR_SERVER_CLOCK_MAX_OFFSET_MS,
+  MONITOR_SERVER_CLOCK_MAX_ROUND_TRIP_MS,
   MONITOR_UPTIME_ACCESS_REASONS,
   MONITOR_UPTIME_SUMMARY_UNREADABLE_MESSAGE,
   UseMonitorUptimeSummaryResult,
@@ -720,6 +722,120 @@ describe("useMonitorUptimeSummary: the server's clock", () => {
     expect(reported).toEqual([0]);
   });
 
+  type MeasuredHook = {
+    result: { current: UseMonitorUptimeSummaryResult };
+    rerender: (props: { refreshKey: string }) => void;
+  };
+
+  // The hook with every reported offset collected, loaded once.
+  const renderMeasured: (
+    reported: Array<number>,
+  ) => Promise<MeasuredHook> = async (
+    reported: Array<number>,
+  ): Promise<MeasuredHook> => {
+    const rendered: MeasuredHook = renderHook(
+      (props: { refreshKey: string }): UseMonitorUptimeSummaryResult => {
+        return useMonitorUptimeSummary({
+          monitorId: MONITOR_ID,
+          refreshKey: props.refreshKey,
+          onServerClockOffset: (offsetMs: number): void => {
+            reported.push(offsetMs);
+          },
+        });
+      },
+      { initialProps: { refreshKey: "a" } },
+    );
+    await flush();
+    return rendered;
+  };
+
+  // Every summary the server sends from now on, stamped `generatedAt`.
+  const answerWith: (data: {
+    generatedAt: Date;
+    roundTripMs?: number;
+  }) => void = (data: { generatedAt: Date; roundTripMs?: number }): void => {
+    apiGetSpy.mockImplementation((): Promise<unknown> => {
+      if (data.roundTripMs) {
+        jest.setSystemTime(new Date(Date.now() + data.roundTripMs));
+      }
+
+      return Promise.resolve(
+        okResponse(
+          MonitorUptimeSummaryUtil.toJSON({
+            ...buildSummary(MONITOR_ID),
+            generatedAt: data.generatedAt,
+          }),
+        ),
+      );
+    });
+  };
+
+  test("a slow answer measures nothing", async () => {
+    // Seven minutes fast, but the answer took six seconds to come back.
+    jest.setSystemTime(new Date(NOW.getTime() + 7 * 60 * 1000));
+    answerWith({ generatedAt: NOW, roundTripMs: 6000 });
+
+    const reported: Array<number> = [];
+    const { result } = await renderMeasured(reported);
+
+    expect(result.current.summary.status).toBe("loaded");
+    expect(result.current.serverClockOffsetMs).toBe(0);
+    expect(reported).toEqual([]);
+  });
+
+  test("an answer back within the limit is measured", async () => {
+    jest.setSystemTime(new Date(NOW.getTime() + 7 * 60 * 1000));
+    answerWith({ generatedAt: NOW, roundTripMs: 4000 });
+
+    const reported: Array<number> = [];
+    const { result } = await renderMeasured(reported);
+
+    expect(result.current.serverClockOffsetMs).toBe(-7 * 60 * 1000);
+    expect(reported).toEqual([-7 * 60 * 1000]);
+  });
+
+  test("a summary replayed from a cache keeps the last measurement", async () => {
+    jest.setSystemTime(new Date(NOW.getTime() + 7 * 60 * 1000));
+    answerWith({ generatedAt: NOW });
+
+    const reported: Array<number> = [];
+    const { result, rerender } = await renderMeasured(reported);
+
+    expect(reported).toEqual([-7 * 60 * 1000]);
+
+    /*
+     * A minute later the network is down, and the service worker answers
+     * the reload with the summary it cached: the same generatedAt, which
+     * would read as a clock eight minutes fast.
+     */
+    jest.setSystemTime(new Date(NOW.getTime() + 8 * 60 * 1000));
+    rerender({ refreshKey: "b" });
+    await flush();
+
+    expect(result.current.summary.status).toBe("loaded");
+    expect(result.current.serverClockOffsetMs).toBe(-7 * 60 * 1000);
+    expect(reported).toEqual([-7 * 60 * 1000]);
+
+    // A fresh summary is measured again.
+    answerWith({ generatedAt: new Date(NOW.getTime() + 60 * 1000) });
+    rerender({ refreshKey: "c" });
+    await flush();
+
+    expect(reported).toEqual([-7 * 60 * 1000, -7 * 60 * 1000]);
+  });
+
+  test("a summary hours old (a laptop waking up offline) is ignored", async () => {
+    jest.setSystemTime(new Date(NOW.getTime() + 8 * 3600 * 1000));
+    answerWith({ generatedAt: NOW });
+
+    const reported: Array<number> = [];
+    const { result } = await renderMeasured(reported);
+
+    expect(result.current.summary.status).toBe("loaded");
+    expect(result.current.serverClockOffsetMs).toBe(0);
+    expect(reported).toEqual([]);
+  });
+
   test("a failed summary measures nothing", async () => {
     jest.setSystemTime(new Date(NOW.getTime() + 7 * 60 * 1000));
     apiGetSpy.mockImplementation(() => {
@@ -788,6 +904,68 @@ describe("getServerClockOffsetMs", () => {
         sentAt: at(0),
         receivedAt: at(1),
       }),
-    ).toBe(0);
+    ).toBeNull();
+  });
+
+  test("only an answer within a few seconds measures anything", () => {
+    expect(MONITOR_SERVER_CLOCK_MAX_ROUND_TRIP_MS).toBe(5 * 1000);
+
+    // A browser seven minutes fast, measured over round trips of each length.
+    const measureOver: (roundTripMs: number) => number | null = (
+      roundTripMs: number,
+    ): number | null => {
+      return getServerClockOffsetMs({
+        serverTime: at(0),
+        sentAt: at(420),
+        receivedAt: new Date(at(420).getTime() + roundTripMs),
+      });
+    };
+
+    expect(measureOver(MONITOR_SERVER_CLOCK_MAX_ROUND_TRIP_MS)).toBe(
+      -420 * 1000,
+    );
+    expect(measureOver(MONITOR_SERVER_CLOCK_MAX_ROUND_TRIP_MS + 1)).toBeNull();
+    // The browser's clock was set back while the request was out.
+    expect(measureOver(-1)).toBeNull();
+  });
+
+  test("an offset beyond a quarter of an hour is ignored, either way", () => {
+    expect(MONITOR_SERVER_CLOCK_MAX_OFFSET_MS).toBe(15 * 60 * 1000);
+
+    const limitSeconds: number = MONITOR_SERVER_CLOCK_MAX_OFFSET_MS / 1000;
+
+    for (const sign of [1, -1]) {
+      expect(
+        getServerClockOffsetMs({
+          serverTime: at(sign * limitSeconds),
+          sentAt: at(0),
+          receivedAt: at(0),
+        }),
+      ).toBe(sign * MONITOR_SERVER_CLOCK_MAX_OFFSET_MS);
+      expect(
+        getServerClockOffsetMs({
+          serverTime: at(sign * (limitSeconds + 1)),
+          sentAt: at(0),
+          receivedAt: at(0),
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("a server time no later than the newest one seen is a replay", () => {
+    const measureAfter: (newestSeconds: number) => number | null = (
+      newestSeconds: number,
+    ): number | null => {
+      return getServerClockOffsetMs({
+        serverTime: at(0),
+        sentAt: at(60),
+        receivedAt: at(61),
+        newestServerTime: at(newestSeconds),
+      });
+    };
+
+    expect(measureAfter(0)).toBeNull();
+    expect(measureAfter(30)).toBeNull();
+    expect(measureAfter(-1)).toBe(-60 * 1000);
   });
 });

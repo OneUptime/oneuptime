@@ -9,8 +9,9 @@ import MonitoringIntervalUtil from "./MonitoringIntervalUtil";
  *
  * The cadence comes from the same reading of Monitor.monitoringInterval the
  * scheduler uses (MonitoringIntervalUtil), so a monitor storing a legacy
- * "5m" is judged against five minutes, as it is actually probed, and an
- * unreadable value falls back to one minute, as the scheduler does.
+ * "5m" is judged against five minutes, as it is actually probed. An
+ * unreadable value, or a schedule that never runs, falls back to one
+ * minute, as the scheduler does.
  */
 
 export enum MonitorCheckFreshness {
@@ -61,6 +62,145 @@ const toWholeSeconds: (seconds: number) => number = (
   return Math.max(0, Math.floor(seconds));
 };
 
+const CRON_FIELD_SEPARATOR: RegExp = /\s+/;
+const DIGITS_ONLY: RegExp = /^\d+$/;
+
+// Month names as CronTab reads them: the first three letters.
+const MONTH_NAMES: Array<string> = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec",
+];
+
+// The most days each month ever has: February has 29 in a leap year.
+const LONGEST_MONTH_DAYS: Array<number> = [
+  31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+];
+
+/*
+ * Schedules that never run, remembered once found. CronTab accepts
+ * "0 0 30 2 *" (the 30th of February), but it only gives up looking for
+ * its next run after a million-step search, well over a second of the
+ * page's main thread, and the overview asks once per probe and again for
+ * freshness on every render. Only schedules with no run are kept, so this
+ * stays tiny; the cap just bounds a tab left open for weeks.
+ */
+const SCHEDULES_WITHOUT_RUNS: Set<string> = new Set<string>();
+const MAX_SCHEDULES_WITHOUT_RUNS: number = 64;
+
+const rememberScheduleWithoutRuns: (cron: string) => void = (
+  cron: string,
+): void => {
+  if (SCHEDULES_WITHOUT_RUNS.size >= MAX_SCHEDULES_WITHOUT_RUNS) {
+    SCHEDULES_WITHOUT_RUNS.clear();
+  }
+
+  SCHEDULES_WITHOUT_RUNS.add(cron);
+};
+
+/*
+ * The values a cron field allows, read the way CronTab reads them: "*",
+ * "a" and "a-b", each with an optional "/step", in a comma list, and
+ * month names. Null for anything else, which is then left to CronTab.
+ */
+const expandCronField: (data: {
+  field: string;
+  min: number;
+  max: number;
+  names?: Array<string> | undefined;
+}) => Array<number> | null = (data: {
+  field: string;
+  min: number;
+  max: number;
+  names?: Array<string> | undefined;
+}): Array<number> | null => {
+  const readValue: (raw: string) => number | null = (
+    raw: string,
+  ): number | null => {
+    const token: string = raw.trim().toLowerCase();
+    let value: number = Number.NaN;
+
+    if (DIGITS_ONLY.test(token)) {
+      value = parseInt(token, 10);
+    } else if (data.names) {
+      const index: number = data.names.indexOf(token.slice(0, 3));
+
+      if (index !== -1) {
+        value = index + data.min;
+      }
+    }
+
+    return value >= data.min && value <= data.max ? value : null;
+  };
+
+  const values: Array<number> = [];
+
+  for (const rawTerm of data.field.split(",")) {
+    const [rangePart, stepPart, ...extra]: Array<string> = rawTerm
+      .trim()
+      .split("/");
+
+    if (!rangePart || extra.length > 0) {
+      return null;
+    }
+
+    let step: number = 1;
+
+    if (stepPart !== undefined) {
+      step = DIGITS_ONLY.test(stepPart) ? parseInt(stepPart, 10) : 0;
+
+      if (step <= 0) {
+        return null;
+      }
+    }
+
+    let start: number | null = null;
+    let end: number | null = null;
+
+    if (rangePart === "*") {
+      start = data.min;
+      end = data.max;
+    } else if (rangePart.includes("-")) {
+      const [startText, endText, ...rangeExtra]: Array<string> =
+        rangePart.split("-");
+
+      if (
+        startText === undefined ||
+        endText === undefined ||
+        rangeExtra.length > 0
+      ) {
+        return null;
+      }
+
+      start = readValue(startText);
+      end = readValue(endText);
+    } else {
+      // "a/step" runs from a to the end of the range, as in CronTab.
+      start = readValue(rangePart);
+      end = stepPart === undefined ? start : data.max;
+    }
+
+    if (start === null || end === null || start > end) {
+      return null;
+    }
+
+    for (let value: number = start; value <= end; value += step) {
+      values.push(value);
+    }
+  }
+
+  return values.length > 0 ? values : null;
+};
+
 export default class MonitorCheckScheduleUtil {
   /*
    * The scheduler's fallback when an interval cannot be read (see
@@ -70,35 +210,25 @@ export default class MonitorCheckScheduleUtil {
 
   /*
    * Seconds between two consecutive runs after `from`, or null when the
-   * interval is empty or unreadable. Measured from the schedule rather than
-   * parsed from the text, so a custom cron gets its real spacing.
+   * interval is empty or unreadable, or never runs. Measured from the
+   * schedule rather than parsed from the text, so a custom cron gets its
+   * real spacing.
    */
   public static getCadenceSeconds(data: {
     monitoringInterval: string | null | undefined;
     from: Date;
   }): number | null {
     try {
-      const cron: string | null = MonitoringIntervalUtil.toCronOrNull(
-        data.monitoringInterval,
-      );
+      const runs: Array<Date> | null = MonitorCheckScheduleUtil.getNextTwoRuns({
+        monitoringInterval: data.monitoringInterval,
+        after: data.from,
+      });
 
-      if (!cron) {
+      if (!runs) {
         return null;
       }
 
-      const runs: Array<Date> = CronTab.getNextExecutionTimes(
-        cron,
-        2,
-        data.from,
-      );
-      const first: Date | undefined = runs[0];
-      const second: Date | undefined = runs[1];
-
-      if (!first || !second) {
-        return null;
-      }
-
-      const cadence: number = secondsBetween(second, first);
+      const cadence: number = secondsBetween(runs[1]!, runs[0]!);
 
       return cadence > 0 ? cadence : null;
     } catch {
@@ -118,41 +248,126 @@ export default class MonitorCheckScheduleUtil {
 
   /*
    * The first run the schedule has after `after`, and the spacing of the
-   * schedule at that point. Null when the interval is empty or unreadable.
+   * schedule at that point. Null when the interval is empty or unreadable,
+   * or never runs.
    */
   public static getNextRunAfter(data: {
     monitoringInterval: string | null | undefined;
     after: Date;
   }): MonitorScheduledRun | null {
     try {
-      const cron: string | null = MonitoringIntervalUtil.toCronOrNull(
-        data.monitoringInterval,
-      );
+      const runs: Array<Date> | null =
+        MonitorCheckScheduleUtil.getNextTwoRuns(data);
 
-      if (!cron) {
+      if (!runs) {
         return null;
       }
 
-      const runs: Array<Date> = CronTab.getNextExecutionTimes(
-        cron,
-        2,
-        data.after,
-      );
-      const first: Date | undefined = runs[0];
-      const second: Date | undefined = runs[1];
-
-      if (!first || !second) {
-        return null;
-      }
-
-      const spacingSeconds: number = secondsBetween(second, first);
+      const spacingSeconds: number = secondsBetween(runs[1]!, runs[0]!);
 
       return spacingSeconds > 0
-        ? { runAt: first, spacingSeconds: spacingSeconds }
+        ? { runAt: runs[0]!, spacingSeconds: spacingSeconds }
         : null;
     } catch {
       return null;
     }
+  }
+
+  /*
+   * The schedule's first two runs after `after`, or null when the interval
+   * is empty or unreadable, or never runs. The scheduler checks a schedule
+   * that never runs every minute, as it does an unreadable one, so callers
+   * take the same uniform-cadence path for both.
+   */
+  private static getNextTwoRuns(data: {
+    monitoringInterval: string | null | undefined;
+    after: Date;
+  }): Array<Date> | null {
+    const cron: string | null = MonitoringIntervalUtil.toCronOrNull(
+      data.monitoringInterval,
+    );
+
+    /*
+     * An Invalid Date would send CronTab's month search round forever, as
+     * no month ever equals NaN.
+     */
+    if (!cron || !Number.isFinite(data.after.getTime())) {
+      return null;
+    }
+
+    if (MonitorCheckScheduleUtil.isScheduleWithoutRuns(cron)) {
+      return null;
+    }
+
+    const runs: Array<Date> = CronTab.getNextExecutionTimes(
+      cron,
+      2,
+      data.after,
+    );
+
+    if (!runs[0] || !runs[1]) {
+      // A schedule that runs at all always has two more runs in reach.
+      rememberScheduleWithoutRuns(cron);
+      return null;
+    }
+
+    return runs;
+  }
+
+  /*
+   * True for a schedule known never to run, and for one whose day fields
+   * show it without CronTab's search: a day of the month that no allowed
+   * month has ("0 0 30 2 *", "0 0 31 4 *"). A restricted day of the week
+   * matches some day in every month, and CronTab ORs it with the day of the
+   * month, so only a bare "*" there leaves the day of the month to decide.
+   */
+  private static isScheduleWithoutRuns(cron: string): boolean {
+    if (SCHEDULES_WITHOUT_RUNS.has(cron)) {
+      return true;
+    }
+
+    const fields: Array<string> = cron.trim().split(CRON_FIELD_SEPARATOR);
+
+    if (fields.length !== 5 && fields.length !== 6) {
+      return false;
+    }
+
+    // A sixth field is a leading seconds field.
+    const offset: number = fields.length - 5;
+    const dayOfMonthField: string = fields[2 + offset]!;
+    const monthField: string = fields[3 + offset]!;
+    const dayOfWeekField: string = fields[4 + offset]!;
+
+    if (dayOfWeekField !== "*" || dayOfMonthField === "*") {
+      return false;
+    }
+
+    const days: Array<number> | null = expandCronField({
+      field: dayOfMonthField,
+      min: 1,
+      max: 31,
+    });
+    const months: Array<number> | null = expandCronField({
+      field: monthField,
+      min: 1,
+      max: 12,
+      names: MONTH_NAMES,
+    });
+
+    if (!days || !months) {
+      return false;
+    }
+
+    const firstDay: number = Math.min(...days);
+    const hasNoDay: boolean = months.every((month: number) => {
+      return firstDay > (LONGEST_MONTH_DAYS[month - 1] ?? 31);
+    });
+
+    if (hasNoDay) {
+      rememberScheduleWithoutRuns(cron);
+    }
+
+    return hasNoDay;
   }
 
   /*
@@ -200,8 +415,8 @@ export default class MonitorCheckScheduleUtil {
   }
 
   /*
-   * "Every 5 minutes". An empty or unreadable interval is described as the
-   * schedule it actually gets, which is every minute.
+   * "Every 5 minutes". An empty or unreadable interval, or one that never
+   * runs, is described as the schedule it actually gets: every minute.
    */
   public static describeInterval(
     monitoringInterval: string | null | undefined,
@@ -209,7 +424,7 @@ export default class MonitorCheckScheduleUtil {
     const cron: string | null =
       MonitoringIntervalUtil.toCronOrNull(monitoringInterval);
 
-    if (!cron) {
+    if (!cron || MonitorCheckScheduleUtil.isScheduleWithoutRuns(cron)) {
       return "Every minute";
     }
 

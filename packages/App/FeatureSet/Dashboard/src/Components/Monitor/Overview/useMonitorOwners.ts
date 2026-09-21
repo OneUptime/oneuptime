@@ -236,14 +236,53 @@ export const useMonitorOwners: (options: {
 };
 
 /*
+ * What an earlier owners section knew about one half, or null when it knew
+ * nothing. A complete answer (no refreshError) read both halves, so a kind
+ * it has no entries of is known to have none. A partial one read only the
+ * halves it has entries of: the kind it lacks may be the half that could
+ * not be read, so it is unknown, never "none".
+ */
+function getEarlierHalf(data: {
+  previous: OverviewSection<Array<ResourceOwnerEntry>>;
+  subjectId: string;
+  kind: ResourceOwnerEntry["kind"];
+}): Array<ResourceOwnerEntry> | null {
+  const previous: OverviewSection<Array<ResourceOwnerEntry>> = data.previous;
+
+  if (
+    previous.status !== "loaded" ||
+    previous.loadedFor !== data.subjectId ||
+    !previous.value
+  ) {
+    return null;
+  }
+
+  const entries: Array<ResourceOwnerEntry> = previous.value.filter(
+    (entry: ResourceOwnerEntry) => {
+      return entry.kind === data.kind;
+    },
+  );
+
+  if (previous.refreshError && entries.length === 0) {
+    return null;
+  }
+
+  return entries;
+}
+
+/*
  * The owners section from the two lists, users first and then teams.
  * - Both read: the owners, possibly none.
- * - A half that failed: an earlier answer stays on screen with the failure
- *   (failSection), rather than drop the owners that half named.
- * - A half that cannot be read (or failed with no earlier answer): the
- *   other half's owners are shown, with the missing half's reason as
- *   refreshError. If that half named nobody there is nothing to show, and
- *   "No owners" would be a guess, so the section is unavailable instead.
+ * - Both failed (or one failed and the other cannot be read): an earlier
+ *   answer stays on screen with the failure (failSection).
+ * - One read and one failed: the half just read, plus what an earlier
+ *   answer knew of the failed half, with the failure as refreshError, so a
+ *   transient failure neither drops the owners that half named nor throws
+ *   away the half just read. An earlier answer only counts for the half it
+ *   actually read (getEarlierHalf).
+ * - Otherwise the half that was read is shown with the missing half's
+ *   reason as refreshError. If it named nobody there is nothing to show,
+ *   and "No owners" would be a guess, so the section is unavailable.
  */
 export function combineOwnerLists(data: {
   users: OwnerListOutcome;
@@ -251,17 +290,38 @@ export function combineOwnerLists(data: {
   previous: OverviewSection<Array<ResourceOwnerEntry>>;
   subjectId: string;
 }): OverviewSection<Array<ResourceOwnerEntry>> {
+  const halves: Array<{
+    kind: ResourceOwnerEntry["kind"];
+    outcome: OwnerListOutcome;
+  }> = [
+    { kind: "user", outcome: data.users },
+    { kind: "team", outcome: data.teams },
+  ];
   const entries: Array<ResourceOwnerEntry> = [];
   let loadedCount: number = 0;
+  let hasEarlierHalf: boolean = false;
   let failureMessage: string = "";
   let forbiddenReason: string = "";
 
-  for (const outcome of [data.users, data.teams]) {
+  for (const half of halves) {
+    const outcome: OwnerListOutcome = half.outcome;
+
     if (outcome.kind === "loaded") {
       loadedCount += 1;
       entries.push(...outcome.entries);
     } else if (outcome.kind === "failed") {
       failureMessage = failureMessage || outcome.message;
+
+      const earlier: Array<ResourceOwnerEntry> | null = getEarlierHalf({
+        previous: data.previous,
+        subjectId: data.subjectId,
+        kind: half.kind,
+      });
+
+      if (earlier) {
+        hasEarlierHalf = true;
+        entries.push(...earlier);
+      }
     } else {
       forbiddenReason = forbiddenReason || outcome.reason;
     }
@@ -271,24 +331,43 @@ export function combineOwnerLists(data: {
     return resolveSection({ value: entries, subjectId: data.subjectId });
   }
 
-  const hasEarlierAnswer: boolean =
-    data.previous.status === "loaded" &&
-    data.previous.loadedFor === data.subjectId;
-
-  if (failureMessage && (hasEarlierAnswer || entries.length === 0)) {
-    return failSection({
-      previous: data.previous,
-      message: failureMessage,
-      subjectId: data.subjectId,
-    });
+  if (loadedCount === 0) {
+    return failureMessage
+      ? failSection({
+          previous: data.previous,
+          message: failureMessage,
+          subjectId: data.subjectId,
+        })
+      : forbidSection<Array<ResourceOwnerEntry>>({
+          reason: MONITOR_OWNERS_ACCESS_REASON,
+          subjectId: data.subjectId,
+        });
   }
 
+  // Both halves are known, one of them from an earlier read.
+  if (hasEarlierHalf) {
+    return {
+      ...resolveSection({ value: entries, subjectId: data.subjectId }),
+      refreshError: failureMessage,
+    };
+  }
+
+  /*
+   * Nothing to show: the half just read named nobody and the other is
+   * unknown. An earlier answer is not kept either, because the owners it
+   * names from the half just read may be the ones that half no longer has.
+   */
   if (entries.length === 0) {
-    return forbidSection<Array<ResourceOwnerEntry>>({
-      reason:
-        loadedCount === 0 ? MONITOR_OWNERS_ACCESS_REASON : forbiddenReason,
-      subjectId: data.subjectId,
-    });
+    return failureMessage
+      ? failSection({
+          previous: getLoadingSection<Array<ResourceOwnerEntry>>(),
+          message: failureMessage,
+          subjectId: data.subjectId,
+        })
+      : forbidSection<Array<ResourceOwnerEntry>>({
+          reason: forbiddenReason,
+          subjectId: data.subjectId,
+        });
   }
 
   return {

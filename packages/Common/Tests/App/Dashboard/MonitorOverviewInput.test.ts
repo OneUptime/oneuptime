@@ -4,7 +4,11 @@ import { describe, expect, test } from "@jest/globals";
 import {
   getCurrentStatusId,
   getCurrentStatusRef,
+  getHeldProbeResultsReadAt,
+  getJudgedAt,
   getProbeLastResultAt,
+  getTelemetryLastCheckedAt,
+  getTelemetryLastCheckedLabel,
   isMonitorScheduled,
   summarizeProbeSection,
   toPresentationInput,
@@ -401,6 +405,248 @@ describe("toPresentationInput: probes", () => {
   });
 });
 
+/*
+ * Probe results the page is holding after a probe read failed. The page
+ * cannot see what happened since that read, so the results are judged as of
+ * it: otherwise every commit would age them, and the hero would blame the
+ * probes ("Checks overdue") for the page's own failure to read them.
+ */
+describe("toPresentationInput: probe results held after a failed read", () => {
+  // The last read that returned results was sent twelve minutes ago.
+  const READ_AT: Date = minutesAgo(12);
+
+  type HeldSectionFunction = (data: {
+    fullLoadedAt: Date | null;
+    refreshError: string;
+  }) => OverviewSection<MonitorOverviewProbeData>;
+
+  // A probe that answered 30 s before that read and keeps claiming checks.
+  const heldProbes: HeldSectionFunction = (data: {
+    fullLoadedAt: Date | null;
+    refreshError: string;
+  }): OverviewSection<MonitorOverviewProbeData> => {
+    const row: MonitorProbe = buildProbeRow({
+      probeId: PROBE_A,
+      log: {
+        [STEP_ID]: {
+          monitoredAt: new Date(READ_AT.getTime() - 30 * 1000).toISOString(),
+          isOnline: true,
+          responseTimeInMs: 120,
+        },
+      },
+    });
+    row.lastPingAt = new Date(NOW.getTime() - 30 * 1000);
+    row.nextPingAt = new Date(NOW.getTime() + 30 * 1000);
+
+    return {
+      ...resolveSection<MonitorOverviewProbeData>({
+        value: {
+          rows: [row],
+          attached: MonitorOverviewProbeUtil.toAttachedProbes([row]),
+          fullLoadedAt: data.fullLoadedAt,
+        },
+        subjectId: MONITOR_ID,
+      }),
+      refreshError: data.refreshError,
+    };
+  };
+
+  type InputForFunction = (
+    probes: OverviewSection<MonitorOverviewProbeData>,
+    serverClockOffsetMs?: number,
+  ) => MonitorOverviewPresentationInput;
+
+  const inputFor: InputForFunction = (
+    probes: OverviewSection<MonitorOverviewProbeData>,
+    serverClockOffsetMs?: number,
+  ): MonitorOverviewPresentationInput => {
+    return toPresentationInput({
+      monitor: buildMonitor(),
+      probes: probes,
+      statusRows: resolveSection<Array<MonitorStatusTimeline>>({
+        value: [],
+        subjectId: MONITOR_ID,
+      }),
+      evaluation: emptyEvaluation,
+      now: NOW,
+      serverClockOffsetMs: serverClockOffsetMs,
+    });
+  };
+
+  test("are judged as of their read, so the page's own failure never reads as 'Checks overdue'", () => {
+    const input: MonitorOverviewPresentationInput = inputFor(
+      heldProbes({ fullLoadedAt: READ_AT, refreshError: "Timed out." }),
+    );
+    const presentation: MonitorOverviewPresentation =
+      MonitorOverviewPresentationUtil.build(input);
+
+    expect(input.now).toEqual(READ_AT);
+    expect(input.probes!.rows[0]!.health).toBe(MonitorOverviewProbeHealth.Up);
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Running);
+  });
+
+  test("the same results read successfully are judged at the commit, and are overdue", () => {
+    const input: MonitorOverviewPresentationInput = inputFor(
+      heldProbes({ fullLoadedAt: READ_AT, refreshError: "" }),
+    );
+
+    expect(input.now).toEqual(NOW);
+    expect(input.probes!.rows[0]!.health).toBe(MonitorOverviewProbeHealth.Late);
+    expect(MonitorOverviewPresentationUtil.build(input).runState).toBe(
+      MonitorOverviewRunState.Overdue,
+    );
+  });
+
+  test("the read time is moved onto the server's clock", () => {
+    // The browser runs seven minutes fast, so it stamped the read 11:55.
+    const browserReadAt: Date = new Date(READ_AT.getTime() + 7 * 60 * 1000);
+    const probes: OverviewSection<MonitorOverviewProbeData> = heldProbes({
+      fullLoadedAt: browserReadAt,
+      refreshError: "Timed out.",
+    });
+
+    expect(
+      getHeldProbeResultsReadAt({
+        probes: probes,
+        serverClockOffsetMs: -7 * 60 * 1000,
+      }),
+    ).toEqual(READ_AT);
+    expect(inputFor(probes, -7 * 60 * 1000).now).toEqual(READ_AT);
+    // An unusable offset is no offset.
+    expect(
+      getHeldProbeResultsReadAt({
+        probes: probes,
+        serverClockOffsetMs: Number.NaN,
+      }),
+    ).toEqual(browserReadAt);
+  });
+
+  test("only held results move the judgement, and never later than now", () => {
+    const at: (probes: OverviewSection<MonitorOverviewProbeData>) => Date = (
+      probes: OverviewSection<MonitorOverviewProbeData>,
+    ): Date => {
+      return getJudgedAt({
+        now: NOW,
+        probes: probes,
+        serverClockOffsetMs: 0,
+      });
+    };
+
+    expect(
+      at(heldProbes({ fullLoadedAt: READ_AT, refreshError: "Timed out." })),
+    ).toEqual(READ_AT);
+    expect(at(heldProbes({ fullLoadedAt: READ_AT, refreshError: "" }))).toEqual(
+      NOW,
+    );
+    // No full read ever landed: there is no read to judge as of.
+    expect(
+      at(heldProbes({ fullLoadedAt: null, refreshError: "Timed out." })),
+    ).toEqual(NOW);
+    // A read stamped after the commit (a skewed offset) never moves it on.
+    expect(
+      at(
+        heldProbes({
+          fullLoadedAt: new Date(NOW.getTime() + 60 * 1000),
+          refreshError: "Timed out.",
+        }),
+      ),
+    ).toEqual(NOW);
+    expect(at(getLoadingSection<MonitorOverviewProbeData>())).toEqual(NOW);
+  });
+
+  test("how long the status has held still runs to the commit", () => {
+    // The status changed five minutes ago, after the probe read.
+    const input: MonitorOverviewPresentationInput = toPresentationInput({
+      monitor: buildMonitor(),
+      probes: heldProbes({ fullLoadedAt: READ_AT, refreshError: "Timed out." }),
+      statusRows: resolveSection<Array<MonitorStatusTimeline>>({
+        value: [
+          buildStatusRow({ statusId: OPERATIONAL_ID, startsAt: minutesAgo(5) }),
+        ],
+        subjectId: MONITOR_ID,
+      }),
+      evaluation: emptyEvaluation,
+      now: NOW,
+      serverClockOffsetMs: 0,
+    });
+
+    expect(input.now).toEqual(READ_AT);
+    expect(input.statusSince).toEqual(minutesAgo(5));
+  });
+});
+
+describe("getTelemetryLastCheckedAt", () => {
+  // The worker queued an evaluation 40 s ago; the newest one landed at 11:46.
+  const stamped: Monitor = buildMonitor({
+    monitorType: MonitorType.Kubernetes,
+    telemetryMonitorLastMonitorAt: new Date(NOW.getTime() - 40 * 1000),
+  });
+
+  test("is the newest evaluation in the log, as in the hero, not the scheduler's stamp", () => {
+    expect(
+      getTelemetryLastCheckedAt({
+        monitor: stamped,
+        evaluation: resolveSection<MonitorEvaluationByProbe>({
+          value: { byProbeId: {}, latestAt: minutesAgo(14) },
+          subjectId: MONITOR_ID,
+        }),
+      }),
+    ).toEqual(minutesAgo(14));
+
+    // A log that failed to refresh keeps the evaluation it had.
+    expect(
+      getTelemetryLastCheckedAt({
+        monitor: stamped,
+        evaluation: failSection<MonitorEvaluationByProbe>({
+          previous: resolveSection<MonitorEvaluationByProbe>({
+            value: { byProbeId: {}, latestAt: minutesAgo(14) },
+            subjectId: MONITOR_ID,
+          }),
+          message: "Logs are unavailable.",
+          subjectId: MONITOR_ID,
+        }),
+      }),
+    ).toEqual(minutesAgo(14));
+  });
+
+  test("falls back to the scheduler's stamp when the log has no time to give", () => {
+    for (const evaluation of [
+      // Empty: the log keeps rows for a day, so this is not "never evaluated".
+      emptyEvaluation,
+      getLoadingSection<MonitorEvaluationByProbe>(),
+      failSection<MonitorEvaluationByProbe>({
+        previous: getLoadingSection<MonitorEvaluationByProbe>(),
+        message: "Logs are unavailable.",
+        subjectId: MONITOR_ID,
+      }),
+      forbidSection<MonitorEvaluationByProbe>({
+        reason: "You need permission to read this monitor's logs.",
+        subjectId: MONITOR_ID,
+      }),
+    ]) {
+      expect(
+        getTelemetryLastCheckedAt({ monitor: stamped, evaluation: evaluation }),
+      ).toEqual(new Date(NOW.getTime() - 40 * 1000));
+
+      // The stamp only says a run was queued, and the label says so.
+      expect(getTelemetryLastCheckedLabel({ evaluation: evaluation })).toBe(
+        "Scheduled At",
+      );
+    }
+  });
+
+  test("the label names an evaluation only when the log has one", () => {
+    expect(
+      getTelemetryLastCheckedLabel({
+        evaluation: resolveSection<MonitorEvaluationByProbe>({
+          value: { byProbeId: {}, latestAt: minutesAgo(14) },
+          subjectId: MONITOR_ID,
+        }),
+      }),
+    ).toBe("Evaluated At");
+  });
+});
+
 describe("toPresentationInput: agent metrics", () => {
   test("server metrics are extracted from the agent's last report", () => {
     const input: MonitorOverviewPresentationInput = buildInput({
@@ -750,7 +996,7 @@ describe("toPresentationInput: the rest of the row", () => {
   });
 
   test("a telemetry monitor whose loaded log has no evaluation is overdue, whatever the scheduler stamps", () => {
-    // The worker keeps queueing evaluations, but none has ever completed.
+    // The worker keeps queueing evaluations, but none lands in the log.
     const stalled: Monitor = buildMonitor({
       monitorType: MonitorType.Logs,
       telemetryMonitorLastMonitorAt: minutesAgo(1),
@@ -763,8 +1009,14 @@ describe("toPresentationInput: the rest of the row", () => {
       );
 
     expect(loaded.runState).toBe(MonitorOverviewRunState.Overdue);
-    expect(loaded.isNeverReported).toBe(true);
-    expect(loaded.pulse.label).toBe("Last evaluated");
+    /*
+     * The log keeps rows for about a day, so for a monitor created months
+     * ago an empty log does not mean none ever completed.
+     */
+    expect(loaded.isNeverReported).toBe(false);
+    expect(loaded.explanation || "").not.toContain(
+      "since this monitor was created",
+    );
 
     // A log that could not be read says nothing either way.
     const unreadable: MonitorOverviewPresentation =

@@ -12,12 +12,15 @@ import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
+import CronTab from "../../../Utils/CronTab";
 import { MonitorCheckFreshness } from "../../../Utils/Monitor/MonitorCheckScheduleUtil";
 import MonitorOverviewFamilyUtil, {
   MonitorOverviewFamily,
   MonitorOverviewSetupKind,
 } from "../../../Utils/Monitor/MonitorOverviewFamily";
 import MonitorOverviewPresentationUtil, {
+  MONITOR_LOG_MINIMUM_RETENTION_SECONDS,
+  MONITOR_LOG_RETENTION_HORIZON_SECONDS,
   MonitorOverviewFact,
   MonitorOverviewPresentation,
   MonitorOverviewPresentationInput,
@@ -30,6 +33,7 @@ import MonitorOverviewProbeUtil, {
   MonitorOverviewProbeSummary,
 } from "../../../Utils/Monitor/MonitorOverviewProbeUtil";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { MockInstance } from "jest-mock";
 
 /*
  * The hero, facts, pulse and section switches of the monitor overview for
@@ -437,7 +441,7 @@ const SCENARIOS: Array<Scenario> = [
     runState: MonitorOverviewRunState.Overdue,
   },
   {
-    name: "logs monitor scheduled for ten days but never evaluated",
+    name: "logs monitor with nothing in its evaluation log's last day",
     input: running(MonitorType.Logs, {
       createdAt: secondsAgo(10 * DAY),
       latestEvaluationAt: undefined,
@@ -445,11 +449,35 @@ const SCENARIOS: Array<Scenario> = [
     runState: MonitorOverviewRunState.Overdue,
   },
   {
-    name: "network device whose log is loaded and empty",
+    name: "new network device whose log is loaded and empty",
     input: running(MonitorType.NetworkDevice, {
+      createdAt: secondsAgo(3600),
       latestEvaluationAt: undefined,
     }),
     runState: MonitorOverviewRunState.AwaitingFirstData,
+  },
+  {
+    // Its rows expired: the log only covers the last day or two.
+    name: "network device with nothing in its evaluation log's last day",
+    input: running(MonitorType.NetworkDevice, {
+      currentStatus: OFFLINE,
+      latestEvaluationAt: undefined,
+    }),
+    runState: MonitorOverviewRunState.Running,
+  },
+  {
+    name: "weekly logs monitor whose last evaluation has left the log",
+    input: running(MonitorType.Logs, {
+      // Fridays at noon; now is Monday noon.
+      monitoringInterval: "0 12 * * 5",
+      createdAt: secondsAgo(90 * DAY),
+      telemetry: {
+        lastScheduledAt: secondsAgo(3 * DAY),
+        nextEvaluationAt: secondsAgo(-4 * DAY),
+      },
+      latestEvaluationAt: undefined,
+    }),
+    runState: MonitorOverviewRunState.Running,
   },
 ];
 
@@ -2333,10 +2361,19 @@ describe("MonitorOverviewPresentationUtil telemetry evaluations", () => {
     ).toMatchObject({ label: "Last scheduled", at: secondsAgo(40) });
   });
 
+  /*
+   * The log still holds every evaluation of a monitor younger than a day,
+   * so its emptiness means none has completed: the worker's stamp, which it
+   * writes when it only queues one, must not end the wait.
+   */
   it("never evaluated: waiting while young, overdue after", () => {
     const young: MonitorOverviewPresentation = build(
       running(MonitorType.Metrics, {
         createdAt: secondsAgo(120),
+        telemetry: {
+          lastScheduledAt: secondsAgo(30),
+          nextEvaluationAt: secondsAgo(-270),
+        },
         latestEvaluationAt: undefined,
       }),
     );
@@ -2348,20 +2385,246 @@ describe("MonitorOverviewPresentationUtil telemetry evaluations", () => {
       emptyText: "Not evaluated yet",
     });
 
-    const old: MonitorOverviewPresentation = build(
+    const stuck: MonitorOverviewPresentation = build(
       running(MonitorType.Metrics, {
-        createdAt: secondsAgo(10 * DAY),
+        createdAt: secondsAgo(5 * 3600),
         latestEvaluationAt: undefined,
       }),
     );
 
-    expect(old.runState).toBe(MonitorOverviewRunState.Overdue);
-    expect(old.isNeverReported).toBe(true);
-    expect(old.badge).toEqual({ text: "No results yet", tone: "warning" });
-    expect(old.headline).toEqual({ text: "No evaluation has completed yet" });
-    expect(old.explanation).toBe(
+    expect(stuck.runState).toBe(MonitorOverviewRunState.Overdue);
+    expect(stuck.isNeverReported).toBe(true);
+    expect(stuck.badge).toEqual({ text: "No results yet", tone: "warning" });
+    expect(stuck.headline).toEqual({ text: "No evaluation has completed yet" });
+    expect(stuck.explanation).toBe(
+      "No evaluation has run since this monitor was created 5h ago.",
+    );
+
+    // The worker stamps every evaluation it queues, so none was ever queued.
+    const neverQueued: MonitorOverviewPresentation = build(
+      running(MonitorType.Metrics, {
+        createdAt: secondsAgo(10 * DAY),
+        telemetry: {},
+        latestEvaluationAt: undefined,
+      }),
+    );
+
+    expect(neverQueued.runState).toBe(MonitorOverviewRunState.Overdue);
+    expect(neverQueued.isNeverReported).toBe(true);
+    expect(neverQueued.explanation).toBe(
       "No evaluation has run since this monitor was created 10d ago.",
     );
+  });
+});
+
+/*
+ * MonitorLog keeps a row for a day (MonitorLogUtil.DEFAULT_RETENTION_DAYS)
+ * and drops it with its daily partition, so a row is gone within about two
+ * days. For a monitor older than that, an empty log is not "never
+ * evaluated".
+ */
+describe("MonitorOverviewPresentationUtil evaluation log retention", () => {
+  it("the log keeps rows for a day, and none for more than about two", () => {
+    expect(MONITOR_LOG_MINIMUM_RETENTION_SECONDS).toBe(DAY);
+    expect(MONITOR_LOG_RETENTION_HORIZON_SECONDS).toBe(2 * DAY);
+  });
+
+  it("an old monitor evaluated every minute with nothing in the log's last day is overdue, not 'never evaluated'", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.Metrics, {
+        monitoringInterval: "* * * * *",
+        createdAt: secondsAgo(90 * DAY),
+        // The worker keeps queueing; nothing completes.
+        telemetry: {
+          lastScheduledAt: secondsAgo(5),
+          nextEvaluationAt: secondsAgo(-55),
+        },
+        latestEvaluationAt: undefined,
+        evaluationStatus: "loaded",
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Overdue);
+    expect(presentation.isNeverReported).toBe(false);
+    // What it last measured leads, as for any overdue monitor with results.
+    expect(presentation.badge.text).toBe("Operational");
+    expect(presentation.headline).toEqual({
+      text: "Operational",
+      since: secondsAgo(3 * DAY + 4 * 3600),
+    });
+    expect(presentation.secondaryBadges).toEqual([
+      { text: "Checks overdue", tone: "warning" },
+    ]);
+    expect(presentation.tone).toBe("warning");
+    expect(presentation.explanation).toBe(
+      "No evaluation recorded in the last day, but this monitor is evaluated every minute.",
+    );
+    expect(presentation.lastKnownStatus).toBeUndefined();
+    expect(MonitorOverviewPresentationUtil.getUptimeCaveat(presentation)).toBe(
+      null,
+    );
+    expect(presentation.sections.showUptime).toBe(true);
+    // How late is unknown: the log only says "not in the last day".
+    expect(presentation.pulse).toEqual({
+      label: "Last evaluated",
+      at: undefined,
+      emptyText: "Not evaluated in the last day",
+      cadenceText: "Every minute",
+      nextAt: secondsAgo(-55),
+      overdueSeconds: undefined,
+      isUnavailable: false,
+    });
+  });
+
+  it("a weekly monitor between evaluations shows its last scheduled run, not an overdue or a wait", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.Kubernetes, {
+        // Fridays at noon; now is Monday noon.
+        monitoringInterval: "0 12 * * 5",
+        createdAt: secondsAgo(90 * DAY),
+        telemetry: {
+          lastScheduledAt: secondsAgo(3 * DAY),
+          nextEvaluationAt: secondsAgo(-4 * DAY),
+        },
+        latestEvaluationAt: undefined,
+        evaluationStatus: "loaded",
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Running);
+    expect(presentation.isNeverReported).toBe(false);
+    expect(presentation.badge.text).toBe("Operational");
+    expect(presentation.sections.showUptime).toBe(true);
+    expect(presentation.pulse).toMatchObject({
+      label: "Last scheduled",
+      at: secondsAgo(3 * DAY),
+      nextAt: secondsAgo(-4 * DAY),
+    });
+  });
+
+  it("a weekly monitor a day or two old, whose first evaluation has left the log, is not still waiting", () => {
+    // Saturdays at 13:00; created just before Saturday's run, 47 hours ago.
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.Logs, {
+        monitoringInterval: "0 13 * * 6",
+        createdAt: secondsAgo(47 * 3600 + 300),
+        telemetry: {
+          lastScheduledAt: secondsAgo(47 * 3600),
+          nextEvaluationAt: secondsAgo(-(5 * DAY + 3600)),
+        },
+        latestEvaluationAt: undefined,
+        evaluationStatus: "loaded",
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Running);
+    expect(presentation.pulse).toMatchObject({
+      label: "Last scheduled",
+      at: secondsAgo(47 * 3600),
+    });
+  });
+
+  it("a schedule with gaps is not overdue through the weekend, and is once Monday's runs are missing", () => {
+    // Every 5 minutes, 09:00 to 17:55 UTC, Monday to Friday.
+    const businessHours: (now: Date) => MonitorOverviewPresentation = (
+      now: Date,
+    ): MonitorOverviewPresentation => {
+      return build(
+        running(MonitorType.Logs, {
+          now: now,
+          monitoringInterval: "*/5 9-17 * * 1-5",
+          createdAt: secondsAgo(90 * DAY),
+          telemetry: {
+            // Friday's last run; the worker queues nothing until Monday.
+            lastScheduledAt: new Date("2026-09-18T17:55:00.000Z"),
+            nextEvaluationAt: new Date("2026-09-21T09:00:00.000Z"),
+          },
+          latestEvaluationAt: undefined,
+          evaluationStatus: "loaded",
+        }),
+      );
+    };
+
+    const mondayMorning: MonitorOverviewPresentation = businessHours(
+      new Date("2026-09-21T08:00:00.000Z"),
+    );
+
+    expect(mondayMorning.runState).toBe(MonitorOverviewRunState.Running);
+    expect(mondayMorning.pulse.label).toBe("Last scheduled");
+
+    const mondayTen: MonitorOverviewPresentation = businessHours(
+      new Date("2026-09-21T10:00:00.000Z"),
+    );
+
+    expect(mondayTen.runState).toBe(MonitorOverviewRunState.Overdue);
+    expect(mondayTen.isNeverReported).toBe(false);
+  });
+
+  it("a monitor a day or two old with nothing in the log's last day is not called 'never evaluated'", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.Metrics, {
+        monitoringInterval: "* * * * *",
+        createdAt: secondsAgo(36 * 3600),
+        latestEvaluationAt: undefined,
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Overdue);
+    expect(presentation.isNeverReported).toBe(false);
+    expect(presentation.explanation).toBe(
+      "No evaluation recorded in the last day, but this monitor is evaluated every minute.",
+    );
+  });
+
+  it("an impossible schedule is judged as the every-minute one it gets, without CronTab's search", () => {
+    // The 30th of February: CronTab takes over a second to find no run.
+    const search: MockInstance<typeof CronTab.getNextExecutionTimes> =
+      jest.spyOn(CronTab, "getNextExecutionTimes");
+
+    try {
+      const probeCheck: MonitorOverviewPresentation = build(
+        running(MonitorType.API, { monitoringInterval: "0 0 30 2 *" }),
+      );
+      const telemetry: MonitorOverviewPresentation = build(
+        running(MonitorType.Logs, {
+          monitoringInterval: "0 0 30 2 *",
+          createdAt: secondsAgo(90 * DAY),
+          latestEvaluationAt: undefined,
+        }),
+      );
+
+      expect(probeCheck.runState).toBe(MonitorOverviewRunState.Running);
+      expect(probeCheck.pulse.cadenceText).toBe("Every minute");
+      // Nothing in the last day, on a schedule the scheduler runs every minute.
+      expect(telemetry.runState).toBe(MonitorOverviewRunState.Overdue);
+      expect(telemetry.explanation).toBe(
+        "No evaluation recorded in the last day, but this monitor is evaluated every minute.",
+      );
+      expect(search).not.toHaveBeenCalled();
+    } finally {
+      search.mockRestore();
+    }
+  });
+
+  it("paused, it names the last scheduled run instead of 'not evaluated yet'", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.Logs, {
+        createdAt: secondsAgo(90 * DAY),
+        pause: {
+          isDisabled: true,
+          byManualIncident: false,
+          byScheduledMaintenance: false,
+        },
+        telemetry: { lastScheduledAt: secondsAgo(5 * DAY) },
+        latestEvaluationAt: undefined,
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Paused);
+    expect(presentation.pulse).toMatchObject({
+      label: "Last scheduled",
+      at: secondsAgo(5 * DAY),
+    });
   });
 });
 
@@ -2406,6 +2669,7 @@ describe("MonitorOverviewPresentationUtil network device evaluations", () => {
   it("a loaded, empty log is waiting for the first poll, not a measured status", () => {
     const presentation: MonitorOverviewPresentation = build(
       running(MonitorType.NetworkDevice, {
+        createdAt: secondsAgo(2 * 3600),
         latestEvaluationAt: undefined,
         evaluationStatus: "loaded",
       }),
@@ -2424,6 +2688,69 @@ describe("MonitorOverviewPresentationUtil network device evaluations", () => {
     );
     expect(presentation.sections.showUptime).toBe(false);
     expect(presentation.pulse.isUnavailable).toBe(false);
+  });
+
+  /*
+   * Its polling stopped (turned off, or its probe went offline) more than
+   * a day ago, and the log's rows have expired since. It has been judged
+   * for months: that history, and its status, stay.
+   */
+  it("an older device with nothing in the log's last day keeps its status and history", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.NetworkDevice, {
+        createdAt: secondsAgo(90 * DAY),
+        currentStatus: OFFLINE,
+        latestEvaluationAt: undefined,
+        evaluationStatus: "loaded",
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Running);
+    expect(presentation.badge).toMatchObject({
+      text: "Offline",
+      tone: "danger",
+    });
+    expect(presentation.headline).toEqual({
+      text: "Offline",
+      since: secondsAgo(3 * DAY + 4 * 3600),
+    });
+    expect(presentation.explanation).toBe(
+      "No poll or trap from this device has been evaluated in the last day, so the status shown is the last one recorded.",
+    );
+    expect(presentation.lastKnownStatus).toBeUndefined();
+    expect(presentation.sections.showUptime).toBe(true);
+    expect(presentation.pulse).toEqual({
+      label: "Last evaluated",
+      at: undefined,
+      emptyText: "Not evaluated in the last day",
+      isUnavailable: false,
+    });
+
+    // A device that is being evaluated needs no such note.
+    expect(build(running(MonitorType.NetworkDevice)).explanation).toBe(
+      undefined,
+    );
+  });
+
+  it("a device just under a day old with an empty log is still waiting", () => {
+    expect(
+      build(
+        running(MonitorType.NetworkDevice, {
+          createdAt: secondsAgo(DAY - 60),
+          latestEvaluationAt: undefined,
+          evaluationStatus: "loaded",
+        }),
+      ).runState,
+    ).toBe(MonitorOverviewRunState.AwaitingFirstData);
+    expect(
+      build(
+        running(MonitorType.NetworkDevice, {
+          createdAt: secondsAgo(DAY + 60),
+          latestEvaluationAt: undefined,
+          evaluationStatus: "loaded",
+        }),
+      ).runState,
+    ).toBe(MonitorOverviewRunState.Running);
   });
 });
 
@@ -2613,6 +2940,19 @@ describe("MonitorOverviewPresentationUtil.getUptimeCaveat", () => {
         running(MonitorType.IncomingRequest, {
           currentStatus: OFFLINE,
           heartbeat: {},
+        }),
+        null,
+      ],
+      /*
+       * Months of evaluations back these windows; the log just no longer
+       * holds them.
+       */
+      [
+        "telemetry with nothing in its evaluation log's last day",
+        running(MonitorType.Metrics, {
+          monitoringInterval: "* * * * *",
+          createdAt: secondsAgo(90 * DAY),
+          latestEvaluationAt: undefined,
         }),
         null,
       ],

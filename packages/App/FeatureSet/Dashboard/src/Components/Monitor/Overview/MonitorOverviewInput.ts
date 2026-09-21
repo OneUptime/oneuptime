@@ -149,6 +149,81 @@ export function summarizeProbeSection(data: {
 }
 
 /*
+ * When the probe results on screen were read, on the server's clock, if
+ * the page is holding them after a probe read that failed; otherwise null.
+ * fullLoadedAt is when the read that returned them was sent, on the
+ * browser's clock, so the offset moves it onto the server's.
+ */
+export function getHeldProbeResultsReadAt(data: {
+  probes: OverviewSection<MonitorOverviewProbeData>;
+  serverClockOffsetMs: number;
+}): Date | null {
+  const fullLoadedAt: Date | null | undefined = data.probes.value?.fullLoadedAt;
+
+  if (!data.probes.refreshError || !fullLoadedAt) {
+    return null;
+  }
+
+  const offsetMs: number = Number.isFinite(data.serverClockOffsetMs)
+    ? data.serverClockOffsetMs
+    : 0;
+
+  return new Date(fullLoadedAt.getTime() + offsetMs);
+}
+
+/*
+ * The moment the page's health judgements are made at: `now` (the commit,
+ * on the server's clock), unless the probe results on screen are held
+ * after a failed read. Those are judged at the moment they were read. The
+ * page cannot see what happened since, and ageing them on every commit
+ * would blame the probes ("Checks overdue") for the page's own failure to
+ * read them. The Probes card says the read failed.
+ */
+export function getJudgedAt(data: {
+  now: Date;
+  probes: OverviewSection<MonitorOverviewProbeData>;
+  serverClockOffsetMs: number;
+}): Date {
+  const readAt: Date | null = getHeldProbeResultsReadAt({
+    probes: data.probes,
+    serverClockOffsetMs: data.serverClockOffsetMs,
+  });
+
+  return readAt && readAt.getTime() < data.now.getTime() ? readAt : data.now;
+}
+
+/*
+ * What the Summary card shows as a telemetry or infrastructure monitor's
+ * last check. Like the hero, the newest evaluation in the log when there is
+ * one: the scheduler's stamp moves whenever an evaluation is queued, even
+ * when none lands, so next to an overdue hero it would say the monitor was
+ * checked a minute ago. Otherwise the stamp: the log is still loading or
+ * could not be read, or is empty, which after its one-day retention does
+ * not mean no evaluation ever ran.
+ */
+export function getTelemetryLastCheckedAt(data: {
+  monitor: Monitor;
+  evaluation: OverviewSection<MonitorEvaluationByProbe>;
+}): Date | undefined {
+  return (
+    data.evaluation.value?.latestAt ||
+    MonitorCheckScheduleUtil.parseDate(
+      data.monitor.telemetryMonitorLastMonitorAt,
+    )
+  );
+}
+
+/*
+ * The label for getTelemetryLastCheckedAt's time, so the Summary card names
+ * what it shows: an evaluation that ran, or only a run that was queued.
+ */
+export function getTelemetryLastCheckedLabel(data: {
+  evaluation: OverviewSection<MonitorEvaluationByProbe>;
+}): string {
+  return data.evaluation.value?.latestAt ? "Evaluated At" : "Scheduled At";
+}
+
+/*
  * The newest result time across the enabled probes and the monitor's
  * current steps. The data hook fingerprints it to decide whether the
  * evaluation log is worth reading again. Unlike the summary's lastResultAt
@@ -195,15 +270,28 @@ export function getProbeLastResultAt(data: {
   return newest;
 }
 
+/*
+ * `now` is when the data on screen was committed, on the server's clock,
+ * and `serverClockOffsetMs` is server time minus browser time. The input's
+ * own `now` is getJudgedAt's, so held probe results are judged as of their
+ * read; how long the status has held still runs to `now`, because the
+ * status rows were read with the commit.
+ */
 export function toPresentationInput(data: {
   monitor: Monitor;
   probes: OverviewSection<MonitorOverviewProbeData>;
   statusRows: OverviewSection<Array<MonitorStatusTimeline>>;
   evaluation: OverviewSection<MonitorEvaluationByProbe>;
   now: Date;
+  serverClockOffsetMs?: number | undefined;
 }): MonitorOverviewPresentationInput {
   const monitor: Monitor = data.monitor;
   const currentStatusId: string | undefined = getCurrentStatusId(monitor);
+  const judgedAt: Date = getJudgedAt({
+    now: data.now,
+    probes: data.probes,
+    serverClockOffsetMs: data.serverClockOffsetMs ?? 0,
+  });
   const incomingRequest: IncomingRequestLike | undefined =
     monitor.incomingMonitorRequest as unknown as
       | IncomingRequestLike
@@ -212,7 +300,7 @@ export function toPresentationInput(data: {
     monitor.serverMonitorResponse as unknown as ServerResponseLike | undefined;
 
   return {
-    now: data.now,
+    now: judgedAt,
     /*
      * monitorType is a required column and Layout refuses to render the
      * overview without one, so the fallback is only a type-level guard.
@@ -250,7 +338,7 @@ export function toPresentationInput(data: {
     probes: summarizeProbeSection({
       monitor: monitor,
       probes: data.probes,
-      now: data.now,
+      now: judgedAt,
     }),
     heartbeat: {
       lastReceivedAt: MonitorCheckScheduleUtil.parseDate(

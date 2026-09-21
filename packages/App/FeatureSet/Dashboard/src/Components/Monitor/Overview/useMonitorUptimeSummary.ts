@@ -61,7 +61,8 @@ export interface UseMonitorUptimeSummaryResult {
   incidents: OverviewSection<Array<UptimeBarTooltipIncident>>;
   /*
    * Server time minus browser time, in milliseconds, from the newest
-   * summary (see getServerClockOffsetMs). 0 until a summary has landed.
+   * summary that could measure it (see getServerClockOffsetMs). 0 until
+   * one has.
    */
   serverClockOffsetMs: number;
   retry: () => void;
@@ -74,6 +75,25 @@ interface UptimeRequest {
 }
 
 /*
+ * A response measures the clocks only if it came back within this long.
+ * The offset is known only to within the round trip, and a slow answer is
+ * the likeliest not to be a fresh one: the dashboard's service worker
+ * answers a GET from its cache when the network fails, sometimes only
+ * after the network has taken a while to fail.
+ */
+export const MONITOR_SERVER_CLOCK_MAX_ROUND_TRIP_MS: number = 5 * 1000;
+
+/*
+ * An offset larger than this is ignored. Operating systems keep browser
+ * clocks within seconds, so a real skew of a quarter of an hour is rare,
+ * while a cached summary replayed after the network dropped (a laptop
+ * waking up, say) reads as a clock hours behind, and every check on the
+ * page would then look fresh. Ignoring it leaves the page on the browser's
+ * clock, like the rest of the dashboard.
+ */
+export const MONITOR_SERVER_CLOCK_MAX_OFFSET_MS: number = 15 * 60 * 1000;
+
+/*
  * How far the server's clock is ahead of the browser's (negative when the
  * browser runs fast), from one response. The server stamped `serverTime`
  * while the request was out, so it lies between the moment the request was
@@ -82,16 +102,25 @@ interface UptimeRequest {
  * one round trip can tell, and is left alone (0), so a correct clock never
  * jitters by the network delay. Otherwise the offset is the smallest shift
  * that puts it inside, which is within one round trip of the truth.
+ *
+ * Null when the response cannot be trusted to measure anything: a time
+ * that does not parse, a round trip over the limit above (or a browser
+ * clock set back while the request was out), an offset over the limit
+ * above, or a server time no later than `newestServerTime`, the newest one
+ * seen before. The server's clock does not go backwards, so a summary that
+ * old is a replay of one already read.
  */
 export const getServerClockOffsetMs: (data: {
   serverTime: Date;
   sentAt: Date;
   receivedAt: Date;
-}) => number = (data: {
+  newestServerTime?: Date | null | undefined;
+}) => number | null = (data: {
   serverTime: Date;
   sentAt: Date;
   receivedAt: Date;
-}): number => {
+  newestServerTime?: Date | null | undefined;
+}): number | null => {
   const serverTime: number = data.serverTime.getTime();
   const sentAt: number = data.sentAt.getTime();
   const receivedAt: number = data.receivedAt.getTime();
@@ -101,18 +130,30 @@ export const getServerClockOffsetMs: (data: {
     !Number.isFinite(sentAt) ||
     !Number.isFinite(receivedAt)
   ) {
-    return 0;
+    return null;
   }
+
+  const roundTripMs: number = receivedAt - sentAt;
+
+  if (roundTripMs < 0 || roundTripMs > MONITOR_SERVER_CLOCK_MAX_ROUND_TRIP_MS) {
+    return null;
+  }
+
+  if (data.newestServerTime && serverTime <= data.newestServerTime.getTime()) {
+    return null;
+  }
+
+  let offsetMs: number = 0;
 
   if (serverTime < sentAt) {
-    return serverTime - sentAt;
+    offsetMs = serverTime - sentAt;
+  } else if (serverTime > receivedAt) {
+    offsetMs = serverTime - receivedAt;
   }
 
-  if (serverTime > receivedAt) {
-    return serverTime - receivedAt;
-  }
-
-  return 0;
+  return Math.abs(offsetMs) > MONITOR_SERVER_CLOCK_MAX_OFFSET_MS
+    ? null
+    : offsetMs;
 };
 
 type ToTooltipIncidentFunction = (
@@ -187,7 +228,9 @@ const toTooltipIncident: ToTooltipIncidentFunction = (
  *
  * Each summary also carries the server's clock (generatedAt), so the hook
  * measures the browser's clock against it and reports the offset to
- * `onServerClockOffset` as well as returning it.
+ * `onServerClockOffset` as well as returning it. A summary that cannot be
+ * trusted to measure it (slow, replayed, or implausibly far out) reports
+ * nothing, and the last measurement stands.
  */
 export const useMonitorUptimeSummary: (options: {
   monitorId: ObjectID;
@@ -233,6 +276,12 @@ export const useMonitorUptimeSummary: (options: {
   > = useRef<((offsetMs: number) => void) | undefined>(
     options.onServerClockOffset,
   );
+  /*
+   * The newest generatedAt of any summary read, for any monitor: a summary
+   * no newer than it is a replay and measures nothing.
+   */
+  const newestServerTimeRef: MutableRefObject<Date | null> =
+    useRef<Date | null>(null);
 
   useEffect(() => {
     onServerClockOffsetRef.current = options.onServerClockOffset;
@@ -466,14 +515,26 @@ export const useMonitorUptimeSummary: (options: {
         return;
       }
 
-      const offsetMs: number = getServerClockOffsetMs({
+      const offsetMs: number | null = getServerClockOffsetMs({
         serverTime: loadedSummary.generatedAt,
         sentAt: sentAt,
         receivedAt: receivedAt,
+        newestServerTime: newestServerTimeRef.current,
       });
+      const newestServerTime: Date | null = newestServerTimeRef.current;
 
-      setServerClockOffsetMs(offsetMs);
-      onServerClockOffsetRef.current?.(offsetMs);
+      if (
+        !newestServerTime ||
+        loadedSummary.generatedAt.getTime() > newestServerTime.getTime()
+      ) {
+        newestServerTimeRef.current = loadedSummary.generatedAt;
+      }
+
+      // A measurement that cannot be trusted leaves the last one in place.
+      if (offsetMs !== null) {
+        setServerClockOffsetMs(offsetMs);
+        onServerClockOffsetRef.current?.(offsetMs);
+      }
 
       commitSummary(
         resolveSection({ value: loadedSummary, subjectId: subjectId }),

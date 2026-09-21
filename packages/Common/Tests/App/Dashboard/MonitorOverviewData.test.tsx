@@ -8,6 +8,9 @@ import useMonitorOverviewData, {
   MONITOR_OVERVIEW_NOT_FOUND_MESSAGE,
   MONITOR_OVERVIEW_PROBE_RESULTS_UNREADABLE_MESSAGE,
   MONITOR_OVERVIEW_REFRESH_INTERVAL_MS,
+  MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE,
+  MONITOR_OVERVIEW_SLOW_FETCH_MS,
+  MONITOR_OVERVIEW_STALLED_FETCH_MS,
   UseMonitorOverviewDataResult,
   getSettledClaimCutoff,
   isEvaluationCaughtUp,
@@ -57,6 +60,8 @@ import ProjectUtil from "../../../UI/Utils/Project";
  * - polls read probes without their (screenshot-heavy) results unless a
  *   probe has claimed a newer check, and synthetic results are capped;
  * - the evaluation log is re-read only when a new signal arrived;
+ * - a tick never cancels a load still in flight, and a load that is slow
+ *   to land says so;
  * - a slow or stale response never overwrites newer data or leaks one
  *   monitor's data onto another.
  */
@@ -1196,7 +1201,7 @@ describe("useMonitorOverviewData: coming back to the tab", () => {
 });
 
 describe("useMonitorOverviewData: a poll during a Refresh", () => {
-  test("a poll that starts while a Refresh is out takes it over and reads in full", async () => {
+  test("a tick while a Refresh is out waits for it rather than cancel it", async () => {
     const { result } = await renderLoaded();
 
     expect(analyticsGetListSpy).toHaveBeenCalledTimes(1);
@@ -1209,29 +1214,40 @@ describe("useMonitorOverviewData: a poll during a Refresh", () => {
     act(() => {
       result.current.refresh();
     });
+    await flush();
 
-    // The minute tick lands while the Refresh is still out, and cancels it.
+    expect(probeRequestWeights()).toEqual(["full", "full"]);
+
+    // The minute tick lands while the Refresh is still out: nothing is sent.
     await poll();
 
-    // The poll did what the Refresh would have: full results, fresh verdicts.
-    expect(probeRequestWeights()).toEqual(["full", "full", "full"]);
-    expect(analyticsGetListSpy).toHaveBeenCalledTimes(2);
-    expect(result.current.refreshCount).toBe(2);
-    expect(result.current.isRefreshing).toBe(false);
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(probeRequestWeights()).toEqual(["full", "full"]);
+    expect(result.current.pollCount).toBe(0);
+    expect(result.current.isRefreshing).toBe(true);
+    // A minute in, the page says it is still waiting.
+    expect(result.current.refreshError).toBe(
+      MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE,
+    );
 
     await act(async () => {
       slowRead.resolve(server.monitors[MONITOR_ID.toString()]!);
     });
     await flush();
 
+    // The Refresh lands, with everything it read: fresh verdicts too.
     expect(result.current.refreshCount).toBe(2);
+    expect(result.current.refreshError).toBe("");
+    expect(result.current.isRefreshing).toBe(false);
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(2);
 
-    // With nothing of the reader's in flight, a poll is a light one again.
+    // With nothing in flight, the next tick polls, lightly.
     await poll();
-    expect(probeRequestWeights()).toEqual(["full", "full", "full", "light"]);
+    expect(probeRequestWeights()).toEqual(["full", "full", "light"]);
+    expect(result.current.pollCount).toBe(1);
   });
 
-  test("a details save in flight is taken over the same way", async () => {
+  test("a details save in flight is not cancelled by a tick either", async () => {
     const { result } = await renderLoaded();
 
     const slowRead: Deferred<Monitor | null> = createDeferred<Monitor | null>();
@@ -1244,9 +1260,251 @@ describe("useMonitorOverviewData: a poll during a Refresh", () => {
     });
     await poll();
 
-    expect(probeRequestWeights()).toEqual(["full", "full", "full"]);
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(probeRequestWeights()).toEqual(["full", "full"]);
+
+    await act(async () => {
+      slowRead.resolve(server.monitors[MONITOR_ID.toString()]!);
+    });
+    await flush();
+
+    expect(result.current.refreshCount).toBe(2);
     expect(analyticsGetListSpy).toHaveBeenCalledTimes(2);
     expect(result.current.manualRefreshCount).toBe(0);
+  });
+});
+
+/*
+ * A load that takes longer than the poll interval: a synthetic monitor's
+ * screenshots on a slow link, or an API under strain. Were each tick to
+ * cancel the load in flight, the next load would be cancelled in turn and
+ * nothing would ever land, while the hero (judged at the last commit) kept
+ * its old verdict without a word.
+ */
+describe("useMonitorOverviewData: a fetch slower than the poll", () => {
+  test("slow responses spanning several ticks are waited for, land, and are called late meanwhile", async () => {
+    const { result } = await renderLoaded();
+
+    const slowRead: Deferred<Monitor | null> = createDeferred<Monitor | null>();
+    getItemSpy.mockImplementationOnce(() => {
+      return slowRead.promise;
+    });
+
+    // The tick at 60 s starts a poll whose Monitor read is slow.
+    await poll();
+
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.pollCount).toBe(1);
+    expect(result.current.isRefreshing).toBe(true);
+    expect(result.current.refreshError).toBe("");
+
+    // The ticks at 120 and 180 s find it still out, and send nothing.
+    await poll();
+
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.refreshError).toBe(
+      MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE,
+    );
+
+    await poll();
+
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(listRequests(MonitorStatusTimeline)).toHaveLength(2);
+    expect(result.current.pollCount).toBe(1);
+    expect(result.current.refreshCount).toBe(1);
+
+    // It lands at last, and the page moves on.
+    await act(async () => {
+      slowRead.resolve(server.monitors[MONITOR_ID.toString()]!);
+    });
+    await flush();
+
+    expect(result.current.refreshCount).toBe(2);
+    expect(result.current.refreshError).toBe("");
+    expect(result.current.isRefreshing).toBe(false);
+    expect(result.current.lastLoadedAt).toEqual(secondsFromNow(180));
+
+    await poll();
+
+    expect(getItemSpy).toHaveBeenCalledTimes(3);
+    expect(result.current.pollCount).toBe(2);
+    expect(result.current.refreshCount).toBe(3);
+  });
+
+  test("a fetch out for less than a minute is waited for without a word", async () => {
+    const { result } = await renderLoaded();
+
+    const slowRead: Deferred<Monitor | null> = createDeferred<Monitor | null>();
+    getItemSpy.mockImplementationOnce(() => {
+      return slowRead.promise;
+    });
+
+    // A Refresh at 30 s, still out at the tick at 60 s.
+    await advance(30 * 1000);
+    act(() => {
+      result.current.refresh();
+    });
+    await advance(30 * 1000);
+
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.refreshError).toBe("");
+
+    await poll();
+
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(MONITOR_OVERVIEW_SLOW_FETCH_MS).toBe(
+      MONITOR_OVERVIEW_REFRESH_INTERVAL_MS,
+    );
+    expect(result.current.refreshError).toBe(
+      MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE,
+    );
+
+    await act(async () => {
+      slowRead.resolve(server.monitors[MONITOR_ID.toString()]!);
+    });
+    await flush();
+
+    expect(result.current.refreshError).toBe("");
+  });
+
+  test("a synthetic monitor's full read slower than a minute lands, and moves the reload cap", async () => {
+    server.monitors[MONITOR_ID.toString()] = buildMonitor({
+      type: MonitorType.SyntheticMonitor,
+    });
+    // Always a claim newer than the result held: always "pending".
+    server.probes[0]!.lastPingAt = secondsFromNow(24 * 3600);
+
+    const { result } = await renderLoaded();
+
+    // The ticks at 60, 120, 180 and 240 s: light reads only.
+    for (let i: number = 0; i < 4; i++) {
+      await poll();
+    }
+
+    // At 300 s the capped full read is due, and its screenshots are slow.
+    const slowFull: Deferred<void> = createDeferred<void>();
+    server.heldFullProbeRead = slowFull;
+    await poll();
+
+    const weightsWhileOut: Array<string> = [
+      "full",
+      "light",
+      "light",
+      "light",
+      "light",
+      "light",
+      "full",
+    ];
+
+    expect(probeRequestWeights()).toEqual(weightsWhileOut);
+
+    // The ticks at 360 and 420 s neither cancel it nor start another.
+    await poll();
+    await poll();
+
+    expect(probeRequestWeights()).toEqual(weightsWhileOut);
+    expect(result.current.refreshError).toBe(
+      MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE,
+    );
+
+    await act(async () => {
+      slowFull.resolve();
+    });
+    await flush();
+
+    // It lands, stamped when it was sent, so the cap is five minutes on.
+    expect(result.current.refreshError).toBe("");
+    expect(result.current.probes.status).toBe("loaded");
+    expect(result.current.probes.value!.fullLoadedAt).toEqual(
+      secondsFromNow(300),
+    );
+
+    await poll();
+
+    expect(probeRequestWeights()).toEqual([...weightsWhileOut, "light"]);
+  });
+
+  test("a fetch presumed lost is replaced, reading everything a lost Refresh would have", async () => {
+    const { result } = await renderLoaded();
+
+    // A Refresh whose Monitor read never comes back.
+    const lostRead: Deferred<Monitor | null> = createDeferred<Monitor | null>();
+    getItemSpy.mockImplementationOnce(() => {
+      return lostRead.promise;
+    });
+
+    act(() => {
+      result.current.refresh();
+    });
+    await flush();
+
+    const ticksBeforeStalled: number =
+      MONITOR_OVERVIEW_STALLED_FETCH_MS / MONITOR_OVERVIEW_REFRESH_INTERVAL_MS -
+      1;
+
+    expect(MONITOR_OVERVIEW_STALLED_FETCH_MS).toBe(10 * 60 * 1000);
+
+    for (let i: number = 0; i < ticksBeforeStalled; i++) {
+      await poll();
+    }
+
+    // Nine minutes of ticks: nothing sent, the page says it is waiting.
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.isRefreshing).toBe(true);
+    expect(result.current.refreshError).toBe(
+      MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE,
+    );
+
+    // Ten minutes: the tick replaces it, in full, as the Refresh would have.
+    await poll();
+
+    expect(getItemSpy).toHaveBeenCalledTimes(3);
+    expect(probeRequestWeights()).toEqual(["full", "full", "full"]);
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.refreshCount).toBe(2);
+    expect(result.current.refreshError).toBe("");
+    expect(result.current.isRefreshing).toBe(false);
+
+    // The lost answer turning up after all changes nothing.
+    await act(async () => {
+      lostRead.resolve(server.monitors[MONITOR_ID.toString()]!);
+    });
+    await flush();
+
+    expect(result.current.refreshCount).toBe(2);
+  });
+
+  test("a fetch still out for the monitor the reader left never holds up the next one", async () => {
+    const { result, rerender } = await renderLoaded();
+
+    const lostRead: Deferred<Monitor | null> = createDeferred<Monitor | null>();
+    getItemSpy.mockImplementationOnce(() => {
+      return lostRead.promise;
+    });
+
+    // A poll for monitor A is out when the reader moves to monitor B.
+    await poll();
+    rerender({ monitorId: OTHER_MONITOR_ID });
+    await flush();
+
+    expect(result.current.hasLoaded).toBe(true);
+    expect(result.current.monitor?._id?.toString()).toBe(
+      OTHER_MONITOR_ID.toString(),
+    );
+
+    const readsForB: () => number = (): number => {
+      return itemRequests().filter((request: ItemRequest) => {
+        return request.id.toString() === OTHER_MONITOR_ID.toString();
+      }).length;
+    };
+
+    expect(readsForB()).toBe(1);
+
+    // B's first tick polls B, whatever A's fetch is doing.
+    await poll();
+
+    expect(readsForB()).toBe(2);
+    expect(result.current.refreshError).toBe("");
   });
 });
 
@@ -1552,8 +1810,10 @@ describe("getSettledClaimCutoff", () => {
   test("a claim settles only once the last full read saw it and it is older than cadence plus grace", () => {
     const fullRows: Array<MonitorProbe> = rowsClaimedAt([-50, 30]);
 
-    // At 100 s the newest claim seen (30 s) is young: only claims before
-    // 100 - (60 + 300) s have settled.
+    /*
+     * At 100 s the newest claim seen (30 s) is young: only claims before
+     * 100 - (60 + 300) s have settled.
+     */
     expect(
       getSettledClaimCutoff({
         fullRows: fullRows,
@@ -1852,16 +2112,19 @@ describe("useMonitorOverviewData: counters and refreshes", () => {
       result.current.refresh();
     });
 
-    // ...is overtaken by a poll that sees the monitor go offline.
+    // ...is overtaken by a details save that sees the monitor go offline.
     server.monitors[MONITOR_ID.toString()] = buildMonitor({
       statusId: OFFLINE_ID,
     });
-    await poll();
+    act(() => {
+      result.current.refresh({ reason: "details-saved" });
+    });
+    await flush();
 
     expect(result.current.monitor?.currentMonitorStatusId?.toString()).toBe(
       OFFLINE_ID,
     );
-    const refreshCountAfterPoll: number = result.current.refreshCount;
+    const refreshCountAfterSave: number = result.current.refreshCount;
 
     // The slow, older answer lands last and must not win.
     await act(async () => {
@@ -1872,7 +2135,7 @@ describe("useMonitorOverviewData: counters and refreshes", () => {
     expect(result.current.monitor?.currentMonitorStatusId?.toString()).toBe(
       OFFLINE_ID,
     );
-    expect(result.current.refreshCount).toBe(refreshCountAfterPoll);
+    expect(result.current.refreshCount).toBe(refreshCountAfterSave);
     expect(result.current.isRefreshing).toBe(false);
   });
 

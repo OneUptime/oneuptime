@@ -102,6 +102,32 @@ export const MONITOR_OVERVIEW_NETWORK_DEVICE_EVALUATION_POLLS: number = 5;
  */
 export const MONITOR_OVERVIEW_EVALUATION_RETRY_POLLS: number = 3;
 
+/*
+ * A tick never cancels a fetch that is still out: when a load takes longer
+ * than the interval (a synthetic monitor's screenshots on a slow link, an
+ * API under strain), cancelling it would start another load that the next
+ * tick cancels in turn, and nothing would ever land. The tick is skipped
+ * instead, and once the fetch has been out this long the page says so. The
+ * hero is judged at the last commit, so without the message a load that
+ * never lands would leave its old verdict up without a word.
+ */
+export const MONITOR_OVERVIEW_SLOW_FETCH_MS: number =
+  MONITOR_OVERVIEW_REFRESH_INTERVAL_MS;
+
+export const MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE: string =
+  "The server has not answered in over a minute.";
+
+/*
+ * A fetch still out after this long is presumed lost, and the next tick
+ * replaces it. The browser gives a request no deadline of its own, and the
+ * /api proxy gives up on a response after five minutes, so a load (at most
+ * two rounds of requests, one after the other) still out after ten is
+ * waiting on a connection that died without an error. Without this, one
+ * such request would stop the page refreshing until it was reloaded: the
+ * Refresh button is disabled while a fetch is out.
+ */
+export const MONITOR_OVERVIEW_STALLED_FETCH_MS: number = 10 * 60 * 1000;
+
 export const MONITOR_OVERVIEW_NOT_FOUND_MESSAGE: string =
   "This monitor could not be found. It may have been deleted, or you may not have permission to view it.";
 
@@ -138,7 +164,10 @@ export interface UseMonitorOverviewDataResult {
   hasLoaded: boolean;
   // A first-load failure: there is nothing to show.
   error: string;
-  // A background-refresh failure: the last good data stays on screen.
+  /*
+   * A background refresh that failed, or has been out for over a minute:
+   * the last good data stays on screen.
+   */
   refreshError: string;
   isRefreshing: boolean;
   // When the data on screen was committed, on the browser's clock.
@@ -386,9 +415,13 @@ export function isEvaluationCaughtUp(data: {
  *   not caught up with it yet. Showing the tab again polls at once only if
  *   a tick was missed or a whole interval has passed, and the next tick is
  *   then a full interval away.
- * - Manual refresh: everything in full, never refresh-status again. A poll
- *   that starts while one is in flight replaces it, so it reads in full
- *   too: a poll never downgrades what the reader asked for.
+ * - A tick that falls while any fetch is still out is skipped, and after a
+ *   minute the page says it is still waiting (MONITOR_OVERVIEW_SLOW_FETCH_MS).
+ *   Only a fetch presumed lost is replaced (MONITOR_OVERVIEW_STALLED_FETCH_MS).
+ * - Manual refresh: everything in full, never refresh-status again. A fetch
+ *   that replaces one still in flight (a drift heal, or a tick replacing a
+ *   lost Refresh) reads in full too: nothing downgrades what the reader
+ *   asked for.
  *
  * Every load takes a generation number and only the newest may write, so a
  * slow poll that lands after a manual refresh, or after moving to another
@@ -434,6 +467,12 @@ export const useMonitorOverviewData: (options: {
   // When the newest fetch of any kind started, on the browser's clock.
   const lastFetchStartedAtRef: MutableRefObject<Date | null> =
     useRef<Date | null>(null);
+  /*
+   * The generation of the newest fetch while it is still out, or 0. Its
+   * start is lastFetchStartedAtRef. A fetch another one replaced cannot
+   * write any more, so only the newest counts as in flight.
+   */
+  const inFlightGenerationRef: MutableRefObject<number> = useRef<number>(0);
   // Read inside async code, so it is always the newest measurement.
   const serverClockOffsetRef: MutableRefObject<number> = useRef<number>(0);
   const evaluationCoverageRef: MutableRefObject<EvaluationCoverage> =
@@ -680,10 +719,11 @@ export const useMonitorOverviewData: (options: {
         const isStrongReason: boolean =
           reason === "manual" || reason === "details-saved";
         /*
-         * Every fetch cancels the one before it. A poll (or a drift heal)
-         * that starts while a Refresh is still in flight therefore takes
-         * its place, and reads everything the Refresh would have: the
-         * full probe results and the evaluation log.
+         * Every fetch cancels the one before it. Ticks wait for a fetch in
+         * flight, so what replaces a Refresh here is a drift heal, or a
+         * tick replacing a Refresh presumed lost. Either takes its place
+         * and reads everything the Refresh would have: the full probe
+         * results and the evaluation log.
          */
         const isTakingOverRefresh: boolean =
           !isStrongReason &&
@@ -705,6 +745,7 @@ export const useMonitorOverviewData: (options: {
         }
 
         lastFetchStartedAtRef.current = OneUptimeDate.getCurrentDate();
+        inFlightGenerationRef.current = generation;
 
         // No row on screen yet for this id, so nothing to keep on a failure.
         const isFirstLoad: boolean = shownMonitorIdRef.current !== subjectId;
@@ -1100,6 +1141,11 @@ export const useMonitorOverviewData: (options: {
           if (strongFetchGenerationRef.current === generation) {
             strongFetchGenerationRef.current = 0;
           }
+
+          // The next tick may poll again.
+          if (inFlightGenerationRef.current === generation) {
+            inFlightGenerationRef.current = 0;
+          }
         }
 
         if (isStillCurrent()) {
@@ -1162,6 +1208,27 @@ export const useMonitorOverviewData: (options: {
       }
 
       hasMissedTick = false;
+
+      /*
+       * The fetch still out will bring the page up to date when it lands,
+       * so the tick waits for it (see MONITOR_OVERVIEW_SLOW_FETCH_MS).
+       */
+      const lastFetchStartedAt: Date | null = lastFetchStartedAtRef.current;
+
+      if (inFlightGenerationRef.current !== 0 && lastFetchStartedAt) {
+        const inFlightMs: number =
+          OneUptimeDate.getCurrentDate().getTime() -
+          lastFetchStartedAt.getTime();
+
+        if (inFlightMs < MONITOR_OVERVIEW_STALLED_FETCH_MS) {
+          if (inFlightMs >= MONITOR_OVERVIEW_SLOW_FETCH_MS) {
+            setRefreshError(MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE);
+          }
+
+          return;
+        }
+      }
+
       pollCountRef.current += 1;
       setPollCount(pollCountRef.current);
 

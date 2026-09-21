@@ -7,7 +7,11 @@ import MonitorManualGuideCard from "../../../Components/Monitor/Overview/Monitor
 import MonitorOpenWorkCard from "../../../Components/Monitor/Overview/MonitorOpenWorkCard";
 import MonitorOverviewDetailsCard from "../../../Components/Monitor/Overview/MonitorOverviewDetailsCard";
 import MonitorOverviewHero from "../../../Components/Monitor/Overview/MonitorOverviewHero";
-import { toPresentationInput } from "../../../Components/Monitor/Overview/MonitorOverviewInput";
+import {
+  getTelemetryLastCheckedAt,
+  getTelemetryLastCheckedLabel,
+  toPresentationInput,
+} from "../../../Components/Monitor/Overview/MonitorOverviewInput";
 import MonitorOverviewStatBar from "../../../Components/Monitor/Overview/MonitorOverviewStatBar";
 import {
   MonitorOpenWork,
@@ -107,7 +111,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
    *   "overdue" still shows within a poll.
    * - The server's clock: every time the monitor carries was stamped by the
    *   server, so a browser clock minutes fast would read every check as late.
-   * The ticking relative times ("2 minutes ago") keep the reader's clock.
+   * Probe results held after a failed read are judged as of that read
+   * instead (getJudgedAt). Every health judgement on the page, the Probes
+   * card's included, uses presentationInput.now, so no card can disagree
+   * with the hero. The ticking relative times ("2 minutes ago") keep the
+   * reader's clock, like the rest of the dashboard.
    */
   const now: Date = new Date(
     (data.lastLoadedAt || OneUptimeDate.getCurrentDate()).getTime() +
@@ -121,6 +129,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         statusRows: data.statusRows,
         evaluation: data.evaluation,
         now: now,
+        serverClockOffsetMs: data.serverClockOffsetMs,
       })
     : null;
 
@@ -360,8 +369,19 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 monitor.incomingEmailMonitorHeartbeatCheckedAt
               }
               serverMonitorResponse={monitor.serverMonitorResponse}
+              /*
+               * The last check is the newest evaluation in the log when
+               * there is one, as in the hero: the scheduler's stamp moves
+               * even when no evaluation lands.
+               */
               telemetryMonitorSummary={{
-                lastCheckedAt: monitor.telemetryMonitorLastMonitorAt,
+                lastCheckedAt: getTelemetryLastCheckedAt({
+                  monitor: monitor,
+                  evaluation: data.evaluation,
+                }),
+                lastCheckedLabel: getTelemetryLastCheckedLabel({
+                  evaluation: data.evaluation,
+                }),
                 nextCheckAt: monitor.telemetryMonitorNextMonitorAt,
               }}
             />
@@ -398,6 +418,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               monitorId={modelId}
               probes={data.probes}
               summary={presentationInput.probes}
+              now={presentationInput.now}
               minimumProbeAgreement={presentationInput.minimumProbeAgreement}
             />
           ) : (
