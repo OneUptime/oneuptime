@@ -35,6 +35,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import MonitorUptimeSummaryUtil, {
   UptimeWindowPresentation,
 } from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
+import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -158,17 +159,80 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
   const stripKey: string = summary ? summary.monitorId.toString() : "";
 
   /*
+   * Whether the strip should stay at today, and the scrollLeft this card
+   * last set itself, so the scroll event that setting fires is not taken
+   * for the reader scrolling away.
+   */
+  const isPinnedToTodayRef: MutableRefObject<boolean> = useRef<boolean>(true);
+  const ownScrollLeftRef: MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
+
+  /*
    * On a phone the strip scrolls sideways inside the card. Start it at the
    * right-hand end, so the first thing visible is today, not three months
    * ago.
+   *
+   * Setting it once on mount is not enough. The dashboard compiles Tailwind
+   * classes in the browser, after React's layout effects, so on the first
+   * overview after a page load the strip's min-w-[36rem] has no CSS yet: the
+   * bars fit, there is nothing to scroll, and the strip then widens and
+   * stays at the oldest day. So it is observed, and kept at today whenever
+   * the strip or its content changes size, until the reader scrolls it.
    */
   useLayoutEffect(() => {
     const strip: HTMLDivElement | null = stripRef.current;
 
-    if (strip) {
-      strip.scrollLeft = strip.scrollWidth;
+    if (!strip) {
+      return undefined;
     }
+
+    isPinnedToTodayRef.current = true;
+
+    const scrollToToday: () => void = (): void => {
+      if (!isPinnedToTodayRef.current) {
+        return;
+      }
+
+      strip.scrollLeft = strip.scrollWidth;
+      ownScrollLeftRef.current = strip.scrollLeft;
+    };
+
+    scrollToToday();
+
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer: ResizeObserver = new ResizeObserver(() => {
+      scrollToToday();
+    });
+
+    observer.observe(strip);
+
+    if (strip.firstElementChild) {
+      observer.observe(strip.firstElementChild);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
   }, [stripKey]);
+
+  const onStripScroll: () => void = (): void => {
+    const strip: HTMLDivElement | null = stripRef.current;
+
+    // The echo of the card's own scroll, not the reader.
+    if (!strip || strip.scrollLeft === ownScrollLeftRef.current) {
+      return;
+    }
+
+    ownScrollLeftRef.current = null;
+
+    // Scrolling back to the end pins it to today again.
+    isPinnedToTodayRef.current =
+      strip.scrollLeft >= strip.scrollWidth - strip.clientWidth - 1;
+  };
 
   const navigateToIncident: (incidentId: string) => void = (
     incidentId: string,
@@ -247,13 +311,24 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
       </p>
     );
   } else if (presentation90) {
+    /*
+     * The figure describes the time that was recorded. A monitor created
+     * twelve days ago has twelve days of it, so naming 90 days would claim
+     * a period the percentage never covered.
+     */
     rightElement = (
       <p
         data-testid="monitor-uptime-90d"
         className="text-sm font-semibold tabular-nums text-gray-900"
       >
         {presentation90.valueText}{" "}
-        <span className="font-normal text-gray-500">over 90 days</span>
+        <span className="font-normal text-gray-500">
+          {presentation90.isPartial
+            ? `measured over ${formatDurationCompact(
+                presentation90.coveredSeconds,
+              )}`
+            : "over 90 days"}
+        </span>
       </p>
     );
   }
@@ -303,6 +378,7 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
           ref={stripRef}
           data-testid="monitor-uptime-strip"
           className="overflow-x-auto pb-1"
+          onScroll={onStripScroll}
         >
           <div className="min-w-[36rem] sm:min-w-0">
             <MonitorUptimeGraph
@@ -327,12 +403,16 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
                 });
               }}
             />
+            {/*
+             * The dates scroll with the bars. On a phone the strip starts at
+             * today, so a first-day label outside it would sit under a bar
+             * from weeks later.
+             */}
+            <div className="mt-2 flex justify-between text-xs text-gray-500">
+              <span>{Moment(summary.startDate).format("MMM D")}</span>
+              <span>Today</span>
+            </div>
           </div>
-        </div>
-
-        <div className="mt-2 flex justify-between text-xs text-gray-500">
-          <span>{Moment(summary.startDate).format("MMM D")}</span>
-          <span>Today</span>
         </div>
 
         <ul

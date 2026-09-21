@@ -3,10 +3,14 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import useMonitorOverviewData, {
   MONITOR_OVERVIEW_ACCESS_REASONS,
+  MONITOR_OVERVIEW_EVALUATION_RETRY_POLLS,
   MONITOR_OVERVIEW_HEAVY_PROBE_RELOAD_MS,
   MONITOR_OVERVIEW_NOT_FOUND_MESSAGE,
+  MONITOR_OVERVIEW_PROBE_RESULTS_UNREADABLE_MESSAGE,
   MONITOR_OVERVIEW_REFRESH_INTERVAL_MS,
   UseMonitorOverviewDataResult,
+  getSettledClaimCutoff,
+  isEvaluationCaughtUp,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/useMonitorOverviewData";
 import {
   MONITOR_OVERVIEW_BASE_SELECT,
@@ -22,7 +26,9 @@ import MonitorProbe, {
 } from "../../../Models/DatabaseModels/MonitorProbe";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
-import Probe from "../../../Models/DatabaseModels/Probe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "../../../Models/DatabaseModels/Probe";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
@@ -112,6 +118,7 @@ interface ProbeSpec {
   lastPingAt?: Date;
   nextPingAt?: Date;
   monitoredAt?: Date;
+  connectionStatus?: ProbeConnectionStatus;
 }
 
 interface FakeServer {
@@ -120,6 +127,8 @@ interface FakeServer {
   probes: Array<ProbeSpec>;
   probeError: Error | null;
   fullProbeError: Error | null;
+  // A full probe read parked until the test releases it.
+  heldFullProbeRead: Deferred<void> | null;
   statusRows: Array<MonitorStatusTimeline>;
   statusRowsError: Error | null;
   logs: Array<MonitorLog>;
@@ -232,6 +241,11 @@ function buildProbeRow(spec: ProbeSpec, isFull: boolean): MonitorProbe {
   const probe: Probe = new Probe();
   probe._id = spec.probeId;
   probe.name = spec.probeId === PROBE_A ? "Frankfurt" : "Virginia";
+
+  if (spec.connectionStatus) {
+    probe.connectionStatus = spec.connectionStatus;
+  }
+
   row.probe = probe;
 
   if (isFull && spec.monitoredAt) {
@@ -374,6 +388,7 @@ beforeEach(() => {
     ],
     probeError: null,
     fullProbeError: null,
+    heldFullProbeRead: null,
     statusRows: [
       buildStatusRow({
         id: ROW_ONE_ID,
@@ -382,9 +397,10 @@ beforeEach(() => {
       }),
     ],
     statusRowsError: null,
+    // Newest first, as the server sorts it: each result's own verdict.
     logs: [
-      buildLog({ probeId: PROBE_A, time: secondsFromNow(-30) }),
       buildLog({ probeId: PROBE_B, time: secondsFromNow(-20) }),
+      buildLog({ probeId: PROBE_A, time: secondsFromNow(-30) }),
     ],
     logError: null,
   };
@@ -427,13 +443,23 @@ beforeEach(() => {
         return rejectWith(failure);
       }
 
-      return Promise.resolve(
-        listOf(
+      const respond: () => unknown = (): unknown => {
+        return listOf(
           server.probes.map((spec: ProbeSpec) => {
             return buildProbeRow(spec, isFull);
           }),
-        ),
-      );
+        );
+      };
+      const held: Deferred<void> | null = isFull
+        ? server.heldFullProbeRead
+        : null;
+
+      if (held) {
+        server.heldFullProbeRead = null;
+        return held.promise.then(respond);
+      }
+
+      return Promise.resolve(respond());
     }
 
     if (request.modelType === MonitorStatusTimeline) {
@@ -582,6 +608,11 @@ describe("useMonitorOverviewData: the first load", () => {
     await poll();
     await poll();
     await poll();
+
+    // Hidden across a tick, then back: one catch-up.
+    visibilityState = "hidden";
+    await poll();
+    visibilityState = "visible";
     act(() => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
@@ -1106,6 +1137,472 @@ describe("useMonitorOverviewData: the poll", () => {
   });
 });
 
+async function setVisibility(state: DocumentVisibilityState): Promise<void> {
+  visibilityState = state;
+  act(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await flush();
+}
+
+describe("useMonitorOverviewData: coming back to the tab", () => {
+  test("switching away and back within the minute does not poll", async () => {
+    const { result } = await renderLoaded();
+
+    await advance(20 * 1000);
+    await setVisibility("hidden");
+    await advance(10 * 1000);
+    await setVisibility("visible");
+
+    expect(getItemSpy).toHaveBeenCalledTimes(1);
+    expect(result.current.pollCount).toBe(0);
+
+    // The regular tick still comes a minute after the load.
+    await advance(30 * 1000);
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.pollCount).toBe(1);
+  });
+
+  test("a tick missed while hidden is caught up once, and the next tick is a full interval later", async () => {
+    const { result } = await renderLoaded();
+
+    await setVisibility("hidden");
+    await advance(65 * 1000);
+    expect(getItemSpy).toHaveBeenCalledTimes(1);
+
+    await setVisibility("visible");
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.pollCount).toBe(1);
+
+    // Not at 120 s, 55 s after the catch-up, but a whole interval after it.
+    await advance(55 * 1000);
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+
+    await advance(5 * 1000);
+    expect(getItemSpy).toHaveBeenCalledTimes(3);
+    expect(result.current.pollCount).toBe(2);
+  });
+
+  test("a hidden tab's throttled timer that never ran is caught up by the time that passed", async () => {
+    await renderLoaded();
+
+    await setVisibility("hidden");
+    // The clock moves on; the timer does not run.
+    jest.setSystemTime(secondsFromNow(90));
+    await setVisibility("visible");
+
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("useMonitorOverviewData: a poll during a Refresh", () => {
+  test("a poll that starts while a Refresh is out takes it over and reads in full", async () => {
+    const { result } = await renderLoaded();
+
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(1);
+
+    const slowRead: Deferred<Monitor | null> = createDeferred<Monitor | null>();
+    getItemSpy.mockImplementationOnce(() => {
+      return slowRead.promise;
+    });
+
+    act(() => {
+      result.current.refresh();
+    });
+
+    // The minute tick lands while the Refresh is still out, and cancels it.
+    await poll();
+
+    // The poll did what the Refresh would have: full results, fresh verdicts.
+    expect(probeRequestWeights()).toEqual(["full", "full", "full"]);
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.refreshCount).toBe(2);
+    expect(result.current.isRefreshing).toBe(false);
+
+    await act(async () => {
+      slowRead.resolve(server.monitors[MONITOR_ID.toString()]!);
+    });
+    await flush();
+
+    expect(result.current.refreshCount).toBe(2);
+
+    // With nothing of the reader's in flight, a poll is a light one again.
+    await poll();
+    expect(probeRequestWeights()).toEqual(["full", "full", "full", "light"]);
+  });
+
+  test("a details save in flight is taken over the same way", async () => {
+    const { result } = await renderLoaded();
+
+    const slowRead: Deferred<Monitor | null> = createDeferred<Monitor | null>();
+    getItemSpy.mockImplementationOnce(() => {
+      return slowRead.promise;
+    });
+
+    act(() => {
+      result.current.refresh({ reason: "details-saved" });
+    });
+    await poll();
+
+    expect(probeRequestWeights()).toEqual(["full", "full", "full"]);
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.manualRefreshCount).toBe(0);
+  });
+});
+
+describe("useMonitorOverviewData: probe results that could not be read", () => {
+  test("light rows are never shown without results: the section stays an error until a full read works", async () => {
+    // The first load's full read fails (a synthetic payload that times out).
+    server.fullProbeError = new Error("Results are unavailable.");
+
+    const { result } = await renderLoaded();
+
+    expect(result.current.probes.status).toBe("error");
+
+    // The poll's light read works; the full read it leads to fails again.
+    await poll();
+
+    expect(probeRequestWeights()).toEqual(["full", "light", "full"]);
+    expect(result.current.probes.status).toBe("error");
+    expect(result.current.probes.value).toBeNull();
+    expect(result.current.probes.error).toBe("Results are unavailable.");
+    expect(MONITOR_OVERVIEW_PROBE_RESULTS_UNREADABLE_MESSAGE).toBe(
+      "The probe results could not be read.",
+    );
+
+    server.fullProbeError = null;
+    await poll();
+
+    expect(result.current.probes.status).toBe("loaded");
+    expect(result.current.probes.value!.rows).toHaveLength(2);
+    expect(result.current.probes.value!.fullLoadedAt).toEqual(
+      secondsFromNow(120),
+    );
+  });
+
+  test("a monitor with no probes attached is still a known empty list", async () => {
+    server.fullProbeError = new Error("Results are unavailable.");
+    server.probes = [];
+
+    const { result } = await renderLoaded();
+
+    server.fullProbeError = null;
+    await poll();
+
+    // Nothing is attached, so there are no results to be missing.
+    expect(probeRequestWeights()).toEqual(["full", "light"]);
+    expect(result.current.probes.status).toBe("loaded");
+    expect(result.current.probes.value!.rows).toEqual([]);
+  });
+});
+
+describe("useMonitorOverviewData: the synthetic reload cap", () => {
+  test("is timed from when the full read was sent, so a slow download does not push it to the sixth poll", async () => {
+    server.monitors[MONITOR_ID.toString()] = buildMonitor({
+      type: MonitorType.SyntheticMonitor,
+    });
+    // Always a claim newer than the result held: always "pending".
+    server.probes[0]!.lastPingAt = secondsFromNow(24 * 3600);
+
+    // The first load's screenshots take 20 seconds to download.
+    const slowFull: Deferred<void> = createDeferred<void>();
+    server.heldFullProbeRead = slowFull;
+
+    const { result } = renderData();
+    await flush();
+    await advance(20 * 1000);
+    await act(async () => {
+      slowFull.resolve();
+    });
+    await flush();
+
+    expect(result.current.hasLoaded).toBe(true);
+    // Stamped when it was sent, not when it arrived.
+    expect(result.current.probes.value!.fullLoadedAt).toEqual(NOW);
+
+    // The ticks at 60, 120, 180 and 240 s: light reads only.
+    for (let i: number = 0; i < 4; i++) {
+      await poll();
+    }
+
+    expect(probeRequestWeights()).toEqual([
+      "full",
+      "light",
+      "light",
+      "light",
+      "light",
+    ]);
+
+    // The tick at 300 s, five minutes after the full read was sent.
+    await poll();
+
+    expect(probeRequestWeights()).toEqual([
+      "full",
+      "light",
+      "light",
+      "light",
+      "light",
+      "light",
+      "full",
+    ]);
+  });
+});
+
+describe("useMonitorOverviewData: which probe claims are followed", () => {
+  test("a disconnected probe that never reported does not cost a full read on every poll", async () => {
+    server.probes[1] = {
+      probeId: PROBE_B,
+      lastPingAt: secondsFromNow(-50),
+      connectionStatus: ProbeConnectionStatus.Disconnected,
+    };
+
+    await renderLoaded();
+    await poll();
+    await poll();
+    await poll();
+
+    expect(probeRequestWeights()).toEqual(["full", "light", "light", "light"]);
+  });
+
+  test("a probe that never reported is followed only while its claim could still produce a result", async () => {
+    // Probe B claimed its first check 50 s ago and has not reported yet.
+    server.probes[1] = { probeId: PROBE_B, lastPingAt: secondsFromNow(-50) };
+
+    await renderLoaded();
+
+    // Up to one cadence plus grace (60 + 300 s) after the claim.
+    for (let i: number = 0; i < 5; i++) {
+      await poll();
+    }
+
+    expect(probeRequestWeights()).toEqual([
+      "full",
+      "light",
+      "full",
+      "light",
+      "full",
+      "light",
+      "full",
+      "light",
+      "full",
+      "light",
+      "full",
+    ]);
+
+    // Past that the probe is late (the Probes card says so), not pending.
+    await poll();
+    await poll();
+
+    expect(probeRequestWeights().slice(-2)).toEqual(["light", "light"]);
+  });
+
+  test("a claim the last full read saw before its result landed is followed on the next poll", async () => {
+    server.monitors[MONITOR_ID.toString()] = buildMonitor({
+      overrides: { monitoringInterval: "*/5 * * * *" },
+    });
+
+    const { result } = await renderLoaded();
+
+    // Probe A claims its next check just before the poll; it is still running.
+    server.probes[0]!.lastPingAt = secondsFromNow(50);
+    await poll();
+
+    expect(probeRequestWeights()).toEqual(["full", "light", "full"]);
+
+    // Its result lands after that full read was sent.
+    server.probes[0]!.monitoredAt = secondsFromNow(65);
+    await poll();
+
+    // Read now, not when the probe next claims, five minutes later.
+    expect(probeRequestWeights()).toEqual([
+      "full",
+      "light",
+      "full",
+      "light",
+      "full",
+    ]);
+    expect(result.current.resultFingerprint).toBe(
+      secondsFromNow(65).toISOString(),
+    );
+  });
+
+  test("a claim that is never answered stops costing a full read once it is older than cadence plus grace", async () => {
+    await renderLoaded();
+
+    // Probe A claims a check 30 s in and dies before reporting it.
+    server.probes[0]!.lastPingAt = secondsFromNow(30);
+
+    // 60 to 360 s: the result could still land, so every poll reads it.
+    for (let i: number = 0; i < 6; i++) {
+      await poll();
+    }
+
+    expect(
+      probeRequestWeights().filter((weight: string) => {
+        return weight === "full";
+      }),
+    ).toHaveLength(7);
+
+    await poll();
+    await poll();
+
+    expect(probeRequestWeights().slice(-2)).toEqual(["light", "light"]);
+  });
+
+  test("a browser clock minutes fast does not make a young claim look settled", async () => {
+    // The browser believes it is seven minutes later than the server does.
+    jest.setSystemTime(secondsFromNow(7 * 60));
+    // Probe B claimed its first check 50 s ago by the server's clock.
+    server.probes[1] = { probeId: PROBE_B, lastPingAt: secondsFromNow(-50) };
+
+    const { result } = await renderLoaded();
+
+    act(() => {
+      result.current.setServerClockOffset(-7 * 60 * 1000);
+    });
+
+    expect(result.current.serverClockOffsetMs).toBe(-7 * 60 * 1000);
+
+    await poll();
+
+    // 110 s old on the server's clock: its result may be in, so it is read.
+    expect(probeRequestWeights()).toEqual(["full", "light", "full"]);
+  });
+});
+
+describe("useMonitorOverviewData: the evaluation log catching up", () => {
+  test("a verdict still in the worker's buffer is read again until it lands", async () => {
+    const { result } = await renderLoaded();
+
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(1);
+
+    // Probe B reports; its verdict is not in the log yet.
+    server.probes[1]!.lastPingAt = secondsFromNow(100);
+    server.probes[1]!.monitoredAt = new Date(
+      secondsFromNow(105).getTime() + 700,
+    );
+    await poll();
+
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.evaluation.value!.latestAt).toEqual(
+      secondsFromNow(-20),
+    );
+
+    // Still the previous verdict: read again on the next poll.
+    await poll();
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(3);
+
+    // The verdict lands, stamped without its milliseconds.
+    server.logs = [
+      buildLog({ probeId: PROBE_B, time: secondsFromNow(105) }),
+      ...server.logs,
+    ];
+    await poll();
+
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(4);
+    expect(result.current.evaluation.value!.latestAt).toEqual(
+      secondsFromNow(105),
+    );
+
+    // Caught up: nothing more until the next result.
+    await poll();
+    await poll();
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(4);
+  });
+
+  test("a result whose verdict never lands costs a few extra reads, not one per poll", async () => {
+    await renderLoaded();
+
+    server.probes[1]!.lastPingAt = secondsFromNow(100);
+    server.probes[1]!.monitoredAt = secondsFromNow(105);
+    await poll();
+
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(2);
+
+    for (
+      let i: number = 0;
+      i < MONITOR_OVERVIEW_EVALUATION_RETRY_POLLS + 3;
+      i++
+    ) {
+      await poll();
+    }
+
+    expect(MONITOR_OVERVIEW_EVALUATION_RETRY_POLLS).toBe(3);
+    expect(analyticsGetListSpy).toHaveBeenCalledTimes(
+      2 + MONITOR_OVERVIEW_EVALUATION_RETRY_POLLS,
+    );
+  });
+});
+
+describe("getSettledClaimCutoff", () => {
+  const rowsClaimedAt: (seconds: Array<number>) => Array<MonitorProbe> = (
+    seconds: Array<number>,
+  ): Array<MonitorProbe> => {
+    return seconds.map((offset: number, index: number) => {
+      return buildProbeRow(
+        {
+          probeId: index === 0 ? PROBE_A : PROBE_B,
+          lastPingAt: secondsFromNow(offset),
+        },
+        true,
+      );
+    });
+  };
+
+  test("a claim settles only once the last full read saw it and it is older than cadence plus grace", () => {
+    const fullRows: Array<MonitorProbe> = rowsClaimedAt([-50, 30]);
+
+    // At 100 s the newest claim seen (30 s) is young: only claims before
+    // 100 - (60 + 300) s have settled.
+    expect(
+      getSettledClaimCutoff({
+        fullRows: fullRows,
+        now: secondsFromNow(100),
+        cadenceSeconds: 60,
+      }),
+    ).toEqual(secondsFromNow(-260));
+
+    // At 500 s everything the read saw has settled, and nothing after it.
+    expect(
+      getSettledClaimCutoff({
+        fullRows: fullRows,
+        now: secondsFromNow(500),
+        cadenceSeconds: 60,
+      }),
+    ).toEqual(secondsFromNow(30));
+  });
+
+  test("with no full read there is nothing settled", () => {
+    expect(
+      getSettledClaimCutoff({
+        fullRows: [],
+        now: NOW,
+        cadenceSeconds: 60,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("isEvaluationCaughtUp", () => {
+  test("compares to the second, and a missing log never covers a signal", () => {
+    const signal: Date = new Date(secondsFromNow(105).getTime() + 700);
+
+    expect(
+      isEvaluationCaughtUp({ latestAt: secondsFromNow(105), signalAt: signal }),
+    ).toBe(true);
+    expect(
+      isEvaluationCaughtUp({ latestAt: secondsFromNow(104), signalAt: signal }),
+    ).toBe(false);
+    expect(
+      isEvaluationCaughtUp({ latestAt: undefined, signalAt: signal }),
+    ).toBe(false);
+    // Nothing to judge: nothing to wait for.
+    expect(
+      isEvaluationCaughtUp({ latestAt: undefined, signalAt: undefined }),
+    ).toBe(true);
+  });
+});
+
 describe("useMonitorOverviewData: the evaluation log", () => {
   test("R4 runs after the first commit, again only on a result change, and always on a manual refresh", async () => {
     const monitorDeferred: Deferred<Monitor | null> =
@@ -1142,7 +1639,7 @@ describe("useMonitorOverviewData: the evaluation log", () => {
       Object.keys(result.current.evaluation.value!.byProbeId).sort(),
     ).toEqual([PROBE_A, PROBE_B].sort());
     expect(result.current.evaluation.value!.latestAt).toEqual(
-      secondsFromNow(-30),
+      secondsFromNow(-20),
     );
 
     // Nothing new came in: no second read.

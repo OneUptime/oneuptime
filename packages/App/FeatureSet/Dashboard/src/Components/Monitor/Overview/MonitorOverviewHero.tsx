@@ -85,6 +85,27 @@ export const getMonitorOverviewIcon: (
 };
 
 /*
+ * When what is on screen loaded, as a clock time in the reader's zone. The
+ * date is added once it is no longer today, so a page left open overnight
+ * cannot point at the wrong 14:05.
+ */
+export const getLoadedAtText: (loadedAt: Date) => string = (
+  loadedAt: Date,
+): string => {
+  const isToday: boolean =
+    OneUptimeDate.getDateAsLocalDayMonthString(loadedAt) ===
+    OneUptimeDate.getDateAsLocalDayMonthString(OneUptimeDate.getCurrentDate());
+
+  if (!isToday) {
+    return OneUptimeDate.getDateAsLocalShortDateTimeString(loadedAt);
+  }
+
+  return OneUptimeDate.getLocalTimeString(loadedAt, {
+    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+  });
+};
+
+/*
  * The top of the monitor overview: what state the monitor is in, in words,
  * how fresh that is, and the handful of facts behind it. Everything it says
  * comes from MonitorOverviewPresentationUtil, so the per-type and per-state
@@ -277,6 +298,26 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * A partial read (owner users readable, owner teams not) or a failed
+     * refresh still shows who is known, but must not read as the complete,
+     * current list.
+     */
+    if (props.owners.refreshError) {
+      return (
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <OwnersCell owners={owners} maxVisible={3} />
+          <span
+            data-testid="monitor-overview-owners-partial"
+            className="text-xs font-normal text-gray-500"
+            title={props.owners.refreshError}
+          >
+            List may be incomplete
+          </span>
+        </span>
+      );
+    }
+
     return <OwnersCell owners={owners} maxVisible={3} />;
   };
 
@@ -448,6 +489,12 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
           </div>
         </div>
 
+        {/*
+         * A clock time, not "3 minutes ago": an alert is re-read in full
+         * whenever its text changes, so a relative time ticking inside it
+         * interrupted a screen reader user once a minute for as long as
+         * refreshes kept failing.
+         */}
         {props.refreshError ? (
           <p
             role="alert"
@@ -456,7 +503,19 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
           >
             {"Couldn't refresh. Showing what loaded "}
             {props.lastLoadedAt ? (
-              <RelativeTime date={props.lastLoadedAt} />
+              <>
+                {"at "}
+                <time
+                  dateTime={OneUptimeDate.fromString(
+                    props.lastLoadedAt,
+                  ).toISOString()}
+                  title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                    props.lastLoadedAt,
+                  )}
+                >
+                  {getLoadedAtText(props.lastLoadedAt)}
+                </time>
+              </>
             ) : (
               <>earlier</>
             )}

@@ -254,6 +254,162 @@ describe("MonitorCheckScheduleUtil.getCheckFreshness", () => {
   });
 });
 
+describe("MonitorCheckScheduleUtil schedules with gaps", () => {
+  // Every 5 minutes, 09:00 to 17:55 UTC, Monday to Friday.
+  const BUSINESS_HOURS: string = "*/5 9-17 * * 1-5";
+  // The last check of the week: Friday 18 September 2026, 17:55 UTC.
+  const FRIDAY_LAST_RUN: Date = new Date("2026-09-18T17:55:00.000Z");
+
+  const judge: (data: {
+    now: string;
+    lastResultAt?: Date | undefined;
+    createdAt?: Date | undefined;
+    monitoringInterval?: string | undefined;
+  }) => MonitorCheckFreshnessResult = (data: {
+    now: string;
+    lastResultAt?: Date | undefined;
+    createdAt?: Date | undefined;
+    monitoringInterval?: string | undefined;
+  }): MonitorCheckFreshnessResult => {
+    const now: Date = new Date(data.now);
+
+    return MonitorCheckScheduleUtil.getCheckFreshness({
+      isScheduled: true,
+      isKnown: true,
+      lastResultAt: data.lastResultAt,
+      nextCheckAt: undefined,
+      // What a caller measures around "now": still five minutes at night.
+      cadenceSeconds: MonitorCheckScheduleUtil.resolveCadenceSeconds({
+        monitoringInterval: data.monitoringInterval,
+        from: now,
+      }),
+      createdAt: data.createdAt,
+      now: now,
+      monitoringInterval: data.monitoringInterval,
+    });
+  };
+
+  it("the next run after a time, and the spacing there", () => {
+    expect(
+      MonitorCheckScheduleUtil.getNextRunAfter({
+        monitoringInterval: BUSINESS_HOURS,
+        after: FRIDAY_LAST_RUN,
+      }),
+    ).toEqual({
+      runAt: new Date("2026-09-21T09:00:00.000Z"),
+      spacingSeconds: 300,
+    });
+    expect(
+      MonitorCheckScheduleUtil.getNextRunAfter({
+        monitoringInterval: "whenever",
+        after: FRIDAY_LAST_RUN,
+      }),
+    ).toBeNull();
+  });
+
+  it("is not overdue through the night or the weekend", () => {
+    for (const now of [
+      "2026-09-18T20:00:00.000Z",
+      "2026-09-19T20:00:00.000Z",
+      "2026-09-21T08:59:00.000Z",
+      "2026-09-21T09:09:00.000Z",
+    ]) {
+      expect({
+        now: now,
+        freshness: judge({
+          now: now,
+          lastResultAt: FRIDAY_LAST_RUN,
+          monitoringInterval: BUSINESS_HOURS,
+        }).freshness,
+      }).toEqual({ now: now, freshness: MonitorCheckFreshness.Fresh });
+    }
+  });
+
+  it("is overdue once Monday's first run is further back than the grace", () => {
+    // Due at 09:00, five-minute spacing, so ten minutes of grace.
+    expect(
+      judge({
+        now: "2026-09-21T09:12:00.000Z",
+        lastResultAt: FRIDAY_LAST_RUN,
+        monitoringInterval: BUSINESS_HOURS,
+      }),
+    ).toEqual({
+      freshness: MonitorCheckFreshness.Stale,
+      overdueSeconds: 720,
+      resultAgeSeconds: 3 * 86400 - 17 * 3600 - 55 * 60 + 9 * 3600 + 12 * 60,
+    });
+  });
+
+  it("a monitor created out of hours is still waiting, not overdue", () => {
+    expect(
+      judge({
+        now: "2026-09-19T23:00:00.000Z",
+        createdAt: new Date("2026-09-19T20:00:00.000Z"),
+        monitoringInterval: BUSINESS_HOURS,
+      }).freshness,
+    ).toBe(MonitorCheckFreshness.AwaitingFirstResult);
+
+    expect(
+      judge({
+        now: "2026-09-21T09:30:00.000Z",
+        createdAt: new Date("2026-09-19T20:00:00.000Z"),
+        monitoringInterval: BUSINESS_HOURS,
+      }),
+    ).toEqual({
+      freshness: MonitorCheckFreshness.Stale,
+      overdueSeconds: 1800,
+      resultAgeSeconds: null,
+    });
+  });
+
+  it("a uniform schedule is judged as one cadence after the result", () => {
+    const withInterval: (age: number) => MonitorCheckFreshnessResult = (
+      age: number,
+    ): MonitorCheckFreshnessResult => {
+      return judge({
+        now: NOW.toISOString(),
+        lastResultAt: secondsAgo(age),
+        monitoringInterval: "*/5 * * * *",
+      });
+    };
+
+    for (const age of [60, 840, 899, 900, 901, 930, 1000, 7200]) {
+      expect({ age: age, freshness: withInterval(age).freshness }).toEqual({
+        age: age,
+        freshness: freshness({ lastResultAt: secondsAgo(age) }).freshness,
+      });
+    }
+
+    // For a result on a run, "overdue by" is the same number too.
+    for (const age of [300, 900, 1200, 7200]) {
+      expect({ age: age, result: withInterval(age) }).toEqual({
+        age: age,
+        result: freshness({ lastResultAt: secondsAgo(age) }),
+      });
+    }
+  });
+
+  it("without a readable interval, lateness is the age less one cadence", () => {
+    expect(
+      MonitorCheckScheduleUtil.getResultLateness({
+        lastResultAt: secondsAgo(1000),
+        monitoringInterval: undefined,
+        cadenceSeconds: 300,
+        now: NOW,
+      }),
+    ).toEqual({ lateSeconds: 700, graceSeconds: 600 });
+
+    // A result from the future is just now, not "early".
+    expect(
+      MonitorCheckScheduleUtil.getResultLateness({
+        lastResultAt: secondsAgo(-120),
+        cadenceSeconds: 60,
+        now: NOW,
+      }),
+    ).toEqual({ lateSeconds: -60, graceSeconds: 300 });
+  });
+});
+
 describe("MonitorCheckScheduleUtil.getLatestSignalAt", () => {
   it("picks the newest signal across families", () => {
     const monitor: Monitor = new Monitor();

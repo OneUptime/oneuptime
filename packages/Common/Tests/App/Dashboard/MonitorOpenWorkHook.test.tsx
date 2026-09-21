@@ -8,6 +8,7 @@ import useMonitorOpenWork, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/useMonitorOpenWork";
 import useMonitorOwners, {
   MONITOR_OWNERS_ACCESS_REASON,
+  MONITOR_OWNERS_PARTIAL_REASONS,
   UseMonitorOwnersResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/useMonitorOwners";
 import AlertStateUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/AlertState";
@@ -41,7 +42,9 @@ import ProjectUtil from "../../../UI/Utils/Project";
  * monitor differently (a `monitors` relation versus a `monitorId` column).
  *
  * useMonitorOwners is covered here too: once per monitor, again only on
- * `refreshToken`, and "unavailable" rather than "no owners" on failure.
+ * `refreshToken`, "unavailable" rather than "no owners" on failure, and
+ * each owner table gated and read on its own, so the half that can be read
+ * is shown.
  */
 
 const NOW: Date = new Date("2026-09-21T12:00:00.000Z");
@@ -625,7 +628,27 @@ describe("useMonitorOwners", () => {
     expect(result.current.owners.error).toBe(MONITOR_OWNERS_ACCESS_REASON);
   });
 
-  test("a failure is unknown, never an empty owner list", async () => {
+  test("a failed half shows the owners the other half names, and records the failure", async () => {
+    listResponses.set(MonitorOwnerTeam, () => {
+      return rejectWith(new Error("Teams are unavailable."));
+    });
+
+    const { result } = renderOwners();
+    await flush();
+
+    expect(result.current.owners.status).toBe("loaded");
+    expect(
+      result.current.owners.value!.map((entry: { kind: "user" | "team" }) => {
+        return entry.kind;
+      }),
+    ).toEqual(["user"]);
+    expect(result.current.owners.refreshError).toBe("Teams are unavailable.");
+  });
+
+  test("an empty half next to an unreadable one is unknown, never 'no owners'", async () => {
+    listResponses.set(MonitorOwnerUser, () => {
+      return Promise.resolve(listOf([]));
+    });
     listResponses.set(MonitorOwnerTeam, () => {
       return rejectWith(new Error("Teams are unavailable."));
     });
@@ -636,6 +659,107 @@ describe("useMonitorOwners", () => {
     expect(result.current.owners.status).toBe("error");
     expect(result.current.owners.value).toBeNull();
     expect(result.current.owners.error).toBe("Teams are unavailable.");
+  });
+
+  test("both halves failing is an error with no owners", async () => {
+    listResponses.set(MonitorOwnerUser, () => {
+      return rejectWith(new Error("Users are unavailable."));
+    });
+    listResponses.set(MonitorOwnerTeam, () => {
+      return rejectWith(new Error("Teams are unavailable."));
+    });
+
+    const { result } = renderOwners();
+    await flush();
+
+    expect(result.current.owners.status).toBe("error");
+    expect(result.current.owners.value).toBeNull();
+    expect(result.current.owners.error).toBe("Users are unavailable.");
+  });
+
+  test("a half that fails on Refresh keeps the last complete answer", async () => {
+    const { result, rerender } = renderOwners({ refreshToken: 0 });
+    await flush();
+
+    expect(result.current.owners.value).toHaveLength(2);
+
+    listResponses.set(MonitorOwnerTeam, () => {
+      return rejectWith(new Error("Teams are unavailable."));
+    });
+    rerender({ monitorId: MONITOR_ID, refreshToken: 1 });
+    await flush();
+
+    // Dropping the team for a transient failure would say it is no owner.
+    expect(result.current.owners.status).toBe("loaded");
+    expect(
+      result.current.owners.value!.map((entry: { kind: "user" | "team" }) => {
+        return entry.kind;
+      }),
+    ).toEqual(["user", "team"]);
+    expect(result.current.owners.refreshError).toBe("Teams are unavailable.");
+  });
+
+  test("each list is gated on its own permission: owner users only", async () => {
+    permissions = [
+      Permission.ReadProjectMonitor,
+      Permission.ReadMonitorOwnerUser,
+    ];
+
+    const { result } = renderOwners();
+    await flush();
+
+    expect(requestsFor(MonitorOwnerUser)).toHaveLength(1);
+    expect(requestsFor(MonitorOwnerTeam)).toHaveLength(0);
+    expect(result.current.owners.status).toBe("loaded");
+    expect(
+      result.current.owners.value!.map((entry: { kind: "user" | "team" }) => {
+        return entry.kind;
+      }),
+    ).toEqual(["user"]);
+    expect(result.current.owners.refreshError).toBe(
+      MONITOR_OWNERS_PARTIAL_REASONS.teams,
+    );
+  });
+
+  test("each list is gated on its own permission: owner teams only", async () => {
+    permissions = [
+      Permission.ReadProjectMonitor,
+      Permission.ReadMonitorOwnerTeam,
+    ];
+
+    const { result } = renderOwners();
+    await flush();
+
+    expect(requestsFor(MonitorOwnerUser)).toHaveLength(0);
+    expect(requestsFor(MonitorOwnerTeam)).toHaveLength(1);
+    expect(result.current.owners.status).toBe("loaded");
+    expect(
+      result.current.owners.value!.map((entry: { kind: "user" | "team" }) => {
+        return entry.kind;
+      }),
+    ).toEqual(["team"]);
+    expect(result.current.owners.refreshError).toBe(
+      MONITOR_OWNERS_PARTIAL_REASONS.users,
+    );
+  });
+
+  test("a readable half that names nobody, next to a forbidden one, is not 'no owners'", async () => {
+    permissions = [
+      Permission.ReadProjectMonitor,
+      Permission.ReadMonitorOwnerUser,
+    ];
+    listResponses.set(MonitorOwnerUser, () => {
+      return Promise.resolve(listOf([]));
+    });
+
+    const { result } = renderOwners();
+    await flush();
+
+    expect(result.current.owners.status).toBe("forbidden");
+    expect(result.current.owners.value).toBeNull();
+    expect(result.current.owners.error).toBe(
+      MONITOR_OWNERS_PARTIAL_REASONS.teams,
+    );
   });
 
   test("loads once per monitor, again only when refreshToken changes", async () => {

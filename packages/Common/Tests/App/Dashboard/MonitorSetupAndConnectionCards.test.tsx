@@ -450,6 +450,54 @@ describe("MonitorConnectionCard", () => {
     expect(screen.queryByText(/Only people who can edit monitors/)).toBeNull();
   });
 
+  test.each([
+    ["a number", 12345],
+    ["a boolean", true],
+    ["an object", { name: "web-01" }],
+  ])(
+    "server whose agent sent %s as its hostname says it has none, rather than crashing",
+    (_label: string, hostname: unknown) => {
+      // The agent's report is stored unvalidated, so any JSON can arrive.
+      const monitor: Monitor = viewerMonitor();
+      monitor.serverMonitorRequestReceivedAt = minutesAgo(1);
+      monitor.serverMonitorResponse = {
+        hostname: hostname,
+        requestReceivedAt: minutesAgo(1),
+      } as unknown as ServerMonitorResponse;
+
+      renderInRouter(
+        <MonitorConnectionCard
+          monitorId={MONITOR_ID}
+          kind={MonitorOverviewSetupKind.ServerAgent}
+          monitor={monitor}
+        />,
+      );
+
+      expect(screen.getByText("not reported yet")).toBeInTheDocument();
+      expect(screen.queryByTestId("monitor-connection-value")).toBeNull();
+      expect(screen.getByTestId("monitor-connection-meta")).toHaveTextContent(
+        "Last report a minute ago",
+      );
+    },
+  );
+
+  test("server whose hostname is only whitespace says it has none", () => {
+    const monitor: Monitor = viewerMonitor();
+    monitor.serverMonitorResponse = {
+      hostname: "   ",
+    } as ServerMonitorResponse;
+
+    renderInRouter(
+      <MonitorConnectionCard
+        monitorId={MONITOR_ID}
+        kind={MonitorOverviewSetupKind.ServerAgent}
+        monitor={monitor}
+      />,
+    );
+
+    expect(screen.getByText("not reported yet")).toBeInTheDocument();
+  });
+
   test("server with no hostname yet says so", () => {
     renderInRouter(
       <MonitorConnectionCard

@@ -59,21 +59,12 @@ function avatarSvg(userId) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="${color}"/><text x="32" y="41" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="600" fill="#fff" text-anchor="middle">${initials}</text></svg>`;
 }
 /*
- * Production CSS is compiled ahead of time; the CDN build here compiles a
- * class only once it appears in the DOM. The uptime strip measures itself
- * in a layout effect on its first render (to start scrolled at today on a
- * phone), so its scroller and width classes must exist before it mounts, as
- * they do in production. This hidden element makes the CDN build them at
- * load.
- */
-const precompiledClasses = `<div hidden class="overflow-x-auto pb-1 min-w-[36rem] sm:min-w-0"></div>`;
-/*
  * HOST is a made-up domain so the heartbeat URL and inbound address read the
  * way they do on a real install. Nothing is ever fetched from it: the data
  * boundary is stubbed in the page and the spec aborts any request that
  * leaves this server.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Monitor overview preview</title><script>window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",INBOUND_EMAIL_DOMAIN:"inbound.acme-commerce.example",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body>${precompiledClasses}<div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Monitor overview preview</title><script>window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",INBOUND_EMAIL_DOMAIN:"inbound.acme-commerce.example",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });

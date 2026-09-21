@@ -1,9 +1,17 @@
+import MonitorProbe, {
+  MonitorStepProbeResponse,
+} from "../../../Models/DatabaseModels/MonitorProbe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "../../../Models/DatabaseModels/Probe";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
 import { MonitorCheckFreshness } from "../../../Utils/Monitor/MonitorCheckScheduleUtil";
 import MonitorOverviewFamilyUtil, {
   MonitorOverviewFamily,
@@ -16,8 +24,12 @@ import MonitorOverviewPresentationUtil, {
   MonitorOverviewRunState,
   MonitorOverviewStatusRef,
 } from "../../../Utils/Monitor/MonitorOverviewPresentationUtil";
-import { MonitorOverviewProbeSummary } from "../../../Utils/Monitor/MonitorOverviewProbeUtil";
-import { describe, expect, it } from "@jest/globals";
+import MonitorOverviewProbeUtil, {
+  MonitorOverviewProbeHealth,
+  MonitorOverviewProbeRow,
+  MonitorOverviewProbeSummary,
+} from "../../../Utils/Monitor/MonitorOverviewProbeUtil";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
 /*
  * The hero, facts, pulse and section switches of the monitor overview for
@@ -188,10 +200,11 @@ const running: (
       memoryPercent: 63.6,
     },
     telemetry: {
-      lastEvaluatedAt: secondsAgo(30),
+      lastScheduledAt: secondsAgo(30),
       nextEvaluationAt: secondsAgo(-270),
     },
     latestEvaluationAt: secondsAgo(90),
+    evaluationStatus: "loaded",
   };
 
   return { ...base, ...overrides };
@@ -237,6 +250,8 @@ interface Scenario {
   name: string;
   input: MonitorOverviewPresentationInput;
   runState: MonitorOverviewRunState;
+  // Awaiting, but already judged by the server, so its history is shown.
+  hasPushVerdict?: boolean;
 }
 
 /*
@@ -344,7 +359,11 @@ const SCENARIOS: Array<Scenario> = [
   },
   {
     name: "kubernetes never evaluated",
-    input: running(MonitorType.Kubernetes, { telemetry: {} }),
+    input: running(MonitorType.Kubernetes, {
+      createdAt: secondsAgo(120),
+      telemetry: {},
+      latestEvaluationAt: undefined,
+    }),
     runState: MonitorOverviewRunState.AwaitingFirstData,
   },
   {
@@ -363,13 +382,19 @@ const SCENARIOS: Array<Scenario> = [
     runState: MonitorOverviewRunState.Overdue,
   },
   {
+    /*
+     * The worker keeps stamping "last scheduled" every minute, but nothing
+     * has been evaluated for an hour: the queue is stuck, or every
+     * evaluation fails.
+     */
     name: "metrics monitor with a stale evaluation",
     input: running(MonitorType.Metrics, {
       monitoringInterval: "* * * * *",
       telemetry: {
-        lastEvaluatedAt: secondsAgo(3600),
-        nextEvaluationAt: secondsAgo(3540),
+        lastScheduledAt: secondsAgo(10),
+        nextEvaluationAt: secondsAgo(-50),
       },
+      latestEvaluationAt: secondsAgo(3600),
     }),
     runState: MonitorOverviewRunState.Overdue,
   },
@@ -392,6 +417,39 @@ const SCENARIOS: Array<Scenario> = [
     name: "running server with no status",
     input: running(MonitorType.Server, { currentStatus: undefined }),
     runState: MonitorOverviewRunState.Running,
+  },
+  {
+    name: "heartbeat that never received a request, judged offline",
+    input: running(MonitorType.IncomingRequest, {
+      currentStatus: OFFLINE,
+      heartbeat: {},
+    }),
+    runState: MonitorOverviewRunState.AwaitingFirstData,
+    hasPushVerdict: true,
+  },
+  {
+    name: "API that never reported, created two days ago",
+    input: running(MonitorType.API, {
+      createdAt: secondsAgo(2 * DAY),
+      statusSince: undefined,
+      probes: probes({ ...NO_RESULTS, nextCheckAt: undefined }),
+    }),
+    runState: MonitorOverviewRunState.Overdue,
+  },
+  {
+    name: "logs monitor scheduled for ten days but never evaluated",
+    input: running(MonitorType.Logs, {
+      createdAt: secondsAgo(10 * DAY),
+      latestEvaluationAt: undefined,
+    }),
+    runState: MonitorOverviewRunState.Overdue,
+  },
+  {
+    name: "network device whose log is loaded and empty",
+    input: running(MonitorType.NetworkDevice, {
+      latestEvaluationAt: undefined,
+    }),
+    runState: MonitorOverviewRunState.AwaitingFirstData,
   },
 ];
 
@@ -482,10 +540,12 @@ describe("MonitorOverviewPresentationUtil run states", () => {
         MonitorOverviewRunState.NotConfigured,
       ],
       [
-        "awaiting beats overdue",
+        "awaiting beats overdue while only the scheduler's stamp is known",
         running(MonitorType.Logs, {
           createdAt: secondsAgo(10 * DAY),
           telemetry: { nextEvaluationAt: secondsAgo(DAY) },
+          latestEvaluationAt: undefined,
+          evaluationStatus: "error",
         }),
         MonitorOverviewRunState.AwaitingFirstData,
       ],
@@ -530,10 +590,19 @@ describe("MonitorOverviewPresentationUtil run states", () => {
         MonitorOverviewRunState.Running,
       ],
       [
-        "a network device is never awaiting",
+        "a network device is not awaiting while its log is unknown",
         running(MonitorType.NetworkDevice, {
           latestEvaluationAt: undefined,
+          evaluationStatus: undefined,
           createdAt: secondsAgo(60),
+        }),
+        MonitorOverviewRunState.Running,
+      ],
+      [
+        "a network device is not awaiting while its log is unreadable",
+        running(MonitorType.NetworkDevice, {
+          latestEvaluationAt: undefined,
+          evaluationStatus: "forbidden",
         }),
         MonitorOverviewRunState.Running,
       ],
@@ -651,7 +720,7 @@ describe("MonitorOverviewPresentationUtil invariants", () => {
     ).toBe("danger");
   });
 
-  it("showUptime is false only while awaiting first data", () => {
+  it("showUptime is false only while awaiting first data that nothing has judged", () => {
     for (const scenario of SCENARIOS) {
       const presentation: MonitorOverviewPresentation = build(scenario.input);
 
@@ -661,7 +730,8 @@ describe("MonitorOverviewPresentationUtil invariants", () => {
       }).toEqual({
         name: scenario.name,
         showUptime:
-          presentation.runState !== MonitorOverviewRunState.AwaitingFirstData,
+          presentation.runState !== MonitorOverviewRunState.AwaitingFirstData ||
+          scenario.hasPushVerdict === true,
       });
     }
   });
@@ -1053,7 +1123,9 @@ describe("MonitorOverviewPresentationUtil hero", () => {
     const telemetry: MonitorOverviewPresentation = build(
       running(MonitorType.Traces, {
         monitoringInterval: "* * * * *",
+        createdAt: secondsAgo(30),
         telemetry: {},
+        latestEvaluationAt: undefined,
         currentStatus: undefined,
       }),
     );
@@ -1104,11 +1176,59 @@ describe("MonitorOverviewPresentationUtil hero", () => {
     expect(presentation.explanation).toBe(
       "No check result has arrived since this monitor was created 2d 3h ago.",
     );
-    expect(presentation.headline).toEqual({
-      text: "Operational",
-      since: undefined,
-    });
     expect(presentation.tone).toBe("warning");
+    expect(presentation.isNeverReported).toBe(true);
+  });
+
+  /*
+   * Nothing was ever measured, so the stored status is only the default the
+   * monitor was created with: it must not be the badge, and it has not
+   * "held" for 30 days.
+   */
+  it("never-reported monitors lead with the missing results, not the default status", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.API, {
+        createdAt: secondsAgo(30 * DAY),
+        probes: probes({ ...NO_RESULTS, nextCheckAt: undefined }),
+      }),
+    );
+
+    expect(presentation.badge).toEqual({
+      text: "No results yet",
+      tone: "warning",
+    });
+    expect(presentation.headline).toEqual({
+      text: "No check has completed yet",
+    });
+    expect(presentation.lastKnownStatus).toBe(
+      "Last recorded status: Operational",
+    );
+    expect(presentation.secondaryBadges).toEqual([
+      { text: "Checks overdue", tone: "warning" },
+    ]);
+
+    // Danger stays danger.
+    expect(
+      build(
+        running(MonitorType.API, {
+          currentStatus: OFFLINE,
+          createdAt: secondsAgo(30 * DAY),
+          probes: probes({ ...NO_RESULTS, nextCheckAt: undefined }),
+        }),
+      ).tone,
+    ).toBe("danger");
+
+    // Overdue with results keeps leading with the status it measured.
+    const late: MonitorOverviewPresentation = build(
+      running(MonitorType.API, {
+        probes: probes({ lastResultAt: secondsAgo(2 * 3600) }),
+      }),
+    );
+
+    expect(late.badge.text).toBe("Operational");
+    expect(late.headline.since).toEqual(secondsAgo(3 * DAY + 4 * 3600));
+    expect(late.lastKnownStatus).toBeUndefined();
+    expect(late.isNeverReported).toBe(false);
   });
 });
 
@@ -1268,7 +1388,7 @@ describe("MonitorOverviewPresentationUtil facts", () => {
       [8 * DAY, "in 8 days", "warning"],
       [7 * DAY, "in 7 days", "danger"],
       [DAY, "in 1 day", "danger"],
-      [3600, "Expires today", "danger"],
+      [3600, "Expires in 1 hour", "danger"],
       [-DAY, "Expired 1 day ago", "danger"],
       [-3 * DAY, "Expired 3 days ago", "danger"],
     ];
@@ -1592,7 +1712,7 @@ describe("MonitorOverviewPresentationUtil pulse", () => {
         .pulse,
     ).toEqual({
       label: "Last evaluated",
-      at: secondsAgo(30),
+      at: secondsAgo(90),
       emptyText: "Not evaluated yet",
       cadenceText: "Every minute",
       nextAt: secondsAgo(-270),
@@ -1623,7 +1743,8 @@ describe("MonitorOverviewPresentationUtil pulse", () => {
     );
 
     expect(overdue.pulse.nextAt).toBeUndefined();
-    expect(overdue.pulse.overdueSeconds).toBe(700);
+    // The result came at 11:43:20, so the next was due at the 11:45 run.
+    expect(overdue.pulse.overdueSeconds).toBe(900);
     expect(overdue.freshness).toBe(MonitorCheckFreshness.Stale);
   });
 
@@ -1747,5 +1868,873 @@ describe("MonitorOverviewPresentationUtil sections", () => {
       isMono: true,
       extraStepCount: 1,
     });
+  });
+});
+
+/*
+ * Probe rows as the server stores them, summarised the way the page does,
+ * so these tests cover the whole path from MonitorProbe to the hero.
+ */
+const probeRow: (data: {
+  probeId: string;
+  name: string;
+  resultAgeSeconds?: number;
+  isOnline?: boolean;
+  nextPingInSeconds?: number;
+  connectionStatus?: ProbeConnectionStatus;
+  isEnabled?: boolean;
+}) => MonitorProbe = (data: {
+  probeId: string;
+  name: string;
+  resultAgeSeconds?: number;
+  isOnline?: boolean;
+  nextPingInSeconds?: number;
+  connectionStatus?: ProbeConnectionStatus;
+  isEnabled?: boolean;
+}): MonitorProbe => {
+  const row: MonitorProbe = new MonitorProbe();
+  const probe: Probe = new Probe();
+
+  probe._id = data.probeId;
+  probe.name = data.name;
+  probe.connectionStatus =
+    data.connectionStatus || ProbeConnectionStatus.Connected;
+
+  row.probeId = new ObjectID(data.probeId);
+  row.probe = probe;
+  row.isEnabled = data.isEnabled ?? true;
+  row.nextPingAt = secondsAgo(-(data.nextPingInSeconds ?? 60));
+
+  if (data.resultAgeSeconds !== undefined) {
+    row.lastPingAt = secondsAgo(data.resultAgeSeconds + 2);
+    row.lastMonitoringLog = {
+      [STEP_ID]: {
+        monitoredAt: secondsAgo(data.resultAgeSeconds).toISOString(),
+        isOnline: data.isOnline ?? true,
+        responseTimeInMs: 120,
+      },
+    } as unknown as MonitorStepProbeResponse;
+  }
+
+  return row;
+};
+
+const summaryOf: (
+  rows: Array<MonitorProbe>,
+  isScheduled?: boolean,
+) => MonitorOverviewProbeSummary = (
+  rows: Array<MonitorProbe>,
+  isScheduled?: boolean,
+): MonitorOverviewProbeSummary => {
+  const monitorSteps: MonitorSteps | undefined = running(
+    MonitorType.API,
+  ).monitorSteps;
+
+  return MonitorOverviewProbeUtil.summarizeProbes({
+    monitorProbes: rows,
+    validStepIds: MonitorOverviewProbeUtil.getValidStepIds(monitorSteps),
+    primaryStepId: MonitorOverviewProbeUtil.getPrimaryStepId(monitorSteps),
+    cadenceSeconds: 300,
+    now: NOW,
+    monitoringInterval: "*/5 * * * *",
+    isScheduled: isScheduled,
+  });
+};
+
+const FRANKFURT: string = "11111111-1111-4111-8111-111111111111";
+const VIRGINIA: string = "22222222-2222-4222-8222-222222222222";
+const SINGAPORE: string = "33333333-3333-4333-8333-333333333333";
+
+describe("MonitorOverviewPresentationUtil probes that stop checking", () => {
+  /*
+   * Only a probe's own claim moves its nextPingAt, so a probe that lost its
+   * connection keeps a due time that sinks further into the past. The
+   * monitor is still checked on time by the others.
+   */
+  it("one disconnected probe does not make a monitor others check on time overdue", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.Website, {
+        probes: summaryOf([
+          probeRow({
+            probeId: FRANKFURT,
+            name: "Frankfurt",
+            resultAgeSeconds: 60,
+            nextPingInSeconds: 240,
+          }),
+          probeRow({
+            probeId: VIRGINIA,
+            name: "Virginia",
+            resultAgeSeconds: 30,
+            nextPingInSeconds: 270,
+          }),
+          probeRow({
+            probeId: SINGAPORE,
+            name: "Singapore",
+            resultAgeSeconds: 3 * DAY,
+            nextPingInSeconds: -3 * DAY,
+            connectionStatus: ProbeConnectionStatus.Disconnected,
+          }),
+        ]),
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Running);
+    expect(presentation.freshness).toBe(MonitorCheckFreshness.Fresh);
+    expect(presentation.secondaryBadges).toEqual([]);
+    expect(presentation.pulse.nextAt).toEqual(secondsAgo(-240));
+    expect(presentation.pulse.overdueSeconds).toBeUndefined();
+
+    // The lost probe is still reported where probes are reported.
+    expect(fact(presentation, "probes")).toMatchObject({
+      value: "2 of 3 reporting",
+      secondary: "1 disconnected",
+      tone: "warning",
+    });
+  });
+
+  it("one probe that stopped claiming does not either", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.API, {
+        probes: summaryOf([
+          probeRow({
+            probeId: FRANKFURT,
+            name: "Frankfurt",
+            resultAgeSeconds: 60,
+            nextPingInSeconds: 240,
+          }),
+          probeRow({
+            probeId: VIRGINIA,
+            name: "Virginia",
+            resultAgeSeconds: 2 * 3600,
+            nextPingInSeconds: -2 * 3600,
+          }),
+        ]),
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Running);
+    expect(presentation.pulse.nextAt).toEqual(secondsAgo(-240));
+  });
+
+  it("is overdue when every probe that is checking is past due", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.API, {
+        probes: summaryOf([
+          probeRow({
+            probeId: FRANKFURT,
+            name: "Frankfurt",
+            resultAgeSeconds: 100,
+            nextPingInSeconds: -1200,
+          }),
+          probeRow({
+            probeId: VIRGINIA,
+            name: "Virginia",
+            resultAgeSeconds: 100,
+            nextPingInSeconds: -1100,
+          }),
+        ]),
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Overdue);
+    // Past due since the later of the two.
+    expect(presentation.pulse.overdueSeconds).toBe(1100);
+  });
+});
+
+describe("MonitorOverviewPresentationUtil paused probes", () => {
+  const MAINTENANCE: MonitorOverviewPresentationInput["pause"] = {
+    isDisabled: false,
+    byManualIncident: false,
+    byScheduledMaintenance: true,
+  };
+
+  it("a paused monitor's probes are neither late nor a fault", () => {
+    const summary: MonitorOverviewProbeSummary = summaryOf(
+      [
+        probeRow({
+          probeId: FRANKFURT,
+          name: "Frankfurt",
+          resultAgeSeconds: 25 * 60,
+        }),
+        probeRow({
+          probeId: VIRGINIA,
+          name: "Virginia",
+          resultAgeSeconds: 25 * 60,
+          isOnline: false,
+        }),
+      ],
+      false,
+    );
+
+    expect(
+      summary.rows.map((row: MonitorOverviewProbeRow) => {
+        return row.health;
+      }),
+    ).toEqual([MonitorOverviewProbeHealth.Down, MonitorOverviewProbeHealth.Up]);
+
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.API, { pause: MAINTENANCE, probes: summary }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Paused);
+    expect(fact(presentation, "probes")).toEqual({
+      key: "probes",
+      label: "Probes",
+      linkKey: "probes",
+      value: "2 enabled",
+      secondary: "Checks paused",
+      tone: "neutral",
+    });
+  });
+
+  it("keeps saying which probes are switched off or disconnected", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.API, {
+        pause: {
+          isDisabled: true,
+          byManualIncident: false,
+          byScheduledMaintenance: false,
+        },
+        probes: probes({
+          attachedCount: 4,
+          enabledCount: 3,
+          reportingCount: 0,
+          disabledCount: 1,
+          disconnectedCount: 1,
+        }),
+      }),
+    );
+
+    expect(fact(presentation, "probes")).toMatchObject({
+      value: "3 enabled",
+      secondary: "Checks paused · 1 disabled · 1 disconnected",
+      tone: "neutral",
+    });
+
+    // No probe enabled is still a problem when monitoring resumes.
+    expect(
+      fact(
+        build(
+          running(MonitorType.API, {
+            pause: MAINTENANCE,
+            probes: probes({
+              ...NO_RESULTS,
+              enabledCount: 0,
+              disabledCount: 2,
+            }),
+          }),
+        ),
+        "probes",
+      ),
+    ).toMatchObject({ value: "None enabled", tone: "danger" });
+  });
+});
+
+describe("MonitorOverviewPresentationUtil probes that disagree", () => {
+  it("down probes are never neutral in the probes fact", () => {
+    const probesFact: (
+      overrides: Partial<MonitorOverviewProbeSummary>,
+      monitorType?: MonitorType,
+    ) => MonitorOverviewFact = (
+      overrides: Partial<MonitorOverviewProbeSummary>,
+      monitorType?: MonitorType,
+    ): MonitorOverviewFact => {
+      return fact(
+        build(
+          running(monitorType || MonitorType.API, {
+            probes: probes(overrides),
+          }),
+        ),
+        "probes",
+      );
+    };
+
+    expect(
+      probesFact({
+        attachedCount: 3,
+        enabledCount: 3,
+        reportingCount: 3,
+        upCount: 1,
+        downCount: 2,
+      }),
+    ).toMatchObject({
+      value: "3 of 3 reporting",
+      secondary: "2 down",
+      tone: "warning",
+    });
+
+    // Every reporting probe sees it down.
+    expect(
+      probesFact({
+        attachedCount: 3,
+        enabledCount: 3,
+        reportingCount: 2,
+        upCount: 0,
+        downCount: 2,
+        disconnectedCount: 1,
+      }),
+    ).toMatchObject({
+      secondary: "2 down · 1 disconnected",
+      tone: "danger",
+    });
+
+    expect(
+      probesFact(
+        { reportingCount: 2, upCount: 1, downCount: 1 },
+        MonitorType.SyntheticMonitor,
+      ).secondary,
+    ).toBe("1 failing");
+  });
+
+  it("the latest result says the probes disagree instead of quoting whichever reported last", () => {
+    const latest: (
+      monitorType: MonitorType,
+      overrides: Partial<MonitorOverviewProbeSummary>,
+    ) => MonitorOverviewFact = (
+      monitorType: MonitorType,
+      overrides: Partial<MonitorOverviewProbeSummary>,
+    ): MonitorOverviewFact => {
+      return fact(
+        build(running(monitorType, { probes: probes(overrides) })),
+        "latest-result",
+      );
+    };
+
+    expect(
+      latest(MonitorType.API, {
+        attachedCount: 3,
+        enabledCount: 3,
+        reportingCount: 3,
+        upCount: 1,
+        downCount: 2,
+      }),
+    ).toEqual({
+      key: "latest-result",
+      label: "Latest result",
+      value: "Mixed · 1 up, 2 down",
+      tone: "warning",
+    });
+    expect(
+      latest(MonitorType.SyntheticMonitor, { upCount: 1, downCount: 1 }).value,
+    ).toBe("Mixed · 1 passed, 1 failed");
+
+    // Agreement keeps the newest result.
+    expect(latest(MonitorType.API, { upCount: 2, downCount: 0 }).value).toBe(
+      "Up · 120 ms · HTTP 200",
+    );
+  });
+
+  it("from real probe rows", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.API, {
+        probes: summaryOf([
+          probeRow({
+            probeId: FRANKFURT,
+            name: "Frankfurt",
+            resultAgeSeconds: 20,
+          }),
+          probeRow({
+            probeId: VIRGINIA,
+            name: "Virginia",
+            resultAgeSeconds: 40,
+            isOnline: false,
+          }),
+          probeRow({
+            probeId: SINGAPORE,
+            name: "Singapore",
+            resultAgeSeconds: 50,
+            isOnline: false,
+          }),
+        ]),
+      }),
+    );
+
+    expect(fact(presentation, "latest-result").value).toBe(
+      "Mixed · 1 up, 2 down",
+    );
+    expect(fact(presentation, "probes")).toMatchObject({
+      value: "3 of 3 reporting",
+      secondary: "2 down",
+      tone: "warning",
+    });
+  });
+});
+
+/*
+ * The worker stamps telemetryMonitorLastMonitorAt when it QUEUES an
+ * evaluation. Only the evaluation log says one ran.
+ */
+describe("MonitorOverviewPresentationUtil telemetry evaluations", () => {
+  it("a stuck evaluator is overdue even while the scheduler keeps stamping", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.Logs, {
+        monitoringInterval: "* * * * *",
+        telemetry: {
+          lastScheduledAt: secondsAgo(5),
+          nextEvaluationAt: secondsAgo(-55),
+        },
+        latestEvaluationAt: secondsAgo(20 * 60),
+        evaluationStatus: "loaded",
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Overdue);
+    expect(presentation.pulse).toMatchObject({
+      label: "Last evaluated",
+      at: secondsAgo(20 * 60),
+    });
+    expect(presentation.explanation).toBe(
+      "No evaluation for 20m, but this monitor is evaluated every minute.",
+    );
+  });
+
+  it("without the evaluation log, the scheduler's stamp is called what it is", () => {
+    const statuses: Array<"loading" | "error" | "forbidden"> = [
+      "loading",
+      "error",
+      "forbidden",
+    ];
+
+    for (const evaluationStatus of statuses) {
+      const presentation: MonitorOverviewPresentation = build(
+        running(MonitorType.Kubernetes, {
+          telemetry: {
+            lastScheduledAt: secondsAgo(30),
+            nextEvaluationAt: secondsAgo(-270),
+          },
+          latestEvaluationAt: undefined,
+          evaluationStatus: evaluationStatus,
+        }),
+      );
+
+      expect({
+        evaluationStatus: evaluationStatus,
+        runState: presentation.runState,
+        label: presentation.pulse.label,
+        at: presentation.pulse.at,
+      }).toEqual({
+        evaluationStatus: evaluationStatus,
+        runState: MonitorOverviewRunState.Running,
+        label: "Last scheduled",
+        at: secondsAgo(30),
+      });
+    }
+
+    // The old name for the stamp is still read.
+    expect(
+      build(
+        running(MonitorType.Logs, {
+          telemetry: { lastEvaluatedAt: secondsAgo(40) },
+          latestEvaluationAt: undefined,
+          evaluationStatus: undefined,
+        }),
+      ).pulse,
+    ).toMatchObject({ label: "Last scheduled", at: secondsAgo(40) });
+  });
+
+  it("never evaluated: waiting while young, overdue after", () => {
+    const young: MonitorOverviewPresentation = build(
+      running(MonitorType.Metrics, {
+        createdAt: secondsAgo(120),
+        latestEvaluationAt: undefined,
+      }),
+    );
+
+    expect(young.runState).toBe(MonitorOverviewRunState.AwaitingFirstData);
+    expect(young.pulse).toMatchObject({
+      label: "Last evaluated",
+      at: undefined,
+      emptyText: "Not evaluated yet",
+    });
+
+    const old: MonitorOverviewPresentation = build(
+      running(MonitorType.Metrics, {
+        createdAt: secondsAgo(10 * DAY),
+        latestEvaluationAt: undefined,
+      }),
+    );
+
+    expect(old.runState).toBe(MonitorOverviewRunState.Overdue);
+    expect(old.isNeverReported).toBe(true);
+    expect(old.badge).toEqual({ text: "No results yet", tone: "warning" });
+    expect(old.headline).toEqual({ text: "No evaluation has completed yet" });
+    expect(old.explanation).toBe(
+      "No evaluation has run since this monitor was created 10d ago.",
+    );
+  });
+});
+
+describe("MonitorOverviewPresentationUtil network device evaluations", () => {
+  const pulseFor: (
+    overrides: Partial<MonitorOverviewPresentationInput>,
+  ) => MonitorOverviewPresentation["pulse"] = (
+    overrides: Partial<MonitorOverviewPresentationInput>,
+  ): MonitorOverviewPresentation["pulse"] => {
+    return build(running(MonitorType.NetworkDevice, overrides)).pulse;
+  };
+
+  it("an unreadable log is unavailable, never 'not evaluated yet'", () => {
+    const statuses: Array<"error" | "forbidden"> = ["error", "forbidden"];
+
+    for (const evaluationStatus of statuses) {
+      expect(
+        pulseFor({
+          latestEvaluationAt: undefined,
+          evaluationStatus: evaluationStatus,
+        }),
+      ).toEqual({
+        label: "Last evaluated",
+        at: undefined,
+        emptyText: "Not evaluated yet",
+        isUnavailable: true,
+      });
+    }
+  });
+
+  it("a log still loading says so", () => {
+    expect(
+      pulseFor({ latestEvaluationAt: undefined, evaluationStatus: "loading" }),
+    ).toEqual({
+      label: "Last evaluated",
+      at: undefined,
+      emptyText: "Loading…",
+      isUnavailable: false,
+    });
+  });
+
+  it("a loaded, empty log is waiting for the first poll, not a measured status", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.NetworkDevice, {
+        latestEvaluationAt: undefined,
+        evaluationStatus: "loaded",
+      }),
+    );
+
+    expect(presentation.runState).toBe(
+      MonitorOverviewRunState.AwaitingFirstData,
+    );
+    expect(presentation.badge).toEqual({
+      text: "Waiting for data",
+      tone: "info",
+    });
+    expect(presentation.headline.text).toBe("Waiting for the first poll");
+    expect(presentation.lastKnownStatus).toBe(
+      "Last recorded status: Operational",
+    );
+    expect(presentation.sections.showUptime).toBe(false);
+    expect(presentation.pulse.isUnavailable).toBe(false);
+  });
+});
+
+/*
+ * The heartbeat and agent checks judge a monitor that never reported as if
+ * its last signal came at creation, so it can be Offline with an incident
+ * open while the page still waits for the first signal.
+ */
+describe("MonitorOverviewPresentationUtil push monitors the server has judged", () => {
+  it("a heartbeat judged offline leads with that verdict and keeps the setup", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      running(MonitorType.IncomingRequest, {
+        currentStatus: OFFLINE,
+        createdAt: secondsAgo(3 * DAY),
+        heartbeat: {},
+      }),
+    );
+
+    expect(presentation.runState).toBe(
+      MonitorOverviewRunState.AwaitingFirstData,
+    );
+    expect(presentation.tone).toBe("danger");
+    expect(presentation.badge).toEqual({
+      text: "Waiting for data",
+      tone: "info",
+    });
+    expect(presentation.secondaryBadges).toEqual([
+      { text: "Offline", tone: "danger" },
+    ]);
+    expect(presentation.headline).toEqual({
+      text: "No heartbeat has arrived since this monitor was created 3d ago",
+    });
+    expect(presentation.explanation).toBe(
+      "Send a GET or POST request to this monitor's heartbeat URL to start tracking it.",
+    );
+    expect(presentation.callToAction).toEqual({
+      text: "Setup instructions",
+      linkKey: "documentation",
+    });
+    expect(presentation.lastKnownStatus).toBeUndefined();
+    expect(presentation.sections.showUptime).toBe(true);
+    expect(presentation.sections.setup).toBe(
+      MonitorOverviewSetupKind.HeartbeatUrl,
+    );
+  });
+
+  it("an email or agent monitor judged degraded or offline leads with its tone", () => {
+    const email: MonitorOverviewPresentation = build(
+      running(MonitorType.IncomingEmail, {
+        currentStatus: DEGRADED,
+        createdAt: secondsAgo(2 * 3600),
+        email: {},
+      }),
+    );
+
+    expect(email.tone).toBe("warning");
+    expect(email.secondaryBadges).toEqual([
+      { text: "Degraded", tone: "warning" },
+    ]);
+    expect(email.headline.text).toBe(
+      "No email has arrived since this monitor was created 2h ago",
+    );
+
+    const agent: MonitorOverviewPresentation = build(
+      running(MonitorType.Server, {
+        currentStatus: OFFLINE,
+        createdAt: secondsAgo(DAY),
+        agent: {},
+      }),
+    );
+
+    expect(agent.headline.text).toBe(
+      "The agent has not reported since this monitor was created 1d ago",
+    );
+    expect(agent.sections.showUptime).toBe(true);
+    expect(agent.sections.setup).toBe(MonitorOverviewSetupKind.ServerAgent);
+  });
+
+  it("history shows once the missing-signal window since creation has passed", () => {
+    const showsUptime: (
+      overrides: Partial<MonitorOverviewPresentationInput>,
+    ) => boolean = (
+      overrides: Partial<MonitorOverviewPresentationInput>,
+    ): boolean => {
+      return build(
+        running(MonitorType.IncomingEmail, { email: {}, ...overrides }),
+      ).sections.showUptime;
+    };
+
+    const steps: MonitorSteps = missingWindowSteps(CheckOn.EmailReceivedAt, 30);
+
+    expect(
+      showsUptime({ monitorSteps: steps, createdAt: secondsAgo(31 * 60) }),
+    ).toBe(true);
+    expect(
+      showsUptime({ monitorSteps: steps, createdAt: secondsAgo(29 * 60) }),
+    ).toBe(false);
+    // No missing-email criterion: nothing will judge it.
+    expect(showsUptime({ createdAt: secondsAgo(DAY) })).toBe(false);
+
+    // Operational means nothing has said otherwise: calm, not a verdict.
+    const calm: MonitorOverviewPresentation = build(
+      running(MonitorType.IncomingEmail, {
+        email: {},
+        monitorSteps: steps,
+        createdAt: secondsAgo(31 * 60),
+      }),
+    );
+
+    expect(calm.tone).toBe("info");
+    expect(calm.secondaryBadges).toEqual([]);
+    expect(calm.headline.text).toBe("Waiting for the first email");
+  });
+
+  it("an agent's window is three minutes, and only with an Is Online criterion", () => {
+    const isOnlineSteps: MonitorSteps = stepsOf({
+      monitorCriteria: {
+        data: {
+          monitorCriteriaInstanceArray: [
+            {
+              data: {
+                filters: [
+                  {
+                    checkOn: CheckOn.IsOnline,
+                    filterType: FilterType.False,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+    const showsUptime: (
+      overrides: Partial<MonitorOverviewPresentationInput>,
+    ) => boolean = (
+      overrides: Partial<MonitorOverviewPresentationInput>,
+    ): boolean => {
+      return build(running(MonitorType.Server, { agent: {}, ...overrides }))
+        .sections.showUptime;
+    };
+
+    expect(
+      showsUptime({ monitorSteps: isOnlineSteps, createdAt: secondsAgo(200) }),
+    ).toBe(true);
+    expect(
+      showsUptime({ monitorSteps: isOnlineSteps, createdAt: secondsAgo(170) }),
+    ).toBe(false);
+    expect(showsUptime({ createdAt: secondsAgo(DAY) })).toBe(false);
+  });
+});
+
+describe("MonitorOverviewPresentationUtil.getUptimeCaveat", () => {
+  const caveatOf: (input: MonitorOverviewPresentationInput) => string | null = (
+    input: MonitorOverviewPresentationInput,
+  ): string | null => {
+    return MonitorOverviewPresentationUtil.getUptimeCaveat(build(input));
+  };
+
+  it("names the unmeasured time per run state", () => {
+    const rows: Array<
+      [string, MonitorOverviewPresentationInput, string | null]
+    > = [
+      ["running", running(MonitorType.API), null],
+      ["disabled", SCENARIOS[1]!.input, "paused"],
+      ["paused by an incident", SCENARIOS[2]!.input, "paused"],
+      ["no probe enabled", SCENARIOS[4]!.input, "not-checking"],
+      ["every probe disconnected", SCENARIOS[5]!.input, "not-checking"],
+      ["no criteria", SCENARIOS[6]!.input, "not-checking"],
+      [
+        "overdue with results",
+        running(MonitorType.API, {
+          probes: probes({ lastResultAt: secondsAgo(2 * 3600) }),
+        }),
+        null,
+      ],
+      [
+        "never reported",
+        running(MonitorType.API, {
+          createdAt: secondsAgo(2 * DAY),
+          probes: probes({ ...NO_RESULTS, nextCheckAt: undefined }),
+        }),
+        "no-results",
+      ],
+      [
+        "judged heartbeat",
+        running(MonitorType.IncomingRequest, {
+          currentStatus: OFFLINE,
+          heartbeat: {},
+        }),
+        null,
+      ],
+    ];
+
+    for (const [name, input, expected] of rows) {
+      expect({ name: name, caveat: caveatOf(input) }).toEqual({
+        name: name,
+        caveat: expected,
+      });
+    }
+  });
+
+  it("a manual monitor has no checks to pause", () => {
+    expect(
+      caveatOf(
+        running(MonitorType.Manual, {
+          pause: {
+            isDisabled: false,
+            byManualIncident: true,
+            byScheduledMaintenance: true,
+          },
+        }),
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("MonitorOverviewPresentationUtil expiry wording", () => {
+  afterEach(() => {
+    // setUserTimezone is process-wide static state; never leak it.
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  const expiry: (seconds: number) => MonitorOverviewFact = (
+    seconds: number,
+  ): MonitorOverviewFact => {
+    return MonitorOverviewPresentationUtil.getExpiryFact({
+      key: "certificate-expiry",
+      expiresAt: new Date(NOW.getTime() + seconds * 1000),
+      isValidCertificate: true,
+      now: NOW,
+    });
+  };
+
+  it("hours within a day, either way", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    const cases: Array<[number, string]> = [
+      [20 * 3600, "Expires in 20 hours"],
+      [3600, "Expires in 1 hour"],
+      [20 * 60, "Expires in 20 minutes"],
+      [5, "Expires in 1 minute"],
+      [-5, "Expired 1 minute ago"],
+      [-3600, "Expired 1 hour ago"],
+      [-23 * 3600, "Expired 23 hours ago"],
+    ];
+
+    for (const [seconds, value] of cases) {
+      expect({ seconds: seconds, fact: expiry(seconds) }).toMatchObject({
+        seconds: seconds,
+        fact: { value: value, tone: "danger" },
+      });
+    }
+  });
+
+  it("calendar days beyond that, in the zone the date is printed in", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    // Noon on the 21st to midnight on the 23rd: two dates away.
+    expect(expiry(36 * 3600)).toMatchObject({
+      value: "in 2 days",
+      tone: "danger",
+    });
+    // Midnight on the 19th, seen at noon on the 21st: two dates back.
+    expect(expiry(-60 * 3600).value).toBe("Expired 2 days ago");
+    // The tone still counts whole days left: 7 days and 20 hours is danger.
+    expect(expiry(7 * DAY + 20 * 3600)).toMatchObject({
+      value: "in 8 days",
+      tone: "danger",
+    });
+
+    // 08:00 on the 21st to 20:00 on the 22nd in New York: one date away.
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    const newYork: MonitorOverviewFact = expiry(36 * 3600);
+
+    expect(newYork.value).toBe("in 1 day");
+    expect(newYork.secondary).toBe("Sep 22, 2026");
+  });
+});
+
+/*
+ * `now` is the page's single clock, corrected to the server's by the
+ * caller. Nothing may read the machine clock behind its back, or a fast
+ * browser clock would make every check look late.
+ */
+describe("MonitorOverviewPresentationUtil clock", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("reads no clock but input.now", () => {
+    const inputs: Array<MonitorOverviewPresentationInput> = SCENARIOS.map(
+      (scenario: Scenario) => {
+        return scenario.input;
+      },
+    );
+    const before: Array<MonitorOverviewPresentation> = inputs.map(
+      (input: MonitorOverviewPresentationInput) => {
+        return build(input);
+      },
+    );
+
+    jest.useFakeTimers();
+    // Seven minutes fast, and three days ahead besides.
+    jest.setSystemTime(new Date(NOW.getTime() + (7 * 60 + 3 * DAY) * 1000));
+
+    expect(
+      inputs.map((input: MonitorOverviewPresentationInput) => {
+        return build(input);
+      }),
+    ).toEqual(before);
   });
 });

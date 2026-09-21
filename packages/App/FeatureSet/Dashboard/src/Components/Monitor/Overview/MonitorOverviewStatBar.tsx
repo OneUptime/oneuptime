@@ -13,6 +13,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Link from "Common/UI/Components/Link/Link";
 import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import MonitorUptimeSummaryUtil, {
+  MonitorUptimeCaveat,
   UptimeWindowPresentation,
 } from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -20,8 +21,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   monitorId: ObjectID;
   summary: OverviewSection<MonitorUptimeSummary>;
-  // Adds "includes paused time" to every window while monitoring is off.
-  isPausedNow: boolean;
+  /*
+   * What every window must add about time it counts but nothing measured
+   * (paused, nothing checking, no check completed yet), from
+   * MonitorOverviewPresentationUtil.getUptimeCaveat. Null for none.
+   */
+  caveat: MonitorUptimeCaveat | null;
   openWork: MonitorOpenWork;
   className?: string | undefined;
 }
@@ -75,11 +80,11 @@ const getUnknownValue: () => ReactElement = (): ReactElement => {
 export const getUptimeTileContent: (data: {
   summary: OverviewSection<MonitorUptimeSummary>;
   windowKey: MonitorUptimeWindowKey;
-  isPausedNow: boolean;
+  caveat: MonitorUptimeCaveat | null;
 }) => TileContent = (data: {
   summary: OverviewSection<MonitorUptimeSummary>;
   windowKey: MonitorUptimeWindowKey;
-  isPausedNow: boolean;
+  caveat: MonitorUptimeCaveat | null;
 }): TileContent => {
   const summary: MonitorUptimeSummary | null = data.summary.value;
 
@@ -107,7 +112,7 @@ export const getUptimeTileContent: (data: {
       downtimeStatusIds: MonitorUptimeSummaryUtil.getDowntimeStatusIds(
         summary.statuses,
       ),
-      isPausedNow: data.isPausedNow,
+      caveat: data.caveat,
     });
 
   // A summary without this window cannot vouch for any number.
@@ -142,7 +147,9 @@ const pluralize: (count: number, singular: string, plural: string) => string = (
 
 /*
  * "Open now": the stat bar's answer to "is anything on fire". A side that
- * could not be read shows "—" in place of its count, never 0.
+ * could not be read shows "—" in place of its count, never 0. A side whose
+ * last refresh failed keeps the count it had and says so: that count may
+ * be out of date, so it is never the all-clear.
  */
 export const getOpenNowTileContent: (data: {
   monitorId: ObjectID;
@@ -169,8 +176,17 @@ export const getOpenNowTileContent: (data: {
     ? incidents.value.count
     : null;
   const alertCount: number | null = alerts.value ? alerts.value.count : null;
+  const isIncidentsStale: boolean = Boolean(
+    incidents.value && incidents.refreshError,
+  );
+  const isAlertsStale: boolean = Boolean(alerts.value && alerts.refreshError);
 
-  if (incidentCount === 0 && alertCount === 0) {
+  if (
+    incidentCount === 0 &&
+    alertCount === 0 &&
+    !isIncidentsStale &&
+    !isAlertsStale
+  ) {
     return {
       value: <span className="text-emerald-700">Nothing open</span>,
       description: "No unresolved incidents or alerts",
@@ -178,6 +194,15 @@ export const getOpenNowTileContent: (data: {
   }
 
   const notes: Array<string> = [];
+
+  if (isIncidentsStale && isAlertsStale) {
+    notes.push("Couldn't refresh · showing earlier counts");
+  } else if (isIncidentsStale) {
+    notes.push("Couldn't refresh incidents · showing the earlier count");
+  } else if (isAlertsStale) {
+    notes.push("Couldn't refresh alerts · showing the earlier count");
+  }
+
   const isIncidentsForbidden: boolean =
     !incidents.value && incidents.status === "forbidden";
   const isAlertsForbidden: boolean =
@@ -275,7 +300,7 @@ const MonitorOverviewStatBar: FunctionComponent<ComponentProps> = (
         const content: TileContent = getUptimeTileContent({
           summary: props.summary,
           windowKey: tile.key,
-          isPausedNow: props.isPausedNow,
+          caveat: props.caveat,
         });
 
         return (

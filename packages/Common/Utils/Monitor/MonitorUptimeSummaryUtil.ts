@@ -28,6 +28,21 @@ import UptimeUtil from "../Uptime/UptimeUtil";
 
 export type UptimeWindowKind = "Measured" | "NoData";
 
+/*
+ * Why the time in a window may not have been measured, even though the
+ * status timeline covers it: the open timeline row keeps the last status
+ * while monitoring is paused, while nothing is checking, and before the
+ * first check has completed. See
+ * MonitorOverviewPresentationUtil.getUptimeCaveat.
+ */
+export type MonitorUptimeCaveat = "paused" | "not-checking" | "no-results";
+
+const CAVEAT_SUFFIX: Record<MonitorUptimeCaveat, string> = {
+  paused: " · includes paused time",
+  "not-checking": " · includes time with no checks running",
+  "no-results": " · no check has completed yet",
+};
+
 export interface UptimeWindowPresentation {
   key: MonitorUptimeWindowKey;
   kind: UptimeWindowKind;
@@ -194,12 +209,23 @@ export default class MonitorUptimeSummaryUtil {
     return ids;
   }
 
+  /*
+   * `caveat` notes time the window counts but nothing measured. The older
+   * `isPausedNow: true` is read as the "paused" caveat; a given `caveat`,
+   * including null, wins over it.
+   */
   public static getWindowPresentation(data: {
     window: MonitorUptimeWindowTotal | undefined;
     downtimeStatusIds: Set<string>;
-    isPausedNow: boolean;
+    caveat?: MonitorUptimeCaveat | null | undefined;
+    isPausedNow?: boolean | undefined;
   }): UptimeWindowPresentation | null {
     const window: MonitorUptimeWindowTotal | undefined = data.window;
+    let caveat: MonitorUptimeCaveat | null = data.isPausedNow ? "paused" : null;
+
+    if (data.caveat !== undefined) {
+      caveat = data.caveat;
+    }
 
     if (!window) {
       return null;
@@ -254,8 +280,8 @@ export default class MonitorUptimeSummaryUtil {
       description += ` · measured over ${formatDurationCompact(coveredSeconds)}`;
     }
 
-    if (data.isPausedNow) {
-      description += " · includes paused time";
+    if (caveat) {
+      description += CAVEAT_SUFFIX[caveat];
     }
 
     return {
@@ -555,14 +581,48 @@ export default class MonitorUptimeSummaryUtil {
     return zoneName;
   }
 
+  /*
+   * The zone to cut day buckets in, as one parseTimezone accepts. A browser
+   * can carry newer zone data than the bundled moment-timezone (for example
+   * America/Coyhaique, added in tzdata 2025b); the server would refuse such
+   * a zone on every load, so it is swapped for moment's own guess, which
+   * matches the browser's offsets from the data it has. The page labels
+   * days with moment too, so both cut days on the same boundaries. UTC is
+   * the last resort.
+   */
   public static getBrowserTimezone(): string {
-    try {
-      const zone: string | undefined =
-        Intl.DateTimeFormat().resolvedOptions().timeZone;
+    let zone: string | undefined = undefined;
 
-      return zone || "UTC";
+    try {
+      zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      zone = undefined;
+    }
+
+    const known: string | null = MonitorUptimeSummaryUtil.toKnownZone(zone);
+
+    if (known) {
+      return known;
+    }
+
+    try {
+      return (
+        MonitorUptimeSummaryUtil.toKnownZone(Moment.tz.guess(true)) || "UTC"
+      );
     } catch {
       return "UTC";
+    }
+  }
+
+  private static toKnownZone(zone: string | undefined): string | null {
+    if (!zone) {
+      return null;
+    }
+
+    try {
+      return Moment.tz.zone(zone) ? zone : null;
+    } catch {
+      return null;
     }
   }
 }

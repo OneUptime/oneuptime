@@ -182,7 +182,7 @@ const renderBar: (overrides?: Partial<ComponentProps>) => void = (
       value: DEFAULT_SUMMARY,
       subjectId: SUBJECT,
     }),
-    isPausedNow: false,
+    caveat: null,
     openWork: openWork(side(1), side(2)),
     ...overrides,
   };
@@ -318,11 +318,54 @@ describe("MonitorOverviewStatBar", () => {
   });
 
   test("a paused monitor says its windows include paused time", () => {
-    renderBar({ isPausedNow: true });
+    renderBar({ caveat: "paused" });
 
     expect(tile("monitor-uptime-24h")).toHaveTextContent(
       "No downtime · includes paused time",
     );
+  });
+
+  test("every caveat names the time nothing measured, on every window", () => {
+    const cases: Array<{
+      caveat: "not-checking" | "no-results";
+      text: string;
+    }> = [
+      {
+        caveat: "not-checking",
+        text: "No downtime · includes time with no checks running",
+      },
+      {
+        caveat: "no-results",
+        text: "No downtime · no check has completed yet",
+      },
+    ];
+
+    for (const testCase of cases) {
+      renderBar({ caveat: testCase.caveat });
+
+      expect({
+        caveat: testCase.caveat,
+        text: tile("monitor-uptime-24h").textContent,
+      }).toEqual({
+        caveat: testCase.caveat,
+        text: expect.stringContaining(testCase.text),
+      });
+      expect(tile("monitor-uptime-7d")).toHaveTextContent(
+        "Down 43s · measured over 3d 4h",
+      );
+
+      cleanup();
+    }
+  });
+
+  test("no caveat adds nothing", () => {
+    renderBar({ caveat: null });
+
+    const cell: HTMLElement = tile("monitor-uptime-24h");
+    expect(cell).toHaveTextContent("No downtime");
+    expect(cell).not.toHaveTextContent("paused");
+    expect(cell).not.toHaveTextContent("no checks running");
+    expect(cell).not.toHaveTextContent("no check has completed");
   });
 
   test("skeletons while the summary and open work load", () => {
@@ -409,6 +452,67 @@ describe("MonitorOverviewStatBar", () => {
     expect(cell).toHaveTextContent("— incidents · — alerts");
     expect(cell).toHaveTextContent("Incidents and alerts hidden: no access");
     expect(within(cell).queryByRole("link")).toBeNull();
+  });
+
+  test("zero counts whose refresh failed are never the green 'Nothing open'", () => {
+    const staleZero: OverviewSection<MonitorOpenWorkSide> =
+      failSection<MonitorOpenWorkSide>({
+        previous: side(0),
+        message: "Server error",
+        subjectId: SUBJECT,
+      });
+
+    renderBar({ openWork: openWork(staleZero, side(0)) });
+
+    const cell: HTMLElement = tile("monitor-open-now");
+    expect(cell).not.toHaveTextContent("Nothing open");
+    expect(cell).not.toHaveTextContent("No unresolved incidents or alerts");
+    expect(within(cell).queryByText("Nothing open")).toBeNull();
+    // The counts it had are still shown, plainly, and said to be old.
+    expect(cell).toHaveTextContent("0 incidents · 0 alerts");
+    expect(within(cell).getByRole("link", { name: "0 incidents" })).toHaveClass(
+      "text-gray-900",
+    );
+    expect(cell).toHaveTextContent(
+      "Couldn't refresh incidents · showing the earlier count",
+    );
+  });
+
+  test("a stale side keeps its count and says which side it is", () => {
+    const staleAlerts: OverviewSection<MonitorOpenWorkSide> =
+      failSection<MonitorOpenWorkSide>({
+        previous: side(2),
+        message: "Server error",
+        subjectId: SUBJECT,
+      });
+
+    renderBar({ openWork: openWork(side(1), staleAlerts) });
+
+    const cell: HTMLElement = tile("monitor-open-now");
+    expect(cell).toHaveTextContent("1 incident · 2 alerts");
+    expect(cell).toHaveTextContent(
+      "Couldn't refresh alerts · showing the earlier count",
+    );
+    expect(cell).not.toHaveTextContent("Unresolved on this monitor");
+  });
+
+  test("both sides stale say so once", () => {
+    const stale: (count: number) => OverviewSection<MonitorOpenWorkSide> = (
+      count: number,
+    ): OverviewSection<MonitorOpenWorkSide> => {
+      return failSection<MonitorOpenWorkSide>({
+        previous: side(count),
+        message: "Server error",
+        subjectId: SUBJECT,
+      });
+    };
+
+    renderBar({ openWork: openWork(stale(0), stale(0)) });
+
+    const cell: HTMLElement = tile("monitor-open-now");
+    expect(cell).not.toHaveTextContent("Nothing open");
+    expect(cell).toHaveTextContent("0 incidents · 0 alerts");
+    expect(cell).toHaveTextContent("Couldn't refresh · showing earlier counts");
   });
 
   test("a side that failed to load says so and shows '—'", () => {

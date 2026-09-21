@@ -13,7 +13,10 @@ export interface MonitorOverviewProbeData {
   rows: Array<MonitorProbe>;
   // What the Summary card's probe picker needs.
   attached: MonitorAttachedProbes;
-  // When lastMonitoringLog was last read in full; null before the first read.
+  /*
+   * When the last successful full read of lastMonitoringLog was sent (browser
+   * clock); null until one succeeds.
+   */
   fullLoadedAt: Date | null;
 }
 

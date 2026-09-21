@@ -22,9 +22,9 @@
  *              | manual
  *   ?state=    comma separated. The status: operational (default) |
  *              offline | degraded. Plus any of: disabled, maintenance,
- *              no-probes, probes-off, disconnected, stale, awaiting.
- *              "disabled,probes-off" is a disabled monitor whose probes
- *              are all switched off.
+ *              no-probes, probes-off, disconnected, one-disconnected,
+ *              stale, awaiting. "disabled,probes-off" is a disabled
+ *              monitor whose probes are all switched off.
  *   ?history=  full (default, created in March) | new (created 12 days
  *              ago, so most bars have no data) | flapping (an outage every
  *              few hours for three months)
@@ -1099,6 +1099,45 @@ function lastRunAgo(scenario) {
   return 41 * SECOND;
 }
 
+/*
+ * While a probe-check monitor is Offline, N. Virginia's checks time out and
+ * the others get a fast error response. A timeout records no response time;
+ * an error response records how long it took (MonitorMetricUtil writes the
+ * metric whenever a check has a response time, whatever its verdict).
+ */
+const TIMEOUT_PROBE_INDEX = 1;
+
+function errorResponseTimeInMs(index) {
+  return 94 + index * 11;
+}
+
+/*
+ * "one-disconnected" loses Singapore: a probe that went offline three days
+ * ago while Frankfurt and N. Virginia kept reporting. Only a probe's own
+ * claim moves its nextPingAt forward, so that stays three days in the past
+ * too, next to the others' future ones.
+ */
+const LOST_PROBE_INDEX = 2;
+const LOST_PROBE_RUN_AGO = 3 * DAY + 2 * HOUR;
+
+/*
+ * A "stale" Kubernetes monitor: the worker still queues an evaluation every
+ * minute, but the newest one in MonitorLog is this old.
+ */
+const STALE_EVALUATION_AGO = 14 * MINUTE;
+
+function isLostProbe(scenario, index) {
+  return scenario.flags.has("one-disconnected") && index === LOST_PROBE_INDEX;
+}
+
+// When one probe last ran; the newest result is always Frankfurt's.
+function probeRunAgo(scenario, index) {
+  if (isLostProbe(scenario, index)) {
+    return LOST_PROBE_RUN_AGO;
+  }
+  return lastRunAgo(scenario) + index * 3 * SECOND;
+}
+
 function evaluationSummary(data) {
   const isDown = data.status === "offline";
   const filters = [
@@ -1263,11 +1302,13 @@ function defineMonitor(typeKey) {
   }
 
   if (typeKey === "kubernetes" && !isAwaiting) {
-    const lastAgo = scenario.flags.has("stale") ? 14 * MINUTE : 40 * SECOND;
-    record.telemetryMonitorLastMonitorAt = ago(lastAgo);
-    record.telemetryMonitorNextMonitorAt = new Date(
-      ago(lastAgo).getTime() + MINUTE,
-    );
+    /*
+     * The worker writes this stamp when it queues an evaluation, so it
+     * keeps moving even when "stale" evaluations stop landing in MonitorLog
+     * (see STALE_EVALUATION_AGO below).
+     */
+    record.telemetryMonitorLastMonitorAt = ago(40 * SECOND);
+    record.telemetryMonitorNextMonitorAt = fromNow(20 * SECOND);
   }
 
   monitors[typeKey] = insert(Monitor, record);
@@ -1289,11 +1330,13 @@ function defineMonitor(typeKey) {
   } else if (!isAwaiting && typeKey !== "manual") {
     // One evaluation per run for everything that is not a probe check.
     const at =
-      record.telemetryMonitorLastMonitorAt ||
-      record.serverMonitorRequestReceivedAt ||
-      record.incomingMonitorRequest?.checkedAt ||
-      record.incomingEmailMonitorHeartbeatCheckedAt ||
-      ago(35 * SECOND);
+      typeKey === "kubernetes" && scenario.flags.has("stale")
+        ? ago(STALE_EVALUATION_AGO)
+        : record.telemetryMonitorLastMonitorAt ||
+          record.serverMonitorRequestReceivedAt ||
+          record.incomingMonitorRequest?.checkedAt ||
+          record.incomingEmailMonitorHeartbeatCheckedAt ||
+          ago(35 * SECOND);
     insert(MonitorLog, {
       monitorId: new ObjectID(monitorId),
       time: new Date(at),
@@ -1322,23 +1365,23 @@ function defineProbes(data) {
   const isAwaiting = scenario.flags.has("awaiting");
   const isDown = current.status === "offline";
   const isSlow = current.status === "degraded";
-  const runAgo = lastRunAgo(scenario);
 
   PROBE_DEFINITIONS.forEach((probeDefinition, index) => {
     const probeId = ID.probe(probeDefinition.number);
-    const monitoredAt = ago(runAgo + index * 3 * SECOND);
+    const monitoredAt = ago(probeRunAgo(scenario, index));
     const isEnabled = !scenario.flags.has("probes-off");
     const probe = make(Probe, {
       _id: probeId,
       name: probeDefinition.name,
-      connectionStatus: scenario.flags.has("disconnected")
-        ? ProbeConnectionStatus.Disconnected
-        : ProbeConnectionStatus.Connected,
+      connectionStatus:
+        scenario.flags.has("disconnected") || isLostProbe(scenario, index)
+          ? ProbeConnectionStatus.Disconnected
+          : ProbeConnectionStatus.Connected,
     });
 
     let lastMonitoringLog = undefined;
     if (!isAwaiting) {
-      const isTimeout = isDown && index === 1;
+      const isTimeout = isDown && index === TIMEOUT_PROBE_INDEX;
       lastMonitoringLog = {
         [stepId]: probeResult({
           monitorId,
@@ -1351,7 +1394,7 @@ function defineProbes(data) {
           responseTimeInMs: isTimeout
             ? undefined
             : isDown
-              ? 94 + index * 11
+              ? errorResponseTimeInMs(index)
               : isSlow
                 ? probeDefinition.slowResponseTimeInMs
                 : probeDefinition.responseTimeInMs,
@@ -1651,7 +1694,8 @@ function buildUptimeSummary(monitorId, timezone) {
 /*
  * ---------------------------------------------------------------------------
  * Response-time metric: one series per enabled probe, every five minutes,
- * for the probe-check monitors. Failed checks record no response time.
+ * for the probe-check monitors. While a monitor is Offline, only the checks
+ * that got an error response record a time (see TIMEOUT_PROBE_INDEX).
  * ---------------------------------------------------------------------------
  */
 function metricRows(aggregateBy) {
@@ -1690,12 +1734,24 @@ function metricRows(aggregateBy) {
         item.start.getTime() <= time && (!item.end || item.end.getTime() > time)
       );
     });
-    if (!segment || segment.status === "offline") {
+    if (!segment) {
       continue;
     }
+    const isOffline = segment.status === "offline";
     PROBE_DEFINITIONS.forEach((probeDefinition, index) => {
-      const base =
-        segment.status === "degraded"
+      // A probe that went offline stopped recording then.
+      if (
+        isLostProbe(scenario, index) &&
+        time > ago(probeRunAgo(scenario, index)).getTime()
+      ) {
+        return;
+      }
+      if (isOffline && index === TIMEOUT_PROBE_INDEX) {
+        return;
+      }
+      const base = isOffline
+        ? errorResponseTimeInMs(index)
+        : segment.status === "degraded"
           ? probeDefinition.slowResponseTimeInMs
           : probeDefinition.responseTimeInMs;
       const wobble =

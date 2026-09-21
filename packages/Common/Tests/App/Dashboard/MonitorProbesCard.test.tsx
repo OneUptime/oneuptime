@@ -366,7 +366,7 @@ describe("MonitorProbesCard", () => {
 
     renderRows(rows, 2);
     expect(
-      screen.getByText("A status change needs 2 of 2 probes to agree."),
+      screen.getByText("A status change needs both connected probes to agree."),
     ).toBeInTheDocument();
     cleanup();
 
@@ -376,6 +376,95 @@ describe("MonitorProbesCard", () => {
 
     renderRows([rows[0]!], 2);
     expect(screen.queryByText(/probes to agree/)).toBeNull();
+  });
+
+  /*
+   * The footnote states the rule the server applies: only enabled,
+   * connected probes take part, an unset minimum means all of them, and the
+   * minimum is capped at how many take part.
+   */
+  const connected: (name: string) => MonitorProbe = (
+    name: string,
+  ): MonitorProbe => {
+    return monitorProbe({
+      name: name,
+      result: { monitoredAt: minutesAgo(1), isOnline: true },
+    });
+  };
+
+  const agreementText: () => string | null = (): string | null => {
+    return screen.queryByTestId("monitor-probe-agreement")?.textContent || null;
+  };
+
+  test("a minimum below the probes taking part reads as n of m", () => {
+    renderRows([connected("London"), connected("Ohio"), connected("Tokyo")], 2);
+
+    expect(agreementText()).toBe(
+      "A status change needs 2 of 3 connected probes to agree.",
+    );
+  });
+
+  test("a minimum above the probes taking part is capped, never 'needs 3 of 2'", () => {
+    renderRows(
+      [
+        connected("London"),
+        connected("Ohio"),
+        monitorProbe({ name: "Attic", isEnabled: false }),
+      ],
+      3,
+    );
+
+    expect(agreementText()).toBe(
+      "A status change needs both connected probes to agree.",
+    );
+  });
+
+  test("a disconnected probe does not take part", () => {
+    const rows: Array<MonitorProbe> = [
+      connected("London"),
+      connected("Ohio"),
+      connected("Tokyo"),
+      monitorProbe({
+        name: "Sydney",
+        connectionStatus: ProbeConnectionStatus.Disconnected,
+        result: { monitoredAt: minutesAgo(90), isOnline: true },
+      }),
+    ];
+
+    renderRows(rows, 2);
+    expect(agreementText()).toBe(
+      "A status change needs 2 of 3 connected probes to agree.",
+    );
+    cleanup();
+
+    // 3 required of the three still connected is all of them, not 3 of 4.
+    renderRows(rows, 3);
+    expect(agreementText()).toBe(
+      "A status change needs all 3 connected probes to agree.",
+    );
+  });
+
+  test("with no minimum set, every connected probe must agree", () => {
+    renderRows([connected("London"), connected("Ohio"), connected("Tokyo")]);
+
+    expect(agreementText()).toBe(
+      "A status change needs all 3 connected probes to agree.",
+    );
+  });
+
+  test("no footnote when at most one probe takes part", () => {
+    renderRows(
+      [
+        connected("London"),
+        monitorProbe({
+          name: "Ohio",
+          connectionStatus: ProbeConnectionStatus.Disconnected,
+        }),
+      ],
+      2,
+    );
+
+    expect(agreementText()).toBeNull();
   });
 
   test("Manage links to the monitor's Probes page", () => {

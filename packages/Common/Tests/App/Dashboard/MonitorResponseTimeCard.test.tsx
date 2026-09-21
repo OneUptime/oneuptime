@@ -182,8 +182,16 @@ describe("MonitorResponseTimeCard", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: "Response time" }),
     ).toBeInTheDocument();
+    /*
+     * The probe records a time for every check that got an answer, a 503
+     * included; only timeouts and connection errors have none. So the copy
+     * must not claim failed checks are left out.
+     */
     expect(screen.getByTestId("card-description")).toHaveTextContent(
-      "Average response time per probe. Failed checks are not included.",
+      "Average response time per probe. Error responses are included; timeouts and connection errors are not.",
+    );
+    expect(screen.getByTestId("card-description")).not.toHaveTextContent(
+      "Failed checks are not included",
     );
     expect(props["hideCard"]).toBe(true);
     expect(props["title"]).toBeUndefined();
@@ -316,6 +324,41 @@ describe("MonitorResponseTimeCard", () => {
     expect(
       screen.getByRole("heading", { name: "Response time" }),
     ).toBeInTheDocument();
+  });
+
+  test("the fallback says how many of the probes the numbers come from", () => {
+    mockPermissions = [Permission.MonitorViewer];
+
+    renderCard({
+      responseTime: {
+        medianMs: 120,
+        minMs: 110,
+        maxMs: 130,
+        respondedCount: 2,
+        totalCount: 3,
+      },
+    });
+
+    expect(
+      screen.getByTestId("monitor-response-time-fallback"),
+    ).toHaveTextContent(
+      "Latest: 120 ms median across 2 of 3 probes (110–130 ms)",
+    );
+    cleanup();
+
+    renderCard({
+      responseTime: {
+        medianMs: 95,
+        minMs: 95,
+        maxMs: 95,
+        respondedCount: 1,
+        totalCount: 1,
+      },
+    });
+
+    expect(
+      screen.getByTestId("monitor-response-time-fallback"),
+    ).toHaveTextContent("Latest: 95 ms median across 1 probe (95–95 ms)");
   });
 
   test("the fallback leaves out the numbers when no probe has reported a time", () => {

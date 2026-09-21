@@ -777,8 +777,14 @@ describe("Monitor overview dark mode", () => {
    */
   const THEME_CSS: string = fs.readFileSync(THEME_CSS_PATH, "utf8");
 
+  /*
+   * The whole variant chain is part of the token: Theme.css remaps
+   * `lg:bg-white` only with a rule of its own, so it must never be read as
+   * the bare `bg-white`. The lookbehind stops a match starting after a
+   * colon, which is how a variant used to be dropped.
+   */
   const COLOR_TOKEN: RegExp =
-    /(?<![\w-])((?:hover:|focus:|group-hover:)?(?:bg|text|border|ring|divide)-(?:white|black|transparent|(?:gray|slate|red|amber|yellow|emerald|green|sky|blue|indigo|orange|rose|purple|pink|teal|cyan|lime|violet|fuchsia|zinc|neutral|stone)-\d{2,3})(?:\/\d+)?)(?![\w-])/g;
+    /(?<![\w:-])((?:[a-z0-9-]+:)*(?:bg|text|border|ring|divide)-(?:white|black|transparent|(?:gray|slate|red|amber|yellow|emerald|green|sky|blue|indigo|orange|rose|purple|pink|teal|cyan|lime|violet|fuchsia|zinc|neutral|stone)-\d{2,3})(?:\/\d+)?)(?![\w-])/g;
 
   // Text on a solid fill, and the solid fills themselves, read the same in both themes.
   const SOLID_FILL: RegExp = /^(?:bg|text|border|ring)-[a-z]+-(?:500|600)$/;
@@ -788,7 +794,10 @@ describe("Monitor overview dark mode", () => {
   const TEMPLATE_COLOR_TOKEN: RegExp = /(bg|text|border|ring|divide)-\$\{/;
 
   const isRemapped: (token: string) => boolean = (token: string): boolean => {
-    if (token === "text-white" || SOLID_FILL.test(token)) {
+    // Under any variant, a solid fill still reads the same in both themes.
+    const utility: string = token.slice(token.lastIndexOf(":") + 1);
+
+    if (utility === "text-white" || SOLID_FILL.test(utility)) {
       return true;
     }
 
@@ -862,6 +871,83 @@ describe("Monitor overview dark mode", () => {
     // A made-up shade no stylesheet will ever remap.
     expect(isRemapped("bg-gray-55")).toBe(false);
     expect(isRemapped("text-purple-950")).toBe(false);
+    // Theme.css has no rule for these variants, only for the bare classes.
+    expect(isRemapped("bg-white")).toBe(true);
+    expect(isRemapped("lg:bg-white")).toBe(false);
+    expect(isRemapped("md:bg-gray-50")).toBe(false);
+  });
+
+  test("the token walk keeps a class's whole variant chain", () => {
+    const tokensIn: (code: string) => Array<string> = (
+      code: string,
+    ): Array<string> => {
+      return Array.from(code.matchAll(COLOR_TOKEN)).map(
+        (match: RegExpMatchArray) => {
+          return match[1]!;
+        },
+      );
+    };
+
+    expect(
+      tokensIn(
+        'className="bg-white lg:bg-white sm:hover:text-gray-900 disabled:bg-gray-100 hover:bg-gray-50/50"',
+      ),
+    ).toEqual([
+      "bg-white",
+      "lg:bg-white",
+      "sm:hover:text-gray-900",
+      "disabled:bg-gray-100",
+      "hover:bg-gray-50/50",
+    ]);
+  });
+});
+
+describe("Shared chart plot floor", () => {
+  /*
+   * ChartGroup's plot floor (min-h-48 under hideCard) is opt-in. The
+   * overview's Response time card gets it through MetricView, whose panel
+   * can grow. Dashboard chart widgets are a fixed height and clip what
+   * overflows, so a floor there pushes the series controls (the chart's
+   * only legend) and the x-axis out of the widget: they must not pass it.
+   */
+  const COMPONENTS_DIR: string = path.join(DASHBOARD_SRC, "Components");
+  const METRIC_VIEW_CODE: string = readCodeAt(
+    path.join(COMPONENTS_DIR, "Metrics", "MetricView.tsx"),
+  );
+  const METRIC_CHARTS_CODE: string = readCodeAt(
+    path.join(COMPONENTS_DIR, "Metrics", "MetricCharts.tsx"),
+  );
+
+  test.each([
+    ["DashboardChartComponent.tsx"],
+    ["DashboardDataSourceChartComponent.tsx"],
+  ])(
+    "the dashboard widget %s renders its charts without the floor",
+    (fileName: string) => {
+      const code: string = readCodeAt(
+        path.join(COMPONENTS_DIR, "Dashboard", "Components", fileName),
+      );
+
+      // The widget renders the hideCard charts this is about...
+      expect(code).toContain("<MetricCharts");
+      expect(code).toContain("hideCard={true}");
+      // ...and never asks for the floor.
+      expect(code).not.toContain("minPlotHeight");
+    },
+  );
+
+  test("MetricView asks for the floor only for its growable hideCard panel", () => {
+    expect(METRIC_VIEW_CODE).toContain(
+      "hideCard={props.hideCardInCharts} minPlotHeight={props.hideCardInCharts}",
+    );
+    expect(countOccurrences(METRIC_VIEW_CODE, "minPlotHeight")).toBe(1);
+  });
+
+  test("MetricCharts hands the host's choice to ChartGroup", () => {
+    expect(METRIC_CHARTS_CODE).toContain(
+      "minPlotHeight?: boolean | undefined;",
+    );
+    expect(METRIC_CHARTS_CODE).toContain("minPlotHeight={props.minPlotHeight}");
   });
 });
 

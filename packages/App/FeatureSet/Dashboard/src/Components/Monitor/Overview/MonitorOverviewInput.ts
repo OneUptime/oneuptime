@@ -98,9 +98,26 @@ export function getCurrentStatusRef(
 }
 
 /*
+ * Whether the probes are meant to be checking now. Any of the three pause
+ * flags stops them, so while one is set a probe's old result is simply the
+ * last one, not a late one.
+ */
+export function isMonitorScheduled(monitor: Monitor): boolean {
+  return !(
+    Boolean(monitor.disableActiveMonitoring) ||
+    Boolean(monitor.disableActiveMonitoringBecauseOfManualIncident) ||
+    Boolean(monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent)
+  );
+}
+
+/*
  * The probe summary the hero, the Probes card and the response-time card
  * share. Null when the probes are unknown (the read was forbidden or failed
  * with nothing kept), which the presentation never renders as "no probes".
+ *
+ * `now` is on the server's clock, like every time the rows carry. The
+ * schedule itself is passed so a cron with gaps (office hours) does not
+ * mark every probe late through the gap.
  */
 export function summarizeProbeSection(data: {
   monitor: Monitor;
@@ -126,6 +143,8 @@ export function summarizeProbeSection(data: {
       from: data.now,
     }),
     now: data.now,
+    monitoringInterval: data.monitor.monitoringInterval,
+    isScheduled: isMonitorScheduled(data.monitor),
   });
 }
 
@@ -263,15 +282,25 @@ export function toPresentationInput(data: {
       ),
     },
     telemetry: {
-      lastEvaluatedAt: MonitorCheckScheduleUtil.parseDate(
+      /*
+       * The worker stamps this when it queues an evaluation, whether or
+       * not one then runs, so it is only ever "last scheduled".
+       */
+      lastScheduledAt: MonitorCheckScheduleUtil.parseDate(
         monitor.telemetryMonitorLastMonitorAt,
       ),
       nextEvaluationAt: MonitorCheckScheduleUtil.parseDate(
         monitor.telemetryMonitorNextMonitorAt,
       ),
     },
-    // The newest MonitorLog row: "Last evaluated" for network devices.
+    /*
+     * The newest MonitorLog row: when an evaluation last completed. The
+     * section's status goes with it, because only a loaded log can say
+     * that none has completed; a log still loading, failed or forbidden
+     * says nothing either way.
+     */
     latestEvaluationAt: data.evaluation.value?.latestAt,
+    evaluationStatus: data.evaluation.status,
     minimumProbeAgreement: toFiniteNumber(monitor.minimumProbeAgreement),
   };
 }

@@ -178,6 +178,55 @@ describe("MonitorOverviewCriteriaUtil.getMissingSignalMinutes", () => {
   });
 });
 
+describe("MonitorOverviewCriteriaUtil.hasFilterOn", () => {
+  it("finds an enabled filter on the check, in any step", () => {
+    const monitorSteps: MonitorSteps = stepsOf(
+      stepWithCriteria(
+        criteria([filter(CheckOn.CPUUsagePercent, FilterType.GreaterThan, 90)]),
+      ),
+      stepWithCriteria(
+        criteria([filter(CheckOn.IsOnline, FilterType.False, undefined)]),
+      ),
+    );
+
+    expect(
+      MonitorOverviewCriteriaUtil.hasFilterOn({
+        monitorSteps: monitorSteps,
+        checkOn: CheckOn.IsOnline,
+      }),
+    ).toBe(true);
+    expect(
+      MonitorOverviewCriteriaUtil.hasFilterOn({
+        monitorSteps: monitorSteps,
+        checkOn: CheckOn.IncomingRequest,
+      }),
+    ).toBe(false);
+  });
+
+  it("ignores criteria that are switched off, and malformed ones", () => {
+    for (const monitorSteps of [
+      undefined,
+      stepsOf({}),
+      stepsOf(stepWithCriteria({ data: { filters: [null] } })),
+      stepsOf(
+        stepWithCriteria(
+          criteria(
+            [filter(CheckOn.IsOnline, FilterType.False, undefined)],
+            false,
+          ),
+        ),
+      ),
+    ]) {
+      expect(
+        MonitorOverviewCriteriaUtil.hasFilterOn({
+          monitorSteps: monitorSteps,
+          checkOn: CheckOn.IsOnline,
+        }),
+      ).toBe(false);
+    }
+  });
+});
+
 describe("MonitorOverviewCriteriaUtil.getStepCount", () => {
   it("step count", () => {
     expect(MonitorOverviewCriteriaUtil.getStepCount(stepsOf({}, {}, {}))).toBe(

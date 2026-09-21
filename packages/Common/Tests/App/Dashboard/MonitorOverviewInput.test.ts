@@ -1,8 +1,11 @@
+/** @timezone UTC */
+
 import { describe, expect, test } from "@jest/globals";
 import {
   getCurrentStatusId,
   getCurrentStatusRef,
   getProbeLastResultAt,
+  isMonitorScheduled,
   summarizeProbeSection,
   toPresentationInput,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewInput";
@@ -32,9 +35,13 @@ import ObjectID from "../../../Types/ObjectID";
 import MonitorOverviewPresentationUtil, {
   MonitorOverviewPresentation,
   MonitorOverviewPresentationInput,
+  MonitorOverviewRunState,
 } from "../../../Utils/Monitor/MonitorOverviewPresentationUtil";
 import MonitorOverviewProbeUtil, {
   MonitorEvaluationByProbe,
+  MonitorOverviewProbeHealth,
+  MonitorOverviewProbeRow,
+  MonitorOverviewProbeSummary,
 } from "../../../Utils/Monitor/MonitorOverviewProbeUtil";
 
 /*
@@ -284,6 +291,95 @@ describe("toPresentationInput: probes", () => {
     });
 
     expect(input.probes!.lastResultAt).toBeUndefined();
+  });
+
+  test("a paused monitor's probes keep their last verdict and are never late", () => {
+    // Twenty-five minutes old on a one-minute monitor: late, if it were checking.
+    const lastBeforePause: MonitorProbe = buildProbeRow({
+      probeId: PROBE_A,
+      log: {
+        [STEP_ID]: {
+          monitoredAt: minutesAgo(25).toISOString(),
+          isOnline: false,
+        },
+      },
+    });
+
+    const healthOf: (monitor: Monitor) => MonitorOverviewProbeHealth = (
+      monitor: Monitor,
+    ): MonitorOverviewProbeHealth => {
+      const summary: MonitorOverviewProbeSummary | null = summarizeProbeSection(
+        {
+          monitor: monitor,
+          probes: loadedProbes([lastBeforePause]),
+          now: NOW,
+        },
+      );
+
+      return summary!.rows[0]!.health;
+    };
+
+    expect(healthOf(buildMonitor())).toBe(MonitorOverviewProbeHealth.Late);
+
+    for (const pause of [
+      { disableActiveMonitoring: true },
+      { disableActiveMonitoringBecauseOfManualIncident: true },
+      { disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true },
+    ]) {
+      expect({ pause, health: healthOf(buildMonitor(pause)) }).toEqual({
+        pause,
+        health: MonitorOverviewProbeHealth.Down,
+      });
+    }
+  });
+
+  test("isMonitorScheduled is false while any pause flag is set", () => {
+    expect(isMonitorScheduled(buildMonitor())).toBe(true);
+    expect(
+      isMonitorScheduled(buildMonitor({ disableActiveMonitoring: false })),
+    ).toBe(true);
+    expect(
+      isMonitorScheduled(
+        buildMonitor({
+          disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  test("a probe is not late through a gap in the schedule", () => {
+    // Every five minutes from 09:00 to 17:55; the last check ran last night.
+    const officeHours: Monitor = buildMonitor({
+      monitoringInterval: "*/5 9-17 * * *",
+    });
+    const lastNight: MonitorProbe = buildProbeRow({
+      probeId: PROBE_A,
+      log: {
+        [STEP_ID]: {
+          monitoredAt: "2026-09-20T17:55:00.000Z",
+          isOnline: true,
+        },
+      },
+    });
+
+    const rowAt: (now: Date) => MonitorOverviewProbeRow = (
+      now: Date,
+    ): MonitorOverviewProbeRow => {
+      return summarizeProbeSection({
+        monitor: officeHours,
+        probes: loadedProbes([lastNight]),
+        now: now,
+      })!.rows[0]!;
+    };
+
+    // 08:30: the next run is 09:00, so nothing is due yet.
+    expect(rowAt(new Date("2026-09-21T08:30:00.000Z")).health).toBe(
+      MonitorOverviewProbeHealth.Up,
+    );
+    // 09:20: the 09:00 run is more than the grace overdue.
+    expect(rowAt(new Date("2026-09-21T09:20:00.000Z")).health).toBe(
+      MonitorOverviewProbeHealth.Late,
+    );
   });
 
   test("summarizeProbeSection agrees with the input's probes", () => {
@@ -597,12 +693,95 @@ describe("toPresentationInput: the rest of the row", () => {
       lastReceivedAt: minutesAgo(8),
       lastCheckedAt: minutesAgo(3),
     });
+    /*
+     * The worker's stamp is when an evaluation was queued, so it is passed
+     * as "last scheduled"; only the log says one completed.
+     */
     expect(input.telemetry).toEqual({
-      lastEvaluatedAt: minutesAgo(1),
+      lastScheduledAt: minutesAgo(1),
       nextEvaluationAt: new Date(NOW.getTime() + 60 * 1000),
     });
     expect(input.latestEvaluationAt).toEqual(minutesAgo(7));
+    expect(input.evaluationStatus).toBe("loaded");
     expect(input.minimumProbeAgreement).toBe(2);
+  });
+
+  test("the evaluation log's status travels with its time", () => {
+    const loading: OverviewSection<MonitorEvaluationByProbe> =
+      getLoadingSection<MonitorEvaluationByProbe>();
+    const failed: OverviewSection<MonitorEvaluationByProbe> =
+      failSection<MonitorEvaluationByProbe>({
+        previous: getLoadingSection<MonitorEvaluationByProbe>(),
+        message: "Logs are unavailable.",
+        subjectId: MONITOR_ID,
+      });
+    const forbidden: OverviewSection<MonitorEvaluationByProbe> =
+      forbidSection<MonitorEvaluationByProbe>({
+        reason: "You need permission to read this monitor's logs.",
+        subjectId: MONITOR_ID,
+      });
+
+    expect(buildInput({ evaluation: loading }).evaluationStatus).toBe(
+      "loading",
+    );
+    expect(buildInput({ evaluation: failed }).evaluationStatus).toBe("error");
+    expect(buildInput({ evaluation: forbidden }).evaluationStatus).toBe(
+      "forbidden",
+    );
+    // A loaded log with no rows is a known "none", not an unknown.
+    expect(buildInput({ evaluation: emptyEvaluation }).evaluationStatus).toBe(
+      "loaded",
+    );
+
+    // A failed refresh keeps the log that loaded, and so its status.
+    const kept: MonitorOverviewPresentationInput = buildInput({
+      evaluation: failSection<MonitorEvaluationByProbe>({
+        previous: resolveSection<MonitorEvaluationByProbe>({
+          value: { byProbeId: {}, latestAt: minutesAgo(2) },
+          subjectId: MONITOR_ID,
+        }),
+        message: "Logs are unavailable.",
+        subjectId: MONITOR_ID,
+      }),
+    });
+
+    expect(kept.evaluationStatus).toBe("loaded");
+    expect(kept.latestEvaluationAt).toEqual(minutesAgo(2));
+  });
+
+  test("a telemetry monitor whose loaded log has no evaluation is overdue, whatever the scheduler stamps", () => {
+    // The worker keeps queueing evaluations, but none has ever completed.
+    const stalled: Monitor = buildMonitor({
+      monitorType: MonitorType.Logs,
+      telemetryMonitorLastMonitorAt: minutesAgo(1),
+      telemetryMonitorNextMonitorAt: new Date(NOW.getTime() + 60 * 1000),
+    });
+
+    const loaded: MonitorOverviewPresentation =
+      MonitorOverviewPresentationUtil.build(
+        buildInput({ monitor: stalled, evaluation: emptyEvaluation }),
+      );
+
+    expect(loaded.runState).toBe(MonitorOverviewRunState.Overdue);
+    expect(loaded.isNeverReported).toBe(true);
+    expect(loaded.pulse.label).toBe("Last evaluated");
+
+    // A log that could not be read says nothing either way.
+    const unreadable: MonitorOverviewPresentation =
+      MonitorOverviewPresentationUtil.build(
+        buildInput({
+          monitor: stalled,
+          evaluation: failSection<MonitorEvaluationByProbe>({
+            previous: getLoadingSection<MonitorEvaluationByProbe>(),
+            message: "Logs are unavailable.",
+            subjectId: MONITOR_ID,
+          }),
+        }),
+      );
+
+    expect(unreadable.runState).toBe(MonitorOverviewRunState.Running);
+    expect(unreadable.pulse.label).toBe("Last scheduled");
+    expect(unreadable.pulse.at).toEqual(minutesAgo(1));
   });
 
   test("an unloaded evaluation has no time", () => {

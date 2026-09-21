@@ -54,6 +54,49 @@ export const getProbeHealthText: (row: MonitorOverviewProbeRow) => string = (
   }
 };
 
+/*
+ * The probe agreement rule, worked out the way the server applies it
+ * (MonitorResourceUtil.checkProbeAgreement): only enabled, connected probes
+ * take part, an unset minimum means all of them must agree, and the minimum
+ * is capped at how many take part. So 3 required with one of three probes
+ * disconnected is 2 of 2, never "3 of 2". A probe whose connection is not
+ * known counts as connected, as it does everywhere else on this card.
+ * Null when no agreement is needed: one probe, or a minimum of one.
+ */
+export const getProbeAgreementText: (data: {
+  rows: Array<MonitorOverviewProbeRow>;
+  minimumProbeAgreement: number | null | undefined;
+}) => string | null = (data: {
+  rows: Array<MonitorOverviewProbeRow>;
+  minimumProbeAgreement: number | null | undefined;
+}): string | null => {
+  const activeCount: number = data.rows.filter(
+    (row: MonitorOverviewProbeRow) => {
+      return row.isEnabled && row.isConnected !== false;
+    },
+  ).length;
+
+  const minimum: number | null | undefined = data.minimumProbeAgreement;
+  const requiredCount: number = Math.min(
+    typeof minimum === "number" && Number.isFinite(minimum)
+      ? minimum
+      : activeCount,
+    activeCount,
+  );
+
+  if (activeCount < 2 || requiredCount < 2) {
+    return null;
+  }
+
+  if (requiredCount < activeCount) {
+    return `A status change needs ${requiredCount} of ${activeCount} connected probes to agree.`;
+  }
+
+  return activeCount === 2
+    ? "A status change needs both connected probes to agree."
+    : `A status change needs all ${activeCount} connected probes to agree.`;
+};
+
 const toProbeModel: (row: MonitorOverviewProbeRow) => Probe = (
   row: MonitorOverviewProbeRow,
 ): Probe => {
@@ -204,8 +247,10 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
     }
 
     const now: Date = OneUptimeDate.getCurrentDate();
-    const enabledCount: number = props.summary?.enabledCount || 0;
-    const agreement: number = props.minimumProbeAgreement || 0;
+    const agreementText: string | null = getProbeAgreementText({
+      rows: rows,
+      minimumProbeAgreement: props.minimumProbeAgreement,
+    });
 
     return (
       <div>
@@ -214,9 +259,12 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
             return getRow(row, now);
           })}
         </ul>
-        {agreement > 1 && enabledCount > 1 ? (
-          <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500">
-            {`A status change needs ${agreement} of ${enabledCount} probes to agree.`}
+        {agreementText ? (
+          <p
+            data-testid="monitor-probe-agreement"
+            className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500"
+          >
+            {agreementText}
           </p>
         ) : (
           <></>

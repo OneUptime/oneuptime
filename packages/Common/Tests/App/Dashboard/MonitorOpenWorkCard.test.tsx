@@ -193,8 +193,17 @@ describe("MonitorOpenWorkCard", () => {
       routeFor(PageMap.ALERT_VIEW, new ObjectID(ALERT_ID)),
     );
 
-    expect(rows[0]).toHaveTextContent("Incident · Identified · 10 minutes ago");
-    expect(rows[1]).toHaveTextContent("Alert · Created · an hour ago");
+    /*
+     * The severity is in the words, not only in the dot's colour: the dot
+     * is hidden from assistive technology and cannot be hovered on touch.
+     */
+    expect(rows[0]).toHaveTextContent(
+      "Incident · Critical · Identified · 10 minutes ago",
+    );
+    expect(rows[1]).toHaveTextContent("Alert · High · Created · an hour ago");
+    expect(rows[2]).toHaveTextContent(
+      "Incident · Minor · Acknowledged · 3 hours ago",
+    );
 
     // The severity colour is inline on a dot, never a class.
     const dot: HTMLElement = rows[0]!.querySelector(
@@ -210,6 +219,19 @@ describe("MonitorOpenWorkCard", () => {
       "href",
       routeFor(PageMap.MONITOR_VIEW_ALERTS, MONITOR_ID),
     );
+  });
+
+  test("a row with no readable severity leaves it out of the words", () => {
+    renderCard({
+      incidents: side(1, [
+        { ...INCIDENT_ROW, severityName: undefined, severityColor: undefined },
+      ]),
+      alerts: side(0),
+    });
+
+    const row: HTMLElement = screen.getByTestId("monitor-open-work-row");
+    expect(row).toHaveTextContent("Incident · Identified · 10 minutes ago");
+    expect(row).not.toHaveTextContent("Critical");
   });
 
   test("the merged list stops at five", () => {

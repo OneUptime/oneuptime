@@ -184,12 +184,18 @@ const summarize: (
   options?: {
     validStepIds?: Set<string> | null;
     primaryStepId?: string | null;
+    monitoringInterval?: string;
+    isScheduled?: boolean;
+    now?: Date;
   },
 ) => MonitorOverviewProbeSummary = (
   rows: Array<MonitorProbe>,
   options?: {
     validStepIds?: Set<string> | null;
     primaryStepId?: string | null;
+    monitoringInterval?: string;
+    isScheduled?: boolean;
+    now?: Date;
   },
 ): MonitorOverviewProbeSummary => {
   return MonitorOverviewProbeUtil.summarizeProbes({
@@ -204,7 +210,46 @@ const summarize: (
         : options.primaryStepId,
     // Every 5 minutes: late after 300 + 600 seconds.
     cadenceSeconds: 300,
-    now: NOW,
+    now: options?.now || NOW,
+    monitoringInterval: options?.monitoringInterval,
+    isScheduled: options?.isScheduled,
+  });
+};
+
+// A connected probe that reported `ageSeconds` ago and will claim again.
+const reportingRow: (data: {
+  probeId: string;
+  name?: string;
+  ageSeconds: number;
+  isOnline?: boolean;
+  responseTimeInMs?: number;
+  nextPingInSeconds?: number;
+  connectionStatus?: ProbeConnectionStatus;
+}) => MonitorProbe = (data: {
+  probeId: string;
+  name?: string;
+  ageSeconds: number;
+  isOnline?: boolean;
+  responseTimeInMs?: number;
+  nextPingInSeconds?: number;
+  connectionStatus?: ProbeConnectionStatus;
+}): MonitorProbe => {
+  return monitorProbe({
+    probeId: data.probeId,
+    name: data.name || "Probe",
+    isEnabled: true,
+    connectionStatus: data.connectionStatus || ProbeConnectionStatus.Connected,
+    lastPingAt: secondsAgo(data.ageSeconds + 2),
+    nextPingAt: secondsAgo(-(data.nextPingInSeconds ?? 30)),
+    log: {
+      [STEP_ID]: response({
+        monitoredAt: secondsAgo(data.ageSeconds),
+        isOnline: data.isOnline ?? true,
+        ...(data.responseTimeInMs === undefined
+          ? {}
+          : { responseTimeInMs: data.responseTimeInMs }),
+      }),
+    },
   });
 };
 
@@ -461,6 +506,92 @@ describe("MonitorOverviewProbeUtil.hasPendingProbeResults", () => {
         fullRows: [fullRow(PROBE_A, secondsAgo(10))],
       }),
     ).toBe(false);
+  });
+
+  /*
+   * A probe that never answers must not make every poll re-read every
+   * probe's full results for as long as the page is open.
+   */
+  it("false for a disconnected probe that never reported, poll after poll", () => {
+    const lost: MonitorProbe = monitorProbe({
+      probeId: PROBE_A,
+      isEnabled: true,
+      connectionStatus: ProbeConnectionStatus.Disconnected,
+      // Stamped when the row was created, three days ago.
+      lastPingAt: secondsAgo(3 * 86400),
+    });
+
+    expect(
+      MonitorOverviewProbeUtil.hasPendingProbeResults({
+        lightRows: [lost],
+        fullRows: [lost],
+        now: NOW,
+        cadenceSeconds: 300,
+        fullLoadedAt: secondsAgo(60),
+      }),
+    ).toBe(false);
+
+    // Disconnected is enough on its own, whatever else the caller passes.
+    expect(
+      MonitorOverviewProbeUtil.hasPendingProbeResults({
+        lightRows: [lost],
+        fullRows: [lost],
+      }),
+    ).toBe(false);
+  });
+
+  it("a claim with no result is pending only while a result could still come", () => {
+    const claimed: (claimAgeSeconds: number) => boolean = (
+      claimAgeSeconds: number,
+    ): boolean => {
+      return MonitorOverviewProbeUtil.hasPendingProbeResults({
+        lightRows: [
+          monitorProbe({
+            probeId: PROBE_A,
+            isEnabled: true,
+            connectionStatus: ProbeConnectionStatus.Connected,
+            lastPingAt: secondsAgo(claimAgeSeconds),
+          }),
+        ],
+        fullRows: [fullRow(PROBE_A, null)],
+        now: NOW,
+        // Every 5 minutes: a result is still expected for 300 + 600 s.
+        cadenceSeconds: 300,
+      });
+    };
+
+    expect(claimed(20)).toBe(true);
+    expect(claimed(900)).toBe(true);
+    expect(claimed(901)).toBe(false);
+    // The creation stamp of a probe that never reported.
+    expect(claimed(2 * 86400)).toBe(false);
+  });
+
+  it("a claim the last full read was taken after has already been read", () => {
+    const pending: (fullLoadedAt: Date | null) => boolean = (
+      fullLoadedAt: Date | null,
+    ): boolean => {
+      return MonitorOverviewProbeUtil.hasPendingProbeResults({
+        lightRows: [
+          monitorProbe({
+            probeId: PROBE_A,
+            isEnabled: true,
+            lastPingAt: secondsAgo(40),
+          }),
+        ],
+        fullRows: [fullRow(PROBE_A, secondsAgo(320))],
+        now: NOW,
+        cadenceSeconds: 300,
+        fullLoadedAt: fullLoadedAt,
+      });
+    };
+
+    // Read 10 s after the claim: whatever the claim produced is in it.
+    expect(pending(secondsAgo(30))).toBe(false);
+    // Read before the claim: its result is news.
+    expect(pending(secondsAgo(60))).toBe(true);
+    // Never read in full.
+    expect(pending(null)).toBe(true);
   });
 });
 
@@ -916,6 +1047,182 @@ describe("MonitorOverviewProbeUtil.summarizeProbes", () => {
     expect(summary.lastResultAt).toBeUndefined();
     expect(summary.latestResult).toBeUndefined();
     expect(summary.responseTime).toBeNull();
+    expect(summary.nextCheckAt).toBeUndefined();
+    expect(summary.latestNextCheckAt).toBeUndefined();
+  });
+
+  /*
+   * Only a probe's own claim moves its nextPingAt, so a probe that lost its
+   * connection or stopped claiming keeps one that sinks into the past.
+   */
+  it("a disconnected or late probe does not hold back the next check", () => {
+    const summary: MonitorOverviewProbeSummary = summarize([
+      reportingRow({ probeId: PROBE_A, ageSeconds: 30, nextPingInSeconds: 25 }),
+      reportingRow({ probeId: PROBE_B, ageSeconds: 30, nextPingInSeconds: 40 }),
+      reportingRow({
+        probeId: PROBE_C,
+        ageSeconds: 3 * 86400,
+        nextPingInSeconds: -3 * 86400,
+        connectionStatus: ProbeConnectionStatus.Disconnected,
+      }),
+      reportingRow({
+        probeId: PROBE_D,
+        ageSeconds: 2 * 3600,
+        nextPingInSeconds: -2 * 3600,
+      }),
+    ]);
+
+    expect(healthOf(summary, PROBE_C)).toBe(
+      MonitorOverviewProbeHealth.Disconnected,
+    );
+    expect(healthOf(summary, PROBE_D)).toBe(MonitorOverviewProbeHealth.Late);
+    expect(summary.nextCheckAt).toEqual(secondsAgo(-25));
+    expect(summary.latestNextCheckAt).toEqual(secondsAgo(-40));
+  });
+
+  it("the next check is never in the past; the latest due time may be", () => {
+    const summary: MonitorOverviewProbeSummary = summarize([
+      // Claimed seconds ago; its result is on the way.
+      reportingRow({
+        probeId: PROBE_A,
+        ageSeconds: 50,
+        nextPingInSeconds: -10,
+      }),
+    ]);
+
+    expect(summary.nextCheckAt).toBeUndefined();
+    expect(summary.latestNextCheckAt).toEqual(secondsAgo(10));
+  });
+
+  it("before any probe reports, the next check comes from the probes still waiting", () => {
+    const summary: MonitorOverviewProbeSummary = summarize([
+      monitorProbe({
+        probeId: PROBE_A,
+        isEnabled: true,
+        nextPingAt: secondsAgo(-100),
+      }),
+      monitorProbe({
+        probeId: PROBE_B,
+        isEnabled: true,
+        nextPingAt: secondsAgo(-50),
+      }),
+      monitorProbe({
+        probeId: PROBE_C,
+        isEnabled: true,
+        connectionStatus: ProbeConnectionStatus.Disconnected,
+        nextPingAt: secondsAgo(-5),
+      }),
+    ]);
+
+    expect(summary.nextCheckAt).toEqual(secondsAgo(-50));
+    expect(summary.latestNextCheckAt).toEqual(secondsAgo(-100));
+  });
+
+  it("while monitoring is paused no probe is late: each keeps its last verdict", () => {
+    const rows: Array<MonitorProbe> = [
+      reportingRow({ probeId: PROBE_A, ageSeconds: 25 * 60 }),
+      reportingRow({ probeId: PROBE_B, ageSeconds: 25 * 60, isOnline: false }),
+    ];
+
+    const paused: MonitorOverviewProbeSummary = summarize(rows, {
+      isScheduled: false,
+    });
+
+    expect(healthOf(paused, PROBE_A)).toBe(MonitorOverviewProbeHealth.Up);
+    expect(healthOf(paused, PROBE_B)).toBe(MonitorOverviewProbeHealth.Down);
+    expect(paused.reportingCount).toBe(2);
+
+    const scheduled: MonitorOverviewProbeSummary = summarize(rows);
+
+    expect(healthOf(scheduled, PROBE_A)).toBe(MonitorOverviewProbeHealth.Late);
+    expect(scheduled.reportingCount).toBe(0);
+  });
+
+  it("a schedule with gaps does not make probes late through the gap", () => {
+    // Saturday evening; the last run of the week was Friday at 17:55.
+    const saturday: Date = new Date("2026-09-19T20:00:00.000Z");
+    const rows: Array<MonitorProbe> = [
+      monitorProbe({
+        probeId: PROBE_A,
+        isEnabled: true,
+        log: {
+          [STEP_ID]: response({
+            monitoredAt: new Date("2026-09-18T17:55:00.000Z"),
+            isOnline: true,
+          }),
+        },
+      }),
+    ];
+
+    expect(
+      healthOf(
+        summarize(rows, {
+          now: saturday,
+          monitoringInterval: "*/5 9-17 * * 1-5",
+        }),
+        PROBE_A,
+      ),
+    ).toBe(MonitorOverviewProbeHealth.Up);
+
+    // Monday 09:12: the 09:00 run is more than ten minutes late.
+    expect(
+      healthOf(
+        summarize(rows, {
+          now: new Date("2026-09-21T09:12:00.000Z"),
+          monitoringInterval: "*/5 9-17 * * 1-5",
+        }),
+        PROBE_A,
+      ),
+    ).toBe(MonitorOverviewProbeHealth.Late);
+  });
+
+  it("counts the reporting probes that are up and down", () => {
+    const summary: MonitorOverviewProbeSummary = summarize([
+      reportingRow({ probeId: PROBE_A, ageSeconds: 30 }),
+      reportingRow({ probeId: PROBE_B, ageSeconds: 30, isOnline: false }),
+      reportingRow({ probeId: PROBE_C, ageSeconds: 30, isOnline: false }),
+      // Late and disconnected probes are not counted either way.
+      reportingRow({ probeId: PROBE_D, ageSeconds: 5000, isOnline: false }),
+      reportingRow({
+        probeId: PROBE_E,
+        ageSeconds: 30,
+        isOnline: false,
+        connectionStatus: ProbeConnectionStatus.Disconnected,
+      }),
+    ]);
+
+    expect({
+      reportingCount: summary.reportingCount,
+      upCount: summary.upCount,
+      downCount: summary.downCount,
+    }).toEqual({ reportingCount: 3, upCount: 1, downCount: 2 });
+  });
+
+  it("response times come only from probes that are reporting now", () => {
+    const summary: MonitorOverviewProbeSummary = summarize([
+      reportingRow({ probeId: PROBE_A, ageSeconds: 30, responseTimeInMs: 110 }),
+      reportingRow({ probeId: PROBE_B, ageSeconds: 30, responseTimeInMs: 130 }),
+      // Its last reading, from before it lost its connection 3 days ago.
+      reportingRow({
+        probeId: PROBE_C,
+        ageSeconds: 3 * 86400,
+        responseTimeInMs: 4500,
+        connectionStatus: ProbeConnectionStatus.Disconnected,
+      }),
+      reportingRow({
+        probeId: PROBE_D,
+        ageSeconds: 2 * 3600,
+        responseTimeInMs: 9000,
+      }),
+    ]);
+
+    expect(summary.responseTime).toEqual({
+      medianMs: 120,
+      minMs: 110,
+      maxMs: 130,
+      respondedCount: 2,
+      totalCount: 4,
+    });
   });
 });
 

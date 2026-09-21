@@ -1,3 +1,4 @@
+import { Moment } from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import {
@@ -11,6 +12,7 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import { UptimeDayBucket } from "../../../Types/StatusPage/UptimeDailyAggregate";
 import MonitorUptimeSummaryUtil, {
+  MonitorUptimeCaveat,
   UptimeWindowPresentation,
 } from "../../../Utils/Monitor/MonitorUptimeSummaryUtil";
 import { describe, expect, it, jest } from "@jest/globals";
@@ -387,6 +389,60 @@ describe("MonitorUptimeSummaryUtil.getWindowPresentation", () => {
     expect(result.description).toBe("Down 2m · includes paused time");
   });
 
+  it("each caveat names the time nothing measured", () => {
+    const totals: MonitorUptimeWindowTotal = windowTotal({
+      windowSeconds: THIRTY_DAYS,
+      coveredSeconds: THIRTY_DAYS,
+      durations: [[OPERATIONAL_ID, THIRTY_DAYS]],
+    });
+    const describeWith: (
+      caveat: MonitorUptimeCaveat | null | undefined,
+      isPausedNow?: boolean,
+    ) => string | undefined = (
+      caveat: MonitorUptimeCaveat | null | undefined,
+      isPausedNow?: boolean,
+    ): string | undefined => {
+      return MonitorUptimeSummaryUtil.getWindowPresentation({
+        window: totals,
+        downtimeStatusIds: DOWNTIME_IDS,
+        caveat: caveat,
+        isPausedNow: isPausedNow,
+      })?.description;
+    };
+
+    expect(describeWith("paused")).toBe("No downtime · includes paused time");
+    expect(describeWith("not-checking")).toBe(
+      "No downtime · includes time with no checks running",
+    );
+    expect(describeWith("no-results")).toBe(
+      "No downtime · no check has completed yet",
+    );
+    expect(describeWith(null)).toBe("No downtime");
+
+    // isPausedNow is the older spelling of "paused"; a given caveat wins.
+    expect(describeWith(undefined, true)).toBe(
+      "No downtime · includes paused time",
+    );
+    expect(describeWith(null, true)).toBe("No downtime");
+    expect(describeWith("not-checking", true)).toBe(
+      "No downtime · includes time with no checks running",
+    );
+  });
+
+  it("a window nothing covered has no caveat to add", () => {
+    expect(
+      MonitorUptimeSummaryUtil.getWindowPresentation({
+        window: windowTotal({
+          windowSeconds: THIRTY_DAYS,
+          coveredSeconds: 0,
+          durations: [],
+        }),
+        downtimeStatusIds: DOWNTIME_IDS,
+        caveat: "not-checking",
+      })?.description,
+    ).toBe("Nothing recorded in this window");
+  });
+
   it("Degraded (non-operational) counts as downtime", () => {
     expect(DOWNTIME_IDS.has(DEGRADED_ID)).toBe(true);
     expect(DOWNTIME_IDS.has(OFFLINE_ID)).toBe(true);
@@ -748,12 +804,63 @@ describe("MonitorUptimeSummaryUtil.getBrowserTimezone", () => {
     );
   });
 
-  it("falls back to UTC when Intl throws", () => {
+  it("falls back to moment's guess, then UTC, when Intl throws", () => {
     jest.spyOn(Intl, "DateTimeFormat").mockImplementation(() => {
       throw new Error("no Intl here");
     });
 
     try {
+      jest.spyOn(Moment.tz, "guess").mockReturnValue("Europe/Berlin");
+      expect(MonitorUptimeSummaryUtil.getBrowserTimezone()).toBe(
+        "Europe/Berlin",
+      );
+
+      jest.spyOn(Moment.tz, "guess").mockImplementation(() => {
+        throw new Error("no guess either");
+      });
+      expect(MonitorUptimeSummaryUtil.getBrowserTimezone()).toBe("UTC");
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  /*
+   * A browser can carry newer zone data than the bundled moment-timezone.
+   * The server refuses a zone it does not know, so sending it would fail
+   * the uptime card on every load.
+   */
+  it("never sends a zone moment does not know", () => {
+    const newZone: string = "America/Nowhere_New";
+
+    expect(Moment.tz.zone(newZone)).toBeNull();
+
+    jest.spyOn(Intl, "DateTimeFormat").mockImplementation(() => {
+      return {
+        resolvedOptions: () => {
+          return { timeZone: newZone };
+        },
+      } as unknown as Intl.DateTimeFormat;
+    });
+    // moment reports the unknown Intl zone on the console as it guesses.
+    jest.spyOn(console, "error").mockImplementation(() => {
+      return undefined;
+    });
+
+    try {
+      // Its offset-based guess from the data it has.
+      const guessed: string = MonitorUptimeSummaryUtil.getBrowserTimezone();
+
+      expect(guessed).not.toBe(newZone);
+      expect(Moment.tz.zone(guessed)).not.toBeNull();
+      expect(MonitorUptimeSummaryUtil.parseTimezone(guessed)).toBe(guessed);
+
+      jest.spyOn(Moment.tz, "guess").mockReturnValue("America/Punta_Arenas");
+      expect(MonitorUptimeSummaryUtil.getBrowserTimezone()).toBe(
+        "America/Punta_Arenas",
+      );
+
+      // A guess moment cannot back is no better.
+      jest.spyOn(Moment.tz, "guess").mockReturnValue(newZone);
       expect(MonitorUptimeSummaryUtil.getBrowserTimezone()).toBe("UTC");
     } finally {
       jest.restoreAllMocks();

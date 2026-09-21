@@ -77,14 +77,37 @@ export const MONITOR_OVERVIEW_UPTIME_POLLS_PER_RELOAD: number = 5;
 export const MONITOR_OVERVIEW_HEAVY_PROBE_RELOAD_MS: number = 5 * 60 * 1000;
 
 /*
+ * The cap is measured from when the last full read was sent, and checked
+ * when a poll's light read lands. Both move by a few seconds of latency from
+ * poll to poll, so without this slack the fifth poll after a full read would
+ * usually miss the cap by those seconds and the reload would slip to the
+ * sixth, past the point where a one-minute monitor's held results turn
+ * overdue.
+ */
+const HEAVY_PROBE_RELOAD_TOLERANCE_MS: number =
+  MONITOR_OVERVIEW_REFRESH_INTERVAL_MS / 2;
+
+/*
  * A network device monitor is evaluated on every device poll and trap, and
  * none of the Monitor row's timestamps move when that happens, so its
  * evaluation log is re-read on a fixed beat instead of on a signal.
  */
 export const MONITOR_OVERVIEW_NETWORK_DEVICE_EVALUATION_POLLS: number = 5;
 
+/*
+ * The evaluation log is written a few seconds after the result it judges
+ * (the worker buffers it before the insert), so a read sent as soon as a
+ * result shows up can still return the previous verdict. The log is read
+ * again on this many later polls, at most, until it catches up.
+ */
+export const MONITOR_OVERVIEW_EVALUATION_RETRY_POLLS: number = 3;
+
 export const MONITOR_OVERVIEW_NOT_FOUND_MESSAGE: string =
   "This monitor could not be found. It may have been deleted, or you may not have permission to view it.";
+
+// Probe rows were read, but never with their results.
+export const MONITOR_OVERVIEW_PROBE_RESULTS_UNREADABLE_MESSAGE: string =
+  "The probe results could not be read.";
 
 // Why a supplementary read was not sent. The cards word their own copy.
 export const MONITOR_OVERVIEW_ACCESS_REASONS: {
@@ -118,7 +141,16 @@ export interface UseMonitorOverviewDataResult {
   // A background-refresh failure: the last good data stays on screen.
   refreshError: string;
   isRefreshing: boolean;
+  // When the data on screen was committed, on the browser's clock.
   lastLoadedAt: Date | null;
+  /*
+   * Server time minus browser time, in milliseconds: 0 until
+   * setServerClockOffset is told otherwise (Index passes it the uptime
+   * summary's measurement). Browser time plus this is the server's clock,
+   * which every timestamp the monitor carries was stamped on.
+   */
+  serverClockOffsetMs: number;
+  setServerClockOffset: (offsetMs: number) => void;
   // Bumped after every successful load of the Monitor row.
   refreshCount: number;
   // Bumped by every poll tick that runs (hidden tabs do not count).
@@ -147,12 +179,28 @@ type ReadOutcome<T> =
 interface FullProbeRows {
   monitorId: string;
   rows: Array<MonitorProbe>;
-  loadedAt: Date | null;
+  /*
+   * When the read that returned these rows was sent, on the browser's
+   * clock (it is only compared with the browser's clock). Null until a
+   * full read has succeeded for this monitor.
+   */
+  requestedAt: Date | null;
 }
 
 interface SubjectValue {
   monitorId: string;
   value: string;
+}
+
+// Whether the evaluation log has caught up with the newest result.
+interface EvaluationCoverage {
+  monitorId: string;
+  // The result fingerprint the newest evaluation read was sent for.
+  fingerprint: string;
+  // How many reads have been sent for that fingerprint.
+  reads: number;
+  // Whether a read came back with a log at least as new as that result.
+  isCovered: boolean;
 }
 
 type ProbeWeight = "none" | "light" | "full";
@@ -246,6 +294,78 @@ function countEnabledProbes(
 }
 
 /*
+ * The time at or before which a probe's claim is not worth another full
+ * read (hasPendingProbeResults' `fullLoadedAt`). Two things must both hold:
+ * - The last full read saw the claim. Every claim up to the newest
+ *   lastPingAt it returned was made before it was sent, so it saw them
+ *   all. That is on the server's clock by construction.
+ * - The claim is older than one cadence plus grace, so no result for it is
+ *   still on the way. A full read often lands between a probe's claim and
+ *   its result; the claim must still be followed on the next poll, or that
+ *   result would wait for the probe's next claim, a whole cadence later.
+ * A claim that stays unanswered past that (the probe died mid-check) stops
+ * costing a full read on every poll.
+ */
+export function getSettledClaimCutoff(data: {
+  fullRows: Array<MonitorProbe>;
+  now: Date;
+  cadenceSeconds: number;
+}): Date | null {
+  let newestClaimSeen: Date | null = null;
+
+  for (const row of data.fullRows || []) {
+    const claimedAt: Date | undefined = MonitorCheckScheduleUtil.parseDate(
+      row?.lastPingAt,
+    );
+
+    if (
+      claimedAt &&
+      (!newestClaimSeen || claimedAt.getTime() > newestClaimSeen.getTime())
+    ) {
+      newestClaimSeen = claimedAt;
+    }
+  }
+
+  if (!newestClaimSeen) {
+    return null;
+  }
+
+  const claimLifetimeMs: number =
+    (data.cadenceSeconds +
+      MonitorCheckScheduleUtil.getGraceSeconds(data.cadenceSeconds)) *
+    1000;
+  const oldestUnsettledMs: number = data.now.getTime() - claimLifetimeMs;
+
+  return newestClaimSeen.getTime() <= oldestUnsettledMs
+    ? newestClaimSeen
+    : new Date(oldestUnsettledMs);
+}
+
+/*
+ * Whether an evaluation log whose newest row is `latestAt` has judged the
+ * signal at `signalAt`. The comparison is to the second: the log's time and
+ * the result's time are stamped by different machines, and the log can come
+ * back without its milliseconds.
+ */
+export function isEvaluationCaughtUp(data: {
+  latestAt: Date | undefined;
+  signalAt: Date | undefined;
+}): boolean {
+  if (!data.signalAt) {
+    return true;
+  }
+
+  if (!data.latestAt) {
+    return false;
+  }
+
+  return (
+    Math.floor(data.latestAt.getTime() / 1000) >=
+    Math.floor(data.signalAt.getTime() / 1000)
+  );
+}
+
+/*
  * The monitor overview's data, and its one poll.
  *
  * The Monitor row is the only required read. Probes, the newest status
@@ -259,11 +379,16 @@ function countEnabledProbes(
  *   committed together. The evaluation log follows without the skeleton.
  *   If the newest status row disagrees with the row's current status, the
  *   hook waits for refresh-status and reloads once.
- * - Poll (every minute, skipped while the tab is hidden, caught up when it
- *   is shown): the row, the LIGHT probe rows and the status rows; the full
- *   probe rows only when a probe has claimed a check newer than the newest
- *   result held; the evaluation log only when the newest signal moved.
- * - Manual refresh: everything in full, never refresh-status again.
+ * - Poll (every minute, skipped while the tab is hidden): the row, the
+ *   LIGHT probe rows and the status rows; the full probe rows only when a
+ *   probe has claimed a check newer than the newest result held; the
+ *   evaluation log only when the newest signal moved, or when the log has
+ *   not caught up with it yet. Showing the tab again polls at once only if
+ *   a tick was missed or a whole interval has passed, and the next tick is
+ *   then a full interval away.
+ * - Manual refresh: everything in full, never refresh-status again. A poll
+ *   that starts while one is in flight replaces it, so it reads in full
+ *   too: a poll never downgrades what the reader asked for.
  *
  * Every load takes a generation number and only the newest may write, so a
  * slow poll that lands after a manual refresh, or after moving to another
@@ -301,8 +426,23 @@ export const useMonitorOverviewData: (options: {
     useState<OverviewSection<MonitorEvaluationByProbe>>(
       getLoadingSection<MonitorEvaluationByProbe>(),
     );
+  const [serverClockOffsetMs, setServerClockOffsetMs] = useState<number>(0);
 
   const generationRef: MutableRefObject<number> = useRef<number>(0);
+  // The generation of a manual or details-saved fetch still in flight, or 0.
+  const strongFetchGenerationRef: MutableRefObject<number> = useRef<number>(0);
+  // When the newest fetch of any kind started, on the browser's clock.
+  const lastFetchStartedAtRef: MutableRefObject<Date | null> =
+    useRef<Date | null>(null);
+  // Read inside async code, so it is always the newest measurement.
+  const serverClockOffsetRef: MutableRefObject<number> = useRef<number>(0);
+  const evaluationCoverageRef: MutableRefObject<EvaluationCoverage> =
+    useRef<EvaluationCoverage>({
+      monitorId: "",
+      fingerprint: "",
+      reads: 0,
+      isCovered: false,
+    });
   // The evaluation log loads after the core commit, on its own generation.
   const evaluationGenerationRef: MutableRefObject<number> = useRef<number>(0);
   // The id the hook is currently for, readable inside async code.
@@ -322,7 +462,7 @@ export const useMonitorOverviewData: (options: {
   > = useRef<OverviewSection<MonitorEvaluationByProbe>>(evaluation);
   // The last FULL probe read: polls lay their light rows over it.
   const fullProbeRowsRef: MutableRefObject<FullProbeRows> =
-    useRef<FullProbeRows>({ monitorId: "", rows: [], loadedAt: null });
+    useRef<FullProbeRows>({ monitorId: "", rows: [], requestedAt: null });
   const lastStatusFingerprintRef: MutableRefObject<SubjectValue> =
     useRef<SubjectValue>({ monitorId: "", value: "" });
   const lastResultFingerprintRef: MutableRefObject<SubjectValue> =
@@ -355,6 +495,29 @@ export const useMonitorOverviewData: (options: {
     evaluationRef.current = section;
     setEvaluation(section);
   };
+
+  /*
+   * Now on the server's clock. Probe claims and results were stamped by the
+   * server, so a browser clock minutes fast would make a fresh claim look
+   * too old to follow.
+   */
+  const getServerNow: () => Date = (): Date => {
+    return new Date(
+      OneUptimeDate.getCurrentDate().getTime() + serverClockOffsetRef.current,
+    );
+  };
+
+  const setServerClockOffset: (offsetMs: number) => void = useCallback(
+    (offsetMs: number): void => {
+      if (!Number.isFinite(offsetMs)) {
+        return;
+      }
+
+      serverClockOffsetRef.current = offsetMs;
+      setServerClockOffsetMs(offsetMs);
+    },
+    [],
+  );
 
   // R2: the monitor's own MonitorProbe rows, light or with their results.
   const readProbes: (
@@ -425,9 +588,14 @@ export const useMonitorOverviewData: (options: {
   const loadEvaluation: (data: {
     monitorType: MonitorType;
     subjectId: string;
+    // The result fingerprint this read is for, and the signal behind it.
+    fingerprint: string;
+    signalAt: Date | undefined;
   }) => void = (data: {
     monitorType: MonitorType;
     subjectId: string;
+    fingerprint: string;
+    signalAt: Date | undefined;
   }): void => {
     evaluationGenerationRef.current += 1;
     const evaluationGeneration: number = evaluationGenerationRef.current;
@@ -470,18 +638,36 @@ export const useMonitorOverviewData: (options: {
           return;
         }
 
-        commitEvaluation(
-          toSection<MonitorEvaluationByProbe, ListResult<MonitorLog>>({
-            previous: evaluationRef.current,
-            outcome: outcome,
-            subjectId: data.subjectId,
-            toValue: (
-              result: ListResult<MonitorLog>,
-            ): MonitorEvaluationByProbe => {
-              return MonitorOverviewProbeUtil.getEvaluationByProbe(result.data);
-            },
-          }),
-        );
+        const section: OverviewSection<MonitorEvaluationByProbe> = toSection<
+          MonitorEvaluationByProbe,
+          ListResult<MonitorLog>
+        >({
+          previous: evaluationRef.current,
+          outcome: outcome,
+          subjectId: data.subjectId,
+          toValue: (
+            result: ListResult<MonitorLog>,
+          ): MonitorEvaluationByProbe => {
+            return MonitorOverviewProbeUtil.getEvaluationByProbe(result.data);
+          },
+        });
+        const coverage: EvaluationCoverage = evaluationCoverageRef.current;
+
+        if (
+          outcome.kind === "loaded" &&
+          coverage.monitorId === data.subjectId &&
+          coverage.fingerprint === data.fingerprint
+        ) {
+          evaluationCoverageRef.current = {
+            ...coverage,
+            isCovered: isEvaluationCaughtUp({
+              latestAt: section.value?.latestAt,
+              signalAt: data.signalAt,
+            }),
+          };
+        }
+
+        commitEvaluation(section);
       })
       .catch(() => {
         // readIfPermitted never rejects; nothing else here can throw.
@@ -491,6 +677,19 @@ export const useMonitorOverviewData: (options: {
   const fetchData: (reason: MonitorOverviewRefreshReason) => Promise<void> =
     useCallback(
       async (reason: MonitorOverviewRefreshReason): Promise<void> => {
+        const isStrongReason: boolean =
+          reason === "manual" || reason === "details-saved";
+        /*
+         * Every fetch cancels the one before it. A poll (or a drift heal)
+         * that starts while a Refresh is still in flight therefore takes
+         * its place, and reads everything the Refresh would have: the
+         * full probe results and the evaluation log.
+         */
+        const isTakingOverRefresh: boolean =
+          !isStrongReason &&
+          strongFetchGenerationRef.current !== 0 &&
+          strongFetchGenerationRef.current === generationRef.current;
+
         generationRef.current += 1;
         const generation: number = generationRef.current;
         const subjectId: string = monitorIdString;
@@ -500,6 +699,12 @@ export const useMonitorOverviewData: (options: {
             activeMonitorIdRef.current === subjectId
           );
         };
+
+        if (isStrongReason || isTakingOverRefresh) {
+          strongFetchGenerationRef.current = generation;
+        }
+
+        lastFetchStartedAtRef.current = OneUptimeDate.getCurrentDate();
 
         // No row on screen yet for this id, so nothing to keep on a failure.
         const isFirstLoad: boolean = shownMonitorIdRef.current !== subjectId;
@@ -516,7 +721,7 @@ export const useMonitorOverviewData: (options: {
         const isKnownProbeCheck: boolean =
           knownLayout?.family === MonitorOverviewFamily.ProbeCheck;
         const isFullRefresh: boolean =
-          isFirstLoad || reason === "manual" || reason === "details-saved";
+          isFirstLoad || isStrongReason || isTakingOverRefresh;
 
         let probeWeight: ProbeWeight = "none";
 
@@ -529,6 +734,13 @@ export const useMonitorOverviewData: (options: {
         if (!isFirstLoad) {
           setIsRefreshing(true);
         }
+
+        /*
+         * Full reads are timed from when they are sent: the synthetic
+         * reload cap then measures the gap between reads, not how long
+         * the screenshots took to download.
+         */
+        const probeRequestedAt: Date = OneUptimeDate.getCurrentDate();
 
         try {
           const [item, probeOutcome, statusRowsOutcome]: [
@@ -568,7 +780,7 @@ export const useMonitorOverviewData: (options: {
           const previousFull: FullProbeRows =
             fullProbeRowsRef.current.monitorId === subjectId
               ? fullProbeRowsRef.current
-              : { monitorId: subjectId, rows: [], loadedAt: null };
+              : { monitorId: subjectId, rows: [], requestedAt: null };
 
           let nextFull: FullProbeRows = previousFull;
           let probeRefreshError: string = "";
@@ -577,7 +789,7 @@ export const useMonitorOverviewData: (options: {
             nextFull = {
               monitorId: subjectId,
               rows: probeOutcome.value,
-              loadedAt: OneUptimeDate.getCurrentDate(),
+              requestedAt: probeRequestedAt,
             };
           }
 
@@ -590,35 +802,54 @@ export const useMonitorOverviewData: (options: {
           if (
             probeOutcome.kind === "loaded" &&
             probeWeight === "light" &&
-            isProbeCheck &&
-            MonitorOverviewProbeUtil.hasPendingProbeResults({
-              lightRows: probeOutcome.value,
-              fullRows: previousFull.rows,
-            })
+            isProbeCheck
           ) {
-            const isHeavyReloadDue: boolean =
-              item.monitorType !== MonitorType.SyntheticMonitor ||
-              !previousFull.loadedAt ||
-              OneUptimeDate.getCurrentDate().getTime() -
-                previousFull.loadedAt.getTime() >=
-                MONITOR_OVERVIEW_HEAVY_PROBE_RELOAD_MS;
+            const serverNow: Date = getServerNow();
+            const cadenceSeconds: number =
+              MonitorCheckScheduleUtil.resolveCadenceSeconds({
+                monitoringInterval: item.monitoringInterval,
+                from: serverNow,
+              });
 
-            if (isHeavyReloadDue) {
-              const fullOutcome: ReadOutcome<Array<MonitorProbe>> =
-                await readProbes(true);
+            if (
+              MonitorOverviewProbeUtil.hasPendingProbeResults({
+                lightRows: probeOutcome.value,
+                fullRows: previousFull.rows,
+                now: serverNow,
+                cadenceSeconds: cadenceSeconds,
+                fullLoadedAt: getSettledClaimCutoff({
+                  fullRows: previousFull.rows,
+                  now: serverNow,
+                  cadenceSeconds: cadenceSeconds,
+                }),
+              })
+            ) {
+              const isHeavyReloadDue: boolean =
+                item.monitorType !== MonitorType.SyntheticMonitor ||
+                !previousFull.requestedAt ||
+                OneUptimeDate.getCurrentDate().getTime() -
+                  previousFull.requestedAt.getTime() >=
+                  MONITOR_OVERVIEW_HEAVY_PROBE_RELOAD_MS -
+                    HEAVY_PROBE_RELOAD_TOLERANCE_MS;
 
-              if (!isStillCurrent()) {
-                return;
-              }
+              if (isHeavyReloadDue) {
+                const fullRequestedAt: Date = OneUptimeDate.getCurrentDate();
+                const fullOutcome: ReadOutcome<Array<MonitorProbe>> =
+                  await readProbes(true);
 
-              if (fullOutcome.kind === "loaded") {
-                nextFull = {
-                  monitorId: subjectId,
-                  rows: fullOutcome.value,
-                  loadedAt: OneUptimeDate.getCurrentDate(),
-                };
-              } else if (fullOutcome.kind === "failed") {
-                probeRefreshError = fullOutcome.message;
+                if (!isStillCurrent()) {
+                  return;
+                }
+
+                if (fullOutcome.kind === "loaded") {
+                  nextFull = {
+                    monitorId: subjectId,
+                    rows: fullOutcome.value,
+                    requestedAt: fullRequestedAt,
+                  };
+                } else if (fullOutcome.kind === "failed") {
+                  probeRefreshError = fullOutcome.message;
+                }
               }
             }
           }
@@ -647,12 +878,32 @@ export const useMonitorOverviewData: (options: {
                   rows: mergedRows,
                   attached:
                     MonitorOverviewProbeUtil.toAttachedProbes(mergedRows),
-                  fullLoadedAt: nextFull.loadedAt,
+                  fullLoadedAt: nextFull.requestedAt,
                 };
               },
             });
 
-          if (probeRefreshError && probesSection.status === "loaded") {
+          /*
+           * Light rows carry no results. Until a full read has succeeded
+           * for this monitor there are none to lay them over, and shown as
+           * they are they would read as probes that never reported: an
+           * old monitor "overdue by months", a young one waiting for data.
+           * The results are unknown, so the section stays an error.
+           */
+          if (
+            probeWeight === "light" &&
+            probeOutcome.kind === "loaded" &&
+            probeOutcome.value.length > 0 &&
+            !nextFull.requestedAt
+          ) {
+            probesSection = failSection({
+              previous: probesRef.current,
+              message:
+                probeRefreshError ||
+                MONITOR_OVERVIEW_PROBE_RESULTS_UNREADABLE_MESSAGE,
+              subjectId: subjectId,
+            });
+          } else if (probeRefreshError && probesSection.status === "loaded") {
             probesSection = {
               ...probesSection,
               refreshError: probeRefreshError,
@@ -683,7 +934,7 @@ export const useMonitorOverviewData: (options: {
               currentStatusId: currentStatusId,
               latestRow: latestRow,
             });
-          const nextResultFingerprint: string =
+          const latestSignalAt: Date | undefined =
             MonitorCheckScheduleUtil.getLatestSignalAt({
               monitor: item,
               probeLastResultAt: isProbeCheck
@@ -692,7 +943,9 @@ export const useMonitorOverviewData: (options: {
                     rows: probesSection.value?.rows || [],
                   })
                 : undefined,
-            })?.toISOString() || "";
+            });
+          const nextResultFingerprint: string =
+            latestSignalAt?.toISOString() || "";
           const previousResultFingerprint: string | null =
             lastResultFingerprintRef.current.monitorId === subjectId
               ? lastResultFingerprintRef.current.value
@@ -755,16 +1008,43 @@ export const useMonitorOverviewData: (options: {
               pollCountRef.current %
                 MONITOR_OVERVIEW_NETWORK_DEVICE_EVALUATION_POLLS ===
                 0;
+            /*
+             * The probe's result is written before its verdict is logged,
+             * and the log is buffered for a few seconds, so the read sent
+             * for this result may have come back with the previous check's
+             * verdict. Read again until the log catches up, a few polls at
+             * most, so a result that never gets a log does not cost a read
+             * on every poll.
+             */
+            const coverage: EvaluationCoverage = evaluationCoverageRef.current;
+            const isSameFingerprint: boolean =
+              coverage.monitorId === subjectId &&
+              coverage.fingerprint === nextResultFingerprint;
+            const isAwaitingVerdict: boolean =
+              isSameFingerprint &&
+              !coverage.isCovered &&
+              coverage.reads <= MONITOR_OVERVIEW_EVALUATION_RETRY_POLLS &&
+              evaluationSection.status === "loaded";
 
             if (
               isFullRefresh ||
               isEvaluationMissing ||
               isNetworkDeviceTurn ||
+              isAwaitingVerdict ||
               nextResultFingerprint !== previousResultFingerprint
             ) {
+              evaluationCoverageRef.current = {
+                monitorId: subjectId,
+                fingerprint: nextResultFingerprint,
+                reads: isSameFingerprint ? coverage.reads + 1 : 1,
+                isCovered: isSameFingerprint && coverage.isCovered,
+              };
+
               loadEvaluation({
                 monitorType: item.monitorType!,
                 subjectId: subjectId,
+                fingerprint: nextResultFingerprint,
+                signalAt: latestSignalAt,
               });
             }
           }
@@ -814,6 +1094,11 @@ export const useMonitorOverviewData: (options: {
             setLoadedMonitorId(subjectId);
           } else {
             setRefreshError(message);
+          }
+        } finally {
+          // Landed, failed or replaced: this Refresh is no longer in flight.
+          if (strongFetchGenerationRef.current === generation) {
+            strongFetchGenerationRef.current = 0;
           }
         }
 
@@ -866,12 +1151,17 @@ export const useMonitorOverviewData: (options: {
       );
     };
 
+    // A tick fell while the tab was hidden, so the page is a poll behind.
+    let hasMissedTick: boolean = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
     const poll: () => void = (): void => {
       // Polls refresh what is on screen; a first load has its own retry.
-      if (isTabHidden() || shownMonitorIdRef.current !== monitorIdString) {
+      if (shownMonitorIdRef.current !== monitorIdString) {
         return;
       }
 
+      hasMissedTick = false;
       pollCountRef.current += 1;
       setPollCount(pollCountRef.current);
 
@@ -880,21 +1170,58 @@ export const useMonitorOverviewData: (options: {
       });
     };
 
-    const intervalId: ReturnType<typeof setInterval> = setInterval(
-      poll,
-      MONITOR_OVERVIEW_REFRESH_INTERVAL_MS,
-    );
-
-    const onVisibilityChange: () => void = (): void => {
-      if (!isTabHidden()) {
-        poll();
+    const onTick: () => void = (): void => {
+      if (isTabHidden()) {
+        hasMissedTick = true;
+        return;
       }
+
+      poll();
     };
 
+    const startTicking: () => void = (): void => {
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+      }
+
+      intervalId = setInterval(onTick, MONITOR_OVERVIEW_REFRESH_INTERVAL_MS);
+    };
+
+    /*
+     * Coming back to the tab polls at once only when the page is behind: a
+     * tick fell while it was hidden, or a whole interval has passed (a
+     * hidden tab's timers are throttled, so a tick can be late rather than
+     * missed). Switching away and back within a minute costs nothing. After
+     * a catch-up the next tick is a full interval away, not a second later.
+     */
+    const onVisibilityChange: () => void = (): void => {
+      if (isTabHidden()) {
+        return;
+      }
+
+      const lastFetchStartedAt: Date | null = lastFetchStartedAtRef.current;
+      const isIntervalElapsed: boolean =
+        !lastFetchStartedAt ||
+        OneUptimeDate.getCurrentDate().getTime() -
+          lastFetchStartedAt.getTime() >=
+          MONITOR_OVERVIEW_REFRESH_INTERVAL_MS;
+
+      if (!hasMissedTick && !isIntervalElapsed) {
+        return;
+      }
+
+      poll();
+      startTicking();
+    };
+
+    startTicking();
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      clearInterval(intervalId);
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+      }
+
       document.removeEventListener("visibilitychange", onVisibilityChange);
       // Orphan anything still in flight for this monitor.
       generationRef.current += 1;
@@ -945,6 +1272,9 @@ export const useMonitorOverviewData: (options: {
     refreshError: hasLoaded ? refreshError : "",
     isRefreshing: hasLoaded ? isRefreshing : false,
     lastLoadedAt: hasLoaded ? lastLoadedAt : null,
+    // A property of the two clocks, not of the monitor: kept across monitors.
+    serverClockOffsetMs: serverClockOffsetMs,
+    setServerClockOffset: setServerClockOffset,
     refreshCount: refreshCount,
     pollCount: pollCount,
     manualRefreshCount: manualRefreshCount,

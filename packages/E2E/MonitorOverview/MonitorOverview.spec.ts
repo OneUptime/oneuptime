@@ -478,6 +478,41 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(1);
 }
 
+const MIN_PLOT_HEIGHT: number = 150;
+
+/*
+ * The Response time chart keeps a readable height at every width. Both the
+ * plot box and the chart drawn in it are measured: the tallest SVG, so a
+ * legend icon never stands in for the chart.
+ */
+async function expectResponseTimePlotHeight(page: Page): Promise<void> {
+  const plot: Locator = card(page, "Response time").getByTestId(
+    "chart-group-plot",
+  );
+  await expect(plot).toHaveCount(1);
+  expect(
+    (await documentBox(plot)).height,
+    "response-time plot height",
+  ).toBeGreaterThanOrEqual(MIN_PLOT_HEIGHT);
+  await expect
+    .poll(
+      async (): Promise<number> => {
+        return plot.evaluate((element: Element): number => {
+          return Math.max(
+            0,
+            ...Array.from(element.querySelectorAll("svg")).map(
+              (svg: Element): number => {
+                return svg.getBoundingClientRect().height;
+              },
+            ),
+          );
+        });
+      },
+      { message: "response-time chart height" },
+    )
+    .toBeGreaterThanOrEqual(MIN_PLOT_HEIGHT);
+}
+
 /*
  * Waits until every card that loads on its own has its data, so assertions
  * and screenshots never catch a loader.
@@ -616,6 +651,7 @@ test.describe("probe checks", () => {
       "Probes",
       "Details",
     ]);
+    await expectResponseTimePlotHeight(page);
 
     await expect(
       page.getByRole("combobox", { name: "Showing results from:" }),
@@ -676,11 +712,12 @@ test.describe("probe checks", () => {
     await expect(rows).toHaveCount(2);
     // Newest first: the incident was declared a minute after the alert.
     await expect(rows.nth(0)).toContainText("Checkout API is returning 503s");
-    await expect(rows.nth(0)).toContainText("Incident · Created");
+    // The severity is in the text, not only in the dot's colour and title.
+    await expect(rows.nth(0)).toContainText("Incident · SEV-1 · Created");
     await expect(
       rows.nth(0).getByRole("link", { name: "Checkout API is returning 503s" }),
     ).toHaveAttribute("href", `${DASHBOARD}/incidents/${OPEN_INCIDENT_ID}`);
-    await expect(rows.nth(1)).toContainText("Alert · Acknowledged");
+    await expect(rows.nth(1)).toContainText("Alert · Critical · Acknowledged");
     await expect(
       rows
         .nth(1)
@@ -804,7 +841,38 @@ test.describe("probe checks", () => {
         "includes paused time",
       );
     }
+    /*
+     * The last results are 25 minutes old, but no probe is meant to check
+     * while monitoring is paused: none is Late, each keeps its last
+     * verdict, and the Probes fact says so instead of a red "0 of 3".
+     */
+    await expect(
+      card(page, "Probes").getByTestId("monitor-probe-health"),
+    ).toHaveText(["Up · 182 ms", "Up · 243 ms", "Up · 311 ms"]);
+    expect(await factValue(page, "Probes")).toBe("3 enabledChecks paused");
+    await expect(
+      page.getByTestId("monitor-overview-fact-probes").locator("dd"),
+    ).toHaveClass(/text-gray-900/);
     await screenshot(page, "monitor-overview-paused");
+  });
+
+  test("a disabled monitor's probes keep their last verdict", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "state=disabled" });
+    await expectSettled(page);
+
+    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
+      "Disabled",
+    );
+    // Six hours without a check is the pause, not six hours of late probes.
+    await expect(
+      card(page, "Probes").getByTestId("monitor-probe-health"),
+    ).toHaveText(["Up · 182 ms", "Up · 243 ms", "Up · 311 ms"]);
+    await expect(page.getByText("Late", { exact: true })).toHaveCount(0);
+    expect(await factValue(page, "Probes")).toBe("3 enabledChecks paused");
   });
 
   test("stale", async ({ page }: { page: Page }) => {
@@ -813,8 +881,12 @@ test.describe("probe checks", () => {
     await expect(
       page.getByTestId("monitor-overview-secondary-badge"),
     ).toHaveText(["Checks overdue"]);
+    /*
+     * Counted from the check that never came: the first run of the
+     * five-minute schedule after the 11:22 result, at 11:25.
+     */
     await expect(page.getByTestId("monitor-overview-overdue")).toHaveText(
-      "Overdue by 33m",
+      "Overdue by 35m",
     );
     await expect(page.getByTestId("monitor-overview-explanation")).toHaveText(
       "No result for 38m, but this monitor checks every 5 minutes. A probe may be overloaded or offline.",
@@ -858,6 +930,55 @@ test.describe("probe checks", () => {
     await expect(
       card(page, "Probes").getByTestId("monitor-probe-health"),
     ).toHaveText(["Disconnected", "Disconnected", "Disconnected"]);
+  });
+
+  test("one disconnected probe out of three", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "state=one-disconnected" });
+    await expectSettled(page);
+
+    /*
+     * Singapore went offline three days ago and its next check stayed
+     * there. Frankfurt and N. Virginia still check on time, so the monitor
+     * is not overdue: the lost probe shows on the Probes fact and card.
+     */
+    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
+      "Operational",
+    );
+    await expect(headline(page)).toHaveText(/^Operational for 3 days, 4 hours/);
+    await expect(
+      page.getByTestId("monitor-overview-secondary-badge"),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("monitor-overview-overdue")).toHaveCount(0);
+    await expect(page.getByText("Checks overdue")).toHaveCount(0);
+    await expect(page.getByTestId("monitor-overview-icon")).toHaveClass(
+      /bg-emerald-50/,
+    );
+    // The next check comes from the probes that are checking.
+    await expect(page.getByTestId("monitor-overview-cadence")).toHaveText(
+      "Every 5 minutes · next in 4 minutes",
+    );
+
+    expect(await factValue(page, "Probes")).toBe(
+      "2 of 3 reporting1 disconnected",
+    );
+    await expect(
+      page.getByTestId("monitor-overview-fact-probes").locator("dd"),
+    ).toHaveClass(/text-amber-700/);
+    const probes: Locator = card(page, "Probes");
+    await expect(probes.getByTestId("monitor-probe-health")).toHaveText([
+      "Disconnected",
+      "Up · 182 ms",
+      "Up · 243 ms",
+    ]);
+    // Only connected probes take part in the agreement rule.
+    await expect(probes.getByTestId("monitor-probe-agreement")).toHaveText(
+      "A status change needs both connected probes to agree.",
+    );
+    await screenshot(page, "monitor-overview-one-disconnected");
   });
 
   test("no probes attached", async ({ page }: { page: Page }) => {
@@ -1128,6 +1249,30 @@ test.describe("other monitor families", () => {
       "Recent status changes",
       "Details",
     ]);
+  });
+
+  test("kubernetes whose evaluations stopped landing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { type: "kubernetes", query: "state=stale" });
+    await expectSettled(page);
+
+    /*
+     * The worker stamped the monitor 40 seconds ago, but it stamps when it
+     * queues an evaluation. The newest evaluation in the log is 14 minutes
+     * old, and that is what the page goes by.
+     */
+    await expect(
+      page.getByTestId("monitor-overview-secondary-badge"),
+    ).toHaveText(["Checks overdue"]);
+    await expect(page.getByTestId("monitor-overview-explanation")).toHaveText(
+      "No evaluation for 14m, but this monitor is evaluated every minute.",
+    );
+    await expect(page.getByTestId("monitor-overview-pulse")).toContainText(
+      "Last evaluated 14 minutes ago",
+    );
   });
 
   test("network-device", async ({ page }: { page: Page }) => {
@@ -1677,6 +1822,27 @@ test.describe("responsive", () => {
     expect(scroll.left).toBeGreaterThanOrEqual(
       scroll.scrollWidth - scroll.clientWidth - 2,
     );
+    /*
+     * The date labels scroll with the bars: "Today" sits under today's bar
+     * and the first day under the first bar, which is out of view to the
+     * left, never under whatever bar the strip starts on.
+     */
+    const startLabel: Locator = strip.getByText("Jun 24", { exact: true });
+    const todayLabel: Locator = strip.getByText("Today", { exact: true });
+    await expect(startLabel, "first-day label inside the strip").toHaveCount(1);
+    await expect(todayLabel, "today label inside the strip").toHaveCount(1);
+    const firstBar: Box = await documentBox(uptimeBars(page).first());
+    const lastBar: Box = await documentBox(uptimeBars(page).last());
+    const startBox: Box = await documentBox(startLabel);
+    const todayBox: Box = await documentBox(todayLabel);
+    expect(Math.abs(startBox.x - firstBar.x)).toBeLessThanOrEqual(2);
+    expect(
+      Math.abs(todayBox.x + todayBox.width - (lastBar.x + lastBar.width)),
+    ).toBeLessThanOrEqual(2);
+    // Scrolls the page to the strip; the strip itself stays at today.
+    await strip.scrollIntoViewIfNeeded();
+    await expect(todayLabel).toBeInViewport();
+    await expect(startLabel).not.toBeInViewport();
 
     // Facts stack into one column.
     const facts: Locator = page
@@ -1692,6 +1858,7 @@ test.describe("responsive", () => {
     const firstCell: Box = await documentBox(cells.nth(0));
     const secondCell: Box = await documentBox(cells.nth(1));
     expect(secondCell.y).toBeGreaterThanOrEqual(firstCell.y + firstCell.height);
+    await expectResponseTimePlotHeight(page);
 
     // The icon tile is hidden on a phone.
     await expect(page.getByTestId("monitor-overview-icon")).toBeHidden();
@@ -1768,6 +1935,7 @@ test.describe("responsive", () => {
         cardBox.width * 0.8,
       );
     }
+    await expectResponseTimePlotHeight(page);
     await screenshot(page, "monitor-overview-tablet");
   });
 

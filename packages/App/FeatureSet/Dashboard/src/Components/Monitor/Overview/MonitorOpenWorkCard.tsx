@@ -166,6 +166,15 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
 
     const metaParts: Array<string> = [row.kind];
 
+    /*
+     * The severity in words, next to its kind. The dot beside the title is
+     * hidden from assistive technology and a colour alone tells nobody who
+     * cannot see it, or cannot hover it, which incident is the critical one.
+     */
+    if (row.severityName) {
+      metaParts.push(row.severityName);
+    }
+
     if (row.stateName) {
       metaParts.push(row.stateName);
     }

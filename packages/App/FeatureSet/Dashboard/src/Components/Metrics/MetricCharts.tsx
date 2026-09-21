@@ -106,6 +106,13 @@ export interface ComponentProps {
   hideCard?: boolean | undefined;
   chartCssClass?: string | undefined;
   /*
+   * Keep a minimum plot height under hideCard (see ChartGroup's
+   * minPlotHeight). Only for hosts whose panel can grow: a fixed-height
+   * dashboard widget must leave it off, or the floor pushes the series
+   * controls and the x-axis out of the widget.
+   */
+  minPlotHeight?: boolean | undefined;
+  /*
    * Called with the FULL replacement queryConfigs array when a chart
    * control changes query-level state (currently: the per-chart Top-N /
    * "Show all" controls writing `metricQueryData.topN`). Passing the
@@ -3355,6 +3362,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         hideCard={props.hideCard}
         chartCssClass={props.chartCssClass}
         syncId={props.chartSyncId}
+        minPlotHeight={props.minPlotHeight}
       />
       {/*
        * Both pivot menus render through a body portal: dashboard widget

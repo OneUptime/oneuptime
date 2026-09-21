@@ -12,6 +12,12 @@ production uses, and listens on `127.0.0.1:4223` (`MONITOR_OVERVIEW_FIXTURE_PORT
 Docker, no database, no sign-in. Only the `ModelAPI` / `AnalyticsModelAPI` / `API` data
 boundary and the signed-in user are replaced.
 
+That Tailwind build is the browser one production loads from `views/index.ejs`: there is no
+ahead-of-time CSS, and a class gets its CSS only after it first appears in the DOM, which is
+after React's layout effects have run. The fixture declares no classes up front, so a
+component that measures itself on its first render (the uptime strip) is tested against the
+same ordering a real first page load has.
+
 Every record is fabricated for a generic "Acme Commerce" workspace, and the fixture header
 says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates are relative
 to `2026-09-21T12:00:00Z`, and the spec fixes the browser clock to the same instant.
@@ -46,8 +52,10 @@ One monitor per supported type, each on its own id (`70000000-0000-4000-8000-000
   so a poll finds nothing pending and reads the probes LIGHT.
 - **Evaluation log** (`MonitorLog`, analytics): two per probe for probe checks, one for the
   other families, with `logBody.probeId` and `evaluationSummary`.
-- **Response time** (`Metric` aggregate): one series per probe every five minutes, with no
-  points while the monitor was Offline, and `MetricType` rows for the unit.
+- **Response time** (`Metric` aggregate): one series per probe every five minutes, and
+  `MetricType` rows for the unit. While the monitor was Offline, Frankfurt and Singapore
+  record their fast error responses and N. Virginia, whose checks time out, records nothing,
+  as the server does: it writes the metric whenever a check has a response time.
 - **Open work**: while the subject is Offline, incident `20000000-…-000000001042` (SEV-1,
   Created) and alert `30000000-…-000000000311` (Critical, Acknowledged) are open on it.
 - **Owners**: Maya Chen, Sam Rivera and the Checkout SRE team (not on the network device).
@@ -66,7 +74,7 @@ another monitor lands on a plain, healthy one.
 | Parameter | Values |
 |---|---|
 | `?type=` | `api` (default), `website`, `ssl`, `incoming-request`, `incoming-email`, `server`, `kubernetes`, `network-device`, `manual` |
-| `?state=` | comma separated. The status: `operational` (default), `offline` (for 12 minutes), `degraded` (for 25 minutes). Plus any of: `disabled`, `maintenance`, `no-probes`, `probes-off`, `disconnected`, `stale` (last results 38 minutes old), `awaiting` (created 2 minutes ago, nothing received). `disabled,probes-off` is a disabled monitor whose probes are all switched off. |
+| `?state=` | comma separated. The status: `operational` (default), `offline` (for 12 minutes), `degraded` (for 25 minutes). Plus any of: `disabled`, `maintenance`, `no-probes`, `probes-off`, `disconnected` (every probe), `one-disconnected` (Singapore went offline 3 days ago, and its last result and next check stayed there; the other two probes report on time), `stale` (last results 38 minutes old; for `kubernetes`, the worker still stamps the monitor every minute but the newest evaluation in `MonitorLog` is 14 minutes old), `awaiting` (created 2 minutes ago, nothing received). `disabled,probes-off` is a disabled monitor whose probes are all switched off. |
 | `?history=` | `full` (default, created in March), `new` (created 12 days ago), `flapping` (an outage every 6h40m for three months) |
 | `?role=` | `owner` (default, ProjectOwner), `viewer`, `monitor-viewer`, `read-project-monitor`. Reads of a model the role cannot read are refused the way the API refuses them, and so is a select that names a column the role cannot read (the secret keys). |
 | `?fail=` | comma separated: `uptime-summary` (the first request fails), `incidents` (every Incident list), `probes` (every MonitorProbe list), `monitor` (the first overview read of the Monitor row; the layout's and header's reads succeed), `refresh-status` (every request) |
@@ -79,17 +87,21 @@ another monitor lands on a plain, healthy one.
 
 - **Probe checks**: the operational API monitor (headline, target, facts, pulse, the four
   stat cells and their numbers, exactly 90 bars and the 90-day figure, both columns' card
-  order, the probe picker, the status dot's colour); Offline with an open incident and alert
-  (danger tile, failure cause, Open now links, open-work rows and links); a new monitor (no-data
-  bars before creation, "measured over", the creation footnote); probes off; disabled with
-  no probe enabled; maintenance ("includes paused time"); stale (Checks overdue, Overdue by,
-  the tile is amber not emerald); degraded; disconnected; no probes; awaiting the first check;
-  the SSL certificate expiry fact; a day bar opening its dialog with the incident; a flapping
-  history.
+  order, the probe picker, the status dot's colour, the Response time plot's height); Offline
+  with an open incident and alert (danger tile, failure cause, Open now links, open-work rows
+  with their severity, and links); a new monitor (no-data bars before creation, "measured
+  over", the creation footnote); probes off; disabled with no probe enabled; maintenance
+  ("includes paused time", no probe Late, "Checks paused"); disabled (no probe Late); stale
+  (Checks overdue, Overdue by, the tile is amber not emerald); degraded; every probe
+  disconnected; one probe of three disconnected (not overdue, the next check from the
+  probes still checking, the agreement rule over the connected probes); no probes; awaiting
+  the first check; the SSL certificate expiry fact; a day bar opening its dialog with the
+  incident; a flapping history.
 - **Other families**: incoming request awaiting (owner: URL, copy, curl; viewer: the lock
   state and no secret anywhere in the page) and after data (Connection card); incoming email;
-  server awaiting and after data; Kubernetes; network device (device link, no owners);
-  manual (guide card, no Summary, no MonitorLog read).
+  server awaiting and after data; Kubernetes, and Kubernetes whose evaluations stopped
+  landing (overdue by the evaluation log, not the worker's stamp); network device (device
+  link, no owners); manual (guide card, no Summary, no MonitorLog read).
 - **Roles**: MonitorViewer (Open now "—", the response-time fallback, no Incident, Alert or
   Metric read), Viewer (no secret-key column in the select), ReadProjectMonitor (no
   duration, "—" tiles, hidden history and activity, no MonitorProbe, MonitorStatusTimeline,
@@ -102,8 +114,9 @@ another monitor lands on a plain, healthy one.
   timeline's limit and sort, the evaluation log limit, the open-work filters); moving to
   another monitor through a header link; a hero call to action.
 - **Responsive and theme**: 390px (no sideways scroll for every type, the strip starts at
-  today, facts and stat bar in one column), 768px (2 x 2 stat bar, one column, card titles
-  not squeezed), 1280px (two thirds and one third), and dark mode.
+  today and its date labels scroll with the bars, facts and stat bar in one column), 768px
+  (2 x 2 stat bar, one column, card titles not squeezed), 1280px (two thirds and one third),
+  the Response time plot at least 150px tall at 390, 768 and 1440px, and dark mode.
 
 `afterEach` fails a test on an uncaught page error, on any request the fixture does not
 model, and on any request the network fence had to abort.
@@ -146,6 +159,3 @@ real clock, not the pinned one.
 - Telemetry previews: no Logs, Metrics, Traces or Security Events monitor is modelled.
 - Custom fields: the project defines none, so the card stays hidden.
 - Dependencies: no monitor depends on another, so the suppression notice stays hidden.
-- The Tailwind build is the CDN one, which compiles a class only once it appears in the DOM.
-  `server.js` declares the uptime strip's classes up front (production CSS is compiled ahead
-  of time), because the strip measures itself on its first render.

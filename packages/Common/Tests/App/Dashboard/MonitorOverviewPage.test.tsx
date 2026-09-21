@@ -1764,3 +1764,177 @@ describe("Monitor overview page: wiring", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("Monitor overview page: the moment it is judged at", () => {
+  afterEach(() => {
+    // Back to jsdom's own (visible) document.
+    delete (document as unknown as Record<string, unknown>)["visibilityState"];
+  });
+
+  test("a browser clock seven minutes fast is corrected by the server's clock", async () => {
+    // The server stamped every time around NOW; the browser says 12:07.
+    jest.setSystemTime(new Date(NOW.getTime() + 7 * 60 * 1000));
+
+    await renderPage();
+
+    // The result is 30 s old on the server's clock, not 7m30s.
+    expect(
+      within(screen.getByTestId("monitor-overview-badge")).getByText(
+        "Operational",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Checks overdue")).toBeNull();
+
+    const probesCard: HTMLElement = heading("Probes").closest(
+      '[data-testid="card"]',
+    ) as HTMLElement;
+    expect(within(probesCard).queryByText("Late")).toBeNull();
+  });
+
+  test("coming back to a tab hidden for ten minutes does not flash 'overdue' before the poll lands", async () => {
+    await renderPage();
+
+    expect(screen.queryByText("Checks overdue")).toBeNull();
+
+    // Hidden for ten minutes: the ticks are skipped, nothing is re-read.
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: (): DocumentVisibilityState => {
+        return "hidden";
+      },
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(10 * 60 * 1000);
+    });
+    await flush();
+
+    expect(itemRequests()).toHaveLength(1);
+
+    // Back to the tab: the catch-up poll starts, its Monitor read is slow.
+    holdMonitorRead(MONITOR_A);
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: (): DocumentVisibilityState => {
+        return "visible";
+      },
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await flush();
+
+    expect(itemRequests()).toHaveLength(2);
+
+    /*
+     * The page re-rendered for the poll, but still judges what it holds at
+     * the moment it loaded it.
+     */
+    expect(
+      within(screen.getByTestId("monitor-overview-badge")).getByText(
+        "Operational",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Checks overdue")).toBeNull();
+
+    await releaseMonitorRead(MONITOR_A);
+  });
+});
+
+describe("Monitor overview page: the uptime caveat", () => {
+  test("a manual monitor with an incident declared on it gets no 'paused time' caveat", async () => {
+    setUpServer({
+      id: MONITOR_A,
+      type: MonitorType.Manual,
+      statusId: OPERATIONAL_ID,
+      stepData: null,
+      overrides: { disableActiveMonitoringBecauseOfManualIncident: true },
+    });
+    server.probes = [];
+
+    await renderPage();
+
+    for (const id of [
+      "monitor-uptime-24h",
+      "monitor-uptime-7d",
+      "monitor-uptime-30d",
+    ]) {
+      expect(tile(id)).toHaveTextContent("100%");
+      expect(tile(id)).not.toHaveTextContent("includes paused time");
+    }
+  });
+
+  test("a paused probe check's windows include paused time", async () => {
+    setUpServer({
+      ...API_MONITOR,
+      overrides: { disableActiveMonitoring: true },
+    });
+
+    await renderPage();
+
+    for (const id of [
+      "monitor-uptime-24h",
+      "monitor-uptime-7d",
+      "monitor-uptime-30d",
+    ]) {
+      expect(tile(id)).toHaveTextContent("No downtime · includes paused time");
+    }
+  });
+});
+
+describe("Monitor overview page: a history the page hides", () => {
+  test("the uptime history is read once and not reloaded while the monitor waits for data, then once when it shows", async () => {
+    setUpServer({
+      id: MONITOR_A,
+      type: MonitorType.IncomingRequest,
+      statusId: OPERATIONAL_ID,
+    });
+    server.probes = [];
+
+    await renderPage();
+
+    // Waiting for its first heartbeat: no stat bar, no history.
+    expect(
+      screen.queryByRole("heading", { name: "Uptime history" }),
+    ).toBeNull();
+    expect(apiGetUrls("/monitor/uptime-summary/")).toHaveLength(1);
+
+    // Five polls and a Refresh would each reload a shown history.
+    for (let tick: number = 0; tick < 5; tick++) {
+      await act(async () => {
+        jest.advanceTimersByTime(MONITOR_OVERVIEW_REFRESH_INTERVAL_MS);
+      });
+      await flush();
+    }
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("monitor-overview-refresh"));
+    });
+    await flush();
+
+    expect(itemRequests()).toHaveLength(7);
+    expect(apiGetUrls("/monitor/uptime-summary/")).toHaveLength(1);
+
+    // The first heartbeat arrives: the history shows, and is read once.
+    setUpServer({
+      id: MONITOR_A,
+      type: MonitorType.IncomingRequest,
+      statusId: OPERATIONAL_ID,
+      overrides: {
+        incomingMonitorRequest: {
+          incomingRequestReceivedAt: new Date(
+            NOW.getTime() + 6 * MONITOR_OVERVIEW_REFRESH_INTERVAL_MS - 5000,
+          ),
+          requestMethod: "POST",
+        } as unknown as Monitor["incomingMonitorRequest"],
+      },
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(MONITOR_OVERVIEW_REFRESH_INTERVAL_MS);
+    });
+    await flush();
+
+    expect(heading("Uptime history")).toBeInTheDocument();
+    expect(apiGetUrls("/monitor/uptime-summary/")).toHaveLength(2);
+  });
+});

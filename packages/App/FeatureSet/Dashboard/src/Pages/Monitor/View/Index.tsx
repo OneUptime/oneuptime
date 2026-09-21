@@ -49,6 +49,7 @@ import MonitorOverviewPresentationUtil, {
   MonitorOverviewSections,
 } from "Common/Utils/Monitor/MonitorOverviewPresentationUtil";
 import { MonitorEvaluationByProbe } from "Common/Utils/Monitor/MonitorOverviewProbeUtil";
+import { MonitorUptimeCaveat } from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
 import React, {
   Fragment,
   FunctionComponent,
@@ -94,12 +95,58 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     monitorId: modelId,
   });
 
+  const monitor: Monitor | null = data.monitor;
+
+  /*
+   * The moment the page is judged at: when the data on screen was
+   * committed, on the server's clock.
+   * - The commit, not the render: a render between polls (a refresh
+   *   starting, the tab coming back after an hour) must not age results
+   *   the page has not re-read yet, or the hero would flash "overdue" until
+   *   the new data lands. Every poll's commit moves it on, so a real
+   *   "overdue" still shows within a poll.
+   * - The server's clock: every time the monitor carries was stamped by the
+   *   server, so a browser clock minutes fast would read every check as late.
+   * The ticking relative times ("2 minutes ago") keep the reader's clock.
+   */
+  const now: Date = new Date(
+    (data.lastLoadedAt || OneUptimeDate.getCurrentDate()).getTime() +
+      data.serverClockOffsetMs,
+  );
+
+  const presentationInput: MonitorOverviewPresentationInput | null = monitor
+    ? toPresentationInput({
+        monitor: monitor,
+        probes: data.probes,
+        statusRows: data.statusRows,
+        evaluation: data.evaluation,
+        now: now,
+      })
+    : null;
+
+  let presentation: MonitorOverviewPresentation | null = null;
+  let presentationError: string = "";
+
+  if (presentationInput) {
+    try {
+      presentation = MonitorOverviewPresentationUtil.build(presentationInput);
+    } catch (err) {
+      /*
+       * A monitor type this build of the dashboard does not know has no
+       * overview family. The page says so below instead of going down.
+       */
+      presentationError = err instanceof Error ? err.message : "";
+    }
+  }
+
   /*
    * The uptime aggregate reloads every fifth poll, when the status changes
    * and on the Refresh button. It follows the status change COUNT rather
    * than the fingerprint: the fingerprint goes from "" to its first value
    * when the page loads, which would read the aggregate a second time on
-   * every visit.
+   * every visit. While the page hides the uptime sections (a monitor still
+   * waiting for its first data) it is read once and not reloaded. Its
+   * server time is the page's measure of the server's clock.
    */
   const uptime: UseMonitorUptimeSummaryResult = useMonitorUptimeSummary({
     monitorId: modelId,
@@ -108,6 +155,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       Math.floor(data.pollCount / MONITOR_OVERVIEW_UPTIME_POLLS_PER_RELOAD),
       data.manualRefreshCount,
     ].join("|"),
+    isShown: presentation ? presentation.sections.showUptime : true,
+    onServerClockOffset: data.setServerClockOffset,
   });
 
   /*
@@ -149,7 +198,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   }
 
-  if (data.error || !data.monitor) {
+  if (data.error || !monitor) {
     return (
       <ErrorMessage
         message={data.error || MONITOR_OVERVIEW_NOT_FOUND_MESSAGE}
@@ -158,35 +207,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   }
 
-  const monitor: Monitor = data.monitor;
-
-  /*
-   * Rebuilt on every render; the poll re-renders the page every minute, so
-   * "last checked 2 minutes ago" and "overdue" stay current.
-   */
-  const presentationInput: MonitorOverviewPresentationInput =
-    toPresentationInput({
-      monitor: monitor,
-      probes: data.probes,
-      statusRows: data.statusRows,
-      evaluation: data.evaluation,
-      now: OneUptimeDate.getCurrentDate(),
-    });
-
-  let presentation: MonitorOverviewPresentation;
-
-  try {
-    presentation = MonitorOverviewPresentationUtil.build(presentationInput);
-  } catch (err) {
-    /*
-     * A monitor type this build of the dashboard does not know has no
-     * overview family. Say so instead of taking the whole page down.
-     */
-    const reason: string = err instanceof Error ? err.message : "";
-
+  if (!presentationInput || !presentation) {
     return (
       <ErrorMessage
-        message={`This monitor's overview cannot be shown. ${reason}`.trim()}
+        message={`This monitor's overview cannot be shown. ${presentationError}`.trim()}
       />
     );
   }
@@ -211,12 +235,14 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ? data.probes.error
       : undefined;
 
-  // Monitoring is off right now, so every uptime window includes paused time.
-  const isPausedNow: boolean = Boolean(
-    monitor.disableActiveMonitoring ||
-      monitor.disableActiveMonitoringBecauseOfManualIncident ||
-      monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent,
-  );
+  /*
+   * What every uptime window must add about time it counts but nothing
+   * measured: paused, nothing checking, or no check completed yet. It
+   * follows the run state, so a Manual monitor, which has no checks to
+   * pause, never gets one.
+   */
+  const uptimeCaveat: MonitorUptimeCaveat | null =
+    MonitorOverviewPresentationUtil.getUptimeCaveat(presentation);
 
   const feedRefreshToken: number =
     data.manualRefreshCount + data.statusChangeCount + detailsSaveCount;
@@ -261,7 +287,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           className="mb-5"
           monitorId={modelId}
           summary={uptime.summary}
-          isPausedNow={isPausedNow}
+          caveat={uptimeCaveat}
           openWork={openWork}
         />
       ) : (

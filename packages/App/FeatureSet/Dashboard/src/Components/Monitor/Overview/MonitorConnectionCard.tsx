@@ -58,9 +58,14 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
 
   const getValue: GetValueFunction = (): ReactElement => {
     if (props.kind === MonitorOverviewSetupKind.ServerAgent) {
-      const hostname: string = (
-        monitor.serverMonitorResponse?.hostname || ""
-      ).trim();
+      /*
+       * The agent's report is stored as it was sent, unvalidated, so a
+       * custom agent can send a hostname that is not a string. Calling
+       * .trim() on that threw during render and took the overview down.
+       */
+      const rawHostname: unknown = monitor.serverMonitorResponse?.hostname;
+      const hostname: string =
+        typeof rawHostname === "string" ? rawHostname.trim() : "";
 
       return (
         <p className="text-sm text-gray-700">

@@ -10,6 +10,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -287,6 +288,125 @@ const footnote: () => HTMLElement = (): HTMLElement => {
   return screen.getByTestId("monitor-uptime-footnote");
 };
 
+/*
+ * The strip's scroll box, which jsdom does not lay out. scrollLeft clamps
+ * to what can be scrolled, the way a browser does, so setting it before the
+ * content is wider than the box does nothing.
+ */
+interface StripLayout {
+  scrollWidth: number;
+  clientWidth: number;
+  scrollLeft: number;
+  writes: Array<number>;
+}
+
+const installStripLayout: (layout: StripLayout) => () => void = (
+  layout: StripLayout,
+): (() => void) => {
+  Object.defineProperty(HTMLDivElement.prototype, "scrollWidth", {
+    configurable: true,
+    get: (): number => {
+      return layout.scrollWidth;
+    },
+  });
+  Object.defineProperty(HTMLDivElement.prototype, "clientWidth", {
+    configurable: true,
+    get: (): number => {
+      return layout.clientWidth;
+    },
+  });
+  Object.defineProperty(HTMLDivElement.prototype, "scrollLeft", {
+    configurable: true,
+    get: (): number => {
+      return layout.scrollLeft;
+    },
+    set: (value: number): void => {
+      layout.writes.push(value);
+      layout.scrollLeft = Math.max(
+        0,
+        Math.min(value, layout.scrollWidth - layout.clientWidth),
+      );
+    },
+  });
+
+  return (): void => {
+    for (const property of ["scrollWidth", "clientWidth", "scrollLeft"]) {
+      delete (HTMLDivElement.prototype as unknown as Record<string, unknown>)[
+        property
+      ];
+    }
+  };
+};
+
+/*
+ * A ResizeObserver whose callbacks a test fires by hand. Like the real one,
+ * a disconnected observer is never called again.
+ */
+interface FakeResizeObserver {
+  observed: Array<Element>;
+  disconnectCount: () => number;
+  trigger: () => void;
+  restore: () => void;
+}
+
+const installResizeObserver: () => FakeResizeObserver =
+  (): FakeResizeObserver => {
+    const original: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(window, "ResizeObserver");
+    const observed: Array<Element> = [];
+    const callbacks: Array<ResizeObserverCallback> = [];
+    const instances: Array<ResizeObserver> = [];
+    const disconnected: Set<ResizeObserver> = new Set<ResizeObserver>();
+
+    class TestResizeObserver implements ResizeObserver {
+      public constructor(callback: ResizeObserverCallback) {
+        callbacks.push(callback);
+        instances.push(this);
+      }
+      public observe(target: Element): void {
+        observed.push(target);
+      }
+      public unobserve(): void {
+        return;
+      }
+      public disconnect(): void {
+        disconnected.add(this);
+      }
+    }
+
+    Object.defineProperty(window, "ResizeObserver", {
+      configurable: true,
+      writable: true,
+      value: TestResizeObserver,
+    });
+
+    return {
+      observed: observed,
+      disconnectCount: (): number => {
+        return disconnected.size;
+      },
+      trigger: (): void => {
+        act((): void => {
+          for (let index: number = 0; index < callbacks.length; index++) {
+            const instance: ResizeObserver = instances[index] as ResizeObserver;
+
+            if (!disconnected.has(instance)) {
+              callbacks[index]?.([], instance);
+            }
+          }
+        });
+      },
+      restore: (): void => {
+        if (original) {
+          Object.defineProperty(window, "ResizeObserver", original);
+        } else {
+          delete (window as unknown as { ResizeObserver?: unknown })
+            .ResizeObserver;
+        }
+      },
+    };
+  };
+
 beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(NOW);
@@ -379,6 +499,27 @@ describe("MonitorUptimeHistoryCard", () => {
     );
   });
 
+  test("a partly covered 90 days names the time it was measured over", () => {
+    // Created 12 days and 3 hours ago, with 53 minutes down since.
+    const coveredSeconds: number = 12 * 86400 + 3 * 3600;
+    const downSeconds: number = 53 * 60;
+
+    renderCard({
+      summary: loaded(
+        summaryOf({
+          windows: [
+            window90({ up: coveredSeconds - downSeconds, down: downSeconds }),
+          ],
+        }),
+      ),
+      monitorCreatedAt: new Date("2026-09-09T09:00:00.000Z"),
+    });
+
+    const figure: HTMLElement = screen.getByTestId("monitor-uptime-90d");
+    expect(figure).toHaveTextContent("99.696% measured over 12d 3h");
+    expect(figure).not.toHaveTextContent("90 days");
+  });
+
   test("a monitor with nothing recorded in 90 days says 'No data yet', not 100%", () => {
     renderCard({
       summary: loaded(summaryOf({ windows: [window90({ up: 0, down: 0 })] })),
@@ -427,6 +568,99 @@ describe("MonitorUptimeHistoryCard", () => {
       delete (HTMLDivElement.prototype as unknown as Record<string, unknown>)[
         "scrollLeft"
       ];
+    }
+  });
+
+  test("the strip still starts at today when its width arrives after the first layout", () => {
+    /*
+     * Production compiles Tailwind classes in the browser after React's
+     * layout effects, so on a phone the strip first lays out with no
+     * min-width: the bars fit and there is nothing to scroll. Then the
+     * 36rem arrives and the strip overflows.
+     */
+    const layout: StripLayout = {
+      scrollWidth: 358,
+      clientWidth: 358,
+      scrollLeft: 0,
+      writes: [],
+    };
+    const restoreLayout: () => void = installStripLayout(layout);
+    const resizeObserver: FakeResizeObserver = installResizeObserver();
+
+    try {
+      renderCard({});
+
+      const strip: HTMLElement = screen.getByTestId("monitor-uptime-strip");
+      expect(resizeObserver.observed).toEqual(
+        expect.arrayContaining([strip, strip.firstElementChild]),
+      );
+      expect(layout.scrollLeft).toBe(0);
+
+      layout.scrollWidth = 576;
+      resizeObserver.trigger();
+
+      expect(layout.scrollLeft).toBe(576 - 358);
+    } finally {
+      resizeObserver.restore();
+      restoreLayout();
+    }
+  });
+
+  test("once the reader scrolls back in time, a resize leaves the strip where they put it", () => {
+    const layout: StripLayout = {
+      scrollWidth: 576,
+      clientWidth: 358,
+      scrollLeft: 0,
+      writes: [],
+    };
+    const restoreLayout: () => void = installStripLayout(layout);
+    const resizeObserver: FakeResizeObserver = installResizeObserver();
+
+    try {
+      renderCard({});
+
+      const strip: HTMLElement = screen.getByTestId("monitor-uptime-strip");
+      expect(layout.scrollLeft).toBe(218);
+
+      // The scroll event the card's own scroll fires is not the reader.
+      fireEvent.scroll(strip);
+      layout.clientWidth = 300;
+      resizeObserver.trigger();
+      expect(layout.scrollLeft).toBe(276);
+
+      // The reader scrolls back to August.
+      layout.scrollLeft = 40;
+      fireEvent.scroll(strip);
+      const writesBefore: number = layout.writes.length;
+
+      layout.clientWidth = 358;
+      resizeObserver.trigger();
+      expect(layout.writes).toHaveLength(writesBefore);
+      expect(layout.scrollLeft).toBe(40);
+
+      // Scrolling back to today pins it to today again.
+      layout.scrollLeft = 218;
+      fireEvent.scroll(strip);
+      layout.scrollWidth = 600;
+      resizeObserver.trigger();
+      expect(layout.scrollLeft).toBe(600 - 358);
+    } finally {
+      resizeObserver.restore();
+      restoreLayout();
+    }
+  });
+
+  test("the strip stops observing its size when the card goes", () => {
+    const resizeObserver: FakeResizeObserver = installResizeObserver();
+
+    try {
+      const view: RenderResult = renderCard({});
+      expect(resizeObserver.disconnectCount()).toBe(0);
+
+      view.unmount();
+      expect(resizeObserver.disconnectCount()).toBe(1);
+    } finally {
+      resizeObserver.restore();
     }
   });
 

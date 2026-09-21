@@ -39,6 +39,31 @@ export const getResponseTimeCardTitle: (metric: MonitorMetricType) => string = (
 };
 
 /*
+ * The probe writes a response time for every check that got an answer,
+ * error responses included (a 503 comes back in 94 ms like a 200 does). A
+ * timeout or a connection error has no answer and no time, so those checks
+ * are the only ones missing from the chart.
+ */
+export const RESPONSE_TIME_CARD_DESCRIPTION: string =
+  "Average response time per probe. Error responses are included; timeouts and connection errors are not.";
+
+/*
+ * "across 3 probes", or "across 2 of 3 probes" when some probes' latest
+ * result had no response time to count.
+ */
+export const getResponseTimeProbesText: (
+  responseTime: MonitorOverviewResponseTime,
+) => string = (responseTime: MonitorOverviewResponseTime): string => {
+  if (responseTime.totalCount > responseTime.respondedCount) {
+    return `across ${responseTime.respondedCount} of ${responseTime.totalCount} probes`;
+  }
+
+  return `across ${responseTime.respondedCount} ${
+    responseTime.respondedCount === 1 ? "probe" : "probes"
+  }`;
+};
+
+/*
  * The last day of response (or script run) time, one line per probe, from
  * the same metric the Metrics tab charts. Reading metrics needs a telemetry
  * permission that some monitor roles do not have; for them the card falls
@@ -104,11 +129,9 @@ const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
           </p>
           {responseTime ? (
             <p className="mt-2 text-sm text-gray-900">
-              {`Latest: ${responseTime.medianMs} ms median across ${
-                responseTime.respondedCount
-              } ${responseTime.respondedCount === 1 ? "probe" : "probes"} (${
-                responseTime.minMs
-              }–${responseTime.maxMs} ms)`}
+              {`Latest: ${responseTime.medianMs} ms median ${getResponseTimeProbesText(
+                responseTime,
+              )} (${responseTime.minMs}–${responseTime.maxMs} ms)`}
             </p>
           ) : (
             <></>
@@ -130,7 +153,7 @@ const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
       description={
         isExecutionTime
           ? "How long each run took, per probe."
-          : "Average response time per probe. Failed checks are not included."
+          : RESPONSE_TIME_CARD_DESCRIPTION
       }
     >
       <EmbeddedMetricCard

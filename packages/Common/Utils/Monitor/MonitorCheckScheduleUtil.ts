@@ -34,6 +34,20 @@ export interface MonitorCheckFreshnessResult {
   resultAgeSeconds: number | null;
 }
 
+export interface MonitorScheduledRun {
+  // The first run the schedule has after the given time.
+  runAt: Date;
+  // Seconds from that run to the one after it.
+  spacingSeconds: number;
+}
+
+export interface MonitorResultLateness {
+  // Seconds past the time the next result was due; negative while not due.
+  lateSeconds: number;
+  // How late it may be before it counts as overdue.
+  graceSeconds: number;
+}
+
 const secondsBetween: (later: Date, earlier: Date) => number = (
   later: Date,
   earlier: Date,
@@ -103,6 +117,89 @@ export default class MonitorCheckScheduleUtil {
   }
 
   /*
+   * The first run the schedule has after `after`, and the spacing of the
+   * schedule at that point. Null when the interval is empty or unreadable.
+   */
+  public static getNextRunAfter(data: {
+    monitoringInterval: string | null | undefined;
+    after: Date;
+  }): MonitorScheduledRun | null {
+    try {
+      const cron: string | null = MonitoringIntervalUtil.toCronOrNull(
+        data.monitoringInterval,
+      );
+
+      if (!cron) {
+        return null;
+      }
+
+      const runs: Array<Date> = CronTab.getNextExecutionTimes(
+        cron,
+        2,
+        data.after,
+      );
+      const first: Date | undefined = runs[0];
+      const second: Date | undefined = runs[1];
+
+      if (!first || !second) {
+        return null;
+      }
+
+      const spacingSeconds: number = secondsBetween(second, first);
+
+      return spacingSeconds > 0
+        ? { runAt: first, spacingSeconds: spacingSeconds }
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /*
+   * How late the result after `lastResultAt` is. Judged against the run the
+   * schedule wanted after that result, not against the spacing around now:
+   * a schedule with gaps ("every 5 minutes, 9 to 5 on weekdays") would
+   * otherwise read as overdue through every night and weekend, because at
+   * 20:00 its runs are still five minutes apart. Without a readable
+   * interval the result is due one cadence after it arrived, as before.
+   */
+  public static getResultLateness(data: {
+    lastResultAt: Date;
+    monitoringInterval?: string | null | undefined;
+    cadenceSeconds: number;
+    now: Date;
+  }): MonitorResultLateness {
+    const nextRun: MonitorScheduledRun | null =
+      MonitorCheckScheduleUtil.getNextRunAfter({
+        monitoringInterval: data.monitoringInterval,
+        after: data.lastResultAt,
+      });
+
+    if (nextRun) {
+      return {
+        lateSeconds: secondsBetween(data.now, nextRun.runAt),
+        graceSeconds: MonitorCheckScheduleUtil.getGraceSeconds(
+          nextRun.spacingSeconds,
+        ),
+      };
+    }
+
+    const cadenceSeconds: number = Number.isFinite(data.cadenceSeconds)
+      ? Math.max(0, data.cadenceSeconds)
+      : MonitorCheckScheduleUtil.DEFAULT_CADENCE_SECONDS;
+    // A timestamp from the future (clock skew) counts as just now.
+    const ageSeconds: number = Math.max(
+      0,
+      secondsBetween(data.now, data.lastResultAt),
+    );
+
+    return {
+      lateSeconds: ageSeconds - cadenceSeconds,
+      graceSeconds: MonitorCheckScheduleUtil.getGraceSeconds(cadenceSeconds),
+    };
+  }
+
+  /*
    * "Every 5 minutes". An empty or unreadable interval is described as the
    * schedule it actually gets, which is every minute.
    */
@@ -133,6 +230,13 @@ export default class MonitorCheckScheduleUtil {
     return Math.max(300, 2 * cadenceSeconds);
   }
 
+  /*
+   * `now` must be on the server's clock: every time compared with it
+   * (results, claims, creation) was stamped by the server, so a browser
+   * clock that runs fast would otherwise read as every check being late.
+   * With `monitoringInterval`, a result is due at the schedule's first run
+   * after it (see getResultLateness); without it, one cadence after it.
+   */
   public static getCheckFreshness(data: {
     isScheduled: boolean;
     isKnown: boolean;
@@ -141,6 +245,7 @@ export default class MonitorCheckScheduleUtil {
     cadenceSeconds: number;
     createdAt: Date | undefined;
     now: Date;
+    monitoringInterval?: string | null | undefined;
   }): MonitorCheckFreshnessResult {
     const resultAgeSeconds: number | null = data.lastResultAt
       ? toWholeSeconds(secondsBetween(data.now, data.lastResultAt))
@@ -171,16 +276,22 @@ export default class MonitorCheckScheduleUtil {
     if (!data.lastResultAt) {
       /*
        * A monitor that has never reported is only "waiting" while it is
-       * young. Past one cadence plus grace since creation, the first result
-       * is overdue like any other.
+       * young. Once its first scheduled run after creation is further back
+       * than the grace, the first result is overdue like any other.
        */
       if (data.createdAt) {
-        const ageSeconds: number = secondsBetween(data.now, data.createdAt);
+        const lateness: MonitorResultLateness =
+          MonitorCheckScheduleUtil.getResultLateness({
+            lastResultAt: data.createdAt,
+            monitoringInterval: data.monitoringInterval,
+            cadenceSeconds: cadenceSeconds,
+            now: data.now,
+          });
 
-        if (ageSeconds > cadenceSeconds + graceSeconds) {
+        if (lateness.lateSeconds > lateness.graceSeconds) {
           return {
             freshness: MonitorCheckFreshness.Stale,
-            overdueSeconds: toWholeSeconds(ageSeconds - cadenceSeconds),
+            overdueSeconds: toWholeSeconds(lateness.lateSeconds),
             resultAgeSeconds: null,
           };
         }
@@ -198,11 +309,18 @@ export default class MonitorCheckScheduleUtil {
       0,
       secondsBetween(data.now, data.lastResultAt),
     );
+    const lateness: MonitorResultLateness =
+      MonitorCheckScheduleUtil.getResultLateness({
+        lastResultAt: data.lastResultAt,
+        monitoringInterval: data.monitoringInterval,
+        cadenceSeconds: cadenceSeconds,
+        now: data.now,
+      });
 
-    if (ageSeconds > cadenceSeconds + graceSeconds) {
+    if (lateness.lateSeconds > lateness.graceSeconds) {
       return {
         freshness: MonitorCheckFreshness.Stale,
-        overdueSeconds: toWholeSeconds(ageSeconds - cadenceSeconds),
+        overdueSeconds: toWholeSeconds(lateness.lateSeconds),
         resultAgeSeconds: toWholeSeconds(ageSeconds),
       };
     }

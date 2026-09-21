@@ -10,7 +10,9 @@ import { JSONObject } from "../../Types/JSON";
 import MonitorEvaluationSummary from "../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
-import MonitorCheckScheduleUtil from "./MonitorCheckScheduleUtil";
+import MonitorCheckScheduleUtil, {
+  MonitorResultLateness,
+} from "./MonitorCheckScheduleUtil";
 import MonitorOverviewFamilyUtil, {
   MonitorOverviewFamily,
 } from "./MonitorOverviewFamily";
@@ -66,7 +68,7 @@ export interface MonitorOverviewResponseTime {
   medianMs: number;
   minMs: number;
   maxMs: number;
-  // Enabled probes whose latest result carries a response time.
+  // Reporting probes whose latest result carries a response time.
   respondedCount: number;
   // Enabled probes.
   totalCount: number;
@@ -78,11 +80,25 @@ export interface MonitorOverviewProbeSummary {
   enabledCount: number;
   // Enabled probes whose latest result is current (Up, Down or Reported).
   reportingCount: number;
+  // The reporting probes whose latest result is Up, and those that are Down.
+  upCount?: number | undefined;
+  downCount?: number | undefined;
   disabledCount: number;
   // Enabled probes whose connection is lost.
   disconnectedCount: number;
   lastResultAt?: Date | undefined;
+  /*
+   * The next check the pulse promises: the earliest nextPingAt still in the
+   * future among the probes that are checking (see getSchedulingRows).
+   */
   nextCheckAt?: Date | undefined;
+  /*
+   * The latest nextPingAt among the same probes, past or future. The
+   * monitor is behind its schedule only when even this one is past due:
+   * one stuck probe must not make a monitor that others check on time read
+   * as overdue.
+   */
+  latestNextCheckAt?: Date | undefined;
   latestResult?:
     | (MonitorOverviewProbeResult & { probeName: string })
     | undefined;
@@ -225,6 +241,43 @@ const getProbeKey: (monitorProbe: MonitorProbe) => string = (
   return monitorProbe.probeId?.toString() || "";
 };
 
+const isReportingHealth: (health: MonitorOverviewProbeHealth) => boolean = (
+  health: MonitorOverviewProbeHealth,
+): boolean => {
+  return (
+    health === MonitorOverviewProbeHealth.Up ||
+    health === MonitorOverviewProbeHealth.Down ||
+    health === MonitorOverviewProbeHealth.Reported
+  );
+};
+
+/*
+ * The probes whose schedule says when this monitor is next checked: the
+ * ones that are reporting, or, before any has reported, the ones still
+ * waiting for their first result. A disconnected or late probe's nextPingAt
+ * only moves when that probe claims the check again, so it sinks further
+ * into the past and says nothing about the probes still checking.
+ */
+const getSchedulingRows: (
+  enabledRows: Array<MonitorOverviewProbeRow>,
+) => Array<MonitorOverviewProbeRow> = (
+  enabledRows: Array<MonitorOverviewProbeRow>,
+): Array<MonitorOverviewProbeRow> => {
+  const reportingRows: Array<MonitorOverviewProbeRow> = enabledRows.filter(
+    (row: MonitorOverviewProbeRow) => {
+      return isReportingHealth(row.health);
+    },
+  );
+
+  if (reportingRows.length > 0) {
+    return reportingRows;
+  }
+
+  return enabledRows.filter((row: MonitorOverviewProbeRow) => {
+    return row.health === MonitorOverviewProbeHealth.NoResultYet;
+  });
+};
+
 export default class MonitorOverviewProbeUtil {
   /*
    * The picker's probes, disabled ids and raw responses. Moved verbatim from
@@ -326,10 +379,27 @@ export default class MonitorOverviewProbeUtil {
    * a probe was added, removed, switched on or off, or a probe has claimed
    * a check after the newest result we hold (so its result is on the way or
    * already in).
+   *
+   * A claim only counts while it can still produce a result we have not
+   * seen, or the page would re-read every probe's full results on every
+   * poll for a probe that never answers:
+   * - a disconnected probe's claim is not a result on the way;
+   * - `fullLoadedAt` is a cutoff, not simply the time of the last FULL read:
+   *   claims at or before it count as settled and are skipped. A read taken
+   *   after a claim saw the claim but not necessarily its result, so callers
+   *   pass a cutoff that only settles claims too old to still be answered
+   *   (useMonitorOverviewData's getSettledClaimCutoff);
+   * - with `now`, a probe that has never reported is pending only while its
+   *   claim is younger than one cadence plus grace. lastPingAt is also
+   *   stamped when the row is created, so an old claim with no result is a
+   *   late probe (the Probes card shows it), not a result about to land.
    */
   public static hasPendingProbeResults(data: {
     lightRows: Array<MonitorProbe>;
     fullRows: Array<MonitorProbe>;
+    now?: Date | undefined;
+    cadenceSeconds?: number | undefined;
+    fullLoadedAt?: Date | null | undefined;
   }): boolean {
     const lightRows: Array<MonitorProbe> = (data.lightRows || []).filter(
       (row: MonitorProbe) => {
@@ -370,8 +440,23 @@ export default class MonitorOverviewProbeUtil {
       fullByProbeId.set(getProbeKey(fullRow), fullRow);
     }
 
+    const cadenceSeconds: number =
+      data.cadenceSeconds !== undefined && Number.isFinite(data.cadenceSeconds)
+        ? Math.max(0, data.cadenceSeconds)
+        : MonitorCheckScheduleUtil.DEFAULT_CADENCE_SECONDS;
+    const claimLifetimeMs: number =
+      (cadenceSeconds +
+        MonitorCheckScheduleUtil.getGraceSeconds(cadenceSeconds)) *
+      1000;
+
     for (const lightRow of lightRows) {
       if (lightRow.isEnabled === false) {
+        continue;
+      }
+
+      if (
+        lightRow.probe?.connectionStatus === ProbeConnectionStatus.Disconnected
+      ) {
         continue;
       }
 
@@ -383,6 +468,13 @@ export default class MonitorOverviewProbeUtil {
         continue;
       }
 
+      if (
+        data.fullLoadedAt &&
+        claimedAt.getTime() <= data.fullLoadedAt.getTime()
+      ) {
+        continue;
+      }
+
       const fullRow: MonitorProbe | undefined = fullByProbeId.get(
         getProbeKey(lightRow),
       );
@@ -390,7 +482,18 @@ export default class MonitorOverviewProbeUtil {
         ? getNewestMonitoredAt(fullRow)
         : undefined;
 
-      if (!newestResultAt || claimedAt.getTime() > newestResultAt.getTime()) {
+      if (newestResultAt) {
+        if (claimedAt.getTime() > newestResultAt.getTime()) {
+          return true;
+        }
+
+        continue;
+      }
+
+      if (
+        !data.now ||
+        data.now.getTime() - claimedAt.getTime() <= claimLifetimeMs
+      ) {
         return true;
       }
     }
@@ -441,21 +544,24 @@ export default class MonitorOverviewProbeUtil {
     return typeof id === "string" && id ? id : null;
   }
 
+  /*
+   * `now` must be on the server's clock (see getCheckFreshness). With
+   * `monitoringInterval`, a probe is late when the schedule's first run
+   * after its result is further back than the grace, so a schedule with
+   * gaps does not mark every probe late through the gap. `isScheduled`
+   * false (monitoring is paused) means no probe is expected to check, so
+   * none is late: each keeps the verdict of its last result.
+   */
   public static summarizeProbes(data: {
     monitorProbes: Array<MonitorProbe>;
     validStepIds: Set<string> | null;
     primaryStepId: string | null;
     cadenceSeconds: number;
     now: Date;
+    monitoringInterval?: string | null | undefined;
+    isScheduled?: boolean | undefined;
   }): MonitorOverviewProbeSummary {
-    const graceSeconds: number = MonitorCheckScheduleUtil.getGraceSeconds(
-      data.cadenceSeconds,
-    );
-    const lateAfterMs: number =
-      ((Number.isFinite(data.cadenceSeconds) ? data.cadenceSeconds : 0) +
-        graceSeconds) *
-      1000;
-
+    const isScheduled: boolean = data.isScheduled !== false;
     const rows: Array<MonitorOverviewProbeRow> = [];
 
     for (const monitorProbe of data.monitorProbes || []) {
@@ -492,8 +598,13 @@ export default class MonitorOverviewProbeUtil {
       } else if (!latestResult?.monitoredAt) {
         health = MonitorOverviewProbeHealth.NoResultYet;
       } else if (
-        data.now.getTime() - latestResult.monitoredAt.getTime() >
-        lateAfterMs
+        isScheduled &&
+        MonitorOverviewProbeUtil.isResultLate({
+          monitoredAt: latestResult.monitoredAt,
+          monitoringInterval: data.monitoringInterval,
+          cadenceSeconds: data.cadenceSeconds,
+          now: data.now,
+        })
       ) {
         health = MonitorOverviewProbeHealth.Late;
       } else if (latestResult.isOnline === false) {
@@ -534,7 +645,6 @@ export default class MonitorOverviewProbeUtil {
     );
 
     let lastResultAt: Date | undefined = undefined;
-    let nextCheckAt: Date | undefined = undefined;
     let latestRow: MonitorOverviewProbeRow | undefined = undefined;
     const responseTimes: Array<number> = [];
 
@@ -549,38 +659,71 @@ export default class MonitorOverviewProbeUtil {
         latestRow = row;
       }
 
-      if (
-        row.nextPingAt &&
-        (!nextCheckAt || row.nextPingAt.getTime() < nextCheckAt.getTime())
-      ) {
-        nextCheckAt = row.nextPingAt;
-      }
-
+      /*
+       * "Latest" response time means now: a days-old reading from a probe
+       * that has since disconnected or gone quiet would skew the range.
+       */
       const responseTimeInMs: number | undefined =
         row.latestResult?.responseTimeInMs;
 
-      if (responseTimeInMs !== undefined && responseTimeInMs > 0) {
+      if (
+        isReportingHealth(row.health) &&
+        responseTimeInMs !== undefined &&
+        responseTimeInMs > 0
+      ) {
         responseTimes.push(responseTimeInMs);
       }
     }
+
+    let nextCheckAt: Date | undefined = undefined;
+    let latestNextCheckAt: Date | undefined = undefined;
+
+    for (const row of getSchedulingRows(enabledRows)) {
+      const nextPingAt: Date | undefined = row.nextPingAt;
+
+      if (!nextPingAt) {
+        continue;
+      }
+
+      if (
+        nextPingAt.getTime() > data.now.getTime() &&
+        (!nextCheckAt || nextPingAt.getTime() < nextCheckAt.getTime())
+      ) {
+        nextCheckAt = nextPingAt;
+      }
+
+      if (
+        !latestNextCheckAt ||
+        nextPingAt.getTime() > latestNextCheckAt.getTime()
+      ) {
+        latestNextCheckAt = nextPingAt;
+      }
+    }
+
+    const countHealth: (health: MonitorOverviewProbeHealth) => number = (
+      health: MonitorOverviewProbeHealth,
+    ): number => {
+      return enabledRows.filter((row: MonitorOverviewProbeRow) => {
+        return row.health === health;
+      }).length;
+    };
 
     return {
       rows: rows,
       attachedCount: rows.length,
       enabledCount: enabledRows.length,
       reportingCount: enabledRows.filter((row: MonitorOverviewProbeRow) => {
-        return (
-          row.health === MonitorOverviewProbeHealth.Up ||
-          row.health === MonitorOverviewProbeHealth.Down ||
-          row.health === MonitorOverviewProbeHealth.Reported
-        );
+        return isReportingHealth(row.health);
       }).length,
+      upCount: countHealth(MonitorOverviewProbeHealth.Up),
+      downCount: countHealth(MonitorOverviewProbeHealth.Down),
       disabledCount: rows.length - enabledRows.length,
       disconnectedCount: rows.filter((row: MonitorOverviewProbeRow) => {
         return row.health === MonitorOverviewProbeHealth.Disconnected;
       }).length,
       lastResultAt: lastResultAt,
       nextCheckAt: nextCheckAt,
+      latestNextCheckAt: latestNextCheckAt,
       latestResult:
         latestRow && latestRow.latestResult
           ? { ...latestRow.latestResult, probeName: latestRow.name }
@@ -688,6 +831,23 @@ export default class MonitorOverviewProbeUtil {
     }
 
     return clamp(2 * data.enabledProbeCount, 1, 20);
+  }
+
+  private static isResultLate(data: {
+    monitoredAt: Date;
+    monitoringInterval: string | null | undefined;
+    cadenceSeconds: number;
+    now: Date;
+  }): boolean {
+    const lateness: MonitorResultLateness =
+      MonitorCheckScheduleUtil.getResultLateness({
+        lastResultAt: data.monitoredAt,
+        monitoringInterval: data.monitoringInterval,
+        cadenceSeconds: data.cadenceSeconds,
+        now: data.now,
+      });
+
+    return lateness.lateSeconds > lateness.graceSeconds;
   }
 
   private static hasVerdict(

@@ -5,6 +5,7 @@ import useMonitorUptimeSummary, {
   MONITOR_UPTIME_ACCESS_REASONS,
   MONITOR_UPTIME_SUMMARY_UNREADABLE_MESSAGE,
   UseMonitorUptimeSummaryResult,
+  getServerClockOffsetMs,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/useMonitorUptimeSummary";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -561,5 +562,232 @@ describe("useMonitorUptimeSummary", () => {
     expect(
       (incidentRequests()[0]!.query["monitors"] as Includes).values,
     ).toEqual([OTHER_MONITOR_ID]);
+  });
+});
+
+describe("useMonitorUptimeSummary: while the page hides the history", () => {
+  type ShownProps = {
+    monitorId: ObjectID;
+    refreshKey: string;
+    isShown: boolean;
+  };
+
+  function renderShown(initialProps: ShownProps): {
+    result: { current: UseMonitorUptimeSummaryResult };
+    rerender: (props: ShownProps) => void;
+  } {
+    return renderHook(
+      (hookProps: ShownProps): UseMonitorUptimeSummaryResult => {
+        return useMonitorUptimeSummary(hookProps);
+      },
+      { initialProps: initialProps },
+    );
+  }
+
+  test("reads once per monitor, holds reloads back, and reloads once when shown", async () => {
+    const { result, rerender } = renderShown({
+      monitorId: MONITOR_ID,
+      refreshKey: "a",
+      isShown: false,
+    });
+    await flush();
+
+    // The first read is not held back: it stays off the critical path.
+    expect(apiGetRequests()).toHaveLength(1);
+    expect(incidentRequests()).toHaveLength(1);
+    expect(result.current.summary.status).toBe("loaded");
+
+    // Polls and refreshes move the key; nothing is shown, so nothing reloads.
+    rerender({ monitorId: MONITOR_ID, refreshKey: "b", isShown: false });
+    await flush();
+    rerender({ monitorId: MONITOR_ID, refreshKey: "c", isShown: false });
+    await flush();
+
+    expect(apiGetRequests()).toHaveLength(1);
+    expect(incidentRequests()).toHaveLength(1);
+
+    // The sections appear: one reload, for the key that is current now.
+    rerender({ monitorId: MONITOR_ID, refreshKey: "c", isShown: true });
+    await flush();
+
+    expect(apiGetRequests()).toHaveLength(2);
+    expect(incidentRequests()).toHaveLength(2);
+
+    rerender({ monitorId: MONITOR_ID, refreshKey: "c", isShown: true });
+    await flush();
+    expect(apiGetRequests()).toHaveLength(2);
+  });
+
+  test("hiding the history while its read is out does not drop the answer", async () => {
+    const slow: Deferred<unknown> = createDeferred<unknown>();
+    apiGetSpy.mockImplementationOnce(() => {
+      return slow.promise;
+    });
+
+    const { result, rerender } = renderShown({
+      monitorId: MONITOR_ID,
+      refreshKey: "a",
+      isShown: true,
+    });
+    await flush();
+
+    // The first commit says the monitor is still waiting for data.
+    rerender({ monitorId: MONITOR_ID, refreshKey: "a", isShown: false });
+    await flush();
+
+    await act(async () => {
+      slow.resolve(
+        okResponse(MonitorUptimeSummaryUtil.toJSON(buildSummary(MONITOR_ID))),
+      );
+    });
+    await flush();
+
+    expect(apiGetRequests()).toHaveLength(1);
+    expect(result.current.summary.status).toBe("loaded");
+    expect(incidentRequests()).toHaveLength(1);
+  });
+
+  test("another monitor and Try again are still read while hidden", async () => {
+    apiGetSpy.mockImplementationOnce(() => {
+      return rejectWith(new Error("Network error."));
+    });
+
+    const { result, rerender } = renderShown({
+      monitorId: MONITOR_ID,
+      refreshKey: "a",
+      isShown: false,
+    });
+    await flush();
+
+    expect(result.current.summary.status).toBe("error");
+
+    act(() => {
+      result.current.retry();
+    });
+    await flush();
+
+    expect(apiGetRequests()).toHaveLength(2);
+    expect(result.current.summary.status).toBe("loaded");
+
+    rerender({ monitorId: OTHER_MONITOR_ID, refreshKey: "a", isShown: false });
+    await flush();
+
+    expect(apiGetRequests()).toHaveLength(3);
+    expect(result.current.summary.value!.monitorId.toString()).toBe(
+      OTHER_MONITOR_ID.toString(),
+    );
+  });
+});
+
+describe("useMonitorUptimeSummary: the server's clock", () => {
+  test("a browser clock seven minutes fast is measured from generatedAt, and reported", async () => {
+    // The server stamps NOW; the browser believes it is 12:07.
+    jest.setSystemTime(new Date(NOW.getTime() + 7 * 60 * 1000));
+
+    const reported: Array<number> = [];
+    const { result } = renderHook((): UseMonitorUptimeSummaryResult => {
+      return useMonitorUptimeSummary({
+        monitorId: MONITOR_ID,
+        refreshKey: "a",
+        onServerClockOffset: (offsetMs: number): void => {
+          reported.push(offsetMs);
+        },
+      });
+    });
+
+    expect(result.current.serverClockOffsetMs).toBe(0);
+
+    await flush();
+
+    expect(result.current.serverClockOffsetMs).toBe(-7 * 60 * 1000);
+    expect(reported).toEqual([-7 * 60 * 1000]);
+  });
+
+  test("a clock that agrees within the round trip is left alone", async () => {
+    const reported: Array<number> = [];
+    const { result } = renderHook((): UseMonitorUptimeSummaryResult => {
+      return useMonitorUptimeSummary({
+        monitorId: MONITOR_ID,
+        refreshKey: "a",
+        onServerClockOffset: (offsetMs: number): void => {
+          reported.push(offsetMs);
+        },
+      });
+    });
+    await flush();
+
+    expect(result.current.serverClockOffsetMs).toBe(0);
+    expect(reported).toEqual([0]);
+  });
+
+  test("a failed summary measures nothing", async () => {
+    jest.setSystemTime(new Date(NOW.getTime() + 7 * 60 * 1000));
+    apiGetSpy.mockImplementation(() => {
+      return rejectWith(new Error("Network error."));
+    });
+
+    const reported: Array<number> = [];
+    const { result } = renderHook((): UseMonitorUptimeSummaryResult => {
+      return useMonitorUptimeSummary({
+        monitorId: MONITOR_ID,
+        refreshKey: "a",
+        onServerClockOffset: (offsetMs: number): void => {
+          reported.push(offsetMs);
+        },
+      });
+    });
+    await flush();
+
+    expect(result.current.serverClockOffsetMs).toBe(0);
+    expect(reported).toEqual([]);
+  });
+});
+
+describe("getServerClockOffsetMs", () => {
+  const at: (seconds: number) => Date = (seconds: number): Date => {
+    return new Date(NOW.getTime() + seconds * 1000);
+  };
+
+  test("a server time inside the round trip means the clocks agree", () => {
+    for (const serverSeconds of [0, 0.4, 1]) {
+      expect(
+        getServerClockOffsetMs({
+          serverTime: at(serverSeconds),
+          sentAt: at(0),
+          receivedAt: at(1),
+        }),
+      ).toBe(0);
+    }
+  });
+
+  test("a browser running fast is corrected back, by the least that fits", () => {
+    // Sent at 12:07:00 and back at 12:07:01 by the browser; stamped 12:00:00.
+    expect(
+      getServerClockOffsetMs({
+        serverTime: at(0),
+        sentAt: at(420),
+        receivedAt: at(421),
+      }),
+    ).toBe(-420 * 1000);
+  });
+
+  test("a browser running slow is corrected forward, by the least that fits", () => {
+    expect(
+      getServerClockOffsetMs({
+        serverTime: at(300),
+        sentAt: at(0),
+        receivedAt: at(2),
+      }),
+    ).toBe(298 * 1000);
+  });
+
+  test("an unreadable time measures nothing", () => {
+    expect(
+      getServerClockOffsetMs({
+        serverTime: new Date("not a date"),
+        sentAt: at(0),
+        receivedAt: at(1),
+      }),
+    ).toBe(0);
   });
 });

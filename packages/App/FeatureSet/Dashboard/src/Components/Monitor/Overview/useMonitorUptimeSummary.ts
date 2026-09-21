@@ -9,6 +9,7 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import { MonitorUptimeSummary } from "Common/Types/Monitor/MonitorUptimeSummary";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
@@ -58,8 +59,61 @@ const FALLBACK_MARKER_COLOR: string = "#000000";
 export interface UseMonitorUptimeSummaryResult {
   summary: OverviewSection<MonitorUptimeSummary>;
   incidents: OverviewSection<Array<UptimeBarTooltipIncident>>;
+  /*
+   * Server time minus browser time, in milliseconds, from the newest
+   * summary (see getServerClockOffsetMs). 0 until a summary has landed.
+   */
+  serverClockOffsetMs: number;
   retry: () => void;
 }
+
+interface UptimeRequest {
+  monitorId: string;
+  refreshKey: string;
+  retryCount: number;
+}
+
+/*
+ * How far the server's clock is ahead of the browser's (negative when the
+ * browser runs fast), from one response. The server stamped `serverTime`
+ * while the request was out, so it lies between the moment the request was
+ * sent and the moment the response arrived, on the true clock. A browser
+ * clock that puts it inside that window agrees with the server as far as
+ * one round trip can tell, and is left alone (0), so a correct clock never
+ * jitters by the network delay. Otherwise the offset is the smallest shift
+ * that puts it inside, which is within one round trip of the truth.
+ */
+export const getServerClockOffsetMs: (data: {
+  serverTime: Date;
+  sentAt: Date;
+  receivedAt: Date;
+}) => number = (data: {
+  serverTime: Date;
+  sentAt: Date;
+  receivedAt: Date;
+}): number => {
+  const serverTime: number = data.serverTime.getTime();
+  const sentAt: number = data.sentAt.getTime();
+  const receivedAt: number = data.receivedAt.getTime();
+
+  if (
+    !Number.isFinite(serverTime) ||
+    !Number.isFinite(sentAt) ||
+    !Number.isFinite(receivedAt)
+  ) {
+    return 0;
+  }
+
+  if (serverTime < sentAt) {
+    return serverTime - sentAt;
+  }
+
+  if (serverTime > receivedAt) {
+    return serverTime - receivedAt;
+  }
+
+  return 0;
+};
 
 type ToTooltipIncidentFunction = (
   incident: Incident,
@@ -125,15 +179,29 @@ const toTooltipIncident: ToTooltipIncidentFunction = (
  * the data hook's poll (every fifth poll, a status change, a manual
  * refresh). A reload keeps the last summary on screen; a failed reload
  * keeps it too and records the failure next to it.
+ *
+ * `isShown` false (the page hides the uptime sections, for example while a
+ * heartbeat waits for its first request) holds reloads back: the history
+ * is still read once per monitor, off the critical path, but a changed
+ * refreshKey waits until the sections are shown, and then reloads once.
+ *
+ * Each summary also carries the server's clock (generatedAt), so the hook
+ * measures the browser's clock against it and reports the offset to
+ * `onServerClockOffset` as well as returning it.
  */
 export const useMonitorUptimeSummary: (options: {
   monitorId: ObjectID;
   refreshKey: string;
+  isShown?: boolean | undefined;
+  onServerClockOffset?: ((offsetMs: number) => void) | undefined;
 }) => UseMonitorUptimeSummaryResult = (options: {
   monitorId: ObjectID;
   refreshKey: string;
+  isShown?: boolean | undefined;
+  onServerClockOffset?: ((offsetMs: number) => void) | undefined;
 }): UseMonitorUptimeSummaryResult => {
   const monitorIdString: string = options.monitorId.toString();
+  const isShown: boolean = options.isShown !== false;
 
   const [summary, setSummary] =
     useState<OverviewSection<MonitorUptimeSummary>>(
@@ -144,16 +212,68 @@ export const useMonitorUptimeSummary: (options: {
       getLoadingSection<Array<UptimeBarTooltipIncident>>(),
     );
   const [retryCount, setRetryCount] = useState<number>(0);
+  const [serverClockOffsetMs, setServerClockOffsetMs] = useState<number>(0);
 
   const summaryRef: MutableRefObject<OverviewSection<MonitorUptimeSummary>> =
     useRef<OverviewSection<MonitorUptimeSummary>>(summary);
   const incidentsRef: MutableRefObject<
     OverviewSection<Array<UptimeBarTooltipIncident>>
   > = useRef<OverviewSection<Array<UptimeBarTooltipIncident>>>(incidents);
+  /*
+   * Only the newest load may write. A generation rather than an effect's
+   * own flag, because the effect also re-runs when `isShown` flips, and
+   * that must not orphan a load already in flight.
+   */
+  const loadGenerationRef: MutableRefObject<number> = useRef<number>(0);
+  // What the newest load was started for: a load is due when this differs.
+  const requestedRef: MutableRefObject<UptimeRequest | null> =
+    useRef<UptimeRequest | null>(null);
+  const onServerClockOffsetRef: MutableRefObject<
+    ((offsetMs: number) => void) | undefined
+  > = useRef<((offsetMs: number) => void) | undefined>(
+    options.onServerClockOffset,
+  );
 
   useEffect(() => {
-    let cancelled: boolean = false;
+    onServerClockOffsetRef.current = options.onServerClockOffset;
+  }, [options.onServerClockOffset]);
+
+  // Orphans whatever is still in flight when the page goes away.
+  useEffect(() => {
+    return () => {
+      loadGenerationRef.current += 1;
+      requestedRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const requested: UptimeRequest | null = requestedRef.current;
+    const isNewSubject: boolean =
+      !requested || requested.monitorId !== monitorIdString;
+    const isRetry: boolean = Boolean(
+      requested && requested.retryCount !== retryCount,
+    );
+    const isNewKey: boolean = Boolean(
+      requested && requested.refreshKey !== options.refreshKey,
+    );
+
+    // A hidden history is read once per monitor; its reloads wait.
+    if (!isNewSubject && !isRetry && !(isNewKey && isShown)) {
+      return;
+    }
+
+    requestedRef.current = {
+      monitorId: monitorIdString,
+      refreshKey: options.refreshKey,
+      retryCount: retryCount,
+    };
+    loadGenerationRef.current += 1;
+
+    const generation: number = loadGenerationRef.current;
     const subjectId: string = monitorIdString;
+    const isCancelled: () => boolean = (): boolean => {
+      return generation !== loadGenerationRef.current;
+    };
 
     const commitSummary: (
       section: OverviewSection<MonitorUptimeSummary>,
@@ -224,7 +344,7 @@ export const useMonitorUptimeSummary: (options: {
           },
         });
 
-        if (cancelled) {
+        if (isCancelled()) {
           return;
         }
 
@@ -243,7 +363,7 @@ export const useMonitorUptimeSummary: (options: {
           resolveSection({ value: markers, subjectId: subjectId }),
         );
       } catch (err) {
-        if (cancelled) {
+        if (isCancelled()) {
           return;
         }
 
@@ -284,6 +404,9 @@ export const useMonitorUptimeSummary: (options: {
       }
 
       let loadedSummary: MonitorUptimeSummary | null = null;
+      // The window the server stamped generatedAt in, on the browser's clock.
+      const sentAt: Date = OneUptimeDate.getCurrentDate();
+      let receivedAt: Date = sentAt;
 
       try {
         /*
@@ -305,6 +428,8 @@ export const useMonitorUptimeSummary: (options: {
             headers: ModelAPI.getCommonHeaders(),
           });
 
+        receivedAt = OneUptimeDate.getCurrentDate();
+
         // API.get can resolve with an error response as well as throw one.
         if (response instanceof HTTPErrorResponse) {
           throw response;
@@ -316,7 +441,7 @@ export const useMonitorUptimeSummary: (options: {
           throw new Error(MONITOR_UPTIME_SUMMARY_UNREADABLE_MESSAGE);
         }
       } catch (err) {
-        if (cancelled) {
+        if (isCancelled()) {
           return;
         }
 
@@ -337,9 +462,18 @@ export const useMonitorUptimeSummary: (options: {
         return;
       }
 
-      if (cancelled) {
+      if (isCancelled()) {
         return;
       }
+
+      const offsetMs: number = getServerClockOffsetMs({
+        serverTime: loadedSummary.generatedAt,
+        sentAt: sentAt,
+        receivedAt: receivedAt,
+      });
+
+      setServerClockOffsetMs(offsetMs);
+      onServerClockOffsetRef.current?.(offsetMs);
 
       commitSummary(
         resolveSection({ value: loadedSummary, subjectId: subjectId }),
@@ -351,11 +485,7 @@ export const useMonitorUptimeSummary: (options: {
     load().catch(() => {
       // load records its own errors.
     });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [monitorIdString, options.refreshKey, retryCount]);
+  }, [monitorIdString, options.refreshKey, retryCount, isShown]);
 
   const retry: () => void = useCallback((): void => {
     /*
@@ -375,6 +505,7 @@ export const useMonitorUptimeSummary: (options: {
   return {
     summary: getSectionForSubject(summary, monitorIdString),
     incidents: getSectionForSubject(incidents, monitorIdString),
+    serverClockOffsetMs: serverClockOffsetMs,
     retry: retry,
   };
 };

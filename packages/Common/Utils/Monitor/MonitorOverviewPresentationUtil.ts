@@ -21,6 +21,7 @@ import MonitorStatusHistoryUtil from "./MonitorStatusHistoryUtil";
 import MonitorOverviewTargetUtil, {
   MonitorOverviewTarget,
 } from "./MonitorOverviewTargetUtil";
+import { MonitorUptimeCaveat } from "./MonitorUptimeSummaryUtil";
 
 /*
  * The monitor overview's hero, facts, pulse and section switches, decided in
@@ -126,7 +127,23 @@ export interface MonitorOverviewSections {
   stepCount: number;
 }
 
+/*
+ * Where the evaluation log (the newest MonitorLog rows) stands, as the page
+ * loaded it. Only "loaded" means its times can be trusted, including the
+ * absence of any.
+ */
+export type MonitorOverviewEvaluationStatus =
+  | "loading"
+  | "loaded"
+  | "error"
+  | "forbidden";
+
 export interface MonitorOverviewPresentationInput {
+  /*
+   * On the server's clock (the browser's clock plus its measured offset).
+   * Every age, due time and expiry here is measured against it, and every
+   * time it is compared with was stamped by the server.
+   */
   now: Date;
   monitorType: MonitorType;
   monitorSteps?: MonitorSteps | undefined;
@@ -158,10 +175,29 @@ export interface MonitorOverviewPresentationInput {
     memoryPercent?: number | undefined;
   };
   telemetry: {
+    /*
+     * Monitor.telemetryMonitorLastMonitorAt. The worker stamps it when it
+     * queues an evaluation, before (and whether or not) one runs, so it is
+     * "last scheduled", never "last evaluated".
+     */
+    lastScheduledAt?: Date | undefined;
+    /*
+     * Deprecated: the same scheduler stamp under its old name, read only
+     * when lastScheduledAt is not given.
+     */
     lastEvaluatedAt?: Date | undefined;
     nextEvaluationAt?: Date | undefined;
   };
+  /*
+   * The newest MonitorLog time: when an evaluation last completed. It is
+   * "Last evaluated" for telemetry, infrastructure and network devices.
+   */
   latestEvaluationAt?: Date | undefined;
+  /*
+   * The evaluation log's section status. Without it, a latestEvaluationAt
+   * counts as loaded and its absence as unknown.
+   */
+  evaluationStatus?: MonitorOverviewEvaluationStatus | undefined;
   minimumProbeAgreement?: number | undefined;
 }
 
@@ -189,6 +225,11 @@ export interface MonitorOverviewPresentation {
   callToAction?: { text: string; linkKey: MonitorOverviewLinkKey } | undefined;
   pulse: MonitorOverviewPulse;
   freshness: MonitorCheckFreshness;
+  /*
+   * Overdue with nothing ever received (state 6b): no check result, or no
+   * evaluation, since the monitor was created.
+   */
+  isNeverReported?: boolean | undefined;
   facts: Array<MonitorOverviewFact>;
   target: MonitorOverviewTarget | null;
   sections: MonitorOverviewSections;
@@ -220,11 +261,31 @@ interface MonitorOverviewContext {
   isNoProbeEnabled: boolean;
   isAllProbesDisconnected: boolean;
   isNotChecking: boolean;
+  // Null when the input neither says nor implies how the log loaded.
+  evaluationStatus: MonitorOverviewEvaluationStatus | null;
+  /*
+   * Telemetry and infrastructure: when an evaluation last completed, once
+   * the evaluation log is loaded. Until then, the scheduler's stamp, which
+   * only says an evaluation was queued.
+   */
+  telemetryLastAt: Date | undefined;
   freshness: MonitorCheckFreshnessResult;
   runState: MonitorOverviewRunState;
+  /*
+   * A heartbeat or agent monitor that has never reported, but that the
+   * server has already judged: its status is not operational, or its
+   * missing-signal window since creation has passed. Its history is real.
+   */
+  hasPushVerdict: boolean;
 }
 
 const MAX_FACTS: number = 4;
+
+/*
+ * ServerMonitor/CheckOnlineStatus judges an agent that has not reported for
+ * three minutes, counting from creation when it never has.
+ */
+const AGENT_MISSING_MINUTES: number = 3;
 
 const PAUSED_EXPLANATION: Record<
   "disabled" | "incident" | "maintenance",
@@ -259,6 +320,39 @@ const secondsSince: (now: Date, then: Date) => number = (
   return Math.max(0, Math.floor((now.getTime() - then.getTime()) / 1000));
 };
 
+const HOUR_MS: number = 3600 * 1000;
+const DAY_MS: number = 24 * HOUR_MS;
+
+// "3 hours", or "20 minutes" under an hour. Never "0 minutes".
+const describeUnderADay: (ms: number) => string = (ms: number): string => {
+  const hours: number = Math.floor(ms / HOUR_MS);
+
+  if (hours >= 1) {
+    return pluralize(hours, "hour", "hours");
+  }
+
+  return pluralize(Math.max(1, Math.floor(ms / 60000)), "minute", "minutes");
+};
+
+/*
+ * Calendar days from `earlier` to `later` in the zone dates are printed in.
+ * Only called for times at least a day apart, so it is at least 1 (a
+ * 25-hour daylight-saving day could otherwise make it 0).
+ */
+const getCalendarDaysBetween: (earlier: Date, later: Date) => number = (
+  earlier: Date,
+  later: Date,
+): number => {
+  const timezone: string = OneUptimeDate.getCurrentTimezone();
+  const days: number = Math.round(
+    (OneUptimeDate.getStartOfDay(later, timezone).getTime() -
+      OneUptimeDate.getStartOfDay(earlier, timezone).getTime()) /
+      DAY_MS,
+  );
+
+  return Math.max(1, days);
+};
+
 const isFutureOf: (date: Date | undefined, now: Date) => boolean = (
   date: Date | undefined,
   now: Date,
@@ -282,6 +376,7 @@ export default class MonitorOverviewPresentationUtil {
       ...hero,
       pulse: MonitorOverviewPresentationUtil.getPulse(input, context),
       freshness: context.freshness.freshness,
+      isNeverReported: MonitorOverviewPresentationUtil.isNeverReported(context),
       facts: MonitorOverviewPresentationUtil.getFacts(input, context),
       target: MonitorOverviewTargetUtil.getTarget({
         monitorType: input.monitorType,
@@ -300,6 +395,36 @@ export default class MonitorOverviewPresentationUtil {
     input: MonitorOverviewPresentationInput,
   ): MonitorOverviewRunState {
     return MonitorOverviewPresentationUtil.getContext(input).runState;
+  }
+
+  /*
+   * What the uptime tiles must add about time the status timeline counts
+   * but nothing measured: its open row keeps the last status while
+   * monitoring is paused, while nothing checks, and before the first check
+   * completes. A manual monitor has no checks to pause, so it never gets
+   * one.
+   */
+  public static getUptimeCaveat(
+    presentation: Pick<
+      MonitorOverviewPresentation,
+      "family" | "runState" | "isNeverReported"
+    >,
+  ): MonitorUptimeCaveat | null {
+    if (presentation.family === MonitorOverviewFamily.Manual) {
+      return null;
+    }
+
+    switch (presentation.runState) {
+      case MonitorOverviewRunState.Paused:
+        return "paused";
+      case MonitorOverviewRunState.NotChecking:
+      case MonitorOverviewRunState.NotConfigured:
+        return "not-checking";
+      case MonitorOverviewRunState.Overdue:
+        return presentation.isNeverReported ? "no-results" : null;
+      default:
+        return null;
+    }
   }
 
   public static getStatusTone(
@@ -353,42 +478,59 @@ export default class MonitorOverviewPresentationUtil {
       return { key: data.key, label: label, value: "—", isMuted: true };
     }
 
-    const days: number = Math.floor(
-      (data.expiresAt.getTime() - data.now.getTime()) / (86400 * 1000),
-    );
+    const msLeft: number = data.expiresAt.getTime() - data.now.getTime();
 
-    if (days < 0) {
+    /*
+     * Within a day either way, hours say it exactly. Beyond that, days are
+     * counted on the calendar of the zone the date below is printed in, so
+     * "in 2 days" and the printed date agree: 36 hours from noon is two
+     * calendar days away, not the one day a floor would give.
+     */
+    if (msLeft < 0) {
       return {
         key: data.key,
         label: label,
-        value: `Expired ${pluralize(-days, "day", "days")} ago`,
+        value:
+          -msLeft < DAY_MS
+            ? `Expired ${describeUnderADay(-msLeft)} ago`
+            : `Expired ${pluralize(
+                getCalendarDaysBetween(data.expiresAt, data.now),
+                "day",
+                "days",
+              )} ago`,
         secondary: secondary,
         tone: "danger",
       };
     }
 
-    if (days === 0) {
+    if (msLeft < DAY_MS) {
       return {
         key: data.key,
         label: label,
-        value: "Expires today",
+        value: `Expires in ${describeUnderADay(msLeft)}`,
         secondary: secondary,
         tone: "danger",
       };
     }
 
+    // The tone keeps counting whole days left, as it always has.
+    const wholeDays: number = Math.floor(msLeft / DAY_MS);
     let tone: MonitorOverviewTone = "neutral";
 
-    if (days <= 7) {
+    if (wholeDays <= 7) {
       tone = "danger";
-    } else if (days <= 30) {
+    } else if (wholeDays <= 30) {
       tone = "warning";
     }
 
     return {
       key: data.key,
       label: label,
-      value: `in ${pluralize(days, "day", "days")}`,
+      value: `in ${pluralize(
+        getCalendarDaysBetween(data.now, data.expiresAt),
+        "day",
+        "days",
+      )}`,
       secondary: secondary,
       tone: tone,
     };
@@ -438,12 +580,20 @@ export default class MonitorOverviewPresentationUtil {
           input.probes.disconnectedCount === input.probes.enabledCount));
     const isNotChecking: boolean = isNoProbeEnabled || isAllProbesDisconnected;
 
+    const evaluationStatus: MonitorOverviewEvaluationStatus | null =
+      MonitorOverviewPresentationUtil.getEvaluationStatus(input);
+    const isEvaluationLoaded: boolean = evaluationStatus === "loaded";
+    const telemetryLastAt: Date | undefined = isEvaluationLoaded
+      ? input.latestEvaluationAt
+      : input.telemetry.lastScheduledAt || input.telemetry.lastEvaluatedAt;
+
     const freshness: MonitorCheckFreshnessResult =
       MonitorOverviewPresentationUtil.getFreshness({
         input: input,
         family: family,
         cadenceSeconds: cadenceSeconds,
         isScheduled: !isPaused && !isNotChecking,
+        telemetryLastAt: telemetryLastAt,
       });
 
     let runState: MonitorOverviewRunState = MonitorOverviewRunState.Running;
@@ -464,6 +614,8 @@ export default class MonitorOverviewPresentationUtil {
         input: input,
         family: family,
         freshness: freshness.freshness,
+        isEvaluationLoaded: isEvaluationLoaded,
+        telemetryLastAt: telemetryLastAt,
       })
     ) {
       runState = MonitorOverviewRunState.AwaitingFirstData;
@@ -483,9 +635,103 @@ export default class MonitorOverviewPresentationUtil {
       isNoProbeEnabled: isNoProbeEnabled,
       isAllProbesDisconnected: isAllProbesDisconnected,
       isNotChecking: isNotChecking,
+      evaluationStatus: evaluationStatus,
+      telemetryLastAt: telemetryLastAt,
       freshness: freshness,
       runState: runState,
+      hasPushVerdict:
+        runState === MonitorOverviewRunState.AwaitingFirstData &&
+        MonitorOverviewPresentationUtil.hasPushVerdict({
+          input: input,
+          family: family,
+        }),
     };
+  }
+
+  /*
+   * Without an explicit status (callers from before evaluationStatus), a
+   * time means the log was read; its absence says nothing.
+   */
+  private static getEvaluationStatus(
+    input: MonitorOverviewPresentationInput,
+  ): MonitorOverviewEvaluationStatus | null {
+    if (input.evaluationStatus) {
+      return input.evaluationStatus;
+    }
+
+    return input.latestEvaluationAt ? "loaded" : null;
+  }
+
+  /*
+   * A push monitor's missing-signal check counts from creation when nothing
+   * has arrived yet, so the server judges it once this window has passed.
+   * Null when its criteria have no such check.
+   */
+  private static getPushMissingMinutes(data: {
+    input: MonitorOverviewPresentationInput;
+    family: MonitorOverviewFamily;
+  }): number | null {
+    const monitorSteps: MonitorSteps | undefined = data.input.monitorSteps;
+
+    if (data.family === MonitorOverviewFamily.Agent) {
+      return MonitorOverviewCriteriaUtil.hasFilterOn({
+        monitorSteps: monitorSteps,
+        checkOn: CheckOn.IsOnline,
+      })
+        ? AGENT_MISSING_MINUTES
+        : null;
+    }
+
+    if (data.family !== MonitorOverviewFamily.Heartbeat) {
+      return null;
+    }
+
+    return MonitorOverviewCriteriaUtil.getMissingSignalMinutes({
+      monitorSteps: monitorSteps,
+      checkOn:
+        data.input.monitorType === MonitorType.IncomingEmail
+          ? CheckOn.EmailReceivedAt
+          : CheckOn.IncomingRequest,
+    });
+  }
+
+  private static hasPushVerdict(data: {
+    input: MonitorOverviewPresentationInput;
+    family: MonitorOverviewFamily;
+  }): boolean {
+    if (
+      data.family !== MonitorOverviewFamily.Heartbeat &&
+      data.family !== MonitorOverviewFamily.Agent
+    ) {
+      return false;
+    }
+
+    if (MonitorOverviewPresentationUtil.isJudgedStatus(data.input)) {
+      return true;
+    }
+
+    const minutes: number | null =
+      MonitorOverviewPresentationUtil.getPushMissingMinutes(data);
+    const createdAt: Date | undefined = data.input.createdAt;
+
+    return (
+      minutes !== null &&
+      createdAt !== undefined &&
+      data.input.now.getTime() - createdAt.getTime() > minutes * 60 * 1000
+    );
+  }
+
+  /*
+   * A status that is not operational was set by something: for a push
+   * monitor that never reported, the server's missing-signal check.
+   */
+  private static isJudgedStatus(
+    input: MonitorOverviewPresentationInput,
+  ): boolean {
+    const tone: MonitorOverviewTone =
+      MonitorOverviewPresentationUtil.getStatusTone(input.currentStatus);
+
+    return tone === "danger" || tone === "warning";
   }
 
   /*
@@ -498,6 +744,7 @@ export default class MonitorOverviewPresentationUtil {
     family: MonitorOverviewFamily;
     cadenceSeconds: number;
     isScheduled: boolean;
+    telemetryLastAt: Date | undefined;
   }): MonitorCheckFreshnessResult {
     const input: MonitorOverviewPresentationInput = data.input;
 
@@ -506,10 +753,17 @@ export default class MonitorOverviewPresentationUtil {
         isScheduled: data.isScheduled,
         isKnown: input.probes !== null,
         lastResultAt: input.probes?.lastResultAt,
-        nextCheckAt: input.probes?.nextCheckAt,
+        /*
+         * Behind schedule only when every probe that is checking is: a
+         * summary from before latestNextCheckAt existed has only the
+         * earliest.
+         */
+        nextCheckAt:
+          input.probes?.latestNextCheckAt || input.probes?.nextCheckAt,
         cadenceSeconds: data.cadenceSeconds,
         createdAt: input.createdAt,
         now: input.now,
+        monitoringInterval: input.monitoringInterval,
       });
     }
 
@@ -520,11 +774,12 @@ export default class MonitorOverviewPresentationUtil {
       return MonitorCheckScheduleUtil.getCheckFreshness({
         isScheduled: data.isScheduled,
         isKnown: true,
-        lastResultAt: input.telemetry.lastEvaluatedAt,
+        lastResultAt: data.telemetryLastAt,
         nextCheckAt: input.telemetry.nextEvaluationAt,
         cadenceSeconds: data.cadenceSeconds,
         createdAt: input.createdAt,
         now: input.now,
+        monitoringInterval: input.monitoringInterval,
       });
     }
 
@@ -543,6 +798,8 @@ export default class MonitorOverviewPresentationUtil {
     input: MonitorOverviewPresentationInput;
     family: MonitorOverviewFamily;
     freshness: MonitorCheckFreshness;
+    isEvaluationLoaded: boolean;
+    telemetryLastAt: Date | undefined;
   }): boolean {
     const input: MonitorOverviewPresentationInput = data.input;
 
@@ -561,9 +818,24 @@ export default class MonitorOverviewPresentationUtil {
         return !input.agent.lastReportAt;
       case MonitorOverviewFamily.TelemetrySignal:
       case MonitorOverviewFamily.Infrastructure:
-        return !input.telemetry.lastEvaluatedAt;
+        /*
+         * With the evaluation log, "waiting" ends at the first completed
+         * evaluation and, like a probe check, lasts only while the monitor
+         * is young: past that, no evaluation is overdue (6b). Without it,
+         * the scheduler's stamp is all there is.
+         */
+        return data.isEvaluationLoaded
+          ? data.freshness === MonitorCheckFreshness.AwaitingFirstResult
+          : !data.telemetryLastAt;
+      case MonitorOverviewFamily.NetworkDevice:
+        /*
+         * A device is evaluated on its polls and traps, which leave no
+         * trace on the monitor row: only a loaded, empty log says none has
+         * been evaluated yet.
+         */
+        return data.isEvaluationLoaded && !input.latestEvaluationAt;
       default:
-        // Network devices are evaluated from the first poll; Manual never.
+        // Manual monitors are never evaluated.
         return false;
     }
   }
@@ -693,17 +965,33 @@ export default class MonitorOverviewPresentationUtil {
       case MonitorOverviewRunState.Overdue: {
         const isProbeCheck: boolean =
           context.family === MonitorOverviewFamily.ProbeCheck;
+        /*
+         * Nothing has ever been measured (6b), so the stored status is only
+         * the default the monitor was created with: it is not the headline,
+         * and it has not "held" for any length of time.
+         */
+        const isNeverReported: boolean =
+          MonitorOverviewPresentationUtil.isNeverReported(context);
 
         return {
           // A late check cannot vouch for "good"; danger stays danger.
           tone: statusTone === "danger" ? "danger" : "warning",
-          badge: statusBadge,
+          badge: isNeverReported
+            ? { text: "No results yet", tone: "warning" }
+            : statusBadge,
           secondaryBadges: [{ text: "Checks overdue", tone: "warning" }],
-          headline: statusHeadline,
+          headline: isNeverReported
+            ? {
+                text: isProbeCheck
+                  ? "No check has completed yet"
+                  : "No evaluation has completed yet",
+              }
+            : statusHeadline,
           explanation: MonitorOverviewPresentationUtil.getOverdueExplanation({
             input: input,
             context: context,
           }),
+          lastKnownStatus: isNeverReported ? lastKnownStatus : undefined,
           callToAction: isProbeCheck
             ? { text: "Check probes", linkKey: "probes" }
             : undefined,
@@ -796,6 +1084,8 @@ export default class MonitorOverviewPresentationUtil {
     let headline: string = "Waiting for the first evaluation";
     let explanation: string = `This monitor is evaluated ${context.intervalPhrase} once saved.`;
     let hasSetup: boolean = false;
+    // What has never arrived, for a push monitor the server has judged.
+    let missingSince: string | null = null;
 
     if (context.family === MonitorOverviewFamily.ProbeCheck) {
       const enabledCount: number = input.probes?.enabledCount || 0;
@@ -804,20 +1094,63 @@ export default class MonitorOverviewPresentationUtil {
       explanation = `${
         enabledCount === 1 ? "1 probe checks" : `${enabledCount} probes check`
       } this ${context.intervalPhrase}. The first result usually arrives within a few minutes.`;
+    } else if (context.family === MonitorOverviewFamily.NetworkDevice) {
+      headline = "Waiting for the first poll";
+      explanation =
+        "No poll or trap from this device has been evaluated yet. Check that a probe is assigned to poll it.";
     } else if (input.monitorType === MonitorType.IncomingRequest) {
       headline = "Waiting for the first heartbeat";
       explanation =
         "Send a GET or POST request to this monitor's heartbeat URL to start tracking it.";
       hasSetup = true;
+      missingSince = "No heartbeat has arrived";
     } else if (input.monitorType === MonitorType.IncomingEmail) {
       headline = "Waiting for the first email";
       explanation =
         "Send an email to this monitor's address to start tracking it.";
       hasSetup = true;
+      missingSince = "No email has arrived";
     } else if (context.family === MonitorOverviewFamily.Agent) {
       headline = "Waiting for the agent to report";
       explanation = "Install the server agent to start sending reports.";
       hasSetup = true;
+      missingSince = "The agent has not reported";
+    }
+
+    const callToAction: MonitorOverviewHeroParts["callToAction"] = hasSetup
+      ? { text: "Setup instructions", linkKey: "documentation" }
+      : undefined;
+    const status: MonitorOverviewStatusRef | undefined = input.currentStatus;
+
+    /*
+     * The server judges a push monitor that never reported as if its last
+     * signal arrived at creation, so it can be Offline, with an incident
+     * open, while the page is still "waiting". Lead with that verdict's
+     * tone and keep the setup steps: sending the first signal is still the
+     * fix.
+     */
+    if (
+      missingSince !== null &&
+      status &&
+      MonitorOverviewPresentationUtil.isJudgedStatus(input)
+    ) {
+      const statusTone: MonitorOverviewTone =
+        MonitorOverviewPresentationUtil.getStatusTone(status);
+
+      return {
+        tone: statusTone,
+        badge: { text: "Waiting for data", tone: "info" },
+        secondaryBadges: [{ text: status.name, tone: statusTone }],
+        headline: {
+          text: input.createdAt
+            ? `${missingSince} since this monitor was created ${formatDurationCompact(
+                secondsSince(input.now, input.createdAt),
+              )} ago`
+            : headline,
+        },
+        explanation: explanation,
+        callToAction: callToAction,
+      };
     }
 
     return {
@@ -827,10 +1160,15 @@ export default class MonitorOverviewPresentationUtil {
       headline: { text: headline },
       explanation: explanation,
       lastKnownStatus: data.lastKnownStatus,
-      callToAction: hasSetup
-        ? { text: "Setup instructions", linkKey: "documentation" }
-        : undefined,
+      callToAction: callToAction,
     };
+  }
+
+  private static isNeverReported(context: MonitorOverviewContext): boolean {
+    return (
+      context.runState === MonitorOverviewRunState.Overdue &&
+      context.freshness.resultAgeSeconds === null
+    );
   }
 
   /*
@@ -926,11 +1264,17 @@ export default class MonitorOverviewPresentationUtil {
       case MonitorOverviewFamily.TelemetrySignal:
       case MonitorOverviewFamily.Infrastructure: {
         const nextAt: Date | undefined = input.telemetry.nextEvaluationAt;
+        /*
+         * Until the evaluation log is read, the only time is the worker's
+         * stamp, which it writes when it queues an evaluation: it is named
+         * for what it is.
+         */
+        const isEvaluated: boolean = context.evaluationStatus === "loaded";
 
         return {
-          label: "Last evaluated",
-          at: input.telemetry.lastEvaluatedAt,
-          emptyText: "Not evaluated yet",
+          label: isEvaluated ? "Last evaluated" : "Last scheduled",
+          at: context.telemetryLastAt,
+          emptyText: isEvaluated ? "Not evaluated yet" : "Not scheduled yet",
           cadenceText: isScheduled ? context.intervalText : undefined,
           nextAt:
             isScheduled && isFutureOf(nextAt, input.now) ? nextAt : undefined,
@@ -940,11 +1284,20 @@ export default class MonitorOverviewPresentationUtil {
       }
 
       case MonitorOverviewFamily.NetworkDevice:
+        // The time only comes from the evaluation log, so it follows its read.
         return {
           label: "Last evaluated",
-          at: input.latestEvaluationAt,
-          emptyText: "Not evaluated yet",
-          isUnavailable: false,
+          at:
+            context.evaluationStatus === "loaded"
+              ? input.latestEvaluationAt
+              : undefined,
+          emptyText:
+            context.evaluationStatus === "loading"
+              ? "Loading…"
+              : "Not evaluated yet",
+          isUnavailable:
+            context.evaluationStatus === "error" ||
+            context.evaluationStatus === "forbidden",
         };
 
       default:
@@ -1002,7 +1355,9 @@ export default class MonitorOverviewPresentationUtil {
           );
         }
 
-        facts.push(MonitorOverviewPresentationUtil.getProbesFact(input));
+        facts.push(
+          MonitorOverviewPresentationUtil.getProbesFact(input, context),
+        );
         break;
 
       case MonitorOverviewFamily.Heartbeat: {
@@ -1177,6 +1532,23 @@ export default class MonitorOverviewPresentationUtil {
     const isScripted: boolean =
       input.monitorType === MonitorType.SyntheticMonitor ||
       input.monitorType === MonitorType.CustomJavaScriptCode;
+    const upCount: number = input.probes.upCount || 0;
+    const downCount: number = input.probes.downCount || 0;
+
+    /*
+     * When the probes disagree, the newest single result is just whichever
+     * probe reported last, and would flip between Up and Down from one poll
+     * to the next. Say they disagree instead.
+     */
+    if (upCount > 0 && downCount > 0) {
+      return {
+        ...base,
+        value: isScripted
+          ? `Mixed · ${upCount} passed, ${downCount} failed`
+          : `Mixed · ${upCount} up, ${downCount} down`,
+        tone: "warning",
+      };
+    }
 
     let value: string = "Reported";
     let tone: MonitorOverviewTone = "neutral";
@@ -1214,6 +1586,7 @@ export default class MonitorOverviewPresentationUtil {
 
   private static getProbesFact(
     input: MonitorOverviewPresentationInput,
+    context: MonitorOverviewContext,
   ): MonitorOverviewFact {
     const base: {
       key: MonitorOverviewFactKey;
@@ -1226,40 +1599,66 @@ export default class MonitorOverviewPresentationUtil {
     }
 
     const probes: MonitorOverviewProbeSummary = input.probes;
-    const secondaryParts: Array<string> = [];
+    const downCount: number = probes.downCount || 0;
+    const connectionParts: Array<string> = [];
 
     if (probes.disabledCount > 0) {
-      secondaryParts.push(`${probes.disabledCount} disabled`);
+      connectionParts.push(`${probes.disabledCount} disabled`);
     }
 
     if (probes.disconnectedCount > 0) {
-      secondaryParts.push(`${probes.disconnectedCount} disconnected`);
+      connectionParts.push(`${probes.disconnectedCount} disconnected`);
     }
 
-    const secondary: string | undefined =
-      secondaryParts.length > 0 ? secondaryParts.join(" · ") : undefined;
+    const joinParts: (parts: Array<string>) => string | undefined = (
+      parts: Array<string>,
+    ): string | undefined => {
+      return parts.length > 0 ? parts.join(" · ") : undefined;
+    };
 
     if (probes.enabledCount === 0) {
       return {
         ...base,
         value: "None enabled",
-        secondary: secondary,
+        secondary: joinParts(connectionParts),
         tone: "danger",
+      };
+    }
+
+    /*
+     * No probe is meant to report while monitoring is paused, so a
+     * reporting ratio would read as a probe fault that does not exist.
+     */
+    if (context.isPaused) {
+      return {
+        ...base,
+        value: `${probes.enabledCount} enabled`,
+        secondary: joinParts(["Checks paused", ...connectionParts]),
+        tone: "neutral",
       };
     }
 
     let tone: MonitorOverviewTone = "neutral";
 
-    if (probes.reportingCount === 0) {
+    if (probes.reportingCount === 0 || downCount >= probes.reportingCount) {
+      // Nothing reporting, or every probe that reports sees it down.
       tone = "danger";
-    } else if (probes.reportingCount < probes.enabledCount) {
+    } else if (downCount > 0 || probes.reportingCount < probes.enabledCount) {
       tone = "warning";
     }
+
+    const isScripted: boolean =
+      input.monitorType === MonitorType.SyntheticMonitor ||
+      input.monitorType === MonitorType.CustomJavaScriptCode;
+    // A probe that reports Down is reporting, but it is not fine.
+    const downPart: string = `${downCount} ${isScripted ? "failing" : "down"}`;
 
     return {
       ...base,
       value: `${probes.reportingCount} of ${probes.enabledCount} reporting`,
-      secondary: secondary,
+      secondary: joinParts(
+        downCount > 0 ? [downPart, ...connectionParts] : connectionParts,
+      ),
       tone: tone,
     };
   }
@@ -1291,8 +1690,12 @@ export default class MonitorOverviewPresentationUtil {
       context.family === MonitorOverviewFamily.Agent;
 
     return {
-      // Bars for a monitor that has never reported would all be "No data".
-      showUptime: !isAwaiting,
+      /*
+       * Bars for a monitor that has never reported would all be "No data",
+       * unless the server has already judged it: then its history (and what
+       * is open now) is the point.
+       */
+      showUptime: !isAwaiting || context.hasPushVerdict,
       setup: isAwaiting ? layout.setupKind : null,
       connection: isAwaiting ? null : layout.setupKind,
       summary: {

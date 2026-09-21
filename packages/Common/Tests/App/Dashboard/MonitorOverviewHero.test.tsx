@@ -10,6 +10,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -524,10 +525,16 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
       probes: probeSummary({ ...NO_RESULTS, nextCheckAt: undefined }),
     },
     runState: MonitorOverviewRunState.Overdue,
-    badge: "Operational",
-    badgeTone: "good",
+    /*
+     * Nothing was ever measured, so the stored status is only the default
+     * the monitor was created with: it is neither the badge nor the
+     * headline, just the last recorded status.
+     */
+    badge: "No results yet",
+    badgeTone: "warning",
     secondary: ["Checks overdue"],
-    headline: "Operational for 3 days, 4 hours",
+    headline: "No check has completed yet",
+    lastKnown: "Last recorded status: Operational",
     hasExplanation: true,
     cta: { text: "Check probes", page: PageMap.MONITOR_VIEW_PROBES },
   },
@@ -982,6 +989,37 @@ describe("MonitorOverviewHero layout", () => {
       expect(owners).not.toHaveTextContent("No owners");
       expect(owners).not.toHaveTextContent("Unavailable");
       expect(within(owners).queryByRole("link")).toBeNull();
+      expect(
+        screen.queryByTestId("monitor-overview-owners-partial"),
+      ).toBeNull();
+    });
+
+    test("owners from a partial or failed read are shown, but not as the whole list", () => {
+      const team: Team = new Team();
+      team._id = "5f8b7c1e2d3a4b5c6d7e8f91";
+      team.name = "Payments";
+
+      const partial: OverviewSection<Array<ResourceOwnerEntry>> = {
+        ...resolveSection<Array<ResourceOwnerEntry>>({
+          value: [{ kind: "team", team: team }],
+          subjectId: MONITOR_ID.toString(),
+        }),
+        refreshError: "You need permission to read this monitor's owner users.",
+      };
+
+      renderHero({ owners: partial });
+
+      const note: HTMLElement = screen.getByTestId(
+        "monitor-overview-owners-partial",
+      );
+      expect(note).toHaveTextContent("List may be incomplete");
+      expect(note).toHaveAttribute(
+        "title",
+        "You need permission to read this monitor's owner users.",
+      );
+      expect(
+        screen.getByTestId("monitor-overview-fact-owners"),
+      ).toContainElement(note);
     });
   });
 
@@ -1052,21 +1090,75 @@ describe("MonitorOverviewHero layout", () => {
   });
 
   test("a failed refresh is announced, and says what is on screen", () => {
+    const prefers12Hour: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+
+    try {
+      renderHero({ refreshError: "Network error." });
+
+      const alert: HTMLElement = screen.getByRole("alert");
+      expect(alert).toHaveAttribute(
+        "data-testid",
+        "monitor-overview-refresh-error",
+      );
+      expect(alert).toHaveTextContent(
+        "Couldn't refresh. Showing what loaded at 11:59. Network error.",
+      );
+      expect(alert).toHaveClass("text-red-700");
+      expect(alert.querySelector("time")).toHaveAttribute(
+        "dateTime",
+        secondsAgo(30).toISOString(),
+      );
+    } finally {
+      prefers12Hour.mockRestore();
+    }
+  });
+
+  test("the alert's text holds still while refreshes keep failing", () => {
+    /*
+     * An alert is re-read in full whenever its text changes. A relative
+     * time ticking inside it ("3 minutes ago", "4 minutes ago") made a
+     * screen reader interrupt its user once a minute.
+     */
     renderHero({ refreshError: "Network error." });
 
+    const before: string = screen.getByRole("alert").textContent || "";
+
+    act(() => {
+      jest.advanceTimersByTime(5 * 60 * 1000);
+    });
+
+    expect(screen.getByRole("alert").textContent).toBe(before);
+  });
+
+  test("a load from an earlier day names the day as well as the time", () => {
+    const prefers12Hour: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+
+    try {
+      renderHero({
+        refreshError: "Network error.",
+        lastLoadedAt: new Date("2026-09-20T23:58:00.000Z"),
+      });
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Couldn't refresh. Showing what loaded at Sep 20, 23:58. Network error.",
+      );
+    } finally {
+      prefers12Hour.mockRestore();
+    }
+  });
+
+  test("with nothing loaded yet the alert says so without a time", () => {
+    renderHero({ refreshError: "Network error.", lastLoadedAt: null });
+
     const alert: HTMLElement = screen.getByRole("alert");
-    expect(alert).toHaveAttribute(
-      "data-testid",
-      "monitor-overview-refresh-error",
-    );
     expect(alert).toHaveTextContent(
-      "Couldn't refresh. Showing what loaded a few seconds ago. Network error.",
+      "Couldn't refresh. Showing what loaded earlier. Network error.",
     );
-    expect(alert).toHaveClass("text-red-700");
-    expect(alert.querySelector("time")).toHaveAttribute(
-      "dateTime",
-      secondsAgo(30).toISOString(),
-    );
+    expect(alert.querySelector("time")).toBeNull();
   });
 
   test("no alert when the last refresh worked", () => {
