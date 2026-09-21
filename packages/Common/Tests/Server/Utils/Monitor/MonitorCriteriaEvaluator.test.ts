@@ -1186,7 +1186,7 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
       ],
     });
 
-    expect(context).toContain("| `osd.4` | - | - | **1** |");
+    expect(context).toContain("1. **Daemon** `osd.4` — **1**");
     expect(context).not.toContain("osd.3");
   });
 });
@@ -1208,7 +1208,7 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
  * evaluator as 1. It now also records the lowest sample, which is what a
  * fall criteria breached on.
  */
-describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => {
+describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predicate", () => {
   function kubernetesStep(templateId: string): MonitorStep {
     const template: KubernetesAlertTemplate | undefined =
       getKubernetesAlertTemplateById(templateId);
@@ -1320,9 +1320,13 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
         ],
       });
 
-      expect(context).toContain("**Affected Resources** (1 total)");
-      expect(context).toContain("| Node | Value |");
-      expect(context).toContain("| `node-notready` | **0** |");
+      expect(context).toContain(
+        [
+          "**Affected Resources** (1 total)",
+          "",
+          "1. **Node** `node-notready` — **0**",
+        ].join("\n"),
+      );
       expect(context).toContain(
         "Node `node-notready` is reporting NotReady (value: 0).",
       );
@@ -1346,7 +1350,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
       });
 
       expect(context).toContain("**Affected Resources** (1 total)");
-      expect(context).toContain("| `node-flapping` | **0** |");
+      expect(context).toContain("1. **Node** `node-flapping` — **0**");
       expect(context).toContain(
         "Node `node-flapping` is reporting NotReady (value: 0).",
       );
@@ -1392,7 +1396,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
         ],
       });
 
-      expect(context).toContain("| `node-ok-1` | **1** |");
+      expect(context).toContain("1. **Node** `node-ok-1` — **1**");
       expect(context).not.toContain("node-notready");
     });
   });
@@ -1417,12 +1421,12 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
     });
 
     expect(context).toContain("**Affected Resources** (1 total)");
-    expect(context).toContain("| `etcd-cp-2` | **0** |");
+    expect(context).toContain("1. **Pod** `etcd-cp-2` — **0**");
     expect(context).toContain("Most affected pod: `etcd-cp-2`");
     expect(context).not.toContain("etcd-cp-1");
   });
 
-  test("an `= 0` RECOVERY criteria does NOT turn the all-clear into a table of zeroes", async () => {
+  test("an `= 0` RECOVERY criteria does NOT turn the all-clear into a list of zeroes", async () => {
     const replicaStep: MonitorStep = kubernetesStep(
       "k8s-deployment-replica-mismatch",
     );
@@ -1471,8 +1475,12 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
     });
 
     expect(context).toContain("**Affected Resources** (2 total)");
-    expect(context).toContain("| Deployment | `web` | **3** |");
-    expect(context).toContain("| Deployment | `api` | **5** |");
+    expect(context).toContain(
+      [
+        "1. **Deployment** `api` — **5**",
+        "2. **Deployment** `web` — **3**",
+      ].join("\n"),
+    );
     expect(context).not.toContain("`ok`");
 
     // Still worst-HIGHEST-first for an upward comparison.
@@ -1537,7 +1545,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
       ],
     });
 
-    expect(context).toContain("| `node-pressured` | **1** |");
+    expect(context).toContain("1. **Node** `node-pressured` — **1**");
     expect(context).not.toContain("node-ok-1");
   });
 
@@ -1550,7 +1558,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
       ],
     });
 
-    expect(context).toContain("| `node-ok-1` | **1** |");
+    expect(context).toContain("1. **Node** `node-ok-1` — **1**");
     expect(context).not.toContain("node-notready");
   });
 });
