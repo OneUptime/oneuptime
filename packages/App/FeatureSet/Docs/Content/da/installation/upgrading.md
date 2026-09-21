@@ -96,6 +96,101 @@ settings that used to show an upgrade prompt.
   requests while the license is lapsed (after the trial or grace period), and
   answer again as soon as a license is activated.
 
+## Opgradering fra OneUptime 13 → 14
+
+OneUptime 14 deler applikationen i to udgaver, og det image, du henter, afgør hvilken der kører. **Community Edition** (Apache-2.0, tagsene `release` og `<version>`) indeholder ikke repositoryets `ee/`-mappe: SAML SSO, OpenID Connect, SCIM-provisionering, compliance-indstillinger for teams, revisionslogge, **Health**-dashboardene i administrationen og **Query Console** findes slet ikke i det image. **Enterprise Edition** (tagsene `enterprise-release` og `enterprise-<version>`) indeholder dem og kontrollerer en Enterprise-licens under drift, hvilket OneUptime 13 aldrig gjorde.
+
+[Community and Enterprise Edition images](#community-and-enterprise-edition-images) ovenfor er referencen for denne ændring: hvad hver udgave indeholder, hvad der skal sættes på hver installationsform, og hvad licensen gør. Dette afsnit handler om selve opgraderingen. Opgrader fra 13 — er du stadig på 12, tag 12 → 13 først.
+
+Intet bliver slettet i nogen af udgaverne. Din SSO-, OIDC- og SCIM-konfiguration, dine indstillinger for "Require SSO for login" og de revisionslogge, der allerede er registreret, forbliver i databasen. Community Edition leverer og håndhæver dem blot ikke, og et skift af udgave kræver ingen migrering i nogen retning.
+
+### Det, du skal gøre
+
+1. **Beslut, hvilken udgave denne installation kører.** Bruger du SAML SSO, OpenID Connect, SCIM-provisionering, compliance-indstillinger for teams eller revisionslogge, eller vil du have **Health**-dashboardene i administrationen, er det Enterprise Edition. Ellers er der intet at beslutte: Community Edition er det, du allerede har.
+2. **Sæt udgaven i din values-fil med Helm:** `image.type: enterprise-edition` (standarden er `community-edition`). Lad `image.tag` være — charten sætter selv præfikset `enterprise-` på, så `image.tag: release` henter `oneuptime/app:enterprise-release`. Værdien er ikke ny: kører du allerede `enterprise-edition`, er der intet at ændre, for det tag, du i forvejen henter, indeholder nu `ee/`.
+3. **Sæt `APP_TAG=enterprise-release` med Docker Compose** (eller `enterprise-<version>` for at fastlåse en version) i `config.env`. `APP_TAG=release` er Community-imaget. Det er dette punkt, der stopper en 13-installation: på 13 var en Compose-Enterprise-installation `APP_TAG=release` plus `IS_ENTERPRISE_EDITION=true`, og den kombination **nægter nu at starte** i stedet for at komme op som Community Edition uden længere at håndhæve din SSO-konfiguration. `npm run update` omskriver `APP_TAG` for dig, så længe `IS_ENTERPRISE_EDITION=true` (`release` bliver `enterprise-release`, et fastlåst `13.0.8` bliver `enterprise-13.0.8`), og skriver, hvad den ændrede. Henter du images manuelt, skal du selv sætte `APP_TAG` først.
+4. **Aktivér en licens på Enterprise Edition.** En installation uden licens får en prøveperiode på 14 dage, regnet fra dens første start af Enterprise Edition — ved en opgradering er det dagen, du opgraderer, ikke dagen, du installerede OneUptime. En master-administrator aktiverer fra udgavemærket i administrationens header; installationer uden internetadgang aktiverer med et signeret token. Se [Licensing](/docs/self-hosted/enterprise#licensing).
+5. **Skal denne installation køre Community Edition, mens SSO-tvang er konfigureret, så gennemgå adgangene før opgraderingen.** "Require SSO for login" håndhæves ikke længere, login med adgangskode accepteres igen, og enhver, der stadig har en konto og adgang til dens mailboks, kan sætte en adgangskode via "Glemt adgangskode" — også personer, som din identitetsudbyder har fjernet, for SCIM-deprovisionering stopper også. Fjern de brugere først: [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community).
+6. **Overvåger du IPv6-adresser med Ping-, Port- eller SSL-monitorer, så gem disse monitorer igen efter opgraderingen.** Destinationer gemt før 14 kan være lagret afkortet — se nedenfor.
+
+### Udgaver: hvad ændrede sig, og hvad gjorde ikke
+
+| | Til og med 13 | Fra 14 |
+| --- | --- | --- |
+| Enterprise-kode | i alle images; `IS_ENTERPRISE_EDITION=true` slog den til | i `ee/`, og kun i `enterprise-`-imagene |
+| Valg i Helm | `image.type` | `image.type` — uændret, men imagene er nu reelt forskellige |
+| Valg i Compose | `IS_ENTERPRISE_EDITION=true` | `APP_TAG=enterprise-release` |
+| Enterprise-licens | blev aldrig kontrolleret under drift | kontrolleres ved opstart og en gang om dagen |
+| SSO-, OIDC- og SCIM-endpoints | samme stier i begge udgaver | samme stier på Enterprise; `404` på Community |
+| Din Enterprise-konfiguration | gemt, håndhævet | gemt i begge, håndhævet på Enterprise |
+
+Der kører én migrering: en nullable kolonne `enterpriseEditionFirstSeenAt` på tabellen `GlobalConfig`, som kun har én række, så den er øjeblikkelig. Der er ingen ClickHouse-migrering, intet fjernes, og et skift af udgave kræver ingen migrering i nogen retning.
+
+### Licensforløbet på Enterprise Edition
+
+- **En installation uden licens** kører en prøveperiode på 14 dage, regnet fra den første start af Enterprise Edition. Alle Enterprise-funktioner virker i den periode, og udgavemærket advarer, før den slutter. Prøveperioden er til evaluering: produktionsbrug af Enterprise Edition kræver et abonnement under OneUptime Enterprise License.
+- **En licens, der udløber**, får 30 dages henstand fra udløbsdatoen, og i den periode virker alle Enterprise-funktioner, mens udgavemærket advarer.
+- **Efter prøveperioden eller efter den henstand**, og indtil en licens aktiveres: login via SSO og OIDC afvises, "Require SSO for login" håndhæves ikke længere (brugerne logger ind med deres adgangskode), din identitetsudbyders SCIM-forespørgsler afvises, og revisionslogningen registrerer ikke længere noget. Enterprise-konfigurationen bliver skrivebeskyttet — du kan stadig se og slette den, deaktivere en SSO- eller OIDC-udbyder og nulstille et SCIM-bearer-token, altså præcis det, en hændelse kræver — og Health-dashboardene og Query Console er låst.
+- **Intet slettes, og kerneovervågningen påvirkes aldrig.** Monitorer, alarmer, hændelser, vagtplaner, statussider og telemetri ligger uden for licensen, og login med adgangskode er fortsat muligt for alle brugere, også master-administratorer. Aktiveres en licens, genoprettes SSO-login, SSO-tvang, SCIM-provisionering og revisionslogning med den konfiguration, du allerede har — uden genstart.
+- **En licensnøgle, du allerede har, accepteres** som en "unverified" licens: udløbsdato og pladsgrænse kommer fra det, licensserveren allerede har oplyst denne installation, og efter det udløb gælder samme henstand på 30 dage. Licenser, der udstedes fra nu af, er signerede og kontrolleres af applikationen selv. Denne opgradering kræver ingen ny nøgle.
+
+Den fulde tilstandstabel står i [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing).
+
+### Docker Compose: vælg image-tagget
+
+```
+git checkout release # Sørg for, at du er på release-branchen.
+git pull
+npm run update
+```
+
+- **`npm run update` flytter `APP_TAG`, så længe `IS_ENTERPRISE_EDITION=true`**, til Enterprise-imaget for samme udgivelse, og skriver, hvad den ændrede. Dine kommentarer og citationstegn bevares, et `APP_TAG`, der allerede er et `enterprise-`-tag, røres ikke, og en anden kørsel ændrer intet.
+- **Henter du imagene manuelt, springes det over**, og applikationen afslutter så ved opstart med en fejl, der nøjagtigt siger, hvad der skal sættes: `APP_TAG=enterprise-<version>` for at beholde Enterprise Edition, eller `IS_ENTERPRISE_EDITION=false` for at køre Community Edition.
+- **Vil du bevidst over på Community Edition**, sæt `APP_TAG=release` og `IS_ENTERPRISE_EDITION=false`. Læs punkt 5 først, hvis denne installation håndhæver SSO.
+- Ellers skal der intet ændres i `config.env` for denne udgivelse.
+
+### Helm: vælg image-typen
+
+```
+helm repo update
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
+- **En installation, der allerede kører `image.type: enterprise-edition`, skal ikke ændre nogen værdier.** Charten har længe sat præfikset på tagget; det nye er, at `enterprise-`-imagene indeholder `ee/`. Fra denne udgivelse gælder licensen for dem efter forløbet ovenfor.
+- **`image.tag: release` er standarden**, så en chart, der står på det flydende tag, går over til 14 ved næste opgradering uden nogen ændring af værdier. Har den installation SSO, OIDC eller SCIM konfigureret på `community-edition`, sæt da `image.type: enterprise-edition` i samme opgradering.
+- **`IS_ENTERPRISE_EDITION` sættes stadig af charten**, udledt af `image.type`, så de to aldrig kan være i modstrid. Den styrer intet. At tvinge den til `true` via `extraEnv` på et Community-image får kun applikationen til at nægte at starte. Sæt aldrig `ONEUPTIME_EDITION` via charten.
+- **Chartens prober respekterer igen `probes.<key>.allowPrivateNetworkMonitors`** ([#3879](https://github.com/OneUptime/oneuptime/issues/3879)). Intet ændrer sig, hvis du ikke sætter værdien — den er stadig `false` — og den gælder monitorer fra **alle projekter** på instansen, fordi chartens prober er globale prober. Loopback, link-local og `169.254.169.254` er blokeret uanset værdien.
+
+### Andre ændringer i 14
+
+- **OTLP-indtag bekræfter først en batch, når køen har accepteret den.** 13 svarede `200` først og lagde i kø bagefter, så en batch, køen afviste, gik tabt i stilhed. 14 svarer `503` med `Telemetry queue unavailable. Please retry.`, og gRPC-endpointet returnerer `UNAVAILABLE`; begge kan forsøges igen, og eksportører forsøger igen. Det gælder logge, metrikker, traces og profiler. Der skal intet gøres, men eksportørernes genforsøg og modtryk i køen bliver nu synlige, hvor data før forsvandt — værd at vide, hvis du dimensionerer indtagskapacitet.
+- **Health-dashboardene og Query Console i administrationen kræver Enterprise Edition**, ligesom health-alarmerne for PostgreSQL og Valkey. På 13 fulgte de med `IS_ENTERPRISE_EDITION=true` alene, så for en Community-installation, der brugte dem, er det et synligt tab. ClickHouse-kapacitetsvisningen med oprydning, migreringsstatus, globale prober og support-bundtet findes i begge udgaver.
+- **HTTPS-monitorer, der rammer en IP-adresse gennem en probes proxy, virker igen.** Proben sendte IP'en som TLS-servernavn; en IP er ikke et gyldigt servernavn, og Node afviser det blankt, så en monitor på `https://<privat IP>` fra en global probe med `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` fejlede i handshaket. Proben udelader nu servernavnet ved et IP-mål og kontrollerer certifikatet mod selve IP'en. Mål med værtsnavn er uændrede.
+- **`oneuptime`-CLI'en oplyser sin rigtige version** ved `--version` i stedet for en pladsholder.
+- Hvilke endpoints er flyttet eller strammet, herunder `GET /api/global-config/license` og licensserver-endpointene, som selv-hostede installationer ikke længere udstiller, står ovenfor under [API and endpoint changes](#api-and-endpoint-changes).
+
+### IPv6-monitorer: Ping, Port og SSL
+
+En Ping- eller Port-destination, der blev indsat med mellemrum omkring — netop hvad man får, når man kopierer en adresse fra et looking glass eller en routerkonfiguration — blev gemt afkortet: `2001:518:2800:9::2 ` blev værten `2001` med port `518`. Begge halvdele er lovlige, så intet fejlede, og der blev ikke vist nogen fejl; monitoren overvågede blot en vært, ingen havde tastet. IPv4-adresser var aldrig berørt, fordi der ikke er noget kolon at dele ved. 14 retter fortolkningen og retter samtidig, at IPv6-Ping-monitorer på macOS- og FreeBSD-prober fejlede øjeblikkeligt og permanent (og blev meldt som reelle nedbrud), og at IPv6-SSL-monitorer fejlede med `ENOTFOUND`.
+
+Der findes ingen migrering for destinationer, der allerede er gemt, så **åbn hver IPv6-monitor for Ping, Port og SSL efter opgraderingen og gem den igen**, og kontrollér den viste destination. Forvent, at monitorer, der fejlede permanent på macOS- eller FreeBSD-prober, begynder at melde sandheden — det kan lukke hændelser eller åbne nye.
+
+### Kontrollér udgave og licens
+
+- **Udgavemærket i administrationens header** oplyser den kørende udgave og på Enterprise Edition også licensstatussen.
+- **Compose:** `docker compose images` viser de kørende tags — på Enterprise Edition bærer hvert OneUptime-image præfikset `enterprise-`.
+- **Helm:** `kubectl get pods -n <namespace> -o jsonpath='{..image}'` skriver de images, podsene kører; samme præfiksregel gælder.
+- SSO-, OIDC- og SCIM-endpointene adskiller de to tilfælde: `404` betyder, at imaget ikke indeholder `ee/` (Community Edition), mens `402` eller `403` betyder, at Enterprise Edition kører med en licens, der kræver opmærksomhed.
+
+### Tilbagerulning til 13
+
+- Begge udgaver og begge udgivelser læser samme data, og den eneste skemaændring er en nullable kolonne, som 13 ignorerer, så at rulle imagene tilbage kræver intet databasearbejde.
+- **Docker Compose:** sæt `APP_TAG` tilbage til det 13-tag, du kørte (`13.0.8` eller `enterprise-13.0.8`), og kør `npm run update`. På 13 er det `IS_ENTERPRISE_EDITION=true`, der slår Enterprise-funktionerne til, så sæt den tilbage, hvis du havde den.
+- **Helm:** `helm rollback my-oneuptime`, eller fastlås `image.tag` til `13.0.8`.
+- At køre 14 rører ikke din Enterprise-konfiguration, så en tilbagerulning finder den, som den var.
+
+> Tip: aktivér licensen på Enterprise Edition den dag, du opgraderer, frem for ved prøveperiodens slutning. Det er aktiveringen, der holder single sign-on håndhævet, og prøveperioden regnes fra denne opgradering, ikke fra datoen for din oprindelige installation.
+
 ## Opgradering fra OneUptime 12 → 13
 
 OneUptime 13 erstatter Redis med [Valkey](https://valkey.io) som den medfølgende cache- og kømotor. Redis 7.4 forlod BSD-licensen, og størstedelen af de oprindelige Redis-bidragydere arbejder nu på Valkey, en fork af Redis 7.2, der taler den samme protokol. Intet over socket-niveau er ændret, og du kan stadig pege OneUptime på et rigtigt Redis eller en hostet Redis-kompatibel tjeneste, hvis du foretrækker det.

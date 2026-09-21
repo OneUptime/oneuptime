@@ -11,7 +11,7 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
 
 ## Upgrade notes
 
-- **Unreleased (after 13.0.7)** — The app ships as two editions, and the image
+- **14.0.0 (2026-09-21)** — The app ships as two editions, and the image
   now decides which one runs. The **Community Edition** images
   (`image.type: community-edition`, the default) are Apache-2.0 and do not
   contain the repository's `ee/` directory. The **Enterprise Edition** images
@@ -54,30 +54,47 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
     [upgrading guide](https://oneuptime.com/docs/installation/upgrading#community-and-enterprise-edition-images)
     for the same steps with Docker Compose.
 
-- **Unreleased (after 13.0.6)** — Chart probes honor
-  `probes.<key>.allowPrivateNetworkMonitors` again
-  ([#3879](https://github.com/OneUptime/oneuptime/issues/3879)). 12.0.34 (and
-  so 13.0.0) added a private-address check to API, Website and External Status
-  Page monitors, which had none before, and at the same time made the probes
-  this chart deploys ignore the value, because they register themselves as
-  global probes. Custom JavaScript Code monitors always refused private
-  targets; from 12.0.25 this value had let them reach those targets from chart
-  probes, and 12.0.34 took that away too. Monitors of internal services started
-  failing on upgrade, with no setting that brought them back. **Nothing changes
-  unless you set the value**: it still defaults to `false`.
+  Also in 14.0.0:
 
-  - To monitor internal targets from a chart probe, set
-    `probes.<key>.allowPrivateNetworkMonitors: true` on that probe. Chart probes
-    are global probes, so this applies to monitors from **every project** on the
-    instance, and `helm upgrade` prints a reminder naming the probes it is on.
-    Coming from 12.0.33 or earlier with such monitors, set it before you
-    upgrade.
-  - Loopback, link-local and the cloud metadata endpoint (`169.254.169.254`)
-    stay blocked on every probe, whatever the value.
-  - With `billing.enabled: true` the value is still ignored on chart probes,
-    which stay public-only; the probe now logs a warning at startup and
-    `helm upgrade` prints an `IGNORED VALUES` notice instead of dropping it
-    silently. Deploy a private probe for internal targets there.
+  - **Chart probes honor `probes.<key>.allowPrivateNetworkMonitors` again**
+    ([#3879](https://github.com/OneUptime/oneuptime/issues/3879)). 12.0.34 (and
+    so 13.0.0) added a private-address check to API, Website and External Status
+    Page monitors, which had none before, and at the same time made the probes
+    this chart deploys ignore the value, because they register themselves as
+    global probes. Monitors of internal services started failing on upgrade,
+    with no setting that brought them back. **Nothing changes unless you set the
+    value**: it still defaults to `false`. Chart probes are global probes, so
+    setting it applies to monitors from **every project** on the instance, and
+    `helm upgrade` prints a reminder naming the probes it is on. Loopback,
+    link-local and the cloud metadata endpoint (`169.254.169.254`) stay blocked
+    on every probe, whatever the value. With `billing.enabled: true` the value
+    is still ignored on chart probes, which stay public-only; the probe logs a
+    warning at startup and `helm upgrade` prints an `IGNORED VALUES` notice
+    instead of dropping it silently. Deploy a private probe for internal
+    targets there.
+  - **OTLP ingest acknowledges a batch only after the queue accepts it.** 13
+    answered `200` first and enqueued afterwards, so a batch the queue rejected
+    was lost silently. 14 answers `503` with `Telemetry queue unavailable.
+    Please retry.`, and the gRPC endpoint returns `UNAVAILABLE`; both are
+    retryable, and exporters retry. Nothing to set, but exporter retries and
+    queue backpressure are now visible where data used to disappear — worth
+    knowing if you size ingest capacity from these values.
+  - **Re-save your IPv6 Ping, Port and SSL monitors after upgrading.** A Ping or
+    Port destination pasted with surrounding whitespace used to be stored
+    truncated (`2001:518:2800:9::2 ` became the host `2001` with port `518`),
+    silently. 14 fixes the parsing, and fixes IPv6 Ping monitors failing
+    instantly on macOS and FreeBSD probes and IPv6 SSL monitors failing with
+    `ENOTFOUND`. There is no migration for destinations already stored, so
+    re-open and save each one; monitors that were failing permanently will start
+    reporting the truth, which may resolve incidents or raise new ones.
+  - **The Admin Dashboard Health dashboards and the Query Console need the
+    Enterprise Edition**, with the PostgreSQL and Valkey health alerts. On 13
+    they came with `IS_ENTERPRISE_EDITION=true` alone. ClickHouse capacity
+    monitoring and pruning, migration status, global probes and the support
+    bundle are in both editions.
+  - **Schema:** one migration, a nullable column added to the single-row
+    `GlobalConfig` table. No ClickHouse migration, nothing dropped, nothing
+    long-running.
 
 - **13.0.0 (2026-09-07)** — The cache and queue tier is Valkey, the
   BSD-licensed fork of Redis 7.2, and everything is named for it. **No values
