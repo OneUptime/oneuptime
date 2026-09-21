@@ -301,6 +301,15 @@ const Pricing: Array<PricingCategory> = [
         },
       },
       {
+        name: "WhatsApp Alerts",
+        plans: {
+          free: "$0.10/message",
+          growth: "$0.10/message",
+          scale: "$0.10/message",
+          enterprise: "$0.10/message",
+        },
+      },
+      {
         name: "Phone Call Alerts",
         plans: {
           free: "$0.10/min",
@@ -316,6 +325,24 @@ const Pricing: Array<PricingCategory> = [
           growth: true,
           scale: true,
           enterprise: true,
+        },
+      },
+      {
+        name: "Push Notifications",
+        plans: {
+          free: "Free",
+          growth: "Free",
+          scale: "Free",
+          enterprise: "Free",
+        },
+      },
+      {
+        name: "App Alerts",
+        plans: {
+          free: "Free",
+          growth: "Free",
+          scale: "Free",
+          enterprise: "Free",
         },
       },
       {
@@ -366,10 +393,10 @@ const Pricing: Array<PricingCategory> = [
       {
         name: "Webhook Alerts",
         plans: {
-          free: "Coming Soon",
-          growth: "Coming Soon",
-          scale: "Coming Soon",
-          enterprise: "Coming Soon",
+          free: "Free",
+          growth: "Free",
+          scale: "Free",
+          enterprise: "Free",
         },
       },
       {

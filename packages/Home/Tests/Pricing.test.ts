@@ -11,7 +11,7 @@ import Pricing, {
  * /llms-full.txt). A feature whose per-plan cells reference a mistyped or
  * missing plan key renders a column that is silently blank for buyers and for
  * the LLM catalogue, so these tests pin the structural contract between the
- * plan list and the feature matrix rather than any specific price.
+ * plan list and the feature matrix, along with published notification rates.
  */
 
 const planKeys: Array<string> = PricingPlans.map(
@@ -118,4 +118,35 @@ describe("Pricing feature matrix", () => {
       expect(new Set(names).size).toBe(names.length);
     }
   });
+});
+
+describe("Notification pricing", () => {
+  const notificationFeatures: Array<PricingFeature> =
+    Pricing.find((category: PricingCategory) => {
+      return category.name === "On-Call and Alerts";
+    })?.data || [];
+
+  test.each([
+    ["SMS Alerts", "$0.10/SMS"],
+    ["Phone Call Alerts", "$0.10/min"],
+    ["WhatsApp Alerts", "$0.10/message"],
+    ["Push Notifications", "Free"],
+    ["App Alerts", "Free"],
+    ["Email Alerts", "Free"],
+    ["Webhook Alerts", "Free"],
+  ])(
+    "%s has the advertised rate on every plan",
+    (name: string, rate: string) => {
+      const feature: PricingFeature | undefined = notificationFeatures.find(
+        (candidate: PricingFeature) => {
+          return candidate.name === name;
+        },
+      );
+
+      expect(feature).toBeDefined();
+      for (const planKey of planKeys) {
+        expect(feature?.plans[planKey]).toBe(rate);
+      }
+    },
+  );
 });
