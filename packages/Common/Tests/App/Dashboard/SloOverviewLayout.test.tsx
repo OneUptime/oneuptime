@@ -146,7 +146,12 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloNoticeBanner",
   () => {
-    return { __esModule: true, default: (): null => null };
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
   },
 );
 
@@ -155,7 +160,9 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => <div data-testid="kpi-strip" />,
+      default: (): React.ReactElement => {
+        return <div data-testid="kpi-strip" />;
+      },
     };
   },
 );
@@ -165,9 +172,9 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => (
-        <section aria-label="Budget burn-down" />
-      ),
+      default: (): React.ReactElement => {
+        return <section aria-label="Budget burn-down" />;
+      },
     };
   },
 );
@@ -177,9 +184,9 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => (
-        <section aria-label="Recent activity" />
-      ),
+      default: (): React.ReactElement => {
+        return <section aria-label="Recent activity" />;
+      },
     };
   },
 );
@@ -189,9 +196,9 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => (
-        <section aria-label="Choose what this SLO measures" />
-      ),
+      default: (): React.ReactElement => {
+        return <section aria-label="Choose what this SLO measures" />;
+      },
     };
   },
 );
@@ -201,9 +208,9 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => (
-        <section aria-label="Open alerts and incidents" />
-      ),
+      default: (): React.ReactElement => {
+        return <section aria-label="Open alerts and incidents" />;
+      },
     };
   },
 );
@@ -213,9 +220,9 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => (
-        <section aria-label="Burn rate rules" />
-      ),
+      default: (): React.ReactElement => {
+        return <section aria-label="Burn rate rules" />;
+      },
     };
   },
 );
@@ -487,7 +494,7 @@ describe("SLO overview details sidebar", () => {
     createOrUpdateMock.mockImplementation(
       (request: {
         model: ServiceLevelObjective;
-      }): Promise<{ data: object }> => {
+      }): Promise<{ data: Record<string, unknown> }> => {
         storedSlo = Object.assign(
           new ServiceLevelObjective(),
           storedSlo,

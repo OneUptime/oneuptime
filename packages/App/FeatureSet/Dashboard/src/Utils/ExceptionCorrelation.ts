@@ -495,9 +495,9 @@ export const buildOccurrenceLogsExplorerLink: BuildOccurrenceLogsExplorerLinkFun
 
     /*
      * Route validates its characters and throws on anything outside its
-     * whitelist (encodeURIComponent leaves e.g. "~" bare, which Route
-     * rejects). This builder runs per table row, so a malformed id must
-     * yield "no link", never an exception out of a cell renderer.
+     * whitelist. Every character encodeURIComponent leaves bare is on that
+     * whitelist today, but this builder runs per table row, so a rejected
+     * link must yield "no link", never an exception out of a cell renderer.
      */
     try {
       const route: Route = new Route(args.logsRoute.toString());

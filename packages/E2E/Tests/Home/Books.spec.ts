@@ -1051,8 +1051,13 @@ test.describe("Home: Books", () => {
         );
       }
 
+      /*
+       * The route sends a strong ETag, but nginx (gzip on, gzip_proxied any)
+       * turns it into W/"..." whenever it compresses the JSON. Either form has
+       * to revalidate: the route compares If-None-Match weakly.
+       */
       const etag: string = response.headers()["etag"] || "";
-      expect(etag).toMatch(/^"[^"]+"$/);
+      expect(etag).toMatch(/^(W\/)?"[^"]+"$/);
       const revalidated: APIResponse = await page.request.get(contentUrl, {
         headers: { "If-None-Match": etag },
       });
