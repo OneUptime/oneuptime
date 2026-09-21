@@ -43,6 +43,8 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import { UptimeDailyAggregate } from "Common/Types/StatusPage/UptimeDailyAggregate";
+import UptimeDailyAggregateUtil from "Common/Utils/StatusPage/UptimeDailyAggregateUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -179,6 +181,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [monitorStatusTimelines, setMonitorStatusTimelines] = useState<
     Array<MonitorStatusTimeline>
   >([]);
+  /*
+   * Server-measured per-day coverage. This, not monitorStatusTimelines, is
+   * what the uptime bars are painted from: the timeline rows arrive under a
+   * cap that drops history without saying so.
+   */
+  const [uptimeDailyAggregate, setUptimeDailyAggregate] =
+    useState<UptimeDailyAggregate | null>(null);
   const [resourceGroups, setResourceGroups] = useState<Array<StatusPageGroup>>(
     [],
   );
@@ -377,6 +386,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
           (data["monitorStatusTimelines"] as JSONArray) || [],
           MonitorStatusTimeline,
         );
+
+      const uptimeDailyAggregate: UptimeDailyAggregate =
+        UptimeDailyAggregateUtil.fromJSON(
+          data["uptimeDailyAggregate"] as JSONObject,
+        );
       const resourceGroups: Array<StatusPageGroup> = BaseModel.fromJSONArray(
         (data["resourceGroups"] as JSONArray) || [],
         StatusPageGroup,
@@ -469,6 +483,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setEpisodePublicNotes(episodePublicNotes);
       setEpisodeStateTimelines(episodeStateTimelines);
       setMonitorStatusTimelines(monitorStatusTimelines);
+      setUptimeDailyAggregate(uptimeDailyAggregate);
       setResourceGroups(resourceGroups);
       setMonitorStatuses(monitorStatuses);
       setStatusPage(statusPage);
@@ -845,6 +860,20 @@ const Overview: FunctionComponent<PageComponentProps> = (
               statusPageHistoryChartBarColorRules
             }
             downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
+            /*
+             * Single-monitor resource, so the monitor's own buckets are the
+             * resource's reading. A GROUP resource deliberately gets none:
+             * its status at any moment is the highest-priority status among
+             * its monitors, and summing per-monitor day buckets would count
+             * two monitors down at the same time as twice the downtime.
+             * Groups keep the old event-derived behaviour until the
+             * aggregate is computed per resource server-side.
+             */
+            uptimeBuckets={UptimeDailyAggregateUtil.getBucketsForMonitor(
+              uptimeDailyAggregate,
+              resource.monitorId || resource.monitor?.id || "",
+            )}
+            monitorStatuses={monitorStatuses}
             description={resource.displayDescription || ""}
             tooltip={resource.displayTooltip || ""}
             currentStatus={currentStatus}
