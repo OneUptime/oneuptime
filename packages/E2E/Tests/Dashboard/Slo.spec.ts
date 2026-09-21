@@ -1013,10 +1013,14 @@ test.describe("SLOs", () => {
     });
     await criteriaDropdown.click();
     await page
-      .getByRole("option", { name: "Monitor Name Pattern", exact: true })
+      .getByRole("option", { name: "Monitor Name", exact: true })
       .click({ timeout: 30000 });
 
-    // A pattern field defaults to "Matches pattern" (regex or * wildcard).
+    /*
+     * The option is labelled "Monitor Name", but it still stores into the
+     * monitorNamePattern column, so it defaults to "Matches pattern" (regex
+     * or * wildcard).
+     */
     const conditionRow: Locator = form.getByTestId("rule-criteria-row-0");
     await expect(conditionRow).toContainText("Matches pattern", {
       timeout: 30000,

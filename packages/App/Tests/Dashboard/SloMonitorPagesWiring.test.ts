@@ -127,6 +127,46 @@ describe("SLO Monitor Rules page", () => {
     );
   });
 
+  /*
+   * The condition builder labels each criterion option with its field's
+   * title, and the SLO E2E spec picks the option by that exact label. PR CI
+   * never runs E2E, so a renamed title (Monitor Name Pattern -> Monitor Name)
+   * would only surface as a timed-out click on master. Pin the link here.
+   */
+  test("every criterion the SLO E2E spec picks is a match-criteria field title", () => {
+    const spec: string = fs
+      .readFileSync(
+        path.join(REPOSITORY_ROOT, "E2E/Tests/Dashboard/Slo.spec.ts"),
+        "utf8",
+      )
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/(^|\s)\/\/.*$/gm, " ")
+      .replace(/\s+/g, " ");
+
+    const pickedCriteria: Array<string> = Array.from(
+      spec.matchAll(
+        /name: "Criteria for condition \d+",? \}\);(?:(?!getByRole\().)*getByRole\("option", \{ name: "([^"]+)", exact: true \}\)/g,
+      ),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(pickedCriteria.length).toBeGreaterThan(0);
+
+    for (const title of pickedCriteria) {
+      const escapedTitle: string = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      const matchCriteriaFieldPattern: RegExp = new RegExp(
+        `field: \\{ \\w+: true \\}, title: "${escapedTitle}", stepId: "match-criteria"`,
+      );
+
+      expect({
+        title: title,
+        isMatchCriteriaFieldTitle: matchCriteriaFieldPattern.test(formFields),
+      }).toEqual({ title: title, isMatchCriteriaFieldTitle: true });
+    }
+  });
+
   test("its help has a Match Criteria section for the builder to rewrite", () => {
     expect(readRaw(MONITOR_RULES_PAGE)).toContain("### Match Criteria");
   });
