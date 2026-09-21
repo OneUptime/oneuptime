@@ -13,9 +13,9 @@ import path from "path";
  *   - the project has audit logging ON and one recorded entry, so the Lapsed
  *     suite can show that a further audited write records NOTHING while the
  *     licence is dead, and that the existing trail is still readable;
- *   - the project has a ProjectSCIM row, so the Lapsed suite can show that a
- *     lapse keeps existing configuration readable while refusing to create any
- *     more of it;
+ *   - the project has a ProjectSCIM row, so the Lapsed suite can show that
+ *     changing it is refused (402) while disabling it - a tighten-only update -
+ *     still goes through, and that it is still readable and deletable;
  *   - the owner account exists with the shared signup password, so the Lapsed
  *     suite can show that a lapsed licence does NOT break password sign-in.
  *
@@ -41,11 +41,12 @@ export interface LicensedSuiteHandoff {
   auditedResourceType: string;
   auditedResourceName: string;
   /*
-   * The name of the enterprise configuration row created while licensed, empty
-   * when that test did not run. A name and not an id: the CRUD API does not
-   * give a project-owner session this model's key, so both suites find the row
-   * by the unique name the licensed suite chose (isProjectScimListed).
+   * The enterprise configuration row created while licensed - its id, which
+   * the Lapsed suite uses to address it for an update, and its name, which
+   * both suites use to recognise it in a list. Both empty when that test did
+   * not run.
    */
+  projectScimId: string;
   projectScimName: string;
   // When the Licensed suite finished, for a stale-file sanity check.
   completedAt: string;

@@ -162,12 +162,31 @@ export class Service extends DatabaseService<Model> {
     this.assertCallerMayCreatePins(createBy.props);
 
     if (!isInternalCaller(createBy.props)) {
-      /* The database keeps these for itself; a request does not set them. */
-      delete createBy.data._id;
-      delete createBy.data.createdAt;
-      delete createBy.data.updatedAt;
-      delete createBy.data.deletedAt;
-      delete createBy.data.version;
+      /*
+       * The database keeps these for itself; a request does not set them.
+       *
+       * Cleared rather than deleted: `createBy.data` is a live model instance,
+       * and the column-metadata lookups downstream used to enumerate the own
+       * keys of whichever instance reached them first and cache that as the
+       * CLASS's column list - so deleting `_id` off this instance taught the
+       * whole process that RumSessionPin has no id, and every later response
+       * for it lost one. TableColumn.ts no longer reads the caller's instance
+       * (see CanonicalModelInstance.ts), so this is defence in depth. An
+       * unset column holds `undefined` anyway, which TypeORM and the write
+       * path treat exactly as an absent key - the save is still an INSERT.
+       */
+      const databaseManagedColumns: Array<string> = [
+        "_id",
+        "createdAt",
+        "updatedAt",
+        "deletedAt",
+        "version",
+      ];
+
+      for (const columnName of databaseManagedColumns) {
+        (createBy.data as unknown as Record<string, unknown>)[columnName] =
+          undefined;
+      }
     }
 
     const pinKey: PinKey | null = this.resolvePinKey(createBy);

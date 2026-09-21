@@ -1,5 +1,6 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ColumnBillingAccessControl from "../../BaseDatabase/ColumnBillingAccessControl";
+import getCanonicalModelInstance from "../CanonicalModelInstance";
 import Dictionary from "../../Dictionary";
 import { ReflectionMetadataType } from "../../Reflection";
 import "reflect-metadata";
@@ -31,10 +32,12 @@ type GetColumnBillingAccessControlForAllColumnsFunction = <T extends BaseModel>(
 ) => Dictionary<ColumnBillingAccessControl>;
 
 /*
- * Per-class cache. Safe to key on the constructor because every decorated
- * column is initialised to `undefined` in the class body, so Object.keys()
- * is identical for every instance of a class (see OwnerOnlyColumn.ts).
- * Callers must treat the returned dictionary as read-only.
+ * Per-class cache, keyed on the constructor and built from a canonical
+ * instance of that class rather than from whichever instance asked first, so
+ * a caller that has deleted a column off its own instance cannot define what
+ * the class reports for the rest of the process. See
+ * CanonicalModelInstance.ts for the bug this prevents. Callers must treat the
+ * returned dictionary as read-only.
  */
 const billingAccessControlCache: WeakMap<
   { new (): BaseModel },
@@ -50,12 +53,14 @@ export const getColumnBillingAccessControlForAllColumns: GetColumnBillingAccessC
       billingAccessControlCache.get(modelClass);
 
     if (!cached) {
+      const canonical: T | null = getCanonicalModelInstance(target);
+      const metadataSource: T = canonical || target;
       const dictonary: Dictionary<ColumnBillingAccessControl> = {};
-      const keys: Array<string> = Object.keys(target);
+      const keys: Array<string> = Object.keys(metadataSource);
 
       for (const key of keys) {
         const accessControl: ColumnBillingAccessControl | undefined =
-          Reflect.getMetadata(accessControlSymbol, target, key) as
+          Reflect.getMetadata(accessControlSymbol, metadataSource, key) as
             | ColumnBillingAccessControl
             | undefined;
         if (accessControl) {
@@ -64,7 +69,14 @@ export const getColumnBillingAccessControlForAllColumns: GetColumnBillingAccessC
       }
 
       cached = dictonary;
-      billingAccessControlCache.set(modelClass, cached);
+      /*
+       * No canonical instance (see CanonicalModelInstance): answer from the
+       * instance we were handed, but do NOT cache it for the class - that
+       * instance may be a mutilated one, and a cached answer outlives it.
+       */
+      if (canonical) {
+        billingAccessControlCache.set(modelClass, cached);
+      }
     }
 
     return cached;

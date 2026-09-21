@@ -48,7 +48,6 @@ import ListResult from "../../../Types/BaseDatabase/ListResult";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { JSONObject } from "../../../Types/JSON";
-import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SecurityConnectorSample,
@@ -269,12 +268,36 @@ function eventsParams(route: Route): URLSearchParams {
   return new URLSearchParams(text.slice(text.indexOf("?")));
 }
 
-// The table's own filter on the link; {} when the link sets none.
+/*
+ * The chips the link opens the events explorer with, re-shaped as
+ * `{ attributes: { key: value } }` — the reading these assertions have always
+ * used.
+ *
+ * The link's grammar is the explorers' own `filters` param
+ * (`[["attributes.<key>", "<value>"], ...]`); it used to be the model
+ * table's serialized column filter, which went away with the table. Anything
+ * the explorer does not express as an attribute chip is left out, so an
+ * assertion that a key is absent still means "the link does not filter on
+ * it".
+ */
 function eventsFilter(route: Route): JSONObject {
-  const raw: string | null = eventsParams(route).get(
-    "security-events-table-filter",
-  );
-  return raw ? JSONFunctions.deserialize(JSON.parse(raw) as JSONObject) : {};
+  const raw: string | null = eventsParams(route).get("filters");
+
+  if (!raw) {
+    return {};
+  }
+
+  const attributes: JSONObject = {};
+
+  for (const pair of JSON.parse(raw) as Array<[string, string]>) {
+    if (!Array.isArray(pair) || !pair[0]?.startsWith("attributes.")) {
+      continue;
+    }
+
+    attributes[pair[0].substring("attributes.".length)] = pair[1];
+  }
+
+  return Object.keys(attributes).length > 0 ? { attributes } : {};
 }
 
 /*
@@ -1481,25 +1504,38 @@ describe("View events for a connection run", () => {
     expect(eventsFilter(route)["attributes"]).toBeUndefined();
   });
 
-  test("the window is the page's time range, not a table filter", (): void => {
+  test("the window is the page's time range, not a chip", (): void => {
     const route: Route = connectionEventsRoute(result(), CONNECTION_ID);
     const params: URLSearchParams = eventsParams(route);
 
     expect(params.get("range")).toBe(TimeRange.CUSTOM);
     expect(params.get("start")).toBe("2026-09-09T01:30:29.000Z");
     expect(params.get("end")).toBe("2026-09-09T01:30:31.000Z");
-    // The table no longer offers a Time filter, so none is written for it.
+    // The window is the explorer's own range, never one of its chips.
     expect(eventsFilter(route)["time"]).toBeUndefined();
     expect(eventsFilter(route)["attributes"]).toEqual({
       [SECURITY_CONNECTION_ID_ATTRIBUTE]: CONNECTION_ID,
     });
   });
 
-  test("a link with nothing to filter on sets no table filter at all", (): void => {
+  test("the connection chip is written in the explorer's filters grammar", (): void => {
+    const raw: string | null = eventsParams(
+      connectionEventsRoute(result(), CONNECTION_ID),
+    ).get("filters");
+
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw as string)).toEqual([
+      [`attributes.${SECURITY_CONNECTION_ID_ATTRIBUTE}`, CONNECTION_ID],
+    ]);
+  });
+
+  test("a link with nothing to filter on sets no chips at all", (): void => {
     const params: URLSearchParams = eventsParams(
       connectionEventsRoute(result()),
     );
 
+    expect(params.get("filters")).toBeNull();
+    // The retired model table's own filter param is gone for good.
     expect(params.get("security-events-table-filter")).toBeNull();
     expect(params.get("range")).toBe(TimeRange.CUSTOM);
   });

@@ -33,6 +33,18 @@ export interface TelemetryViewerProps<T> {
   error?: string | undefined;
   onRefresh?: (() => void) | undefined;
   emptyMessage?: string | undefined;
+  /*
+   * Replaces the default "No results / try adjusting filters" block when the
+   * list comes back empty.
+   *
+   * For most signals the default is right: an empty list means the filters
+   * are too narrow. For a signal that a project may not be SENDING at all,
+   * it is usually wrong — the reader needs the setup guide, not an
+   * invitation to widen a time range over data that does not exist. Takes
+   * precedence over `emptyMessage`; nothing is rendered around it, so the
+   * caller owns the whole empty area.
+   */
+  emptyContent?: ReactNode;
 
   // -- Layout --
   /** Render one item row in the main list. */
@@ -296,18 +308,22 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                   <ComponentLoader />
                 </div>
               ) : props.items.length === 0 ? (
-                <div className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center">
-                  <Icon
-                    icon={IconProp.Search}
-                    className="h-8 w-8 text-gray-300"
-                  />
-                  <p className="text-sm font-medium text-gray-500">
-                    {props.emptyMessage || "No results"}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Try adjusting filters or time range.
-                  </p>
-                </div>
+                props.emptyContent !== undefined ? (
+                  <>{props.emptyContent}</>
+                ) : (
+                  <div className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center">
+                    <Icon
+                      icon={IconProp.Search}
+                      className="h-8 w-8 text-gray-300"
+                    />
+                    <p className="text-sm font-medium text-gray-500">
+                      {props.emptyMessage || "No results"}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Try adjusting filters or time range.
+                    </p>
+                  </div>
+                )
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {props.items.map((item: T, index: number) => {
