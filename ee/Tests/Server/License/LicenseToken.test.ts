@@ -1655,9 +1655,19 @@ describe("classifyLicenseToken: an unverified token with no recorded expiry", ()
   };
 
   /*
-   * Everything except how the state is DIAGNOSED. verification and reason are
-   * meant to differ from an unlicensed install's (a token IS installed here),
-   * and the message names the problem; every other field must match.
+   * Everything except what DESCRIBES the installed license, which an
+   * unlicensed install by definition has none of.
+   *
+   * verification, reason, message and kid are the diagnosis: they are meant to
+   * differ (a token IS installed here). companyName and isEvaluation are
+   * carried over from the stored columns for the same reason - they describe
+   * the license this installation holds, and blanking them would present a
+   * customer's evaluation license as a production one. Both are asserted
+   * explicitly by the callers instead.
+   *
+   * userLimit is NOT excluded: it is the number seats are refused against, it
+   * is deliberately dropped here, and it must keep matching an unlicensed
+   * install's null.
    */
   const comparableFields: (
     classification: LicenseTokenClassification,
@@ -1672,6 +1682,8 @@ describe("classifyLicenseToken: an unverified token with no recorded expiry", ()
     delete fields["reason"];
     delete fields["message"];
     delete fields["kid"];
+    delete fields["companyName"];
+    delete fields["isEvaluation"];
 
     return fields;
   };
@@ -1688,9 +1700,20 @@ describe("classifyLicenseToken: an unverified token with no recorded expiry", ()
         graceReason: "unlicensed",
         features: "all",
         reason: "unverified-without-expiry-unlicensed",
-        // The trial's terms, not the stored columns' - exactly as unlicensed.
+        /*
+         * The seat limit is the trial's (none), not the stored column's: the
+         * expiry beside it is already known to be wrong, and enforcing seats
+         * out of the rest of that record would turn one missing column into
+         * "you cannot add users".
+         */
         userLimit: null,
-        isEvaluation: false,
+        /*
+         * The company and the evaluation flag ARE the stored columns': they
+         * describe the license that is installed and gate nothing, and an
+         * evaluation license must not quietly present as a production one.
+         */
+        companyName: "Acme Inc",
+        isEvaluation: true,
       });
       expect(result.graceEndsAt).toEqual(
         new Date(FIRST_SEEN.getTime() + TRIAL_DAYS * DAY_IN_MS),
@@ -1708,6 +1731,77 @@ describe("classifyLicenseToken: an unverified token with no recorded expiry", ()
     expect(message).toContain(`${TRIAL_DAYS}-day trial`);
     // Not an expired license: nobody should be told to renew one.
     expect(message).not.toContain("has expired");
+  });
+
+  /*
+   * The message has three forms, and the three say OPPOSITE things about
+   * whether enterprise features are working right now. Assert the clause that
+   * distinguishes each one, and that it does not carry another's: a test that
+   * only checks the words all three share (the problem, the remedy, the
+   * length of the trial) passes just as happily when the in-trial branch is
+   * deleted, or when the in-trial and post-trial bodies are swapped outright.
+   * Both of those survived a mutation sweep of this file.
+   */
+  describe("the three forms of that message", () => {
+    const IN_TRIAL: string = "Enterprise features stay available";
+    const PAST_TRIAL: string = "so Enterprise features have stopped";
+
+    const messageAt: (offsetInMs: number) => string = (
+      offsetInMs: number,
+    ): string => {
+      return String(
+        classifyWithoutExpiry(null, {
+          now: new Date(FIRST_SEEN.getTime() + offsetInMs),
+        }).message,
+      );
+    };
+
+    test("inside the trial it says features are still on, and not that they stopped", () => {
+      const message: string = messageAt(TRIAL_DAYS * DAY_IN_MS - DAY_IN_MS);
+
+      expect(message).toContain(IN_TRIAL);
+      expect(message).not.toContain(PAST_TRIAL);
+      expect(message).not.toContain("has ended");
+      // Named as the trial it is, counted from the install's first run.
+      expect(message).toContain(`under the ${TRIAL_DAYS}-day trial`);
+    });
+
+    test("past the trial it says the trial ended and features stopped, not that they stay", () => {
+      const message: string = messageAt(TRIAL_DAYS * DAY_IN_MS + DAY_IN_MS);
+
+      expect(message).toContain(PAST_TRIAL);
+      expect(message).toContain("has ended");
+      expect(message).not.toContain(IN_TRIAL);
+    });
+
+    /*
+     * No first-run stamp: whether the trial is over is UNKNOWN, so the message
+     * must claim neither. This is the state EnterpriseEdition fails open on.
+     */
+    test("with no first-run stamp it claims neither", () => {
+      const message: string = String(
+        classify({ token: legacyToken(), storedColumns: { expiresAt: null } })
+          .message,
+      );
+
+      expect(message).not.toContain(IN_TRIAL);
+      expect(message).not.toContain(PAST_TRIAL);
+      // Still the problem and the remedy, which every form carries.
+      expect(message).toContain("no expiry is recorded for it");
+      expect(message).toContain("re-activate the license");
+    });
+
+    // The three really are three, not one string reused.
+    test("are all different from one another", () => {
+      const inTrial: string = messageAt(TRIAL_DAYS * DAY_IN_MS - DAY_IN_MS);
+      const pastTrial: string = messageAt(TRIAL_DAYS * DAY_IN_MS + DAY_IN_MS);
+      const unknownStart: string = String(
+        classify({ token: legacyToken(), storedColumns: { expiresAt: null } })
+          .message,
+      );
+
+      expect(new Set([inTrial, pastTrial, unknownStart]).size).toBe(3);
+    });
   });
 
   test("an EdDSA token signed by an unknown key behaves the same way", () => {
@@ -1782,6 +1876,18 @@ describe("classifyLicenseToken: an unverified token with no recorded expiry", ()
     expect(unlicensed.verification).toBe("none");
     expect(lapsed.reason).toBe("unverified-without-expiry-unlicensed");
     expect(unlicensed.reason).toBe("unlicensed-grace-over");
+
+    /*
+     * And the description of the license that IS installed, which the
+     * unlicensed install has nothing to say about.
+     */
+    expect(lapsed.companyName).toBe("Acme Inc");
+    expect(lapsed.isEvaluation).toBe(true);
+    expect(unlicensed.companyName).toBeUndefined();
+    expect(unlicensed.isEvaluation).toBe(false);
+    // The seat limit is dropped on both sides.
+    expect(lapsed.userLimit).toBeNull();
+    expect(unlicensed.userLimit).toBeNull();
   });
 
   test("during the trial it is field-for-field an unlicensed install, bar the diagnosis", () => {
@@ -1789,14 +1895,22 @@ describe("classifyLicenseToken: an unverified token with no recorded expiry", ()
       expiresAt: undefined,
       enterpriseEditionFirstSeenAt: FIRST_SEEN,
     };
+    const withToken: LicenseTokenClassification = classify({
+      token: legacyToken(),
+      storedColumns: columns,
+    });
 
-    expect(
-      comparableFields(
-        classify({ token: legacyToken(), storedColumns: columns }),
-      ),
-    ).toEqual(
+    expect(comparableFields(withToken)).toEqual(
       comparableFields(classify({ token: null, storedColumns: columns })),
     );
+
+    /*
+     * Nothing describes this license either - there are no columns to carry -
+     * so the two match on those as well, which is what makes the exclusions in
+     * comparableFields about the columns rather than about the state.
+     */
+    expect(withToken.companyName).toBeUndefined();
+    expect(withToken.isEvaluation).toBe(false);
   });
 
   /*
