@@ -174,25 +174,23 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
               : undefined
           }
         />
-        {overviewFields.map(
-          (field: SecurityEventDetailField): ReactElement => {
-            return (
-              <FieldRow
-                key={field.label}
-                label={field.label}
-                value={field.value}
-                filterLabel={`Filter by ${field.label}`}
-                onFilter={
-                  props.onFilterBy && field.facetKey
-                    ? () => {
-                        props.onFilterBy?.(field.facetKey!, field.value);
-                      }
-                    : undefined
-                }
-              />
-            );
-          },
-        )}
+        {overviewFields.map((field: SecurityEventDetailField): ReactElement => {
+          return (
+            <FieldRow
+              key={field.label}
+              label={field.label}
+              value={field.value}
+              filterLabel={`Filter by ${field.label}`}
+              onFilter={
+                props.onFilterBy && field.facetKey
+                  ? () => {
+                      props.onFilterBy?.(field.facetKey!, field.value);
+                    }
+                  : undefined
+              }
+            />
+          );
+        })}
       </dl>
 
       <div>

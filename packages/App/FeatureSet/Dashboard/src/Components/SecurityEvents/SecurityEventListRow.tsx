@@ -107,16 +107,16 @@ const SecurityEventListRow: FunctionComponent<ComponentProps> = (
             {event.principalHost && (
               <Chip label="host" value={event.principalHost} />
             )}
-            {event.principalIp && (
-              <Chip label="ip" value={event.principalIp} />
-            )}
+            {event.principalIp && <Chip label="ip" value={event.principalIp} />}
             {event.targetUser && (
               <Chip label="target user" value={event.targetUser} />
             )}
             {event.targetHost && (
               <Chip label="target host" value={event.targetHost} />
             )}
-            {event.targetIp && <Chip label="target ip" value={event.targetIp} />}
+            {event.targetIp && (
+              <Chip label="target ip" value={event.targetIp} />
+            )}
             {event.statusName && (
               <Chip label="status" value={event.statusName} />
             )}

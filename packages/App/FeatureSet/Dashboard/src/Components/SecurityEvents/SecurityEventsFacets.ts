@@ -246,9 +246,11 @@ export function getSecurityEventFacetChipDisplayValue(
  * a colour means the same thing in both places.
  */
 const SEVERITY_COLOR_MAP: Record<string, string> = Object.fromEntries(
-  Object.values(OcsfSeverity).map((severity: OcsfSeverity): [string, string] => {
-    return [severity, SECURITY_EVENT_VOLUME_COLORS[severity]];
-  }),
+  Object.values(OcsfSeverity).map(
+    (severity: OcsfSeverity): [string, string] => {
+      return [severity, SECURITY_EVENT_VOLUME_COLORS[severity]];
+    },
+  ),
 );
 
 export function buildSecurityEventFacetConfigs(options?: {
