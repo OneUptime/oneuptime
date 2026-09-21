@@ -462,6 +462,29 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   ]);
 
   /*
+   * Whether a license token IS installed, whatever the license client made of
+   * it.
+   *
+   * It matters because "the unlicensed trial" is no longer only for an
+   * installation with no license: one whose token has no expiry recorded
+   * beside it falls back to the same trial and the same lapse (the license
+   * client's classifyUnverifiedWithoutExpiry), so the copy below must not tell
+   * a paying customer that no license is installed.
+   *
+   * Two signals, because the two audiences are told different things. A master
+   * admin is sent the token itself. Everybody else is sent only the
+   * verification, and the license client reports "none" there exactly when
+   * there was no token to judge - so an "unverified" or "verified" grace
+   * period is a grace period with a license behind it. Neither field is new:
+   * both already come back from GET /global-config/license.
+   */
+  const hasLicenseInstalled: boolean =
+    IS_ENTERPRISE_EDITION &&
+    (Boolean(globalConfig?.enterpriseLicenseToken) ||
+      licenseVerification === "unverified" ||
+      licenseVerification === "verified");
+
+  /*
    * The two faces of "grace". An unlicensed installation's trial (counted from
    * the first run of the Enterprise Edition) is not an expired license, and
    * the dialog must not tell somebody who never had a license to renew one.
@@ -1276,14 +1299,36 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
               : "Enterprise Edition trial"}
           </h4>
           <p className="mt-1 text-xs leading-relaxed text-amber-800">
-            {`No Enterprise license is installed. Enterprise features stay fully available${
+            {`${
+              hasLicenseInstalled
+                ? "A license is installed, but this installation cannot tell whether it is still current, so it is treating this as an unlicensed install."
+                : "No Enterprise license is installed."
+            } Enterprise features stay fully available${
               graceEndsAtText ? ` until ${graceEndsAtText}` : ""
             }, counted from the first time this installation ran the Enterprise Edition. ${TRIAL_ENFORCEMENT_SUMMARY}`}
           </p>
+          {/*
+           * What the license client actually said about the installed license.
+           * Only a master admin is sent it, and only this state has one to
+           * show: a genuinely unlicensed install's message is the sentence
+           * above.
+           */}
+          {hasLicenseInstalled && licenseMessage && (
+            <p
+              data-testid="enterprise-license-status-message"
+              className="mt-2 text-xs leading-relaxed text-amber-800"
+            >
+              {licenseMessage}
+            </p>
+          )}
           <p className="mt-2 text-xs leading-relaxed text-amber-800">
             {canManageLicense
-              ? "Add a license below before the trial ends to keep single sign-on, SCIM and audit logging running and enterprise configuration editable."
-              : "Ask a master admin of this installation to add a license."}
+              ? hasLicenseInstalled
+                ? "Re-activate the license below before the trial ends, or let the daily license sync fetch its expiry from OneUptime, to keep single sign-on, SCIM and audit logging running and enterprise configuration editable."
+                : "Add a license below before the trial ends to keep single sign-on, SCIM and audit logging running and enterprise configuration editable."
+              : hasLicenseInstalled
+                ? "Ask a master admin of this installation to re-activate the license."
+                : "Ask a master admin of this installation to add a license."}
           </p>
         </section>
       );
@@ -1333,7 +1378,27 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           : licenseStatus === "invalid"
             ? licenseMessage ||
               "The stored license could not be verified. Validate the license again."
-            : "This installation has no valid Enterprise license.";
+            : hasLicenseInstalled
+              ? "A license is installed, but this installation cannot confirm that it is current, so nothing is licensed by it."
+              : "This installation has no valid Enterprise license.";
+
+      /*
+       * Whatever the license client said, for EVERY status and not only
+       * "invalid".
+       *
+       * The reason above is this component's own reading of a status code, and
+       * a status code cannot carry a diagnosis: "missing" is both "no license"
+       * and "a license whose expiry was never recorded, re-activate it or let
+       * the daily sync fetch it" (the license client's
+       * classifyUnverifiedWithoutExpiry). The second one is the whole point of
+       * the message field, and it used to be rendered nowhere but here in the
+       * "invalid" branch - which that state deliberately no longer is.
+       *
+       * Skipped when the reason already IS the message ("invalid"), so a master
+       * admin is never shown the same sentence twice.
+       */
+      const explanation: string =
+        licenseMessage && licenseMessage !== reason ? licenseMessage : "";
 
       return (
         <section
@@ -1342,6 +1407,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           className="rounded-xl border border-red-200 bg-red-50 p-5"
         >
           <h4 className="text-sm font-semibold text-red-900">{title}</h4>
+          {explanation && (
+            <p
+              data-testid="enterprise-license-status-message"
+              className="mt-1 text-xs leading-relaxed text-red-800"
+            >
+              {explanation}
+            </p>
+          )}
           <p className="mt-1 text-xs leading-relaxed text-red-800">
             {`${reason} ${LICENSE_LAPSED_STATE}`}
           </p>

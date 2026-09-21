@@ -875,3 +875,81 @@ describe("EditionLabel with the license manager - oneuptime.com", () => {
     });
   });
 });
+
+/*
+ * The same trial notice, in the dialog that CAN do something about it.
+ *
+ * An install holding a license whose expiry was never recorded is put on the
+ * unlicensed trial by the license client, so it lands in this notice - which
+ * opens "No Enterprise license is installed." and points the master admin at
+ * adding one. Neither is true here, and the explanation the license client
+ * sent with it used to be rendered nowhere at all.
+ */
+describe("EditionLabel with the license manager - a license with no recorded expiry", () => {
+  const NO_EXPIRY_MESSAGE: string =
+    "A OneUptime Enterprise license is installed, but no expiry is recorded for it, so this installation cannot tell whether it is still current. " +
+    "Enterprise features stay available meanwhile, under the 14-day trial counted from when this installation first ran the Enterprise Edition. " +
+    "A master admin can re-activate the license from the edition label in the Admin Dashboard, or leave the daily license sync to fetch its expiry from oneuptime.com.";
+
+  beforeEach(() => {
+    respondWith(
+      adminPayload({
+        status: "grace",
+        graceReason: "unlicensed",
+        // A token IS installed; it is the expiry beside it that is missing.
+        verification: "unverified",
+        graceEndsAt: inDays(10),
+        expiresAt: null,
+        message: NO_EXPIRY_MESSAGE,
+        userLimit: null,
+        isSeatLimitEnforced: false,
+        seatsInUse: null,
+        seatsRemaining: null,
+      }),
+    );
+  });
+
+  it("tells the master admin to re-activate the license, not to add one", async () => {
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-trial-notice",
+    );
+
+    expect(notice).not.toHaveTextContent("No Enterprise license is installed");
+    expect(notice).toHaveTextContent("Re-activate the license below");
+    expect(notice).not.toHaveTextContent("Add a license below");
+  });
+
+  it("renders the license client's own explanation", async () => {
+    await openDialog();
+
+    expect(
+      await screen.findByTestId("enterprise-license-status-message"),
+    ).toHaveTextContent("no expiry is recorded for it");
+  });
+
+  /*
+   * And it is still a trial: the countdown, and what stops when it ends, are
+   * unchanged - the install really is running on the trial clock.
+   */
+  it("still counts down the trial and says what stops when it ends", async () => {
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-trial-notice",
+    );
+
+    expect(notice).toHaveTextContent("Enterprise Edition trial: 10 days left");
+    expect(lapseWarningProblems(notice.textContent)).toEqual([]);
+  });
+
+  // The key input is offered, because re-activating is what fixes this.
+  it("offers the master admin the activation input", async () => {
+    await openDialog();
+
+    expect(
+      await screen.findByPlaceholderText("Enter your enterprise license key"),
+    ).toBeInTheDocument();
+  });
+});

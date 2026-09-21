@@ -847,6 +847,16 @@ describe("EditionLabel - without a license manager", () => {
       adminPayload({
         status: "grace",
         graceReason: "unlicensed",
+        /*
+         * No license at all, which is what the server sends for this trial:
+         * no token, and verification "none" because there was nothing to
+         * judge. An install that IS holding a license reaches the same trial
+         * (a token with no expiry recorded) and is told something different.
+         */
+        verification: "none",
+        token: null,
+        licenseKey: null,
+        expiresAt: null,
         graceEndsAt: inDays(10),
       }),
     );
@@ -1138,6 +1148,11 @@ describe("EditionLabel - with a license manager", () => {
       adminPayload({
         status: "grace",
         graceReason: "unlicensed",
+        // No license at all: no token, and nothing to verify.
+        verification: "none",
+        token: null,
+        licenseKey: null,
+        expiresAt: null,
         graceEndsAt: inDays(10),
       }),
     );
@@ -1355,5 +1370,217 @@ describe("EditionLabel - the lapse copy and its checks", () => {
       `Without a valid license (after the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period),`,
     );
     expect(GRACE_ENFORCEMENT_SUMMARY).not.toContain("14-day");
+  });
+});
+
+/*
+ * A license IS installed, and the expiry beside it never was.
+ *
+ * The license client stopped calling that "invalid" - it is the product's own
+ * bookkeeping failing, not an entitlement ending - and falls back to the
+ * unlicensed trial instead. Two things followed for this dialog, and both were
+ * wrong until these cases existed:
+ *
+ *   - the explanation ("no expiry is recorded, re-activate it or let the daily
+ *     sync fetch it") was rendered in exactly one place, inside the "invalid"
+ *     branch, which this state deliberately is not. It reached nobody.
+ *   - the copy it fell into instead is the trial notice, which opens "No
+ *     Enterprise license is installed." - said to a customer who is holding
+ *     one.
+ *
+ * The server sends the token to a master admin and the verification to
+ * everybody, so both audiences can tell the two apart.
+ */
+describe("EditionLabel - a license whose expiry was never recorded", () => {
+  const NO_EXPIRY_MESSAGE: string =
+    "A OneUptime Enterprise license is installed, but no expiry is recorded for it, so this installation cannot tell whether it is still current. " +
+    "A master admin can re-activate the license from the edition label in the Admin Dashboard, or leave the daily license sync to fetch its expiry from oneuptime.com.";
+
+  // Inside the trial the classifier reports grace/unlicensed, with a token.
+  const inTrial: PayloadFunction = (
+    overrides?: Record<string, unknown>,
+  ): JSONObject => {
+    return adminPayload({
+      status: "grace",
+      graceReason: "unlicensed",
+      verification: "unverified",
+      graceEndsAt: inDays(10),
+      licenseValid: true,
+      expiresAt: null,
+      message: NO_EXPIRY_MESSAGE,
+      userLimit: null,
+      isSeatLimitEnforced: false,
+      seatsInUse: null,
+      seatsRemaining: null,
+      ...(overrides || {}),
+    });
+  };
+
+  it("does not tell a customer holding a license that none is installed", async () => {
+    respondWith(inTrial());
+
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-trial-notice",
+    );
+
+    expect(notice).not.toHaveTextContent("No Enterprise license is installed");
+    expect(notice).toHaveTextContent(
+      "A license is installed, but this installation cannot tell whether it is still current",
+    );
+  });
+
+  it("shows the explanation the license client sent, inside the trial", async () => {
+    respondWith(inTrial());
+
+    await openDialog();
+
+    expect(
+      await screen.findByTestId("enterprise-license-status-message"),
+    ).toHaveTextContent("no expiry is recorded for it");
+    expect(
+      screen.getByTestId("enterprise-license-status-message"),
+    ).toHaveTextContent("daily license sync");
+  });
+
+  /*
+   * And the remedy names the license that is there. This dialog is rendered
+   * with no license manager, so nobody here can act on it and the copy is the
+   * "ask a master admin" one - re-activate the license, not add a first.
+   */
+  it("asks for the installed license to be re-activated, not for a new one", async () => {
+    respondWith(inTrial());
+
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-trial-notice",
+    );
+
+    expect(notice).toHaveTextContent(
+      "Ask a master admin of this installation to re-activate the license",
+    );
+    expect(notice).not.toHaveTextContent("to add a license");
+  });
+
+  /*
+   * Past the trial the classifier reports "missing", which used to render the
+   * bare "This installation has no valid Enterprise license." and nothing
+   * else - the one state where an administrator most needs to be told what is
+   * actually wrong.
+   */
+  it("shows the explanation past the trial, where the status alone says nothing", async () => {
+    respondWith(
+      adminPayload({
+        status: "missing",
+        verification: "unverified",
+        licenseValid: false,
+        expiresAt: null,
+        graceEndsAt: inDays(-1),
+        message: NO_EXPIRY_MESSAGE,
+      }),
+    );
+
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-required-notice",
+    );
+
+    expect(notice).toHaveTextContent("no expiry is recorded for it");
+    expect(notice).toHaveTextContent("re-activate the license");
+    expect(notice).not.toHaveTextContent(
+      "This installation has no valid Enterprise license",
+    );
+  });
+
+  /*
+   * Somebody who is not a master admin is sent no token and no message, but is
+   * sent the verification - which is "none" only when there was no token to
+   * judge. So they are not told that no license is installed either.
+   */
+  it("tells a non-master-admin the same thing, from the verification alone", async () => {
+    isMasterAdmin = false;
+    respondWith(
+      publicPayload({
+        status: "grace",
+        graceReason: "unlicensed",
+        verification: "unverified",
+        graceEndsAt: inDays(10),
+        expiresAt: null,
+      }),
+    );
+
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-trial-notice",
+    );
+
+    expect(notice).not.toHaveTextContent("No Enterprise license is installed");
+    expect(notice).toHaveTextContent(
+      "Ask a master admin of this installation to re-activate the license",
+    );
+    // No message is sent to them, so none is rendered.
+    expect(
+      screen.queryByTestId("enterprise-license-status-message"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The genuinely unlicensed installation, unchanged. The whole point of the
+   * qualification is that it applies only when a license IS there: verification
+   * "none" and no token.
+   */
+  it("leaves the copy for an install with no license at all exactly as it was", async () => {
+    respondWith(
+      adminPayload({
+        status: "grace",
+        graceReason: "unlicensed",
+        verification: "none",
+        graceEndsAt: inDays(10),
+        licenseValid: true,
+        token: null,
+        licenseKey: null,
+        expiresAt: null,
+        companyName: null,
+      }),
+    );
+
+    await openDialog();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "enterprise-license-trial-notice",
+    );
+
+    expect(notice).toHaveTextContent("No Enterprise license is installed");
+    expect(notice).toHaveTextContent(
+      "Ask a master admin of this installation to add a license",
+    );
+    expect(notice).not.toHaveTextContent("A license is installed");
+  });
+
+  /*
+   * An "invalid" license still shows its message exactly once: it is both the
+   * reason line and the message, and a master admin must not read the same
+   * sentence twice.
+   */
+  it("does not repeat the message for an invalid license", async () => {
+    respondWith(
+      adminPayload({
+        status: "invalid",
+        licenseValid: false,
+        message: "The license is bound to a different OneUptime instance.",
+      }),
+    );
+
+    await openDialog();
+
+    await screen.findByTestId("enterprise-license-required-notice");
+
+    expect(
+      screen.getAllByText(/bound to a different OneUptime instance/),
+    ).toHaveLength(1);
   });
 });
