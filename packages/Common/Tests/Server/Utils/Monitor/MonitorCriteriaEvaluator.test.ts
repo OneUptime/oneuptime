@@ -1320,8 +1320,13 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
         ],
       });
 
-      expect(context).toContain("**Affected Resources** (1 total)");
-      expect(context).toContain("1. **Node** `node-notready` — **0**");
+      expect(context).toContain(
+        [
+          "**Affected Resources** (1 total)",
+          "",
+          "1. **Node** `node-notready` — **0**",
+        ].join("\n"),
+      );
       expect(context).toContain(
         "Node `node-notready` is reporting NotReady (value: 0).",
       );
@@ -1470,8 +1475,12 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
     });
 
     expect(context).toContain("**Affected Resources** (2 total)");
-    expect(context).toContain("1. **Deployment** `api` — **5**");
-    expect(context).toContain("2. **Deployment** `web` — **3**");
+    expect(context).toContain(
+      [
+        "1. **Deployment** `api` — **5**",
+        "2. **Deployment** `web` — **3**",
+      ].join("\n"),
+    );
     expect(context).not.toContain("`ok`");
 
     // Still worst-HIGHEST-first for an upward comparison.

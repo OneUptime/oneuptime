@@ -518,15 +518,16 @@ export interface SloBudgetBarGeometry {
   atRiskThresholdPercentage: number;
   /** Same tier as every other red/amber/green on the SLO pages. */
   tier: SloBudgetTier;
-  /** Remaining budget is below zero — the fill is clamped, the text is not. */
+  /** Remaining budget is below zero; preserve this even though the fill is zero. */
   isOverspent: boolean;
 }
 
 /**
  * Everything the budget bar draws, from the SIGNED remaining percentage.
  *
- * The percentage is unrounded and uncapped below zero (an overspent budget
- * reads -340%), so only the drawing is clamped; the colour comes from
+ * The input percentage is unrounded and uncapped below zero, so an overspent
+ * budget still gets an explicit exceeded state when the drawing is clamped.
+ * The colour comes from
  * SloHealth.getSloBudgetTier with the SLO's own threshold, so the bar can
  * never be green while the status pill says At Risk.
  */

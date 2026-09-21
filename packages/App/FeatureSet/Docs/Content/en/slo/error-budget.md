@@ -41,7 +41,9 @@ As downtime accumulates, OneUptime tracks:
 - **Remaining time** — `total budget − downtime consumed`, shown on the Overview's **Error budget left** tile alongside the total (e.g., "31m 4s left of 43m 12s").
 - **Remaining percent** — remaining budget as a percentage of the total, which drives the budget bar and the [SLO status](/docs/slo/introduction). The bar has a tick at the SLO's at-risk threshold.
 
-The remaining budget is a **signed** value. If you blow through the budget, OneUptime keeps counting — an SLO can show "−40 minutes" to tell you exactly how far over you are, which is far more useful during a bad month than a bar pinned at zero. The budget bar itself clamps at empty; the signed number is shown next to it.
+Once the allowance is used up, the Overview tile says **No budget left**. If downtime exceeds the allowance, it says **Budget exceeded** and shows the overage as time — for example, **4d 23m over budget · 5m 47s allowed**. This means the SLO has used all 5 minutes and 47 seconds of its allowance, plus another 4 days and 23 minutes. The bar stays empty and red.
+
+The remaining budget is still stored as a **signed** value for calculations and history charts. A large negative percentage means the overage is large compared with the allowance; it is not the percentage of time the service was down. On a young rolling window, **window 13% full** means only 13% of the configured window has been measured so far, so the allowance is still growing.
 
 Which seconds count as "downtime consumed" is controlled per SLO by its downtime statuses and, for multi-monitor SLOs, its multi-monitor mode. Both are on the SLO's **Settings** page, under **Downtime Calculation** — see [How OneUptime models an SLO](/docs/slo/introduction).
 

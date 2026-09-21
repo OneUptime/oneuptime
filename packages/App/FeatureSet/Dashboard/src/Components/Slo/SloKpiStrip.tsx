@@ -12,7 +12,10 @@ import {
 } from "Common/Utils/Slo/SloDuration";
 import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
 import { getSloBudgetTier, SloBudgetTier } from "Common/Utils/Slo/SloHealth";
-import { getSloTargetText } from "Common/Utils/Slo/SloOverviewText";
+import {
+  getSloBudgetRemainingText,
+  getSloTargetText,
+} from "Common/Utils/Slo/SloOverviewText";
 import {
   getRollingWindowFill,
   getSliDeltaText,
@@ -44,12 +47,6 @@ export interface ComponentProps {
 }
 
 const EM_DASH: string = "—";
-
-/*
- * Budget percentages are a coarse gauge — one decimal is plenty, and the
- * exact figure is the duration in the description.
- */
-const BUDGET_PERCENT_DECIMALS: number = 1;
 
 const RUNWAY_TONE_TEXT_CLASS: Record<SloProjectionTone, string> = {
   [SloProjectionTone.Neutral]: "text-gray-900",
@@ -95,9 +92,8 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
 
   // ---- Error budget ----------------------------------------------------------
 
-  const budgetText: string | null = formatSloPercent(
+  const budgetText: string | null = getSloBudgetRemainingText(
     slo.errorBudgetRemainingPercentage,
-    BUDGET_PERCENT_DECIMALS,
   );
 
   const budgetTier: SloBudgetTier = getSloBudgetTier({
@@ -113,11 +109,26 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     multiMonitorMode: slo.multiMonitorMode,
   });
 
+  let budgetFallbackText: string = SLO_NOT_EVALUATED_TEXT;
+
+  if (budgetText !== null) {
+    if (
+      typeof slo.errorBudgetRemainingPercentage === "number" &&
+      slo.errorBudgetRemainingPercentage < 0
+    ) {
+      budgetFallbackText = "Allowed downtime has been exceeded";
+    } else if (slo.errorBudgetRemainingPercentage === 0) {
+      budgetFallbackText = "All allowed downtime has been used";
+    } else {
+      budgetFallbackText = "Remaining share of the allowed downtime";
+    }
+  }
+
   const budgetDurationText: string =
     formatErrorBudgetRemainingOfTotal({
       remainingSeconds: slo.errorBudgetRemainingSeconds,
       totalSeconds: slo.errorBudgetTotalSeconds,
-    }) ?? SLO_NOT_EVALUATED_TEXT;
+    }) ?? budgetFallbackText;
 
   /*
    * A young rolling window's budget is still growing, which is why its
