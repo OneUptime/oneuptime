@@ -1,4 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import getCanonicalModelInstance from "../CanonicalModelInstance";
 import { ReflectionMetadataType } from "../../Reflection";
 import "reflect-metadata";
 
@@ -66,10 +67,14 @@ type GetOwnerOnlyColumnsFunction = <T extends BaseModel>(
 ) => Array<string>;
 
 /**
- * Every owner-only column on this model. Enumerating requires the property to
- * exist on the instance, which it does for every declared column because model
- * columns are initialised to `undefined` in the class body - the same
- * assumption getTableColumns() already makes.
+ * Every owner-only column on this model. Which columns a MODEL marks is a
+ * property of the class, so the enumeration reads a canonical instance of the
+ * class rather than the caller's own instance: a caller that had deleted a
+ * key off its instance would otherwise get an answer that silently omits a
+ * marked column, and this list is what OwnerOnlyColumnPermission enforces
+ * against. See CanonicalModelInstance.ts. (Enumerating at all relies on every
+ * declared column being initialised to `undefined` in the class body - the
+ * same assumption getTableColumns() makes.)
  */
 export const getOwnerOnlyColumns: GetOwnerOnlyColumnsFunction = <
   T extends BaseModel,
@@ -77,9 +82,13 @@ export const getOwnerOnlyColumns: GetOwnerOnlyColumnsFunction = <
   target: T,
 ): Array<string> => {
   const columns: Array<string> = [];
+  // Nothing is cached here, so falling back to the caller's instance is safe.
+  const metadataSource: T = getCanonicalModelInstance(target) || target;
 
-  for (const key of Object.keys(target)) {
-    if (Reflect.getMetadata(ownerOnlyColumnSymbol, target, key) === true) {
+  for (const key of Object.keys(metadataSource)) {
+    if (
+      Reflect.getMetadata(ownerOnlyColumnSymbol, metadataSource, key) === true
+    ) {
       columns.push(key);
     }
   }

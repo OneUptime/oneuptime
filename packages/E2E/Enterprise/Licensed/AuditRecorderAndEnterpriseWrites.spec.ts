@@ -63,6 +63,7 @@ test.describe("Audit recorder and enterprise writes (licensed stack)", () => {
   let ownerEmail: string = "";
   let auditedLabelName: string = "";
   let auditLogsEnabled: boolean = false;
+  let projectScimId: string = "";
   let projectScimName: string = "";
 
   test.beforeAll(
@@ -109,6 +110,7 @@ test.describe("Audit recorder and enterprise writes (licensed stack)", () => {
         auditLogsEnabled,
         auditedResourceType: LABEL_RESOURCE_TYPE,
         auditedResourceName: auditedLabelName,
+        projectScimId,
         projectScimName,
         completedAt: new Date().toISOString(),
       });
@@ -246,9 +248,22 @@ test.describe("Audit recorder and enterprise writes (licensed stack)", () => {
     ).toBe(200);
 
     /*
-     * Read it back rather than trusting the 200: the row has to be really
-     * there for the Lapsed phase to show that a lapse keeps it. By name,
-     * because this API does not hand a project-owner session the row's key.
+     * The create must hand back the row's key. It did not for a while - a
+     * column-metadata cache in Common dropped `_id` from every serialized
+     * response for a model once one create had been made for it - and the
+     * Lapsed phase needs this id to address the row for an update, so assert
+     * it rather than working around its absence.
+     */
+    expect(
+      result.id,
+      `The created SCIM configuration must come back with an id. ${found}`,
+    ).not.toBe("");
+
+    projectScimId = result.id;
+
+    /*
+     * And read it back rather than trusting the 200: the row has to be really
+     * there for the Lapsed phase to show that a lapse keeps it.
      */
     const isListed: boolean = await isProjectScimListed({
       page,
