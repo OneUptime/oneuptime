@@ -826,7 +826,11 @@ const classifyMissingToken: (
  *   verification  stays "unverified": a token IS installed, it just cannot be
  *                 judged. "none" would claim there is no token at all.
  *   reason        "unverified-without-expiry-unlicensed", its own code.
- *   message       says what is wrong and what an admin can do about it.
+ *   message       says what is wrong and what an admin can do about it, in
+ *                 three forms - inside the trial, after it, and with no
+ *                 first-run stamp at all (see below).
+ *   companyName   and isEvaluation come from the stored columns: they describe
+ *   isEvaluation  the license that IS installed (see the note at the return).
  *
  * All three states classifyMissingToken distinguishes are preserved: inside
  * the trial (grace), after it (missing WITH graceEndsAt), and "the first-run
@@ -870,9 +874,33 @@ const classifyUnverifiedWithoutExpiry: (
       `Enterprise Edition has ended, so Enterprise features have stopped. ${remedy}`;
   }
 
+  /*
+   * What is carried over from the stored columns, and what is deliberately
+   * left behind.
+   *
+   * companyName and isEvaluation are carried. They are descriptions of the
+   * license that IS installed and they gate nothing: companyName is the
+   * "Licensed to" line, isEvaluation the evaluation notice. Taking
+   * classifyMissingToken's blanks for them (no company, isEvaluation false)
+   * would have this state quietly present a customer's evaluation license as a
+   * production one, and strip the name of the company the license names, on the
+   * strength of a missing expiry.
+   *
+   * userLimit is NOT carried, and that is the one difference that matters. It
+   * is not a description: it is the number UserService refuses new users
+   * against. Enforcing a seat ceiling out of a record this product has already
+   * admitted is incomplete would turn one missing column into "you cannot add
+   * users", with nothing here able to corroborate the figure. Null means no
+   * limit, so the install under-enforces until the expiry is recovered - the
+   * same direction every other decision in this file resolves in, and the same
+   * direction as the trial this state falls back to (which has no limit
+   * either).
+   */
   return {
     ...unlicensed,
     verification: "unverified",
+    companyName: input.storedColumns.companyName || undefined,
+    isEvaluation: input.storedColumns.isEvaluation === true,
     message,
     reason: "unverified-without-expiry-unlicensed",
     kid: kid || undefined,
