@@ -175,7 +175,7 @@ logfmt, nginx, logback, Python, .NET and klog lines, and holds the three agents
 and the Kubernetes ConfigMap to one identical chain.
 
 The expectations are not guesses: each config was run through the real
-`otelcol-contrib` 0.154.0 — the version the images are built `FROM` — over a
+`otelcol-contrib` 0.161.0 — the version the images are built `FROM` — over a
 fixture log file, and the severity this suite predicts is the severity the
 collector emitted. The pattern is additionally cross-checked against Go's
 `regexp` package, which is the same RE2 implementation stanza's `regex_parser`
@@ -203,7 +203,7 @@ RE2, where a pattern that is linear in RE2 can still be exponential.
 ### `validate-collector-configs.sh`
 
 Not part of `npm test`, because it needs docker and helm. It runs
-`otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.154.0`
+`otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.161.0`
 image over the four agent configs and over both collector ConfigMaps rendered
 out of the `kubernetes-agent` chart.
 
@@ -229,7 +229,7 @@ collector exits with it, and the container restart-loops. The version is now the
 `ENV` and in each compose file's pass-through.
 
 Everything this suite asserts was **measured** against
-`otel/opentelemetry-collector-contrib:0.154.0` and a real daemon, not assumed —
+`otel/opentelemetry-collector-contrib:0.161.0` and a real daemon, not assumed —
 see the header comment for the full table. Three measurements matter:
 
 | `api_version`         | on the wire            | collector             |

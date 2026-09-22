@@ -39,7 +39,7 @@ const yaml = require("js-yaml");
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
 /** Same tag both Dockerfile.tpl files and DockerSwarmAgent/docker-compose.yml pin. */
-const COLLECTOR_IMAGE = "otel/opentelemetry-collector-contrib:0.154.0";
+const COLLECTOR_IMAGE = "otel/opentelemetry-collector-contrib:0.161.0";
 
 const ENABLED = process.env.RUN_CONTAINER_AGENT_RUNTIME_TESTS === "1";
 
