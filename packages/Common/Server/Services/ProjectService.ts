@@ -3082,6 +3082,7 @@ These are no longer recorded against the project and have to be cancelled by han
             message: message,
           },
           subject: subject,
+          isSubjectLiteral: true,
         },
         {
           projectId,

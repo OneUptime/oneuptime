@@ -94,6 +94,7 @@ RunCron(
                 ).toString(),
               },
               subject: "[Action Required] OneUptime subscription is past due.",
+              isSubjectLiteral: true,
             },
             {
               projectId: project.id!,

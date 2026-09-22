@@ -160,6 +160,7 @@ RunCron(
           templateType: EmailTemplateType.ProbeOwnerAdded,
           vars: vars,
           subject: "[Probe] Owner of " + probe.name,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

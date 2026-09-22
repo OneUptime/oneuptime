@@ -109,6 +109,7 @@ router.post(
         templateType: EmailTemplateType.SMTPTest,
         toEmail: new Email(body["toEmail"] as string),
         subject: "Test Email from OneUptime",
+        isSubjectLiteral: true,
         vars: {},
         body: "",
       };

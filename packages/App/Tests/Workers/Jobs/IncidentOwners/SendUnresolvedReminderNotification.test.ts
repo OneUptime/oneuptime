@@ -506,4 +506,28 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
     }
     expect(allVars[0]).toEqual(allVars[1]);
   });
+
+  /*
+   * The title is user text. Compiled again by the mailer, "{{ ... }}" in it
+   * rendered as nothing and a lone "{{" stopped the email being sent.
+   */
+  test("a title quoting template syntax reaches the subject as written, marked literal", async () => {
+    const incident: Incident = makeIncident(DESCRIPTION_MARKDOWN);
+    incident.title = "Rollout of {{ .Values.image.tag }} stalled";
+    incidentService.findAllBy.mockResolvedValue([incident]);
+    incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+    await runWorkerTick();
+
+    const emailEnvelope: EmailEnvelope = (
+      notificationService.sendUserNotification.mock.calls[0]![0] as {
+        emailEnvelope: EmailEnvelope;
+      }
+    ).emailEnvelope;
+
+    expect(emailEnvelope.isSubjectLiteral).toBe(true);
+    expect(emailEnvelope.subject).toBe(
+      "[Reminder] Incident #42 is still Investigating - Rollout of {{ .Values.image.tag }} stalled",
+    );
+  });
 });

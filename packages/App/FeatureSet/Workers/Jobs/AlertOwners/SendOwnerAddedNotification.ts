@@ -193,6 +193,7 @@ RunCron(
           templateType: EmailTemplateType.AlertOwnerAdded,
           vars: vars,
           subject: `You have been added as the owner of Alert ${alertNumber} - ${alert.title}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

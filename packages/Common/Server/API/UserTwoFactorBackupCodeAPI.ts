@@ -219,6 +219,7 @@ export default class UserTwoFactorBackupCodeAPI extends BaseAPI<
     await MailService.sendMail({
       toEmail: user.email,
       subject: "Your OneUptime two factor backup codes were replaced",
+      isSubjectLiteral: true,
       templateType: EmailTemplateType.TwoFactorBackupCodesRegenerated,
       vars: {
         generatedAt: OneUptimeDate.getCurrentDateAsFormattedString(),

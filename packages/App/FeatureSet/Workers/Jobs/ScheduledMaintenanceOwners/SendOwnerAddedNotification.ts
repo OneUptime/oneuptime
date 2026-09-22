@@ -205,6 +205,7 @@ RunCron(
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerAdded,
           vars: vars,
           subject: `You have been added as the owner of Scheduled Maintenance ${scheduledMaintenanceNumber} - ${scheduledMaintenance.title}`,
+          isSubjectLiteral: true,
         };
 
         const scheduledMaintenanceIdentifier: string =

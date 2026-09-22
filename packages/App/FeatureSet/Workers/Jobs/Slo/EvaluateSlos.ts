@@ -3198,6 +3198,7 @@ async function sendStatusChangeNotification(data: {
           subject: subject,
         },
         subject: subject,
+        isSubjectLiteral: true,
       };
 
       const sms: SMSMessage = {
