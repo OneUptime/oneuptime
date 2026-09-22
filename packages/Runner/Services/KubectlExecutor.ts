@@ -550,7 +550,7 @@ export default class KubectlExecutor {
       return `Refused by the Runner: this Runner was installed read-only (${current}; only "true" allows writes). Upgrade the Kubernetes agent with --set aiAccess.remediation.enabled=true to allow OneUptime AI to change this cluster.`;
     }
 
-    return `Refused by the Runner: this Runner host does not allow AI-composed kubectl writes (${current}; only "true" allows them, and any other value refuses every write). Set ${KUBECTL_ALLOW_WRITES_ENV}=true in this Runner's environment and restart it to let OneUptime AI change clusters through it; the Kubernetes credential's RBAC still bounds what it can do.`;
+    return `Refused by the Runner: this Runner host does not allow AI-composed kubectl writes (${current}; when it is set, only "true" allows them). Set ${KUBECTL_ALLOW_WRITES_ENV}=true in this Runner's environment (or remove it) and restart it to let OneUptime AI change clusters through it; the Kubernetes credential's RBAC still bounds what it can do.`;
   }
 
   /*

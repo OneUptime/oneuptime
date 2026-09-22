@@ -145,27 +145,43 @@ export const ENABLE_AI_COMMANDS_OVERRIDE: boolean | null =
   parseCapabilityOverride(process.env["ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS"]);
 
 /*
- * Whether AI-composed kubectl WRITES may run from this host. Unlike the
- * capability overrides above this switch fails CLOSED: only "true" (any
- * case, surrounding whitespace ignored) lets a write through; unset, empty,
- * "false" and anything else — "readonly", "disabled", "no", a typo — refuse
- * every non-Read kubectl before it spawns. A security switch whose name
- * reads as a boolean must never turn a plausible "off" spelling into "on".
+ * Whether AI-composed kubectl WRITES may run from this host.
  *
- * The kubernetes-agent chart sets it explicitly from
- * aiAccess.remediation.enabled, matching the RBAC it granted the Runner's
- * ServiceAccount. Any other Runner that should let OneUptime AI change a
- * cluster through its Kubernetes credential sets it to "true" itself.
+ * A value that is SET fails closed: only "true" (any case, surrounding
+ * whitespace ignored) lets a write through; "false" and anything else —
+ * "readonly", "disabled", "no", a typo — refuse every non-Read kubectl
+ * before it spawns. A security switch whose name reads as a boolean must
+ * never turn a plausible "off" spelling into "on".
+ *
+ * UNSET depends on what this Runner is. The kubernetes-agent chart always
+ * sets it (from aiAccess.remediation.enabled, matching the RBAC it granted
+ * the pod's ServiceAccount), so an agent-mode Runner without it refuses
+ * writes. Any other Runner reaches a cluster only through a Kubernetes
+ * credential an operator assigned it, whose RBAC bounds what kubectl can do,
+ * and the server cannot see this host's environment — refusing there by
+ * default would leave a cluster reported ready for remediation whose every
+ * fix fails on the Runner. Such a Runner keeps writes on unless its
+ * operator sets the variable to "false".
  */
 export const KUBECTL_ALLOW_WRITES_RAW: string | null =
   process.env[KUBECTL_ALLOW_WRITES_ENV] ?? null;
 
-export function parseKubectlAllowWrites(value: string | null): boolean {
-  return (value || "").trim().toLowerCase() === "true";
+export function parseKubectlAllowWrites(
+  value: string | null,
+  isKubernetesAgentMode: boolean,
+): boolean {
+  const normalized: string = (value || "").trim().toLowerCase();
+
+  if (!normalized) {
+    return !isKubernetesAgentMode;
+  }
+
+  return normalized === "true";
 }
 
 export const KUBECTL_ALLOW_WRITES: boolean = parseKubectlAllowWrites(
   KUBECTL_ALLOW_WRITES_RAW,
+  IS_KUBERNETES_AGENT_MODE,
 );
 
 /*

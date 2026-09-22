@@ -71,9 +71,11 @@ export default class KubernetesPosture {
   }
 
   /*
-   * Only ONEUPTIME_KUBECTL_ALLOW_WRITES=true lets an AI-composed write run
-   * from this host (see Config: the switch fails closed). The chart sets it
-   * from aiAccess.remediation.enabled; any other Runner sets it itself.
+   * Whether an AI-composed write may run from this host (see Config): a set
+   * ONEUPTIME_KUBECTL_ALLOW_WRITES allows writes only when it is "true"; an
+   * unset one refuses them on the kubernetes-agent Runner (the chart always
+   * sets it) and allows them on any other Runner, whose credential's RBAC
+   * bounds them.
    */
   public static allowsWrites(): boolean {
     return KUBECTL_ALLOW_WRITES;

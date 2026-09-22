@@ -250,11 +250,14 @@ describe("KubernetesPosture with the mode decided from the environment", () => {
 /*
  * ONEUPTIME_KUBECTL_ALLOW_WRITES used to fail OPEN: any value other than
  * false/0/no/off allowed writes, so an operator hardening an external Runner
- * with "readonly" or "disabled" silently kept remediations running. It now
- * fails closed — only "true" allows a write — and an unrecognised value is
- * named in a start-up warning.
+ * with "readonly" or "disabled" silently kept remediations running. A SET
+ * value now fails closed — only "true" allows a write — and an unrecognised
+ * value is named in a start-up warning. UNSET keeps a project Runner's
+ * writes on (its credential's RBAC bounds them, and the server cannot see
+ * this host's environment) and refuses them on the kubernetes-agent Runner,
+ * which the chart always configures explicitly.
  */
-describe("ONEUPTIME_KUBECTL_ALLOW_WRITES fails closed", () => {
+describe("ONEUPTIME_KUBECTL_ALLOW_WRITES fails closed when set", () => {
   const savedEnv: NodeJS.ProcessEnv = { ...process.env };
 
   afterEach(() => {
@@ -292,9 +295,6 @@ describe("ONEUPTIME_KUBECTL_ALLOW_WRITES fails closed", () => {
   );
 
   test.each([
-    undefined,
-    "",
-    "   ",
     "false",
     " FALSE ",
     "0",
@@ -315,6 +315,57 @@ describe("ONEUPTIME_KUBECTL_ALLOW_WRITES fails closed", () => {
   ])("%j refuses writes", (value: string | undefined) => {
     expect(allowsWritesWith(value).allowsWrites).toBe(false);
   });
+
+  test.each([undefined, "", "   "])(
+    "%j (unset) keeps writes on for a project Runner, whose credential's RBAC bounds them",
+    (value: string | undefined) => {
+      expect(allowsWritesWith(value).allowsWrites).toBe(true);
+    },
+  );
+
+  function agentModeAllowsWritesWith(value: string | undefined): {
+    isAgentMode: boolean;
+    allowsWrites: boolean;
+  } {
+    const modules: ReturnType<typeof loadIsolated> = loadIsolated({
+      ONEUPTIME_RUNNER_ID: undefined,
+      ONEUPTIME_RUNNER_KEY: undefined,
+      ONEUPTIME_INGESTION_KEY: "ingest-key-123",
+      ONEUPTIME_KUBERNETES_CLUSTER_NAME: "prod-us",
+      ONEUPTIME_KUBECTL_ALLOW_WRITES: value,
+    });
+
+    return {
+      isAgentMode: modules.KubernetesAgentMode.isActive(),
+      allowsWrites: modules.KubernetesPosture.allowsWrites(),
+    };
+  }
+
+  test.each([undefined, "", "   "])(
+    "%j (unset) refuses writes on the kubernetes-agent Runner, which the chart always configures",
+    (value: string | undefined) => {
+      // The loader really switched to agent mode, or this proves nothing.
+      expect(agentModeAllowsWritesWith(value)).toEqual({
+        isAgentMode: true,
+        allowsWrites: false,
+      });
+    },
+  );
+
+  test.each([
+    ["true", true],
+    [" TRUE ", true],
+    ["false", false],
+    ["readonly", false],
+  ])(
+    "%j decides the same on the kubernetes-agent Runner (allows writes: %p)",
+    (value: string, expected: boolean) => {
+      expect(agentModeAllowsWritesWith(value)).toEqual({
+        isAgentMode: true,
+        allowsWrites: expected,
+      });
+    },
+  );
 
   test("an unrecognised value is named in exactly one start-up warning", () => {
     const { warnings } = allowsWritesWith("readonly");
